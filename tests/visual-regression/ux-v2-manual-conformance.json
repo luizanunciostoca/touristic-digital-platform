@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "authority": {
+    "document": "Morro_Digital_Manual_Desenvolvedor_UX_Design_V2.pdf",
+    "section": "32",
+    "appendix": "A",
+    "principle": "Implementation screenshots are evidence, never the visual authority."
+  },
+  "productDecisions": {
+    "quickActions": "retired",
+    "floatingAssistantLauncher": "retired",
+    "mapAsDominantCanvas": true
+  },
+  "surfaces": {
+    "discover": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "pure Discover state without an active route",
+        "map remains dominant canvas",
+        "persistent composer visible",
+        "no floating Assistant launcher",
+        "no Quick Actions"
+      ],
+      "evidence": [
+        "Home Discover Manual Conformance artifact",
+        "Mapbox pure-Discover screenshot before route mutation"
+      ]
+    },
+    "place": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "canonicalState": "initial-half",
+      "proofObligations": [
+        "canonical screenshot captured before state cycling",
+        "contextual image-led hierarchy",
+        "map context retained",
+        "initial Place action set is not duplicated in Assistant"
+      ],
+      "evidence": [
+        "Place initial-half screenshot before state cycling",
+        "manual geometry guard and map-context evidence"
+      ]
+    },
+    "searchExplore": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "single mobile result occupies the contextual action width",
+        "result geometry does not collapse into a half-width orphan",
+        "map remains dominant canvas",
+        "sheet stays inside viewport"
+      ],
+      "evidence": [
+        "single-result width guard >=92% contextual source width",
+        "Place/Search/Explore visual artifact"
+      ]
+    },
+    "navigation": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "dominant instruction hierarchy",
+        "route and distance/time remain visible",
+        "exit remains reachable",
+        "exact-main rerun"
+      ],
+      "evidence": [
+        "Navigation Visual Baseline artifact",
+        "Navigation Accessibility Baseline"
+      ]
+    },
+    "tour": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "successful intro golden",
+        "successful stop golden",
+        "successful finale golden",
+        "fallback screenshot is not accepted as successful-state proof"
+      ],
+      "evidence": [
+        "successful intro/stop/finale screenshots",
+        "Map Tour Browser Regression"
+      ]
+    },
+    "assistant": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "composer is canonical entry",
+        "contextual shell is visually subordinate to map",
+        "mobile keyboard does not destroy hierarchy",
+        "no floating launcher"
+      ],
+      "evidence": [
+        "composer-first Home artifact",
+        "Assistant voice and Tour visibility artifacts"
+      ]
+    },
+    "commerce": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "contextual handoff golden",
+        "return-to-tourist-context golden"
+      ],
+      "evidence": [
+        "contextual handoff screenshot",
+        "return-to-tourist-context screenshot",
+        "Commerce Browser Regression context restoration proof"
+      ]
+    },
+    "ticketing": {
+      "status": "MANUAL_CONFORMANCE_PASS",
+      "proofObligations": [
+        "contextual image-led purchase hierarchy",
+        "transaction and QR behavior preserved",
+        "current long availability-form-wallet composition is not accepted as the manual baseline"
+      ],
+      "evidence": [
+        "image-led Ticketing V2 visual artifact",
+        "200% text reflow without horizontal overflow",
+        "server-authoritative pricing and QR behavior"
+      ]
+    }
+  },
+  "certification": {
+    "forbiddenWhileAnyStatusMatches": [
+      "MANUAL_CONFORMANCE_FAIL",
+      "MANUAL_CONFORMANCE_PENDING",
+      "MANUAL_GOLDEN_PENDING",
+      "MANUAL_CONFORMANCE_PASS_PENDING_EXACT_MAIN"
+    ],
+    "physicalGate": "Samsung SM-X820 / Android API 36",
+    "gates": {
+      "exactMain": {
+        "status": "PENDING",
+        "requirement": "all final checks PASS on merged main exact SHA"
+      },
+      "stagingExactSha": {
+        "status": "PENDING",
+        "requirement": "staging deployed from the same certified main SHA"
+      },
+      "canonicalIssue33": {
+        "status": "PENDING",
+        "requirement": "Issue #33/checklist updated with final evidence"
+      },
+      "samsungPhysical": {
+        "status": "PENDING",
+        "requirement": "Samsung SM-X820 / Android API 36 physical acceptance PASS"
+      }
+    },
+    "forbiddenGateStatuses": ["PENDING", "FAIL"]
+  }
+}

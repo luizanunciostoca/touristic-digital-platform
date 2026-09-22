@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - .github/workflows/mapbox-visual-contract-regression.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -22,6 +23,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - .github/workflows/mapbox-visual-contract-regression.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
@@ -252,6 +254,15 @@ jobs:
 
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             const home = await waitHome(page);
+
+            // Manual Appendix A evidence must preserve the pure Discover
+            // composition before any route/tour state mutates the map.
+            const discoverSuffix = forcedColors ? 'forced-colors' : 'normal';
+            await page.screenshot({
+              path: `${outputDir}/discover-${name}-${discoverSuffix}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
 
             await dispatchTour(page, 'volta-a-ilha');
             await waitTourReady(page);
