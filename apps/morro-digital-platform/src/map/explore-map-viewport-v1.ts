@@ -43,14 +43,16 @@ function categoryViewportPadding(
   document: Document,
   totalLocations: number,
 ): Readonly<{ top: number; bottom: number; left: number; right: number }> {
-  const assistant = document.getElementById("assistant-messages");
+  const dock = document.getElementById("unified-assistant-dock");
   const viewportHeight = Math.max(
     320,
     document.defaultView?.innerHeight ?? document.documentElement.clientHeight,
   );
-  let modalHeight = assistant?.offsetHeight ?? 0;
-  if (modalHeight < 100) modalHeight = viewportHeight * 0.45;
-  const bottom = Math.max(modalHeight + 40, viewportHeight * 0.5);
+  const dockHeight = Math.max(0, dock?.offsetHeight ?? 0);
+  const bottom = Math.min(
+    viewportHeight * 0.58,
+    Math.max(dockHeight + 40, viewportHeight * 0.28),
+  );
 
   if (totalLocations >= 30) {
     return Object.freeze({ top: 80, bottom, left: 20, right: 20 });
@@ -94,8 +96,8 @@ function locationsBounds(
 
 /**
  * Re-applies the V1 category framing after marker replacement. The original
- * runtime reserves the assistant modal in the lower half of the viewport so
- * POIs remain visible instead of being positioned behind the conversation UI.
+ * runtime reserves the measured unified assistant dock so POIs remain visible
+ * instead of being positioned behind the persistent conversation/navigation UI.
  */
 export function installExploreMapViewportV1({
   document,
@@ -104,6 +106,7 @@ export function installExploreMapViewportV1({
   const messagesArea = document.querySelector<HTMLElement>(
     "#assistant-messages .messages-area",
   );
+  const unifiedDock = document.getElementById("unified-assistant-dock");
   let destroyed = false;
   let frameScheduled = false;
   let lastSignature = "";
@@ -128,8 +131,7 @@ export function installExploreMapViewportV1({
       .mapboxPrimaryInstance;
     if (!map?.fitBounds) return;
 
-    const assistantHeight =
-      document.getElementById("assistant-messages")?.offsetHeight ?? 0;
+    const dockHeight = unifiedDock?.offsetHeight ?? 0;
     const viewportWidth =
       document.defaultView?.innerWidth ?? document.documentElement.clientWidth;
     const viewportHeight =
@@ -139,7 +141,7 @@ export function installExploreMapViewportV1({
       category,
       mapElement.dataset.exploreStage ?? "",
       expectedCount,
-      assistantHeight,
+      dockHeight,
       viewportWidth,
       viewportHeight,
       locations.map((location) => location.name).join("|"),
@@ -190,9 +192,17 @@ export function installExploreMapViewportV1({
     assistantObserver = new MutationObserverConstructor(scheduleReframe);
     assistantObserver.observe(messagesArea, {
       childList: true,
-      subtree: false,
+      subtree: true,
+      characterData: true,
     });
   }
+
+  const ResizeObserverConstructor = document.defaultView?.ResizeObserver;
+  const dockObserver =
+    unifiedDock && ResizeObserverConstructor
+      ? new ResizeObserverConstructor(scheduleReframe)
+      : null;
+  if (unifiedDock) dockObserver?.observe(unifiedDock);
 
   document.defaultView?.addEventListener("resize", scheduleReframe);
   scheduleReframe();
@@ -204,6 +214,7 @@ export function installExploreMapViewportV1({
       destroyed = true;
       mapObserver?.disconnect();
       assistantObserver?.disconnect();
+      dockObserver?.disconnect();
       document.defaultView?.removeEventListener("resize", scheduleReframe);
     },
   });
