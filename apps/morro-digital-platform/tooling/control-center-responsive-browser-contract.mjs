@@ -300,6 +300,15 @@ async function main() {
         ) {
           throw new Error(`DRAWER_ARIA_STATE_FAILED:${viewport.label}`);
         }
+        await page.waitForFunction(
+          () => {
+            const sidebar = document.querySelector("#sidebar");
+            if (!(sidebar instanceof HTMLElement)) return false;
+            return sidebar.getBoundingClientRect().x >= -2;
+          },
+          null,
+          { timeout: 2_000 },
+        );
         const sidebar = await page.locator("#sidebar").boundingBox();
         if (
           !sidebar ||
