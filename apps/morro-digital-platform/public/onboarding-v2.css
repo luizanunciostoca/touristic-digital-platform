@@ -1,0 +1,485 @@
+/* Morro Digital UX V2 — onboarding/first-run authority.
+ * Product UI stays visible; onboarding is a compact, temporary education layer. */
+
+:root {
+  --md-onboarding-layer: var(--md-layer-tour);
+  --md-onboarding-dim: rgba(7, 18, 30, 0.34);
+  --md-onboarding-card-inline: min(22rem, calc(100vw - 1.5rem));
+  --md-onboarding-safe-top: max(0.75rem, env(safe-area-inset-top, 0px));
+  --md-onboarding-safe-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  --md-onboarding-safe-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
+  --md-onboarding-safe-left: max(0.75rem, env(safe-area-inset-left, 0px));
+}
+
+#onboarding-overlay.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--md-onboarding-layer);
+  display: block;
+  width: 100%;
+  height: 100dvh;
+  padding: var(--md-onboarding-safe-top) var(--md-onboarding-safe-right)
+    var(--md-onboarding-safe-bottom) var(--md-onboarding-safe-left);
+  overflow: hidden;
+  background: transparent;
+  animation: md-onboarding-enter 160ms var(--md-motion-ease-standard, ease-out)
+    both;
+}
+
+#onboarding-overlay .onboarding-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--md-onboarding-dim);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  pointer-events: none;
+}
+
+#onboarding-overlay .onboarding-container {
+  position: absolute;
+  right: var(--md-onboarding-safe-right);
+  bottom: calc(
+    var(--md-onboarding-safe-bottom) + var(--md-shell-composer-height, 4rem) +
+      var(--md-home-bottom-stack-gap, 0.75rem)
+  );
+  left: auto;
+  z-index: 1;
+  display: grid;
+  width: var(--md-onboarding-card-inline);
+  max-height: min(24rem, calc(100dvh - 8rem));
+  overflow: auto;
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-xl);
+  background: color-mix(in srgb, var(--md-color-surface-card) 94%, transparent);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-3);
+  backdrop-filter: blur(0.75rem);
+  -webkit-backdrop-filter: blur(0.75rem);
+}
+
+#onboarding-overlay .onboarding-header {
+  min-height: 0;
+  padding: var(--md-space-4) var(--md-space-4) 0;
+  border-radius: 0;
+  overflow: visible;
+  align-items: start;
+}
+
+#onboarding-overlay .onboarding-logo-overlay {
+  display: none;
+}
+
+#onboarding-overlay .onboarding-title-block {
+  padding: 0;
+}
+
+#onboarding-overlay .onboarding-headline {
+  margin: 0;
+  color: var(--md-color-text-primary);
+  font: inherit;
+  font-size: var(--md-font-size-lg);
+  font-weight: var(--md-font-weight-bold);
+  line-height: var(--md-line-height-tight);
+  text-shadow: none;
+}
+
+#onboarding-overlay .onboarding-subheadline {
+  margin: var(--md-space-2) 0 0;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
+  line-height: var(--md-line-height-normal);
+  text-shadow: none;
+}
+
+#onboarding-overlay .onboarding-profile-section {
+  display: grid;
+  justify-items: stretch;
+  gap: var(--md-space-2);
+  padding: var(--md-space-3) var(--md-space-4) var(--md-space-4);
+}
+
+#onboarding-overlay .profile-section-title {
+  margin: 0;
+  color: var(--md-color-text-primary);
+  font: inherit;
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-semibold);
+  text-align: start;
+}
+
+#onboarding-overlay .profile-section-subtitle {
+  margin: 0;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  line-height: var(--md-line-height-normal);
+  text-align: start;
+}
+
+#onboarding-overlay .profile-cards {
+  display: block;
+  margin: var(--md-space-1) 0 0;
+}
+
+#onboarding-overlay .profile-card {
+  display: grid;
+  width: 100%;
+  max-width: none;
+  min-height: var(--md-touch-target-min);
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--md-space-3);
+  align-items: center;
+  padding: var(--md-space-3);
+  border: 0;
+  border-radius: var(--md-radius-lg);
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+  box-shadow: none;
+  transform: none;
+}
+
+#onboarding-overlay .profile-card::before {
+  display: none;
+}
+
+#onboarding-overlay .profile-card:hover,
+#onboarding-overlay .profile-card:focus-visible,
+#onboarding-overlay #ob-profile-tourist:hover,
+#onboarding-overlay .profile-card-tutorial:hover {
+  border: 0;
+  background: var(--md-color-interactive-primary-hover);
+  color: var(--md-color-text-inverse);
+  box-shadow: none;
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: 2px;
+  transform: none;
+}
+
+#onboarding-overlay .profile-card-icon {
+  grid-row: 1 / span 2;
+  font-size: 1.25rem;
+  filter: none;
+}
+
+#onboarding-overlay .profile-card-title,
+#onboarding-overlay .profile-card-desc {
+  color: inherit;
+  text-align: start;
+}
+
+#onboarding-overlay .profile-card-title {
+  font: inherit;
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-bold);
+}
+
+#onboarding-overlay .profile-card-desc {
+  margin-top: var(--md-space-1);
+  font-size: var(--md-font-size-xs);
+  line-height: var(--md-line-height-normal);
+  opacity: 0.9;
+}
+
+#onboarding-overlay .biz-setup-back {
+  justify-self: start;
+  min-height: var(--md-touch-target-min);
+  margin: 0;
+  padding: 0 var(--md-space-2);
+  border: 0;
+  border-radius: var(--md-radius-md);
+  background: transparent;
+  color: var(--md-color-text-secondary);
+  font: inherit;
+  font-size: var(--md-font-size-xs);
+}
+
+#onboarding-overlay .biz-setup-back:hover,
+#onboarding-overlay .biz-setup-back:focus-visible {
+  background: var(--md-color-interactive-secondary-hover);
+  color: var(--md-color-text-primary);
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: 2px;
+}
+
+#onboarding-overlay.onboarding-exit {
+  animation: md-onboarding-exit 140ms var(--md-motion-ease-standard, ease-in)
+    both;
+}
+
+/* Coachmarks: compact, map-first, and target-aware. */
+body.tour-active #tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--md-onboarding-layer);
+  background: var(--md-onboarding-dim);
+  pointer-events: none;
+}
+
+body.tour-active #tour-click-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: var(--md-onboarding-layer);
+  background: transparent;
+  pointer-events: auto;
+}
+
+body.tour-active #tour-highlight {
+  z-index: var(--md-onboarding-layer);
+  border: 2px solid var(--md-color-interactive-primary);
+  border-radius: var(--md-radius-lg);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--md-color-interactive-primary) 18%, transparent);
+  animation: none;
+  pointer-events: none;
+}
+
+/* Compatibility bridge over frozen legacy tutorial rules. The V2 tour layer is
+ * authoritative until the legacy selector can be retired. */
+body.tour-active .tour-target-active {
+  z-index: var(--md-onboarding-layer) !important;
+  pointer-events: none !important;
+}
+
+body.tour-active .tour-pulse {
+  animation: none !important;
+  filter: none !important;
+  transform: none !important;
+}
+
+body.tour-active #tour-tooltip {
+  z-index: var(--md-onboarding-layer);
+  width: min(19rem, calc(100vw - 1.5rem));
+  max-height: min(22rem, calc(100dvh - 1.5rem));
+  overflow: auto;
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-xl);
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-3);
+  backdrop-filter: blur(0.75rem);
+  -webkit-backdrop-filter: blur(0.75rem);
+  transition:
+    opacity var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+body.tour-active #tour-tooltip[data-overlaps-target] {
+  outline: 2px solid var(--md-color-danger);
+  outline-offset: 2px;
+}
+
+body.tour-active .tour-tooltip-inner {
+  padding: var(--md-space-3);
+}
+
+body.tour-active .tour-header {
+  margin-bottom: var(--md-space-2);
+}
+
+body.tour-active .tour-step-label {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body.tour-active .tour-skip-btn {
+  min-height: var(--md-touch-target-min);
+  padding: 0 var(--md-space-2);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+}
+
+body.tour-active .tour-progress-bar {
+  height: 0.2rem;
+  margin-bottom: var(--md-space-3);
+  background: var(--md-color-surface-subtle);
+}
+
+body.tour-active .tour-progress-fill {
+  background: var(--md-color-interactive-primary);
+  transition: width var(--md-motion-duration-fast)
+    var(--md-motion-ease-standard);
+}
+
+body.tour-active .tour-step-title {
+  margin: 0 0 var(--md-space-2);
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-md);
+  line-height: var(--md-line-height-tight);
+}
+
+body.tour-active .tour-step-desc {
+  margin: 0;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
+  line-height: var(--md-line-height-normal);
+}
+
+body.tour-active .tour-capability-note {
+  margin: var(--md-space-2) 0 0;
+  padding: var(--md-space-2);
+  border-radius: var(--md-radius-md);
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  line-height: var(--md-line-height-normal);
+}
+
+body.tour-active .tour-action-hint {
+  margin-top: var(--md-space-2);
+  padding: var(--md-space-2);
+  border: 0;
+  border-radius: var(--md-radius-md);
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-medium);
+  animation: none;
+}
+
+body.tour-active .tour-hint-arrow {
+  display: none;
+}
+
+body.tour-active .tour-footer {
+  margin-top: var(--md-space-3);
+  gap: var(--md-space-2);
+}
+
+body.tour-active .tour-btn-back,
+body.tour-active .tour-btn-next,
+body.tour-active .tour-btn-finish {
+  min-height: var(--md-touch-target-min);
+  padding: 0 var(--md-space-3);
+  border-radius: var(--md-radius-lg);
+  font: inherit;
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-semibold);
+  animation: none;
+  box-shadow: none;
+  transform: none;
+}
+
+body.tour-active .tour-btn-back {
+  border: 1px solid var(--md-color-border);
+  background: transparent;
+  color: var(--md-color-text-secondary);
+}
+
+body.tour-active .tour-btn-next,
+body.tour-active .tour-btn-finish {
+  flex: 1 1 auto;
+  width: auto;
+  margin: 0 0 0 auto;
+  border: 0;
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+}
+
+body.tour-active .tour-btn-back:hover,
+body.tour-active .tour-btn-back:focus-visible,
+body.tour-active .tour-btn-next:hover,
+body.tour-active .tour-btn-next:focus-visible,
+body.tour-active .tour-btn-finish:hover,
+body.tour-active .tour-btn-finish:focus-visible,
+body.tour-active .tour-skip-btn:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: 2px;
+  transform: none;
+}
+
+#tour-finish-toast {
+  z-index: var(--md-layer-toast);
+  bottom: calc(
+    var(--md-onboarding-safe-bottom) + var(--md-shell-composer-height, 4rem) +
+      0.75rem
+  );
+  width: min(22rem, calc(100vw - 1.5rem));
+  padding: var(--md-space-3);
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-lg);
+  background: var(--md-color-surface-card);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-2);
+}
+
+@media (max-width: 24.375rem) {
+  #onboarding-overlay .onboarding-container {
+    right: var(--md-onboarding-safe-right);
+    left: var(--md-onboarding-safe-left);
+    width: auto;
+  }
+
+  body.tour-active #tour-tooltip {
+    width: calc(100vw - 1rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  body.tour-active .tour-footer {
+    flex-wrap: nowrap;
+  }
+}
+
+@media (max-height: 36rem) {
+  #onboarding-overlay .onboarding-container {
+    max-height: calc(
+      100dvh - var(--md-onboarding-safe-top) -
+        var(--md-onboarding-safe-bottom) - 1rem
+    );
+    bottom: var(--md-onboarding-safe-bottom);
+  }
+
+  body.tour-active #tour-tooltip {
+    max-height: calc(100dvh - 1rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #onboarding-overlay.onboarding-overlay,
+  #onboarding-overlay.onboarding-exit,
+  body.tour-active #tour-tooltip,
+  body.tour-active #tour-highlight,
+  body.tour-active .tour-progress-fill,
+  #tour-finish-toast {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (forced-colors: active) {
+  #onboarding-overlay .onboarding-container,
+  body.tour-active #tour-tooltip,
+  #tour-finish-toast {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  body.tour-active #tour-highlight {
+    border: 3px solid Highlight;
+    box-shadow: none;
+  }
+}
+
+@keyframes md-onboarding-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes md-onboarding-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}

@@ -48,6 +48,7 @@ describe("public onboarding i18n", () => {
       expect(copy.startTitle.length).toBeGreaterThan(0);
       expect(copy.skip.length).toBeGreaterThan(0);
       expect(copy.tour.done.length).toBeGreaterThan(0);
+      expect(copy.tour.unavailable.length).toBeGreaterThan(0);
     }
   });
 });

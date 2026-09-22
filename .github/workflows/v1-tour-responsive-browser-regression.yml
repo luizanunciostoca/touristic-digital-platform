@@ -75,6 +75,32 @@ jobs:
             const e = expectedHighlight(s.target);
             return approx(s.highlight.left, e.left) && approx(s.highlight.top, e.top) && approx(s.highlight.width, e.width) && approx(s.highlight.height, e.height);
           };
+          const containedBy = (inner, outer, t = 2) =>
+            inner &&
+            outer &&
+            inner.left >= outer.left - t &&
+            inner.top >= outer.top - t &&
+            inner.right <= outer.right + t &&
+            inner.bottom <= outer.bottom + t;
+          const overlaps = (a, b, gap = 4) =>
+            Boolean(
+              a &&
+                b &&
+                a.left < b.right + gap &&
+                a.right > b.left - gap &&
+                a.top < b.bottom + gap &&
+                a.bottom > b.top - gap,
+            );
+          const stepGeometryMatches = (s, step) => {
+            if (!s.highlight || !s.target) return false;
+            if (step !== 1) return matchesHighlight(s);
+            return (
+              containedBy(s.highlight, s.target) &&
+              s.highlight.width <= s.target.width * 0.75 &&
+              s.highlight.height <= s.target.height * 0.5 &&
+              !overlaps(s.highlight, s.tooltip)
+            );
+          };
           async function snapshot(page) {
             return page.evaluate(() => {
               const rect = node => {
@@ -101,7 +127,11 @@ jobs:
             let latest = null;
             while (Date.now() < deadline) {
               latest = await snapshot(page);
-              if (latest.label === `Passo ${step} de 6` && latest.target && matchesHighlight(latest)) return latest;
+              if (
+                latest.label === `Passo ${step} de 6` &&
+                latest.target &&
+                stepGeometryMatches(latest, step)
+              ) return latest;
               await page.waitForTimeout(50);
             }
             throw new Error(`${viewport.name} step ${step} geometry did not settle: ${JSON.stringify(latest)}`);

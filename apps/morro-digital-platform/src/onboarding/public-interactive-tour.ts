@@ -24,6 +24,55 @@ interface TutorialStepTarget {
   readonly selectors: readonly string[];
 }
 
+interface TutorialRect {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+function mapTeachingRect(
+  rect: TutorialRect,
+  viewportLeft: number,
+  viewportTop: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): TutorialRect {
+  const safeInset = 16;
+  const visibleLeft = Math.max(rect.left, viewportLeft + safeInset);
+  const visibleRight = Math.min(
+    rect.right,
+    viewportLeft + viewportWidth - safeInset,
+  );
+  const visibleTop = Math.max(rect.top, viewportTop + safeInset);
+  const visibleBottom = Math.min(
+    rect.bottom,
+    viewportTop + viewportHeight - safeInset,
+  );
+  const visibleWidth = Math.max(44, visibleRight - visibleLeft);
+  const visibleHeight = Math.max(44, visibleBottom - visibleTop);
+  const width = Math.min(220, Math.max(96, visibleWidth * 0.5));
+  const height = Math.min(180, Math.max(96, visibleHeight * 0.32));
+  const left = Math.max(
+    visibleLeft,
+    Math.min(visibleLeft + (visibleWidth - width) / 2, visibleRight - width),
+  );
+  const top = Math.max(
+    visibleTop,
+    Math.min(visibleTop + visibleHeight * 0.24, visibleBottom - height),
+  );
+  return {
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
+  };
+}
+
 const TOUR_FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
   "[href]",
@@ -37,9 +86,9 @@ const STEPS: readonly TutorialStepTarget[] = Object.freeze([
   Object.freeze({ selectors: ["#map-container", "#map"] }),
   Object.freeze({ selectors: ["#weather-widget"] }),
   Object.freeze({ selectors: ["#assistant-input-area"] }),
-  Object.freeze({ selectors: ["#home-bottom-navigation"] }),
+  Object.freeze({ selectors: ["#voiceButton", "#assistant-input-area"] }),
   Object.freeze({ selectors: ["#home-profile-button"] }),
-  Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] }),
+  Object.freeze({ selectors: ["#toggle-globe-view"] }),
 ]);
 
 function firstVisibleTarget(
@@ -50,7 +99,12 @@ function firstVisibleTarget(
     const candidate = document.querySelector<HTMLElement>(selector);
     if (!candidate) continue;
     const rect = candidate.getBoundingClientRect();
-    if (rect.width > 0 && rect.height > 0) return candidate;
+    const style = document.defaultView?.getComputedStyle(candidate);
+    const hidden =
+      candidate.hidden ||
+      style?.display === "none" ||
+      style?.visibility === "hidden";
+    if (!hidden && rect.width > 0 && rect.height > 0) return candidate;
   }
   return null;
 }
@@ -70,6 +124,7 @@ export function installPublicInteractiveTour(
   let tooltip: HTMLElement | null = null;
   let resizeFrame = 0;
   let previouslyFocusedElement: HTMLElement | null = null;
+  let voicePermissionDenied = false;
 
   const clearTarget = (): void => {
     if (target) {
@@ -114,6 +169,8 @@ export function installPublicInteractiveTour(
       view.__tourActive = false;
       view.removeEventListener("resize", onViewportChanged);
       view.removeEventListener("scroll", onViewportChanged, true);
+      view.visualViewport?.removeEventListener("resize", onViewportChanged);
+      view.visualViewport?.removeEventListener("scroll", onViewportChanged);
       if (resizeFrame) view.cancelAnimationFrame(resizeFrame);
     }
     options.document.removeEventListener("keydown", onKeyDown, true);
@@ -145,7 +202,7 @@ export function installPublicInteractiveTour(
     }
   };
 
-  const updateBackdropCutout = (rect: DOMRect, margin: number): void => {
+  const updateBackdropCutout = (rect: TutorialRect, margin: number): void => {
     if (!backdrop) return;
     const viewportWidth =
       view?.innerWidth ?? options.document.documentElement.clientWidth;
@@ -159,33 +216,98 @@ export function installPublicInteractiveTour(
   };
 
   const positionStep = (): void => {
-    if (!active || !target || !highlight || !tooltip) return;
-    const rect = target.getBoundingClientRect();
-    const margin = 7;
-    highlight.style.top = `${Math.max(4, rect.top - margin)}px`;
-    highlight.style.left = `${Math.max(4, rect.left - margin)}px`;
+    if (!active || !highlight || !tooltip) return;
+    const margin = 6;
+    const viewport = view?.visualViewport;
+    const viewportLeft = viewport?.offsetLeft ?? 0;
+    const viewportTop = viewport?.offsetTop ?? 0;
+    const viewportWidth = viewport?.width ?? view?.innerWidth ?? 390;
+    const viewportHeight = viewport?.height ?? view?.innerHeight ?? 844;
+    const safeGap = 12;
+
+    if (!target) {
+      highlight.hidden = true;
+      if (backdrop) backdrop.style.clipPath = "";
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipWidth = Math.min(
+        tooltipRect.width || Math.min(304, viewportWidth - safeGap * 2),
+        viewportWidth - safeGap * 2,
+      );
+      const tooltipHeight = Math.min(
+        tooltipRect.height || 168,
+        viewportHeight - safeGap * 2,
+      );
+      tooltip.style.left = `${Math.max(
+        viewportLeft + safeGap,
+        viewportLeft + (viewportWidth - tooltipWidth) / 2,
+      )}px`;
+      tooltip.style.top = `${Math.max(
+        viewportTop + safeGap,
+        viewportTop + viewportHeight - tooltipHeight - safeGap,
+      )}px`;
+      tooltip.removeAttribute("data-overlaps-target");
+      return;
+    }
+
+    highlight.hidden = false;
+    const rawRect = target.getBoundingClientRect();
+    const rect =
+      stepIndex === 0
+        ? mapTeachingRect(
+            rawRect,
+            viewportLeft,
+            viewportTop,
+            viewportWidth,
+            viewportHeight,
+          )
+        : rawRect;
+
+    highlight.style.top = `${Math.max(viewportTop + 4, rect.top - margin)}px`;
+    highlight.style.left = `${Math.max(viewportLeft + 4, rect.left - margin)}px`;
     highlight.style.width = `${Math.max(28, rect.width + margin * 2)}px`;
     highlight.style.height = `${Math.max(28, rect.height + margin * 2)}px`;
     updateBackdropCutout(rect, margin);
 
-    const viewportWidth = view?.innerWidth ?? 390;
-    const viewportHeight = view?.innerHeight ?? 844;
     const tooltipRect = tooltip.getBoundingClientRect();
-    const fallbackTooltipWidth = Math.min(340, viewportWidth - 24);
     const tooltipWidth = Math.min(
-      tooltipRect.width || fallbackTooltipWidth,
-      viewportWidth - 24,
+      tooltipRect.width || Math.min(304, viewportWidth - safeGap * 2),
+      viewportWidth - safeGap * 2,
+    );
+    const tooltipHeight = Math.min(
+      tooltipRect.height || 168,
+      viewportHeight - safeGap * 2,
     );
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-    left = Math.max(12, Math.min(left, viewportWidth - tooltipWidth - 12));
-    const estimatedHeight = Math.max(190, tooltipRect.height || 190);
-    const roomBelow = viewportHeight - rect.bottom;
-    const top =
-      roomBelow >= estimatedHeight + 24
-        ? rect.bottom + 16
-        : Math.max(12, rect.top - estimatedHeight - 16);
+    left = Math.max(
+      viewportLeft + safeGap,
+      Math.min(left, viewportLeft + viewportWidth - tooltipWidth - safeGap),
+    );
+
+    const roomBelow = viewportTop + viewportHeight - rect.bottom - safeGap;
+    const roomAbove = rect.top - viewportTop - safeGap;
+    let top: number;
+    if (roomBelow >= tooltipHeight + safeGap) {
+      top = rect.bottom + safeGap;
+    } else if (roomAbove >= tooltipHeight + safeGap) {
+      top = rect.top - tooltipHeight - safeGap;
+    } else {
+      const targetCenter = rect.top + rect.height / 2;
+      const placeAbove = targetCenter > viewportTop + viewportHeight / 2;
+      top = placeAbove
+        ? viewportTop + safeGap
+        : viewportTop + viewportHeight - tooltipHeight - safeGap;
+    }
+
     tooltip.style.left = `${left}px`;
-    tooltip.style.top = `${top}px`;
+    tooltip.style.top = `${Math.max(viewportTop + safeGap, top)}px`;
+
+    const finalTooltipRect = tooltip.getBoundingClientRect();
+    const overlapsTarget =
+      finalTooltipRect.left < rect.right + 4 &&
+      finalTooltipRect.right > rect.left - 4 &&
+      finalTooltipRect.top < rect.bottom + 4 &&
+      finalTooltipRect.bottom > rect.top - 4;
+    tooltip.toggleAttribute("data-overlaps-target", overlapsTarget);
   };
 
   function onViewportChanged(): void {
@@ -259,6 +381,31 @@ export function installPublicInteractiveTour(
     options.document.body.append(backdrop, blocker, highlight, proxy, tooltip);
   };
 
+  const refreshVoicePermission = (step: PublicOnboardingTourStepCopy): void => {
+    if (
+      stepIndex !== 3 ||
+      voicePermissionDenied ||
+      target?.id !== "voiceButton" ||
+      !view?.navigator.permissions
+    ) {
+      return;
+    }
+
+    void view.navigator.permissions
+      .query({ name: "microphone" })
+      .then((status) => {
+        if (!active || stepIndex !== 3 || status.state !== "denied") return;
+        voicePermissionDenied = true;
+        renderTooltip(step);
+        positionStep();
+        tooltip?.focus({ preventScroll: true });
+      })
+      .catch(() => {
+        // Permission introspection is best-effort; target availability remains
+        // authoritative when the browser does not expose microphone state.
+      });
+  };
+
   const renderTooltip = (step: PublicOnboardingTourStepCopy): void => {
     if (!tooltip) return;
     const tourCopy = getPublicOnboardingCopy(
@@ -266,6 +413,16 @@ export function installPublicInteractiveTour(
     ).tour;
     const isLast = stepIndex === STEPS.length - 1;
     const progress = ((stepIndex + 1) / STEPS.length) * 100;
+    const targetUnavailable =
+      !target ||
+      target.matches(":disabled") ||
+      target.getAttribute("aria-disabled") === "true" ||
+      (stepIndex === 3 &&
+        (target.id !== "voiceButton" || voicePermissionDenied));
+    tooltip.toggleAttribute(
+      "data-target-unavailable",
+      Boolean(targetUnavailable),
+    );
     tooltip.innerHTML = `
       <div class="tour-tooltip-inner">
         <div class="tour-header">
@@ -277,7 +434,16 @@ export function installPublicInteractiveTour(
         </div>
         <h2 class="tour-step-title">${step.title}</h2>
         <p class="tour-step-desc">${step.description}</p>
-        <div class="tour-action-hint"><span class="tour-hint-arrow">↑</span><span>${step.hint}</span></div>
+        ${
+          targetUnavailable
+            ? ""
+            : `<div class="tour-action-hint"><span class="tour-hint-arrow">↑</span><span>${step.hint}</span></div>`
+        }
+        ${
+          targetUnavailable
+            ? `<p class="tour-capability-note" role="status">${tourCopy.unavailable}</p>`
+            : ""
+        }
         <div class="tour-footer">
           ${stepIndex > 0 ? `<button type="button" class="tour-btn-back">${tourCopy.back}</button>` : ""}
           ${
@@ -304,6 +470,7 @@ export function installPublicInteractiveTour(
     tooltip
       .querySelector<HTMLButtonElement>(".tour-btn-finish")
       ?.addEventListener("click", () => finish("complete"), { once: true });
+    refreshVoicePermission(step);
   };
 
   function renderStep(nextIndex: number): void {
@@ -317,8 +484,9 @@ export function installPublicInteractiveTour(
     stepIndex = nextIndex;
     target = firstVisibleTarget(options.document, stepTarget.selectors);
     if (!target) {
-      if (nextIndex < STEPS.length - 1) renderStep(nextIndex + 1);
-      else finish("complete");
+      renderTooltip(stepCopy);
+      positionStep();
+      tooltip?.focus({ preventScroll: true });
       return;
     }
 
@@ -330,11 +498,7 @@ export function installPublicInteractiveTour(
 
     renderTooltip(stepCopy);
     positionStep();
-    tooltip
-      ?.querySelector<HTMLElement>(
-        nextIndex === STEPS.length - 1 ? ".tour-btn-finish" : ".tour-btn-next",
-      )
-      ?.focus();
+    tooltip?.focus({ preventScroll: true });
   }
 
   return Object.freeze({
@@ -357,6 +521,8 @@ export function installPublicInteractiveTour(
         view.__tourActive = true;
         view.addEventListener("resize", onViewportChanged);
         view.addEventListener("scroll", onViewportChanged, true);
+        view.visualViewport?.addEventListener("resize", onViewportChanged);
+        view.visualViewport?.addEventListener("scroll", onViewportChanged);
       }
       options.document.addEventListener("keydown", onKeyDown, true);
       createChrome();
