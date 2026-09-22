@@ -268,23 +268,69 @@ export function buildStagingControlCenterOwnerAuthEnvironment(
   }
 
   const users = parseDashboardUsers(environment);
-  const collision = users.some(
+  const rotateExisting =
+    String(environment.STAGING_CONTROL_CENTER_OWNER_ROTATE_EXISTING ?? "")
+      .trim()
+      .toLowerCase() === "true";
+  const passwordHash = credentialDigest || hashAcceptancePassword(password);
+
+  const matchingEmailIndexes = [];
+  let conflictingOwnerId = false;
+  for (const [index, user] of users.entries()) {
+    if (!user || typeof user !== "object") continue;
+    const userEmail = String(user.email ?? "")
+      .trim()
+      .toLowerCase();
+    const userId = String(user.id ?? "");
+    if (userEmail === email) matchingEmailIndexes.push(index);
+    if (
+      userId === stagingControlCenterOwnerIdentity.id &&
+      userEmail !== email
+    ) {
+      conflictingOwnerId = true;
+    }
+  }
+
+  if (conflictingOwnerId || matchingEmailIndexes.length > 1) {
+    throw new Error("STAGING_CONTROL_CENTER_OWNER_USER_COLLISION");
+  }
+
+  if (matchingEmailIndexes.length === 1) {
+    if (!rotateExisting) {
+      throw new Error("STAGING_CONTROL_CENTER_OWNER_USER_COLLISION");
+    }
+    const targetIndex = matchingEmailIndexes[0];
+    const existing = users[targetIndex];
+    const rotatedOwner = {
+      ...existing,
+      email,
+      passwordHash,
+      role: stagingControlCenterOwnerIdentity.role,
+      businessIds: [],
+    };
+    const rotatedUsers = users.map((user, index) =>
+      index === targetIndex ? rotatedOwner : user,
+    );
+    return Object.freeze({
+      DASHBOARD_USERS_JSON: JSON.stringify(rotatedUsers),
+      DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED: "true",
+    });
+  }
+
+  const ownerIdCollision = users.some(
     (user) =>
       user &&
       typeof user === "object" &&
-      (String(user.id ?? "") === stagingControlCenterOwnerIdentity.id ||
-        String(user.email ?? "")
-          .trim()
-          .toLowerCase() === email),
+      String(user.id ?? "") === stagingControlCenterOwnerIdentity.id,
   );
-  if (collision) {
+  if (ownerIdCollision) {
     throw new Error("STAGING_CONTROL_CENTER_OWNER_USER_COLLISION");
   }
 
   const owner = {
     ...stagingControlCenterOwnerIdentity,
     email,
-    passwordHash: credentialDigest || hashAcceptancePassword(password),
+    passwordHash,
     businessIds: [],
   };
 
