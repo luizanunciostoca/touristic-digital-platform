@@ -377,7 +377,11 @@ export function installPlaceBottomSheet(
     }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      state === "full" ? setState("half") : dragStep("up");
+      if (state === "full") {
+        setState("half");
+      } else {
+        dragStep("up");
+      }
     }
   });
 
