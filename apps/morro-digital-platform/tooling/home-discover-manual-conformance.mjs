@@ -264,7 +264,10 @@ async function verifyAssistantEntry(page) {
   ).count();
   assert(configInComposer === 0, "Settings returned to primary composer");
   await page.keyboard.press("Escape");
-  await page.locator("#home-bottom-navigation").focus().catch(() => undefined);
+  await page.locator('[data-home-nav-action="explore"]').click();
+  await page
+    .locator("#assistant-input-area.is-compact")
+    .waitFor({ state: "visible", timeout: 3000 });
 }
 
 async function verifyProfileAndPrivacy(page) {
