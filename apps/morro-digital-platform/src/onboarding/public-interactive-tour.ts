@@ -381,9 +381,7 @@ export function installPublicInteractiveTour(
     options.document.body.append(backdrop, blocker, highlight, proxy, tooltip);
   };
 
-  const refreshVoicePermission = (
-    step: PublicOnboardingTourStepCopy,
-  ): void => {
+  const refreshVoicePermission = (step: PublicOnboardingTourStepCopy): void => {
     if (
       stepIndex !== 3 ||
       voicePermissionDenied ||
