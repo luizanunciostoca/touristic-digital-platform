@@ -776,7 +776,6 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
   }
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Home / Discover manual-convergence authority                               */
 /* -------------------------------------------------------------------------- */
@@ -1039,7 +1038,9 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   body[data-md-mode="discover"] .md-home-header {
     width: min(
       12.75rem,
-      calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end) - 6.75rem)
+      calc(
+        100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end) - 6.75rem
+      )
     );
   }
 
@@ -1156,7 +1157,6 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   }
 }
 
-
 .md-current-location-marker {
   position: relative;
   width: 1.125rem;
@@ -1190,7 +1190,6 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   }
 }
 
-
 /* Home chrome yields to the dedicated navigation experience. The navigation
  * wave remains authoritative; this only prevents Discover controls from
  * occupying its one-hand action zone. */
@@ -1202,7 +1201,6 @@ body[data-md-mode="navigation"] .md-home-profile-panel {
 body[data-md-mode="navigation"] #assistant-input-area.md-assistant-composer {
   bottom: var(--md-shell-bottom);
 }
-
 
 /* Keep contextual Explore results above the Home navigation + Assistant stack
  * so typed follow-up actions remain reachable without pointer interception. */

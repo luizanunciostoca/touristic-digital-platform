@@ -38,21 +38,21 @@ function assert(condition, message, details) {
 function overlaps(a, b) {
   return Boolean(
     a &&
-      b &&
-      a.left < b.right &&
-      a.right > b.left &&
-      a.top < b.bottom &&
-      a.bottom > b.top,
+    b &&
+    a.left < b.right &&
+    a.right > b.left &&
+    a.top < b.bottom &&
+    a.bottom > b.top,
   );
 }
 
 function inside(rect, viewport, tolerance = 1) {
   return Boolean(
     rect &&
-      rect.left >= -tolerance &&
-      rect.top >= -tolerance &&
-      rect.right <= viewport.width + tolerance &&
-      rect.bottom <= viewport.height + tolerance,
+    rect.left >= -tolerance &&
+    rect.top >= -tolerance &&
+    rect.right <= viewport.width + tolerance &&
+    rect.bottom <= viewport.height + tolerance,
   );
 }
 
@@ -101,7 +101,9 @@ async function inspectDiscover(page) {
       };
     };
     const navTargets = Array.from(
-      document.querySelectorAll("#home-bottom-navigation [data-home-nav-action]"),
+      document.querySelectorAll(
+        "#home-bottom-navigation [data-home-nav-action]",
+      ),
     ).map((node) => {
       const box = node.getBoundingClientRect();
       return {
@@ -113,13 +115,14 @@ async function inspectDiscover(page) {
     });
     return {
       mode: document.body.dataset.mdMode ?? null,
-      identity: document.querySelector(".md-home-header h1")?.textContent?.trim(),
-      eyebrow: document
-        .querySelector(".md-home-eyebrow")
+      identity: document
+        .querySelector(".md-home-header h1")
         ?.textContent?.trim(),
+      eyebrow: document.querySelector(".md-home-eyebrow")?.textContent?.trim(),
       headerUsesAssistantWelcome:
-        document.querySelector(".md-home-header [data-i18n='welcome_message']") !==
-        null,
+        document.querySelector(
+          ".md-home-header [data-i18n='welcome_message']",
+        ) !== null,
       header: rect(".md-home-header-inner"),
       weather: rect("#weather-widget"),
       map: rect("#map"),
@@ -128,9 +131,7 @@ async function inspectDiscover(page) {
       globe: rect("#toggle-globe-view"),
       threeD: rect("#toggle-3d-mode"),
       profilePanel: rect("#home-profile-panel"),
-      privacyCollapsed: rect(
-        ".analytics-consent-preferences.is-collapsed",
-      ),
+      privacyCollapsed: rect(".analytics-consent-preferences.is-collapsed"),
       navTargets,
       navCount: navTargets.length,
       ticketsHref:
@@ -145,8 +146,8 @@ async function inspectDiscover(page) {
         document.getElementById("sendButton")?.getBoundingClientRect().width !==
         0,
       voiceVisible:
-        document.getElementById("voiceButton")?.getBoundingClientRect().width !==
-        0,
+        document.getElementById("voiceButton")?.getBoundingClientRect()
+          .width !== 0,
       configInsideComposer: Boolean(
         document
           .getElementById("assistant-input-area")
@@ -272,9 +273,9 @@ async function verifyAssistantEntry(page) {
       { selector, target },
     );
   }
-  const configInComposer = await page.locator(
-    "#assistant-input-area #configButton",
-  ).count();
+  const configInComposer = await page
+    .locator("#assistant-input-area #configButton")
+    .count();
   assert(configInComposer === 0, "Settings returned to primary composer");
   await page.keyboard.press("Escape");
   await page.locator('[data-home-nav-action="explore"]').click();
@@ -288,7 +289,9 @@ async function verifyProfileAndPrivacy(page) {
   await page
     .locator("#home-profile-panel:not(.hidden)")
     .waitFor({ state: "visible", timeout: 3000 });
-  await page.locator("#configButton").waitFor({ state: "visible", timeout: 3000 });
+  await page
+    .locator("#configButton")
+    .waitFor({ state: "visible", timeout: 3000 });
   await page
     .locator("#home-privacy-button")
     .waitFor({ state: "visible", timeout: 3000 });
@@ -376,8 +379,8 @@ async function verifyVariants(page, viewport, evidence) {
   await page.emulateMedia({ forcedColors: "none" });
 
   await page.emulateMedia({ reducedMotion: "reduce" });
-  const reducedMotion = await page.evaluate(() =>
-    matchMedia("(prefers-reduced-motion: reduce)").matches,
+  const reducedMotion = await page.evaluate(
+    () => matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
   assert(reducedMotion, "Reduced-motion media query not active");
   await page.screenshot({
@@ -458,10 +461,7 @@ try {
   );
   console.log("HOME_MANUAL_CONFORMANCE = PASS");
 } catch (error) {
-  writeFileSync(
-    `${OUTPUT_DIR}/failure.txt`,
-    String(error?.stack || error),
-  );
+  writeFileSync(`${OUTPUT_DIR}/failure.txt`, String(error?.stack || error));
   writeFileSync(
     `${OUTPUT_DIR}/HOME_MANUAL_CONFORMANCE.txt`,
     "HOME_MANUAL_CONFORMANCE = FAIL\n",

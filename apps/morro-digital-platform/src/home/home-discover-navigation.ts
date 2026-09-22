@@ -40,7 +40,8 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     profile: "Profile",
     profileEyebrow: "Morro Digital",
     profileTitle: "Profile and preferences",
-    profileDescription: "Adjust voice, language and privacy without leaving the map.",
+    profileDescription:
+      "Adjust voice, language and privacy without leaving the map.",
     assistantSettings: "Assistant settings",
     privacy: "Privacy and LGPD",
     closeProfile: "Close profile",

@@ -181,7 +181,9 @@ async function waitForAssistant(page) {
 
 async function openVoiceSettings(page) {
   await page.locator("#home-profile-button").click();
-  await page.locator("#configButton").waitFor({ state: "visible", timeout: 5000 });
+  await page
+    .locator("#configButton")
+    .waitFor({ state: "visible", timeout: 5000 });
   await page.locator("#configButton").click();
   await page
     .locator("#assistantVoiceSettings:not(.hidden)")

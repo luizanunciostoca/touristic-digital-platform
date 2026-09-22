@@ -13,10 +13,14 @@ describe("Home / Discover UX V2 manual conformance", () => {
   it("separates destination identity from Assistant welcome copy", async () => {
     const [shell, i18n] = await Promise.all([
       readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
-      readRepository("apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts"),
+      readRepository(
+        "apps/morro-digital-platform/src/runtime/shell-v1-i18n.ts",
+      ),
     ]);
 
-    expect(shell).toContain('<span class="md-home-eyebrow">Morro Digital</span>');
+    expect(shell).toContain(
+      '<span class="md-home-eyebrow">Morro Digital</span>',
+    );
     expect(shell).toContain("<h1>Morro de São Paulo</h1>");
     expect(shell).not.toContain('<h1 data-i18n="welcome_message">');
     expect(i18n).toContain('"welcome_message"');
@@ -65,7 +69,9 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(controller).toContain('"morro:explore-reset-requested"');
     expect(controller).toContain('"morro:assistant-open-request"');
     expect(controller).toContain('"morro:assistant-option-selected"');
-    expect(controller).toContain('value: action === "tours" ? "tours" : "favorites"');
+    expect(controller).toContain(
+      'value: action === "tours" ? "tours" : "favorites"',
+    );
     expect(controller).toContain("openPrivacyPreferences()");
     expect(controller).not.toContain("profile.html");
     expect(controller).not.toContain("saved.html");
@@ -79,14 +85,16 @@ describe("Home / Discover UX V2 manual conformance", () => {
     for (const locale of ["pt:", "en:", "es:", "he:"]) {
       expect(controller).toContain(locale);
     }
-    expect(controller).toContain('document.documentElement.lang');
+    expect(controller).toContain("document.documentElement.lang");
     expect(controller).toContain('value.startsWith("he")');
   });
 
   it("integrates privacy into Settings without removing LGPD choice", async () => {
     const [css, analytics] = await Promise.all([
       readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
-      readRepository("apps/morro-digital-platform/src/analytics/browser-analytics.ts"),
+      readRepository(
+        "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
+      ),
     ]);
 
     expect(css).toMatch(
@@ -94,8 +102,12 @@ describe("Home / Discover UX V2 manual conformance", () => {
     );
     expect(analytics).toContain("installBrowserAnalyticsConsentPreferences");
     expect(analytics).toContain('role", "dialog"');
-    expect(analytics).toContain('applyBrowserAnalyticsConsentChoice(controller, "denied")');
-    expect(analytics).toContain('applyBrowserAnalyticsConsentChoice(controller, "granted")');
+    expect(analytics).toContain(
+      'applyBrowserAnalyticsConsentChoice(controller, "denied")',
+    );
+    expect(analytics).toContain(
+      'applyBrowserAnalyticsConsentChoice(controller, "granted")',
+    );
   });
 
   it("reserves safe-area space for bottom navigation, Assistant and map controls", async () => {
@@ -105,11 +117,15 @@ describe("Home / Discover UX V2 manual conformance", () => {
 
     expect(css).toContain("--md-home-bottom-nav-height");
     expect(css).toContain("#home-bottom-navigation.md-home-bottom-nav");
-    expect(css).toContain("#assistant-input-area.md-assistant-composer.is-compact");
+    expect(css).toContain(
+      "#assistant-input-area.md-assistant-composer.is-compact",
+    );
     expect(css).toContain("#globe-map-control.md-map-control-stack");
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(css).toContain("@media (max-height: 34rem) and (orientation: landscape)");
+    expect(css).toContain(
+      "@media (max-height: 34rem) and (orientation: landscape)",
+    );
     expect(css).not.toContain("transition: all");
   });
 });
