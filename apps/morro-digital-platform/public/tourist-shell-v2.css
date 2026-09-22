@@ -357,7 +357,7 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 
 .app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-group button + button {
   margin-top: var(--md-space-2);
-  border-top: 1px solid var(--md-unified-dock-divider);
+  border-top: 1px solid var(--md-outdoor-border);
 }
 
 /* -------------------------------------------------------------------------- */
