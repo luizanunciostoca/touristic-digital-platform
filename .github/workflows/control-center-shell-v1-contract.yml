@@ -23,7 +23,7 @@ on:
       - "apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: control-center-shell-v1-${{ github.event.pull_request.number || github.ref }}
@@ -75,6 +75,34 @@ jobs:
             echo
             echo "PRETTIER_FILE_END:${file}"
           done
+      - name: Commit exact shell formatting
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          FILES=(
+            apps/control-center/public/control-center-shell-v1.js
+            apps/control-center/public/index.html
+            apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts
+            apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs
+          )
+          for file in "${FILES[@]}"; do
+            if git diff --quiet -- "${file}"; then
+              continue
+            fi
+            sha=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${file}?ref=${HEAD_BRANCH}" --jq .sha)
+            payload=$(jq -n \
+              --arg message "chore(control-center): apply exact shell formatting" \
+              --arg content "$(base64 -w0 "${file}")" \
+              --arg sha "${sha}" \
+              --arg branch "${HEAD_BRANCH}" \
+              '{message:$message,content:$content,sha:$sha,branch:$branch}')
+            gh api --method PUT "repos/${GITHUB_REPOSITORY}/contents/${file}" --input - <<<"${payload}" >/dev/null
+          done
+          echo "Exact Prettier output committed to ${HEAD_BRANCH}."
       - name: Run shell source contract
         run: >
           pnpm --filter @touristic/morro-digital-platform exec vitest run
