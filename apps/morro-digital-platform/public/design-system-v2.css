@@ -361,6 +361,27 @@ body {
   height: 100dvh;
 }
 
+/* V2 primitives must remain self-contained even without legacy reset CSS. */
+:where(
+  .md-button,
+  .md-icon-button,
+  .md-input,
+  .md-textarea,
+  .md-select,
+  .md-badge,
+  .md-chip,
+  .md-card,
+  .md-dialog,
+  .md-bottom-sheet,
+  .md-toast,
+  .md-banner,
+  .md-spinner,
+  .md-skeleton
+) {
+  box-sizing: border-box;
+  max-inline-size: 100%;
+}
+
 /* Foundation components. These are additive; existing UI is not force-migrated. */
 .md-button,
 .md-icon-button {
