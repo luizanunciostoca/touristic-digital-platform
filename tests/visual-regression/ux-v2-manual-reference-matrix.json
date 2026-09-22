@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "manualAuthority": "Morro_Digital_Manual_Desenvolvedor_UX_Design_V2.pdf",
+  "appendix": "A",
+  "approvedExceptions": [
+    "Quick Actions absent",
+    "floating Assistant trigger absent"
+  ],
+  "viewports": [
+    {
+      "id": "360x800",
+      "width": 360,
+      "height": 800
+    },
+    {
+      "id": "390x844",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "430x932",
+      "width": 430,
+      "height": 932
+    },
+    {
+      "id": "768x1024",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "id": "1440x900",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "id": "compact-landscape",
+      "width": 844,
+      "height": 390
+    }
+  ],
+  "variants": [
+    "light",
+    "dark",
+    "text-200",
+    "forced-colors",
+    "reduced-motion"
+  ],
+  "surfaces": {
+    "discover": {
+      "state": "pure-discover",
+      "expectedHierarchy": [
+        "map canvas",
+        "Weather",
+        "Explore",
+        "persistent Assistant composer"
+      ],
+      "expectedDominantRegion": "map",
+      "expectedControls": [
+        "Weather",
+        "Explore",
+        "Assistant composer",
+        "bottom navigation when applicable"
+      ],
+      "expectedHiddenControls": [
+        "Quick Actions",
+        "floating Assistant trigger",
+        "extended detail chrome"
+      ],
+      "geometryConstraints": [
+        "map height >= 72% viewport",
+        "no collision among Weather/Explore/composer",
+        "no character-by-character wrapping",
+        "no offscreen touch target"
+      ],
+      "manualReference": "Section 32 Home / Discover + Appendix A"
+    },
+    "place": {
+      "state": "initial-contextual-sheet",
+      "expectedHierarchy": [
+        "map context",
+        "place media/name/rating/summary",
+        "primary action",
+        "secondary actions"
+      ],
+      "expectedDominantRegion": "map + contextual Bottom Sheet",
+      "expectedControls": [
+        "Como chegar",
+        "Salvar",
+        "Compartilhar",
+        "commercial CTA when applicable"
+      ],
+      "expectedHiddenControls": [
+        "duplicated Assistant place actions",
+        "Quick Actions",
+        "floating Assistant trigger"
+      ],
+      "geometryConstraints": [
+        "peek ~25-30dvh when used",
+        "half ~50-60dvh when used",
+        "full reserved for extended content",
+        "sheet inside safe viewport",
+        "canonical screenshot before state cycling"
+      ],
+      "manualReference": "Sections 10 and 32 Place + Appendix A"
+    },
+    "searchExplore": {
+      "state": "results",
+      "expectedHierarchy": [
+        "map context",
+        "query/category context",
+        "result actions"
+      ],
+      "expectedDominantRegion": "map",
+      "expectedControls": [
+        "result actions",
+        "sheet state controls"
+      ],
+      "expectedHiddenControls": [
+        "Assistant chrome while Search owns presentation",
+        "floating Assistant trigger"
+      ],
+      "geometryConstraints": [
+        "single mobile result >=92% contextual source width",
+        "no half-width orphan result",
+        "sheet inside viewport",
+        "map height >=72% viewport"
+      ],
+      "manualReference": "Sections 5, 10 and 32 + Appendix A"
+    },
+    "navigation": {
+      "state": "active-navigation",
+      "expectedHierarchy": [
+        "single dominant instruction",
+        "route",
+        "distance/time",
+        "exit/safety"
+      ],
+      "expectedDominantRegion": "map + navigation instruction",
+      "expectedControls": [
+        "exit",
+        "safety",
+        "next instruction"
+      ],
+      "expectedHiddenControls": [
+        "Explore",
+        "Quick Actions",
+        "nonessential cards"
+      ],
+      "geometryConstraints": [
+        "instruction banner preserves map/route context",
+        "exit remains in viewport",
+        "one-hand targets >=44px"
+      ],
+      "manualReference": "Sections 9 and 32 Navigation + Appendix A"
+    },
+    "tour": {
+      "state": "intro-stop-finale",
+      "expectedHierarchy": [
+        "current stop",
+        "progress",
+        "guide hint",
+        "narration",
+        "previous/next"
+      ],
+      "expectedDominantRegion": "map/route/marker + contextual tour card",
+      "expectedControls": [
+        "narrate",
+        "previous",
+        "next"
+      ],
+      "expectedHiddenControls": [
+        "Discover noise",
+        "redundant global controls"
+      ],
+      "geometryConstraints": [
+        "intro/stop/finale each produce successful-state artifacts",
+        "tour actions >=44px",
+        "operational typography not microtext"
+      ],
+      "manualReference": "Sections 9 and 32 Tour + Appendix A"
+    },
+    "assistant": {
+      "state": "contextual-response",
+      "expectedHierarchy": [
+        "map context",
+        "short response",
+        "contextual cards/actions",
+        "persistent composer"
+      ],
+      "expectedDominantRegion": "map",
+      "expectedControls": [
+        "composer",
+        "contextual actions"
+      ],
+      "expectedHiddenControls": [
+        "floating Assistant trigger",
+        "welcome/header chrome competing with map"
+      ],
+      "geometryConstraints": [
+        "composer reachable with virtual keyboard",
+        "Assistant shell subordinate to map",
+        "no offscreen touch target"
+      ],
+      "manualReference": "Sections 9, 11 and 32 Assistant + Appendix A"
+    },
+    "commerce": {
+      "state": "contextual-handoff",
+      "expectedHierarchy": [
+        "contextual product",
+        "date",
+        "price",
+        "availability",
+        "primary purchase CTA"
+      ],
+      "expectedDominantRegion": "tourist context + purchase intent",
+      "expectedControls": [
+        "primary purchase CTA",
+        "return/back"
+      ],
+      "expectedHiddenControls": [
+        "unrelated navigation noise"
+      ],
+      "geometryConstraints": [
+        "primary CTA visible without overlap",
+        "return preserves tourist context",
+        "mobile preview preserves context unless explicitly transactional"
+      ],
+      "manualReference": "Sections 9, 12 and 32 Commerce + Appendix A"
+    },
+    "ticketing": {
+      "state": "ready-booking",
+      "expectedHierarchy": [
+        "image-led experience",
+        "date/quantity/price/availability",
+        "single primary booking CTA",
+        "transaction/QR after commitment"
+      ],
+      "expectedDominantRegion": "consumer booking context",
+      "expectedControls": [
+        "primary booking CTA",
+        "back/return"
+      ],
+      "expectedHiddenControls": [
+        "administrative density",
+        "competing equal-weight panels"
+      ],
+      "geometryConstraints": [
+        "primary CTA visible in canonical mobile viewport",
+        "offer provides visual media",
+        "Privacy does not overlap navigation",
+        "long availability+form+wallet stack is not an accepted golden"
+      ],
+      "manualReference": "Section 32 Commerce / Ticketing + Appendix A"
+    }
+  },
+  "goldenPolicy": {
+    "freezeRequiresManualReview": true,
+    "currentScreenshotIsNeverAuthorityByDefault": true,
+    "selectiveMapMaskingAllowed": true,
+    "forbiddenMaskTargets": [
+      "controls",
+      "sheets",
+      "navigation",
+      "cta",
+      "cards",
+      "typography"
+    ]
+  }
+}
