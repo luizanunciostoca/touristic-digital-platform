@@ -45,14 +45,14 @@
             type="button"
             aria-pressed="true"
           >
-            <span class="scope-icon" aria-hidden="true">◎</span>
+            <span class="scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16"></path></svg></span>
             <span class="scope-label">Visão Global</span>
           </button>
 
           <label class="destination-control" for="destination-selector">
-            <span class="scope-icon" aria-hidden="true">⌖</span>
+            <span class="scope-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg></span>
             <span class="sr-only">Destino atual</span>
-            <select id="destination-selector" aria-label="Destino atual">
+            <select id="destination-selector" aria-label="Destino atual" data-scope="global">
               <option value="morro-de-sao-paulo">Morro de São Paulo</option>
             </select>
           </label>
@@ -86,7 +86,7 @@
               aria-controls="notification-panel"
               aria-expanded="false"
             >
-              <span aria-hidden="true">♢</span>
+              <svg class="topbar-line-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"></path><path d="M10 21h4"></path></svg>
               <span id="notification-badge" class="notification-badge" hidden
                 >0</span
               >
