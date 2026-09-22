@@ -67,6 +67,10 @@ describe("Control Center high-information administrative surfaces", () => {
     expect(source).toContain("Affiliate Summary");
     expect(source).toContain("Afiliados carregados (máx. 250)");
     expect(source).toContain("no recorte carregado");
+    expect(source).toContain("dashboard.attention");
+    expect(source).toContain("dashboard.destinationSummary");
+    expect(source).toContain("dashboardAggregateState");
+    expect(source).toContain("Alertas conhecidos");
     expect(source).toContain("nenhum valor foi inferido");
     expect(source).toContain('return "unavailable"');
     expect(source).toContain('"partial"');
