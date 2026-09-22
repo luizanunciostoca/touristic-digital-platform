@@ -54,7 +54,7 @@ describe("Control Center universal search UI contract", () => {
   it("uses DOM-safe result rendering with full keyboard and abort/debounce behavior", async () => {
     const source = await publicSource("control-center-search.js");
     expect(source).toContain('document.createElement("mark")');
-    expect(source).toContain('document.createTextNode');
+    expect(source).toContain("document.createTextNode");
     expect(source).not.toContain("results.innerHTML");
     expect(source).toContain('event.key === "ArrowDown"');
     expect(source).toContain('event.key === "ArrowUp"');
