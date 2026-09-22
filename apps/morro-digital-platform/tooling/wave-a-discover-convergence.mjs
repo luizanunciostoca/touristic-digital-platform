@@ -253,6 +253,51 @@ try {
       initial,
     );
 
+    const cameraBeforeGestures = await page.evaluate(() => {
+      const map = globalThis.mapboxPrimaryInstance;
+      const center = map?.getCenter?.();
+      return {
+        center: center ? { lng: center.lng, lat: center.lat } : null,
+        zoom: map?.getZoom?.(),
+      };
+    });
+    const canvas = page.locator("#map .mapboxgl-canvas");
+    const canvasBox = await canvas.boundingBox();
+    assert(canvasBox, "Mapbox canvas unavailable for gesture validation");
+    const gestureX = canvasBox.x + canvasBox.width * 0.5;
+    const gestureY = canvasBox.y + canvasBox.height * 0.5;
+    await page.mouse.move(gestureX, gestureY);
+    await page.mouse.down();
+    await page.mouse.move(gestureX + 52, gestureY + 28, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(350);
+    const afterPan = await page.evaluate(() => {
+      const map = globalThis.mapboxPrimaryInstance;
+      const center = map?.getCenter?.();
+      return center ? { lng: center.lng, lat: center.lat } : null;
+    });
+    assert(
+      cameraBeforeGestures.center &&
+        afterPan &&
+        (Math.abs(afterPan.lng - cameraBeforeGestures.center.lng) > 0.00001 ||
+          Math.abs(afterPan.lat - cameraBeforeGestures.center.lat) > 0.00001),
+      "Pointer pan did not move the map camera",
+      { cameraBeforeGestures, afterPan },
+    );
+    await page.mouse.move(gestureX, gestureY);
+    await page.mouse.wheel(0, -640);
+    await page.waitForTimeout(550);
+    const afterZoom = await page.evaluate(
+      () => globalThis.mapboxPrimaryInstance?.getZoom?.() ?? null,
+    );
+    assert(
+      typeof cameraBeforeGestures.zoom === "number" &&
+        typeof afterZoom === "number" &&
+        Math.abs(afterZoom - cameraBeforeGestures.zoom) > 0.05,
+      "Wheel zoom did not change the map zoom",
+      { before: cameraBeforeGestures.zoom, after: afterZoom },
+    );
+
     await page.evaluate(() => {
       const map = globalThis.mapboxPrimaryInstance;
       map?.setCenter?.([-38.88, -13.35]);
@@ -357,7 +402,23 @@ try {
     const geoState = await page
       .locator("#map")
       .getAttribute("data-geolocation-state");
+    const deniedCamera = await page.evaluate(() => {
+      const map = globalThis.mapboxPrimaryInstance;
+      const center = map?.getCenter?.();
+      return {
+        center: center ? { lng: center.lng, lat: center.lat } : null,
+        zoom: map?.getZoom?.(),
+      };
+    });
     assert(geoState === "denied", "Denied geolocation state was not exposed", geoState);
+    assert(
+      deniedCamera.center &&
+        Math.abs(deniedCamera.center.lng - -38.9167) < 0.02 &&
+        Math.abs(deniedCamera.center.lat - -13.3833) < 0.02 &&
+        Math.abs(deniedCamera.zoom - 14.8) < 0.25,
+      "Denied geolocation did not fall back to the deterministic Morro camera",
+      deniedCamera,
+    );
     assert(
       negative.rootWidth <= 391 && negative.bodyWidth <= 391,
       "Negative states cause horizontal overflow",
