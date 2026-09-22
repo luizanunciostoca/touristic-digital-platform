@@ -66,6 +66,9 @@ async function waitForReady(page) {
     .locator('#weather-widget[data-weather-state="ready"]')
     .waitFor({ state: "visible", timeout: 10000 });
   await page
+    .locator("#unified-assistant-dock")
+    .waitFor({ state: "visible", timeout: 10000 });
+  await page
     .locator("#home-bottom-navigation")
     .waitFor({ state: "visible", timeout: 10000 });
   await page
@@ -126,6 +129,8 @@ async function inspectDiscover(page) {
       header: rect(".md-home-header-inner"),
       weather: rect("#weather-widget"),
       map: rect("#map"),
+      dock: rect("#unified-assistant-dock"),
+      messageRegion: rect("#assistant-messages:not(.hidden)"),
       nav: rect("#home-bottom-navigation"),
       composer: rect("#assistant-input-area"),
       globe: rect("#toggle-globe-view"),
@@ -153,6 +158,18 @@ async function inspectDiscover(page) {
           .getElementById("assistant-input-area")
           ?.querySelector("#configButton"),
       ),
+      unifiedComposition:
+        document.getElementById("assistant-input-area")?.parentElement?.id ===
+          "unified-assistant-dock" &&
+        document.getElementById("home-bottom-navigation")?.parentElement?.id ===
+          "unified-assistant-dock" &&
+        document.getElementById("assistant-messages")?.parentElement?.id ===
+          "unified-assistant-dock",
+      messageMaxHeight: (() => {
+        const node = document.getElementById("assistant-messages");
+        if (!(node instanceof HTMLElement)) return null;
+        return Number.parseFloat(getComputedStyle(node).maxHeight);
+      })(),
       currentLocationMarker: rect(".md-current-location-marker"),
       currentLocationState:
         document.getElementById("map")?.getAttribute("data-current-location") ??
@@ -184,11 +201,12 @@ async function assertPureDiscover(page, viewport) {
     state,
   );
   assert(
-    state.composerState === "compact" &&
-      !state.sendVisible &&
-      !state.voiceVisible &&
-      !state.configInsideComposer,
-    "Assistant entry is not compact on pure Discover",
+    state.composerState === "persistent" &&
+      state.sendVisible &&
+      state.voiceVisible &&
+      !state.configInsideComposer &&
+      state.unifiedComposition,
+    "Assistant composer/navigation are not unified and persistently actionable",
     state,
   );
   assert(
@@ -208,6 +226,7 @@ async function assertPureDiscover(page, viewport) {
     header: state.header,
     weather: state.weather,
     map: state.map,
+    dock: state.dock,
     nav: state.nav,
     composer: state.composer,
     globe: state.globe,
@@ -229,11 +248,8 @@ async function assertPureDiscover(page, viewport) {
   );
   assert(
     !overlaps(state.header, state.weather) &&
-      !overlaps(state.nav, state.composer) &&
-      !overlaps(state.nav, state.globe) &&
-      !overlaps(state.nav, state.threeD) &&
-      !overlaps(state.composer, state.globe) &&
-      !overlaps(state.composer, state.threeD),
+      !overlaps(state.dock, state.globe) &&
+      !overlaps(state.dock, state.threeD),
     "Discover chrome collision detected",
     state,
   );
@@ -262,28 +278,88 @@ async function assertPureDiscover(page, viewport) {
 }
 
 async function verifyAssistantEntry(page) {
-  await page.locator("#assistantInput").focus();
-  await page
-    .locator("#assistant-input-area.is-expanded")
-    .waitFor({ state: "visible", timeout: 3000 });
   for (const selector of ["#sendButton", "#voiceButton"]) {
     await page.locator(selector).waitFor({ state: "visible", timeout: 3000 });
     const target = await page.locator(selector).boundingBox();
     assert(
       target && target.width >= 44 && target.height >= 44,
-      "Expanded Assistant target below 44px",
+      "Persistent Assistant target below 44px",
       { selector, target },
     );
   }
+
+  await page.locator("#assistantInput").focus();
+  await page
+    .locator("#assistant-input-area.is-focused")
+    .waitFor({ state: "visible", timeout: 3000 });
+
   const configInComposer = await page
     .locator("#assistant-input-area #configButton")
     .count();
   assert(configInComposer === 0, "Settings returned to primary composer");
   await page.keyboard.press("Escape");
   await page.locator('[data-home-nav-action="explore"]').click();
-  await page
-    .locator("#assistant-input-area.is-compact")
-    .waitFor({ state: "visible", timeout: 3000 });
+  await page.waitForFunction(
+    () =>
+      document
+        .getElementById("assistant-input-area")
+        ?.getAttribute("data-home-assistant-entry") === "persistent",
+  );
+}
+
+async function verifyBoundedAssistantMessage(page) {
+  await page.evaluate(() => {
+    const dialog = document.getElementById("assistant-messages");
+    const area = dialog?.querySelector(".messages-area");
+    if (!(dialog instanceof HTMLElement) || !(area instanceof HTMLElement)) {
+      throw new Error("Assistant message region missing");
+    }
+    dialog.classList.remove("hidden", "has-rich-content");
+    dialog.setAttribute("aria-hidden", "false");
+    const probe = document.createElement("div");
+    probe.className = "message assistant";
+    probe.dataset.messageType = "bounded-regression-probe";
+    probe.textContent = "Mensagem longa de validação. ".repeat(180);
+    area.appendChild(probe);
+  });
+  await page.waitForTimeout(80);
+
+  const result = await page.evaluate(() => {
+    const dialog = document.getElementById("assistant-messages");
+    const area = dialog?.querySelector(".messages-area");
+    const composer = document.getElementById("assistant-input-area");
+    const nav = document.getElementById("home-bottom-navigation");
+    if (
+      !(dialog instanceof HTMLElement) ||
+      !(area instanceof HTMLElement) ||
+      !(composer instanceof HTMLElement) ||
+      !(nav instanceof HTMLElement)
+    ) {
+      return null;
+    }
+    const messageRect = dialog.getBoundingClientRect();
+    return {
+      messageHeight: messageRect.height,
+      messageScrolls: area.scrollHeight > area.clientHeight,
+      composerVisible: composer.getBoundingClientRect().height > 0,
+      navVisible: nav.getBoundingClientRect().height > 0,
+    };
+  });
+  assert(result, "Bounded Assistant probe could not inspect layout");
+  assert(
+    result.messageHeight <= 114 &&
+      result.messageScrolls &&
+      result.composerVisible &&
+      result.navVisible,
+    "Long Assistant response escaped bounded message region",
+    result,
+  );
+
+  await page.evaluate(() => {
+    document
+      .querySelector('[data-message-type="bounded-regression-probe"]')
+      ?.remove();
+  });
 }
 
 async function verifyProfileAndPrivacy(page) {
@@ -445,6 +521,7 @@ try {
       await verifyLocales(page);
       await verifyProfileAndPrivacy(page);
       await verifyAssistantEntry(page);
+      await verifyBoundedAssistantMessage(page);
       await verifyVariants(page, viewport, evidence);
     }
 
