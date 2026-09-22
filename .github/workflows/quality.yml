@@ -55,6 +55,22 @@ jobs:
             turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Emit UX V2 Prettier diagnostics
+        run: |
+          pnpm exec prettier --write apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts docs/ux/manual-visual-conformance-v2.md tests/visual-regression/ux-v2-manual-conformance.json
+          echo "PRETTIER_UXV2_TEST_B64_BEGIN"
+          base64 -w0 apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts
+          echo
+          echo "PRETTIER_UXV2_TEST_B64_END"
+          echo "PRETTIER_UXV2_DOC_B64_BEGIN"
+          base64 -w0 docs/ux/manual-visual-conformance-v2.md
+          echo
+          echo "PRETTIER_UXV2_DOC_B64_END"
+          echo "PRETTIER_UXV2_JSON_B64_BEGIN"
+          base64 -w0 tests/visual-regression/ux-v2-manual-conformance.json
+          echo
+          echo "PRETTIER_UXV2_JSON_B64_END"
+          exit 1
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
