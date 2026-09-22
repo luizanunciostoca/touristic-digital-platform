@@ -250,11 +250,12 @@ describe("Control Center domain support delegation", () => {
       }),
     ).resolves.toEqual([
       expect.objectContaining({
-        type: "crm-lead",
+        type: "lead",
         id: "42",
         title: "Toca do Morcego",
         context: expect.stringContaining("morro-de-sao-paulo"),
-        href: "#crm",
+        destinationId: "morro-de-sao-paulo",
+        href: "/apps/admin-crm/public/lead-detail.html?id=42",
       }),
     ]);
     expect(calls).toEqual([
