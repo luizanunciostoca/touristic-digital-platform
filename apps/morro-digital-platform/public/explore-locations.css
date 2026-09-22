@@ -818,3 +818,18 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
     color: CanvasText;
   }
 }
+
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-top: var(--md-space-2);
+  background: var(--md-outdoor-surface-strong);
+}
+
+@media (forced-colors: active) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
+    background: Canvas;
+  }
+}
