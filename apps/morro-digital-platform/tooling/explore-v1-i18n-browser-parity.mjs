@@ -305,7 +305,9 @@ async function readDynamic(page) {
       buttons.map((button) => ({
         label: button.textContent?.trim() ?? "",
         value: button.getAttribute("data-value"),
-        overflow: Boolean(button.closest(".place-bottom-sheet-overflow-actions")),
+        overflow: Boolean(
+          button.closest(".place-bottom-sheet-overflow-actions"),
+        ),
       })),
     );
     const visible = rows.filter((row) => !row.overflow);
