@@ -38,17 +38,20 @@ describe("UX V2 Wave B contextual Assistant contract", () => {
     expect(shell).toContain('id="voiceButton"');
   });
 
-  it("keeps map-first geometry keyboard-safe and supports long responses", async () => {
-    const css = await readRepository(
-      "apps/morro-digital-platform/public/assistant-v2.css",
-    );
+  it("keeps map-first geometry keyboard-safe and bounds long responses inside the unified dock", async () => {
+    const [assistantCss, shellCss] = await Promise.all([
+      readRepository("apps/morro-digital-platform/public/assistant-v2.css"),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+    ]);
 
-    expect(css).toContain("overflow-y: auto");
-    expect(css).toContain("overflow-wrap: anywhere");
-    expect(css).toContain("env(safe-area-inset-bottom, 0rem)");
-    expect(css).toContain("@media (max-width: 24.375rem)");
-    expect(css).toContain("@media (max-height: 34rem)");
-    expect(css).toContain(":focus-within");
+    expect(assistantCss).toContain("overflow-y: auto");
+    expect(assistantCss).toContain("overflow-wrap: anywhere");
+    expect(assistantCss).toContain(":focus-within");
+    expect(shellCss).toContain("#unified-assistant-dock");
+    expect(shellCss).toContain("--md-unified-dock-message-max-height");
+    expect(shellCss).toContain("overscroll-behavior: contain");
+    expect(shellCss).toContain("var(--md-shell-bottom)");
+    expect(shellCss).toContain("@media (max-height: 34rem)");
   });
 
   it("keeps real responding and error states in the Assistant lifecycle", async () => {
