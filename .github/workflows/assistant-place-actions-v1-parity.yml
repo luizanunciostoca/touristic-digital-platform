@@ -164,6 +164,9 @@ jobs:
                 ).waitFor({ state: 'attached', timeout: 8000 });
                 const detailAction = detailActionValues[category];
                 if (!detailAction) throw new Error(`Missing detail action for ${category}`);
+                await page
+                  .locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary')
+                  .click();
                 await page.locator(
                   `#place-bottom-sheet .place-bottom-sheet-action[data-value="${detailAction}"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
