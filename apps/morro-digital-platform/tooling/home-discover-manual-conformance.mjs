@@ -9,8 +9,12 @@ const OUTPUT_DIR =
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
 const viewports = [
+  { name: "320x568", width: 320, height: 568 },
   { name: "360x800", width: 360, height: 800 },
+  { name: "375x812", width: 375, height: 812 },
   { name: "390x844", width: 390, height: 844 },
+  { name: "393x852", width: 393, height: 852 },
+  { name: "412x915", width: 412, height: 915 },
   { name: "430x932", width: 430, height: 932 },
   { name: "768x1024", width: 768, height: 1024 },
   { name: "1440x900", width: 1440, height: 900 },
@@ -200,6 +204,17 @@ async function inspectDiscover(page) {
         if (!(node instanceof HTMLElement)) return null;
         return Number.parseFloat(getComputedStyle(node).maxHeight);
       })(),
+      unifiedDockVariables: (() => {
+        const style = getComputedStyle(document.documentElement);
+        return {
+          height: Number.parseFloat(
+            style.getPropertyValue("--md-unified-dock-height"),
+          ),
+          mapInset: Number.parseFloat(
+            style.getPropertyValue("--md-unified-dock-map-inset"),
+          ),
+        };
+      })(),
       currentLocationMarker: rect(".md-current-location-marker"),
       currentLocationState:
         document.getElementById("map")?.getAttribute("data-current-location") ??
@@ -251,6 +266,19 @@ async function assertPureDiscover(page, viewport) {
       ),
     "Unified Assistant category rail lost horizontal-scroll/touch-target contract",
     state.categoryRailContract,
+  );
+
+  assert(
+    state.dock &&
+      Number.isFinite(state.unifiedDockVariables?.height) &&
+      Number.isFinite(state.unifiedDockVariables?.mapInset) &&
+      Math.abs(state.unifiedDockVariables.height - state.dock.height) <= 2 &&
+      state.unifiedDockVariables.mapInset >= state.dock.height,
+    "Unified dock ResizeObserver variables are not synchronized",
+    {
+      dock: state.dock,
+      variables: state.unifiedDockVariables,
+    },
   );
 
   assert(
@@ -385,12 +413,23 @@ async function verifyBoundedAssistantMessage(page) {
       return null;
     }
     const messageRect = dialog.getBoundingClientRect();
+    const dock = document.getElementById("unified-assistant-dock");
+    const rootStyle = getComputedStyle(document.documentElement);
+    const dockRect =
+      dock instanceof HTMLElement ? dock.getBoundingClientRect() : null;
     return {
       messageHeight: messageRect.height,
       messageScrolls: area.scrollHeight > area.clientHeight,
       categoriesVisible: categories.getBoundingClientRect().height > 0,
       composerVisible: composer.getBoundingClientRect().height > 0,
       navVisible: nav.getBoundingClientRect().height > 0,
+      dockHeight: dockRect?.height ?? 0,
+      cssDockHeight: Number.parseFloat(
+        rootStyle.getPropertyValue("--md-unified-dock-height"),
+      ),
+      mapInset: Number.parseFloat(
+        rootStyle.getPropertyValue("--md-unified-dock-map-inset"),
+      ),
     };
   });
   assert(result, "Bounded Assistant probe could not inspect layout");
@@ -399,7 +438,9 @@ async function verifyBoundedAssistantMessage(page) {
       result.messageScrolls &&
       result.categoriesVisible &&
       result.composerVisible &&
-      result.navVisible,
+      result.navVisible &&
+      Math.abs(result.cssDockHeight - result.dockHeight) <= 2 &&
+      result.mapInset >= result.dockHeight,
     "Long Assistant response escaped bounded message region",
     result,
   );
