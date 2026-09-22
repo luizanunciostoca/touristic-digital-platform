@@ -318,6 +318,16 @@ body.tour-active .tour-step-desc {
   line-height: var(--md-line-height-normal);
 }
 
+body.tour-active .tour-capability-note {
+  margin: var(--md-space-2) 0 0;
+  padding: var(--md-space-2);
+  border-radius: var(--md-radius-md);
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  line-height: var(--md-line-height-normal);
+}
+
 body.tour-active .tour-action-hint {
   margin-top: var(--md-space-2);
   padding: var(--md-space-2);
