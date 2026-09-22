@@ -1,4 +1,5 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import { createUniversalSearchController } from "./control-center-search.js";
 import {
   emptyState,
   enhanceControlCenterSurface,
@@ -133,6 +134,7 @@ const healthChip = document.querySelector("#health-chip");
 const releaseChip = document.querySelector("#release-chip");
 const searchInput = document.querySelector("#global-search");
 const searchResults = document.querySelector("#search-results");
+const searchDestination = document.querySelector("#destination-selector");
 const supportBanner = document.querySelector("#support-banner");
 const supportContext = document.querySelector("#support-context");
 const menuButton = document.querySelector("#menu-button");
@@ -3277,67 +3279,11 @@ async function openHash(hash = globalThis.location.hash) {
   await render(pageCopy[view] ? view : "overview", detail);
 }
 
-let searchTimer;
-function setSearchExpanded(expanded) {
-  searchInput.setAttribute("aria-expanded", String(expanded));
-  if (!expanded) searchInput.removeAttribute("aria-activedescendant");
-}
-
-searchInput.addEventListener("input", () => {
-  clearTimeout(searchTimer);
-  const query = searchInput.value.trim();
-  if (query.length < 2) {
-    searchResults.hidden = true;
-    setSearchExpanded(false);
-    return;
-  }
-
-  searchTimer = setTimeout(async () => {
-    try {
-      const destinationId =
-        document.querySelector("#destination-selector")?.value ?? "global";
-      const destinationScope =
-        destinationId && destinationId !== "global"
-          ? `&destinationId=${encodeURIComponent(destinationId)}`
-          : "";
-      const data = await api(
-        `/search?q=${encodeURIComponent(query)}${destinationScope}`,
-      );
-      searchResults.innerHTML =
-        data.results
-          .map(
-            (result, index) =>
-              `<div
-                id="search-result-${index}"
-                class="search-result"
-                role="option"
-                aria-selected="false"
-                data-href="${escapeHtml(result.href ?? "")}"
-              >
-                <span>
-                  <strong>${escapeHtml(result.title)}</strong><br>
-                  <small>${escapeHtml(result.type)} · ${escapeHtml(result.context ?? result.domain ?? "")}</small>
-                </span>
-                <span aria-hidden="true">↗</span>
-              </div>`,
-          )
-          .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
-      searchResults.hidden = false;
-      setSearchExpanded(true);
-    } catch {
-      searchResults.hidden = true;
-      setSearchExpanded(false);
-    }
-  }, 180);
-});
-
-searchResults.addEventListener("click", (event) => {
-  const item = event.target.closest("[data-href]");
-  if (!item) return;
-  globalThis.location.hash = item.dataset.href || "#overview";
-  searchResults.hidden = true;
-  setSearchExpanded(false);
-  searchInput.value = "";
+const universalSearch = createUniversalSearchController({
+  input: searchInput,
+  results: searchResults,
+  destinationSelect: searchDestination,
+  api,
 });
 
 function setMenuOpen(open, { restoreFocus = false } = {}) {
@@ -3349,13 +3295,8 @@ function setMenuOpen(open, { restoreFocus = false } = {}) {
 }
 
 document.addEventListener("keydown", (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-    event.preventDefault();
-    searchInput.focus();
-  }
   if (event.key === "Escape") {
-    searchResults.hidden = true;
-    setSearchExpanded(false);
+    universalSearch.close();
     if (app.classList.contains("menu-open")) {
       setMenuOpen(false, { restoreFocus: true });
     }
@@ -3436,6 +3377,7 @@ async function bootApp() {
     healthChip.className = `chip ${ready ? "chip-success" : "chip-warning"}`;
 
     applySupportBanner();
+    await universalSearch.loadDestinations();
     await openHash();
     app.hidden = false;
     boot.hidden = true;
