@@ -295,6 +295,82 @@ test("accepts a pre-hashed Control Center owner credential without plaintext pas
   assertPasswordHash(password, users[0].passwordHash);
 });
 
+test("rotates exactly one matching Control Center owner while preserving all other users", () => {
+  const password = "temporary control center owner password 2026";
+  const credentialDigest = deterministicPasswordHash(password);
+  const email = "control-center-owner@morro.digital";
+  const existingTarget = {
+    id: "existing-platform-user",
+    email,
+    passwordHash: "existing-hash",
+    role: "admin",
+    businessIds: ["biz_existing"],
+    displayName: "Existing Owner",
+  };
+  const sibling = {
+    id: "sibling-user",
+    email: "sibling@morro.invalid",
+    passwordHash: "sibling-hash",
+    role: "viewer",
+    businessIds: ["biz_sibling"],
+  };
+
+  const derived = buildStagingControlCenterOwnerAuthEnvironment({
+    RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+    STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+    STAGING_CONTROL_CENTER_OWNER_ROTATE_EXISTING: "true",
+    STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+    STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST: credentialDigest,
+    DASHBOARD_USERS_JSON: JSON.stringify([existingTarget, sibling]),
+  });
+
+  const users = JSON.parse(derived.DASHBOARD_USERS_JSON);
+  assert.equal(users.length, 2);
+  const rotated = users.find((user) => user.email === email);
+  assert.equal(rotated.id, existingTarget.id);
+  assert.equal(rotated.role, "PLATFORM_OWNER");
+  assert.deepEqual(rotated.businessIds, []);
+  assert.equal(rotated.displayName, existingTarget.displayName);
+  assert.equal(rotated.passwordHash, credentialDigest);
+  assertPasswordHash(password, rotated.passwordHash);
+  assert.deepEqual(users.find((user) => user.id === sibling.id), sibling);
+});
+
+test("keeps collision fail-closed when existing-owner rotation is not explicit or email is duplicated", () => {
+  const password = "temporary control center owner password 2026";
+  const email = "control-center-owner@morro.digital";
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: password,
+        DASHBOARD_USERS_JSON: JSON.stringify([
+          { id: "existing", email },
+        ]),
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_ROTATE_EXISTING: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: password,
+        DASHBOARD_USERS_JSON: JSON.stringify([
+          { id: "existing-a", email },
+          { id: "existing-b", email },
+        ]),
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
+  );
+});
+
 test("fails closed for unsafe Control Center owner bootstrap configuration", () => {
   const strongPassword = "temporary control center owner password 2026";
   const email = "control-center-owner@morro.digital";
