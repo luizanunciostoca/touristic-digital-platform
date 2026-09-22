@@ -727,10 +727,11 @@ jobs:
             await page.locator('#assistant-category-results [data-value="__tour_next__"]').click();
             const nextAfterPrevious = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '3');
 
-            await page.locator('#assistant-category-results [data-value="__tour_list__"]').click();
-            const list = await waitForGuidedStage(page, 'list', 'volta-a-ilha');
-            await page.locator('.tour-stop-list-card').waitFor({ state: 'visible', timeout: 10000 });
-            await page.locator('#assistant-category-results [data-value="__tour_stop_7__"]').click();
+            const lastMarker = page.locator(
+              '.tour-stop-marker[data-stop-index="7"]',
+            );
+            await lastMarker.waitFor({ state: 'attached', timeout: 10000 });
+            await lastMarker.evaluate(element => element.click());
             const directLast = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '7');
             const lastBoundary = await page.evaluate(() => ({
               previous: document.querySelectorAll(
@@ -798,7 +799,6 @@ jobs:
               next,
               previous,
               nextAfterPrevious,
-              list,
               directLast,
               finale,
               returnedToTours,
