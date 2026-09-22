@@ -28,7 +28,9 @@ async function inspect(page, label) {
     const dockRect = dock?.getBoundingClientRect();
     const inputRect = input?.getBoundingClientRect();
     const chips = Array.from(
-      document.querySelectorAll("#assistant-category-rail [data-assistant-category]"),
+      document.querySelectorAll(
+        "#assistant-category-rail [data-assistant-category]",
+      ),
     );
     return {
       width: window.innerWidth,
@@ -80,11 +82,15 @@ async function inspect(page, label) {
   );
   assert(
     state.chipTargets.length === 10 &&
-      state.chipTargets.every((target) => target.width >= 44 && target.height >= 44),
+      state.chipTargets.every(
+        (target) => target.width >= 44 && target.height >= 44,
+      ),
     `${label}: category target below 44px in WebKit`,
   );
   assert(
-    state.input && state.input.top >= 0 && state.input.bottom <= state.height + 1,
+    state.input &&
+      state.input.top >= 0 &&
+      state.input.bottom <= state.height + 1,
     `${label}: composer input not visible in WebKit`,
   );
   return state;
@@ -106,7 +112,10 @@ try {
       localStorage.setItem("voice-enabled", "false");
     });
     const page = await context.newPage();
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.goto(baseUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
     await page
       .locator("#unified-assistant-dock")
       .waitFor({ state: "visible", timeout: 15_000 });
@@ -137,7 +146,10 @@ try {
   await page.setViewportSize({ width: 390, height: 600 });
   await page.waitForTimeout(200);
   const keyboardState = await inspect(page, "webkit-keyboard-390x600");
-  report.cases.push({ viewport: { label: "webkit-keyboard-390x600" }, ...keyboardState });
+  report.cases.push({
+    viewport: { label: "webkit-keyboard-390x600" },
+    ...keyboardState,
+  });
   await page.screenshot({
     path: `${evidenceDir}/webkit-keyboard-390x600.png`,
     fullPage: false,

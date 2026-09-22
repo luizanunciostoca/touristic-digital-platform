@@ -355,7 +355,12 @@ function frameLocationsOnMap(
           zoom?: number;
           duration?: number;
           essential?: boolean;
-          padding?: { top: number; bottom: number; left: number; right: number };
+          padding?: {
+            top: number;
+            bottom: number;
+            left: number;
+            right: number;
+          };
         }): void;
       };
       paddedMap.flyTo({
