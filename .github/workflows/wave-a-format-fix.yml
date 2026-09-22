@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - wave/ux-v2-discover-map-convergence-20260922
-    paths:
-      - .github/workflows/wave-a-format-fix.yml
 
 permissions:
   contents: write
