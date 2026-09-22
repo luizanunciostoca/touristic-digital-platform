@@ -69,9 +69,7 @@ async function main() {
     failureStage = "change-role-manager";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await selectedUserRow()
-      .locator("td")
-      .nth(2)
-      .getByText("BUSINESS_MANAGER", { exact: true })
+      .filter({ hasText: "BUSINESS_MANAGER" })
       .waitFor({ timeout: 15_000 });
 
     await openActions();
@@ -84,9 +82,7 @@ async function main() {
     failureStage = "block-user";
     await statusForm.getByRole("button", { name: "Bloquear conta" }).click();
     await selectedUserRow()
-      .locator("td")
-      .nth(1)
-      .getByText("blocked", { exact: true })
+      .filter({ hasText: "blocked" })
       .waitFor({ timeout: 15_000 });
 
     const blocked = await browser.newContext();
@@ -117,9 +113,7 @@ async function main() {
     failureStage = "reactivate-user";
     await statusForm.getByRole("button", { name: "Reativar conta" }).click();
     await selectedUserRow()
-      .locator("td")
-      .nth(1)
-      .getByText("active", { exact: true })
+      .filter({ hasText: "active" })
       .waitFor({ timeout: 15_000 });
 
     await openActions();
@@ -134,9 +128,7 @@ async function main() {
     failureStage = "restore-role-owner";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await selectedUserRow()
-      .locator("td")
-      .nth(2)
-      .getByText("BUSINESS_OWNER", { exact: true })
+      .filter({ hasText: "BUSINESS_OWNER" })
       .waitFor({ timeout: 15_000 });
 
     console.log("CONTROL_CENTER_USERS_BROWSER_PASS");
