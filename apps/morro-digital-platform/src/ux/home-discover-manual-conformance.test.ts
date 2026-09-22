@@ -162,7 +162,7 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(staging).toContain('value: "14.8"');
   });
 
-  it("preserves Wave H map, Weather and map-control target selectors", async () => {
+  it("preserves Wave H map, Weather and map-perspective target selectors", async () => {
     const onboarding = await readRepository(
       "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
     );
@@ -174,7 +174,7 @@ describe("Home / Discover UX V2 manual conformance", () => {
       'Object.freeze({ selectors: ["#weather-widget"] })',
     );
     expect(onboarding).toContain(
-      'Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] })',
+      'Object.freeze({ selectors: ["#toggle-globe-view"] })',
     );
   });
 });
