@@ -205,7 +205,6 @@ function createPresenterMarker(
   return wrapper;
 }
 
-
 function createNavigationDestinationMarkerElement(): HTMLElement | undefined {
   if (typeof document === "undefined") return undefined;
 
@@ -236,7 +235,9 @@ function createDestinationMarker(
         }
       : undefined,
   );
-  marker.setLngLat([destination.longitude, destination.latitude]).addTo(nativeMap);
+  marker
+    .setLngLat([destination.longitude, destination.latitude])
+    .addTo(nativeMap);
   return marker;
 }
 
@@ -254,7 +255,8 @@ export function createBrowserNavigationWiring(
   });
 
   let routePresentationRevision = 0;
-  let destinationMarker: ReturnType<typeof createDestinationMarker> | null = null;
+  let destinationMarker: ReturnType<typeof createDestinationMarker> | null =
+    null;
   const presentRouteWhenReady = (routeData: unknown): void => {
     const revision = ++routePresentationRevision;
     const present = (): void => {
