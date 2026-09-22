@@ -678,26 +678,44 @@ function applyTicketingStaticCopy(
   document: Document,
   copy: Readonly<Record<string, string>>,
 ): void {
-  setText(document, ".ticketing-header h1", copy.mainTitle);
-  setText(document, ".ticketing-header .lead", copy.lead);
+  setText(document, "[data-ticketing-return]", copy.returnToMap);
+  setText(document, ".ticketing-product-stage .eyebrow", copy.heroEyebrow);
+  setText(document, "#ticketing-title", copy.productTitle);
+  setText(document, "#product-lead", copy.productLead);
   setText(
     document,
-    '.panel[aria-labelledby="offers-title"] .eyebrow',
-    copy.availabilityEyebrow,
+    '.panel[aria-labelledby="offers-title"] > .section-heading .eyebrow',
+    copy.selectionStep,
   );
-  setText(document, "#offers-title", copy.offersTitle);
+  setText(document, "#offers-title", copy.selectionTitle);
   setText(document, "#refresh-button", copy.refresh);
+  setText(document, ".selection-copy .eyebrow", copy.quantityStep);
+  setText(document, "#selected-summary-title", copy.selectionSummaryTitle);
+  setText(document, "#quantity-label", copy.ticketsLabel);
+  setText(document, ".price-summary .eyebrow", copy.summaryEyebrow);
+  setText(document, "#price-summary-title", copy.summaryTitle);
+  setText(document, "#quote-badge", copy.inventoryPrice);
+  setText(
+    document,
+    ".price-breakdown > div:nth-child(1) dt",
+    copy.unitPrice,
+  );
+  setText(document, ".price-breakdown > div:nth-child(2) dt", copy.quantity);
+  setText(
+    document,
+    ".price-breakdown > div:nth-child(3) dt",
+    copy.subtotalEstimate,
+  );
+  setText(document, ".authority-note", copy.authorityNote);
   setText(
     document,
     '.panel[aria-labelledby="reservation-title"] .eyebrow',
-    copy.reservationEyebrow,
+    copy.identityStep,
   );
-  setText(document, "#reservation-title", copy.reservationTitle);
-  setText(
-    document,
-    '.panel[aria-labelledby="my-tickets-title"] .eyebrow',
-    copy.walletEyebrow,
-  );
+  setText(document, "#reservation-title", copy.identityTitle);
+  setText(document, ".wallet-heading .eyebrow", copy.afterPurchase);
+  setText(document, "#my-tickets-title", copy.myTickets);
+  setText(document, ".ticket-dialog-hint", copy.brightnessHint);
 
   const secureNotes = document.querySelectorAll<HTMLElement>(".secure-note");
   if (secureNotes[0] && copy.securePayment)
@@ -705,7 +723,7 @@ function applyTicketingStaticCopy(
   if (secureNotes[1] && copy.qrAfterPayment)
     secureNotes[1].textContent = copy.qrAfterPayment;
 
-  replaceLeadingLabelText(document, "#selected-offer", copy.experienceLabel);
+  replaceLeadingLabelText(document, "#selected-offer", copy.selectedExperience);
   replaceLeadingLabelText(document, "#holder-name", copy.fullName);
   replaceLeadingLabelText(document, "#holder-email", copy.email);
   replaceLeadingLabelText(document, "#holder-phone", copy.phone, copy.optional);
@@ -715,7 +733,6 @@ function applyTicketingStaticCopy(
     copy.document,
     copy.optional,
   );
-  replaceLeadingLabelText(document, "#quantity", copy.quantity);
 
   const selectedOffer =
     document.querySelector<HTMLInputElement>("#selected-offer");
@@ -723,9 +740,8 @@ function applyTicketingStaticCopy(
     selectedOffer.placeholder = copy.experiencePlaceholder;
 
   setText(document, "#reserve-button", copy.reserveAndPay);
-  setText(document, "#my-tickets-title", copy.walletTitle);
   setAriaLabel(document, "#ticket-close", copy.close);
-  setText(document, ".ticket-dialog .eyebrow", copy.confirmedTicket);
+  setText(document, ".ticket-dialog > .eyebrow", copy.confirmedTicket);
   setText(document, "#ticket-title", copy.yourTicket);
   setAriaLabel(document, "#ticket-qr", copy.ticketQrLabel);
 }
