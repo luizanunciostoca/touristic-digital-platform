@@ -53,6 +53,22 @@ const elements = {
   ticketQr: document.querySelector("#ticket-qr"),
   ticketCode: document.querySelector("#ticket-code"),
   ticketMeta: document.querySelector("#ticket-meta"),
+  hero: document.querySelector(".ticketing-hero-media"),
+  heroTitle: document.querySelector("#ticketing-title"),
+  productLead: document.querySelector("#product-lead"),
+  productLocation: document.querySelector("#product-location"),
+  productDuration: document.querySelector("#product-duration"),
+  productAvailability: document.querySelector("#product-availability"),
+  selectionSummary: document.querySelector("#selection-summary"),
+  selectedSummaryTitle: document.querySelector("#selected-summary-title"),
+  selectedSummaryMeta: document.querySelector("#selected-summary-meta"),
+  summaryUnitPrice: document.querySelector("#summary-unit-price"),
+  summaryQuantity: document.querySelector("#summary-quantity"),
+  summarySubtotal: document.querySelector("#summary-subtotal"),
+  quoteBadge: document.querySelector("#quote-badge"),
+  quantityDecrease: document.querySelector("#quantity-decrease"),
+  quantityIncrease: document.querySelector("#quantity-increase"),
+  returnLink: document.querySelector("[data-ticketing-return]"),
 };
 
 function readSessionJson(key, fallback) {
@@ -144,6 +160,71 @@ function productKindLabel(offer) {
   if (offer?.product?.kind === "tour") return copy.kindTour;
   if (offer?.product?.kind === "transport") return copy.kindTransport;
   return copy.kindExperience;
+}
+
+function destinationLabel(offer) {
+  if (offer?.destinationId === "morro-de-sao-paulo") return "Morro de São Paulo";
+  return text(offer?.destinationId).replaceAll("-", " ") || "Morro Digital";
+}
+
+function durationLabel(offer) {
+  const start = Date.parse(offer?.startsAt || "");
+  const end = Date.parse(offer?.endsAt || "");
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return "";
+  const minutes = Math.round((end - start) / 60000);
+  if (minutes >= 60 && minutes % 60 === 0) {
+    const hours = minutes / 60;
+    return `${hours}h`;
+  }
+  if (minutes >= 60) {
+    return `${Math.floor(minutes / 60)}h ${minutes % 60}min`;
+  }
+  return `${minutes} min`;
+}
+
+function heroImageFor(offer) {
+  const reference = text(offer?.product?.reference).toLowerCase();
+  if (reference.includes("toca-do-morcego")) return "/images/fotos/toca_do_morcego1.jpg";
+  if (reference.includes("garapua") && reference.includes("4x4")) return "/images/fotos/passeio_4x4_garapua1.jpg";
+  if (reference.includes("garapua")) return "/images/fotos/passeio_quadriciclo_garapua1.jpg";
+  if (reference.includes("gamboa")) return "/images/fotos/passeio_barco_gamboa1.jpg";
+  if (reference.includes("tinhare") || reference.includes("volta-a-ilha")) return "/images/fotos/passeio_lancha_ilha_tinhare1.jpg";
+  return "/images/fotos/farol_do_morro1.jpg";
+}
+
+function estimatedSubtotal(offer, quantity) {
+  if (!offer?.unitAmount || !Number.isSafeInteger(quantity) || quantity < 1) return null;
+  const minorUnits = Number(offer.unitAmount.minorUnits);
+  if (!Number.isSafeInteger(minorUnits)) return null;
+  return { minorUnits: minorUnits * quantity, currency: offer.unitAmount.currency };
+}
+
+function updatePurchaseSummary() {
+  const offer = state.selectedOffer;
+  if (!offer) return;
+  const quantity = Math.max(1, Number(elements.quantity.value) || 1);
+  elements.summaryUnitPrice.textContent = money(offer.unitAmount);
+  elements.summaryQuantity.textContent = String(quantity);
+  elements.summarySubtotal.textContent = money(estimatedSubtotal(offer, quantity));
+  elements.quoteBadge.textContent = offer.pricingVersion
+    ? `Inventário · ${offer.pricingVersion}`
+    : "Preço do inventário";
+}
+
+function updateProductPresentation(offer) {
+  elements.heroTitle.textContent = offer.label || productKindLabel(offer);
+  elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(offer.startsAt)}`;
+  elements.productLocation.textContent = destinationLabel(offer);
+  const duration = durationLabel(offer);
+  elements.productDuration.hidden = !duration;
+  elements.productDuration.textContent = duration;
+  elements.productAvailability.hidden = false;
+  elements.productAvailability.textContent = copy.availableCount(offer.availableQuantity);
+  elements.hero.style.setProperty("--ticketing-hero-image", `url("${heroImageFor(offer)}")`);
+  elements.selectionSummary.hidden = false;
+  elements.selectedSummaryTitle.textContent = offer.label;
+  elements.selectedSummaryMeta.textContent = `${dateTime(offer.startsAt)} · ${destinationLabel(offer)}`;
+  updatePurchaseSummary();
 }
 
 function productUnitLabel(product, quantity = 1) {
@@ -294,6 +375,7 @@ function selectOffer(offer, { scroll = false } = {}) {
   if (Number(elements.quantity.value) > Number(elements.quantity.max))
     elements.quantity.value = "1";
   elements.reserve.disabled = offer.availableQuantity < 1;
+  updateProductPresentation(offer);
   for (const card of elements.offers.querySelectorAll(".offer-card")) {
     card.classList.toggle("is-selected", card.dataset.inventoryId === offer.id);
   }
@@ -808,6 +890,31 @@ elements.refresh.addEventListener("click", () => {
   });
 });
 elements.dialogClose.addEventListener("click", () => elements.dialog.close());
+
+function changeQuantity(delta) {
+  if (!state.selectedOffer) return;
+  const min = Math.max(1, Number(elements.quantity.min) || 1);
+  const max = Math.max(min, Number(elements.quantity.max) || min);
+  const current = Math.min(max, Math.max(min, Number(elements.quantity.value) || min));
+  elements.quantity.value = String(Math.min(max, Math.max(min, current + delta)));
+  updatePurchaseSummary();
+}
+
+elements.quantityDecrease.addEventListener("click", () => changeQuantity(-1));
+elements.quantityIncrease.addEventListener("click", () => changeQuantity(1));
+elements.quantity.addEventListener("input", updatePurchaseSummary);
+
+elements.returnLink.addEventListener("click", (event) => {
+  if (history.length <= 1 || !document.referrer) return;
+  try {
+    const previous = new URL(document.referrer);
+    if (previous.origin !== location.origin) return;
+    event.preventDefault();
+    history.back();
+  } catch {
+    // The canonical "/" fallback preserves the stored tourist snapshot.
+  }
+});
 
 (async () => {
   renderOfferSkeletons();
