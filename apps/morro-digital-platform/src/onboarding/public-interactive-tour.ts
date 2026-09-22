@@ -51,13 +51,11 @@ function firstVisibleTarget(
     if (!candidate) continue;
     const rect = candidate.getBoundingClientRect();
     const style = document.defaultView?.getComputedStyle(candidate);
-    const unavailable =
-      candidate.matches(":disabled") ||
-      candidate.getAttribute("aria-disabled") === "true" ||
+    const hidden =
       candidate.hidden ||
       style?.display === "none" ||
       style?.visibility === "hidden";
-    if (!unavailable && rect.width > 0 && rect.height > 0) return candidate;
+    if (!hidden && rect.width > 0 && rect.height > 0) return candidate;
   }
   return null;
 }
@@ -304,6 +302,10 @@ export function installPublicInteractiveTour(
     ).tour;
     const isLast = stepIndex === STEPS.length - 1;
     const progress = ((stepIndex + 1) / STEPS.length) * 100;
+    const targetUnavailable =
+      target?.matches(":disabled") ||
+      target?.getAttribute("aria-disabled") === "true";
+    tooltip.toggleAttribute("data-target-unavailable", Boolean(targetUnavailable));
     tooltip.innerHTML = `
       <div class="tour-tooltip-inner">
         <div class="tour-header">
@@ -316,6 +318,11 @@ export function installPublicInteractiveTour(
         <h2 class="tour-step-title">${step.title}</h2>
         <p class="tour-step-desc">${step.description}</p>
         <div class="tour-action-hint"><span class="tour-hint-arrow">↑</span><span>${step.hint}</span></div>
+        ${
+          targetUnavailable
+            ? `<p class="tour-capability-note" role="status">${tourCopy.unavailable}</p>`
+            : ""
+        }
         <div class="tour-footer">
           ${stepIndex > 0 ? `<button type="button" class="tour-btn-back">${tourCopy.back}</button>` : ""}
           ${
