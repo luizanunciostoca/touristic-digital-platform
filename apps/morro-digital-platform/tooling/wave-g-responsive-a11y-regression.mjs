@@ -222,10 +222,11 @@ try {
     await page
       .locator('body[data-public-onboarding-settled="true"]')
       .waitFor({ state: "attached", timeout: 15_000 });
-    const selector =
-      "#assistant-input-area textarea, #assistant-input-area input, textarea, input:not([type='hidden'])";
-    const input = page.locator(selector).filter({ visible: true }).first();
-    assert((await input.count()) > 0, "keyboard proof requires a visible text input");
+    const input = page.locator("#assistantInput");
+    assert(
+      (await input.count()) === 1 && (await input.isVisible()),
+      "keyboard proof requires the visible Assistant composer input",
+    );
     await input.focus();
     await page.setViewportSize({ width: 390, height: 600 });
     await page.waitForTimeout(250);
