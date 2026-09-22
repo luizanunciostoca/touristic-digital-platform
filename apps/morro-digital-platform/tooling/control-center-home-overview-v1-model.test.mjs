@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildHomeModelV1 } from "../public/control-center-home-overview-v1.js";
+import { buildHomeModelV1 } from "../../control-center/public/control-center-home-overview-v1.js";
 
 function fixtureDestinations(count) {
   return Array.from({ length: count }, (_, index) => ({
