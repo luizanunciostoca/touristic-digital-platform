@@ -688,3 +688,133 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
     border-color: CanvasText;
   }
 }
+
+
+/* Tour manual convergence: preserve map context and remove sheet-debug chrome. */
+#explore-flow-bottom-sheet[data-flow-kind="tour"] {
+  bottom: max(var(--md-space-3), var(--md-safe-bottom));
+  height: auto;
+  max-height: min(48dvh, 30rem);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-drag-handle,
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-state-controls {
+  display: none;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-toolbar {
+  min-height: var(--md-touch-target-min);
+  grid-template-columns: 1fr auto;
+  border-bottom: 0;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-close {
+  grid-column: 2;
+  justify-self: end;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-content {
+  gap: var(--md-space-2);
+  padding: 0 var(--md-space-3) var(--md-space-3);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-title {
+  padding-inline-end: var(--md-space-2);
+  font-size: 1rem;
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1.3;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-rich
+  > :is(.tour-intro-card, .tour-stop-list-card, .tour-stop-card, .tour-finale-card) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-progress-bar {
+  margin: 0 0 var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo-wrap {
+  max-height: 8.5rem;
+  overflow: hidden;
+  border-radius: var(--md-radius-md);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo {
+  width: 100%;
+  height: 8.5rem;
+  object-fit: cover;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-header {
+  margin-top: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-desc {
+  margin-block: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-tips {
+  margin-block: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-narration-btn {
+  width: 100%;
+  margin: var(--md-space-2) 0 0;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_exit__"],
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_cancel__"] {
+  display: none;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions,
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-source {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option--primary {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 30rem) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    max-height: 46dvh;
+  }
+
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo-wrap,
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo {
+    height: 7rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 32rem) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    right: max(var(--md-space-3), var(--md-safe-right));
+    bottom: max(var(--md-space-2), var(--md-safe-bottom));
+    left: auto;
+    width: min(28rem, calc(100vw - var(--md-space-6)));
+    max-height: calc(100dvh - var(--md-space-4));
+  }
+
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo-wrap,
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo {
+    height: 5.5rem;
+  }
+}
+
+@media (forced-colors: active) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
