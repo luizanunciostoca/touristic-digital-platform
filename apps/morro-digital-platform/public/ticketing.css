@@ -251,7 +251,7 @@ h3 {
   align-content: center;
   padding: var(--md-space-2) var(--md-space-3);
   border: 1px solid var(--md-color-border);
-  border-radius: 999px;
+  border-radius: var(--md-radius-pill);
   background: var(--md-color-surface-card);
   color: var(--md-color-text-primary);
   scroll-snap-align: start;
