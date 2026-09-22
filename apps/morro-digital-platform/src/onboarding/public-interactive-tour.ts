@@ -196,14 +196,10 @@ export function installPublicInteractiveTour(
     let left = rect.left + rect.width / 2 - tooltipWidth / 2;
     left = Math.max(
       viewportLeft + safeGap,
-      Math.min(
-        left,
-        viewportLeft + viewportWidth - tooltipWidth - safeGap,
-      ),
+      Math.min(left, viewportLeft + viewportWidth - tooltipWidth - safeGap),
     );
 
-    const roomBelow =
-      viewportTop + viewportHeight - rect.bottom - safeGap;
+    const roomBelow = viewportTop + viewportHeight - rect.bottom - safeGap;
     const roomAbove = rect.top - viewportTop - safeGap;
     let top: number;
     if (roomBelow >= tooltipHeight + safeGap) {

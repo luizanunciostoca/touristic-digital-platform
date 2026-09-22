@@ -18,14 +18,12 @@
   display: block;
   width: 100%;
   height: 100dvh;
-  padding:
-    var(--md-onboarding-safe-top)
-    var(--md-onboarding-safe-right)
-    var(--md-onboarding-safe-bottom)
-    var(--md-onboarding-safe-left);
+  padding: var(--md-onboarding-safe-top) var(--md-onboarding-safe-right)
+    var(--md-onboarding-safe-bottom) var(--md-onboarding-safe-left);
   overflow: hidden;
   background: transparent;
-  animation: md-onboarding-enter 160ms var(--md-motion-ease-standard, ease-out) both;
+  animation: md-onboarding-enter 160ms var(--md-motion-ease-standard, ease-out)
+    both;
 }
 
 #onboarding-overlay .onboarding-bg {
@@ -41,8 +39,7 @@
   position: absolute;
   right: var(--md-onboarding-safe-right);
   bottom: calc(
-    var(--md-onboarding-safe-bottom) +
-      var(--md-shell-composer-height, 4rem) +
+    var(--md-onboarding-safe-bottom) + var(--md-shell-composer-height, 4rem) +
       var(--md-home-bottom-stack-gap, 0.75rem)
   );
   left: auto;
@@ -204,7 +201,8 @@
 }
 
 #onboarding-overlay.onboarding-exit {
-  animation: md-onboarding-exit 140ms var(--md-motion-ease-standard, ease-in) both;
+  animation: md-onboarding-exit 140ms var(--md-motion-ease-standard, ease-in)
+    both;
 }
 
 /* Coachmarks: compact, map-first, and target-aware. */
@@ -228,7 +226,8 @@ body.tour-active #tour-highlight {
   z-index: calc(var(--md-onboarding-layer) + 3);
   border: 2px solid var(--md-color-interactive-primary);
   border-radius: var(--md-radius-lg);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-color-interactive-primary) 18%, transparent);
+  box-shadow: 0 0 0 3px
+    color-mix(in srgb, var(--md-color-interactive-primary) 18%, transparent);
   animation: none;
   pointer-events: none;
 }
@@ -299,7 +298,8 @@ body.tour-active .tour-progress-bar {
 
 body.tour-active .tour-progress-fill {
   background: var(--md-color-interactive-primary);
-  transition: width var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+  transition: width var(--md-motion-duration-fast)
+    var(--md-motion-ease-standard);
 }
 
 body.tour-active .tour-step-title {
@@ -381,7 +381,10 @@ body.tour-active .tour-skip-btn:focus-visible {
 
 #tour-finish-toast {
   z-index: var(--md-onboarding-layer);
-  bottom: calc(var(--md-onboarding-safe-bottom) + var(--md-shell-composer-height, 4rem) + 0.75rem);
+  bottom: calc(
+    var(--md-onboarding-safe-bottom) + var(--md-shell-composer-height, 4rem) +
+      0.75rem
+  );
   width: min(22rem, calc(100vw - 1.5rem));
   padding: var(--md-space-3);
   border: 1px solid var(--md-color-border);
@@ -410,7 +413,10 @@ body.tour-active .tour-skip-btn:focus-visible {
 
 @media (max-height: 36rem) {
   #onboarding-overlay .onboarding-container {
-    max-height: calc(100dvh - var(--md-onboarding-safe-top) - var(--md-onboarding-safe-bottom) - 1rem);
+    max-height: calc(
+      100dvh - var(--md-onboarding-safe-top) -
+        var(--md-onboarding-safe-bottom) - 1rem
+    );
     bottom: var(--md-onboarding-safe-bottom);
   }
 
@@ -449,11 +455,19 @@ body.tour-active .tour-skip-btn:focus-visible {
 }
 
 @keyframes md-onboarding-enter {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes md-onboarding-exit {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }

@@ -108,8 +108,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
       title: "Welcome to Morro Digital",
       description: "Your smart guide to discovering Morro de São Paulo.",
       readyTitle: "Ready to explore?",
-      readyDescription:
-        "See the essential controls or start exploring now.",
+      readyDescription: "See the essential controls or start exploring now.",
       startTitle: "Explore the App",
       startDescription:
         "Discover the map, weather, assistant and main controls step by step.",
@@ -222,8 +221,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
       title: "ברוכים הבאים ל-Morro Digital",
       description: "המדריך החכם שלכם לגילוי מורו דה סאו פאולו.",
       readyTitle: "מוכנים לצאת לדרך?",
-      readyDescription:
-        "אפשר להכיר את הפקדים החיוניים או להתחיל לחקור מיד.",
+      readyDescription: "אפשר להכיר את הפקדים החיוניים או להתחיל לחקור מיד.",
       startTitle: "הכירו את האפליקציה",
       startDescription:
         "הכירו שלב אחר שלב את המפה, מזג האוויר, העוזר והפקדים המרכזיים.",
