@@ -11,6 +11,10 @@ This checklist reconciles the manual with the implementation already merged into
 Implementation candidate: `wave/ux-v2-unified-assistant-dock-convergence-20260922`.
 
 - [x] One fixed dock owns Assistant message, composer and five-action navigation.
+- [x] Horizontal category rail is integrated between message and composer inside the same dock.
+- [x] Category chips dispatch existing Assistant option routing and do not duplicate business logic.
+- [x] Category rail is touch-scrollable, single-row, scroll-snapped, RTL-aware and 44px-target-safe.
+- [x] Legacy external Discover category rail is visually retired while unified dock authority is active.
 - [x] Standard Assistant text is bounded and internally scrollable.
 - [x] Rich Assistant content has a separate bounded presentation cap.
 - [x] Send and Voice remain persistently reachable before input focus.
