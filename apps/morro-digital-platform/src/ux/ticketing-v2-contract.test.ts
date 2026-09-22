@@ -190,7 +190,6 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(css).toContain("font-weight: var(--md-font-weight-bold)");
   });
 
-
   it("keeps the 390px flow compact, contextual, and server-authoritative", async () => {
     const [html, css, runtime] = await Promise.all([
       readPublic("tickets.html"),
@@ -214,7 +213,9 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain("copy.soldOut");
     expect(runtime).toContain("elements.quantityDecrease.disabled");
     expect(runtime).toContain("elements.quantityIncrease.disabled");
-    expect(runtime).not.toContain('setMessage(error.message || copy.ticketingUnavailable');
+    expect(runtime).not.toContain(
+      "setMessage(error.message || copy.ticketingUnavailable",
+    );
     expect(runtime).toContain("copy.static.emptyTitle");
     expect(runtime).toContain("privacyPreferences.open()");
   });
