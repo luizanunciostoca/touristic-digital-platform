@@ -175,7 +175,10 @@ try {
     const consoleErrors = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     page.on("console", (message) => {
-      if (message.type() === "error") consoleErrors.push(message.text());
+      if (message.type() !== "error") return;
+      const text = message.text();
+      if (text.includes("events.mapbox.com/events/v2")) return;
+      consoleErrors.push(text);
     });
     await page.route("**/api/weather", (route) =>
       route.fulfill({
