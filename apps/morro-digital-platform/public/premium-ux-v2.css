@@ -754,17 +754,18 @@ body[data-md-mode="navigation"] #instruction-step-distance {
 
 /* UX V2 Wave E — active navigation convergence */
 body[data-md-mode="navigation"] #instruction-banner {
-  top: calc(var(--md-safe-top) + var(--md-space-3));
-  right: calc(var(--md-safe-right) + var(--md-space-3));
-  left: calc(var(--md-safe-left) + var(--md-space-3));
-  width: auto;
-  max-width: var(--md-navigation-banner-max-inline-size);
+  top: calc(var(--md-safe-top) + var(--md-space-3)) !important;
+  right: calc(var(--md-safe-right) + var(--md-space-3)) !important;
+  left: calc(var(--md-safe-left) + var(--md-space-3)) !important;
+  width: auto !important;
+  max-width: var(--md-navigation-banner-max-inline-size) !important;
   min-height: 0;
   margin-inline: auto;
+  transform: none !important;
   padding: var(--md-space-4) 3.5rem var(--md-space-3) var(--md-space-4);
   border: 0;
-  border-radius: 1rem;
-  background: var(--md-navigation-primary-strong);
+  border-radius: 1rem !important;
+  background: var(--md-navigation-primary-strong) !important;
   color: var(--md-navigation-inverse);
   box-shadow: var(--md-navigation-shadow);
 }
@@ -817,9 +818,9 @@ body[data-md-mode="navigation"] #instruction-arrow {
 
 body[data-md-mode="navigation"] #instruction-secondary {
   margin: 0 0 0 calc(3rem + var(--md-space-3));
-  padding: var(--md-space-1) 0 0;
+  padding: var(--md-space-1) 0 0 !important;
   border: 0;
-  background: transparent;
+  background: transparent !important;
 }
 
 body[data-md-mode="navigation"] #instruction-details {
@@ -866,6 +867,10 @@ body[data-md-mode="navigation"] #globe-map-control {
   display: flex !important;
   flex-direction: column;
   gap: var(--md-space-2);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
 }
 
 body[data-md-mode="navigation"] #globe-map-control #toggle-globe-view {
