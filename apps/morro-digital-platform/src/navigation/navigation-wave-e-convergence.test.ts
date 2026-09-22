@@ -18,12 +18,8 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(css).toContain(
       "/* UX V2 Wave E — active navigation convergence */",
     );
-    expect(css).toContain(
-      'body[data-md-mode="navigation"] #instruction-banner',
-    );
-    expect(css).toContain(
-      'body[data-md-mode="navigation"] #navigation-summary',
-    );
+    expect(css).toContain('body[data-md-mode="navigation"] #instruction-banner');
+    expect(css).toContain('body[data-md-mode="navigation"] #navigation-summary');
     expect(css).toContain(
       'body[data-md-mode="navigation"] #navigation-recenter-btn',
     );
