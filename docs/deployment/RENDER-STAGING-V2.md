@@ -248,7 +248,6 @@ The guard:
 
 This closes the race observed when the MySQL private service is replacing its single staging instance while the web predeploy begins. It does not claim MySQL high availability or production zero-downtime behavior.
 
-
 ## Wave A exact-head certification
 
 Discover/map visual evidence is valid only when the browser, regression, quality, and staging checks were produced from the same branch HEAD. A formatting-only or automated follow-up commit invalidates prior evidence and requires fresh checks before the Wave A PR can be promoted to `PR_VALIDATED` or `MERGE_READY`.
