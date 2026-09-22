@@ -75,6 +75,7 @@ export interface BrowserNavigationWiring {
   readonly composition: NavigationAppComposition;
   start(): void;
   stop(): void;
+  recenter?(): boolean;
 }
 
 function requireNavigationMap(map: MapboxGlMapLike): NativeNavigationMapboxMap {
@@ -204,6 +205,41 @@ function createPresenterMarker(
   return wrapper;
 }
 
+
+function createNavigationDestinationMarkerElement(): HTMLElement | undefined {
+  if (typeof document === "undefined") return undefined;
+
+  const element = document.createElement("div");
+  element.className = "navigation-destination-marker";
+  element.dataset.navigationDestinationMarker = "true";
+  element.setAttribute("role", "img");
+  element.setAttribute("aria-label", "Destino");
+
+  const pin = document.createElement("span");
+  pin.className = "navigation-destination-pin";
+  pin.setAttribute("aria-hidden", "true");
+  element.appendChild(pin);
+  return element;
+}
+
+function createDestinationMarker(
+  sdk: MapboxGlModuleLike,
+  nativeMap: MapboxGlMapLike,
+  destination: NonNullable<BrowserNavigationWiringOptions["destination"]>,
+) {
+  const element = createNavigationDestinationMarkerElement();
+  const marker = new sdk.Marker(
+    element
+      ? {
+          element,
+          anchor: "bottom",
+        }
+      : undefined,
+  );
+  marker.setLngLat([destination.longitude, destination.latitude]).addTo(nativeMap);
+  return marker;
+}
+
 export function createBrowserNavigationWiring(
   options: BrowserNavigationWiringOptions,
 ): BrowserNavigationWiring {
@@ -218,6 +254,7 @@ export function createBrowserNavigationWiring(
   });
 
   let routePresentationRevision = 0;
+  let destinationMarker: ReturnType<typeof createDestinationMarker> | null = null;
   const presentRouteWhenReady = (routeData: unknown): void => {
     const revision = ++routePresentationRevision;
     const present = (): void => {
@@ -266,12 +303,24 @@ export function createBrowserNavigationWiring(
     composition,
     start(): void {
       presentRouteWhenReady(options.routeData);
+      if (options.destination && !destinationMarker) {
+        destinationMarker = createDestinationMarker(
+          options.sdk,
+          options.map,
+          options.destination,
+        );
+      }
       composition.start();
     },
     stop(): void {
       routePresentationRevision += 1;
       composition.stop();
+      destinationMarker?.remove();
+      destinationMarker = null;
       clearNavigationRoute(options.map);
+    },
+    recenter(): boolean {
+      return composition.recenter();
     },
   });
 }
