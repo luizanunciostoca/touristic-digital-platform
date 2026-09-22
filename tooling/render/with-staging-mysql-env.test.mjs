@@ -295,6 +295,44 @@ test("accepts a pre-hashed Control Center owner credential without plaintext pas
   assertPasswordHash(password, users[0].passwordHash);
 });
 
+test("idempotently resets the exact dedicated Control Center owner identity", () => {
+  const email = "control-center-owner@morro.digital";
+  const credentialDigest = deterministicPasswordHash(
+    "replacement control center owner password 2026",
+  );
+  const peerUser = {
+    id: "peer-owner",
+    email: "peer-owner@morro.invalid",
+    passwordHash: "peer-hash",
+    role: "owner",
+    businessIds: ["biz_peer"],
+  };
+  const existingOwner = {
+    id: stagingControlCenterOwnerIdentity.id,
+    email,
+    passwordHash: "old-hash",
+    role: "PLATFORM_ADMIN",
+    businessIds: ["unexpected-scope"],
+  };
+  const derived = buildStagingControlCenterOwnerAuthEnvironment({
+    RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+    STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+    STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+    STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST: credentialDigest,
+    DASHBOARD_USERS_JSON: JSON.stringify([peerUser, existingOwner]),
+  });
+
+  const users = JSON.parse(derived.DASHBOARD_USERS_JSON);
+  assert.equal(users.length, 2);
+  assert.deepEqual(users[0], peerUser);
+  const owner = users[1];
+  assert.equal(owner.id, stagingControlCenterOwnerIdentity.id);
+  assert.equal(owner.email, email);
+  assert.equal(owner.role, "PLATFORM_OWNER");
+  assert.deepEqual(owner.businessIds, []);
+  assert.equal(owner.passwordHash, credentialDigest);
+});
+
 test("fails closed for unsafe Control Center owner bootstrap configuration", () => {
   const strongPassword = "temporary control center owner password 2026";
   const email = "control-center-owner@morro.digital";
@@ -365,6 +403,23 @@ test("fails closed for unsafe Control Center owner bootstrap configuration", () 
         STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
         STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
         DASHBOARD_USERS_JSON: JSON.stringify([{ id: "different-id", email }]),
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+        DASHBOARD_USERS_JSON: JSON.stringify([
+          {
+            id: stagingControlCenterOwnerIdentity.id,
+            email: "different-owner@morro.digital",
+          },
+        ]),
       }),
     /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
   );
