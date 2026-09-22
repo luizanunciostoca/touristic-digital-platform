@@ -349,13 +349,11 @@ function installDiscoverPoiMarkers(
     });
     if (!element) return [];
     element.dataset.discoverInitialPoi = "true";
-    const marker = new sdk.Marker({ element, anchor: "center" })
-      .setLngLat([
-        markerModel.position.longitude,
-        markerModel.position.latitude,
-      ])
-      .addTo(map);
-    return [{ marker, element }];
+    const marker = new sdk.Marker({ element, anchor: "center" }).setLngLat([
+      markerModel.position.longitude,
+      markerModel.position.latitude,
+    ]);
+    return [{ marker, element, mounted: false }];
   });
 
   activeDiscoverPoiMarkers = entries.map(({ marker }) => marker);
@@ -373,9 +371,16 @@ function installDiscoverPoiMarkers(
       markerCount === 0 &&
       exploreCategory.length === 0 &&
       tourState === "idle";
-    for (const { element } of entries) {
-      element.hidden = !shouldShow;
-      element.setAttribute("aria-hidden", String(!shouldShow));
+    for (const entry of entries) {
+      if (shouldShow && !entry.mounted) {
+        entry.marker.addTo(map);
+        entry.mounted = true;
+      } else if (!shouldShow && entry.mounted) {
+        entry.marker.remove();
+        entry.mounted = false;
+      }
+      entry.element.hidden = !shouldShow;
+      entry.element.setAttribute("aria-hidden", String(!shouldShow));
     }
   };
 
