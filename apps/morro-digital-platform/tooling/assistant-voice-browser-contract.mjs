@@ -341,6 +341,10 @@ async function runContract(browser) {
     messageEvents: globalThis.__voiceContract.domMessages.length,
     spoken: globalThis.__voiceContract.spoken.length,
   }));
+  await page.locator("#assistantInput").focus();
+  await page
+    .locator("#voiceButton")
+    .waitFor({ state: "visible", timeout: 5000 });
   await page.locator("#voiceButton").click();
 
   await poll(
