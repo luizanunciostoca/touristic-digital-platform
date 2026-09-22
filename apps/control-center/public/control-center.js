@@ -1783,7 +1783,7 @@ async function renderBusinesses(businessId) {
               .slice(0, 10)
               .map(
                 (entry) =>
-                  `<div class="module-row"><span>${escapeHtml(entry.action)}</span><strong>${escapeHtml(entry.result)} · ${escapeHtml(entry.timestamp)}</strong></div>`,
+                  `<div class="module-row"><span title="${escapeHtml(entry.action ?? "")}">${escapeHtml(humanizeAuditAction(entry.action))}</span><strong>${escapeHtml(entry.result)} · ${escapeHtml(entry.timestamp)}</strong></div>`,
               )
               .join("") ||
             '<div class="empty">Nenhum evento de tenant neste recorte.</div>'
@@ -1791,6 +1791,91 @@ async function renderBusinesses(businessId) {
         </div>
       </section>`;
 
+    const businessRenderedSections = [...content.children];
+    const overviewContent = [
+      businessRenderedSections[0]?.outerHTML,
+      businessRenderedSections[1]?.outerHTML,
+      businessRenderedSections[2]?.children?.[0]?.outerHTML,
+    ]
+      .filter(Boolean)
+      .join("");
+    const relationshipsContent =
+      businessRenderedSections[2]?.children?.[1]?.outerHTML ?? "";
+    const activityContent = businessRenderedSections[3]?.outerHTML ?? "";
+    const profileContent = `<section class="card section-card">
+      <div class="section-title"><h2>Identity / Profile</h2><span class="badge">Business owner</span></div>
+      <div class="module-list">
+        <div class="module-row"><span>Business ID</span><strong>${escapeHtml(
+          businessId,
+        )}</strong></div>
+        <div class="module-row"><span>Nome</span><strong>${escapeHtml(
+          profile?.name ?? "perfil owner indisponível",
+        )}</strong></div>
+        <div class="module-row"><span>Destination</span>${
+          profile?.destinationId
+            ? `<a href="#destinations:${encodeURIComponent(
+                profile.destinationId,
+              )}">${escapeHtml(profile.destinationId)}</a>`
+            : '<strong data-destination-relation="unavailable">não atribuído pelo owner; não inferido</strong>'
+        }</div>
+      </div>
+    </section>`;
+    const commercialContent = `<section class="card section-card">
+      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">read-only composition</span></div>
+      <div class="module-list">
+        <div class="module-row"><span>Ofertas owner-backed</span>${
+          productsResult.available
+            ? `<strong>${escapeHtml(products.length)}</strong>`
+            : statusBadge("unavailable")
+        }</div>
+        <div class="module-row"><span>Reservas owner-backed</span>${
+          reservationsResult.available
+            ? `<strong>${escapeHtml(reservations.length)}</strong>`
+            : statusBadge("unavailable")
+        }</div>
+        <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(
+          orders.filter(Boolean).length,
+        )}</strong></div>
+        <div class="module-row"><span>Pagamentos relacionados</span><strong>${escapeHtml(
+          payments.filter(Boolean).length,
+        )}</strong></div>
+      </div>
+    </section>`;
+    const auditContent = auditResult.available
+      ? recentActivityMarkup(auditEntries, {
+          title: "Audit",
+          emptyMessage:
+            "Nenhum evento autoritativo relacionado a esta empresa.",
+        })
+      : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+    content.innerHTML =
+      supportEntityContext() +
+      entityTabs("business360", [
+        { id: "overview", label: "Overview", content: overviewContent },
+        {
+          id: "identity",
+          label: "Identity / Profile",
+          content: profileContent,
+        },
+        relationshipsContent
+          ? {
+              id: "relationships",
+              label: "Relationships",
+              content: relationshipsContent,
+            }
+          : null,
+        {
+          id: "commercial",
+          label: "Commercial / Financial",
+          content: commercialContent,
+        },
+        activityContent
+          ? { id: "activity", label: "Activity", content: activityContent }
+          : null,
+        { id: "audit", label: "Audit", content: auditContent },
+      ]);
+    bindEntityTabs();
     document
       .querySelector("#business-destination-form")
       ?.addEventListener("submit", async (event) => {
