@@ -351,7 +351,8 @@ test("fails closed for unsafe Control Center owner bootstrap configuration", () 
         RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
         STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
         STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
-        STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST:\n          "scrypt$invalid$invalid",
+        STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST:
+          "scrypt$invalid$invalid",
       }),
     /STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID/u,
   );
