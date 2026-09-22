@@ -10,6 +10,7 @@ on:
       - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/src/accessibility/wave-g-design-system-contract.test.ts
       - apps/morro-digital-platform/tooling/wave-g-responsive-a11y-regression.mjs
+      - apps/morro-digital-platform/tooling/wave-g-webkit-safari-smoke.mjs
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/index.html
       - package.json
@@ -55,10 +56,10 @@ jobs:
       - name: Build workspace
         run: pnpm -w build
 
-      - name: Install deterministic Chromium
+      - name: Install deterministic Chromium and WebKit
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
-          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium webkit
           mkdir -p /tmp/wave-g-visual-regression
 
       - name: Start authenticated map runtime
@@ -85,6 +86,9 @@ jobs:
 
       - name: Responsive and accessibility browser matrix
         run: node apps/morro-digital-platform/tooling/wave-g-responsive-a11y-regression.mjs
+
+      - name: WebKit Safari compatibility smoke
+        run: node apps/morro-digital-platform/tooling/wave-g-webkit-safari-smoke.mjs
 
       - name: Show diagnostics
         if: failure()
