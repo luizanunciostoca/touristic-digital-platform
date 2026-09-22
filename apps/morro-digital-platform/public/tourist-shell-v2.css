@@ -1481,7 +1481,6 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   }
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Unified Contextual Assistant Dock                                           */
 /* -------------------------------------------------------------------------- */
@@ -1520,7 +1519,11 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   height: 0.25rem;
   margin: var(--md-space-2) auto var(--md-space-1);
   border-radius: var(--md-radius-pill);
-  background: color-mix(in srgb, var(--md-color-text-secondary) 30%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-text-secondary) 30%,
+    transparent
+  );
 }
 
 body[data-md-unified-dock="true"] #discover-category-rail {
@@ -1649,22 +1652,35 @@ body[data-md-unified-dock="true"] #discover-category-rail {
   scroll-snap-align: start;
   border: 1px solid color-mix(in srgb, var(--md-color-border) 64%, transparent);
   border-radius: var(--md-radius-lg);
-  background: color-mix(in srgb, var(--md-color-brand) 8%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-brand) 8%,
+    var(--md-color-surface-card)
+  );
   color: var(--md-color-text-primary);
   font: inherit;
   cursor: pointer;
   transition:
     transform var(--md-motion-duration-fast) var(--md-motion-ease-standard),
-    background-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    background-color var(--md-motion-duration-fast)
+      var(--md-motion-ease-standard),
     border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard);
 }
 
 #unified-assistant-dock .md-assistant-category-chip:nth-child(2n) {
-  background: color-mix(in srgb, var(--md-color-accent) 9%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-accent) 9%,
+    var(--md-color-surface-card)
+  );
 }
 
 #unified-assistant-dock .md-assistant-category-chip:nth-child(3n) {
-  background: color-mix(in srgb, var(--md-color-warning) 8%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-warning) 8%,
+    var(--md-color-surface-card)
+  );
 }
 
 #unified-assistant-dock .md-assistant-category-chip:nth-child(4n) {
@@ -1699,7 +1715,11 @@ body[data-md-unified-dock="true"] #discover-category-rail {
 
 #unified-assistant-dock .md-assistant-category-chip:is(:hover, :focus-visible) {
   border-color: var(--md-color-brand);
-  background: color-mix(in srgb, var(--md-color-brand) 15%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-brand) 15%,
+    var(--md-color-surface-card)
+  );
 }
 
 #unified-assistant-dock .md-assistant-category-chip:active {
@@ -1744,11 +1764,7 @@ html[dir="rtl"]
   height: var(--md-touch-target-min);
   padding-inline: var(--md-space-3);
   border-radius: var(--md-radius-pill);
-  background: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 78%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-color-surface-card) 78%, transparent);
 }
 
 #unified-assistant-dock > #home-bottom-navigation.md-home-bottom-nav {
@@ -1822,7 +1838,8 @@ html[dir="rtl"]
     transform: none;
   }
 
-  #unified-assistant-dock > #assistant-category-rail.md-assistant-category-rail {
+  #unified-assistant-dock
+    > #assistant-category-rail.md-assistant-category-rail {
     height: 5.5rem;
   }
 

@@ -53,7 +53,6 @@ The change is accepted only when browser evidence proves:
 7. Explore camera framing uses dock-aware bottom padding;
 8. existing Assistant menu, voice, photo, Tour, Place, Navigation and Onboarding flows retain semantic authority.
 
-
 ## Horizontal category rail
 
 The category rail is a first-class internal region of the dock, not a floating card. It exposes the canonical Assistant category values:

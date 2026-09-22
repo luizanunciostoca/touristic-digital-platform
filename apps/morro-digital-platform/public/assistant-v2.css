@@ -129,12 +129,10 @@
   overflow-wrap: anywhere;
 }
 
-
 #assistant-input-area.md-assistant-composer:focus-within {
   border-color: var(--md-focus-ring-color);
   box-shadow: var(--md-elevation-3);
 }
-
 
 #assistant-messages.md-assistant-dialog[data-assistant-state="error"] {
   border-color: var(--md-color-border);

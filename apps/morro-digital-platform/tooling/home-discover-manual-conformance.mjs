@@ -162,8 +162,8 @@ async function inspectDiscover(page) {
       unifiedComposition:
         document.getElementById("assistant-input-area")?.parentElement?.id ===
           "unified-assistant-dock" &&
-        document.getElementById("assistant-category-rail")?.parentElement?.id ===
-          "unified-assistant-dock" &&
+        document.getElementById("assistant-category-rail")?.parentElement
+          ?.id === "unified-assistant-dock" &&
         document.getElementById("home-bottom-navigation")?.parentElement?.id ===
           "unified-assistant-dock" &&
         document.getElementById("assistant-messages")?.parentElement?.id ===
@@ -173,7 +173,9 @@ async function inspectDiscover(page) {
           "#assistant-category-rail .md-assistant-category-scroll",
         );
         const chips = Array.from(
-          document.querySelectorAll("#assistant-category-rail [data-assistant-category]"),
+          document.querySelectorAll(
+            "#assistant-category-rail [data-assistant-category]",
+          ),
         );
         if (!(rail instanceof HTMLElement)) return null;
         const style = getComputedStyle(rail);
@@ -242,7 +244,8 @@ async function assertPureDiscover(page, viewport) {
       state.categoryRailContract.count === 10 &&
       ["auto", "scroll"].includes(state.categoryRailContract.overflowX) &&
       state.categoryRailContract.scrollSnapType !== "none" &&
-      state.categoryRailContract.scrollWidth > state.categoryRailContract.clientWidth &&
+      state.categoryRailContract.scrollWidth >
+        state.categoryRailContract.clientWidth &&
       state.categoryRailContract.targets.every(
         (target) => target.width >= 44 && target.height >= 44,
       ),

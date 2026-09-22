@@ -28,7 +28,6 @@ A feature may still define a local derived variable when it represents runtime s
 
 This boundary prevents competing token authorities while keeping runtime state close to the feature that owns it.
 
-
 ## Unified Assistant Dock tokens
 
 Reusable geometry is canonical in `public/design-system-v2.css`:
@@ -40,7 +39,6 @@ Reusable geometry is canonical in `public/design-system-v2.css`:
 - `--md-unified-dock-divider`
 
 Runtime-measured values such as `--md-unified-dock-height` and `--md-unified-dock-map-inset` remain feature-local because they are computed from the rendered composition rather than reusable design constants.
-
 
 ### Category rail additions
 

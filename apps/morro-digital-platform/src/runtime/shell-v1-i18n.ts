@@ -49,7 +49,9 @@ export interface ShellPresentationCopy {
   readonly voicePreferencesSaved: string;
   readonly voiceAutomatic: string;
   readonly voiceDefaultSuffix: string;
-  readonly assistantCategoryLabels: Readonly<Record<AssistantCategoryKey, string>>;
+  readonly assistantCategoryLabels: Readonly<
+    Record<AssistantCategoryKey, string>
+  >;
 }
 
 const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
@@ -327,7 +329,8 @@ export function applyV1ShellPresentation(
   document
     .querySelectorAll<HTMLElement>("[data-assistant-category]")
     .forEach((element) => {
-      const key = element.dataset.assistantCategory as AssistantCategoryKey | undefined;
+      const key = element.dataset.assistantCategory as
+        AssistantCategoryKey | undefined;
       if (!key || !Object.hasOwn(copy.assistantCategoryLabels, key)) return;
       const label = copy.assistantCategoryLabels[key];
       const labelNode = element.querySelector<HTMLElement>(

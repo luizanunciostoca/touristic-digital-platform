@@ -171,8 +171,9 @@ try {
         categoryRail:
           categoryScroll instanceof HTMLElement
             ? {
-                count: categoryRail?.querySelectorAll("[data-assistant-category]")
-                  .length ?? 0,
+                count:
+                  categoryRail?.querySelectorAll("[data-assistant-category]")
+                    .length ?? 0,
                 overflowX: getComputedStyle(categoryScroll).overflowX,
                 scrollSnapType: getComputedStyle(categoryScroll).scrollSnapType,
                 scrollWidth: categoryScroll.scrollWidth,

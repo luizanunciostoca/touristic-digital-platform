@@ -376,7 +376,8 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
   const categories = document.getElementById("assistant-category-rail");
   const composer = document.getElementById("assistant-input-area");
   const navigation = document.getElementById("home-bottom-navigation");
-  if (!shell || !messages || !categories || !composer || !navigation) return null;
+  if (!shell || !messages || !categories || !composer || !navigation)
+    return null;
 
   let dock = document.getElementById("unified-assistant-dock");
   if (!(dock instanceof HTMLElement)) {
@@ -399,16 +400,18 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
   messages.setAttribute("role", "region");
   messages.removeAttribute("aria-modal");
   messages.removeAttribute("tabindex");
-  messages.querySelector<HTMLElement>(".messages-area")?.classList.add(
-    "md-assistant-message-scroll",
-  );
+  messages
+    .querySelector<HTMLElement>(".messages-area")
+    ?.classList.add("md-assistant-message-scroll");
 
   dock.append(grabber, messages, categories, composer, navigation);
 
   categories.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const button = target.closest<HTMLButtonElement>("[data-assistant-category]");
+    const button = target.closest<HTMLButtonElement>(
+      "[data-assistant-category]",
+    );
     const value = button?.dataset.assistantCategory?.trim();
     if (!button || !value) return;
 

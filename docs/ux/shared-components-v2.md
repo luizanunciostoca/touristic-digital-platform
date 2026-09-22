@@ -23,7 +23,6 @@ This composition approach avoids a risky wholesale rewrite of the frozen V1 evid
 
 - Assistant entry authority: the persistent composer (text/voice/settings) is the canonical entry surface; the floating mood/quick-action trigger is retired from UX V2.
 
-
 ## Unified Contextual Assistant Dock
 
 The public map shell now treats Assistant message, composer and primary navigation as one persistent dock rather than three independently positioned cards.
