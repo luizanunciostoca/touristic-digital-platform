@@ -271,6 +271,7 @@ async function login(page) {
             destinationRect.width > 0 &&
             destinationRect.height > 0 &&
             getComputedStyle(destination).visibility !== "hidden",
+          destinationWidth: destinationRect?.width ?? 0,
           profileNameVisible: profileName
             ? getComputedStyle(profileName).display !== "none"
             : false,
@@ -288,6 +289,11 @@ async function login(page) {
       if (!geometry.destinationVisible) {
         throw new Error(
           `Destination context disappeared at ${viewport.label}px`,
+        );
+      }
+      if (viewport.width <= 430 && geometry.destinationWidth < 120) {
+        throw new Error(
+          `Destination context is too narrow at ${viewport.label}px: ${geometry.destinationWidth}`,
         );
       }
       if (viewport.width < 1200 && geometry.profileNameVisible) {
