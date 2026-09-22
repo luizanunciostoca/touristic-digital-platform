@@ -284,7 +284,18 @@ async function checkAxe(page) {
       throw new Error("Drawer did not close on Escape");
     if (!(await menu.evaluate((node) => node === document.activeElement)))
       throw new Error("Drawer focus did not return to menu trigger");
-    evidence.drawer = { enter: true, escape: true, focusRestore: true };
+    await menu.focus();
+    await page.keyboard.press("Space");
+    await page.waitForTimeout(50);
+    if ((await menu.getAttribute("aria-expanded")) !== "true")
+      throw new Error("Drawer did not open with Space");
+    await page.keyboard.press("Escape");
+    evidence.drawer = {
+      enter: true,
+      space: true,
+      escape: true,
+      focusRestore: true,
+    };
 
     await page.keyboard.press("Control+K");
     if (
@@ -294,6 +305,15 @@ async function checkAxe(page) {
     )
       throw new Error("Ctrl+K did not focus universal search");
     evidence.keyboard.ctrlK = true;
+    await page.locator("#profile-button").focus();
+    await page.keyboard.press("Meta+K");
+    if (
+      !(await page
+        .locator("#global-search")
+        .evaluate((node) => node === document.activeElement))
+    )
+      throw new Error("Cmd/Meta+K did not focus universal search");
+    evidence.keyboard.metaK = true;
 
     await page.locator("#notification-button").click();
     await page.locator("#notification-panel:not([hidden])").waitFor();
@@ -315,7 +335,14 @@ async function checkAxe(page) {
         .locator("#user-menu-logout")
         .evaluate((node) => node === document.activeElement))
     )
-      throw new Error("User menu focus containment failed");
+      throw new Error("User menu forward focus containment failed");
+    await page.keyboard.press("Shift+Tab");
+    if (
+      !(await page
+        .locator("#user-menu-logout")
+        .evaluate((node) => node === document.activeElement))
+    )
+      throw new Error("User menu reverse focus containment failed");
     await page.keyboard.press("Escape");
     if (
       !(await page
