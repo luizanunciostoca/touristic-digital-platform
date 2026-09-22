@@ -211,29 +211,41 @@ describe("Control Center domain support delegation", () => {
     expect(ticketingHandle).toHaveBeenCalledTimes(1);
   });
 
-  it("searches CRM leads through the owner HTTP boundary and preserves support delegation", async () => {
+  it("searches CRM leads and contracts through the owner boundary with entity deep links", async () => {
     const req = request("GET");
     const { authApi, calls } = supportDelegationBoundary();
     const crmHandle = vi.fn(async (_request, response, requestUrl) => {
-      expect(requestUrl.pathname).toBe("/api/crm/leads");
-      expect(requestUrl.searchParams.get("search")).toBe("toca");
-      expect(requestUrl.searchParams.get("limit")).toBe("20");
-      expect(requestUrl.searchParams.get("destinationId")).toBe(
-        "morro-de-sao-paulo",
-      );
       response.statusCode = 200;
       response.setHeader("Content-Type", "application/json");
+      if (requestUrl.pathname === "/api/crm/leads") {
+        expect(requestUrl.searchParams.get("search")).toBe("toca");
+        expect(requestUrl.searchParams.get("limit")).toBe("20");
+        response.end(
+          JSON.stringify({
+            data: [
+              {
+                id: 42,
+                destinationId: "morro-de-sao-paulo",
+                companyName: "Toca do Morcego",
+                contactName: "Operação",
+                email: "crm@example.com",
+                stage: "proposal_sent",
+                status: "active",
+              },
+            ],
+          }),
+        );
+        return;
+      }
+      expect(requestUrl.pathname).toBe("/api/crm/contracts");
       response.end(
         JSON.stringify({
           data: [
             {
-              id: 42,
-              destinationId: "morro-de-sao-paulo",
-              companyName: "Toca do Morcego",
-              contactName: "Operação",
-              email: "crm@example.com",
-              stage: "proposal_sent",
-              status: "active",
+              id: "contract-1",
+              title: "Contrato Toca",
+              leadId: 42,
+              status: "draft",
             },
           ],
         }),
@@ -244,22 +256,85 @@ describe("Control Center domain support delegation", () => {
     await expect(
       adapter.search({
         query: "toca",
-        destinationId: "morro-de-sao-paulo",
         request: req,
         effectiveUser: { id: "business-owner" },
       }),
-    ).resolves.toEqual([
-      expect.objectContaining({
-        type: "crm-lead",
-        id: "42",
-        title: "Toca do Morcego",
-        context: expect.stringContaining("morro-de-sao-paulo"),
-        href: "#crm",
-      }),
-    ]);
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "lead",
+          id: "42",
+          href: "/apps/admin-crm/public/lead-detail.html?id=42",
+        }),
+        expect.objectContaining({
+          type: "contract",
+          id: "contract-1",
+          href: "/apps/admin-crm/public/contracts.html?id=contract-1",
+        }),
+      ]),
+    );
     expect(calls).toEqual([
       { request: req, effectiveUserId: "business-owner" },
+      { request: req, effectiveUserId: "business-owner" },
     ]);
+  });
+
+  it("matches CRM contracts accent-insensitively and emits an entity deep link", async () => {
+    const req = request("GET");
+    const { authApi } = supportDelegationBoundary();
+    const crmHandle = vi.fn(async (_request, response, requestUrl) => {
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          data:
+            requestUrl.pathname === "/api/crm/contracts"
+              ? [
+                  {
+                    id: "contract-42",
+                    title: "Contrato São Bento",
+                    leadId: 42,
+                    status: "signed",
+                  },
+                ]
+              : [],
+        }),
+      );
+    });
+    const adapter = createCrmAdminAdapter({ handle: crmHandle }, authApi);
+
+    await expect(
+      adapter.search({
+        query: "sao bento",
+        request: req,
+        effectiveUser: null,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        type: "contract",
+        id: "contract-42",
+        title: "Contrato São Bento",
+        href: "/apps/admin-crm/public/contracts.html?id=contract-42",
+      }),
+    ]);
+  });
+
+  it("surfaces CRM owner search failures instead of masking them as empty results", async () => {
+    const req = request("GET");
+    const { authApi } = supportDelegationBoundary();
+    const crmHandle = vi.fn(async (_request, response) => {
+      response.statusCode = 503;
+      response.end(JSON.stringify({ error: "CRM_DOWN" }));
+    });
+    const adapter = createCrmAdminAdapter({ handle: crmHandle }, authApi);
+
+    await expect(
+      adapter.search({
+        query: "toca",
+        request: req,
+        effectiveUser: null,
+      }),
+    ).rejects.toThrow("CRM_ADMIN_SEARCH_OWNER_UNAVAILABLE");
   });
 
   it("allows the full governed Ticketing operator route set including offline revoke", async () => {
