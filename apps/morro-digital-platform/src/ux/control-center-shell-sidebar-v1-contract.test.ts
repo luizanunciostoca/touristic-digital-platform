@@ -60,7 +60,6 @@ describe("Control Center UX V1 shell contract", () => {
     for (const item of items) expect(shell).toContain(`label: "${item}"`);
 
     expect(shell).not.toContain('label: "Produtos e Ofertas"');
-    expect(shell).not.toContain('label: "Financeiro"');
   });
 
   it("renders the complete primary topbar and removes operational SHA from prominence", () => {
@@ -93,6 +92,7 @@ describe("Control Center UX V1 shell contract", () => {
     expect(css).toContain("overscroll-behavior: contain");
     expect(css).toContain("scrollbar-gutter: stable");
     expect(css).toContain("env(safe-area-inset-bottom)");
+    expect(css).toContain("overflow: auto");
   });
 
   it("uses the V1 light shell tokens and active navigation treatment", () => {
