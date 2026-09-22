@@ -454,6 +454,12 @@ function ownerProjectionState(moduleState, available) {
     ? "success"
     : "partial";
 }
+function dashboardAggregateState(status, fallback = "partial") {
+  if (status === "READY") return "success";
+  if (status === "UNAVAILABLE") return "unavailable";
+  if (status === "PARTIAL" || status === "NOT_SUPPORTED") return "partial";
+  return fallback;
+}
 
 async function renderOverview() {
   const dashboard = state.dashboard;
@@ -483,39 +489,86 @@ async function renderOverview() {
     (destination) => destination.status !== "active",
   );
 
-  const attention = [];
-  for (const check of health.checks ?? []) {
-    if (check.status !== "pass") {
+  const dashboardAttention =
+    dashboard.attention && typeof dashboard.attention === "object"
+      ? dashboard.attention
+      : null;
+  const dashboardDestinationSummary =
+    dashboard.destinationSummary &&
+    typeof dashboard.destinationSummary === "object"
+      ? dashboard.destinationSummary
+      : null;
+  const dashboardAttentionItems = Array.isArray(dashboardAttention?.items)
+    ? dashboardAttention.items
+    : null;
+  const attention = dashboardAttentionItems
+    ? dashboardAttentionItems.map((item) => ({
+        label: item.title ?? item.kind ?? item.id ?? "Atenção",
+        detail:
+          item.detail ??
+          [item.severity, item.destinationId].filter(Boolean).join(" · ") ||
+          "owner-backed",
+        source: item.destinationId
+          ? `dashboard-owner:${item.destinationId}`
+          : "dashboard-owner",
+      }))
+    : [];
+
+  if (!dashboardAttentionItems) {
+    for (const check of health.checks ?? []) {
+      if (check.status !== "pass") {
+        attention.push({
+          label: check.name,
+          detail: check.detail ?? check.status,
+          source: "system",
+        });
+      }
+    }
+    for (const [name, module] of Object.entries(dashboard.modules ?? {})) {
+      if (!["available", "ready"].includes(module.state)) {
+        attention.push({
+          label: name,
+          detail: `owner ${module.state}`,
+          source: "contract",
+        });
+      }
+    }
+    for (const destination of destinationIssues) {
       attention.push({
-        label: check.name,
-        detail: check.detail ?? check.status,
-        source: "system",
+        label: destination.branding?.name ?? destination.id,
+        detail: `destino ${destination.status}`,
+        source: "destination-owner",
+      });
+    }
+    if (affiliateOwner.available && affiliateSummary.suspended > 0) {
+      attention.push({
+        label: "Affiliates",
+        detail: `${affiliateSummary.suspended} membership(s) suspensa(s) no recorte carregado`,
+        source: "affiliates-owner",
       });
     }
   }
-  for (const [name, module] of Object.entries(dashboard.modules ?? {})) {
-    if (!["available", "ready"].includes(module.state)) {
-      attention.push({
-        label: name,
-        detail: `owner ${module.state}`,
-        source: "contract",
-      });
-    }
-  }
-  for (const destination of destinationIssues) {
-    attention.push({
-      label: destination.branding?.name ?? destination.id,
-      detail: `destino ${destination.status}`,
-      source: "destination-owner",
-    });
-  }
-  if (affiliateOwner.available && affiliateSummary.suspended > 0) {
-    attention.push({
-      label: "Affiliates",
-      detail: `${affiliateSummary.suspended} membership(s) suspensa(s) no recorte carregado`,
-      source: "affiliates-owner",
-    });
-  }
+
+  const attentionState = dashboardAttention
+    ? dashboardAggregateState(dashboardAttention.status)
+    : attention.length
+      ? "partial"
+      : "success";
+  const attentionCount =
+    dashboardAttention?.count ??
+    dashboardAttention?.knownCount ??
+    attention.length;
+  const dashboardDestinationItems = Array.isArray(
+    dashboardDestinationSummary?.items,
+  )
+    ? dashboardDestinationSummary.items
+    : null;
+  const destinationSummaryState = dashboardDestinationSummary
+    ? dashboardAggregateState(dashboardDestinationSummary.status)
+    : ownerProjectionState(
+        dashboard.modules?.destinations?.state,
+        destinationOwner.available,
+      );
 
   const metrics = [
     [
@@ -524,7 +577,19 @@ async function renderOverview() {
       "Identity membership owner",
     ],
     ["Usuários", dashboard.summary?.users ?? "—", "Auth owner"],
-    ["Alertas", dashboard.summary?.alerts ?? "—", "Health checks fora de PASS"],
+    dashboard.summary?.alerts != null
+      ? [
+          "Alertas",
+          dashboard.summary.alerts,
+          `Agregado owner-backed · ${dashboard.summary?.alertsStatus ?? "READY"}`,
+        ]
+      : dashboard.summary?.alertsKnownCount != null
+        ? [
+            "Alertas conhecidos",
+            dashboard.summary.alertsKnownCount,
+            `Estado ${dashboard.summary?.alertsStatus ?? "PARTIAL"} · não tratado como total`,
+          ]
+        : ["Alertas", "—", "Sem agregado owner-backed disponível"],
     ["Readiness", health.readiness ?? "—", "Saúde agregada da plataforma"],
     [
       "Destinos",
@@ -581,14 +646,12 @@ async function renderOverview() {
         </div>
       </section>
 
-      <section class="card section-card" data-attention-state="${
-        attention.length ? "partial" : "success"
-      }">
+      <section class="card section-card" data-attention-state="${attentionState}">
         <div class="section-title">
           <h2>Precisa de atenção</h2>
-          <span class="badge ${attention.length ? "partial" : "pass"}">${
-            attention.length
-          }</span>
+          <span class="badge ${attentionState === "success" ? "pass" : "partial"}">${escapeHtml(
+            attentionCount,
+          )}</span>
         </div>
         <div class="module-list">
           ${
@@ -611,36 +674,52 @@ async function renderOverview() {
     </div>
 
     <div class="grid two-col">
-      <section class="card section-card" data-owner="destinations" data-state="${ownerProjectionState(
-        dashboard.modules?.destinations?.state,
-        destinationOwner.available,
-      )}">
+      <section class="card section-card" data-owner="destinations" data-state="${destinationSummaryState}">
         <div class="section-title">
           <h2>Destination Summary</h2>
-          ${statusBadge(
-            ownerProjectionState(
-              dashboard.modules?.destinations?.state,
-              destinationOwner.available,
-            ),
-          )}
+          ${statusBadge(destinationSummaryState)}
         </div>
         ${
-          destinationOwner.available
-            ? `<div class="module-list">
-                <div class="module-row"><span>Total owner-backed</span><strong>${escapeHtml(
-                  destinations.length,
-                )}</strong></div>
-                <div class="module-row"><span>Ativos</span><strong>${escapeHtml(
-                  activeDestinations,
-                )}</strong></div>
-                <div class="module-row"><span>Fora de active</span><strong>${escapeHtml(
-                  destinationIssues.length,
-                )}</strong></div>
-              </div>`
-            : '<div class="empty">Destination owner indisponível: nenhum valor foi inferido.</div>'
+          dashboardDestinationSummary
+            ? dashboardDestinationItems
+              ? `<div class="module-list">
+                  ${dashboardDestinationItems
+                    .map(
+                      (item) =>
+                        `<div class="module-row">
+                          <span><strong>${escapeHtml(
+                            item.destinationId ?? "—",
+                          )}</strong><br><small>alertas ${escapeHtml(
+                            item.alerts?.status ?? "UNAVAILABLE",
+                          )} · receita ${escapeHtml(
+                            item.revenue?.status ?? "UNAVAILABLE",
+                          )}</small></span>
+                          <strong>${escapeHtml(
+                            item.alerts?.count ??
+                              item.alerts?.knownCount ??
+                              "—",
+                          )} alerta(s)</strong>
+                        </div>`,
+                    )
+                    .join("") ||
+                  '<div class="empty">Nenhum destino no agregado owner-backed.</div>'}
+                </div>`
+              : '<div class="empty">Destination Summary indisponível no agregado owner-backed; nenhum valor foi inferido.</div>'
+            : destinationOwner.available
+              ? `<div class="module-list">
+                  <div class="module-row"><span>Total owner-backed</span><strong>${escapeHtml(
+                    destinations.length,
+                  )}</strong></div>
+                  <div class="module-row"><span>Ativos</span><strong>${escapeHtml(
+                    activeDestinations,
+                  )}</strong></div>
+                  <div class="module-row"><span>Fora de active</span><strong>${escapeHtml(
+                    destinationIssues.length,
+                  )}</strong></div>
+                </div>`
+              : '<div class="empty">Destination owner indisponível: nenhum valor foi inferido.</div>'
         }
       </section>
-
       <section class="card section-card" data-owner="affiliates" data-state="${ownerProjectionState(
         dashboard.modules?.affiliates?.state,
         affiliateOwner.available,
