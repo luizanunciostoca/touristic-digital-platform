@@ -306,12 +306,23 @@ function updateProductPresentation(offer) {
   elements.heroTitle.textContent = offer.label || productKindLabel(offer);
   elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(offer.startsAt)}`;
   elements.productLocation.textContent = destinationLabel(offer);
+  const rating = Number(offer.rating ?? offer.product?.rating);
+  elements.productRating.hidden = !Number.isFinite(rating) || rating <= 0;
+  elements.productRating.textContent = elements.productRating.hidden
+    ? ""
+    : `★ ${rating.toFixed(1)}`;
   const duration = durationLabel(offer);
   elements.productDuration.hidden = !duration;
   elements.productDuration.textContent = duration;
   elements.productAvailability.hidden = false;
-  elements.productAvailability.textContent = copy.availableCount(
-    offer.availableQuantity,
+  elements.productAvailability.textContent = offer.sellable === false
+    ? "Indisponível"
+    : offer.availableQuantity > 0
+      ? copy.availableCount(offer.availableQuantity)
+      : copy.soldOut;
+  elements.productAvailability.classList.toggle(
+    "md-badge--success",
+    offer.sellable !== false && offer.availableQuantity > 0,
   );
   elements.hero.style.setProperty(
     "--ticketing-hero-image",
@@ -455,6 +466,7 @@ function setMessage(message, error = false) {
 
 function selectOffer(offer, { scroll = false } = {}) {
   state.selectedOffer = offer;
+  state.quote = null;
   emitAnalyticsOnce(
     `offer:${offer.id}`,
     ANALYTICS_TRANSACTION_EVENTS.offerSelected,
@@ -470,9 +482,11 @@ function selectOffer(offer, { scroll = false } = {}) {
   );
   if (Number(elements.quantity.value) > Number(elements.quantity.max))
     elements.quantity.value = "1";
-  elements.reserve.disabled = offer.availableQuantity < 1;
+  elements.reserve.disabled =
+    offer.sellable === false || offer.availableQuantity < 1;
   elements.identityPanel.hidden = false;
   updateProductPresentation(offer);
+  void refreshQuote();
   for (const card of elements.offers.querySelectorAll(".offer-card")) {
     card.classList.toggle("is-selected", card.dataset.inventoryId === offer.id);
   }
@@ -524,6 +538,70 @@ function renderReservationSkeletons() {
   }
 }
 
+function dateKey(offer) {
+  const value = new Date(offer?.startsAt || "");
+  return Number.isFinite(value.getTime())
+    ? value.toISOString().slice(0, 10)
+    : "";
+}
+
+function dateLabel(key) {
+  const value = new Date(`${key}T12:00:00-03:00`);
+  return new Intl.DateTimeFormat(presentationLocale, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+  }).format(value);
+}
+
+function renderDateSelector() {
+  const groups = new Map();
+  const visibleOffers = state.selectedDate
+    ? state.offers.filter((offer) => dateKey(offer) === state.selectedDate)
+    : state.offers;
+  for (const offer of visibleOffers) {
+    const key = dateKey(offer);
+    if (!key) continue;
+    const group = groups.get(key) || [];
+    group.push(offer);
+    groups.set(key, group);
+  }
+  const keys = [...groups.keys()].sort();
+  elements.dateSelector.replaceChildren();
+  if (!keys.length) {
+    state.selectedDate = "";
+    elements.dateSelector.hidden = true;
+    return;
+  }
+  elements.dateSelector.hidden = false;
+  if (!state.selectedDate || !groups.has(state.selectedDate)) {
+    state.selectedDate =
+      keys.find((key) =>
+        groups.get(key).some((offer) => offer.sellable !== false && offer.availableQuantity > 0),
+      ) || keys[0];
+  }
+  for (const key of keys) {
+    const offers = groups.get(key);
+    const unavailable = offers.every((offer) => offer.sellable === false);
+    const soldOut = !unavailable && offers.every((offer) => offer.availableQuantity < 1);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "date-chip";
+    button.dataset.date = key;
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(key === state.selectedDate));
+    button.disabled = unavailable || soldOut;
+    button.innerHTML =
+      `<span>${dateLabel(key)}</span><small>${unavailable ? "Indisponível" : soldOut ? "Esgotado" : "Disponível"}</small>`;
+    button.addEventListener("click", () => {
+      state.selectedDate = key;
+      renderDateSelector();
+      renderOffers();
+    });
+    elements.dateSelector.append(button);
+  }
+}
+
 function renderOffers() {
   elements.offers.replaceChildren();
   elements.offers.removeAttribute("aria-busy");
@@ -554,8 +632,16 @@ function renderOffers() {
       productUnitLabel(offer.product),
     );
     const availability = document.createElement("p");
-    availability.className = "availability md-badge md-badge--success";
-    availability.textContent = copy.availableCount(offer.availableQuantity);
+    availability.className = "availability md-badge";
+    availability.classList.toggle(
+      "md-badge--success",
+      offer.sellable !== false && offer.availableQuantity > 0,
+    );
+    availability.textContent = offer.sellable === false
+      ? "Indisponível"
+      : offer.availableQuantity > 0
+        ? copy.availableCount(offer.availableQuantity)
+        : copy.soldOut;
     content.append(kind, title, when, price, availability);
 
     const actions = document.createElement("div");
@@ -567,9 +653,13 @@ function renderOffers() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "button button-primary md-button md-button--primary";
-    button.disabled = offer.availableQuantity < 1;
+    button.disabled = offer.sellable === false || offer.availableQuantity < 1;
     button.textContent =
-      offer.availableQuantity > 0 ? copy.reserve : copy.soldOut;
+      offer.sellable === false
+        ? "Indisponível"
+        : offer.availableQuantity > 0
+          ? copy.reserve
+          : copy.soldOut;
     button.addEventListener("click", () =>
       selectOffer(offer, { scroll: true }),
     );
@@ -594,6 +684,7 @@ async function loadOffers() {
               offerMatchesPlace(entry, requestedPlace),
             )
           : [];
+  renderDateSelector();
   renderOffers();
 
   const requestedOffer = new URLSearchParams(location.search).get("offer");
