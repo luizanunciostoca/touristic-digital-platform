@@ -483,7 +483,12 @@ export function createV1ImmersiveTourController(
 
     const header = createElement(document, "div", "tour-stop-header");
     header.appendChild(
-      createElement(document, "span", "tour-stop-num-badge", String(current)),
+      createElement(
+        document,
+        "span",
+        "tour-stop-num-badge",
+        copy.stopLabel(current, tour.stops.length),
+      ),
     );
     header.appendChild(
       createElement(document, "strong", "tour-stop-title", stop.title),
