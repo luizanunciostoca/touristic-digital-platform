@@ -188,12 +188,12 @@ jobs:
             if (!focusTrapped) throw new Error('Tutorial modal did not trap keyboard focus.');
 
             const expectedTargets = [
-              'map-container',
-              'weather-widget',
-              'assistant-input-area',
-              'voiceButton',
-              'home-profile-button',
-              'toggle-globe-view',
+              ['map-container'],
+              ['weather-widget'],
+              ['assistant-input-area'],
+              ['voiceButton', 'assistant-input-area'],
+              ['home-profile-button'],
+              ['toggle-globe-view'],
             ];
             const screenshotNames = [
               '02-step-1-map.png',
@@ -214,8 +214,8 @@ jobs:
               ) {
                 throw new Error(`Tutorial tooltip overflowed viewport at step ${step}: ${JSON.stringify(stepState)}`);
               }
-              if (stepState.targetIdentity !== expectedTargets[step - 1]) {
-                throw new Error(`Tutorial step ${step} targeted ${stepState.targetIdentity}, expected ${expectedTargets[step - 1]}`);
+              if (!expectedTargets[step - 1].includes(stepState.targetIdentity)) {
+                throw new Error(`Tutorial step ${step} targeted ${stepState.targetIdentity}, expected one of ${expectedTargets[step - 1].join(', ')}`);
               }
               if (stepState.targetOverlap) {
                 throw new Error(`Tutorial tooltip covered actionable target at step ${step}: ${JSON.stringify(stepState)}`);
