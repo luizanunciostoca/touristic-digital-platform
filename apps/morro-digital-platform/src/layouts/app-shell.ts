@@ -395,7 +395,6 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
     grabber.setAttribute("aria-hidden", "true");
   }
 
-  messages.classList.remove("assistant-modal", "auto-size", "grow-upward");
   messages.classList.add("md-assistant-message-region");
   messages.setAttribute("role", "region");
   messages.removeAttribute("aria-modal");
