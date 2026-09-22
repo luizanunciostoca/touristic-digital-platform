@@ -95,11 +95,13 @@ async function login(page) {
       evidence.groups.push(group);
     }
 
+    const sidebarNav = page.locator("#main-nav");
     for (const item of requiredItems) {
-      const count = await page
+      const count = await sidebarNav
         .getByRole("button", { name: item, exact: true })
         .count();
-      if (count !== 1) throw new Error(`Missing or duplicate nav item: ${item}`);
+      if (count !== 1)
+        throw new Error(`Missing or duplicate nav item: ${item}`);
       evidence.items.push(item);
     }
 
@@ -150,7 +152,9 @@ async function login(page) {
       throw new Error(`Topbar height diverged: ${shellVisual.topbarHeight}`);
     }
     if (Math.abs(shellVisual.sidebarTop - 64) > 1) {
-      throw new Error(`Sidebar does not start below topbar: ${shellVisual.sidebarTop}`);
+      throw new Error(
+        `Sidebar does not start below topbar: ${shellVisual.sidebarTop}`,
+      );
     }
     if (shellVisual.navScrollHeight <= shellVisual.navClientHeight) {
       throw new Error(
@@ -175,12 +179,16 @@ async function login(page) {
       };
     });
     if (!focusVisibility.withinScrollport) {
-      throw new Error("Focused lower nav item remained hidden outside the scrollport");
+      throw new Error(
+        "Focused lower nav item remained hidden outside the scrollport",
+      );
     }
     evidence.keyboard.push("focused-item-scrolls-into-view");
 
     await page.getByRole("button", { name: "Reembolsos", exact: true }).click();
-    await page.waitForURL((url) => url.hash === "#financial", { timeout: 5000 });
+    await page.waitForURL((url) => url.hash === "#financial", {
+      timeout: 5000,
+    });
     const currentLabels = await page
       .locator('.nav-item[aria-current="page"]')
       .allTextContents();
@@ -195,7 +203,9 @@ async function login(page) {
     await page.getByRole("heading", { name: "Financeiro" }).waitFor();
     evidence.keyboard.push("alias-route-active-state");
 
-    await page.getByRole("button", { name: "Visão Global", exact: true }).click();
+    await sidebarNav
+      .getByRole("button", { name: "Visão Global", exact: true })
+      .click();
     await page.getByRole("heading", { name: "Visão Geral" }).waitFor();
 
     await page.keyboard.press("Control+K");
@@ -255,7 +265,9 @@ async function login(page) {
         const menu = page.locator("#menu-button");
         await menu.click();
         if ((await menu.getAttribute("aria-expanded")) !== "true") {
-          throw new Error(`Drawer did not expose expanded state at ${viewport.label}px`);
+          throw new Error(
+            `Drawer did not expose expanded state at ${viewport.label}px`,
+          );
         }
         await page.locator("#sidebar").waitFor({ state: "visible" });
         if (await page.locator("#sidebar-backdrop").isHidden()) {
