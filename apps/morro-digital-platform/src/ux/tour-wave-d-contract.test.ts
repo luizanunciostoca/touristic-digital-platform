@@ -104,6 +104,19 @@ describe("UX Design V2 Wave D tour contract", () => {
     expect(controller).toContain('"tour-finale-card"');
   });
 
+  it("fails closed when Tour start cannot activate the map and does not require geolocation", async () => {
+    const controller = await readRepository(
+      "apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts",
+    );
+
+    expect(controller).toContain("await Promise.resolve(options.activateMap(tour.id))");
+    expect(controller).toContain("setState(idleV1ImmersiveTourState)");
+    expect(controller).toContain(
+      "await Promise.resolve(options.deactivateMap()).catch(() => undefined)",
+    );
+    expect(controller).not.toContain("navigator.geolocation");
+  });
+
   it("keeps every Active Tour marker numbered and visually distinguishes the selected stop", async () => {
     const [browser, css] = await Promise.all([
       readRepository("apps/morro-digital-platform/src/browser-entry.ts"),
