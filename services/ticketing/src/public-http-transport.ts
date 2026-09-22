@@ -469,8 +469,10 @@ export class TicketingPublicHttpTransport {
         if (!inventory) {
           return response(404, { error: "INVENTORY_NOT_FOUND" }, correlation);
         }
-        const availability =
-          await this.dependencies.reservations.availability(inventory.id, now);
+        const availability = await this.dependencies.reservations.availability(
+          inventory.id,
+          now,
+        );
         if (!availability.sellable) {
           return response(
             409,

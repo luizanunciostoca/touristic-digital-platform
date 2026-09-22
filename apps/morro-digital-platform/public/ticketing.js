@@ -244,14 +244,13 @@ function updatePurchaseSummary() {
   const quote = state.quote;
   const minimum = Math.max(1, Number(elements.quantity.min) || 1);
   const maximum = Math.max(minimum, Number(elements.quantity.max) || minimum);
-  const quantity = Math.max(minimum, Number(elements.quantity.value) || minimum);
+  const quantity = Math.max(
+    minimum,
+    Number(elements.quantity.value) || minimum,
+  );
   elements.summaryQuantity.textContent = String(quantity);
-  elements.summaryUnitPrice.textContent = quote
-    ? money(quote.unitAmount)
-    : "—";
-  elements.summarySubtotal.textContent = quote
-    ? money(quote.totalAmount)
-    : "—";
+  elements.summaryUnitPrice.textContent = quote ? money(quote.unitAmount) : "—";
+  elements.summarySubtotal.textContent = quote ? money(quote.totalAmount) : "—";
   elements.quoteBadge.textContent = quote
     ? copy.static.quoteConfirmed
     : copy.static.confirmingValue;
@@ -348,11 +347,12 @@ function updateProductPresentation(offer) {
   elements.productDuration.hidden = !duration;
   elements.productDuration.textContent = duration;
   elements.productAvailability.hidden = false;
-  elements.productAvailability.textContent = offer.sellable === false
-    ? copy.static.unavailable
-    : offer.availableQuantity > 0
-      ? copy.availableCount(offer.availableQuantity)
-      : copy.soldOut;
+  elements.productAvailability.textContent =
+    offer.sellable === false
+      ? copy.static.unavailable
+      : offer.availableQuantity > 0
+        ? copy.availableCount(offer.availableQuantity)
+        : copy.soldOut;
   elements.productAvailability.classList.toggle(
     "md-badge--success",
     offer.sellable !== false && offer.availableQuantity > 0,
@@ -618,8 +618,7 @@ function renderDateSelector() {
         groups
           .get(key)
           .some(
-            (offer) =>
-              offer.sellable !== false && offer.availableQuantity > 0,
+            (offer) => offer.sellable !== false && offer.availableQuantity > 0,
           ),
       ) || keys[0];
   }
@@ -693,11 +692,12 @@ function renderOffers() {
       "md-badge--success",
       offer.sellable !== false && offer.availableQuantity > 0,
     );
-    availability.textContent = offer.sellable === false
-      ? copy.static.unavailable
-      : offer.availableQuantity > 0
-        ? copy.availableCount(offer.availableQuantity)
-        : copy.soldOut;
+    availability.textContent =
+      offer.sellable === false
+        ? copy.static.unavailable
+        : offer.availableQuantity > 0
+          ? copy.availableCount(offer.availableQuantity)
+          : copy.soldOut;
     content.append(kind, title, when, price, availability);
 
     const actions = document.createElement("div");
@@ -1168,13 +1168,7 @@ async function submitReservation(event) {
     try {
       await createCheckout(resumableCheckout);
     } catch (error) {
-      setMessage(
-        friendlyError(
-          error,
-          copy.static.retryPaymentPreserved,
-        ),
-        true,
-      );
+      setMessage(friendlyError(error, copy.static.retryPaymentPreserved), true);
     } finally {
       state.submitting = false;
       const stillPending = pendingCheckoutState();
@@ -1216,20 +1210,14 @@ async function submitReservation(event) {
     const freshQuote = await refreshQuote();
     if (!freshQuote) return;
     if (previousQuote && previousQuote !== quoteIdentity(freshQuote)) {
-      setMessage(
-        copy.static.priceChanged,
-        true,
-      );
+      setMessage(copy.static.priceChanged, true);
       return;
     }
     if (
       freshQuote.expiresAt &&
       Date.parse(freshQuote.expiresAt) <= Date.now()
     ) {
-      setMessage(
-        copy.static.quoteExpired,
-        true,
-      );
+      setMessage(copy.static.quoteExpired, true);
       return;
     }
     elements.reserve.disabled = true;

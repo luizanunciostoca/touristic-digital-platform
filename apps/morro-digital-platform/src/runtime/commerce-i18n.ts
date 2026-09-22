@@ -350,8 +350,7 @@ const TICKETING_COPY: Readonly<
       returnToMap: "←",
       heroEyebrow: "Reserva en Morro de São Paulo",
       productTitle: "Cargando experiencia…",
-      productLead:
-        "Fecha, disponibilidad y precio confirmados en tiempo real.",
+      productLead: "Fecha, disponibilidad y precio confirmados en tiempo real.",
       selectionStep: "1 · Selecciona",
       selectionTitle: "Selecciona la fecha",
       quantityStep: "2 · Cantidad",
@@ -528,8 +527,7 @@ const TICKETING_COPY: Readonly<
       emptyHelp: "נסו שוב בעוד רגע או חזרו למפה כדי לבחור חוויה אחרת.",
       priceChanged:
         "המחיר או הזמינות השתנו. בדקו את הסיכום המעודכן לפני הסיום.",
-      quoteExpired:
-        "תוקף הצעת המחיר פג. המחיר עודכן; בדקו אותו לפני הסיום.",
+      quoteExpired: "תוקף הצעת המחיר פג. המחיר עודכן; בדקו אותו לפני הסיום.",
       currencyMismatch: "לא ניתן לאמת את מטבע ההזמנה. רעננו ונסו שוב.",
       priceUpdated: "המחיר והזמינות עודכנו.",
       pendingReservationAttempt:
@@ -539,8 +537,7 @@ const TICKETING_COPY: Readonly<
         "התשלום לא נפתח. ההזמנה נשמרה; המשיכו לתשלום כדי לנסות שוב.",
       privacy: "פרטיות",
       privacyAria: "העדפות פרטיות",
-      trust:
-        "הזמנה מאובטחת · המחיר והזמינות מאומתים על ידי השרת",
+      trust: "הזמנה מאובטחת · המחיר והזמינות מאומתים על ידי השרת",
       walletEyebrow: "הארנק שלך",
       walletTitle: "הזמנות וכרטיסים",
       qrAfterPayment: "קוד ה-QR מונפק רק לאחר אישור Financial מאומת.",
@@ -589,8 +586,7 @@ const TICKETING_COPY: Readonly<
     reservationCreated: "ההזמנה נוצרה. פותח תשלום מאובטח…",
     createReservationFailed: "לא ניתן ליצור את ההזמנה.",
     updateFailed: "לא ניתן לרענן את הנתונים.",
-    ticketingUnavailable:
-      "ההזמנות אינן זמינות זמנית. נסו שוב בעוד רגע.",
+    ticketingUnavailable: "ההזמנות אינן זמינות זמנית. נסו שוב בעוד רגע.",
     pricePer: (amount: string, unit: string) => `${amount} לכל ${unit}`,
     availableCount: (count: number) => `${count} זמינים`,
     issuedAt: (date: string) => `הונפק ב-${date}`,

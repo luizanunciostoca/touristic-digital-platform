@@ -199,8 +199,8 @@ describe("Ticketing UX Design V2 contract", () => {
     ]);
 
     expect(html).toContain('class="ticketing-topbar"');
-    expect(html).toContain('data-ticketing-return');
-    expect(html).toContain('data-ticketing-hero');
+    expect(html).toContain("data-ticketing-return");
+    expect(html).toContain("data-ticketing-hero");
     expect(html).toContain('id="product-rating"');
     expect(html).toContain("Reserva segura");
     expect(html).toContain('aria-label="Escolha a data"');
