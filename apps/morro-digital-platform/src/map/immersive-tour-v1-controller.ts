@@ -374,6 +374,7 @@ export function createV1ImmersiveTourController(
     card.dataset.tourId = tour.id;
     card.dataset.stopIndex = String(state.currentStopIndex);
     card.dataset.totalStops = String(tour.stops.length);
+    card.dataset.photoState = stop.photoPath ? "available" : "missing";
 
     const compactHeader = createElement(
       document,
@@ -424,7 +425,6 @@ export function createV1ImmersiveTourController(
       image.src = stop.photoPath;
       image.alt = stop.photoAlt || stop.title;
       image.loading = "lazy";
-      card.dataset.photoState = "available";
       image.addEventListener(
         "error",
         () => {
