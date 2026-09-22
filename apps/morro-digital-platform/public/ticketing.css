@@ -637,9 +637,13 @@ h3 {
 
   .quantity-stepper {
     width: 100%;
-    grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(
-        --md-touch-target-min
-      );
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .quantity-stepper .md-icon-button,
+  .quantity-stepper .md-input {
+    min-width: 0;
+    width: 100%;
   }
 
   .ticket-dialog {
