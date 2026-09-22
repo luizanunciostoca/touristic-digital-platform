@@ -132,9 +132,9 @@
   }
 }
 
-
 /* Wave B — contextual Assistant convergence */
-#assistant-messages.md-assistant-dialog [data-assistant-command-source="legacy-category-routing"][hidden] {
+#assistant-messages.md-assistant-dialog
+  [data-assistant-command-source="legacy-category-routing"][hidden] {
   display: none !important;
 }
 
@@ -148,7 +148,7 @@
 #assistant-input-area.md-assistant-composer {
   bottom: max(
     calc(var(--md-home-bottom-nav-height) + var(--md-space-3)),
-    calc(env(safe-area-inset-bottom, 0px) + var(--md-home-bottom-nav-height))
+    calc(env(safe-area-inset-bottom, 0rem) + var(--md-home-bottom-nav-height))
   );
   max-width: min(46rem, calc(100vw - var(--md-space-4)));
   margin-inline: auto;
@@ -184,9 +184,6 @@
   }
 
   #assistant-input-area.md-assistant-composer {
-    bottom: max(
-      var(--md-space-2),
-      env(safe-area-inset-bottom, 0px)
-    );
+    bottom: max(var(--md-space-2), env(safe-area-inset-bottom, 0rem));
   }
 }
