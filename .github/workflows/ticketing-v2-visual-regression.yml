@@ -573,7 +573,7 @@ jobs:
               await reservationRetryPage.locator('#holder-email').fill('visitante@example.com');
               await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
               await reservationRetryPage.locator('#reserve-button').click();
-              await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'Não foi possível criar a reserva' }).waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({ state: 'visible' });
               reservationRetryState.reservationError = null;
               await reservationRetryPage.locator('#quantity-increase').click();
               await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
