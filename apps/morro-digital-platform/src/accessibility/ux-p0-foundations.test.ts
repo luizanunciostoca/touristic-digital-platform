@@ -161,10 +161,23 @@ describe("UX P0 + Design System V2 foundations", () => {
       );
 
       if (surface === "index.html") {
+        const foundationIndex = stylesheetHrefs.indexOf(foundationHref);
+        const migratedConsumers = [
+          "/apps/morro-digital-platform/public/commerce.css",
+          "/apps/morro-digital-platform/public/explore-locations.css",
+          "/apps/morro-digital-platform/public/navigation-map.css",
+          "/apps/morro-digital-platform/public/assistant-v2.css",
+          "/apps/morro-digital-platform/public/premium-ux-v2.css",
+          touristShellHref,
+        ];
+
         expect(stylesheetHrefs).toContain(touristShellHref);
-        expect(stylesheetHrefs.indexOf(touristShellHref)).toBe(
-          stylesheetHrefs.indexOf(foundationHref) + 1,
-        );
+        for (const consumer of migratedConsumers) {
+          expect(stylesheetHrefs).toContain(consumer);
+          expect(foundationIndex).toBeLessThan(
+            stylesheetHrefs.indexOf(consumer),
+          );
+        }
         expect(stylesheetHrefs.at(-1)).toBe(touristShellHref);
       } else if (surface === "tickets.html") {
         const ticketingHref = "/ticketing.css";

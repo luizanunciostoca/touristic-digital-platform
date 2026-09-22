@@ -119,7 +119,9 @@ jobs:
             });
             await page.route('**/api/ticketing/v1/reservations', async route => {
               if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
-              return fulfill(route, { data: state.empty ? [] : [reservation] });
+              return fulfill(route, {
+                data: state.empty ? [] : state.reservations || [reservation],
+              });
             });
             await page.route('**/api/ticketing/v1/reservations/trv_v2_visual_0001/ticket', route =>
               fulfill(route, {
@@ -170,12 +172,27 @@ jobs:
                 backRect.right > privacyRect.left &&
                 backRect.top < privacyRect.bottom &&
                 backRect.bottom > privacyRect.top;
+              const checkoutCta = document.querySelector('#reserve-button');
+              const checkoutRect =
+                checkoutCta instanceof HTMLElement && !checkoutCta.hidden
+                  ? checkoutCta.getBoundingClientRect()
+                  : null;
+              const privacyCheckoutOverlap =
+                checkoutRect !== null &&
+                privacyRect !== null &&
+                checkoutRect.width > 0 &&
+                checkoutRect.height > 0 &&
+                checkoutRect.left < privacyRect.right &&
+                checkoutRect.right > privacyRect.left &&
+                checkoutRect.top < privacyRect.bottom &&
+                checkoutRect.bottom > privacyRect.top;
               return {
                 scrollWidth: root.scrollWidth,
                 clientWidth: root.clientWidth,
                 bodyFont: getComputedStyle(document.body).fontFamily,
                 interactive,
                 privacyBackOverlap,
+                privacyCheckoutOverlap,
               };
             });
             if (result.scrollWidth > result.clientWidth + 1) {
@@ -187,6 +204,11 @@ jobs:
             if (result.privacyBackOverlap) {
               throw new Error(
                 label + ' privacy trigger overlaps Ticketing back action: ' + JSON.stringify(result),
+              );
+            }
+            if (result.privacyCheckoutOverlap) {
+              throw new Error(
+                label + ' privacy trigger overlaps Ticketing checkout CTA: ' + JSON.stringify(result),
               );
             }
             const undersized = result.interactive.filter(
@@ -208,10 +230,6 @@ jobs:
             await page.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
             await page.locator('.reservation-card').waitFor({ state: 'visible', timeout: 10000 });
             if (mutate) await mutate(page);
-
-            // Appendix A authority: the purchase-ready hierarchy is contextual
-            // and image-led. A stable long form/wallet page without experience
-            // media is not an acceptable visual baseline.
             const imageLedHierarchy = await page.evaluate(() => {
               const media = Array.from(
                 document.querySelectorAll(
@@ -220,12 +238,7 @@ jobs:
               ).filter(node => {
                 const rect = node.getBoundingClientRect();
                 const style = getComputedStyle(node);
-                return (
-                  rect.width > 0 &&
-                  rect.height > 0 &&
-                  style.display !== 'none' &&
-                  style.visibility !== 'hidden'
-                );
+                return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
               });
               return {
                 visibleMediaCount: media.length,
@@ -239,7 +252,6 @@ jobs:
                   JSON.stringify(imageLedHierarchy),
               );
             }
-
             const contract = await audit(page, suffix);
             await page.screenshot({
               path: '/tmp/ticketing-v2/' + suffix + '.png',
@@ -257,6 +269,7 @@ jobs:
               const matrix = [
                 ['360x800', { width: 360, height: 800 }],
                 ['390x844', { width: 390, height: 844 }],
+                ['430x932', { width: 430, height: 932 }],
                 ['768x1024', { width: 768, height: 1024 }],
                 ['1440x900', { width: 1440, height: 900 }],
               ];
@@ -264,11 +277,72 @@ jobs:
                 await readyCase(browser, viewport, 'ready-' + name);
               }
 
+              await readyCase(browser, { width: 390, height: 844 }, 'selected-quantity-quote-390x844', async page => {
+                await page.locator('.offer-card .md-button--primary').click();
+                await page.locator('#selection-summary:not([hidden])').waitFor({ state: 'visible' });
+                await page.locator('#quantity-increase').click();
+                const state = await page.evaluate(() => {
+                  const summary = document.querySelector('#selection-summary');
+                  const cta = document.querySelector('#reserve-button');
+                  const unit = document.querySelector('#summary-unit-price')?.textContent?.trim() ?? '';
+                  const subtotal = document.querySelector('#summary-subtotal')?.textContent?.trim() ?? '';
+                  const quantity = document.querySelector('#summary-quantity')?.textContent?.trim() ?? '';
+                  const hero = document.querySelector('.ticketing-hero-media');
+                  const heroRect = hero instanceof HTMLElement ? hero.getBoundingClientRect() : null;
+                  const ctaRect = cta instanceof HTMLElement ? cta.getBoundingClientRect() : null;
+                  return {
+                    summaryVisible: summary instanceof HTMLElement && !summary.hidden,
+                    quantity,
+                    unit,
+                    subtotal,
+                    heroHeight: heroRect?.height ?? 0,
+                    ctaWidth: ctaRect?.width ?? 0,
+                    ctaHeight: ctaRect?.height ?? 0,
+                    authorityNote: document.querySelector('.authority-note')?.textContent?.trim() ?? '',
+                  };
+                });
+                if (!state.summaryVisible || state.quantity !== '2') {
+                  throw new Error('Selection/quantity state missing: ' + JSON.stringify(state));
+                }
+                if (!state.unit || state.unit === '—' || !state.subtotal || state.subtotal === '—') {
+                  throw new Error('Price breakdown unreadable: ' + JSON.stringify(state));
+                }
+                if (state.heroHeight < 220) {
+                  throw new Error('MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY: ' + JSON.stringify(state));
+                }
+                if (state.ctaWidth < 44 || state.ctaHeight < 44) {
+                  throw new Error('Dominant checkout CTA geometry invalid: ' + JSON.stringify(state));
+                }
+                if (state.authorityNote.length < 20) {
+                  throw new Error(
+                    'Financial authority note missing or unreadable: ' + JSON.stringify(state),
+                  );
+                }
+                evidence.push({ case: 'selected-quantity-quote-390x844', state });
+              });
+
               await readyCase(browser, { width: 390, height: 844 }, 'dark-390x844', async page => {
                 await page.evaluate(() => {
                   document.documentElement.dataset.theme = 'dark';
                 });
               });
+
+              const reducedContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                reducedMotion: 'reduce',
+              });
+              const reducedPage = await reducedContext.newPage();
+              await installRoutes(reducedPage, {});
+              await reducedPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await reducedPage.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
+              const reducedContract = await audit(reducedPage, 'reduced-motion-390x844');
+              await reducedPage.screenshot({
+                path: '/tmp/ticketing-v2/reduced-motion-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({ case: 'reduced-motion-390x844', contract: reducedContract });
+              await reducedContext.close();
 
               await readyCase(browser, { width: 390, height: 844 }, 'text-200-390x844', async page => {
                 await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
@@ -334,6 +408,57 @@ jobs:
               });
               await errorContext.close();
 
+              const terminalWalletContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+              });
+              const terminalWalletPage = await terminalWalletContext.newPage();
+              const expiredReservation = {
+                ...reservation,
+                id: 'trv_v2_visual_expired',
+                status: 'expired',
+                validUntil: undefined,
+              };
+              const cancelledReservation = {
+                ...reservation,
+                id: 'trv_v2_visual_cancelled',
+                status: 'cancelled',
+                validUntil: undefined,
+              };
+              await installRoutes(terminalWalletPage, {
+                reservations: [expiredReservation, cancelledReservation],
+              });
+              await terminalWalletPage.goto(origin + '/tickets.html', {
+                waitUntil: 'domcontentloaded',
+              });
+              await terminalWalletPage.locator('.reservation-card').first().waitFor({
+                state: 'visible',
+                timeout: 10000,
+              });
+              const terminalWalletContract = await audit(
+                terminalWalletPage,
+                'wallet-expired-cancelled-390x844',
+              );
+              const terminalStatuses = await terminalWalletPage
+                .locator('.reservation-card .status')
+                .allTextContents();
+              if (terminalStatuses.length !== 2) {
+                throw new Error(
+                  'Expired/cancelled wallet states missing: ' +
+                    JSON.stringify(terminalStatuses),
+                );
+              }
+              await terminalWalletPage.screenshot({
+                path: '/tmp/ticketing-v2/wallet-expired-cancelled-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({
+                case: 'wallet-expired-cancelled-390x844',
+                contract: terminalWalletContract,
+                terminalStatuses,
+              });
+              await terminalWalletContext.close();
+
               const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
               const dialogPage = await dialogContext.newPage();
               await installRoutes(dialogPage, {});
@@ -343,15 +468,31 @@ jobs:
               await dialogPage.locator('#ticket-dialog[open]').waitFor({ state: 'visible', timeout: 10000 });
               const dialogState = await dialogPage.locator('#ticket-dialog').evaluate(node => {
                 const rect = node.getBoundingClientRect();
+                const qr = node.querySelector('#ticket-qr');
+                const code = node.querySelector('#ticket-code');
+                const close = node.querySelector('#ticket-close');
+                const qrRect = qr instanceof HTMLElement ? qr.getBoundingClientRect() : null;
+                const closeRect = close instanceof HTMLElement ? close.getBoundingClientRect() : null;
                 return {
                   height: rect.height,
                   viewportHeight: innerHeight,
                   scrollHeight: node.scrollHeight,
                   clientHeight: node.clientHeight,
+                  qrWidth: qrRect?.width ?? 0,
+                  qrHeight: qrRect?.height ?? 0,
+                  code: code?.textContent?.trim() ?? '',
+                  closeWidth: closeRect?.width ?? 0,
+                  closeHeight: closeRect?.height ?? 0,
                 };
               });
               if (dialogState.height > dialogState.viewportHeight + 1) {
                 throw new Error('Ticket dialog exceeds safe viewport: ' + JSON.stringify(dialogState));
+              }
+              if (dialogState.qrWidth < 180 || dialogState.qrHeight < 180 || !dialogState.code) {
+                throw new Error('QR/code fallback clipped or missing: ' + JSON.stringify(dialogState));
+              }
+              if (dialogState.closeWidth < 44 || dialogState.closeHeight < 44) {
+                throw new Error('QR accessible close target invalid: ' + JSON.stringify(dialogState));
               }
               await dialogPage.screenshot({
                 path: '/tmp/ticketing-v2/dialog-compact-390x500.png',

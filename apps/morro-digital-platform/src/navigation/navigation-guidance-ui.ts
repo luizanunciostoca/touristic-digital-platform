@@ -126,6 +126,7 @@ export function createNavigationGuidanceUi(
   const main = document.getElementById("instruction-main");
   const details = document.getElementById("instruction-details");
   const arrow = document.getElementById("instruction-arrow");
+  const stepDistance = document.getElementById("instruction-step-distance");
   const distance = document.getElementById("instruction-distance");
   const time = document.getElementById("instruction-time");
   const progress = document.getElementById("route-progress");
@@ -186,6 +187,7 @@ export function createNavigationGuidanceUi(
       if (main) main.textContent = instruction;
       if (details) details.textContent = v1DetailsText(guidance);
       if (arrow) arrow.textContent = direction.arrow;
+      if (stepDistance) stepDistance.textContent = guidance.formattedDistance;
       if (distance)
         distance.textContent = formatDistance(snapshot.remainingDistance);
       if (time) time.textContent = formatDuration(snapshot.remainingDuration);
@@ -204,6 +206,7 @@ export function createNavigationGuidanceUi(
       if (main) main.textContent = message;
       if (details) details.textContent = message;
       if (arrow) arrow.textContent = "●";
+      if (stepDistance) stepDistance.textContent = "0 m";
       if (distance) distance.textContent = "0 m";
       if (time) time.textContent = "< 1 min";
       if (progress) progress.style.width = "100%";

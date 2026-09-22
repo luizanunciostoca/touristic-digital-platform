@@ -28,16 +28,8 @@
   </head>
   <body data-md-mode="commerce">
     <main class="ticketing-shell" data-md-surface="ticketing">
-      <header class="ticketing-header">
-        <a class="back-link" href="/">← Morro Digital</a>
-        <div>
-          <p class="eyebrow">Morro Digital</p>
-          <h1>Ingressos e reservas</h1>
-          <p class="lead">
-            Reserve com preço congelado, finalize pelo checkout seguro e
-            apresente o QR emitido após a confirmação do pagamento.
-          </p>
-        </div>
+      <header class="ticketing-topbar">
+        <a class="back-link" href="/" data-ticketing-return>← Voltar ao mapa</a>
         <p
           id="session-label"
           class="session-label md-badge"
@@ -45,121 +37,231 @@
         ></p>
       </header>
 
-      <section class="panel md-card" aria-labelledby="offers-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Disponibilidade em tempo real</p>
-            <h2 id="offers-title">Experiências disponíveis</h2>
+      <section
+        class="ticketing-product-stage"
+        aria-labelledby="ticketing-title"
+      >
+        <div
+          class="ticketing-hero-media"
+          data-ticketing-hero
+          role="img"
+          aria-label="Morro de São Paulo"
+        >
+          <div class="ticketing-hero-overlay">
+            <p class="eyebrow">Experiência em Morro de São Paulo</p>
+            <h1 id="ticketing-title">Escolha sua experiência</h1>
+            <p id="product-lead" class="lead">
+              Selecione uma experiência, confira data e preço e reserve com
+              checkout seguro.
+            </p>
+            <div class="product-facts" aria-live="polite">
+              <span id="product-location" class="md-badge"
+                >Morro de São Paulo</span
+              >
+              <span id="product-duration" class="md-badge" hidden></span>
+              <span
+                id="product-availability"
+                class="md-badge md-badge--success"
+                hidden
+              ></span>
+            </div>
           </div>
-          <button
-            id="refresh-button"
-            class="button button-secondary md-button md-button--secondary"
-            type="button"
-          >
-            Atualizar
-          </button>
         </div>
-        <div id="offers" class="offer-grid" aria-live="polite"></div>
       </section>
 
-      <section class="panel md-card" aria-labelledby="reservation-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Reserva</p>
-            <h2 id="reservation-title">Seus dados</h2>
-          </div>
-          <p class="secure-note">
-            Pagamento processado pelo Payments canônico.
-          </p>
-        </div>
-        <form id="reservation-form" class="reservation-form" novalidate>
-          <input id="inventory-id" name="inventoryId" type="hidden" />
-          <label>
-            Experiência
-            <input
-              id="selected-offer"
-              class="md-input"
-              type="text"
-              readonly
-              placeholder="Selecione uma experiência acima"
-            />
-          </label>
-          <label>
-            Nome completo
-            <input
-              id="holder-name"
-              class="md-input"
-              name="name"
-              autocomplete="name"
-              maxlength="160"
-              required
-            />
-          </label>
-          <label>
-            E-mail
-            <input
-              id="holder-email"
-              class="md-input"
-              name="email"
-              type="email"
-              autocomplete="email"
-              maxlength="200"
-              required
-            />
-          </label>
-          <label>
-            Telefone <span>opcional</span>
-            <input
-              id="holder-phone"
-              class="md-input"
-              name="phone"
-              autocomplete="tel"
-              maxlength="40"
-            />
-          </label>
-          <label>
-            Documento <span>opcional</span>
-            <input
-              id="holder-document"
-              class="md-input"
-              name="document"
-              autocomplete="off"
-              maxlength="40"
-            />
-          </label>
-          <label>
-            Quantidade
-            <input
-              id="quantity"
-              class="md-input"
-              name="quantity"
-              type="number"
-              inputmode="numeric"
-              min="1"
-              max="20"
-              value="1"
-              required
-            />
-          </label>
-          <div class="form-actions">
-            <p id="reservation-message" class="message" aria-live="polite"></p>
+      <p
+        id="reservation-message"
+        class="message ticketing-status"
+        aria-live="polite"
+      ></p>
+
+      <div class="ticketing-purchase-layout">
+        <section
+          class="panel md-card purchase-panel"
+          aria-labelledby="offers-title"
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">1 · Selecione</p>
+              <h2 id="offers-title">Data e experiência</h2>
+            </div>
             <button
-              id="reserve-button"
-              class="button button-primary md-button md-button--primary"
-              type="submit"
-              disabled
+              id="refresh-button"
+              class="button button-secondary md-button md-button--secondary"
+              type="button"
             >
-              Reservar e ir para pagamento
+              Atualizar
             </button>
           </div>
-        </form>
-      </section>
+          <div id="offers" class="offer-grid" aria-live="polite"></div>
 
-      <section class="panel md-card" aria-labelledby="my-tickets-title">
-        <div class="section-heading">
+          <div
+            id="selection-summary"
+            class="selection-summary"
+            aria-live="polite"
+            hidden
+          >
+            <div class="selection-copy">
+              <p class="eyebrow">2 · Quantidade</p>
+              <h2 id="selected-summary-title">Sua seleção</h2>
+              <p id="selected-summary-meta" class="selection-meta"></p>
+            </div>
+
+            <div class="quantity-control" aria-labelledby="quantity-label">
+              <span id="quantity-label">Ingressos</span>
+              <div class="quantity-stepper">
+                <button
+                  id="quantity-decrease"
+                  class="md-icon-button"
+                  type="button"
+                  aria-label="Diminuir quantidade"
+                >
+                  −
+                </button>
+                <input
+                  id="quantity"
+                  class="md-input"
+                  name="quantity"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="20"
+                  value="1"
+                  required
+                  aria-label="Quantidade de ingressos"
+                />
+                <button
+                  id="quantity-increase"
+                  class="md-icon-button"
+                  type="button"
+                  aria-label="Aumentar quantidade"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div class="price-summary" aria-labelledby="price-summary-title">
+              <div class="price-summary-heading">
+                <div>
+                  <p class="eyebrow">Resumo</p>
+                  <h3 id="price-summary-title">Estimativa da compra</h3>
+                </div>
+                <span id="quote-badge" class="md-badge"
+                  >Preço do inventário</span
+                >
+              </div>
+              <dl class="price-breakdown">
+                <div>
+                  <dt>Preço unitário</dt>
+                  <dd id="summary-unit-price">—</dd>
+                </div>
+                <div>
+                  <dt>Quantidade</dt>
+                  <dd id="summary-quantity">1</dd>
+                </div>
+                <div>
+                  <dt>Subtotal estimado</dt>
+                  <dd id="summary-subtotal">—</dd>
+                </div>
+              </dl>
+              <p class="authority-note">
+                O valor final, moeda, disponibilidade e status de pagamento são
+                confirmados pelo servidor no momento da reserva e do checkout.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="identity-panel"
+          class="panel md-card identity-panel"
+          aria-labelledby="reservation-title"
+          hidden
+        >
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow">3 · Identificação</p>
+              <h2 id="reservation-title">Dados para a reserva</h2>
+            </div>
+            <p class="secure-note">
+              Pagamento processado pelo Payments canônico.
+            </p>
+          </div>
+          <form id="reservation-form" class="reservation-form" novalidate>
+            <input id="inventory-id" name="inventoryId" type="hidden" />
+            <label class="selected-offer-field">
+              Experiência selecionada
+              <input
+                id="selected-offer"
+                class="md-input"
+                type="text"
+                readonly
+                placeholder="Selecione uma experiência acima"
+              />
+            </label>
+            <label>
+              Nome completo
+              <input
+                id="holder-name"
+                class="md-input"
+                name="name"
+                autocomplete="name"
+                maxlength="160"
+                required
+              />
+            </label>
+            <label>
+              E-mail
+              <input
+                id="holder-email"
+                class="md-input"
+                name="email"
+                type="email"
+                autocomplete="email"
+                maxlength="200"
+                required
+              />
+            </label>
+            <label>
+              Telefone <span>opcional</span>
+              <input
+                id="holder-phone"
+                class="md-input"
+                name="phone"
+                autocomplete="tel"
+                maxlength="40"
+              />
+            </label>
+            <label>
+              Documento <span>opcional</span>
+              <input
+                id="holder-document"
+                class="md-input"
+                name="document"
+                autocomplete="off"
+                maxlength="40"
+              />
+            </label>
+            <div class="form-actions">
+              <button
+                id="reserve-button"
+                class="button button-primary md-button md-button--primary checkout-cta"
+                type="submit"
+                disabled
+              >
+                Reservar e ir para pagamento
+              </button>
+            </div>
+          </form>
+        </section>
+      </div>
+
+      <section class="wallet-section" aria-labelledby="my-tickets-title">
+        <div class="wallet-heading">
           <div>
-            <p class="eyebrow">Sua carteira</p>
-            <h2 id="my-tickets-title">Reservas e ingressos</h2>
+            <p class="eyebrow">Depois da compra</p>
+            <h2 id="my-tickets-title">Meus ingressos</h2>
           </div>
           <p class="secure-note">
             O QR só é emitido após confirmação Financial verificada.
@@ -188,6 +290,9 @@
       </button>
       <p class="eyebrow">Ingresso confirmado</p>
       <h2 id="ticket-title">Seu ingresso</h2>
+      <p class="ticket-dialog-hint">
+        Aumente o brilho da tela para facilitar a leitura no acesso.
+      </p>
       <div
         id="ticket-qr"
         class="ticket-qr"

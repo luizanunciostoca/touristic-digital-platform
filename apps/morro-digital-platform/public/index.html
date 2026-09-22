@@ -15,10 +15,39 @@
       content="Guia digital interativo de Morro de São Paulo"
     />
     <title>Morro de São Paulo Digital</title>
+    <!-- Vendor styles: external libraries own their namespaces only. -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Frozen/transitional V1 compatibility. -->
     <link
       rel="stylesheet"
       href="/apps/morro-digital-platform/public/styles.css"
     />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/legacy/legacy.bundle.css"
+    />
+
+    <!-- V2 authority: canonical tokens and shared foundations precede consumers. -->
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/design-system-v2.css"
+    />
+
+    <!-- Feature consumers. Unmigrated V1 bridges remain explicit and isolated. -->
     <link
       rel="stylesheet"
       href="/apps/morro-digital-platform/public/commerce.css"
@@ -26,10 +55,6 @@
     <link
       rel="stylesheet"
       href="/apps/morro-digital-platform/public/assistant-photo-carousel.css"
-    />
-    <link
-      rel="stylesheet"
-      href="/apps/morro-digital-platform/public/legacy/legacy.bundle.css"
     />
     <link
       rel="stylesheet"
@@ -45,22 +70,7 @@
     />
     <link
       rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-    <link
-      rel="stylesheet"
       href="/apps/morro-digital-platform/public/v1-weather-runtime-parity.css"
-    />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
-      rel="stylesheet"
     />
     <link
       rel="stylesheet"
@@ -76,12 +86,9 @@
     />
     <link
       rel="stylesheet"
-      href="/apps/morro-digital-platform/public/design-system-v2.css"
-    />
-    <link
-      rel="stylesheet"
       href="/apps/morro-digital-platform/public/tourist-shell-v2.css"
     />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script type="importmap">
       {
         "imports": {

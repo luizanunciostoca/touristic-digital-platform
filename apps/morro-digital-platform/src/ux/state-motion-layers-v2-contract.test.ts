@@ -75,8 +75,12 @@ describe("UX Design V2 semantic state, motion and layer authority", () => {
   it("expands Stylelint governance to migrated Explore and Navigation CSS", async () => {
     const config = await readRepository("stylelint.config.mjs");
 
-    expect(config).not.toContain("**/public/explore-locations.css");
-    expect(config).not.toContain("**/public/navigation-map.css");
+    const ignoreList = config.slice(0, config.indexOf("  rules:"));
+
+    expect(ignoreList).not.toContain("**/public/explore-locations.css");
+    expect(ignoreList).not.toContain("**/public/navigation-map.css");
+    expect(config).toContain("**/public/explore-locations.css");
+    expect(config).toContain("**/public/navigation-map.css");
     expect(config).toContain('"declaration-property-value-disallowed-list"');
     expect(config).toContain("transition:");
     expect(config).toContain('"z-index":');

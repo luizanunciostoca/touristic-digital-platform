@@ -23,6 +23,17 @@ describe("commerce canonical i18n", () => {
     expect(getTicketingPresentationCopy("en-US").reserve).toBe("Reserve");
     expect(getTicketingPresentationCopy("es-ES").reserve).toBe("Reservar");
     expect(getTicketingPresentationCopy("he-IL").reserve).toBe("הזמנה");
+
+    for (const locale of ["pt-BR", "en-US", "es-ES", "he-IL"]) {
+      const copy = getTicketingPresentationCopy(locale);
+      expect(copy.static.productTitle).toBeTruthy();
+      expect(copy.static.selectionStep).toBeTruthy();
+      expect(copy.static.summaryTitle).toBeTruthy();
+      expect(copy.static.authorityNote).toBeTruthy();
+      expect(copy.static.identityTitle).toBeTruthy();
+      expect(copy.static.myTickets).toBeTruthy();
+      expect(copy.static.brightnessHint).toBeTruthy();
+    }
   });
 
   it("localizes dynamic commerce messages instead of hard-coding pt-BR", () => {

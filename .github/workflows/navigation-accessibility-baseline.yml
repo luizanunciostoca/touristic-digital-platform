@@ -260,9 +260,10 @@ jobs:
                 state.endBottomGap < 0 ||
                 state.endBottomGap > 120 ||
                 state.endTouchAction !== 'manipulation' ||
-                !state.assistantInputRect ||
                 !state.endRect ||
-                state.endRect.bottom > state.assistantInputRect.top)
+                (state.assistantOpen &&
+                  (!state.assistantInputRect ||
+                    state.endRect.bottom > state.assistantInputRect.top)))
             ) {
               throw new Error(
                 `Navigation one-hand action placement drift for ${testCase.name}: ${JSON.stringify({

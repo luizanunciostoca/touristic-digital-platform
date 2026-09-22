@@ -473,7 +473,7 @@ export function createV1ImmersiveTourController(
     navigation.push({ label: copy.exit, value: TOUR_EXIT });
 
     renderRequest(
-      `${copy.stopLabel(current, tour.stops.length)} — ${stop.title}`,
+      `${tour.title} · ${copy.stopLabel(current, tour.stops.length)}`,
       card,
       Object.freeze(navigation.map((option) => Object.freeze(option))),
       (value) => {

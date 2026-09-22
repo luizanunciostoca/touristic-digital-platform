@@ -29,6 +29,21 @@ export default {
   },
   overrides: [
     {
+      files: [
+        "**/public/premium-ux-v2.css",
+        "**/public/assistant-v2.css",
+        "**/public/tourist-shell-v2.css",
+        "**/public/explore-locations.css",
+        "**/public/navigation-map.css",
+      ],
+      rules: {
+        "color-no-hex": true,
+        "declaration-property-value-allowed-list": {
+          "font-family": ["/^var\\(--md-font-family-sans\\)$/"],
+        },
+      },
+    },
+    {
       files: ["**/public/commerce.css", "**/public/ticketing.css"],
       rules: {
         "color-no-hex": true,
