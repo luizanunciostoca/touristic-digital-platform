@@ -1202,3 +1202,21 @@ body[data-md-mode="navigation"] .md-home-profile-panel {
 body[data-md-mode="navigation"] #assistant-input-area.md-assistant-composer {
   bottom: var(--md-shell-bottom);
 }
+
+
+/* Keep contextual Explore results above the Home navigation + Assistant stack
+ * so typed follow-up actions remain reachable without pointer interception. */
+body[data-md-mode="discover"] #explore-flow-bottom-sheet,
+body[data-md-mode="assistant"] #explore-flow-bottom-sheet {
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-home-bottom-nav-height) +
+      var(--md-shell-composer-height) + var(--md-space-5)
+  );
+  max-height: min(
+    var(--md-sheet-full-height),
+    calc(
+      100dvh - var(--md-shell-top) - var(--md-home-bottom-nav-height) -
+        var(--md-shell-composer-height) - var(--md-space-8)
+    )
+  );
+}
