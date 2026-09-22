@@ -244,12 +244,23 @@ jobs:
                     return null;
                   }
                   const grid = Array.from(actions.querySelectorAll('.place-bottom-sheet-action'));
+                  const overflow = Array.from(
+                    sheet.querySelectorAll(
+                      '.place-bottom-sheet-overflow-actions .place-bottom-sheet-action',
+                    ),
+                  );
                   const buttons = [...grid, primary];
                   const actionsRect = actions.getBoundingClientRect();
                   const primaryRect = primary.getBoundingClientRect();
                   const gridBottom = Math.max(...grid.map(button => button.getBoundingClientRect().bottom));
+                  const overflowDetails = sheet.querySelector('.place-bottom-sheet-overflow');
                   return {
                     values: buttons.map(button => button.getAttribute('data-value')),
+                    overflowValues: overflow.map(button => button.getAttribute('data-value')),
+                    overflowOpen:
+                      overflowDetails instanceof HTMLDetailsElement
+                        ? overflowDetails.open
+                        : null,
                     primaryText: primary.textContent?.trim(),
                     primaryIndex: buttons.indexOf(primary),
                     primaryWidth: primaryRect.width,
@@ -262,21 +273,23 @@ jobs:
                 });
                 const expectedPlaceGrid = [
                   'como chegar',
-                  'ver fotos',
-                  'mais detalhes',
                   'adicionar aos favoritos',
                   'compartilhar',
                   `commerce:offer:${placeOffer.id}`,
                 ];
+                const expectedOverflow = ['ver fotos', 'mais detalhes'];
                 if (
                   !placeActions ||
                   JSON.stringify(placeActions.values) !== JSON.stringify(expectedPlaceGrid) ||
-                  placeActions.primaryIndex !== 5 ||
+                  JSON.stringify(placeActions.overflowValues) !==
+                    JSON.stringify(expectedOverflow) ||
+                  placeActions.overflowOpen !== false ||
+                  placeActions.primaryIndex !== 3 ||
                   placeActions.sheetState !== 'half' ||
                   !placeActions.primaryText?.includes('Comprar ingressos') ||
                   placeActions.primaryWidth < placeActions.containerWidth - 18 ||
                   placeActions.primaryTop < placeActions.gridBottom ||
-                  placeActions.gridColumns.split(' ').length !== 2
+                  placeActions.gridColumns.split(' ').length !== 3
                 ) {
                   throw new Error(`Place commerce CTA layout drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
                 }
