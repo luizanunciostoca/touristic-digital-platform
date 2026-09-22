@@ -485,10 +485,23 @@ jobs:
                       primary instanceof HTMLElement
                         ? primary.getBoundingClientRect().width
                         : null,
-                    composerVisible:
-                      composer instanceof HTMLElement &&
-                      getComputedStyle(composer).visibility !== 'hidden' &&
-                      getComputedStyle(composer).opacity !== '0',
+                    composerOpacity:
+                      composer instanceof HTMLElement
+                        ? Number.parseFloat(getComputedStyle(composer).opacity)
+                        : null,
+                    composerOverlap:
+                      composer instanceof HTMLElement
+                        ? (() => {
+                            const composerRect = composer.getBoundingClientRect();
+                            const sheetRect = sheet.getBoundingClientRect();
+                            return !(
+                              composerRect.right <= sheetRect.left ||
+                              composerRect.left >= sheetRect.right ||
+                              composerRect.bottom <= sheetRect.top ||
+                              composerRect.top >= sheetRect.bottom
+                            );
+                          })()
+                        : false,
                     privacyVisible:
                       privacy instanceof HTMLElement &&
                       getComputedStyle(privacy).visibility !== 'hidden' &&
@@ -522,7 +535,9 @@ jobs:
                   placeState.overflowOpen !== false ||
                   !placeState.ratingHidden ||
                   placeState.duplicatedAssistantActions.length !== 0 ||
-                  placeState.composerVisible ||
+                  placeState.composerOpacity === null ||
+                  placeState.composerOpacity > 0.8 ||
+                  placeState.composerOverlap ||
                   placeState.privacyVisible ||
                   placeState.targets.some(target => target.width < 44 || target.height < 44)
                 ) {
