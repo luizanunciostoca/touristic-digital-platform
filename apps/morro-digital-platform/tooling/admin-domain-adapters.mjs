@@ -7,6 +7,13 @@ import {
 
 const adminPrefix = "/api/admin/v1";
 
+function foldSearchText(value) {
+  return String(value ?? "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
 function mappedUrl(requestUrl, pathname) {
   const target = new URL(requestUrl.toString());
   target.pathname = pathname;
@@ -38,6 +45,13 @@ function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
   response.end(JSON.stringify({ error }));
+}
+
+function ownerSearchData(result, errorCode) {
+  if (result?.status !== "found" || !Array.isArray(result.data)) {
+    throw new Error(result?.error || errorCode);
+  }
+  return result.data;
 }
 
 function jsonCaptureResponse() {
@@ -92,6 +106,8 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "affiliate.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "detail",
@@ -415,6 +431,8 @@ export function createProductsAdminAdapter(ticketingApi) {
     /^\/api\/admin\/v1\/products\/([A-Za-z0-9._:-]{2,120})$/u;
   return Object.freeze({
     state: "available",
+    searchCapability: "business.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "search",
@@ -444,24 +462,43 @@ export function createProductsAdminAdapter(ticketingApi) {
         inventoryId,
       });
     },
-    async search({ query }) {
+    async search({ query, destinationId, limit }) {
       const result = await ticketingApi.adminListInventory({
         query,
-        limit: 20,
+        destinationId,
+        limit: Math.min(Number(limit) || 20, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(result, "PRODUCTS_ADMIN_SEARCH_UNAVAILABLE");
       return Object.freeze(
-        result.data.map(({ offer, businessId, availableQuantity }) =>
+        data.flatMap(({ offer, businessId, availableQuantity }) => [
           Object.freeze({
             type: "product",
+            id: offer.product?.reference || offer.id,
+            title: offer.product?.reference || offer.label,
+            context: [offer.product?.kind, offer.label, businessId]
+              .filter(Boolean)
+              .join(" · "),
+            href: "#products:" + encodeURIComponent(offer.id),
+            destinationId: offer.destinationId,
+          }),
+          Object.freeze({
+            type: "offer",
             id: offer.id,
             title: offer.label,
-            context: `${offer.product.kind} · ${businessId ?? "sem empresa"} · ${availableQuantity} disponível(is)`,
-            href: `#products:${encodeURIComponent(offer.id)}`,
+            context: [
+              offer.product?.kind,
+              businessId,
+              String(availableQuantity) + " disponível(is)",
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href: "#products:" + encodeURIComponent(offer.id),
+            destinationId: offer.destinationId,
           }),
-        ),
+        ]),
       );
     },
+
     async handle({ request, response, requestUrl }) {
       if (
         request.method === "GET" &&
@@ -499,6 +536,8 @@ export function createReservationsAdminAdapter(ticketingApi) {
     /^\/api\/admin\/v1\/reservations\/([A-Za-z0-9._:-]{2,120})$/u;
   return Object.freeze({
     state: "available",
+    searchCapability: "ticketing.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "search",
@@ -521,24 +560,36 @@ export function createReservationsAdminAdapter(ticketingApi) {
         actorReference,
       });
     },
-    async search({ query }) {
+    async search({ query, destinationId, limit }) {
       const result = await ticketingApi.adminListReservations({
         query,
-        limit: 20,
+        destinationId,
+        limit: Math.min(Number(limit) || 20, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "RESERVATIONS_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.map(({ reservation, businessId, inventoryLabel }) =>
+        data.map(({ reservation, businessId, inventoryLabel }) =>
           Object.freeze({
             type: "reservation",
             id: reservation.id,
             title: inventoryLabel || reservation.id,
-            context: `${reservation.status} · ${businessId ?? "sem empresa"} · ${reservation.holderReference}`,
-            href: `#reservations:${encodeURIComponent(reservation.id)}`,
+            context: [
+              reservation.status,
+              businessId,
+              reservation.holderReference,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href: "#reservations:" + encodeURIComponent(reservation.id),
+            destinationId: reservation.destinationId,
           }),
         ),
       );
     },
+
     async handle({ request, response, requestUrl }) {
       if (
         request.method === "GET" &&
@@ -583,6 +634,8 @@ export function createTicketingAdminAdapter(ticketingApi, authApi) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "ticketing.read",
+    searchDestinationAware: false,
     coverage: Object.freeze([
       "inventory",
       "operator/check-in",
@@ -637,6 +690,8 @@ export function createContentAdminAdapter(contentRuntime) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "content.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "list",
       "search",
@@ -646,11 +701,15 @@ export function createContentAdminAdapter(contentRuntime) {
       "lifecycle-transition",
     ]),
 
-    async search({ query }) {
-      const result = await contentRuntime.adminList({ query, limit: 20 });
-      if (result.status !== "found") return [];
+    async search({ query, destinationId, limit }) {
+      const result = await contentRuntime.adminList({
+        query,
+        destinationId,
+        limit: Math.min(Number(limit) || 20, 50),
+      });
+      const data = ownerSearchData(result, "CONTENT_ADMIN_SEARCH_UNAVAILABLE");
       return Object.freeze(
-        result.data.map((document) =>
+        data.map((document) =>
           Object.freeze({
             type: "content",
             id: document.id,
@@ -660,6 +719,7 @@ export function createContentAdminAdapter(contentRuntime) {
                 : document.id,
             context: `${document.kind} · ${document.status} · ${document.destinationId}`,
             href: `#content:${encodeURIComponent(document.id)}`,
+            destinationId: document.destinationId,
           }),
         ),
       );
@@ -839,6 +899,8 @@ export function createFinancialAdminAdapter(paymentsApi) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "financial.read",
+    searchDestinationAware: false,
     coverage: Object.freeze([
       "orders-by-id",
       "payments-by-id",
