@@ -141,6 +141,72 @@ test("never infers destination identity from a label", () => {
   );
 });
 
+test("does not leak a READY aggregate count from unreadable destinations", () => {
+  const destinations = fixtureDestinations(2);
+  const model = buildHomeModelV1({
+    dashboard: {
+      attention: {
+        status: "READY",
+        count: 1001,
+        items: [
+          {
+            id: "visible-a",
+            kind: "support-open",
+            count: 1,
+            destinationId: "destination-1",
+          },
+          {
+            id: "visible-b",
+            kind: "support-open",
+            count: 1,
+            destinationId: "destination-2",
+          },
+          {
+            id: "hidden",
+            kind: "support-open",
+            count: 999,
+            destinationId: "forbidden",
+          },
+        ],
+      },
+    },
+    destinations,
+    destinationAvailable: true,
+    auditAvailable: true,
+    scope: { scope: "global", destinationId: null },
+  });
+
+  assert.equal(model.attention.count, 2);
+  assert.equal(
+    model.metrics.find((metric) => metric.key === "alerts").value,
+    "2",
+  );
+  assert.equal(
+    model.attention.items.some((item) => item.destinationId === "forbidden"),
+    false,
+  );
+});
+
+test("does not fabricate zero when READY attention lacks scopeable items", () => {
+  const model = buildHomeModelV1({
+    dashboard: {
+      attention: {
+        status: "READY",
+        count: 42,
+      },
+    },
+    destinations: fixtureDestinations(1),
+    destinationAvailable: true,
+    auditAvailable: true,
+    scope: { scope: "global", destinationId: null },
+  });
+
+  assert.equal(model.attention.count, null);
+  const alerts = model.metrics.find((metric) => metric.key === "alerts");
+  assert.equal(alerts.value, "—");
+  assert.equal(alerts.state, "partial");
+});
+
 test("filters attention and audit by exact readable destination id", () => {
   const destinations = fixtureDestinations(2);
   const model = buildHomeModelV1({

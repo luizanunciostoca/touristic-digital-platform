@@ -427,17 +427,26 @@ export function buildHomeModelV1({
   }
 
   const sortedAttention = sortAttention(filteredAttention);
-  const attentionCount =
-    selectedDestination || attentionAggregate?.status !== "READY"
-      ? sortedAttention.reduce((total, item) => total + item.count, 0)
-      : Number.isFinite(Number(attentionAggregate?.count))
-        ? Number(attentionAggregate.count)
-        : sortedAttention.reduce((total, item) => total + item.count, 0);
+  const hasOwnerAttentionItems = Array.isArray(attentionAggregate?.items);
+  const authorizedAttentionCount = sortedAttention.reduce(
+    (total, item) => total + item.count,
+    0,
+  );
+  const attentionCount = destinationAvailable
+    ? hasOwnerAttentionItems || !attentionAggregate
+      ? authorizedAttentionCount
+      : null
+    : Number.isFinite(Number(attentionAggregate?.count))
+      ? Number(attentionAggregate.count)
+      : sortedAttention.length
+        ? authorizedAttentionCount
+        : null;
   const attentionState = attentionAggregate
-    ? attentionAggregate.status === "READY" && !selectedDestination
-      ? "success"
-      : attentionAggregate.status === "UNAVAILABLE"
-        ? "unavailable"
+    ? attentionAggregate.status === "UNAVAILABLE"
+      ? "unavailable"
+      : attentionAggregate.status === "READY" &&
+          (!destinationAvailable || hasOwnerAttentionItems)
+        ? "success"
         : "partial"
     : sortedAttention.length
       ? "partial"
@@ -566,11 +575,14 @@ export function buildHomeModelV1({
         };
 
   const alertsMetric =
-    attentionState === "unavailable"
+    attentionState === "unavailable" || attentionCount === null
       ? {
           value: "—",
-          state: "unavailable",
-          hint: "Agregado de alertas acionáveis indisponível",
+          state: attentionState === "unavailable" ? "unavailable" : "partial",
+          hint:
+            attentionState === "unavailable"
+              ? "Agregado de alertas acionáveis indisponível"
+              : "Total autorizado indisponível; itens conhecidos permanecem parciais",
         }
       : {
           value: new Intl.NumberFormat("pt-BR").format(attentionCount),
