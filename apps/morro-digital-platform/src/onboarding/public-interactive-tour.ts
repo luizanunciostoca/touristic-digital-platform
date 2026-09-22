@@ -37,8 +37,8 @@ const STEPS: readonly TutorialStepTarget[] = Object.freeze([
   Object.freeze({ selectors: ["#map-container", "#map"] }),
   Object.freeze({ selectors: ["#weather-widget"] }),
   Object.freeze({ selectors: ["#assistant-input-area"] }),
-  Object.freeze({ selectors: ["#voiceButton"] }),
-  Object.freeze({ selectors: ["#configButton"] }),
+  Object.freeze({ selectors: ["#home-bottom-navigation"] }),
+  Object.freeze({ selectors: ["#home-profile-button"] }),
   Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] }),
 ]);
 
