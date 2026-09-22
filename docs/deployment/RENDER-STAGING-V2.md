@@ -126,7 +126,7 @@ O Card Payment Brick recebe somente `VITE_MERCADO_PAGO_PUBLIC_KEY`. O adapter de
 ### Mapbox
 
 - `VITE_MAPBOX_ACCESS_TOKEN`: token público válido, copiado diretamente do Mapbox;
-- o estilo permanece `mapbox://styles/mapbox/streets-v12`.
+- o estilo UX V2 do Discover usa `mapbox://styles/mapbox/satellite-streets-v12`, com câmera inicial `14.8` para o enquadramento aprovado do Morro de São Paulo.
 
 ### OpenAI
 
