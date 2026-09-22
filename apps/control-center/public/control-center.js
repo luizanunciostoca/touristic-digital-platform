@@ -761,10 +761,12 @@ async function renderOverview() {
       <section class="card section-card" data-dashboard-state="${
         health.readiness === "ready" ? "success" : "partial"
       }">
-        <div class="section-title">
-          <h2>Estado operacional</h2>
-          <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
-        </div>
+        ${sectionHeader({
+          title: "Estado operacional",
+          meta: `<span class="chip">${escapeHtml(
+            health.readiness ?? "unknown",
+          )}</span>`,
+        })}
         <div class="health-list">
           ${
             (health.checks ?? [])
