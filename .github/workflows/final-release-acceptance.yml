@@ -66,6 +66,7 @@ jobs:
             ticketing-v2-visual-regression.yml
             ux-v2-component-state-visual-regression.yml
             ux-v2-manual-golden-conformance.yml
+            ux-v2-manual-golden-conformance.yml
             pwa-offline-browser-contract.yml
             morro-performance-budget.yml
             morro-runtime-startup-performance.yml
@@ -168,6 +169,7 @@ jobs:
             place-explore-v2-visual-regression.yml
             ticketing-v2-visual-regression.yml
             ux-v2-component-state-visual-regression.yml
+            ux-v2-manual-golden-conformance.yml
             ux-v2-manual-golden-conformance.yml
             pwa-offline-browser-contract.yml
             morro-performance-budget.yml
