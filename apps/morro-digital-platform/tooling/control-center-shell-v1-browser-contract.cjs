@@ -221,6 +221,24 @@ async function login(page) {
     }
     evidence.keyboard.push("ctrl-k-search");
 
+    const destinationSelector = page.locator("#destination-selector");
+    await destinationSelector.waitFor({ state: "visible" });
+    const currentDestination = await destinationSelector.inputValue();
+    if (!currentDestination) {
+      throw new Error("DestinationSelector has no readable current destination");
+    }
+    await destinationSelector.evaluate((node) => {
+      node.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    if ((await page.locator("#global-scope").getAttribute("aria-pressed")) !== "false") {
+      throw new Error("Destination selection did not leave Global scope");
+    }
+    await page.locator("#global-scope").click();
+    if ((await page.locator("#global-scope").getAttribute("aria-pressed")) !== "true") {
+      throw new Error("Global scope did not become visually explicit");
+    }
+    evidence.keyboard.push("destination-context-global-toggle");
+
     for (const viewport of viewports) {
       await page.setViewportSize({
         width: viewport.width,
