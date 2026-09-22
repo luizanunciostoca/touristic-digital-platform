@@ -1737,6 +1737,14 @@ html[dir="rtl"]
   direction: rtl;
 }
 
+body[data-md-mode="place"]
+  #unified-assistant-dock
+  > #assistant-input-area.md-assistant-composer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 #unified-assistant-dock > #assistant-input-area.md-assistant-composer {
   position: static !important;
   inset: auto !important;
@@ -1833,6 +1841,13 @@ html[dir="rtl"]
 }
 
 @media (max-height: 34rem) and (orientation: landscape) {
+  body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+    right: calc(
+      var(--md-shell-gutter-end) + min(24rem, 48vw) + var(--md-space-3)
+    );
+    bottom: var(--md-shell-bottom);
+  }
+
   #unified-assistant-dock.md-unified-assistant-dock {
     right: var(--md-shell-gutter-end);
     bottom: var(--md-shell-bottom);
