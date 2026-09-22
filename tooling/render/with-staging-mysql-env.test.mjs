@@ -224,14 +224,17 @@ test("rejects weak credentials, invalid payer email, and identity collisions", (
   );
 });
 
-test("leaves dashboard users untouched unless Control Center owner bootstrap is explicitly enabled", () => {
-  assert.deepEqual(
-    buildStagingControlCenterOwnerAuthEnvironment({
-      DASHBOARD_USERS_JSON: JSON.stringify([{ id: "existing" }]),
-    }),
-    {},
-  );
-});
+test(
+  "leaves dashboard users untouched unless Control Center owner bootstrap is explicitly enabled",
+  () => {
+    assert.deepEqual(
+      buildStagingControlCenterOwnerAuthEnvironment({
+        DASHBOARD_USERS_JSON: JSON.stringify([{ id: "existing" }]),
+      }),
+      {},
+    );
+  },
+);
 
 test("adds an isolated PLATFORM_OWNER without replacing existing users", () => {
   const password = "temporary control center owner password 2026";
@@ -265,7 +268,9 @@ test("adds an isolated PLATFORM_OWNER without replacing existing users", () => {
   assertPasswordHash(password, owner.passwordHash);
 });
 
-test("fails closed for unsafe Control Center owner bootstrap configuration", () => {
+test(
+  "fails closed for unsafe Control Center owner bootstrap configuration",
+  () => {
   const strongPassword = "temporary control center owner password 2026";
   const email = "control-center-owner@morro.digital";
 
@@ -309,13 +314,12 @@ test("fails closed for unsafe Control Center owner bootstrap configuration", () 
         STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
         STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
         STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
-        DASHBOARD_USERS_JSON: JSON.stringify([
-          { id: "different-id", email },
-        ]),
+        DASHBOARD_USERS_JSON: JSON.stringify([{ id: "different-id", email }]),
       }),
     /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
-  );
-});
+    );
+  },
+);
 
 test("starts provider acceptance only for the V2 staging runtime command", () => {
   const environment = {
