@@ -266,14 +266,10 @@
   border-radius: var(--md-radius-pill);
 }
 
-.place-bottom-sheet-state-button[aria-pressed="true"] {
-  border-color: var(--md-color-brand);
-  background: color-mix(
-    in srgb,
-    var(--md-color-brand) 10%,
-    var(--md-color-surface-card)
-  );
-  color: var(--md-color-brand-strong);
+.place-bottom-sheet-state-button:disabled,
+.explore-flow-sheet-state-button:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .place-bottom-sheet-close {
@@ -378,8 +374,30 @@
 
 .place-bottom-sheet-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--md-space-2);
+}
+
+.place-bottom-sheet-overflow {
+  min-width: 0;
+}
+
+.place-bottom-sheet-overflow-summary {
+  width: 100%;
+  min-height: var(--md-touch-target-min);
+  list-style: none;
+  cursor: pointer;
+}
+
+.place-bottom-sheet-overflow-summary::-webkit-details-marker {
+  display: none;
+}
+
+.place-bottom-sheet-overflow-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--md-space-2);
+  padding-top: var(--md-space-2);
 }
 
 .place-bottom-sheet-action {
@@ -401,7 +419,7 @@
 
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-hero,
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-tags,
-#place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-actions {
+#place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-overflow {
   display: none;
 }
 
@@ -424,7 +442,11 @@
 
 @media (max-width: 23.5rem) {
   .place-bottom-sheet-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .place-bottom-sheet-share {
+    grid-column: 1 / -1;
   }
 }
 
@@ -432,7 +454,8 @@
   #place-bottom-sheet,
   .place-bottom-sheet-state-button,
   .place-bottom-sheet-close,
-  .place-bottom-sheet-action {
+  .place-bottom-sheet-action,
+  .place-bottom-sheet-overflow-summary {
     border-color: CanvasText;
   }
 }
@@ -498,15 +521,6 @@
   border-radius: var(--md-radius-pill);
 }
 
-.explore-flow-sheet-state-button[aria-pressed="true"] {
-  border-color: var(--md-color-brand);
-  background: color-mix(
-    in srgb,
-    var(--md-color-brand) 10%,
-    var(--md-color-surface-card)
-  );
-  color: var(--md-color-brand-strong);
-}
 
 .explore-flow-sheet-close {
   grid-column: 3;
@@ -618,6 +632,17 @@
   min-width: 0;
   min-height: var(--md-touch-target-min);
   margin: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+#explore-flow-bottom-sheet
+  .explore-flow-sheet-source
+  > [data-location-name] {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  text-align: start;
 }
 
 #explore-flow-bottom-sheet
