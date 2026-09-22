@@ -43,7 +43,7 @@ describe("Control Center universal search UI contract", () => {
 
   it("declares combobox/listbox semantics and explicit destination scope", async () => {
     const html = await publicSource("index.html");
-    expect(html).toContain('id="search-destination"');
+    expect(html).toContain('id="destination-selector"');
     expect(html).toContain("Todos os destinos");
     expect(html).toContain('role="combobox"');
     expect(html).toContain('aria-controls="search-results"');
@@ -74,9 +74,9 @@ describe("Control Center universal search UI contract", () => {
       publicSource("index.html"),
       publicSource("control-center-search.js"),
     ]);
-    expect(css).toContain("@media (max-width: 820px)");
+    expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain(".search-results {");
-    expect(css).toContain("max-height: min(65dvh, 520px)");
+    expect(css).toContain("max-height: min(480px, 70vh)");
     expect(html).not.toContain("Quick Actions");
     expect(source).not.toContain("quickActions");
     expect(source).not.toContain("assistant");
