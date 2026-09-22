@@ -227,6 +227,64 @@ function markerForLocation(
   });
 }
 
+const TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES = 0.0017;
+
+function tourDiscoveryClusterLabel(
+  count: number,
+  locale: AssistantLocale,
+): string {
+  if (locale === "pt") return `${count} passeios`;
+  if (locale === "es") return `${count} paseos`;
+  if (locale === "he") return `${count} סיורים`;
+  return `${count} tours`;
+}
+
+function clusterTourDiscoveryMarkers(
+  locations: readonly ExploreMapLocation[],
+  locale: AssistantLocale,
+): readonly MapMarker[] {
+  const clusters: ExploreMapLocation[][] = [];
+
+  for (const location of locations) {
+    const existing = clusters.find((cluster) => {
+      const latitude =
+        cluster.reduce((total, item) => total + item.latitude, 0) /
+        cluster.length;
+      const longitude =
+        cluster.reduce((total, item) => total + item.longitude, 0) /
+        cluster.length;
+      return (
+        Math.hypot(
+          location.latitude - latitude,
+          location.longitude - longitude,
+        ) <= TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES
+      );
+    });
+    if (existing) existing.push(location);
+    else clusters.push([location]);
+  }
+
+  return Object.freeze(
+    clusters.map((cluster, index) => {
+      const first = cluster[0];
+      if (!first) throw new Error("Tour discovery cluster cannot be empty.");
+      if (cluster.length === 1) return markerForLocation(first, index);
+
+      const latitude =
+        cluster.reduce((total, item) => total + item.latitude, 0) /
+        cluster.length;
+      const longitude =
+        cluster.reduce((total, item) => total + item.longitude, 0) /
+        cluster.length;
+      return Object.freeze({
+        id: `explore:tours:cluster:${cluster.length}:${index}`,
+        position: Object.freeze({ latitude, longitude }),
+        label: tourDiscoveryClusterLabel(cluster.length, locale),
+      });
+    }),
+  );
+}
+
 function describeExploreError(error: unknown, locale: AssistantLocale): string {
   return error instanceof Error
     ? error.message
@@ -520,9 +578,20 @@ export function installExploreLocationsControl({
       return;
     }
 
+    const renderedMarkers =
+      category === "tours" && activeStage === "filters"
+        ? clusterTourDiscoveryMarkers(locations, currentLocale())
+        : locations.map((location, index) =>
+            markerForLocation(
+              location,
+              index,
+              openSelectedPopup && locations.length === 1,
+            ),
+          );
+
     setSheetStatus("loading");
     if (!geospatialEngine?.initialized) {
-      updateMapState(locations.length, category, "error");
+      updateMapState(renderedMarkers.length, category, "error");
       setSheetStatus(
         "error",
         getV1ExploreUiCopy(currentLocale()).mapCategoryError(
@@ -533,17 +602,9 @@ export function installExploreLocationsControl({
       return;
     }
 
-    updateMapState(locations.length, category, "loading");
+    updateMapState(renderedMarkers.length, category, "loading");
     try {
-      await geospatialEngine.replaceMarkers(
-        locations.map((location, index) =>
-          markerForLocation(
-            location,
-            index,
-            openSelectedPopup && locations.length === 1,
-          ),
-        ),
-      );
+      await geospatialEngine.replaceMarkers(renderedMarkers);
       if (
         generation !== interactionGeneration ||
         (categoryAtStart !== undefined &&
@@ -551,7 +612,7 @@ export function installExploreLocationsControl({
       ) {
         return;
       }
-      updateMapState(locations.length, category, "ready");
+      updateMapState(renderedMarkers.length, category, "ready");
       if (openSelectedPopup && locations.length === 1) {
         const selectedMarker = document.querySelector<HTMLElement>(
           '.morro-explore-marker[data-morro-explore-marker="true"]:not([data-discover-initial-poi="true"])',
