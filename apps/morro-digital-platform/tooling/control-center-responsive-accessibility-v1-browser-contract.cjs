@@ -96,7 +96,9 @@ async function installRoutes(page) {
     route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ data: Array.from({ length: 250 }, (_, id) => ({ id })) }),
+      body: JSON.stringify({
+        data: Array.from({ length: 250 }, (_, id) => ({ id })),
+      }),
     }),
   );
   await page.route("**/api/admin/v1/audit?*", (route) =>
@@ -332,7 +334,10 @@ async function checkAxe(page) {
       scrollWidth: node.scrollWidth,
       focused: node === document.activeElement,
     }));
-    if (!tableState.focused || tableState.scrollWidth <= tableState.clientWidth)
+    if (
+      !tableState.focused ||
+      tableState.scrollWidth <= tableState.clientWidth
+    )
       throw new Error("Table scroll contract not exercised");
     evidence.table = tableState;
 
@@ -346,7 +351,9 @@ async function checkAxe(page) {
       .locator(".control-center-sidebar")
       .evaluate((node) => getComputedStyle(node).transitionDuration);
     if (!["0s", "0.01ms"].includes(transition))
-      throw new Error("Reduced motion transition is not suppressed: " + transition);
+      throw new Error(
+        "Reduced motion transition is not suppressed: " + transition,
+      );
     evidence.reducedMotion.transitionDuration = transition;
     await reducedContext.close();
 
@@ -356,7 +363,9 @@ async function checkAxe(page) {
       ["critical", "serious"].includes(item.impact),
     );
     if (serious.length)
-      throw new Error("WCAG serious/critical violations: " + JSON.stringify(serious));
+      throw new Error(
+        "WCAG serious/critical violations: " + JSON.stringify(serious),
+      );
     evidence.accessibility.axeViolations = violations;
 
     if (pageErrors.length)
