@@ -33,6 +33,7 @@ const state = {
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
 const pendingCheckoutStorageKey = "morro_ticketing_pending_checkout_v1";
+const reservationAttemptStorageKey = "morro_ticketing_reservation_attempt_v1";
 const analyticsMilestonesStorageKey = "morro_ticketing_analytics_v1";
 const analyticsContextStorageKey = "morro_ticketing_analytics_context_v1";
 const canonicalCheckoutPath = "/api/payments/v1/checkouts";
@@ -300,8 +301,13 @@ async function refreshQuote({ announce = false } = {}) {
     );
     elements.quantity.max = String(maximum);
     updatePurchaseSummary();
+    const pendingCheckout = pendingCheckoutState();
     elements.reserve.disabled = state.submitting;
-    elements.reserve.textContent = state.submitting ? "Finalizando…" : "Finalizar Reserva";
+    elements.reserve.textContent = state.submitting
+      ? "Finalizando…"
+      : pendingCheckout
+        ? "Retomar pagamento"
+        : "Finalizar Reserva";
     if (announce) setMessage("Preço e disponibilidade atualizados.");
     return quote;
   } catch (error) {
@@ -933,6 +939,34 @@ function clearPendingCheckout() {
   sessionStorage.removeItem(pendingCheckoutStorageKey);
 }
 
+function reservationAttemptReference(inventoryId, quantity) {
+  const fingerprint = `${inventoryId}:${quantity}`;
+  try {
+    const current = JSON.parse(
+      sessionStorage.getItem(reservationAttemptStorageKey) || "null",
+    );
+    if (
+      current?.fingerprint === fingerprint &&
+      typeof current.reference === "string" &&
+      current.reference.startsWith("web_")
+    ) {
+      return current.reference;
+    }
+  } catch {
+    // A corrupt retry hint must never become transaction authority.
+  }
+  const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
+  sessionStorage.setItem(
+    reservationAttemptStorageKey,
+    JSON.stringify({ fingerprint, reference }),
+  );
+  return reference;
+}
+
+function clearReservationAttempt() {
+  sessionStorage.removeItem(reservationAttemptStorageKey);
+}
+
 async function wait(milliseconds) {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -1134,7 +1168,10 @@ async function submitReservation(event) {
       return;
     }
 
-    const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
+    const reference = reservationAttemptReference(
+      state.selectedOffer.id,
+      quantity,
+    );
     const payload = await api("/api/ticketing/v1/reservations", {
       method: "POST",
       headers: {
@@ -1150,6 +1187,7 @@ async function submitReservation(event) {
     });
     if (!payload.data?.reservation || !payload.data?.checkout)
       throw new Error("RESERVATION_RESPONSE_INVALID");
+    clearReservationAttempt();
     savePendingCheckout(payload.data);
     emitAnalyticsOnce(
       `reservation:${payload.data.reservation.id}`,
