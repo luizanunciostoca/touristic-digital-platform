@@ -1257,6 +1257,7 @@ body[data-md-mode="discover"]
   #weather-widget.md-weather-control
   .md-weather-control-content {
   flex-direction: row;
+  gap: var(--md-space-1);
 }
 
 body[data-md-mode="discover"]
@@ -1270,7 +1271,9 @@ body[data-md-mode="discover"]
 }
 
 body[data-md-mode="discover"] #weather-widget.md-weather-control .weather-temp {
+  flex: 0 0 auto;
   font-size: var(--md-font-size-sm);
+  white-space: nowrap;
 }
 
 body[data-md-mode="discover"]
