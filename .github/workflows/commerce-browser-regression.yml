@@ -716,8 +716,12 @@ jobs:
               const failPage = await failContext.newPage();
               await commerceRoutes(failPage, { inventoryFailure: true });
               await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded' });
-              await failPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({ state: 'visible', timeout: 10000 });
-              evidence.push({ predictableFailure: 'TICKETING_UNAVAILABLE' });
+              await failPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({ state: 'visible', timeout: 10000 });
+              const friendlyFailure = await failPage.locator('#reservation-message').textContent();
+              if (/TICKETING_|PAYMENTS_|HTTP_/u.test(friendlyFailure || '')) {
+                throw new Error('Technical failure leaked into Ticketing UI: ' + friendlyFailure);
+              }
+              evidence.push({ predictableFailure: 'friendly-unavailable' });
               await failContext.close();
 
               writeFileSync('/tmp/commerce-browser/evidence.json', JSON.stringify(evidence, null, 2));
