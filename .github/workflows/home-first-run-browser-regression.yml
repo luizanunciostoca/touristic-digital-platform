@@ -363,6 +363,51 @@ jobs:
             evidence.viewportResize = resized;
             await resizeContext.close();
 
+            const micDeniedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
+            const micDeniedPage = await micDeniedContext.newPage();
+            await micDeniedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(micDeniedPage);
+            await micDeniedPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await micDeniedPage.evaluate(() => {
+              const permissions = navigator.permissions;
+              Object.defineProperty(navigator, 'permissions', {
+                configurable: true,
+                value: {
+                  query: async descriptor =>
+                    descriptor?.name === 'microphone'
+                      ? { state: 'denied', addEventListener() {}, removeEventListener() {} }
+                      : permissions.query(descriptor),
+                },
+              });
+              if (!document.getElementById('voiceButton')) {
+                const voiceButton = document.createElement('button');
+                voiceButton.id = 'voiceButton';
+                voiceButton.type = 'button';
+                voiceButton.textContent = 'Voice';
+                voiceButton.setAttribute('aria-label', 'Send voice message');
+                document.getElementById('assistant-input-area')?.appendChild(voiceButton);
+              }
+            });
+            await micDeniedPage.locator('[data-public-onboarding-action="start"]').click();
+            await micDeniedPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            for (let step = 2; step <= 4; step += 1) {
+              await micDeniedPage.locator('.tour-btn-next').click();
+              await micDeniedPage.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
+            }
+            await micDeniedPage.locator('#tour-tooltip[data-target-unavailable]').waitFor({ state: 'visible', timeout: 3000 });
+            const micDenied = await readState(micDeniedPage);
+            if (
+              micDenied.targetIdentity !== 'voiceButton' ||
+              !micDenied.targetUnavailable ||
+              !micDenied.capabilityNote ||
+              micDenied.targetOverlap ||
+              !micDenied.primaryActionVisible
+            ) {
+              throw new Error(`Denied microphone fallback failed: ${JSON.stringify(micDenied)}`);
+            }
+            evidence.micDenied = micDenied;
+            await micDeniedContext.close();
+
             if (errors.length || skipErrors.length) {
               throw new Error(`Browser errors detected: ${JSON.stringify({ errors, skipErrors })}`);
             }
