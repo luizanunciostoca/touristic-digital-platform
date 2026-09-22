@@ -143,6 +143,8 @@ const TICKETING_COPY: Readonly<
       currencyMismatch:
         "Não foi possível confirmar a moeda desta reserva. Atualize e tente novamente.",
       priceUpdated: "Preço e disponibilidade atualizados.",
+      pendingReservationAttempt:
+        "Uma tentativa de reserva anterior ainda precisa ser confirmada. Retorne à seleção anterior e tente novamente.",
       updatingAvailability: "Atualizando disponibilidade…",
       retryPaymentPreserved:
         "O pagamento não abriu agora. Sua reserva foi preservada; tente retomar o pagamento.",
@@ -271,6 +273,8 @@ const TICKETING_COPY: Readonly<
       currencyMismatch:
         "We could not confirm the currency for this reservation. Refresh and try again.",
       priceUpdated: "Price and availability updated.",
+      pendingReservationAttempt:
+        "A previous reservation attempt still needs confirmation. Return to the previous selection and try again.",
       updatingAvailability: "Updating availability…",
       retryPaymentPreserved:
         "Payment did not open. Your reservation was preserved; resume payment to try again.",
@@ -401,6 +405,8 @@ const TICKETING_COPY: Readonly<
       currencyMismatch:
         "No se pudo confirmar la moneda de esta reserva. Actualiza e inténtalo de nuevo.",
       priceUpdated: "Precio y disponibilidad actualizados.",
+      pendingReservationAttempt:
+        "Un intento de reserva anterior aún necesita confirmación. Vuelve a la selección anterior e inténtalo de nuevo.",
       updatingAvailability: "Actualizando disponibilidad…",
       retryPaymentPreserved:
         "El pago no se abrió. Tu reserva se conservó; retoma el pago para intentarlo de nuevo.",
@@ -526,6 +532,8 @@ const TICKETING_COPY: Readonly<
         "תוקף הצעת המחיר פג. המחיר עודכן; בדקו אותו לפני הסיום.",
       currencyMismatch: "לא ניתן לאמת את מטבע ההזמנה. רעננו ונסו שוב.",
       priceUpdated: "המחיר והזמינות עודכנו.",
+      pendingReservationAttempt:
+        "ניסיון הזמנה קודם עדיין דורש אישור. חזרו לבחירה הקודמת ונסו שוב.",
       updatingAvailability: "מעדכן זמינות…",
       retryPaymentPreserved:
         "התשלום לא נפתח. ההזמנה נשמרה; המשיכו לתשלום כדי לנסות שוב.",
