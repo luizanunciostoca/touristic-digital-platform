@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: control-center-prettier-temp-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   format:
     runs-on: ubuntu-24.04
