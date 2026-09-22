@@ -1664,6 +1664,10 @@ html[data-control-density="compact"] .metric-card {
 }
 
 @media (max-width: 767px) {
+  .search-results {
+    max-height: min(65dvh, 520px);
+  }
+
   .page {
     padding: 16px;
   }
