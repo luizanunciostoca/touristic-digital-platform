@@ -137,6 +137,9 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).toContain('id="refresh-button"');
     expect(html).toMatch(/id="refresh-button"[\s\S]*?hidden/u);
     expect(runtime).toContain("if (state.submitting) return");
+    expect(runtime).toContain("reservationAttemptReference");
+    expect(runtime).toContain("pendingCheckoutState");
+    expect(runtime).toContain("Retomar pagamento");
     expect(runtime).toContain("QUOTE_CURRENCY_MISMATCH");
     expect(runtime).toContain("Preço ou disponibilidade mudou");
     expect(runtime).toContain("friendlyError");
@@ -166,7 +169,10 @@ describe("Ticketing UX Design V2 contract", () => {
   });
 
   it("keeps primary interactions reachable and QR dialog inside the safe viewport", async () => {
-    const css = await readPublic("ticketing.css");
+    const [html, css] = await Promise.all([
+      readPublic("tickets.html"),
+      readPublic("ticketing.css"),
+    ]);
 
     expect(css).toContain("min-height: var(--md-touch-target-min)");
     expect(css).toContain("100dvh - var(--md-safe-top)");
@@ -176,9 +182,11 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(css).toContain(
       'body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed',
     );
-    expect(css).toContain(
-      "bottom: max(var(--md-space-3), var(--md-safe-bottom))",
+    expect(css).toMatch(
+      /body\[data-md-mode="commerce"\] \.analytics-consent-preferences\.is-collapsed\s*\{[^}]*display:\s*none/isu,
     );
+    expect(html).toContain('id="privacy-settings-button"');
+    expect(css).toContain(".ticketing-privacy-action");
     expect(css).toContain("font-weight: var(--md-font-weight-bold)");
   });
 
@@ -207,6 +215,8 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain("elements.quantityDecrease.disabled");
     expect(runtime).toContain("elements.quantityIncrease.disabled");
     expect(runtime).not.toContain('setMessage(error.message || copy.ticketingUnavailable');
+    expect(runtime).toContain("Nenhuma experiência disponível agora");
+    expect(runtime).toContain("privacyPreferences.open()");
   });
 
   it("uses the formal V2 stacking scale and theme contract", async () => {
