@@ -754,9 +754,12 @@ async function loadOffers() {
     elements.heroTitle.textContent = copy.static.emptyTitle;
     elements.productLead.textContent = copy.static.emptyHelp;
     elements.reserve.disabled = true;
+    elements.refresh.hidden = false;
     updatePurchaseSummary();
     return;
   }
+
+  elements.refresh.hidden = true;
 
   const requestedOffer = new URLSearchParams(location.search).get("offer");
   if (requestedOffer && offerIdPattern.test(requestedOffer)) {
@@ -1344,7 +1347,6 @@ elements.returnLink.addEventListener("click", (event) => {
   try {
     await session();
     await Promise.all([loadOffers(), loadReservations()]);
-    elements.refresh.hidden = true;
     await resumeCheckout();
   } catch (error) {
     elements.refresh.hidden = false;
