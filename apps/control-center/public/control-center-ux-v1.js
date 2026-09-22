@@ -200,7 +200,7 @@ async function loadHomeData() {
   const affiliateQuery = "/affiliates?limit=100" + destinationQuery;
   const businessQuery = "/businesses?limit=100" + destinationQuery;
   const requests = [
-    api("/audit?limit=8").catch(() => ({ entries: [] })),
+    api("/audit?limit=20").catch(() => ({ entries: [] })),
     api(reservationQuery).catch(() => ({ data: null })),
     api(affiliateQuery).catch(() => ({ data: null })),
     api(businessQuery).catch(() => ({
@@ -264,6 +264,19 @@ async function revenueForReservations(rows) {
 }
 
 function attentionItems(dashboard) {
+  const ownerAttention = dashboard.attention;
+  if (Array.isArray(ownerAttention?.items)) {
+    return ownerAttention.items.slice(0, 4).map((item) => ({
+      title: item.title || item.kind || item.id || "Atenção",
+      detail:
+        item.detail ||
+        [item.severity, item.destinationId].filter(Boolean).join(" · ") ||
+        "owner-backed",
+      href: "#system",
+      severity: item.severity || "warning",
+    }));
+  }
+
   const health = dashboard.health || {};
   const healthItems = (health.checks || [])
     .filter((check) => check.status !== "pass")
@@ -284,12 +297,31 @@ function attentionItems(dashboard) {
   return [...healthItems, ...moduleItems].slice(0, 4);
 }
 
+function humanizeAuditAction(value) {
+  const action = String(value || "").trim();
+  const labels = {
+    "support.session.start": "Support Mode iniciado",
+    "support.session.started": "Support Mode iniciado",
+    "support.session.end": "Support Mode encerrado",
+    "support.session.ended": "Support Mode encerrado",
+  };
+  if (labels[action]) return labels[action];
+  const normalized = action
+    .replace(/[._:/-]+/gu, " ")
+    .replace(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .replace(/\s+/gu, " ")
+    .trim();
+  return normalized
+    ? normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1)
+    : "Ação administrativa";
+}
+
 function activityHtml(entries) {
   if (!Array.isArray(entries) || entries.length === 0) {
     return '<div class="empty"><strong>Nenhuma atividade recente</strong><span>Eventos administrativos aparecerão aqui quando existirem.</span></div>';
   }
   return entries
-    .slice(0, 8)
+    .slice(0, 20)
     .map((entry) => {
       const date = new Date(entry.timestamp);
       const time = Number.isNaN(date.getTime())
@@ -305,17 +337,21 @@ function activityHtml(entries) {
           : result === "denied" || result === "failure"
             ? "danger"
             : "warning";
+      const actor = entry.actorUserId || "—";
+      const effectiveUser = entry.effectiveUserId || "—";
+      const entity = [entry.entityType, entry.entityId].filter(Boolean).join(" ");
       return (
         '<div class="timeline-item"><span class="timeline-time">' +
         escapeHtml(time) +
         '</span><span class="timeline-dot ' +
         tone +
         '" aria-hidden="true"></span><div class="timeline-body"><strong>' +
-        escapeHtml(entry.action || "Ação administrativa") +
-        '</strong><span class="timeline-meta">' +
-        escapeHtml(entry.entityType || "") +
-        " " +
-        escapeHtml(entry.entityId || "") +
+        escapeHtml(humanizeAuditAction(entry.action)) +
+        '</strong><span class="timeline-meta">ator ' +
+        escapeHtml(actor) +
+        " · efetivo " +
+        escapeHtml(effectiveUser) +
+        (entity ? " · " + escapeHtml(entity) : "") +
         "</span></div></div>"
       );
     })
@@ -329,6 +365,12 @@ async function destinationSummary(data) {
   const businesses = Array.isArray(data.businesses?.businesses)
     ? data.businesses.businesses
     : null;
+  const ownerItems = Array.isArray(data.dashboard?.destinationSummary?.items)
+    ? data.dashboard.destinationSummary.items
+    : null;
+  const ownerByDestination = new Map(
+    (ownerItems || []).map((item) => [item.destinationId, item]),
+  );
 
   return Promise.all(
     state.destinations.map(async (destination) => {
@@ -339,13 +381,10 @@ async function destinationSummary(data) {
               sameLocalDay(item?.reservation?.createdAt),
           )
         : null;
-      const [affiliateResult, revenue] = await Promise.all([
-        api(
-          "/affiliates?limit=100&destinationId=" +
-            encodeURIComponent(destination.id),
-        ).catch(() => ({ data: null })),
-        revenueForReservations(destinationReservations),
-      ]);
+      const affiliateResult = await api(
+        "/affiliates?limit=100&destinationId=" +
+          encodeURIComponent(destination.id),
+      ).catch(() => ({ data: null }));
       const destinationBusinesses = businesses
         ? businesses.filter(
             (business) => business.destinationId === destination.id,
@@ -354,16 +393,38 @@ async function destinationSummary(data) {
       const affiliateCount = Array.isArray(affiliateResult.data)
         ? affiliateResult.data.length
         : null;
+      const ownerSummary = ownerByDestination.get(destination.id) || null;
 
       return {
         destination,
         businessCount: destinationBusinesses,
         affiliateCount,
         reservationCount: destinationReservations?.length ?? null,
-        revenue,
+        revenue: ownerSummary?.revenue ?? null,
+        alerts: ownerSummary?.alerts ?? null,
+        summaryStatus: data.dashboard?.destinationSummary?.status || "UNAVAILABLE",
       };
     }),
   );
+}
+
+function ownerRevenueSummary(revenue) {
+  const status = String(revenue?.status || "UNAVAILABLE");
+  const currencies = Array.isArray(revenue?.currencies) ? revenue.currencies : null;
+  if (!currencies || currencies.length === 0) {
+    return { value: "—", meta: status };
+  }
+  if (currencies.length > 1) {
+    return { value: "—", meta: status + " · múltiplas moedas" };
+  }
+  const item = currencies[0];
+  return {
+    value: formatMoney({
+      minorUnits: item?.minorUnits,
+      currency: item?.currency,
+    }),
+    meta: status + " · owner-backed",
+  };
 }
 
 function destinationRows(summary) {
@@ -375,26 +436,42 @@ function destinationRows(summary) {
         affiliateCount,
         reservationCount,
         revenue,
-      }) =>
-        '<tr class="destination-row" data-destination-row="' +
-        escapeHtml(destination.id) +
-        '" tabindex="0"><td><div class="destination-cell"><span class="destination-thumb" aria-hidden="true">⌖</span><div><strong>' +
-        escapeHtml(
-          destination.branding?.name || destination.name || destination.id,
-        ) +
-        "</strong><br><small>" +
-        escapeHtml(destination.status || "—") +
-        "</small></div></div></td><td>" +
-        escapeHtml(businessCount ?? "—") +
-        "</td><td>" +
-        escapeHtml(affiliateCount ?? "—") +
-        "</td><td>" +
-        escapeHtml(reservationCount ?? "—") +
-        " <small>hoje</small></td><td>" +
-        escapeHtml(revenue?.value ?? "—") +
-        "</td><td>" +
-        '<span class="badge partial">sem agregado por destino</span>' +
-        "</td></tr>",
+        alerts,
+        summaryStatus,
+      }) => {
+        const revenueSummary = ownerRevenueSummary(revenue);
+        const alertValue = Number.isSafeInteger(alerts?.count)
+          ? String(alerts.count)
+          : Number.isSafeInteger(alerts?.knownCount)
+            ? String(alerts.knownCount) + " conhecido(s)"
+            : "—";
+        const alertStatus = String(alerts?.status || summaryStatus || "UNAVAILABLE");
+        return (
+          '<tr class="destination-row" data-destination-row="' +
+          escapeHtml(destination.id) +
+          '" tabindex="0"><td><div class="destination-cell"><span class="destination-thumb" aria-hidden="true">⌖</span><div><strong>' +
+          escapeHtml(
+            destination.branding?.name || destination.name || destination.id,
+          ) +
+          "</strong><br><small>" +
+          escapeHtml(destination.status || "—") +
+          "</small></div></div></td><td>" +
+          escapeHtml(businessCount ?? "—") +
+          "</td><td>" +
+          escapeHtml(affiliateCount ?? "—") +
+          "</td><td>" +
+          escapeHtml(reservationCount ?? "—") +
+          " <small>hoje</small></td><td><strong>" +
+          escapeHtml(revenueSummary.value) +
+          "</strong><br><small>" +
+          escapeHtml(revenueSummary.meta) +
+          "</small></td><td><strong>" +
+          escapeHtml(alertValue) +
+          "</strong><br><small>" +
+          escapeHtml(alertStatus) +
+          "</small></td></tr>"
+        );
+      },
     )
     .join("");
 }
@@ -427,17 +504,57 @@ async function renderHome() {
     const destinationSummaryRows =
       state.destinationId === "global" ? await destinationSummary(data) : [];
     if (generation !== state.generation || !isOverviewRoute()) return;
-    const affiliateCount = Array.isArray(data.affiliates.data)
-      ? data.affiliates.data.length === 100
+    const affiliateRows = Array.isArray(data.affiliates.data)
+      ? data.affiliates.data
+      : null;
+    const affiliateCount = affiliateRows
+      ? affiliateRows.length === 100
         ? "100+"
-        : String(data.affiliates.data.length)
+        : String(affiliateRows.length)
       : "—";
+    const affiliateSummary = affiliateRows
+      ? affiliateRows.reduce(
+          (summary, affiliate) => ({
+            approved:
+              summary.approved +
+              Number(affiliate.approvedMembershipCount || 0),
+            suspended:
+              summary.suspended +
+              Number(affiliate.suspendedMembershipCount || 0),
+            conversions:
+              summary.conversions + Number(affiliate.conversionCount || 0),
+          }),
+          { approved: 0, suspended: 0, conversions: 0 },
+        )
+      : null;
     const reservationCount = todayRows
       ? todayRows.length === 100
         ? "100+"
         : String(todayRows.length)
       : "—";
-    const alertCount = Number(data.dashboard.summary?.alerts || 0);
+    const exactAlertCount = Number.isSafeInteger(data.dashboard.summary?.alerts)
+      ? data.dashboard.summary.alerts
+      : null;
+    const knownAlertCount = Number.isSafeInteger(
+      data.dashboard.summary?.alertsKnownCount,
+    )
+      ? data.dashboard.summary.alertsKnownCount
+      : null;
+    const alertStatus = String(
+      data.dashboard.summary?.alertsStatus || "UNAVAILABLE",
+    );
+    const alertValue =
+      exactAlertCount !== null
+        ? String(exactAlertCount)
+        : knownAlertCount !== null
+          ? String(knownAlertCount) + " conhecido(s)"
+          : "—";
+    const alertMeta =
+      exactAlertCount !== null
+        ? "agregado owner-backed"
+        : knownAlertCount !== null
+          ? "estado " + alertStatus.toLowerCase() + " · total indisponível"
+          : "estado " + alertStatus.toLowerCase();
     const scopedBusinesses = Array.isArray(data.businesses?.businesses)
       ? data.businesses.businesses
       : null;
@@ -496,23 +613,33 @@ async function renderHome() {
       metricCard("Receita Hoje", revenue.value, revenue.meta, "success", "●") +
       metricCard(
         "Alertas",
-        String(alertCount),
-        "itens que exigem atenção",
-        alertCount > 0 ? "warning" : "success",
+        alertValue,
+        alertMeta,
+        alertStatus === "READY" && exactAlertCount === 0 ? "success" : "warning",
         "!",
       ) +
       "</div>" +
-      '<section class="card section-card attention-panel"><div class="section-title"><div><h2>Precisa da sua atenção</h2><p>Itens que exigem ação imediata</p></div><a class="section-link" href="#system">Ver todos os alertas</a></div>' +
+      '<section class="card section-card attention-panel" data-attention-source="dashboard-owner"><div class="section-title"><div><h2>Precisa da sua atenção</h2><p>Itens que exigem ação imediata</p></div><a class="section-link" href="#system">Ver todos os alertas</a></div>' +
       attentionHtml +
       "</section>" +
-      '<div class="grid home-lower-grid"><div class="home-stack"><section class="card section-card destination-summary"><div class="section-title"><div><h2>Resumo por destino</h2><p>Selecione uma linha para entrar no contexto daquele destino.</p></div><a class="section-link" href="#destinations">Gerenciar destinos</a></div><div class="table-wrap"><table><thead><tr><th>Destino</th><th>Empresas</th><th>Afiliados</th><th>Reservas</th><th>Receita</th><th>Alertas</th></tr></thead><tbody>' +
+      '<div class="grid home-lower-grid"><div class="home-stack"><section class="card section-card destination-summary" data-summary-source="dashboard-owner"><div class="section-title"><div><h2>Resumo por destino</h2><p>Selecione uma linha para entrar no contexto daquele destino.</p></div><a class="section-link" href="#destinations">Gerenciar destinos</a></div><div class="table-wrap"><table><thead><tr><th>Destino</th><th>Empresas</th><th>Afiliados</th><th>Reservas</th><th>Receita</th><th>Alertas</th></tr></thead><tbody>' +
       (destinationRows(destinationSummaryRows) ||
         '<tr><td colspan="6" class="empty">Nenhum destino disponível para este actor.</td></tr>') +
       "</tbody></table></div></section>" +
-      '<section class="card section-card"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
+      '<section class="card section-card" data-recent-activity data-source="append-only-audit"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis, com actor e usuário efetivo.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
       activityHtml(data.audit.entries || []) +
       "</div></section></div>" +
-      '<div class="home-stack"><section class="card section-card affiliate-model-card"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div></section></div></div>';
+      '<div class="home-stack"><section class="card section-card affiliate-model-card" data-affiliate-summary data-source="affiliates-owner"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div>' +
+      (affiliateSummary
+        ? '<div class="module-list"><div class="module-row"><span>Memberships aprovadas</span><strong>' +
+          escapeHtml(affiliateSummary.approved) +
+          '</strong></div><div class="module-row"><span>Memberships suspensas</span><strong>' +
+          escapeHtml(affiliateSummary.suspended) +
+          '</strong></div><div class="module-row"><span>Conversões</span><strong>' +
+          escapeHtml(affiliateSummary.conversions) +
+          '</strong></div></div>'
+        : '<div class="empty">Affiliates owner indisponível; nenhum total foi inferido.</div>') +
+      '</section></div></div>';
 
     contentRoot.querySelectorAll("[data-destination-row]").forEach((row) => {
       const activate = () => {
@@ -530,8 +657,9 @@ async function renderHome() {
     });
 
     if (notificationBadge) {
-      notificationBadge.hidden = alertCount <= 0;
-      notificationBadge.textContent = String(alertCount);
+      const notificationCount = exactAlertCount ?? knownAlertCount ?? 0;
+      notificationBadge.hidden = notificationCount <= 0;
+      notificationBadge.textContent = String(notificationCount);
     }
   } catch (error) {
     if (generation !== state.generation) return;
