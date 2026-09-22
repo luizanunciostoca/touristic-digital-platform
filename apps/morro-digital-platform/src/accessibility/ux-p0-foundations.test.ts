@@ -166,10 +166,17 @@ describe("UX P0 + Design System V2 foundations", () => {
           stylesheetHrefs.indexOf(foundationHref) + 1,
         );
         expect(stylesheetHrefs.at(-1)).toBe(touristShellHref);
+      } else if (surface === "tickets.html") {
+        const ticketingHref = "/ticketing.css";
+        expect(stylesheetHrefs).toContain(ticketingHref);
+        expect(stylesheetHrefs.indexOf(foundationHref)).toBeLessThan(
+          stylesheetHrefs.indexOf(ticketingHref),
+        );
+        expect(stylesheetHrefs.at(-1)).toBe(ticketingHref);
       } else {
         expect(
           stylesheetHrefs.at(-1),
-          `${surface} must load foundations after feature CSS`,
+          `${surface} retains its pre-migration foundation order`,
         ).toBe(foundationHref);
       }
     }
