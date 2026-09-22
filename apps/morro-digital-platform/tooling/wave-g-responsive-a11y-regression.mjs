@@ -210,40 +210,43 @@ try {
       viewport: { width: 390, height: 844 },
       locale: "pt-BR",
     });
+    await context.addInitScript(() => {
+      localStorage.setItem("morro-digital-onboarded", "1");
+      localStorage.setItem("voice-enabled", "false");
+    });
     const page = await context.newPage();
     await page.goto(baseUrl, {
       waitUntil: "domcontentloaded",
       timeout: 45_000,
     });
-    await page.waitForTimeout(1_000);
+    await page
+      .locator('body[data-public-onboarding-settled="true"]')
+      .waitFor({ state: "attached", timeout: 15_000 });
     const selector =
       "#assistant-input-area textarea, #assistant-input-area input, textarea, input:not([type='hidden'])";
-    const input = page.locator(selector).first();
-    if ((await input.count()) > 0 && (await input.isVisible())) {
-      await input.focus();
-      await page.setViewportSize({ width: 390, height: 600 });
-      await page.waitForTimeout(250);
-      const keyboard = await input.evaluate((element) => {
-        const rect = element.getBoundingClientRect();
-        return {
-          top: rect.top,
-          bottom: rect.bottom,
-          viewportHeight: window.innerHeight,
-          visible: rect.top >= 0 && rect.bottom <= window.innerHeight,
-        };
-      });
-      assert(
-        keyboard.visible,
-        `keyboard resize covers focused input: ${JSON.stringify(keyboard)}`,
-      );
-      report.keyboard = keyboard;
-      await page.screenshot({
-        path: `${evidenceDir}/keyboard-390x600.png`,
-        fullPage: false,
-      });
-    } else {
-      report.keyboard = { skipped: true, reason: "no visible text input" };
-    }
+    const input = page.locator(selector).filter({ visible: true }).first();
+    assert((await input.count()) > 0, "keyboard proof requires a visible text input");
+    await input.focus();
+    await page.setViewportSize({ width: 390, height: 600 });
+    await page.waitForTimeout(250);
+    const keyboard = await input.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        viewportHeight: window.innerHeight,
+        visible: rect.top >= 0 && rect.bottom <= window.innerHeight,
+      };
+    });
+    assert(
+      keyboard.visible,
+      `keyboard resize covers focused input: ${JSON.stringify(keyboard)}`,
+    );
+    report.keyboard = keyboard;
+    await page.screenshot({
+      path: `${evidenceDir}/keyboard-390x600.png`,
+      fullPage: false,
+    });
     await context.close();
   }
 
