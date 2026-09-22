@@ -304,6 +304,8 @@ describe("Control Center Admin API", () => {
   it("passes the authenticated request into domain universal-search adapters", async () => {
     let received;
     const crm = {
+      searchCapability: "crm.read",
+      searchDestinationAware: true,
       async search(input) {
         received = input;
         return [
@@ -313,6 +315,7 @@ describe("Control Center Admin API", () => {
             title: "Toca do Morcego",
             context: "proposal_sent",
             href: "/apps/admin-crm/public/lead-detail.html?id=42",
+            destinationId: "morro-de-sao-paulo",
           },
         ];
       },
@@ -505,7 +508,7 @@ describe("Control Center Admin API", () => {
         }),
         expect.objectContaining({
           domain: "crm",
-          reason: "destination_scope_unavailable",
+          reason: "owner_search_unavailable",
         }),
         expect.objectContaining({
           domain: "financial",
@@ -565,7 +568,7 @@ describe("Control Center Admin API", () => {
       domainAdapters: {
         crm: {
           searchCapability: "crm.read",
-          searchDestinationAware: false,
+          searchDestinationAware: true,
           async search() {
             throw new Error("CRM_OWNER_DOWN");
           },
