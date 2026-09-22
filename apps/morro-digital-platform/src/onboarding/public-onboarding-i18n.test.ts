@@ -40,7 +40,9 @@ describe("public onboarding i18n", () => {
       ).toBe(false);
       expect(
         copy.tour.steps.some((item) =>
-          /quick action|quick actions|atalho|atajos|קיצור/iu.test(item.description),
+          /quick action|quick actions|atalho|atajos|קיצור/iu.test(
+            item.description,
+          ),
         ),
       ).toBe(false);
       expect(copy.startTitle.length).toBeGreaterThan(0);
