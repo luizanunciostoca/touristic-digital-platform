@@ -1084,7 +1084,7 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   }
 
   #home-bottom-navigation.md-home-bottom-nav {
-    width: min(31rem, calc(100vw - var(--md-space-6)));
+    width: min(29.5rem, calc(100vw - var(--md-space-6)));
     min-height: var(--md-home-bottom-nav-height);
   }
 
