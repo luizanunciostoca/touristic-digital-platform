@@ -49,6 +49,11 @@ async function main() {
     };
     await openActions();
 
+    const selectedUserRow = () =>
+      page
+        .locator('[data-entity-panel="overview"] tbody tr')
+        .filter({ hasText: "business-owner@example.com" });
+
     const roleForm = page.locator("#user-role-form");
     await roleForm
       .locator('select[name="role"]')
@@ -59,8 +64,7 @@ async function main() {
       .fill("Ajustar perfil no contrato browser administrativo");
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
-    await page
-      .locator('[data-entity-panel="overview"]')
+    await selectedUserRow()
       .getByText("BUSINESS_MANAGER", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -72,8 +76,7 @@ async function main() {
       .fill("Bloqueio browser para validar política durável");
     await statusForm.locator('input[name="confirmation"]').fill("BLOQUEAR");
     await statusForm.getByRole("button", { name: "Bloquear conta" }).click();
-    await page
-      .locator('[data-entity-panel="overview"]')
+    await selectedUserRow()
       .getByText("blocked", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -103,8 +106,7 @@ async function main() {
       .fill("Reativar conta após validação browser da política");
     await statusForm.locator('input[name="confirmation"]').fill("REATIVAR");
     await statusForm.getByRole("button", { name: "Reativar conta" }).click();
-    await page
-      .locator('[data-entity-panel="overview"]')
+    await selectedUserRow()
       .getByText("active", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -118,8 +120,7 @@ async function main() {
       .fill("Restaurar perfil da fixture após validação browser");
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
-    await page
-      .locator('[data-entity-panel="overview"]')
+    await selectedUserRow()
       .getByText("BUSINESS_OWNER", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -133,7 +134,9 @@ async function main() {
 main().catch((error) => {
   console.error(
     "CONTROL_CENTER_USERS_BROWSER_FAILED",
-    error instanceof Error ? error.name : "UnknownError",
+    error instanceof Error
+      ? `${error.name}:${error.message}\n${error.stack ?? ""}`
+      : String(error),
   );
   process.exit(1);
 });
