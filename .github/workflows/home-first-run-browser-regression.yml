@@ -15,6 +15,7 @@ on:
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
+      - apps/morro-digital-platform/public/onboarding-v2.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - package.json
       - pnpm-lock.yaml
@@ -117,6 +118,11 @@ jobs:
                 welcomeVisible: Boolean(welcome),
                 welcomeText: welcome?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
                 tooltipRight: tooltipRect?.right ?? null,
+                targetIdentity:
+                  document.querySelector('.tour-target-active')?.id ||
+                  document.querySelector('.tour-target-active')?.className ||
+                  null,
+                targetOverlap: tooltip?.hasAttribute('data-overlaps-target') ?? false,
                 viewportWidth: window.innerWidth,
               };
             });
@@ -141,6 +147,7 @@ jobs:
             await page.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
 
             const initial = await readState(page);
+            await page.screenshot({ path: `${outputDir}/01-welcome.png`, fullPage: false });
             assertIdleMap(initial, 'Fresh Home');
             if (initial.onboarded !== null || !initial.onboardingVisible || initial.tourActive) {
               throw new Error(`Invalid fresh first-run state: ${JSON.stringify(initial)}`);
@@ -163,10 +170,13 @@ jobs:
               !started.composerVisible ||
               !started.welcomeVisible ||
               started.tooltipRight === null ||
-              started.tooltipRight > started.viewportWidth + 1
+              started.tooltipRight > started.viewportWidth + 1 ||
+              started.targetIdentity !== 'map-container' ||
+              started.targetOverlap
             ) {
-              throw new Error(`V1 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
+              throw new Error(`UX V2 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
             }
+            await page.screenshot({ path: `${outputDir}/02-step-1-map.png`, fullPage: false });
 
             await page.locator('#toggle-globe-view').focus();
             await page.keyboard.press('Tab');
@@ -176,14 +186,40 @@ jobs:
             });
             if (!focusTrapped) throw new Error('Tutorial modal did not trap keyboard focus.');
 
+            const expectedTargets = [
+              'map-container',
+              'weather-widget',
+              'assistant-input-area',
+              'voiceButton',
+              'home-profile-button',
+              'toggle-globe-view',
+            ];
+            const screenshotNames = [
+              '02-step-1-map.png',
+              '03-step-2-weather.png',
+              '04-step-3-composer.png',
+              '05-step-4-voice.png',
+              '06-step-5-profile.png',
+              '07-step-6-map-perspective.png',
+            ];
             for (let step = 2; step <= 6; step += 1) {
               await page.locator('.tour-btn-next').click();
               await page.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
               const stepState = await readState(page);
               assertIdleMap(stepState, `Tutorial step ${step}`);
-              if (stepState.tooltipRight !== null && stepState.tooltipRight > stepState.viewportWidth + 1) {
+              if (
+                stepState.tooltipRight !== null &&
+                stepState.tooltipRight > stepState.viewportWidth + 1
+              ) {
                 throw new Error(`Tutorial tooltip overflowed viewport at step ${step}: ${JSON.stringify(stepState)}`);
               }
+              if (stepState.targetIdentity !== expectedTargets[step - 1]) {
+                throw new Error(`Tutorial step ${step} targeted ${stepState.targetIdentity}, expected ${expectedTargets[step - 1]}`);
+              }
+              if (stepState.targetOverlap) {
+                throw new Error(`Tutorial tooltip covered target at step ${step}: ${JSON.stringify(stepState)}`);
+              }
+              await page.screenshot({ path: `${outputDir}/${screenshotNames[step - 1]}`, fullPage: false });
             }
             await page.locator('.tour-btn-finish').click();
             await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
