@@ -139,7 +139,7 @@ function createAppShellMarkup(): string {
       </section>
 
       <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-compact" role="group" aria-label="Assistant composer" data-home-assistant-entry="compact">
-        <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-sparkles"></i></span>
+        <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
           id="assistantInput"
