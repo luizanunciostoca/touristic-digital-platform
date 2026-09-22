@@ -125,6 +125,7 @@ jobs:
                 targetOverlap: tooltip?.hasAttribute('data-overlaps-target') ?? false,
                 targetUnavailable: tooltip?.hasAttribute('data-target-unavailable') ?? false,
                 capabilityNote: document.querySelector('.tour-capability-note')?.textContent?.trim() ?? null,
+                tooltipScrollTop: tooltip?.scrollTop ?? 0,
                 viewportWidth: window.innerWidth,
               };
             });
@@ -219,6 +220,9 @@ jobs:
               }
               if (stepState.targetOverlap) {
                 throw new Error(`Tutorial tooltip covered actionable target at step ${step}: ${JSON.stringify(stepState)}`);
+              }
+              if (stepState.tooltipScrollTop !== 0) {
+                throw new Error(`Tutorial coachmark started scrolled at step ${step}: ${JSON.stringify(stepState)}`);
               }
               if (
                 step === 4 &&
