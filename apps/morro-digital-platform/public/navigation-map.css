@@ -94,7 +94,6 @@ body.navigation-active
   }
 }
 
-
 body[data-md-mode="navigation"]
   #map
   .mapboxgl-marker.mapbox-user-marker.navigation-user-location-marker {
