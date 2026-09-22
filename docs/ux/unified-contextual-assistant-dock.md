@@ -8,12 +8,13 @@ Canonical DOM authority:
 
 - `#unified-assistant-dock`
 - `#assistant-messages.md-assistant-message-region`
+- `#assistant-category-rail.md-assistant-category-rail`
 - `#assistant-input-area.md-assistant-composer`
 - `#home-bottom-navigation.md-home-bottom-nav`
 
 ## Geometry contract
 
-The dock is the only fixed-position owner for the composition. Its children participate in normal flow.
+The dock is the only fixed-position owner for the composition. Its children participate in normal flow in this order: grabber → bounded Assistant message → horizontal category rail → composer → primary navigation.
 
 Standard Assistant text is bounded by `--md-unified-dock-message-max-height` and scrolls internally. Long text must not increase the message region beyond that cap or displace the composer/navigation off-screen.
 
@@ -51,3 +52,16 @@ The change is accepted only when browser evidence proves:
 6. keyboard resize does not cover the focused input;
 7. Explore camera framing uses dock-aware bottom padding;
 8. existing Assistant menu, voice, photo, Tour, Place, Navigation and Onboarding flows retain semantic authority.
+
+
+## Horizontal category rail
+
+The category rail is a first-class internal region of the dock, not a floating card. It exposes the canonical Assistant category values:
+
+`beaches`, `restaurants`, `hotels`, `shops`, `transport`, `attractions`, `tours`, `nightlife`, `emergencies`, `help`.
+
+Each chip publishes `data-assistant-category="<slug>"` and dispatches the existing `morro:assistant-option-selected` event. Business/category routing therefore remains owned by the existing Assistant runtime.
+
+The rail uses one horizontal row with `overflow-x:auto`, touch panning, hidden visual scrollbar, proximity scroll snap and a clipped continuation at the inline edge. RTL reverses the inline reading/scroll direction without changing canonical category values.
+
+The legacy external Discover category rail is hidden whenever `data-md-unified-dock="true"` so categories are not duplicated visually.
