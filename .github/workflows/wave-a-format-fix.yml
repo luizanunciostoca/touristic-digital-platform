@@ -1,9 +1,8 @@
 name: Wave A One-Time Format Fix
 
 on:
-  push:
-    branches:
-      - wave/ux-v2-discover-map-convergence-20260922
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
