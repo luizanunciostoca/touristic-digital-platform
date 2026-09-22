@@ -92,6 +92,9 @@ export function entityHeader({ entityType, entityId, scope, tabs = [] }) {
         `<span class="entity-tab ${index === 0 ? "active" : ""}" ${index === 0 ? 'aria-current="page"' : ""}>${escapeHtml(tab)}</span>`,
     )
     .join("");
+  const tabNavigation = tabMarkup
+    ? `<nav class="entity-tabs" aria-label="Visão 360°" tabindex="0">${tabMarkup}</nav>`
+    : "";
   return `<section class="card entity-header" data-ux-v1="true">
     <div class="entity-header__top">
       <div>
@@ -102,7 +105,7 @@ export function entityHeader({ entityType, entityId, scope, tabs = [] }) {
         </div>
       </div>
     </div>
-    <nav class="entity-tabs" aria-label="Visão 360°" tabindex="0">${tabMarkup}</nav>
+    ${tabNavigation}
   </section>`;
 }
 
