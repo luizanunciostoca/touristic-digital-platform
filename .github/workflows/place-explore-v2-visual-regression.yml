@@ -6,9 +6,12 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - .github/workflows/place-explore-v2-visual-regression.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/map/**
       - apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts
+      - apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts
+      - tests/visual-regression/ux-v2-manual-conformance.json
       - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/public/explore-locations.css
