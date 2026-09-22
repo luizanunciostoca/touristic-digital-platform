@@ -138,6 +138,7 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).toMatch(/id="refresh-button"[\s\S]*?hidden/u);
     expect(runtime).toContain("if (state.submitting) return");
     expect(runtime).toContain("reservationAttemptReference");
+    expect(runtime).toContain("RESERVATION_ATTEMPT_PENDING");
     expect(runtime).toContain("pendingCheckoutState");
     expect(runtime).toContain("copy.static.resumePayment");
     expect(runtime).toContain("QUOTE_CURRENCY_MISMATCH");
