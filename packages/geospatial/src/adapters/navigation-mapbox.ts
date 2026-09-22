@@ -49,7 +49,7 @@ export interface NavigationMapboxPresenterOptions {
 
 export interface NavigationMapboxPresenter {
   update(snapshot: NavigationVisualSnapshot, force?: boolean): boolean;
-  recenter(): boolean;
+  recenter?(): boolean;
   reset(): void;
   destroy(): void;
 }
