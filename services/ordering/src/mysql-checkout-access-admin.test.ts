@@ -50,7 +50,8 @@ describe("MySqlCheckoutAccessRepository admin destination read", () => {
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0]?.[0]).toContain("WHERE destination_id = ?");
     expect(execute.mock.calls[0]?.[0]).toContain("ORDER BY order_id");
-    expect(execute.mock.calls[0]?.[1]).toEqual(["morro-de-sao-paulo", 2]);
+    expect(execute.mock.calls[0]?.[0]).toContain("LIMIT 2");
+    expect(execute.mock.calls[0]?.[1]).toEqual(["morro-de-sao-paulo"]);
   });
 
   it("uses a bounded cursor and rejects labels instead of inferring a destination", async () => {
@@ -67,10 +68,10 @@ describe("MySqlCheckoutAccessRepository admin destination read", () => {
       afterOrderId: "ord_admin_0002",
       limit: 250,
     });
+    expect(execute.mock.calls[0]?.[0]).toContain("LIMIT 251");
     expect(execute.mock.calls[0]?.[1]).toEqual([
       "itacare",
       "ord_admin_0002",
-      251,
     ]);
 
     await expect(
