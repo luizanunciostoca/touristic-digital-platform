@@ -21,20 +21,95 @@
     "maxDiffRatio": 0.003
   },
   "requirements": [
-    {"id":"M-V1-000","requirement":"Fundo geral claro.","assertion":"computed body background is light","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-001","requirement":"Topbar clara de 64px.","assertion":"computed background is light and height is exactly 64px","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-002","requirement":"Sidebar clara com agrupamentos e largura canônica.","assertion":"white/light sidebar; 224px at 1440, 208..224px at 1280","screenshots":["1440x900","1280x800"]},
-    {"id":"M-V1-003","requirement":"Contexto Global/Destino sempre visível, com busca, notificações e perfil.","assertion":"all topbar context controls visible; destination width >= 90px","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-004","requirement":"KPIs: Empresas, Afiliados, Reservas Hoje, Receita Hoje, Alertas.","assertion":"exactly five KPI cards and canonical order","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-005","requirement":"Attention Queue imediatamente abaixo dos KPIs e sem estreitamento indevido.","assertion":"primary block order + width >= 72% of Home content","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-006","requirement":"Resumo por destino presente.","assertion":"destination summary visible","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-007","requirement":"Atividade recente presente.","assertion":"recent activity list visible","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-008","requirement":"Sem dashboard técnico dominando a Home; SHA/readiness fora da hierarquia principal.","assertion":"technical meta hidden + no dark dominant body background","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-009","requirement":"Card explicativo de afiliados presente.","assertion":"affiliate explanatory card visible","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-010","requirement":"Ausência de texto verticalizado.","assertion":"Attention labels keep usable horizontal geometry","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-011","requirement":"Sem overflow horizontal da página.","assertion":"document scrollWidth <= clientWidth + 2","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-012","requirement":"Blocos principais na ordem correta.","assertion":"heading -> KPIs -> attention -> destination summary -> lower grid top positions monotonic","screenshots":["1440x900","1280x800","1024x768","768x1024","390x844"]},
-    {"id":"M-V1-013","requirement":"Drawer tablet/mobile acessível e ausente no desktop.","assertion":"trigger visibility by breakpoint + aria-expanded + Escape close","screenshots":["1024x768","768x1024","390x844"]},
-    {"id":"M-V1-014","requirement":"Estados vazios explícitos e estáveis.","assertion":"deterministic empty API fixture renders explicit empty/unavailable semantics","screenshots":["empty-390x844"]}
+    {
+      "id": "M-V1-000",
+      "requirement": "Fundo geral claro.",
+      "assertion": "computed body background is light",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-001",
+      "requirement": "Topbar clara de 64px.",
+      "assertion": "computed background is light and height is exactly 64px",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-002",
+      "requirement": "Sidebar clara com agrupamentos e largura canônica.",
+      "assertion": "white/light sidebar; 224px at 1440, 208..224px at 1280",
+      "screenshots": ["1440x900", "1280x800"]
+    },
+    {
+      "id": "M-V1-003",
+      "requirement": "Contexto Global/Destino sempre visível, com busca, notificações e perfil.",
+      "assertion": "all topbar context controls visible; destination width >= 90px",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-004",
+      "requirement": "KPIs: Empresas, Afiliados, Reservas Hoje, Receita Hoje, Alertas.",
+      "assertion": "exactly five KPI cards and canonical order",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-005",
+      "requirement": "Attention Queue imediatamente abaixo dos KPIs e sem estreitamento indevido.",
+      "assertion": "primary block order + width >= 72% of Home content",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-006",
+      "requirement": "Resumo por destino presente.",
+      "assertion": "destination summary visible",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-007",
+      "requirement": "Atividade recente presente.",
+      "assertion": "recent activity list visible",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-008",
+      "requirement": "Sem dashboard técnico dominando a Home; SHA/readiness fora da hierarquia principal.",
+      "assertion": "technical meta hidden + no dark dominant body background",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-009",
+      "requirement": "Card explicativo de afiliados presente.",
+      "assertion": "affiliate explanatory card visible",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-010",
+      "requirement": "Ausência de texto verticalizado.",
+      "assertion": "Attention labels keep usable horizontal geometry",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-011",
+      "requirement": "Sem overflow horizontal da página.",
+      "assertion": "document scrollWidth <= clientWidth + 2",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-012",
+      "requirement": "Blocos principais na ordem correta.",
+      "assertion": "heading -> KPIs -> attention -> destination summary -> lower grid top positions monotonic",
+      "screenshots": ["1440x900", "1280x800", "1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-013",
+      "requirement": "Drawer tablet/mobile acessível e ausente no desktop.",
+      "assertion": "trigger visibility by breakpoint + aria-expanded + Escape close",
+      "screenshots": ["1024x768", "768x1024", "390x844"]
+    },
+    {
+      "id": "M-V1-014",
+      "requirement": "Estados vazios explícitos e estáveis.",
+      "assertion": "deterministic empty API fixture renders explicit empty/unavailable semantics",
+      "screenshots": ["empty-390x844"]
+    }
   ]
 }
