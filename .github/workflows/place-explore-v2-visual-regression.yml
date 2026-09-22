@@ -471,6 +471,13 @@ jobs:
                   const rating = sheet.querySelector('.place-bottom-sheet-rating');
                   const overflow = sheet.querySelector('.place-bottom-sheet-overflow');
                   const primary = sheet.querySelector('.place-bottom-sheet-primary-action');
+                  const primaryContainer = sheet.querySelector('.place-bottom-sheet-primary');
+                  const handle = sheet.querySelector('.place-bottom-sheet-drag-handle');
+                  const hero = sheet.querySelector('.place-bottom-sheet-hero');
+                  const bottomNav = document.getElementById('home-bottom-navigation');
+                  const selectedMarker = document.querySelector(
+                    '#map[data-explore-stage="detail"] .morro-explore-marker[data-location-name]',
+                  );
                   const composer = document.getElementById('assistant-input-area');
                   const privacy = document.querySelector(
                     '.analytics-consent-preferences.is-collapsed',
@@ -504,6 +511,36 @@ jobs:
                     primaryWidth:
                       primary instanceof HTMLElement
                         ? primary.getBoundingClientRect().width
+                        : null,
+                    primaryContainerHeight:
+                      primaryContainer instanceof HTMLElement
+                        ? primaryContainer.getBoundingClientRect().height
+                        : null,
+                    exposedStateControls: sheet.querySelectorAll(
+                      '.place-bottom-sheet-state-button, .place-bottom-sheet-state-controls',
+                    ).length,
+                    handleFocusable:
+                      handle instanceof HTMLElement &&
+                      handle.tabIndex === 0 &&
+                      handle.getAttribute('role') === 'button',
+                    heroRatio:
+                      hero instanceof HTMLElement && !hero.classList.contains('hidden')
+                        ? (() => {
+                            const rect = hero.getBoundingClientRect();
+                            return rect.height > 0 ? rect.width / rect.height : null;
+                          })()
+                        : null,
+                    bottomNavVisible:
+                      bottomNav instanceof HTMLElement &&
+                      getComputedStyle(bottomNav).display !== 'none' &&
+                      getComputedStyle(bottomNav).visibility !== 'hidden',
+                    activeBottomNav:
+                      bottomNav?.querySelector('.md-home-nav-item.is-active')?.getAttribute(
+                        'data-home-nav-action',
+                      ) ?? null,
+                    selectedMarkerLabel:
+                      selectedMarker instanceof HTMLElement
+                        ? selectedMarker.dataset.locationName ?? null
                         : null,
                     composerOpacity:
                       composer instanceof HTMLElement
@@ -560,6 +597,12 @@ jobs:
                   placeState.overflowValues.length !== 4 ||
                   placeState.overflowOpen !== false ||
                   !placeState.ratingHidden ||
+                  placeState.exposedStateControls !== 0 ||
+                  !placeState.handleFocusable ||
+                  placeState.bottomNavVisible ||
+                  placeState.selectedMarkerLabel !== 'Primeira Praia' ||
+                  (placeState.heroRatio !== null &&
+                    (placeState.heroRatio < 2.15 || placeState.heroRatio > 2.4)) ||
                   placeState.duplicatedAssistantActions.length !== 0 ||
                   placeState.composerOpacity === null ||
                   placeState.composerOpacity > 0.8 ||
@@ -580,7 +623,10 @@ jobs:
                 if (
                   initialPlaceState !== 'half' ||
                   initialPlaceGeometry.rect.height > viewport.height * 0.62 ||
-                  initialPlaceGeometry.rect.top < viewport.height * 0.34
+                  initialPlaceGeometry.rect.top < viewport.height * 0.34 ||
+                  (viewport.width <= 430 &&
+                    (initialPlaceGeometry.rect.height < viewport.height * 0.46 ||
+                      initialPlaceGeometry.rect.height > viewport.height * 0.58))
                 ) {
                   throw new Error(
                     `MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY on ${viewport.id}: ${JSON.stringify({ initialPlaceState, initialPlaceGeometry })}`,
@@ -639,13 +685,42 @@ jobs:
                   themeEvidence = { darkPresentation, reducedMotion };
                 }
 
+                const dragHandle = place.locator('.place-bottom-sheet-drag-handle');
+                if (viewport.id === 'w390') {
+                  await dragHandle.evaluate(node => {
+                    node.dispatchEvent(
+                      new PointerEvent('pointerdown', {
+                        bubbles: true,
+                        pointerId: 7,
+                        clientY: 180,
+                      }),
+                    );
+                    node.dispatchEvent(
+                      new PointerEvent('pointerup', {
+                        bubbles: true,
+                        pointerId: 7,
+                        clientY: 110,
+                      }),
+                    );
+                  });
+                  await page.locator(
+                    '#place-bottom-sheet[data-sheet-state="full"]',
+                  ).waitFor({ state: 'visible', timeout: 3000 });
+                  await dragHandle.focus();
+                  await page.keyboard.press('ArrowDown');
+                  await page.locator(
+                    '#place-bottom-sheet[data-sheet-state="half"]',
+                  ).waitFor({ state: 'visible', timeout: 3000 });
+                }
+
                 const stateSequence = [
-                  { step: 'down', state: 'peek' },
-                  { step: 'up', state: 'half' },
-                  { step: 'up', state: 'full' },
+                  { key: 'ArrowDown', state: 'peek' },
+                  { key: 'ArrowUp', state: 'half' },
+                  { key: 'ArrowUp', state: 'full' },
                 ];
-                for (const { step, state } of stateSequence) {
-                  await place.locator(`[data-sheet-step="${step}"]`).click();
+                await dragHandle.focus();
+                for (const { key, state } of stateSequence) {
+                  await page.keyboard.press(key);
                   await page.locator(
                     `#place-bottom-sheet[data-sheet-state="${state}"]`,
                   ).waitFor({ state: 'visible', timeout: 3000 });
