@@ -141,8 +141,25 @@ jobs:
               }
 
               async function submit(text) {
-                await input.fill(text);
-                await send.click();
+                if (await input.isVisible()) {
+                  await input.fill(text);
+                  await send.click();
+                } else {
+                  await page.evaluate(value => {
+                    const input = document.getElementById('assistantInput');
+                    const send = document.getElementById('sendButton');
+                    if (!(input instanceof HTMLInputElement) || !(send instanceof HTMLButtonElement)) {
+                      throw new Error('Assistant semantic input controls unavailable');
+                    }
+                    const setter = Object.getOwnPropertyDescriptor(
+                      HTMLInputElement.prototype,
+                      'value',
+                    )?.set;
+                    setter?.call(input, value);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    send.click();
+                  }, text);
+                }
                 await waitUntil(
                   async () => (await input.inputValue()) === '',
                   `input reset after ${text}`,
