@@ -253,6 +253,15 @@ jobs:
             await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
             const home = await waitHome(page);
 
+            // Manual Appendix A evidence must preserve the pure Discover
+            // composition before any route/tour state mutates the map.
+            const discoverSuffix = forcedColors ? 'forced-colors' : 'normal';
+            await page.screenshot({
+              path: `${outputDir}/discover-${name}-${discoverSuffix}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
+
             await dispatchTour(page, 'volta-a-ilha');
             await waitTourReady(page);
 
