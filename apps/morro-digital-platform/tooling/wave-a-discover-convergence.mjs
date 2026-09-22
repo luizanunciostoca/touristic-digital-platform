@@ -36,11 +36,11 @@ function assert(condition, message, details) {
 function overlaps(a, b) {
   return Boolean(
     a &&
-      b &&
-      a.left < b.right &&
-      a.right > b.left &&
-      a.top < b.bottom &&
-      a.bottom > b.top,
+    b &&
+    a.left < b.right &&
+    a.right > b.left &&
+    a.top < b.bottom &&
+    a.bottom > b.top,
   );
 }
 
@@ -62,7 +62,7 @@ async function waitReady(page) {
     .locator('#weather-widget[data-weather-state="ready"]')
     .waitFor({ state: "visible", timeout: 10000 });
   await page
-    .locator(".morro-explore-marker[data-morro-explore-marker=\"true\"]")
+    .locator('.morro-explore-marker[data-morro-explore-marker="true"]')
     .first()
     .waitFor({ state: "visible", timeout: 10000 });
   await page
@@ -122,8 +122,9 @@ async function inspect(page) {
           "0",
       ),
       discoverPoiCount: Number(
-        document.getElementById("map")?.getAttribute("data-discover-poi-count") ??
-          "0",
+        document
+          .getElementById("map")
+          ?.getAttribute("data-discover-poi-count") ?? "0",
       ),
       camera: center
         ? { lng: center.lng, lat: center.lat, zoom: map?.getZoom?.() }
@@ -147,10 +148,10 @@ async function inspect(page) {
 function inside(rect, width, height, tolerance = 2) {
   return Boolean(
     rect &&
-      rect.left >= -tolerance &&
-      rect.top >= -tolerance &&
-      rect.right <= width + tolerance &&
-      rect.bottom <= height + tolerance,
+    rect.left >= -tolerance &&
+    rect.top >= -tolerance &&
+    rect.right <= width + tolerance &&
+    rect.bottom <= height + tolerance,
   );
 }
 
@@ -418,7 +419,10 @@ try {
         body: "{}",
       }),
     );
-    await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(BASE_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
     await page
       .locator('#map[data-map-state="ready"][data-map-mode="real"]')
       .waitFor({ state: "attached", timeout: 30000 });
