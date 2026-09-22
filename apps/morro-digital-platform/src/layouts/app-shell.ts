@@ -4,20 +4,48 @@ export interface AppShellMountOptions {
 
 function createAppShellMarkup(): string {
   return `
-    <div class="app-shell" data-destination-id="morro-de-sao-paulo">
-      <header>
-        <div class="header-content">
-          <h1 data-i18n="welcome_message">Morro Digital</h1>
-          <p class="tagline" data-i18n="ask_first_time">Descubra o paraíso</p>
+    <div
+      class="app-shell md-viewport-shell md-tourist-shell-v2"
+      data-destination-id="morro-de-sao-paulo"
+      data-home-visual-state="loading"
+    >
+      <header class="md-home-header">
+        <div class="header-content md-home-header-inner md-card">
+          <span class="md-home-brand-mark" aria-hidden="true">M</span>
+          <div class="md-home-title-block">
+            <h1 data-i18n="welcome_message">Morro Digital</h1>
+            <p class="tagline" data-i18n="ask_first_time">Descubra o paraíso</p>
+          </div>
         </div>
       </header>
 
       <section id="map-section" aria-label="Mapa interativo" data-i18n-aria="site_interactive_map_label">
         <div id="map-container">
           <div id="map" role="region" aria-label="Mapa interativo de Morro de São Paulo"></div>
-          <div id="weather-widget" class="weather-widget compact" data-compatibility-state="v1-snapshot">
-            <div class="weather-compact-main">
-              <div class="weather-emoji">☀️</div>
+          <div
+            id="map-state-surface"
+            class="md-map-state-surface"
+            aria-live="polite"
+            aria-hidden="false"
+          >
+            <div class="md-map-state-card md-map-state-loading md-card">
+              <span class="md-map-state-icon" aria-hidden="true"></span>
+              <div class="md-map-state-copy">
+                <strong data-i18n="map_loading_morro_digital">Carregando Morro Digital...</strong>
+                <span>Preparando o mapa e sua experiência.</span>
+              </div>
+            </div>
+            <div class="md-map-state-card md-map-state-unavailable md-card">
+              <span class="md-map-state-icon" aria-hidden="true">!</span>
+              <div class="md-map-state-copy">
+                <strong>Mapa temporariamente indisponível</strong>
+                <span>O restante do Morro Digital continua acessível.</span>
+              </div>
+            </div>
+          </div>
+          <div id="weather-widget" class="weather-widget md-weather-control md-card">
+            <div class="weather-compact-main md-weather-control-content">
+              <div class="weather-emoji" aria-hidden="true">☀️</div>
               <span class="weather-temp">21°C</span>
               <div class="weather-compact-footer">
                 <span class="click-here-text">Click here</span>
@@ -110,10 +138,11 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer" role="group" aria-label="Assistant composer">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card" role="group" aria-label="Assistant composer">
         <input
           type="text"
           id="assistantInput"
+          class="md-input"
           placeholder="Type your question..."
           aria-label="Assistant input"
           data-i18n-placeholder="assistant_input_placeholder"
@@ -124,13 +153,14 @@ function createAppShellMarkup(): string {
         <button id="configButton" class="md-icon-button" type="button" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label"><i class="fas fa-cog"></i></button>
       </div>
 
-      <div id="globe-map-control" class="globe-map-control">
+      <div id="globe-map-control" class="globe-map-control md-map-control-stack">
         <button
           type="button"
           id="toggle-globe-view"
-          class="map-control-button md-icon-button"
+          class="map-control-button md-icon-button md-map-control"
           title="Toggle global map view"
           aria-label="Toggle global map view"
+          aria-pressed="false"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
             <circle cx="12" cy="12" r="9"></circle>
@@ -157,8 +187,8 @@ function createAppShellMarkup(): string {
         </div>
       </div>
 
-      <div id="loading-overlay">
-        <div class="loading-content">
+      <div id="loading-overlay" class="md-home-loading-overlay">
+        <div class="loading-content md-card">
           <div class="spinner"></div>
           <p data-i18n="map_loading_morro_digital">Carregando Morro Digital...</p>
         </div>
@@ -174,6 +204,38 @@ function createAppShellMarkup(): string {
 
     <button id="end-navigation-btn" class="end-navigation-btn md-button md-button--destructive" type="button" aria-label="Encerrar Navegação" data-i18n="navigation_stop" data-i18n-aria="navigation_stop" style="display:none;">Encerrar Navegação</button>
   `;
+}
+
+function synchronizeHomeVisualState(document: Document): () => void {
+  const shell = document.querySelector<HTMLElement>(".md-tourist-shell-v2");
+  const map = document.getElementById("map");
+  const surface = document.getElementById("map-state-surface");
+  if (!shell || !map || !surface) return () => undefined;
+
+  const update = (): void => {
+    const mapState = map.dataset.mapState;
+    const visualState =
+      mapState === "ready"
+        ? "ready"
+        : mapState === "error"
+          ? "provider-unavailable"
+          : "loading";
+    shell.dataset.homeVisualState = visualState;
+    surface.dataset.state = visualState;
+    surface.setAttribute("aria-hidden", String(visualState === "ready"));
+  };
+
+  const MutationObserverConstructor = document.defaultView?.MutationObserver;
+  const observer = MutationObserverConstructor
+    ? new MutationObserverConstructor(update)
+    : undefined;
+  observer?.observe(map, {
+    attributes: true,
+    attributeFilter: ["data-map-state", "data-map-provider", "data-map-mode"],
+  });
+  update();
+
+  return () => observer?.disconnect();
 }
 
 function synchronizeAssistantLayout(document: Document): void {
@@ -234,6 +296,7 @@ export function mountAppShell({ document }: AppShellMountOptions): HTMLElement {
   }
 
   root.innerHTML = createAppShellMarkup();
+  synchronizeHomeVisualState(document);
   synchronizeAssistantLayout(document);
   return root;
 }

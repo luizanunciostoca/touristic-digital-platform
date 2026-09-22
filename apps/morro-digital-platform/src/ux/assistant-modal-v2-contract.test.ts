@@ -30,7 +30,7 @@ describe("Assistant Modal V2 contract", () => {
       'role="region"',
       'class="assistant-options md-assistant-options"',
       'role="group"',
-      'class="assistant-input-area md-assistant-composer"',
+      'class="assistant-input-area md-assistant-composer md-card"',
     ]) {
       expect(shell, `missing ${contract}`).toContain(contract);
     }
@@ -60,6 +60,7 @@ describe("Assistant Modal V2 contract", () => {
       "styles.css",
       "design-system-v2.css",
       "premium-ux-v2.css",
+      "tourist-shell-v2.css",
     ];
 
     const contents = await Promise.all([

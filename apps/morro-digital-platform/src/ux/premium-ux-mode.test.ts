@@ -263,7 +263,7 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
     expect(css).not.toContain("transition: all");
   });
 
-  it("loads the premium bridge after feature/legacy CSS but before Design System V2", async () => {
+  it("loads V2 foundations before the active Tourist shell authority", async () => {
     for (const surface of ["index.html", "experience.html", "tickets.html"]) {
       const html = await readPublic(surface);
       const hrefs = [
@@ -275,11 +275,23 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
       const premium = "/apps/morro-digital-platform/public/premium-ux-v2.css";
       const foundations =
         "/apps/morro-digital-platform/public/design-system-v2.css";
+      const touristShell =
+        "/apps/morro-digital-platform/public/tourist-shell-v2.css";
 
       expect(hrefs).toContain(premium);
       expect(hrefs).toContain(foundations);
       expect(hrefs.indexOf(premium)).toBe(hrefs.indexOf(foundations) - 1);
-      expect(hrefs.at(-1)).toBe(foundations);
+
+      if (surface === "index.html") {
+        expect(hrefs).toContain(touristShell);
+        expect(hrefs.indexOf(touristShell)).toBe(
+          hrefs.indexOf(foundations) + 1,
+        );
+        expect(hrefs.at(-1)).toBe(touristShell);
+      } else {
+        expect(hrefs).not.toContain(touristShell);
+        expect(hrefs.at(-1)).toBe(foundations);
+      }
     }
   });
 

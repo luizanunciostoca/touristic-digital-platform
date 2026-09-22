@@ -289,6 +289,20 @@ async function readFlow(page) {
 }
 
 async function readDynamic(page) {
+  const placeSheetOptions = page.locator(
+    '#place-bottom-sheet[aria-hidden="false"] .place-bottom-sheet-action',
+  );
+  if ((await placeSheetOptions.count()) > 0) {
+    return {
+      labels: await placeSheetOptions
+        .allTextContents()
+        .then((items) => items.map((item) => item.trim())),
+      values: await placeSheetOptions.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute("data-value")),
+      ),
+    };
+  }
+
   const containers = page.locator(
     ".assistant-options:not(#assistant-category-results):not(:has([data-explore-category]))",
   );
