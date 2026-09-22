@@ -6,6 +6,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - .github/workflows/navigation-visual-baseline.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/navigation/**
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
