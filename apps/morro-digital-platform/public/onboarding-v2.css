@@ -248,7 +248,7 @@ body.tour-active .tour-pulse {
 body.tour-active #tour-tooltip {
   z-index: var(--md-onboarding-layer);
   width: min(19rem, calc(100vw - 1.5rem));
-  max-height: min(18rem, calc(100dvh - 1.5rem));
+  max-height: min(22rem, calc(100dvh - 1.5rem));
   overflow: auto;
   border: 1px solid var(--md-color-border);
   border-radius: var(--md-radius-xl);
