@@ -389,7 +389,9 @@ function activityHtml(entries) {
       const actor = entry.actorUserId || "—";
       const effectiveUser = entry.effectiveUserId || "—";
       const destination = entry.destinationId || "—";
-      const entity = [entry.entityType, entry.entityId]\n        .filter(Boolean)\n        .join(" ");
+      const entity = [entry.entityType, entry.entityId]
+        .filter(Boolean)
+        .join(" ");
       const financialValue = activityFinancialValue(entry);
       const href = activityDeepLink(entry);
       return (
@@ -468,7 +470,8 @@ async function destinationSummary(data) {
         reservationCount: destinationReservations?.length ?? null,
         revenue: ownerSummary?.revenue ?? null,
         alerts: ownerSummary?.alerts ?? null,
-        summaryStatus: data.dashboard?.destinationSummary?.status || "UNAVAILABLE",
+        summaryStatus:
+          data.dashboard?.destinationSummary?.status || "UNAVAILABLE",
       };
     }),
   );
@@ -476,7 +479,9 @@ async function destinationSummary(data) {
 
 function ownerRevenueSummary(revenue) {
   const status = String(revenue?.status || "UNAVAILABLE");
-  const currencies = Array.isArray(revenue?.currencies) ? revenue.currencies : null;
+  const currencies = Array.isArray(revenue?.currencies)
+    ? revenue.currencies
+    : null;
   if (!currencies || currencies.length === 0) {
     return { value: "—", meta: status };
   }
@@ -511,7 +516,9 @@ function destinationRows(summary) {
           : Number.isSafeInteger(alerts?.knownCount)
             ? String(alerts.knownCount) + " conhecido(s)"
             : "—";
-        const alertStatus = String(alerts?.status || summaryStatus || "UNAVAILABLE");
+        const alertStatus = String(
+          alerts?.status || summaryStatus || "UNAVAILABLE",
+        );
         return (
           '<tr class="destination-row" data-destination-row="' +
           escapeHtml(destination.id) +
@@ -681,7 +688,9 @@ async function renderHome() {
         "Alertas",
         alertValue,
         alertMeta,
-        alertStatus === "READY" && exactAlertCount === 0 ? "success" : "warning",
+        alertStatus === "READY" && exactAlertCount === 0
+          ? "success"
+          : "warning",
         "!",
       ) +
       "</div>" +
