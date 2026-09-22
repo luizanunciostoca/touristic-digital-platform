@@ -189,6 +189,9 @@ async function login(page) {
     await page.waitForURL((url) => url.hash === "#financial", {
       timeout: 5000,
     });
+    await page
+      .locator('#main-nav [data-shell-key="refunds"][aria-current="page"]')
+      .waitFor({ state: "visible", timeout: 5000 });
     const currentLabels = await page
       .locator('.nav-item[aria-current="page"]')
       .allTextContents();
