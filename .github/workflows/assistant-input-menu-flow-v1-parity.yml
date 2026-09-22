@@ -128,7 +128,9 @@ jobs:
 
               async function submit(text, keyboard = false) {
                 await input.fill(text);
-                if (keyboard) await input.press('Enter');
+                const placeSheetVisible =
+                  (await page.locator('#place-bottom-sheet[aria-hidden="false"]').count()) > 0;
+                if (keyboard || placeSheetVisible) await input.press('Enter');
                 else await send.click();
                 if ((await input.inputValue()) !== '') {
                   throw new Error(`Handled menu command did not clear input: ${text}`);
