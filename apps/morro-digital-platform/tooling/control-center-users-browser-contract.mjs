@@ -5,6 +5,7 @@ const { chromium } = require("/tmp/pw/node_modules/playwright");
 
 const origin = "http://127.0.0.1:4194";
 const password = "control center browser fixture";
+let failureStage = "startup";
 
 async function login(context, email) {
   const response = await context.request.post(
@@ -27,6 +28,7 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
     });
+    failureStage = "login-owner";
     await login(context, "platform-owner-users@example.com");
     const page = await context.newPage();
 
@@ -35,9 +37,25 @@ async function main() {
       timeout: 30_000,
     });
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
+    failureStage = "open-user";
     await page
       .getByRole("link", { name: "business-owner@example.com" })
       .click();
+
+    const user360 = page.locator('[data-entity-tabs="user360"]');
+    await user360.waitFor();
+    const openActions = async () => {
+      await page
+        .locator('[data-entity-tabs="user360"]')
+        .getByRole("tab", { name: "Settings / Actions" })
+        .click();
+    };
+    await openActions();
+
+    const selectedUserRow = () =>
+      page
+        .locator('[data-entity-panel="overview"] tbody tr')
+        .filter({ hasText: "business-owner@example.com" });
 
     const roleForm = page.locator("#user-role-form");
     await roleForm
@@ -48,22 +66,23 @@ async function main() {
       .locator('textarea[name="reason"]')
       .fill("Ajustar perfil no contrato browser administrativo");
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
+    failureStage = "change-role-manager";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
-    await page
-      .getByText("BUSINESS_MANAGER", { exact: true })
-      .first()
+    await selectedUserRow()
+      .filter({ hasText: "BUSINESS_MANAGER" })
       .waitFor({ timeout: 15_000 });
 
+    await openActions();
     const statusForm = page.locator("#user-status-form");
     await statusForm.locator('input[name="password"]').fill(password);
     await statusForm
       .locator('textarea[name="reason"]')
       .fill("Bloqueio browser para validar política durável");
     await statusForm.locator('input[name="confirmation"]').fill("BLOQUEAR");
+    failureStage = "block-user";
     await statusForm.getByRole("button", { name: "Bloquear conta" }).click();
-    await page
-      .getByText("blocked", { exact: true })
-      .first()
+    await selectedUserRow()
+      .filter({ hasText: "blocked" })
       .waitFor({ timeout: 15_000 });
 
     const blocked = await browser.newContext();
@@ -85,17 +104,19 @@ async function main() {
     }
     await blocked.close();
 
+    await openActions();
     await statusForm.locator('input[name="password"]').fill(password);
     await statusForm
       .locator('textarea[name="reason"]')
       .fill("Reativar conta após validação browser da política");
     await statusForm.locator('input[name="confirmation"]').fill("REATIVAR");
+    failureStage = "reactivate-user";
     await statusForm.getByRole("button", { name: "Reativar conta" }).click();
-    await page
-      .getByText("active", { exact: true })
-      .first()
+    await selectedUserRow()
+      .filter({ hasText: "active" })
       .waitFor({ timeout: 15_000 });
 
+    await openActions();
     await roleForm
       .locator('select[name="role"]')
       .selectOption("BUSINESS_OWNER");
@@ -104,10 +125,10 @@ async function main() {
       .locator('textarea[name="reason"]')
       .fill("Restaurar perfil da fixture após validação browser");
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
+    failureStage = "restore-role-owner";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
-    await page
-      .getByText("BUSINESS_OWNER", { exact: true })
-      .first()
+    await selectedUserRow()
+      .filter({ hasText: "BUSINESS_OWNER" })
       .waitFor({ timeout: 15_000 });
 
     console.log("CONTROL_CENTER_USERS_BROWSER_PASS");
@@ -120,6 +141,7 @@ async function main() {
 main().catch((error) => {
   console.error(
     "CONTROL_CENTER_USERS_BROWSER_FAILED",
+    failureStage,
     error instanceof Error ? error.name : "UnknownError",
   );
   process.exit(1);
