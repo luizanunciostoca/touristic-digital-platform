@@ -86,8 +86,7 @@ const TICKETING_COPY: Readonly<
     static: Object.freeze({
       documentTitle: "Ingressos · Morro Digital",
       mainTitle: "Ingressos e reservas",
-      lead:
-        "Reserve com preço congelado, finalize pelo checkout seguro e apresente o QR emitido após a confirmação do pagamento.",
+      lead: "Reserve com preço congelado, finalize pelo checkout seguro e apresente o QR emitido após a confirmação do pagamento.",
       returnToMap: "← Voltar ao mapa",
       heroEyebrow: "Experiência em Morro de São Paulo",
       productTitle: "Escolha sua experiência",
@@ -190,8 +189,7 @@ const TICKETING_COPY: Readonly<
     static: Object.freeze({
       documentTitle: "Tickets · Morro Digital",
       mainTitle: "Tickets and reservations",
-      lead:
-        "Hold the current price, complete the secure checkout, and present the QR issued after verified payment confirmation.",
+      lead: "Hold the current price, complete the secure checkout, and present the QR issued after verified payment confirmation.",
       returnToMap: "← Back to the map",
       heroEyebrow: "Experience in Morro de São Paulo",
       productTitle: "Choose your experience",
@@ -294,8 +292,7 @@ const TICKETING_COPY: Readonly<
     static: Object.freeze({
       documentTitle: "Entradas · Morro Digital",
       mainTitle: "Entradas y reservas",
-      lead:
-        "Reserva con el precio actual, completa el checkout seguro y presenta el QR emitido después de la confirmación verificada del pago.",
+      lead: "Reserva con el precio actual, completa el checkout seguro y presenta el QR emitido después de la confirmación verificada del pago.",
       returnToMap: "← Volver al mapa",
       heroEyebrow: "Experiencia en Morro de São Paulo",
       productTitle: "Elige tu experiencia",
@@ -399,8 +396,7 @@ const TICKETING_COPY: Readonly<
     static: Object.freeze({
       documentTitle: "כרטיסים · Morro Digital",
       mainTitle: "כרטיסים והזמנות",
-      lead:
-        "שמרו את המחיר הנוכחי, השלימו תשלום מאובטח והציגו את קוד ה-QR שמונפק לאחר אימות התשלום.",
+      lead: "שמרו את המחיר הנוכחי, השלימו תשלום מאובטח והציגו את קוד ה-QR שמונפק לאחר אימות התשלום.",
       returnToMap: "← חזרה למפה",
       heroEyebrow: "חוויה במורו דה סאו פאולו",
       productTitle: "בחרו את החוויה שלכם",
@@ -709,16 +705,8 @@ function applyTicketingStaticCopy(
   setText(document, ".price-summary .eyebrow", copy.summaryEyebrow);
   setText(document, "#price-summary-title", copy.summaryTitle);
   setText(document, "#quote-badge", copy.inventoryPrice);
-  setText(
-    document,
-    ".price-breakdown > div:nth-child(1) dt",
-    copy.unitPrice,
-  );
-  setText(
-    document,
-    ".price-breakdown > div:nth-child(2) dt",
-    copy.quantity,
-  );
+  setText(document, ".price-breakdown > div:nth-child(1) dt", copy.unitPrice);
+  setText(document, ".price-breakdown > div:nth-child(2) dt", copy.quantity);
   setText(
     document,
     ".price-breakdown > div:nth-child(3) dt",

@@ -105,7 +105,9 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).toContain('id="quantity-decrease"');
     expect(html).toContain('id="quantity-increase"');
     expect(html).toContain('id="identity-panel"');
-    expect(html).toContain("aria-labelledby=\"reservation-title\"\n          hidden");
+    expect(html).toContain(
+      'aria-labelledby="reservation-title"\n          hidden',
+    );
     expect(runtime).toContain("elements.identityPanel.hidden = false");
     expect(html).toContain('id="summary-unit-price"');
     expect(html).toContain('id="summary-subtotal"');
