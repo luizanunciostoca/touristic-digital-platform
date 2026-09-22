@@ -1218,3 +1218,19 @@ body[data-md-mode="assistant"] #explore-flow-bottom-sheet {
     )
   );
 }
+
+
+body[data-md-mode="discover"] #place-bottom-sheet,
+body[data-md-mode="assistant"] #place-bottom-sheet {
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-home-bottom-nav-height) +
+      var(--md-shell-composer-height) + var(--md-space-5)
+  );
+  max-height: min(
+    var(--md-sheet-full-height),
+    calc(
+      100dvh - var(--md-shell-top) - var(--md-home-bottom-nav-height) -
+        var(--md-shell-composer-height) - var(--md-space-8)
+    )
+  );
+}
