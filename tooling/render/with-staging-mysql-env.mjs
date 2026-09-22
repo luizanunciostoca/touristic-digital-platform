@@ -116,7 +116,11 @@ function normalizeControlCenterOwnerEmail(value) {
 function hashAcceptancePassword(password) {
   const salt = randomBytes(16);
   const derived = scryptSync(password, salt, 64);
-  return `scrypt${salt.toString("base64url")}${derived.toString("base64url")}`;
+  return [
+    "scrypt",
+    salt.toString("base64url"),
+    derived.toString("base64url"),
+  ].join("$");
 }
 
 function normalizeControlCenterOwnerCredentialDigest(value) {
@@ -135,7 +139,6 @@ function normalizeControlCenterOwnerCredentialDigest(value) {
   const hash = Buffer.from(encodedHash, "base64url");
   return salt.length === 16 && hash.length === 64 ? normalized : "";
 }
-
 
 function parseDashboardUsers(environment) {
   const raw = String(environment.DASHBOARD_USERS_JSON ?? "").trim();
