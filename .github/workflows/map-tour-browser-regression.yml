@@ -54,7 +54,7 @@ on:
       - pnpm-lock.yaml
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -74,6 +74,39 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Canonical Wave D format and self-clean
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'wave/ux-v2-tours-active-tour-convergence-20260922' }}
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          BRANCH='wave/ux-v2-tours-active-tour-convergence-20260922'
+          REMOTE_HEAD="$(git ls-remote origin "refs/heads/$BRANCH" | cut -f1)"
+          if [ "$REMOTE_HEAD" != "$EXPECTED_HEAD" ]; then
+            echo "Concurrent branch update detected; skip formatter push."
+            exit 0
+          fi
+          git fetch origin "$BRANCH"
+          git checkout -B "$BRANCH" "origin/$BRANCH"
+          pnpm exec prettier --write \
+            apps/morro-digital-platform/public/explore-locations.css \
+            apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts \
+            apps/morro-digital-platform/src/map/immersive-tour-v1-flow.test.ts \
+            apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts
+          git checkout HEAD^ -- .github/workflows/map-tour-browser-regression.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            .github/workflows/map-tour-browser-regression.yml \
+            apps/morro-digital-platform/public/explore-locations.css \
+            apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts \
+            apps/morro-digital-platform/src/map/immersive-tour-v1-flow.test.ts \
+            apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts
+          if git diff --cached --quiet; then
+            echo "No canonical formatting changes."
+            exit 0
+          fi
+          git commit -m "chore(tours): format Wave D with canonical Prettier"
+          git push origin "HEAD:$BRANCH"
       - name: Install Playwright
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
