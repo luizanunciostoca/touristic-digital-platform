@@ -1,15 +1,11 @@
 /*
- * Ticketing V2 — Morro Digital Tourist UI.
- * Feature layout only: visual authority comes from design-system-v2.css.
+ * Ticketing V2 — manual visual convergence.
+ * Feature layout only: visual authority remains design-system-v2.css.
  */
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html {
-  background: var(--md-color-surface-canvas);
-}
+html { background: var(--md-color-surface-canvas); }
 
 body {
   margin: 0;
@@ -18,40 +14,31 @@ body {
   font-family: var(--md-font-family-sans);
 }
 
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
+button, input { font: inherit; }
+button { cursor: pointer; }
 
 .ticketing-shell {
-  width: min(70rem, calc(100% - 2rem));
+  width: min(74rem, calc(100% - 2rem));
   margin-inline: auto;
-  padding-block: var(--md-space-8)
-    calc(
-      var(--md-space-12) + var(--md-safe-bottom) + var(--md-touch-target-min)
-    );
+  padding-block:
+    max(var(--md-space-4), var(--md-safe-top))
+    calc(var(--md-space-12) + var(--md-safe-bottom) + var(--md-touch-target-min));
   overflow-wrap: anywhere;
 }
 
-.ticketing-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--md-space-5) var(--md-space-8);
-  align-items: end;
-  padding-block: var(--md-space-6) var(--md-space-8);
+.ticketing-topbar {
+  display: flex;
+  min-height: var(--md-touch-target-min);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-3);
+  margin-bottom: var(--md-space-4);
 }
 
 .back-link {
-  grid-column: 1 / -1;
   display: inline-flex;
-  width: fit-content;
   min-height: var(--md-touch-target-min);
   align-items: center;
-  gap: var(--md-space-2);
   color: var(--md-color-brand-strong);
   font-weight: var(--md-font-weight-bold);
   text-decoration: none;
@@ -62,9 +49,39 @@ button {
   text-underline-offset: 0.2em;
 }
 
+.session-label { margin: 0; }
+
 body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
   top: auto;
+  right: max(var(--md-space-3), var(--md-safe-right));
   bottom: max(var(--md-space-3), var(--md-safe-bottom));
+  left: auto;
+}
+
+.ticketing-product-stage { margin-bottom: var(--md-space-5); }
+
+.ticketing-hero-media {
+  position: relative;
+  display: grid;
+  min-height: clamp(22rem, 52vw, 34rem);
+  align-items: end;
+  overflow: hidden;
+  border-radius: var(--md-radius-xl);
+  background:
+    linear-gradient(180deg, transparent 28%, color-mix(in srgb, var(--md-color-brand-strong) 84%, transparent) 100%),
+    var(--ticketing-hero-image, url("/images/fotos/farol_do_morro1.jpg")) center / cover no-repeat;
+  box-shadow: var(--md-elevation-2);
+}
+
+.ticketing-hero-overlay {
+  width: min(100%, 50rem);
+  padding: clamp(var(--md-space-5), 5vw, var(--md-space-10));
+  color: var(--md-color-text-inverse);
+}
+
+.ticketing-hero-overlay .eyebrow,
+.ticketing-hero-overlay .lead {
+  color: color-mix(in srgb, var(--md-color-text-inverse) 88%, transparent);
 }
 
 .eyebrow {
@@ -76,17 +93,13 @@ body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
   text-transform: uppercase;
 }
 
-h1,
-h2,
-p {
-  margin-top: 0;
-}
+h1, h2, h3, p { margin-top: 0; }
 
 h1 {
   margin-bottom: var(--md-space-3);
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  line-height: 1;
-  letter-spacing: -0.035em;
+  font-size: clamp(2.2rem, 7vw, 4.75rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
 }
 
 h2 {
@@ -96,51 +109,89 @@ h2 {
   letter-spacing: -0.02em;
 }
 
-.lead {
-  max-width: 43rem;
+h3 {
   margin-bottom: 0;
-  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-lg);
+  line-height: var(--md-line-height-tight);
+}
+
+.lead {
+  max-width: 42rem;
+  margin-bottom: var(--md-space-4);
   font-size: var(--md-font-size-md);
   line-height: var(--md-line-height-body);
 }
 
+.product-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-2);
+}
+
+.product-facts .md-badge {
+  border-color: color-mix(in srgb, var(--md-color-text-inverse) 28%, transparent);
+  background: color-mix(in srgb, var(--md-color-surface-card) 22%, transparent);
+  color: var(--md-color-text-inverse);
+  backdrop-filter: blur(0.35rem);
+}
+
+.ticketing-purchase-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(19rem, 0.82fr);
+  gap: var(--md-space-5);
+  align-items: start;
+}
+
+.panel {
+  padding: clamp(var(--md-space-5), 4vw, var(--md-space-8));
+}
+
+.purchase-panel { min-width: 0; }
+
+.identity-panel {
+  position: sticky;
+  top: max(var(--md-space-4), var(--md-safe-top));
+}
+
+.section-heading,
+.wallet-heading,
+.price-summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--md-space-4);
+}
+
+.section-heading { margin-bottom: var(--md-space-5); }
+
 .session-label,
-.secure-note {
+.secure-note,
+.selection-meta,
+.authority-note,
+.ticket-dialog-hint {
   color: var(--md-color-text-secondary);
   font-size: var(--md-font-size-sm);
 }
 
-.session-label {
+.secure-note {
+  max-width: 18rem;
   margin: 0;
-  align-self: end;
-}
-
-.panel {
-  margin-top: var(--md-space-5);
-  padding: clamp(var(--md-space-5), 4vw, var(--md-space-8));
-}
-
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--md-space-5);
-  align-items: end;
-  margin-bottom: var(--md-space-6);
 }
 
 .offer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14.75rem), 1fr));
-  gap: var(--md-space-4);
+  gap: var(--md-space-3);
 }
 
 .offer-card {
-  display: flex;
-  min-height: 13.5rem;
-  flex-direction: column;
-  justify-content: space-between;
-  gap: var(--md-space-5);
-  padding: var(--md-space-5);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--md-space-4);
+  align-items: center;
+  min-height: 8.5rem;
+  padding: var(--md-space-4);
+  border: 1px solid var(--md-color-border);
+  box-shadow: none;
   transition:
     border-color var(--md-motion-duration-fast) var(--md-motion-ease-standard),
     box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
@@ -157,7 +208,6 @@ h2 {
 .offer-card h3 {
   margin: var(--md-space-2) 0;
   font-size: var(--md-font-size-lg);
-  line-height: var(--md-line-height-tight);
 }
 
 .offer-card p {
@@ -166,27 +216,103 @@ h2 {
   font-size: var(--md-font-size-sm);
 }
 
-.offer-kind {
-  margin-bottom: var(--md-space-2);
-}
+.offer-kind { margin-bottom: var(--md-space-2); }
 
 .offer-price {
-  color: var(--md-color-text-primary);
-  font-size: var(--md-font-size-lg);
+  color: var(--md-color-text-primary) !important;
+  font-size: var(--md-font-size-lg) !important;
   font-weight: var(--md-font-weight-bold);
 }
 
-.availability {
-  margin-top: var(--md-space-2);
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--md-space-2);
 }
 
-.button {
-  text-decoration: none;
+.button { text-decoration: none; }
+
+.selection-summary {
+  display: grid;
+  gap: var(--md-space-5);
+  margin-top: var(--md-space-6);
+  padding-top: var(--md-space-6);
+  border-top: 1px solid var(--md-color-border);
+}
+
+.selection-copy h2 { margin-bottom: var(--md-space-2); }
+.selection-meta { margin-bottom: 0; }
+
+.quantity-control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-4);
+  font-weight: var(--md-font-weight-medium);
+}
+
+.quantity-stepper {
+  display: grid;
+  grid-template-columns: var(--md-touch-target-min) 4.25rem var(--md-touch-target-min);
+  align-items: stretch;
+  gap: var(--md-space-2);
+}
+
+.quantity-stepper .md-icon-button,
+.quantity-stepper .md-input {
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+}
+
+.quantity-stepper .md-input {
+  padding-inline: var(--md-space-2);
+  text-align: center;
+}
+
+.price-summary {
+  display: grid;
+  gap: var(--md-space-4);
+  padding: var(--md-space-5);
+  border-radius: var(--md-radius-lg);
+  background: var(--md-color-surface-subtle);
+}
+
+.price-summary-heading { align-items: center; }
+
+.price-breakdown {
+  display: grid;
+  gap: var(--md-space-2);
+  margin: 0;
+}
+
+.price-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--md-space-4);
+}
+
+.price-breakdown dt { color: var(--md-color-text-secondary); }
+
+.price-breakdown dd {
+  margin: 0;
+  font-weight: var(--md-font-weight-bold);
+  text-align: right;
+}
+
+.price-breakdown > div:last-child {
+  padding-top: var(--md-space-3);
+  border-top: 1px solid var(--md-color-border);
+  font-size: var(--md-font-size-lg);
+}
+
+.authority-note {
+  margin: 0;
+  line-height: var(--md-line-height-body);
 }
 
 .reservation-form {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--md-space-4);
 }
 
@@ -204,7 +330,7 @@ h2 {
 }
 
 .reservation-form .md-input {
-  min-height: 2.875rem;
+  min-height: var(--md-touch-target-min);
 }
 
 .reservation-form .md-input:focus-visible {
@@ -218,20 +344,23 @@ h2 {
   color: var(--md-color-text-secondary);
 }
 
+.selected-offer-field { order: -1; }
+
 .form-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: space-between;
-  gap: var(--md-space-4);
-  align-items: center;
-  padding-top: var(--md-space-1);
+  display: grid;
+  gap: var(--md-space-3);
+  padding-top: var(--md-space-2);
 }
 
-#reserve-button {
-  min-height: 3rem;
+.checkout-cta {
+  width: 100%;
+  min-height: 3.5rem;
+  font-size: var(--md-font-size-md);
+  font-weight: var(--md-font-weight-bold);
 }
 
 .message {
+  min-height: 1.5em;
   margin: 0;
   color: var(--md-color-text-secondary);
   font-size: var(--md-font-size-sm);
@@ -240,6 +369,16 @@ h2 {
 .message.is-error {
   color: var(--md-color-danger);
   font-weight: var(--md-font-weight-medium);
+}
+
+.wallet-section {
+  margin-top: var(--md-space-10);
+  padding-top: var(--md-space-8);
+  border-top: 1px solid var(--md-color-border);
+}
+
+.wallet-heading {
+  margin-bottom: var(--md-space-5);
 }
 
 .reservation-list {
@@ -255,9 +394,7 @@ h2 {
   padding: var(--md-space-5);
 }
 
-.reservation-card h3 {
-  margin: 0 0 var(--md-space-2);
-}
+.reservation-card h3 { margin: 0 0 var(--md-space-2); }
 
 .reservation-card p {
   margin: 0;
@@ -286,13 +423,6 @@ h2 {
   color: var(--md-color-danger);
 }
 
-.card-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--md-space-2);
-}
-
 .empty {
   padding-block: var(--md-space-8);
   color: var(--md-color-text-secondary);
@@ -301,23 +431,17 @@ h2 {
 
 .ticket-dialog {
   position: relative;
-  width: min(27.5rem, calc(100% - 1.75rem));
-  max-height: calc(
-    100dvh - var(--md-safe-top) - var(--md-safe-bottom) - var(--md-space-4)
-  );
+  width: min(28rem, calc(100% - 1.5rem));
+  max-height: calc(100dvh - var(--md-safe-top) - var(--md-safe-bottom) - var(--md-space-4));
   padding: var(--md-space-8);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.ticket-dialog::backdrop {
-  background: var(--md-color-overlay);
-}
+.ticket-dialog::backdrop { background: var(--md-color-overlay); }
 
 @supports (backdrop-filter: blur(0.35rem)) {
-  .ticket-dialog::backdrop {
-    backdrop-filter: blur(0.35rem);
-  }
+  .ticket-dialog::backdrop { backdrop-filter: blur(0.35rem); }
 }
 
 .dialog-close {
@@ -330,10 +454,18 @@ h2 {
   font-size: 1.4rem;
 }
 
+.ticket-dialog-hint {
+  margin: var(--md-space-2) 0 0;
+  line-height: var(--md-line-height-body);
+}
+
 .ticket-qr {
-  width: min(18.75rem, 100%);
+  width: min(19rem, 100%);
   margin: var(--md-space-6) auto var(--md-space-5);
+  padding: var(--md-space-3);
   aspect-ratio: 1;
+  border-radius: var(--md-radius-md);
+  background: white;
 }
 
 .ticket-qr svg {
@@ -360,22 +492,14 @@ h2 {
 
 .ticketing-skeleton-card {
   display: grid;
-  min-height: 13.5rem;
+  min-height: 8.5rem;
   gap: var(--md-space-3);
   padding: var(--md-space-5);
 }
 
-.ticketing-skeleton-line {
-  min-height: 0.9rem;
-}
-
-.ticketing-skeleton-line[data-size="short"] {
-  width: 42%;
-}
-
-.ticketing-skeleton-line[data-size="medium"] {
-  width: 68%;
-}
+.ticketing-skeleton-line { min-height: 0.9rem; }
+.ticketing-skeleton-line[data-size="short"] { width: 42%; }
+.ticketing-skeleton-line[data-size="medium"] { width: 68%; }
 
 .ticketing-skeleton-action {
   width: 7.5rem;
@@ -383,64 +507,83 @@ h2 {
   margin-top: auto;
 }
 
+@media (max-width: 58rem) {
+  .ticketing-purchase-layout { grid-template-columns: 1fr; }
+  .identity-panel { position: static; }
+}
+
 @media (max-width: 45rem) {
   .ticketing-shell {
-    width: min(100% - 1.25rem, 70rem);
-    padding-top: var(--md-space-4);
+    width: min(100% - 1rem, 74rem);
+    padding-top: max(var(--md-space-2), var(--md-safe-top));
   }
 
-  .ticketing-header {
+  .ticketing-topbar { margin-bottom: var(--md-space-2); }
+
+  .ticketing-hero-media {
+    min-height: min(56dvh, 29rem);
+    border-radius: var(--md-radius-lg);
+  }
+
+  .ticketing-hero-overlay { padding: var(--md-space-5); }
+
+  h1 { font-size: clamp(2rem, 12vw, 3.35rem); }
+
+  .section-heading,
+  .wallet-heading,
+  .price-summary-heading {
+    flex-direction: column;
+  }
+
+  .section-heading .md-button { width: 100%; }
+
+  .offer-card {
     grid-template-columns: 1fr;
-    padding-block-start: var(--md-space-4);
+    align-items: stretch;
   }
 
-  .session-label {
-    width: fit-content;
-  }
+  .card-actions { justify-content: stretch; }
 
-  .section-heading {
+  .card-actions .md-button { flex: 1 1 9rem; }
+
+  .quantity-control {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .reservation-form {
-    grid-template-columns: 1fr;
-  }
-
-  .form-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .form-actions .md-button {
+  .quantity-stepper {
     width: 100%;
-  }
-
-  .reservation-card {
-    grid-template-columns: 1fr;
-  }
-
-  .card-actions {
-    justify-content: flex-start;
-  }
-
-  .card-actions .md-button {
-    flex: 1 1 9rem;
+    grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(--md-touch-target-min);
   }
 
   .ticket-dialog {
     padding: var(--md-space-6);
     padding-top: var(--md-space-10);
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .offer-card {
-    transition-duration: 0.01ms;
+  body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
+    right: max(var(--md-space-2), var(--md-safe-right));
+    bottom: max(var(--md-space-2), var(--md-safe-bottom));
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .offer-card { transition-duration: 0.01ms; }
+}
+
 @media (forced-colors: active) {
+  .ticketing-hero-media {
+    background: Canvas;
+    border: 1px solid CanvasText;
+  }
+
+  .ticketing-hero-overlay,
+  .ticketing-hero-overlay .eyebrow,
+  .ticketing-hero-overlay .lead,
+  .product-facts .md-badge {
+    color: CanvasText;
+  }
+
   .offer-card.is-selected {
     border-color: Highlight;
     box-shadow: none;
@@ -455,7 +598,5 @@ h2 {
     border: 1px solid CanvasText;
   }
 
-  .ticket-dialog::backdrop {
-    background: Canvas;
-  }
+  .ticket-dialog::backdrop { background: Canvas; }
 }
