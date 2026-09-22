@@ -486,10 +486,7 @@ export function installPlaceBottomSheet(
       );
     }
 
-    const essentialValues = new Set([
-      "como chegar",
-      "adicionar aos favoritos",
-    ]);
+    const essentialValues = new Set(["como chegar", "adicionar aos favoritos"]);
     for (const action of visibleActions) {
       const button = document.createElement("button");
       button.type = "button";
