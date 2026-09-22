@@ -253,8 +253,8 @@ jobs:
                 await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
 
                 await page
-        .locator('#assistant-category-nightlife')
-        .evaluate((button) => button.click());
+                  .locator('#assistant-category-nightlife')
+                  .evaluate((button) => button.click());
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
                 const placePrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
