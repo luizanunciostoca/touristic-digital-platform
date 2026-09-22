@@ -106,16 +106,24 @@ describe("UX V2 manual visual conformance authority", () => {
       ".github/workflows/place-explore-v2-visual-regression.yml",
     );
 
-    const initialCapture = workflow.indexOf("place-initial-${viewport.id}.png");
+    const initialCapture = workflow.indexOf(
+      "place-initial-${viewport.id}.png",
+    );
     const stateCycle = workflow.indexOf("const stateSequence = [");
-    const expandedCapture = workflow.indexOf("place-full-${viewport.id}.png");
+    const expandedCapture = workflow.indexOf(
+      "place-full-${viewport.id}.png",
+    );
 
     expect(initialCapture).toBeGreaterThan(-1);
     expect(stateCycle).toBeGreaterThan(initialCapture);
     expect(expandedCapture).toBeGreaterThan(stateCycle);
     expect(workflow).toContain("MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY");
-    expect(workflow).toContain("initialPlaceGeometry.rect.height > viewport.height * 0.62");
-    expect(workflow).toContain("initialPlaceGeometry.rect.top < viewport.height * 0.34");
+    expect(workflow).toContain(
+      "initialPlaceGeometry.rect.height > viewport.height * 0.62",
+    );
+    expect(workflow).toContain(
+      "initialPlaceGeometry.rect.top < viewport.height * 0.34",
+    );
     expect(workflow).toContain("MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY");
     expect(workflow).toContain(
       "resultGeometry.width < resultGeometry.sourceWidth * 0.92",
