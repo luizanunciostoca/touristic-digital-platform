@@ -149,7 +149,7 @@ jobs:
 
               async function submit(text, expectedCommand) {
                 const before = await routeCount();
-                if (await input.isVisible()) {
+                if ((await input.isVisible()) && (await send.isVisible())) {
                   await input.fill(text);
                   await send.click();
                 } else {
