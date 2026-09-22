@@ -7,6 +7,14 @@
       max(0.75rem, env(safe-area-inset-bottom, 0px))
   );
   width: min(38rem, calc(100vw - 1.5rem));
+  max-height: calc(
+    100dvh - var(--assistant-bar-height, 0rem) -
+      max(0.75rem, env(safe-area-inset-top, 0px)) -
+      max(0.75rem, env(safe-area-inset-bottom, 0px))
+  );
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  box-sizing: border-box;
   padding: 1rem;
   transform: translateX(-50%);
   border: 1px solid rgba(15, 23, 42, 0.16);
