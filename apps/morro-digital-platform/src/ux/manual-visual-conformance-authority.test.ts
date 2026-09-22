@@ -134,4 +134,30 @@ describe("UX V2 manual visual conformance authority", () => {
 
     expect(matches).toHaveLength(2);
   });
+
+  it("captures pure Discover before route mutation", async () => {
+    const workflow = await readRepository(
+      ".github/workflows/mapbox-visual-contract-regression.yml",
+    );
+    const discoverCapture = workflow.indexOf(
+      "discover-${name}-${discoverSuffix}.png",
+    );
+    const routeMutation = workflow.indexOf(
+      "await dispatchTour(page, 'volta-a-ilha');",
+    );
+
+    expect(discoverCapture).toBeGreaterThan(-1);
+    expect(routeMutation).toBeGreaterThan(discoverCapture);
+  });
+
+  it("captures successful Tour intro, stop and finale states", async () => {
+    const workflow = await readRepository(
+      ".github/workflows/map-tour-browser-regression.yml",
+    );
+
+    expect(workflow).toContain("tour-intro-${evidenceName}.png");
+    expect(workflow).toContain("tour-stop-${evidenceName}.png");
+    expect(workflow).toContain("tour-finale-${evidenceName}.png");
+    expect(workflow).toContain("validateGuidedV1Flow(page, name)");
+  });
 });
