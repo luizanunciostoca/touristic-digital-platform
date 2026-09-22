@@ -42,6 +42,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Static Ticketing V2 contract
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/ticketing-v2-contract.test.ts
+      - name: Ticketing quote authority contract
+        run: pnpm --filter @touristic/ticketing-server exec vitest run src/public-http-transport-validity.test.ts
       - name: Build workspace
         run: pnpm -w build
       - name: Install deterministic Chromium
@@ -115,13 +117,76 @@ jobs:
             await page.route('**/api/ticketing/v1/inventory', async route => {
               if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
               if (state.error) return fulfill(route, { error: 'TICKETING_UNAVAILABLE' }, 503);
-              return fulfill(route, { data: state.empty ? [] : [offer] });
+              return fulfill(route, { data: state.empty ? [] : (state.inventory || [offer]) });
+            });
+            await page.route('**/api/ticketing/v1/quote', async route => {
+              if (state.quoteDelay) await new Promise(resolve => setTimeout(resolve, state.quoteDelay));
+              if (state.quoteAbort) return route.abort('timedout');
+              if (state.quoteError) {
+                return fulfill(route, { error: state.quoteError }, state.quoteStatus || 409);
+              }
+              const body = route.request().postDataJSON();
+              const unitCurrency = state.quoteUnitCurrency || offer.unitAmount.currency;
+              const totalCurrency = state.quoteTotalCurrency || unitCurrency;
+              const unitMinor = state.quoteMinor ?? offer.unitAmount.minorUnits;
+              const quantity = Number(body.quantity);
+              return fulfill(route, {
+                data: {
+                  inventoryId: body.inventoryId,
+                  quantity,
+                  unitAmount: { minorUnits: unitMinor, currency: unitCurrency },
+                  totalAmount: { minorUnits: unitMinor * quantity, currency: totalCurrency },
+                  pricingVersion: state.quotePricingVersion || offer.pricingVersion,
+                  availableQuantity: state.quoteAvailableQuantity ?? offer.availableQuantity,
+                  maxPerReservation: state.quoteMaxPerReservation ?? offer.maxPerReservation,
+                  observedAt: iso(0),
+                  expiresAt: state.quoteExpiresAt || iso(60000),
+                },
+              });
             });
             await page.route('**/api/ticketing/v1/reservations', async route => {
+              if (route.request().method() === 'POST') {
+                state.reservationPosts = (state.reservationPosts || 0) + 1;
+                if (state.reservationDelay) {
+                  await new Promise(resolve => setTimeout(resolve, state.reservationDelay));
+                }
+                if (state.reservationError) {
+                  return fulfill(route, { error: state.reservationError }, state.reservationStatus || 409);
+                }
+                return fulfill(route, {
+                  data: {
+                    reservation: { ...reservation, status: 'held', quantity: route.request().postDataJSON().quantity },
+                    checkout: {
+                      path: '/api/payments/v1/checkouts',
+                      idempotencyKey: 'ticketing-visual-checkout-key',
+                      reservationReference: reservation.id,
+                      handoffToken: 'ticketing-visual-handoff',
+                      handoff: {
+                        reservationReference: reservation.id,
+                        customer: { name: 'Visitante', email: 'visitante@example.com' },
+                        returnUrl: origin + '/tickets.html',
+                        requiresPaymentsCapability: true,
+                      },
+                    },
+                  },
+                }, 201);
+              }
               if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
               return fulfill(route, {
                 data: state.empty ? [] : state.reservations || [reservation],
               });
+            });
+            await page.route('**/api/payments/v1/checkouts', route => {
+              if (state.providerFail) return fulfill(route, { error: 'PAYMENTS_UNAVAILABLE' }, 503);
+              return fulfill(route, {
+                data: {
+                  checkoutId: 'chk_v2_visual_0001',
+                  statusToken: 'status-v2-visual',
+                  statusExpiresAt: iso(600000),
+                  plan: { amount: { minorUnits: 31800, currency: 'BRL' } },
+                  checkoutUrl: 'https://payments.example.test/checkout',
+                },
+              }, 201);
             });
             await page.route('**/api/ticketing/v1/reservations/trv_v2_visual_0001/ticket', route =>
               fulfill(route, {
@@ -281,6 +346,10 @@ jobs:
                 await page.locator('.offer-card .md-button--primary').click();
                 await page.locator('#selection-summary:not([hidden])').waitFor({ state: 'visible' });
                 await page.locator('#quantity-increase').click();
+                await page.waitForFunction(() => {
+                  const subtotal = document.querySelector('#summary-subtotal')?.textContent?.trim();
+                  return subtotal && subtotal !== '—';
+                });
                 const state = await page.evaluate(() => {
                   const summary = document.querySelector('#selection-summary');
                   const cta = document.querySelector('#reserve-button');
@@ -307,8 +376,8 @@ jobs:
                 if (!state.unit || state.unit === '—' || !state.subtotal || state.subtotal === '—') {
                   throw new Error('Price breakdown unreadable: ' + JSON.stringify(state));
                 }
-                if (state.heroHeight < 220) {
-                  throw new Error('MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY: ' + JSON.stringify(state));
+                if (state.heroHeight < 160 || state.heroHeight > 260) {
+                  throw new Error('MANUAL_CONFORMANCE_TICKETING_COMPACT_HERO: ' + JSON.stringify(state));
                 }
                 if (state.ctaWidth < 44 || state.ctaHeight < 44) {
                   throw new Error('Dominant checkout CTA geometry invalid: ' + JSON.stringify(state));
@@ -397,16 +466,101 @@ jobs:
               const errorPage = await errorContext.newPage();
               await installRoutes(errorPage, { error: true });
               await errorPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await errorPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({
+              await errorPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({
                 state: 'visible',
                 timeout: 10000,
               });
+              const leakedTechnicalState = await errorPage.locator('#reservation-message').textContent();
+              if (/TICKETING_|PAYMENTS_|HTTP_/u.test(leakedTechnicalState || '')) {
+                throw new Error('Technical error leaked into consumer UI: ' + leakedTechnicalState);
+              }
               await errorPage.screenshot({
                 path: '/tmp/ticketing-v2/error-390x844.png',
                 fullPage: true,
                 animations: 'disabled',
               });
               await errorContext.close();
+
+              const transactionalContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const transactionalPage = await transactionalContext.newPage();
+              const transactionalState = {};
+              await installRoutes(transactionalPage, transactionalState);
+              await transactionalPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await transactionalPage.locator('.offer-card .md-button--primary').click();
+              await transactionalPage.locator('#holder-name').fill('Visitante');
+              await transactionalPage.locator('#holder-email').fill('visitante@example.com');
+              await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+
+              transactionalState.quoteMinor = 16900;
+              await transactionalPage.locator('#reserve-button').click();
+              await transactionalPage.locator('#reservation-message').filter({ hasText: 'Preço ou disponibilidade mudou' }).waitFor({ state: 'visible' });
+              if ((transactionalState.reservationPosts || 0) !== 0) {
+                throw new Error('Price drift reached reservation authority');
+              }
+
+              transactionalState.quoteMinor = 15900;
+              transactionalState.quoteExpiresAt = iso(-1000);
+              await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await transactionalPage.locator('#reserve-button').click();
+              await transactionalPage.locator('#reservation-message').filter({ hasText: 'cotação expirou' }).waitFor({ state: 'visible' });
+              if ((transactionalState.reservationPosts || 0) !== 0) {
+                throw new Error('Expired quote reached reservation authority');
+              }
+
+              transactionalState.quoteExpiresAt = iso(60000);
+              transactionalState.quoteUnitCurrency = 'BRL';
+              transactionalState.quoteTotalCurrency = 'USD';
+              await transactionalPage.locator('#quantity-increase').click();
+              await transactionalPage.locator('#reservation-message').filter({ hasText: 'moeda' }).waitFor({ state: 'visible' });
+              if (!(await transactionalPage.locator('#reserve-button').isDisabled())) {
+                throw new Error('Currency mismatch did not fail closed');
+              }
+
+              transactionalState.quoteTotalCurrency = 'BRL';
+              transactionalState.quoteAbort = true;
+              await transactionalPage.locator('#quantity-decrease').click();
+              await transactionalPage.locator('#reservation-message').waitFor({ state: 'visible' });
+              if (!(await transactionalPage.locator('#reserve-button').isDisabled())) {
+                throw new Error('Quote timeout did not fail closed');
+              }
+
+              transactionalState.quoteAbort = false;
+              await transactionalPage.locator('#quantity-increase').click();
+              await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              transactionalState.reservationDelay = 300;
+              await Promise.all([
+                transactionalPage.locator('#reserve-button').click(),
+                transactionalPage.locator('#reserve-button').click({ force: true }),
+              ]);
+              await transactionalPage.waitForTimeout(500);
+              if ((transactionalState.reservationPosts || 0) !== 1) {
+                throw new Error('Double submit created duplicate reservation requests: ' + transactionalState.reservationPosts);
+              }
+              evidence.push({
+                case: 'transactional-negative-390x844',
+                reservationPosts: transactionalState.reservationPosts,
+              });
+              await transactionalContext.close();
+
+              const stockContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const stockPage = await stockContext.newPage();
+              const soldOut = { ...offer, id: 'mpi_v2_visual_sold_out', startsAt: iso(4 * 86400000), endsAt: iso(4 * 86400000 + 3600000), availableQuantity: 0 };
+              const unavailable = { ...offer, id: 'mpi_v2_visual_unavailable', startsAt: iso(5 * 86400000), endsAt: iso(5 * 86400000 + 3600000), sellable: false };
+              await installRoutes(stockPage, { inventory: [offer, soldOut, unavailable] });
+              await stockPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await stockPage.locator('.date-chip').first().waitFor({ state: 'visible' });
+              const dateStates = await stockPage.locator('.date-chip').allTextContents();
+              if (!dateStates.some(value => value.includes('Esgotado')) || !dateStates.some(value => value.includes('Indisponível'))) {
+                throw new Error('Sold-out/unavailable date states missing: ' + JSON.stringify(dateStates));
+              }
+              await audit(stockPage, 'date-states-390x844');
+              await stockPage.screenshot({
+                path: '/tmp/ticketing-v2/date-states-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({ case: 'date-states-390x844', dateStates });
+              await stockContext.close();
 
               const terminalWalletContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
