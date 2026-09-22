@@ -20,10 +20,12 @@ function transportWithOfflineSync(sync: ReturnType<typeof vi.fn>) {
   };
 }
 
-function transportWithQuote(overrides: {
-  readonly remainingQuantity?: number;
-  readonly sellable?: boolean;
-} = {}) {
+function transportWithQuote(
+  overrides: {
+    readonly remainingQuantity?: number;
+    readonly sellable?: boolean;
+  } = {},
+) {
   const inventory = {
     id: "tin_quote_contract_0001",
     destinationId: "morro-de-sao-paulo",
