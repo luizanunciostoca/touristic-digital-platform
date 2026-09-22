@@ -68,7 +68,9 @@ describe("Place + Search/Explore V2 contract", () => {
     }
     expect(flow).toContain("explore-flow-sheet-status-skeleton");
     expect(flow).toContain('button.dataset.sheetStep = direction');
-    expect(flow).not.toContain("dataset.sheetStateTarget");
+    expect(flow).toContain("button.dataset.sheetStateTarget = state");
+    expect(flow).toContain('if (kind === "tour")');
+    expect(flow).toContain("rebuildStateControls(presentation.kind)");
     expect(flow).toContain('activeKind !== "explore"');
 
     expect(search).toContain('type: "show_search_results" as const');
