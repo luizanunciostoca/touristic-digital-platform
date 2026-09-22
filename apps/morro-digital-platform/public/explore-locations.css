@@ -281,7 +281,11 @@
   height: var(--md-touch-target-min);
   border: 1px solid var(--md-outdoor-border);
   border-radius: var(--md-radius-pill);
-  background: color-mix(in srgb, var(--md-color-surface-card) 88%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-card) 88%,
+    transparent
+  );
   box-shadow: var(--md-elevation-2);
   font-size: var(--md-font-size-xl);
 }
@@ -486,7 +490,9 @@ body[data-md-mode="place"] #assistant-input-area {
   pointer-events: none;
 }
 
-#place-bottom-sheet .place-bottom-sheet-hero.hidden + .place-bottom-sheet-body {
+#place-bottom-sheet
+  .place-bottom-sheet-hero.hidden
+  + .place-bottom-sheet-body {
   padding-top: calc(var(--md-space-6) + var(--md-space-2));
 }
 

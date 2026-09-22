@@ -138,9 +138,7 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(css).toContain("overflow-wrap: break-word");
     expect(css).toContain("word-break: normal");
     expect(css).toContain('body[data-md-mode="place"] #assistant-input-area');
-    expect(css).toContain(
-      'body[data-md-mode="place"] #home-bottom-navigation',
-    );
+    expect(css).toContain('body[data-md-mode="place"] #home-bottom-navigation');
     expect(css).toContain(
       '#map[data-explore-stage="detail"] .morro-explore-marker-icon',
     );
