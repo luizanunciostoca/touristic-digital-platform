@@ -571,11 +571,19 @@ jobs:
               await reservationRetryPage.locator('#reserve-button').click();
               await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'Não foi possível criar a reserva' }).waitFor({ state: 'visible' });
               reservationRetryState.reservationError = null;
+              await reservationRetryPage.locator('#quantity-increase').click();
+              await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reserve-button').click();
+              await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'tentativa de reserva anterior' }).waitFor({ state: 'visible' });
+              if ((reservationRetryState.reservationPosts || 0) !== 1) {
+                throw new Error('Divergent retry created a second reservation request');
+              }
+              await reservationRetryPage.locator('#quantity-decrease').click();
               await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
               await reservationRetryPage.locator('#reserve-button').click();
               await reservationRetryPage.waitForTimeout(300);
               if ((reservationRetryState.reservationPosts || 0) !== 2) {
-                throw new Error('Reservation retry was not exercised twice');
+                throw new Error('Same-intent reservation retry was not exercised twice');
               }
               const reservationKeys = reservationRetryState.reservationIdempotencyKeys || [];
               if (!reservationKeys[0] || reservationKeys[0] !== reservationKeys[1]) {
