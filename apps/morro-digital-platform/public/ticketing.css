@@ -22,6 +22,11 @@ button,
 input {
   font: inherit;
 }
+
+[hidden] {
+  display: none !important;
+}
+
 button {
   cursor: pointer;
 }
