@@ -62,7 +62,7 @@ const searchAdapterSources = Object.freeze([
     adapterKey: "crm",
     capability: "crm.read",
     types: Object.freeze(["lead", "contract"]),
-    destinationAware: false,
+    destinationAware: true,
   }),
   Object.freeze({
     domain: "products",
@@ -3007,6 +3007,15 @@ export function createAdminApi({
                 continue;
               }
               results.push(normalized);
+            }
+            if (destinationId && source.domain === "crm") {
+              partial.push(
+                Object.freeze({
+                  domain: "crm",
+                  types: Object.freeze(["contract"]),
+                  reason: "contract_destination_scope_unavailable",
+                }),
+              );
             }
           } catch {
             partial.push(
