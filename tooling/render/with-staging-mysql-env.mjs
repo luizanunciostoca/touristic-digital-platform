@@ -28,6 +28,12 @@ export const stagingPaymentsAcceptanceIdentity = Object.freeze({
   }),
 });
 
+export const stagingControlCenterOwnerIdentity = Object.freeze({
+  serviceName: stagingPaymentsAcceptanceIdentity.serviceName,
+  id: "staging-control-center-owner",
+  role: "PLATFORM_OWNER",
+});
+
 function safeDiagnosticCode(error, fallback) {
   const value = error instanceof Error ? String(error.message).trim() : "";
   return /^[A-Z][A-Z0-9_:-]{2,120}$/u.test(value) ? value : fallback;
@@ -91,6 +97,18 @@ function normalizeAcceptancePayerEmail(value) {
     .toLowerCase();
   if (!normalized || normalized.length > 200) return "";
   return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@testuser\.com$/u.test(normalized)
+    ? normalized
+    : "";
+}
+
+function normalizeControlCenterOwnerEmail(value) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (!normalized || normalized.length > 200) return "";
+  return /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/u.test(
+    normalized,
+  )
     ? normalized
     : "";
 }
@@ -192,6 +210,63 @@ export function buildStagingPaymentsAcceptanceAuthEnvironment(
   });
 }
 
+export function buildStagingControlCenterOwnerAuthEnvironment(
+  environment = process.env,
+) {
+  const enabled =
+    String(environment.STAGING_CONTROL_CENTER_OWNER_ENABLED ?? "")
+      .trim()
+      .toLowerCase() === "true";
+  if (!enabled) return Object.freeze({});
+
+  if (
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
+    stagingControlCenterOwnerIdentity.serviceName
+  ) {
+    throw new Error("STAGING_CONTROL_CENTER_OWNER_SERVICE_DENIED");
+  }
+
+  const password = normalizeAcceptancePassword(
+    environment.STAGING_CONTROL_CENTER_OWNER_PASSWORD,
+  );
+  if (password.length < 20) {
+    throw new Error("STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID");
+  }
+
+  const email = normalizeControlCenterOwnerEmail(
+    environment.STAGING_CONTROL_CENTER_OWNER_EMAIL,
+  );
+  if (!email) {
+    throw new Error("STAGING_CONTROL_CENTER_OWNER_EMAIL_INVALID");
+  }
+
+  const users = parseDashboardUsers(environment);
+  const collision = users.some(
+    (user) =>
+      user &&
+      typeof user === "object" &&
+      (String(user.id ?? "") === stagingControlCenterOwnerIdentity.id ||
+        String(user.email ?? "")
+          .trim()
+          .toLowerCase() === email),
+  );
+  if (collision) {
+    throw new Error("STAGING_CONTROL_CENTER_OWNER_USER_COLLISION");
+  }
+
+  const owner = {
+    ...stagingControlCenterOwnerIdentity,
+    email,
+    passwordHash: hashAcceptancePassword(password),
+    businessIds: [],
+  };
+
+  return Object.freeze({
+    DASHBOARD_USERS_JSON: JSON.stringify([...users, owner]),
+    DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED: "true",
+  });
+}
+
 export function buildStagingDatabaseEnvironment(environment = process.env) {
   const hostPort = parseHostPort(environment);
   const derived = {};
@@ -260,6 +335,7 @@ if (isDirectInvocation()) {
   } else {
     let derived;
     let acceptanceAuth;
+    let controlCenterOwnerAuth;
     try {
       const readiness = await waitForStagingMysql(process.env);
       process.stdout.write(
@@ -275,6 +351,11 @@ if (isDirectInvocation()) {
       acceptanceAuth = buildStagingPaymentsAcceptanceAuthEnvironment(
         process.env,
       );
+      controlCenterOwnerAuth =
+        buildStagingControlCenterOwnerAuthEnvironment({
+          ...process.env,
+          ...acceptanceAuth,
+        });
     } catch (error) {
       const reason = safeDiagnosticCode(error, "STAGING_ENV_INVALID");
       process.stderr.write(
@@ -287,11 +368,12 @@ if (isDirectInvocation()) {
       process.exitCode = 1;
     }
 
-    if (derived && acceptanceAuth) {
+    if (derived && acceptanceAuth && controlCenterOwnerAuth) {
       const childEnvironment = {
         ...process.env,
         ...derived,
         ...acceptanceAuth,
+        ...controlCenterOwnerAuth,
       };
       process.stdout.write(
         `${JSON.stringify({
@@ -300,6 +382,10 @@ if (isDirectInvocation()) {
           databases: databaseDomains.map(([domain]) => domain.toLowerCase()),
           paymentsAcceptanceAuth:
             Object.keys(acceptanceAuth).length > 0 ? "enabled" : "disabled",
+          controlCenterOwnerAuth:
+            Object.keys(controlCenterOwnerAuth).length > 0
+              ? "enabled"
+              : "disabled",
         })}\n`,
       );
       const child = spawn(command, args, {
