@@ -456,6 +456,29 @@ async function installGrantedCurrentLocationMarker(
   );
 }
 
+function discoverCameraPadding(): {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+} {
+  const dock = document.getElementById("unified-assistant-dock");
+  const dockHeight = Math.max(0, dock?.offsetHeight ?? 0);
+  const viewportHeight = Math.max(
+    320,
+    window.innerHeight || document.documentElement.clientHeight,
+  );
+  return {
+    top: 72,
+    bottom: Math.min(
+      Math.max(120, viewportHeight * 0.58),
+      Math.max(120, dockHeight + 24),
+    ),
+    left: 24,
+    right: 24,
+  };
+}
+
 function installDiscoverRecenterControl(
   map: MapboxGlMapLike,
   sdk: MapboxGlModuleLike,
@@ -471,6 +494,7 @@ function installDiscoverRecenterControl(
       bearing?: number;
       duration?: number;
       essential?: boolean;
+      padding?: { top: number; bottom: number; left: number; right: number };
     }) => void;
   };
   const moveCamera = (
@@ -485,6 +509,7 @@ function installDiscoverRecenterControl(
         bearing: 0,
         duration: 650,
         essential: true,
+        padding: discoverCameraPadding(),
       });
     } else {
       cameraMap.setCenter([...center]);
