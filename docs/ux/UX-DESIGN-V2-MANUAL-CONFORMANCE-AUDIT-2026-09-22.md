@@ -10,7 +10,7 @@ This audit deliberately separates functional/browser regression from visual conf
 
 - Quick Actions remain intentionally absent.
 - The floating Assistant launcher remains intentionally absent.
-- `public/legacy/**` historical source remains frozen. Comparison from the manual baseline `a29599e0226a6b61429257069c254cf113085585` to audited main `e0d004999cd6c9efa3f7c7b1a35108d7bae59284` found no changed historical legacy source path.
+- `public/legacy/**` historical source remains frozen. Comparison from the manual baseline `a29599e0226a6b61429257069c254cf113085585` to audited main `a71541c54b65fae7fab9ae5a76d73788810c85f8` found no changed historical legacy source path.
 
 ## Evidence reviewed
 
@@ -25,7 +25,7 @@ This audit deliberately separates functional/browser regression from visual conf
 
 ## Evidence freshness
 
-From `e0f06a886931f79cd111cd8b7dd394f1eed28a29` to audited main `e0d004999cd6c9efa3f7c7b1a35108d7bae59284`, GitHub comparison reported 63 commits but only nine changed files; no Tourist UI visual runtime path in the audited set changed. The only matching `apps/morro-digital-platform/src/ux/**` change was a Control Center contract test. Therefore the screenshots remain useful for identifying the manual-conformance gaps, but they do not replace the required final exact-main rerun.
+From `e0f06a886931f79cd111cd8b7dd394f1eed28a29` to audited main `a71541c54b65fae7fab9ae5a76d73788810c85f8`, GitHub comparison reported 70 commits but only nine changed files; no Tourist UI visual runtime path in the audited set changed. The only matching `apps/morro-digital-platform/src/ux/**` change was a Control Center contract test. Therefore the screenshots remain useful for identifying the manual-conformance gaps, but they do not replace the required final exact-main rerun.
 
 ## Root cause of the false green
 
