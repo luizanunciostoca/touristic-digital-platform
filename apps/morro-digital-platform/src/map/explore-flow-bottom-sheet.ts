@@ -1,5 +1,7 @@
 export type ExploreFlowBottomSheetState = "peek" | "half" | "full";
 export type ExploreFlowBottomSheetKind = "explore" | "tour";
+export type ExploreFlowBottomSheetStatus =
+  "loading" | "ready" | "empty" | "error";
 
 export interface ExploreFlowBottomSheetPresentation {
   readonly kind: ExploreFlowBottomSheetKind;
@@ -7,6 +9,8 @@ export interface ExploreFlowBottomSheetPresentation {
   readonly source: HTMLElement;
   readonly messageSource?: HTMLElement;
   readonly content?: HTMLElement;
+  readonly status?: ExploreFlowBottomSheetStatus;
+  readonly statusText?: string;
   readonly onDismiss: () => void;
 }
 
@@ -15,6 +19,7 @@ export interface ExploreFlowBottomSheetController {
   hide(): void;
   setState(state: ExploreFlowBottomSheetState): void;
   getState(): ExploreFlowBottomSheetState;
+  setStatus(status: ExploreFlowBottomSheetStatus, text?: string): void;
   destroy(): void;
 }
 
@@ -24,11 +29,18 @@ export interface ExploreFlowBottomSheetOptions {
 
 type SheetCopy = Readonly<{
   close: string;
+  loading: string;
+  empty: string;
+  unavailable: string;
   states: Readonly<Record<ExploreFlowBottomSheetState, string>>;
 }>;
 const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
   pt: {
     close: "Fechar painel",
+    loading: "Atualizando o mapa e os resultados…",
+    empty: "Nenhum resultado encontrado para este filtro.",
+    unavailable:
+      "Não foi possível atualizar o mapa agora. Seus filtros foram preservados.",
     states: {
       peek: "Mostrar resumo",
       half: "Mostrar conteúdo principal",
@@ -37,6 +49,10 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
   },
   en: {
     close: "Close panel",
+    loading: "Updating the map and results…",
+    empty: "No results were found for this filter.",
+    unavailable:
+      "The map could not be updated right now. Your filters were preserved.",
     states: {
       peek: "Show summary",
       half: "Show main content",
@@ -45,6 +61,10 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
   },
   es: {
     close: "Cerrar panel",
+    loading: "Actualizando el mapa y los resultados…",
+    empty: "No se encontraron resultados para este filtro.",
+    unavailable:
+      "No fue posible actualizar el mapa ahora. Tus filtros se conservaron.",
     states: {
       peek: "Mostrar resumen",
       half: "Mostrar contenido principal",
@@ -53,6 +73,9 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
   },
   he: {
     close: "סגירת הלוח",
+    loading: "מעדכן את המפה והתוצאות…",
+    empty: "לא נמצאו תוצאות למסנן הזה.",
+    unavailable: "לא ניתן לעדכן את המפה כרגע. המסננים שלך נשמרו.",
     states: {
       peek: "הצגת תקציר",
       half: "הצגת התוכן הראשי",
@@ -114,7 +137,7 @@ export function installExploreFlowBottomSheet({
   toolbar.className = "explore-flow-sheet-toolbar";
 
   const handle = document.createElement("div");
-  handle.className = "md-bottom-sheet-handle";
+  handle.className = "md-bottom-sheet-handle explore-flow-sheet-drag-handle";
   handle.setAttribute("aria-hidden", "true");
 
   const stateControls = document.createElement("div");
@@ -135,6 +158,12 @@ export function installExploreFlowBottomSheet({
   heading.id = "explore-flow-bottom-sheet-title";
   heading.className = "explore-flow-sheet-title";
   sheet.setAttribute("aria-labelledby", heading.id);
+  sheet.tabIndex = -1;
+
+  const status = document.createElement("div");
+  status.className = "explore-flow-sheet-status hidden";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
 
   const richContent = document.createElement("div");
   richContent.className = "explore-flow-sheet-rich";
@@ -143,11 +172,12 @@ export function installExploreFlowBottomSheet({
   actions.className = "explore-flow-sheet-actions";
   actions.setAttribute("role", "group");
 
-  content.append(heading, richContent, actions);
+  content.append(heading, status, richContent, actions);
   sheet.append(toolbar, content);
   document.body.appendChild(sheet);
 
   let dismissHandler: (() => void) | undefined;
+  let activeKind: ExploreFlowBottomSheetKind | undefined;
   let compatibilityMessageSource: HTMLElement | undefined;
 
   const clearCompatibilityMessageSource = (): void => {
@@ -157,6 +187,34 @@ export function installExploreFlowBottomSheet({
     );
     compatibilityMessageSource.removeAttribute("aria-hidden");
     compatibilityMessageSource = undefined;
+  };
+
+  const setStatus = (
+    nextStatus: ExploreFlowBottomSheetStatus,
+    text?: string,
+  ): void => {
+    const copy = currentCopy(document);
+    sheet.dataset.flowState = nextStatus;
+    sheet.setAttribute("aria-busy", String(nextStatus === "loading"));
+    status.replaceChildren();
+    if (nextStatus === "ready") {
+      status.classList.add("hidden");
+      return;
+    }
+    status.classList.remove("hidden");
+    if (nextStatus === "loading") {
+      const skeleton = document.createElement("span");
+      skeleton.className = "md-skeleton explore-flow-sheet-status-skeleton";
+      skeleton.setAttribute("aria-hidden", "true");
+      status.appendChild(skeleton);
+      const sr = document.createElement("span");
+      sr.className = "sr-only";
+      sr.textContent = text || copy.loading;
+      status.appendChild(sr);
+      return;
+    }
+    status.textContent =
+      text || (nextStatus === "empty" ? copy.empty : copy.unavailable);
   };
 
   const setState = (nextState: ExploreFlowBottomSheetState): void => {
@@ -172,6 +230,39 @@ export function installExploreFlowBottomSheet({
       );
     }
   };
+
+  let dragStartY: number | null = null;
+  let dragPointerId: number | null = null;
+  const dragStep = (direction: "up" | "down"): void => {
+    const order: readonly ExploreFlowBottomSheetState[] = [
+      "peek",
+      "half",
+      "full",
+    ];
+    const current = order.indexOf(state);
+    const offset = direction === "up" ? 1 : -1;
+    const next =
+      order[Math.min(order.length - 1, Math.max(0, current + offset))];
+    if (next) setState(next);
+  };
+  handle.addEventListener("pointerdown", (event) => {
+    if (activeKind !== "explore") return;
+    dragStartY = event.clientY;
+    dragPointerId = event.pointerId;
+    handle.setPointerCapture?.(event.pointerId);
+  });
+  handle.addEventListener("pointerup", (event) => {
+    if (dragStartY === null || dragPointerId !== event.pointerId) return;
+    const delta = event.clientY - dragStartY;
+    dragStartY = null;
+    dragPointerId = null;
+    if (Math.abs(delta) < 36) return;
+    dragStep(delta < 0 ? "up" : "down");
+  });
+  handle.addEventListener("pointercancel", () => {
+    dragStartY = null;
+    dragPointerId = null;
+  });
 
   const rebuildStateControls = (): void => {
     const copy = currentCopy(document);
@@ -197,8 +288,10 @@ export function installExploreFlowBottomSheet({
       compatibilityMessageSource.setAttribute("aria-hidden", "true");
     }
     rebuildStateControls();
+    activeKind = presentation.kind;
     sheet.dataset.flowKind = presentation.kind;
     heading.textContent = presentation.accessibleLabel;
+    setStatus(presentation.status ?? "ready", presentation.statusText);
 
     richContent.replaceChildren();
     if (presentation.content) {
@@ -239,6 +332,7 @@ export function installExploreFlowBottomSheet({
     hide(): void {
       if (destroyed) return;
       dismissHandler = undefined;
+      activeKind = undefined;
       clearCompatibilityMessageSource();
       sheet.classList.add("hidden");
       sheet.setAttribute("aria-hidden", "true");
@@ -248,11 +342,13 @@ export function installExploreFlowBottomSheet({
     getState(): ExploreFlowBottomSheetState {
       return state;
     },
+    setStatus,
     destroy(): void {
       if (destroyed) return;
       clearCompatibilityMessageSource();
       destroyed = true;
       dismissHandler = undefined;
+      activeKind = undefined;
       sheet.remove();
     },
   });

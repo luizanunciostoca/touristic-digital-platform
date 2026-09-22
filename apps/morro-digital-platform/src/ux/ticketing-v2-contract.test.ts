@@ -10,6 +10,19 @@ async function readPublic(path: string): Promise<string> {
 }
 
 describe("Ticketing UX Design V2 contract", () => {
+  it("loads V2 foundations before Ticketing feature styles", async () => {
+    const html = await readPublic("tickets.html");
+
+    const foundations = html.indexOf("design-system-v2.css");
+    const premium = html.indexOf("premium-ux-v2.css");
+    const feature = html.indexOf('href="/ticketing.css"');
+
+    expect(foundations).toBeGreaterThan(-1);
+    expect(premium).toBeGreaterThan(foundations);
+    expect(feature).toBeGreaterThan(premium);
+    expect(html).toContain('content="light dark"');
+  });
+
   it("uses the canonical Tourist UI typography and semantic tokens", async () => {
     const [css, designSystem] = await Promise.all([
       readPublic("ticketing.css"),
@@ -20,6 +33,7 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(css).not.toMatch(/\bInter\b/u);
     expect(css).not.toMatch(/#[0-9a-f]{3,8}\b/iu);
     expect(css).not.toContain("transition: all");
+    expect(css).not.toMatch(/z-index\s*:\s*-?\d+/u);
     expect(css).not.toContain("!important");
 
     for (const token of [
@@ -53,6 +67,7 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).toContain("md-button md-button--primary");
     expect(html).toContain("md-button md-button--secondary");
     expect(html).toContain('class="md-input"');
+    expect(html).toContain('id="quantity"');
     expect(html).toContain("ticket-dialog md-dialog");
     expect(html).toContain("dialog-close md-icon-button");
 
@@ -60,6 +75,13 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain("reservation-card md-card");
     expect(runtime).toContain("availability md-badge md-badge--success");
     expect(runtime).toContain("status md-badge");
+    expect(runtime).toContain("elements.dialog.showModal()");
+    expect(runtime).toContain("elements.dialog.close()");
+
+    // Inventory is the canonical authority for the event date. Do not invent a
+    // date selector that the reservation contract cannot honor.
+    expect(runtime).toContain("when.textContent = dateTime(offer.startsAt)");
+    expect(html).not.toMatch(/type="(?:date|datetime-local)"/u);
   });
 
   it("renders progressive loading structure without weakening accessibility", async () => {
@@ -78,6 +100,23 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(designSystem).toContain(".md-skeleton");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (forced-colors: active)");
+  });
+
+  it("keeps primary interactions reachable and QR dialog inside the safe viewport", async () => {
+    const css = await readPublic("ticketing.css");
+
+    expect(css).toContain("min-height: var(--md-touch-target-min)");
+    expect(css).toContain("100dvh - var(--md-safe-top)");
+    expect(css).toContain("overflow-y: auto");
+    expect(css).toContain("overscroll-behavior: contain");
+    expect(css).toContain("overflow-wrap: anywhere");
+    expect(css).toContain(
+      'body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed',
+    );
+    expect(css).toContain(
+      "bottom: max(var(--md-space-3), var(--md-safe-bottom))",
+    );
+    expect(css).toContain("font-weight: var(--md-font-weight-bold)");
   });
 
   it("uses the formal V2 stacking scale and theme contract", async () => {

@@ -1,0 +1,244 @@
+name: UX V2 Component State Visual Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/ux-v2-component-state-visual-regression.yml"
+      - "apps/morro-digital-platform/public/design-system-v2.css"
+      - "apps/morro-digital-platform/public/premium-ux-v2.css"
+      - "apps/morro-digital-platform/src/ux/component-state-v2-contract.test.ts"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  component-state-v2:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Static component-state contract
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/component-state-v2-contract.test.ts
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/ux-v2-component-states
+      - name: Start static runtime
+        run: |
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/ux-v2-component-states/server.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS http://127.0.0.1:4173/apps/morro-digital-platform/public/design-system-v2.css >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/ux-v2-component-states/server.log
+          exit 1
+      - name: Capture shared primitive state matrix
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const origin = 'http://127.0.0.1:4173';
+          const outputDir = '/tmp/ux-v2-component-states';
+          const matrix = [
+            ['mobile', 390, 844],
+            ['tablet', 768, 1024],
+            ['desktop', 1440, 900],
+          ];
+          const evidence = [];
+
+          const fixture = theme => `<!doctype html>
+          <html lang="pt-BR" data-theme="${theme}" data-destination-theme="morro">
+            <head>
+              <meta charset="utf-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1">
+              <link rel="stylesheet" href="${origin}/apps/morro-digital-platform/public/design-system-v2.css">
+              <link rel="stylesheet" href="${origin}/apps/morro-digital-platform/public/premium-ux-v2.css">
+              <style>
+                body { margin: 0; padding: var(--md-space-6); font-family: var(--md-font-family-sans); background: var(--md-color-surface-canvas); color: var(--md-color-text-primary); }
+                #fixture { max-width: 60rem; margin: 0 auto; display: grid; gap: var(--md-space-6); }
+                .fixture-row { display: flex; flex-wrap: wrap; gap: var(--md-space-3); align-items: center; }
+                .fixture-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,14rem),1fr)); gap: var(--md-space-3); }
+                .fixture-card { padding: var(--md-space-5); }
+                .fixture-dialog { position: relative; margin: 0; padding: var(--md-space-5); }
+                .fixture-sheet { position: relative !important; inset: auto !important; display: flex; flex-direction: column; height: 16rem !important; padding: var(--md-space-4); }
+                .fixture-sheet-content { overflow: auto; }
+                @media (max-width: 30rem) { body { padding: var(--md-space-3); } }
+              </style>
+            </head>
+            <body>
+              <main id="fixture">
+                <section class="md-card fixture-card" aria-label="Button states">
+                  <h1>Component states</h1>
+                  <div class="fixture-row">
+                    <button id="button-default" class="md-button md-button--primary">Primary</button>
+                    <button class="md-button md-button--secondary">Secondary</button>
+                    <button class="md-button md-button--destructive">Destructive</button>
+                    <button id="button-disabled" class="md-button md-button--primary" disabled>Disabled</button>
+                    <button id="button-loading" class="md-button md-button--primary" aria-busy="true">Loading</button>
+                    <button id="icon-button" class="md-icon-button" aria-label="Favoritar" aria-pressed="true">★</button>
+                  </div>
+                </section>
+                <section class="md-card fixture-card">
+                  <div class="fixture-fields">
+                    <label>Default<input id="input-default" class="md-input" value="Morro Digital"></label>
+                    <label>Error<input id="input-error" class="md-input" aria-invalid="true" value="Corrija este valor"></label>
+                    <label>Disabled<input id="input-disabled" class="md-input" disabled value="Indisponível"></label>
+                    <label>Select<select id="select-default" class="md-select"><option>Morro de São Paulo</option></select></label>
+                    <label>Select disabled<select id="select-disabled" class="md-select" disabled><option>Itacaré</option></select></label>
+                  </div>
+                </section>
+                <section class="md-card fixture-card">
+                  <h2>Card</h2><p>Shared V2 surface with semantic radius, border and elevation.</p>
+                  <span class="md-badge md-badge--success">Ready</span>
+                </section>
+                <dialog open class="md-dialog fixture-dialog">
+                  <h2>Dialog</h2><p>Safe shared dialog surface.</p>
+                  <button class="md-button md-button--secondary">Close</button>
+                </dialog>
+                <section class="md-bottom-sheet fixture-sheet" data-sheet-state="half">
+                  <div class="md-bottom-sheet-handle" aria-hidden="true"></div>
+                  <div class="md-bottom-sheet-content fixture-sheet-content">
+                    <h2>Bottom Sheet</h2><p>Half state with real V2 primitive.</p>
+                    <div class="md-skeleton" style="width:70%"></div>
+                  </div>
+                </section>
+              </main>
+            </body>
+          </html>`;
+
+          async function audit(page, label) {
+            const result = await page.evaluate(() => {
+              const root = document.documentElement;
+              const min = Number.parseFloat(getComputedStyle(root).getPropertyValue('--md-touch-target-min')) || 44;
+              const interactive = Array.from(document.querySelectorAll('button,input,select'))
+                .map(node => {
+                  const rect = node.getBoundingClientRect();
+                  return { id: node.id || node.getAttribute('aria-label'), width: rect.width, height: rect.height };
+                });
+              const loading = document.getElementById('button-loading');
+              const disabledInput = document.getElementById('input-disabled');
+              const busyBefore = loading ? getComputedStyle(loading, '::before') : null;
+              return {
+                min,
+                scrollWidth: root.scrollWidth,
+                clientWidth: root.clientWidth,
+                interactive,
+                busyContent: busyBefore?.content ?? null,
+                busyWidth: busyBefore?.width ?? null,
+                disabledOpacity: disabledInput ? getComputedStyle(disabledInput).opacity : null,
+                sheetState: document.querySelector('.md-bottom-sheet')?.getAttribute('data-sheet-state') ?? null,
+              };
+            });
+            if (result.scrollWidth > result.clientWidth + 1) throw new Error(label + ' overflow: ' + JSON.stringify(result));
+            const undersized = result.interactive.filter(item => item.width + 0.5 < result.min || item.height + 0.5 < result.min);
+            if (undersized.length) throw new Error(label + ' undersized targets: ' + JSON.stringify(undersized));
+            if (!result.busyContent || result.busyContent === 'none' || result.busyWidth === 'auto') {
+              throw new Error(label + ' loading indicator is not visually materialized: ' + JSON.stringify(result));
+            }
+            if (!(Number.parseFloat(result.disabledOpacity) < 1)) throw new Error(label + ' disabled input lacks visual state');
+            if (result.sheetState !== 'half') throw new Error(label + ' Bottom Sheet state drift');
+            return result;
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              for (const [name,width,height] of matrix) {
+                const context = await browser.newContext({ viewport: { width, height } });
+                const page = await context.newPage();
+                await page.setContent(fixture('light'), { waitUntil: 'networkidle' });
+                const base = await audit(page, name);
+                await page.screenshot({ path: `${outputDir}/${name}-default.png`, fullPage: true, animations: 'disabled' });
+
+                await page.locator('#button-default').hover();
+                await page.screenshot({ path: `${outputDir}/${name}-hover.png`, fullPage: true, animations: 'disabled' });
+
+                await page.locator('#input-default').focus();
+                await page.keyboard.press('Tab');
+                await page.keyboard.press('Shift+Tab');
+                await page.screenshot({ path: `${outputDir}/${name}-focus.png`, fullPage: true, animations: 'disabled' });
+
+                await page.evaluate(() => { document.querySelector('.md-bottom-sheet')?.setAttribute('data-sheet-state','peek'); });
+                await page.screenshot({ path: `${outputDir}/${name}-sheet-peek.png`, fullPage: true, animations: 'disabled' });
+                await page.evaluate(() => { document.querySelector('.md-bottom-sheet')?.setAttribute('data-sheet-state','full'); });
+                await page.screenshot({ path: `${outputDir}/${name}-sheet-full.png`, fullPage: true, animations: 'disabled' });
+
+                evidence.push({ name, base });
+                await context.close();
+              }
+
+              const dark = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const darkPage = await dark.newPage();
+              await darkPage.setContent(fixture('dark'), { waitUntil: 'networkidle' });
+              await audit(darkPage, 'dark');
+              await darkPage.screenshot({ path: outputDir + '/mobile-dark.png', fullPage: true, animations: 'disabled' });
+              await dark.close();
+
+              const forced = await browser.newContext({ viewport: { width: 390, height: 844 }, forcedColors: 'active' });
+              const forcedPage = await forced.newPage();
+              await forcedPage.setContent(fixture('light'), { waitUntil: 'networkidle' });
+              await audit(forcedPage, 'forced-colors');
+              await forcedPage.screenshot({ path: outputDir + '/mobile-forced-colors.png', fullPage: true, animations: 'disabled' });
+              await forced.close();
+
+              const text200 = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const textPage = await text200.newPage();
+              await textPage.setContent(fixture('light'), { waitUntil: 'networkidle' });
+              await textPage.addStyleTag({ content: 'html { font-size: 200% !important; }' });
+              await audit(textPage, 'text-200');
+              await textPage.screenshot({ path: outputDir + '/mobile-text-200.png', fullPage: true, animations: 'disabled' });
+              await text200.close();
+
+              const reduced = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+              const reducedPage = await reduced.newPage();
+              await reducedPage.setContent(fixture('light'), { waitUntil: 'networkidle' });
+              const motion = await reducedPage.locator('#button-loading').evaluate(node => getComputedStyle(node, '::before').animationDuration);
+              const ms = motion.endsWith('ms') ? Number.parseFloat(motion) : Number.parseFloat(motion) * 1000;
+              if (ms > 0.02) throw new Error('Reduced motion did not collapse loading animation: ' + motion);
+              await reducedPage.screenshot({ path: outputDir + '/mobile-reduced-motion.png', fullPage: true, animations: 'disabled' });
+              evidence.push({ reducedMotionDuration: motion });
+              await reduced.close();
+
+              writeFileSync(outputDir + '/evidence.json', JSON.stringify(evidence, null, 2));
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            writeFileSync(outputDir + '/failure.txt', String(error?.stack || error));
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/ux-v2-component-states/failure.txt || true
+          cat /tmp/ux-v2-component-states/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ux-v2-component-state-evidence
+          path: /tmp/ux-v2-component-states
+          retention-days: 7
+          if-no-files-found: error

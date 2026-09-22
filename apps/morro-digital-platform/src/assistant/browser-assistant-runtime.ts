@@ -157,6 +157,19 @@ function readRuntimeAction(response: AssistantDialogResponse): string | null {
   return typeof metadata.action === "string" ? metadata.action : null;
 }
 
+function readPlaceOwnedActionValues(document: Document): readonly string[] {
+  const sheet = document.getElementById("place-bottom-sheet");
+  if (!(sheet instanceof HTMLElement) || !sheet.dataset.placeName) return [];
+  return Object.freeze(
+    Array.from(
+      sheet.querySelectorAll<HTMLElement>(
+        ".place-bottom-sheet-action[data-value], .place-bottom-sheet-primary-action[data-value]",
+      ),
+      (node) => node.dataset.value?.trim() ?? "",
+    ).filter(Boolean),
+  );
+}
+
 function isUnknownArray(value: unknown): value is readonly unknown[] {
   return Array.isArray(value);
 }
@@ -202,6 +215,7 @@ function readDeterministicExploreCommands(
     if (
       type === "show_all" ||
       type === "show_nearby" ||
+      type === "back_from_place" ||
       type === "back_to_filters" ||
       type === "back_to_menu"
     ) {
@@ -214,6 +228,67 @@ function readDeterministicExploreCommands(
       typeof raw.place === "string"
     ) {
       commands.push({ type, place: raw.place });
+      continue;
+    }
+    if (
+      type === "show_search_results" &&
+      "query" in raw &&
+      typeof raw.query === "string" &&
+      "results" in raw &&
+      Array.isArray(raw.results)
+    ) {
+      const results = raw.results.flatMap((candidate) => {
+        if (!candidate || typeof candidate !== "object") return [];
+        const item = candidate as Record<string, unknown>;
+        if (
+          typeof item.name !== "string" ||
+          typeof item.category !== "string" ||
+          typeof item.latitude !== "number" ||
+          !Number.isFinite(item.latitude) ||
+          typeof item.longitude !== "number" ||
+          !Number.isFinite(item.longitude) ||
+          (item.source !== "local" && item.source !== "mapbox") ||
+          (item.area !== undefined && typeof item.area !== "string") ||
+          (item.description !== undefined &&
+            typeof item.description !== "string")
+        ) {
+          return [];
+        }
+        return [
+          Object.freeze({
+            name: item.name,
+            category: item.category,
+            latitude: item.latitude,
+            longitude: item.longitude,
+            ...(typeof item.area === "string" ? { area: item.area } : {}),
+            ...(typeof item.description === "string"
+              ? { description: item.description }
+              : {}),
+            source: item.source,
+          }),
+        ];
+      });
+      if (results.length !== raw.results.length) return [];
+      const status =
+        "status" in raw &&
+        (raw.status === "ready" ||
+          raw.status === "empty" ||
+          raw.status === "error")
+          ? raw.status
+          : results.length === 0
+            ? "empty"
+            : "ready";
+      const statusText =
+        "statusText" in raw && typeof raw.statusText === "string"
+          ? raw.statusText
+          : undefined;
+      commands.push({
+        type,
+        query: raw.query,
+        status,
+        ...(statusText ? { statusText } : {}),
+        results: Object.freeze(results),
+      });
       continue;
     }
     return [];
@@ -449,7 +524,8 @@ function readVisiblePresentation(
 function readOptionOverride(
   value: unknown,
 ): readonly AssistantDomOption[] | null {
-  if (!Array.isArray(value) || value.length === 0) return null;
+  if (!Array.isArray(value)) return null;
+  if (value.length === 0) return Object.freeze([]);
   const options: readonly unknown[] = value;
   const result: AssistantDomOption[] = [];
   for (const option of options) {
@@ -846,6 +922,7 @@ export function installBrowserAssistantRuntime(
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
     source: AssistantInputSource = "programmatic",
+    suppressOptionValues: readonly string[] = [],
   ): Promise<AssistantDialogResponse> => {
     const submittedValue = rawInput.trim();
     if (!submittedValue) return { text: "Como posso ajudar?" };
@@ -961,7 +1038,13 @@ export function installBrowserAssistantRuntime(
 
       const response = placeAction.response;
       appendStandardMessage("assistant", response.text);
-      const responseOptions = readAssistantResponseOptions(response);
+      const suppressedValues = new Set([
+        ...suppressOptionValues.map((item) => item.trim()).filter(Boolean),
+        ...readPlaceOwnedActionValues(options.document),
+      ]);
+      const responseOptions = readAssistantResponseOptions(response).filter(
+        (option) => !suppressedValues.has(option.value),
+      );
       if (responseOptions.length > 0) {
         renderAssistantDomOptions(options.document, responseOptions);
       }
@@ -1101,8 +1184,15 @@ export function installBrowserAssistantRuntime(
     if (destroyed || generation !== requestGeneration) return response;
 
     appendStandardMessage("assistant", response.text);
-    const responseOptions =
+    const suppressedValues = new Set([
+      ...suppressOptionValues.map((value) => value.trim()).filter(Boolean),
+      ...readPlaceOwnedActionValues(options.document),
+    ]);
+    const rawResponseOptions =
       optionOverride ?? readAssistantResponseOptions(response);
+    const responseOptions = rawResponseOptions.filter(
+      (option) => !suppressedValues.has(option.value),
+    );
     const photoPresentation = readPhotoPresentation(response);
     const photoResponse = isPhotoResponse(response);
 
@@ -1111,12 +1201,17 @@ export function installBrowserAssistantRuntime(
     }
 
     if (photoResponse) {
-      if (previousPresentation && previousPresentation.options.length > 0) {
-        renderPhotoActionOptions(
-          options.document,
-          previousPresentation.options,
-        );
-        currentPresentation = previousPresentation;
+      const previousOptions =
+        preservePreviousOptions && previousPresentation
+          ? previousPresentation.options.filter(
+              (option) => !suppressedValues.has(option.value),
+            )
+          : [];
+      const photoOptions =
+        responseOptions.length > 0 ? responseOptions : previousOptions;
+      if (photoOptions.length > 0) {
+        renderPhotoActionOptions(options.document, photoOptions);
+        currentPresentation = snapshotPresentation(response.text, photoOptions);
       } else {
         currentPresentation = snapshotPresentation(response.text, []);
       }
@@ -1185,6 +1280,7 @@ export function installBrowserAssistantRuntime(
     optionOverride?: readonly AssistantDomOption[],
     preservePreviousOptions = false,
     source: AssistantInputSource = "programmatic",
+    suppressOptionValues: readonly string[] = [],
   ): Promise<AssistantDialogResponse> => {
     if (!rawInput.trim()) {
       return processInputTurn(
@@ -1192,6 +1288,7 @@ export function installBrowserAssistantRuntime(
         optionOverride,
         preservePreviousOptions,
         source,
+        suppressOptionValues,
       );
     }
 
@@ -1202,6 +1299,7 @@ export function installBrowserAssistantRuntime(
         optionOverride,
         preservePreviousOptions,
         source,
+        suppressOptionValues,
       );
       dispatchAssistantUiState(
         options.document,
@@ -1270,15 +1368,22 @@ export function installBrowserAssistantRuntime(
     const detail = event.detail as {
       value?: unknown;
       optionsOverride?: unknown;
+      suppressOptionValues?: unknown;
     } | null;
     const value = typeof detail?.value === "string" ? detail.value : "";
     if (!value) return;
     const optionOverride = readOptionOverride(detail?.optionsOverride);
+    const suppressOptionValues = Array.isArray(detail?.suppressOptionValues)
+      ? detail.suppressOptionValues.filter(
+          (candidate): candidate is string => typeof candidate === "string",
+        )
+      : [];
     void processInput(
       value,
       optionOverride ?? undefined,
-      value.trim().toLowerCase() === "ver fotos",
+      value.trim().toLowerCase() === "ver fotos" && optionOverride === null,
       "option",
+      suppressOptionValues,
     );
   };
   const onVoiceClick = (): void => {
