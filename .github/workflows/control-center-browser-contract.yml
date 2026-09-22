@@ -248,10 +248,10 @@ jobs:
               evidence.business360 = true;
 
               await page.locator('#global-search').fill('business-owner@example.com');
-              await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
-              if (!(await page.locator('#search-results').textContent()).includes('business-owner@example.com')) {
-                throw new Error('Universal search did not find business owner');
-              }
+              await page
+                .locator('#search-results')
+                .getByText('business-owner@example.com', { exact: false })
+                .waitFor({ state: 'visible', timeout: 10000 });
               if ((await page.locator('#search-results [role="group"]').count()) < 1) {
                 throw new Error('Universal search did not group results by type');
               }
@@ -344,7 +344,12 @@ jobs:
               });
 
               await page.locator('#global-search').fill('xss-probe');
-              await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
+              await page
+                .locator('#search-results')
+                .getByText('<img src=x onerror=globalThis.__searchXss=1>', {
+                  exact: false,
+                })
+                .waitFor({ state: 'visible', timeout: 10000 });
               if ((await page.locator('#search-results img').count()) !== 0) {
                 throw new Error('Universal search rendered injected HTML');
               }
