@@ -148,6 +148,15 @@ services:
       - key: DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED
         value: "false"
 
+      # Optional additive bootstrap for an operator-owned staging PLATFORM_OWNER.
+      # Values are supplied directly in Render and never committed to Git.
+      - key: STAGING_CONTROL_CENTER_OWNER_ENABLED
+        sync: false
+      - key: STAGING_CONTROL_CENTER_OWNER_EMAIL
+        sync: false
+      - key: STAGING_CONTROL_CENTER_OWNER_PASSWORD
+        sync: false
+
       - key: PLATFORM_SHUTDOWN_READINESS_DELAY_MS
         value: "5000"
       - key: PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS
