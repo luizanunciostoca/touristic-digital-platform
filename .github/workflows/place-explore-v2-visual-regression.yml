@@ -434,16 +434,25 @@ jobs:
                   '#map[data-explore-stage="detail"][data-explore-place="Primeira Praia"][data-map-marker-count="1"]',
                 ).waitFor({ state: 'attached', timeout: 10000 });
 
-                await page.waitForFunction(() => {
-                  const image = document.querySelector(
-                    '#place-bottom-sheet .place-bottom-sheet-image',
+                const placeHero = page.locator(
+                  '#place-bottom-sheet .place-bottom-sheet-image',
+                );
+                await placeHero.waitFor({ state: 'attached', timeout: 10000 });
+                const heroDeadline = Date.now() + 10000;
+                let heroReady = false;
+                while (Date.now() < heroDeadline) {
+                  heroReady = await placeHero.evaluate(image =>
+                    image instanceof HTMLImageElement &&
+                    Boolean(image.src) &&
+                    image.complete &&
+                    image.naturalWidth > 0,
                   );
-                  return (
-                    !(image instanceof HTMLImageElement) ||
-                    !image.src ||
-                    (image.complete && image.naturalWidth > 0)
-                  );
-                }, { timeout: 10000 });
+                  if (heroReady) break;
+                  await page.waitForTimeout(100);
+                }
+                if (!heroReady) {
+                  throw new Error('Place hero image did not become ready within 10s');
+                }
 
                 const placeState = await place.evaluate(sheet => {
                   const image = sheet.querySelector('.place-bottom-sheet-image');
