@@ -295,7 +295,7 @@ jobs:
           }
 
           async function readyCase(browser, viewport, suffix, mutate) {
-            const context = await browser.newContext({ viewport });
+            const context = await browser.newContext({ viewport, locale: 'pt-BR' });
             const page = await context.newPage();
             const errors = [];
             page.on('pageerror', error => errors.push(error.message));
@@ -407,6 +407,7 @@ jobs:
 
               const reducedContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
                 reducedMotion: 'reduce',
               });
               const reducedPage = await reducedContext.newPage();
@@ -428,6 +429,7 @@ jobs:
 
               const forcedContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
                 forcedColors: 'active',
               });
               const forcedPage = await forcedContext.newPage();
@@ -443,7 +445,7 @@ jobs:
               evidence.push({ case: 'forced-colors-390x844', contract: forcedContract });
               await forcedContext.close();
 
-              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const loadingPage = await loadingContext.newPage();
               await installRoutes(loadingPage, { delay: 1500 });
               await loadingPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
@@ -458,7 +460,7 @@ jobs:
               });
               await loadingContext.close();
 
-              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const emptyPage = await emptyContext.newPage();
               await installRoutes(emptyPage, { empty: true });
               await emptyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
@@ -472,7 +474,7 @@ jobs:
               });
               await emptyContext.close();
 
-              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const errorPage = await errorContext.newPage();
               await installRoutes(errorPage, { error: true });
               await errorPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
@@ -491,7 +493,7 @@ jobs:
               });
               await errorContext.close();
 
-              const transactionalContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const transactionalContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const transactionalPage = await transactionalContext.newPage();
               const transactionalState = {};
               await installRoutes(transactionalPage, transactionalState);
@@ -557,7 +559,7 @@ jobs:
               });
               await transactionalContext.close();
 
-              const reservationRetryContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const reservationRetryContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const reservationRetryPage = await reservationRetryContext.newPage();
               const reservationRetryState = {
                 reservationError: 'TICKETING_UNAVAILABLE',
@@ -596,7 +598,7 @@ jobs:
               });
               await reservationRetryContext.close();
 
-              const providerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const providerContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const providerPage = await providerContext.newPage();
               const providerState = { providerFail: true };
               await installRoutes(providerPage, providerState);
@@ -631,7 +633,7 @@ jobs:
               });
               await providerContext.close();
 
-              const privacyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const privacyContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const privacyPage = await privacyContext.newPage();
               await installRoutes(privacyPage, {});
               await privacyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
@@ -642,7 +644,7 @@ jobs:
               evidence.push({ case: 'privacy-inline-access-390x844', floatingTriggerVisible: false });
               await privacyContext.close();
 
-              const stockContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const stockContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'pt-BR' });
               const stockPage = await stockContext.newPage();
               const soldOut = { ...offer, id: 'mpi_v2_visual_sold_out', startsAt: iso(4 * 86400000), endsAt: iso(4 * 86400000 + 3600000), availableQuantity: 0 };
               const unavailable = { ...offer, id: 'mpi_v2_visual_unavailable', startsAt: iso(5 * 86400000), endsAt: iso(5 * 86400000 + 3600000), sellable: false };
@@ -664,6 +666,7 @@ jobs:
 
               const terminalWalletContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
               });
               const terminalWalletPage = await terminalWalletContext.newPage();
               const expiredReservation = {
@@ -713,7 +716,7 @@ jobs:
               });
               await terminalWalletContext.close();
 
-              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
+              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 }, locale: 'pt-BR' });
               const dialogPage = await dialogContext.newPage();
               await installRoutes(dialogPage, {});
               await dialogPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
