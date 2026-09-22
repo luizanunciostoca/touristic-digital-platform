@@ -17,7 +17,7 @@ on:
       - "services/destinations/**"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: control-center-home-overview-v1-${{ github.event.pull_request.number || github.ref }}
@@ -42,8 +42,6 @@ jobs:
           --health-retries=20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         with:
           version: 10.15.0
@@ -52,25 +50,6 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Fix model import and format Wave 2
-        shell: bash
-        run: |
-          set -euo pipefail
-          sed -i 's#from "../public/control-center-home-overview-v1.js"#from "../../control-center/public/control-center-home-overview-v1.js"#' apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.test.mjs
-          pnpm exec prettier --write             apps/control-center/public/control-center-home-overview-v1.js             apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts             apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.test.mjs             apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs
-      - name: Commit deterministic Wave 2 fixes
-        shell: bash
-        run: |
-          set -euo pipefail
-          git add             apps/control-center/public/control-center-home-overview-v1.js             apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts             apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.test.mjs             apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs
-          if git diff --cached --quiet; then
-            echo "No deterministic fixes pending."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(control-center): format Wave 2 and repair model import"
-          git push origin HEAD:wave/control-center-home-overview-v1-20260922
       - name: Check Wave 2 formatting
         run: >
           pnpm exec prettier --check
@@ -125,10 +104,6 @@ jobs:
           path: |
             /tmp/control-center-home-overview-v1-evidence.json
             /tmp/control-center-home-overview-v1-*.png
-            apps/control-center/public/control-center-home-overview-v1.js
-            apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts
-            apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.test.mjs
-            apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs
           retention-days: 5
           if-no-files-found: ignore
       - name: Stop runtime
