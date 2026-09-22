@@ -80,14 +80,13 @@ describe("Assistant Modal V2 contract", () => {
   it("uses semantic Design System V2 layers, motion and accessibility media contracts", async () => {
     const css = await readPublic("assistant-v2.css");
 
-    expect(css).toContain("var(--md-layer-dialog)");
-    expect(css).toContain("var(--md-layer-dock)");
     expect(css).toContain("var(--md-font-family-sans)");
     expect(css).toContain("var(--md-touch-target-min)");
     expect(css).toContain("var(--md-motion-duration-normal)");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).not.toContain("transition: all");
+    expect(css).not.toContain("position: fixed");
     expect(css).not.toMatch(/z-index:\s*\d{3,}/u);
   });
 
