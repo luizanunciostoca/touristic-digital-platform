@@ -152,7 +152,7 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-compact" role="group" aria-label="Assistant composer" data-home-assistant-entry="compact" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent" role="group" aria-label="Assistant composer" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
         <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
