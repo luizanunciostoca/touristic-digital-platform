@@ -58,7 +58,12 @@ jobs:
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
-        run: pnpm format:check
+        run: |
+          pnpm format:check || {
+            pnpm exec prettier --write apps/morro-digital-platform/public/premium-ux-v2.css
+            git diff -- apps/morro-digital-platform/public/premium-ux-v2.css
+            exit 1
+          }
       - name: Enforce Stylelint V2 CSS governance
         run: pnpm css:stylelint
       - name: Check architecture boundaries
