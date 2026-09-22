@@ -84,13 +84,6 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
   },
 });
 
-const stateGlyph: Readonly<Record<ExploreFlowBottomSheetState, string>> =
-  Object.freeze({
-    peek: "⌄",
-    half: "—",
-    full: "⌃",
-  });
-
 function languageKey(document: Document): string {
   const raw = document.documentElement.lang.trim().toLowerCase();
   if (raw.startsWith("en")) return "en";
@@ -106,6 +99,14 @@ function currentCopy(document: Document): SheetCopy {
 function isPrimaryTourAction(value: string): boolean {
   return ["__tour_start__", "__tour_next__", "__tour_finish__"].includes(value);
 }
+
+const stateGlyph: Readonly<Record<ExploreFlowBottomSheetState, string>> =
+  Object.freeze({
+    peek: "⌄",
+    half: "—",
+    full: "⌃",
+  });
+
 function createStateButton(
   document: Document,
   state: ExploreFlowBottomSheetState,
@@ -118,6 +119,24 @@ function createStateButton(
   button.setAttribute("aria-label", copy.states[state]);
   button.title = copy.states[state];
   button.textContent = stateGlyph[state];
+  return button;
+}
+
+function createStepButton(
+  document: Document,
+  direction: "up" | "down",
+  copy: SheetCopy,
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "md-icon-button explore-flow-sheet-state-button";
+  button.dataset.sheetStep = direction;
+  button.setAttribute(
+    "aria-label",
+    direction === "up" ? copy.states.full : copy.states.peek,
+  );
+  button.title = direction === "up" ? copy.states.full : copy.states.peek;
+  button.textContent = direction === "up" ? "⌃" : "⌄";
   return button;
 }
 
@@ -221,13 +240,23 @@ export function installExploreFlowBottomSheet({
     if (destroyed) return;
     state = nextState;
     sheet.dataset.sheetState = nextState;
+    const order: readonly ExploreFlowBottomSheetState[] = [
+      "peek",
+      "half",
+      "full",
+    ];
+    const current = order.indexOf(nextState);
     for (const child of Array.from(stateControls.children)) {
       if (!(child instanceof HTMLButtonElement)) continue;
-      if (!child.dataset.sheetStateTarget) continue;
-      child.setAttribute(
-        "aria-pressed",
-        String(child.dataset.sheetStateTarget === nextState),
-      );
+      const direction = child.dataset.sheetStep;
+      if (direction === "down") child.disabled = current <= 0;
+      if (direction === "up") child.disabled = current >= order.length - 1;
+      const target = child.dataset.sheetStateTarget as
+        ExploreFlowBottomSheetState | undefined;
+      if (target) {
+        child.disabled = false;
+        child.setAttribute("aria-pressed", String(target === nextState));
+      }
     }
   };
 
@@ -264,13 +293,21 @@ export function installExploreFlowBottomSheet({
     dragPointerId = null;
   });
 
-  const rebuildStateControls = (): void => {
+  const rebuildStateControls = (kind: ExploreFlowBottomSheetKind): void => {
     const copy = currentCopy(document);
     stateControls.replaceChildren();
-    for (const target of ["peek", "half", "full"] as const) {
-      const button = createStateButton(document, target, copy);
-      button.addEventListener("click", () => setState(target));
-      stateControls.appendChild(button);
+    if (kind === "tour") {
+      for (const target of ["peek", "half", "full"] as const) {
+        const button = createStateButton(document, target, copy);
+        button.addEventListener("click", () => setState(target));
+        stateControls.appendChild(button);
+      }
+    } else {
+      for (const direction of ["down", "up"] as const) {
+        const button = createStepButton(document, direction, copy);
+        button.addEventListener("click", () => dragStep(direction));
+        stateControls.appendChild(button);
+      }
     }
     close.setAttribute("aria-label", copy.close);
     close.title = copy.close;
@@ -287,8 +324,8 @@ export function installExploreFlowBottomSheet({
       );
       compatibilityMessageSource.setAttribute("aria-hidden", "true");
     }
-    rebuildStateControls();
     activeKind = presentation.kind;
+    rebuildStateControls(presentation.kind);
     sheet.dataset.flowKind = presentation.kind;
     heading.textContent = presentation.accessibleLabel;
     setStatus(presentation.status ?? "ready", presentation.statusText);

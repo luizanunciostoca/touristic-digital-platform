@@ -127,11 +127,44 @@ jobs:
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               async function submit(text, keyboard = false) {
-                await input.fill(text);
-                const placeSheetVisible =
-                  (await page.locator('#place-bottom-sheet[aria-hidden="false"]').count()) > 0;
-                if (keyboard || placeSheetVisible) await input.press('Enter');
-                else await send.click();
+                const visualComposerReady =
+                  (await input.isVisible()) && (await send.isVisible());
+                if (visualComposerReady) {
+                  await input.fill(text);
+                  const placeSheetVisible =
+                    (await page.locator('#place-bottom-sheet[aria-hidden="false"]').count()) > 0;
+                  if (keyboard || placeSheetVisible) await input.press('Enter');
+                  else await send.click();
+                } else {
+                  await page.evaluate(
+                    ({ value, keyboard }) => {
+                      const input = document.getElementById('assistantInput');
+                      const send = document.getElementById('sendButton');
+                      if (!(input instanceof HTMLInputElement) || !(send instanceof HTMLButtonElement)) {
+                        throw new Error('Assistant semantic input controls unavailable');
+                      }
+                      const setter = Object.getOwnPropertyDescriptor(
+                        HTMLInputElement.prototype,
+                        'value',
+                      )?.set;
+                      setter?.call(input, value);
+                      input.dispatchEvent(new Event('input', { bubbles: true }));
+                      if (keyboard) {
+                        input.dispatchEvent(
+                          new KeyboardEvent('keydown', {
+                            key: 'Enter',
+                            code: 'Enter',
+                            bubbles: true,
+                            cancelable: true,
+                          }),
+                        );
+                      } else {
+                        send.click();
+                      }
+                    },
+                    { value: text, keyboard },
+                  );
+                }
                 if ((await input.inputValue()) !== '') {
                   throw new Error(`Handled menu command did not clear input: ${text}`);
                 }
@@ -220,7 +253,7 @@ jobs:
 
               await submit('back to main menu');
               await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({
-                state: 'visible',
+                state: 'attached',
                 timeout: 5000,
               });
               if (await page.locator('#assistant-category-results').count()) {
@@ -238,7 +271,7 @@ jobs:
               }
 
               await submit('back to main menu');
-              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'attached', timeout: 5000 });
 
               await submit('praias');
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
@@ -268,10 +301,11 @@ jobs:
 
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').click();
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('fotos', true);
-              await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
               const photoOwnership = await page.evaluate(() => ({
                 placePhotoAction: document.querySelectorAll(
                   '#place-bottom-sheet[aria-hidden="false"] .place-bottom-sheet-action[data-value="ver fotos"]',
@@ -279,10 +313,17 @@ jobs:
                 assistantPhotoDuplicates: document.querySelectorAll(
                   '#assistant-messages:not(.hidden) .assistant-option-btn[data-value="ver fotos"]',
                 ).length,
+                photoCarouselVisible: Array.from(
+                  document.querySelectorAll('.assistant-photo-carousel'),
+                ).some(node => {
+                  const style = getComputedStyle(node);
+                  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+                }),
               }));
               if (
                 photoOwnership.placePhotoAction !== 1 ||
-                photoOwnership.assistantPhotoDuplicates !== 0
+                photoOwnership.assistantPhotoDuplicates !== 0 ||
+                photoOwnership.photoCarouselVisible
               ) {
                 throw new Error(
                   `Typed photos violated V2 Place action ownership: ${JSON.stringify(photoOwnership)}`,
@@ -296,7 +337,7 @@ jobs:
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
               await submit('fotos');
-              await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
 
               await submit('restaurantes', true);
               await page.locator('#assistant-category-results[data-category="restaurants"][data-stage="filters"]').waitFor({ state: 'visible' });

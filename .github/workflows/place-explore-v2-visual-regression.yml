@@ -6,9 +6,12 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - .github/workflows/place-explore-v2-visual-regression.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/map/**
       - apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts
+      - apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts
+      - tests/visual-regression/ux-v2-manual-conformance.json
       - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/public/explore-locations.css
@@ -364,10 +367,10 @@ jobs:
                   });
                   await page.emulateMedia({ forcedColors: 'none' });
 
-                  const fullControl = explore.locator(
-                    '[data-sheet-state-target="full"]',
+                  const expandControl = explore.locator(
+                    '[data-sheet-step="up"]',
                   );
-                  await fullControl.focus();
+                  await expandControl.focus();
                   await page.keyboard.press('Enter');
                   await page.locator(
                     '#explore-flow-bottom-sheet[data-sheet-state="full"]',
@@ -391,6 +394,31 @@ jobs:
                   '#explore-flow-bottom-sheet [data-location-name="Primeira Praia"]',
                 );
                 await result.waitFor({ state: 'visible', timeout: 5000 });
+                const resultGeometry = await result.evaluate(node => {
+                  const rect = node.getBoundingClientRect();
+                  const source = node.closest('.explore-flow-sheet-source');
+                  const sourceRect = source?.getBoundingClientRect();
+                  const style = getComputedStyle(node);
+                  return {
+                    width: rect.width,
+                    sourceWidth: sourceRect?.width ?? null,
+                    wordBreak: style.wordBreak,
+                    overflowWrap: style.overflowWrap,
+                  };
+                });
+                if (
+                  viewport.width <= 430 &&
+                  (
+                    resultGeometry.sourceWidth === null ||
+                    resultGeometry.width < resultGeometry.sourceWidth * 0.92 ||
+                    resultGeometry.wordBreak === 'break-all' ||
+                    resultGeometry.overflowWrap === 'anywhere'
+                  )
+                ) {
+                  throw new Error(
+                    `MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY on ${viewport.id}: ${JSON.stringify(resultGeometry)}`,
+                  );
+                }
                 if (viewport.id === 'w390') {
                   await result.focus();
                   await page.keyboard.press('Enter');
@@ -406,14 +434,47 @@ jobs:
                   '#map[data-explore-stage="detail"][data-explore-place="Primeira Praia"][data-map-marker-count="1"]',
                 ).waitFor({ state: 'attached', timeout: 10000 });
 
+                const placeHero = page.locator(
+                  '#place-bottom-sheet .place-bottom-sheet-image',
+                );
+                await placeHero.waitFor({ state: 'attached', timeout: 10000 });
+                const heroDeadline = Date.now() + 10000;
+                let heroReady = false;
+                while (Date.now() < heroDeadline) {
+                  heroReady = await placeHero.evaluate(image =>
+                    image instanceof HTMLImageElement &&
+                    Boolean(image.src) &&
+                    image.complete &&
+                    image.naturalWidth > 0,
+                  );
+                  if (heroReady) break;
+                  await page.waitForTimeout(100);
+                }
+                if (!heroReady) {
+                  throw new Error('Place hero image did not become ready within 10s');
+                }
+
                 const placeState = await place.evaluate(sheet => {
                   const image = sheet.querySelector('.place-bottom-sheet-image');
-                  const buttons = Array.from(sheet.querySelectorAll('button'));
-                  const values = Array.from(
-                    sheet.querySelectorAll('.place-bottom-sheet-action'),
+                  const buttons = Array.from(
+                    sheet.querySelectorAll('button, summary'),
+                  );
+                  const visibleValues = Array.from(
+                    sheet.querySelectorAll('.place-bottom-sheet-actions .place-bottom-sheet-action'),
                     button => button.getAttribute('data-value'),
                   );
+                  const overflowValues = Array.from(
+                    sheet.querySelectorAll('.place-bottom-sheet-overflow-actions .place-bottom-sheet-action'),
+                    button => button.getAttribute('data-value'),
+                  );
+                  const values = [...visibleValues, ...overflowValues];
                   const rating = sheet.querySelector('.place-bottom-sheet-rating');
+                  const overflow = sheet.querySelector('.place-bottom-sheet-overflow');
+                  const primary = sheet.querySelector('.place-bottom-sheet-primary-action');
+                  const composer = document.getElementById('assistant-input-area');
+                  const privacy = document.querySelector(
+                    '.analytics-consent-preferences.is-collapsed',
+                  );
                   const visibleAssistantDuplicates = Array.from(
                     document.querySelectorAll(
                       '#assistant-messages:not(.hidden) .assistant-option-btn',
@@ -432,18 +493,52 @@ jobs:
                       image.complete &&
                       image.naturalWidth > 0,
                     values,
+                    visibleValues,
+                    overflowValues,
+                    overflowOpen: overflow instanceof HTMLDetailsElement ? overflow.open : null,
                     ratingHidden:
                       !rating ||
                       rating.classList.contains('hidden') ||
                       getComputedStyle(rating).display === 'none',
                     duplicatedAssistantActions: visibleAssistantDuplicates,
+                    primaryWidth:
+                      primary instanceof HTMLElement
+                        ? primary.getBoundingClientRect().width
+                        : null,
+                    composerOpacity:
+                      composer instanceof HTMLElement
+                        ? Number.parseFloat(getComputedStyle(composer).opacity)
+                        : null,
+                    composerOverlap:
+                      composer instanceof HTMLElement
+                        ? (() => {
+                            const composerStyle = getComputedStyle(composer);
+                            const composerVisible =
+                              composerStyle.display !== 'none' &&
+                              composerStyle.visibility !== 'hidden' &&
+                              Number.parseFloat(composerStyle.opacity || '1') > 0;
+                            if (!composerVisible) return false;
+                            const composerRect = composer.getBoundingClientRect();
+                            const sheetRect = sheet.getBoundingClientRect();
+                            return !(
+                              composerRect.right <= sheetRect.left ||
+                              composerRect.left >= sheetRect.right ||
+                              composerRect.bottom <= sheetRect.top ||
+                              composerRect.top >= sheetRect.bottom
+                            );
+                          })()
+                        : false,
+                    privacyVisible:
+                      privacy instanceof HTMLElement &&
+                      getComputedStyle(privacy).visibility !== 'hidden' &&
+                      getComputedStyle(privacy).opacity !== '0',
                     targets: buttons.map(button => {
                       const rect = button.getBoundingClientRect();
                       return { width: rect.width, height: rect.height };
                     }),
                   };
                 });
-                const requiredValues = [
+                const requiredValues = new Set([
                   'condições da praia',
                   'como chegar',
                   'ver fotos',
@@ -451,15 +546,25 @@ jobs:
                   'mais opções',
                   'adicionar aos favoritos',
                   'compartilhar',
-                ];
+                ]);
+                const actualValues = new Set(placeState.values.filter(Boolean));
                 if (
                   placeState.title !== 'Primeira Praia' ||
                   !placeState.meta ||
                   placeState.imagePath !== '/images/fotos/primeira_praia1.jpg' ||
                   !placeState.imageLoaded ||
-                  JSON.stringify(placeState.values) !== JSON.stringify(requiredValues) ||
+                  requiredValues.size !== actualValues.size ||
+                  [...requiredValues].some(value => !actualValues.has(value)) ||
+                  JSON.stringify(placeState.visibleValues) !==
+                    JSON.stringify(['como chegar', 'adicionar aos favoritos', 'compartilhar']) ||
+                  placeState.overflowValues.length !== 4 ||
+                  placeState.overflowOpen !== false ||
                   !placeState.ratingHidden ||
                   placeState.duplicatedAssistantActions.length !== 0 ||
+                  placeState.composerOpacity === null ||
+                  placeState.composerOpacity > 0.8 ||
+                  placeState.composerOverlap ||
+                  placeState.privacyVisible ||
                   placeState.targets.some(target => target.width < 44 || target.height < 44)
                 ) {
                   throw new Error(
@@ -467,8 +572,80 @@ jobs:
                   );
                 }
 
-                for (const state of ['peek', 'half', 'full']) {
-                  await place.locator(`[data-sheet-state-target="${state}"]`).click();
+                const initialPlaceState = await place.getAttribute('data-sheet-state');
+                const initialPlaceGeometry = await sheetGeometry(
+                  page,
+                  '#place-bottom-sheet',
+                );
+                if (
+                  initialPlaceState !== 'half' ||
+                  initialPlaceGeometry.rect.height > viewport.height * 0.62 ||
+                  initialPlaceGeometry.rect.top < viewport.height * 0.34
+                ) {
+                  throw new Error(
+                    `MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY on ${viewport.id}: ${JSON.stringify({ initialPlaceState, initialPlaceGeometry })}`,
+                  );
+                }
+                await page.screenshot({
+                  path: `/tmp/place-explore-v2/place-initial-${viewport.id}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+
+                let themeEvidence = null;
+                if (viewport.id === 'w390') {
+                  await page.evaluate(() => {
+                    document.documentElement.dataset.theme = 'dark';
+                  });
+                  const darkPresentation = await place.evaluate(node => {
+                    const style = getComputedStyle(node);
+                    return {
+                      backgroundColor: style.backgroundColor,
+                      color: style.color,
+                    };
+                  });
+                  if (
+                    !darkPresentation.backgroundColor ||
+                    darkPresentation.backgroundColor === 'rgba(0, 0, 0, 0)' ||
+                    darkPresentation.backgroundColor === darkPresentation.color
+                  ) {
+                    throw new Error(
+                      `Place dark theme lost readable surface: ${JSON.stringify(darkPresentation)}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/place-w390-dark.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.evaluate(() => {
+                    document.documentElement.dataset.theme = 'light';
+                  });
+
+                  await page.emulateMedia({ reducedMotion: 'reduce' });
+                  const reducedMotion = await place.evaluate(node => ({
+                    transitionDuration: getComputedStyle(node).transitionDuration,
+                  }));
+                  if (
+                    !reducedMotion.transitionDuration
+                      .split(',')
+                      .every(value => Number.parseFloat(value) <= 0.01)
+                  ) {
+                    throw new Error(
+                      `Place reduced-motion contract drift: ${JSON.stringify(reducedMotion)}`,
+                    );
+                  }
+                  await page.emulateMedia({ reducedMotion: 'no-preference' });
+                  themeEvidence = { darkPresentation, reducedMotion };
+                }
+
+                const stateSequence = [
+                  { step: 'down', state: 'peek' },
+                  { step: 'up', state: 'half' },
+                  { step: 'up', state: 'full' },
+                ];
+                for (const { step, state } of stateSequence) {
+                  await place.locator(`[data-sheet-step="${step}"]`).click();
                   await page.locator(
                     `#place-bottom-sheet[data-sheet-state="${state}"]`,
                   ).waitFor({ state: 'visible', timeout: 3000 });
@@ -485,7 +662,7 @@ jobs:
                   );
                 }
                 await page.screenshot({
-                  path: `/tmp/place-explore-v2/place-${viewport.id}.png`,
+                  path: `/tmp/place-explore-v2/place-full-${viewport.id}.png`,
                   fullPage: false,
                   animations: 'disabled',
                 });
@@ -687,7 +864,13 @@ jobs:
                     '#explore-flow-bottom-sheet[data-flow-kind="explore"]',
                   );
                   await filterSheet.waitFor({ state: 'visible', timeout: 8000 });
-                  await filterSheet.locator('[data-sheet-state-target="full"]').click();
+                  for (let step = 0; step < 2; step += 1) {
+                    if ((await filterSheet.getAttribute('data-sheet-state')) === 'full') break;
+                    await filterSheet.locator('[data-sheet-step="up"]:not(:disabled)').click();
+                  }
+                  if ((await filterSheet.getAttribute('data-sheet-state')) !== 'full') {
+                    throw new Error('Explore filter sheet did not reach full state');
+                  }
                   await filterSheet.locator('[data-value="surf"]').click();
                   await page.locator(
                     '#explore-flow-bottom-sheet[data-sheet-state="full"] [data-location-name]',
@@ -761,8 +944,11 @@ jobs:
                   viewport,
                   exploreGeometry,
                   mapGeometry,
+                  resultGeometry,
                   placeState,
+                  initialPlaceGeometry,
                   placeGeometry,
+                  themeEvidence,
                   perf,
                   special,
                 });
