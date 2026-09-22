@@ -382,11 +382,7 @@ export function createV1ImmersiveTourController(
       "tour-active-header",
     );
     if (stop.photoPath) {
-      const compactThumb = createElement(
-        document,
-        "img",
-        "tour-active-thumb",
-      );
+      const compactThumb = createElement(document, "img", "tour-active-thumb");
       compactThumb.src = stop.photoPath;
       compactThumb.alt = "";
       compactThumb.setAttribute("aria-hidden", "true");
@@ -443,19 +439,19 @@ export function createV1ImmersiveTourController(
       "tour-stop-progress-segments",
     );
     progressSegments.setAttribute("aria-hidden", "true");
-    progressSegments.style.gridTemplateColumns = `repeat(${tour.stops.length}, minmax(0, 1fr))`;
+    progressSegments.style.gridTemplateColumns =
+      `repeat(${tour.stops.length}, minmax(0, 1fr))`;
     tour.stops.forEach((_, index) => {
       const segment = createElement(
         document,
         "span",
-        `tour-stop-progress-segment${
-          index === state.currentStopIndex
-            ? " is-current"
-            : index < state.currentStopIndex
-              ? " is-complete"
-              : ""
-        }`,
+        "tour-stop-progress-segment",
       );
+      if (index === state.currentStopIndex) {
+        segment.classList.add("is-current");
+      } else if (index < state.currentStopIndex) {
+        segment.classList.add("is-complete");
+      }
       progressSegments.appendChild(segment);
     });
     card.appendChild(progressSegments);
