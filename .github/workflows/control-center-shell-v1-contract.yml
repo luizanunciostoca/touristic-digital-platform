@@ -62,6 +62,9 @@ jobs:
           set -euo pipefail
           FILES=(
             apps/control-center/public/control-center-shell-v1.css
+            apps/control-center/public/control-center-shell-v1.js
+            apps/control-center/public/index.html
+            apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts
             apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs
           )
           pnpm exec prettier --write "${FILES[@]}"
