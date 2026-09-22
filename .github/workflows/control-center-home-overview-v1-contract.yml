@@ -50,6 +50,13 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Format probe for Wave 2
+        run: >
+          pnpm exec prettier --write
+          apps/control-center/public/control-center-home-overview-v1.js
+          apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts
+          apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.test.mjs
+          apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs
       - name: Check Wave 2 formatting
         run: >
           pnpm exec prettier --check
@@ -104,6 +111,10 @@ jobs:
           path: |
             /tmp/control-center-home-overview-v1-evidence.json
             /tmp/control-center-home-overview-v1-*.png
+            apps/control-center/public/control-center-home-overview-v1.js
+            apps/morro-digital-platform/src/ux/control-center-home-overview-v1-contract.test.ts
+            apps/morro-digital-platform/tooling/control-center-home-overview-v1-model.test.mjs
+            apps/morro-digital-platform/tooling/control-center-home-overview-v1-browser-contract.cjs
           retention-days: 5
           if-no-files-found: ignore
       - name: Stop runtime
