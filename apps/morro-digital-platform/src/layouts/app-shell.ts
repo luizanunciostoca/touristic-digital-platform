@@ -79,9 +79,8 @@ function createAppShellMarkup(): string {
 
       <div
         id="assistant-messages"
-        class="assistant-modal md-assistant-dialog auto-size grow-upward hidden"
-        role="dialog"
-        aria-modal="false"
+        class="md-assistant-dialog md-assistant-message-region hidden"
+        role="region"
         aria-label="Morro Digital assistant"
         aria-hidden="true"
         aria-describedby="assistant-dialog-status"
