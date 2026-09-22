@@ -156,7 +156,9 @@ export function createUniversalSearchController({
 
     const summary = document.createElement("span");
     const from =
-      pagination.total === 0 ? 0 : Math.min(pagination.offset + 1, pagination.total);
+      pagination.total === 0
+        ? 0
+        : Math.min(pagination.offset + 1, pagination.total);
     const to = Math.min(
       pagination.offset + (payload.results?.length ?? 0),
       pagination.total,
