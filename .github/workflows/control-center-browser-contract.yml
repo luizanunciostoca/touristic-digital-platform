@@ -12,6 +12,7 @@ on:
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
       - "apps/morro-digital-platform/tooling/business-api.mjs"
       - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/auth/**"
       - "packages/auth-browser/**"
@@ -32,6 +33,7 @@ on:
       - "apps/morro-digital-platform/tooling/auth-api.mjs"
       - "apps/morro-digital-platform/tooling/business-api.mjs"
       - "apps/morro-digital-platform/tooling/crm-api.mjs"
+      - "apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/auth/**"
       - "packages/auth-browser/**"
@@ -106,7 +108,7 @@ jobs:
             {id:"auditor-1",email:"auditor@example.com",passwordHash:process.argv[4],role:"AUDITOR",businessIds:[]}
           ]))' "$OWNER_HASH" "$BUSINESS_HASH" "$SUPPORT_HASH" "$AUDITOR_HASH")
           DB_URL="mysql://root:control-center-ci@127.0.0.1:3306/control_center_ci"
-          DASHBOARD_AUTH_SECRET="$AUTH_SECRET"           DASHBOARD_USERS_JSON="$USERS"           AUTH_DATABASE_URL="$DB_URL"           CONTROL_CENTER_SUPPORT_SECRET="$SUPPORT_SECRET"           CONTROL_CENTER_STEP_UP_SECRET="$STEP_UP_SECRET"           CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL"           CRM_DATABASE_URL="$DB_URL"           PORT="$PORT" HOST="127.0.0.1"             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/control-center-server.log 2>&1 &
+          DASHBOARD_AUTH_SECRET="$AUTH_SECRET"           DASHBOARD_USERS_JSON="$USERS"           AUTH_DATABASE_URL="$DB_URL"           DESTINATIONS_DATABASE_URL="$DB_URL"           CONTROL_CENTER_SUPPORT_SECRET="$SUPPORT_SECRET"           CONTROL_CENTER_STEP_UP_SECRET="$STEP_UP_SECRET"           CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL"           CRM_DATABASE_URL="$DB_URL"           PORT="$PORT" HOST="127.0.0.1"             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/control-center-server.log 2>&1 &
           echo $! >/tmp/control-center-server.pid
           for _ in $(seq 1 100); do
             if curl --fail --silent "http://127.0.0.1:${PORT}/apps/control-center/public/index.html" >/dev/null; then
@@ -153,6 +155,7 @@ jobs:
             const evidence = {
               errors: [],
               viewports: [],
+              visualBaseline: [],
               negativeSecurity: [],
             };
 
@@ -190,7 +193,7 @@ jobs:
               if (!actor?.includes('PLATFORM_OWNER')) {
                 throw new Error(`PLATFORM_OWNER actor projection missing: ${actor}`);
               }
-              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
+              await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor();
               evidence.login = 'PLATFORM_OWNER';
 
               const csrfToken = await page.evaluate(() => sessionStorage.getItem('md_dashboard_csrf'));
@@ -254,6 +257,7 @@ jobs:
                     specialty: 'Sunset',
                     description: 'Perfil Control Center E2E',
                     cta: 'Ver empresa',
+                    destinationId: 'morro-de-sao-paulo',
                     locationLabel: 'Morro de São Paulo',
                   },
                 },
@@ -264,9 +268,7 @@ jobs:
 
               await page.locator('[data-view="businesses"]').click();
               await page.getByRole('heading', { name: 'Empresas' }).waitFor();
-              await page
-                .locator('tbody a[href="#businesses:toca-do-morcego"]')
-                .click();
+              await page.locator('tbody a[href="#businesses:toca-do-morcego"]').click();
               await page.getByRole('heading', { name: 'Toca do Morcego' }).waitFor();
               const business360 = page.locator('[data-entity-tabs="business360"]');
               await business360.waitFor();
@@ -276,10 +278,7 @@ jobs:
                 }
               }
               await business360.getByRole('tab', { name: 'Identity / Profile' }).click();
-              await page.locator('[data-destination-relation="unavailable"]').waitFor();
-              if (await page.locator('[data-entity-panel="identity"] a[href^="#destinations:"]').count()) {
-                throw new Error('Business destination was inferred without canonical owner relation');
-              }
+              await page.locator('[data-entity-panel="identity"] a[href="#destinations:morro-de-sao-paulo"]').waitFor();
               await business360.getByRole('tab', { name: 'Relationships' }).click();
               await page.locator('a[href="#users:business-owner-1"]').waitFor();
               await business360.getByRole('tab', { name: 'Commercial / Financial' }).click();
@@ -287,14 +286,153 @@ jobs:
               await business360.getByRole('tab', { name: 'Audit' }).click();
               await page.locator('[data-recent-activity]').waitFor();
               evidence.business360 = true;
-              evidence.destinationNoInference = true;
+              evidence.destinationCanonicalRelation = true;
 
               await page.locator('#global-search').fill('business-owner@example.com');
-              await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
-              if (!(await page.locator('#search-results').textContent()).includes('business-owner@example.com')) {
-                throw new Error('Universal search did not find business owner');
+              await page
+                .locator('#search-results')
+                .getByText('business-owner@example.com', { exact: false })
+                .waitFor({ state: 'visible', timeout: 10000 });
+              if ((await page.locator('#search-results [role="group"]').count()) < 1) {
+                throw new Error('Universal search did not group results by type');
               }
-              evidence.universalSearch = true;
+              await page.keyboard.press('ArrowDown');
+              const activeSearchOption = await page.locator('#global-search').getAttribute('aria-activedescendant');
+              if (!activeSearchOption) {
+                throw new Error('ArrowDown did not establish an active search option');
+              }
+              await page.keyboard.press('ArrowUp');
+              await page.keyboard.press('Escape');
+              if (!(await page.locator('#search-results').evaluate(node => node.hidden))) {
+                throw new Error('Escape did not close universal search');
+              }
+
+              await page.locator('#global-search').fill('x');
+              await page.waitForTimeout(50);
+              if (!(await page.locator('#search-results').evaluate(node => node.hidden))) {
+                throw new Error('Short universal-search query did not stay closed');
+              }
+
+              await page.evaluate(() => {
+                location.hash = '#overview';
+              });
+              await page.locator('#content[data-rendered-view="overview"][aria-busy="false"]').waitFor({
+                state: 'attached',
+                timeout: 15000,
+              });
+              await page.locator('#destination-selector').evaluate(select => {
+                if (![...select.options].some(option => option.value === 'morro-de-sao-paulo')) {
+                  const option = document.createElement('option');
+                  option.value = 'morro-de-sao-paulo';
+                  option.textContent = 'Morro de São Paulo';
+                  select.append(option);
+                }
+                select.value = 'morro-de-sao-paulo';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+              });
+              const [scopedSearchResponse] = await Promise.all([
+                page.waitForResponse(response => {
+                  const url = new URL(response.url());
+                  return (
+                    url.pathname === '/api/admin/v1/search' &&
+                    url.searchParams.get('q') === 'scope-probe'
+                  );
+                }, { timeout: 10000 }),
+                page.locator('#global-search').fill('scope-probe'),
+              ]);
+              const scopedSearchUrl = new URL(scopedSearchResponse.url());
+              if (scopedSearchUrl.searchParams.get('destinationId') !== 'morro-de-sao-paulo') {
+                throw new Error(`Universal Search destination scope missing: ${scopedSearchUrl}`);
+              }
+              await page.keyboard.press('Escape');
+              await page.locator('#global-search').fill('');
+              await page.locator('#destination-selector').selectOption('global');
+
+              await page.route('**/api/admin/v1/search*', async route => {
+                const url = new URL(route.request().url());
+                if (url.searchParams.get('q') === 'xss-probe') {
+                  await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                      query: 'xss-probe',
+                      state: 'partial',
+                      results: [{
+                        type: 'user',
+                        id: 'xss-probe',
+                        title: '<img src=x onerror=globalThis.__searchXss=1>',
+                        context: '<script>globalThis.__searchXss=1</script>',
+                        href: '#users:business-owner-1',
+                        domain: 'users',
+                      }],
+                      groups: [{
+                        type: 'user',
+                        label: 'Usuários',
+                        count: 1,
+                        results: [{
+                          type: 'user',
+                          id: 'xss-probe',
+                          title: '<img src=x onerror=globalThis.__searchXss=1>',
+                          context: '<script>globalThis.__searchXss=1</script>',
+                          href: '#users:business-owner-1',
+                          domain: 'users',
+                        }],
+                      }],
+                      partial: [{ domain: 'ticketing', types: ['ticket'], reason: 'owner_search_unavailable' }],
+                      pagination: { limit: 20, offset: 0, total: 1, hasMore: false, nextOffset: null },
+                    }),
+                  });
+                  return;
+                }
+                if (url.searchParams.get('q') === 'api-failure') {
+                  await route.fulfill({
+                    status: 503,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ error: 'SEARCH_TEST_FAILURE' }),
+                  });
+                  return;
+                }
+                await route.continue();
+              });
+
+              await page.locator('#global-search').fill('xss-probe');
+              await page
+                .locator('#search-results')
+                .getByText('<img src=x onerror=globalThis.__searchXss=1>', {
+                  exact: false,
+                })
+                .waitFor({ state: 'visible', timeout: 10000 });
+              if ((await page.locator('#search-results img').count()) !== 0) {
+                throw new Error('Universal search rendered injected HTML');
+              }
+              if ((await page.evaluate(() => globalThis.__searchXss ?? 0)) !== 0) {
+                throw new Error('Universal search executed injected content');
+              }
+              if (!(await page.locator('#search-results').textContent()).includes('<img src=x')) {
+                throw new Error('Universal search did not preserve injected text as inert content');
+              }
+              if (!(await page.locator('#search-results').textContent()).includes('Resultados parciais')) {
+                throw new Error('Universal search partial state was not exposed');
+              }
+              await page.keyboard.press('ArrowDown');
+              await page.keyboard.press('Enter');
+              await page.waitForFunction(() => location.hash === '#users:business-owner-1');
+
+              await page.keyboard.press('Control+K');
+              await page.locator('#global-search').fill('api-failure');
+              await page.getByRole('alert').waitFor({ state: 'visible' });
+              if (!(await page.getByRole('alert').textContent()).includes('Não foi possível concluir')) {
+                throw new Error('Universal search API failure state missing');
+              }
+              await page.unroute('**/api/admin/v1/search*');
+
+              evidence.universalSearch = {
+                grouped: true,
+                keyboard: true,
+                partial: true,
+                injectionSafe: true,
+                apiFailure: true,
+              };
               await page.keyboard.press('Escape');
 
               const createLead = await ownerContext.request.post(
@@ -307,6 +445,7 @@ jobs:
                   },
                   data: {
                     companyName: 'Control Center Browser Lead',
+                    destinationId: 'morro-de-sao-paulo',
                     contactName: 'Lead E2E',
                     email: 'lead-e2e@example.com',
                     monthlyValue: '490.00',
@@ -316,6 +455,54 @@ jobs:
               if (![200, 201].includes(createLead.status())) {
                 throw new Error(`CRM owner-contract mutation failed: ${createLead.status()} ${await createLead.text()}`);
               }
+
+              const foreignBusinessList = await ownerContext.request.get(
+                `${origin}/api/admin/v1/businesses?destinationId=itacare`,
+              );
+              const foreignBusinessListBody = await foreignBusinessList.json();
+              if (
+                foreignBusinessList.status() !== 200 ||
+                !Array.isArray(foreignBusinessListBody.businesses) ||
+                foreignBusinessListBody.businesses.length !== 0
+              ) {
+                throw new Error(
+                  `Business destination scope leaked: ${JSON.stringify(foreignBusinessListBody)}`,
+                );
+              }
+
+              const foreignCrmList = await ownerContext.request.get(
+                `${origin}/api/admin/v1/crm/leads?limit=100&destinationId=itacare`,
+              );
+              const foreignCrmListBody = await foreignCrmList.json();
+              if (
+                foreignCrmList.status() !== 200 ||
+                !Array.isArray(foreignCrmListBody.data) ||
+                foreignCrmListBody.data.some(
+                  lead => lead.companyName === 'Control Center Browser Lead',
+                )
+              ) {
+                throw new Error(
+                  `CRM destination scope leaked: ${JSON.stringify(foreignCrmListBody)}`,
+                );
+              }
+
+              const scopedSearch = await ownerContext.request.get(
+                `${origin}/api/admin/v1/search?q=control&destinationId=itacare`,
+              );
+              const scopedSearchBody = await scopedSearch.json();
+              if (
+                scopedSearch.status() !== 200 ||
+                !Array.isArray(scopedSearchBody.results) ||
+                scopedSearchBody.results.some(result =>
+                  ['business', 'crm-lead'].includes(result.type),
+                )
+              ) {
+                throw new Error(
+                  `Universal Search destination scope leaked: ${JSON.stringify(scopedSearchBody)}`,
+                );
+              }
+              evidence.destinationIsolation = true;
+
               await page.locator('[data-view="crm"]').click();
               await page.getByRole('heading', { name: 'CRM' }).waitFor();
               if (!(await page.locator('#content').textContent()).includes('Control Center Browser Lead')) {
@@ -384,21 +571,64 @@ jobs:
               evidence.supportMode = true;
 
               await page.locator('[data-view="overview"]').click();
-              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
-              await page.getByRole('heading', { name: 'Precisa de atenção' }).waitFor();
-              await page.getByRole('heading', { name: 'Destination Summary' }).waitFor();
-              await page.getByRole('heading', { name: 'Affiliate Summary' }).waitFor();
-              const recentActivity = page.locator('[data-recent-activity]');
-              await recentActivity.waitFor();
+              await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor({
+                timeout: 30000,
+              });
+              const ownerSummary = page.locator(
+                '[data-summary-source="dashboard-owner"]',
+              );
+              await ownerSummary.waitFor({ state: 'visible', timeout: 30000 });
+              await page
+                .getByRole('heading', { name: 'Precisa da sua atenção' })
+                .waitFor();
+              await page
+                .getByRole('heading', { name: 'Resumo por destino' })
+                .waitFor();
+              const ownerSummaryText = await ownerSummary.textContent();
+              if (ownerSummaryText?.includes('sem agregado por destino')) {
+                throw new Error(
+                  `Owner-backed destination summary regressed to legacy placeholder: ${ownerSummaryText}`,
+                );
+              }
+              const affiliateSummary = page.locator(
+                '[data-affiliate-summary][data-source="affiliates-owner"]',
+              );
+              await affiliateSummary.waitFor({ state: 'visible' });
+              const affiliateSummaryText = await affiliateSummary.textContent();
+              const affiliateState = await affiliateSummary.getAttribute('data-state');
+              if (affiliateState === 'ready') {
+                if (
+                  !affiliateSummaryText?.includes('Memberships aprovadas') ||
+                  !affiliateSummaryText.includes('Conversões')
+                ) {
+                  throw new Error(
+                    `Affiliate owner summary missing from UX V1: ${affiliateSummaryText}`,
+                  );
+                }
+              } else if (
+                affiliateState !== 'unavailable' ||
+                !affiliateSummaryText?.includes(
+                  'Affiliates owner indisponível; nenhum total foi inferido.',
+                )
+              ) {
+                throw new Error(
+                  `Affiliate owner availability did not fail closed: state=${affiliateState} text=${affiliateSummaryText}`,
+                );
+              }
+              const recentActivity = page.locator(
+                '[data-recent-activity][data-source="append-only-audit"]',
+              );
+              await recentActivity.waitFor({ state: 'visible' });
               const recentText = await recentActivity.textContent();
               if (
                 !recentText?.includes('platform-owner-1') ||
                 !recentText.includes('business-owner-1') ||
-                !recentText.includes('support.session.start')
+                !recentText.includes('Support Mode iniciado')
               ) {
                 throw new Error(`Recent Activity actor/effectiveUser evidence missing: ${recentText}`);
               }
               evidence.dashboardHighInformation = true;
+              evidence.dashboardOwnerBacked = true;
               evidence.recentActivityActorEffectiveUser = true;
 
               const stepUp = await ownerContext.request.post(
@@ -447,14 +677,33 @@ jobs:
               if (!(await page.locator('#global-search').evaluate(node => node === document.activeElement))) {
                 throw new Error('Ctrl+K did not focus universal search');
               }
+              await page.locator('#global-search').blur();
+              await page.keyboard.press('Meta+K');
+              if (!(await page.locator('#global-search').evaluate(node => node === document.activeElement))) {
+                throw new Error('Cmd+K did not focus universal search');
+              }
               evidence.keyboard = true;
 
               for (const viewport of [
-                { width: 1280, height: 900, label: 'desktop' },
-                { width: 768, height: 1024, label: 'tablet' },
-                { width: 390, height: 844, label: 'mobile' },
+                { width: 1440, height: 900, label: 'desktop-1440' },
+                { width: 1280, height: 800, label: 'desktop-1280' },
+                { width: 1024, height: 768, label: 'desktop-1024' },
+                { width: 768, height: 1024, label: 'tablet-768' },
+                { width: 430, height: 932, label: 'mobile-430' },
+                { width: 390, height: 844, label: 'mobile-390' },
               ]) {
                 await page.setViewportSize({ width: viewport.width, height: viewport.height });
+                await page.evaluate(() => {
+                  location.hash = '#overview';
+                });
+                await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor({ timeout: 15000 });
+                await page.locator('.kpi-grid .metric-card').first().waitFor({ timeout: 15000 });
+                if ((await page.locator('.quick-actions').count()) !== 0) {
+                  throw new Error('Quick Actions block must not exist in approved Control Center UX');
+                }
+                if ((await page.getByText('Ações rápidas', { exact: true }).count()) !== 0) {
+                  throw new Error('Quick Actions heading must not exist in approved Control Center UX');
+                }
                 const overflow = await page.evaluate(() =>
                   document.documentElement.scrollWidth > document.documentElement.clientWidth + 2
                 );
@@ -465,7 +714,24 @@ jobs:
                   if (!open) throw new Error(`Responsive menu failed at ${viewport.label}`);
                   await page.locator('[data-view="overview"]').click();
                 }
+                if (viewport.label === 'mobile') {
+                  await page.locator('#global-search').fill('owner@morro.invalid');
+                  await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
+                  const searchBox = await page.locator('#search-results').boundingBox();
+                  if (!searchBox || searchBox.x < 0 || searchBox.x + searchBox.width > viewport.width + 1) {
+                    throw new Error(`Universal search overflow at mobile viewport: ${JSON.stringify(searchBox)}`);
+                  }
+                  await page.keyboard.press('Escape');
+                }
+                const screenshotPath = `/tmp/control-center-visual-${viewport.label}.png`;
+                await page.screenshot({ path: screenshotPath, fullPage: true });
                 evidence.viewports.push(viewport.label);
+                evidence.visualBaseline.push({
+                  label: viewport.label,
+                  width: viewport.width,
+                  height: viewport.height,
+                  file: screenshotPath,
+                });
               }
 
               const businessContext = await browser.newContext();
@@ -592,6 +858,7 @@ jobs:
           node apps/morro-digital-platform/tooling/control-center-commerce-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs
           node apps/morro-digital-platform/tooling/control-center-accessibility-browser-contract.mjs
+          node apps/morro-digital-platform/tooling/control-center-responsive-browser-contract.mjs
       - name: Show Control Center diagnostics
         if: failure()
         run: cat /tmp/control-center-server.log || true
@@ -602,6 +869,8 @@ jobs:
           path: |
             /tmp/control-center-browser-evidence.json
             /tmp/control-center-accessibility-evidence.json
+            /tmp/control-center-responsive-evidence.json
+            /tmp/control-center-visual-*.png
           retention-days: 3
           if-no-files-found: ignore
       - name: Stop Control Center runtime

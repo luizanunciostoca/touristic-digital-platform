@@ -38,6 +38,7 @@ export interface CrmLeadAuditPort {
 
 export interface CrmLeadCreateInput {
   readonly companyName: unknown;
+  readonly destinationId?: unknown;
   readonly segment?: unknown;
   readonly contactName?: unknown;
   readonly phone?: unknown;
@@ -66,6 +67,7 @@ export interface CrmLeadDeleteInput {
 
 export interface CrmLeadCreateRecord {
   readonly companyName: string;
+  readonly destinationId?: string;
   readonly segment?: string;
   readonly contactName?: string;
   readonly phone?: string;
@@ -83,6 +85,7 @@ export interface CrmLeadCreateRecord {
 
 export interface CrmLeadUpdateRecord {
   readonly companyName?: string;
+  readonly destinationId?: string;
   readonly segment?: string;
   readonly contactName?: string;
   readonly phone?: string;
@@ -149,6 +152,14 @@ function safeMoney(value: unknown): CrmMoney | undefined {
   return /^\d+(?:\.\d{1,2})?$/.test(money) ? money : undefined;
 }
 
+function safeDestinationId(value: unknown): string | undefined {
+  const destinationId = safeText(value, 120)?.toLowerCase();
+  if (!destinationId) return undefined;
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(destinationId)
+    ? destinationId
+    : undefined;
+}
+
 function isLeadStatus(value: unknown): value is CrmLeadStatus {
   return (
     typeof value === "string" &&
@@ -163,6 +174,10 @@ function normalizeQuery(value: unknown): CrmLeadQuery | undefined {
   const input = value as Record<string, unknown>;
   const stage = input.stage === undefined ? undefined : input.stage;
   const status = input.status === undefined ? undefined : input.status;
+  const destinationId =
+    input.destinationId === undefined
+      ? undefined
+      : safeDestinationId(input.destinationId);
   const search =
     input.search === undefined ? undefined : safeText(input.search, 120);
   const limit = input.limit === undefined ? undefined : input.limit;
@@ -170,6 +185,7 @@ function normalizeQuery(value: unknown): CrmLeadQuery | undefined {
 
   if (stage !== undefined && !isCrmLeadStage(stage)) return undefined;
   if (status !== undefined && !isLeadStatus(status)) return undefined;
+  if (input.destinationId !== undefined && !destinationId) return undefined;
   if (input.search !== undefined && !search) return undefined;
   if (
     limit !== undefined &&
@@ -190,6 +206,7 @@ function normalizeQuery(value: unknown): CrmLeadQuery | undefined {
   return Object.freeze({
     ...(stage !== undefined ? { stage } : {}),
     ...(status !== undefined ? { status } : {}),
+    ...(destinationId !== undefined ? { destinationId } : {}),
     ...(search !== undefined ? { search } : {}),
     ...(limit !== undefined ? { limit } : {}),
     ...(offset !== undefined ? { offset } : {}),
@@ -221,6 +238,18 @@ function normalizeCreate(
     return null;
   }
 
+  const destinationId =
+    input.destinationId === undefined || input.destinationId === ""
+      ? undefined
+      : safeDestinationId(input.destinationId);
+  if (
+    input.destinationId !== undefined &&
+    input.destinationId !== "" &&
+    !destinationId
+  ) {
+    return null;
+  }
+
   const record: {
     -readonly [K in keyof CrmLeadCreateRecord]: CrmLeadCreateRecord[K];
   } = {
@@ -228,6 +257,8 @@ function normalizeCreate(
     assignedToSubject: "",
     stage: "new_lead",
     status: "active",
+
+    ...(destinationId ? { destinationId } : {}),
   };
 
   const textFields = [
@@ -255,6 +286,15 @@ function normalizeUpdate(
   const patch: {
     -readonly [K in keyof CrmLeadUpdateRecord]?: CrmLeadUpdateRecord[K];
   } = {};
+  if (input.destinationId !== undefined) {
+    if (input.destinationId === "") {
+      patch.destinationId = "";
+    } else {
+      const destinationId = safeDestinationId(input.destinationId);
+      if (!destinationId) return null;
+      patch.destinationId = destinationId;
+    }
+  }
   const textFields = [
     ["companyName", 160],
     ["segment", 120],

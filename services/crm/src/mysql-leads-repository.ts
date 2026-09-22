@@ -14,6 +14,7 @@ import type { Pool, ResultSetHeader, RowDataPacket } from "mysql2/promise";
 
 interface LeadRow extends RowDataPacket {
   id: number;
+  destination_id: string | null;
   company_name: string;
   segment: string | null;
   contact_name: string | null;
@@ -34,11 +35,12 @@ interface LeadRow extends RowDataPacket {
   converted_at: Date | null;
 }
 
-const leadColumns = `id, company_name, segment, contact_name, phone, whatsapp, email, address, website, notes, stage, status, source, referred_by_id, monthly_value, created_at, updated_at, last_contact_at, converted_at`;
+const leadColumns = `id, destination_id, company_name, segment, contact_name, phone, whatsapp, email, address, website, notes, stage, status, source, referred_by_id, monthly_value, created_at, updated_at, last_contact_at, converted_at`;
 
 function mapLead(row: LeadRow): CrmLead {
   return {
     id: row.id,
+    destinationId: row.destination_id,
     companyName: row.company_name,
     segment: row.segment,
     contactName: row.contact_name,
@@ -100,6 +102,10 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
       where.push("status = ?");
       values.push(query.status);
     }
+    if (query?.destinationId) {
+      where.push("destination_id = ?");
+      values.push(query.destinationId);
+    }
     if (query?.search) {
       where.push(
         "(company_name LIKE ? OR contact_name LIKE ? OR email LIKE ?)",
@@ -127,9 +133,10 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
 
   async create(record: CrmLeadCreateRecord): Promise<CrmLead> {
     const [result] = await this.pool.execute<ResultSetHeader>(
-      `INSERT INTO crm_leads (company_name, segment, contact_name, phone, whatsapp, email, address, website, notes, stage, status, source, assigned_to_subject, monthly_value)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO crm_leads (destination_id, company_name, segment, contact_name, phone, whatsapp, email, address, website, notes, stage, status, source, assigned_to_subject, monthly_value)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
+        record.destinationId ?? null,
         record.companyName,
         record.segment ?? null,
         record.contactName ?? null,
@@ -154,6 +161,7 @@ export class MySqlCrmLeadRepository implements CrmLeadBoundaryRepository {
   async update(id: CrmId, patch: CrmLeadUpdateRecord): Promise<CrmLead> {
     const columns: Record<keyof CrmLeadUpdateRecord, string> = {
       companyName: "company_name",
+      destinationId: "destination_id",
       segment: "segment",
       contactName: "contact_name",
       phone: "phone",

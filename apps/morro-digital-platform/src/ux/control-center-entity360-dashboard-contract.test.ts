@@ -99,6 +99,9 @@ describe("Control Center high-information administrative surfaces", () => {
     expect(source).toContain("auditDeepLink(entry)");
     expect(source).toContain("auditFinancialValue(entry)");
     expect(source).toContain("(minor units)");
+    expect(source).toContain("humanizeAuditAction(entry.action)");
+    expect(source).toContain("Destino da empresa atualizado");
+    expect(source).not.toContain('${escapeHtml(entry.action ?? "—")}');
   });
 
   it("keeps Support Mode identity explicit and privileged UI bound to the real actor", () => {

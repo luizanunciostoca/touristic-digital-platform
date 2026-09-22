@@ -1,22 +1,67 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import { createUniversalSearchController } from "./control-center-search.js";
+import {
+  emptyState,
+  enhanceControlCenterSurface,
+  errorState,
+  escapeHtml,
+  loadingState,
+  partialState,
+  sectionHeader,
+  statusBadge,
+} from "./control-center-primitives.js";
 
-const navItems = [
-  ["overview", "Visão Geral", "◫"],
-  ["businesses", "Empresas", "▦"],
-  ["users", "Usuários", "●"],
-  ["affiliates", "Afiliados", "◇"],
-  ["crm", "CRM", "◈"],
-  ["products", "Produtos e Ofertas", "▤"],
-  ["reservations", "Reservas", "▣"],
-  ["ticketing", "Ticketing", "◉"],
-  ["orders", "Pedidos", "≡"],
-  ["financial", "Financeiro", "◐"],
-  ["content", "Conteúdo", "✦"],
-  ["destinations", "Destinos", "⌖"],
-  ["support", "Suporte", "◎"],
-  ["audit", "Auditoria", "⌁"],
-  ["system", "Sistema", "⚙"],
-  ["settings", "Configurações", "⋯"],
+const navGroups = [
+  ["Principal", [["overview", "Visão Global", "◎"]]],
+  ["Operação", [["overview", "Visão Geral", "◫"]]],
+  [
+    "Relacionamentos",
+    [
+      ["businesses", "Empresas", "▦"],
+      ["users", "Usuários", "●"],
+      ["affiliates", "Afiliados", "◇"],
+    ],
+  ],
+  [
+    "Comercial",
+    [
+      ["crm", "CRM", "◈"],
+      ["products", "Produtos", "▤"],
+      ["products", "Ofertas", "◇"],
+    ],
+  ],
+  [
+    "Reservas",
+    [
+      ["reservations", "Reservas", "▣"],
+      ["ticketing", "Ticketing", "◉"],
+      ["ticketing", "Check-in", "✓"],
+    ],
+  ],
+  [
+    "Financeiro",
+    [
+      ["orders", "Pedidos", "≡"],
+      ["financial", "Pagamentos", "◐"],
+      ["financial", "Reembolsos", "↺"],
+      ["affiliates", "Comissões", "%"],
+    ],
+  ],
+  [
+    "Controle",
+    [
+      ["support", "Suporte", "◎"],
+      ["audit", "Auditoria", "⌁"],
+    ],
+  ],
+  [
+    "Plataforma",
+    [
+      ["system", "Sistema", "⚙"],
+      ["system", "Integrações", "⌘"],
+      ["settings", "Configurações", "⋯"],
+    ],
+  ],
 ];
 
 const pageCopy = {
@@ -89,9 +134,11 @@ const healthChip = document.querySelector("#health-chip");
 const releaseChip = document.querySelector("#release-chip");
 const searchInput = document.querySelector("#global-search");
 const searchResults = document.querySelector("#search-results");
+const searchDestination = document.querySelector("#destination-selector");
 const supportBanner = document.querySelector("#support-banner");
 const supportContext = document.querySelector("#support-context");
 const menuButton = document.querySelector("#menu-button");
+const sidebarBackdrop = document.querySelector("#sidebar-backdrop");
 
 const auth = createDashboardAuthClient({
   fetchFn: globalThis.fetch.bind(globalThis),
@@ -154,15 +201,6 @@ function saveControlCenterPreferences(preferences) {
   return normalized;
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
 async function api(path, init = {}) {
   const response = await auth.secureFetch(`/api/admin/v1${path}`, {
     ...init,
@@ -185,41 +223,101 @@ function actorHasCapability(capability) {
   return (state.adminSession?.actor?.capabilities ?? []).includes(capability);
 }
 
+function selectedDestinationQuery() {
+  const destinationId =
+    document.querySelector("#destination-selector")?.value ?? "global";
+  return destinationId && destinationId !== "global"
+    ? `&destinationId=${encodeURIComponent(destinationId)}`
+    : "";
+}
+function destinationOptions(selectedId = "", includeEmpty = true) {
+  const selector = document.querySelector("#destination-selector");
+  const options = Array.from(selector?.options ?? []).filter(
+    (option) => option.value && option.value !== "global",
+  );
+  return [
+    ...(includeEmpty ? ['<option value="">Não atribuído</option>'] : []),
+    ...options.map(
+      (option) =>
+        `<option value="${escapeHtml(option.value)}" ${
+          option.value === selectedId ? "selected" : ""
+        }>${escapeHtml(option.textContent || option.value)}</option>`,
+    ),
+  ].join("");
+}
+
 function contentField(document, key) {
   const value = document?.fields?.[key];
   return typeof value === "string" ? value : "";
 }
 
 function renderNav() {
-  nav.innerHTML = navItems
+  const selectedDestinationId =
+    document.querySelector("#destination-selector")?.value ?? "global";
+  const aliasLabels = new Set([
+    "Ofertas",
+    "Check-in",
+    "Reembolsos",
+    "Comissões",
+    "Integrações",
+  ]);
+
+  nav.innerHTML = navGroups
     .map(
-      ([id, label, icon]) =>
-        `<button type="button" class="nav-item ${state.view === id ? "active" : ""}" data-view="${id}">
-          <span class="nav-icon">${icon}</span><span>${label}</span>
-        </button>`,
+      ([group, items]) => `
+        <section class="nav-group" aria-label="${escapeHtml(group)}">
+          <p class="nav-group-label">${escapeHtml(group)}</p>
+          <div class="nav-group-items">
+            ${items
+              .map(([id, label, icon]) => {
+                const globalScopeItem = label === "Visão Global";
+                const aliasItem = aliasLabels.has(label);
+                const active = globalScopeItem
+                  ? state.view === "overview" &&
+                    selectedDestinationId === "global"
+                  : label === "Visão Geral"
+                    ? state.view === "overview" &&
+                      selectedDestinationId !== "global"
+                    : state.view === id && !aliasItem;
+                const routeAttribute = globalScopeItem
+                  ? 'data-global-scope-nav="true"'
+                  : aliasItem
+                    ? `data-route-view="${id}"`
+                    : `data-view="${id}"`;
+                return `<button type="button" class="nav-item ${active ? "active" : ""}" ${routeAttribute}>
+                    <span class="nav-icon" aria-hidden="true">${icon}</span>
+                    <span>${escapeHtml(label)}</span>
+                  </button>`;
+              })
+              .join("")}
+          </div>
+        </section>`,
     )
     .join("");
 }
 
 function setHeading(view) {
   const [label, copy] = pageCopy[view] ?? pageCopy.overview;
+  const destinationControl = document.querySelector("#destination-selector");
+  const destinationLabel =
+    destinationControl?.selectedOptions?.[0]?.textContent?.trim() ||
+    "Visão Global";
+  const actorEmail = String(state.adminSession?.actor?.email ?? "");
+  const actorLocal = actorEmail.split("@", 1)[0] || "Admin";
+  const actorName = actorLocal
+    .split(/[._-]/u, 1)[0]
+    .replace(/^./u, (letter) => letter.toLocaleUpperCase("pt-BR"));
+
+  if (view === "overview") {
+    title.textContent = `Bom dia, ${actorName}`;
+    description.textContent = "Resumo da operação da plataforma.";
+    breadcrumb.textContent = `Morro Digital → ${destinationLabel}`;
+    return;
+  }
+
   title.textContent = label;
   description.textContent = copy;
-  breadcrumb.textContent = `Control Center / ${label}`;
-}
-
-function statusBadge(value) {
-  const normalized =
-    value === "available" ||
-    value === "pass" ||
-    value === "success" ||
-    value === "ready" ||
-    value === "active"
-      ? "pass"
-      : value === "partial" || value === "runtime-projection"
-        ? "partial"
-        : "gap";
-  return `<span class="badge ${normalized}">${escapeHtml(value)}</span>`;
+  breadcrumb.textContent = `Morro Digital → ${destinationLabel} → ${label}`;
 }
 
 function entityTabs(group, tabs) {
@@ -384,6 +482,40 @@ function auditFinancialValue(entry) {
   return null;
 }
 
+function humanizeAuditAction(value) {
+  const action = String(value ?? "").trim();
+  if (!action) return "Ação administrativa";
+  const labels = Object.freeze({
+    "business.destination.updated": "Destino da empresa atualizado",
+    "user.status.updated": "Status do usuário atualizado",
+    "user.role.updated": "Perfil do usuário atualizado",
+    "affiliate.membership.suspended": "Membership do afiliado suspensa",
+    "affiliate.membership.reactivated": "Membership do afiliado reativada",
+    "affiliate.membership.suspend.complete": "Membership do afiliado suspensa",
+    "affiliate.membership.reactivate.complete":
+      "Membership do afiliado reativada",
+    "support.session.start": "Support Mode iniciado",
+    "support.session.end": "Support Mode encerrado",
+    "support.session.started": "Support Mode iniciado",
+    "support.session.ended": "Support Mode encerrado",
+    "destination.created": "Destino criado",
+    "destination.updated": "Destino atualizado",
+    "destination.status.updated": "Status do destino atualizado",
+    "content.created": "Conteúdo criado",
+    "content.updated": "Conteúdo atualizado",
+    "content.status.updated": "Status do conteúdo atualizado",
+  });
+  if (labels[action]) return labels[action];
+
+  const normalized = action
+    .replace(/[._:/-]+/gu, " ")
+    .replace(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (!normalized) return "Ação administrativa";
+  return normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1);
+}
+
 function recentActivityMarkup(
   entries,
   {
@@ -421,7 +553,7 @@ function recentActivityMarkup(
                   )}</small></td>
                   <td>${escapeHtml(entry.effectiveUserId ?? "—")}</td>
                   <td>${escapeHtml(entry.destinationId ?? "—")}</td>
-                  <td>${escapeHtml(entry.action ?? "—")}<br>${statusBadge(
+                  <td title="${escapeHtml(entry.action ?? "")}">${escapeHtml(humanizeAuditAction(entry.action))}<br>${statusBadge(
                     entry.result ?? "unknown",
                   )}</td>
                   <td>${escapeHtml(entry.entityType ?? "—")}<br><small>${escapeHtml(
@@ -630,10 +762,12 @@ async function renderOverview() {
       <section class="card section-card" data-dashboard-state="${
         health.readiness === "ready" ? "success" : "partial"
       }">
-        <div class="section-title">
-          <h2>Estado operacional</h2>
-          <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
-        </div>
+        ${sectionHeader({
+          title: "Estado operacional",
+          meta: `<span class="chip">${escapeHtml(
+            health.readiness ?? "unknown",
+          )}</span>`,
+        })}
         <div class="health-list">
           ${
             (health.checks ?? [])
@@ -1440,7 +1574,9 @@ async function renderDestinations(destinationId) {
 }
 
 async function renderBusinesses(businessId) {
-  const data = await api("/businesses");
+  const supportActive = Boolean(state.adminSession?.support);
+  const canManage = actorHasCapability("business.update") && !supportActive;
+  const data = await api(`/businesses?limit=100${selectedDestinationQuery()}`);
   if (businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
     if (!business) throw new Error("BUSINESS_NOT_FOUND");
@@ -1560,6 +1696,7 @@ async function renderBusinesses(businessId) {
           </div>
           <div class="module-list">
             <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
+            <div class="module-row"><span>Destino</span><strong>${escapeHtml(profile?.destinationId ?? "não atribuído")}</strong></div>
             <div class="module-row"><span>Produtos e ofertas</span>${productsResult.available ? `<strong>${escapeHtml(products.length)}</strong>` : statusBadge("unavailable")}</div>
             <div class="module-row"><span>Reservas</span>${reservationsResult.available ? `<strong>${escapeHtml(reservations.length)}</strong>` : statusBadge("unavailable")}</div>
             <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(orders.filter(Boolean).length)}</strong></div>
@@ -1586,6 +1723,31 @@ async function renderBusinesses(businessId) {
           </div>
         </section>
       </div>
+
+      ${
+        canManage
+          ? `<section class="card section-card" style="margin-top:16px">
+              <div class="section-title">
+                <div>
+                  <h2>Contexto de destino</h2>
+                  <p>A relação é gravada no perfil owner da empresa; nunca é inferida por nome ou localização.</p>
+                </div>
+                <span class="badge">Business owner-backed</span>
+              </div>
+              <form id="business-destination-form" class="form-grid">
+                <label>Destino canônico
+                  <select name="destinationId">
+                    ${destinationOptions(profile?.destinationId ?? "")}
+                  </select>
+                </label>
+                <div class="actions">
+                  <button class="primary-button" type="submit">Salvar destino</button>
+                  <span id="business-destination-status" class="form-status" role="status"></span>
+                </div>
+              </form>
+            </section>`
+          : ""
+      }
 
       <div class="grid two-col">
         <section class="card section-card">
@@ -1628,7 +1790,7 @@ async function renderBusinesses(businessId) {
               .slice(0, 10)
               .map(
                 (entry) =>
-                  `<div class="module-row"><span>${escapeHtml(entry.action)}</span><strong>${escapeHtml(entry.result)} · ${escapeHtml(entry.timestamp)}</strong></div>`,
+                  `<div class="module-row"><span title="${escapeHtml(entry.action ?? "")}">${escapeHtml(humanizeAuditAction(entry.action))}</span><strong>${escapeHtml(entry.result)} · ${escapeHtml(entry.timestamp)}</strong></div>`,
               )
               .join("") ||
             '<div class="empty">Nenhum evento de tenant neste recorte.</div>'
@@ -1721,38 +1883,76 @@ async function renderBusinesses(businessId) {
         { id: "audit", label: "Audit", content: auditContent },
       ]);
     bindEntityTabs();
+    document
+      .querySelector("#business-destination-form")
+      ?.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = document.querySelector("#business-destination-status");
+        const values = new FormData(form);
+        const destinationId = String(values.get("destinationId") || "").trim();
+        if (status) status.textContent = "Salvando…";
+        try {
+          await api(`/businesses/${encodeURIComponent(businessId)}/profile`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...(profile ?? {}),
+              id: businessId,
+              destinationId: destinationId || null,
+            }),
+          });
+          if (status) status.textContent = "Destino atualizado.";
+          await renderBusinesses(businessId);
+        } catch (error) {
+          if (status) status.textContent = error.body?.error || error.message;
+        }
+      });
     return;
   }
 
   content.innerHTML = `
     <div class="callout">
       <strong>Fronteira preservada:</strong>
-      o diretório vem do Identity; cada visão 360º compõe apenas contratos owner
-      registrados para aquele tenant.
+      o diretório vem do Identity; o destino vem exclusivamente do perfil owner
+      da empresa e nunca é inferido a partir de texto de localização.
+      ${data.destinationScope === "unavailable" ? "<br><strong>Contexto de destino indisponível:</strong> a lista permanece fechada até o owner expor a relação canônica." : ""}
     </div>
     <div class="table-wrap" tabindex="0">
       <table>
-        <thead><tr><th>Business ID</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
+        <thead><tr><th>Empresa</th><th>Destino</th><th>Membros</th><th>Fonte</th><th>Visão 360º</th></tr></thead>
         <tbody>
-          ${data.businesses
-            .map(
-              (business) =>
-                `<tr>
-                  <td><strong>${escapeHtml(business.id)}</strong></td>
+          ${
+            data.businesses
+              .map(
+                (business) =>
+                  `<tr>
+                  <td><strong>${escapeHtml(business.name ?? business.id)}</strong><br><small>${escapeHtml(business.id)}</small></td>
+                  <td>${business.destinationId ? `<span class="badge">${escapeHtml(business.destinationId)}</span>` : statusBadge("partial")}</td>
                   <td>${business.members.map((member) => escapeHtml(member.email)).join("<br>")}</td>
                   <td>${escapeHtml(business.source)}</td>
                   <td><a href="#businesses:${encodeURIComponent(business.id)}">Abrir empresa</a></td>
                 </tr>`,
-            )
-            .join("")}
+              )
+              .join("") ||
+            '<tr><td colspan="5" class="empty">Nenhuma empresa no contexto de destino selecionado.</td></tr>'
+          }
         </tbody>
       </table>
     </div>`;
 }
 
 async function renderAffiliates(affiliateId) {
+  const selectedDestinationId =
+    document.querySelector("#destination-selector")?.value ?? "global";
+  const affiliateDestinationQuery =
+    selectedDestinationId && selectedDestinationId !== "global"
+      ? `&destinationId=${encodeURIComponent(selectedDestinationId)}`
+      : "";
   if (!affiliateId) {
-    const response = await api("/affiliates?limit=100");
+    const response = await api(
+      `/affiliates?limit=100${affiliateDestinationQuery}`,
+    );
     const affiliates = response.data ?? [];
     content.innerHTML = `
       <section class="card section-card">
@@ -1814,7 +2014,9 @@ async function renderAffiliates(affiliateId) {
           '<tr><td colspan="5" class="empty">Buscando…</td></tr>';
         try {
           const result = await api(
-            `/affiliates?limit=100&query=${encodeURIComponent(query || "")}`,
+            `/affiliates?limit=100&query=${encodeURIComponent(
+              query || "",
+            )}${affiliateDestinationQuery}`,
           );
           const rows = result.data ?? [];
           body.innerHTML =
@@ -1847,7 +2049,13 @@ async function renderAffiliates(affiliateId) {
   const response = await api(`/affiliates/${encodeURIComponent(affiliateId)}`);
   const detail = response.data;
   const affiliate = detail.affiliate;
-  const memberships = detail.memberships ?? [];
+  const allMemberships = detail.memberships ?? [];
+  const memberships =
+    selectedDestinationId && selectedDestinationId !== "global"
+      ? allMemberships.filter(
+          (membership) => membership.destinationId === selectedDestinationId,
+        )
+      : allMemberships;
   const auditResult = await readOwnerProjection("/audit?limit=250", "entries");
   const affiliateMembershipEntityIds = memberships.map(
     (membership) => `${affiliateId}:${membership.programId}`,
@@ -2171,15 +2379,18 @@ async function renderAffiliates(affiliateId) {
 }
 
 async function renderCrm() {
-  const data = await api("/crm/leads?limit=100");
+  const supportActive = Boolean(state.adminSession?.support);
+  const canManage = actorHasCapability("crm.manage") && !supportActive;
+  const data = await api(`/crm/leads?limit=100${selectedDestinationQuery()}`);
   const leads = Array.isArray(data.data) ? data.data : [];
   content.innerHTML = `
     <div class="callout">
       CRM é reutilizado por adapter sobre o domínio existente; nenhuma tabela foi movida para o Control Center.
+      O destino do lead é um vínculo explícito do próprio domínio CRM e não é inferido de empresa, endereço ou texto.
     </div>
     <div class="table-wrap" tabindex="0">
       <table>
-        <thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
+        <thead><tr><th>Empresa</th><th>Destino</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
         <tbody>
           ${
             leads
@@ -2187,6 +2398,21 @@ async function renderCrm() {
                 (lead) =>
                   `<tr>
                   <td><strong>${escapeHtml(lead.companyName ?? "—")}</strong><br><small>#${escapeHtml(lead.id)}</small></td>
+                  <td>
+                    ${
+                      canManage
+                        ? `<form class="crm-destination-form" data-lead-id="${escapeHtml(lead.id)}">
+                            <select name="destinationId" aria-label="Destino do lead ${escapeHtml(lead.companyName ?? lead.id)}">
+                              ${destinationOptions(lead.destinationId ?? "")}
+                            </select>
+                            <button class="secondary-button" type="submit">Salvar</button>
+                            <span class="form-status" role="status"></span>
+                          </form>`
+                        : lead.destinationId
+                          ? `<span class="badge">${escapeHtml(lead.destinationId)}</span>`
+                          : `<span class="badge partial">não atribuído</span>`
+                    }
+                  </td>
                   <td>${escapeHtml(lead.contactName ?? lead.email ?? "—")}</td>
                   <td><span class="badge">${escapeHtml(lead.stage ?? "—")}</span></td>
                   <td>${escapeHtml(lead.status ?? "—")}</td>
@@ -2194,21 +2420,44 @@ async function renderCrm() {
                 </tr>`,
               )
               .join("") ||
-            '<tr><td colspan="5" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'
+            '<tr><td colspan="6" class="empty">Nenhum lead encontrado ou CRM sem dados.</td></tr>'
           }
         </tbody>
       </table>
     </div>`;
-}
 
+  document.querySelectorAll(".crm-destination-form").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const target = event.currentTarget;
+      const leadId = target.dataset.leadId;
+      const status = target.querySelector(".form-status");
+      const values = new FormData(target);
+      const destinationId = String(values.get("destinationId") || "").trim();
+      if (!leadId) return;
+      if (status) status.textContent = "Salvando…";
+      try {
+        await api(`/crm/leads/${encodeURIComponent(leadId)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destinationId }),
+        });
+        if (status) status.textContent = "Destino atualizado.";
+        await renderCrm();
+      } catch (error) {
+        if (status) status.textContent = error.body?.error || error.message;
+      }
+    });
+  });
+}
 async function renderProducts(productId) {
   const supportActive = Boolean(state.adminSession?.support);
   const canManage = actorHasCapability("ticketing.manage") && !supportActive;
 
   if (!productId) {
     const [data, businessesData] = await Promise.all([
-      api("/products?limit=100"),
-      api("/businesses"),
+      api(`/products?limit=100${selectedDestinationQuery()}`),
+      api(`/businesses?limit=100${selectedDestinationQuery()}`),
     ]);
     const products = Array.isArray(data.data) ? data.data : [];
     const businesses = businessesData.businesses ?? [];
@@ -2491,7 +2740,9 @@ async function renderProducts(productId) {
 
 async function renderReservations(reservationId) {
   if (!reservationId) {
-    const data = await api("/reservations?limit=100");
+    const data = await api(
+      `/reservations?limit=100${selectedDestinationQuery()}`,
+    );
     const reservations = Array.isArray(data.data) ? data.data : [];
     content.innerHTML = `
       <div class="callout">
@@ -3260,7 +3511,7 @@ async function renderContent(contentId) {
   const canManage = actorHasCapability("content.manage");
 
   if (!contentId) {
-    const data = await api("/content?limit=100");
+    const data = await api(`/content?limit=100${selectedDestinationQuery()}`);
     const documents = data.data ?? [];
     content.innerHTML = `
       <div class="grid two-col">
@@ -3566,14 +3817,10 @@ async function renderContent(contentId) {
 }
 
 function renderContractGap(view) {
-  content.innerHTML = `
-    <section class="card empty">
-      <strong>Contrato administrativo ainda não registrado</strong>
-      <span>
-        O Control Center não consulta tabelas deste domínio diretamente.
-        A integração de <b>${escapeHtml(view)}</b> será feita pelo adapter oficial do domínio.
-      </span>
-    </section>`;
+  content.innerHTML = partialState(
+    "Contrato administrativo ainda não registrado",
+    `O Control Center não consulta tabelas deste domínio diretamente. A integração de ${view} será feita pelo adapter oficial do domínio.`,
+  );
 }
 
 async function renderAudit() {
@@ -3637,7 +3884,9 @@ async function renderSystem() {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <h2>Readiness checks</h2>
-        <button id="system-refresh" class="secondary-button" type="button">Atualizar status</button>
+        <button id="system-refresh" class="secondary-button" type="button">
+          Atualizar status
+        </button>
       </div>
       <div class="health-list">
         ${checks
@@ -3651,7 +3900,6 @@ async function renderSystem() {
           .join("")}
       </div>
     </section>`;
-
   document
     .querySelector("#system-refresh")
     ?.addEventListener("click", () => void render("system"));
@@ -3799,7 +4047,7 @@ async function render(view, detail) {
   setHeading(view);
   delete content.dataset.renderedView;
   content.setAttribute("aria-busy", "true");
-  content.innerHTML = '<section class="card empty">Carregando…</section>';
+  content.innerHTML = loadingState();
 
   try {
     if (view === "overview") await renderOverview();
@@ -3820,12 +4068,12 @@ async function render(view, detail) {
     else if (view === "support") await renderSupport();
     else renderContractGap(view);
   } catch (error) {
-    content.innerHTML = `
-      <section class="card empty">
-        <strong>Não foi possível carregar este módulo</strong>
-        <span>${escapeHtml(error.body?.error || error.message)}</span>
-      </section>`;
+    content.innerHTML = errorState(
+      "Não foi possível carregar este módulo",
+      error.body?.error || error.message || "Falha administrativa inesperada.",
+    );
   } finally {
+    enhanceControlCenterSurface(content);
     content.dataset.renderedView = view;
     content.setAttribute("aria-busy", "false");
   }
@@ -3842,69 +4090,74 @@ function applySupportBanner() {
     `Motivo: ${support.reason}`;
 }
 
-function openHash(hash = globalThis.location.hash) {
+async function openHash(hash = globalThis.location.hash) {
   const defaultView = readControlCenterPreferences().defaultView;
   const raw = hash.replace(/^#/, "") || defaultView;
   const [view, detail] = raw.split(":", 2);
-  void render(pageCopy[view] ? view : "overview", detail);
+  await render(pageCopy[view] ? view : "overview", detail);
 }
 
-let searchTimer;
-searchInput.addEventListener("input", () => {
-  clearTimeout(searchTimer);
-  const query = searchInput.value.trim();
-  if (query.length < 2) {
-    searchResults.hidden = true;
-    return;
-  }
-
-  searchTimer = setTimeout(async () => {
-    try {
-      const data = await api(`/search?q=${encodeURIComponent(query)}`);
-      searchResults.innerHTML =
-        data.results
-          .map(
-            (result) =>
-              `<div class="search-result" data-href="${escapeHtml(result.href ?? "")}">
-                <span>
-                  <strong>${escapeHtml(result.title)}</strong><br>
-                  <small>${escapeHtml(result.type)} · ${escapeHtml(result.context ?? result.domain ?? "")}</small>
-                </span>
-                <span aria-hidden="true">↗</span>
-              </div>`,
-          )
-          .join("") || '<div class="empty">Nenhum resultado encontrado.</div>';
-      searchResults.hidden = false;
-    } catch {
-      searchResults.hidden = true;
-    }
-  }, 180);
+const universalSearch = createUniversalSearchController({
+  input: searchInput,
+  results: searchResults,
+  destinationSelect: searchDestination,
+  api,
 });
 
-searchResults.addEventListener("click", (event) => {
-  const item = event.target.closest("[data-href]");
-  if (!item) return;
-  globalThis.location.hash = item.dataset.href || "#overview";
-  searchResults.hidden = true;
-  searchInput.value = "";
-});
+function setMenuOpen(open, { restoreFocus = false } = {}) {
+  const next = Boolean(open);
+  app.classList.toggle("menu-open", next);
+  menuButton?.setAttribute("aria-expanded", String(next));
+  if (sidebarBackdrop) sidebarBackdrop.hidden = !next;
+  if (!next && restoreFocus) menuButton?.focus();
+}
 
 document.addEventListener("keydown", (event) => {
-  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-    event.preventDefault();
-    searchInput.focus();
+  if (event.key === "Escape") {
+    universalSearch.close();
+    if (app.classList.contains("menu-open")) {
+      setMenuOpen(false, { restoreFocus: true });
+    }
   }
-  if (event.key === "Escape") searchResults.hidden = true;
 });
 
 nav.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-view]");
+  const button = event.target.closest(
+    "[data-view], [data-route-view], [data-global-scope-nav]",
+  );
   if (!button) return;
-  globalThis.location.hash = `#${button.dataset.view}`;
-  app.classList.remove("menu-open");
+
+  if (button.dataset.globalScopeNav === "true") {
+    const selector = document.querySelector("#destination-selector");
+    if (selector) {
+      selector.value = "global";
+      selector.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    globalThis.location.hash = "#overview";
+  } else {
+    const targetView = button.dataset.view ?? button.dataset.routeView;
+    if (targetView) globalThis.location.hash = `#${targetView}`;
+  }
+
+  setMenuOpen(false);
 });
 
-menuButton?.addEventListener("click", () => app.classList.toggle("menu-open"));
+document
+  .querySelector("#destination-selector")
+  ?.addEventListener("change", () => {
+    const raw = (globalThis.location.hash || "#overview").replace(/^#/, "");
+    const [view] = raw.split(":", 1);
+    if ((view || "overview") !== "overview") {
+      void openHash();
+    }
+  });
+
+menuButton?.addEventListener("click", () =>
+  setMenuOpen(!app.classList.contains("menu-open")),
+);
+sidebarBackdrop?.addEventListener("click", () =>
+  setMenuOpen(false, { restoreFocus: true }),
+);
 
 document
   .querySelector("#logout-button")
@@ -3916,7 +4169,9 @@ document.querySelector("#support-end").addEventListener("click", async () => {
   applySupportBanner();
 });
 
-globalThis.addEventListener("hashchange", () => openHash());
+globalThis.addEventListener("hashchange", () => {
+  void openHash();
+});
 
 async function bootApp() {
   try {
@@ -3940,9 +4195,10 @@ async function bootApp() {
     healthChip.className = `chip ${ready ? "chip-success" : "chip-warning"}`;
 
     applySupportBanner();
+    await universalSearch.loadDestinations();
+    await openHash();
     app.hidden = false;
     boot.hidden = true;
-    openHash();
   } catch (error) {
     if (error?.status === 401 || error?.message === "AUTH_REQUIRED") {
       globalThis.location.replace(

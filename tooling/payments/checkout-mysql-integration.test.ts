@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import "./control-center-destination-aggregate-mysql.test.js";
+
 import {
   createPaymentIdempotencyKey,
   type Payment,

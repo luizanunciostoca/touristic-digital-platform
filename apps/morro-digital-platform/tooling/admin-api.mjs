@@ -17,6 +17,161 @@ const stepUpWindowMs = 15 * 60 * 1000;
 const stepUpAttemptLimit = 5;
 const maxBodyBytes = 32 * 1024;
 
+const searchWindowMs = 10 * 1000;
+const searchAttemptLimit = 40;
+const searchResultTypeOrder = Object.freeze([
+  "business",
+  "affiliate",
+  "user",
+  "lead",
+  "reservation",
+  "ticket",
+  "order",
+  "payment",
+  "product",
+  "offer",
+  "contract",
+  "content",
+  "destination",
+]);
+const searchResultTypeLabels = Object.freeze({
+  business: "Empresas",
+  affiliate: "Afiliados",
+  user: "Usuários",
+  lead: "Leads",
+  reservation: "Reservas",
+  ticket: "Tickets",
+  order: "Pedidos",
+  payment: "Pagamentos",
+  product: "Produtos",
+  offer: "Ofertas",
+  contract: "Contratos",
+  content: "Conteúdo",
+  destination: "Destinos",
+});
+const searchAdapterSources = Object.freeze([
+  Object.freeze({
+    domain: "affiliates",
+    adapterKey: "affiliates",
+    capability: "affiliate.read",
+    types: Object.freeze(["affiliate"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "crm",
+    adapterKey: "crm",
+    capability: "crm.read",
+    types: Object.freeze(["lead", "contract"]),
+    destinationAware: false,
+  }),
+  Object.freeze({
+    domain: "products",
+    adapterKey: "products",
+    capability: "business.read",
+    types: Object.freeze(["product", "offer"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "reservations",
+    adapterKey: "reservations",
+    capability: "ticketing.read",
+    types: Object.freeze(["reservation"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "ticketing",
+    adapterKey: "ticketing",
+    capability: "ticketing.read",
+    types: Object.freeze(["ticket"]),
+    destinationAware: false,
+  }),
+  Object.freeze({
+    domain: "financial",
+    adapterKey: "financial",
+    capability: "financial.read",
+    types: Object.freeze(["order", "payment"]),
+    destinationAware: false,
+  }),
+  Object.freeze({
+    domain: "content",
+    adapterKey: "content",
+    capability: "content.read",
+    types: Object.freeze(["content"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "destinations",
+    adapterKey: "destinations",
+    capability: "platform.read",
+    types: Object.freeze(["destination"]),
+    destinationAware: true,
+  }),
+]);
+
+function normalizeSearchText(value) {
+  return bounded(value, 160)
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
+function searchInteger(value, fallback, { min, max }) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max
+    ? parsed
+    : null;
+}
+
+function searchDestinationId(value) {
+  const normalized = bounded(value, 120).toLocaleLowerCase("en-US");
+  if (!normalized || normalized === "global") return "";
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(normalized) ? normalized : null;
+}
+
+function safeSearchHref(value) {
+  const href = bounded(value, 320);
+  if (!href) return "";
+  if (href.startsWith("#") || href.startsWith("/apps/")) return href;
+  return "";
+}
+
+function normalizedSearchResult(result, source) {
+  const type = bounded(result?.type, 40).toLocaleLowerCase("en-US");
+  if (!source.types.includes(type)) return null;
+  const id = bounded(result?.id, 180);
+  const title = bounded(result?.title, 240);
+  const href = safeSearchHref(result?.href);
+  if (!id || !title || !href) return null;
+  return Object.freeze({
+    type,
+    id,
+    title,
+    context: bounded(result?.context, 320),
+    href,
+    domain: source.domain,
+    ...(result?.destinationId
+      ? { destinationId: bounded(result.destinationId, 120) }
+      : {}),
+  });
+}
+
+function groupSearchResults(results) {
+  return searchResultTypeOrder
+    .map((type) => {
+      const grouped = results.filter((result) => result.type === type);
+      return grouped.length
+        ? Object.freeze({
+            type,
+            label: searchResultTypeLabels[type] ?? type,
+            count: grouped.length,
+            results: Object.freeze(grouped),
+          })
+        : null;
+    })
+    .filter(Boolean);
+}
+
 function json(response, statusCode, payload) {
   response.statusCode = statusCode;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -250,6 +405,51 @@ function businessesFromUsers(users) {
   );
 }
 
+async function businessDirectoryProjection(users, adapter, destinationId = "") {
+  const directory = businessesFromUsers(users);
+  const ownerProjectionAvailable =
+    typeof adapter?.readDirectoryProfile === "function";
+  const projected = await Promise.all(
+    directory.map(async (business) => {
+      let profile = null;
+      if (ownerProjectionAvailable) {
+        try {
+          profile = await adapter.readDirectoryProfile(business.id);
+        } catch {
+          profile = null;
+        }
+      }
+      return Object.freeze({
+        ...business,
+        name: profile?.name ?? null,
+        destinationId: profile?.destinationId ?? null,
+        profileState: profile ? "available" : "unavailable",
+      });
+    }),
+  );
+
+  const scopedDestinationId =
+    destinationId && destinationId !== "global" ? destinationId : "";
+  const businesses = scopedDestinationId
+    ? projected.filter(
+        (business) => business.destinationId === scopedDestinationId,
+      )
+    : projected;
+
+  return Object.freeze({
+    businesses: Object.freeze(businesses),
+    destinationId: scopedDestinationId || null,
+    destinationScope:
+      scopedDestinationId && !ownerProjectionAvailable
+        ? "unavailable"
+        : ownerProjectionAvailable
+          ? "owner-backed"
+          : "identity-only",
+    unscopedCount: projected.filter((business) => !business.destinationId)
+      .length,
+  });
+}
+
 const namespaceCapabilities = Object.freeze({
   affiliates: Object.freeze({
     read: "affiliate.read",
@@ -321,6 +521,22 @@ export function createAdminApi({
       "",
   ).trim();
   const stepUpAttempts = new Map();
+
+  const searchAttempts = new Map();
+
+  function consumeSearchAttempt(actorSubject) {
+    const now = Date.now();
+    const recent = (searchAttempts.get(actorSubject) ?? []).filter(
+      (timestamp) => now - timestamp < searchWindowMs,
+    );
+    if (recent.length >= searchAttemptLimit) {
+      searchAttempts.set(actorSubject, recent);
+      return false;
+    }
+    recent.push(now);
+    searchAttempts.set(actorSubject, recent);
+    return true;
+  }
 
   async function audit(request, actor, event) {
     const entry = Object.freeze({
@@ -2048,6 +2264,312 @@ export function createAdminApi({
     });
   }
 
+  function unavailableSource(reason) {
+    return Object.freeze({
+      status: "UNAVAILABLE",
+      count: null,
+      knownCount: null,
+      items: Object.freeze([]),
+      reason,
+    });
+  }
+
+  function notSupportedSource(reason) {
+    return Object.freeze({
+      status: "NOT_SUPPORTED",
+      count: null,
+      knownCount: null,
+      items: Object.freeze([]),
+      reason,
+    });
+  }
+
+  function combineAvailability(statuses) {
+    const values = statuses.filter(Boolean);
+    if (values.length === 0) return "NOT_SUPPORTED";
+    if (values.every((status) => status === "READY")) return "READY";
+    if (values.every((status) => status === "NOT_SUPPORTED")) {
+      return "NOT_SUPPORTED";
+    }
+    const hasUsable = values.some(
+      (status) => status === "READY" || status === "PARTIAL",
+    );
+    if (!hasUsable && values.some((status) => status === "UNAVAILABLE")) {
+      return "UNAVAILABLE";
+    }
+    return "PARTIAL";
+  }
+
+  async function dashboardRealData(requestUrl, health) {
+    const requestedValues = requestUrl.searchParams.getAll("destinationId");
+    if (requestedValues.length > 1) {
+      return Object.freeze({
+        error: "INVALID_DESTINATION_SCOPE",
+        statusCode: 400,
+      });
+    }
+    const requestedDestinationId = bounded(requestedValues[0] ?? "", 120);
+    const destinationOwner = domainAdapters.destinations;
+    if (typeof destinationOwner?.listOwnerDestinations !== "function") {
+      return Object.freeze({
+        attention: Object.freeze({
+          status: "UNAVAILABLE",
+          count: null,
+          knownCount: null,
+          items: Object.freeze([]),
+          sources: Object.freeze({}),
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+        destinationSummary: Object.freeze({
+          status: "UNAVAILABLE",
+          items: null,
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+      });
+    }
+
+    const ownerDestinations = await destinationOwner.listOwnerDestinations();
+    if (
+      ownerDestinations?.status !== "found" ||
+      !Array.isArray(ownerDestinations.data)
+    ) {
+      return Object.freeze({
+        attention: Object.freeze({
+          status: "UNAVAILABLE",
+          count: null,
+          knownCount: null,
+          items: Object.freeze([]),
+          sources: Object.freeze({}),
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+        destinationSummary: Object.freeze({
+          status: "UNAVAILABLE",
+          items: null,
+          reason: "DESTINATION_OWNER_UNAVAILABLE",
+        }),
+      });
+    }
+
+    let destinations = ownerDestinations.data;
+    if (requestedDestinationId && requestedDestinationId !== "global") {
+      destinations = destinations.filter(
+        (destination) => destination?.id === requestedDestinationId,
+      );
+      if (destinations.length === 0) {
+        return Object.freeze({
+          error: "DESTINATION_NOT_FOUND",
+          statusCode: 404,
+        });
+      }
+    }
+    const destinationIds = destinations
+      .map((destination) => destination?.id)
+      .filter((value) => typeof value === "string" && value);
+    const financialOwner = domainAdapters.financial;
+    let financialResult = { status: "unavailable", data: null };
+    if (
+      destinationIds.length > 0 &&
+      typeof financialOwner?.aggregateDestinations === "function"
+    ) {
+      try {
+        financialResult = await financialOwner.aggregateDestinations({
+          destinationIds,
+        });
+      } catch {
+        financialResult = { status: "unavailable", data: null };
+      }
+    }
+    const financialByDestination = new Map(
+      financialResult?.status === "found" &&
+        Array.isArray(financialResult.data?.destinations)
+        ? financialResult.data.destinations.map((item) => [
+            item.destinationId,
+            item,
+          ])
+        : [],
+    );
+
+    const healthItems = (health.checks ?? [])
+      .filter((check) => check.status !== "pass")
+      .map((check) =>
+        Object.freeze({
+          id: `health:${bounded(check.name, 120)}`,
+          kind: "incident",
+          destinationId: platformOperations.destinationId,
+          severity:
+            check.status === "fail" || check.critical ? "critical" : "warning",
+          title: bounded(check.name, 160),
+          detail: bounded(check.detail || check.status, 240),
+        }),
+      );
+
+    const summaryItems = destinations.map((destination) => {
+      const destinationId = destination.id;
+      const financial = financialByDestination.get(destinationId);
+      const financialAttention = financial
+        ? Object.freeze({
+            status: financial.financialAttention.status,
+            count: financial.financialAttention.count,
+            knownCount: financial.financialAttention.knownCount,
+            items: financial.financialAttention.items,
+            itemsTruncated: financial.financialAttention.itemsTruncated,
+            reason:
+              financial.financialAttention.status === "PARTIAL"
+                ? "PAYMENTS_AGGREGATE_LIMIT_REACHED"
+                : null,
+          })
+        : unavailableSource("FINANCIAL_OWNER_UNAVAILABLE");
+      const incidents =
+        destinationId === platformOperations.destinationId
+          ? Object.freeze({
+              status: "READY",
+              count: healthItems.length,
+              knownCount: healthItems.length,
+              items: Object.freeze(healthItems),
+              reason: null,
+            })
+          : notSupportedSource(
+              "MULTI_DESTINATION_INCIDENT_OWNER_NOT_AVAILABLE",
+            );
+      const sources = Object.freeze({
+        businessApprovals: notSupportedSource(
+          "BUSINESS_APPROVAL_OWNER_NOT_AVAILABLE",
+        ),
+        financialReconciliation: financialAttention,
+        refundReview: notSupportedSource("REFUND_REVIEW_OWNER_NOT_AVAILABLE"),
+        supportRequests: notSupportedSource(
+          "SUPPORT_REQUEST_OWNER_NOT_AVAILABLE",
+        ),
+        incidents,
+      });
+      const alertStatus = combineAvailability(
+        Object.values(sources).map((source) => source.status),
+      );
+      const knownCount = Object.values(sources).reduce(
+        (total, source) =>
+          total +
+          (Number.isSafeInteger(source.knownCount) ? source.knownCount : 0),
+        0,
+      );
+      const alerts = Object.freeze({
+        status: alertStatus,
+        count: alertStatus === "READY" ? knownCount : null,
+        knownCount,
+        items: Object.freeze(
+          Object.values(sources)
+            .flatMap((source) => source.items ?? [])
+            .slice(0, 100),
+        ),
+        sources,
+      });
+      const revenue = financial?.revenue
+        ? financial.revenue
+        : Object.freeze({
+            status: "UNAVAILABLE",
+            currencies: null,
+            scannedPayments: null,
+            complete: false,
+          });
+      return Object.freeze({
+        destinationId,
+        alerts,
+        revenue,
+      });
+    });
+
+    const destinationStatus =
+      summaryItems.length === 0
+        ? "READY"
+        : combineAvailability(
+            summaryItems.flatMap((item) => [
+              item.alerts.status,
+              item.revenue.status,
+            ]),
+          );
+    const allSources = summaryItems.flatMap((item) =>
+      Object.values(item.alerts.sources).map((source) => ({
+        destinationId: item.destinationId,
+        source,
+      })),
+    );
+    const attentionKnownCount = summaryItems.reduce(
+      (total, item) => total + item.alerts.knownCount,
+      0,
+    );
+    const attentionItems = Object.freeze(
+      summaryItems.flatMap((item) => item.alerts.items).slice(0, 100),
+    );
+    const sources = Object.freeze({
+      businessApprovals: notSupportedSource(
+        "BUSINESS_APPROVAL_OWNER_NOT_AVAILABLE",
+      ),
+      financialReconciliation: Object.freeze({
+        status: combineAvailability(
+          summaryItems.map(
+            (item) => item.alerts.sources.financialReconciliation.status,
+          ),
+        ),
+        count: summaryItems.every(
+          (item) =>
+            item.alerts.sources.financialReconciliation.status === "READY",
+        )
+          ? summaryItems.reduce(
+              (total, item) =>
+                total +
+                (item.alerts.sources.financialReconciliation.count ?? 0),
+              0,
+            )
+          : null,
+        knownCount: summaryItems.reduce(
+          (total, item) =>
+            total +
+            (item.alerts.sources.financialReconciliation.knownCount ?? 0),
+          0,
+        ),
+      }),
+      refundReview: notSupportedSource("REFUND_REVIEW_OWNER_NOT_AVAILABLE"),
+      supportRequests: notSupportedSource(
+        "SUPPORT_REQUEST_OWNER_NOT_AVAILABLE",
+      ),
+      incidents: Object.freeze({
+        status: combineAvailability(
+          summaryItems.map((item) => item.alerts.sources.incidents.status),
+        ),
+        count: summaryItems.every(
+          (item) => item.alerts.sources.incidents.status === "READY",
+        )
+          ? summaryItems.reduce(
+              (total, item) =>
+                total + (item.alerts.sources.incidents.count ?? 0),
+              0,
+            )
+          : null,
+        knownCount: summaryItems.reduce(
+          (total, item) =>
+            total + (item.alerts.sources.incidents.knownCount ?? 0),
+          0,
+        ),
+      }),
+    });
+    const attentionStatus = combineAvailability(
+      Object.values(sources).map((source) => source.status),
+    );
+
+    return Object.freeze({
+      attention: Object.freeze({
+        status: attentionStatus,
+        count: attentionStatus === "READY" ? attentionKnownCount : null,
+        knownCount: attentionKnownCount,
+        items: attentionItems,
+        sources,
+      }),
+      destinationSummary: Object.freeze({
+        status: destinationStatus,
+        items: Object.freeze(summaryItems),
+      }),
+    });
+  }
+
   return Object.freeze({
     matches(pathname) {
       return pathname === adminPrefix || pathname.startsWith(`${adminPrefix}/`);
@@ -2085,15 +2607,25 @@ export function createAdminApi({
         const health = platformOperations.healthSnapshot(
           request.morroCorrelationId,
         );
+        const realData = await dashboardRealData(requestUrl, health);
+        if (realData.error) {
+          json(response, realData.statusCode, { error: realData.error });
+          return;
+        }
         json(response, 200, {
           generatedAt: new Date().toISOString(),
           summary: {
             businesses: businesses.length,
             users: users.length,
             alerts:
-              health.checks?.filter((check) => check.status !== "pass")
-                .length ?? 0,
+              realData.attention.status === "READY"
+                ? realData.attention.knownCount
+                : null,
+            alertsKnownCount: realData.attention.knownCount,
+            alertsStatus: realData.attention.status,
           },
+          attention: realData.attention,
+          destinationSummary: realData.destinationSummary,
           health,
           modules: {
             businesses: {
@@ -2231,9 +2763,18 @@ export function createAdminApi({
           "business.read",
         );
         if (!actor) return;
+        const destinationId = bounded(
+          requestUrl.searchParams.get("destinationId"),
+          120,
+        );
+        const projection = await businessDirectoryProjection(
+          await authApi.listAdminUsers(),
+          domainAdapters.businesses,
+          destinationId,
+        );
         json(response, 200, {
-          businesses: businessesFromUsers(await authApi.listAdminUsers()),
-          source: "identity-membership",
+          ...projection,
+          source: "identity-membership+business-owner-profile",
           authority: "read-only-directory",
           mutationContract: domainAdapters.businesses
             ? "BUSINESS_ADMIN_CONTRACT_REGISTERED"
@@ -2242,71 +2783,285 @@ export function createAdminApi({
         return;
       }
 
-      if (pathname === `${adminPrefix}/search`) {
+      if (pathname === adminPrefix + "/search") {
         const actor = await requireCapability(
           request,
           response,
           "platform.read",
         );
         if (!actor) return;
-        const query = bounded(
-          requestUrl.searchParams.get("q"),
-          160,
-        ).toLowerCase();
+
+        const rawQuery = bounded(requestUrl.searchParams.get("q"), 160);
+        const normalizedQuery = normalizeSearchText(rawQuery);
+        const destinationId = searchDestinationId(
+          requestUrl.searchParams.get("destinationId"),
+        );
+        const limit = searchInteger(requestUrl.searchParams.get("limit"), 30, {
+          min: 1,
+          max: 50,
+        });
+        const offset = searchInteger(requestUrl.searchParams.get("offset"), 0, {
+          min: 0,
+          max: 500,
+        });
+
+        if (destinationId === null) {
+          json(response, 400, { error: "INVALID_DESTINATION_ID" });
+          return;
+        }
+        if (limit === null || offset === null) {
+          json(response, 400, { error: "INVALID_SEARCH_PAGINATION" });
+          return;
+        }
+
+        if (Array.from(rawQuery).length < 2) {
+          json(response, 200, {
+            query: rawQuery,
+            normalizedQuery,
+            destinationId: destinationId || null,
+            state: "idle",
+            results: [],
+            groups: [],
+            partial: [],
+            pagination: {
+              limit,
+              offset,
+              total: 0,
+              hasMore: false,
+              nextOffset: null,
+            },
+          });
+          return;
+        }
+
+        if (!consumeSearchAttempt(actor.subject)) {
+          json(response, 429, { error: "SEARCH_RATE_LIMITED" });
+          return;
+        }
+
         const results = [];
-        if (query.length >= 2) {
-          const configuredUsers = await authApi.listAdminUsers();
-          for (const user of configuredUsers) {
-            const searchable = [
-              user.id,
-              user.email,
-              user.role,
-              canonicalAuthRole(user.role),
-              ...(user.businessIds ?? []),
-            ]
-              .join(" ")
-              .toLowerCase();
-            if (searchable.includes(query)) {
-              results.push({
-                type: "user",
-                id: user.id,
-                title: user.email,
-                context: canonicalAuthRole(user.role),
-                href: `#users:${encodeURIComponent(user.id)}`,
-              });
-            }
-          }
-          for (const business of businessesFromUsers(configuredUsers)) {
-            if (
-              business.id.toLowerCase().includes(query) ||
-              business.members.some((member) =>
-                member.email.toLowerCase().includes(query),
-              )
-            ) {
-              results.push({
-                type: "business",
-                id: business.id,
-                title: business.id,
-                context: `${business.members.length} membro(s)`,
-                href: `#businesses:${encodeURIComponent(business.id)}`,
-              });
-            }
-          }
-          const support = supportContext(request, actor);
-          for (const [domain, adapter] of Object.entries(domainAdapters)) {
-            if (typeof adapter?.search !== "function") continue;
-            const domainResults = await adapter.search({
-              query,
-              actor,
-              request,
-              effectiveUser: support?.effectiveUser ?? null,
-            });
-            for (const result of domainResults ?? []) {
-              results.push({ ...result, domain });
+        const partial = [];
+        const support = supportContext(request, actor);
+        const capabilityAllowed = (capability) =>
+          authorizeCapability(actor, capability).allowed;
+        const configuredUsers = await authApi.listAdminUsers();
+
+        if (capabilityAllowed("users.read")) {
+          if (destinationId) {
+            partial.push(
+              Object.freeze({
+                domain: "users",
+                types: Object.freeze(["user"]),
+                reason: "destination_scope_unavailable",
+              }),
+            );
+          } else {
+            for (const user of configuredUsers) {
+              const searchable = normalizeSearchText(
+                [
+                  user.id,
+                  user.email,
+                  user.role,
+                  canonicalAuthRole(user.role),
+                  ...(user.businessIds ?? []),
+                ].join(" "),
+              );
+              if (!searchable.includes(normalizedQuery)) continue;
+              results.push(
+                Object.freeze({
+                  type: "user",
+                  id: user.id,
+                  title: user.email,
+                  context: canonicalAuthRole(user.role),
+                  href: "#users:" + encodeURIComponent(user.id),
+                  domain: "users",
+                }),
+              );
             }
           }
         }
-        json(response, 200, { query, results: results.slice(0, 50) });
+
+        if (capabilityAllowed("business.read")) {
+          const businessProjection = await businessDirectoryProjection(
+            configuredUsers,
+            domainAdapters.businesses,
+            destinationId,
+          );
+          if (
+            destinationId &&
+            businessProjection.destinationScope !== "owner-backed"
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: "businesses",
+                types: Object.freeze(["business"]),
+                reason: "destination_scope_unavailable",
+              }),
+            );
+          } else {
+            for (const business of businessProjection.businesses) {
+              const searchable = normalizeSearchText(
+                [
+                  business.id,
+                  business.name,
+                  ...business.members.flatMap((member) => [
+                    member.email,
+                    member.id,
+                  ]),
+                ]
+                  .filter(Boolean)
+                  .join(" "),
+              );
+              if (!searchable.includes(normalizedQuery)) continue;
+              results.push(
+                Object.freeze({
+                  type: "business",
+                  id: business.id,
+                  title: business.name || business.id,
+                  context: [
+                    business.destinationId,
+                    String(business.members.length) + " membro(s)",
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
+                  href: "#businesses:" + encodeURIComponent(business.id),
+                  domain: "businesses",
+                  ...(business.destinationId
+                    ? { destinationId: business.destinationId }
+                    : {}),
+                }),
+              );
+            }
+          }
+        }
+
+        for (const source of searchAdapterSources) {
+          const adapter = domainAdapters[source.adapterKey];
+          if (
+            typeof adapter?.searchCapability === "string" &&
+            adapter.searchCapability !== source.capability
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "capability_contract_mismatch",
+              }),
+            );
+            continue;
+          }
+          if (!capabilityAllowed(source.capability)) continue;
+
+          if (
+            typeof adapter?.searchDestinationAware === "boolean" &&
+            adapter.searchDestinationAware !== source.destinationAware
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "destination_contract_mismatch",
+              }),
+            );
+            continue;
+          }
+
+          if (destinationId && !source.destinationAware) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "destination_scope_unavailable",
+              }),
+            );
+            continue;
+          }
+          if (typeof adapter?.search !== "function") {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "owner_search_unavailable",
+              }),
+            );
+            continue;
+          }
+
+          try {
+            const domainResults = await adapter.search({
+              query: rawQuery,
+              actor,
+              request,
+              effectiveUser: support?.effectiveUser ?? null,
+              destinationId,
+              limit: 50,
+            });
+            for (const result of domainResults ?? []) {
+              const normalized = normalizedSearchResult(result, source);
+              if (!normalized) continue;
+              if (
+                destinationId &&
+                source.destinationAware &&
+                normalized.destinationId !== destinationId
+              ) {
+                continue;
+              }
+              results.push(normalized);
+            }
+          } catch {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "owner_search_failed",
+              }),
+            );
+          }
+        }
+
+        const orderOf = (type) => {
+          const index = searchResultTypeOrder.indexOf(type);
+          return index === -1 ? searchResultTypeOrder.length : index;
+        };
+        const deduplicated = Array.from(
+          new Map(
+            results.map((result) => [
+              [result.type, result.id, result.href].join(":"),
+              result,
+            ]),
+          ).values(),
+        ).sort(
+          (left, right) =>
+            orderOf(left.type) - orderOf(right.type) ||
+            left.title.localeCompare(right.title, "pt-BR", {
+              sensitivity: "base",
+            }),
+        );
+        const page = deduplicated.slice(offset, offset + limit);
+        const hasMore = offset + page.length < deduplicated.length;
+        const state =
+          partial.length > 0
+            ? "partial"
+            : page.length === 0
+              ? "empty"
+              : "complete";
+
+        json(response, 200, {
+          query: rawQuery,
+          normalizedQuery,
+          destinationId: destinationId || null,
+          state,
+          results: page,
+          groups: groupSearchResults(page),
+          partial: Object.freeze(partial),
+          pagination: {
+            limit,
+            offset,
+            total: deduplicated.length,
+            hasMore,
+            nextOffset: hasMore ? offset + page.length : null,
+          },
+        });
         return;
       }
 

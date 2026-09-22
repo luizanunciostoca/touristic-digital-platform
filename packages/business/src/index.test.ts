@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createAuthorizedBusinessProfileService,
   createBusinessProfileService,
+  normalizeBusinessDestinationId,
   normalizeBusinessId,
   normalizeBusinessProfile,
   type BusinessProfile,
@@ -36,6 +37,16 @@ describe("normalizeBusinessId", () => {
   });
 });
 
+describe("normalizeBusinessDestinationId", () => {
+  it("accepts only canonical destination identifiers and never infers from labels", () => {
+    expect(normalizeBusinessDestinationId(" Morro-de-Sao-Paulo ")).toBe(
+      "morro-de-sao-paulo",
+    );
+    expect(normalizeBusinessDestinationId("Morro de São Paulo")).toBeNull();
+    expect(normalizeBusinessDestinationId({ label: "Itacaré" })).toBeNull();
+  });
+});
+
 describe("normalizeBusinessProfile", () => {
   it("preserves the V1 profile defaults and strips angle-bracket markup", () => {
     const profile = normalizeBusinessProfile({
@@ -50,6 +61,7 @@ describe("normalizeBusinessProfile", () => {
       categoryLabel: "Negócio local",
       specialty: "Experiência local",
       cta: "Ver empresa",
+      destinationId: null,
       locationLabel: "Morro de São Paulo",
       tutorial: false,
       excludeFromBusinessMetrics: false,
@@ -67,6 +79,21 @@ describe("normalizeBusinessProfile", () => {
       name: { injected: true },
     });
     expect(profile.name).toBe("Negócio local");
+  });
+
+  it("persists an explicit destination owner relation without deriving it from location labels", () => {
+    const profile = normalizeBusinessProfile({
+      id: "toca",
+      destinationId: "morro-de-sao-paulo",
+      locationLabel: "Centro",
+    });
+    expect(profile.destinationId).toBe("morro-de-sao-paulo");
+    expect(
+      normalizeBusinessProfile({
+        id: "itacare-local",
+        locationLabel: "Itacaré",
+      }).destinationId,
+    ).toBeNull();
   });
 });
 

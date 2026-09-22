@@ -21,6 +21,8 @@ const createForm = document.querySelector("#contract-create-form");
 const createSubmit = document.querySelector("#contract-create-submit");
 const createStatus = document.querySelector("#contract-create-status");
 
+const requestedContractId = new URLSearchParams(window.location.search).get("id");
+
 const statusLabels = {
   draft: "Rascunho",
   sent: "Enviado",
@@ -122,6 +124,11 @@ function renderContracts(contracts) {
   body.replaceChildren();
   for (const contract of contracts) {
     const row = document.createElement("tr");
+    row.dataset.contractId = String(contract.id);
+    if (requestedContractId && String(contract.id) === requestedContractId) {
+      row.tabIndex = -1;
+      row.setAttribute("aria-current", "true");
+    }
     row.append(
       textCell(contract.title),
       textCell(contract.leadId),
@@ -133,6 +140,13 @@ function renderContracts(contracts) {
       actionCell(contract),
     );
     body.append(row);
+  }
+  if (requestedContractId) {
+    const target = Array.from(body.querySelectorAll("[data-contract-id]")).find(
+      (row) => row.dataset.contractId === requestedContractId,
+    );
+    target?.scrollIntoView?.({ block: "center" });
+    target?.focus?.({ preventScroll: true });
   }
   table.hidden = contracts.length === 0;
   if (count) {

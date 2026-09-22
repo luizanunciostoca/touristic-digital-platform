@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f4f8fc" />
     <title>Morro Digital — Control Center</title>
     <link
       rel="stylesheet"
@@ -11,16 +12,22 @@
     />
   </head>
   <body>
-    <div id="app" class="app-shell" hidden>
-      <aside class="sidebar" aria-label="Navegação principal">
+    <div id="app" class="control-center app-shell" hidden>
+      <aside
+        id="sidebar"
+        class="sidebar control-center__sidebar"
+        aria-label="Navegação principal"
+      >
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true">M</span>
+          <span class="brand-mark" aria-hidden="true">MD</span>
           <div>
             <strong>Morro Digital</strong>
             <small>Control Center</small>
           </div>
         </div>
-        <nav id="main-nav"></nav>
+
+        <nav id="main-nav" aria-label="Módulos do Control Center"></nav>
+
         <div class="sidebar-footer">
           <div id="actor-card" class="actor-card"></div>
           <button id="logout-button" class="ghost-button" type="button">
@@ -28,9 +35,111 @@
           </button>
         </div>
       </aside>
+      <button
+        id="sidebar-backdrop"
+        class="sidebar-backdrop"
+        type="button"
+        aria-label="Fechar menu"
+        hidden
+      ></button>
 
-      <main class="main">
-        <div id="support-banner" class="support-banner" hidden>
+      <main class="main control-center__main">
+        <header class="topbar control-center__topbar">
+          <button
+            id="menu-button"
+            class="icon-button mobile-only"
+            type="button"
+            aria-label="Abrir menu"
+            aria-controls="sidebar"
+            aria-expanded="false"
+          >
+            <span aria-hidden="true">☰</span>
+          </button>
+
+          <div class="scope-controls" aria-label="Contexto operacional">
+            <button
+              id="global-scope"
+              class="scope-button"
+              type="button"
+              aria-pressed="true"
+              title="Visão Global"
+            >
+              <span aria-hidden="true">◎</span>
+              <span>Visão Global</span>
+            </button>
+            <label class="destination-control" for="destination-selector">
+              <span aria-hidden="true">⌖</span>
+              <span class="sr-only">Destino atual</span>
+              <select id="destination-selector" aria-label="Destino atual">
+                <option value="global">Todos os destinos</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="search-wrap" role="search">
+            <span aria-hidden="true">⌕</span>
+            <input
+              id="global-search"
+              type="search"
+              autocomplete="off"
+              placeholder="Pesquisar empresa, afiliado, reserva, pedido..."
+              role="combobox"
+              aria-label="Busca universal"
+              aria-controls="search-results"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+            />
+            <kbd>⌘ K</kbd>
+            <div
+              id="search-results"
+              class="search-results"
+              role="listbox"
+              aria-label="Resultados da busca"
+              hidden
+            ></div>
+          </div>
+
+          <div class="top-actions">
+            <span id="release-chip" hidden></span>
+            <span id="health-chip" hidden></span>
+            <button
+              id="notification-button"
+              class="icon-button notification-button"
+              type="button"
+              aria-label="Notificações"
+              title="Notificações"
+            >
+              <span aria-hidden="true">♧</span>
+              <span id="notification-badge" class="notification-badge" hidden
+                >0</span
+              >
+            </button>
+            <button
+              id="profile-button"
+              class="profile-button"
+              type="button"
+              aria-label="Conta administrativa"
+            >
+              <span
+                id="profile-avatar"
+                class="profile-avatar"
+                aria-hidden="true"
+                >A</span
+              >
+              <span id="profile-name" class="profile-name">Admin</span>
+              <span aria-hidden="true">⌄</span>
+            </button>
+          </div>
+        </header>
+
+        <div
+          id="support-banner"
+          class="support-banner"
+          role="status"
+          aria-live="polite"
+          hidden
+        >
           <div>
             <strong>MODO SUPORTE ATIVO</strong>
             <span id="support-context"></span>
@@ -38,38 +147,11 @@
           <button id="support-end" type="button">Encerrar modo suporte</button>
         </div>
 
-        <header class="topbar">
-          <button
-            id="menu-button"
-            class="icon-button mobile-only"
-            type="button"
-            aria-label="Abrir menu"
-          >
-            ☰
-          </button>
-          <div class="search-wrap">
-            <span aria-hidden="true">⌕</span>
-            <input
-              id="global-search"
-              type="search"
-              autocomplete="off"
-              placeholder="Pesquisar qualquer coisa no Morro Digital..."
-              aria-label="Busca universal"
-            />
-            <kbd>⌘ K</kbd>
-            <div id="search-results" class="search-results" hidden></div>
-          </div>
-          <div class="top-actions">
-            <span id="release-chip" class="chip">SHA —</span>
-            <span id="health-chip" class="chip">Verificando</span>
-          </div>
-        </header>
-
         <section class="page" tabindex="0">
           <div class="page-heading">
-            <div>
+            <div class="page-heading__copy">
               <p id="breadcrumb" class="breadcrumb">
-                Control Center / Visão Geral
+                Morro Digital → Visão Global
               </p>
               <h1 id="page-title">Visão Geral</h1>
               <p id="page-description">
@@ -77,22 +159,39 @@
                 visão.
               </p>
             </div>
-            <div id="page-actions" class="page-actions"></div>
+            <div class="page-heading__meta">
+              <time id="page-date"></time>
+              <span id="page-health" class="overall-status">
+                <i class="status-dot" aria-hidden="true"></i>
+                <span>Verificando operação</span>
+              </span>
+              <div id="page-actions" class="page-actions"></div>
+            </div>
           </div>
-          <div id="content" aria-live="polite"></div>
+
+          <div
+            id="content"
+            role="region"
+            aria-labelledby="page-title"
+            aria-busy="false"
+          ></div>
         </section>
       </main>
     </div>
 
-    <div id="boot" class="boot">
-      <div class="spinner" aria-hidden="true"></div>
+    <div id="boot" class="boot" role="status" aria-live="polite">
+      <div class="skeleton boot-mark" aria-hidden="true"></div>
       <strong>Abrindo Control Center</strong>
-      <span>Validando sessão e capabilities…</span>
+      <span>Validando sessão, contexto e permissões…</span>
     </div>
 
     <script
       type="module"
       src="/apps/control-center/public/control-center.js"
+    ></script>
+    <script
+      type="module"
+      src="/apps/control-center/public/control-center-ux-v1.js"
     ></script>
   </body>
 </html>

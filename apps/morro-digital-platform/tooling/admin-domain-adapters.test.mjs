@@ -128,8 +128,23 @@ describe("Control Center domain support delegation", () => {
       targetResponse.statusCode = 200;
       targetResponse.end(JSON.stringify({ pathname }));
     });
+    const adminReadProfile = vi.fn(async (businessId) => ({
+      id: businessId,
+      name: "Toca do Morcego",
+      destinationId: "morro-de-sao-paulo",
+    }));
     const { authApi, calls } = supportDelegationBoundary();
-    const adapter = createBusinessAdminAdapter({ handle }, authApi);
+    const adapter = createBusinessAdminAdapter(
+      { handle, adminReadProfile },
+      authApi,
+    );
+    await expect(
+      adapter.readDirectoryProfile("toca-do-morcego"),
+    ).resolves.toMatchObject({
+      id: "toca-do-morcego",
+      destinationId: "morro-de-sao-paulo",
+    });
+    expect(adapter.coverage).toContain("destination-owner-projection");
 
     await adapter.handle({
       request: req,
@@ -196,25 +211,41 @@ describe("Control Center domain support delegation", () => {
     expect(ticketingHandle).toHaveBeenCalledTimes(1);
   });
 
-  it("searches CRM leads through the owner HTTP boundary and preserves support delegation", async () => {
+  it("searches CRM leads and contracts through the owner boundary with entity deep links", async () => {
     const req = request("GET");
     const { authApi, calls } = supportDelegationBoundary();
     const crmHandle = vi.fn(async (_request, response, requestUrl) => {
-      expect(requestUrl.pathname).toBe("/api/crm/leads");
-      expect(requestUrl.searchParams.get("search")).toBe("toca");
-      expect(requestUrl.searchParams.get("limit")).toBe("20");
       response.statusCode = 200;
       response.setHeader("Content-Type", "application/json");
+      if (requestUrl.pathname === "/api/crm/leads") {
+        expect(requestUrl.searchParams.get("search")).toBe("toca");
+        expect(requestUrl.searchParams.get("limit")).toBe("20");
+        response.end(
+          JSON.stringify({
+            data: [
+              {
+                id: 42,
+                destinationId: "morro-de-sao-paulo",
+                companyName: "Toca do Morcego",
+                contactName: "Operação",
+                email: "crm@example.com",
+                stage: "proposal_sent",
+                status: "active",
+              },
+            ],
+          }),
+        );
+        return;
+      }
+      expect(requestUrl.pathname).toBe("/api/crm/contracts");
       response.end(
         JSON.stringify({
           data: [
             {
-              id: 42,
-              companyName: "Toca do Morcego",
-              contactName: "Operação",
-              email: "crm@example.com",
-              stage: "proposal_sent",
-              status: "active",
+              id: "contract-1",
+              title: "Contrato Toca",
+              leadId: 42,
+              status: "draft",
             },
           ],
         }),
@@ -228,17 +259,82 @@ describe("Control Center domain support delegation", () => {
         request: req,
         effectiveUser: { id: "business-owner" },
       }),
-    ).resolves.toEqual([
-      expect.objectContaining({
-        type: "crm-lead",
-        id: "42",
-        title: "Toca do Morcego",
-        href: "#crm",
-      }),
-    ]);
+    ).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "lead",
+          id: "42",
+          href: "/apps/admin-crm/public/lead-detail.html?id=42",
+        }),
+        expect.objectContaining({
+          type: "contract",
+          id: "contract-1",
+          href: "/apps/admin-crm/public/contracts.html?id=contract-1",
+        }),
+      ]),
+    );
     expect(calls).toEqual([
       { request: req, effectiveUserId: "business-owner" },
+      { request: req, effectiveUserId: "business-owner" },
     ]);
+  });
+
+  it("matches CRM contracts accent-insensitively and emits an entity deep link", async () => {
+    const req = request("GET");
+    const { authApi } = supportDelegationBoundary();
+    const crmHandle = vi.fn(async (_request, response, requestUrl) => {
+      response.statusCode = 200;
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify({
+          data:
+            requestUrl.pathname === "/api/crm/contracts"
+              ? [
+                  {
+                    id: "contract-42",
+                    title: "Contrato São Bento",
+                    leadId: 42,
+                    status: "signed",
+                  },
+                ]
+              : [],
+        }),
+      );
+    });
+    const adapter = createCrmAdminAdapter({ handle: crmHandle }, authApi);
+
+    await expect(
+      adapter.search({
+        query: "sao bento",
+        request: req,
+        effectiveUser: null,
+      }),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        type: "contract",
+        id: "contract-42",
+        title: "Contrato São Bento",
+        href: "/apps/admin-crm/public/contracts.html?id=contract-42",
+      }),
+    ]);
+  });
+
+  it("surfaces CRM owner search failures instead of masking them as empty results", async () => {
+    const req = request("GET");
+    const { authApi } = supportDelegationBoundary();
+    const crmHandle = vi.fn(async (_request, response) => {
+      response.statusCode = 503;
+      response.end(JSON.stringify({ error: "CRM_DOWN" }));
+    });
+    const adapter = createCrmAdminAdapter({ handle: crmHandle }, authApi);
+
+    await expect(
+      adapter.search({
+        query: "toca",
+        request: req,
+        effectiveUser: null,
+      }),
+    ).rejects.toThrow("CRM_ADMIN_SEARCH_OWNER_UNAVAILABLE");
   });
 
   it("allows the full governed Ticketing operator route set including offline revoke", async () => {
@@ -509,17 +605,45 @@ describe("Control Center Affiliates owner adapter", () => {
     );
     expect(runtime.adminList).toHaveBeenCalledWith(actor, {
       query: "creator",
+      destinationId: "",
       limit: "10",
     });
 
-    const results = await adapter.search({ query: "affiliate-admin", actor });
+    const results = await adapter.search({
+      query: "affiliate-admin",
+      actor,
+      destinationId: "morro-de-sao-paulo",
+    });
     expect(results).toEqual([
       expect.objectContaining({
         type: "affiliate",
         id: "aff_admin_0001",
         href: "#affiliates:aff_admin_0001",
+        destinationId: "morro-de-sao-paulo",
       }),
     ]);
+    expect(runtime.adminList).toHaveBeenLastCalledWith(actor, {
+      query: "affiliate-admin",
+      destinationId: "morro-de-sao-paulo",
+      limit: 10,
+    });
+  });
+
+  it("surfaces Affiliate owner unavailability to the search orchestrator", async () => {
+    const { adapter, runtime, actor } = affiliateFixture();
+    runtime.adminList.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "AFFILIATE_DB_DOWN",
+    });
+
+    await expect(
+      adapter.search({
+        query: "affiliate",
+        actor,
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("AFFILIATE_DB_DOWN");
   });
 
   it("derives membership destination from owner detail before changing status", async () => {
@@ -602,10 +726,14 @@ describe("Control Center Content owner adapter", () => {
   it("searches through the Content owner contract", async () => {
     const { runtime } = contentRuntimeFixture();
     const adapter = createContentAdminAdapter(runtime);
-    const results = await adapter.search({ query: "Segunda" });
+    const results = await adapter.search({
+      query: "Segunda",
+      destinationId: "morro-de-sao-paulo",
+    });
 
     expect(runtime.adminList).toHaveBeenCalledWith({
       query: "Segunda",
+      destinationId: "morro-de-sao-paulo",
       limit: 20,
     });
     expect(results).toEqual([
@@ -616,6 +744,23 @@ describe("Control Center Content owner adapter", () => {
         href: "#content:content-admin-0001",
       }),
     ]);
+  });
+
+  it("surfaces Content owner failures instead of reporting an empty search", async () => {
+    const { runtime } = contentRuntimeFixture();
+    runtime.adminList.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "CONTENT_DB_DOWN",
+    });
+    const adapter = createContentAdminAdapter(runtime);
+
+    await expect(
+      adapter.search({
+        query: "Segunda",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("CONTENT_DB_DOWN");
   });
 
   it("requires an administrative reason before owner mutation", async () => {
@@ -861,14 +1006,43 @@ describe("Control Center Products and Reservations owner adapters", () => {
       }),
     );
 
-    const search = await adapter.search({ query: "volta" });
-    expect(search).toEqual([
-      expect.objectContaining({
-        type: "product",
-        id: "tin_admin_0001",
-        href: "#products:tin_admin_0001",
+    const search = await adapter.search({
+      query: "volta",
+      destinationId: "morro-de-sao-paulo",
+    });
+    expect(search).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "product",
+          id: "volta-a-ilha",
+          href: "#products:tin_admin_0001",
+          destinationId: "morro-de-sao-paulo",
+        }),
+        expect.objectContaining({
+          type: "offer",
+          id: "tin_admin_0001",
+          href: "#products:tin_admin_0001",
+          destinationId: "morro-de-sao-paulo",
+        }),
+      ]),
+    );
+    expect(ticketingApi.adminListInventory).toHaveBeenLastCalledWith({
+      query: "volta",
+      destinationId: "morro-de-sao-paulo",
+      limit: 20,
+    });
+
+    ticketingApi.adminListInventory.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "TICKETING_SEARCH_DOWN",
+    });
+    await expect(
+      adapter.search({
+        query: "volta",
+        destinationId: "morro-de-sao-paulo",
       }),
-    ]);
+    ).rejects.toThrow("TICKETING_SEARCH_DOWN");
 
     await expect(
       adapter.createBusinessOffer({
@@ -914,6 +1088,7 @@ describe("Control Center Products and Reservations owner adapters", () => {
               id: "trv_admin_0001",
               status: "confirmed",
               holderReference: "holder-0001",
+              destinationId: "morro-de-sao-paulo",
             },
             businessId: "business-0001",
             inventoryLabel: "Volta a Ilha",
@@ -965,14 +1140,35 @@ describe("Control Center Products and Reservations owner adapters", () => {
       }),
     );
 
-    const search = await adapter.search({ query: "holder-0001" });
+    const search = await adapter.search({
+      query: "holder-0001",
+      destinationId: "morro-de-sao-paulo",
+    });
     expect(search).toEqual([
       expect.objectContaining({
         type: "reservation",
         id: "trv_admin_0001",
         href: "#reservations:trv_admin_0001",
+        destinationId: "morro-de-sao-paulo",
       }),
     ]);
+    expect(ticketingApi.adminListReservations).toHaveBeenLastCalledWith({
+      query: "holder-0001",
+      destinationId: "morro-de-sao-paulo",
+      limit: 20,
+    });
+
+    ticketingApi.adminListReservations.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "RESERVATION_SEARCH_DOWN",
+    });
+    await expect(
+      adapter.search({
+        query: "holder-0001",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("RESERVATION_SEARCH_DOWN");
 
     await expect(
       adapter.cancelHeldReservation({

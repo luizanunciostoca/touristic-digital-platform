@@ -1,4 +1,7 @@
-import { createAuthorizedBusinessProfileService } from "@touristic/business";
+import {
+  createAuthorizedBusinessProfileService,
+  createBusinessProfileService,
+} from "@touristic/business";
 
 const businessProfilePattern = /^\/api\/business\/([^/]+)\/profile$/u;
 const maxBodyBytes = 64 * 1024;
@@ -44,6 +47,7 @@ export function createBusinessApi({
     throw new Error("BUSINESS_AUTH_BOUNDARY_REQUIRED");
   }
   const profiles = createAuthorizedBusinessProfileService(repository);
+  const ownerProfiles = createBusinessProfileService(repository);
 
   function route(pathname) {
     const match = businessProfilePattern.exec(pathname);
@@ -56,6 +60,10 @@ export function createBusinessApi({
   }
 
   return Object.freeze({
+    async adminReadProfile(businessId) {
+      return ownerProfiles.getProfile(businessId);
+    },
+
     matches(pathname) {
       return businessProfilePattern.test(pathname);
     },

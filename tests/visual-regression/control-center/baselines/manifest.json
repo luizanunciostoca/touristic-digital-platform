@@ -1,0 +1,268 @@
+{
+  "schemaVersion": 1,
+  "bootstrapPending": false,
+  "baselineGeneratedFromSha": "5235ee857f583b8b26a97f137446c4ed11d66bc7",
+  "sourceManualSha256": {
+    "controlCenterUxV1": "ae9aa18a07462ccab44b79250a9d28580a21ecae5ef2d3d2343d998b946c77ab",
+    "developerUxV2": "9e4c5a637c703a6f43764f9c3ec971f4b48294ac649076fddb134ccd712de0ed"
+  },
+  "browser": "playwright-chromium-1.54.2",
+  "font": "@fontsource/inter-5.2.5",
+  "fixedTime": "2026-09-21T18:00:00.000Z",
+  "timezone": "America/Bahia",
+  "locale": "pt-BR",
+  "threshold": {
+    "pixelmatch": 0.08,
+    "maxDiffRatio": 0.0002,
+    "rationale": "0.08 filters subpixel anti-aliasing noise; 0.02% total pixels still fails material geometry, spacing, typography, hierarchy, color and component drift."
+  },
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 900,
+      "label": "1440x900"
+    },
+    {
+      "width": 1280,
+      "height": 800,
+      "label": "1280x800"
+    },
+    {
+      "width": 1024,
+      "height": 768,
+      "label": "1024x768"
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "label": "768x1024"
+    },
+    {
+      "width": 430,
+      "height": 932,
+      "label": "430x932"
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "label": "390x844"
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "overview",
+      "route": "#overview",
+      "view": "overview"
+    },
+    {
+      "id": "businesses",
+      "route": "#businesses",
+      "view": "businesses"
+    },
+    {
+      "id": "business-360",
+      "route": "#businesses:toca-do-morcego",
+      "view": "businesses",
+      "entity360": true
+    },
+    {
+      "id": "affiliates",
+      "route": "#affiliates",
+      "view": "affiliates"
+    },
+    {
+      "id": "affiliate-360",
+      "route": "#affiliates:affiliate-visual-001",
+      "view": "affiliates",
+      "entity360": true
+    },
+    {
+      "id": "users",
+      "route": "#users",
+      "view": "users"
+    },
+    {
+      "id": "user-360",
+      "route": "#users:business-owner-visual",
+      "view": "users",
+      "entity360": true
+    },
+    {
+      "id": "crm",
+      "route": "#crm",
+      "view": "crm"
+    },
+    {
+      "id": "products",
+      "route": "#products",
+      "view": "products"
+    },
+    {
+      "id": "reservations",
+      "route": "#reservations",
+      "view": "reservations"
+    },
+    {
+      "id": "ticketing",
+      "route": "#ticketing",
+      "view": "ticketing"
+    },
+    {
+      "id": "orders",
+      "route": "#orders",
+      "view": "orders"
+    },
+    {
+      "id": "financial",
+      "route": "#financial",
+      "view": "financial"
+    },
+    {
+      "id": "content",
+      "route": "#content",
+      "view": "content"
+    },
+    {
+      "id": "destinations",
+      "route": "#destinations",
+      "view": "destinations"
+    },
+    {
+      "id": "support",
+      "route": "#support",
+      "view": "support"
+    },
+    {
+      "id": "audit",
+      "route": "#audit",
+      "view": "audit"
+    },
+    {
+      "id": "system",
+      "route": "#system",
+      "view": "system"
+    },
+    {
+      "id": "settings",
+      "route": "#settings",
+      "view": "settings"
+    }
+  ],
+  "screenshotCount": 114,
+  "files": {
+    "overview/1440x900.png": "bf05bb173f5dbeeb206dc97b642483688691d6e0c26b89a8e66f8d370e9eda43",
+    "businesses/1440x900.png": "e493f2367807b89b411016256b7f1203c42d05cffd5f5f46137a657ee086a348",
+    "business-360/1440x900.png": "87f72e7ec45a81befc49f8188f853f904d8db8edb4f2f5e71770a9b8abff1342",
+    "affiliates/1440x900.png": "05b15f13edf24707e4c1f1176cc40537c69d0602dd0464a8820fb8aceadee918",
+    "affiliate-360/1440x900.png": "f5bf129162f7d2ebd2d3ca374a449f2a6121ec0a6813b814d112f60bf4758910",
+    "users/1440x900.png": "42a1859d9cfb908213b007a0676551b1e20297470fd7b73218cb48d9ddbbb53d",
+    "user-360/1440x900.png": "4108f29e08a86c30f053383459892dc4b1fb903b5fdc43aca67a59314554564d",
+    "crm/1440x900.png": "e474b83825d1370e447f3bc16ba1d2a69e53f8cb3bacfeca3aa15ca5e7aedb69",
+    "products/1440x900.png": "10a429568490a1ed8a17f956a62b742b72ac0e7331428cf040fb082f2bece400",
+    "reservations/1440x900.png": "951809d453bc10caad130632c9d4bc99b26b8ded633d5347be069151ff5ddebc",
+    "ticketing/1440x900.png": "7e4777849ca07f89cd6bb344170677815d2e41d203b44666e4e20e1910cae876",
+    "orders/1440x900.png": "1bfe2b172755224ca6d40f494682a78bba363b603e57969aa1e72369b5c028a4",
+    "financial/1440x900.png": "7c88996d0c63823385e8617ff4b297c1e370e547e8291759f9487d3ba5f08c24",
+    "content/1440x900.png": "ea3254e08c7b5077eadefdc7e2d491db7b6c0e79ef8dd5a0b451ad1a37a07344",
+    "destinations/1440x900.png": "c3e309a9697c77999b3a139b5de7e790174a8247087335b1511330828e144fdc",
+    "support/1440x900.png": "c3c719543c9ccce606557fc3635febb88a7e02350bca3de9acddbc928ecac365",
+    "audit/1440x900.png": "0b82b0f925788466ab85d540325552f466e2b4c8838ba8602683fb1ab17989fc",
+    "system/1440x900.png": "e3cf7454dd0a5292313afb8d4e32b3f85cd1a1f8eea1c7f276b894fca5340d9a",
+    "settings/1440x900.png": "6d5dc92a9d6d78d0b66f4b8a8f3780ecf85e2490345f4fd7efe00dfefd47ed37",
+    "overview/1280x800.png": "93f9ec26f3a6813bc88e58fa35998085cb69f7d80acc7bdd657887280e0924e4",
+    "businesses/1280x800.png": "54c3fd70f76cb850fbf776e180c27d060d08dbdcbacfc6bf6f2d993cb8989106",
+    "business-360/1280x800.png": "eef5352ed278c4f7f442da5f1d415733fa0299b932ba219d8001a9d5962c8654",
+    "affiliates/1280x800.png": "a2a3833af3556fa4242bb24b04c66d2c7550c9bced9d76e8121e828d9916790d",
+    "affiliate-360/1280x800.png": "997da87b0754c8ceaf25ec24831c5de99573c8b93091dbe6635d343f961510ad",
+    "users/1280x800.png": "0b687b70e2403f97954a68e3584bf4a83c318ad912ce5cc720b281c7870cf23d",
+    "user-360/1280x800.png": "ff67a9caf63b0ebe2121f6fa53fa275060a64bac7915a28036e8435d562be8b7",
+    "crm/1280x800.png": "529c794e0de5942abf36ee12c2c625b4c78deb259b5a2fdab1d811ce2a0bc2b8",
+    "products/1280x800.png": "f5a0c96e00606b77474a2de738b9e6f4c755d5c593da4abb4f2660fa3e2512a6",
+    "reservations/1280x800.png": "ee69558ed806bde7509a30843c139419e0f7ff6567cce2908d8d293e351562c5",
+    "ticketing/1280x800.png": "5711e5787271284f59794db3a7493987879b101c3a6b3c9ea7e31c85e301b7b4",
+    "orders/1280x800.png": "42f64bc702dcc0711f8265938441028c07e46ff924a526fe1afd47701ae76531",
+    "financial/1280x800.png": "6812136fd41586c13077f2395a13eac7daa5463c71e94641a161d748dc86b60f",
+    "content/1280x800.png": "9a01bd2277401d9cc09a1decc9b9ed2fb264f24b05c69f3ff057b83e2f9966f9",
+    "destinations/1280x800.png": "a7fe13958c87e5b92e262eaeb4824d71bf4997b937a62f13416d4c4bcf76630b",
+    "support/1280x800.png": "16f86b61a1096d265d8cfe96ec36f215085c0f578928108dbf67db3cd24efe8f",
+    "audit/1280x800.png": "009c4790fb952b5b22aadb880d32888d676ac77c3c52b4a9e02718619b08ddcc",
+    "system/1280x800.png": "ca79450b5c4ff5fd3643cd0f4d97c5e3f01b4660d5323bae99ae83712efb55c9",
+    "settings/1280x800.png": "2afc6e9a00867f43bfb24597a45ee3ac5c9be1739e89770ee605678ce38542a4",
+    "overview/1024x768.png": "408dd088d3d49b0bea6fe2d47644e55f89f180d3822c3f1f3477293d580d3bfe",
+    "businesses/1024x768.png": "78c9d7d72c71919683a940b8183762d2dc82f265f4bcbaebe48cf89e3f730bb8",
+    "business-360/1024x768.png": "7d1eba92b934ba6e65e64df944b1ca3d50d66b2f892199ba7736a41b11ae4571",
+    "affiliates/1024x768.png": "0b7be11ca26f2c30e87ebc521b858babb8c769b660aa0d005ee545202b6a3c8c",
+    "affiliate-360/1024x768.png": "82db4d9b60ec8fa7a52deda9a5181ffa1a1643caf2f9d72f9d6d163ca467b395",
+    "users/1024x768.png": "1b9cff70c70e9f21698b6587ebdc1b47be8f7cb94fe97575ec460e5261e14491",
+    "user-360/1024x768.png": "d5f27214988f37743266a32dfd62ba32ff294ad1d29b57763e1f82ef00836bd4",
+    "crm/1024x768.png": "b4e1a4a8ac19c1d21c716e00d35dac30f586650aa73ba62b7a5d82517ff45366",
+    "products/1024x768.png": "54edb11118cfff69a83972646a055a743fcbdc64134c9a0849847287a7607283",
+    "reservations/1024x768.png": "5ce8c33f44bd3ad7b7826cfab94aac57cd8299cd1493a7357763b47d93b807c9",
+    "ticketing/1024x768.png": "5ac6464637f586ac59d8b040599a481c7a70dc779231ff511f9088c76f3c3742",
+    "orders/1024x768.png": "088ba2f0a793a449d6fe53fe8b6cf6d69c29d49b3c24d248f4bd01856e369b26",
+    "financial/1024x768.png": "9d3bbc1517a31e307cf52fea0fa415bb02bf8754fb6ac7593060fbc776ee0b28",
+    "content/1024x768.png": "45b7149e9609487402424d743dc08e345bdef5a80cf223f7b4941ad79c662f30",
+    "destinations/1024x768.png": "48207510399b253eaf6e49906742b3e444c113ee1be5e985f0075b6acb99a214",
+    "support/1024x768.png": "93946fc9731d1dac5c75972d06d03bb0e088abbdb7488e59efff47cf58167885",
+    "audit/1024x768.png": "d0fbb2808e330c71ba48ff937c63fd0625149f3974cc0d1311d8f0975f621462",
+    "system/1024x768.png": "c2b42e454dfade810d4eddcf6e7b585aa0a54c2a24789a30277c4c1964830806",
+    "settings/1024x768.png": "5fddfddf2b0e9aa8373fdb9b93c7ddd2c3c2b5b6cfd84fa2c4fc44697e645061",
+    "overview/768x1024.png": "0d8d6442664eb43250b5c733ece8dc9d75f62840009db97e9a5fdfe0fc65bb43",
+    "businesses/768x1024.png": "15eea6230c41501b94c3d55f7d4b1189c00775e6bf29c069398f9fbf0c066346",
+    "business-360/768x1024.png": "e3463147c9c58c17cb667916d53253c6abd89d83f8ccd38f7bfacb2b742dfa0a",
+    "affiliates/768x1024.png": "2340ee0393ecb488e84bd40b137003b8aa147ff8d2ee7cfdabf34561305fb9a8",
+    "affiliate-360/768x1024.png": "929bd1cdf9159ea0d2f14fae6762661f60ced4754dbefa01f14908d23d1bfe50",
+    "users/768x1024.png": "82dc70e9659713dbef749d8d83a3d27a2a764ad43c10315632e17c02e5904f3b",
+    "user-360/768x1024.png": "87aa73d5de55fd29451b2e706d95e91aa90e8792fe7f40bd22716197a20e5cbf",
+    "crm/768x1024.png": "7c803308c03d8ec07715899076c5dc36666955599a1bd7158fc7f45c8cbfde2b",
+    "products/768x1024.png": "d197e20f19fdeb3bc578c53e6b156b5652a32718aeaede01a578c8ae35ebd5df",
+    "reservations/768x1024.png": "d1bb36b35c96efaca7628f035358f3a138bd4ba0f8c163de4768e88bbdf2d58c",
+    "ticketing/768x1024.png": "59af0176c92715e3dfa2e8254b3dd03bea0e7eb43593bb1244e59f7783be6bfb",
+    "orders/768x1024.png": "40a7451c782e9b583b4aa1bfdffbb48d4bf83b6a71fb33b4aa41c6f377ca66be",
+    "financial/768x1024.png": "e3869b94833f783c176186db0eff428c2f76cc7c1b41b3706e4d218272d3be43",
+    "content/768x1024.png": "14ae34f0fcaabe76c5f151f3f7fd9327a1f3f33461b9337671824c42abcc48b2",
+    "destinations/768x1024.png": "08df1a986a33569575c5763a33c8aa57167e48fed1a2920787fee36d9afdf1a9",
+    "support/768x1024.png": "f4839dbb345c74df590775c34b0be3649dabff2e1039cf4ad99a145e39d47a3e",
+    "audit/768x1024.png": "44da58781cb113623ad3dd74dd459a55114525339573ae4eca98f53a93604e17",
+    "system/768x1024.png": "485e41863d24845950410fb350fd87e385bf135e6cfede761ac6ea60121f45ae",
+    "settings/768x1024.png": "12275bc7918406e958d89f2acffafe763af6421bad75c4c4bcff7bd9d2a26dbb",
+    "overview/430x932.png": "edba9e87e0d22f51d0d2ac5f37ab0237b0364fe9b5d427b02563a59cca6475d9",
+    "businesses/430x932.png": "ecaaed80e434bcc0f0e3dd2b6f78425e2d81ab6a8d0745ac3f86cd361f0c5586",
+    "business-360/430x932.png": "3d427240f4a0a0451b7e431fa973621781bf0c595b168c7d11055de45fdd7154",
+    "affiliates/430x932.png": "7d58ab086e3068cef1c8adffebd830628769847722c976bc02fb05e2e2ec91a2",
+    "affiliate-360/430x932.png": "c885407bd9f3aa52e7cbd39ffb93e740dc484552ea32405f232211eefbfc66ac",
+    "users/430x932.png": "c5af72eb74cd175adcaaf89ae1ce0d2346ca6e4138f3bffe6eb7dc5806b1f935",
+    "user-360/430x932.png": "534e981d6f4c28c6ff81c45bb235d248501f2ec3ad6fce4d66d992b0c71475ec",
+    "crm/430x932.png": "b5bdb42652e846a2f17a6e0102acca63cfa7f4969a61b306352d421fee94146d",
+    "products/430x932.png": "02c938e1c117bad236553134ab77d7e73dea7864f5fa758b0b2743af1b637735",
+    "reservations/430x932.png": "3bdc2ec4b3c4a3050702c4735ffe497bb5e61e8a1957cc568bd2ee5b9604887a",
+    "ticketing/430x932.png": "5a310a9bc8abeaf87548654027955335f4532091a519c525ae47e721a685866d",
+    "orders/430x932.png": "c919184e0742a558f277cef22062d54da4096b1332741492b17593facf759b75",
+    "financial/430x932.png": "069d15b7e4ddbbcc46a5c69e09d4db879fb6f1514b77bbca28bd340ba2ecb980",
+    "content/430x932.png": "d18387e11f396c64a14e7a635d3f8a4d183eb4e2c06fd8effba95e43f5a98e19",
+    "destinations/430x932.png": "05becc39785ad31a619284063b2ab7916170437e36589a380ba4ff30c61c9608",
+    "support/430x932.png": "1441de716778a9c00f3494753fbe22b3b6114131af5d4d1c5bedde390079a213",
+    "audit/430x932.png": "22791dc358c4f0e7db6ef5ba4767731aecb1cee82ad20dceeb4aeb1ba529a223",
+    "system/430x932.png": "b41d329e091b7d3412dc5810b40c130d655e0aaa1418bf8d9371c65ff183e1ee",
+    "settings/430x932.png": "61e073e21dccd7f7627e3a0909f89b75f443712654264fc834c9886e175e5552",
+    "overview/390x844.png": "ebc82523081e49ba2c482b7f7b29dc4017648bd8becfcff02e40f50b9e301a74",
+    "businesses/390x844.png": "41229d2751ca07779c79f102fe984dfe9b16fe62b40f7649e99f40ec0c8a6c32",
+    "business-360/390x844.png": "73b479792170fd0f546ec4e1ecab9f280e62236a7471b4c174d1d8def51e1758",
+    "affiliates/390x844.png": "70bbab374bd293115999cebf2dfa799a5f62403b97b4f73afc26ca8ec161b7a2",
+    "affiliate-360/390x844.png": "e9edfa08e44ace90a2b8b04fc92d3007ca2847646516be39efcfb539b5e7be07",
+    "users/390x844.png": "b75da5acad991b560539e689da9a614553a2139f51777e0d774030b7ac63a8b1",
+    "user-360/390x844.png": "5eaedcd4edf14d5ab29ab6843a7b66ca13363c42e95f6ff3f0276d61506efb67",
+    "crm/390x844.png": "1f9982cf38dd47be63d3897e2afd60b320e6e8a32832b5a4606477c9318e9d99",
+    "products/390x844.png": "5fe72feb8d009f226e641f008ad8680c318651a8238abec934236370db69ff74",
+    "reservations/390x844.png": "d0c573aae8a31ce7c16b3ae6dfb715ab2039376777eeb770ca75460eb9bd202c",
+    "ticketing/390x844.png": "b3266fd5864a9fe72aaea3b36a8b0c1e69616c95d68321a4b417fcb2a9020abe",
+    "orders/390x844.png": "7b816ef3168485ec94f582e4d76d56ea7e7251f480198b1e23e5e4f0bcdc590e",
+    "financial/390x844.png": "52e5cc28296313e4afcf1aa38e0fc12c034a908f4858bcae1fa851b3c84aa1d1",
+    "content/390x844.png": "006d7c575c006ec35a18489f4919ffcea2c484a7e80f7b98bd006a076df81e23",
+    "destinations/390x844.png": "84036bfa387ec31203253810bc380059c522db2e52c875e326b1754b3d9c86ba",
+    "support/390x844.png": "075100a603b0319dd504b03061a3da1c5241eb06088e12205ebf2723a204e2f5",
+    "audit/390x844.png": "b6e1eb7be0a2bb85efee8d2f270a9479a55efd61dfa906e0ce56ddb3bd040972",
+    "system/390x844.png": "9acff29ba2b275ac74c722b4f1b194778ee0a86cbffed57beca2daf538812705",
+    "settings/390x844.png": "613ed3b056390e3d71682cedbeadde46adbbbbe76244bcbe44435a890ecf3f1a"
+  }
+}

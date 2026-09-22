@@ -14,6 +14,6 @@ describe("CRM M102 trials runtime composition", () => {
     expect(source).toContain("MySqlCrmTrialRepository");
     expect(source).toContain("MySqlCrmTrialAuditPort");
     expect(source).toContain("CrmTrialHttpTransport");
-    expect(source).toContain("applyCrmM99Schema(pool)");
+    expect(source).toContain("applyCrmM156DestinationScopeSchema(pool)");
   });
 });

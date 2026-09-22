@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { MySqlCrmLeadRepository } from "./mysql-leads-repository.js";
-import { crmM71SchemaSql } from "./schema.js";
+import { crmM156DestinationScopeSchemaSql, crmM71SchemaSql } from "./schema.js";
 
 type Call = { sql: string; values: unknown[] | undefined };
 
@@ -21,6 +21,13 @@ describe("CRM M71 MySQL persistence", () => {
     expect(crmM71SchemaSql).toContain(
       "assigned_to_subject VARCHAR(191) NOT NULL",
     );
+    expect(crmM71SchemaSql).not.toContain("destination_id VARCHAR(120)");
+    expect(crmM156DestinationScopeSchemaSql).toContain(
+      "ADD COLUMN destination_id VARCHAR(120) NULL",
+    );
+    expect(crmM156DestinationScopeSchemaSql).toContain(
+      "ADD INDEX crm_leads_destination_updated_idx (destination_id, updated_at)",
+    );
     expect(crmM71SchemaSql).toContain("UNIQUE KEY crm_checklist_lead_step_uq");
     expect(crmM71SchemaSql).toContain("ON DELETE CASCADE");
     expect(crmM71SchemaSql).not.toContain("assignedToId");
@@ -32,17 +39,20 @@ describe("CRM M71 MySQL persistence", () => {
     await repository.list({
       stage: "new_lead",
       status: "active",
+      destinationId: "morro-de-sao-paulo",
       search: "Toca",
       limit: 25,
       offset: 5,
     });
     expect(calls).toHaveLength(1);
     expect(calls[0]?.sql).toContain("stage = ?");
+    expect(calls[0]?.sql).toContain("destination_id = ?");
     expect(calls[0]?.sql).toContain("LIMIT 25 OFFSET 5");
     expect(calls[0]?.sql).not.toContain("Toca");
     expect(calls[0]?.values).toEqual([
       "new_lead",
       "active",
+      "morro-de-sao-paulo",
       "%Toca%",
       "%Toca%",
       "%Toca%",
@@ -60,6 +70,7 @@ describe("CRM M71 MySQL persistence", () => {
     const now = new Date("2026-08-12T00:00:00Z");
     const row = {
       id: 42,
+      destination_id: "morro-de-sao-paulo",
       company_name: "Toca",
       segment: null,
       contact_name: null,
@@ -83,12 +94,16 @@ describe("CRM M71 MySQL persistence", () => {
     const repository = new MySqlCrmLeadRepository(pool as never);
     const created = await repository.create({
       companyName: "Toca",
+      destinationId: "morro-de-sao-paulo",
       assignedToSubject: "auth0|owner",
       stage: "new_lead",
       status: "active",
     });
     expect(created.id).toBe(42);
+    expect(created.destinationId).toBe("morro-de-sao-paulo");
+    expect(calls[0]?.sql).toContain("destination_id");
     expect(calls[0]?.sql).toContain("assigned_to_subject");
+    expect(calls[0]?.values?.[0]).toBe("morro-de-sao-paulo");
     expect(calls[0]?.values).toContain("auth0|owner");
     expect(calls[1]?.values).toEqual([42]);
   });
@@ -97,6 +112,7 @@ describe("CRM M71 MySQL persistence", () => {
     const now = new Date("2026-08-16T00:00:00Z");
     const row = {
       id: 7,
+      destination_id: null,
       company_name: "Toca",
       segment: null,
       contact_name: null,

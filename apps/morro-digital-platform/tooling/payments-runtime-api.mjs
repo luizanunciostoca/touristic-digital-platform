@@ -127,6 +127,10 @@ export function createPaymentsApi(options = {}) {
       return core.adminFindPayment(paymentId);
     },
 
+    adminAggregateDestinations(input) {
+      return core.adminAggregateDestinations(input);
+    },
+
     adminResolvePaymentTenant(paymentId) {
       return core.adminResolvePaymentTenant(paymentId);
     },

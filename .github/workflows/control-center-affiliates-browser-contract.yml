@@ -367,8 +367,11 @@ jobs:
               const affiliateAudit = await page
                 .locator('[data-entity-panel="audit"] [data-recent-activity]')
                 .textContent();
-              if (!affiliateAudit?.includes("affiliate.membership.suspend.complete") || !affiliateAudit.includes("affiliate.membership.reactivate.complete")) {
+              if (!affiliateAudit?.includes("Membership do afiliado suspensa") || !affiliateAudit.includes("Membership do afiliado reativada")) {
                 throw new Error(`Affiliate authoritative audit activity missing: ${affiliateAudit}`);
+              }
+              if ((await page.locator('[data-entity-panel="audit"] [title="affiliate.membership.suspend.complete"]').count()) < 1 || (await page.locator('[data-entity-panel="audit"] [title="affiliate.membership.reactivate.complete"]').count()) < 1) {
+                throw new Error("Affiliate audit technical identifiers were not retained as trace metadata");
               }
               evidence.reads.push("affiliate-audit-activity");
 

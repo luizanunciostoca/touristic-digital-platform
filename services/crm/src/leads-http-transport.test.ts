@@ -31,6 +31,7 @@ function session(role: AuthSessionIdentity["role"]): AuthSessionIdentity {
 function lead(id = 7): CrmLead {
   return {
     id,
+    destinationId: "morro-de-sao-paulo",
     companyName: "Toca do Morcego",
     segment: null,
     contactName: null,
@@ -56,11 +57,20 @@ function lead(id = 7): CrmLead {
 function transportFixture(role: AuthSessionIdentity["role"] | null) {
   let current = lead();
   const audits: CrmLeadAuditEvent[] = [];
+  const listQueries: unknown[] = [];
   const repository: CrmLeadBoundaryRepository = {
-    list: async () => [current],
+    list: async (query) => {
+      listQueries.push(query);
+      return [current];
+    },
     findById: async (id) => (id === current.id ? current : null),
     create: async (record) => {
-      current = { ...current, id: 42, companyName: record.companyName };
+      current = {
+        ...current,
+        id: 42,
+        companyName: record.companyName,
+        destinationId: record.destinationId ?? null,
+      };
       return current;
     },
     update: async (_id, patch) => {
@@ -88,6 +98,7 @@ function transportFixture(role: AuthSessionIdentity["role"] | null) {
     boundary,
     transport: new CrmLeadHttpTransport(boundary, auth),
     audits,
+    listQueries,
   };
 }
 
@@ -105,14 +116,23 @@ describe("CRM M72 authenticated lead transport", () => {
     expect(audits[0]?.reason).toBe("authentication_required");
   });
 
-  it("allows authenticated reads and delegates validation to the server boundary", async () => {
-    const { transport } = transportFixture("viewer");
+  it("allows authenticated destination-scoped reads and delegates validation to the server boundary", async () => {
+    const { transport, listQueries } = transportFixture("viewer");
     const allowed = await transport.handle({
       method: "GET",
       pathname: "/api/crm/leads",
-      query: { limit: 25, offset: 0 },
+      query: {
+        destinationId: "morro-de-sao-paulo",
+        limit: 25,
+        offset: 0,
+      },
     });
     expect(allowed.status).toBe(200);
+    expect(listQueries.at(-1)).toEqual({
+      destinationId: "morro-de-sao-paulo",
+      limit: 25,
+      offset: 0,
+    });
 
     const invalid = await transport.handle({
       method: "GET",
@@ -148,6 +168,25 @@ describe("CRM M72 authenticated lead transport", () => {
     });
     expect(staged.status).toBe(200);
     expect((staged.body.data as CrmLead).stage).toBe("first_contact");
+  });
+
+  it("persists destination context on authorized lead creation", async () => {
+    const { transport } = transportFixture("manager");
+    const result = await transport.handle({
+      method: "POST",
+      pathname: "/api/crm/leads",
+      body: {
+        companyName: "Pousada Destino",
+        destinationId: "itacare",
+      },
+    });
+    expect(result.status).toBe(200);
+    expect(result.body.data).toEqual(
+      expect.objectContaining({
+        companyName: "Pousada Destino",
+        destinationId: "itacare",
+      }),
+    );
   });
 
   it("fails viewer mutations closed after platform mutation security succeeds", async () => {
