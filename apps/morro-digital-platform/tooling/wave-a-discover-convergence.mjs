@@ -112,6 +112,15 @@ async function inspect(page) {
       weather: rect("#weather-widget"),
       weatherEmoji: rect("#weather-widget .weather-emoji"),
       weatherTemp: rect("#weather-widget .weather-temp"),
+      weatherTempLines: (() => {
+        const node = document.querySelector("#weather-widget .weather-temp");
+        if (!(node instanceof HTMLElement)) return null;
+        const box = node.getBoundingClientRect();
+        const lineHeight = Number.parseFloat(getComputedStyle(node).lineHeight);
+        return Number.isFinite(lineHeight) && lineHeight > 0
+          ? Math.round(box.height / lineHeight)
+          : null;
+      })(),
       weatherDirection: (() => {
         const node = document.querySelector(
           "#weather-widget .weather-compact-main",
@@ -260,8 +269,9 @@ try {
         initial.weatherEmoji.top >= initial.weather.top - 1 &&
         initial.weatherEmoji.bottom <= initial.weather.bottom + 1 &&
         initial.weatherTemp.top >= initial.weather.top - 1 &&
-        initial.weatherTemp.bottom <= initial.weather.bottom + 1,
-      "Compact Weather content is clipped or stacked",
+        initial.weatherTemp.bottom <= initial.weather.bottom + 1 &&
+        initial.weatherTempLines === 1,
+      "Compact Weather content is clipped, stacked, or wrapped",
       initial,
     );
     assert(
