@@ -80,7 +80,7 @@ function createAppShellMarkup(): string {
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄
           </div>
-          <div class="assistant-options md-assistant-options md-assistant-command-source" hidden aria-hidden="true" data-assistant-command-source="legacy-category-routing">
+          <div class="assistant-options md-assistant-options" hidden aria-hidden="true" data-assistant-command-source="legacy-category-routing">
             <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
             <button type="button" class="assistant-option-btn" data-value="restaurants">Restaurants</button>
             <button type="button" class="assistant-option-btn" data-value="hotels">Hotels</button>
