@@ -949,6 +949,7 @@ body[data-md-mode="navigation"]
 }
 
 body[data-md-mode="navigation"]
+  #navigation-summary
   .navigation-summary-metrics
   .metric:nth-child(2) {
   order: -1;
@@ -1065,8 +1066,8 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
 
 @media (max-width: 24.375rem) {
   body[data-md-mode="navigation"] #instruction-banner {
-    right: calc(var(--md-safe-right) + var(--md-space-2));
-    left: calc(var(--md-safe-left) + var(--md-space-2));
+    right: calc(var(--md-safe-right) + var(--md-space-2)) !important;
+    left: calc(var(--md-safe-left) + var(--md-space-2)) !important;
     padding-left: var(--md-space-3);
   }
 
@@ -1078,8 +1079,8 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
   }
 
   body[data-md-mode="navigation"]
-  #navigation-summary
-  .navigation-summary-metrics {
+    #navigation-summary
+    .navigation-summary-metrics {
     gap: var(--md-space-2);
   }
 
@@ -1090,8 +1091,8 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
 
 @media (orientation: landscape) and (max-height: 36rem) {
   body[data-md-mode="navigation"] #instruction-banner {
-    top: calc(var(--md-safe-top) + var(--md-space-2));
-    max-width: min(32rem, 68vw);
+    top: calc(var(--md-safe-top) + var(--md-space-2)) !important;
+    max-width: min(32rem, 68vw) !important;
     margin-left: 0;
   }
 
