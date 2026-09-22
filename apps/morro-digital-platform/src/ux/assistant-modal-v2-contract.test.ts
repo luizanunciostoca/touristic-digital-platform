@@ -15,22 +15,23 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("Assistant Modal V2 contract", () => {
-  it("composes dialog, conversation, options and composer semantics in the real shell", async () => {
+  it("composes bounded message, composer and navigation semantics in the unified dock", async () => {
     const shell = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
     );
 
     for (const contract of [
-      'class="assistant-modal md-assistant-dialog',
-      'role="dialog"',
-      'aria-modal="false"',
+      'class="md-assistant-dialog md-assistant-message-region hidden"',
+      'role="region"',
       'aria-describedby="assistant-dialog-status"',
       'id="assistant-dialog-status"',
       'class="messages-area md-assistant-messages"',
-      'role="region"',
       'class="assistant-options md-assistant-options"',
       'role="group"',
       "assistant-input-area md-assistant-composer md-card",
+      "composeUnifiedAssistantDock",
+      'dock.id = "unified-assistant-dock"',
+      "navigation",
     ]) {
       expect(shell, `missing ${contract}`).toContain(contract);
     }
@@ -44,6 +45,8 @@ describe("Assistant Modal V2 contract", () => {
     expect(shellUi).toContain(
       'input?.setAttribute("aria-expanded", String(initiallyVisible))',
     );
+    expect(shell).not.toContain("grow-upward");
+    expect(shell).not.toContain("auto-size");
     expect(shell).not.toContain("quick-actions");
     expect(shell).not.toContain("mood-button");
   });
