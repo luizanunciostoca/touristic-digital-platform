@@ -134,7 +134,7 @@
 
 
 /* Wave B — contextual Assistant convergence */
-#assistant-messages.md-assistant-dialog .md-assistant-command-source[hidden] {
+#assistant-messages.md-assistant-dialog [data-assistant-command-source="legacy-category-routing"][hidden] {
   display: none !important;
 }
 
