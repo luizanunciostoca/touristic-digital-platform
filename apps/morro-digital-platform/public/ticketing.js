@@ -971,21 +971,23 @@ function clearPendingCheckout() {
 
 function reservationAttemptReference(inventoryId, quantity) {
   const fingerprint = `${inventoryId}:${quantity}`;
+  let current = null;
   try {
-    const current = JSON.parse(
+    current = JSON.parse(
       sessionStorage.getItem(reservationAttemptStorageKey) || "null",
     );
-    if (
-      typeof current?.reference === "string" &&
-      current.reference.startsWith("web_")
-    ) {
-      if (current.fingerprint !== fingerprint) {
-        throw new Error("RESERVATION_ATTEMPT_PENDING");
-      }
-      return current.reference;
-    }
   } catch {
     // A corrupt retry hint must never become transaction authority.
+    sessionStorage.removeItem(reservationAttemptStorageKey);
+  }
+  if (
+    typeof current?.reference === "string" &&
+    current.reference.startsWith("web_")
+  ) {
+    if (current.fingerprint !== fingerprint) {
+      throw new Error("RESERVATION_ATTEMPT_PENDING");
+    }
+    return current.reference;
   }
   const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
   sessionStorage.setItem(
