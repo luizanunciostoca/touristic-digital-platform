@@ -450,6 +450,15 @@ async function renderUsers(userId) {
   );
   const now = Math.floor(Date.now() / 1000);
   const sessions = sessionData.sessions ?? [];
+
+  const userAuditResult = await readOwnerProjection(
+    "/audit?limit=250",
+    "entries",
+  );
+  const userAuditEntries = canonicalEntityAudit(userAuditResult.data, {
+    kind: "user",
+    id: userId,
+  });
   const selectedUser = users[0];
   const canManageUsers = actorHasCapability("users.manage");
   const supportActive = Boolean(state.adminSession?.support);
@@ -562,8 +571,11 @@ async function renderUsers(userId) {
         <span class="badge">${sessions.length} registrada(s)</span>
       </div>
       <div class="callout">
-        Revogar uma sessão é uma ação de alto risco. Confirme sua senha,
-        informe o motivo e digite <strong>REVOGAR</strong>.
+        ${
+          supportActive
+            ? "Revogação de sessão não é oferecida pela Entity 360 durante Support Mode; o contexto delegado nunca substitui o actor real."
+            : "Revogar uma sessão é uma ação de alto risco. Confirme sua senha, informe o motivo e digite REVOGAR."
+        }
       </div>
       <form id="session-revoke-form" class="form-grid">
         <label>
@@ -621,9 +633,11 @@ async function renderUsers(userId) {
                     <td><span class="badge ${active ? "pass" : status === "revogada" ? "partial" : "gap"}">${escapeHtml(status)}</span></td>
                     <td>
                       ${
-                        active
+                        active && !supportActive
                           ? `<button class="secondary-button" type="button" data-revoke-session="${escapeHtml(session.handle)}">Revogar sessão</button>`
-                          : "—"
+                          : active && supportActive
+                            ? "Indisponível em Support Mode"
+                            : "—"
                       }
                     </td>
                   </tr>`;
@@ -635,6 +649,77 @@ async function renderUsers(userId) {
         </table>
       </div>
     </section>`;
+
+  const userRenderedSections = [...content.children];
+  const overviewContent = userRenderedSections[0]?.outerHTML ?? userTable;
+  const actionsContent = userRenderedSections[1]?.outerHTML ?? "";
+  const sessionsContent = userRenderedSections[2]?.outerHTML ?? "";
+  const relationshipsContent = (selectedUser.businessIds ?? []).length
+    ? `<section class="card section-card">
+        <div class="section-title"><h2>Relationships</h2><span class="badge">Auth owner</span></div>
+        <div class="module-list">
+          ${(selectedUser.businessIds ?? [])
+            .map(
+              (businessId) =>
+                `<div class="module-row"><span>Empresa</span><a href="#businesses:${encodeURIComponent(
+                  businessId,
+                )}">${escapeHtml(businessId)}</a></div>`,
+            )
+            .join("")}
+        </div>
+      </section>`
+    : "";
+  const profileContent = `<section class="card section-card">
+      <div class="section-title"><h2>Identity / Profile</h2>${statusBadge(
+        selectedUser.status ?? "active",
+      )}</div>
+      <div class="module-list">
+        <div class="module-row"><span>ID</span><strong>${escapeHtml(
+          selectedUser.id,
+        )}</strong></div>
+        <div class="module-row"><span>E-mail</span><strong>${escapeHtml(
+          selectedUser.email,
+        )}</strong></div>
+        <div class="module-row"><span>Papel efetivo</span><strong>${escapeHtml(
+          selectedUser.canonicalRole,
+        )}</strong></div>
+        <div class="module-row"><span>Role configurado</span><strong>${escapeHtml(
+          selectedUser.configuredCanonicalRole ?? selectedUser.canonicalRole,
+        )}</strong></div>
+      </div>
+    </section>`;
+  const auditContent = userAuditResult.available
+    ? recentActivityMarkup(userAuditEntries, {
+        title: "Audit",
+        emptyMessage: "Nenhum evento autoritativo ligado a este usuário.",
+      })
+    : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+  content.innerHTML =
+    supportEntityContext() +
+    entityTabs("user360", [
+      { id: "overview", label: "Overview", content: overviewContent },
+      { id: "identity", label: "Identity / Profile", content: profileContent },
+      relationshipsContent
+        ? {
+            id: "relationships",
+            label: "Relationships",
+            content: relationshipsContent,
+          }
+        : null,
+      sessionsContent
+        ? { id: "activity", label: "Activity", content: sessionsContent }
+        : null,
+      { id: "audit", label: "Audit", content: auditContent },
+      canManageUsers
+        ? {
+            id: "actions",
+            label: "Settings / Actions",
+            content: actionsContent,
+          }
+        : null,
+    ]);
+  bindEntityTabs();
 
   document
     .querySelector("#user-status-form")
@@ -756,6 +841,7 @@ async function renderUsers(userId) {
         );
         status.textContent = "Sessão revogada com sucesso.";
         await renderUsers(userId);
+        content.querySelector('[data-entity-tab="activity"]')?.click();
       } catch (error) {
         button.disabled = false;
         status.textContent =
@@ -1010,12 +1096,17 @@ async function renderBusinesses(businessId) {
         ),
       ),
     ]);
-    const auditEntries = (auditResult.entries ?? []).filter(
-      (entry) =>
-        entry.tenantId === businessId ||
-        entry.entityId === businessId ||
-        String(entry.entityId ?? "").includes(businessId),
-    );
+    const relatedBusinessEntityIds = [
+      ...products.map(({ offer }) => offer?.id),
+      ...reservations.map(({ reservation }) => reservation?.id),
+      ...paymentIds,
+      ...orderIds,
+    ].filter(Boolean);
+    const auditEntries = canonicalEntityAudit(auditResult.entries ?? [], {
+      kind: "business",
+      id: businessId,
+      relatedEntityIds: relatedBusinessEntityIds,
+    });
     const activeOffers = products.filter(({ offer }) => offer?.enabled).length;
     const activeReservations = reservations.filter(({ reservation }) =>
       ["held", "confirmed"].includes(reservation?.status),
@@ -1083,7 +1174,7 @@ async function renderBusinesses(businessId) {
               (business.members ?? [])
                 .map(
                   (member) =>
-                    `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
+                    `<div class="module-row"><span><a href="#users:${encodeURIComponent(member.id)}">${escapeHtml(member.email)}</a></span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
                 )
                 .join("") ||
               '<div class="empty">Nenhum membro encontrado.</div>'
@@ -1398,7 +1489,7 @@ async function renderAffiliates(affiliateId) {
                   .map(
                     (membership) => `<tr>
                     <td><strong>${escapeHtml(membership.programId)}</strong></td>
-                    <td>${escapeHtml(membership.destinationId)}</td>
+                    <td><a href="#destinations:${encodeURIComponent(membership.destinationId)}">${escapeHtml(membership.destinationId)}</a></td>
                     <td>${escapeHtml(membership.status)}</td>
                     <td>${membership.eligibleForAttribution ? "sim" : "não"}</td>
                     <td>${escapeHtml(membership.financialOnboardingStatus)}</td>
@@ -1505,6 +1596,97 @@ async function renderAffiliates(affiliateId) {
     </section>
     <div style="margin-top:16px"><a href="#affiliates">← Voltar para afiliados</a></div>`;
 
+  const affiliateRenderedSections = [...content.children];
+  const membershipOverview = memberships.length
+    ? `<section class="card section-card">
+        <div class="section-title"><h2>Programas ativos</h2><span class="badge">owner-backed</span></div>
+        <div class="module-list">
+          ${memberships
+            .map(
+              (membership) =>
+                `<div class="module-row"><span><strong>${escapeHtml(
+                  membership.programId,
+                )}</strong><br><small>${escapeHtml(
+                  membership.destinationId,
+                )}</small></span>${statusBadge(membership.status)}</div>`,
+            )
+            .join("")}
+        </div>
+      </section>`
+    : "";
+  const overviewContent = [
+    affiliateRenderedSections[0]?.outerHTML,
+    membershipOverview,
+  ]
+    .filter(Boolean)
+    .join("");
+  const relationshipsContent =
+    affiliateRenderedSections[1]?.children?.[0]?.outerHTML ?? "";
+  const commercialContent =
+    affiliateRenderedSections[1]?.children?.[1]?.outerHTML ?? "";
+  const activityContent = affiliateRenderedSections[2]?.outerHTML ?? "";
+  const actionsContent = affiliateRenderedSections[3]?.outerHTML ?? "";
+  const backLinkContent = affiliateRenderedSections[4]?.outerHTML ?? "";
+  const profileContent = `<section class="card section-card">
+    <div class="section-title"><h2>Identity / Profile</h2>${statusBadge(
+      affiliate.status,
+    )}</div>
+    <div class="module-list">
+      <div class="module-row"><span>Affiliate ID</span><strong>${escapeHtml(
+        affiliate.affiliateId,
+      )}</strong></div>
+      <div class="module-row"><span>Identity reference</span><strong>${escapeHtml(
+        affiliate.identityReference,
+      )}</strong></div>
+      <div class="module-row"><span>Tipo</span><strong>${escapeHtml(
+        affiliate.accountType,
+      )}</strong></div>
+      <div class="module-row"><span>Categoria</span><strong>${escapeHtml(
+        affiliate.roleCategory,
+      )}</strong></div>
+    </div>
+  </section>`;
+  const auditContent = auditResult.available
+    ? recentActivityMarkup(affiliateAuditEntries, {
+        title: "Audit",
+        emptyMessage: "Nenhum evento autoritativo ligado a este afiliado.",
+      })
+    : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+  content.innerHTML =
+    supportEntityContext() +
+    entityTabs("affiliate360", [
+      { id: "overview", label: "Overview", content: overviewContent },
+      { id: "identity", label: "Identity / Profile", content: profileContent },
+      relationshipsContent
+        ? {
+            id: "relationships",
+            label: "Relationships",
+            content: relationshipsContent,
+          }
+        : null,
+      commercialContent
+        ? {
+            id: "commercial",
+            label: "Commercial / Financial",
+            content: commercialContent,
+          }
+        : null,
+      activityContent
+        ? { id: "activity", label: "Activity", content: activityContent }
+        : null,
+      { id: "audit", label: "Audit", content: auditContent },
+      actionOptions
+        ? {
+            id: "actions",
+            label: "Settings / Actions",
+            content: actionsContent,
+          }
+        : null,
+    ]) +
+    backLinkContent;
+  bindEntityTabs();
+
   document
     .querySelector("#affiliate-membership-action-form")
     ?.addEventListener("submit", async (event) => {
@@ -1554,6 +1736,7 @@ async function renderAffiliates(affiliateId) {
         );
         status.textContent = "Membership atualizada.";
         await renderAffiliates(affiliateId);
+        content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
         status.textContent = error.body?.error || error.message;
       }
