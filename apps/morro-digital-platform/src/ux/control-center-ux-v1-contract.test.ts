@@ -100,6 +100,15 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(source).toContain("Precisa da sua atenção");
     expect(source).toContain("Resumo por destino");
     expect(source).toContain("Atividade recente");
+    expect(ux).toContain('data-attention-source="dashboard-owner"');
+    expect(ux).toContain('data-summary-source="dashboard-owner"');
+    expect(ux).toContain("data-recent-activity");
+    expect(ux).toContain('data-source="append-only-audit"');
+    expect(ux).toContain("data-affiliate-summary");
+    expect(ux).toContain('data-source="affiliates-owner"');
+    expect(ux).toContain("Memberships aprovadas");
+    expect(ux).toContain("effectiveUserId");
+    expect(ux).not.toContain("sem agregado por destino");
     expect(source).not.toContain("Ações rápidas");
     expect(source).not.toContain("quick-actions");
     expect(source).not.toContain("assistant-floating");
