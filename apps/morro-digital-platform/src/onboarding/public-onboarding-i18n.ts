@@ -241,8 +241,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         next: "הבא",
         finish: "התחילו לחקור",
         done: "מוכנים! עכשיו אפשר להתחיל לחקור עם Morro Digital.",
-        unavailable:
-          "התכונה הזו אינה זמינה כרגע. אפשר להמשיך בסיור כרגיל.",
+        unavailable: "התכונה הזו אינה זמינה כרגע. אפשר להמשיך בסיור כרגיל.",
         steps: Object.freeze([
           Object.freeze({
             title: "גלו את מורו דרך המפה",
