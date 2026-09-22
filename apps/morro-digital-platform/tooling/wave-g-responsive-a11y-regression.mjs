@@ -108,10 +108,17 @@ try {
           className: element.className,
         }));
 
+      const unifiedDock = document.querySelector("#unified-assistant-dock");
       const bottomNav = document.querySelector("#home-bottom-navigation");
+      const composer = document.querySelector("#assistant-input-area");
+      const assistantMessages = document.querySelector("#assistant-messages");
       const activeNav = bottomNav?.querySelector(
         '.md-home-nav-item.is-active, [aria-current="page"]',
       );
+      const dockRect =
+        unifiedDock && visible(unifiedDock)
+          ? unifiedDock.getBoundingClientRect()
+          : null;
       const bottomRect =
         bottomNav && visible(bottomNav)
           ? bottomNav.getBoundingClientRect()
@@ -140,6 +147,21 @@ try {
         bodyFont: getComputedStyle(document.body).fontFamily,
         targetFailures,
         nameFailures,
+        unifiedComposition:
+          unifiedDock instanceof HTMLElement &&
+          composer?.parentElement === unifiedDock &&
+          bottomNav?.parentElement === unifiedDock &&
+          assistantMessages?.parentElement === unifiedDock,
+        dock: dockRect
+          ? {
+              left: dockRect.left,
+              top: dockRect.top,
+              right: dockRect.right,
+              bottom: dockRect.bottom,
+              width: dockRect.width,
+              height: dockRect.height,
+            }
+          : null,
         bottomNav: bottomRect
           ? { width: bottomRect.width, height: bottomRect.height }
           : null,
@@ -156,6 +178,17 @@ try {
     assert(
       !result.overflow,
       `${viewport.label}: horizontal overflow ${result.scrollWidth} > ${result.innerWidth}`,
+    );
+    assert(
+      result.unifiedComposition,
+      `${viewport.label}: Assistant, composer and navigation are not inside one unified dock`,
+    );
+    assert(
+      result.dock &&
+        result.dock.left >= -1 &&
+        result.dock.right <= result.innerWidth + 1 &&
+        result.dock.bottom <= result.innerHeight + 1,
+      `${viewport.label}: unified dock escaped viewport: ${JSON.stringify(result.dock)}`,
     );
     assert(
       result.targetFailures.length === 0,
@@ -232,16 +265,24 @@ try {
     await page.waitForTimeout(250);
     const keyboard = await input.evaluate((element) => {
       const rect = element.getBoundingClientRect();
+      const dock = document
+        .getElementById("unified-assistant-dock")
+        ?.getBoundingClientRect();
       return {
         top: rect.top,
         bottom: rect.bottom,
         viewportHeight: window.innerHeight,
         visible: rect.top >= 0 && rect.bottom <= window.innerHeight,
+        dockBottom: dock?.bottom ?? null,
+        dockVisible:
+          Boolean(dock) &&
+          (dock?.top ?? -1) >= 0 &&
+          (dock?.bottom ?? Number.POSITIVE_INFINITY) <= window.innerHeight + 1,
       };
     });
     assert(
-      keyboard.visible,
-      `keyboard resize covers focused input: ${JSON.stringify(keyboard)}`,
+      keyboard.visible && keyboard.dockVisible,
+      `keyboard resize covers unified dock/input: ${JSON.stringify(keyboard)}`,
     );
     report.keyboard = keyboard;
     await page.screenshot({
