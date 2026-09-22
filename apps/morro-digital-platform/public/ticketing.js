@@ -290,14 +290,14 @@ async function refreshQuote({ announce = false } = {}) {
       quote.inventoryId !== offer.id ||
       quote.quantity !== quantity ||
       !quote.unitAmount ||
-      !quote.totalAmount ||
-      quote.unitAmount.currency !== quote.totalAmount.currency
+      !quote.totalAmount
     ) {
       throw new Error("QUOTE_RESPONSE_INVALID");
     }
     if (
-      offer.unitAmount?.currency &&
-      quote.unitAmount.currency !== offer.unitAmount.currency
+      quote.unitAmount.currency !== quote.totalAmount.currency ||
+      (offer.unitAmount?.currency &&
+        quote.unitAmount.currency !== offer.unitAmount.currency)
     ) {
       throw new Error("QUOTE_CURRENCY_MISMATCH");
     }
