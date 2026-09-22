@@ -379,16 +379,29 @@ jobs:
                       : permissions.query(descriptor),
                 },
               });
-              if (!document.getElementById('voiceButton')) {
-                const voiceButton = document.createElement('button');
+
+              let voiceButton = document.getElementById('voiceButton');
+              if (!(voiceButton instanceof HTMLButtonElement)) {
+                voiceButton = document.createElement('button');
                 voiceButton.id = 'voiceButton';
                 voiceButton.type = 'button';
                 voiceButton.textContent = 'Voice';
                 voiceButton.setAttribute('aria-label', 'Send voice message');
-                voiceButton.style.cssText =
-                  'position:fixed;right:20px;bottom:92px;width:44px;height:44px;display:block;z-index:1';
-                document.getElementById('assistant-input-area')?.appendChild(voiceButton);
               }
+
+              voiceButton.hidden = false;
+              voiceButton.removeAttribute('hidden');
+              voiceButton.removeAttribute('aria-hidden');
+              voiceButton.style.setProperty('position', 'fixed', 'important');
+              voiceButton.style.setProperty('right', '20px', 'important');
+              voiceButton.style.setProperty('bottom', '92px', 'important');
+              voiceButton.style.setProperty('width', '44px', 'important');
+              voiceButton.style.setProperty('height', '44px', 'important');
+              voiceButton.style.setProperty('display', 'block', 'important');
+              voiceButton.style.setProperty('visibility', 'visible', 'important');
+              voiceButton.style.setProperty('opacity', '1', 'important');
+              voiceButton.style.setProperty('z-index', '1', 'important');
+              document.body.appendChild(voiceButton);
             });
             await micDeniedPage.locator('[data-public-onboarding-action="start"]').click();
             await micDeniedPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
