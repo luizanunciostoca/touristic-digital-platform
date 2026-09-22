@@ -208,6 +208,15 @@ async function checkAxe(page) {
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await login(page);
 
+    await page.locator("#profile-name").evaluate((node) => {
+      node.textContent =
+        "Administrador Plataforma Morro Digital com nome operacional muito longo";
+    });
+    await page.locator("#notification-badge").evaluate((node) => {
+      node.hidden = false;
+      node.textContent = "99+";
+    });
+
     for (const viewport of viewports) {
       await page.setViewportSize({
         width: viewport.width,
