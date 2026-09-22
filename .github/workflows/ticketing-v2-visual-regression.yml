@@ -545,10 +545,12 @@ jobs:
               transactionalState.reservationDelay = 300;
               transactionalState.reservationError = 'TICKETING_UNAVAILABLE';
               transactionalState.reservationStatus = 503;
-              await Promise.all([
-                transactionalPage.locator('#reserve-button').click(),
-                transactionalPage.locator('#reserve-button').click({ force: true }),
-              ]);
+              await transactionalPage.locator('#reservation-form').evaluate(form => {
+                const first = new Event('submit', { bubbles: true, cancelable: true });
+                const second = new Event('submit', { bubbles: true, cancelable: true });
+                form.dispatchEvent(first);
+                form.dispatchEvent(second);
+              });
               await transactionalPage.waitForTimeout(500);
               if ((transactionalState.reservationPosts || 0) !== 1) {
                 throw new Error('Double submit created duplicate reservation requests: ' + transactionalState.reservationPosts);
