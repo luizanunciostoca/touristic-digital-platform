@@ -66,7 +66,7 @@ async function waitReady(page) {
     .first()
     .waitFor({ state: "visible", timeout: 10000 });
   await page
-    .locator("#discover-category-rail")
+    .locator("#assistant-category-rail")
     .waitFor({ state: "visible", timeout: 10000 });
   await page
     .locator("#recenter-map-control")
@@ -93,12 +93,12 @@ async function inspect(page) {
     };
     const touchTargets = Array.from(
       document.querySelectorAll(
-        "#discover-category-rail button, #globe-map-control button",
+        "#assistant-category-rail button, #globe-map-control button",
       ),
     ).map((node) => {
       const box = node.getBoundingClientRect();
       return {
-        id: node.id || node.getAttribute("data-discover-category"),
+        id: node.id || node.getAttribute("data-assistant-category"),
         width: box.width,
         height: box.height,
       };
@@ -140,7 +140,7 @@ async function inspect(page) {
           scrollWidth: node.scrollWidth,
         };
       })(),
-      rail: rect("#discover-category-rail"),
+      rail: rect("#assistant-category-rail"),
       controls: rect("#globe-map-control"),
       composer: rect("#assistant-input-area"),
       nav: rect("#home-bottom-navigation"),
@@ -388,7 +388,7 @@ try {
       recentered,
     );
 
-    await page.locator('[data-discover-category="beaches"]').click();
+    await page.locator('[data-assistant-category="beaches"]').click();
     await page
       .locator(
         '#map[data-explore-state="ready"][data-explore-category="beaches"]',
