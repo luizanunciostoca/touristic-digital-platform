@@ -270,8 +270,13 @@ export function createUniversalSearchController({
     clearActive();
   }
 
+  function currentDestinationSelect() {
+    if (destinationSelect?.isConnected) return destinationSelect;
+    return document.querySelector("#destination-selector");
+  }
+
   function selectedDestinationId() {
-    const value = String(destinationSelect?.value ?? "").trim();
+    const value = String(currentDestinationSelect()?.value ?? "").trim();
     return value && value !== "global" ? value : "";
   }
 
@@ -396,7 +401,8 @@ export function createUniversalSearchController({
     if (item) activate(item);
   });
 
-  destinationSelect?.addEventListener("change", () => {
+  document.addEventListener("change", (event) => {
+    if (!event.target?.matches?.("#destination-selector")) return;
     cancelPendingSearch();
     lastPayload = null;
     if (Array.from(input.value.trim()).length >= 2) {
@@ -428,18 +434,19 @@ export function createUniversalSearchController({
   });
 
   async function loadDestinations() {
-    if (!destinationSelect) return;
+    const select = currentDestinationSelect();
+    if (!select) return;
     try {
       const payload = await api("/destinations");
       const destinations = Array.isArray(payload.destinations)
         ? payload.destinations
         : [];
-      const selected = destinationSelect.value;
+      const selected = select.value;
       const first =
-        destinationSelect.querySelector('option[value=""]') ||
-        destinationSelect.querySelector('option[value="global"]');
-      destinationSelect.replaceChildren();
-      if (first) destinationSelect.append(first);
+        select.querySelector('option[value=""]') ||
+        select.querySelector('option[value="global"]');
+      select.replaceChildren();
+      if (first) select.append(first);
       for (const destination of destinations) {
         if (!destination?.id) continue;
         const option = document.createElement("option");
@@ -448,19 +455,19 @@ export function createUniversalSearchController({
           destination.branding?.name ||
           destination.branding?.shortName ||
           destination.id;
-        destinationSelect.append(option);
+        select.append(option);
       }
       if (
         selected &&
-        Array.from(destinationSelect.options).some(
+        Array.from(select.options).some(
           (option) => option.value === selected,
         )
       ) {
-        destinationSelect.value = selected;
+        select.value = selected;
       }
     } catch {
-      destinationSelect.dataset.state = "partial";
-      destinationSelect.title =
+      select.dataset.state = "partial";
+      select.title =
         "Lista de destinos indisponível; busca global permanece disponível.";
     }
   }
