@@ -224,7 +224,10 @@ export function createNavigationGuidanceUi(
     document.body.classList.add("navigation-active");
     banner?.classList.remove("hidden");
     endButton?.setAttribute("style", "display:block;");
-    if (endButton && document.documentElement.lang.toLowerCase().startsWith("pt")) {
+    if (
+      endButton &&
+      document.documentElement.lang.toLowerCase().startsWith("pt")
+    ) {
       endButton.textContent = "Sair";
       endButton.setAttribute("aria-label", "Sair da navegação");
     }
