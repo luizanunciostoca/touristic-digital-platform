@@ -301,7 +301,7 @@ jobs:
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('fotos', true);
-              await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
               const photoOwnership = await page.evaluate(() => ({
                 placePhotoAction: document.querySelectorAll(
                   '#place-bottom-sheet[aria-hidden="false"] .place-bottom-sheet-action[data-value="ver fotos"]',
@@ -309,10 +309,17 @@ jobs:
                 assistantPhotoDuplicates: document.querySelectorAll(
                   '#assistant-messages:not(.hidden) .assistant-option-btn[data-value="ver fotos"]',
                 ).length,
+                photoCarouselVisible: Array.from(
+                  document.querySelectorAll('.assistant-photo-carousel'),
+                ).some(node => {
+                  const style = getComputedStyle(node);
+                  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0';
+                }),
               }));
               if (
                 photoOwnership.placePhotoAction !== 1 ||
-                photoOwnership.assistantPhotoDuplicates !== 0
+                photoOwnership.assistantPhotoDuplicates !== 0 ||
+                photoOwnership.photoCarouselVisible
               ) {
                 throw new Error(
                   `Typed photos violated V2 Place action ownership: ${JSON.stringify(photoOwnership)}`,
@@ -326,7 +333,7 @@ jobs:
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
               await submit('fotos');
-              await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
 
               await submit('restaurantes', true);
               await page.locator('#assistant-category-results[data-category="restaurants"][data-stage="filters"]').waitFor({ state: 'visible' });
