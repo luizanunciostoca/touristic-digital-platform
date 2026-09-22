@@ -1189,3 +1189,16 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
     forced-color-adjust: none;
   }
 }
+
+
+/* Home chrome yields to the dedicated navigation experience. The navigation
+ * wave remains authoritative; this only prevents Discover controls from
+ * occupying its one-hand action zone. */
+body[data-md-mode="navigation"] #home-bottom-navigation,
+body[data-md-mode="navigation"] .md-home-profile-panel {
+  display: none;
+}
+
+body[data-md-mode="navigation"] #assistant-input-area.md-assistant-composer {
+  bottom: var(--md-shell-bottom);
+}
