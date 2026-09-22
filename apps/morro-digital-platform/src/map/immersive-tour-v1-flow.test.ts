@@ -95,7 +95,11 @@ describe("V1 immersive tour state machine", () => {
     ).toBe(only);
     expect(
       transitionV1ImmersiveTourState(only, { type: "next" }),
-    ).toMatchObject({ stage: "finale", currentStopIndex: 0, totalStops: 1 });
+    ).toMatchObject({
+      stage: "finale",
+      currentStopIndex: 0,
+      totalStops: 1,
+    });
   });
 
   it("rejects invalid starts instead of creating a corrupt tour state", () => {
