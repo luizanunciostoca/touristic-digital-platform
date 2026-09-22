@@ -938,3 +938,492 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
     background: Canvas;
   }
 }
+
+/* UX Design V2 Wave D — tour discovery, preview and active-tour convergence. */
+#explore-flow-bottom-sheet:has(
+  .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+) {
+  height: auto;
+  max-height: min(29dvh, 15rem);
+}
+
+#explore-flow-bottom-sheet:has(
+    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+  )
+  :is(.explore-flow-sheet-drag-handle, .explore-flow-sheet-state-controls) {
+  display: none;
+}
+
+#explore-flow-bottom-sheet:has(
+    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+  )
+  .explore-flow-sheet-toolbar {
+  min-height: var(--md-touch-target-min);
+  grid-template-columns: 1fr auto;
+  border-bottom: 0;
+}
+
+#explore-flow-bottom-sheet:has(
+    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+  )
+  .explore-flow-sheet-close {
+  grid-column: 2;
+}
+
+#explore-flow-bottom-sheet:has(
+    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+  )
+  .explore-flow-sheet-content {
+  gap: var(--md-space-2);
+  padding: 0 var(--md-space-3) var(--md-space-3);
+}
+
+#explore-flow-bottom-sheet:has(
+    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+  )
+  .explore-flow-sheet-title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--md-font-size-sm);
+  line-height: 1.3;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+#explore-flow-bottom-sheet
+  .explore-flow-sheet-source[data-category="tours"][data-stage="filters"] {
+  display: flex;
+  width: 100%;
+  gap: var(--md-space-2);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  padding-bottom: var(--md-space-1);
+  scroll-snap-type: inline proximity;
+  scrollbar-width: none;
+}
+
+#explore-flow-bottom-sheet
+  .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]::-webkit-scrollbar {
+  display: none;
+}
+
+#explore-flow-bottom-sheet
+  .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+  > .explore-flow-sheet-option {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: min(72vw, 13rem);
+  min-height: var(--md-touch-target-min);
+  padding-inline: var(--md-space-3);
+  overflow: hidden;
+  font-size: var(--md-font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  scroll-snap-align: start;
+}
+
+#map[data-explore-category="tours"][data-explore-stage="filters"]
+  .morro-explore-marker-label {
+  display: none;
+}
+
+#map[data-explore-category="tours"][data-explore-stage="filters"]
+  .morro-explore-marker:is(:hover, :focus, :focus-visible)
+  .morro-explore-marker-label {
+  display: block;
+  max-width: min(11rem, 44vw) !important;
+}
+
+#map[data-explore-category="tours"][data-explore-stage="filters"]
+  .morro-explore-marker[data-tour-cluster="true"] {
+  z-index: calc(var(--md-layer-explore-marker) + 2) !important;
+}
+
+#map[data-explore-category="tours"][data-explore-stage="filters"]
+  .morro-explore-marker-cluster {
+  width: 2.625rem !important;
+  height: 2.625rem !important;
+  border-width: 0.1875rem !important;
+  font-size: var(--md-font-size-sm) !important;
+  font-weight: var(--md-font-weight-bold) !important;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] {
+  max-height: min(43dvh, 26rem);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--md-space-2);
+  margin-bottom: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-thumb {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  overflow: hidden;
+  border-radius: var(--md-radius-sm);
+  background: var(--md-color-surface-subtle);
+  font-size: var(--md-font-size-lg);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-tour-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-sm);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-count {
+  flex: 0 0 auto;
+  min-width: 2.75rem;
+  padding: var(--md-space-1) var(--md-space-2);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--md-color-brand) 12%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-brand-strong);
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-bold);
+  text-align: center;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-progress-segments {
+  display: grid;
+  gap: var(--md-space-1);
+  width: 100%;
+  margin: 0 0 var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-progress-segment {
+  height: 0.25rem;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-border);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-segment:is(.is-complete, .is-current) {
+  background: var(--md-color-success);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-segment.is-current {
+  transform: scaleY(1.45);
+  transform-origin: center;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-title {
+  display: none;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-content {
+  gap: var(--md-space-1);
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-card {
+  display: grid;
+  grid-template-columns: minmax(5.75rem, 32%) minmax(0, 1fr);
+  column-gap: var(--md-space-3);
+  align-items: start;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  :is(.tour-active-header, .tour-stop-progress-bar, .tour-tips) {
+  grid-column: 1 / -1;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-photo-wrap {
+  grid-column: 1;
+  grid-row: 3 / span 3;
+  width: 100%;
+  height: 6.75rem;
+  max-height: 6.75rem;
+  margin: 0;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-photo {
+  height: 6.75rem;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-header {
+  grid-column: 2;
+  grid-row: 3;
+  min-width: 0;
+  margin-top: 0;
+  padding: 0;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--md-space-1);
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-num-badge {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 1.75rem;
+  padding: var(--md-space-1) var(--md-space-2);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--md-color-success) 14%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-success);
+  box-shadow: none;
+  font-size: var(--md-font-size-xs);
+  line-height: 1.2;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-desc {
+  display: -webkit-box;
+  grid-column: 2;
+  grid-row: 4;
+  margin: var(--md-space-1) 0 0;
+  overflow: hidden;
+  font-size: var(--md-font-size-sm);
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-narration-btn {
+  grid-column: 2;
+  grid-row: 5;
+  width: fit-content;
+  min-width: var(--md-touch-target-min);
+  min-height: var(--md-touch-target-min);
+  margin: var(--md-space-1) 0 0;
+  padding-inline: var(--md-space-3);
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-tips {
+  margin: var(--md-space-2) 0 0;
+  padding: var(--md-space-2) var(--md-space-3);
+  border: 1px solid color-mix(in srgb, var(--md-color-success) 28%, transparent);
+  border-radius: var(--md-radius-md);
+  background: color-mix(
+    in srgb,
+    var(--md-color-success) 9%,
+    var(--md-color-surface-card)
+  );
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-tips
+  ul {
+  max-height: 2.8em;
+  margin-block: var(--md-space-1) 0;
+  overflow: hidden;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_list__"] {
+  display: none;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  :is(.explore-flow-sheet-actions, .explore-flow-sheet-source) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option--primary {
+  grid-column: auto;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-source:not(:has([data-value="__tour_prev__"]))
+  [data-value="__tour_next__"] {
+  grid-column: 1 / -1;
+}
+
+body:has(#map[data-tour-flow-stage="intro"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_list__"] {
+  justify-self: start;
+  width: fit-content;
+  border-color: transparent;
+  background: transparent;
+  color: var(--md-color-text-secondary);
+  box-shadow: none;
+}
+
+body:has(#map[data-tour-flow-stage="intro"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_start__"] {
+  opacity: 1;
+  color: var(--md-color-text-inverse);
+  font-weight: var(--md-font-weight-bold);
+}
+
+#map[data-tour-flow-stage="stop"] .tour-stop-marker {
+  opacity: 0.82;
+}
+
+#map[data-tour-flow-stage="stop"]
+  .tour-stop-marker:has(.tour-stop-pin.tour-stop-active) {
+  z-index: calc(var(--md-layer-tour-sheet) - 1) !important;
+  opacity: 1;
+}
+
+#map[data-tour-flow-stage="stop"] .tour-stop-pin.tour-stop-active {
+  transform: rotate(-45deg) scale(1.16) !important;
+  background: var(--md-color-success) !important;
+  border-width: 0.1875rem !important;
+  box-shadow:
+    0 0 0 0.3125rem color-mix(in srgb, var(--md-color-brand) 24%, transparent),
+    0 0.25rem 0.875rem rgb(15 23 42 / 0.34) !important;
+}
+
+#map[data-tour-flow-stage="stop"] .tour-stop-number {
+  font-size: var(--md-font-size-sm) !important;
+  font-weight: var(--md-font-weight-bold) !important;
+}
+
+@media (max-width: 30rem) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    max-height: 44dvh;
+  }
+
+  body:has(#map[data-tour-flow-stage="stop"])
+    #explore-flow-bottom-sheet[data-flow-kind="tour"]
+    .tour-stop-card {
+    grid-template-columns: minmax(5.5rem, 31%) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 23.5rem) {
+  #explore-flow-bottom-sheet
+    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"] {
+    grid-template-columns: none;
+  }
+
+  body:has(#map[data-tour-flow-stage="stop"])
+    #explore-flow-bottom-sheet[data-flow-kind="tour"]
+    :is(.explore-flow-sheet-actions, .explore-flow-sheet-source) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (forced-colors: active) {
+  #map[data-explore-category="tours"][data-explore-stage="filters"]
+    .morro-explore-marker-cluster,
+  #map[data-tour-flow-stage="stop"] .tour-stop-pin.tour-stop-active {
+    outline: var(--md-focus-ring-width) solid Highlight;
+    outline-offset: var(--md-focus-ring-offset);
+  }
+}
+
+/* Wave D active-stop grid row ownership and missing-media recovery. */
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-active-header {
+  grid-row: 1;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-bar {
+  grid-row: 2;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-segments {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-photo-wrap {
+  grid-row: 4 / span 3;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-header {
+  grid-row: 4;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-desc {
+  grid-row: 5;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-narration-btn {
+  grid-row: 6;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-tips {
+  grid-row: 7;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-desc {
+  font-size: 0.9375rem;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-card[data-photo-state="missing"]
+  :is(.tour-stop-header, .tour-stop-desc, .tour-narration-btn) {
+  grid-column: 1 / -1;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-card[data-photo-state="missing"]
+  .tour-stop-photo-wrap[hidden] {
+  display: none;
+}
