@@ -10,7 +10,9 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("UX V2 Wave E active navigation convergence", () => {
-  it("keeps the map dominant and scopes compact outdoor navigation chrome", async () => {
+  it(
+    "keeps the map dominant and scopes compact outdoor navigation chrome",
+    async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/premium-ux-v2.css",
     );
@@ -18,8 +20,12 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(css).toContain(
       "/* UX V2 Wave E — active navigation convergence */",
     );
-    expect(css).toContain('body[data-md-mode="navigation"] #instruction-banner');
-    expect(css).toContain('body[data-md-mode="navigation"] #navigation-summary');
+      expect(css).toContain(
+        'body[data-md-mode="navigation"] #instruction-banner',
+      );
+      expect(css).toContain(
+        'body[data-md-mode="navigation"] #navigation-summary',
+      );
     expect(css).toContain(
       'body[data-md-mode="navigation"] #navigation-recenter-btn',
     );
@@ -29,7 +35,9 @@ describe("UX V2 Wave E active navigation convergence", () => {
     );
   });
 
-  it("uses a solid high-contrast route with current and destination markers", async () => {
+  it(
+    "uses a solid high-contrast route with current and destination markers",
+    async () => {
     const route = await readRepository(
       "apps/morro-digital-platform/src/navigation/navigation-route-presentation.ts",
     );
@@ -41,9 +49,11 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(route).not.toContain('"line-dasharray"');
     expect(wiring).toContain("navigation-destination-marker");
     expect(wiring).toContain("navigation-user-location-marker");
-  });
+    },\n  );
 
-  it("surfaces recenter, GPS, off-route, reroute and route failure states", async () => {
+  it(
+    "surfaces recenter, GPS, off-route, reroute and route failure states",
+    async () => {
     const runtime = await readRepository(
       "apps/morro-digital-platform/src/navigation/browser-navigation-runtime-install.ts",
     );
@@ -61,5 +71,5 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(runtime).toContain("GPS indisponível.");
     expect(runtime).toContain("Sinal de GPS impreciso.");
     expect(runtime).toContain("Rota indisponível.");
-  });
+    },\n  );
 });
