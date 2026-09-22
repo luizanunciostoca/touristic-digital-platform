@@ -103,6 +103,11 @@ jobs:
       - name: Validate Home / Discover against manual authority
         run: node apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs
 
+      - name: Validate Wave A Discover convergence
+        env:
+          WAVE_A_EVIDENCE_DIR: /tmp/home-discover-manual/wave-a
+        run: node apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs
+
       - name: Show server diagnostics
         if: failure()
         run: cat /tmp/home-discover-manual/server.log || true
