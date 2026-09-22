@@ -279,8 +279,24 @@ jobs:
                     authorityNote: document.querySelector('.authority-note')?.textContent?.trim() ?? '',
                   };
                 });
-                if (!state.summaryVisible || state.quantity !== '2') throw new Error('Selection/quantity state missing: ' + JSON.stringify(state));
-                if (!state.unit.includes('R
+                if (!state.summaryVisible || state.quantity !== '2') {
+                  throw new Error('Selection/quantity state missing: ' + JSON.stringify(state));
+                }
+                if (!state.unit || state.unit === '—' || !state.subtotal || state.subtotal === '—') {
+                  throw new Error('Price breakdown unreadable: ' + JSON.stringify(state));
+                }
+                if (state.heroHeight < 220) {
+                  throw new Error('MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY: ' + JSON.stringify(state));
+                }
+                if (state.ctaWidth < 44 || state.ctaHeight < 44) {
+                  throw new Error('Dominant checkout CTA geometry invalid: ' + JSON.stringify(state));
+                }
+                if (!state.authorityNote.includes('confirmados pelo servidor')) {
+                  throw new Error('Financial authority note missing');
+                }
+                evidence.push({ case: 'selected-quantity-quote-390x844', state });
+              });
+
               await readyCase(browser, { width: 390, height: 844 }, 'dark-390x844', async page => {
                 await page.evaluate(() => {
                   document.documentElement.dataset.theme = 'dark';
@@ -385,252 +401,6 @@ jobs:
               }
               if (dialogState.closeWidth < 44 || dialogState.closeHeight < 44) {
                 throw new Error('QR accessible close target invalid: ' + JSON.stringify(dialogState));
-              }
-              await dialogPage.screenshot({
-                path: '/tmp/ticketing-v2/dialog-compact-390x500.png',
-                fullPage: false,
-                animations: 'disabled',
-              });
-              evidence.push({ case: 'dialog-compact-390x500', dialogState });
-              await dialogContext.close();
-
-              writeFileSync('/tmp/ticketing-v2/evidence.json', JSON.stringify(evidence, null, 2));
-            } finally {
-              await browser.close();
-            }
-          })().catch(error => {
-            writeFileSync('/tmp/ticketing-v2/failure.txt', String(error?.stack || error));
-            console.error(error);
-            process.exit(1);
-          });
-          NODE
-      - name: Show diagnostics
-        if: failure()
-        run: |
-          cat /tmp/ticketing-v2/failure.txt || true
-          cat /tmp/ticketing-v2/server.log || true
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
-        with:
-          name: ticketing-v2-visual-evidence
-          path: /tmp/ticketing-v2
-          retention-days: 7
-          if-no-files-found: error
-) || !state.subtotal.includes('R
-              await readyCase(browser, { width: 390, height: 844 }, 'dark-390x844', async page => {
-                await page.evaluate(() => {
-                  document.documentElement.dataset.theme = 'dark';
-                });
-              });
-
-              await readyCase(browser, { width: 390, height: 844 }, 'text-200-390x844', async page => {
-                await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-              });
-
-              const forcedContext = await browser.newContext({
-                viewport: { width: 390, height: 844 },
-                forcedColors: 'active',
-              });
-              const forcedPage = await forcedContext.newPage();
-              await installRoutes(forcedPage, {});
-              await forcedPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await forcedPage.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
-              const forcedContract = await audit(forcedPage, 'forced-colors-390x844');
-              await forcedPage.screenshot({
-                path: '/tmp/ticketing-v2/forced-colors-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              evidence.push({ case: 'forced-colors-390x844', contract: forcedContract });
-              await forcedContext.close();
-
-              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              const loadingPage = await loadingContext.newPage();
-              await installRoutes(loadingPage, { delay: 1500 });
-              await loadingPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await loadingPage.locator('#offers[aria-busy="true"]').waitFor({ state: 'attached', timeout: 3000 });
-              if ((await loadingPage.locator('.ticketing-skeleton-card').count()) < 3) {
-                throw new Error('Ticketing loading skeletons missing');
-              }
-              await loadingPage.screenshot({
-                path: '/tmp/ticketing-v2/loading-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              await loadingContext.close();
-
-              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              const emptyPage = await emptyContext.newPage();
-              await installRoutes(emptyPage, { empty: true });
-              await emptyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await emptyPage.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
-              await audit(emptyPage, 'empty-390x844');
-              await emptyPage.screenshot({
-                path: '/tmp/ticketing-v2/empty-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              await emptyContext.close();
-
-              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              const errorPage = await errorContext.newPage();
-              await installRoutes(errorPage, { error: true });
-              await errorPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await errorPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({
-                state: 'visible',
-                timeout: 10000,
-              });
-              await errorPage.screenshot({
-                path: '/tmp/ticketing-v2/error-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              await errorContext.close();
-
-              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
-              const dialogPage = await dialogContext.newPage();
-              await installRoutes(dialogPage, {});
-              await dialogPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await dialogPage.locator('.reservation-card').waitFor({ state: 'visible', timeout: 10000 });
-              await dialogPage.locator('.reservation-card .md-button--primary').click();
-              await dialogPage.locator('#ticket-dialog[open]').waitFor({ state: 'visible', timeout: 10000 });
-              const dialogState = await dialogPage.locator('#ticket-dialog').evaluate(node => {
-                const rect = node.getBoundingClientRect();
-                return {
-                  height: rect.height,
-                  viewportHeight: innerHeight,
-                  scrollHeight: node.scrollHeight,
-                  clientHeight: node.clientHeight,
-                };
-              });
-              if (dialogState.height > dialogState.viewportHeight + 1) {
-                throw new Error('Ticket dialog exceeds safe viewport: ' + JSON.stringify(dialogState));
-              }
-              await dialogPage.screenshot({
-                path: '/tmp/ticketing-v2/dialog-compact-390x500.png',
-                fullPage: false,
-                animations: 'disabled',
-              });
-              evidence.push({ case: 'dialog-compact-390x500', dialogState });
-              await dialogContext.close();
-
-              writeFileSync('/tmp/ticketing-v2/evidence.json', JSON.stringify(evidence, null, 2));
-            } finally {
-              await browser.close();
-            }
-          })().catch(error => {
-            writeFileSync('/tmp/ticketing-v2/failure.txt', String(error?.stack || error));
-            console.error(error);
-            process.exit(1);
-          });
-          NODE
-      - name: Show diagnostics
-        if: failure()
-        run: |
-          cat /tmp/ticketing-v2/failure.txt || true
-          cat /tmp/ticketing-v2/server.log || true
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        if: always()
-        with:
-          name: ticketing-v2-visual-evidence
-          path: /tmp/ticketing-v2
-          retention-days: 7
-          if-no-files-found: error
-)) throw new Error('Price breakdown unreadable: ' + JSON.stringify(state));
-                if (state.heroHeight < 220) throw new Error('MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY: ' + JSON.stringify(state));
-                if (state.ctaWidth < 44 || state.ctaHeight < 44) throw new Error('Dominant checkout CTA geometry invalid: ' + JSON.stringify(state));
-                if (!state.authorityNote.includes('confirmados pelo servidor')) throw new Error('Financial authority note missing');
-                evidence.push({ case: 'selected-quantity-quote-390x844', state });
-              });
-
-              await readyCase(browser, { width: 390, height: 844 }, 'dark-390x844', async page => {
-                await page.evaluate(() => {
-                  document.documentElement.dataset.theme = 'dark';
-                });
-              });
-
-              await readyCase(browser, { width: 390, height: 844 }, 'text-200-390x844', async page => {
-                await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-              });
-
-              const forcedContext = await browser.newContext({
-                viewport: { width: 390, height: 844 },
-                forcedColors: 'active',
-              });
-              const forcedPage = await forcedContext.newPage();
-              await installRoutes(forcedPage, {});
-              await forcedPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await forcedPage.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
-              const forcedContract = await audit(forcedPage, 'forced-colors-390x844');
-              await forcedPage.screenshot({
-                path: '/tmp/ticketing-v2/forced-colors-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              evidence.push({ case: 'forced-colors-390x844', contract: forcedContract });
-              await forcedContext.close();
-
-              const loadingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              const loadingPage = await loadingContext.newPage();
-              await installRoutes(loadingPage, { delay: 1500 });
-              await loadingPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await loadingPage.locator('#offers[aria-busy="true"]').waitFor({ state: 'attached', timeout: 3000 });
-              if ((await loadingPage.locator('.ticketing-skeleton-card').count()) < 3) {
-                throw new Error('Ticketing loading skeletons missing');
-              }
-              await loadingPage.screenshot({
-                path: '/tmp/ticketing-v2/loading-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              await loadingContext.close();
-
-              const emptyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              const emptyPage = await emptyContext.newPage();
-              await installRoutes(emptyPage, { empty: true });
-              await emptyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await emptyPage.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
-              await audit(emptyPage, 'empty-390x844');
-              await emptyPage.screenshot({
-                path: '/tmp/ticketing-v2/empty-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              await emptyContext.close();
-
-              const errorContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
-              const errorPage = await errorContext.newPage();
-              await installRoutes(errorPage, { error: true });
-              await errorPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await errorPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({
-                state: 'visible',
-                timeout: 10000,
-              });
-              await errorPage.screenshot({
-                path: '/tmp/ticketing-v2/error-390x844.png',
-                fullPage: true,
-                animations: 'disabled',
-              });
-              await errorContext.close();
-
-              const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
-              const dialogPage = await dialogContext.newPage();
-              await installRoutes(dialogPage, {});
-              await dialogPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
-              await dialogPage.locator('.reservation-card').waitFor({ state: 'visible', timeout: 10000 });
-              await dialogPage.locator('.reservation-card .md-button--primary').click();
-              await dialogPage.locator('#ticket-dialog[open]').waitFor({ state: 'visible', timeout: 10000 });
-              const dialogState = await dialogPage.locator('#ticket-dialog').evaluate(node => {
-                const rect = node.getBoundingClientRect();
-                return {
-                  height: rect.height,
-                  viewportHeight: innerHeight,
-                  scrollHeight: node.scrollHeight,
-                  clientHeight: node.clientHeight,
-                };
-              });
-              if (dialogState.height > dialogState.viewportHeight + 1) {
-                throw new Error('Ticket dialog exceeds safe viewport: ' + JSON.stringify(dialogState));
               }
               await dialogPage.screenshot({
                 path: '/tmp/ticketing-v2/dialog-compact-390x500.png',
