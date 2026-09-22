@@ -311,10 +311,21 @@ jobs:
                     sheet.querySelector('.place-bottom-sheet-overflow') instanceof HTMLDetailsElement
                       ? sheet.querySelector('.place-bottom-sheet-overflow').open
                       : null,
-                  touchTargets: buttons.map((button) => {
-                    const buttonRect = button.getBoundingClientRect();
-                    return { width: buttonRect.width, height: buttonRect.height };
-                  }),
+                  touchTargets: buttons
+                    .map((button) => {
+                      const buttonRect = button.getBoundingClientRect();
+                      const style = getComputedStyle(button);
+                      return {
+                        width: buttonRect.width,
+                        height: buttonRect.height,
+                        visible:
+                          style.display !== 'none' &&
+                          style.visibility !== 'hidden' &&
+                          buttonRect.width > 0 &&
+                          buttonRect.height > 0,
+                      };
+                    })
+                    .filter(({ visible }) => visible),
                   imageSrc: image instanceof HTMLImageElement ? new URL(image.src).pathname : null,
                 };
               });
