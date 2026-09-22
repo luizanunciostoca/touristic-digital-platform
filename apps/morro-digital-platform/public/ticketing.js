@@ -15,7 +15,7 @@ const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getTicketingPresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
 const browserAnalytics = installMorroBrowserAnalytics({ document, window });
-installBrowserAnalyticsConsentPreferences({
+const privacyPreferences = installBrowserAnalyticsConsentPreferences({
   document,
   controller: browserAnalytics,
 });
@@ -76,6 +76,7 @@ const elements = {
   quantityIncrease: document.querySelector("#quantity-increase"),
   returnLink: document.querySelector("[data-ticketing-return]"),
   identityPanel: document.querySelector("#identity-panel"),
+  privacySettings: document.querySelector("#privacy-settings-button"),
 };
 
 function readSessionJson(key, fallback) {
@@ -704,6 +705,22 @@ async function loadOffers() {
   renderDateSelector();
   renderOffers();
 
+  if (state.offers.length === 0) {
+    state.selectedOffer = null;
+    state.quote = null;
+    elements.selectionSummary.hidden = true;
+    elements.identityPanel.hidden = true;
+    elements.productRating.hidden = true;
+    elements.productDuration.hidden = true;
+    elements.productAvailability.hidden = true;
+    elements.heroTitle.textContent = "Nenhuma experiência disponível agora";
+    elements.productLead.textContent =
+      "Tente novamente em instantes ou volte ao mapa para escolher outra experiência.";
+    elements.reserve.disabled = true;
+    updatePurchaseSummary();
+    return;
+  }
+
   const requestedOffer = new URLSearchParams(location.search).get("offer");
   if (requestedOffer && offerIdPattern.test(requestedOffer)) {
     const offer = state.offers.find((entry) => entry.id === requestedOffer);
@@ -1123,6 +1140,10 @@ elements.form.addEventListener(
   "submit",
   (event) => void submitReservation(event),
 );
+elements.privacySettings?.addEventListener("click", () => {
+  privacyPreferences.open();
+});
+
 elements.refresh.addEventListener("click", () => {
   elements.refresh.hidden = true;
   setMessage("Atualizando disponibilidade…");
