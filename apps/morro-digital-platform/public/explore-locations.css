@@ -553,7 +553,6 @@ body:has(
   border-radius: var(--md-radius-pill);
 }
 
-
 .explore-flow-sheet-close {
   grid-column: 3;
   grid-row: 1;
