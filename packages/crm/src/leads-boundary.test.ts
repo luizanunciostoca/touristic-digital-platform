@@ -26,6 +26,7 @@ function session(role: AuthSessionIdentity["role"]): AuthSessionIdentity {
 function lead(id = 7, stage: CrmLead["stage"] = "new_lead"): CrmLead {
   return {
     id,
+    destinationId: "morro-de-sao-paulo",
     companyName: "Toca do Morcego",
     segment: "Restaurante / Bar",
     contactName: "Luiz",
@@ -52,16 +53,21 @@ function fixture() {
   const audits: CrmLeadAuditEvent[] = [];
   const interactions: Array<{ leadId: number; type: string }> = [];
   const checklist: number[] = [];
+  const listQueries: unknown[] = [];
   let current = lead();
 
   const repository: CrmLeadBoundaryRepository = {
-    list: async () => [current],
+    list: async (query) => {
+      listQueries.push(query);
+      return [current];
+    },
     findById: async (id) => (id === current.id ? current : null),
     create: async (record) => {
       current = {
         ...current,
         id: 42,
         companyName: record.companyName,
+        destinationId: record.destinationId ?? null,
         stage: record.stage,
         status: record.status,
       };
@@ -93,6 +99,7 @@ function fixture() {
     audits,
     checklist,
     interactions,
+    listQueries,
   };
 }
 
@@ -113,15 +120,33 @@ describe("CRM M70 leads boundary", () => {
   });
 
   it("allows authenticated bounded list queries and rejects invalid filters", async () => {
-    const { boundary, audits } = fixture();
+    const { boundary, audits, listQueries } = fixture();
     const allowed = await boundary.list(session("viewer"), {
       stage: "new_lead",
       status: "active",
+      destinationId: "morro-de-sao-paulo",
       search: "Toca",
       limit: 50,
       offset: 0,
     });
     expect(allowed.ok).toBe(true);
+    expect(listQueries.at(-1)).toEqual({
+      stage: "new_lead",
+      status: "active",
+      destinationId: "morro-de-sao-paulo",
+      search: "Toca",
+      limit: 50,
+      offset: 0,
+    });
+
+    await expect(
+      boundary.list(session("viewer"), {
+        destinationId: "Morro de São Paulo",
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "invalid_input",
+    });
 
     await expect(
       boundary.list(session("viewer"), { limit: 5000 }),
@@ -155,12 +180,43 @@ describe("CRM M70 leads boundary", () => {
     const { boundary, checklist, interactions } = fixture();
     const result = await boundary.create(session("manager"), {
       companyName: "Nova Empresa",
+      destinationId: "morro-de-sao-paulo",
       email: "owner@example.com",
       monthlyValue: "499.90",
     });
-    expect(result).toEqual(expect.objectContaining({ ok: true }));
+    expect(result).toEqual(
+      expect.objectContaining({
+        ok: true,
+        value: expect.objectContaining({
+          destinationId: "morro-de-sao-paulo",
+        }),
+      }),
+    );
     expect(checklist).toEqual([42]);
     expect(interactions).toEqual([{ leadId: 42, type: "system" }]);
+  });
+
+  it("rejects non-canonical destination mutations and allows explicit reassignment", async () => {
+    const { boundary } = fixture();
+
+    await expect(
+      boundary.create(session("manager"), {
+        companyName: "Destino inválido",
+        destinationId: "Morro de São Paulo",
+      }),
+    ).resolves.toEqual({ ok: false, reason: "invalid_input" });
+
+    await expect(
+      boundary.update(session("manager"), {
+        id: 7,
+        destinationId: "itacare",
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        ok: true,
+        value: expect.objectContaining({ destinationId: "itacare" }),
+      }),
+    );
   });
 
   it("preserves frozen V1 optional-field clearing while keeping company name required", async () => {

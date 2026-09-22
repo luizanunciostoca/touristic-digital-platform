@@ -128,8 +128,23 @@ describe("Control Center domain support delegation", () => {
       targetResponse.statusCode = 200;
       targetResponse.end(JSON.stringify({ pathname }));
     });
+    const adminReadProfile = vi.fn(async (businessId) => ({
+      id: businessId,
+      name: "Toca do Morcego",
+      destinationId: "morro-de-sao-paulo",
+    }));
     const { authApi, calls } = supportDelegationBoundary();
-    const adapter = createBusinessAdminAdapter({ handle }, authApi);
+    const adapter = createBusinessAdminAdapter(
+      { handle, adminReadProfile },
+      authApi,
+    );
+    await expect(
+      adapter.readDirectoryProfile("toca-do-morcego"),
+    ).resolves.toMatchObject({
+      id: "toca-do-morcego",
+      destinationId: "morro-de-sao-paulo",
+    });
+    expect(adapter.coverage).toContain("destination-owner-projection");
 
     await adapter.handle({
       request: req,
@@ -203,6 +218,9 @@ describe("Control Center domain support delegation", () => {
       expect(requestUrl.pathname).toBe("/api/crm/leads");
       expect(requestUrl.searchParams.get("search")).toBe("toca");
       expect(requestUrl.searchParams.get("limit")).toBe("20");
+      expect(requestUrl.searchParams.get("destinationId")).toBe(
+        "morro-de-sao-paulo",
+      );
       response.statusCode = 200;
       response.setHeader("Content-Type", "application/json");
       response.end(
@@ -210,6 +228,7 @@ describe("Control Center domain support delegation", () => {
           data: [
             {
               id: 42,
+              destinationId: "morro-de-sao-paulo",
               companyName: "Toca do Morcego",
               contactName: "Operação",
               email: "crm@example.com",
@@ -225,6 +244,7 @@ describe("Control Center domain support delegation", () => {
     await expect(
       adapter.search({
         query: "toca",
+        destinationId: "morro-de-sao-paulo",
         request: req,
         effectiveUser: { id: "business-owner" },
       }),
@@ -233,6 +253,7 @@ describe("Control Center domain support delegation", () => {
         type: "crm-lead",
         id: "42",
         title: "Toca do Morcego",
+        context: expect.stringContaining("morro-de-sao-paulo"),
         href: "#crm",
       }),
     ]);
@@ -509,6 +530,7 @@ describe("Control Center Affiliates owner adapter", () => {
     );
     expect(runtime.adminList).toHaveBeenCalledWith(actor, {
       query: "creator",
+      destinationId: "",
       limit: "10",
     });
 

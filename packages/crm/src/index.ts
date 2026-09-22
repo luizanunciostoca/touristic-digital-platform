@@ -162,6 +162,7 @@ export type CrmMoney = string;
 
 export interface CrmLead {
   readonly id: CrmId;
+  readonly destinationId?: string | null;
   readonly companyName: string;
   readonly segment: string | null;
   readonly contactName: string | null;
@@ -318,6 +319,7 @@ export interface CrmReferral {
 export interface CrmLeadQuery {
   readonly stage?: CrmLeadStage;
   readonly status?: CrmLeadStatus;
+  readonly destinationId?: string;
   readonly search?: string;
   readonly limit?: number;
   readonly offset?: number;

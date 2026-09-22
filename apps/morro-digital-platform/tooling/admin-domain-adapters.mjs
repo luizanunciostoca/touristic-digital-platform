@@ -99,11 +99,13 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
       "membership-reactivate",
       "commission-readback",
       "conversion-readback",
+      "destination-filter",
     ]),
 
-    async search({ query, actor }) {
+    async search({ query, actor, destinationId }) {
       const result = await affiliateAdminRuntime.adminList(actor, {
         query,
+        destinationId,
         limit: 10,
       });
       if (result.status !== "found") return [];
@@ -140,6 +142,7 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
           response,
           await affiliateAdminRuntime.adminList(actor, {
             query: requestUrl.searchParams.get("query") ?? "",
+            destinationId: requestUrl.searchParams.get("destinationId") ?? "",
             limit: requestUrl.searchParams.get("limit") ?? 100,
           }),
           "AFFILIATE_NOT_FOUND",
@@ -255,12 +258,15 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "trials",
       "search",
     ]),
-    async search({ query, request, effectiveUser }) {
+    async search({ query, request, effectiveUser, destinationId }) {
       if (!request || !query) return [];
       const response = jsonCaptureResponse();
       const requestUrl = new URL("http://localhost/api/crm/leads");
       requestUrl.searchParams.set("search", query);
       requestUrl.searchParams.set("limit", "20");
+      if (destinationId) {
+        requestUrl.searchParams.set("destinationId", destinationId);
+      }
 
       await withEffectiveUser(delegation, request, effectiveUser, () =>
         crmApi.handle(request, response, requestUrl),
@@ -281,7 +287,13 @@ export function createCrmAdminAdapter(crmApi, authApi) {
             id: String(lead.id),
             title: lead.companyName || String(lead.id),
             context:
-              [lead.contactName, lead.email, lead.stage, lead.status]
+              [
+                lead.destinationId,
+                lead.contactName,
+                lead.email,
+                lead.stage,
+                lead.status,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "CRM",
             href: "#crm",
@@ -327,7 +339,16 @@ export function createBusinessAdminAdapter(businessApi, authApi) {
 
   return Object.freeze({
     state: "available",
-    coverage: Object.freeze(["profile"]),
+    coverage: Object.freeze([
+      "profile",
+      ...(typeof businessApi.adminReadProfile === "function"
+        ? ["destination-owner-projection"]
+        : []),
+    ]),
+    async readDirectoryProfile(businessId) {
+      if (typeof businessApi.adminReadProfile !== "function") return null;
+      return businessApi.adminReadProfile(businessId);
+    },
     async handle({ request, response, requestUrl, effectiveUser }) {
       const match = pattern.exec(requestUrl.pathname);
       if (!match?.[1]) {

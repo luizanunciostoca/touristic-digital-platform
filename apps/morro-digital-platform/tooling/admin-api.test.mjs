@@ -320,13 +320,17 @@ describe("Control Center Admin API", () => {
     const { api } = fixture(platformOwner, {
       domainAdapters: { crm },
     });
-    const req = request("/api/admin/v1/search?q=toca");
+    const req = request(
+      "/api/admin/v1/search?q=toca&destinationId=morro-de-sao-paulo",
+    );
     const response = responseRecorder();
 
     await api.handle(
       req,
       response,
-      new URL("http://localhost/api/admin/v1/search?q=toca"),
+      new URL(
+        "http://localhost/api/admin/v1/search?q=toca&destinationId=morro-de-sao-paulo",
+      ),
     );
 
     expect(response.statusCode).toBe(200);
@@ -335,6 +339,7 @@ describe("Control Center Admin API", () => {
       actor: { subject: "platform-owner" },
       request: req,
       effectiveUser: null,
+      destinationId: "morro-de-sao-paulo",
     });
     expect(JSON.parse(response.body).results).toEqual(
       expect.arrayContaining([
@@ -1461,21 +1466,52 @@ describe("Control Center Admin API", () => {
     );
   });
 
-  it("derives the business directory from identity memberships only", async () => {
-    const { api } = fixture();
+  it("enriches and scopes the business directory only through the Business owner profile projection", async () => {
+    const businesses = {
+      async readDirectoryProfile(businessId) {
+        return businessId === "toca-do-morcego"
+          ? {
+              id: businessId,
+              name: "Toca do Morcego",
+              destinationId: "morro-de-sao-paulo",
+            }
+          : null;
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { businesses },
+    });
     const response = responseRecorder();
 
     await api.handle(
-      request("/api/admin/v1/businesses"),
+      request("/api/admin/v1/businesses?destinationId=morro-de-sao-paulo"),
       response,
-      new URL("http://localhost/api/admin/v1/businesses"),
+      new URL(
+        "http://localhost/api/admin/v1/businesses?destinationId=morro-de-sao-paulo",
+      ),
     );
 
     const payload = JSON.parse(response.body);
     expect(response.statusCode).toBe(200);
     expect(payload.authority).toBe("read-only-directory");
-    expect(payload.mutationContract).toBe("BUSINESS_ADMIN_CONTRACT_REQUIRED");
-    expect(payload.businesses[0].id).toBe("toca-do-morcego");
+    expect(payload.destinationScope).toBe("owner-backed");
+    expect(payload.destinationId).toBe("morro-de-sao-paulo");
+    expect(payload.mutationContract).toBe("BUSINESS_ADMIN_CONTRACT_REGISTERED");
+    expect(payload.businesses).toEqual([
+      expect.objectContaining({
+        id: "toca-do-morcego",
+        name: "Toca do Morcego",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ]);
+
+    const excluded = responseRecorder();
+    await api.handle(
+      request("/api/admin/v1/businesses?destinationId=itacare"),
+      excluded,
+      new URL("http://localhost/api/admin/v1/businesses?destinationId=itacare"),
+    );
+    expect(JSON.parse(excluded.body).businesses).toEqual([]);
   });
 });
 

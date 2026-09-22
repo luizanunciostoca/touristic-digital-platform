@@ -13,7 +13,7 @@ import { CrmReferralServerBoundary } from "@touristic/crm/referrals-boundary";
 import { CrmTrialServerBoundary } from "@touristic/crm/trials-boundary";
 import {
   applyCrmCommerceSchema,
-  applyCrmM99Schema,
+  applyCrmM156DestinationScopeSchema,
   createCrmMySqlPoolFromEnvironment,
   createCrmTrialSchedulerHost,
   CrmContractHttpTransport,
@@ -222,7 +222,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
 
   async function ensureSchema() {
     schemaReady ??= (async () => {
-      await applyCrmM99Schema(pool);
+      await applyCrmM156DestinationScopeSchema(pool);
       await applyCrmCommerceSchema(pool);
     })();
     await schemaReady;

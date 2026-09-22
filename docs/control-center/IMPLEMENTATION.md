@@ -86,3 +86,30 @@ Still required before completion:
 ## Completion rule
 
 No row marked PARTIAL or GAP may be reported as complete. FEATURE-0012 stays `partial` until the full acceptance matrix is proven.
+
+## UX Design V1 implementation wave
+
+Branch: `wave/control-center-ux-design-v1-final-20260921`
+
+Manual-driven implementation added on top of the owner-backed Control Center completion branch.
+
+| UX area                                             | Current state                                          | Evidence                                                                                                         |
+| --------------------------------------------------- | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------- |
+| Shell / tokens                                      | PASS in code                                           | `apps/control-center/public/index.html`; `control-center.css`                                                    |
+| Topbar / destination context                        | PASS in code                                           | persistent Global/Destination controls in shell + UX layer                                                       |
+| Sidebar IA                                          | PASS in code                                           | grouped navigation in `control-center-ux-v1.js`                                                                  |
+| Home visual hierarchy                               | PASS in code                                           | KPIs → attention → destinations → activity; Quick Actions intentionally removed by approved product override     |
+| Affiliate ownership rule                            | PASS in code                                           | copy + destination-scoped Affiliates admin list                                                                  |
+| Universal Search keyboard                           | PASS in code                                           | Ctrl/Cmd+K, Escape, arrows, Enter                                                                                |
+| Universal Search destination context                | PASS in code                                           | Admin API forwards `destinationId`; Business, Affiliates and CRM use owner/domain-backed destination projections |
+| Products / Reservations / Content destination lists | PASS in code                                           | selected `destinationId` propagated to owner adapters; product business selector is destination-scoped           |
+| Business destination aggregate                      | PASS in code                                           | `BusinessProfile.destinationId` is canonical, owner-backed, searchable/scoped and editable in Business 360°      |
+| 360 visual pattern                                  | PASS in code                                           | Business/Affiliate/User reusable header/tab pattern                                                              |
+| Support Mode                                        | PASS retained                                          | signed actor/effective-user separation + persistent banner                                                       |
+| Critical actions                                    | PASS retained for implemented actions                  | step-up + reason + textual confirmation + audit                                                                  |
+| Responsive system                                   | PASS in code; browser requalification pending          | manual breakpoints + drawer + responsive tables                                                                  |
+| Accessibility                                       | PASS in code baseline; browser requalification pending | focus, semantics, keyboard, reduced motion                                                                       |
+| Visual regression                                   | IMPLEMENTED; exact-head artifact pending               | browser contract captures 1440/1280/1024/768/390 canonical screenshots and rejects overflow/Quick Actions        |
+| Exact-head CI                                       | PENDING                                                | must be evaluated on the final candidate SHA                                                                     |
+
+The UX wave does not bypass domain authority. Business and CRM now expose explicit destination-owned projections; legacy records without a canonical destination remain visibly unassigned and fail closed rather than being inferred from labels.

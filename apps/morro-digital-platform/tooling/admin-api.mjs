@@ -250,6 +250,51 @@ function businessesFromUsers(users) {
   );
 }
 
+async function businessDirectoryProjection(users, adapter, destinationId = "") {
+  const directory = businessesFromUsers(users);
+  const ownerProjectionAvailable =
+    typeof adapter?.readDirectoryProfile === "function";
+  const projected = await Promise.all(
+    directory.map(async (business) => {
+      let profile = null;
+      if (ownerProjectionAvailable) {
+        try {
+          profile = await adapter.readDirectoryProfile(business.id);
+        } catch {
+          profile = null;
+        }
+      }
+      return Object.freeze({
+        ...business,
+        name: profile?.name ?? null,
+        destinationId: profile?.destinationId ?? null,
+        profileState: profile ? "available" : "unavailable",
+      });
+    }),
+  );
+
+  const scopedDestinationId =
+    destinationId && destinationId !== "global" ? destinationId : "";
+  const businesses = scopedDestinationId
+    ? projected.filter(
+        (business) => business.destinationId === scopedDestinationId,
+      )
+    : projected;
+
+  return Object.freeze({
+    businesses: Object.freeze(businesses),
+    destinationId: scopedDestinationId || null,
+    destinationScope:
+      scopedDestinationId && !ownerProjectionAvailable
+        ? "unavailable"
+        : ownerProjectionAvailable
+          ? "owner-backed"
+          : "identity-only",
+    unscopedCount: projected.filter((business) => !business.destinationId)
+      .length,
+  });
+}
+
 const namespaceCapabilities = Object.freeze({
   affiliates: Object.freeze({
     read: "affiliate.read",
@@ -2231,9 +2276,18 @@ export function createAdminApi({
           "business.read",
         );
         if (!actor) return;
+        const destinationId = bounded(
+          requestUrl.searchParams.get("destinationId"),
+          120,
+        );
+        const projection = await businessDirectoryProjection(
+          await authApi.listAdminUsers(),
+          domainAdapters.businesses,
+          destinationId,
+        );
         json(response, 200, {
-          businesses: businessesFromUsers(await authApi.listAdminUsers()),
-          source: "identity-membership",
+          ...projection,
+          source: "identity-membership+business-owner-profile",
           authority: "read-only-directory",
           mutationContract: domainAdapters.businesses
             ? "BUSINESS_ADMIN_CONTRACT_REGISTERED"
@@ -2253,6 +2307,10 @@ export function createAdminApi({
           requestUrl.searchParams.get("q"),
           160,
         ).toLowerCase();
+        const destinationId = bounded(
+          requestUrl.searchParams.get("destinationId"),
+          120,
+        );
         const results = [];
         if (query.length >= 2) {
           const configuredUsers = await authApi.listAdminUsers();
@@ -2276,9 +2334,17 @@ export function createAdminApi({
               });
             }
           }
-          for (const business of businessesFromUsers(configuredUsers)) {
+          const businessProjection = await businessDirectoryProjection(
+            configuredUsers,
+            domainAdapters.businesses,
+            destinationId,
+          );
+          for (const business of businessProjection.businesses) {
             if (
               business.id.toLowerCase().includes(query) ||
+              String(business.name ?? "")
+                .toLowerCase()
+                .includes(query) ||
               business.members.some((member) =>
                 member.email.toLowerCase().includes(query),
               )
@@ -2286,8 +2352,13 @@ export function createAdminApi({
               results.push({
                 type: "business",
                 id: business.id,
-                title: business.id,
-                context: `${business.members.length} membro(s)`,
+                title: business.name || business.id,
+                context: [
+                  business.destinationId,
+                  `${business.members.length} membro(s)`,
+                ]
+                  .filter(Boolean)
+                  .join(" · "),
                 href: `#businesses:${encodeURIComponent(business.id)}`,
               });
             }
@@ -2300,13 +2371,22 @@ export function createAdminApi({
               actor,
               request,
               effectiveUser: support?.effectiveUser ?? null,
+              destinationId:
+                destinationId && destinationId !== "global"
+                  ? destinationId
+                  : "",
             });
             for (const result of domainResults ?? []) {
               results.push({ ...result, domain });
             }
           }
         }
-        json(response, 200, { query, results: results.slice(0, 50) });
+        json(response, 200, {
+          query,
+          destinationId:
+            destinationId && destinationId !== "global" ? destinationId : null,
+          results: results.slice(0, 50),
+        });
         return;
       }
 

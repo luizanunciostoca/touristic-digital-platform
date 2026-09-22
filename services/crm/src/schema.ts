@@ -172,3 +172,9 @@ CREATE TABLE IF NOT EXISTS crm_audit_events (
   INDEX crm_audit_lead_created_idx (lead_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
+
+export const crmM156DestinationScopeSchemaSql = `
+ALTER TABLE crm_leads
+  ADD COLUMN destination_id VARCHAR(120) NULL AFTER id,
+  ADD INDEX crm_leads_destination_updated_idx (destination_id, updated_at)
+`;
