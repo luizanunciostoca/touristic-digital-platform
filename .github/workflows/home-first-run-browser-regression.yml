@@ -385,6 +385,8 @@ jobs:
                 voiceButton.type = 'button';
                 voiceButton.textContent = 'Voice';
                 voiceButton.setAttribute('aria-label', 'Send voice message');
+                voiceButton.style.cssText =
+                  'position:fixed;right:20px;bottom:92px;width:44px;height:44px;display:block;z-index:1';
                 document.getElementById('assistant-input-area')?.appendChild(voiceButton);
               }
             });
