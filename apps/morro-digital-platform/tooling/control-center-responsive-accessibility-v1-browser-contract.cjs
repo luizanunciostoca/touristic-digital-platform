@@ -173,7 +173,7 @@ async function geometry(page) {
 }
 
 async function checkAxe(page) {
-  await page.addScriptTag({ content: axe.source });
+  await page.evaluate(axe.source);
   return page.evaluate(async () => {
     const result = await axe.run(document, {
       runOnly: {
