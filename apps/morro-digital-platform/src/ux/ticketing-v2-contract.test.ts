@@ -109,8 +109,8 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain("elements.identityPanel.hidden = false");
     expect(html).toContain('id="summary-unit-price"');
     expect(html).toContain('id="summary-subtotal"');
-    expect(html).toContain(
-      "O valor final, moeda, disponibilidade e status de pagamento são confirmados pelo servidor",
+    expect(html).toMatch(
+      /O valor final,\s+moeda,\s+disponibilidade e status de pagamento são\s+confirmados pelo servidor/u,
     );
 
     expect(runtime).toContain(
