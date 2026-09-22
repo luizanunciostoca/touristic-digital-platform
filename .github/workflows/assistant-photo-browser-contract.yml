@@ -225,10 +225,14 @@ jobs:
               ).evaluateAll((buttons) =>
                 buttons.map((button) => button.getAttribute('data-value')),
               );
-              if (JSON.stringify(placeValues) !== JSON.stringify(expectedBeachDetailValues)) {
+              if (
+                placeValues.length !== expectedBeachDetailValues.length ||
+                expectedBeachDetailValues.some(value => !placeValues.includes(value))
+              ) {
                 throw new Error(`Place V2 photo action set drifted: ${JSON.stringify(placeValues)}`);
               }
 
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').click();
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').click();
 
               const primeiraPraiaCarousel = page.locator('.assistant-photo-carousel');
