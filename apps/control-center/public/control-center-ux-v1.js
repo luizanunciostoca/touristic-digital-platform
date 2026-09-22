@@ -318,22 +318,22 @@ function humanizeAuditAction(value) {
 
 function activityDeepLink(entry) {
   const id = entry?.entityId ? encodeURIComponent(entry.entityId) : "";
-  if (entry?.entityType === "auth_principal" && id) return "#users:" + id;
-  if (entry?.entityType === "payment" && id) return "#financial:" + id;
-  if (entry?.entityType === "reservation" && id) return "#reservations:" + id;
-  if (entry?.entityType === "destination" && id) return "#destinations:" + id;
-  if (entry?.entityType === "content_document" && id) return "#content:" + id;
-  if (entry?.entityType === "ticket_inventory" && id) return "#products:" + id;
+  if (entry?.entityType === "auth_principal" && id) return `#users:${id}`;
+  if (entry?.entityType === "payment" && id) return `#financial:${id}`;
+  if (entry?.entityType === "reservation" && id) return `#reservations:${id}`;
+  if (entry?.entityType === "destination" && id) return `#destinations:${id}`;
+  if (entry?.entityType === "content_document" && id) return `#content:${id}`;
+  if (entry?.entityType === "ticket_inventory" && id) return `#products:${id}`;
   if (entry?.entityType === "ticketing_operation") return "#ticketing";
   if (entry?.entityType === "affiliate_membership" && entry.entityId) {
     const affiliateId = String(entry.entityId).split(":", 1)[0];
     return affiliateId
-      ? "#affiliates:" + encodeURIComponent(affiliateId)
+      ? `#affiliates:${encodeURIComponent(affiliateId)}`
       : "#affiliates";
   }
   if (entry?.entityType === "reconciliation_finding") return "#financial";
   if (entry?.entityType === "auth_session" && entry.effectiveUserId) {
-    return "#users:" + encodeURIComponent(entry.effectiveUserId);
+    return `#users:${encodeURIComponent(entry.effectiveUserId)}`;
   }
   return null;
 }
@@ -389,7 +389,7 @@ function activityHtml(entries) {
       const actor = entry.actorUserId || "—";
       const effectiveUser = entry.effectiveUserId || "—";
       const destination = entry.destinationId || "—";
-      const entity = [entry.entityType, entry.entityId].filter(Boolean).join(" ");
+      const entity = [entry.entityType, entry.entityId]\n        .filter(Boolean)\n        .join(" ");
       const financialValue = activityFinancialValue(entry);
       const href = activityDeepLink(entry);
       return (
