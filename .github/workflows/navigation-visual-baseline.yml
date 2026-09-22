@@ -337,13 +337,13 @@ jobs:
             }
 
             const route = activeState.routePresentation;
-            const expectedOutline = { color: '#0f4c81', width: 9, opacity: 0.35, dash: [2, 2] };
-            const expectedRoute = { color: '#06b6d4', width: 5, opacity: 0.9, dash: [2, 1.5] };
+            const expectedOutline = { color: '#ffffff', width: 9, opacity: 0.82, dash: null };
+            const expectedRoute = { color: '#1689ff', width: 5.5, opacity: 1, dash: null };
             if (!route.source || !route.outline || !route.route || route.routeIndex !== route.layerCount - 1 || route.outlineIndex !== route.layerCount - 2) {
               throw new Error(`Navigation route layers are not topmost for ${name}: ${JSON.stringify(route)}`);
             }
             if (JSON.stringify(route.outlinePaint) !== JSON.stringify(expectedOutline) || JSON.stringify(route.routePaint) !== JSON.stringify(expectedRoute)) {
-              throw new Error(`Navigation route paint diverged from the V1 map contract for ${name}: ${JSON.stringify(route)}`);
+              throw new Error(`Navigation route paint diverged from the UX V2 Golden contract for ${name}: ${JSON.stringify(route)}`);
             }
 
             await page.screenshot({ path: `${outputDir}/${name}-active.png`, fullPage: false, animations: 'disabled' });
