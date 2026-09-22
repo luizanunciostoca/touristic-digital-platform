@@ -313,6 +313,13 @@ jobs:
                 throw new Error('Short universal-search query did not stay closed');
               }
 
+              await page.evaluate(() => {
+                location.hash = '#overview';
+              });
+              await page.locator('#content[data-rendered-view="overview"][aria-busy="false"]').waitFor({
+                state: 'attached',
+                timeout: 15000,
+              });
               await page.locator('#destination-selector').evaluate(select => {
                 if (![...select.options].some(option => option.value === 'morro-de-sao-paulo')) {
                   const option = document.createElement('option');
@@ -323,16 +330,23 @@ jobs:
                 select.value = 'morro-de-sao-paulo';
                 select.dispatchEvent(new Event('change', { bubbles: true }));
               });
-              const scopedSearchRequest = page.waitForRequest(request => {
-                const url = new URL(request.url());
-                return (
-                  url.pathname === '/api/admin/v1/search' &&
-                  url.searchParams.get('q') === 'scope-probe' &&
-                  url.searchParams.get('destinationId') === 'morro-de-sao-paulo'
-                );
-              });
-              await page.locator('#global-search').fill('scope-probe');
-              await scopedSearchRequest;
+              await page.waitForFunction(
+                () => document.querySelector('#destination-selector')?.value === 'morro-de-sao-paulo',
+              );
+              const [scopedSearchResponse] = await Promise.all([
+                page.waitForResponse(response => {
+                  const url = new URL(response.url());
+                  return (
+                    url.pathname === '/api/admin/v1/search' &&
+                    url.searchParams.get('q') === 'scope-probe'
+                  );
+                }, { timeout: 10000 }),
+                page.locator('#global-search').fill('scope-probe'),
+              ]);
+              const scopedSearchUrl = new URL(scopedSearchResponse.url());
+              if (scopedSearchUrl.searchParams.get('destinationId') !== 'morro-de-sao-paulo') {
+                throw new Error(`Universal Search destination scope missing: ${scopedSearchUrl}`);
+              }
               await page.keyboard.press('Escape');
               await page.locator('#global-search').fill('');
               await page.locator('#destination-selector').selectOption('global');
