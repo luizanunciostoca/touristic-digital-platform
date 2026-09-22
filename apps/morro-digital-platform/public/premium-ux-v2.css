@@ -815,9 +815,7 @@ body[data-md-mode="navigation"] #instruction-arrow {
   line-height: 1;
 }
 
-body[data-md-mode="navigation"]
-  #instruction-banner
-  .instruction-secondary {
+body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
   margin: 0 0 0 calc(3rem + var(--md-space-3));
   padding: var(--md-space-1) 0 0 !important;
   border: 0;
