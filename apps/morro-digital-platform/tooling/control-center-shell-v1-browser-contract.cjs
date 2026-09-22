@@ -249,12 +249,22 @@ async function login(page) {
       const geometry = await page.evaluate(() => {
         const sidebar = document.querySelector("#sidebar");
         const topbar = document.querySelector(".control-center-topbar");
+        const destination = document.querySelector("#destination-selector");
+        const profileName = document.querySelector("#profile-name");
+        const destinationRect = destination?.getBoundingClientRect();
         return {
           pageOverflow:
             document.documentElement.scrollWidth >
             document.documentElement.clientWidth + 2,
           sidebarWidth: sidebar.getBoundingClientRect().width,
           topbarHeight: topbar.getBoundingClientRect().height,
+          destinationVisible:
+            Boolean(destinationRect) &&
+            destinationRect.width > 0 &&
+            destinationRect.height > 0 &&
+            getComputedStyle(destination).visibility !== "hidden",
+          profileNameVisible:
+            profileName ? getComputedStyle(profileName).display !== "none" : false,
         };
       });
 
@@ -264,6 +274,16 @@ async function login(page) {
       if (Math.abs(geometry.topbarHeight - 64) > 1) {
         throw new Error(
           `Topbar height changed at ${viewport.label}px: ${geometry.topbarHeight}`,
+        );
+      }
+      if (!geometry.destinationVisible) {
+        throw new Error(
+          `Destination context disappeared at ${viewport.label}px`,
+        );
+      }
+      if (viewport.width < 1200 && geometry.profileNameVisible) {
+        throw new Error(
+          `Tablet/mobile profile name still compresses topbar at ${viewport.label}px`,
         );
       }
 
