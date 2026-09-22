@@ -6,6 +6,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/ticketing-v2-visual-regression.yml"
+      - "tests/visual-regression/ux-v2-manual-reference-matrix.json"
       - "apps/morro-digital-platform/public/ticketing.css"
       - "apps/morro-digital-platform/public/ticketing.js"
       - "apps/morro-digital-platform/public/tickets.html"
