@@ -823,8 +823,7 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   }
 }
 
-#explore-flow-bottom-sheet[data-flow-kind="tour"]
-  .explore-flow-sheet-actions {
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
   position: sticky;
   bottom: 0;
   z-index: 1;
