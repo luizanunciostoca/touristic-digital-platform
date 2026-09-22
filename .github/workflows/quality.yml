@@ -55,6 +55,18 @@ jobs:
             turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Emit ticketing Prettier diagnostics
+        run: |
+          pnpm exec prettier --write apps/morro-digital-platform/src/runtime/commerce-i18n.ts apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts
+          echo "PRETTIER_COMMERCE_I18N_B64_BEGIN"
+          base64 -w0 apps/morro-digital-platform/src/runtime/commerce-i18n.ts
+          echo
+          echo "PRETTIER_COMMERCE_I18N_B64_END"
+          echo "PRETTIER_TICKETING_CONTRACT_B64_BEGIN"
+          base64 -w0 apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts
+          echo
+          echo "PRETTIER_TICKETING_CONTRACT_B64_END"
+          exit 1
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
