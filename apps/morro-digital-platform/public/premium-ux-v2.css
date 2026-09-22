@@ -895,6 +895,7 @@ body[data-md-mode="navigation"] #navigation-recenter-btn {
 
 body[data-md-mode="navigation"] #navigation-summary {
   right: calc(var(--md-safe-right) + var(--md-space-3));
+  transform: none;
   bottom: calc(var(--md-safe-bottom) + var(--md-space-3));
   left: calc(var(--md-safe-left) + var(--md-space-3));
   display: flex;
@@ -927,7 +928,9 @@ body[data-md-mode="navigation"] #navigation-summary-handle {
   transform: translateX(-50%);
 }
 
-body[data-md-mode="navigation"] .navigation-summary-metrics {
+body[data-md-mode="navigation"]
+  #navigation-summary
+  .navigation-summary-metrics {
   display: flex;
   min-width: 0;
   flex: 1;
@@ -935,7 +938,9 @@ body[data-md-mode="navigation"] .navigation-summary-metrics {
   gap: var(--md-space-4);
 }
 
-body[data-md-mode="navigation"] .navigation-summary-metrics .metric {
+body[data-md-mode="navigation"]
+  #navigation-summary
+  .navigation-summary-metrics .metric {
   display: flex;
   min-width: 0;
   flex-direction: row;
@@ -949,31 +954,35 @@ body[data-md-mode="navigation"]
   order: -1;
 }
 
-body[data-md-mode="navigation"] .navigation-summary-metrics .metric-label {
+body[data-md-mode="navigation"]
+  #navigation-summary
+  .navigation-summary-metrics .metric-label {
   display: none;
 }
 
-body[data-md-mode="navigation"] #instruction-time {
+body[data-md-mode="navigation"] #navigation-summary #instruction-time {
   color: var(--md-navigation-text);
   font-size: 1.05rem;
   font-weight: 800;
   white-space: nowrap;
 }
 
-body[data-md-mode="navigation"] #instruction-distance,
-body[data-md-mode="navigation"] #navigation-travel-mode {
+body[data-md-mode="navigation"] #navigation-summary #instruction-distance,
+body[data-md-mode="navigation"] #navigation-summary #navigation-travel-mode {
   color: var(--md-navigation-text-muted);
   font-size: 0.78rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
-body[data-md-mode="navigation"] #navigation-travel-mode::before {
+body[data-md-mode="navigation"]
+  #navigation-summary
+  #navigation-travel-mode::before {
   content: "·";
   margin-right: var(--md-space-1);
 }
 
-body[data-md-mode="navigation"] #end-navigation-btn {
+body[data-md-mode="navigation"] #navigation-summary #end-navigation-btn {
   width: auto;
   min-width: 4.25rem;
   min-height: var(--md-touch-target-min);
@@ -1068,7 +1077,9 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
     padding-inline: var(--md-space-3);
   }
 
-  body[data-md-mode="navigation"] .navigation-summary-metrics {
+  body[data-md-mode="navigation"]
+  #navigation-summary
+  .navigation-summary-metrics {
     gap: var(--md-space-2);
   }
 
