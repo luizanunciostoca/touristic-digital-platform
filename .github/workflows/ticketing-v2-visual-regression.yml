@@ -482,6 +482,7 @@ jobs:
                 state: 'visible',
                 timeout: 10000,
               });
+              await errorPage.locator('#refresh-button').waitFor({ state: 'visible', timeout: 10000 });
               const leakedTechnicalState = await errorPage.locator('#reservation-message').textContent();
               if (/TICKETING_|PAYMENTS_|HTTP_/u.test(leakedTechnicalState || '')) {
                 throw new Error('Technical error leaked into consumer UI: ' + leakedTechnicalState);
@@ -498,6 +499,9 @@ jobs:
               const transactionalState = {};
               await installRoutes(transactionalPage, transactionalState);
               await transactionalPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              if (await transactionalPage.locator('#refresh-button').isVisible()) {
+                throw new Error('Recovery action visible during happy path');
+              }
               await transactionalPage.locator('.offer-card .md-button--primary').click();
               await transactionalPage.locator('#holder-name').fill('Visitante');
               await transactionalPage.locator('#holder-email').fill('visitante@example.com');
