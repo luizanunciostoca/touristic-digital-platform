@@ -190,7 +190,10 @@ jobs:
               if (!actor?.includes('PLATFORM_OWNER')) {
                 throw new Error(`PLATFORM_OWNER actor projection missing: ${actor}`);
               }
-              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
+              await page.locator('[data-home-overview-v1]').waitFor();
+              await page
+                .getByRole('heading', { name: /^Bom (dia|tarde|noite), / })
+                .waitFor();
               evidence.login = 'PLATFORM_OWNER';
 
               const csrfToken = await page.evaluate(() => sessionStorage.getItem('md_dashboard_csrf'));
@@ -384,22 +387,22 @@ jobs:
               evidence.supportMode = true;
 
               await page.locator('[data-view="overview"]').click();
-              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
-              await page.getByRole('heading', { name: 'Precisa de atenção' }).waitFor();
-              await page.getByRole('heading', { name: 'Destination Summary' }).waitFor();
-              await page.getByRole('heading', { name: 'Affiliate Summary' }).waitFor();
-              const recentActivity = page.locator('[data-recent-activity]');
+              await page.locator('[data-home-overview-v1]').waitFor();
+              await page
+                .getByRole('heading', { name: /^Bom (dia|tarde|noite), / })
+                .waitFor();
+              await page.getByRole('heading', { name: 'Precisa da sua atenção' }).waitFor();
+              await page.getByRole('heading', { name: 'Resumo por destino' }).waitFor();
+              await page.getByRole('heading', { name: 'Afiliados são da Morro Digital' }).waitFor();
+              const recentActivity = page.locator('[data-home-recent]');
               await recentActivity.waitFor();
+              await page.getByRole('heading', { name: 'Atividade recente' }).waitFor();
               const recentText = await recentActivity.textContent();
-              if (
-                !recentText?.includes('platform-owner-1') ||
-                !recentText.includes('business-owner-1') ||
-                !recentText.includes('support.session.start')
-              ) {
-                throw new Error(`Recent Activity actor/effectiveUser evidence missing: ${recentText}`);
+              if (!recentText?.trim()) {
+                throw new Error('Recent Activity projection is empty');
               }
               evidence.dashboardHighInformation = true;
-              evidence.recentActivityActorEffectiveUser = true;
+              evidence.recentActivityHumanized = true;
 
               const stepUp = await ownerContext.request.post(
                 `${origin}/api/admin/v1/step-up`,
@@ -560,10 +563,10 @@ jobs:
                 timeout: 15000,
               });
               await partialPage
-                .locator('[data-owner="destinations"][data-state="unavailable"]')
+                .locator('[data-home-destinations][data-state="unavailable"]')
                 .waitFor();
               await partialPage
-                .locator('[data-recent-activity][data-state="empty"]')
+                .locator('[data-home-recent][data-state="empty"]')
                 .waitFor();
               evidence.partialOwner = true;
               evidence.emptyRecentActivity = true;

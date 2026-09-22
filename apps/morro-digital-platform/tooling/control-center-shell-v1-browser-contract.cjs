@@ -209,7 +209,10 @@ async function login(page) {
     await sidebarNav
       .getByRole("button", { name: "Visão Global", exact: true })
       .click();
-    await page.getByRole("heading", { name: "Visão Geral" }).waitFor();
+    await page.locator("[data-home-overview-v1]").waitFor();
+    await page
+      .getByRole("heading", { name: /^Bom (dia|tarde|noite), / })
+      .waitFor();
 
     await page.keyboard.press("Control+K");
     if (
