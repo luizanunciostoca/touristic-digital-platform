@@ -16,10 +16,11 @@ describe("UX V2 Wave B contextual Assistant contract", () => {
     );
 
     expect(shell).toContain(
-      'class="assistant-options md-assistant-options" hidden aria-hidden="true" data-assistant-command-source="legacy-category-routing"',
+      'class="assistant-options md-assistant-options" data-assistant-command-source="legacy-category-routing"',
     );
     expect(shell).not.toContain('class="quick-actions');
     expect(shell).not.toContain('class="mood-button');
+    expect(shell).not.toContain('data-assistant-command-source="legacy-category-routing" hidden');
   });
 
   it("exposes stable semantic onboarding targets for composer and microphone", async () => {
