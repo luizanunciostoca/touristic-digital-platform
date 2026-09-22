@@ -84,6 +84,41 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).not.toMatch(/type="(?:date|datetime-local)"/u);
   });
 
+  it("uses a product-led progressive purchase hierarchy without promoting browser authority", async () => {
+    const [html, runtime, experience] = await Promise.all([
+      readPublic("tickets.html"),
+      readPublic("ticketing.js"),
+      readPublic("experience.js"),
+    ]);
+
+    const hero = html.indexOf("ticketing-product-stage");
+    const selection = html.indexOf('id="offers-title"');
+    const summary = html.indexOf('id="selection-summary"');
+    const identity = html.indexOf('id="reservation-title"');
+    const wallet = html.indexOf('id="my-tickets-title"');
+
+    expect(hero).toBeGreaterThan(-1);
+    expect(selection).toBeGreaterThan(hero);
+    expect(summary).toBeGreaterThan(selection);
+    expect(identity).toBeGreaterThan(summary);
+    expect(wallet).toBeGreaterThan(identity);
+    expect(html).toContain('id="quantity-decrease"');
+    expect(html).toContain('id="quantity-increase"');
+    expect(html).toContain('id="summary-unit-price"');
+    expect(html).toContain('id="summary-subtotal"');
+    expect(html).toContain("O valor final, moeda, disponibilidade e status de pagamento são confirmados pelo servidor");
+
+    expect(runtime).toContain('const canonicalCheckoutPath = "/api/payments/v1/checkouts"');
+    expect(runtime).toContain('const commerceSessionPath = "/api/ticketing/v1/consumer-session"');
+    expect(runtime).toContain('api("/api/ticketing/v1/reservations"');
+    expect(runtime).toContain("offer.unitAmount");
+    expect(runtime).toContain("offer.pricingVersion");
+    expect(runtime).toContain("estimatedSubtotal");
+    expect(runtime).not.toContain("providerStatus =");
+    expect(runtime).not.toContain("paymentStatus =");
+    expect(experience).toContain('for (const key of ["place", "source", "lang", "locale"])');
+  });
+
   it("renders progressive loading structure without weakening accessibility", async () => {
     const [css, runtime, designSystem] = await Promise.all([
       readPublic("ticketing.css"),
