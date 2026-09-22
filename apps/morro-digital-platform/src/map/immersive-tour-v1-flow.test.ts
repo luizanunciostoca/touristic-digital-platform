@@ -79,6 +79,25 @@ describe("V1 immersive tour state machine", () => {
     );
   });
 
+  it("handles a one-stop tour without exposing impossible previous or next states", () => {
+    const intro = startV1ImmersiveTourState("single-stop", 1);
+    const only = transitionV1ImmersiveTourState(intro, {
+      type: "show_first_stop",
+    });
+
+    expect(only).toMatchObject({
+      stage: "stop",
+      currentStopIndex: 0,
+      totalStops: 1,
+    });
+    expect(
+      transitionV1ImmersiveTourState(only, { type: "previous" }),
+    ).toBe(only);
+    expect(
+      transitionV1ImmersiveTourState(only, { type: "next" }),
+    ).toMatchObject({ stage: "finale", currentStopIndex: 0, totalStops: 1 });
+  });
+
   it("rejects invalid starts instead of creating a corrupt tour state", () => {
     expect(() => startV1ImmersiveTourState("", 3)).toThrow(
       "Immersive tour id is required.",
