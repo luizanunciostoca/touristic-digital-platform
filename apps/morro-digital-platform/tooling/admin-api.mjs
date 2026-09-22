@@ -2882,7 +2882,15 @@ export function createAdminApi({
         }
 
         if (capabilityAllowed("business.read")) {
-          if (destinationId) {
+          const businessProjection = await businessDirectoryProjection(
+            configuredUsers,
+            domainAdapters.businesses,
+            destinationId,
+          );
+          if (
+            destinationId &&
+            businessProjection.destinationScope !== "owner-backed"
+          ) {
             partial.push(
               Object.freeze({
                 domain: "businesses",
@@ -2891,25 +2899,36 @@ export function createAdminApi({
               }),
             );
           } else {
-            for (const business of businessesFromUsers(configuredUsers)) {
+            for (const business of businessProjection.businesses) {
               const searchable = normalizeSearchText(
                 [
                   business.id,
+                  business.name,
                   ...business.members.flatMap((member) => [
                     member.email,
                     member.id,
                   ]),
-                ].join(" "),
+                ]
+                  .filter(Boolean)
+                  .join(" "),
               );
               if (!searchable.includes(normalizedQuery)) continue;
               results.push(
                 Object.freeze({
                   type: "business",
                   id: business.id,
-                  title: business.id,
-                  context: String(business.members.length) + " membro(s)",
+                  title: business.name || business.id,
+                  context: [
+                    business.destinationId,
+                    String(business.members.length) + " membro(s)",
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
                   href: "#businesses:" + encodeURIComponent(business.id),
                   domain: "businesses",
+                  ...(business.destinationId
+                    ? { destinationId: business.destinationId }
+                    : {}),
                 }),
               );
             }
