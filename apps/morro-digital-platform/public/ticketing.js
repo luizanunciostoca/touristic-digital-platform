@@ -1113,6 +1113,34 @@ async function createCheckout(reservationPayload) {
 async function submitReservation(event) {
   event.preventDefault();
   if (state.submitting) return;
+
+  const resumableCheckout = pendingCheckoutState();
+  if (resumableCheckout) {
+    state.submitting = true;
+    elements.reserve.disabled = true;
+    elements.reserve.textContent = "Retomando pagamento…";
+    setMessage("Retomando o checkout seguro da sua reserva…");
+    try {
+      await createCheckout(resumableCheckout);
+    } catch (error) {
+      setMessage(
+        friendlyError(
+          error,
+          "O pagamento não abriu agora. Sua reserva foi preservada; tente retomar o pagamento.",
+        ),
+        true,
+      );
+    } finally {
+      state.submitting = false;
+      const stillPending = pendingCheckoutState();
+      elements.reserve.textContent = stillPending
+        ? "Retomar pagamento"
+        : "Finalizar Reserva";
+      elements.reserve.disabled = stillPending ? false : !state.quote;
+    }
+    return;
+  }
+
   if (!state.selectedOffer) {
     setMessage(copy.selectExperienceFirst, true);
     return;
@@ -1161,13 +1189,6 @@ async function submitReservation(event) {
     }
     elements.reserve.disabled = true;
     elements.reserve.textContent = "Finalizando…";
-    const pendingCheckout = pendingCheckoutState();
-    if (pendingCheckout) {
-      setMessage("Retomando o checkout seguro da sua reserva…");
-      await createCheckout(pendingCheckout);
-      return;
-    }
-
     const reference = reservationAttemptReference(
       state.selectedOffer.id,
       quantity,
