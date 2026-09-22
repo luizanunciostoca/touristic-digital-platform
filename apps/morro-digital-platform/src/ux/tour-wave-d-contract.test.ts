@@ -39,10 +39,14 @@ describe("UX Design V2 Wave D tour contract", () => {
     ]);
 
     expect(control).toContain("clusterTourDiscoveryMarkers");
-    expect(control).toContain('category === "tours" && activeStage === "filters"');
+    expect(control).toContain(
+      'category === "tours" && activeStage === "filters"',
+    );
     expect(control).toContain("TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES");
     expect(marker).toContain('root.dataset.tourCluster = "true"');
-    expect(marker).toContain('root.dataset.clusterCount = String(clusterCount)');
+    expect(marker).toContain(
+      'root.dataset.clusterCount = String(clusterCount)',
+    );
     expect(marker).toContain('root.dataset.clusterLabel = input.label');
     expect(marker).toContain('else root.dataset.locationName = input.label');
     expect(browser).not.toContain("clusterTourDiscoveryMarkers");
@@ -57,7 +61,9 @@ describe("UX Design V2 Wave D tour contract", () => {
     ]);
 
     expect(css).toContain(".morro-explore-marker-label");
-    expect(css).toContain(".morro-explore-marker:is(:hover, :focus, :focus-visible)");
+    expect(css).toContain(
+      ".morro-explore-marker:is(:hover, :focus, :focus-visible)",
+    );
     expect(marker).toContain('if (category === "tours") root.tabIndex = 0');
   });
 
@@ -74,8 +80,12 @@ describe("UX Design V2 Wave D tour contract", () => {
     expect(controller).toContain('"tour-stop-progress-segments"');
     expect(controller).toContain('"tour-stop-progress-segment"');
     expect(controller).toContain("`${current}/${tour.stops.length}`");
-    expect(controller).toContain('card.dataset.stopIndex = String(state.currentStopIndex)');
-    expect(controller).toContain('card.dataset.totalStops = String(tour.stops.length)');
+    expect(controller).toContain(
+      'card.dataset.stopIndex = String(state.currentStopIndex)',
+    );
+    expect(controller).toContain(
+      'card.dataset.totalStops = String(tour.stops.length)',
+    );
   });
 
   it("preserves missing-image recovery and first/last/completion controls", async () => {
@@ -83,7 +93,9 @@ describe("UX Design V2 Wave D tour contract", () => {
       "apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts",
     );
 
-    expect(controller).toContain('card.dataset.photoState = stop.photoPath ? "available" : "missing"');
+    expect(controller).toContain(
+      'card.dataset.photoState = stop.photoPath ? "available" : "missing"',
+    );
     expect(controller).toContain('card.dataset.photoState = "missing"');
     expect(controller).toContain("photoWrap.hidden = true");
     expect(controller).toContain("TOUR_PREVIOUS");
