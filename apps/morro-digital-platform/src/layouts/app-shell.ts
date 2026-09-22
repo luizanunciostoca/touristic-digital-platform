@@ -393,7 +393,7 @@ function synchronizeAssistantLayout(document: Document): void {
       ".carousel-container, .assistant-photo-carousel",
     );
     const richInteractiveContainers = messagesArea.querySelectorAll(
-      ".assistant-options, #assistant-category-results, .assistant-photo-carousel, .assistant-photo-back-options",
+      '.assistant-options:not([data-assistant-command-source="legacy-category-routing"]), #assistant-category-results, .assistant-photo-carousel, .assistant-photo-back-options',
     );
     const totalTextLength = textMessages.reduce(
       (total, message) => total + (message.textContent?.length ?? 0),
