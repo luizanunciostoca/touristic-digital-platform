@@ -238,7 +238,7 @@ jobs:
                 { message: 'shops', category: 'shops', count: 12 },
                 { message: 'transport', category: 'transport', count: 8 },
                 { message: 'attractions', category: 'attractions', count: 8 },
-                { message: 'tours', category: 'tours', count: 6 },
+                { message: 'tours', category: 'tours', count: 4 },
                 { message: 'nightlife', category: 'nightlife', count: 5 },
                 { message: 'emergencies', category: 'emergencies', count: 4 },
               ];
@@ -249,6 +249,11 @@ jobs:
                   `#assistant-category-results[data-category="${item.category}"][data-stage="filters"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
                 await waitStage(item.category, 'filters', item.count);
+                if (item.category === 'tours') {
+                  await page
+                    .locator('.explore-map-marker[data-tour-cluster="true"][data-cluster-count="3"]')
+                    .waitFor({ state: 'attached', timeout: 8000 });
+                }
               }
 
               await submit('back to main menu');
