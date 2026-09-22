@@ -1,0 +1,58 @@
+name: UX V2 Manual Golden Conformance
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/workflows/ux-v2-manual-golden-conformance.yml"
+      - "tests/visual-regression/ux-v2-manual-reference-matrix.json"
+      - "tests/visual-regression/ux-v2-manual-conformance.json"
+      - "tooling/visual/validate-ux-v2-manual-authority.mjs"
+      - "docs/ux/manual-visual-conformance-v2.md"
+      - "apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts"
+      - ".github/workflows/place-explore-v2-visual-regression.yml"
+      - ".github/workflows/ticketing-v2-visual-regression.yml"
+      - ".github/workflows/navigation-visual-baseline.yml"
+      - ".github/workflows/map-tour-browser-regression.yml"
+      - ".github/workflows/commerce-browser-regression.yml"
+      - ".github/workflows/ux-v2-component-state-visual-regression.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  manual-golden-authority:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate manual reference matrix
+        run: node tooling/visual/validate-ux-v2-manual-authority.mjs
+      - name: Validate anti-false-green source contract
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/manual-visual-conformance-authority.test.ts
+      - name: Fail closed for final-candidate dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: node tooling/visual/validate-ux-v2-manual-authority.mjs --enforce-release
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: ux-v2-manual-golden-authority
+          path: /tmp/ux-v2-manual-golden-authority.json
+          retention-days: 14
+          if-no-files-found: error
