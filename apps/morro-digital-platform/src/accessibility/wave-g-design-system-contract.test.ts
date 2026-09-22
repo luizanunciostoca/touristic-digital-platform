@@ -14,6 +14,47 @@ async function readRepository(path: string): Promise<string> {
   return readFile(`${repositoryRoot}${path}`, "utf8");
 }
 
+function channelToLinear(channel: number): number {
+  const normalized = channel / 255;
+  return normalized <= 0.04045
+    ? normalized / 12.92
+    : ((normalized + 0.055) / 1.055) ** 2.4;
+}
+
+function relativeLuminance(hex: string): number {
+  const normalized = hex.replace("#", "");
+  const channels = [0, 2, 4].map((offset) =>
+    Number.parseInt(normalized.slice(offset, offset + 2), 16),
+  );
+  return (
+    0.2126 * channelToLinear(channels[0] ?? 0) +
+    0.7152 * channelToLinear(channels[1] ?? 0) +
+    0.0722 * channelToLinear(channels[2] ?? 0)
+  );
+}
+
+function contrastRatio(foreground: string, background: string): number {
+  const lighter = Math.max(
+    relativeLuminance(foreground),
+    relativeLuminance(background),
+  );
+  const darker = Math.min(
+    relativeLuminance(foreground),
+    relativeLuminance(background),
+  );
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function readHexToken(css: string, name: string): string {
+  const marker = `${name}: `;
+  const start = css.indexOf(marker);
+  expect(start, `missing token ${name}`).toBeGreaterThanOrEqual(0);
+  const tail = css.slice(start + marker.length);
+  const value = tail.match(/^#[0-9a-fA-F]{6}/u)?.[0];
+  expect(value, `token ${name} is not a six-digit hex color`).toBeTruthy();
+  return value ?? "#000000";
+}
+
 describe("UX V2 Wave G shared visual system contract", () => {
   it("defines canonical typography, spacing, radius, elevation and icon tokens", async () => {
     const css = await readPublic("design-system-v2.css");
@@ -88,6 +129,21 @@ describe("UX V2 Wave G shared visual system contract", () => {
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("animation-duration: 0.01ms !important");
+  });
+
+  it("meets explicit WCAG contrast obligations for canonical light-theme tokens", async () => {
+    const css = await readPublic("design-system-v2.css");
+    const surface = readHexToken(css, "--md-color-surface");
+    const text = readHexToken(css, "--md-color-text");
+    const muted = readHexToken(css, "--md-color-text-muted");
+    const primary = readHexToken(css, "--md-color-brand-primary");
+    const danger = readHexToken(css, "--md-color-danger");
+    const inverse = "#ffffff";
+
+    expect(contrastRatio(text, surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(muted, surface)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(inverse, primary)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(inverse, danger)).toBeGreaterThanOrEqual(4.5);
   });
 
   it("keeps the canonical layer registry instead of introducing local z-index authority", async () => {
