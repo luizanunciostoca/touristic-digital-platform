@@ -684,7 +684,7 @@ function createFallbackMapProvider(): ResolvedMapProvider {
           activeDestination.center.longitude,
           activeDestination.center.latitude,
         ],
-        initialZoom: 13.5,
+        initialZoom: DISCOVER_HOME_ZOOM,
       }),
       environment: developmentEnvironment,
       mode: "leaflet" as const,
