@@ -1027,10 +1027,21 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
 }
 
 #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-thumb {
+  display: flex;
   flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
   width: 2.5rem;
   height: 2.5rem;
+  overflow: hidden;
   border-radius: var(--md-radius-sm);
+  background: var(--md-color-surface-subtle);
+  font-size: var(--md-font-size-lg);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-thumb-image {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
