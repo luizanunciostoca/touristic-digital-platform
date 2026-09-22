@@ -20,15 +20,25 @@ or `--font-sans` from `styles.css`.
 
 ## Surface authority inventory
 
-- **Home — HYBRID.** V2 tokens/shell load before consumers. The Home wave owns retirement of remaining `styles.css`/legacy geometry after visual parity.
-- **Place — HYBRID.** V2 foundation and premium mode are available. The Place wave owns final sheet/card migration and legacy override removal.
-- **Explore — HYBRID.** Semantic tokens are enforced with no new local hex/font-stack authority. The Explore wave owns retirement of the existing `!important` bridge.
-- **Navigation — HYBRID.** The semantic layer contract is available and Stylelint guards new arbitrary z-index. The Navigation wave owns remaining legacy/banner overrides.
-- **Tour — HYBRID.** V2 foundation and shell are active. The Tour wave owns residual V1 visibility/geometry bridges.
-- **Assistant — HYBRID.** Assistant V2 consumes V2 tokens with no new local palette/font stack. The Assistant wave owns remaining legacy modal/composer override retirement.
-- **Commerce — V2_AUTHORITY.** Feature CSS is semantic-token based and remains a strict Stylelint consumer.
-- **Ticketing — V2_AUTHORITY.** The isolated page loads V2 foundation first and uses V2 primitives/tokens.
-
+- **Home — HYBRID.** V2 tokens/shell load before consumers. The Home wave owns
+  retirement of remaining `styles.css`/legacy geometry after visual parity.
+- **Place — HYBRID.** V2 foundation and premium mode are available. The Place
+  wave owns final sheet/card migration and legacy override removal.
+- **Explore — HYBRID.** Semantic tokens are enforced with no new local
+  hex/font-stack authority. The Explore wave owns retirement of the existing
+  `!important` bridge.
+- **Navigation — HYBRID.** The semantic layer contract is available and
+  Stylelint guards new arbitrary z-index. The Navigation wave owns remaining
+  legacy/banner overrides.
+- **Tour — HYBRID.** V2 foundation and shell are active. The Tour wave owns
+  residual V1 visibility/geometry bridges.
+- **Assistant — HYBRID.** Assistant V2 consumes V2 tokens with no new local
+  palette/font stack. The Assistant wave owns remaining legacy modal/composer
+  override retirement.
+- **Commerce — V2_AUTHORITY.** Feature CSS is semantic-token based and remains a
+  strict Stylelint consumer.
+- **Ticketing — V2_AUTHORITY.** The isolated page loads V2 foundation first and
+  uses V2 primitives/tokens.
 
 No surface is classified as `LEGACY_AUTHORITY` after this foundation change;
 the shared Tourist runtime remains intentionally hybrid until the surface waves
