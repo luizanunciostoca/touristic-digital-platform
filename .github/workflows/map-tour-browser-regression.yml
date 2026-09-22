@@ -327,8 +327,13 @@ jobs:
             );
           }
 
-          async function validateGuidedV1Flow(page) {
+          async function validateGuidedV1Flow(page, evidenceName) {
             const intro = await openGuidedTour(page, 'volta-a-ilha', '8');
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-intro-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
 
             await page.locator('#assistant-category-results [data-value="__tour_start__"]').click();
             const first = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '0');
@@ -349,6 +354,11 @@ jobs:
             const narrationButton = page.locator('.tour-narration-btn');
             await narrationButton.waitFor({ state: 'attached', timeout: 3000 });
             await assertTourOutdoorReadability(page, 'first-stop');
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-stop-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
             const autoNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
@@ -417,6 +427,11 @@ jobs:
             await page.locator('#assistant-category-results [data-value="__tour_finish__"]').click();
             const finale = await waitForGuidedStage(page, 'finale', 'volta-a-ilha');
             await page.locator('.tour-finale-card').waitFor({ state: 'visible', timeout: 10000 });
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-finale-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
 
             await page.locator('#assistant-category-results [data-value="__tour_see_tours__"]').click();
             await page.locator('#map[data-tour-state="idle"]:not([data-active-tour])').waitFor({
@@ -570,7 +585,7 @@ jobs:
                 }
 
                 phase = 'guided-v1-flow';
-                const guided = await validateGuidedV1Flow(page);
+                const guided = await validateGuidedV1Flow(page, name);
 
                 phase = 'refresh-reentry';
                 const refreshReentry = await validateRefreshReentry(page);
