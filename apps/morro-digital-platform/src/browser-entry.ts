@@ -367,7 +367,12 @@ function installDiscoverPoiMarkers(
   const syncVisibility = (): void => {
     const markerCount = Number(mapContainer?.dataset.mapMarkerCount ?? "0");
     const exploreCategory = mapContainer?.dataset.exploreCategory?.trim() ?? "";
-    const shouldShow = markerCount === 0 && exploreCategory.length === 0;
+    const tourState = mapContainer?.dataset.tourState ?? "idle";
+    const shouldShow =
+      document.body.dataset.mdMode === "discover" &&
+      markerCount === 0 &&
+      exploreCategory.length === 0 &&
+      tourState === "idle";
     for (const { element } of entries) {
       element.hidden = !shouldShow;
       element.setAttribute("aria-hidden", String(!shouldShow));
@@ -375,10 +380,29 @@ function installDiscoverPoiMarkers(
   };
 
   const onExploreStateChanged = (): void => syncVisibility();
-  document.addEventListener("morro:explore-state-changed", onExploreStateChanged);
+  const visibilityObserver = new MutationObserver(syncVisibility);
+  if (mapContainer) {
+    visibilityObserver.observe(mapContainer, {
+      attributes: true,
+      attributeFilter: [
+        "data-map-marker-count",
+        "data-explore-category",
+        "data-tour-state",
+      ],
+    });
+  }
+  visibilityObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["data-md-mode"],
+  });
+  document.addEventListener(
+    "morro:explore-state-changed",
+    onExploreStateChanged,
+  );
   syncVisibility();
 
   return () => {
+    visibilityObserver.disconnect();
     document.removeEventListener(
       "morro:explore-state-changed",
       onExploreStateChanged,
