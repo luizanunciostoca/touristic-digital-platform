@@ -459,9 +459,7 @@ export function createUniversalSearchController({
       }
       if (
         selected &&
-        Array.from(select.options).some(
-          (option) => option.value === selected,
-        )
+        Array.from(select.options).some((option) => option.value === selected)
       ) {
         select.value = selected;
       }
