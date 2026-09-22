@@ -51,7 +51,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
       description: "Seu guia inteligente para descobrir Morro de São Paulo.",
       readyTitle: "Pronto para explorar?",
       readyDescription:
-        "Faça o tour interativo da V1 ou vá direto para o aplicativo.",
+        "Veja os controles essenciais ou comece a explorar agora.",
       startTitle: "Conhecer o App",
       startDescription:
         "Conheça o mapa, o clima, o assistente e os principais controles passo a passo.",
@@ -92,8 +92,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
           Object.freeze({
             title: "Ajuste o Assistant",
             description:
-              "As configurações de voz e preferências ficam acessíveis junto ao composer, sem ocupar a Home o tempo todo.",
-            hint: "Ajuste somente o que precisar e volte à exploração.",
+              "Abra Perfil para acessar preferências e configurações sem tirar o mapa do centro da experiência.",
+            hint: "Toque em Perfil quando quiser ajustar suas preferências.",
           }),
           Object.freeze({
             title: "Mude a perspectiva do mapa",
@@ -109,7 +109,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
       description: "Your smart guide to discovering Morro de São Paulo.",
       readyTitle: "Ready to explore?",
       readyDescription:
-        "Take the V1 interactive tour or go straight to the app.",
+        "See the essential controls or start exploring now.",
       startTitle: "Explore the App",
       startDescription:
         "Discover the map, weather, assistant and main controls step by step.",
@@ -149,8 +149,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
           Object.freeze({
             title: "Tune the Assistant",
             description:
-              "Voice and preference settings stay beside the composer instead of occupying the Home surface.",
-            hint: "Adjust only what you need and return to exploring.",
+              "Open Profile to access preferences and settings without taking over the map.",
+            hint: "Open Profile whenever you want to adjust your preferences.",
           }),
           Object.freeze({
             title: "Change the map perspective",
@@ -166,7 +166,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
       description: "Tu guía inteligente para descubrir Morro de São Paulo.",
       readyTitle: "¿Listo para explorar?",
       readyDescription:
-        "Haz el tour interactivo de la V1 o entra directamente en la aplicación.",
+        "Conoce los controles esenciales o empieza a explorar ahora.",
       startTitle: "Conocer la App",
       startDescription:
         "Conoce el mapa, el clima, el asistente y los controles principales paso a paso.",
@@ -206,8 +206,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
           Object.freeze({
             title: "Ajusta el Assistant",
             description:
-              "Las preferencias y la configuración de voz están junto al composer sin ocupar la Home todo el tiempo.",
-            hint: "Ajusta solo lo necesario y vuelve a explorar.",
+              "Abre Perfil para acceder a preferencias y ajustes sin quitar protagonismo al mapa.",
+            hint: "Abre Perfil cuando quieras ajustar tus preferencias.",
           }),
           Object.freeze({
             title: "Cambia la perspectiva del mapa",
@@ -223,7 +223,7 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
       description: "המדריך החכם שלכם לגילוי מורו דה סאו פאולו.",
       readyTitle: "מוכנים לצאת לדרך?",
       readyDescription:
-        "אפשר לצאת לסיור האינטראקטיבי של V1 או להיכנס ישירות לאפליקציה.",
+        "אפשר להכיר את הפקדים החיוניים או להתחיל לחקור מיד.",
       startTitle: "הכירו את האפליקציה",
       startDescription:
         "הכירו שלב אחר שלב את המפה, מזג האוויר, העוזר והפקדים המרכזיים.",
@@ -264,8 +264,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
           Object.freeze({
             title: "התאימו את ה-Assistant",
             description:
-              "הגדרות הקול וההעדפות זמינות ליד אזור הכתיבה בלי להשתלט על מסך הבית.",
-            hint: "שנו רק את מה שצריך וחזרו לחקירה.",
+              "פתחו את הפרופיל כדי לגשת להעדפות ולהגדרות בלי להסתיר את המפה.",
+            hint: "פתחו את הפרופיל בכל פעם שתרצו להתאים את ההעדפות.",
           }),
           Object.freeze({
             title: "שנו את נקודת המבט של המפה",
