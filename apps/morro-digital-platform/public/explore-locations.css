@@ -441,6 +441,14 @@
   padding-top: var(--md-space-3);
 }
 
+body[data-md-mode="place"] #place-bottom-sheet {
+  bottom: max(var(--md-space-3), var(--md-safe-bottom));
+  max-height: min(
+    var(--md-sheet-full-height),
+    calc(100dvh - var(--md-space-6) - var(--md-safe-top))
+  );
+}
+
 body[data-md-mode="place"] #assistant-input-area,
 body[data-md-mode="place"] .analytics-consent-preferences.is-collapsed,
 body:has(
