@@ -251,7 +251,7 @@ jobs:
                 await waitStage(item.category, 'filters', item.count);
                 if (item.category === 'tours') {
                   await page
-                    .locator('.explore-map-marker[data-tour-cluster="true"][data-cluster-count="3"]')
+                    .locator('[data-morro-explore-marker="true"][data-tour-cluster="true"][data-cluster-count="3"]')
                     .waitFor({ state: 'attached', timeout: 8000 });
                 }
               }
