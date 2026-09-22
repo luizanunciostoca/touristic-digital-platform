@@ -56,7 +56,7 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Probe exact shell formatting
+      - name: Check exact shell formatting
         shell: bash
         run: |
           set -euo pipefail
@@ -67,14 +67,7 @@ jobs:
             apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts
             apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs
           )
-          pnpm exec prettier --write "${FILES[@]}"
           pnpm exec prettier --check "${FILES[@]}"
-          for file in "${FILES[@]}"; do
-            echo "PRETTIER_FILE_BEGIN:${file}"
-            base64 -w0 "${file}"
-            echo
-            echo "PRETTIER_FILE_END:${file}"
-          done
       - name: Run shell source contract
         run: >
           pnpm --filter @touristic/morro-digital-platform exec vitest run
