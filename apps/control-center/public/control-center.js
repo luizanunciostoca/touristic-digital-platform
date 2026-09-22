@@ -683,10 +683,11 @@ async function renderOverview() {
           dashboardDestinationSummary
             ? dashboardDestinationItems
               ? `<div class="module-list">
-                  ${dashboardDestinationItems
-                    .map(
-                      (item) =>
-                        `<div class="module-row">
+                  ${
+                    dashboardDestinationItems
+                      .map(
+                        (item) =>
+                          `<div class="module-row">
                           <span><strong>${escapeHtml(
                             item.destinationId ?? "—",
                           )}</strong><br><small>alertas ${escapeHtml(
@@ -700,9 +701,10 @@ async function renderOverview() {
                               "—",
                           )} alerta(s)</strong>
                         </div>`,
-                    )
-                    .join("") ||
-                  '<div class="empty">Nenhum destino no agregado owner-backed.</div>'}
+                      )
+                      .join("") ||
+                    '<div class="empty">Nenhum destino no agregado owner-backed.</div>'
+                  }
                 </div>`
               : '<div class="empty">Destination Summary indisponível no agregado owner-backed; nenhum valor foi inferido.</div>'
             : destinationOwner.available
