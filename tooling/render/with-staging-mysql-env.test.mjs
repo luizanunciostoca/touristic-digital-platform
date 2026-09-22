@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { scryptSync } from "node:crypto";
 import test from "node:test";
 import {
+  buildStagingControlCenterOwnerAuthEnvironment,
   buildStagingDatabaseEnvironment,
   buildStagingPaymentsAcceptanceAuthEnvironment,
   shouldStartStagingPaymentsProviderAcceptance,
+  stagingControlCenterOwnerIdentity,
   stagingPaymentsAcceptanceIdentity,
 } from "./with-staging-mysql-env.mjs";
 
@@ -219,6 +221,99 @@ test("rejects weak credentials, invalid payer email, and identity collisions", (
         ]),
       }),
     /STAGING_PAYMENTS_ACCEPTANCE_USER_COLLISION/u,
+  );
+});
+
+test("leaves dashboard users untouched unless Control Center owner bootstrap is explicitly enabled", () => {
+  assert.deepEqual(
+    buildStagingControlCenterOwnerAuthEnvironment({
+      DASHBOARD_USERS_JSON: JSON.stringify([{ id: "existing" }]),
+    }),
+    {},
+  );
+});
+
+test("adds an isolated PLATFORM_OWNER without replacing existing users", () => {
+  const password = "temporary control center owner password 2026";
+  const email = "control-center-owner@morro.digital";
+  const existingUser = {
+    id: "existing-owner",
+    email: "existing-owner@morro.invalid",
+    passwordHash: "existing-hash",
+    role: "owner",
+    businessIds: ["biz_existing"],
+  };
+  const derived = buildStagingControlCenterOwnerAuthEnvironment({
+    RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+    STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+    STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+    STAGING_CONTROL_CENTER_OWNER_PASSWORD: password,
+    DASHBOARD_USERS_JSON: JSON.stringify([existingUser]),
+  });
+
+  assert.equal(derived.DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED, "true");
+  const users = JSON.parse(derived.DASHBOARD_USERS_JSON);
+  assert.equal(users.length, 2);
+  assert.deepEqual(users[0], existingUser);
+
+  const owner = users.find(
+    (user) => user.id === stagingControlCenterOwnerIdentity.id,
+  );
+  assert.equal(owner.email, email);
+  assert.equal(owner.role, "PLATFORM_OWNER");
+  assert.deepEqual(owner.businessIds, []);
+  assertPasswordHash(password, owner.passwordHash);
+});
+
+test("fails closed for unsafe Control Center owner bootstrap configuration", () => {
+  const strongPassword = "temporary control center owner password 2026";
+  const email = "control-center-owner@morro.digital";
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: "morro-digital-production",
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_SERVICE_DENIED/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: "too-short",
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: "invalid",
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_EMAIL_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+        DASHBOARD_USERS_JSON: JSON.stringify([
+          { id: "different-id", email },
+        ]),
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
   );
 });
 
