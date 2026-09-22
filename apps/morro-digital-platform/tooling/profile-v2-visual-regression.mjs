@@ -124,9 +124,8 @@ try {
         mapVisible: visible(map),
         navVisible: visible(nav),
         profileTitle:
-          document
-            .getElementById("home-profile-title")
-            ?.textContent?.trim() ?? "",
+          document.getElementById("home-profile-title")?.textContent?.trim() ??
+          "",
         composer: (() => {
           const element = document.getElementById("assistant-input-area");
           if (!(element instanceof HTMLElement) || !visible(element)) {
@@ -174,14 +173,8 @@ try {
       state.mapVisible && state.map,
       `${viewport.label}: map context lost`,
     );
-    assert(
-      state.navVisible && state.nav,
-      `${viewport.label}: bottom nav lost`,
-    );
-    assert(
-      state.active,
-      `${viewport.label}: Profile nav active state drift`,
-    );
+    assert(state.navVisible && state.nav, `${viewport.label}: bottom nav lost`);
+    assert(state.active, `${viewport.label}: Profile nav active state drift`);
     assert(
       state.panelAriaHidden === "false",
       `${viewport.label}: Profile aria-hidden drift`,
@@ -264,10 +257,7 @@ try {
       privacy.role === "dialog",
       `${viewport.label}: privacy semantics drift`,
     );
-    assert(
-      !privacy.overflow,
-      `${viewport.label}: privacy creates overflow`,
-    );
+    assert(!privacy.overflow, `${viewport.label}: privacy creates overflow`);
     assert(
       privacy.rect &&
         privacy.rect.left >= -1 &&
