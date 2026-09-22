@@ -316,7 +316,7 @@ jobs:
                 await page.locator('#toggle-globe-view').click();
                 const restored = await waitForCamera(page, state =>
                   state.globalView === 'false' &&
-                  typeof state.zoom === 'number' && Math.abs(state.zoom - 13.5) < 0.25 &&
+                  typeof state.zoom === 'number' && Math.abs(state.zoom - 14.8) < 0.25 &&
                   typeof state.lng === 'number' && Math.abs(state.lng - (-38.9167)) <= 0.03 &&
                   typeof state.lat === 'number' && Math.abs(state.lat - (-13.3833)) <= 0.03
                 );
