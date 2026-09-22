@@ -222,18 +222,394 @@ function statusBadge(value) {
   return `<span class="badge ${normalized}">${escapeHtml(value)}</span>`;
 }
 
-function renderOverview() {
+function entityTabs(group, tabs) {
+  const availableTabs = tabs.filter(
+    (tab) => tab && typeof tab.content === "string" && tab.content.trim(),
+  );
+  if (!availableTabs.length) return "";
+
+  const buttons = availableTabs
+    .map(
+      (tab, index) =>
+        `<button type="button" class="secondary-button" role="tab" id="${escapeHtml(
+          `${group}-tab-${tab.id}`,
+        )}" aria-controls="${escapeHtml(`${group}-panel-${tab.id}`)}" aria-selected="${
+          index === 0 ? "true" : "false"
+        }" tabindex="${index === 0 ? "0" : "-1"}" data-entity-tab="${escapeHtml(
+          tab.id,
+        )}">${escapeHtml(tab.label)}</button>`,
+    )
+    .join("");
+
+  const panels = availableTabs
+    .map(
+      (tab, index) =>
+        `<section id="${escapeHtml(`${group}-panel-${tab.id}`)}" role="tabpanel" aria-labelledby="${escapeHtml(
+          `${group}-tab-${tab.id}`,
+        )}" data-entity-panel="${escapeHtml(tab.id)}" ${
+          index === 0 ? "" : "hidden"
+        }>${tab.content}</section>`,
+    )
+    .join("");
+
+  return `<div class="entity-360" data-entity-tabs="${escapeHtml(group)}">
+    <div role="tablist" aria-label="Seções da visão 360" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${buttons}</div>
+    ${panels}
+  </div>`;
+}
+
+function bindEntityTabs(root = content) {
+  root.querySelectorAll("[data-entity-tabs]").forEach((shell) => {
+    const buttons = [...shell.querySelectorAll("[data-entity-tab]")];
+    const activate = (button, focus = false) => {
+      buttons.forEach((candidate) => {
+        const selected = candidate === button;
+        candidate.setAttribute("aria-selected", selected ? "true" : "false");
+        candidate.tabIndex = selected ? 0 : -1;
+        const panel = shell.querySelector(
+          `[data-entity-panel="${candidate.dataset.entityTab}"]`,
+        );
+        if (panel) panel.hidden = !selected;
+      });
+      if (focus) button.focus();
+    };
+
+    shell.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-entity-tab]");
+      if (button) activate(button);
+    });
+    shell.addEventListener("keydown", (event) => {
+      const current = event.target.closest("[data-entity-tab]");
+      if (!current || !buttons.length) return;
+      const currentIndex = buttons.indexOf(current);
+      let nextIndex = currentIndex;
+      if (event.key === "ArrowRight")
+        nextIndex = (currentIndex + 1) % buttons.length;
+      else if (event.key === "ArrowLeft")
+        nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = buttons.length - 1;
+      else return;
+      event.preventDefault();
+      activate(buttons[nextIndex], true);
+    });
+  });
+}
+
+function supportEntityContext() {
+  const support = state.adminSession?.support;
+  if (!support) return "";
+  return `<div class="callout" data-entity-support-context>
+    <strong>Support Mode:</strong>
+    actor real ${escapeHtml(state.adminSession?.actor?.email ?? "—")} ·
+    effectiveUser ${escapeHtml(
+      support.effectiveUser?.email ?? support.effectiveUser?.id ?? "—",
+    )}.
+    Leituras delegadas preservam o effectiveUser; ações privilegiadas continuam
+    sujeitas à autoridade, capabilities e políticas do actor real.
+  </div>`;
+}
+
+function canonicalEntityAudit(entries, relation) {
+  const source = Array.isArray(entries) ? entries : [];
+  const relatedEntityIds = new Set(relation.relatedEntityIds ?? []);
+  return source.filter((entry) => {
+    if (relation.kind === "business") {
+      return (
+        entry.tenantId === relation.id ||
+        (entry.entityType === "business" && entry.entityId === relation.id) ||
+        relatedEntityIds.has(entry.entityId)
+      );
+    }
+    if (relation.kind === "user") {
+      return (
+        entry.effectiveUserId === relation.id ||
+        (entry.entityType === "auth_principal" &&
+          entry.entityId === relation.id)
+      );
+    }
+    if (relation.kind === "affiliate") {
+      return (
+        (entry.entityType === "affiliate" && entry.entityId === relation.id) ||
+        relatedEntityIds.has(entry.entityId)
+      );
+    }
+    return false;
+  });
+}
+
+function auditDeepLink(entry) {
+  const id = entry?.entityId ? encodeURIComponent(entry.entityId) : "";
+  if (entry?.entityType === "auth_principal" && id) return `#users:${id}`;
+  if (entry?.entityType === "payment" && id) return `#financial:${id}`;
+  if (entry?.entityType === "reservation" && id) return `#reservations:${id}`;
+  if (entry?.entityType === "destination" && id) return `#destinations:${id}`;
+  if (entry?.entityType === "content_document" && id) return `#content:${id}`;
+  if (entry?.entityType === "ticket_inventory" && id) return `#products:${id}`;
+  if (entry?.entityType === "ticketing_operation") return "#ticketing";
+  if (entry?.entityType === "affiliate_membership" && entry.entityId) {
+    const affiliateId = String(entry.entityId).split(":", 1)[0];
+    return affiliateId
+      ? `#affiliates:${encodeURIComponent(affiliateId)}`
+      : "#affiliates";
+  }
+  if (entry?.entityType === "reconciliation_finding") return "#financial";
+  if (entry?.entityType === "auth_session" && entry.effectiveUserId) {
+    return `#users:${encodeURIComponent(entry.effectiveUserId)}`;
+  }
+  return null;
+}
+
+function auditFinancialValue(entry) {
+  for (const stateValue of [entry?.newState, entry?.previousState]) {
+    if (!stateValue || typeof stateValue !== "object") continue;
+    for (const amount of [stateValue.amount, stateValue.pricing?.amount]) {
+      if (
+        amount &&
+        Number.isFinite(Number(amount.minorUnits)) &&
+        typeof amount.currency === "string"
+      ) {
+        return `${amount.minorUnits} ${amount.currency} (minor units)`;
+      }
+    }
+    for (const field of ["commissionMinor", "eligibleRevenueMinor"]) {
+      if (
+        Number.isFinite(Number(stateValue[field])) &&
+        typeof stateValue.currency === "string"
+      ) {
+        return `${stateValue[field]} ${stateValue.currency} (minor units)`;
+      }
+    }
+  }
+  return null;
+}
+
+function recentActivityMarkup(
+  entries,
+  {
+    title = "Recent Activity",
+    emptyMessage = "Nenhuma atividade administrativa neste recorte.",
+  } = {},
+) {
+  const rows = Array.isArray(entries) ? entries : [];
+  return `<section class="card section-card" data-recent-activity data-state="${
+    rows.length ? "success" : "empty"
+  }">
+    <div class="section-title">
+      <h2>${escapeHtml(title)}</h2>
+      <span class="badge">${escapeHtml(rows.length)}</span>
+    </div>
+    <div class="table-wrap" tabindex="0">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th><th>Actor</th><th>Effective user</th>
+            <th>Destino</th><th>Ação / resultado</th><th>Entidade</th>
+            <th>Valor</th><th>Link</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            rows
+              .map((entry) => {
+                const href = auditDeepLink(entry);
+                const financialValue = auditFinancialValue(entry);
+                return `<tr>
+                  <td>${escapeHtml(entry.timestamp ?? "—")}</td>
+                  <td>${escapeHtml(entry.actorUserId ?? "—")}<br><small>${escapeHtml(
+                    entry.actorRole ?? "—",
+                  )}</small></td>
+                  <td>${escapeHtml(entry.effectiveUserId ?? "—")}</td>
+                  <td>${escapeHtml(entry.destinationId ?? "—")}</td>
+                  <td>${escapeHtml(entry.action ?? "—")}<br>${statusBadge(
+                    entry.result ?? "unknown",
+                  )}</td>
+                  <td>${escapeHtml(entry.entityType ?? "—")}<br><small>${escapeHtml(
+                    entry.entityId ?? "—",
+                  )}</small></td>
+                  <td>${escapeHtml(financialValue ?? "—")}</td>
+                  <td>${href ? `<a href="${escapeHtml(href)}">Abrir</a>` : "—"}</td>
+                </tr>`;
+              })
+              .join("") ||
+            `<tr><td colspan="8" class="empty">${escapeHtml(emptyMessage)}</td></tr>`
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+async function readOwnerProjection(path, field) {
+  try {
+    const payload = await api(path);
+    return {
+      available: true,
+      data: Array.isArray(payload?.[field]) ? payload[field] : [],
+      error: null,
+    };
+  } catch (error) {
+    return { available: false, data: [], error };
+  }
+}
+
+function ownerProjectionState(moduleState, available) {
+  if (!available) return "unavailable";
+  return moduleState === "available" || moduleState === "ready"
+    ? "success"
+    : "partial";
+}
+function dashboardAggregateState(status, fallback = "partial") {
+  if (status === "READY") return "success";
+  if (status === "UNAVAILABLE") return "unavailable";
+  if (status === "PARTIAL" || status === "NOT_SUPPORTED") return "partial";
+  return fallback;
+}
+
+async function renderOverview() {
   const dashboard = state.dashboard;
   const health = dashboard.health ?? { checks: [] };
+  const [affiliateOwner, destinationOwner, auditOwner] = await Promise.all([
+    readOwnerProjection("/affiliates?limit=250", "data"),
+    readOwnerProjection("/destinations", "destinations"),
+    readOwnerProjection("/audit?limit=20", "entries"),
+  ]);
+
+  const affiliates = affiliateOwner.data;
+  const destinations = destinationOwner.data;
+  const affiliateSummary = affiliates.reduce(
+    (summary, affiliate) => ({
+      approved:
+        summary.approved + Number(affiliate.approvedMembershipCount || 0),
+      suspended:
+        summary.suspended + Number(affiliate.suspendedMembershipCount || 0),
+      conversions: summary.conversions + Number(affiliate.conversionCount || 0),
+    }),
+    { approved: 0, suspended: 0, conversions: 0 },
+  );
+  const activeDestinations = destinations.filter(
+    (destination) => destination.status === "active",
+  ).length;
+  const destinationIssues = destinations.filter(
+    (destination) => destination.status !== "active",
+  );
+
+  const dashboardAttention =
+    dashboard.attention && typeof dashboard.attention === "object"
+      ? dashboard.attention
+      : null;
+  const dashboardDestinationSummary =
+    dashboard.destinationSummary &&
+    typeof dashboard.destinationSummary === "object"
+      ? dashboard.destinationSummary
+      : null;
+  const dashboardAttentionItems = Array.isArray(dashboardAttention?.items)
+    ? dashboardAttention.items
+    : null;
+  const attention = dashboardAttentionItems
+    ? dashboardAttentionItems.map((item) => ({
+        label: item.title ?? item.kind ?? item.id ?? "Atenção",
+        detail:
+          item.detail ??
+          ([item.severity, item.destinationId].filter(Boolean).join(" · ") ||
+            "owner-backed"),
+        source: item.destinationId
+          ? `dashboard-owner:${item.destinationId}`
+          : "dashboard-owner",
+      }))
+    : [];
+
+  if (!dashboardAttentionItems) {
+    for (const check of health.checks ?? []) {
+      if (check.status !== "pass") {
+        attention.push({
+          label: check.name,
+          detail: check.detail ?? check.status,
+          source: "system",
+        });
+      }
+    }
+    for (const [name, module] of Object.entries(dashboard.modules ?? {})) {
+      if (!["available", "ready"].includes(module.state)) {
+        attention.push({
+          label: name,
+          detail: `owner ${module.state}`,
+          source: "contract",
+        });
+      }
+    }
+    for (const destination of destinationIssues) {
+      attention.push({
+        label: destination.branding?.name ?? destination.id,
+        detail: `destino ${destination.status}`,
+        source: "destination-owner",
+      });
+    }
+    if (affiliateOwner.available && affiliateSummary.suspended > 0) {
+      attention.push({
+        label: "Affiliates",
+        detail: `${affiliateSummary.suspended} membership(s) suspensa(s) no recorte carregado`,
+        source: "affiliates-owner",
+      });
+    }
+  }
+
+  const attentionState = dashboardAttention
+    ? dashboardAggregateState(dashboardAttention.status)
+    : attention.length
+      ? "partial"
+      : "success";
+  const attentionCount =
+    dashboardAttention?.count ??
+    dashboardAttention?.knownCount ??
+    attention.length;
+  const dashboardDestinationItems = Array.isArray(
+    dashboardDestinationSummary?.items,
+  )
+    ? dashboardDestinationSummary.items
+    : null;
+  const destinationSummaryState = dashboardDestinationSummary
+    ? dashboardAggregateState(dashboardDestinationSummary.status)
+    : ownerProjectionState(
+        dashboard.modules?.destinations?.state,
+        destinationOwner.available,
+      );
+
   const metrics = [
     [
       "Empresas",
       dashboard.summary?.businesses ?? "—",
-      "Memberships conhecidas pelo Identity",
+      "Identity membership owner",
     ],
-    ["Usuários", dashboard.summary?.users ?? "—", "Identidades configuradas"],
-    ["Alertas", dashboard.summary?.alerts ?? "—", "Checks fora de PASS"],
+    ["Usuários", dashboard.summary?.users ?? "—", "Auth owner"],
+    dashboard.summary?.alerts != null
+      ? [
+          "Alertas",
+          dashboard.summary.alerts,
+          `Agregado owner-backed · ${dashboard.summary?.alertsStatus ?? "READY"}`,
+        ]
+      : dashboard.summary?.alertsKnownCount != null
+        ? [
+            "Alertas conhecidos",
+            dashboard.summary.alertsKnownCount,
+            `Estado ${dashboard.summary?.alertsStatus ?? "PARTIAL"} · não tratado como total`,
+          ]
+        : ["Alertas", "—", "Sem agregado owner-backed disponível"],
     ["Readiness", health.readiness ?? "—", "Saúde agregada da plataforma"],
+    [
+      "Destinos",
+      destinationOwner.available ? destinations.length : "—",
+      destinationOwner.available
+        ? `${activeDestinations} ativo(s) · Destination owner`
+        : "Destination owner indisponível",
+    ],
+    [
+      "Afiliados (recorte)",
+      affiliateOwner.available ? affiliates.length : "—",
+      affiliateOwner.available
+        ? `${affiliateSummary.approved} membership(s) aprovada(s) no recorte carregado`
+        : "Affiliates owner indisponível",
+    ],
   ];
 
   content.innerHTML = `
@@ -242,17 +618,20 @@ function renderOverview() {
         .map(
           ([label, value, hint]) =>
             `<article class="card stat">
-              <span class="stat-label">${label}</span>
+              <span class="stat-label">${escapeHtml(label)}</span>
               <strong class="stat-value">${escapeHtml(value)}</strong>
-              <small>${hint}</small>
+              <small>${escapeHtml(hint)}</small>
             </article>`,
         )
         .join("")}
     </div>
+
     <div class="grid two-col">
-      <section class="card section-card">
+      <section class="card section-card" data-dashboard-state="${
+        health.readiness === "ready" ? "success" : "partial"
+      }">
         <div class="section-title">
-          <h2>Saúde operacional</h2>
+          <h2>Estado operacional</h2>
           <span class="chip">${escapeHtml(health.readiness ?? "unknown")}</span>
         </div>
         <div class="health-list">
@@ -261,25 +640,156 @@ function renderOverview() {
               .map(
                 (check) =>
                   `<div class="health-row">
-                  <span><i class="status-dot status-${escapeHtml(check.status)}"></i>${escapeHtml(check.name)}</span>
-                  <small>${escapeHtml(check.detail ?? check.status)}</small>
-                </div>`,
+                    <span><i class="status-dot status-${escapeHtml(
+                      check.status,
+                    )}"></i>${escapeHtml(check.name)}</span>
+                    <small>${escapeHtml(check.detail ?? check.status)}</small>
+                  </div>`,
               )
               .join("") || '<div class="empty">Nenhum check disponível.</div>'
           }
         </div>
       </section>
-      <section class="card section-card">
-        <div class="section-title"><h2>Contratos administrativos</h2></div>
+
+      <section class="card section-card" data-attention-state="${attentionState}">
+        <div class="section-title">
+          <h2>Precisa de atenção</h2>
+          <span class="badge ${attentionState === "success" ? "pass" : "partial"}">${escapeHtml(
+            attentionCount,
+          )}</span>
+        </div>
         <div class="module-list">
-          ${Object.entries(dashboard.modules ?? {})
-            .map(
-              ([name, module]) =>
-                `<div class="module-row"><span>${escapeHtml(name)}</span>${statusBadge(module.state)}</div>`,
-            )
-            .join("")}
+          ${
+            attention
+              .map(
+                (item) =>
+                  `<div class="module-row"><span>${escapeHtml(
+                    item.label,
+                  )}<br><small>${escapeHtml(
+                    item.source,
+                  )}</small></span><strong>${escapeHtml(
+                    item.detail,
+                  )}</strong></div>`,
+              )
+              .join("") ||
+            '<div class="empty">Nenhuma atenção conhecida nas fontes consultadas.</div>'
+          }
         </div>
       </section>
+    </div>
+
+    <div class="grid two-col">
+      <section class="card section-card" data-owner="destinations" data-state="${destinationSummaryState}">
+        <div class="section-title">
+          <h2>Destination Summary</h2>
+          ${statusBadge(destinationSummaryState)}
+        </div>
+        ${
+          dashboardDestinationSummary
+            ? dashboardDestinationItems
+              ? `<div class="module-list">
+                  ${
+                    dashboardDestinationItems
+                      .map(
+                        (item) =>
+                          `<div class="module-row">
+                          <span><strong>${escapeHtml(
+                            item.destinationId ?? "—",
+                          )}</strong><br><small>alertas ${escapeHtml(
+                            item.alerts?.status ?? "UNAVAILABLE",
+                          )} · receita ${escapeHtml(
+                            item.revenue?.status ?? "UNAVAILABLE",
+                          )}</small></span>
+                          <strong>${escapeHtml(
+                            item.alerts?.count ??
+                              item.alerts?.knownCount ??
+                              "—",
+                          )} alerta(s)</strong>
+                        </div>`,
+                      )
+                      .join("") ||
+                    '<div class="empty">Nenhum destino no agregado owner-backed.</div>'
+                  }
+                </div>`
+              : '<div class="empty">Destination Summary indisponível no agregado owner-backed; nenhum valor foi inferido.</div>'
+            : destinationOwner.available
+              ? `<div class="module-list">
+                  <div class="module-row"><span>Total owner-backed</span><strong>${escapeHtml(
+                    destinations.length,
+                  )}</strong></div>
+                  <div class="module-row"><span>Ativos</span><strong>${escapeHtml(
+                    activeDestinations,
+                  )}</strong></div>
+                  <div class="module-row"><span>Fora de active</span><strong>${escapeHtml(
+                    destinationIssues.length,
+                  )}</strong></div>
+                </div>`
+              : '<div class="empty">Destination owner indisponível: nenhum valor foi inferido.</div>'
+        }
+      </section>
+      <section class="card section-card" data-owner="affiliates" data-state="${ownerProjectionState(
+        dashboard.modules?.affiliates?.state,
+        affiliateOwner.available,
+      )}">
+        <div class="section-title">
+          <h2>Affiliate Summary</h2>
+          ${statusBadge(
+            ownerProjectionState(
+              dashboard.modules?.affiliates?.state,
+              affiliateOwner.available,
+            ),
+          )}
+        </div>
+        ${
+          affiliateOwner.available
+            ? `<div class="module-list">
+                <div class="module-row"><span>Afiliados carregados (máx. 250)</span><strong>${escapeHtml(
+                  affiliates.length,
+                )}</strong></div>
+                <div class="module-row"><span>Memberships aprovadas no recorte</span><strong>${escapeHtml(
+                  affiliateSummary.approved,
+                )}</strong></div>
+                <div class="module-row"><span>Memberships suspensas no recorte</span><strong>${escapeHtml(
+                  affiliateSummary.suspended,
+                )}</strong></div>
+                <div class="module-row"><span>Conversões no recorte</span><strong>${escapeHtml(
+                  affiliateSummary.conversions,
+                )}</strong></div>
+              </div>`
+            : '<div class="empty">Affiliates owner indisponível: nenhum valor foi inferido.</div>'
+        }
+      </section>
+    </div>
+
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title"><h2>Estado dos owners</h2></div>
+      <div class="module-list">
+        ${Object.entries(dashboard.modules ?? {})
+          .map(
+            ([name, module]) =>
+              `<div class="module-row"><span>${escapeHtml(
+                name,
+              )}</span>${statusBadge(module.state)}</div>`,
+          )
+          .join("")}
+      </div>
+    </section>
+
+    <div style="margin-top:16px" data-owner="audit" data-state="${
+      auditOwner.available
+        ? auditOwner.data.length
+          ? "success"
+          : "empty"
+        : "unavailable"
+    }">
+      ${
+        auditOwner.available
+          ? recentActivityMarkup(auditOwner.data, {
+              title: "Recent Activity",
+              emptyMessage: "Nenhuma atividade administrativa registrada.",
+            })
+          : `<section class="card empty"><strong>Recent Activity indisponível</strong><span>A fonte autoritativa de auditoria não respondeu; nenhum evento foi fabricado.</span></section>`
+      }
     </div>`;
 }
 
@@ -347,6 +857,15 @@ async function renderUsers(userId) {
   );
   const now = Math.floor(Date.now() / 1000);
   const sessions = sessionData.sessions ?? [];
+
+  const userAuditResult = await readOwnerProjection(
+    "/audit?limit=250",
+    "entries",
+  );
+  const userAuditEntries = canonicalEntityAudit(userAuditResult.data, {
+    kind: "user",
+    id: userId,
+  });
   const selectedUser = users[0];
   const canManageUsers = actorHasCapability("users.manage");
   const supportActive = Boolean(state.adminSession?.support);
@@ -459,8 +978,11 @@ async function renderUsers(userId) {
         <span class="badge">${sessions.length} registrada(s)</span>
       </div>
       <div class="callout">
-        Revogar uma sessão é uma ação de alto risco. Confirme sua senha,
-        informe o motivo e digite <strong>REVOGAR</strong>.
+        ${
+          supportActive
+            ? "Revogação de sessão não é oferecida pela Entity 360 durante Support Mode; o contexto delegado nunca substitui o actor real."
+            : "Revogar uma sessão é uma ação de alto risco. Confirme sua senha, informe o motivo e digite REVOGAR."
+        }
       </div>
       <form id="session-revoke-form" class="form-grid">
         <label>
@@ -518,9 +1040,11 @@ async function renderUsers(userId) {
                     <td><span class="badge ${active ? "pass" : status === "revogada" ? "partial" : "gap"}">${escapeHtml(status)}</span></td>
                     <td>
                       ${
-                        active
+                        active && !supportActive
                           ? `<button class="secondary-button" type="button" data-revoke-session="${escapeHtml(session.handle)}">Revogar sessão</button>`
-                          : "—"
+                          : active && supportActive
+                            ? "Indisponível em Support Mode"
+                            : "—"
                       }
                     </td>
                   </tr>`;
@@ -532,6 +1056,77 @@ async function renderUsers(userId) {
         </table>
       </div>
     </section>`;
+
+  const userRenderedSections = [...content.children];
+  const overviewContent = userRenderedSections[0]?.outerHTML ?? userTable;
+  const actionsContent = userRenderedSections[1]?.outerHTML ?? "";
+  const sessionsContent = userRenderedSections[2]?.outerHTML ?? "";
+  const relationshipsContent = (selectedUser.businessIds ?? []).length
+    ? `<section class="card section-card">
+        <div class="section-title"><h2>Relationships</h2><span class="badge">Auth owner</span></div>
+        <div class="module-list">
+          ${(selectedUser.businessIds ?? [])
+            .map(
+              (businessId) =>
+                `<div class="module-row"><span>Empresa</span><a href="#businesses:${encodeURIComponent(
+                  businessId,
+                )}">${escapeHtml(businessId)}</a></div>`,
+            )
+            .join("")}
+        </div>
+      </section>`
+    : "";
+  const profileContent = `<section class="card section-card">
+      <div class="section-title"><h2>Identity / Profile</h2>${statusBadge(
+        selectedUser.status ?? "active",
+      )}</div>
+      <div class="module-list">
+        <div class="module-row"><span>ID</span><strong>${escapeHtml(
+          selectedUser.id,
+        )}</strong></div>
+        <div class="module-row"><span>E-mail</span><strong>${escapeHtml(
+          selectedUser.email,
+        )}</strong></div>
+        <div class="module-row"><span>Papel efetivo</span><strong>${escapeHtml(
+          selectedUser.canonicalRole,
+        )}</strong></div>
+        <div class="module-row"><span>Role configurado</span><strong>${escapeHtml(
+          selectedUser.configuredCanonicalRole ?? selectedUser.canonicalRole,
+        )}</strong></div>
+      </div>
+    </section>`;
+  const auditContent = userAuditResult.available
+    ? recentActivityMarkup(userAuditEntries, {
+        title: "Audit",
+        emptyMessage: "Nenhum evento autoritativo ligado a este usuário.",
+      })
+    : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+  content.innerHTML =
+    supportEntityContext() +
+    entityTabs("user360", [
+      { id: "overview", label: "Overview", content: overviewContent },
+      { id: "identity", label: "Identity / Profile", content: profileContent },
+      relationshipsContent
+        ? {
+            id: "relationships",
+            label: "Relationships",
+            content: relationshipsContent,
+          }
+        : null,
+      sessionsContent
+        ? { id: "activity", label: "Activity", content: sessionsContent }
+        : null,
+      { id: "audit", label: "Audit", content: auditContent },
+      canManageUsers
+        ? {
+            id: "actions",
+            label: "Settings / Actions",
+            content: actionsContent,
+          }
+        : null,
+    ]);
+  bindEntityTabs();
 
   document
     .querySelector("#user-status-form")
@@ -653,6 +1248,7 @@ async function renderUsers(userId) {
         );
         status.textContent = "Sessão revogada com sucesso.";
         await renderUsers(userId);
+        content.querySelector('[data-entity-tab="activity"]')?.click();
       } catch (error) {
         button.disabled = false;
         status.textContent =
@@ -905,12 +1501,17 @@ async function renderBusinesses(businessId) {
         ),
       ),
     ]);
-    const auditEntries = (auditResult.entries ?? []).filter(
-      (entry) =>
-        entry.tenantId === businessId ||
-        entry.entityId === businessId ||
-        String(entry.entityId ?? "").includes(businessId),
-    );
+    const relatedBusinessEntityIds = [
+      ...products.map(({ offer }) => offer?.id),
+      ...reservations.map(({ reservation }) => reservation?.id),
+      ...paymentIds,
+      ...orderIds,
+    ].filter(Boolean);
+    const auditEntries = canonicalEntityAudit(auditResult.entries ?? [], {
+      kind: "business",
+      id: businessId,
+      relatedEntityIds: relatedBusinessEntityIds,
+    });
     const activeOffers = products.filter(({ offer }) => offer?.enabled).length;
     const activeReservations = reservations.filter(({ reservation }) =>
       ["held", "confirmed"].includes(reservation?.status),
@@ -977,7 +1578,7 @@ async function renderBusinesses(businessId) {
               (business.members ?? [])
                 .map(
                   (member) =>
-                    `<div class="module-row"><span>${escapeHtml(member.email)}</span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
+                    `<div class="module-row"><span><a href="#users:${encodeURIComponent(member.id)}">${escapeHtml(member.email)}</a></span><span class="badge">${escapeHtml(member.canonicalRole)}</span></div>`,
                 )
                 .join("") ||
               '<div class="empty">Nenhum membro encontrado.</div>'
@@ -1034,6 +1635,92 @@ async function renderBusinesses(businessId) {
           }
         </div>
       </section>`;
+
+    const businessRenderedSections = [...content.children];
+    const overviewContent = [
+      businessRenderedSections[0]?.outerHTML,
+      businessRenderedSections[1]?.outerHTML,
+      businessRenderedSections[2]?.children?.[0]?.outerHTML,
+    ]
+      .filter(Boolean)
+      .join("");
+    const relationshipsContent =
+      businessRenderedSections[2]?.children?.[1]?.outerHTML ?? "";
+    const activityContent = businessRenderedSections[3]?.outerHTML ?? "";
+    const profileContent = `<section class="card section-card">
+      <div class="section-title"><h2>Identity / Profile</h2><span class="badge">Business owner</span></div>
+      <div class="module-list">
+        <div class="module-row"><span>Business ID</span><strong>${escapeHtml(
+          businessId,
+        )}</strong></div>
+        <div class="module-row"><span>Nome</span><strong>${escapeHtml(
+          profile?.name ?? "perfil owner indisponível",
+        )}</strong></div>
+        <div class="module-row"><span>Destination</span>${
+          profile?.destinationId
+            ? `<a href="#destinations:${encodeURIComponent(
+                profile.destinationId,
+              )}">${escapeHtml(profile.destinationId)}</a>`
+            : '<strong data-destination-relation="unavailable">não atribuído pelo owner; não inferido</strong>'
+        }</div>
+      </div>
+    </section>`;
+    const commercialContent = `<section class="card section-card">
+      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">read-only composition</span></div>
+      <div class="module-list">
+        <div class="module-row"><span>Ofertas owner-backed</span>${
+          productsResult.available
+            ? `<strong>${escapeHtml(products.length)}</strong>`
+            : statusBadge("unavailable")
+        }</div>
+        <div class="module-row"><span>Reservas owner-backed</span>${
+          reservationsResult.available
+            ? `<strong>${escapeHtml(reservations.length)}</strong>`
+            : statusBadge("unavailable")
+        }</div>
+        <div class="module-row"><span>Pedidos relacionados</span><strong>${escapeHtml(
+          orders.filter(Boolean).length,
+        )}</strong></div>
+        <div class="module-row"><span>Pagamentos relacionados</span><strong>${escapeHtml(
+          payments.filter(Boolean).length,
+        )}</strong></div>
+      </div>
+    </section>`;
+    const auditContent = auditResult.available
+      ? recentActivityMarkup(auditEntries, {
+          title: "Audit",
+          emptyMessage:
+            "Nenhum evento autoritativo relacionado a esta empresa.",
+        })
+      : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+    content.innerHTML =
+      supportEntityContext() +
+      entityTabs("business360", [
+        { id: "overview", label: "Overview", content: overviewContent },
+        {
+          id: "identity",
+          label: "Identity / Profile",
+          content: profileContent,
+        },
+        relationshipsContent
+          ? {
+              id: "relationships",
+              label: "Relationships",
+              content: relationshipsContent,
+            }
+          : null,
+        {
+          id: "commercial",
+          label: "Commercial / Financial",
+          content: commercialContent,
+        },
+        activityContent
+          ? { id: "activity", label: "Activity", content: activityContent }
+          : null,
+        { id: "audit", label: "Audit", content: auditContent },
+      ]);
+    bindEntityTabs();
     return;
   }
 
@@ -1161,6 +1848,15 @@ async function renderAffiliates(affiliateId) {
   const detail = response.data;
   const affiliate = detail.affiliate;
   const memberships = detail.memberships ?? [];
+  const auditResult = await readOwnerProjection("/audit?limit=250", "entries");
+  const affiliateMembershipEntityIds = memberships.map(
+    (membership) => `${affiliateId}:${membership.programId}`,
+  );
+  const affiliateAuditEntries = canonicalEntityAudit(auditResult.data, {
+    kind: "affiliate",
+    id: affiliateId,
+    relatedEntityIds: affiliateMembershipEntityIds,
+  });
   const summaries = detail.summaryByCurrency ?? [];
   const conversions = detail.conversions ?? [];
   const supportActive = Boolean(state.adminSession?.support);
@@ -1220,7 +1916,7 @@ async function renderAffiliates(affiliateId) {
                   .map(
                     (membership) => `<tr>
                     <td><strong>${escapeHtml(membership.programId)}</strong></td>
-                    <td>${escapeHtml(membership.destinationId)}</td>
+                    <td><a href="#destinations:${encodeURIComponent(membership.destinationId)}">${escapeHtml(membership.destinationId)}</a></td>
                     <td>${escapeHtml(membership.status)}</td>
                     <td>${membership.eligibleForAttribution ? "sim" : "não"}</td>
                     <td>${escapeHtml(membership.financialOnboardingStatus)}</td>
@@ -1327,6 +2023,97 @@ async function renderAffiliates(affiliateId) {
     </section>
     <div style="margin-top:16px"><a href="#affiliates">← Voltar para afiliados</a></div>`;
 
+  const affiliateRenderedSections = [...content.children];
+  const membershipOverview = memberships.length
+    ? `<section class="card section-card">
+        <div class="section-title"><h2>Programas ativos</h2><span class="badge">owner-backed</span></div>
+        <div class="module-list">
+          ${memberships
+            .map(
+              (membership) =>
+                `<div class="module-row"><span><strong>${escapeHtml(
+                  membership.programId,
+                )}</strong><br><small>${escapeHtml(
+                  membership.destinationId,
+                )}</small></span>${statusBadge(membership.status)}</div>`,
+            )
+            .join("")}
+        </div>
+      </section>`
+    : "";
+  const overviewContent = [
+    affiliateRenderedSections[0]?.outerHTML,
+    membershipOverview,
+  ]
+    .filter(Boolean)
+    .join("");
+  const relationshipsContent =
+    affiliateRenderedSections[1]?.children?.[0]?.outerHTML ?? "";
+  const commercialContent =
+    affiliateRenderedSections[1]?.children?.[1]?.outerHTML ?? "";
+  const activityContent = affiliateRenderedSections[2]?.outerHTML ?? "";
+  const actionsContent = affiliateRenderedSections[3]?.outerHTML ?? "";
+  const backLinkContent = affiliateRenderedSections[4]?.outerHTML ?? "";
+  const profileContent = `<section class="card section-card">
+    <div class="section-title"><h2>Identity / Profile</h2>${statusBadge(
+      affiliate.status,
+    )}</div>
+    <div class="module-list">
+      <div class="module-row"><span>Affiliate ID</span><strong>${escapeHtml(
+        affiliate.affiliateId,
+      )}</strong></div>
+      <div class="module-row"><span>Identity reference</span><strong>${escapeHtml(
+        affiliate.identityReference,
+      )}</strong></div>
+      <div class="module-row"><span>Tipo</span><strong>${escapeHtml(
+        affiliate.accountType,
+      )}</strong></div>
+      <div class="module-row"><span>Categoria</span><strong>${escapeHtml(
+        affiliate.roleCategory,
+      )}</strong></div>
+    </div>
+  </section>`;
+  const auditContent = auditResult.available
+    ? recentActivityMarkup(affiliateAuditEntries, {
+        title: "Audit",
+        emptyMessage: "Nenhum evento autoritativo ligado a este afiliado.",
+      })
+    : '<section class="card empty" data-state="unavailable"><strong>Audit indisponível</strong><span>A fonte autoritativa não respondeu.</span></section>';
+
+  content.innerHTML =
+    supportEntityContext() +
+    entityTabs("affiliate360", [
+      { id: "overview", label: "Overview", content: overviewContent },
+      { id: "identity", label: "Identity / Profile", content: profileContent },
+      relationshipsContent
+        ? {
+            id: "relationships",
+            label: "Relationships",
+            content: relationshipsContent,
+          }
+        : null,
+      commercialContent
+        ? {
+            id: "commercial",
+            label: "Commercial / Financial",
+            content: commercialContent,
+          }
+        : null,
+      activityContent
+        ? { id: "activity", label: "Activity", content: activityContent }
+        : null,
+      { id: "audit", label: "Audit", content: auditContent },
+      actionOptions
+        ? {
+            id: "actions",
+            label: "Settings / Actions",
+            content: actionsContent,
+          }
+        : null,
+    ]) +
+    backLinkContent;
+  bindEntityTabs();
+
   document
     .querySelector("#affiliate-membership-action-form")
     ?.addEventListener("submit", async (event) => {
@@ -1376,6 +2163,7 @@ async function renderAffiliates(affiliateId) {
         );
         status.textContent = "Membership atualizada.";
         await renderAffiliates(affiliateId);
+        content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
         status.textContent = error.body?.error || error.message;
       }
@@ -3014,7 +3802,7 @@ async function render(view, detail) {
   content.innerHTML = '<section class="card empty">Carregando…</section>';
 
   try {
-    if (view === "overview") renderOverview();
+    if (view === "overview") await renderOverview();
     else if (view === "users") await renderUsers(detail);
     else if (view === "businesses") await renderBusinesses(detail);
     else if (view === "affiliates") await renderAffiliates(detail);
