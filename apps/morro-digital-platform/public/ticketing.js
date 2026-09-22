@@ -568,10 +568,7 @@ function dateLabel(key) {
 
 function renderDateSelector() {
   const groups = new Map();
-  const visibleOffers = state.selectedDate
-    ? state.offers.filter((offer) => dateKey(offer) === state.selectedDate)
-    : state.offers;
-  for (const offer of visibleOffers) {
+  for (const offer of state.offers) {
     const key = dateKey(offer);
     if (!key) continue;
     const group = groups.get(key) || [];
@@ -622,14 +619,17 @@ function renderDateSelector() {
 function renderOffers() {
   elements.offers.replaceChildren();
   elements.offers.removeAttribute("aria-busy");
-  if (state.offers.length === 0) {
+  const visibleOffers = state.selectedDate
+    ? state.offers.filter((offer) => dateKey(offer) === state.selectedDate)
+    : state.offers;
+  if (visibleOffers.length === 0) {
     const empty = document.createElement("p");
     empty.className = "empty";
     empty.textContent = copy.noOffers;
     elements.offers.append(empty);
     return;
   }
-  for (const offer of state.offers) {
+  for (const offer of visibleOffers) {
     const card = document.createElement("article");
     card.className = "offer-card md-card";
     card.dataset.inventoryId = offer.id;
