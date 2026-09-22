@@ -371,6 +371,60 @@ export function createV1ImmersiveTourController(
     const current = state.currentStopIndex + 1;
     const progress = Math.round((current / tour.stops.length) * 100);
     const card = createElement(document, "div", "tour-stop-card");
+    card.dataset.tourId = tour.id;
+    card.dataset.stopIndex = String(state.currentStopIndex);
+    card.dataset.totalStops = String(tour.stops.length);
+    card.dataset.photoState = stop.photoPath ? "available" : "missing";
+
+    const compactHeader = createElement(document, "div", "tour-active-header");
+    const compactThumb = createElement(
+      document,
+      "span",
+      "tour-active-thumb",
+      "🗺️",
+    );
+    compactThumb.setAttribute("aria-hidden", "true");
+    if (stop.photoPath) {
+      const compactThumbImage = createElement(
+        document,
+        "img",
+        "tour-active-thumb-image",
+      );
+      compactThumbImage.src = stop.photoPath;
+      compactThumbImage.alt = "";
+      compactThumbImage.addEventListener(
+        "load",
+        () => {
+          compactThumb.replaceChildren(compactThumbImage);
+        },
+        { once: true },
+      );
+      compactThumbImage.addEventListener(
+        "error",
+        () => {
+          compactThumb.dataset.mediaState = "missing";
+        },
+        { once: true },
+      );
+    } else {
+      compactThumb.dataset.mediaState = "missing";
+    }
+    compactHeader.appendChild(compactThumb);
+    compactHeader.appendChild(
+      createElement(document, "strong", "tour-active-tour-title", tour.title),
+    );
+    const compactCount = createElement(
+      document,
+      "span",
+      "tour-active-count",
+      `${current}/${tour.stops.length}`,
+    );
+    compactCount.setAttribute(
+      "aria-label",
+      copy.stopLabel(current, tour.stops.length),
+    );
+    compactHeader.appendChild(compactCount);
+    card.appendChild(compactHeader);
 
     const progressBar = createElement(
       document,
@@ -394,6 +448,28 @@ export function createV1ImmersiveTourController(
     );
     card.appendChild(progressBar);
 
+    const progressSegments = createElement(
+      document,
+      "div",
+      "tour-stop-progress-segments",
+    );
+    progressSegments.setAttribute("aria-hidden", "true");
+    progressSegments.style.gridTemplateColumns = `repeat(${tour.stops.length}, minmax(0, 1fr))`;
+    tour.stops.forEach((_, index) => {
+      const segment = createElement(
+        document,
+        "span",
+        "tour-stop-progress-segment",
+      );
+      if (index === state.currentStopIndex) {
+        segment.classList.add("is-current");
+      } else if (index < state.currentStopIndex) {
+        segment.classList.add("is-complete");
+      }
+      progressSegments.appendChild(segment);
+    });
+    card.appendChild(progressSegments);
+
     if (stop.photoPath) {
       const photoWrap = createElement(document, "div", "tour-stop-photo-wrap");
       const image = createElement(document, "img", "tour-stop-photo");
@@ -403,7 +479,8 @@ export function createV1ImmersiveTourController(
       image.addEventListener(
         "error",
         () => {
-          photoWrap.style.display = "none";
+          card.dataset.photoState = "missing";
+          photoWrap.hidden = true;
         },
         { once: true },
       );
@@ -416,7 +493,12 @@ export function createV1ImmersiveTourController(
 
     const header = createElement(document, "div", "tour-stop-header");
     header.appendChild(
-      createElement(document, "span", "tour-stop-num-badge", String(current)),
+      createElement(
+        document,
+        "span",
+        "tour-stop-num-badge",
+        copy.stopLabel(current, tour.stops.length),
+      ),
     );
     header.appendChild(
       createElement(document, "strong", "tour-stop-title", stop.title),
@@ -651,7 +733,13 @@ export function createV1ImmersiveTourController(
       if (state.stage !== "idle") await stop(false);
       clearFinaleTimer();
       setState(startV1ImmersiveTourState(tour.id, tour.stops.length));
-      await Promise.resolve(options.activateMap(tour.id));
+      try {
+        await Promise.resolve(options.activateMap(tour.id));
+      } catch (error) {
+        setState(idleV1ImmersiveTourState);
+        await Promise.resolve(options.deactivateMap()).catch(() => undefined);
+        throw error;
+      }
       renderIntro();
       return true;
     },
