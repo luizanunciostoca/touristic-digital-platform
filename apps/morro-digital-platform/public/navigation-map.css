@@ -98,8 +98,7 @@ body[data-md-mode="navigation"]
   #map
   .mapboxgl-marker.mapbox-user-marker.navigation-user-location-marker {
   isolation: isolate;
-  filter:
-    drop-shadow(0 0 0.125rem var(--md-navigation-inverse))
+  filter: drop-shadow(0 0 0.125rem var(--md-navigation-inverse))
     drop-shadow(0 0.1875rem 0.5rem rgba(0, 0, 0, 0.5));
 }
 
@@ -110,11 +109,7 @@ body[data-md-mode="navigation"] #map .navigation-user-location-marker::after {
   z-index: -1;
   border: 0.1875rem solid var(--md-navigation-inverse);
   border-radius: 50%;
-  background: color-mix(
-    in srgb,
-    var(--md-navigation-primary) 18%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-navigation-primary) 18%, transparent);
   pointer-events: none;
 }
 
