@@ -1242,6 +1242,7 @@ body:has(#map[data-tour-flow-stage="intro"])
 
 #map[data-tour-flow-stage="stop"] .tour-stop-pin.tour-stop-active {
   transform: rotate(-45deg) scale(1.16) !important;
+  background: var(--md-color-success) !important;
   border-width: 0.1875rem !important;
   box-shadow:
     0 0 0 0.3125rem color-mix(in srgb, var(--md-color-brand) 24%, transparent),
