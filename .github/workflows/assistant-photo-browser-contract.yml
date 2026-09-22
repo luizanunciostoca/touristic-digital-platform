@@ -209,7 +209,9 @@ jobs:
               await waitForMap(page);
               await openAssistant(page);
 
-              await page.locator('#assistant-category-beaches').click();
+              await page
+                .locator('#assistant-category-beaches')
+                .evaluate((button) => button.click());
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({
                 state: 'visible',
                 timeout: 5000,
@@ -232,6 +234,14 @@ jobs:
                 throw new Error(`Place V2 photo action set drifted: ${JSON.stringify(placeValues)}`);
               }
 
+              const placeSheet = page.locator('#place-bottom-sheet');
+              const placeHandle = placeSheet.locator('.place-bottom-sheet-drag-handle');
+              await placeHandle.focus();
+              await page.keyboard.press('End');
+              await page.locator('#place-bottom-sheet[data-sheet-state="full"]').waitFor({
+                state: 'visible',
+                timeout: 3000,
+              });
               await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').click();
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').click();
 

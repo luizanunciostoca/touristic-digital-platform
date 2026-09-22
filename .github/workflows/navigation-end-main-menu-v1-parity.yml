@@ -53,7 +53,7 @@ jobs:
           done
           cat /tmp/navigation-end-menu.log
           exit 1
-      - name: Verify cancelled navigation restores V1 main menu
+      - name: Verify cancelled navigation restores contextual Assistant routing
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
@@ -186,8 +186,7 @@ jobs:
                   !feedback.classList.contains('hidden') &&
                   feedback.textContent?.includes('Navegação encerrada. Como posso ajudar?') &&
                   menu &&
-                  !menu.classList.contains('hidden') &&
-                  menu.getAttribute('aria-hidden') !== 'true' &&
+                  getComputedStyle(menu).display === 'none' &&
                   menu.querySelectorAll('.assistant-option-btn').length === 10 &&
                   menu.querySelectorAll('[data-explore-category]').length === 9 &&
                   !document.getElementById('assistant-category-results') &&
@@ -203,8 +202,8 @@ jobs:
               const feedback = document.querySelector('#assistant-messages .message[data-message-type="navigation-feedback"]');
               return {
                 feedback: feedback?.textContent?.trim() ?? null,
-                menuVisible: Boolean(menu && !menu.classList.contains('hidden')),
-                menuAriaHidden: menu?.getAttribute('aria-hidden') ?? null,
+                menuDisplay: menu ? getComputedStyle(menu).display : null,
+                menuVisualHidden: Boolean(menu && getComputedStyle(menu).display === 'none'),
                 optionCount: menu?.querySelectorAll('.assistant-option-btn').length ?? 0,
                 exploreOptionCount: menu?.querySelectorAll('[data-explore-category]').length ?? 0,
                 pressed: Array.from(menu?.querySelectorAll('[data-explore-category]') ?? []).map((button) => button.getAttribute('aria-pressed')),
@@ -215,7 +214,9 @@ jobs:
               throw new Error(`Category buttons were not reset after navigation: ${JSON.stringify(state)}`);
             }
 
-            await page.locator('#assistant-category-beaches').click();
+            await page
+              .locator('#assistant-category-beaches')
+              .evaluate((button) => button.click());
             await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({
               state: 'visible',
               timeout: 5000,

@@ -101,7 +101,7 @@ for (const required of [
   "healthCheckPath: /readyz",
   "value: https://api.mercadopago.com",
   "value: https://www.mercadopago.com,https://www.mercadopago.com.br",
-  "value: mapbox://styles/mapbox/streets-v12",
+  "value: mapbox://styles/mapbox/satellite-streets-v12",
 ]) {
   requireText(blueprint, required);
 }

@@ -263,6 +263,12 @@ async function waitExploreSelectedStatus(page, expectedText) {
   );
 }
 
+async function invokeRetiredCategorySource(page, value) {
+  await page
+    .locator(`#assistant-category-${value}`)
+    .evaluate((button) => button.click());
+}
+
 async function waitCategory(page, value, text, aria) {
   const button = page.locator(`#assistant-category-${value}`);
   await button.waitFor({ state: "attached", timeout: 5000 });
@@ -341,6 +347,22 @@ async function readDynamic(page) {
       buttons.map((button) => button.getAttribute("data-value")),
     ),
   };
+}
+
+async function expandPlaceForSecondaryActions(page) {
+  const placeSheet = page.locator('#place-bottom-sheet[aria-hidden="false"]');
+  await placeSheet.waitFor({ state: "visible", timeout: 8000 });
+  if ((await placeSheet.getAttribute("data-sheet-state")) !== "full") {
+    const handle = placeSheet.locator(".place-bottom-sheet-drag-handle");
+    await handle.focus();
+    await page.keyboard.press("End");
+    await page
+      .locator('#place-bottom-sheet[data-sheet-state="full"]')
+      .waitFor({ state: "visible", timeout: 3000 });
+  }
+  await placeSheet
+    .locator(".place-bottom-sheet-overflow-summary")
+    .waitFor({ state: "visible", timeout: 3000 });
 }
 
 async function waitDynamic(page, expectedLabels, expectedValues, label) {
@@ -425,7 +447,7 @@ try {
     const expected = filters[locale];
     await waitCategory(page, "beaches", expected.category, expected.aria);
     await ensureAssistantOpen(page);
-    await page.locator("#assistant-category-beaches").click();
+    await invokeRetiredCategorySource(page, "beaches");
     await page
       .locator('#assistant-category-results[data-stage="filters"]')
       .waitFor({ state: "visible" });
@@ -439,7 +461,7 @@ try {
   await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
   await waitCategory(page, "beaches", filters.he.category, filters.he.aria);
   await ensureAssistantOpen(page);
-  await page.locator("#assistant-category-beaches").click();
+  await invokeRetiredCategorySource(page, "beaches");
   await page
     .locator('#assistant-category-results[data-stage="filters"]')
     .waitFor({ state: "visible" });
@@ -457,6 +479,7 @@ try {
       '#assistant-category-results [data-location-name="Primeira Praia"]',
     )
     .click();
+  await expandPlaceForSecondaryActions(page);
   await page
     .locator("#place-bottom-sheet .place-bottom-sheet-overflow-summary")
     .click();
@@ -493,7 +516,7 @@ try {
     "Restaurants, 45 places",
   );
   await ensureAssistantOpen(page);
-  await page.locator("#assistant-category-restaurants").click();
+  await invokeRetiredCategorySource(page, "restaurants");
   await page
     .locator('#assistant-category-results[data-stage="filters"]')
     .waitFor({ state: "visible" });
@@ -508,6 +531,7 @@ try {
   await page
     .locator('#assistant-category-results [data-location-name="Morena Bela"]')
     .click();
+  await expandPlaceForSecondaryActions(page);
   await page
     .locator("#place-bottom-sheet .place-bottom-sheet-overflow-summary")
     .click();

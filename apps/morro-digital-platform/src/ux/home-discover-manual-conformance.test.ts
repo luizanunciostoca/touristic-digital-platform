@@ -128,4 +128,53 @@ describe("Home / Discover UX V2 manual conformance", () => {
     );
     expect(css).not.toContain("transition: all");
   });
+
+  it("pins Wave A Discover camera, POIs, chips and recenter semantics to the Golden contract", async () => {
+    const [shell, runtime, css, staging] = await Promise.all([
+      readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
+      readRepository("apps/morro-digital-platform/src/browser-entry.ts"),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+      readRepository("render.staging.yaml"),
+    ]);
+
+    expect(shell).toContain('id="discover-category-rail"');
+    for (const category of [
+      "beaches",
+      "restaurants",
+      "hotels",
+      "attractions",
+      "nightlife",
+    ]) {
+      expect(shell).toContain(`data-discover-category="${category}"`);
+    }
+    expect(shell).toContain('id="recenter-map-control"');
+    expect(shell).toContain('data-map-control="recenter"');
+    expect(runtime).toContain("const DISCOVER_HOME_ZOOM = 14.8");
+    expect(runtime).toContain("discoverInitialMarkers()");
+    expect(runtime).toContain('"data-discover-poi-count"');
+    expect(runtime).toContain('"data-geolocation-state"');
+    expect(runtime).toContain("installDiscoverRecenterControl");
+    expect(css).toContain("UX Design V2 Wave A — Golden Discover convergence");
+    expect(css).toContain(".md-discover-category-rail");
+    expect(css).toContain("z-index: var(--md-layer-map-control);");
+    expect(css).toContain('.morro-explore-marker[data-selected="true"]');
+    expect(staging).toContain("mapbox://styles/mapbox/satellite-streets-v12");
+    expect(staging).toContain('value: "14.8"');
+  });
+
+  it("preserves Wave H map, Weather and map-perspective target selectors", async () => {
+    const onboarding = await readRepository(
+      "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+    );
+
+    expect(onboarding).toContain(
+      'Object.freeze({ selectors: ["#map-container", "#map"] })',
+    );
+    expect(onboarding).toContain(
+      'Object.freeze({ selectors: ["#weather-widget"] })',
+    );
+    expect(onboarding).toContain(
+      'Object.freeze({ selectors: ["#toggle-globe-view"] })',
+    );
+  });
 });

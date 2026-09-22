@@ -54,7 +54,7 @@ jobs:
           VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
           VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
           VITE_MAPBOX_CONTAINER_ID=map \
-          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          VITE_MAPBOX_INITIAL_ZOOM=14.8 \
           node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/v1-home-parity/server.log 2>&1 &
           echo $! >/tmp/v1-home-parity/server.pid
           for i in $(seq 1 90); do
@@ -217,7 +217,7 @@ jobs:
               state =>
                 state.globalView === 'false' &&
                 typeof state.zoom === 'number' &&
-                Math.abs(state.zoom - 13.5) < 0.25 &&
+                Math.abs(state.zoom - 14.8) < 0.25 &&
                 typeof state.lng === 'number' &&
                 Math.abs(state.lng - (-38.9167)) <= 0.03 &&
                 typeof state.lat === 'number' &&

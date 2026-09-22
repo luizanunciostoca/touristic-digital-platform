@@ -73,14 +73,17 @@ describe("Ticketing UX Design V2 contract", () => {
 
     expect(runtime).toContain("offer-card md-card");
     expect(runtime).toContain("reservation-card md-card");
-    expect(runtime).toContain("availability md-badge md-badge--success");
+    expect(runtime).toContain("availability md-badge");
     expect(runtime).toContain("status md-badge");
     expect(runtime).toContain("elements.dialog.showModal()");
     expect(runtime).toContain("elements.dialog.close()");
 
-    // Inventory is the canonical authority for the event date. Do not invent a
-    // date selector that the reservation contract cannot honor.
+    // Dates are grouped from server inventory; the browser never invents
+    // bookable dates or changes reservation authority.
     expect(runtime).toContain("when.textContent = dateTime(offer.startsAt)");
+    expect(runtime).toContain("function renderDateSelector()");
+    expect(html).toContain('id="date-selector"');
+    expect(html).toContain('role="listbox"');
     expect(html).not.toMatch(/type="(?:date|datetime-local)"/u);
   });
 
@@ -122,11 +125,25 @@ describe("Ticketing UX Design V2 contract", () => {
       'const commerceSessionPath = "/api/ticketing/v1/consumer-session"',
     );
     expect(runtime).toContain('api("/api/ticketing/v1/reservations"');
-    expect(runtime).toContain("offer.unitAmount");
-    expect(runtime).toContain("offer.pricingVersion");
-    expect(runtime).toContain("estimatedSubtotal");
+    expect(runtime).toContain('api("/api/ticketing/v1/quote"');
+    expect(runtime).toContain("quote.totalAmount");
+    expect(runtime).toContain("quote.unitAmount");
+    expect(runtime).toContain("quoteIdentity");
+    expect(runtime).not.toContain("estimatedSubtotal");
+    expect(runtime).not.toContain("offer.unitAmount.minorUnits *");
     expect(runtime).not.toContain("providerStatus =");
     expect(runtime).not.toContain("paymentStatus =");
+    expect(html).toContain("Finalizar Reserva");
+    expect(html).toContain('id="refresh-button"');
+    expect(html).toMatch(/id="refresh-button"[\s\S]*?hidden/u);
+    expect(runtime).toContain("if (state.submitting) return");
+    expect(runtime).toContain("reservationAttemptReference");
+    expect(runtime).toContain("RESERVATION_ATTEMPT_PENDING");
+    expect(runtime).toContain("pendingCheckoutState");
+    expect(runtime).toContain("copy.static.resumePayment");
+    expect(runtime).toContain("QUOTE_CURRENCY_MISMATCH");
+    expect(runtime).toContain("copy.static.priceChanged");
+    expect(runtime).toContain("friendlyError");
     expect(experience).toContain(
       'for (const key of ["place", "source", "lang", "locale"])',
     );
@@ -145,13 +162,18 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain('setAttribute("aria-hidden", "true")');
     expect(runtime).toContain('removeAttribute("aria-busy")');
     expect(css).toContain(".ticketing-skeleton-card");
+    expect(css).toContain(".date-selector");
+    expect(css).toContain(".date-chip");
     expect(designSystem).toContain(".md-skeleton");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("@media (forced-colors: active)");
   });
 
   it("keeps primary interactions reachable and QR dialog inside the safe viewport", async () => {
-    const css = await readPublic("ticketing.css");
+    const [html, css] = await Promise.all([
+      readPublic("tickets.html"),
+      readPublic("ticketing.css"),
+    ]);
 
     expect(css).toContain("min-height: var(--md-touch-target-min)");
     expect(css).toContain("100dvh - var(--md-safe-top)");
@@ -161,10 +183,43 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(css).toContain(
       'body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed',
     );
-    expect(css).toContain(
-      "bottom: max(var(--md-space-3), var(--md-safe-bottom))",
+    expect(css).toMatch(
+      /body\[data-md-mode="commerce"\] \.analytics-consent-preferences\.is-collapsed\s*\{[^}]*display:\s*none/isu,
     );
+    expect(html).toContain('id="privacy-settings-button"');
+    expect(css).toContain(".ticketing-privacy-action");
     expect(css).toContain("font-weight: var(--md-font-weight-bold)");
+  });
+
+  it("keeps the 390px flow compact, contextual, and server-authoritative", async () => {
+    const [html, css, runtime] = await Promise.all([
+      readPublic("tickets.html"),
+      readPublic("ticketing.css"),
+      readPublic("ticketing.js"),
+    ]);
+
+    expect(html).toContain('class="ticketing-topbar"');
+    expect(html).toContain("data-ticketing-return");
+    expect(html).toContain("data-ticketing-hero");
+    expect(html).toContain('id="product-rating"');
+    expect(html).toContain("Reserva segura");
+    expect(html).toContain('aria-label="Escolha a data"');
+    expect(html).toContain('aria-label="Diminuir quantidade"');
+    expect(html).toContain('aria-label="Aumentar quantidade"');
+    expect(html).toContain('min="1"');
+    expect(html).toContain('max="1"');
+    expect(css).toContain("@media (max-width: 24.375rem)");
+    expect(css).toContain("height: 15rem");
+    expect(css).toContain("min-height: 15rem");
+    expect(runtime).toContain("offer.sellable === false");
+    expect(runtime).toContain("copy.soldOut");
+    expect(runtime).toContain("elements.quantityDecrease.disabled");
+    expect(runtime).toContain("elements.quantityIncrease.disabled");
+    expect(runtime).not.toContain(
+      "setMessage(error.message || copy.ticketingUnavailable",
+    );
+    expect(runtime).toContain("copy.static.emptyTitle");
+    expect(runtime).toContain("privacyPreferences.open()");
   });
 
   it("uses the formal V2 stacking scale and theme contract", async () => {

@@ -60,6 +60,7 @@ export interface NavigationAppComposition {
   ): void;
   setStepIndex(stepIndex: number): void;
   getSnapshot(): NavigationRuntimeSnapshot | null;
+  recenter(): boolean;
 }
 
 function normalizeStepIndex(value: unknown): number {
@@ -341,6 +342,9 @@ export function createNavigationAppComposition(
     },
     getSnapshot(): NavigationRuntimeSnapshot | null {
       return runtime.getSnapshot();
+    },
+    recenter(): boolean {
+      return started ? (options.presenter.recenter?.() ?? false) : false;
     },
   });
 }

@@ -3,11 +3,17 @@ import type {
   NavigationRuntimeSnapshot,
 } from "@touristic/navigation";
 
+export const NAVIGATION_RECENTER_REQUEST_EVENT =
+  "morro:navigation-recenter-requested";
+
+export type NavigationStatusTone = "info" | "warning" | "danger";
+
 export interface NavigationGuidanceUi {
   start(): void;
   update(snapshot: NavigationRuntimeSnapshot): void;
   approaching?(message: string): void;
   arrived?(message: string): void;
+  status?(message: string | null, tone?: NavigationStatusTone): void;
   stop(): void;
   destroy(): void;
 }
@@ -63,10 +69,10 @@ function directionFor(instruction: string): {
     return { arrow: "↶", className: "turn-uturn" };
   }
   if (includesAny(text, ["left", "esquerda", "izquierda", "שמאלה", "שמאל"])) {
-    return { arrow: "←", className: "turn-left" };
+    return { arrow: "↰", className: "turn-left" };
   }
   if (includesAny(text, ["right", "direita", "derecha", "ימינה", "ימין"])) {
-    return { arrow: "→", className: "turn-right" };
+    return { arrow: "↱", className: "turn-right" };
   }
   return { arrow: "↑", className: "continue-straight" };
 }
@@ -117,6 +123,81 @@ function v1DetailsText(guidance: NavigationGuidanceSnapshot): string {
     : `${action} ${connectors.for} ${guidance.formattedDistance}`;
 }
 
+function v2SecondaryContext(guidance: NavigationGuidanceSnapshot): string {
+  const street = v1StreetName(guidance);
+  if (!street) return v1DetailsText(guidance);
+
+  switch (guidance.language ?? "pt") {
+    case "en":
+      return `Toward ${street}`;
+    case "es":
+      return `En dirección a ${street}`;
+    case "he":
+      return `לכיוון ${street}`;
+    default:
+      return `Em direção a ${street}`;
+  }
+}
+
+function ensureNavigationSupportUi(document: Document): {
+  readonly status: HTMLElement | null;
+  readonly recenter: HTMLButtonElement | null;
+  readonly travelMode: HTMLElement | null;
+} {
+  const summary = document.getElementById("navigation-summary");
+  const distance = document.getElementById("instruction-distance");
+  const controls = document.getElementById("globe-map-control");
+
+  let handle = document.getElementById("navigation-summary-handle");
+  if (!handle && summary) {
+    handle = document.createElement("span");
+    handle.id = "navigation-summary-handle";
+    handle.setAttribute("aria-hidden", "true");
+    summary.prepend(handle);
+  }
+
+  let travelMode = document.getElementById("navigation-travel-mode");
+  if (!travelMode && distance?.parentElement) {
+    travelMode = document.createElement("span");
+    travelMode.id = "navigation-travel-mode";
+    travelMode.className = "navigation-travel-mode";
+    travelMode.textContent = "Caminhada";
+    distance.parentElement.appendChild(travelMode);
+  }
+
+  let status = document.getElementById("navigation-status");
+  if (!status && summary?.parentElement) {
+    status = document.createElement("p");
+    status.id = "navigation-status";
+    status.className = "navigation-status hidden";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.setAttribute("aria-atomic", "true");
+    summary.parentElement.insertBefore(status, summary);
+  }
+
+  let recenter = document.getElementById(
+    "navigation-recenter-btn",
+  ) as HTMLButtonElement | null;
+  if (!recenter && controls) {
+    recenter = document.createElement("button");
+    recenter.type = "button";
+    recenter.id = "navigation-recenter-btn";
+    recenter.className = "map-control-button md-icon-button md-map-control";
+    recenter.title = "Recentralizar";
+    recenter.setAttribute("aria-label", "Recentralizar navegação");
+    recenter.innerHTML =
+      '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="5"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"></circle></svg><span class="control-tooltip">Recentralizar</span>';
+    controls.appendChild(recenter);
+  }
+
+  return {
+    status,
+    recenter,
+    travelMode,
+  };
+}
+
 export function createNavigationGuidanceUi(
   document: Document,
 ): NavigationGuidanceUi {
@@ -131,6 +212,9 @@ export function createNavigationGuidanceUi(
   const time = document.getElementById("instruction-time");
   const progress = document.getElementById("route-progress");
   const progressText = document.getElementById("progress-text");
+  const supportUi = ensureNavigationSupportUi(document);
+  const originalEndText = endButton?.textContent ?? "Encerrar Navegação";
+  const originalEndAria = endButton?.getAttribute("aria-label");
   let active = false;
   let destroyed = false;
 
@@ -140,6 +224,13 @@ export function createNavigationGuidanceUi(
     document.body.classList.add("navigation-active");
     banner?.classList.remove("hidden");
     endButton?.setAttribute("style", "display:block;");
+    if (
+      endButton &&
+      document.documentElement.lang.toLowerCase().startsWith("pt")
+    ) {
+      endButton.textContent = "Sair";
+      endButton.setAttribute("aria-label", "Sair da navegação");
+    }
   };
 
   const hide = (): void => {
@@ -150,6 +241,14 @@ export function createNavigationGuidanceUi(
     banner?.classList.remove("minimized", "arrive");
     minimizeButton?.setAttribute("aria-expanded", "true");
     endButton?.setAttribute("style", "display:none;");
+    supportUi.status?.classList.add("hidden");
+    if (supportUi.status) supportUi.status.textContent = "";
+    if (endButton) {
+      endButton.textContent = originalEndText;
+      if (originalEndAria) {
+        endButton.setAttribute("aria-label", originalEndAria);
+      }
+    }
   };
 
   const toggleMinimized = (): void => {
@@ -158,6 +257,12 @@ export function createNavigationGuidanceUi(
     minimizeButton?.setAttribute("aria-expanded", String(!minimized));
   };
   minimizeButton?.addEventListener("click", toggleMinimized);
+
+  const requestRecenter = (): void => {
+    if (destroyed || !active) return;
+    document.dispatchEvent(new CustomEvent(NAVIGATION_RECENTER_REQUEST_EVENT));
+  };
+  supportUi.recenter?.addEventListener("click", requestRecenter);
 
   const setDirectionClass = (className: string): void => {
     banner?.classList.remove(
@@ -185,7 +290,7 @@ export function createNavigationGuidanceUi(
       );
 
       if (main) main.textContent = instruction;
-      if (details) details.textContent = v1DetailsText(guidance);
+      if (details) details.textContent = v2SecondaryContext(guidance);
       if (arrow) arrow.textContent = direction.arrow;
       if (stepDistance) stepDistance.textContent = guidance.formattedDistance;
       if (distance)
@@ -213,12 +318,20 @@ export function createNavigationGuidanceUi(
       if (progressText) progressText.textContent = "100%";
       setDirectionClass("arrive");
     },
+    status(message: string | null, tone: NavigationStatusTone = "info"): void {
+      if (destroyed || !supportUi.status) return;
+      const normalized = message?.trim() ?? "";
+      supportUi.status.textContent = normalized;
+      supportUi.status.dataset.tone = tone;
+      supportUi.status.classList.toggle("hidden", normalized.length === 0);
+    },
     stop: hide,
     destroy(): void {
       if (destroyed) return;
       hide();
       destroyed = true;
       minimizeButton?.removeEventListener("click", toggleMinimized);
+      supportUi.recenter?.removeEventListener("click", requestRecenter);
     },
   });
 }

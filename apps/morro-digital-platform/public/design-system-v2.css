@@ -40,8 +40,8 @@
     --md-color-text-primary: var(--md-color-text);
     --md-color-text-secondary: var(--md-color-text-muted);
     --md-color-text-inverse: #ffffff;
-    --md-color-interactive-primary: var(--md-color-brand);
-    --md-color-interactive-primary-hover: var(--md-color-brand-strong);
+    --md-color-interactive-primary: var(--md-color-brand-strong);
+    --md-color-interactive-primary-hover: #1d4ed8;
     --md-color-interactive-secondary: var(--md-color-surface-card);
     --md-color-interactive-secondary-hover: var(--md-color-surface-subtle);
     --md-color-overlay: rgb(15 23 42 / 0.62);
@@ -55,6 +55,12 @@
     --md-font-size-md: 1rem;
     --md-font-size-lg: 1.125rem;
     --md-font-size-xl: 1.25rem;
+    --md-font-size-2xl: 1.5rem;
+    --md-font-size-3xl: 1.875rem;
+    --md-font-size-display: clamp(1.75rem, 5vw, 2.25rem);
+    --md-font-size-title: clamp(1.25rem, 3.8vw, 1.5rem);
+    --md-font-size-body: 1rem;
+    --md-font-size-label: 0.875rem;
     --md-font-weight-regular: 400;
     --md-font-weight-medium: 600;
     --md-font-weight-bold: 700;
@@ -72,6 +78,19 @@
     --md-space-8: 2rem;
     --md-space-10: 2.5rem;
     --md-space-12: 3rem;
+    --md-space-16: 4rem;
+
+    /* Shared density, iconography and mobile chrome */
+    --md-mobile-inline-gutter: 1rem;
+    --md-mobile-block-gap: 0.75rem;
+    --md-icon-size-sm: 1rem;
+    --md-icon-size-md: 1.25rem;
+    --md-icon-size-lg: 1.5rem;
+    --md-bottom-nav-min-height: 4.25rem;
+    --md-bottom-nav-item-target: var(--md-touch-target-min);
+    --md-bottom-nav-active-target: 3rem;
+    --md-bottom-nav-icon-size: var(--md-icon-size-md);
+    --md-keyboard-safe-gap: 0.75rem;
 
     /* Outdoor readability + bottom-sheet component tokens */
     --md-outdoor-surface: rgb(255 255 255 / 0.96);
@@ -310,6 +329,56 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
+}
+
+html {
+  overflow-x: clip;
+  scroll-padding-block-end: calc(
+    var(--md-touch-target-min) + var(--md-keyboard-safe-gap) +
+      var(--md-safe-bottom)
+  );
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+  font-family: var(--md-font-family-sans);
+  font-size: var(--md-font-size-body);
+  line-height: var(--md-line-height-body);
+}
+
+:where(input, textarea, select) {
+  font-size: max(1rem, 1em);
+}
+
+:where(
+  svg[aria-hidden="true"],
+  .fas[aria-hidden="true"],
+  .far[aria-hidden="true"]
+) {
+  flex: 0 0 auto;
+}
+
+:where(.md-home-bottom-nav) {
+  min-height: var(--md-bottom-nav-min-height);
+  padding-bottom: max(var(--md-space-2), var(--md-safe-bottom));
+}
+
+:where(.md-home-nav-item) {
+  min-width: var(--md-bottom-nav-item-target);
+  min-height: var(--md-bottom-nav-item-target);
+}
+
+:where(.md-home-nav-item > i, .md-home-nav-item > svg) {
+  font-size: var(--md-bottom-nav-icon-size);
+}
+
+:where(.md-home-nav-item.is-active) {
+  min-height: var(--md-bottom-nav-active-target);
+}
+
+:where([dir="rtl"] .md-home-bottom-nav) {
+  direction: rtl;
 }
 
 .app-shell {
@@ -676,5 +745,45 @@ body {
   ) {
     forced-color-adjust: auto;
     border-color: CanvasText;
+  }
+}
+
+/* Wave G responsive-density contract. Values are deliberately token-only so
+ * feature waves retain ownership of their own layout geometry. */
+@media (max-width: 20rem) {
+  :root {
+    --md-mobile-inline-gutter: 0.625rem;
+    --md-mobile-block-gap: 0.5rem;
+  }
+}
+
+@media (min-width: 20.001rem) and (max-width: 22.5rem) {
+  :root {
+    --md-mobile-inline-gutter: 0.75rem;
+  }
+}
+
+@media (min-width: 22.501rem) and (max-width: 23.4375rem) {
+  :root {
+    --md-mobile-inline-gutter: 0.8125rem;
+  }
+}
+
+@media (min-width: 23.438rem) and (max-width: 24.375rem) {
+  :root {
+    --md-mobile-inline-gutter: 0.875rem;
+  }
+}
+
+@media (min-width: 24.376rem) and (max-width: 26.875rem) {
+  :root {
+    --md-mobile-inline-gutter: 1rem;
+  }
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --md-mobile-inline-gutter: 1.5rem;
+    --md-mobile-block-gap: 1rem;
   }
 }

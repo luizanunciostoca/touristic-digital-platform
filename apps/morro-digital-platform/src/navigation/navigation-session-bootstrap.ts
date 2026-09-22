@@ -83,6 +83,7 @@ export interface NavigationSessionBootstrap {
   stop(): void;
   isActive(): boolean;
   getActiveSessionId(): number | null;
+  recenter?(): boolean;
 }
 
 function validateDestination(
@@ -361,6 +362,11 @@ export function createNavigationSessionBootstrap(
     },
     getActiveSessionId(): number | null {
       return activeSession?.isActive() === true ? activeSession.id : null;
+    },
+    recenter(): boolean {
+      return activeSession?.isActive() === true
+        ? (activeWiring?.recenter?.() ?? false)
+        : false;
     },
   });
 }

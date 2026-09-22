@@ -5,17 +5,15 @@ export const NAVIGATION_ROUTE_OUTLINE = "navigation-route-outline";
 export const NAVIGATION_ROUTE_LAYER = "navigation-route-layer";
 
 export const NAVIGATION_ROUTE_OUTLINE_PAINT = Object.freeze({
-  "line-color": "#0f4c81",
+  "line-color": "#ffffff",
   "line-width": 9,
-  "line-opacity": 0.35,
-  "line-dasharray": Object.freeze([2, 2] as const),
+  "line-opacity": 0.82,
 });
 
 export const NAVIGATION_ROUTE_PAINT = Object.freeze({
-  "line-color": "#06b6d4",
-  "line-width": 5,
-  "line-opacity": 0.9,
-  "line-dasharray": Object.freeze([2, 1.5] as const),
+  "line-color": "#1689ff",
+  "line-width": 5.5,
+  "line-opacity": 1,
 });
 
 function hasRouteFeatures(routeData: unknown): routeData is Readonly<{

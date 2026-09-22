@@ -152,6 +152,30 @@ jobs:
             await page.route('**/api/ticketing/v1/consumer-session', route => fulfill(route, {
               data: { subject: 'guest:browser', csrfToken: 'csrf_browser_0001', expiresAt: iso(30 * DAY) },
             }, 201, { 'set-cookie': 'morro_commerce_session=browser-token; Path=/; HttpOnly; SameSite=Strict' }));
+            await page.route('**/api/ticketing/v1/quote', route => {
+              const body = route.request().postDataJSON();
+              const selected =
+                (state.inventory ?? [offer, placeOffer]).find(entry => entry.id === body.inventoryId) ?? offer;
+              const quantity = Number(body.quantity);
+              const unitAmount = selected.unitAmount;
+              return fulfill(route, {
+                data: {
+                  inventoryId: selected.id,
+                  quantity,
+                  unitAmount,
+                  totalAmount: {
+                    minorUnits: unitAmount.minorUnits * quantity,
+                    currency: unitAmount.currency,
+                  },
+                  pricingVersion: selected.pricingVersion,
+                  availableQuantity: selected.availableQuantity,
+                  maxPerReservation: selected.maxPerReservation,
+                  observedAt: iso(0),
+                  expiresAt: iso(60_000),
+                },
+              });
+            });
+
             await page.route('**/api/ticketing/v1/reservations', route => {
               const request = route.request();
               if (request.method() === 'GET') return fulfill(route, { data: state.paid ? [reservation] : [] });
@@ -228,7 +252,9 @@ jobs:
                 await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
                 await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
 
-                await page.locator('#assistant-category-nightlife').click();
+                await page
+                  .locator('#assistant-category-nightlife')
+                  .evaluate((button) => button.click());
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
                 const placePrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
@@ -409,7 +435,9 @@ jobs:
                 await page
                   .locator('#assistant-messages:not(.hidden)')
                   .waitFor({ state: 'visible', timeout: 5000 });
-                await page.locator('#assistant-category-nightlife').click();
+                await page
+                  .locator('#assistant-category-nightlife')
+                  .evaluate((button) => button.click());
                 await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
                 const fallbackPrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
@@ -688,12 +716,19 @@ jobs:
               evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id, productKind: offers[0]?.productKind });
               await authContext.close();
 
-              const failContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const failContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                locale: 'pt-BR',
+              });
               const failPage = await failContext.newPage();
               await commerceRoutes(failPage, { inventoryFailure: true });
               await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded' });
-              await failPage.locator('#reservation-message').filter({ hasText: 'TICKETING_UNAVAILABLE' }).waitFor({ state: 'visible', timeout: 10000 });
-              evidence.push({ predictableFailure: 'TICKETING_UNAVAILABLE' });
+              await failPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({ state: 'visible', timeout: 10000 });
+              const friendlyFailure = await failPage.locator('#reservation-message').textContent();
+              if (/TICKETING_|PAYMENTS_|HTTP_/u.test(friendlyFailure || '')) {
+                throw new Error('Technical failure leaked into Ticketing UI: ' + friendlyFailure);
+              }
+              evidence.push({ predictableFailure: 'friendly-unavailable' });
               await failContext.close();
 
               writeFileSync('/tmp/commerce-browser/evidence.json', JSON.stringify(evidence, null, 2));

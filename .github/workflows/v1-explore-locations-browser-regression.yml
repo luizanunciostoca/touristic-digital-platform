@@ -87,7 +87,7 @@ jobs:
             shops: 12,
             transport: 8,
             attractions: 8,
-            tours: 6,
+            tours: 4,
             nightlife: 5,
             emergencies: 4,
           };
@@ -122,6 +122,10 @@ jobs:
               await input.focus();
             }
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
+          }
+
+          async function invokeCategory(page, category) {
+            await page.locator(`#assistant-category-${category}`).evaluate(button => button.click());
           }
 
           async function waitMap(page, category, count, stage) {
@@ -250,15 +254,14 @@ jobs:
 
               for (const [category, count] of Object.entries(expectedCounts)) {
                 await openAssistant(page);
-                await page.locator(`#assistant-category-${category}`).click();
+                await invokeCategory(page, category);
                 await assertFiltersStage(page, category, count);
                 await page.keyboard.press('Escape');
                 await assertMainMenu(page);
               }
 
               await openAssistant(page);
-              const beaches = page.locator('#assistant-category-beaches');
-              await beaches.click();
+              await invokeCategory(page, 'beaches');
               await assertFiltersStage(page, 'beaches', 8);
 
               await page.locator('#assistant-category-results [data-value="surf"]').click();
@@ -283,9 +286,14 @@ jobs:
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
-              const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]');
-              await placeSheet.waitFor({ state: 'visible', timeout: 8000 });
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').waitFor({ state: 'visible', timeout: 8000 });
+              const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"]');
+              await page.locator(
+                '#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]',
+              ).waitFor({ state: 'visible', timeout: 8000 });
+              const placeHandle = placeSheet.locator('.place-bottom-sheet-drag-handle');
+              await placeHandle.focus();
+              const handleRole = await placeHandle.getAttribute('role');
+              const handleTabIndex = await placeHandle.getAttribute('tabindex');
               const placeSheetState = await placeSheet.evaluate((sheet) => {
                 const rect = sheet.getBoundingClientRect();
                 const buttons = Array.from(sheet.querySelectorAll('button'));
@@ -308,17 +316,30 @@ jobs:
                     sheet.querySelector('.place-bottom-sheet-overflow') instanceof HTMLDetailsElement
                       ? sheet.querySelector('.place-bottom-sheet-overflow').open
                       : null,
-                  touchTargets: buttons.map((button) => {
-                    const buttonRect = button.getBoundingClientRect();
-                    return { width: buttonRect.width, height: buttonRect.height };
-                  }),
+                  touchTargets: buttons
+                    .map((button) => {
+                      const buttonRect = button.getBoundingClientRect();
+                      const style = getComputedStyle(button);
+                      return {
+                        width: buttonRect.width,
+                        height: buttonRect.height,
+                        visible:
+                          style.display !== 'none' &&
+                          style.visibility !== 'hidden' &&
+                          buttonRect.width > 0 &&
+                          buttonRect.height > 0,
+                      };
+                    })
+                    .filter(({ visible }) => visible),
                   imageSrc: image instanceof HTMLImageElement ? new URL(image.src).pathname : null,
                 };
               });
               if (
                 placeSheetState.title !== 'Primeira Praia' ||
                 placeSheetState.category !== 'beaches' ||
-                placeSheetState.stateControls !== 2 ||
+                placeSheetState.stateControls !== 0 ||
+                handleRole !== 'button' ||
+                handleTabIndex !== '0' ||
                 placeSheetState.rect.left < -1 ||
                 placeSheetState.rect.right > viewport.width + 1 ||
                 placeSheetState.rect.top < -1 ||
@@ -336,13 +357,14 @@ jobs:
               }
 
               const placeStateSequence = [
-                { step: 'up', state: 'full' },
-                { step: 'down', state: 'half' },
-                { step: 'down', state: 'peek' },
-                { step: 'up', state: 'half' },
+                { key: 'ArrowUp', state: 'full' },
+                { key: 'ArrowDown', state: 'half' },
+                { key: 'ArrowDown', state: 'peek' },
+                { key: 'ArrowUp', state: 'half' },
               ];
-              for (const { step, state } of placeStateSequence) {
-                await page.locator(`#place-bottom-sheet [data-sheet-step="${step}"]`).click();
+              for (const { key, state } of placeStateSequence) {
+                await placeHandle.focus();
+                await page.keyboard.press(key);
                 await page.locator(`#place-bottom-sheet[data-sheet-state="${state}"]`).waitFor({ state: 'visible', timeout: 3000 });
               }
               const selected = await page.evaluate(() => ({
@@ -387,7 +409,7 @@ jobs:
 
               if (viewport.id === 'mobile') {
                 await openAssistant(page);
-                await page.locator('#assistant-category-beaches').click();
+                await invokeCategory(page, 'beaches');
                 await assertFiltersStage(page, 'beaches', 8);
                 await page.locator('#assistant-category-results [data-value="proximo"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
@@ -402,8 +424,14 @@ jobs:
                 await assertMainMenu(page);
 
                 await openAssistant(page);
-                await page.locator('#assistant-category-tours').click();
-                await assertFiltersStage(page, 'tours', 6);
+                await invokeCategory(page, 'tours');
+                await assertFiltersStage(page, 'tours', 4);
+                const tourClusters = await page.locator(
+                  '.morro-explore-marker[data-explore-category="tours"][data-tour-cluster="true"][data-cluster-count="3"]',
+                ).count();
+                if (tourClusters !== 1) {
+                  throw new Error(`Tour discovery clustering diverged: ${tourClusters}`);
+                }
                 await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
                 await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });
                 await page.locator('#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-intro-card').waitFor({

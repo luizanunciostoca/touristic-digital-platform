@@ -238,8 +238,16 @@ jobs:
               const sheetRect = sheet instanceof HTMLElement ? sheet.getBoundingClientRect() : null;
               const progress = document.querySelector('.tour-stop-progress-bar');
               const progressRect = progress instanceof HTMLElement ? progress.getBoundingClientRect() : null;
-              const heading = document.querySelector('#explore-flow-bottom-sheet-title');
-              const headingRect = heading instanceof HTMLElement ? heading.getBoundingClientRect() : null;
+              const compactHeader = document.querySelector('.tour-active-header');
+              const compactHeaderRect =
+                compactHeader instanceof HTMLElement
+                  ? compactHeader.getBoundingClientRect()
+                  : null;
+              const compactCount = document.querySelector('.tour-active-count');
+              const compactThumb = document.querySelector('.tour-active-thumb');
+              const progressSegments = Array.from(
+                document.querySelectorAll('.tour-stop-progress-segment'),
+              );
               const technicalControls = [
                 document.querySelector('.explore-flow-sheet-state-controls'),
                 document.querySelector('.explore-flow-sheet-drag-handle'),
@@ -258,15 +266,24 @@ jobs:
                 sheet: sheetRect
                   ? { top: sheetRect.top, bottom: sheetRect.bottom, height: sheetRect.height }
                   : null,
-                heading: headingRect
+                compactHeader: compactHeaderRect
                   ? {
-                      text: heading?.textContent?.trim() ?? '',
-                      top: headingRect.top,
-                      bottom: headingRect.bottom,
-                      width: headingRect.width,
-                      height: headingRect.height,
+                      text: compactHeader?.textContent?.trim() ?? '',
+                      top: compactHeaderRect.top,
+                      bottom: compactHeaderRect.bottom,
+                      width: compactHeaderRect.width,
+                      height: compactHeaderRect.height,
                     }
                   : null,
+                compactCount: compactCount?.textContent?.trim() ?? '',
+                compactThumbVisible:
+                  compactThumb instanceof HTMLElement &&
+                  !compactThumb.hidden &&
+                  compactThumb.getBoundingClientRect().width > 0,
+                progressSegments: progressSegments.map(element => ({
+                  current: element.classList.contains('is-current'),
+                  complete: element.classList.contains('is-complete'),
+                })),
                 progress: progressRect
                   ? { top: progressRect.top, bottom: progressRect.bottom, width: progressRect.width, height: progressRect.height }
                   : null,
@@ -305,9 +322,29 @@ jobs:
                 `Tour card covers excessive map context at ${label}: ${JSON.stringify(state.sheet)}`,
               );
             }
-            if (!state.heading || !state.heading.text.includes('·') || state.heading.width <= 0 || state.heading.bottom > state.viewport.height + 1) {
+            const countParts = state.compactCount.split('/');
+            const validCompactCount =
+              countParts.length === 2 &&
+              countParts.every(part => {
+                const value = Number(part);
+                return Number.isInteger(value) && value > 0;
+              });
+            if (
+              !state.compactHeader ||
+              state.compactHeader.width <= 0 ||
+              state.compactHeader.bottom > state.viewport.height + 1 ||
+              !validCompactCount ||
+              !state.compactThumbVisible ||
+              state.progressSegments.length === 0 ||
+              state.progressSegments.filter(segment => segment.current).length !== 1
+            ) {
               throw new Error(
-                `Tour title/progress header missing at ${label}: ${JSON.stringify(state.heading)}`,
+                `Compact Tour header/current-total missing at ${label}: ${JSON.stringify({
+                  compactHeader: state.compactHeader,
+                  compactCount: state.compactCount,
+                  compactThumbVisible: state.compactThumbVisible,
+                  progressSegments: state.progressSegments,
+                })}`,
               );
             }
             if (!state.progress || state.progress.width <= 0 || state.progress.height <= 0 || state.progress.bottom > state.viewport.height + 1) {
@@ -358,7 +395,158 @@ jobs:
             return state;
           }
 
-          async function openGuidedTour(page, tourId, markerCount) {
+          async function assertTourDiscoveryConvergence(page, evidenceName) {
+            await page.locator('#map[data-explore-state="ready"][data-explore-category="tours"][data-explore-stage="filters"][data-map-marker-count="4"]').waitFor({
+              state: 'attached',
+              timeout: 10000,
+            });
+            const state = await page.evaluate(() => {
+              const sheet = document.querySelector('#explore-flow-bottom-sheet');
+              const source = document.querySelector(
+                '#assistant-category-results[data-category="tours"][data-stage="filters"]',
+              );
+              const markers = Array.from(
+                document.querySelectorAll('.morro-explore-marker[data-explore-category="tours"]'),
+              );
+              const clusters = markers.filter(
+                marker => marker.getAttribute('data-tour-cluster') === 'true',
+              );
+              const labels = Array.from(
+                document.querySelectorAll(
+                  '.morro-explore-marker[data-explore-category="tours"] .morro-explore-marker-label',
+                ),
+              );
+              const filterButtons = source
+                ? Array.from(source.querySelectorAll('.assistant-flow-option'))
+                : [];
+              const sheetRect =
+                sheet instanceof HTMLElement ? sheet.getBoundingClientRect() : null;
+              return {
+                viewport: { width: innerWidth, height: innerHeight },
+                sheet: sheetRect
+                  ? { width: sheetRect.width, height: sheetRect.height, bottom: sheetRect.bottom }
+                  : null,
+                markerCount: markers.length,
+                clusterCounts: clusters.map(marker => marker.getAttribute('data-cluster-count')),
+                visibleLabels: labels.filter(label => {
+                  if (!(label instanceof HTMLElement)) return false;
+                  return getComputedStyle(label).display !== 'none';
+                }).length,
+                filters: filterButtons.map(button => {
+                  const rect = button.getBoundingClientRect();
+                  const style = getComputedStyle(button);
+                  return {
+                    width: rect.width,
+                    height: rect.height,
+                    whiteSpace: style.whiteSpace,
+                    overflow: style.overflow,
+                    textOverflow: style.textOverflow,
+                  };
+                }),
+              };
+            });
+
+            if (
+              !state.sheet ||
+              state.sheet.height > state.viewport.height * 0.3 + 1 ||
+              state.sheet.bottom > state.viewport.height + 1
+            ) {
+              throw new Error(`Tour discovery is not map-first: ${JSON.stringify(state)}`);
+            }
+            if (
+              state.markerCount !== 4 ||
+              state.clusterCounts.length !== 1 ||
+              state.clusterCounts[0] !== '3'
+            ) {
+              throw new Error(`Tour discovery clustering drift: ${JSON.stringify(state)}`);
+            }
+            if (state.visibleLabels !== 0) {
+              throw new Error(`Tour labels collide by default: ${JSON.stringify(state)}`);
+            }
+            if (
+              state.filters.length < 3 ||
+              state.filters.some(
+                filter =>
+                  filter.height < 44 ||
+                  filter.whiteSpace !== 'nowrap' ||
+                  filter.overflow !== 'hidden' ||
+                  filter.textOverflow !== 'ellipsis',
+              )
+            ) {
+              throw new Error(`Tour compact filters drift: ${JSON.stringify(state.filters)}`);
+            }
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-discovery-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
+            return state;
+          }
+
+          async function assertTourPreviewConvergence(page, evidenceName) {
+            const state = await page.evaluate(() => {
+              const sheet = document.querySelector(
+                '#explore-flow-bottom-sheet[data-flow-kind="tour"]',
+              );
+              const start = document.querySelector(
+                '#assistant-category-results [data-value="__tour_start__"]',
+              );
+              const list = document.querySelector(
+                '#assistant-category-results [data-value="__tour_list__"]',
+              );
+              const sheetRect =
+                sheet instanceof HTMLElement ? sheet.getBoundingClientRect() : null;
+              const startRect =
+                start instanceof HTMLElement ? start.getBoundingClientRect() : null;
+              const listRect =
+                list instanceof HTMLElement ? list.getBoundingClientRect() : null;
+              const startStyle = start instanceof HTMLElement ? getComputedStyle(start) : null;
+              return {
+                viewport: { width: innerWidth, height: innerHeight },
+                sheet: sheetRect
+                  ? { width: sheetRect.width, height: sheetRect.height, bottom: sheetRect.bottom }
+                  : null,
+                start: startRect
+                  ? {
+                      width: startRect.width,
+                      height: startRect.height,
+                      disabled: start instanceof HTMLButtonElement ? start.disabled : true,
+                      opacity: Number.parseFloat(startStyle?.opacity ?? '0'),
+                      primary: start.classList.contains('md-button--primary'),
+                    }
+                  : null,
+                list: listRect
+                  ? {
+                      width: listRect.width,
+                      height: listRect.height,
+                      primary: list?.classList.contains('md-button--primary') ?? false,
+                    }
+                  : null,
+              };
+            });
+            if (
+              !state.sheet ||
+              state.sheet.height > state.viewport.height * 0.45 + 1 ||
+              !state.start ||
+              state.start.disabled ||
+              !state.start.primary ||
+              state.start.opacity < 0.95 ||
+              state.start.height < 44
+            ) {
+              throw new Error(`Tour preview/Start Tour drift: ${JSON.stringify(state)}`);
+            }
+            if (!state.list || state.list.primary || state.list.width >= state.start.width) {
+              throw new Error(`See all stops still competes with Start Tour: ${JSON.stringify(state)}`);
+            }
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-preview-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
+            return state;
+          }
+
+          async function openGuidedTour(page, tourId, markerCount, evidenceName = 'runtime') {
             await page.locator('body[data-public-onboarding-settled="true"]:not(.tour-active)').waitFor({
               state: 'attached',
               timeout: 20000,
@@ -369,8 +557,11 @@ jobs:
               await page.locator('#assistantInput').focus();
             }
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
-            await page.locator('#assistant-category-tours').waitFor({ state: 'visible', timeout: 10000 });
-            await page.locator('#assistant-category-tours').click();
+            await page.locator('#assistant-category-tours').waitFor({ state: 'attached', timeout: 10000 });
+            await page
+              .locator('#assistant-category-tours')
+              .evaluate((button) => button.click());
+            await assertTourDiscoveryConvergence(page, evidenceName ?? 'runtime');
             const shortcut = page.locator(
               `#assistant-category-results .assistant-flow-option[data-tour-id="${tourId}"]`,
             );
@@ -386,6 +577,7 @@ jobs:
             await page.locator(
               `#map[data-tour-state="ready"][data-active-tour="${tourId}"][data-map-marker-count="${markerCount}"]`,
             ).waitFor({ state: 'attached', timeout: 20000 });
+            await assertTourPreviewConvergence(page, evidenceName);
             return intro;
           }
 
@@ -404,7 +596,7 @@ jobs:
           }
 
           async function validateGuidedV1Flow(page, evidenceName) {
-            const intro = await openGuidedTour(page, 'volta-a-ilha', '8');
+            const intro = await openGuidedTour(page, 'volta-a-ilha', '8', evidenceName);
             await page.screenshot({
               path: `/tmp/map-tour-evidence/tour-intro-${evidenceName}.png`,
               fullPage: false,
@@ -417,6 +609,35 @@ jobs:
             await page.locator('.tour-stop-card').waitFor({ state: 'visible', timeout: 10000 });
             if (!(await page.locator('.tour-stop-pin.tour-stop-active').count())) {
               throw new Error('Guided tour did not highlight the active V1 stop marker.');
+            }
+            const firstBoundary = await page.evaluate(() => ({
+              previous: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_prev__"]',
+              ).length,
+              next: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_next__"]',
+              ).length,
+              count: document.querySelector('.tour-active-count')?.textContent?.trim() ?? '',
+              cardIndex: document.querySelector('.tour-stop-card')?.getAttribute('data-stop-index'),
+              activeIndex: document
+                .querySelector('.tour-stop-pin.tour-stop-active')
+                ?.closest('.tour-stop-marker')
+                ?.getAttribute('data-stop-index'),
+              markerNumbers: Array.from(
+                document.querySelectorAll('.tour-stop-number'),
+              ).map(element => element.textContent?.trim() ?? ''),
+            }));
+            if (
+              firstBoundary.previous !== 0 ||
+              firstBoundary.next !== 1 ||
+              firstBoundary.count !== '1/8' ||
+              firstBoundary.cardIndex !== '0' ||
+              firstBoundary.activeIndex !== '0' ||
+              firstBoundary.markerNumbers.join(',') !== '1,2,3,4,5,6,7,8'
+            ) {
+              throw new Error(
+                `First-stop/current-marker atomicity drift: ${JSON.stringify(firstBoundary)}`,
+              );
             }
 
             const expectedSpeechLang = await page.evaluate(() => {
@@ -435,6 +656,15 @@ jobs:
               fullPage: false,
               animations: 'disabled',
             });
+            const stopImage = page.locator('.tour-stop-photo');
+            if (await stopImage.count()) {
+              await stopImage.evaluate(element =>
+                element.dispatchEvent(new Event('error')),
+              );
+              await page.locator(
+                '.tour-stop-card[data-photo-state="missing"] .tour-stop-photo-wrap[hidden]',
+              ).waitFor({ state: 'attached', timeout: 3000 });
+            }
             const autoNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
@@ -499,11 +729,46 @@ jobs:
             await page.locator('#assistant-category-results [data-value="__tour_next__"]').click();
             const nextAfterPrevious = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '3');
 
-            await page.locator('#assistant-category-results [data-value="__tour_list__"]').click();
-            const list = await waitForGuidedStage(page, 'list', 'volta-a-ilha');
-            await page.locator('.tour-stop-list-card').waitFor({ state: 'visible', timeout: 10000 });
-            await page.locator('#assistant-category-results [data-value="__tour_stop_7__"]').click();
+            const lastMarker = page.locator(
+              '.tour-stop-marker[data-stop-index="7"]',
+            );
+            await lastMarker.waitFor({ state: 'attached', timeout: 10000 });
+            await lastMarker.evaluate(element => element.click());
             const directLast = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '7');
+            const lastBoundary = await page.evaluate(() => ({
+              previous: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_prev__"]',
+              ).length,
+              next: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_next__"]',
+              ).length,
+              finish: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_finish__"]',
+              ).length,
+              count: document.querySelector('.tour-active-count')?.textContent?.trim() ?? '',
+              cardIndex: document.querySelector('.tour-stop-card')?.getAttribute('data-stop-index'),
+              activeIndex: document
+                .querySelector('.tour-stop-pin.tour-stop-active')
+                ?.closest('.tour-stop-marker')
+                ?.getAttribute('data-stop-index'),
+            }));
+            if (
+              lastBoundary.previous !== 1 ||
+              lastBoundary.next !== 0 ||
+              lastBoundary.finish !== 1 ||
+              lastBoundary.count !== '8/8' ||
+              lastBoundary.cardIndex !== '7' ||
+              lastBoundary.activeIndex !== '7'
+            ) {
+              throw new Error(
+                `Last-stop/completion boundary drift: ${JSON.stringify(lastBoundary)}`,
+              );
+            }
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-last-stop-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
 
             await page.locator('#assistant-category-results [data-value="__tour_finish__"]').click();
             const finale = await waitForGuidedStage(page, 'finale', 'volta-a-ilha');
@@ -536,7 +801,6 @@ jobs:
               next,
               previous,
               nextAfterPrevious,
-              list,
               directLast,
               finale,
               returnedToTours,
@@ -546,7 +810,7 @@ jobs:
           async function validateRefreshReentry(page) {
             await page.reload({ waitUntil: 'domcontentloaded' });
             const refreshedHome = await waitForHome(page);
-            const intro = await openGuidedTour(page, 'trilha-gamboa', '5');
+            const intro = await openGuidedTour(page, 'trilha-gamboa', '5', 'refresh-reentry');
             await page.locator('#assistant-category-results [data-value="__tour_start__"]').click();
             const first = await waitForGuidedStage(page, 'stop', 'trilha-gamboa', '0');
             await page.locator('.tour-stop-card').waitFor({ state: 'visible', timeout: 10000 });

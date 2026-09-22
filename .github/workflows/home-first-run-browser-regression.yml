@@ -15,6 +15,7 @@ on:
       - apps/morro-digital-platform/src/bootstrap/geospatial.ts
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/public/**
+      - apps/morro-digital-platform/public/onboarding-v2.css
       - apps/morro-digital-platform/tooling/dev-server.mjs
       - package.json
       - pnpm-lock.yaml
@@ -94,6 +95,19 @@ jobs:
               const backdrop = document.getElementById('tour-backdrop');
               const tooltip = document.getElementById('tour-tooltip');
               const tooltipRect = tooltip?.getBoundingClientRect();
+              const primaryAction = tooltip?.querySelector('.tour-btn-next, .tour-btn-finish');
+              const primaryActionRect = primaryAction?.getBoundingClientRect();
+              const primaryActionVisible = Boolean(
+                tooltipRect &&
+                primaryActionRect &&
+                primaryActionRect.width > 0 &&
+                primaryActionRect.height > 0 &&
+                primaryActionRect.left >= tooltipRect.left - 1 &&
+                primaryActionRect.right <= tooltipRect.right + 1 &&
+                primaryActionRect.top >= tooltipRect.top - 1 &&
+                primaryActionRect.bottom <= tooltipRect.bottom + 1 &&
+                primaryActionRect.bottom <= window.innerHeight + 1
+              );
               return {
                 onboarded: localStorage.getItem('morro-digital-onboarded'),
                 onboardingVisible: Boolean(document.querySelector('#onboarding-overlay')),
@@ -117,6 +131,15 @@ jobs:
                 welcomeVisible: Boolean(welcome),
                 welcomeText: welcome?.textContent?.replace(/\s+/g, ' ').trim() ?? '',
                 tooltipRight: tooltipRect?.right ?? null,
+                targetIdentity:
+                  document.querySelector('.tour-target-active')?.id ||
+                  document.querySelector('.tour-target-active')?.className ||
+                  null,
+                targetOverlap: tooltip?.hasAttribute('data-overlaps-target') ?? false,
+                targetUnavailable: tooltip?.hasAttribute('data-target-unavailable') ?? false,
+                capabilityNote: document.querySelector('.tour-capability-note')?.textContent?.trim() ?? null,
+                primaryActionVisible,
+                tooltipScrollTop: tooltip?.scrollTop ?? 0,
                 viewportWidth: window.innerWidth,
               };
             });
@@ -141,6 +164,7 @@ jobs:
             await page.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
 
             const initial = await readState(page);
+            await page.screenshot({ path: `${outputDir}/01-welcome.png`, fullPage: false });
             assertIdleMap(initial, 'Fresh Home');
             if (initial.onboarded !== null || !initial.onboardingVisible || initial.tourActive) {
               throw new Error(`Invalid fresh first-run state: ${JSON.stringify(initial)}`);
@@ -163,10 +187,14 @@ jobs:
               !started.composerVisible ||
               !started.welcomeVisible ||
               started.tooltipRight === null ||
-              started.tooltipRight > started.viewportWidth + 1
+              started.tooltipRight > started.viewportWidth + 1 ||
+              started.targetIdentity !== 'map-container' ||
+              started.targetOverlap ||
+              !started.primaryActionVisible
             ) {
-              throw new Error(`V1 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
+              throw new Error(`UX V2 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
             }
+            await page.screenshot({ path: `${outputDir}/02-step-1-map.png`, fullPage: false });
 
             await page.locator('#toggle-globe-view').focus();
             await page.keyboard.press('Tab');
@@ -176,14 +204,53 @@ jobs:
             });
             if (!focusTrapped) throw new Error('Tutorial modal did not trap keyboard focus.');
 
+            const expectedTargets = [
+              ['map-container'],
+              ['weather-widget'],
+              ['assistant-input-area'],
+              ['voiceButton', 'assistant-input-area'],
+              ['home-profile-button'],
+              ['toggle-globe-view'],
+            ];
+            const screenshotNames = [
+              '02-step-1-map.png',
+              '03-step-2-weather.png',
+              '04-step-3-composer.png',
+              '05-step-4-voice.png',
+              '06-step-5-profile.png',
+              '07-step-6-map-perspective.png',
+            ];
             for (let step = 2; step <= 6; step += 1) {
               await page.locator('.tour-btn-next').click();
               await page.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
               const stepState = await readState(page);
               assertIdleMap(stepState, `Tutorial step ${step}`);
-              if (stepState.tooltipRight !== null && stepState.tooltipRight > stepState.viewportWidth + 1) {
+              if (
+                stepState.tooltipRight !== null &&
+                stepState.tooltipRight > stepState.viewportWidth + 1
+              ) {
                 throw new Error(`Tutorial tooltip overflowed viewport at step ${step}: ${JSON.stringify(stepState)}`);
               }
+              if (!expectedTargets[step - 1].includes(stepState.targetIdentity)) {
+                throw new Error(`Tutorial step ${step} targeted ${stepState.targetIdentity}, expected one of ${expectedTargets[step - 1].join(', ')}`);
+              }
+              if (stepState.targetOverlap) {
+                throw new Error(`Tutorial tooltip covered actionable target at step ${step}: ${JSON.stringify(stepState)}`);
+              }
+              if (!stepState.primaryActionVisible) {
+                throw new Error(`Tutorial primary action was clipped at step ${step}: ${JSON.stringify(stepState)}`);
+              }
+              if (stepState.tooltipScrollTop !== 0) {
+                throw new Error(`Tutorial coachmark started scrolled at step ${step}: ${JSON.stringify(stepState)}`);
+              }
+              if (
+                step === 4 &&
+                stepState.targetUnavailable &&
+                !stepState.capabilityNote
+              ) {
+                throw new Error(`Unavailable voice capability lacked fallback copy: ${JSON.stringify(stepState)}`);
+              }
+              await page.screenshot({ path: `${outputDir}/${screenshotNames[step - 1]}`, fullPage: false });
             }
             await page.locator('.tour-btn-finish').click();
             await page.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
@@ -252,6 +319,109 @@ jobs:
             }
             evidence.overlaySkip = overlaySkipped;
             await overlaySkipContext.close();
+
+            const missingTargetContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
+            const missingTargetPage = await missingTargetContext.newPage();
+            await missingTargetPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(missingTargetPage);
+            await missingTargetPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await missingTargetPage.locator('[data-public-onboarding-action="start"]').click();
+            await missingTargetPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            await missingTargetPage.evaluate(() => document.getElementById('weather-widget')?.remove());
+            await missingTargetPage.locator('.tour-btn-next').click();
+            await missingTargetPage.locator('.tour-step-label').filter({ hasText: 'Step 2 of 6' }).waitFor({ state: 'visible', timeout: 3000 });
+            const missingTarget = await readState(missingTargetPage);
+            if (
+              missingTarget.targetIdentity !== null ||
+              !missingTarget.targetUnavailable ||
+              !missingTarget.capabilityNote ||
+              missingTarget.targetOverlap ||
+              !missingTarget.tourActive
+            ) {
+              throw new Error(`Missing target fallback failed: ${JSON.stringify(missingTarget)}`);
+            }
+            evidence.missingTarget = missingTarget;
+            await missingTargetContext.close();
+
+            const resizeContext = await browser.newContext({ viewport: { width: 430, height: 932 }, locale: 'en-US' });
+            const resizePage = await resizeContext.newPage();
+            await resizePage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(resizePage);
+            await resizePage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await resizePage.locator('[data-public-onboarding-action="start"]').click();
+            await resizePage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            await resizePage.setViewportSize({ width: 390, height: 700 });
+            await resizePage.waitForTimeout(100);
+            const resized = await readState(resizePage);
+            if (
+              resized.tooltipRight === null ||
+              resized.tooltipRight > resized.viewportWidth + 1 ||
+              resized.targetOverlap
+            ) {
+              throw new Error(`Viewport recomputation failed: ${JSON.stringify(resized)}`);
+            }
+            evidence.viewportResize = resized;
+            await resizeContext.close();
+
+            const micDeniedContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
+            const micDeniedPage = await micDeniedContext.newPage();
+            await micDeniedPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(micDeniedPage);
+            await micDeniedPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await micDeniedPage.evaluate(() => {
+              const permissions = navigator.permissions;
+              Object.defineProperty(navigator, 'permissions', {
+                configurable: true,
+                value: {
+                  query: async descriptor =>
+                    descriptor?.name === 'microphone'
+                      ? { state: 'denied', addEventListener() {}, removeEventListener() {} }
+                      : permissions.query(descriptor),
+                },
+              });
+
+              let voiceButton = document.getElementById('voiceButton');
+              if (!(voiceButton instanceof HTMLButtonElement)) {
+                voiceButton = document.createElement('button');
+                voiceButton.id = 'voiceButton';
+                voiceButton.type = 'button';
+                voiceButton.textContent = 'Voice';
+                voiceButton.setAttribute('aria-label', 'Send voice message');
+              }
+
+              voiceButton.hidden = false;
+              voiceButton.removeAttribute('hidden');
+              voiceButton.removeAttribute('aria-hidden');
+              voiceButton.style.setProperty('position', 'fixed', 'important');
+              voiceButton.style.setProperty('right', '20px', 'important');
+              voiceButton.style.setProperty('bottom', '92px', 'important');
+              voiceButton.style.setProperty('width', '44px', 'important');
+              voiceButton.style.setProperty('height', '44px', 'important');
+              voiceButton.style.setProperty('display', 'block', 'important');
+              voiceButton.style.setProperty('visibility', 'visible', 'important');
+              voiceButton.style.setProperty('opacity', '1', 'important');
+              voiceButton.style.setProperty('z-index', '1', 'important');
+              document.body.appendChild(voiceButton);
+            });
+            await micDeniedPage.locator('[data-public-onboarding-action="start"]').click();
+            await micDeniedPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            for (let step = 2; step <= 4; step += 1) {
+              await micDeniedPage.locator('.tour-btn-next').click();
+              await micDeniedPage.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
+            }
+            await micDeniedPage.locator('#tour-tooltip[data-target-unavailable]').waitFor({ state: 'visible', timeout: 3000 });
+            const micDenied = await readState(micDeniedPage);
+            if (
+              micDenied.targetIdentity !== 'voiceButton' ||
+              !micDenied.targetUnavailable ||
+              !micDenied.capabilityNote ||
+              micDenied.targetOverlap ||
+              !micDenied.primaryActionVisible
+            ) {
+              throw new Error(`Denied microphone fallback failed: ${JSON.stringify(micDenied)}`);
+            }
+            evidence.micDenied = micDenied;
+            await micDeniedContext.close();
 
             if (errors.length || skipErrors.length) {
               throw new Error(`Browser errors detected: ${JSON.stringify({ errors, skipErrors })}`);

@@ -178,7 +178,9 @@ jobs:
               if (!(await assistant.isVisible())) await page.locator('#assistantInput').focus();
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
-              await page.locator('#assistant-category-beaches').click();
+              await page
+                .locator('#assistant-category-beaches')
+                .evaluate((button) => button.click());
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible', timeout: 5000 });
               await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 8000 });
               await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'eight beach markers');
