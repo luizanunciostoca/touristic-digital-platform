@@ -357,7 +357,7 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 
 .app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-group button + button {
   margin-top: var(--md-space-2);
-  border-top: 1px solid var(--md-outdoor-border);
+  border-top: 1px solid var(--md-unified-dock-divider);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -823,7 +823,7 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   z-index: var(--md-layer-dock);
   display: grid;
   width: min(
-    34rem,
+    var(--md-unified-dock-max-inline-size),
     calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end))
   );
   min-height: var(--md-home-bottom-nav-height);
@@ -1489,8 +1489,6 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
 :root {
   --md-unified-dock-height: 10rem;
   --md-unified-dock-map-inset: 11rem;
-  --md-unified-dock-message-max-height: 7rem;
-  --md-unified-dock-rich-max-height: min(38dvh, 18rem);
 }
 
 #unified-assistant-dock.md-unified-assistant-dock {
@@ -1508,7 +1506,7 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--md-outdoor-border);
-  border-radius: var(--md-radius-2xl, 1.75rem);
+  border-radius: var(--md-unified-dock-radius);
   background: var(--md-color-surface-glass);
   box-shadow: var(--md-elevation-3);
   backdrop-filter: blur(1rem) saturate(1.12);
@@ -1599,7 +1597,7 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   gap: var(--md-space-2);
   padding: var(--md-space-2) var(--md-space-3);
   border: 0;
-  border-top: 1px solid var(--md-outdoor-border);
+  border-top: 1px solid var(--md-unified-dock-divider);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
@@ -1636,7 +1634,7 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   min-height: var(--md-home-bottom-nav-height);
   padding: var(--md-space-1);
   border: 0;
-  border-top: 1px solid var(--md-outdoor-border);
+  border-top: 1px solid var(--md-unified-dock-divider);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
