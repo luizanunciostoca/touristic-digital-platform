@@ -13,6 +13,9 @@ on:
       - apps/morro-digital-platform/src/config/tour-markers.ts
       - apps/morro-digital-platform/src/config/tour-selection.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.ts
+      - apps/morro-digital-platform/public/explore-locations.css
+      - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
@@ -92,7 +95,9 @@ jobs:
           const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const cases = [
-            ['mobile', 390, 844],
+            ['mobile-360', 360, 800],
+            ['mobile-390', 390, 844],
+            ['mobile-430', 430, 932],
             ['tablet', 768, 1024],
             ['desktop', 1440, 900],
           ];
@@ -172,27 +177,28 @@ jobs:
               };
               return {
                 mode: document.body.dataset.mdMode ?? null,
-                assistantOpen: document.body.classList.contains('assistant-modal-open'),
                 header: visibility('header'),
                 weather: visibility('#weather-widget'),
                 submenu: visibility('#submenu'),
                 globe: visibility('#globe-map-control'),
                 assistant: visibility('#assistant-messages'),
+                composer: visibility('#assistant-input-area'),
+                privacy: visibility('.analytics-consent-preferences.is-collapsed'),
               };
             });
             const hidden = (value) =>
-              value &&
-              value.visibility === 'hidden' &&
-              value.pointerEvents === 'none';
+              value === null ||
+              (value.visibility === 'hidden' &&
+                value.pointerEvents === 'none');
             if (
               state.mode !== 'tour' ||
               !hidden(state.header) ||
               !hidden(state.weather) ||
               !hidden(state.submenu) ||
               !hidden(state.globe) ||
-              !state.assistantOpen ||
-              !state.assistant ||
-              state.assistant.visibility === 'hidden'
+              !hidden(state.assistant) ||
+              !hidden(state.composer) ||
+              !hidden(state.privacy)
             ) {
               throw new Error(
                 `Tour mode composition drift at ${label}: ${JSON.stringify(state)}`,
@@ -226,7 +232,43 @@ jobs:
                 narration instanceof HTMLElement ? getComputedStyle(narration) : null;
               const narrationRect =
                 narration instanceof HTMLElement ? narration.getBoundingClientRect() : null;
+              const sheet = document.querySelector('#explore-flow-bottom-sheet[data-flow-kind="tour"]');
+              const sheetRect = sheet instanceof HTMLElement ? sheet.getBoundingClientRect() : null;
+              const progress = document.querySelector('.tour-stop-progress-bar');
+              const progressRect = progress instanceof HTMLElement ? progress.getBoundingClientRect() : null;
+              const heading = document.querySelector('#explore-flow-bottom-sheet-title');
+              const headingRect = heading instanceof HTMLElement ? heading.getBoundingClientRect() : null;
+              const technicalControls = [
+                document.querySelector('.explore-flow-sheet-state-controls'),
+                document.querySelector('.explore-flow-sheet-drag-handle'),
+              ].map((element) => {
+                if (!(element instanceof HTMLElement)) return false;
+                const style = getComputedStyle(element);
+                const rect = element.getBoundingClientRect();
+                return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+              });
               return {
+                viewport: {
+                  width: innerWidth,
+                  height: innerHeight,
+                  scrollWidth: document.documentElement.scrollWidth,
+                },
+                sheet: sheetRect
+                  ? { top: sheetRect.top, bottom: sheetRect.bottom, height: sheetRect.height }
+                  : null,
+                heading: headingRect
+                  ? {
+                      text: heading?.textContent?.trim() ?? '',
+                      top: headingRect.top,
+                      bottom: headingRect.bottom,
+                      width: headingRect.width,
+                      height: headingRect.height,
+                    }
+                  : null,
+                progress: progressRect
+                  ? { top: progressRect.top, bottom: progressRect.bottom, width: progressRect.width, height: progressRect.height }
+                  : null,
+                technicalControlsVisible: technicalControls.some(Boolean),
                 titleFontPx: Number.parseFloat(titleStyle?.fontSize ?? '0'),
                 descriptionFontPx: Number.parseFloat(
                   descriptionStyle?.fontSize ?? '0',
@@ -235,6 +277,8 @@ jobs:
                   ? {
                       width: narrationRect.width,
                       height: narrationRect.height,
+                      top: narrationRect.top,
+                      bottom: narrationRect.bottom,
                       touchAction: narrationStyle?.touchAction ?? null,
                     }
                   : null,
@@ -242,8 +286,11 @@ jobs:
                   const rect = element.getBoundingClientRect();
                   const style = getComputedStyle(element);
                   return {
+                    value: element.dataset.value ?? '',
                     width: rect.width,
                     height: rect.height,
+                    top: rect.top,
+                    bottom: rect.bottom,
                     fontPx: Number.parseFloat(style.fontSize || '0'),
                     touchAction: style.touchAction,
                   };
@@ -251,6 +298,31 @@ jobs:
               };
             });
 
+            if (!state.sheet || state.sheet.height > state.viewport.height * 0.5 + 1 || state.sheet.bottom > state.viewport.height + 1) {
+              throw new Error(
+                `Tour card covers excessive map context at ${label}: ${JSON.stringify(state.sheet)}`,
+              );
+            }
+            if (!state.heading || !state.heading.text.includes('·') || state.heading.width <= 0 || state.heading.bottom > state.viewport.height + 1) {
+              throw new Error(
+                `Tour title/progress header missing at ${label}: ${JSON.stringify(state.heading)}`,
+              );
+            }
+            if (!state.progress || state.progress.width <= 0 || state.progress.height <= 0 || state.progress.bottom > state.viewport.height + 1) {
+              throw new Error(
+                `Tour progress is not visible at ${label}: ${JSON.stringify(state.progress)}`,
+              );
+            }
+            if (state.technicalControlsVisible) {
+              throw new Error(
+                `Technical sheet controls leaked into Tour at ${label}`,
+              );
+            }
+            if (state.viewport.scrollWidth > state.viewport.width + 1) {
+              throw new Error(
+                `Tour introduced horizontal overflow at ${label}: ${JSON.stringify(state.viewport)}`,
+              );
+            }
             if (state.titleFontPx < 16 || state.descriptionFontPx < 15) {
               throw new Error(
                 `Tour outdoor typography too small at ${label}: ${JSON.stringify(state)}`,
@@ -272,7 +344,9 @@ jobs:
                 (action) =>
                   action.height < 44 ||
                   action.fontPx < 16 ||
-                  action.touchAction !== 'manipulation',
+                  action.touchAction !== 'manipulation' ||
+                  action.top < 0 ||
+                  action.bottom > state.viewport.height + 1,
               )
             ) {
               throw new Error(
