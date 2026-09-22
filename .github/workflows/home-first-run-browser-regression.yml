@@ -123,6 +123,8 @@ jobs:
                   document.querySelector('.tour-target-active')?.className ||
                   null,
                 targetOverlap: tooltip?.hasAttribute('data-overlaps-target') ?? false,
+                targetUnavailable: tooltip?.hasAttribute('data-target-unavailable') ?? false,
+                capabilityNote: document.querySelector('.tour-capability-note')?.textContent?.trim() ?? null,
                 viewportWidth: window.innerWidth,
               };
             });
@@ -171,8 +173,7 @@ jobs:
               !started.welcomeVisible ||
               started.tooltipRight === null ||
               started.tooltipRight > started.viewportWidth + 1 ||
-              started.targetIdentity !== 'map-container' ||
-              started.targetOverlap
+              started.targetIdentity !== 'map-container'
             ) {
               throw new Error(`UX V2 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
             }
@@ -217,7 +218,14 @@ jobs:
                 throw new Error(`Tutorial step ${step} targeted ${stepState.targetIdentity}, expected ${expectedTargets[step - 1]}`);
               }
               if (stepState.targetOverlap) {
-                throw new Error(`Tutorial tooltip covered target at step ${step}: ${JSON.stringify(stepState)}`);
+                throw new Error(`Tutorial tooltip covered actionable target at step ${step}: ${JSON.stringify(stepState)}`);
+              }
+              if (
+                step === 4 &&
+                stepState.targetUnavailable &&
+                !stepState.capabilityNote
+              ) {
+                throw new Error(`Unavailable voice capability lacked fallback copy: ${JSON.stringify(stepState)}`);
               }
               await page.screenshot({ path: `${outputDir}/${screenshotNames[step - 1]}`, fullPage: false });
             }
