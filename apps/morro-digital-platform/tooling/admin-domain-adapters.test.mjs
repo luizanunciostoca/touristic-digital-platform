@@ -624,10 +624,14 @@ describe("Control Center Content owner adapter", () => {
   it("searches through the Content owner contract", async () => {
     const { runtime } = contentRuntimeFixture();
     const adapter = createContentAdminAdapter(runtime);
-    const results = await adapter.search({ query: "Segunda" });
+    const results = await adapter.search({
+      query: "Segunda",
+      destinationId: "morro-de-sao-paulo",
+    });
 
     expect(runtime.adminList).toHaveBeenCalledWith({
       query: "Segunda",
+      destinationId: "morro-de-sao-paulo",
       limit: 20,
     });
     expect(results).toEqual([
@@ -638,6 +642,23 @@ describe("Control Center Content owner adapter", () => {
         href: "#content:content-admin-0001",
       }),
     ]);
+  });
+
+  it("surfaces Content owner failures instead of reporting an empty search", async () => {
+    const { runtime } = contentRuntimeFixture();
+    runtime.adminList.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "CONTENT_DB_DOWN",
+    });
+    const adapter = createContentAdminAdapter(runtime);
+
+    await expect(
+      adapter.search({
+        query: "Segunda",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("CONTENT_DB_DOWN");
   });
 
   it("requires an administrative reason before owner mutation", async () => {
@@ -883,14 +904,43 @@ describe("Control Center Products and Reservations owner adapters", () => {
       }),
     );
 
-    const search = await adapter.search({ query: "volta" });
-    expect(search).toEqual([
-      expect.objectContaining({
-        type: "product",
-        id: "tin_admin_0001",
-        href: "#products:tin_admin_0001",
+    const search = await adapter.search({
+      query: "volta",
+      destinationId: "morro-de-sao-paulo",
+    });
+    expect(search).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "product",
+          id: "volta-a-ilha",
+          href: "#products:tin_admin_0001",
+          destinationId: "morro-de-sao-paulo",
+        }),
+        expect.objectContaining({
+          type: "offer",
+          id: "tin_admin_0001",
+          href: "#products:tin_admin_0001",
+          destinationId: "morro-de-sao-paulo",
+        }),
+      ]),
+    );
+    expect(ticketingApi.adminListInventory).toHaveBeenLastCalledWith({
+      query: "volta",
+      destinationId: "morro-de-sao-paulo",
+      limit: 20,
+    });
+
+    ticketingApi.adminListInventory.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "TICKETING_SEARCH_DOWN",
+    });
+    await expect(
+      adapter.search({
+        query: "volta",
+        destinationId: "morro-de-sao-paulo",
       }),
-    ]);
+    ).rejects.toThrow("TICKETING_SEARCH_DOWN");
 
     await expect(
       adapter.createBusinessOffer({
@@ -936,6 +986,7 @@ describe("Control Center Products and Reservations owner adapters", () => {
               id: "trv_admin_0001",
               status: "confirmed",
               holderReference: "holder-0001",
+              destinationId: "morro-de-sao-paulo",
             },
             businessId: "business-0001",
             inventoryLabel: "Volta a Ilha",
@@ -987,14 +1038,35 @@ describe("Control Center Products and Reservations owner adapters", () => {
       }),
     );
 
-    const search = await adapter.search({ query: "holder-0001" });
+    const search = await adapter.search({
+      query: "holder-0001",
+      destinationId: "morro-de-sao-paulo",
+    });
     expect(search).toEqual([
       expect.objectContaining({
         type: "reservation",
         id: "trv_admin_0001",
         href: "#reservations:trv_admin_0001",
+        destinationId: "morro-de-sao-paulo",
       }),
     ]);
+    expect(ticketingApi.adminListReservations).toHaveBeenLastCalledWith({
+      query: "holder-0001",
+      destinationId: "morro-de-sao-paulo",
+      limit: 20,
+    });
+
+    ticketingApi.adminListReservations.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "RESERVATION_SEARCH_DOWN",
+    });
+    await expect(
+      adapter.search({
+        query: "holder-0001",
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("RESERVATION_SEARCH_DOWN");
 
     await expect(
       adapter.cancelHeldReservation({
