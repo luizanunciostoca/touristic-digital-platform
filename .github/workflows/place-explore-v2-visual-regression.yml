@@ -698,22 +698,16 @@ jobs:
 
                 const dragHandle = place.locator('.place-bottom-sheet-drag-handle');
                 if (viewport.id === 'w390') {
-                  await dragHandle.evaluate(node => {
-                    node.dispatchEvent(
-                      new PointerEvent('pointerdown', {
-                        bubbles: true,
-                        pointerId: 7,
-                        clientY: 180,
-                      }),
-                    );
-                    node.dispatchEvent(
-                      new PointerEvent('pointerup', {
-                        bubbles: true,
-                        pointerId: 7,
-                        clientY: 110,
-                      }),
-                    );
-                  });
+                  const dragBox = await dragHandle.boundingBox();
+                  if (!dragBox) {
+                    throw new Error('Place drag handle has no interactive geometry');
+                  }
+                  const dragX = dragBox.x + dragBox.width / 2;
+                  const dragStartY = dragBox.y + dragBox.height / 2;
+                  await page.mouse.move(dragX, dragStartY);
+                  await page.mouse.down();
+                  await page.mouse.move(dragX, dragStartY - 72, { steps: 6 });
+                  await page.mouse.up();
                   await page.locator(
                     '#place-bottom-sheet[data-sheet-state="full"]',
                   ).waitFor({ state: 'visible', timeout: 3000 });
