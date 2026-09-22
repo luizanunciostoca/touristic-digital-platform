@@ -111,4 +111,17 @@ describe("UX V2 manual visual conformance authority", () => {
     expect(workflow).toContain("MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY");
     expect(workflow).toContain("resultGeometry.width < resultGeometry.sourceWidth * 0.92");
   });
+
+  it("rejects Ticketing self-regression when the purchase hierarchy is not image-led", async () => {
+    const workflow = await readRepository(
+      ".github/workflows/ticketing-v2-visual-regression.yml",
+    );
+
+    expect(workflow).toContain(
+      "MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY",
+    );
+    expect(workflow).toContain("[data-ticketing-hero]");
+    expect(workflow).toContain("[data-ticketing-experience-media]");
+    expect(workflow).toContain("visibleMediaCount < 1");
+  });
 });
