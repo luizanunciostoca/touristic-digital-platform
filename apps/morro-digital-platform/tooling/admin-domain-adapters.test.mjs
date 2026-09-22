@@ -609,14 +609,41 @@ describe("Control Center Affiliates owner adapter", () => {
       limit: "10",
     });
 
-    const results = await adapter.search({ query: "affiliate-admin", actor });
+    const results = await adapter.search({
+      query: "affiliate-admin",
+      actor,
+      destinationId: "morro-de-sao-paulo",
+    });
     expect(results).toEqual([
       expect.objectContaining({
         type: "affiliate",
         id: "aff_admin_0001",
         href: "#affiliates:aff_admin_0001",
+        destinationId: "morro-de-sao-paulo",
       }),
     ]);
+    expect(runtime.adminList).toHaveBeenLastCalledWith(actor, {
+      query: "affiliate-admin",
+      destinationId: "morro-de-sao-paulo",
+      limit: 10,
+    });
+  });
+
+  it("surfaces Affiliate owner unavailability to the search orchestrator", async () => {
+    const { adapter, runtime, actor } = affiliateFixture();
+    runtime.adminList.mockResolvedValueOnce({
+      status: "unavailable",
+      data: null,
+      error: "AFFILIATE_DB_DOWN",
+    });
+
+    await expect(
+      adapter.search({
+        query: "affiliate",
+        actor,
+        destinationId: "morro-de-sao-paulo",
+      }),
+    ).rejects.toThrow("AFFILIATE_DB_DOWN");
   });
 
   it("derives membership destination from owner detail before changing status", async () => {
