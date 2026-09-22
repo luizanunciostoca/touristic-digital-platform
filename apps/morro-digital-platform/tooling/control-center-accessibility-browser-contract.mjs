@@ -1,4 +1,4 @@
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
@@ -152,20 +152,27 @@ async function main() {
 
   try {
     stage = "browser-context";
+    const storageStatePath =
+      process.env.CONTROL_CENTER_AUTH_STORAGE_STATE ??
+      "/tmp/control-center-owner-storage.json";
+    const hasSharedAuthState = existsSync(storageStatePath);
     const context = await browser.newContext({
       viewport: { width: 1280, height: 800 },
+      ...(hasSharedAuthState ? { storageState: storageStatePath } : {}),
     });
     stage = "axe-register";
     await context.addInitScript({ path: axePath });
-    stage = "login";
-    const login = await context.request.post(
-      `${origin}/api/dashboard/auth/login`,
-      {
-        headers: { Origin: origin, "Content-Type": "application/json" },
-        data: { email: "platform-owner-a11y@example.com", password },
-      },
-    );
-    if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
+    if (!hasSharedAuthState) {
+      stage = "login";
+      const login = await context.request.post(
+        `${origin}/api/dashboard/auth/login`,
+        {
+          headers: { Origin: origin, "Content-Type": "application/json" },
+          data: { email: "platform-owner-a11y@example.com", password },
+        },
+      );
+      if (login.status() !== 200) throw new Error("OWNER_LOGIN_FAILED");
+    }
     await context.storageState({ path: authStatePath });
 
     stage = "page-create";
