@@ -245,7 +245,9 @@ export function createNavigationGuidanceUi(
     if (supportUi.status) supportUi.status.textContent = "";
     if (endButton) {
       endButton.textContent = originalEndText;
-      if (originalEndAria) endButton.setAttribute("aria-label", originalEndAria);
+      if (originalEndAria) {
+        endButton.setAttribute("aria-label", originalEndAria);
+      }
     }
   };
 
