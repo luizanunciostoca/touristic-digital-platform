@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: control-center-visual-golden-v1-\${{ github.event.pull_request.number || github.ref }}
