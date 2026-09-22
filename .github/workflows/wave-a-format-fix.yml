@@ -38,7 +38,7 @@ jobs:
             apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts \
             apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs
 
-      - name: Commit formatting and remove one-time workflow
+      - name: Commit formatting
         shell: bash
         run: |
           set -euo pipefail
@@ -50,9 +50,8 @@ jobs:
             apps/morro-digital-platform/src/map/explore-locations-control.ts \
             apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts \
             apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs
-          git rm .github/workflows/wave-a-format-fix.yml
           if git diff --cached --quiet; then
             exit 0
           fi
           git commit -m "chore(discover): format Wave A exact head"
-          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin HEAD:${GITHUB_HEAD_REF}
