@@ -219,8 +219,8 @@ h3 {
 .offer-kind { margin-bottom: var(--md-space-2); }
 
 .offer-price {
-  color: var(--md-color-text-primary) !important;
-  font-size: var(--md-font-size-lg) !important;
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-lg);
   font-weight: var(--md-font-weight-bold);
 }
 
