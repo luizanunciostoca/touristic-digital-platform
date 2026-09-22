@@ -347,7 +347,7 @@ function activityFinancialValue(entry) {
         Number.isFinite(Number(amount.minorUnits)) &&
         typeof amount.currency === "string"
       ) {
-        return formatMoney(amount);
+        return `${amount.minorUnits} ${amount.currency} (minor units)`;
       }
     }
     for (const field of ["commissionMinor", "eligibleRevenueMinor"]) {
@@ -355,10 +355,7 @@ function activityFinancialValue(entry) {
         Number.isFinite(Number(stateValue[field])) &&
         typeof stateValue.currency === "string"
       ) {
-        return formatMoney({
-          minorUnits: stateValue[field],
-          currency: stateValue.currency,
-        });
+        return `${stateValue[field]} ${stateValue.currency} (minor units)`;
       }
     }
   }
@@ -394,34 +391,22 @@ function activityHtml(entries) {
         .join(" ");
       const financialValue = activityFinancialValue(entry);
       const href = activityDeepLink(entry);
-      return (
-        '<div class="timeline-item" data-audit-entry><span class="timeline-time">' +
-        escapeHtml(time) +
-        '</span><span class="timeline-dot ' +
-        tone +
-        '" aria-hidden="true"></span><div class="timeline-body"><strong title="' +
-        escapeHtml(entry.action || "") +
-        '">' +
-        escapeHtml(humanizeAuditAction(entry.action)) +
-        '</strong><span class="timeline-meta">Actor ' +
-        escapeHtml(actor) +
-        " · Effective user " +
-        escapeHtml(effectiveUser) +
-        " · Destino " +
-        escapeHtml(destination) +
-        (entity ? " · " + escapeHtml(entity) : "") +
-        " · " +
-        escapeHtml(result || "unknown") +
-        " · " +
-        escapeHtml(financialValue || "—") +
-        "</span>" +
-        (href
-          ? '<a class="section-link" href="' +
-            escapeHtml(href) +
-            '">Abrir</a>'
-          : "") +
-        "</div></div>"
-      );
+
+      return `<div class="timeline-item" data-audit-entry>
+        <span class="timeline-time">${escapeHtml(time)}</span>
+        <span class="timeline-dot ${tone}" aria-hidden="true"></span>
+        <div class="timeline-body">
+          <strong title="${escapeHtml(entry.action || "")}">${escapeHtml(
+            humanizeAuditAction(entry.action),
+          )}</strong>
+          <span class="timeline-meta">Actor ${escapeHtml(actor)} · Effective user ${escapeHtml(
+            effectiveUser,
+          )} · Destino ${escapeHtml(destination)}${entity ? ` · ${escapeHtml(entity)}` : ""} · ${escapeHtml(
+            result || "unknown",
+          )} · ${escapeHtml(financialValue || "—")}</span>
+          ${href ? `<a class="section-link" href="${escapeHtml(href)}">Abrir</a>` : ""}
+        </div>
+      </div>`;
     })
     .join("");
 }
