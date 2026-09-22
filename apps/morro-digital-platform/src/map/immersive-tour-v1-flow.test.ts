@@ -90,9 +90,9 @@ describe("V1 immersive tour state machine", () => {
       currentStopIndex: 0,
       totalStops: 1,
     });
-    expect(
-      transitionV1ImmersiveTourState(only, { type: "previous" }),
-    ).toBe(only);
+    expect(transitionV1ImmersiveTourState(only, { type: "previous" })).toBe(
+      only,
+    );
     expect(
       transitionV1ImmersiveTourState(only, { type: "next" }),
     ).toMatchObject({

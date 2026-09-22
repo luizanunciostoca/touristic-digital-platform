@@ -906,8 +906,8 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
 
 /* UX Design V2 Wave D — tour discovery, preview and active-tour convergence. */
 #explore-flow-bottom-sheet:has(
-    .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
-  ) {
+  .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
+) {
   height: auto;
   max-height: min(29dvh, 15rem);
 }
@@ -1203,8 +1203,7 @@ body:has(#map[data-tour-flow-stage="stop"])
   .tour-tips {
   margin: var(--md-space-2) 0 0;
   padding: var(--md-space-2) var(--md-space-3);
-  border: 1px solid
-    color-mix(in srgb, var(--md-color-success) 28%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-color-success) 28%, transparent);
   border-radius: var(--md-radius-md);
   background: color-mix(
     in srgb,
@@ -1215,7 +1214,8 @@ body:has(#map[data-tour-flow-stage="stop"])
 
 body:has(#map[data-tour-flow-stage="stop"])
   #explore-flow-bottom-sheet[data-flow-kind="tour"]
-  .tour-tips ul {
+  .tour-tips
+  ul {
   max-height: 2.8em;
   margin-block: var(--md-space-1) 0;
   overflow: hidden;

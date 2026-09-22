@@ -376,11 +376,7 @@ export function createV1ImmersiveTourController(
     card.dataset.totalStops = String(tour.stops.length);
     card.dataset.photoState = stop.photoPath ? "available" : "missing";
 
-    const compactHeader = createElement(
-      document,
-      "div",
-      "tour-active-header",
-    );
+    const compactHeader = createElement(document, "div", "tour-active-header");
     const compactThumb = createElement(
       document,
       "span",
@@ -458,8 +454,7 @@ export function createV1ImmersiveTourController(
       "tour-stop-progress-segments",
     );
     progressSegments.setAttribute("aria-hidden", "true");
-    progressSegments.style.gridTemplateColumns =
-      `repeat(${tour.stops.length}, minmax(0, 1fr))`;
+    progressSegments.style.gridTemplateColumns = `repeat(${tour.stops.length}, minmax(0, 1fr))`;
     tour.stops.forEach((_, index) => {
       const segment = createElement(
         document,
