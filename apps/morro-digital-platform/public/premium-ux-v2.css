@@ -915,7 +915,7 @@ body[data-md-mode="navigation"] #navigation-summary-handle {
   left: 50%;
   width: 2.5rem;
   height: 0.18rem;
-  border-radius: 999px;
+  border-radius: var(--md-radius-pill);
   background: color-mix(
     in srgb,
     var(--md-navigation-text-muted) 35%,
@@ -987,7 +987,7 @@ body[data-md-mode="navigation"] #navigation-summary #end-navigation-btn {
   min-height: var(--md-touch-target-min);
   padding-inline: var(--md-space-4);
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--md-radius-pill);
   background: color-mix(
     in srgb,
     var(--md-navigation-danger) 14%,
@@ -1010,7 +1010,7 @@ body[data-md-mode="navigation"] #navigation-status {
   max-width: min(32rem, calc(100vw - 1.5rem));
   margin: 0 auto;
   padding: var(--md-space-2) var(--md-space-3);
-  border-radius: 999px;
+  border-radius: var(--md-radius-pill);
   background: var(--md-navigation-surface);
   color: var(--md-navigation-text);
   font-size: 0.8rem;
