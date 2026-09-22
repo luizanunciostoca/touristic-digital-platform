@@ -69,10 +69,7 @@ describe("MySqlCheckoutAccessRepository admin destination read", () => {
       limit: 250,
     });
     expect(execute.mock.calls[0]?.[0]).toContain("LIMIT 251");
-    expect(execute.mock.calls[0]?.[1]).toEqual([
-      "itacare",
-      "ord_admin_0002",
-    ]);
+    expect(execute.mock.calls[0]?.[1]).toEqual(["itacare", "ord_admin_0002"]);
 
     await expect(
       repository.listByDestinationId("Morro de São Paulo"),
