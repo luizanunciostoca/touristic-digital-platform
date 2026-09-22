@@ -92,11 +92,9 @@ jobs:
             apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts \
             apps/morro-digital-platform/src/map/immersive-tour-v1-flow.test.ts \
             apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts
-          git checkout HEAD^ -- .github/workflows/map-tour-browser-regression.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
-            .github/workflows/map-tour-browser-regression.yml \
             apps/morro-digital-platform/public/explore-locations.css \
             apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts \
             apps/morro-digital-platform/src/map/immersive-tour-v1-flow.test.ts \
