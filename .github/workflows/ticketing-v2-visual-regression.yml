@@ -119,7 +119,9 @@ jobs:
             });
             await page.route('**/api/ticketing/v1/reservations', async route => {
               if (state.delay) await new Promise(resolve => setTimeout(resolve, state.delay));
-              return fulfill(route, { data: state.empty ? [] : [reservation] });
+              return fulfill(route, {
+                data: state.empty ? [] : state.reservations || [reservation],
+              });
             });
             await page.route('**/api/ticketing/v1/reservations/trv_v2_visual_0001/ticket', route =>
               fulfill(route, {
@@ -170,12 +172,27 @@ jobs:
                 backRect.right > privacyRect.left &&
                 backRect.top < privacyRect.bottom &&
                 backRect.bottom > privacyRect.top;
+              const checkoutCta = document.querySelector('#reserve-button');
+              const checkoutRect =
+                checkoutCta instanceof HTMLElement && !checkoutCta.hidden
+                  ? checkoutCta.getBoundingClientRect()
+                  : null;
+              const privacyCheckoutOverlap =
+                checkoutRect !== null &&
+                privacyRect !== null &&
+                checkoutRect.width > 0 &&
+                checkoutRect.height > 0 &&
+                checkoutRect.left < privacyRect.right &&
+                checkoutRect.right > privacyRect.left &&
+                checkoutRect.top < privacyRect.bottom &&
+                checkoutRect.bottom > privacyRect.top;
               return {
                 scrollWidth: root.scrollWidth,
                 clientWidth: root.clientWidth,
                 bodyFont: getComputedStyle(document.body).fontFamily,
                 interactive,
                 privacyBackOverlap,
+                privacyCheckoutOverlap,
               };
             });
             if (result.scrollWidth > result.clientWidth + 1) {
@@ -187,6 +204,11 @@ jobs:
             if (result.privacyBackOverlap) {
               throw new Error(
                 label + ' privacy trigger overlaps Ticketing back action: ' + JSON.stringify(result),
+              );
+            }
+            if (result.privacyCheckoutOverlap) {
+              throw new Error(
+                label + ' privacy trigger overlaps Ticketing checkout CTA: ' + JSON.stringify(result),
               );
             }
             const undersized = result.interactive.filter(
@@ -303,6 +325,23 @@ jobs:
                 });
               });
 
+              const reducedContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                reducedMotion: 'reduce',
+              });
+              const reducedPage = await reducedContext.newPage();
+              await installRoutes(reducedPage, {});
+              await reducedPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await reducedPage.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
+              const reducedContract = await audit(reducedPage, 'reduced-motion-390x844');
+              await reducedPage.screenshot({
+                path: '/tmp/ticketing-v2/reduced-motion-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({ case: 'reduced-motion-390x844', contract: reducedContract });
+              await reducedContext.close();
+
               await readyCase(browser, { width: 390, height: 844 }, 'text-200-390x844', async page => {
                 await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
               });
@@ -366,6 +405,57 @@ jobs:
                 animations: 'disabled',
               });
               await errorContext.close();
+
+              const terminalWalletContext = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+              });
+              const terminalWalletPage = await terminalWalletContext.newPage();
+              const expiredReservation = {
+                ...reservation,
+                id: 'trv_v2_visual_expired',
+                status: 'expired',
+                validUntil: undefined,
+              };
+              const cancelledReservation = {
+                ...reservation,
+                id: 'trv_v2_visual_cancelled',
+                status: 'cancelled',
+                validUntil: undefined,
+              };
+              await installRoutes(terminalWalletPage, {
+                reservations: [expiredReservation, cancelledReservation],
+              });
+              await terminalWalletPage.goto(origin + '/tickets.html', {
+                waitUntil: 'domcontentloaded',
+              });
+              await terminalWalletPage.locator('.reservation-card').first().waitFor({
+                state: 'visible',
+                timeout: 10000,
+              });
+              const terminalWalletContract = await audit(
+                terminalWalletPage,
+                'wallet-expired-cancelled-390x844',
+              );
+              const terminalStatuses = await terminalWalletPage
+                .locator('.reservation-card .status')
+                .allTextContents();
+              if (terminalStatuses.length !== 2) {
+                throw new Error(
+                  'Expired/cancelled wallet states missing: ' +
+                    JSON.stringify(terminalStatuses),
+                );
+              }
+              await terminalWalletPage.screenshot({
+                path: '/tmp/ticketing-v2/wallet-expired-cancelled-390x844.png',
+                fullPage: true,
+                animations: 'disabled',
+              });
+              evidence.push({
+                case: 'wallet-expired-cancelled-390x844',
+                contract: terminalWalletContract,
+                terminalStatuses,
+              });
+              await terminalWalletContext.close();
 
               const dialogContext = await browser.newContext({ viewport: { width: 390, height: 500 } });
               const dialogPage = await dialogContext.newPage();
