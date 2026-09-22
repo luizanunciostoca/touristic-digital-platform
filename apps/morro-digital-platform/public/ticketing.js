@@ -560,9 +560,17 @@ function renderReservationSkeletons() {
 
 function dateKey(offer) {
   const value = new Date(offer?.startsAt || "");
-  return Number.isFinite(value.getTime())
-    ? value.toISOString().slice(0, 10)
-    : "";
+  if (!Number.isFinite(value.getTime())) return "";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Bahia",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : "";
 }
 
 function dateLabel(key) {
