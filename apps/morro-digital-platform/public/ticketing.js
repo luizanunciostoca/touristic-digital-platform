@@ -211,17 +211,17 @@ function heroImageFor(offer) {
 
 function friendlyError(error, fallback = copy.createReservationFailed) {
   const code = text(error?.message);
+  if (code.includes("EXHAUSTED")) return copy.soldOut;
+  if (code.includes("QUANTITY_LIMIT")) return copy.fillFields;
+  if (code.includes("INVENTORY_UNAVAILABLE")) return copy.static.unavailable;
+  if (code.includes("CURRENCY_MISMATCH")) return copy.static.currencyMismatch;
+  if (code.includes("EXPIRED")) return copy.static.quoteExpired;
   if (
     code.includes("FEATURE_DISABLED") ||
     code.includes("UNAVAILABLE") ||
     error?.status === 503
   )
     return copy.ticketingUnavailable;
-  if (code.includes("EXHAUSTED")) return copy.soldOut;
-  if (code.includes("QUANTITY_LIMIT")) return copy.fillFields;
-  if (code.includes("INVENTORY_UNAVAILABLE")) return copy.static.unavailable;
-  if (code.includes("CURRENCY_MISMATCH")) return copy.static.currencyMismatch;
-  if (code.includes("EXPIRED")) return copy.static.quoteExpired;
   if (error?.status === 409) return copy.static.priceChanged;
   if (error?.status === 400) return copy.fillFields;
   return fallback;
