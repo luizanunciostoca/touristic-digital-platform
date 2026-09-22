@@ -174,7 +174,8 @@ jobs:
               !started.welcomeVisible ||
               started.tooltipRight === null ||
               started.tooltipRight > started.viewportWidth + 1 ||
-              started.targetIdentity !== 'map-container'
+              started.targetIdentity !== 'map-container' ||
+              started.targetOverlap
             ) {
               throw new Error(`UX V2 interactive tutorial did not start correctly: ${JSON.stringify(started)}`);
             }
@@ -300,6 +301,49 @@ jobs:
             }
             evidence.overlaySkip = overlaySkipped;
             await overlaySkipContext.close();
+
+            const missingTargetContext = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'en-US' });
+            const missingTargetPage = await missingTargetContext.newPage();
+            await missingTargetPage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(missingTargetPage);
+            await missingTargetPage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await missingTargetPage.locator('[data-public-onboarding-action="start"]').click();
+            await missingTargetPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            await missingTargetPage.evaluate(() => document.getElementById('weather-widget')?.remove());
+            await missingTargetPage.locator('.tour-btn-next').click();
+            await missingTargetPage.locator('.tour-step-label').filter({ hasText: 'Step 2 of 6' }).waitFor({ state: 'visible', timeout: 3000 });
+            const missingTarget = await readState(missingTargetPage);
+            if (
+              missingTarget.targetIdentity !== null ||
+              !missingTarget.targetUnavailable ||
+              !missingTarget.capabilityNote ||
+              missingTarget.targetOverlap ||
+              !missingTarget.tourActive
+            ) {
+              throw new Error(`Missing target fallback failed: ${JSON.stringify(missingTarget)}`);
+            }
+            evidence.missingTarget = missingTarget;
+            await missingTargetContext.close();
+
+            const resizeContext = await browser.newContext({ viewport: { width: 430, height: 932 }, locale: 'en-US' });
+            const resizePage = await resizeContext.newPage();
+            await resizePage.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+            await waitForHome(resizePage);
+            await resizePage.locator('#onboarding-overlay').waitFor({ state: 'visible', timeout: 5000 });
+            await resizePage.locator('[data-public-onboarding-action="start"]').click();
+            await resizePage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
+            await resizePage.setViewportSize({ width: 390, height: 700 });
+            await resizePage.waitForTimeout(100);
+            const resized = await readState(resizePage);
+            if (
+              resized.tooltipRight === null ||
+              resized.tooltipRight > resized.viewportWidth + 1 ||
+              resized.targetOverlap
+            ) {
+              throw new Error(`Viewport recomputation failed: ${JSON.stringify(resized)}`);
+            }
+            evidence.viewportResize = resized;
+            await resizeContext.close();
 
             if (errors.length || skipErrors.length) {
               throw new Error(`Browser errors detected: ${JSON.stringify({ errors, skipErrors })}`);
