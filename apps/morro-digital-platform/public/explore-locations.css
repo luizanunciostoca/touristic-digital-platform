@@ -419,13 +419,37 @@
 
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-hero,
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-tags,
-#place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-overflow {
+#place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-overflow,
+#place-bottom-sheet[data-sheet-state="half"] .place-bottom-sheet-tags {
+  display: none;
+}
+
+#place-bottom-sheet[data-sheet-state="peek"]
+  .place-bottom-sheet-action:not(:first-child) {
+  display: none;
+}
+
+#place-bottom-sheet[data-sheet-state="peek"]:has(
+    .place-bottom-sheet-primary:not(:empty)
+  )
+  .place-bottom-sheet-actions {
   display: none;
 }
 
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-body {
   gap: var(--md-space-2);
   padding-top: var(--md-space-3);
+}
+
+body[data-md-mode="place"] #assistant-input-area,
+body[data-md-mode="place"] .analytics-consent-preferences.is-collapsed,
+body:has(
+    #explore-flow-bottom-sheet[aria-hidden="false"][data-flow-kind="explore"]
+  )
+  .analytics-consent-preferences.is-collapsed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 @media (min-width: 48rem) {
