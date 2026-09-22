@@ -278,49 +278,93 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "trials",
       "search",
     ]),
-    async search({ query, request, effectiveUser, destinationId }) {
+    searchCapability: "crm.read",
+    searchDestinationAware: false,
+    async search({ query, request, effectiveUser, limit }) {
       if (!request || !query) return [];
-      const response = jsonCaptureResponse();
-      const requestUrl = new URL("http://localhost/api/crm/leads");
-      requestUrl.searchParams.set("search", query);
-      requestUrl.searchParams.set("limit", "20");
-      if (destinationId) {
-        requestUrl.searchParams.set("destinationId", destinationId);
+      const resultLimit = Math.min(Number(limit) || 20, 50);
+
+      async function ownerList(pathname) {
+        const response = jsonCaptureResponse();
+        const requestUrl = new URL("http://localhost" + pathname);
+        await withEffectiveUser(delegation, request, effectiveUser, () =>
+          crmApi.handle(request, response, requestUrl),
+        );
+        if (response.statusCode !== 200) {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_UNAVAILABLE");
+        }
+        let payload;
+        try {
+          payload = JSON.parse(response.body || "{}");
+        } catch {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_INVALID_RESPONSE");
+        }
+        if (!Array.isArray(payload.data)) {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_INVALID_RESPONSE");
+        }
+        return payload.data;
       }
 
-      await withEffectiveUser(delegation, request, effectiveUser, () =>
-        crmApi.handle(request, response, requestUrl),
+      const leadUrl = new URL("http://localhost/api/crm/leads");
+      leadUrl.searchParams.set("search", query);
+      leadUrl.searchParams.set("limit", String(resultLimit));
+      const leads = await ownerList(
+        leadUrl.pathname + "?" + leadUrl.searchParams.toString(),
       );
-      if (response.statusCode !== 200) return [];
+      const contracts = await ownerList("/api/crm/contracts");
+      const needle = foldSearchText(query);
+      const results = [];
 
-      let payload;
-      try {
-        payload = JSON.parse(response.body || "{}");
-      } catch {
-        return [];
-      }
-      const leads = Array.isArray(payload.data) ? payload.data : [];
-      return Object.freeze(
-        leads.map((lead) =>
+      for (const lead of leads) {
+        results.push(
           Object.freeze({
-            type: "crm-lead",
+            type: "lead",
             id: String(lead.id),
             title: lead.companyName || String(lead.id),
             context:
-              [
-                lead.destinationId,
-                lead.contactName,
-                lead.email,
-                lead.stage,
-                lead.status,
-              ]
+              [lead.contactName, lead.email, lead.stage, lead.status]
                 .filter(Boolean)
                 .join(" · ") || "CRM",
-            href: "#crm",
+            href:
+              "/apps/admin-crm/public/lead-detail.html?id=" +
+              encodeURIComponent(String(lead.id)),
           }),
-        ),
-      );
+        );
+      }
+
+      for (const contract of contracts) {
+        const searchable = foldSearchText(
+          [
+            contract.id,
+            contract.title,
+            contract.leadId,
+            contract.proposalId,
+            contract.status,
+          ]
+            .filter((value) => value !== undefined && value !== null)
+            .join(" "),
+        );
+        if (!searchable.includes(needle)) continue;
+        results.push(
+          Object.freeze({
+            type: "contract",
+            id: String(contract.id),
+            title: contract.title || String(contract.id),
+            context: [
+              contract.status,
+              contract.leadId && "Lead " + contract.leadId,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            href:
+              "/apps/admin-crm/public/contracts.html?id=" +
+              encodeURIComponent(String(contract.id)),
+          }),
+        );
+      }
+      return Object.freeze(results.slice(0, resultLimit));
     },
+
     async handle({ request, response, requestUrl, effectiveUser }) {
       const relative = requestUrl.pathname.slice(`${adminPrefix}/crm`.length);
       if (!relative || relative === "/") {
