@@ -350,8 +350,9 @@ try {
       )
       .waitFor({ state: "attached", timeout: 10000 });
     await page
-      .locator('.morro-explore-marker[data-explore-category="beaches"]')
-      .first()
+      .locator(
+        '.morro-explore-marker[data-explore-category="beaches"][data-location-name="Segunda Praia"]',
+      )
       .click();
     await page
       .locator(
