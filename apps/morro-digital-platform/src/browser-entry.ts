@@ -331,7 +331,7 @@ function createTourMarkerElement(input: {
 
   const number = document.createElement("span");
   number.className = "tour-stop-number";
-  number.textContent = isFirst ? "🚩" : isLast ? "🏁" : String(stop.order);
+  number.textContent = String(stop.order);
   number.style.transform = "rotate(45deg)";
   number.style.fontSize = "13px";
   number.style.fontWeight = "700";
