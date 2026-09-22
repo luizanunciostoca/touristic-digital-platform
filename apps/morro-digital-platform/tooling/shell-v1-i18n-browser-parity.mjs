@@ -16,10 +16,8 @@ const weather = {
 
 const expected = {
   pt: {
-    headline:
-      "👋 Olá! Sou o assistente virtual do Morro Digital. Como posso ajudar você hoje?",
-    tagline:
-      "É a sua primeira vez em Morro de São Paulo? Posso te mostrar os melhores lugares para visitar.",
+    headline: "Morro de São Paulo",
+    tagline: "",
     assistantWelcome:
       "🎉 Bem-vindo ao Morro Digital! Sou seu guia virtual oficial em Morro de São Paulo, pronto para ajudar você a explorar com facilidade pontos turísticos, praias, restaurantes, festas, passeios e tudo o que precisar, na palma da sua mão. Como posso ajudar? 😄",
     mapSection: "Mapa interativo",
@@ -47,10 +45,8 @@ const expected = {
     voiceAutomatic: "Automática",
   },
   en: {
-    headline:
-      "👋 Hello! I'm the Morro Digital virtual assistant. How can I help you today?",
-    tagline:
-      "Is this your first time in Morro de São Paulo? I can show you the best places to visit.",
+    headline: "Morro de São Paulo",
+    tagline: "",
     assistantWelcome:
       "🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄",
     mapSection: "Interactive map",
@@ -78,10 +74,8 @@ const expected = {
     voiceAutomatic: "Automatic",
   },
   es: {
-    headline:
-      "👋 ¡Hola! Soy el asistente virtual de Morro Digital. ¿Cómo puedo ayudarte hoy?",
-    tagline:
-      "¿Es tu primera vez en Morro de São Paulo? Puedo mostrarte los mejores lugares para visitar.",
+    headline: "Morro de São Paulo",
+    tagline: "",
     assistantWelcome:
       "🎉 ¡Bienvenido a Morro Digital! Soy tu guía virtual oficial de Morro de São Paulo, listo para ayudarte a explorar fácilmente lugares turísticos, playas, restaurantes, fiestas, paseos y todo lo que necesites al alcance de tu mano. ¿Cómo puedo ayudarte? 😄",
     mapSection: "Mapa interactivo",
@@ -109,10 +103,8 @@ const expected = {
     voiceAutomatic: "Automática",
   },
   he: {
-    headline:
-      "👋 שלום! אני העוזר הווירטואלי של מורו דיגיטל. איך אוכל לעזור לך היום?",
-    tagline:
-      "האם זו הפעם הראשונה שלך במורו דה סאו פאולו? אני יכול להראות לך את המקומות הטובים ביותר לבקר.",
+    headline: "Morro de São Paulo",
+    tagline: "",
     assistantWelcome:
       "🎉 ברוכים הבאים ל-Morro Digital! אני המדריך הווירטואלי הרשמי שלכם למורו דה סאו פאולו, מוכן לעזור לכם לגלות בקלות אתרי תיירות, חופים, מסעדות, מסיבות, סיורים וכל מה שאתם צריכים — ממש בהישג יד. איך אוכל לעזור? 😄",
     mapSection: "מפה אינטראקטיבית",
