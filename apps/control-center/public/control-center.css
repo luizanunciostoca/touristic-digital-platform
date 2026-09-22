@@ -1822,6 +1822,11 @@ html[data-control-motion="reduced"] *::after {
 }
 
 @media (pointer: coarse), (max-width: 900px) {
+  .icon-button {
+    width: 44px;
+    min-width: 44px;
+  }
+
   button,
   .nav-item,
   .scope-button,
