@@ -3,11 +3,11 @@ import {
   type MapboxGlMapLike,
   type MapboxGlModuleLike,
 } from "@touristic/geospatial";
-import type {
-  NavigationPhase,
-  NavigationRuntimeSnapshot,
-  RoutingProvider,
+import {
   getRecalculationThresholdMeters,
+  type NavigationPhase,
+  type NavigationRuntimeSnapshot,
+  type RoutingProvider,
 } from "@touristic/navigation";
 
 import {
