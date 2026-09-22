@@ -589,7 +589,6 @@ body[data-md-mode="assistant"] .assistant-option-btn {
   }
 }
 
-
 /* Navigation / Tour manual convergence — mode-priority presentation authority. */
 #navigation-summary {
   display: none;
@@ -737,7 +736,6 @@ body[data-md-mode="navigation"] #navigation-summary .end-navigation-btn:active {
     box-shadow: none;
   }
 }
-
 
 body[data-md-mode="navigation"] #instruction-banner .instruction-copy {
   min-width: 0;
