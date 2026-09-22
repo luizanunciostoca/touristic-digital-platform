@@ -116,10 +116,10 @@ describe("Financial owner admin aggregate reads", () => {
     expect(execute).toHaveBeenCalledTimes(1);
     expect(execute.mock.calls[0]?.[0]).toContain("f.state = 'open'");
     expect(execute.mock.calls[0]?.[0]).toContain("COUNT(*) OVER()");
+    expect(execute.mock.calls[0]?.[0]).toContain("LIMIT 10");
     expect(execute.mock.calls[0]?.[1]).toEqual([
       "pay_admin_0001",
       "pay_admin_0002",
-      10,
     ]);
   });
 });
