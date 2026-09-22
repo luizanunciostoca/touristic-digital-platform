@@ -21,6 +21,7 @@ import {
   hasLeafletCompatibilitySdk,
 } from "./development/leaflet-compatibility-sdk.js";
 import { createDevelopmentMapboxSdk } from "./development/mapbox-sdk.js";
+import { installHomeDiscoverNavigation } from "./home/home-discover-navigation.js";
 import { bootstrapMorroDigitalApplication } from "./main.js";
 import {
   installBrowserNavigationRuntime,
@@ -77,12 +78,16 @@ const SPLASH_FADE_MS = 550;
 
 initializeMorroBrowserLocale({ document });
 const browserAnalytics = installMorroBrowserAnalytics({ document, window });
-installBrowserAnalyticsConsentPreferences({
+const privacyPreferences = installBrowserAnalyticsConsentPreferences({
   document,
   controller: browserAnalytics,
 });
 
 const application = bootstrapMorroDigitalApplication(document);
+installHomeDiscoverNavigation({
+  document,
+  openPrivacyPreferences: () => privacyPreferences.open(),
+});
 initializeWeatherWidget({ document });
 
 function setupV1ShellInteractions(): void {
