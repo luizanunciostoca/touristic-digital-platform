@@ -1027,6 +1027,14 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   margin-bottom: var(--md-space-2);
 }
 
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-thumb {
+  flex: 0 0 auto;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--md-radius-sm);
+  object-fit: cover;
+}
+
 #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-tour-title {
   min-width: 0;
   overflow: hidden;
@@ -1051,6 +1059,30 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   font-size: var(--md-font-size-xs);
   font-weight: var(--md-font-weight-bold);
   text-align: center;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-progress-segments {
+  display: grid;
+  gap: var(--md-space-1);
+  width: 100%;
+  margin: 0 0 var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-progress-segment {
+  height: 0.25rem;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-border);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-segment:is(.is-complete, .is-current) {
+  background: var(--md-color-success);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-segment.is-current {
+  transform: scaleY(1.45);
+  transform-origin: center;
 }
 
 body:has(#map[data-tour-flow-stage="stop"])
@@ -1271,8 +1303,39 @@ body:has(#map[data-tour-flow-stage="stop"])
 
 body:has(#map[data-tour-flow-stage="stop"])
   #explore-flow-bottom-sheet[data-flow-kind="tour"]
-  .tour-tips {
+  .tour-stop-progress-segments {
+  grid-column: 1 / -1;
+  grid-row: 3;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-photo-wrap {
+  grid-row: 4 / span 3;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-header {
+  grid-row: 4;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-desc {
+  grid-row: 5;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-narration-btn {
   grid-row: 6;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-tips {
+  grid-row: 7;
 }
 
 body:has(#map[data-tour-flow-stage="stop"])
