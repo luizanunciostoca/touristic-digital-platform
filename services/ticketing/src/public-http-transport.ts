@@ -454,12 +454,10 @@ export class TicketingPublicHttpTransport {
         const body = record(request.body);
         const inventoryId =
           typeof body?.inventoryId === "string" ? body.inventoryId : "";
-        const quantity = body?.quantity;
+        const quantity =
+          typeof body?.quantity === "number" ? body.quantity : Number.NaN;
         const now = canonicalNow(this.dependencies.clock);
-        if (
-          !Number.isSafeInteger(quantity) ||
-          Number(quantity) < 1
-        ) {
+        if (!Number.isSafeInteger(quantity) || quantity < 1) {
           return response(
             400,
             { error: "TICKETING_QUANTITY_INVALID" },
@@ -491,7 +489,7 @@ export class TicketingPublicHttpTransport {
           inventory.maxPerReservation,
           availability.remainingQuantity,
         );
-        if (Number(quantity) > maximum) {
+        if (quantity > maximum) {
           return response(
             409,
             {
@@ -501,7 +499,7 @@ export class TicketingPublicHttpTransport {
             correlation,
           );
         }
-        const totalMinorUnits = inventory.unitAmount.minorUnits * Number(quantity);
+        const totalMinorUnits = inventory.unitAmount.minorUnits * quantity;
         const totalAmount = createMoney(
           totalMinorUnits,
           inventory.unitAmount.currency,
@@ -523,7 +521,7 @@ export class TicketingPublicHttpTransport {
           {
             data: Object.freeze({
               inventoryId: inventory.id,
-              quantity: Number(quantity),
+              quantity,
               unitAmount: inventory.unitAmount,
               totalAmount,
               pricingVersion: inventory.pricingVersion,
