@@ -506,8 +506,8 @@ async function renderOverview() {
         label: item.title ?? item.kind ?? item.id ?? "Atenção",
         detail:
           item.detail ??
-          [item.severity, item.destinationId].filter(Boolean).join(" · ") ||
-          "owner-backed",
+          ([item.severity, item.destinationId].filter(Boolean).join(" · ") ||
+            "owner-backed"),
         source: item.destinationId
           ? `dashboard-owner:${item.destinationId}`
           : "dashboard-owner",
