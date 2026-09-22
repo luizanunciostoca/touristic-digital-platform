@@ -283,8 +283,10 @@ jobs:
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
-              const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]');
-              await placeSheet.waitFor({ state: 'visible', timeout: 8000 });
+              const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"]');
+              await page.locator(
+                '#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]',
+              ).waitFor({ state: 'visible', timeout: 8000 });
               const placeHandle = placeSheet.locator('.place-bottom-sheet-drag-handle');
               await placeHandle.focus();
               const handleRole = await placeHandle.getAttribute('role');
