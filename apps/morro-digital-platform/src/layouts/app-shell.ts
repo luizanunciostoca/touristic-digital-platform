@@ -320,6 +320,62 @@ function synchronizeHomeVisualState(document: Document): () => void {
   return () => observer?.disconnect();
 }
 
+function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
+  const shell = document.querySelector<HTMLElement>(".md-tourist-shell-v2");
+  const messages = document.getElementById("assistant-messages");
+  const composer = document.getElementById("assistant-input-area");
+  const navigation = document.getElementById("home-bottom-navigation");
+  if (!shell || !messages || !composer || !navigation) return null;
+
+  let dock = document.getElementById("unified-assistant-dock");
+  if (!(dock instanceof HTMLElement)) {
+    dock = document.createElement("section");
+    dock.id = "unified-assistant-dock";
+    dock.className = "md-unified-assistant-dock";
+    dock.setAttribute("aria-label", "Assistente e navegação principal");
+    dock.dataset.unifiedAssistantDock = "true";
+    messages.before(dock);
+  }
+
+  messages.classList.remove("assistant-modal", "auto-size", "grow-upward");
+  messages.classList.add("md-assistant-message-region");
+  messages.setAttribute("role", "region");
+  messages.setAttribute("aria-modal", "false");
+  messages.removeAttribute("tabindex");
+  messages.querySelector<HTMLElement>(".messages-area")?.classList.add(
+    "md-assistant-message-scroll",
+  );
+
+  dock.append(messages, composer, navigation);
+  document.body.dataset.mdUnifiedDock = "true";
+  return dock;
+}
+
+function synchronizeUnifiedAssistantDockInset(
+  document: Document,
+  dock: HTMLElement | null,
+): void {
+  if (!dock) return;
+  const root = document.documentElement;
+  const update = (): void => {
+    const height = Math.max(0, Math.ceil(dock.getBoundingClientRect().height));
+    root.style.setProperty("--md-unified-dock-height", `${height}px`);
+    root.style.setProperty(
+      "--md-unified-dock-map-inset",
+      `${Math.max(0, height + 16)}px`,
+    );
+  };
+
+  update();
+  const ResizeObserverConstructor = document.defaultView?.ResizeObserver;
+  const resizeObserver = ResizeObserverConstructor
+    ? new ResizeObserverConstructor(update)
+    : undefined;
+  resizeObserver?.observe(dock);
+  document.defaultView?.addEventListener("resize", update);
+  document.defaultView?.visualViewport?.addEventListener("resize", update);
+}
+
 function synchronizeAssistantLayout(document: Document): void {
   const assistantMessages = document.getElementById("assistant-messages");
   const messagesArea =
@@ -335,7 +391,10 @@ function synchronizeAssistantLayout(document: Document): void {
       ),
     );
     const carouselContainers = messagesArea.querySelectorAll(
-      ".carousel-container",
+      ".carousel-container, .assistant-photo-carousel",
+    );
+    const richInteractiveContainers = messagesArea.querySelectorAll(
+      ".assistant-options, #assistant-category-results, .assistant-photo-carousel, .assistant-photo-back-options",
     );
     const totalTextLength = textMessages.reduce(
       (total, message) => total + (message.textContent?.length ?? 0),
@@ -346,6 +405,7 @@ function synchronizeAssistantLayout(document: Document): void {
       "has-long-text",
       "has-short-text",
       "has-mixed-content",
+      "has-rich-content",
     );
 
     if (totalTextLength > 500) {
@@ -356,6 +416,9 @@ function synchronizeAssistantLayout(document: Document): void {
 
     if (textMessages.length > 0 && carouselContainers.length > 0) {
       assistantMessages.classList.add("has-mixed-content");
+    }
+    if (richInteractiveContainers.length > 0) {
+      assistantMessages.classList.add("has-rich-content");
     }
 
     const hasOverflow = messagesArea.scrollHeight > messagesArea.clientHeight;
@@ -368,6 +431,17 @@ function synchronizeAssistantLayout(document: Document): void {
 
   update();
   document.defaultView?.addEventListener("resize", update);
+  const MutationObserverConstructor = document.defaultView?.MutationObserver;
+  const mutationObserver = MutationObserverConstructor
+    ? new MutationObserverConstructor(update)
+    : undefined;
+  mutationObserver?.observe(messagesArea, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["class", "hidden", "aria-hidden"],
+  });
   void document.fonts.ready.then(update);
 }
 
@@ -378,7 +452,9 @@ export function mountAppShell({ document }: AppShellMountOptions): HTMLElement {
   }
 
   root.innerHTML = createAppShellMarkup();
+  const unifiedDock = composeUnifiedAssistantDock(document);
   synchronizeHomeVisualState(document);
   synchronizeAssistantLayout(document);
+  synchronizeUnifiedAssistantDockInset(document, unifiedDock);
   return root;
 }
