@@ -7,6 +7,14 @@ const source = readFileSync(
   "utf8",
 );
 
+const homeSource = readFileSync(
+  new URL(
+    "../../../control-center/public/control-center-home-overview-v1.js",
+    import.meta.url,
+  ),
+  "utf8",
+);
+
 describe("Control Center high-information administrative surfaces", () => {
   it("provides functional, accessible Entity 360 tabs for Business, Affiliate and User", () => {
     expect(source).toContain('role="tab"');
@@ -54,30 +62,23 @@ describe("Control Center high-information administrative surfaces", () => {
   });
 
   it("renders Dashboard owner states without synthesizing unavailable values", () => {
-    expect(source).toContain(
-      'readOwnerProjection("/affiliates?limit=250", "data")',
-    );
-    expect(source).toContain(
-      'readOwnerProjection("/destinations", "destinations")',
-    );
-    expect(source).toContain(
-      'readOwnerProjection("/audit?limit=20", "entries")',
-    );
-    expect(source).toContain("Precisa de atenção");
-    expect(source).toContain("Destination Summary");
-    expect(source).toContain("Affiliate Summary");
-    expect(source).toContain("Afiliados carregados (máx. 250)");
-    expect(source).toContain("no recorte carregado");
-    expect(source).toContain("dashboard.attention");
-    expect(source).toContain("dashboard.destinationSummary");
-    expect(source).toContain("dashboardAggregateState");
-    expect(source).toContain("Alertas conhecidos");
-    expect(source).toContain("nenhum valor foi inferido");
-    expect(source).toContain('return "unavailable"');
-    expect(source).toContain('"partial"');
-    expect(source).toContain('"success"');
-    expect(source).toContain('"empty"');
-    expect(source).not.toContain("Quick Actions");
+    expect(homeSource).toContain('api("/affiliates?limit=250")');
+    expect(homeSource).toContain('api("/destinations")');
+    expect(homeSource).toContain('api("/audit?limit=20")');
+    expect(homeSource).toContain("Precisa da sua atenção");
+    expect(homeSource).toContain("Resumo por destino");
+    expect(homeSource).toContain("Afiliados são da Morro Digital");
+    expect(homeSource).toContain("recorte não vira total");
+    expect(homeSource).toContain("dashboard.attention");
+    expect(homeSource).toContain("dashboard.destinationSummary");
+    expect(homeSource).toContain("allowedDestinations.has(item.destinationId)");
+    expect(homeSource).toContain("summaryById.get(destination.id)");
+    expect(homeSource).toContain("nenhum total é inferido");
+    expect(homeSource).toContain('"unavailable"');
+    expect(homeSource).toContain('"partial"');
+    expect(homeSource).toContain('"success"');
+    expect(homeSource).toContain('"empty"');
+    expect(homeSource).not.toContain("Quick Actions");
   });
 
   it("projects authoritative Recent Activity with actor/effectiveUser, destination, entity, result, value and deep links", () => {
