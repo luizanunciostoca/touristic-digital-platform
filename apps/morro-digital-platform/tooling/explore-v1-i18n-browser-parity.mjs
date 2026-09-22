@@ -298,17 +298,31 @@ async function readFlow(page) {
 }
 
 async function readDynamic(page) {
-  const placeSheetOptions = page.locator(
-    '#place-bottom-sheet[aria-hidden="false"] .place-bottom-sheet-action',
-  );
+  const placeSheet = page.locator('#place-bottom-sheet[aria-hidden="false"]');
+  const placeSheetOptions = placeSheet.locator(".place-bottom-sheet-action");
   if ((await placeSheetOptions.count()) > 0) {
+    const rows = await placeSheetOptions.evaluateAll((buttons) =>
+      buttons.map((button) => ({
+        label: button.textContent?.trim() ?? "",
+        value: button.getAttribute("data-value"),
+        overflow: Boolean(button.closest(".place-bottom-sheet-overflow-actions")),
+      })),
+    );
+    const visible = rows.filter((row) => !row.overflow);
+    const overflow = rows.filter((row) => row.overflow);
+    const directions = visible.find((row) => row.value === "como chegar");
+    const save = visible.find((row) => row.value === "adicionar aos favoritos");
+    const share = visible.find((row) => row.value === "compartilhar");
+    const ordered = [
+      overflow[0],
+      directions,
+      ...overflow.slice(1),
+      save,
+      share,
+    ].filter(Boolean);
     return {
-      labels: await placeSheetOptions
-        .allTextContents()
-        .then((items) => items.map((item) => item.trim())),
-      values: await placeSheetOptions.evaluateAll((buttons) =>
-        buttons.map((button) => button.getAttribute("data-value")),
-      ),
+      labels: ordered.map((row) => row.label),
+      values: ordered.map((row) => row.value),
     };
   }
 
@@ -442,6 +456,9 @@ try {
     )
     .click();
   await page
+    .locator("#place-bottom-sheet .place-bottom-sheet-overflow-summary")
+    .click();
+  await page
     .locator(
       '#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]',
     )
@@ -488,6 +505,9 @@ try {
     .waitFor({ state: "visible" });
   await page
     .locator('#assistant-category-results [data-location-name="Morena Bela"]')
+    .click();
+  await page
+    .locator("#place-bottom-sheet .place-bottom-sheet-overflow-summary")
     .click();
   await page
     .locator(
