@@ -15,9 +15,7 @@ describe("UX Design V2 component-state contract", () => {
 
     expect(css).toContain('.md-button[aria-busy="true"]::before');
     expect(css).toContain("animation: md-spin 700ms linear infinite");
-    expect(css).toContain(
-      ':is(.md-input, .md-textarea, .md-select):disabled',
-    );
+    expect(css).toContain(":is(.md-input, .md-textarea, .md-select):disabled");
     expect(css).toContain("background: var(--md-color-surface-subtle)");
     expect(css).toContain("opacity: var(--md-state-disabled-opacity)");
   });
