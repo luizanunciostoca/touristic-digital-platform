@@ -351,10 +351,12 @@ export function installBrowserNavigationRuntime(
       guidanceUi.status?.(failure.message, failure.tone);
     },
   });
-  options.document.addEventListener(
-    NAVIGATION_RECENTER_REQUEST_EVENT,
-    onRecenterRequested,
-  );
+  if (typeof options.document.addEventListener === "function") {
+    options.document.addEventListener(
+      NAVIGATION_RECENTER_REQUEST_EVENT,
+      onRecenterRequested,
+    );
+  }
   const explore = getMorroDigitalApplication(
     options.document,
   )?.exploreLocations;
@@ -383,10 +385,12 @@ export function installBrowserNavigationRuntime(
         onNavigationStarted,
       );
       eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
-      options.document.removeEventListener(
-        NAVIGATION_RECENTER_REQUEST_EVENT,
-        onRecenterRequested,
-      );
+      if (typeof options.document.removeEventListener === "function") {
+        options.document.removeEventListener(
+          NAVIGATION_RECENTER_REQUEST_EVENT,
+          onRecenterRequested,
+        );
+      }
       contextualSuggestions?.destroy();
       assistantFeedback.destroy();
       assistant.destroy();
