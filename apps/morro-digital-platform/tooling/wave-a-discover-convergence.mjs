@@ -155,7 +155,11 @@ function inside(rect, width, height, tolerance = 2) {
 }
 
 const browser = await chromium.launch({ headless: true });
-const evidence = { authority: "IMG_2421.PNG smartphone 1 + UX Design V2", viewports: [], negatives: {} };
+const evidence = {
+  authority: "IMG_2421.PNG smartphone 1 + UX Design V2",
+  viewports: [],
+  negatives: {},
+};
 
 try {
   for (const viewport of viewports) {
@@ -179,11 +183,18 @@ try {
         body: JSON.stringify(weather),
       }),
     );
-    await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(BASE_URL, {
+      waitUntil: "domcontentloaded",
+      timeout: 30000,
+    });
     await waitReady(page);
 
     const initial = await inspect(page);
-    assert(initial.mode === "discover", "Discover is not initial mode", initial);
+    assert(
+      initial.mode === "discover",
+      "Discover is not initial mode",
+      initial,
+    );
     assert(
       initial.map &&
         Math.abs(initial.map.left) <= 2 &&
@@ -193,7 +204,11 @@ try {
       "Map is not the dominant full viewport canvas",
       initial.map,
     );
-    assert(initial.markerCount >= 5, "Initial app-owned POIs are not evident", initial);
+    assert(
+      initial.markerCount >= 5,
+      "Initial app-owned POIs are not evident",
+      initial,
+    );
     assert(
       initial.dataMarkerCount === 0 &&
         initial.discoverPoiCount === initial.markerCount,
@@ -365,12 +380,21 @@ try {
     });
     assert(pageErrors.length === 0, "Browser page errors", pageErrors);
     assert(consoleErrors.length === 0, "Browser console errors", consoleErrors);
-    evidence.viewports.push({ viewport, initial, recentered, longDestination, pageErrors, consoleErrors });
+    evidence.viewports.push({
+      viewport,
+      initial,
+      recentered,
+      longDestination,
+      pageErrors,
+      consoleErrors,
+    });
     await context.close();
   }
 
   {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    });
     await seed(context);
     await context.addInitScript(() => {
       Object.defineProperty(navigator, "permissions", {
@@ -388,7 +412,11 @@ try {
     });
     const page = await context.newPage();
     await page.route("**/api/weather", (route) =>
-      route.fulfill({ status: 503, contentType: "application/json", body: "{}" }),
+      route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        body: "{}",
+      }),
     );
     await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page
@@ -411,7 +439,11 @@ try {
         zoom: map?.getZoom?.(),
       };
     });
-    assert(geoState === "denied", "Denied geolocation state was not exposed", geoState);
+    assert(
+      geoState === "denied",
+      "Denied geolocation state was not exposed",
+      geoState,
+    );
     assert(
       deniedCamera.center &&
         Math.abs(deniedCamera.center.lng - -38.9167) < 0.02 &&
@@ -429,7 +461,11 @@ try {
       path: `${OUTPUT_DIR}/after-390x844-negative-states.png`,
       animations: "disabled",
     });
-    evidence.negatives = { weather: "error", geolocation: geoState, layout: negative };
+    evidence.negatives = {
+      weather: "error",
+      geolocation: geoState,
+      layout: negative,
+    };
     await context.close();
   }
 
