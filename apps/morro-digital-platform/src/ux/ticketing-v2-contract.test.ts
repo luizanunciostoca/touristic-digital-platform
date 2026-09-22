@@ -139,9 +139,9 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain("if (state.submitting) return");
     expect(runtime).toContain("reservationAttemptReference");
     expect(runtime).toContain("pendingCheckoutState");
-    expect(runtime).toContain("Retomar pagamento");
+    expect(runtime).toContain("copy.static.resumePayment");
     expect(runtime).toContain("QUOTE_CURRENCY_MISMATCH");
-    expect(runtime).toContain("Preço ou disponibilidade mudou");
+    expect(runtime).toContain("copy.static.priceChanged");
     expect(runtime).toContain("friendlyError");
     expect(experience).toContain(
       'for (const key of ["place", "source", "lang", "locale"])',
@@ -215,7 +215,7 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(runtime).toContain("elements.quantityDecrease.disabled");
     expect(runtime).toContain("elements.quantityIncrease.disabled");
     expect(runtime).not.toContain('setMessage(error.message || copy.ticketingUnavailable');
-    expect(runtime).toContain("Nenhuma experiência disponível agora");
+    expect(runtime).toContain("copy.static.emptyTitle");
     expect(runtime).toContain("privacyPreferences.open()");
   });
 
