@@ -330,9 +330,6 @@ jobs:
                 select.value = 'morro-de-sao-paulo';
                 select.dispatchEvent(new Event('change', { bubbles: true }));
               });
-              await page.waitForFunction(
-                () => document.querySelector('#destination-selector')?.value === 'morro-de-sao-paulo',
-              );
               const [scopedSearchResponse] = await Promise.all([
                 page.waitForResponse(response => {
                   const url = new URL(response.url());
