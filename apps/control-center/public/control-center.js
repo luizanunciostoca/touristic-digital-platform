@@ -2049,6 +2049,15 @@ async function renderAffiliates(affiliateId) {
           (membership) => membership.destinationId === selectedDestinationId,
         )
       : allMemberships;
+  const auditResult = await readOwnerProjection("/audit?limit=250", "entries");
+  const affiliateMembershipEntityIds = memberships.map(
+    (membership) => `${affiliateId}:${membership.programId}`,
+  );
+  const affiliateAuditEntries = canonicalEntityAudit(auditResult.data, {
+    kind: "affiliate",
+    id: affiliateId,
+    relatedEntityIds: affiliateMembershipEntityIds,
+  });
   const summaries = detail.summaryByCurrency ?? [];
   const conversions = detail.conversions ?? [];
   const supportActive = Boolean(state.adminSession?.support);
