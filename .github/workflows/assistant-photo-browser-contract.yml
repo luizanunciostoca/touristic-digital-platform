@@ -209,7 +209,9 @@ jobs:
               await waitForMap(page);
               await openAssistant(page);
 
-              await page.locator('#assistant-category-beaches').click();
+              await page
+                .locator('#assistant-category-beaches')
+                .evaluate((button) => button.click());
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({
                 state: 'visible',
                 timeout: 5000,
