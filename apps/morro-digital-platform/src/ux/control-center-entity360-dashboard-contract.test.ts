@@ -34,8 +34,9 @@ describe("Control Center high-information administrative surfaces", () => {
     expect(source).toContain("entry.tenantId === relation.id");
     expect(source).toContain('href="#users:${encodeURIComponent(member.id)}"');
     expect(source).toContain(
-      'href="#businesses:${encodeURIComponent(businessId)}"',
+      "relationshipsContent = (selectedUser.businessIds ?? []).length",
     );
+    expect(source).toContain('href="#businesses:${encodeURIComponent(');
     expect(source).toContain('data-destination-relation="unavailable"');
     expect(source).toContain("não atribuído pelo owner; não inferido");
   });
