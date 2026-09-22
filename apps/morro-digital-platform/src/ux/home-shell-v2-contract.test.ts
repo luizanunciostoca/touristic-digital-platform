@@ -44,6 +44,8 @@ describe("Home / Discover V2 visual shell", () => {
     expect(shell).toContain(
       "assistant-input-area md-assistant-composer md-card",
     );
+    expect(shell).toContain("composeUnifiedAssistantDock");
+    expect(shell).toContain('dock.id = "unified-assistant-dock"');
     expect(shell).toContain("map-control-button md-icon-button md-map-control");
     expect(shell).not.toContain("weather-widget compact");
     expect(shell).not.toContain("data-compatibility-state");
@@ -85,6 +87,7 @@ describe("Home / Discover V2 visual shell", () => {
       'body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed',
     );
     expect(css).toContain("#weather-widget.md-weather-control");
+    expect(css).toContain("#unified-assistant-dock.md-unified-assistant-dock");
     expect(css).toContain("#assistant-input-area.md-assistant-composer");
     expect(css).toContain("flex: 1 1 auto");
     expect(css).not.toMatch(/#configButton\s*\{[^}]*display:\s*none/isu);
