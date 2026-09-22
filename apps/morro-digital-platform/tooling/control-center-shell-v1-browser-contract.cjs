@@ -272,6 +272,11 @@ async function login(page) {
         }
       }
 
+      await page.screenshot({
+        path: `/tmp/control-center-shell-v1-${viewport.label}.png`,
+        fullPage: false,
+      });
+
       evidence.viewports.push({
         ...viewport,
         ...geometry,
