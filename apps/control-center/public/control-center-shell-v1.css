@@ -554,25 +554,7 @@ a:focus-visible,
     min-height: 42px;
   }
 
-  .scope-label {
-    display: none;
-  }
-
-  .destination-control {
-    max-width: 148px;
-  }
-
-  .destination-control select {
-    max-width: 114px;
-  }
-}
-
-@media (max-width: 900px) {
-  .control-center-topbar {
-    grid-template-columns: 44px minmax(96px, 132px) auto minmax(150px, 1fr) auto;
-  }
-
-  .brand-wordmark__product,
+  .scope-label,
   .profile-name,
   .profile-chevron {
     display: none;
@@ -584,6 +566,24 @@ a:focus-visible,
     justify-content: center;
   }
 
+  .destination-control {
+    max-width: 170px;
+  }
+
+  .destination-control select {
+    max-width: 136px;
+  }
+}
+
+@media (max-width: 900px) {
+  .control-center-topbar {
+    grid-template-columns: 44px minmax(96px, 132px) auto minmax(150px, 1fr) auto;
+  }
+
+  .brand-wordmark__product {
+    display: none;
+  }
+
   .shell-search kbd {
     display: none;
   }
@@ -591,17 +591,37 @@ a:focus-visible,
 
 @media (max-width: 767px) {
   .control-center-topbar {
-    grid-template-columns: 44px minmax(92px, 1fr) minmax(96px, 1.2fr) auto;
-    gap: 6px;
-    padding-inline: 8px;
+    grid-template-columns:
+      44px minmax(72px, 96px) minmax(92px, 118px)
+      minmax(44px, 1fr) auto;
+    gap: 4px;
+    padding-inline: 6px;
   }
 
   .scope-controls {
+    display: flex;
+    min-width: 0;
+  }
+
+  .scope-button {
     display: none;
   }
 
+  .destination-control {
+    width: 100%;
+    max-width: 118px;
+    min-height: 40px;
+    padding-inline: 7px;
+  }
+
+  .destination-control select {
+    max-width: 88px;
+    font-size: 11px;
+    text-overflow: ellipsis;
+  }
+
   .brand-wordmark__name {
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .shell-search {
@@ -639,7 +659,7 @@ a:focus-visible,
 
 @media (max-width: 430px) {
   .control-center-topbar {
-    grid-template-columns: 44px minmax(76px, 1fr) 44px auto;
+    grid-template-columns: 44px minmax(72px, 84px) minmax(88px, 104px) 44px auto;
   }
 
   .shell-search {
