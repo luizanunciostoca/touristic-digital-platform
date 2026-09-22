@@ -1010,7 +1010,7 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   .morro-explore-marker-cluster {
   width: 2.625rem !important;
   height: 2.625rem !important;
-  border-width: 3px !important;
+  border-width: 0.1875rem !important;
   font-size: var(--md-font-size-sm) !important;
   font-weight: var(--md-font-weight-bold) !important;
 }
@@ -1210,10 +1210,10 @@ body:has(#map[data-tour-flow-stage="intro"])
 
 #map[data-tour-flow-stage="stop"] .tour-stop-pin.tour-stop-active {
   transform: rotate(-45deg) scale(1.16) !important;
-  border-width: 3px !important;
+  border-width: 0.1875rem !important;
   box-shadow:
-    0 0 0 5px color-mix(in srgb, var(--md-color-brand) 24%, transparent),
-    0 4px 14px rgb(15 23 42 / 0.34) !important;
+    0 0 0 0.3125rem color-mix(in srgb, var(--md-color-brand) 24%, transparent),
+    0 0.25rem 0.875rem rgb(15 23 42 / 0.34) !important;
 }
 
 #map[data-tour-flow-stage="stop"] .tour-stop-number {
