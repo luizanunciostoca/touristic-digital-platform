@@ -1252,10 +1252,20 @@ body[data-md-mode="discover"] #weather-widget.md-weather-control {
 
 body[data-md-mode="discover"]
   #weather-widget.md-weather-control
+  .weather-compact-main,
+body[data-md-mode="discover"]
+  #weather-widget.md-weather-control
+  .md-weather-control-content {
+  flex-direction: row;
+}
+
+body[data-md-mode="discover"]
+  #weather-widget.md-weather-control
   .weather-emoji {
   flex-basis: 1.5rem;
   width: 1.5rem;
   height: 1.5rem;
+  margin: 0;
   font-size: var(--md-font-size-lg);
 }
 
@@ -1265,9 +1275,18 @@ body[data-md-mode="discover"] #weather-widget.md-weather-control .weather-temp {
 
 body[data-md-mode="discover"]
   #weather-widget.md-weather-control[data-weather-state="error"] {
-  width: auto;
-  min-width: var(--md-touch-target-min);
-  max-width: 7rem;
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
+  height: 3.25rem;
+}
+
+body[data-md-mode="discover"]
+  #weather-widget.md-weather-control[data-weather-state="error"]
+  .weather-error {
+  font-size: 0.625rem;
+  line-height: 1.05;
+  -webkit-line-clamp: 3;
 }
 
 body[data-md-mode="discover"] .md-home-header {
