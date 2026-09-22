@@ -60,8 +60,8 @@ async function main() {
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await page
+      .locator('[data-entity-panel="overview"]')
       .getByText("BUSINESS_MANAGER", { exact: true })
-      .first()
       .waitFor({ timeout: 15_000 });
 
     await openActions();
@@ -73,8 +73,8 @@ async function main() {
     await statusForm.locator('input[name="confirmation"]').fill("BLOQUEAR");
     await statusForm.getByRole("button", { name: "Bloquear conta" }).click();
     await page
+      .locator('[data-entity-panel="overview"]')
       .getByText("blocked", { exact: true })
-      .first()
       .waitFor({ timeout: 15_000 });
 
     const blocked = await browser.newContext();
@@ -104,8 +104,8 @@ async function main() {
     await statusForm.locator('input[name="confirmation"]').fill("REATIVAR");
     await statusForm.getByRole("button", { name: "Reativar conta" }).click();
     await page
+      .locator('[data-entity-panel="overview"]')
       .getByText("active", { exact: true })
-      .first()
       .waitFor({ timeout: 15_000 });
 
     await openActions();
@@ -119,8 +119,8 @@ async function main() {
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await page
+      .locator('[data-entity-panel="overview"]')
       .getByText("BUSINESS_OWNER", { exact: true })
-      .first()
       .waitFor({ timeout: 15_000 });
 
     console.log("CONTROL_CENTER_USERS_BROWSER_PASS");
