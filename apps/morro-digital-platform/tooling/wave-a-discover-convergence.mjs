@@ -195,8 +195,9 @@ try {
     );
     assert(initial.markerCount >= 5, "Initial app-owned POIs are not evident", initial);
     assert(
-      initial.discoverPoiCount === initial.markerCount,
-      "Initial Discover POI count is not deterministic",
+      initial.dataMarkerCount === 0 &&
+        initial.discoverPoiCount === initial.markerCount,
+      "Initial Discover POIs leaked into the V1 marker lifecycle",
       initial,
     );
     assert(
