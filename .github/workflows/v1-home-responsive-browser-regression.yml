@@ -411,6 +411,7 @@ jobs:
                     const node = document.querySelector(selector);
                     if (!(node instanceof HTMLElement)) return null;
                     const box = node.getBoundingClientRect();
+                    if (box.width <= 0 || box.height <= 0) return null;
                     return { width: box.width, height: box.height };
                   };
                   return {

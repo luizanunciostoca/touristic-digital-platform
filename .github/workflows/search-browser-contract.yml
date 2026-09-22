@@ -98,14 +98,24 @@ jobs:
                 localStorage.setItem('morro-digital-onboarded', '1');
                 localStorage.setItem('voice-enabled', 'false');
 
-                const [{ mountAppShell }, { installAssistantShellUi }, runtimeModule] = await Promise.all([
+                const [
+                  { mountAppShell },
+                  { installAssistantShellUi },
+                  { installHomeDiscoverNavigation },
+                  runtimeModule,
+                ] = await Promise.all([
                   import('/apps/morro-digital-platform/dist/layouts/app-shell.js'),
                   import('/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js'),
+                  import('/apps/morro-digital-platform/dist/home/home-discover-navigation.js'),
                   import('/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js'),
                 ]);
 
                 mountAppShell({ document });
                 document.getElementById('loading-overlay')?.remove();
+                globalThis.__searchHomeNavigation = installHomeDiscoverNavigation({
+                  document,
+                  openPrivacyPreferences() {},
+                });
                 globalThis.__searchShell = installAssistantShellUi({ document, focusDelayMs: 0 });
                 globalThis.__searchContract = { starts: [], stops: 0, selectedValues: [] };
                 document.addEventListener('morro:assistant-option-selected', event => {
@@ -220,6 +230,7 @@ jobs:
               await page.evaluate(() => {
                 globalThis.__searchRuntime?.destroy?.();
                 globalThis.__searchShell?.destroy?.();
+                globalThis.__searchHomeNavigation?.destroy?.();
               });
               await context.close();
             } finally {
