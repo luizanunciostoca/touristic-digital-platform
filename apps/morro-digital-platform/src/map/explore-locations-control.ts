@@ -354,6 +354,12 @@ function frameLocationsOnMap(
         zoom: 16,
         duration: 650,
         essential: true,
+        padding: {
+          top: 120,
+          bottom: unifiedDockBottomPadding(document),
+          left: 56,
+          right: 56,
+        },
       });
     } else if (map) {
       map.setCenter([location.longitude, location.latitude]);
