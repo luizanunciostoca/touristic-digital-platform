@@ -250,10 +250,10 @@ export function installPlaceBottomSheet(
   overflow.append(overflowSummary, overflowActions);
 
   body.append(
-    meta,
     title,
-    description,
     rating,
+    description,
+    meta,
     status,
     tags,
     actions,
