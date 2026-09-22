@@ -288,13 +288,16 @@
   }
 
   .commerce-detail-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
     display: grid;
     grid-template-columns: 1fr;
     gap: var(--md-space-2);
     margin-top: var(--md-space-2);
-    padding-top: var(--md-space-3);
+    padding: var(--md-space-3) 0 var(--md-space-2);
     border-top: 1px solid var(--md-color-border);
-    background: transparent;
+    background: var(--md-color-surface-elevated);
   }
 
   .commerce-detail-actions .md-button {

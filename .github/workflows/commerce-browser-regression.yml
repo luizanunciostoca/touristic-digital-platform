@@ -490,6 +490,26 @@ jobs:
                   ) {
                     throw new Error(`Commerce preview sheet initial state drift on ${viewport.name}: ${JSON.stringify(previewSheet)}`);
                   }
+                  const reserveGeometry = await page
+                    .locator('#experience-reserve')
+                    .evaluate(node => {
+                      const rect = node.getBoundingClientRect();
+                      return {
+                        top: rect.top,
+                        bottom: rect.bottom,
+                        height: rect.height,
+                        viewportHeight: innerHeight,
+                      };
+                    });
+                  if (
+                    reserveGeometry.height < 44 ||
+                    reserveGeometry.top < 0 ||
+                    reserveGeometry.bottom > reserveGeometry.viewportHeight
+                  ) {
+                    throw new Error(
+                      `MANUAL_CONFORMANCE_COMMERCE_PRIMARY_CTA_VISIBILITY on ${viewport.name}: ${JSON.stringify(reserveGeometry)}`,
+                    );
+                  }
                   await page.screenshot({
                     path: `/tmp/commerce-browser/commerce-contextual-handoff-${viewport.name}.png`,
                     fullPage: false,
