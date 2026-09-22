@@ -130,6 +130,7 @@ jobs:
               const menu = document.querySelector('.assistant-options:has([data-explore-category])');
               const flowMessage = document.getElementById('assistant-category-results-message');
               const flowResults = document.getElementById('assistant-category-results');
+              const exploreSheet = document.getElementById('explore-flow-bottom-sheet');
               return {
                 visibleMessageCount: messages.filter(visible).length,
                 visibleUserMessageCount: messages.filter((message) => message.classList.contains('user') && visible(message)).length,
@@ -138,6 +139,8 @@ jobs:
                 areaChildren: area ? Array.from(area.children).map(describeElement) : [],
                 flowMessage: flowMessage ? describeElement(flowMessage) : null,
                 flowResults: flowResults ? describeElement(flowResults) : null,
+                exploreSheet: exploreSheet ? describeElement(exploreSheet) : null,
+                assistantVisible: Boolean(assistant && visible(assistant)),
                 mainMenuVisible: Boolean(menu && visible(menu)),
                 markerCountAttribute: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
                 markerState,
@@ -182,8 +185,16 @@ jobs:
               await page.waitForTimeout(2300);
 
               const filtersState = await readState(page);
-              if (filtersState.visibleMessageCount !== 1 || filtersState.visibleUserMessageCount !== 0) {
-                throw new Error(`V1 single-message contract diverged: ${JSON.stringify(filtersState)}`);
+              if (
+                filtersState.visibleMessageCount !== 0 ||
+                filtersState.visibleUserMessageCount !== 0 ||
+                filtersState.assistantVisible ||
+                !filtersState.exploreSheet ||
+                filtersState.exploreSheet.hiddenClass ||
+                filtersState.exploreSheet.visibility === 'hidden' ||
+                filtersState.flowMessage?.visibility !== 'hidden'
+              ) {
+                throw new Error(`V2 Explore presentation contract diverged: ${JSON.stringify(filtersState)}`);
               }
               if (filtersState.mainMenuVisible) {
                 throw new Error(`Main categories remained visible with Beaches flow: ${JSON.stringify(filtersState)}`);
@@ -191,10 +202,6 @@ jobs:
               if (filtersState.markerCountAttribute !== 8 || filtersState.markerState.length !== 8 || filtersState.markerState.some(marker => !marker.visible || marker.width < 30 || marker.height < 30 || marker.category !== 'beaches')) {
                 throw new Error(`Beach POI marker presentation diverged: ${JSON.stringify(filtersState)}`);
               }
-              if (typeof filtersState.assistantTop === 'number' && filtersState.markerState.some(marker => marker.centerY >= filtersState.assistantTop)) {
-                throw new Error(`Beach markers are framed behind the assistant: ${JSON.stringify(filtersState)}`);
-              }
-
               await page.locator('#assistant-messages').evaluate((element) => {
                 const height = element.getBoundingClientRect().height;
                 element.style.height = `${height}px`;
@@ -242,20 +249,31 @@ jobs:
               await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
               await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
               const placesState = await readState(page);
-              if (placesState.visibleMessageCount !== 1 || placesState.visibleUserMessageCount !== 0 || placesState.mainMenuVisible) {
-                throw new Error(`Places stage stacked assistant content: ${JSON.stringify(placesState)}`);
+              if (
+                placesState.visibleMessageCount !== 0 ||
+                placesState.visibleUserMessageCount !== 0 ||
+                placesState.assistantVisible ||
+                placesState.mainMenuVisible ||
+                !placesState.exploreSheet ||
+                placesState.exploreSheet.hiddenClass
+              ) {
+                throw new Error(`Places V2 sheet stacked stale Assistant content: ${JSON.stringify(placesState)}`);
               }
 
               await page.keyboard.press('Escape');
               await poll(page, () => {
                 const menu = document.querySelector('.assistant-options:has([data-explore-category])');
-                const visibleMessages = Array.from(document.querySelectorAll('#assistant-messages .messages-area > .message')).filter(element => {
-                  const style = getComputedStyle(element);
-                  const rect = element.getBoundingClientRect();
-                  return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-                });
-                return Boolean(menu && getComputedStyle(menu).display !== 'none' && visibleMessages.length === 1);
-              }, 'main menu restore');
+                const assistant = document.getElementById('assistant-messages');
+                const sheet = document.getElementById('explore-flow-bottom-sheet');
+                return Boolean(
+                  menu &&
+                  !menu.classList.contains('hidden') &&
+                  assistant?.classList.contains('hidden') &&
+                  assistant.getAttribute('aria-hidden') === 'true' &&
+                  sheet?.classList.contains('hidden') &&
+                  sheet.getAttribute('aria-hidden') === 'true'
+                );
+              }, 'V2 Discover semantic menu restore');
 
               if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
             } finally {

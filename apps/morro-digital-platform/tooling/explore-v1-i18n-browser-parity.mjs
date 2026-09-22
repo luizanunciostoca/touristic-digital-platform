@@ -111,7 +111,8 @@ const beachDetailValues = [
   "ver fotos",
   "informações",
   "mais opções",
-  "[sub]beaches",
+  "adicionar aos favoritos",
+  "compartilhar",
 ];
 const beachDetailHebrew = [
   "🌊 תנאי החוף",
@@ -119,7 +120,8 @@ const beachDetailHebrew = [
   "📸 צפה תמונות",
   "ℹ️ מידע",
   "אפשרויות נוספות",
-  "⬅️ חזרה",
+  "❤️ שמירה",
+  "🔗 שיתוף",
 ];
 const restaurantPrimaryEnglish = [
   "🍴 Menu",
@@ -127,14 +129,14 @@ const restaurantPrimaryEnglish = [
   "📸 View photos",
   "📞 Contact",
   "More options",
-  "⬅️ Back",
+  "❤️ Save",
+  "🔗 Share",
 ];
 const restaurantSecondaryEnglish = [
   "ℹ️ Information",
   "🕒 Hours",
   "💰 Price range",
   "⭐ Reviews",
-  "❤️ Favorite",
   "⬅️ Back",
 ];
 const restaurantSecondaryValues = [
@@ -142,7 +144,6 @@ const restaurantSecondaryValues = [
   "horário de funcionamento",
   "quanto custa",
   "avaliações",
-  "adicionar aos favoritos",
   "Morena Bela",
 ];
 
@@ -158,6 +159,14 @@ async function setLanguage(page, language) {
   await page.evaluate((next) => {
     document.documentElement.lang = next;
   }, language);
+}
+
+async function ensureAssistantOpen(page) {
+  const assistant = page.locator("#assistant-messages");
+  if (await assistant.isVisible()) return;
+  const input = page.locator("#assistantInput");
+  await input.focus();
+  await assistant.waitFor({ state: "visible", timeout: 5000 });
 }
 
 async function waitRuntimeAccessibility(page, locale, expected) {
@@ -399,6 +408,7 @@ try {
     await waitRuntimeAccessibility(page, locale, runtimeAccessibility[locale]);
     const expected = filters[locale];
     await waitCategory(page, "beaches", expected.category, expected.aria);
+    await ensureAssistantOpen(page);
     await page.locator("#assistant-category-beaches").click();
     await page
       .locator('#assistant-category-results[data-stage="filters"]')
@@ -412,6 +422,7 @@ try {
   await setLanguage(page, "he");
   await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
   await waitCategory(page, "beaches", filters.he.category, filters.he.aria);
+  await ensureAssistantOpen(page);
   await page.locator("#assistant-category-beaches").click();
   await page
     .locator('#assistant-category-results[data-stage="filters"]')
@@ -448,11 +459,7 @@ try {
   await waitExploreSelectedStatus(page, "Primeira Praia selected.");
   await setLanguage(page, "he");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
-  await page
-    .locator(
-      '#place-bottom-sheet .place-bottom-sheet-action[data-value="[sub]beaches"]',
-    )
-    .click();
+  await page.locator("#place-bottom-sheet .place-bottom-sheet-close").click();
   await page
     .locator('#assistant-category-results[data-stage="places"]')
     .waitFor({ state: "visible" });
@@ -466,6 +473,7 @@ try {
     "Restaurants",
     "Restaurants, 45 places",
   );
+  await ensureAssistantOpen(page);
   await page.locator("#assistant-category-restaurants").click();
   await page
     .locator('#assistant-category-results[data-stage="filters"]')

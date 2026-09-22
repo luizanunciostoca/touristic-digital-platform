@@ -270,9 +270,21 @@ jobs:
 
               await submit('fotos', true);
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'visible', timeout: 8000 });
-              const detailButtons = await page.locator('.assistant-option-btn[data-value="ver fotos"]').count();
-              if (detailButtons < 1) {
-                throw new Error('Typed photos did not preserve the V1 detail actions');
+              const photoOwnership = await page.evaluate(() => ({
+                placePhotoAction: document.querySelectorAll(
+                  '#place-bottom-sheet[aria-hidden="false"] .place-bottom-sheet-action[data-value="ver fotos"]',
+                ).length,
+                assistantPhotoDuplicates: document.querySelectorAll(
+                  '#assistant-messages:not(.hidden) .assistant-option-btn[data-value="ver fotos"]',
+                ).length,
+              }));
+              if (
+                photoOwnership.placePhotoAction !== 1 ||
+                photoOwnership.assistantPhotoDuplicates !== 0
+              ) {
+                throw new Error(
+                  `Typed photos violated V2 Place action ownership: ${JSON.stringify(photoOwnership)}`,
+                );
               }
 
               await submit('voltar');

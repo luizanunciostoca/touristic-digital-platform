@@ -97,7 +97,8 @@ jobs:
             'ver fotos',
             'informações',
             'mais opções',
-            '[sub]beaches',
+            'adicionar aos favoritos',
+            'compartilhar',
           ];
           const weather = {
             temperatureCelsius: 28,
@@ -116,7 +117,10 @@ jobs:
             const assistant = page.locator('#assistant-messages');
             const input = page.locator('#assistantInput');
             await input.waitFor({ state: 'visible', timeout: 5000 });
-            if (!(await assistant.isVisible())) await input.focus();
+            if (!(await assistant.isVisible())) {
+              await input.evaluate(node => node.blur());
+              await input.focus();
+            }
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
           }
 
@@ -245,12 +249,14 @@ jobs:
               await assertMainMenu(page);
 
               for (const [category, count] of Object.entries(expectedCounts)) {
+                await openAssistant(page);
                 await page.locator(`#assistant-category-${category}`).click();
                 await assertFiltersStage(page, category, count);
                 await page.keyboard.press('Escape');
                 await assertMainMenu(page);
               }
 
+              await openAssistant(page);
               const beaches = page.locator('#assistant-category-beaches');
               await beaches.click();
               await assertFiltersStage(page, 'beaches', 8);
@@ -274,22 +280,12 @@ jobs:
               await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
               await waitMap(page, 'beaches', 8, 'places');
 
-              await page.evaluate(() => {
-                globalThis.__exploreSelectedValues = [];
-                document.addEventListener('morro:assistant-option-selected', event => {
-                  if (event instanceof CustomEvent && typeof event.detail?.value === 'string') {
-                    globalThis.__exploreSelectedValues.push(event.detail.value);
-                  }
-                });
-              });
-
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
               const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]');
               await placeSheet.waitFor({ state: 'visible', timeout: 8000 });
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
-              const detailValues = await readDynamicOptionValues(page);
               const placeSheetState = await placeSheet.evaluate((sheet) => {
                 const rect = sheet.getBoundingClientRect();
                 const buttons = Array.from(sheet.querySelectorAll('button'));
@@ -335,7 +331,6 @@ jobs:
               const selected = await page.evaluate(() => ({
                 flowRemoved: !document.getElementById('assistant-category-results'),
                 mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
-                selectedValues: globalThis.__exploreSelectedValues,
                 markerCount: document.getElementById('map')?.getAttribute('data-map-marker-count'),
                 activeTour: document.getElementById('map')?.getAttribute('data-active-tour'),
                 popupVisible: Array.from(document.querySelectorAll('.mapboxgl-popup')).some(popup => {
@@ -349,14 +344,13 @@ jobs:
                 !selected.mainHidden ||
                 selected.markerCount !== '1' ||
                 selected.activeTour !== null ||
-                !selected.selectedValues.includes('Fale sobre Primeira Praia') ||
                 selected.popupVisible ||
-                JSON.stringify(detailValues) !== JSON.stringify(expectedBeachDetailValues)
+                JSON.stringify(placeSheetState.actionValues) !== JSON.stringify(expectedBeachDetailValues)
               ) {
-                throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, detailValues })}`);
+                throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, placeSheetState })}`);
               }
 
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="[sub]beaches"]').click();
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-close').click();
               await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
               await waitMap(page, 'beaches', 8, 'places');
               const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
@@ -374,6 +368,7 @@ jobs:
               await assertMainMenu(page);
 
               if (viewport.id === 'mobile') {
+                await openAssistant(page);
                 await page.locator('#assistant-category-beaches').click();
                 await assertFiltersStage(page, 'beaches', 8);
                 await page.locator('#assistant-category-results [data-value="proximo"]').click();
@@ -388,6 +383,7 @@ jobs:
                 await page.keyboard.press('Escape');
                 await assertMainMenu(page);
 
+                await openAssistant(page);
                 await page.locator('#assistant-category-tours').click();
                 await assertFiltersStage(page, 'tours', 6);
                 await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
@@ -408,7 +404,7 @@ jobs:
                 animations: 'disabled',
               });
 
-              evidence[viewport.id] = { surfState, selected, center, detailValues, placeSheetState, returnedPlaces };
+              evidence[viewport.id] = { surfState, selected, center, placeSheetState, returnedPlaces };
               await context.close();
             }
 

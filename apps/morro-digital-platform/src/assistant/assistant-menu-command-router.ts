@@ -380,10 +380,23 @@ function clearPriorDynamicPresentation(document: Document): void {
 }
 
 function tryClickVisibleOption(document: Document, message: string): boolean {
+  const normalizedMessage = normalizeAssistantMenuCommand(message);
+  if (normalizedMessage === "voltar" || normalizedMessage === "back") {
+    const visiblePlaceSheet = document.querySelector(
+      '#place-bottom-sheet[aria-hidden="false"]',
+    );
+    const placeClose = visiblePlaceSheet?.querySelector<HTMLButtonElement>(
+      ".place-bottom-sheet-close",
+    );
+    if (placeClose) {
+      placeClose.click();
+      return true;
+    }
+  }
+
   const buttons = activeFlowButtons(document);
   if (buttons.length === 0) return false;
 
-  const normalizedMessage = normalizeAssistantMenuCommand(message);
   if (/^\d+$/u.test(normalizedMessage)) {
     const oneBasedIndex = Number(normalizedMessage);
     const selected = buttons[oneBasedIndex - 1];
@@ -645,6 +658,16 @@ export function resolveAssistantMenuCommand(
   document: Document,
   message: string,
 ): ExploreLocationsCommand | null {
+  const normalizedMessage = normalizeAssistantMenuCommand(message);
+  if (
+    (normalizedMessage === "voltar" ||
+      normalizedMessage === "back" ||
+      normalizedMessage === "volver") &&
+    document.querySelector('#place-bottom-sheet[aria-hidden="false"]')
+  ) {
+    return Object.freeze({ type: "back_from_place" });
+  }
+
   const visible = commandForVisibleOption(document, message);
   if (visible) return visible;
 

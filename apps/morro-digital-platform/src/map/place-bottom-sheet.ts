@@ -1,18 +1,30 @@
 import type { AssistantLocale } from "@touristic/assistant";
-import type { MorroV1SearchCatalogItem } from "@touristic/search";
-
 import { resolveAssistantV1Photos } from "../assistant/assistant-v1-photo-catalog.js";
 import type { V1ExplorePlaceActionOption } from "./explore-location-actions-v1.js";
+import { getV1ExploreLabel } from "./explore-v1-i18n.js";
 import type { PlacePrimaryAction } from "./place-commerce-capability.js";
 
 export type PlaceBottomSheetState = "peek" | "half" | "full";
 
+export type PlaceBottomSheetStatus = "loading" | "ready" | "error";
+
+export interface PlaceBottomSheetLocation {
+  readonly name: string;
+  readonly category: string;
+  readonly area?: string | null;
+  readonly tags?: readonly string[];
+}
+
 export interface PlaceBottomSheetPresentation {
-  readonly location: MorroV1SearchCatalogItem;
+  readonly location: PlaceBottomSheetLocation;
   readonly categoryLabel: string;
   readonly locale: AssistantLocale;
   readonly actions: readonly V1ExplorePlaceActionOption[];
   readonly primaryAction: PlacePrimaryAction | null;
+  readonly description?: string;
+  readonly rating?: Readonly<{ value: number; count?: number }>;
+  readonly status?: PlaceBottomSheetStatus;
+  readonly statusText?: string;
 }
 
 export interface PlaceBottomSheetOptions {
@@ -25,6 +37,7 @@ export interface PlaceBottomSheetController {
   hide(): void;
   setState(state: PlaceBottomSheetState): void;
   getState(): PlaceBottomSheetState;
+  setStatus(status: PlaceBottomSheetStatus, text?: string): void;
   destroy(): void;
 }
 
@@ -71,6 +84,53 @@ const copy = Object.freeze({
   >
 >);
 
+const placeUiCopy = Object.freeze({
+  pt: {
+    save: "Salvar",
+    share: "Compartilhar",
+    shareSuccess: "Link do local copiado.",
+    loading: "Carregando detalhes do local…",
+    unavailable: "Alguns detalhes do local estão indisponíveis no momento.",
+    rating: "Avaliação",
+  },
+  en: {
+    save: "Save",
+    share: "Share",
+    shareSuccess: "Place link copied.",
+    loading: "Loading place details…",
+    unavailable: "Some place details are currently unavailable.",
+    rating: "Rating",
+  },
+  es: {
+    save: "Guardar",
+    share: "Compartir",
+    shareSuccess: "Enlace del lugar copiado.",
+    loading: "Cargando detalles del lugar…",
+    unavailable: "Algunos detalles del lugar no están disponibles ahora.",
+    rating: "Valoración",
+  },
+  he: {
+    save: "שמירה",
+    share: "שיתוף",
+    shareSuccess: "הקישור למקום הועתק.",
+    loading: "טוען פרטי מקום…",
+    unavailable: "חלק מפרטי המקום אינם זמינים כרגע.",
+    rating: "דירוג",
+  },
+} satisfies Readonly<
+  Record<
+    AssistantLocale,
+    Readonly<{
+      save: string;
+      share: string;
+      shareSuccess: string;
+      loading: string;
+      unavailable: string;
+      rating: string;
+    }>
+  >
+>);
+
 const stateGlyph: Readonly<Record<PlaceBottomSheetState, string>> =
   Object.freeze({
     peek: "⌄",
@@ -92,7 +152,7 @@ function createStateButton(
   return button;
 }
 
-function normalizedTags(location: MorroV1SearchCatalogItem): readonly string[] {
+function normalizedTags(location: PlaceBottomSheetLocation): readonly string[] {
   return Object.freeze(
     Array.from(new Set(location.tags ?? []))
       .map((tag) => tag.trim())
@@ -119,7 +179,7 @@ export function installPlaceBottomSheet(
   toolbar.className = "place-bottom-sheet-toolbar";
 
   const handle = document.createElement("div");
-  handle.className = "md-bottom-sheet-handle";
+  handle.className = "md-bottom-sheet-handle place-bottom-sheet-drag-handle";
   handle.setAttribute("aria-hidden", "true");
   toolbar.appendChild(handle);
   const stateControls = document.createElement("div");
@@ -154,6 +214,18 @@ export function installPlaceBottomSheet(
   title.id = "place-bottom-sheet-title";
   title.className = "place-bottom-sheet-title";
   sheet.setAttribute("aria-labelledby", title.id);
+  sheet.tabIndex = -1;
+
+  const description = document.createElement("p");
+  description.className = "place-bottom-sheet-description hidden";
+
+  const rating = document.createElement("p");
+  rating.className = "place-bottom-sheet-rating hidden";
+
+  const status = document.createElement("div");
+  status.className = "place-bottom-sheet-status";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
 
   const tags = document.createElement("div");
   tags.className = "place-bottom-sheet-tags";
@@ -165,7 +237,7 @@ export function installPlaceBottomSheet(
   const primary = document.createElement("div");
   primary.className = "place-bottom-sheet-primary";
 
-  body.append(meta, title, tags, actions, primary);
+  body.append(meta, title, description, rating, status, tags, actions, primary);
   content.appendChild(body);
   sheet.append(toolbar, content);
   document.body.appendChild(sheet);
@@ -221,6 +293,32 @@ export function installPlaceBottomSheet(
     });
   }
 
+  const setStatus = (
+    nextStatus: PlaceBottomSheetStatus,
+    text?: string,
+  ): void => {
+    sheet.dataset.placeState = nextStatus;
+    sheet.setAttribute("aria-busy", String(nextStatus === "loading"));
+    status.replaceChildren();
+    if (nextStatus === "ready") {
+      status.classList.add("hidden");
+      return;
+    }
+    status.classList.remove("hidden");
+    if (nextStatus === "loading") {
+      const skeleton = document.createElement("span");
+      skeleton.className = "md-skeleton place-bottom-sheet-status-skeleton";
+      skeleton.setAttribute("aria-hidden", "true");
+      status.appendChild(skeleton);
+      const sr = document.createElement("span");
+      sr.className = "sr-only";
+      sr.textContent = text || placeUiCopy.pt.loading;
+      status.appendChild(sr);
+      return;
+    }
+    status.textContent = text || placeUiCopy.pt.unavailable;
+  };
+
   const setState = (nextState: PlaceBottomSheetState): void => {
     if (destroyed) return;
     state = nextState;
@@ -234,6 +332,34 @@ export function installPlaceBottomSheet(
       );
     }
   };
+
+  let dragStartY: number | null = null;
+  let dragPointerId: number | null = null;
+  const dragStep = (direction: "up" | "down"): void => {
+    const order: readonly PlaceBottomSheetState[] = ["peek", "half", "full"];
+    const current = order.indexOf(state);
+    const offset = direction === "up" ? 1 : -1;
+    const next =
+      order[Math.min(order.length - 1, Math.max(0, current + offset))];
+    if (next) setState(next);
+  };
+  handle.addEventListener("pointerdown", (event) => {
+    dragStartY = event.clientY;
+    dragPointerId = event.pointerId;
+    handle.setPointerCapture?.(event.pointerId);
+  });
+  handle.addEventListener("pointerup", (event) => {
+    if (dragStartY === null || dragPointerId !== event.pointerId) return;
+    const delta = event.clientY - dragStartY;
+    dragStartY = null;
+    dragPointerId = null;
+    if (Math.abs(delta) < 36) return;
+    dragStep(delta < 0 ? "up" : "down");
+  });
+  handle.addEventListener("pointercancel", () => {
+    dragStartY = null;
+    dragPointerId = null;
+  });
 
   const rebuildStateControls = (locale: AssistantLocale): void => {
     stateControls.replaceChildren();
@@ -262,6 +388,35 @@ export function installPlaceBottomSheet(
       .join(" · ");
     title.textContent = next.location.name;
 
+    const canonicalDescription = next.description?.trim();
+    description.textContent = canonicalDescription ?? "";
+    description.classList.toggle("hidden", !canonicalDescription);
+
+    const canonicalRating =
+      next.rating &&
+      Number.isFinite(next.rating.value) &&
+      next.rating.value >= 0 &&
+      next.rating.value <= 5
+        ? next.rating
+        : undefined;
+    rating.textContent = canonicalRating
+      ? `${placeUiCopy[next.locale].rating}: ${canonicalRating.value.toFixed(1)} / 5${
+          canonicalRating.count === undefined
+            ? ""
+            : ` · ${canonicalRating.count}`
+        }`
+      : "";
+    rating.classList.toggle("hidden", !canonicalRating);
+    setStatus(
+      next.status ?? "ready",
+      next.statusText ??
+        (next.status === "loading"
+          ? placeUiCopy[next.locale].loading
+          : next.status === "error"
+            ? placeUiCopy[next.locale].unavailable
+            : undefined),
+    );
+
     const photo = resolveAssistantV1Photos(next.location.name)?.images[0];
     if (photo) {
       heroImage.src = photo;
@@ -282,7 +437,31 @@ export function installPlaceBottomSheet(
     tags.classList.toggle("hidden", tags.childElementCount === 0);
 
     actions.replaceChildren();
-    for (const action of next.actions) {
+    const visibleActions: V1ExplorePlaceActionOption[] = [...next.actions];
+    const hasValue = (value: string): boolean =>
+      visibleActions.some(
+        (action) => action.value.trim().toLowerCase() === value.toLowerCase(),
+      );
+    if (!hasValue("como chegar")) {
+      visibleActions.unshift(
+        Object.freeze({
+          label: `📍 ${getV1ExploreLabel("directions", next.locale)}`,
+          value: "como chegar",
+          action: "command" as const,
+        }),
+      );
+    }
+    if (!hasValue("adicionar aos favoritos")) {
+      visibleActions.push(
+        Object.freeze({
+          label: `❤️ ${placeUiCopy[next.locale].save}`,
+          value: "adicionar aos favoritos",
+          action: "command" as const,
+        }),
+      );
+    }
+
+    for (const action of visibleActions) {
       const button = document.createElement("button");
       button.type = "button";
       button.className =
@@ -296,6 +475,53 @@ export function installPlaceBottomSheet(
       });
       actions.appendChild(button);
     }
+
+    const shareButton = document.createElement("button");
+    shareButton.type = "button";
+    shareButton.className =
+      "md-button md-button--secondary place-bottom-sheet-action place-bottom-sheet-share";
+    shareButton.dataset.placeNativeAction = "share";
+    shareButton.dataset.value = "compartilhar";
+    shareButton.textContent = `🔗 ${placeUiCopy[next.locale].share}`;
+    shareButton.addEventListener("click", () => {
+      const view = document.defaultView;
+      const shareText = [next.location.name, next.location.area]
+        .filter(Boolean)
+        .join(" · ");
+      const shareUrl = view?.location.href;
+      const navigator = view?.navigator as
+        | (Navigator & {
+            share?: (data: ShareData) => Promise<void>;
+            clipboard?: Clipboard;
+          })
+        | undefined;
+      void (async () => {
+        try {
+          if (navigator?.share) {
+            await navigator.share({
+              title: next.location.name,
+              text: shareText,
+              ...(shareUrl ? { url: shareUrl } : {}),
+            });
+            return;
+          }
+          if (navigator?.clipboard && shareUrl) {
+            await navigator.clipboard.writeText(
+              [shareText, shareUrl].filter(Boolean).join("\n"),
+            );
+            setStatus("ready");
+            status.textContent = placeUiCopy[next.locale].shareSuccess;
+            status.classList.remove("hidden");
+          }
+        } catch (error) {
+          if (error instanceof DOMException && error.name === "AbortError")
+            return;
+          status.textContent = placeUiCopy[next.locale].unavailable;
+          status.classList.remove("hidden");
+        }
+      })();
+    });
+    actions.appendChild(shareButton);
 
     primary.replaceChildren();
     if (next.primaryAction) {
@@ -321,6 +547,11 @@ export function installPlaceBottomSheet(
     sheet.classList.remove("hidden");
     sheet.setAttribute("aria-hidden", "false");
     queueMicrotask(syncCompatibilitySource);
+    queueMicrotask(() => {
+      if (sheet.getAttribute("aria-hidden") === "false") {
+        sheet.focus({ preventScroll: true });
+      }
+    });
   };
 
   close.addEventListener("click", () => options.onDismiss());
@@ -346,6 +577,7 @@ export function installPlaceBottomSheet(
     getState(): PlaceBottomSheetState {
       return state;
     },
+    setStatus,
     destroy(): void {
       if (destroyed) return;
       assistantObserver?.disconnect();

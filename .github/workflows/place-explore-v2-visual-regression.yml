@@ -1,0 +1,797 @@
+name: Place Search Explore V2 Visual Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - .github/workflows/place-explore-v2-visual-regression.yml
+      - apps/morro-digital-platform/src/assistant/**
+      - apps/morro-digital-platform/src/map/**
+      - apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts
+      - apps/morro-digital-platform/public/design-system-v2.css
+      - apps/morro-digital-platform/public/premium-ux-v2.css
+      - apps/morro-digital-platform/public/explore-locations.css
+      - apps/morro-digital-platform/public/tourist-shell-v2.css
+      - packages/assistant/src/**
+      - packages/search/src/**
+      - packages/geospatial/src/**
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  place-search-explore-v2:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/place-explore-v2
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/place-explore-v2/server.log 2>&1 &
+          echo $! >/tmp/place-explore-v2/server.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/place-explore-v2/server.log
+          exit 1
+      - name: Validate canonical Place + Search/Explore V2 matrix
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const origin = 'http://127.0.0.1:4173';
+          const viewports = [
+            { id: 'w320', width: 320, height: 568 },
+            { id: 'w360', width: 360, height: 800 },
+            { id: 'w390', width: 390, height: 844 },
+            { id: 'w412', width: 412, height: 915 },
+            { id: 'w430', width: 430, height: 932 },
+            { id: 'w768', width: 768, height: 1024 },
+            { id: 'w1024-landscape', width: 1024, height: 600 },
+            { id: 'w1280', width: 1280, height: 800 },
+            { id: 'w1440', width: 1440, height: 900 },
+          ];
+          const weather = {
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 20,
+            weatherCode: 1,
+            isDay: true,
+            forecast: [],
+          };
+          const evidence = [];
+
+          function assertInside(rect, viewport, label) {
+            if (
+              !rect ||
+              rect.left < -1 ||
+              rect.top < -1 ||
+              rect.right > viewport.width + 1 ||
+              rect.bottom > viewport.height + 1
+            ) {
+              throw new Error(`${label} escaped ${viewport.id}: ${JSON.stringify(rect)}`);
+            }
+          }
+
+          function closeEnough(a, b, tolerance) {
+            return (
+              typeof a === 'number' &&
+              typeof b === 'number' &&
+              Math.abs(a - b) <= tolerance
+            );
+          }
+
+          async function installRoutes(page) {
+            await page.route('**/api/weather', route =>
+              route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(weather),
+              }),
+            );
+            await page.route('**/api/ticketing/v1/inventory', route =>
+              route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ data: [] }),
+              }),
+            );
+            await page.route('**/search/searchbox/v1/forward**', route =>
+              route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ features: [] }),
+              }),
+            );
+          }
+
+          async function openAssistant(page) {
+            const input = page.locator('#assistantInput');
+            await input.waitFor({ state: 'visible', timeout: 8000 });
+            if (!(await page.locator('#assistant-messages').isVisible())) {
+              await input.focus();
+            }
+            await page.locator('#assistant-messages:not(.hidden)').waitFor({
+              state: 'visible',
+              timeout: 5000,
+            });
+          }
+
+          async function submit(page, text) {
+            await openAssistant(page);
+            const input = page.locator('#assistantInput');
+            await input.fill(text);
+            await page.locator('#sendButton').click();
+            const deadline = Date.now() + 8000;
+            while (Date.now() < deadline) {
+              if ((await input.inputValue()) === '') return;
+              await page.waitForTimeout(50);
+            }
+            throw new Error(`composer did not submit: ${text}`);
+          }
+
+          async function camera(page) {
+            return page.evaluate(() => {
+              const map = globalThis.mapboxPrimaryInstance;
+              const center = map?.getCenter?.();
+              return {
+                lng: center?.lng ?? null,
+                lat: center?.lat ?? null,
+                zoom: map?.getZoom?.() ?? null,
+              };
+            });
+          }
+
+          async function sheetGeometry(page, selector) {
+            return page.locator(selector).evaluate(node => {
+              const rect = node.getBoundingClientRect();
+              return {
+                rect: {
+                  left: rect.left,
+                  top: rect.top,
+                  right: rect.right,
+                  bottom: rect.bottom,
+                  width: rect.width,
+                  height: rect.height,
+                },
+                rootWidth: document.documentElement.scrollWidth,
+                bodyWidth: document.body.scrollWidth,
+                direction: getComputedStyle(node).direction,
+              };
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              for (const viewport of viewports) {
+                const context = await browser.newContext({
+                  viewport: { width: viewport.width, height: viewport.height },
+                  geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+                  permissions: ['geolocation'],
+                  hasTouch: viewport.width <= 430,
+                });
+                await context.addInitScript(() => {
+                  localStorage.setItem('morro-digital-onboarded', '1');
+                  localStorage.setItem('morro-digital-language', 'pt-BR');
+                  localStorage.setItem('voice-enabled', 'false');
+                });
+
+                const page = await context.newPage();
+                const pageErrors = [];
+                const providerErrors = [];
+                page.on('pageerror', error => pageErrors.push(error.message));
+                page.on('response', response => {
+                  if (
+                    response.url().includes('mapbox.com') &&
+                    !response.url().includes('/search/searchbox/v1/forward') &&
+                    response.status() >= 400
+                  ) {
+                    providerErrors.push({
+                      status: response.status(),
+                      url: response.url().split('?')[0],
+                    });
+                  }
+                });
+                await installRoutes(page);
+
+                await page.goto(origin + '/', {
+                  waitUntil: 'domcontentloaded',
+                  timeout: 30000,
+                });
+                await page.locator(
+                  '#map[data-map-state="ready"][data-home-state="ready"][data-map-mode="real"]',
+                ).waitFor({ state: 'attached', timeout: 30000 });
+                await page.locator('body[data-public-onboarding-settled="true"]').waitFor({
+                  state: 'attached',
+                  timeout: 5000,
+                });
+
+                await submit(page, 'Primeira');
+                const explore = page.locator(
+                  '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"]',
+                );
+                await explore.waitFor({ state: 'visible', timeout: 10000 });
+                await page.locator(
+                  '#map[data-explore-category="search"][data-explore-stage="places"][data-map-marker-count="1"]',
+                ).waitFor({ state: 'attached', timeout: 10000 });
+                const assistantHidden = await page.locator('#assistant-messages').evaluate(
+                  node => node.classList.contains('hidden') && node.getAttribute('aria-hidden') === 'true',
+                );
+                if (!assistantHidden) {
+                  throw new Error(`Search/Explore did not own visible presentation on ${viewport.id}`);
+                }
+
+                const exploreGeometry = await sheetGeometry(
+                  page,
+                  '#explore-flow-bottom-sheet',
+                );
+                assertInside(exploreGeometry.rect, viewport, 'Explore sheet');
+                if (
+                  exploreGeometry.rootWidth > viewport.width + 1 ||
+                  exploreGeometry.bodyWidth > viewport.width + 1
+                ) {
+                  throw new Error(
+                    `Explore horizontal overflow on ${viewport.id}: ${JSON.stringify(exploreGeometry)}`,
+                  );
+                }
+                const mapGeometry = await page.locator('#map').evaluate(node => {
+                  const rect = node.getBoundingClientRect();
+                  return { width: rect.width, height: rect.height };
+                });
+                if (
+                  mapGeometry.width < viewport.width * 0.95 ||
+                  mapGeometry.height < viewport.height * 0.72
+                ) {
+                  throw new Error(
+                    `Map-first canvas shrank on ${viewport.id}: ${JSON.stringify(mapGeometry)}`,
+                  );
+                }
+                let exploreAccessibility = null;
+                if (viewport.id === 'w390') {
+                  const originalHeading = await explore
+                    .locator('.explore-flow-sheet-title')
+                    .textContent();
+
+                  await page.evaluate(() => {
+                    document.documentElement.dir = 'rtl';
+                    document.documentElement.lang = 'he';
+                    const title = document.querySelector(
+                      '#explore-flow-bottom-sheet .explore-flow-sheet-title',
+                    );
+                    if (title) {
+                      title.textContent =
+                        'תוצאת חיפוש ארוכה במיוחד לבדיקת גלישת טקסט ותצוגת מפה בממשק Morro Digital';
+                    }
+                  });
+                  await page.waitForTimeout(80);
+                  const rtlExplore = await sheetGeometry(
+                    page,
+                    '#explore-flow-bottom-sheet',
+                  );
+                  if (
+                    rtlExplore.direction !== 'rtl' ||
+                    rtlExplore.rootWidth > 391 ||
+                    rtlExplore.bodyWidth > 391
+                  ) {
+                    throw new Error(
+                      `RTL/long-text Explore drift: ${JSON.stringify(rtlExplore)}`,
+                    );
+                  }
+
+                  await page.evaluate(() => {
+                    document.documentElement.dir = 'ltr';
+                    document.documentElement.lang = 'pt-BR';
+                    document.documentElement.style.fontSize = '200%';
+                  });
+                  await page.waitForTimeout(80);
+                  const zoomedExplore = await sheetGeometry(
+                    page,
+                    '#explore-flow-bottom-sheet',
+                  );
+                  assertInside(
+                    zoomedExplore.rect,
+                    { id: 'w390-explore-200pct', width: 390, height: 844 },
+                    'Explore 200% text sheet',
+                  );
+                  if (
+                    zoomedExplore.rootWidth > 391 ||
+                    zoomedExplore.bodyWidth > 391
+                  ) {
+                    throw new Error(
+                      `Explore 200% text overflow: ${JSON.stringify(zoomedExplore)}`,
+                    );
+                  }
+                  await page.evaluate((heading) => {
+                    document.documentElement.style.fontSize = '';
+                    const title = document.querySelector(
+                      '#explore-flow-bottom-sheet .explore-flow-sheet-title',
+                    );
+                    if (title) title.textContent = heading || '';
+                  }, originalHeading);
+
+                  await page.emulateMedia({ forcedColors: 'active' });
+                  const forcedExplore = await explore.evaluate(node => ({
+                    borderStyle: getComputedStyle(node).borderStyle,
+                    borderWidth: getComputedStyle(node).borderWidth,
+                  }));
+                  if (
+                    forcedExplore.borderStyle === 'none' ||
+                    forcedExplore.borderWidth === '0px'
+                  ) {
+                    throw new Error(
+                      `forced-colors removed Explore boundary: ${JSON.stringify(forcedExplore)}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/explore-w390-accessibility.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.emulateMedia({ forcedColors: 'none' });
+
+                  const fullControl = explore.locator(
+                    '[data-sheet-state-target="full"]',
+                  );
+                  await fullControl.focus();
+                  await page.keyboard.press('Enter');
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-sheet-state="full"]',
+                  ).waitFor({ state: 'visible', timeout: 3000 });
+
+                  exploreAccessibility = {
+                    rtlExplore,
+                    zoomedExplore,
+                    forcedExplore,
+                    keyboardExpanded: true,
+                  };
+                }
+
+                await page.screenshot({
+                  path: `/tmp/place-explore-v2/explore-${viewport.id}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+
+                const result = page.locator(
+                  '#explore-flow-bottom-sheet [data-location-name="Primeira Praia"]',
+                );
+                await result.waitFor({ state: 'visible', timeout: 5000 });
+                if (viewport.id === 'w390') {
+                  await result.focus();
+                  await page.keyboard.press('Enter');
+                } else {
+                  await result.click();
+                }
+
+                const place = page.locator(
+                  '#place-bottom-sheet[data-place-name="Primeira Praia"][data-place-state="ready"]',
+                );
+                await place.waitFor({ state: 'visible', timeout: 10000 });
+                await page.locator(
+                  '#map[data-explore-stage="detail"][data-explore-place="Primeira Praia"][data-map-marker-count="1"]',
+                ).waitFor({ state: 'attached', timeout: 10000 });
+
+                const placeState = await place.evaluate(sheet => {
+                  const image = sheet.querySelector('.place-bottom-sheet-image');
+                  const buttons = Array.from(sheet.querySelectorAll('button'));
+                  const values = Array.from(
+                    sheet.querySelectorAll('.place-bottom-sheet-action'),
+                    button => button.getAttribute('data-value'),
+                  );
+                  const rating = sheet.querySelector('.place-bottom-sheet-rating');
+                  const visibleAssistantDuplicates = Array.from(
+                    document.querySelectorAll(
+                      '#assistant-messages:not(.hidden) .assistant-option-btn',
+                    ),
+                    button => button.getAttribute('data-value'),
+                  ).filter(value => values.includes(value));
+                  return {
+                    title: sheet.querySelector('.place-bottom-sheet-title')?.textContent?.trim(),
+                    meta: sheet.querySelector('.place-bottom-sheet-meta')?.textContent?.trim(),
+                    imagePath:
+                      image instanceof HTMLImageElement && image.src
+                        ? new URL(image.src).pathname
+                        : null,
+                    imageLoaded:
+                      image instanceof HTMLImageElement &&
+                      image.complete &&
+                      image.naturalWidth > 0,
+                    values,
+                    ratingHidden:
+                      !rating ||
+                      rating.classList.contains('hidden') ||
+                      getComputedStyle(rating).display === 'none',
+                    duplicatedAssistantActions: visibleAssistantDuplicates,
+                    targets: buttons.map(button => {
+                      const rect = button.getBoundingClientRect();
+                      return { width: rect.width, height: rect.height };
+                    }),
+                  };
+                });
+                const requiredValues = [
+                  'condições da praia',
+                  'como chegar',
+                  'ver fotos',
+                  'informações',
+                  'mais opções',
+                  'adicionar aos favoritos',
+                  'compartilhar',
+                ];
+                if (
+                  placeState.title !== 'Primeira Praia' ||
+                  !placeState.meta ||
+                  placeState.imagePath !== '/images/fotos/primeira_praia1.jpg' ||
+                  !placeState.imageLoaded ||
+                  JSON.stringify(placeState.values) !== JSON.stringify(requiredValues) ||
+                  !placeState.ratingHidden ||
+                  placeState.duplicatedAssistantActions.length !== 0 ||
+                  placeState.targets.some(target => target.width < 44 || target.height < 44)
+                ) {
+                  throw new Error(
+                    `Place V2 contract drift on ${viewport.id}: ${JSON.stringify(placeState)}`,
+                  );
+                }
+
+                for (const state of ['peek', 'half', 'full']) {
+                  await place.locator(`[data-sheet-state-target="${state}"]`).click();
+                  await page.locator(
+                    `#place-bottom-sheet[data-sheet-state="${state}"]`,
+                  ).waitFor({ state: 'visible', timeout: 3000 });
+                }
+
+                const placeGeometry = await sheetGeometry(page, '#place-bottom-sheet');
+                assertInside(placeGeometry.rect, viewport, 'Place sheet');
+                if (
+                  placeGeometry.rootWidth > viewport.width + 1 ||
+                  placeGeometry.bodyWidth > viewport.width + 1
+                ) {
+                  throw new Error(
+                    `Place horizontal overflow on ${viewport.id}: ${JSON.stringify(placeGeometry)}`,
+                  );
+                }
+                await page.screenshot({
+                  path: `/tmp/place-explore-v2/place-${viewport.id}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+
+                let special = null;
+                if (viewport.id === 'w390') {
+                  const beforeResize = await camera(page);
+                  await page.setViewportSize({ width: 844, height: 390 });
+                  await page.waitForTimeout(150);
+                  const orientationState = await page.evaluate(() => ({
+                    place: document.getElementById('place-bottom-sheet')?.dataset.placeName,
+                    sheetState: document.getElementById('place-bottom-sheet')?.dataset.sheetState,
+                    markerCount: document.getElementById('map')?.dataset.mapMarkerCount,
+                  }));
+                  const afterResize = await camera(page);
+                  if (
+                    orientationState.place !== 'Primeira Praia' ||
+                    orientationState.sheetState !== 'full' ||
+                    orientationState.markerCount !== '1' ||
+                    !closeEnough(beforeResize.lng, afterResize.lng, 0.00001) ||
+                    !closeEnough(beforeResize.lat, afterResize.lat, 0.00001) ||
+                    !closeEnough(beforeResize.zoom, afterResize.zoom, 0.01)
+                  ) {
+                    throw new Error(
+                      `resize/orientation lost Place context: ${JSON.stringify({ orientationState, beforeResize, afterResize })}`,
+                    );
+                  }
+                  const landscapeGeometry = await sheetGeometry(page, '#place-bottom-sheet');
+                  assertInside(
+                    landscapeGeometry.rect,
+                    { id: 'w390-landscape', width: 844, height: 390 },
+                    'Place landscape sheet',
+                  );
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/place-w390-landscape.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+
+                  await page.setViewportSize({ width: 390, height: 844 });
+                  await page.waitForTimeout(100);
+                  await page.evaluate(() => {
+                    document.documentElement.dir = 'rtl';
+                    document.documentElement.lang = 'he';
+                  });
+                  await page.locator(
+                    '#place-bottom-sheet[data-place-name="Primeira Praia"]',
+                  ).waitFor({ state: 'visible', timeout: 8000 });
+                  const rtlGeometry = await sheetGeometry(page, '#place-bottom-sheet');
+                  if (
+                    rtlGeometry.direction !== 'rtl' ||
+                    rtlGeometry.rootWidth > 391 ||
+                    rtlGeometry.bodyWidth > 391
+                  ) {
+                    throw new Error(`RTL Place drift: ${JSON.stringify(rtlGeometry)}`);
+                  }
+
+                  await page.evaluate(() => {
+                    document.documentElement.dir = 'ltr';
+                    document.documentElement.lang = 'pt-BR';
+                    document.documentElement.style.fontSize = '200%';
+                  });
+                  await page.waitForTimeout(100);
+                  const zoomedGeometry = await sheetGeometry(page, '#place-bottom-sheet');
+                  assertInside(
+                    zoomedGeometry.rect,
+                    { id: 'w390-200pct', width: 390, height: 844 },
+                    'Place 200% text sheet',
+                  );
+                  if (zoomedGeometry.rootWidth > 391 || zoomedGeometry.bodyWidth > 391) {
+                    throw new Error(
+                      `200% text caused horizontal overflow: ${JSON.stringify(zoomedGeometry)}`,
+                    );
+                  }
+                  await page.evaluate(() => {
+                    document.documentElement.style.fontSize = '';
+                  });
+
+                  await page.emulateMedia({ forcedColors: 'active' });
+                  const forcedColors = await page.locator('#place-bottom-sheet').evaluate(node => ({
+                    borderStyle: getComputedStyle(node).borderStyle,
+                    borderWidth: getComputedStyle(node).borderWidth,
+                  }));
+                  if (
+                    forcedColors.borderStyle === 'none' ||
+                    forcedColors.borderWidth === '0px'
+                  ) {
+                    throw new Error(
+                      `forced-colors removed Place boundary: ${JSON.stringify(forcedColors)}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/place-w390-forced-colors.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.emulateMedia({ forcedColors: 'none' });
+
+                  const selectedCamera = await camera(page);
+                  await page.locator('#place-bottom-sheet .place-bottom-sheet-close').click();
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"][data-sheet-state="full"] [data-location-name="Primeira Praia"]',
+                  ).waitFor({ state: 'visible', timeout: 8000 });
+                  if (
+                    (await page.locator('#map').getAttribute('data-map-marker-count')) !== '1'
+                  ) {
+                    throw new Error('Search list did not restore marker context');
+                  }
+                  await page.keyboard.press('Escape');
+                  await page.locator('#explore-flow-bottom-sheet').waitFor({
+                    state: 'hidden',
+                    timeout: 5000,
+                  });
+                  const discoverCamera = await camera(page);
+                  if (
+                    (await page.locator('#map').getAttribute('data-map-marker-count')) !== '1' ||
+                    !closeEnough(selectedCamera.lng, discoverCamera.lng, 0.00001) ||
+                    !closeEnough(selectedCamera.lat, discoverCamera.lat, 0.00001)
+                  ) {
+                    throw new Error(
+                      `return to Discover lost map context: ${JSON.stringify({ selectedCamera, discoverCamera })}`,
+                    );
+                  }
+
+                  const providerContextBefore = {
+                    camera: await camera(page),
+                    markers: await page.locator('#map').getAttribute(
+                      'data-map-marker-count',
+                    ),
+                  };
+                  await page.unroute('**/search/searchbox/v1/forward**');
+                  await page.route('**/search/searchbox/v1/forward**', route =>
+                    route.fulfill({
+                      status: 503,
+                      contentType: 'application/json',
+                      body: JSON.stringify({ message: 'provider unavailable' }),
+                    }),
+                  );
+                  await submit(page, 'Lugar Indisponivel Abcd');
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="error"]',
+                  ).waitFor({ state: 'visible', timeout: 10000 });
+                  const providerContextAfter = {
+                    camera: await camera(page),
+                    markers: await page.locator('#map').getAttribute(
+                      'data-map-marker-count',
+                    ),
+                  };
+                  if (
+                    providerContextAfter.markers !== providerContextBefore.markers ||
+                    !closeEnough(
+                      providerContextBefore.camera.lng,
+                      providerContextAfter.camera.lng,
+                      0.00001,
+                    ) ||
+                    !closeEnough(
+                      providerContextBefore.camera.lat,
+                      providerContextAfter.camera.lat,
+                      0.00001,
+                    ) ||
+                    !closeEnough(
+                      providerContextBefore.camera.zoom,
+                      providerContextAfter.camera.zoom,
+                      0.01,
+                    )
+                  ) {
+                    throw new Error(
+                      `Search provider failure destroyed map context: ${JSON.stringify({ providerContextBefore, providerContextAfter })}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/explore-w390-provider-unavailable.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.keyboard.press('Escape');
+                  await page.unroute('**/search/searchbox/v1/forward**');
+                  await page.route('**/search/searchbox/v1/forward**', route =>
+                    route.fulfill({
+                      status: 200,
+                      contentType: 'application/json',
+                      body: JSON.stringify({ features: [] }),
+                    }),
+                  );
+
+                  await submit(page, 'Lugar Fantasma Qzxw');
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="empty"]',
+                  ).waitFor({ state: 'visible', timeout: 10000 });
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/explore-w390-empty.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.keyboard.press('Escape');
+
+                  await submit(page, 'praias');
+                  const filterSheet = page.locator(
+                    '#explore-flow-bottom-sheet[data-flow-kind="explore"]',
+                  );
+                  await filterSheet.waitFor({ state: 'visible', timeout: 8000 });
+                  await filterSheet.locator('[data-sheet-state-target="full"]').click();
+                  await filterSheet.locator('[data-value="surf"]').click();
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-sheet-state="full"] [data-location-name]',
+                  ).first().waitFor({ state: 'visible', timeout: 8000 });
+                  const filteredMarkerCount = Number(
+                    await page.locator('#map').getAttribute('data-map-marker-count'),
+                  );
+                  await filterSheet.locator('[data-value="voltar_filtros"]').click();
+                  await page.locator(
+                    '#explore-flow-bottom-sheet[data-sheet-state="full"] [data-value="surf"]',
+                  ).waitFor({ state: 'visible', timeout: 8000 });
+                  const restoredMarkerCount = Number(
+                    await page.locator('#map').getAttribute('data-map-marker-count'),
+                  );
+                  if (
+                    filteredMarkerCount < 1 ||
+                    filteredMarkerCount >= 8 ||
+                    restoredMarkerCount !== 8
+                  ) {
+                    throw new Error(
+                      `filter context drift: ${JSON.stringify({ filteredMarkerCount, restoredMarkerCount })}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/explore-w390-filter-context.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+
+                  special = {
+                    exploreAccessibility,
+                    orientationState,
+                    beforeResize,
+                    afterResize,
+                    rtlGeometry,
+                    zoomedGeometry,
+                    forcedColors,
+                    selectedCamera,
+                    discoverCamera,
+                    providerContextBefore,
+                    providerContextAfter,
+                    filteredMarkerCount,
+                    restoredMarkerCount,
+                  };
+                }
+
+                const perf = await page.evaluate(() => {
+                  const navigation = performance.getEntriesByType('navigation')[0];
+                  return {
+                    navigationDuration:
+                      navigation && 'duration' in navigation ? navigation.duration : null,
+                    resourceCount: performance.getEntriesByType('resource').length,
+                  };
+                });
+                if (
+                  typeof perf.navigationDuration === 'number' &&
+                  perf.navigationDuration > 15000
+                ) {
+                  throw new Error(
+                    `unexpected navigation performance regression on ${viewport.id}: ${JSON.stringify(perf)}`,
+                  );
+                }
+
+                if (pageErrors.length || providerErrors.length) {
+                  throw new Error(
+                    `${viewport.id} browser/provider errors: ${JSON.stringify({ pageErrors, providerErrors })}`,
+                  );
+                }
+
+                evidence.push({
+                  viewport,
+                  exploreGeometry,
+                  mapGeometry,
+                  placeState,
+                  placeGeometry,
+                  perf,
+                  special,
+                });
+                await context.close();
+              }
+
+              writeFileSync(
+                '/tmp/place-explore-v2/evidence.json',
+                JSON.stringify(evidence, null, 2),
+              );
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            writeFileSync(
+              '/tmp/place-explore-v2/failure.txt',
+              String(error?.stack || error),
+            );
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show server diagnostics
+        if: failure()
+        run: cat /tmp/place-explore-v2/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: place-search-explore-v2-visual-evidence
+          path: /tmp/place-explore-v2
+          retention-days: 7
+          if-no-files-found: error

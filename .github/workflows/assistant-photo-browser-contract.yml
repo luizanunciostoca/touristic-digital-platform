@@ -71,13 +71,14 @@ jobs:
             ['/images/fotos/primeira_praia2.jpeg', '0fcf94e6f7518415af009e8e57eca53093f87cc96789c6a64c55a2646524b90c'],
             ['/images/fotos/toca_do_morcego2.jpg', '8cd4c26a1cd3356c728a6ca06559b52ae1fbbee93aa822ab0dc6bfe0f51db3c6'],
           ]);
-          const expectedBeachDetailOptions = [
-            { label: '🌊 Condições da praia', value: 'condições da praia' },
-            { label: '📍 Como chegar', value: 'como chegar' },
-            { label: '📸 Fotos', value: 'ver fotos' },
-            { label: 'ℹ️ Informações', value: 'informações' },
-            { label: 'Mais opções', value: 'mais opções' },
-            { label: '⬅️ Voltar', value: '[sub]beaches' },
+          const expectedBeachDetailValues = [
+            'condições da praia',
+            'como chegar',
+            'ver fotos',
+            'informações',
+            'mais opções',
+            'adicionar aos favoritos',
+            'compartilhar',
           ];
 
           async function validateStaticAsset(path, expectedHash) {
@@ -219,18 +220,25 @@ jobs:
                 timeout: 5000,
               });
               await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({
-                state: 'visible',
-                timeout: 10000,
-              });
+              const placeValues = await page.locator(
+                '#place-bottom-sheet .place-bottom-sheet-action',
+              ).evaluateAll((buttons) =>
+                buttons.map((button) => button.getAttribute('data-value')),
+              );
+              if (JSON.stringify(placeValues) !== JSON.stringify(expectedBeachDetailValues)) {
+                throw new Error(`Place V2 photo action set drifted: ${JSON.stringify(placeValues)}`);
+              }
+
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').click();
 
               const primeiraPraiaCarousel = page.locator('.assistant-photo-carousel');
               await primeiraPraiaCarousel.waitFor({ state: 'visible', timeout: 10000 });
-              const photoActions = page.locator('.assistant-options[data-presentation="photo-actions"]');
-              await photoActions.waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('#assistant-messages:not(.hidden)').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
 
-              const photoState = await page.evaluate(() => {
+              const photoState = await page.evaluate((placeActionValues) => {
                 const area = document.querySelector('#assistant-messages .messages-area');
                 const children = area ? Array.from(area.children) : [];
                 const visibleMessage = children.find((element) => {
@@ -239,45 +247,55 @@ jobs:
                   return !element.classList.contains('hidden') && style.display !== 'none' && style.visibility !== 'hidden';
                 });
                 const carousel = area?.querySelector('.assistant-photo-carousel') ?? null;
-                const actions = area?.querySelector('.assistant-options[data-presentation="photo-actions"]') ?? null;
+                const duplicatedPlaceActions = Array.from(
+                  area?.querySelectorAll('.assistant-option-btn') ?? [],
+                  (button) => button.getAttribute('data-value'),
+                ).filter((value) => placeActionValues.includes(value));
                 return {
                   messageText: visibleMessage?.textContent?.trim() ?? '',
                   messageIndex: visibleMessage ? children.indexOf(visibleMessage) : -1,
                   carouselIndex: carousel ? children.indexOf(carousel) : -1,
-                  actionsIndex: actions ? children.indexOf(actions) : -1,
-                  values: actions
-                    ? Array.from(actions.querySelectorAll('.assistant-option-btn'), (button) => button.getAttribute('data-value'))
-                    : [],
+                  duplicatedPlaceActions,
+                  photoActionGroups: area?.querySelectorAll(
+                    '.assistant-options[data-presentation="photo-actions"]',
+                  ).length ?? 0,
+                  photoActionValues: Array.from(
+                    area?.querySelectorAll(
+                      '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn',
+                    ) ?? [],
+                    (button) => button.getAttribute('data-value'),
+                  ),
                   legacyBackCount: area?.querySelectorAll('.assistant-photo-back-options').length ?? 0,
                 };
-              });
-              const expectedValues = expectedBeachDetailOptions.map((option) => option.value);
+              }, expectedBeachDetailValues);
               if (
                 !photoState.messageText.includes('Primeira Praia') ||
                 photoState.messageIndex < 0 ||
                 photoState.carouselIndex <= photoState.messageIndex ||
-                photoState.actionsIndex <= photoState.carouselIndex ||
-                JSON.stringify(photoState.values) !== JSON.stringify(expectedValues) ||
+                photoState.duplicatedPlaceActions.length !== 0 ||
+                photoState.photoActionGroups !== 1 ||
+                JSON.stringify(photoState.photoActionValues) !== JSON.stringify(['[sub]beaches']) ||
                 photoState.legacyBackCount !== 0
               ) {
-                throw new Error(`Photo action continuity diverged: ${JSON.stringify(photoState)}`);
+                throw new Error(`Photo V2 de-duplication diverged: ${JSON.stringify(photoState)}`);
               }
 
-              await photoActions.locator('.assistant-option-btn[data-value="[sub]beaches"]').click();
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({
-                state: 'visible',
-                timeout: 5000,
-              });
+              await page
+                .locator(
+                  '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn[data-value="[sub]beaches"]',
+                )
+                .click();
+              await page.locator(
+                '#assistant-category-results[data-category="beaches"][data-stage="places"]',
+              ).waitFor({ state: 'visible', timeout: 5000 });
               await page
                 .locator('.assistant-photo-carousel')
                 .waitFor({ state: 'detached', timeout: 5000 });
-              await page
-                .locator('.assistant-options[data-presentation="photo-actions"]')
-                .waitFor({ state: 'detached', timeout: 5000 });
-
-              const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
+              const returnedPlaces = await page.locator(
+                '#assistant-category-results [data-location-name]',
+              ).count();
               if (returnedPlaces !== 8) {
-                throw new Error(`Photo back action did not restore the beach list: ${returnedPlaces}`);
+                throw new Error(`Photo Back did not restore the beach list: ${returnedPlaces}`);
               }
 
               if (pageErrors.length) {
