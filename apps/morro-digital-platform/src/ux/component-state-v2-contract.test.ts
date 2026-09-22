@@ -45,6 +45,8 @@ describe("UX Design V2 component-state contract", () => {
 
     expect(foundations).toContain("box-sizing: border-box");
     expect(foundations).toContain("max-inline-size: 100%");
+    expect(foundations).toContain("min-inline-size: 0");
+    expect(foundations).toContain("overflow-wrap: anywhere");
     expect(foundations).toContain("@media (forced-colors: active)");
     expect(foundations).toContain("@media (prefers-reduced-motion: reduce)");
   });
