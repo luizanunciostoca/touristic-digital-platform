@@ -271,8 +271,10 @@ export function createUniversalSearchController({
   }
 
   function currentDestinationSelect() {
-    if (destinationSelect?.isConnected) return destinationSelect;
-    return document.querySelector("#destination-selector");
+    return (
+      document.querySelector("#destination-selector") ??
+      (destinationSelect?.isConnected ? destinationSelect : null)
+    );
   }
 
   function selectedDestinationId() {
