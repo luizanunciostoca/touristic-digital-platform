@@ -1684,7 +1684,11 @@ body[data-md-unified-dock="true"] #discover-category-rail {
 }
 
 #unified-assistant-dock .md-assistant-category-chip:nth-child(4n) {
-  background: color-mix(in srgb, #a855f7 8%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-info) 8%,
+    var(--md-color-surface-card)
+  );
 }
 
 #unified-assistant-dock .md-assistant-category-chip i {
