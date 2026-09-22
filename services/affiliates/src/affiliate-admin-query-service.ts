@@ -181,7 +181,7 @@ function boundedDestinationId(value: unknown): string {
   if (value === undefined || value === null || value === "") return "";
   if (
     typeof value !== "string" ||
-    !/^[a-z0-9][a-z0-9-]{0,118}$/u.test(value.trim())
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(value.trim()) ||\n    value.trim().length > 120
   ) {
     throw new Error("AFFILIATE_ADMIN_INVALID_DESTINATION_ID");
   }
