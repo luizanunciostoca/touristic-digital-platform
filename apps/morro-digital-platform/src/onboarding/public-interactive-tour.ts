@@ -37,7 +37,7 @@ const STEPS: readonly TutorialStepTarget[] = Object.freeze([
   Object.freeze({ selectors: ["#map-container", "#map"] }),
   Object.freeze({ selectors: ["#weather-widget"] }),
   Object.freeze({ selectors: ["#assistant-input-area"] }),
-  Object.freeze({ selectors: ["#voiceButton"] }),
+  Object.freeze({ selectors: ["#voiceButton", "#assistant-input-area"] }),
   Object.freeze({ selectors: ["#home-profile-button"] }),
   Object.freeze({ selectors: ["#toggle-globe-view"] }),
 ]);
@@ -304,7 +304,8 @@ export function installPublicInteractiveTour(
     const progress = ((stepIndex + 1) / STEPS.length) * 100;
     const targetUnavailable =
       target?.matches(":disabled") ||
-      target?.getAttribute("aria-disabled") === "true";
+      target?.getAttribute("aria-disabled") === "true" ||
+      (stepIndex === 3 && target?.id !== "voiceButton");
     tooltip.toggleAttribute("data-target-unavailable", Boolean(targetUnavailable));
     tooltip.innerHTML = `
       <div class="tour-tooltip-inner">
