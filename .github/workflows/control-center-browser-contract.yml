@@ -276,7 +276,7 @@ jobs:
                 throw new Error('Short universal-search query did not stay closed');
               }
 
-              await page.locator('#search-destination').evaluate(select => {
+              await page.locator('#destination-selector').evaluate(select => {
                 if (![...select.options].some(option => option.value === 'morro-de-sao-paulo')) {
                   const option = document.createElement('option');
                   option.value = 'morro-de-sao-paulo';
@@ -298,7 +298,7 @@ jobs:
               await scopedSearchRequest;
               await page.keyboard.press('Escape');
               await page.locator('#global-search').fill('');
-              await page.locator('#search-destination').selectOption('');
+              await page.locator('#destination-selector').selectOption('global');
 
               await page.route('**/api/admin/v1/search*', async route => {
                 const url = new URL(route.request().url());
@@ -594,6 +594,19 @@ jobs:
                 }
                 const screenshotPath = `/tmp/control-center-visual-${viewport.label}.png`;
                 await page.screenshot({ path: screenshotPath, fullPage: true });
+                if (viewport.label === 'mobile') {
+                  await page.locator('#global-search').fill('owner@morro.invalid');
+                  await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
+                  const searchBox = await page.locator('#search-results').boundingBox();
+                  if (
+                    !searchBox ||
+                    searchBox.x < 0 ||
+                    searchBox.x + searchBox.width > viewport.width + 1
+                  ) {
+                    throw new Error(`Universal search overflow at mobile viewport: ${JSON.stringify(searchBox)}`);
+                  }
+                  await page.keyboard.press('Escape');
+                }
                 evidence.viewports.push(viewport.label);
                 evidence.visualBaseline.push({
                   label: viewport.label,
