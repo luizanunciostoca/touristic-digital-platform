@@ -7,6 +7,7 @@ import type {
   NavigationPhase,
   NavigationRuntimeSnapshot,
   RoutingProvider,
+  getRecalculationThresholdMeters,
 } from "@touristic/navigation";
 
 import {
@@ -19,6 +20,7 @@ import {
 } from "../assistant/assistant-navigation-feedback.js";
 import { getMorroDigitalApplication } from "../main.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
+import { NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS } from "./navigation-composition.js";
 import {
   createNavigationContextualSuggestions,
   type NavigationContextualSuggestions,
@@ -32,6 +34,7 @@ import {
   type NavigationDomLifecycle,
 } from "./navigation-dom-lifecycle.js";
 import {
+  NAVIGATION_RECENTER_REQUEST_EVENT,
   createNavigationGuidanceUi,
   type NavigationGuidanceUi,
 } from "./navigation-guidance-ui.js";
@@ -99,6 +102,41 @@ function resolveRoutingFallbackProvider(
   return createMapboxDirectionsRoutingProvider({ token });
 }
 
+function navigationFailureMessage(error: unknown): {
+  readonly message: string;
+  readonly tone: "warning" | "danger";
+} {
+  const code = error instanceof Error ? error.message : String(error);
+  if (code.includes("PERMISSION_DENIED")) {
+    return {
+      message: "GPS indisponível. Permita o acesso à localização.",
+      tone: "danger",
+    };
+  }
+  if (code.includes("INACCURATE_START_LOCATION")) {
+    return {
+      message: "Sinal de GPS impreciso. Vá para uma área aberta.",
+      tone: "warning",
+    };
+  }
+  if (
+    code.includes("LOCATION_UNAVAILABLE") ||
+    code.includes("TIMEOUT") ||
+    code.includes("ROUT") ||
+    code.includes("fetch") ||
+    code.includes("network")
+  ) {
+    return {
+      message: "Rota indisponível. Verifique sua conexão e tente novamente.",
+      tone: "danger",
+    };
+  }
+  return {
+    message: "Navegação indisponível no momento.",
+    tone: "danger",
+  };
+}
+
 export function installBrowserNavigationRuntime(
   options: BrowserNavigationRuntimeInstallOptions,
 ): BrowserNavigationRuntimeInstall {
@@ -164,6 +202,12 @@ export function installBrowserNavigationRuntime(
   let latestSnapshot: NavigationRuntimeSnapshot | null = null;
   let recalculations = 0;
 
+  const onRecenterRequested = (): void => {
+    if (bootstrap.recenter?.()) {
+      guidanceUi.status?.("Posição recentralizada.", "info");
+    }
+  };
+
   function publishStatus(
     context: NavigationSessionEventContext,
     requestedPhase: NavigationPhase = "active",
@@ -198,6 +242,18 @@ export function installBrowserNavigationRuntime(
     onLocation: (location, context) => {
       hasActiveRoute = true;
       latestLocation = location;
+      const accuracy = Number(location.accuracy);
+      if (
+        Number.isFinite(accuracy) &&
+        accuracy > NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS
+      ) {
+        guidanceUi.status?.(
+          "Sinal de GPS impreciso. Aguardando uma posição melhor.",
+          "warning",
+        );
+      } else {
+        guidanceUi.status?.(null);
+      }
       contextualSuggestions?.observe(location);
       eventBridge.location({
         latitude: location.latitude,
@@ -232,6 +288,19 @@ export function installBrowserNavigationRuntime(
         speech.speak(snapshot.guidance.instruction);
       }
 
+      const offRouteThreshold = getRecalculationThresholdMeters(
+        latestLocation?.accuracy,
+      );
+      if (snapshot.offRouteDistance > offRouteThreshold) {
+        guidanceUi.status?.("Fora da rota. Recalculando caminho…", "warning");
+      } else if (
+        !latestLocation ||
+        !Number.isFinite(Number(latestLocation.accuracy)) ||
+        Number(latestLocation.accuracy) <= NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS
+      ) {
+        guidanceUi.status?.(null);
+      }
+
       eventBridge.runtime({
         sessionId: context.sessionId,
         routeIdentity: snapshot.routeIdentity,
@@ -262,6 +331,7 @@ export function installBrowserNavigationRuntime(
     },
     onRecalculation: () => {
       recalculations += 1;
+      guidanceUi.status?.("Rota atualizada.", "info");
       speech.speak(navigationSpeechMessage(speech.language(), "recalculating"));
     },
     onAutoEnd: () => lifecycle?.stop("arrived"),
@@ -275,7 +345,15 @@ export function installBrowserNavigationRuntime(
   const requestPort = createRequestPort({
     document: options.document,
     lifecycle: activeLifecycle,
+    onError(error) {
+      const failure = navigationFailureMessage(error);
+      guidanceUi.status?.(failure.message, failure.tone);
+    },
   });
+  options.document.addEventListener(
+    NAVIGATION_RECENTER_REQUEST_EVENT,
+    onRecenterRequested,
+  );
   const explore = getMorroDigitalApplication(
     options.document,
   )?.exploreLocations;
@@ -304,6 +382,10 @@ export function installBrowserNavigationRuntime(
         onNavigationStarted,
       );
       eventTarget?.removeEventListener("navigationEnded", onNavigationEnded);
+      options.document.removeEventListener(
+        NAVIGATION_RECENTER_REQUEST_EVENT,
+        onRecenterRequested,
+      );
       contextualSuggestions?.destroy();
       assistantFeedback.destroy();
       assistant.destroy();
