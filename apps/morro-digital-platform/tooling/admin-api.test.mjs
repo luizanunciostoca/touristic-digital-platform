@@ -543,9 +543,7 @@ describe("Control Center Admin API", () => {
     expect(called).toBe(false);
     const payload = JSON.parse(response.body);
     expect(payload.results).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "99" }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ id: "99" })]),
     );
     expect(payload.partial).toEqual(
       expect.arrayContaining([
@@ -622,9 +620,7 @@ describe("Control Center Admin API", () => {
     await idleFixture.api.handle(
       request("/api/admin/v1/search?q=OWNER%40MORRO.INVALID"),
       response,
-      new URL(
-        "http://localhost/api/admin/v1/search?q=OWNER%40MORRO.INVALID",
-      ),
+      new URL("http://localhost/api/admin/v1/search?q=OWNER%40MORRO.INVALID"),
     );
     expect(JSON.parse(response.body).results).toEqual(
       expect.arrayContaining([
