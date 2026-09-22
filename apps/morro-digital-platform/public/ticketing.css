@@ -611,9 +611,15 @@ h3 {
     width: 100%;
   }
 
-  .offer-card {
+  .offer-card,
+  .reservation-card {
+    min-width: 0;
     grid-template-columns: 1fr;
     align-items: stretch;
+  }
+
+  .reservation-card > * {
+    min-width: 0;
   }
 
   .card-actions {
