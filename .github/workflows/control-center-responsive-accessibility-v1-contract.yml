@@ -44,17 +44,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Diagnose Wave 3 formatting
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm exec prettier --write \
-            apps/control-center/public/control-center-responsive-accessibility-v1.js \
-            apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs
-          git diff -- \
-            apps/control-center/public/control-center-responsive-accessibility-v1.js \
-            apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs
-          exit 1
+      - name: Check Wave 3 formatting
+        run: >-
+          pnpm exec prettier --check
+          apps/control-center/public/control-center-responsive-accessibility-v1.css
+          apps/control-center/public/control-center-responsive-accessibility-v1.js
+          apps/control-center/public/index.html
+          apps/morro-digital-platform/tooling/control-center-responsive-accessibility-v1-browser-contract.cjs
+          .github/workflows/control-center-responsive-accessibility-v1-contract.yml
       - name: Install deterministic Chromium and axe-core
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2 axe-core@4.10.3
