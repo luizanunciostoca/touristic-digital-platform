@@ -284,18 +284,12 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
       if (surface === "tickets.html") {
         const ticketing = "/ticketing.css";
         expect(hrefs).toContain(ticketing);
-        expect(hrefs.indexOf(foundations)).toBeLessThan(
-          hrefs.indexOf(premium),
-        );
-        expect(hrefs.indexOf(premium)).toBeLessThan(
-          hrefs.indexOf(ticketing),
-        );
+        expect(hrefs.indexOf(foundations)).toBeLessThan(hrefs.indexOf(premium));
+        expect(hrefs.indexOf(premium)).toBeLessThan(hrefs.indexOf(ticketing));
         expect(hrefs.at(-1)).toBe(ticketing);
       } else if (surface === "index.html") {
         expect(hrefs).toContain(touristShell);
-        expect(hrefs.indexOf(foundations)).toBeLessThan(
-          hrefs.indexOf(premium),
-        );
+        expect(hrefs.indexOf(foundations)).toBeLessThan(hrefs.indexOf(premium));
         expect(hrefs.indexOf(premium)).toBeLessThan(
           hrefs.indexOf(touristShell),
         );
