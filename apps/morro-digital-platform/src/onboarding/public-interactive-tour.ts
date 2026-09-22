@@ -124,6 +124,7 @@ export function installPublicInteractiveTour(
   let tooltip: HTMLElement | null = null;
   let resizeFrame = 0;
   let previouslyFocusedElement: HTMLElement | null = null;
+  let voicePermissionDenied = false;
 
   const clearTarget = (): void => {
     if (target) {
@@ -380,6 +381,33 @@ export function installPublicInteractiveTour(
     options.document.body.append(backdrop, blocker, highlight, proxy, tooltip);
   };
 
+  const refreshVoicePermission = (
+    step: PublicOnboardingTourStepCopy,
+  ): void => {
+    if (
+      stepIndex !== 3 ||
+      voicePermissionDenied ||
+      target?.id !== "voiceButton" ||
+      !view?.navigator.permissions
+    ) {
+      return;
+    }
+
+    void view.navigator.permissions
+      .query({ name: "microphone" } as PermissionDescriptor)
+      .then((status) => {
+        if (!active || stepIndex !== 3 || status.state !== "denied") return;
+        voicePermissionDenied = true;
+        renderTooltip(step);
+        positionStep();
+        tooltip?.focus({ preventScroll: true });
+      })
+      .catch(() => {
+        // Permission introspection is best-effort; target availability remains
+        // authoritative when the browser does not expose microphone state.
+      });
+  };
+
   const renderTooltip = (step: PublicOnboardingTourStepCopy): void => {
     if (!tooltip) return;
     const tourCopy = getPublicOnboardingCopy(
@@ -391,7 +419,8 @@ export function installPublicInteractiveTour(
       !target ||
       target.matches(":disabled") ||
       target.getAttribute("aria-disabled") === "true" ||
-      (stepIndex === 3 && target.id !== "voiceButton");
+      (stepIndex === 3 &&
+        (target.id !== "voiceButton" || voicePermissionDenied));
     tooltip.toggleAttribute(
       "data-target-unavailable",
       Boolean(targetUnavailable),
@@ -443,6 +472,7 @@ export function installPublicInteractiveTour(
     tooltip
       .querySelector<HTMLButtonElement>(".tour-btn-finish")
       ?.addEventListener("click", () => finish("complete"), { once: true });
+    refreshVoicePermission(step);
   };
 
   function renderStep(nextIndex: number): void {
