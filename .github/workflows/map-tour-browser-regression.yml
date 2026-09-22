@@ -584,6 +584,35 @@ jobs:
             if (!(await page.locator('.tour-stop-pin.tour-stop-active').count())) {
               throw new Error('Guided tour did not highlight the active V1 stop marker.');
             }
+            const firstBoundary = await page.evaluate(() => ({
+              previous: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_prev__"]',
+              ).length,
+              next: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_next__"]',
+              ).length,
+              count: document.querySelector('.tour-active-count')?.textContent?.trim() ?? '',
+              cardIndex: document.querySelector('.tour-stop-card')?.getAttribute('data-stop-index'),
+              activeIndex: document
+                .querySelector('.tour-stop-pin.tour-stop-active')
+                ?.closest('.tour-stop-marker')
+                ?.getAttribute('data-stop-index'),
+              markerNumbers: Array.from(
+                document.querySelectorAll('.tour-stop-number'),
+              ).map(element => element.textContent?.trim() ?? ''),
+            }));
+            if (
+              firstBoundary.previous !== 0 ||
+              firstBoundary.next !== 1 ||
+              firstBoundary.count !== '1/8' ||
+              firstBoundary.cardIndex !== '0' ||
+              firstBoundary.activeIndex !== '0' ||
+              firstBoundary.markerNumbers.join(',') !== '1,2,3,4,5,6,7,8'
+            ) {
+              throw new Error(
+                `First-stop/current-marker atomicity drift: ${JSON.stringify(firstBoundary)}`,
+              );
+            }
 
             const expectedSpeechLang = await page.evaluate(() => {
               const lang = document.documentElement.lang.toLowerCase();
@@ -601,6 +630,15 @@ jobs:
               fullPage: false,
               animations: 'disabled',
             });
+            const stopImage = page.locator('.tour-stop-photo');
+            if (await stopImage.count()) {
+              await stopImage.evaluate(element =>
+                element.dispatchEvent(new Event('error')),
+              );
+              await page.locator(
+                '.tour-stop-card[data-photo-state="missing"] .tour-stop-photo-wrap[hidden]',
+              ).waitFor({ state: 'attached', timeout: 3000 });
+            }
             const autoNarration = await page.evaluate(() => ({
               ...globalThis.__tourSpeechEvidence,
               spoken: [...globalThis.__tourSpeechEvidence.spoken],
@@ -670,6 +708,40 @@ jobs:
             await page.locator('.tour-stop-list-card').waitFor({ state: 'visible', timeout: 10000 });
             await page.locator('#assistant-category-results [data-value="__tour_stop_7__"]').click();
             const directLast = await waitForGuidedStage(page, 'stop', 'volta-a-ilha', '7');
+            const lastBoundary = await page.evaluate(() => ({
+              previous: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_prev__"]',
+              ).length,
+              next: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_next__"]',
+              ).length,
+              finish: document.querySelectorAll(
+                '#assistant-category-results [data-value="__tour_finish__"]',
+              ).length,
+              count: document.querySelector('.tour-active-count')?.textContent?.trim() ?? '',
+              cardIndex: document.querySelector('.tour-stop-card')?.getAttribute('data-stop-index'),
+              activeIndex: document
+                .querySelector('.tour-stop-pin.tour-stop-active')
+                ?.closest('.tour-stop-marker')
+                ?.getAttribute('data-stop-index'),
+            }));
+            if (
+              lastBoundary.previous !== 1 ||
+              lastBoundary.next !== 0 ||
+              lastBoundary.finish !== 1 ||
+              lastBoundary.count !== '8/8' ||
+              lastBoundary.cardIndex !== '7' ||
+              lastBoundary.activeIndex !== '7'
+            ) {
+              throw new Error(
+                `Last-stop/completion boundary drift: ${JSON.stringify(lastBoundary)}`,
+              );
+            }
+            await page.screenshot({
+              path: `/tmp/map-tour-evidence/tour-last-stop-${evidenceName}.png`,
+              fullPage: false,
+              animations: 'disabled',
+            });
 
             await page.locator('#assistant-category-results [data-value="__tour_finish__"]').click();
             const finale = await waitForGuidedStage(page, 'finale', 'volta-a-ilha');
