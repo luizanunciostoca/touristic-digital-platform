@@ -37,7 +37,9 @@ async function readRepository(path: string): Promise<string> {
 
 async function readAuthority(): Promise<ManualAuthority> {
   return JSON.parse(
-    await readRepository("tests/visual-regression/ux-v2-manual-conformance.json"),
+    await readRepository(
+      "tests/visual-regression/ux-v2-manual-conformance.json",
+    ),
   ) as ManualAuthority;
 }
 
@@ -50,7 +52,9 @@ describe("UX V2 manual visual conformance authority", () => {
       "Morro_Digital_Manual_Desenvolvedor_UX_Design_V2.pdf",
     );
     expect(authority.authority.appendix).toBe("A");
-    expect(authority.authority.principle).toContain("never the visual authority");
+    expect(authority.authority.principle).toContain(
+      "never the visual authority",
+    );
     expect(authority.productDecisions).toEqual({
       quickActions: "retired",
       floatingAssistantLauncher: "retired",
@@ -83,15 +87,17 @@ describe("UX V2 manual visual conformance authority", () => {
 
   it("prevents certification while the current audit contains fail or pending surfaces", async () => {
     const authority = await readAuthority();
-    const forbidden = new Set(authority.certification.forbiddenWhileAnyStatusMatches);
+    const forbidden = new Set(
+      authority.certification.forbiddenWhileAnyStatusMatches,
+    );
     const blocking = Object.values(authority.surfaces).filter((surface) =>
       forbidden.has(surface.status),
     );
 
     expect(blocking.length).toBeGreaterThan(0);
-    expect(blocking.some((surface) => surface.status === "MANUAL_CONFORMANCE_FAIL")).toBe(
-      true,
-    );
+    expect(
+      blocking.some((surface) => surface.status === "MANUAL_CONFORMANCE_FAIL"),
+    ).toBe(true);
     expect(authority.certification.physicalGate).toContain("SM-X820");
   });
 
@@ -101,7 +107,9 @@ describe("UX V2 manual visual conformance authority", () => {
     );
 
     const initialCapture = workflow.indexOf("place-initial-${viewport.id}.png");
-    const stateCycle = workflow.indexOf("for (const state of ['peek', 'half', 'full'])");
+    const stateCycle = workflow.indexOf(
+      "for (const state of ['peek', 'half', 'full'])",
+    );
     const expandedCapture = workflow.indexOf("place-full-${viewport.id}.png");
 
     expect(initialCapture).toBeGreaterThan(-1);
@@ -109,7 +117,9 @@ describe("UX V2 manual visual conformance authority", () => {
     expect(expandedCapture).toBeGreaterThan(stateCycle);
     expect(workflow).toContain("MANUAL_CONFORMANCE_PLACE_INITIAL_STATE");
     expect(workflow).toContain("MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY");
-    expect(workflow).toContain("resultGeometry.width < resultGeometry.sourceWidth * 0.92");
+    expect(workflow).toContain(
+      "resultGeometry.width < resultGeometry.sourceWidth * 0.92",
+    );
   });
 
   it("rejects Ticketing self-regression when the purchase hierarchy is not image-led", async () => {

@@ -4,16 +4,16 @@ Authority: `Morro_Digital_Manual_Desenvolvedor_UX_Design_V2.pdf`, especially Sec
 
 A stable implementation screenshot is evidence only. It is not a visual authority. A new golden may be frozen only after manual comparison and human review. Quick Actions and the floating Assistant launcher are approved retired product decisions and are not defects.
 
-| Surface | Status | Manual authority | Current blocker / proof still required | Owner |
-| --- | --- | --- | --- | --- |
-| Discover / Home | PARTIAL | Section 32 + Appendix A | Pure Discover golden; map dominance; Weather/Explore/composer collision proof | Home/Discover |
-| Place | PARTIAL | Sections 10, 32 + Appendix A | Initial contextual-sheet golden before state cycling; preserve map context | Place/Search |
-| Search / Explore | FAIL | Sections 5, 10, 32 + Appendix A | Mobile result geometry can collapse into an orphan action; CI now rejects it | Search/Explore visual convergence |
-| Navigation | PARTIAL | Sections 9, 32 + Appendix A | Exact-main golden with dominant instruction and reachable exit | Navigation |
-| Tour | PARTIAL | Sections 9, 32 + Appendix A | Successful intro/stop/finale goldens; fallback screenshots are insufficient | Tour |
-| Assistant | PARTIAL | Sections 9, 11, 32 + Appendix A | Composer-first golden; map remains dominant; keyboard does not destroy hierarchy | Assistant |
-| Commerce | PARTIAL | Sections 9, 12, 32 + Appendix A | Contextual handoff and return goldens | Commerce |
-| Ticketing | FAIL | Section 32 + Appendix A | Current availability + form + wallet composition is not an accepted consumer-booking golden; CI now requires image-led purchase context | Ticketing visual convergence |
+| Surface          | Status  | Manual authority                | Current blocker / proof still required                                                                                                  | Owner                             |
+| ---------------- | ------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Discover / Home  | PARTIAL | Section 32 + Appendix A         | Pure Discover golden; map dominance; Weather/Explore/composer collision proof                                                           | Home/Discover                     |
+| Place            | PARTIAL | Sections 10, 32 + Appendix A    | Initial contextual-sheet golden before state cycling; preserve map context                                                              | Place/Search                      |
+| Search / Explore | FAIL    | Sections 5, 10, 32 + Appendix A | Mobile result geometry can collapse into an orphan action; CI now rejects it                                                            | Search/Explore visual convergence |
+| Navigation       | PARTIAL | Sections 9, 32 + Appendix A     | Exact-main golden with dominant instruction and reachable exit                                                                          | Navigation                        |
+| Tour             | PARTIAL | Sections 9, 32 + Appendix A     | Successful intro/stop/finale goldens; fallback screenshots are insufficient                                                             | Tour                              |
+| Assistant        | PARTIAL | Sections 9, 11, 32 + Appendix A | Composer-first golden; map remains dominant; keyboard does not destroy hierarchy                                                        | Assistant                         |
+| Commerce         | PARTIAL | Sections 9, 12, 32 + Appendix A | Contextual handoff and return goldens                                                                                                   | Commerce                          |
+| Ticketing        | FAIL    | Section 32 + Appendix A         | Current availability + form + wallet composition is not an accepted consumer-booking golden; CI now requires image-led purchase context | Ticketing visual convergence      |
 
 ## Visual reference matrix
 
