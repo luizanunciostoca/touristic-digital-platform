@@ -316,6 +316,55 @@ function humanizeAuditAction(value) {
     : "Ação administrativa";
 }
 
+function activityDeepLink(entry) {
+  const id = entry?.entityId ? encodeURIComponent(entry.entityId) : "";
+  if (entry?.entityType === "auth_principal" && id) return "#users:" + id;
+  if (entry?.entityType === "payment" && id) return "#financial:" + id;
+  if (entry?.entityType === "reservation" && id) return "#reservations:" + id;
+  if (entry?.entityType === "destination" && id) return "#destinations:" + id;
+  if (entry?.entityType === "content_document" && id) return "#content:" + id;
+  if (entry?.entityType === "ticket_inventory" && id) return "#products:" + id;
+  if (entry?.entityType === "ticketing_operation") return "#ticketing";
+  if (entry?.entityType === "affiliate_membership" && entry.entityId) {
+    const affiliateId = String(entry.entityId).split(":", 1)[0];
+    return affiliateId
+      ? "#affiliates:" + encodeURIComponent(affiliateId)
+      : "#affiliates";
+  }
+  if (entry?.entityType === "reconciliation_finding") return "#financial";
+  if (entry?.entityType === "auth_session" && entry.effectiveUserId) {
+    return "#users:" + encodeURIComponent(entry.effectiveUserId);
+  }
+  return null;
+}
+
+function activityFinancialValue(entry) {
+  for (const stateValue of [entry?.newState, entry?.previousState]) {
+    if (!stateValue || typeof stateValue !== "object") continue;
+    for (const amount of [stateValue.amount, stateValue.pricing?.amount]) {
+      if (
+        amount &&
+        Number.isFinite(Number(amount.minorUnits)) &&
+        typeof amount.currency === "string"
+      ) {
+        return formatMoney(amount);
+      }
+    }
+    for (const field of ["commissionMinor", "eligibleRevenueMinor"]) {
+      if (
+        Number.isFinite(Number(stateValue[field])) &&
+        typeof stateValue.currency === "string"
+      ) {
+        return formatMoney({
+          minorUnits: stateValue[field],
+          currency: stateValue.currency,
+        });
+      }
+    }
+  }
+  return null;
+}
+
 function activityHtml(entries) {
   if (!Array.isArray(entries) || entries.length === 0) {
     return '<div class="empty"><strong>Nenhuma atividade recente</strong><span>Eventos administrativos aparecerão aqui quando existirem.</span></div>';
@@ -339,20 +388,37 @@ function activityHtml(entries) {
             : "warning";
       const actor = entry.actorUserId || "—";
       const effectiveUser = entry.effectiveUserId || "—";
+      const destination = entry.destinationId || "—";
       const entity = [entry.entityType, entry.entityId].filter(Boolean).join(" ");
+      const financialValue = activityFinancialValue(entry);
+      const href = activityDeepLink(entry);
       return (
-        '<div class="timeline-item"><span class="timeline-time">' +
+        '<div class="timeline-item" data-audit-entry><span class="timeline-time">' +
         escapeHtml(time) +
         '</span><span class="timeline-dot ' +
         tone +
-        '" aria-hidden="true"></span><div class="timeline-body"><strong>' +
+        '" aria-hidden="true"></span><div class="timeline-body"><strong title="' +
+        escapeHtml(entry.action || "") +
+        '">' +
         escapeHtml(humanizeAuditAction(entry.action)) +
-        '</strong><span class="timeline-meta">ator ' +
+        '</strong><span class="timeline-meta">Actor ' +
         escapeHtml(actor) +
-        " · efetivo " +
+        " · Effective user " +
         escapeHtml(effectiveUser) +
+        " · Destino " +
+        escapeHtml(destination) +
         (entity ? " · " + escapeHtml(entity) : "") +
-        "</span></div></div>"
+        " · " +
+        escapeHtml(result || "unknown") +
+        " · " +
+        escapeHtml(financialValue || "—") +
+        "</span>" +
+        (href
+          ? '<a class="section-link" href="' +
+            escapeHtml(href) +
+            '">Abrir</a>'
+          : "") +
+        "</div></div>"
       );
     })
     .join("");
