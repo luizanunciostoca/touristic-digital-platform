@@ -6,12 +6,15 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - ".github/workflows/ticketing-v2-visual-regression.yml"
+      - "tests/visual-regression/ux-v2-manual-reference-matrix.json"
       - "apps/morro-digital-platform/public/ticketing.css"
       - "apps/morro-digital-platform/public/ticketing.js"
       - "apps/morro-digital-platform/public/tickets.html"
       - "apps/morro-digital-platform/public/design-system-v2.css"
       - "apps/morro-digital-platform/public/premium-ux-v2.css"
       - "apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts"
+      - "apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts"
+      - "tests/visual-regression/ux-v2-manual-conformance.json"
 
 permissions:
   contents: read
@@ -205,6 +208,28 @@ jobs:
             await page.locator('.offer-card').waitFor({ state: 'visible', timeout: 10000 });
             await page.locator('.reservation-card').waitFor({ state: 'visible', timeout: 10000 });
             if (mutate) await mutate(page);
+            const imageLedHierarchy = await page.evaluate(() => {
+              const media = Array.from(
+                document.querySelectorAll(
+                  '.offer-card img, .offer-card picture, [data-ticketing-hero], [data-ticketing-experience-media]',
+                ),
+              ).filter(node => {
+                const rect = node.getBoundingClientRect();
+                const style = getComputedStyle(node);
+                return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+              });
+              return {
+                visibleMediaCount: media.length,
+                firstMediaWidth: media[0]?.getBoundingClientRect().width ?? null,
+                firstMediaHeight: media[0]?.getBoundingClientRect().height ?? null,
+              };
+            });
+            if (imageLedHierarchy.visibleMediaCount < 1) {
+              throw new Error(
+                suffix + ' MANUAL_CONFORMANCE_TICKETING_IMAGE_LED_HIERARCHY: ' +
+                  JSON.stringify(imageLedHierarchy),
+              );
+            }
             const contract = await audit(page, suffix);
             await page.screenshot({
               path: '/tmp/ticketing-v2/' + suffix + '.png',
