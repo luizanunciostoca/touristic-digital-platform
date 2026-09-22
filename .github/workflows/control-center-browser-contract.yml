@@ -571,7 +571,10 @@ jobs:
               evidence.supportMode = true;
 
               await page.locator('[data-view="overview"]').click();
-              await page.getByRole('heading', { name: 'Visão Geral' }).waitFor();
+              await page
+                .locator('#content[data-rendered-view="overview"][aria-busy="false"]')
+                .waitFor({ state: 'attached', timeout: 15000 });
+              await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor();
               await page.getByRole('heading', { name: 'Precisa de atenção' }).waitFor();
               await page.getByRole('heading', { name: 'Destination Summary' }).waitFor();
               await page.getByRole('heading', { name: 'Affiliate Summary' }).waitFor();
