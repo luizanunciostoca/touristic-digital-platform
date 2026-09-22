@@ -904,7 +904,6 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   }
 }
 
-
 /* UX Design V2 Wave D — tour discovery, preview and active-tour convergence. */
 #explore-flow-bottom-sheet:has(
     .explore-flow-sheet-source[data-category="tours"][data-stage="filters"]
@@ -1193,7 +1192,8 @@ body:has(#map[data-tour-flow-stage="stop"])
   .tour-tips {
   margin: var(--md-space-2) 0 0;
   padding: var(--md-space-2) var(--md-space-3);
-  border: 1px solid color-mix(in srgb, var(--md-color-success) 28%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--md-color-success) 28%, transparent);
   border-radius: var(--md-radius-md);
   background: color-mix(
     in srgb,
@@ -1311,7 +1311,6 @@ body:has(#map[data-tour-flow-stage="intro"])
     outline-offset: var(--md-focus-ring-offset);
   }
 }
-
 
 /* Wave D active-stop grid row ownership and missing-media recovery. */
 body:has(#map[data-tour-flow-stage="stop"])
