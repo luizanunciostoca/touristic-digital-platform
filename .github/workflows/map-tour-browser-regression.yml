@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - .github/workflows/map-tour-browser-regression.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/config/tour-catalog.ts
@@ -29,6 +30,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
       - .github/workflows/map-tour-browser-regression.yml
+      - tests/visual-regression/ux-v2-manual-reference-matrix.json
       - apps/morro-digital-platform/src/browser-entry.ts
       - apps/morro-digital-platform/src/onboarding/public-onboarding.ts
       - apps/morro-digital-platform/src/config/tour-catalog.ts
