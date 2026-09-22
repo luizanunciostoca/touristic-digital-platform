@@ -32,6 +32,7 @@ const state = {
 };
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
+const pendingCheckoutStorageKey = "morro_ticketing_pending_checkout_v1";
 const analyticsMilestonesStorageKey = "morro_ticketing_analytics_v1";
 const analyticsContextStorageKey = "morro_ticketing_analytics_context_v1";
 const canonicalCheckoutPath = "/api/payments/v1/checkouts";
@@ -906,6 +907,32 @@ function clearCheckout() {
   sessionStorage.removeItem(checkoutStorageKey);
 }
 
+function pendingCheckoutState() {
+  try {
+    const value = JSON.parse(
+      sessionStorage.getItem(pendingCheckoutStorageKey) || "null",
+    );
+    if (
+      !value?.reservation?.id ||
+      !value?.checkout?.reservationReference ||
+      value.checkout.reservationReference !== value.reservation.id
+    ) {
+      return null;
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function savePendingCheckout(value) {
+  sessionStorage.setItem(pendingCheckoutStorageKey, JSON.stringify(value));
+}
+
+function clearPendingCheckout() {
+  sessionStorage.removeItem(pendingCheckoutStorageKey);
+}
+
 async function wait(milliseconds) {
   await new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
@@ -1020,6 +1047,7 @@ async function createCheckout(reservationPayload) {
   const currency = text(checkout.plan?.amount?.currency);
   const reservation = reservationPayload.reservation;
   const ticketType = text(reservation?.product?.kind);
+  clearPendingCheckout();
   saveCheckout({
     checkoutId: checkout.checkoutId,
     statusToken: checkout.statusToken,
@@ -1099,6 +1127,13 @@ async function submitReservation(event) {
     }
     elements.reserve.disabled = true;
     elements.reserve.textContent = "Finalizando…";
+    const pendingCheckout = pendingCheckoutState();
+    if (pendingCheckout) {
+      setMessage("Retomando o checkout seguro da sua reserva…");
+      await createCheckout(pendingCheckout);
+      return;
+    }
+
     const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
     const payload = await api("/api/ticketing/v1/reservations", {
       method: "POST",
@@ -1115,6 +1150,7 @@ async function submitReservation(event) {
     });
     if (!payload.data?.reservation || !payload.data?.checkout)
       throw new Error("RESERVATION_RESPONSE_INVALID");
+    savePendingCheckout(payload.data);
     emitAnalyticsOnce(
       `reservation:${payload.data.reservation.id}`,
       ANALYTICS_TRANSACTION_EVENTS.reservationStarted,
@@ -1131,8 +1167,11 @@ async function submitReservation(event) {
     await Promise.allSettled([loadOffers(), loadReservations()]);
   } finally {
     state.submitting = false;
-    elements.reserve.textContent = "Finalizar Reserva";
-    elements.reserve.disabled = !state.quote;
+    const pendingCheckout = pendingCheckoutState();
+    elements.reserve.textContent = pendingCheckout
+      ? "Retomar pagamento"
+      : "Finalizar Reserva";
+    elements.reserve.disabled = !state.quote && !pendingCheckout;
   }
 }
 
