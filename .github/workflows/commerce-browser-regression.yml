@@ -325,7 +325,10 @@ jobs:
                 }
 
                 await Promise.all([
-                  page.waitForURL(`${origin}/`),
+                  page.waitForURL(`${origin}/`, {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 30000,
+                  }),
                   page.locator('.back-link').click(),
                 ]);
                 await page.locator('#map[data-explore-stage="detail"][data-explore-place="Toca do Morcego"]').waitFor({
