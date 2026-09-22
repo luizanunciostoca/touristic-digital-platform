@@ -39,6 +39,16 @@ async function main() {
       .getByRole("link", { name: "business-owner@example.com" })
       .click();
 
+    const user360 = page.locator('[data-entity-tabs="user360"]');
+    await user360.waitFor();
+    const openActions = async () => {
+      await page
+        .locator('[data-entity-tabs="user360"]')
+        .getByRole("tab", { name: "Settings / Actions" })
+        .click();
+    };
+    await openActions();
+
     const roleForm = page.locator("#user-role-form");
     await roleForm
       .locator('select[name="role"]')
@@ -54,6 +64,7 @@ async function main() {
       .first()
       .waitFor({ timeout: 15_000 });
 
+    await openActions();
     const statusForm = page.locator("#user-status-form");
     await statusForm.locator('input[name="password"]').fill(password);
     await statusForm
@@ -85,6 +96,7 @@ async function main() {
     }
     await blocked.close();
 
+    await openActions();
     await statusForm.locator('input[name="password"]').fill(password);
     await statusForm
       .locator('textarea[name="reason"]')
@@ -96,6 +108,7 @@ async function main() {
       .first()
       .waitFor({ timeout: 15_000 });
 
+    await openActions();
     await roleForm
       .locator('select[name="role"]')
       .selectOption("BUSINESS_OWNER");
