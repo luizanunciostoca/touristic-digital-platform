@@ -1233,3 +1233,228 @@ body[data-md-mode="assistant"] #place-bottom-sheet {
     )
   );
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* UX Design V2 Wave A — Golden Discover convergence                          */
+/* -------------------------------------------------------------------------- */
+
+body[data-md-mode="discover"] #weather-widget.md-weather-control {
+  right: auto;
+  left: var(--md-shell-gutter);
+  width: 5.5rem;
+  min-width: 5.5rem;
+  max-width: 5.5rem;
+  height: 2.75rem;
+  min-height: var(--md-touch-target-min);
+  padding: var(--md-space-1) var(--md-space-2);
+  border-radius: var(--md-radius-pill);
+}
+
+body[data-md-mode="discover"] #weather-widget.md-weather-control .weather-emoji {
+  flex-basis: 1.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: var(--md-font-size-lg);
+}
+
+body[data-md-mode="discover"] #weather-widget.md-weather-control .weather-temp {
+  font-size: var(--md-font-size-sm);
+}
+
+body[data-md-mode="discover"] #weather-widget.md-weather-control[data-weather-state="error"] {
+  width: auto;
+  min-width: var(--md-touch-target-min);
+  max-width: 7rem;
+}
+
+body[data-md-mode="discover"] .md-home-header {
+  left: calc(var(--md-shell-gutter) + 5.5rem + var(--md-space-2));
+  width: min(
+    12rem,
+    calc(
+      100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end) - 5.5rem -
+        var(--md-space-2)
+    )
+  );
+}
+
+body[data-md-mode="discover"] .md-home-header-inner {
+  min-height: var(--md-touch-target-min);
+  gap: var(--md-space-1);
+  padding: var(--md-space-1) var(--md-space-3);
+  border-radius: var(--md-radius-pill);
+}
+
+body[data-md-mode="discover"] .md-home-brand-mark,
+body[data-md-mode="discover"] .md-home-eyebrow {
+  display: none;
+}
+
+body[data-md-mode="discover"] .md-home-header h1 {
+  margin: 0;
+  font-size: var(--md-font-size-sm);
+}
+
+.md-discover-category-rail {
+  display: none;
+}
+
+body[data-md-mode="discover"] .md-discover-category-rail {
+  position: fixed;
+  right: calc(
+    var(--md-shell-gutter-end) + var(--md-shell-control-size) + var(--md-space-3)
+  );
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-home-bottom-nav-height) +
+      var(--md-home-bottom-stack-gap) + 3.25rem + var(--md-space-3)
+  );
+  left: var(--md-shell-gutter);
+  z-index: var(--md-layer-explore-controls);
+  display: flex;
+  min-width: 0;
+  gap: var(--md-space-2);
+  overflow-x: auto;
+  padding: var(--md-space-1) 0;
+  scrollbar-width: none;
+  overscroll-behavior-inline: contain;
+  touch-action: pan-x;
+}
+
+body[data-md-mode="discover"] .md-discover-category-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.md-discover-chip {
+  flex: 0 0 auto;
+  min-height: var(--md-touch-target-min);
+  padding: var(--md-space-2) var(--md-space-3);
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-2);
+  backdrop-filter: blur(0.75rem) saturate(1.12);
+  -webkit-backdrop-filter: blur(0.75rem) saturate(1.12);
+  font: inherit;
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-bold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.md-discover-chip:is(:hover, :focus-visible) {
+  background: var(--md-color-surface-card);
+}
+
+.md-discover-chip[aria-pressed="true"] {
+  border-color: var(--md-color-accent-strong);
+  background: var(--md-color-accent);
+  color: var(--md-color-text-inverse);
+}
+
+body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-home-bottom-nav-height) +
+      var(--md-home-bottom-stack-gap) + 3.25rem + 3.75rem
+  );
+  gap: var(--md-space-2);
+}
+
+#recenter-map-control[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+#map:not([data-explore-stage]) .morro-explore-marker-label,
+#map[data-explore-stage="menu"] .morro-explore-marker-label {
+  display: none;
+}
+
+#map[data-explore-stage="detail"]
+  .morro-explore-marker[data-selected="true"]
+  .morro-explore-marker-icon {
+  outline: 0.1875rem solid var(--md-color-text-inverse);
+  outline-offset: 0.125rem;
+  box-shadow:
+    0 0 0 0.3125rem color-mix(in srgb, var(--md-color-accent) 68%, transparent),
+    var(--md-elevation-3);
+  transform: scale(1.1);
+}
+
+@media (max-width: 29.99rem) {
+  body[data-md-mode="discover"] #weather-widget.md-weather-control {
+    width: 5.25rem;
+    min-width: 5.25rem;
+    max-width: 5.25rem;
+  }
+
+  body[data-md-mode="discover"] .md-home-header {
+    left: calc(var(--md-shell-gutter) + 5.25rem + var(--md-space-2));
+    width: min(
+      11.25rem,
+      calc(
+        100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end) - 5.25rem -
+          var(--md-space-2)
+      )
+    );
+  }
+
+  body[data-md-mode="discover"] .md-discover-category-rail {
+    right: calc(
+      var(--md-shell-gutter-end) + var(--md-shell-control-size) +
+        var(--md-space-2)
+    );
+  }
+
+  .md-discover-chip {
+    padding-inline: var(--md-space-3);
+  }
+}
+
+@media (min-width: 48rem) {
+  body[data-md-mode="discover"] .md-home-header {
+    width: min(15rem, 32vw);
+  }
+
+  body[data-md-mode="discover"] .md-discover-category-rail {
+    right: auto;
+    width: min(36rem, 62vw);
+  }
+}
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  body[data-md-mode="discover"] .md-discover-category-rail {
+    right: calc(var(--md-shell-gutter-end) + 21rem);
+    bottom: var(--md-shell-bottom);
+    left: calc(var(--md-shell-gutter) + 29.75rem);
+  }
+
+  body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+    bottom: calc(var(--md-shell-bottom) + 4.5rem);
+  }
+}
+
+@media (forced-colors: active) {
+  .md-discover-chip,
+  #map[data-explore-stage="detail"]
+    .morro-explore-marker[data-selected="true"]
+    .morro-explore-marker-icon {
+    border-color: CanvasText;
+    outline-color: CanvasText;
+    forced-color-adjust: auto;
+  }
+
+  .md-discover-chip[aria-pressed="true"] {
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #map[data-explore-stage="detail"]
+    .morro-explore-marker[data-selected="true"]
+    .morro-explore-marker-icon {
+    transition: none;
+  }
+}
