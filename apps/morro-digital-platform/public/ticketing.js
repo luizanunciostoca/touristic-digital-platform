@@ -761,15 +761,23 @@ async function loadOffers() {
   const requestedOffer = new URLSearchParams(location.search).get("offer");
   if (requestedOffer && offerIdPattern.test(requestedOffer)) {
     const offer = state.offers.find((entry) => entry.id === requestedOffer);
-    if (offer) selectOffer(offer);
+    if (offer) {
+      state.selectedDate = dateKey(offer);
+      renderDateSelector();
+      renderOffers();
+      selectOffer(offer);
+    }
   } else if (requestedPlace && state.offers.length === 1) {
     selectOffer(state.offers[0]);
   } else if (state.offers.length > 0) {
+    const selectedDateOffers = state.selectedDate
+      ? state.offers.filter((entry) => dateKey(entry) === state.selectedDate)
+      : state.offers;
     const firstOffer =
-      state.offers.find(
+      selectedDateOffers.find(
         (entry) => entry.sellable !== false && entry.availableQuantity > 0,
-      ) || state.offers[0];
-    selectOffer(firstOffer);
+      ) || selectedDateOffers[0];
+    if (firstOffer) selectOffer(firstOffer);
   }
 }
 
