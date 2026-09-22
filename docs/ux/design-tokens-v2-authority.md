@@ -40,3 +40,12 @@ Reusable geometry is canonical in `public/design-system-v2.css`:
 - `--md-unified-dock-divider`
 
 Runtime-measured values such as `--md-unified-dock-height` and `--md-unified-dock-map-inset` remain feature-local because they are computed from the rendered composition rather than reusable design constants.
+
+
+### Category rail additions
+
+- `--md-unified-dock-category-height`
+- `--md-unified-dock-category-gap`
+- `--md-unified-dock-category-min-width`
+
+These are reusable geometry tokens. Horizontal scroll position remains runtime state and is not tokenized.
