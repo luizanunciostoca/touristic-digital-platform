@@ -12,8 +12,8 @@
 @layer tokens {
   :root {
     /* Brand + semantic colors */
-    --md-color-brand-primary: #3b82f6;
-    --md-color-brand-primary-strong: #2563eb;
+    --md-color-brand-primary: #2563eb;
+    --md-color-brand-primary-strong: #1d4ed8;
     --md-color-accent: #10b981;
     --md-color-accent-strong: #059669;
     --md-color-surface: #ffffff;
