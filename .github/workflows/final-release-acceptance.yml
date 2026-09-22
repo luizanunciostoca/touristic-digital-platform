@@ -62,6 +62,12 @@ jobs:
             map-provider-regression.yml
             map-tour-browser-regression.yml
             mapbox-visual-contract-regression.yml
+            place-explore-v2-visual-regression.yml
+            ticketing-v2-visual-regression.yml
+            ux-v2-component-state-visual-regression.yml
+            pwa-offline-browser-contract.yml
+            morro-performance-budget.yml
+            morro-runtime-startup-performance.yml
             navigation-accessibility-baseline.yml
             navigation-visual-baseline.yml
             payments-browser-checkout-contract.yml
@@ -158,6 +164,12 @@ jobs:
             map-provider-regression.yml
             map-tour-browser-regression.yml
             mapbox-visual-contract-regression.yml
+            place-explore-v2-visual-regression.yml
+            ticketing-v2-visual-regression.yml
+            ux-v2-component-state-visual-regression.yml
+            pwa-offline-browser-contract.yml
+            morro-performance-budget.yml
+            morro-runtime-startup-performance.yml
             navigation-accessibility-baseline.yml
             navigation-visual-baseline.yml
             payments-browser-checkout-contract.yml
