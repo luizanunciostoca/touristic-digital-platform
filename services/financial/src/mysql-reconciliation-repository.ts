@@ -227,6 +227,7 @@ export class MySqlFinancialReconciliationRepository implements FinancialReconcil
     }
 
     const placeholders = paymentIds.map(() => "?").join(", ");
+    const sqlLimit = limitInput;
     const [rows] = await this.pool.execute<PendingReviewFindingRow[]>(
       `SELECT ${findingSelectColumns},
               COUNT(*) OVER() AS total_count
@@ -236,8 +237,8 @@ export class MySqlFinancialReconciliationRepository implements FinancialReconcil
        ORDER BY (f.severity = 'critical') DESC,
                 f.last_seen_at DESC,
                 f.reconciliation_finding_id
-       LIMIT ?`,
-      [...paymentIds, limitInput],
+       LIMIT ${sqlLimit}`,
+      paymentIds,
     );
     const findings = Object.freeze(rows.map(findingFromRow));
     return Object.freeze({
