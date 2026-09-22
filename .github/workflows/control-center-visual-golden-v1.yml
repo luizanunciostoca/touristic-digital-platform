@@ -222,3 +222,5 @@ jobs:
       - name: Stop runtime
         if: always()
         run: kill "$(cat /tmp/control-center-visual-golden-v1-server.pid)" 2>/dev/null || true
+
+# Exact-head user-trigger marker after canonical baseline/style pinning.
