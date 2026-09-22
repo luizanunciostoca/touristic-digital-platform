@@ -4,23 +4,174 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f4f8fc" />
     <title>Morro Digital — Control Center</title>
     <link
       rel="stylesheet"
       href="/apps/control-center/public/control-center.css"
     />
+    <link
+      rel="stylesheet"
+      href="/apps/control-center/public/control-center-shell-v1.css"
+    />
   </head>
   <body>
-    <div id="app" class="app-shell" hidden>
-      <aside class="sidebar" aria-label="Navegação principal">
-        <div class="brand">
-          <span class="brand-mark" aria-hidden="true">M</span>
-          <div>
-            <strong>Morro Digital</strong>
-            <small>Control Center</small>
+    <div id="app" class="app-shell control-center-shell" hidden>
+      <header class="topbar control-center-topbar">
+        <button
+          id="menu-button"
+          class="icon-button shell-menu-button"
+          type="button"
+          aria-label="Abrir navegação"
+          aria-controls="sidebar"
+          aria-expanded="false"
+        >
+          <span aria-hidden="true">☰</span>
+        </button>
+
+        <a
+          class="brand-wordmark"
+          href="#overview"
+          aria-label="Morro Digital Control Center"
+        >
+          <span class="brand-wordmark__name">Morro Digital</span>
+          <span class="brand-wordmark__product">Control Center</span>
+        </a>
+
+        <div class="scope-controls" aria-label="Contexto operacional">
+          <button
+            id="global-scope"
+            class="scope-button"
+            type="button"
+            aria-pressed="true"
+          >
+            <span class="scope-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8"></circle>
+                <path
+                  d="M4 12h16M12 4a13 13 0 0 1 0 16M12 4a13 13 0 0 0 0 16"
+                ></path>
+              </svg>
+            </span>
+            <span class="scope-label">Visão Global</span>
+          </button>
+
+          <label class="destination-control" for="destination-selector">
+            <span class="scope-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path>
+                <circle cx="12" cy="10" r="2.5"></circle>
+              </svg>
+            </span>
+            <span class="sr-only">Destino atual</span>
+            <select
+              id="destination-selector"
+              aria-label="Destino atual"
+              data-scope="global"
+            >
+              <option value="morro-de-sao-paulo">Morro de São Paulo</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="search-wrap shell-search" role="search">
+          <span class="shell-search__icon" aria-hidden="true">⌕</span>
+          <input
+            id="global-search"
+            type="search"
+            autocomplete="off"
+            placeholder="Pesquisar empresa, afiliado, reserva, pedido..."
+            aria-label="Busca universal"
+          />
+          <kbd>⌘ K</kbd>
+          <div id="search-results" class="search-results" hidden></div>
+        </div>
+
+        <div class="top-actions">
+          <span id="release-chip" class="technical-meta" hidden>SHA —</span>
+          <span id="health-chip" class="technical-meta" hidden
+            >Verificando</span
+          >
+
+          <div class="topbar-popover-host">
+            <button
+              id="notification-button"
+              class="icon-button notification-button"
+              type="button"
+              aria-label="Abrir notificações"
+              aria-controls="notification-panel"
+              aria-expanded="false"
+            >
+              <svg
+                class="topbar-line-icon"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path
+                  d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
+                ></path>
+                <path d="M10 21h4"></path>
+              </svg>
+              <span id="notification-badge" class="notification-badge" hidden
+                >0</span
+              >
+            </button>
+            <div
+              id="notification-panel"
+              class="topbar-popover notification-panel"
+              role="dialog"
+              aria-label="Central de notificações"
+              hidden
+            >
+              <strong>Notificações</strong>
+              <p>
+                Alertas operacionais aparecem aqui sem competir com o contexto
+                principal.
+              </p>
+            </div>
+          </div>
+
+          <div class="topbar-popover-host">
+            <button
+              id="profile-button"
+              class="profile-button"
+              type="button"
+              aria-label="Abrir menu do usuário"
+              aria-controls="user-menu-panel"
+              aria-expanded="false"
+            >
+              <span
+                id="profile-avatar"
+                class="profile-avatar"
+                aria-hidden="true"
+                >A</span
+              >
+              <span id="profile-name" class="profile-name">Admin</span>
+              <span class="profile-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div
+              id="user-menu-panel"
+              class="topbar-popover user-menu-panel"
+              role="menu"
+              aria-label="Menu do usuário"
+              hidden
+            >
+              <strong id="user-menu-name">Conta administrativa</strong>
+              <span id="user-menu-role">Sessão protegida</span>
+              <button id="user-menu-logout" type="button" role="menuitem">
+                Sair
+              </button>
+            </div>
           </div>
         </div>
-        <nav id="main-nav"></nav>
+      </header>
+
+      <aside
+        id="sidebar"
+        class="sidebar control-center-sidebar"
+        aria-label="Navegação principal"
+      >
+        <nav id="main-nav" aria-label="Módulos do Control Center"></nav>
         <div class="sidebar-footer">
           <div id="actor-card" class="actor-card"></div>
           <button id="logout-button" class="ghost-button" type="button">
@@ -29,7 +180,15 @@
         </div>
       </aside>
 
-      <main class="main">
+      <button
+        id="sidebar-backdrop"
+        class="sidebar-backdrop"
+        type="button"
+        aria-label="Fechar navegação"
+        hidden
+      ></button>
+
+      <main class="main control-center-main">
         <div id="support-banner" class="support-banner" hidden>
           <div>
             <strong>MODO SUPORTE ATIVO</strong>
@@ -37,33 +196,6 @@
           </div>
           <button id="support-end" type="button">Encerrar modo suporte</button>
         </div>
-
-        <header class="topbar">
-          <button
-            id="menu-button"
-            class="icon-button mobile-only"
-            type="button"
-            aria-label="Abrir menu"
-          >
-            ☰
-          </button>
-          <div class="search-wrap">
-            <span aria-hidden="true">⌕</span>
-            <input
-              id="global-search"
-              type="search"
-              autocomplete="off"
-              placeholder="Pesquisar qualquer coisa no Morro Digital..."
-              aria-label="Busca universal"
-            />
-            <kbd>⌘ K</kbd>
-            <div id="search-results" class="search-results" hidden></div>
-          </div>
-          <div class="top-actions">
-            <span id="release-chip" class="chip">SHA —</span>
-            <span id="health-chip" class="chip">Verificando</span>
-          </div>
-        </header>
 
         <section class="page" tabindex="0">
           <div class="page-heading">
@@ -93,6 +225,10 @@
     <script
       type="module"
       src="/apps/control-center/public/control-center.js"
+    ></script>
+    <script
+      type="module"
+      src="/apps/control-center/public/control-center-shell-v1.js"
     ></script>
   </body>
 </html>
