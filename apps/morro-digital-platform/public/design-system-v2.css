@@ -49,8 +49,8 @@
     --md-color-skeleton-highlight: #f8fafc;
 
     /* Typography */
-    --md-font-family-sans:
-      "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --md-font-family-sans: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, sans-serif;
     --md-font-size-xs: 0.75rem;
     --md-font-size-sm: 0.875rem;
     --md-font-size-md: 1rem;
