@@ -225,7 +225,9 @@ async function login(page) {
     await destinationSelector.waitFor({ state: "visible" });
     const currentDestination = await destinationSelector.inputValue();
     if (!currentDestination) {
-      throw new Error("DestinationSelector has no readable current destination");
+      throw new Error(
+        "DestinationSelector has no readable current destination",
+      );
     }
     await destinationSelector.evaluate((node) => {
       node.dispatchEvent(new Event("change", { bubbles: true }));
