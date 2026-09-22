@@ -334,7 +334,8 @@ body {
 html {
   overflow-x: clip;
   scroll-padding-block-end: calc(
-    var(--md-touch-target-min) + var(--md-keyboard-safe-gap) + var(--md-safe-bottom)
+    var(--md-touch-target-min) + var(--md-keyboard-safe-gap) +
+      var(--md-safe-bottom)
   );
   text-size-adjust: 100%;
 }
@@ -350,7 +351,11 @@ body {
   font-size: max(1rem, 1em);
 }
 
-:where(svg[aria-hidden="true"], .fas[aria-hidden="true"], .far[aria-hidden="true"]) {
+:where(
+  svg[aria-hidden="true"],
+  .fas[aria-hidden="true"],
+  .far[aria-hidden="true"]
+) {
   flex: 0 0 auto;
 }
 
@@ -742,7 +747,6 @@ body {
     border-color: CanvasText;
   }
 }
-
 
 /* Wave G responsive-density contract. Values are deliberately token-only so
  * feature waves retain ownership of their own layout geometry. */

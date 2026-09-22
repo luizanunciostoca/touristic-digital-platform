@@ -125,8 +125,10 @@ describe("UX V2 Wave G shared visual system contract", () => {
 
   it("uses the canonical Tourist UI font at the shared foundation", async () => {
     const css = await readPublic("design-system-v2.css");
-    expect(css).toContain('font-family: var(--md-font-family-sans)');
-    expect(css).toContain('--md-font-family-sans: "Poppins", system-ui, sans-serif');
+    expect(css).toContain("font-family: var(--md-font-family-sans)");
+    expect(css).toContain(
+      '--md-font-family-sans: "Poppins", system-ui, sans-serif',
+    );
   });
 
   it("keeps RTL-safe shared navigation directionality", async () => {
@@ -155,7 +157,9 @@ describe("UX V2 Wave G shared visual system contract", () => {
     const workflow = await readRepository(
       ".github/workflows/ux-v2-wave-g-design-system-regression.yml",
     );
-    expect(workflow).toContain("apps/morro-digital-platform/public/design-system-v2.css");
+    expect(workflow).toContain(
+      "apps/morro-digital-platform/public/design-system-v2.css",
+    );
     expect(workflow).not.toContain("public/legacy/**");
   });
 });

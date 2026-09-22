@@ -49,7 +49,10 @@ try {
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
 
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.goto(baseUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
     await page.waitForTimeout(1_500);
 
     const result = await page.evaluate(() => {
@@ -122,7 +125,9 @@ try {
         ...document.querySelectorAll("input, textarea, select"),
       ]
         .filter(visible)
-        .map((element) => Number.parseFloat(getComputedStyle(element).fontSize));
+        .map((element) =>
+          Number.parseFloat(getComputedStyle(element).fontSize),
+        );
 
       const shell = document.querySelector(".app-shell");
       const shellRect = shell?.getBoundingClientRect() ?? null;
@@ -131,8 +136,7 @@ try {
         innerWidth: window.innerWidth,
         innerHeight: window.innerHeight,
         scrollWidth: document.documentElement.scrollWidth,
-        overflow:
-          document.documentElement.scrollWidth > window.innerWidth + 1,
+        overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
         bodyFont: getComputedStyle(document.body).fontFamily,
         targetFailures,
         nameFailures,
@@ -207,7 +211,10 @@ try {
       locale: "pt-BR",
     });
     const page = await context.newPage();
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.goto(baseUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
     await page.waitForTimeout(1_000);
     const selector =
       "#assistant-input-area textarea, #assistant-input-area input, textarea, input:not([type='hidden'])";
@@ -246,11 +253,13 @@ try {
       locale: "he-IL",
     });
     const page = await context.newPage();
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.goto(baseUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
     await page.waitForTimeout(250);
     const rtl = await page.evaluate(() => ({
-      overflow:
-        document.documentElement.scrollWidth > window.innerWidth + 1,
+      overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
       direction: getComputedStyle(document.documentElement).direction,
     }));
     assert(!rtl.overflow, "RTL produces horizontal overflow");
