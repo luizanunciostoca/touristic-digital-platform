@@ -392,7 +392,7 @@ export function installPublicInteractiveTour(
     }
 
     void view.navigator.permissions
-      .query({ name: "microphone" } as PermissionDescriptor)
+      .query({ name: "microphone" })
       .then((status) => {
         if (!active || stepIndex !== 3 || status.state !== "denied") return;
         voicePermissionDenied = true;
