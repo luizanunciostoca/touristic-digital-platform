@@ -351,11 +351,10 @@ if (isDirectInvocation()) {
       acceptanceAuth = buildStagingPaymentsAcceptanceAuthEnvironment(
         process.env,
       );
-      controlCenterOwnerAuth =
-        buildStagingControlCenterOwnerAuthEnvironment({
-          ...process.env,
-          ...acceptanceAuth,
-        });
+      controlCenterOwnerAuth = buildStagingControlCenterOwnerAuthEnvironment({
+        ...process.env,
+        ...acceptanceAuth,
+      });
     } catch (error) {
       const reason = safeDiagnosticCode(error, "STAGING_ENV_INVALID");
       process.stderr.write(
