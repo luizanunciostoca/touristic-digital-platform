@@ -161,12 +161,8 @@ function installDiscoverCategoryRail(): void {
     });
   }
 
-  document.addEventListener("morro:explore-state-changed", (event) => {
-    const detail = event instanceof CustomEvent ? event.detail : null;
-    const activeCategory =
-      detail && typeof detail === "object"
-        ? Reflect.get(detail, "category")
-        : null;
+  document.addEventListener("morro:explore-state-changed", () => {
+    const activeCategory = mapContainer?.dataset.exploreCategory ?? null;
     for (const button of buttons) {
       button.setAttribute(
         "aria-pressed",
