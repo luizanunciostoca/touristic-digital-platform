@@ -62,7 +62,7 @@ const searchAdapterSources = Object.freeze([
     adapterKey: "crm",
     capability: "crm.read",
     types: Object.freeze(["lead", "contract"]),
-    destinationAware: false,
+    destinationAware: true,
   }),
   Object.freeze({
     domain: "products",
@@ -2783,96 +2783,294 @@ export function createAdminApi({
         return;
       }
 
-      if (pathname === `${adminPrefix}/search`) {
+      if (pathname === adminPrefix + "/search") {
         const actor = await requireCapability(
           request,
           response,
           "platform.read",
         );
         if (!actor) return;
-        const query = bounded(
-          requestUrl.searchParams.get("q"),
-          160,
-        ).toLowerCase();
-        const destinationId = bounded(
+
+        const rawQuery = bounded(requestUrl.searchParams.get("q"), 160);
+        const normalizedQuery = normalizeSearchText(rawQuery);
+        const destinationId = searchDestinationId(
           requestUrl.searchParams.get("destinationId"),
-          120,
         );
+        const limit = searchInteger(requestUrl.searchParams.get("limit"), 30, {
+          min: 1,
+          max: 50,
+        });
+        const offset = searchInteger(requestUrl.searchParams.get("offset"), 0, {
+          min: 0,
+          max: 500,
+        });
+
+        if (destinationId === null) {
+          json(response, 400, { error: "INVALID_DESTINATION_ID" });
+          return;
+        }
+        if (limit === null || offset === null) {
+          json(response, 400, { error: "INVALID_SEARCH_PAGINATION" });
+          return;
+        }
+
+        if (Array.from(rawQuery).length < 2) {
+          json(response, 200, {
+            query: rawQuery,
+            normalizedQuery,
+            destinationId: destinationId || null,
+            state: "idle",
+            results: [],
+            groups: [],
+            partial: [],
+            pagination: {
+              limit,
+              offset,
+              total: 0,
+              hasMore: false,
+              nextOffset: null,
+            },
+          });
+          return;
+        }
+
+        if (!consumeSearchAttempt(actor.subject)) {
+          json(response, 429, { error: "SEARCH_RATE_LIMITED" });
+          return;
+        }
+
         const results = [];
-        if (query.length >= 2) {
-          const configuredUsers = await authApi.listAdminUsers();
-          for (const user of configuredUsers) {
-            const searchable = [
-              user.id,
-              user.email,
-              user.role,
-              canonicalAuthRole(user.role),
-              ...(user.businessIds ?? []),
-            ]
-              .join(" ")
-              .toLowerCase();
-            if (searchable.includes(query)) {
-              results.push({
-                type: "user",
-                id: user.id,
-                title: user.email,
-                context: canonicalAuthRole(user.role),
-                href: `#users:${encodeURIComponent(user.id)}`,
-              });
+        const partial = [];
+        const support = supportContext(request, actor);
+        const capabilityAllowed = (capability) =>
+          authorizeCapability(actor, capability).allowed;
+        const configuredUsers = await authApi.listAdminUsers();
+
+        if (capabilityAllowed("users.read")) {
+          if (destinationId) {
+            partial.push(
+              Object.freeze({
+                domain: "users",
+                types: Object.freeze(["user"]),
+                reason: "destination_scope_unavailable",
+              }),
+            );
+          } else {
+            for (const user of configuredUsers) {
+              const searchable = normalizeSearchText(
+                [
+                  user.id,
+                  user.email,
+                  user.role,
+                  canonicalAuthRole(user.role),
+                  ...(user.businessIds ?? []),
+                ].join(" "),
+              );
+              if (!searchable.includes(normalizedQuery)) continue;
+              results.push(
+                Object.freeze({
+                  type: "user",
+                  id: user.id,
+                  title: user.email,
+                  context: canonicalAuthRole(user.role),
+                  href: "#users:" + encodeURIComponent(user.id),
+                  domain: "users",
+                }),
+              );
             }
           }
+        }
+
+        if (capabilityAllowed("business.read")) {
           const businessProjection = await businessDirectoryProjection(
             configuredUsers,
             domainAdapters.businesses,
             destinationId,
           );
-          for (const business of businessProjection.businesses) {
-            if (
-              business.id.toLowerCase().includes(query) ||
-              String(business.name ?? "")
-                .toLowerCase()
-                .includes(query) ||
-              business.members.some((member) =>
-                member.email.toLowerCase().includes(query),
-              )
-            ) {
-              results.push({
-                type: "business",
-                id: business.id,
-                title: business.name || business.id,
-                context: [
+          if (
+            destinationId &&
+            businessProjection.destinationScope !== "owner-backed"
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: "businesses",
+                types: Object.freeze(["business"]),
+                reason: "destination_owner_projection_unavailable",
+              }),
+            );
+          } else {
+            for (const business of businessProjection.businesses) {
+              const searchable = normalizeSearchText(
+                [
+                  business.id,
+                  business.name,
                   business.destinationId,
-                  `${business.members.length} membro(s)`,
+                  ...business.members.flatMap((member) => [
+                    member.email,
+                    member.id,
+                  ]),
                 ]
                   .filter(Boolean)
-                  .join(" · "),
-                href: `#businesses:${encodeURIComponent(business.id)}`,
-              });
-            }
-          }
-          const support = supportContext(request, actor);
-          for (const [domain, adapter] of Object.entries(domainAdapters)) {
-            if (typeof adapter?.search !== "function") continue;
-            const domainResults = await adapter.search({
-              query,
-              actor,
-              request,
-              effectiveUser: support?.effectiveUser ?? null,
-              destinationId:
-                destinationId && destinationId !== "global"
-                  ? destinationId
-                  : "",
-            });
-            for (const result of domainResults ?? []) {
-              results.push({ ...result, domain });
+                  .join(" "),
+              );
+              if (!searchable.includes(normalizedQuery)) continue;
+              results.push(
+                Object.freeze({
+                  type: "business",
+                  id: business.id,
+                  title: business.name || business.id,
+                  context: [
+                    business.destinationId,
+                    String(business.members.length) + " membro(s)",
+                  ]
+                    .filter(Boolean)
+                    .join(" · "),
+                  href: "#businesses:" + encodeURIComponent(business.id),
+                  domain: "businesses",
+                  ...(business.destinationId
+                    ? { destinationId: business.destinationId }
+                    : {}),
+                }),
+              );
             }
           }
         }
+
+        for (const source of searchAdapterSources) {
+          const adapter = domainAdapters[source.adapterKey];
+          if (
+            typeof adapter?.searchCapability === "string" &&
+            adapter.searchCapability !== source.capability
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "capability_contract_mismatch",
+              }),
+            );
+            continue;
+          }
+          if (!capabilityAllowed(source.capability)) continue;
+
+          if (
+            typeof adapter?.searchDestinationAware === "boolean" &&
+            adapter.searchDestinationAware !== source.destinationAware
+          ) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "destination_contract_mismatch",
+              }),
+            );
+            continue;
+          }
+
+          if (destinationId && !source.destinationAware) {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "destination_scope_unavailable",
+              }),
+            );
+            continue;
+          }
+          if (typeof adapter?.search !== "function") {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "owner_search_unavailable",
+              }),
+            );
+            continue;
+          }
+
+          try {
+            const domainResults = await adapter.search({
+              query: rawQuery,
+              actor,
+              request,
+              effectiveUser: support?.effectiveUser ?? null,
+              destinationId,
+              limit: 50,
+            });
+            for (const result of domainResults ?? []) {
+              const normalized = normalizedSearchResult(result, source);
+              if (!normalized) continue;
+              if (
+                destinationId &&
+                source.destinationAware &&
+                normalized.destinationId !== destinationId
+              ) {
+                continue;
+              }
+              results.push(normalized);
+            }
+            if (destinationId && source.domain === "crm") {
+              partial.push(
+                Object.freeze({
+                  domain: "crm",
+                  types: Object.freeze(["contract"]),
+                  reason: "contract_destination_scope_unavailable",
+                }),
+              );
+            }
+          } catch {
+            partial.push(
+              Object.freeze({
+                domain: source.domain,
+                types: source.types,
+                reason: "owner_search_failed",
+              }),
+            );
+          }
+        }
+
+        const orderOf = (type) => {
+          const index = searchResultTypeOrder.indexOf(type);
+          return index === -1 ? searchResultTypeOrder.length : index;
+        };
+        const deduplicated = Array.from(
+          new Map(
+            results.map((result) => [
+              [result.type, result.id, result.href].join(":"),
+              result,
+            ]),
+          ).values(),
+        ).sort(
+          (left, right) =>
+            orderOf(left.type) - orderOf(right.type) ||
+            left.title.localeCompare(right.title, "pt-BR", {
+              sensitivity: "base",
+            }),
+        );
+        const page = deduplicated.slice(offset, offset + limit);
+        const hasMore = offset + page.length < deduplicated.length;
+        const state =
+          partial.length > 0
+            ? "partial"
+            : page.length === 0
+              ? "empty"
+              : "complete";
+
         json(response, 200, {
-          query,
-          destinationId:
-            destinationId && destinationId !== "global" ? destinationId : null,
-          results: results.slice(0, 50),
+          query: rawQuery,
+          normalizedQuery,
+          destinationId: destinationId || null,
+          state,
+          results: page,
+          groups: groupSearchResults(page),
+          partial: Object.freeze(partial),
+          pagination: {
+            limit,
+            offset,
+            total: deduplicated.length,
+            hasMore,
+            nextOffset: hasMore ? offset + page.length : null,
+          },
         });
         return;
       }
