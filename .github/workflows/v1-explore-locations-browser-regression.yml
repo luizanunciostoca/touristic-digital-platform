@@ -87,7 +87,7 @@ jobs:
             shops: 12,
             transport: 8,
             attractions: 8,
-            tours: 6,
+            tours: 4,
             nightlife: 5,
             emergencies: 4,
           };
@@ -425,7 +425,13 @@ jobs:
 
                 await openAssistant(page);
                 await invokeCategory(page, 'tours');
-                await assertFiltersStage(page, 'tours', 6);
+                await assertFiltersStage(page, 'tours', 4);
+                const tourClusters = await page.locator(
+                  '.morro-explore-marker[data-explore-category="tours"][data-tour-cluster="true"][data-cluster-count="3"]',
+                ).count();
+                if (tourClusters !== 1) {
+                  throw new Error(`Tour discovery clustering diverged: ${tourClusters}`);
+                }
                 await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
                 await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });
                 await page.locator('#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-intro-card').waitFor({
