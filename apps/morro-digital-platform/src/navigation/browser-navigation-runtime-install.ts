@@ -20,7 +20,9 @@ import {
 } from "../assistant/assistant-navigation-feedback.js";
 import { getMorroDigitalApplication } from "../main.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
-import { NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS } from "./navigation-composition.js";
+import {
+  NAVIGATION_GUIDANCE_MAX_ACCURACY_METERS,
+} from "./navigation-composition.js";
 import {
   createNavigationContextualSuggestions,
   type NavigationContextualSuggestions,
