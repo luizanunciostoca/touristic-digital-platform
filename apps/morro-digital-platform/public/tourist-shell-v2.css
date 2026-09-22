@@ -476,10 +476,7 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
   display: grid;
   place-items: center;
   padding: calc(var(--md-shell-top) + 4.5rem) var(--md-shell-gutter-end)
-    calc(
-      var(--md-shell-bottom) + var(--md-shell-composer-height) +
-        var(--md-space-4)
-    )
+    calc(var(--md-shell-bottom) + var(--md-unified-dock-map-inset, 11rem))
     var(--md-shell-gutter);
   background: transparent;
   pointer-events: none;
@@ -1331,8 +1328,8 @@ body[data-md-mode="discover"] .md-discover-category-rail {
       var(--md-space-3)
   );
   bottom: calc(
-    var(--md-shell-bottom) + var(--md-home-bottom-nav-height) +
-      var(--md-home-bottom-stack-gap) + 3.25rem + var(--md-space-3)
+    var(--md-shell-bottom) + var(--md-unified-dock-height, 10rem) +
+      var(--md-space-3)
   );
   left: var(--md-shell-gutter);
   z-index: var(--md-layer-map-control);
@@ -1380,8 +1377,8 @@ body[data-md-mode="discover"] .md-discover-category-rail::-webkit-scrollbar {
 
 body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
   bottom: calc(
-    var(--md-shell-bottom) + var(--md-home-bottom-nav-height) +
-      var(--md-home-bottom-stack-gap) + 3.25rem + 3.75rem
+    var(--md-shell-bottom) + var(--md-unified-dock-height, 10rem) +
+      var(--md-space-5)
   );
   gap: var(--md-space-2);
 }
@@ -1481,5 +1478,249 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
     .morro-explore-marker[data-selected="true"]
     .morro-explore-marker-icon {
     transition: none;
+  }
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Unified Contextual Assistant Dock                                           */
+/* -------------------------------------------------------------------------- */
+
+:root {
+  --md-unified-dock-height: 10rem;
+  --md-unified-dock-map-inset: 11rem;
+  --md-unified-dock-message-max-height: 7rem;
+  --md-unified-dock-rich-max-height: min(38dvh, 18rem);
+}
+
+#unified-assistant-dock.md-unified-assistant-dock {
+  position: fixed;
+  right: auto;
+  bottom: var(--md-shell-bottom);
+  left: 50%;
+  z-index: var(--md-layer-dock);
+  display: flex;
+  width: min(
+    34rem,
+    calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end))
+  );
+  max-height: calc(100dvh - var(--md-shell-top) - var(--md-shell-bottom));
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-2xl, 1.75rem);
+  background: var(--md-color-surface-glass);
+  box-shadow: var(--md-elevation-3);
+  backdrop-filter: blur(1rem) saturate(1.12);
+  -webkit-backdrop-filter: blur(1rem) saturate(1.12);
+  transform: translateX(-50%);
+}
+
+#unified-assistant-dock > #assistant-messages.md-assistant-message-region {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-height: var(--md-unified-dock-message-max-height) !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: none !important;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region:not(.hidden) {
+  display: flex;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region
+  .minimize-button {
+  top: var(--md-space-2);
+  right: var(--md-space-2);
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region
+  .messages-area.md-assistant-message-scroll {
+  min-height: 0;
+  max-height: var(--md-unified-dock-message-max-height) !important;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--md-space-3) calc(var(--md-space-6) + var(--md-space-2))
+    var(--md-space-3) var(--md-space-3);
+  scroll-behavior: smooth;
+  touch-action: pan-y;
+  scrollbar-width: none;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region
+  .messages-area.md-assistant-message-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region.has-rich-content {
+  max-height: var(--md-unified-dock-rich-max-height) !important;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region.has-rich-content
+  .messages-area.md-assistant-message-scroll {
+  max-height: var(--md-unified-dock-rich-max-height) !important;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region.has-overflow
+  .messages-area {
+  max-height: var(--md-unified-dock-message-max-height) !important;
+}
+
+#unified-assistant-dock
+  > #assistant-messages.md-assistant-message-region.has-rich-content.has-overflow
+  .messages-area {
+  max-height: var(--md-unified-dock-rich-max-height) !important;
+}
+
+#unified-assistant-dock > #assistant-input-area.md-assistant-composer {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  max-width: none;
+  min-height: 3.75rem;
+  gap: var(--md-space-2);
+  padding: var(--md-space-2) var(--md-space-3);
+  border: 0;
+  border-top: 1px solid var(--md-outdoor-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: none !important;
+}
+
+#unified-assistant-dock
+  > #assistant-input-area.md-assistant-composer
+  .md-assistant-expanded-action {
+  display: grid !important;
+}
+
+#unified-assistant-dock
+  > #assistant-input-area.md-assistant-composer
+  #assistantInput {
+  min-height: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+  padding-inline: var(--md-space-3);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-card) 78%,
+    transparent
+  );
+}
+
+#unified-assistant-dock > #home-bottom-navigation.md-home-bottom-nav {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  max-width: none;
+  min-height: var(--md-home-bottom-nav-height);
+  padding: var(--md-space-1);
+  border: 0;
+  border-top: 1px solid var(--md-outdoor-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transform: none !important;
+}
+
+#unified-assistant-dock .md-home-nav-item {
+  min-height: var(--md-touch-target-min);
+}
+
+#unified-assistant-dock .md-home-nav-item.is-active {
+  background: color-mix(in srgb, var(--md-color-brand) 12%, transparent);
+}
+
+@media (max-width: 24.375rem) {
+  #unified-assistant-dock.md-unified-assistant-dock {
+    width: calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end));
+  }
+
+  #unified-assistant-dock
+    > #assistant-input-area.md-assistant-composer
+    #assistantInput {
+    padding-inline: var(--md-space-2);
+  }
+
+  #unified-assistant-dock .md-home-nav-item {
+    padding-inline: 0;
+  }
+
+  #unified-assistant-dock .md-home-nav-item span {
+    font-size: 0.6875rem;
+  }
+}
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  #unified-assistant-dock.md-unified-assistant-dock {
+    right: var(--md-shell-gutter-end);
+    bottom: var(--md-shell-bottom);
+    left: auto;
+    width: min(24rem, 48vw);
+    max-height: calc(100dvh - var(--md-shell-top) - var(--md-shell-bottom));
+    transform: none;
+  }
+
+  #unified-assistant-dock > #home-bottom-navigation.md-home-bottom-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  #unified-assistant-dock .md-home-nav-item {
+    flex-direction: column;
+  }
+}
+
+@supports not (
+  (backdrop-filter: blur(0.5rem)) or (-webkit-backdrop-filter: blur(0.5rem))
+) {
+  #unified-assistant-dock.md-unified-assistant-dock {
+    background: var(--md-outdoor-surface-strong);
+  }
+}
+
+@media (forced-colors: active) {
+  #unified-assistant-dock.md-unified-assistant-dock {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  #unified-assistant-dock
+    > #assistant-input-area.md-assistant-composer
+    #sendButton {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #unified-assistant-dock,
+  #unified-assistant-dock * {
+    scroll-behavior: auto !important;
   }
 }
