@@ -129,7 +129,9 @@ function installDiscoverCategoryRail(): void {
   );
 
   const synchronizeLabels = (): void => {
-    const locale = normalizeAssistantVoiceLanguage(document.documentElement.lang);
+    const locale = normalizeAssistantVoiceLanguage(
+      document.documentElement.lang,
+    );
     const categories = new Map(
       getExploreLocationsCategories(locale).map((category) => [
         category.value,
@@ -373,10 +375,7 @@ function installDiscoverPoiMarkers(
   };
 
   const onExploreStateChanged = (): void => syncVisibility();
-  document.addEventListener(
-    "morro:explore-state-changed",
-    onExploreStateChanged,
-  );
+  document.addEventListener("morro:explore-state-changed", onExploreStateChanged);
   syncVisibility();
 
   return () => {
@@ -449,7 +448,10 @@ function installDiscoverRecenterControl(
       essential?: boolean;
     }) => void;
   };
-  const moveCamera = (center: readonly [number, number], zoom: number): void => {
+  const moveCamera = (
+    center: readonly [number, number],
+    zoom: number,
+  ): void => {
     if (cameraMap.easeTo) {
       cameraMap.easeTo({
         center: [...center],
@@ -779,7 +781,8 @@ function normalizeRealMapboxEnvironment(
       environment.VITE_MAPBOX_STYLE?.trim() ||
       "mapbox://styles/mapbox/satellite-streets-v12",
     VITE_MAPBOX_INITIAL_ZOOM:
-      environment.VITE_MAPBOX_INITIAL_ZOOM?.trim() || String(DISCOVER_HOME_ZOOM),
+      environment.VITE_MAPBOX_INITIAL_ZOOM?.trim() ||
+      String(DISCOVER_HOME_ZOOM),
   });
 }
 
