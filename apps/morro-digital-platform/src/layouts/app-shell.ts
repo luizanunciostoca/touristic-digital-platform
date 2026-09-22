@@ -151,6 +151,57 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
+      <div
+        id="assistant-category-rail"
+        class="md-assistant-category-rail"
+        role="region"
+        aria-label="Categorias do assistente"
+        data-assistant-category-rail
+      >
+        <div class="md-assistant-category-scroll">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="beaches" data-value="beaches">
+            <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Praias</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="restaurants" data-value="restaurants">
+            <i class="fas fa-utensils" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Restaurantes</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="hotels" data-value="hotels">
+            <i class="fas fa-bed" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Hotéis</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="shops" data-value="shops">
+            <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Lojas</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="transport" data-value="transport">
+            <i class="fas fa-bus" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Transporte</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="attractions" data-value="attractions">
+            <i class="fas fa-camera" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Atrações</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="tours" data-value="tours">
+            <i class="fas fa-route" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Tours</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="nightlife" data-value="nightlife">
+            <i class="fas fa-moon" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Vida Noturna</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="emergencies" data-value="emergencies">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Emergências</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="help" data-value="help">
+            <i class="fas fa-question-circle" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Ajuda</span>
+          </button>
+        </div>
+      </div>
+
       <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent" role="group" aria-label="Assistant composer" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
         <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
@@ -322,9 +373,10 @@ function synchronizeHomeVisualState(document: Document): () => void {
 function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
   const shell = document.querySelector<HTMLElement>(".md-tourist-shell-v2");
   const messages = document.getElementById("assistant-messages");
+  const categories = document.getElementById("assistant-category-rail");
   const composer = document.getElementById("assistant-input-area");
   const navigation = document.getElementById("home-bottom-navigation");
-  if (!shell || !messages || !composer || !navigation) return null;
+  if (!shell || !messages || !categories || !composer || !navigation) return null;
 
   let dock = document.getElementById("unified-assistant-dock");
   if (!(dock instanceof HTMLElement)) {
@@ -336,6 +388,13 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
     messages.before(dock);
   }
 
+  let grabber = dock.querySelector<HTMLElement>(".md-unified-dock-grabber");
+  if (!grabber) {
+    grabber = document.createElement("div");
+    grabber.className = "md-unified-dock-grabber";
+    grabber.setAttribute("aria-hidden", "true");
+  }
+
   messages.classList.remove("assistant-modal", "auto-size", "grow-upward");
   messages.classList.add("md-assistant-message-region");
   messages.setAttribute("role", "region");
@@ -345,7 +404,22 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
     "md-assistant-message-scroll",
   );
 
-  dock.append(messages, composer, navigation);
+  dock.append(grabber, messages, categories, composer, navigation);
+
+  categories.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>("[data-assistant-category]");
+    const value = button?.dataset.assistantCategory?.trim();
+    if (!button || !value) return;
+
+    document.dispatchEvent(
+      new CustomEvent("morro:assistant-option-selected", {
+        detail: { value, source: "unified-category-rail" },
+      }),
+    );
+  });
+
   document.body.dataset.mdUnifiedDock = "true";
   return dock;
 }
