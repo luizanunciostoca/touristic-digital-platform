@@ -239,6 +239,21 @@ describe("Mapbox navigation presenter", () => {
     );
   });
 
+  it("recenters through the same presenter and forces the latest camera snapshot", () => {
+    const context = setup();
+    expect(context.presenter.recenter?.()).toBe(false);
+
+    context.presenter.update(snapshot(), true);
+    context.setTime(10_100);
+
+    expect(context.presenter.recenter?.()).toBe(true);
+    expect(context.easeTo).toHaveBeenCalledTimes(2);
+    expect(context.cameraUpdates[1]?.duration).toBe(
+      NAVIGATION_CAMERA_V1_FIXTURE.camera.forcedDurationMs,
+    );
+    expect(context.cameraUpdates[1]?.center).toEqual([-38.917, -13.376]);
+  });
+
   it("ignores stale visual updates and removes marker on destroy", () => {
     const context = setup();
     expect(

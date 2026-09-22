@@ -49,6 +49,7 @@ export interface NavigationMapboxPresenterOptions {
 
 export interface NavigationMapboxPresenter {
   update(snapshot: NavigationVisualSnapshot, force?: boolean): boolean;
+  recenter?(): boolean;
   reset(): void;
   destroy(): void;
 }
@@ -119,6 +120,7 @@ export function createNavigationMapboxPresenter(
     null;
   let lastBearing: number | null = null;
   let lastCameraZoom: number | null = null;
+  let lastSnapshot: NavigationVisualSnapshot | null = null;
   let cameraZoomMode: "far" | "near" | "close" = "far";
 
   function updateMarker(snapshot: NavigationVisualSnapshot): void {
@@ -142,12 +144,14 @@ export function createNavigationMapboxPresenter(
     lastCameraPosition = null;
     lastBearing = null;
     lastCameraZoom = null;
+    lastSnapshot = null;
     cameraZoomMode = "far";
   }
 
   const presenter: NavigationMapboxPresenter = {
     update(snapshot: NavigationVisualSnapshot, force = false): boolean {
       if (snapshot.visualIgnoredStaleUpdate) return false;
+      lastSnapshot = snapshot;
       updateMarker(snapshot);
 
       const targetZoom = cameraZoomFor(snapshot);
@@ -202,6 +206,10 @@ export function createNavigationMapboxPresenter(
       lastBearing = snapshot.bearing;
       lastCameraZoom = targetZoom;
       return true;
+    },
+    recenter(): boolean {
+      if (!lastSnapshot) return false;
+      return presenter.update(lastSnapshot, true);
     },
     reset(): void {
       resetState();

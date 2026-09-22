@@ -14,7 +14,10 @@ import type { NavigationContextualSuggestions } from "./navigation-contextual-su
 import type { NavigationDomEventBridge } from "./navigation-dom-events.js";
 import type { NavigationDomLifecycle } from "./navigation-dom-lifecycle.js";
 import type { NavigationGuidanceUi } from "./navigation-guidance-ui.js";
-import type { NavigationRequestPort } from "./navigation-request-port.js";
+import type {
+  NavigationRequestPort,
+  NavigationRequestPortOptions,
+} from "./navigation-request-port.js";
 import type {
   NavigationSessionBootstrap,
   NavigationSessionBootstrapOptions,
@@ -157,7 +160,9 @@ describe("browser navigation runtime install", () => {
       (options: NavigationSessionBootstrapOptions) => NavigationSessionBootstrap
     >(() => bootstrap);
     const createLifecycle = vi.fn(() => lifecycle);
-    const createRequestPort = vi.fn(() => requestPort);
+    const createRequestPort = vi.fn<
+      (options: NavigationRequestPortOptions) => NavigationRequestPort
+    >(() => requestPort);
     const createEventBridge = vi.fn(() => bridge);
     const createGuidanceUi = vi.fn(() => guidanceUi);
     const installAssistant = vi.fn(() => assistant);
@@ -188,7 +193,12 @@ describe("browser navigation runtime install", () => {
       bootstrap,
       eventBridge: bridge,
     });
-    expect(createRequestPort).toHaveBeenCalledWith({ document, lifecycle });
+    expect(createRequestPort).toHaveBeenCalledTimes(1);
+    const requestPortOptions = createRequestPort.mock.calls[0]?.[0];
+    expect(requestPortOptions).toBeDefined();
+    expect(requestPortOptions?.document).toBe(document);
+    expect(requestPortOptions?.lifecycle).toBe(lifecycle);
+    expect(typeof requestPortOptions?.onError).toBe("function");
     expect(installAssistant).toHaveBeenCalledWith({
       document,
       navigation: lifecycle,
