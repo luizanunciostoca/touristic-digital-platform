@@ -42,7 +42,7 @@ describe("UX V2 Wave B contextual Assistant contract", () => {
 
     expect(css).toContain("overflow-y: auto");
     expect(css).toContain("overflow-wrap: anywhere");
-    expect(css).toContain("env(safe-area-inset-bottom, 0px)");
+    expect(css).toContain("env(safe-area-inset-bottom, 0rem)");
     expect(css).toContain("@media (max-width: 24.375rem)");
     expect(css).toContain("@media (max-height: 34rem)");
     expect(css).toContain(":focus-within");
@@ -65,7 +65,9 @@ describe("UX V2 Wave B contextual Assistant contract", () => {
       'dispatchAssistantUiState(options.document, "error")',
     );
     expect(runtime).toContain('"success"');
-    expect(shellUi).toContain('assistant.setAttribute("data-assistant-state", state)');
+    expect(shellUi).toContain(
+      'assistant.setAttribute("data-assistant-state", state)',
+    );
     expect(shellUi).toContain('assistant.setAttribute("aria-busy"');
   });
 
