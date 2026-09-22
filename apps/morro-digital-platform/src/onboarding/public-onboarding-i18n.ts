@@ -13,6 +13,7 @@ export interface PublicOnboardingTourCopy {
   readonly next: string;
   readonly finish: string;
   readonly done: string;
+  readonly unavailable: string;
   readonly steps: readonly PublicOnboardingTourStepCopy[];
 }
 
@@ -64,6 +65,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         next: "Próximo",
         finish: "Começar a explorar",
         done: "Pronto! Agora é só explorar o Morro Digital.",
+        unavailable:
+          "Este recurso não está disponível agora. Você pode continuar o tour normalmente.",
         steps: Object.freeze([
           Object.freeze({
             title: "Explore Morro pelo mapa",
@@ -120,6 +123,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         next: "Next",
         finish: "Start exploring",
         done: "Ready! Now explore Morro Digital.",
+        unavailable:
+          "This feature is not available right now. You can continue the tour normally.",
         steps: Object.freeze([
           Object.freeze({
             title: "Explore Morro on the map",
@@ -177,6 +182,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         next: "Siguiente",
         finish: "Empezar a explorar",
         done: "¡Listo! Ahora solo queda explorar Morro Digital.",
+        unavailable:
+          "Esta función no está disponible ahora. Puedes continuar el tour normalmente.",
         steps: Object.freeze([
           Object.freeze({
             title: "Explora Morro en el mapa",
@@ -234,6 +241,8 @@ const COPY: Readonly<Record<PublicOnboardingLocale, PublicOnboardingCopy>> =
         next: "הבא",
         finish: "התחילו לחקור",
         done: "מוכנים! עכשיו אפשר להתחיל לחקור עם Morro Digital.",
+        unavailable:
+          "התכונה הזו אינה זמינה כרגע. אפשר להמשיך בסיור כרגיל.",
         steps: Object.freeze([
           Object.freeze({
             title: "גלו את מורו דרך המפה",
