@@ -306,7 +306,10 @@ export function installPublicInteractiveTour(
       target?.matches(":disabled") ||
       target?.getAttribute("aria-disabled") === "true" ||
       (stepIndex === 3 && target?.id !== "voiceButton");
-    tooltip.toggleAttribute("data-target-unavailable", Boolean(targetUnavailable));
+    tooltip.toggleAttribute(
+      "data-target-unavailable",
+      Boolean(targetUnavailable),
+    );
     tooltip.innerHTML = `
       <div class="tour-tooltip-inner">
         <div class="tour-header">
