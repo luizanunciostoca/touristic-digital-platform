@@ -61,12 +61,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p /tmp/home-discover-manual/before-authority
-          gh api             -H "Accept: application/vnd.github+json"             "/repos/${GITHUB_REPOSITORY}/actions/artifacts/10678501691/zip"             > /tmp/home-authority-before.zip
-          unzip -q /tmp/home-authority-before.zip -d /tmp/home-discover-manual/before-authority
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/10678501691/zip" \
+            > /tmp/home-authority-before.zip
+          unzip -q /tmp/home-authority-before.zip \
+            -d /tmp/home-discover-manual/before-authority
           mkdir -p /tmp/home-discover-manual/before-mapbox
-          gh api -H "Accept: application/vnd.github+json" "/repos/${GITHUB_REPOSITORY}/actions/artifacts/10677849264/zip" > /tmp/home-mapbox-before.zip
-          unzip -q /tmp/home-mapbox-before.zip -d /tmp/home-discover-manual/before-mapbox
-          printf '%s\n' 'Before sources: PR #250 artifacts 10678501691 (manual authority) and 10677849264 (Mapbox visual evidence).' > /tmp/home-discover-manual/before-authority-source.txt
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${GITHUB_REPOSITORY}/actions/artifacts/10677849264/zip" \
+            > /tmp/home-mapbox-before.zip
+          unzip -q /tmp/home-mapbox-before.zip \
+            -d /tmp/home-discover-manual/before-mapbox
+          printf '%s\n' \
+            'Before sources: PR #250 artifacts 10678501691 (manual authority) and 10677849264 (Mapbox visual evidence).' \
+            > /tmp/home-discover-manual/before-authority-source.txt
 
       - name: Start authenticated Mapbox runtime
         env:
