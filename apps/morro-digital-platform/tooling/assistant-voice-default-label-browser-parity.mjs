@@ -70,6 +70,8 @@ try {
     await page.evaluate((nextLocale) => {
       document.documentElement.lang = nextLocale;
     }, locale);
+    await page.locator("#home-profile-button").click();
+    await page.locator("#configButton").waitFor({ state: "visible", timeout: 5000 });
     await page.locator("#configButton").click();
 
     const option = page.locator(
