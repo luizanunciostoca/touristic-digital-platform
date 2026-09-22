@@ -100,8 +100,8 @@ jobs:
                 };
               });
               if (
-                modalV2.role !== 'dialog' ||
-                modalV2.ariaModal !== 'false' ||
+                modalV2.role !== 'region' ||
+                modalV2.ariaModal !== null ||
                 modalV2.ariaHidden !== 'false' ||
                 modalV2.busy !== 'false' ||
                 modalV2.state !== 'idle' ||
@@ -109,7 +109,7 @@ jobs:
                 modalV2.composerRole !== 'group' ||
                 !modalV2.focusedInput
               ) {
-                throw new Error(`Assistant Modal V2 semantics/focus diverged: ${JSON.stringify(modalV2)}`);
+                throw new Error(`Unified Assistant region semantics/focus diverged: ${JSON.stringify(modalV2)}`);
               }
 
               await page.evaluate(() => {
