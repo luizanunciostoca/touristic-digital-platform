@@ -2,7 +2,7 @@
  * Product UI stays visible; onboarding is a compact, temporary education layer. */
 
 :root {
-  --md-onboarding-layer: calc(var(--md-layer-dialog, 80) + 2);
+  --md-onboarding-layer: var(--md-layer-tour);
   --md-onboarding-dim: rgba(7, 18, 30, 0.34);
   --md-onboarding-card-inline: min(22rem, calc(100vw - 1.5rem));
   --md-onboarding-safe-top: max(0.75rem, env(safe-area-inset-top, 0px));
@@ -217,13 +217,13 @@ body.tour-active #tour-backdrop {
 body.tour-active #tour-click-blocker {
   position: fixed;
   inset: 0;
-  z-index: calc(var(--md-onboarding-layer) + 1);
+  z-index: var(--md-onboarding-layer);
   background: transparent;
   pointer-events: auto;
 }
 
 body.tour-active #tour-highlight {
-  z-index: calc(var(--md-onboarding-layer) + 3);
+  z-index: var(--md-onboarding-layer);
   border: 2px solid var(--md-color-interactive-primary);
   border-radius: var(--md-radius-lg);
   box-shadow: 0 0 0 3px
@@ -232,8 +232,10 @@ body.tour-active #tour-highlight {
   pointer-events: none;
 }
 
+/* Compatibility bridge over frozen legacy tutorial rules. The V2 tour layer is
+ * authoritative until the legacy selector can be retired. */
 body.tour-active .tour-target-active {
-  z-index: calc(var(--md-onboarding-layer) + 2) !important;
+  z-index: var(--md-onboarding-layer) !important;
   pointer-events: none !important;
 }
 
@@ -244,7 +246,7 @@ body.tour-active .tour-pulse {
 }
 
 body.tour-active #tour-tooltip {
-  z-index: calc(var(--md-onboarding-layer) + 4);
+  z-index: var(--md-onboarding-layer);
   width: min(19rem, calc(100vw - 1.5rem));
   max-height: min(18rem, calc(100dvh - 1.5rem));
   overflow: auto;
@@ -380,7 +382,7 @@ body.tour-active .tour-skip-btn:focus-visible {
 }
 
 #tour-finish-toast {
-  z-index: var(--md-onboarding-layer);
+  z-index: var(--md-layer-toast);
   bottom: calc(
     var(--md-onboarding-safe-bottom) + var(--md-shell-composer-height, 4rem) +
       0.75rem
