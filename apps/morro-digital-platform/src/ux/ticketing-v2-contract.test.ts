@@ -109,6 +109,13 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(css).toContain("100dvh - var(--md-safe-top)");
     expect(css).toContain("overflow-y: auto");
     expect(css).toContain("overscroll-behavior: contain");
+    expect(css).toContain("overflow-wrap: anywhere");
+    expect(css).toContain(
+      'body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed',
+    );
+    expect(css).toContain(
+      "bottom: max(var(--md-space-3), var(--md-safe-bottom))",
+    );
     expect(css).toContain("font-weight: var(--md-font-weight-bold)");
   });
 

@@ -152,11 +152,27 @@ jobs:
                     height: rect.height,
                   };
                 });
+              const backLink = document.querySelector('.back-link');
+              const privacyTrigger = document.querySelector('.analytics-consent-trigger');
+              const backRect =
+                backLink instanceof HTMLElement ? backLink.getBoundingClientRect() : null;
+              const privacyRect =
+                privacyTrigger instanceof HTMLElement
+                  ? privacyTrigger.getBoundingClientRect()
+                  : null;
+              const privacyBackOverlap =
+                backRect !== null &&
+                privacyRect !== null &&
+                backRect.left < privacyRect.right &&
+                backRect.right > privacyRect.left &&
+                backRect.top < privacyRect.bottom &&
+                backRect.bottom > privacyRect.top;
               return {
                 scrollWidth: root.scrollWidth,
                 clientWidth: root.clientWidth,
                 bodyFont: getComputedStyle(document.body).fontFamily,
                 interactive,
+                privacyBackOverlap,
               };
             });
             if (result.scrollWidth > result.clientWidth + 1) {
@@ -164,6 +180,11 @@ jobs:
             }
             if (/Inter/i.test(result.bodyFont)) {
               throw new Error(label + ' leaked Inter font: ' + result.bodyFont);
+            }
+            if (result.privacyBackOverlap) {
+              throw new Error(
+                label + ' privacy trigger overlaps Ticketing back action: ' + JSON.stringify(result),
+              );
             }
             const undersized = result.interactive.filter(
               item => item.width < 44 || item.height < 44,

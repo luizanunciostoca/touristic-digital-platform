@@ -184,7 +184,7 @@ try {
       dir: "ltr",
       title: "Bem-vindo ao Morro Digital",
       start: "Conhecer o App",
-      step: "Passo 1 de 4",
+      step: "Passo 1 de 6",
       stepTitle: "Explore Morro pelo mapa",
     },
     {
@@ -193,7 +193,7 @@ try {
       dir: "ltr",
       title: "Welcome to Morro Digital",
       start: "Explore the App",
-      step: "Step 1 of 4",
+      step: "Step 1 of 6",
       stepTitle: "Explore Morro on the map",
     },
     {
@@ -202,7 +202,7 @@ try {
       dir: "ltr",
       title: "Bienvenido a Morro Digital",
       start: "Conocer la App",
-      step: "Paso 1 de 4",
+      step: "Paso 1 de 6",
       stepTitle: "Explora Morro en el mapa",
     },
     {
@@ -211,8 +211,8 @@ try {
       dir: "rtl",
       title: "ברוכים הבאים ל-Morro Digital",
       start: "הכירו את האפליקציה",
-      step: "שלב 1 מתוך 4",
-      stepTitle: "גלו את מורו על המפה",
+      step: "שלב 1 מתוך 6",
+      stepTitle: "גלו את מורו דרך המפה",
     },
   ];
 
