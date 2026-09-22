@@ -310,11 +310,18 @@ jobs:
                 `Tour card covers excessive map context at ${label}: ${JSON.stringify(state.sheet)}`,
               );
             }
+            const countParts = state.compactCount.split('/');
+            const validCompactCount =
+              countParts.length === 2 &&
+              countParts.every(part => {
+                const value = Number(part);
+                return Number.isInteger(value) && value > 0;
+              });
             if (
               !state.compactHeader ||
               state.compactHeader.width <= 0 ||
               state.compactHeader.bottom > state.viewport.height + 1 ||
-              !/^\\d+\\/\\d+$/.test(state.compactCount)
+              !validCompactCount
             ) {
               throw new Error(
                 `Compact Tour header/current-total missing at ${label}: ${JSON.stringify({
