@@ -188,7 +188,11 @@ describe("browser navigation runtime install", () => {
       bootstrap,
       eventBridge: bridge,
     });
-    expect(createRequestPort).toHaveBeenCalledWith({ document, lifecycle });
+    expect(createRequestPort).toHaveBeenCalledWith({
+      document,
+      lifecycle,
+      onError: expect.any(Function),
+    });
     expect(installAssistant).toHaveBeenCalledWith({
       document,
       navigation: lifecycle,
