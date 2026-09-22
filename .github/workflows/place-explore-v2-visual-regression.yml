@@ -9,6 +9,8 @@ on:
       - apps/morro-digital-platform/src/assistant/**
       - apps/morro-digital-platform/src/map/**
       - apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts
+      - apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts
+      - tests/visual-regression/ux-v2-manual-conformance.json
       - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/public/premium-ux-v2.css
       - apps/morro-digital-platform/public/explore-locations.css
@@ -391,6 +393,33 @@ jobs:
                   '#explore-flow-bottom-sheet [data-location-name="Primeira Praia"]',
                 );
                 await result.waitFor({ state: 'visible', timeout: 5000 });
+
+                // Appendix A authority: a single Search/Explore result is a
+                // full-width contextual action, never a half-width orphan in
+                // the two-column action grid. This is intentionally stricter
+                // than generic containment/44px assertions.
+                const resultGeometry = await result.evaluate(node => {
+                  const rect = node.getBoundingClientRect();
+                  const source = node.closest('.explore-flow-sheet-source');
+                  const sourceRect = source?.getBoundingClientRect();
+                  return {
+                    left: rect.left,
+                    right: rect.right,
+                    width: rect.width,
+                    sourceWidth: sourceRect?.width ?? null,
+                  };
+                });
+                if (
+                  viewport.width <= 430 &&
+                  (
+                    resultGeometry.sourceWidth === null ||
+                    resultGeometry.width < resultGeometry.sourceWidth * 0.92
+                  )
+                ) {
+                  throw new Error(
+                    `MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY on ${viewport.id}: ${JSON.stringify(resultGeometry)}`,
+                  );
+                }
                 if (viewport.id === 'w390') {
                   await result.focus();
                   await page.keyboard.press('Enter');
@@ -467,6 +496,20 @@ jobs:
                   );
                 }
 
+                // The canonical Place golden must represent the initial
+                // presentation, before the harness exercises expansion states.
+                const initialPlaceState = await place.getAttribute('data-sheet-state');
+                if (initialPlaceState !== 'half') {
+                  throw new Error(
+                    `MANUAL_CONFORMANCE_PLACE_INITIAL_STATE on ${viewport.id}: ${initialPlaceState}`,
+                  );
+                }
+                await page.screenshot({
+                  path: `/tmp/place-explore-v2/place-initial-${viewport.id}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+
                 for (const state of ['peek', 'half', 'full']) {
                   await place.locator(`[data-sheet-state-target="${state}"]`).click();
                   await page.locator(
@@ -485,7 +528,7 @@ jobs:
                   );
                 }
                 await page.screenshot({
-                  path: `/tmp/place-explore-v2/place-${viewport.id}.png`,
+                  path: `/tmp/place-explore-v2/place-full-${viewport.id}.png`,
                   fullPage: false,
                   animations: 'disabled',
                 });
