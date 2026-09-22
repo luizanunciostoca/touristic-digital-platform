@@ -347,7 +347,12 @@ function auditDeepLink(entry) {
   if (entry?.entityType === "content_document" && id) return `#content:${id}`;
   if (entry?.entityType === "ticket_inventory" && id) return `#products:${id}`;
   if (entry?.entityType === "ticketing_operation") return "#ticketing";
-  if (entry?.entityType === "affiliate_membership") return "#affiliates";
+  if (entry?.entityType === "affiliate_membership" && entry.entityId) {
+    const affiliateId = String(entry.entityId).split(":", 1)[0];
+    return affiliateId
+      ? `#affiliates:${encodeURIComponent(affiliateId)}`
+      : "#affiliates";
+  }
   if (entry?.entityType === "reconciliation_finding") return "#financial";
   if (entry?.entityType === "auth_session" && entry.effectiveUserId) {
     return `#users:${encodeURIComponent(entry.effectiveUserId)}`;
