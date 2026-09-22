@@ -118,21 +118,25 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
       "destination-filter",
     ]),
 
-    async search({ query, actor, destinationId }) {
+    async search({ query, actor, destinationId, limit }) {
       const result = await affiliateAdminRuntime.adminList(actor, {
         query,
         destinationId,
-        limit: 10,
+        limit: Math.min(Number(limit) || 10, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "AFFILIATE_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.map((affiliate) =>
+        data.map((affiliate) =>
           Object.freeze({
             type: "affiliate",
             id: affiliate.affiliateId,
             title: affiliate.identityReference || affiliate.affiliateId,
             context: `${affiliate.status} · ${affiliate.approvedMembershipCount} programa(s) aprovado(s)`,
             href: `#affiliates:${encodeURIComponent(affiliate.affiliateId)}`,
+            ...(destinationId ? { destinationId } : {}),
           }),
         ),
       );
