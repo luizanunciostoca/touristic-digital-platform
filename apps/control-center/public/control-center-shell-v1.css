@@ -472,7 +472,10 @@ a:focus-visible,
 
 @media (max-width: 1199px) {
   .control-center-topbar {
-    grid-template-columns: 44px minmax(112px, 158px) auto minmax(180px, 1fr) auto;
+    grid-template-columns: 44px minmax(112px, 158px) auto minmax(
+        180px,
+        1fr
+      ) auto;
     gap: 8px;
     padding-inline: 12px;
   }
