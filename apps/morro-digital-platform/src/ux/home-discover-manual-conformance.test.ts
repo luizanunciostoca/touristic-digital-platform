@@ -156,6 +156,7 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(runtime).toContain("installDiscoverRecenterControl");
     expect(css).toContain("UX Design V2 Wave A — Golden Discover convergence");
     expect(css).toContain(".md-discover-category-rail");
+    expect(css).toContain("z-index: var(--md-layer-map-control);");
     expect(css).toContain('.morro-explore-marker[data-selected="true"]');
     expect(staging).toContain("mapbox://styles/mapbox/satellite-streets-v12");
     expect(staging).toContain('value: "14.8"');
