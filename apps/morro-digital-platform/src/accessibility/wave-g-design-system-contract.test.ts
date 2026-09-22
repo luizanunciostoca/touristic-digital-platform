@@ -136,12 +136,15 @@ describe("UX V2 Wave G shared visual system contract", () => {
     const surface = readHexToken(css, "--md-color-surface");
     const text = readHexToken(css, "--md-color-text");
     const muted = readHexToken(css, "--md-color-text-muted");
-    const primary = readHexToken(css, "--md-color-brand-primary");
+    const primary = readHexToken(css, "--md-color-brand-primary-strong");
     const danger = readHexToken(css, "--md-color-danger");
     const inverse = "#ffffff";
 
     expect(contrastRatio(text, surface)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(muted, surface)).toBeGreaterThanOrEqual(4.5);
+    expect(css).toContain(
+      "--md-color-interactive-primary: var(--md-color-brand-strong)",
+    );
     expect(contrastRatio(inverse, primary)).toBeGreaterThanOrEqual(4.5);
     expect(contrastRatio(inverse, danger)).toBeGreaterThanOrEqual(4.5);
   });
