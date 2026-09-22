@@ -122,7 +122,24 @@ try {
         navVisible: visible(nav),
         profileTitle:
           document.getElementById("home-profile-title")?.textContent?.trim() ?? "",
-        composerVisible: visible(document.getElementById("assistant-input-area")),
+        composer: (() => {
+          const element = document.getElementById("assistant-input-area");
+          if (!(element instanceof HTMLElement) || !visible(element)) return null;
+          const r = element.getBoundingClientRect();
+          return {
+            left: r.left,
+            top: r.top,
+            right: r.right,
+            bottom: r.bottom,
+            width: r.width,
+            height: r.height,
+            zIndex: Number.parseInt(getComputedStyle(element).zIndex || "0", 10) || 0,
+          };
+        })(),
+        panelZIndex:
+          panel instanceof HTMLElement
+            ? Number.parseInt(getComputedStyle(panel).zIndex || "0", 10) || 0
+            : 0,
       };
     });
 
@@ -169,10 +186,23 @@ try {
       `${viewport.label}: Profile target/name regression`,
       state.controls,
     );
-    assert(
-      !state.composerVisible,
-      `${viewport.label}: composer competes with open Profile panel`,
-    );
+    if (state.composer) {
+      const composerCovered =
+        state.panel.left <= state.composer.left + 1 &&
+        state.panel.right >= state.composer.right - 1 &&
+        state.panel.top <= state.composer.top + 1 &&
+        state.panel.bottom >= state.composer.bottom - 1 &&
+        state.panelZIndex > state.composer.zIndex;
+      assert(
+        composerCovered,
+        `${viewport.label}: composer competes visually with open Profile panel`,
+        {
+          panel: state.panel,
+          panelZIndex: state.panelZIndex,
+          composer: state.composer,
+        },
+      );
+    }
     assert(
       state.profileTitle === "Perfil e preferências",
       `${viewport.label}: PT-BR Profile title drift`,
