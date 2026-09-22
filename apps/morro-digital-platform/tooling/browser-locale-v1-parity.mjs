@@ -324,8 +324,8 @@ try {
   );
   assertEqual(
     await manualPage.locator("header h1").textContent(),
-    "👋 ¡Hola! Soy el asistente virtual de Morro Digital. ¿Cómo puedo ayudarte hoy?",
-    "manual language override translation",
+    "Morro de São Paulo",
+    "manual language override preserves destination identity",
   );
   await manualContext.close();
 
