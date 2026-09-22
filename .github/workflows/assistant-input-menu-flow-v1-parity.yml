@@ -131,7 +131,9 @@ jobs:
                   (await input.isVisible()) && (await send.isVisible());
                 if (visualComposerReady) {
                   await input.fill(text);
-                  if (keyboard) await input.press('Enter');
+                  const placeSheetVisible =
+                    (await page.locator('#place-bottom-sheet[aria-hidden="false"]').count()) > 0;
+                  if (keyboard || placeSheetVisible) await input.press('Enter');
                   else await send.click();
                 } else {
                   await page.evaluate(

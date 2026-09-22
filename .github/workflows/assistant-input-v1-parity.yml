@@ -108,6 +108,8 @@ jobs:
               await input.evaluate((element) => {
                 element.value = '   ';
               });
+              await input.focus();
+              await send.waitFor({ state: 'visible', timeout: 5000 });
               await send.click();
               if ((await input.inputValue()) !== '   ') {
                 throw new Error('Whitespace-only input must be preserved and ignored');
