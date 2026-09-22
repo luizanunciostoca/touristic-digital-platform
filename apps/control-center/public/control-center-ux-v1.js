@@ -559,6 +559,9 @@ function entity360Header(view, detail) {
     contentRoot.querySelector(".entity-header[data-ux-v1]")
   )
     return;
+  const hasFunctionalTabs = Boolean(
+    contentRoot.querySelector("[data-entity-tabs]"),
+  );
   const configs = {
     businesses: [
       "Empresa",
@@ -612,7 +615,7 @@ function entity360Header(view, detail) {
         state.destinationId === "global"
           ? "Visão Global"
           : currentDestinationName(),
-      tabs: config[1],
+      tabs: hasFunctionalTabs ? [] : config[1],
     }),
   );
 }
