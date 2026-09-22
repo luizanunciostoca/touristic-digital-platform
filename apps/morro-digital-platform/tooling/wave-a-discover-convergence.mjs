@@ -1,0 +1,392 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import playwright from "/tmp/pw/node_modules/playwright/index.js";
+
+const { chromium } = playwright;
+const BASE_URL = process.env.MORRO_BROWSER_URL || "http://127.0.0.1:4173/";
+const OUTPUT_DIR =
+  process.env.WAVE_A_EVIDENCE_DIR || "/tmp/wave-a-discover-convergence";
+
+mkdirSync(OUTPUT_DIR, { recursive: true });
+
+const viewports = [
+  { name: "390x844", width: 390, height: 844 },
+  { name: "430x932", width: 430, height: 932 },
+  { name: "tablet-768x1024", width: 768, height: 1024 },
+];
+
+const weather = {
+  temperatureCelsius: 28,
+  temperatureMaxCelsius: 31,
+  temperatureMinCelsius: 24,
+  humidityPercent: 78,
+  windSpeedKph: 18,
+  rainChancePercent: 42,
+  weatherCode: 1,
+  isDay: true,
+  forecast: [],
+};
+
+function assert(condition, message, details) {
+  if (condition) return;
+  throw new Error(
+    `${message}${details === undefined ? "" : `: ${JSON.stringify(details)}`}`,
+  );
+}
+
+function overlaps(a, b) {
+  return Boolean(
+    a &&
+      b &&
+      a.left < b.right &&
+      a.right > b.left &&
+      a.top < b.bottom &&
+      a.bottom > b.top,
+  );
+}
+
+async function seed(context) {
+  await context.addInitScript(() => {
+    localStorage.setItem("morro-digital-onboarded", "1");
+    localStorage.setItem("voice-enabled", "false");
+    localStorage.setItem("morro-analytics-consent-v1", "denied");
+  });
+}
+
+async function waitReady(page) {
+  await page
+    .locator(
+      '#map[data-map-state="ready"][data-home-state="ready"][data-map-mode="real"]',
+    )
+    .waitFor({ state: "attached", timeout: 30000 });
+  await page
+    .locator('#weather-widget[data-weather-state="ready"]')
+    .waitFor({ state: "visible", timeout: 10000 });
+  await page
+    .locator(".morro-explore-marker[data-morro-explore-marker=\"true\"]")
+    .first()
+    .waitFor({ state: "visible", timeout: 10000 });
+  await page
+    .locator("#discover-category-rail")
+    .waitFor({ state: "visible", timeout: 10000 });
+  await page
+    .locator("#recenter-map-control")
+    .waitFor({ state: "visible", timeout: 10000 });
+}
+
+async function inspect(page) {
+  return page.evaluate(() => {
+    const rect = (selector) => {
+      const node = document.querySelector(selector);
+      if (!(node instanceof HTMLElement)) return null;
+      const box = node.getBoundingClientRect();
+      const style = getComputedStyle(node);
+      return {
+        left: box.left,
+        top: box.top,
+        right: box.right,
+        bottom: box.bottom,
+        width: box.width,
+        height: box.height,
+        display: style.display,
+        visibility: style.visibility,
+      };
+    };
+    const touchTargets = Array.from(
+      document.querySelectorAll(
+        "#discover-category-rail button, #globe-map-control button",
+      ),
+    ).map((node) => {
+      const box = node.getBoundingClientRect();
+      return {
+        id: node.id || node.getAttribute("data-discover-category"),
+        width: box.width,
+        height: box.height,
+      };
+    });
+    const map = globalThis.mapboxPrimaryInstance;
+    const center = map?.getCenter?.();
+    return {
+      mode: document.body.dataset.mdMode,
+      map: rect("#map"),
+      header: rect(".md-home-header-inner"),
+      weather: rect("#weather-widget"),
+      rail: rect("#discover-category-rail"),
+      controls: rect("#globe-map-control"),
+      composer: rect("#assistant-input-area"),
+      nav: rect("#home-bottom-navigation"),
+      markerCount: document.querySelectorAll(
+        '.morro-explore-marker[data-morro-explore-marker="true"]',
+      ).length,
+      dataMarkerCount: Number(
+        document.getElementById("map")?.getAttribute("data-map-marker-count") ??
+          "0",
+      ),
+      discoverPoiCount: Number(
+        document.getElementById("map")?.getAttribute("data-discover-poi-count") ??
+          "0",
+      ),
+      camera: center
+        ? { lng: center.lng, lat: center.lat, zoom: map?.getZoom?.() }
+        : null,
+      rootWidth: document.documentElement.scrollWidth,
+      bodyWidth: document.body.scrollWidth,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+      touchTargets,
+      onboardingTargets: {
+        map: Boolean(document.querySelector("#map-container, #map")),
+        weather: Boolean(document.querySelector("#weather-widget")),
+        controls: Boolean(
+          document.querySelector("#globe-map-control #toggle-globe-view"),
+        ),
+      },
+    };
+  });
+}
+
+function inside(rect, width, height, tolerance = 2) {
+  return Boolean(
+    rect &&
+      rect.left >= -tolerance &&
+      rect.top >= -tolerance &&
+      rect.right <= width + tolerance &&
+      rect.bottom <= height + tolerance,
+  );
+}
+
+const browser = await chromium.launch({ headless: true });
+const evidence = { authority: "IMG_2421.PNG smartphone 1 + UX Design V2", viewports: [], negatives: {} };
+
+try {
+  for (const viewport of viewports) {
+    const context = await browser.newContext({
+      viewport: { width: viewport.width, height: viewport.height },
+      geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+      permissions: ["geolocation"],
+    });
+    await seed(context);
+    const page = await context.newPage();
+    const pageErrors = [];
+    const consoleErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
+    await page.route("**/api/weather", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(weather),
+      }),
+    );
+    await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await waitReady(page);
+
+    const initial = await inspect(page);
+    assert(initial.mode === "discover", "Discover is not initial mode", initial);
+    assert(
+      initial.map &&
+        Math.abs(initial.map.left) <= 2 &&
+        Math.abs(initial.map.top) <= 2 &&
+        Math.abs(initial.map.right - viewport.width) <= 2 &&
+        Math.abs(initial.map.bottom - viewport.height) <= 2,
+      "Map is not the dominant full viewport canvas",
+      initial.map,
+    );
+    assert(initial.markerCount >= 5, "Initial app-owned POIs are not evident", initial);
+    assert(
+      initial.discoverPoiCount === initial.markerCount,
+      "Initial Discover POI count is not deterministic",
+      initial,
+    );
+    assert(
+      initial.camera &&
+        Math.abs(initial.camera.lng - -38.9167) < 0.02 &&
+        Math.abs(initial.camera.lat - -13.3833) < 0.02 &&
+        Math.abs(initial.camera.zoom - 14.8) < 0.25,
+      "Initial camera is not deterministic",
+      initial.camera,
+    );
+    assert(
+      !overlaps(initial.header, initial.weather),
+      "Destination and Weather collide",
+      initial,
+    );
+    assert(
+      !overlaps(initial.rail, initial.controls) &&
+        !overlaps(initial.rail, initial.composer) &&
+        !overlaps(initial.controls, initial.composer) &&
+        !overlaps(initial.nav, initial.composer),
+      "Discover overlays collide",
+      initial,
+    );
+    for (const [name, rect] of Object.entries({
+      header: initial.header,
+      weather: initial.weather,
+      rail: initial.rail,
+      controls: initial.controls,
+      composer: initial.composer,
+      nav: initial.nav,
+    })) {
+      assert(
+        inside(rect, viewport.width, viewport.height),
+        `${name} escapes safe viewport`,
+        rect,
+      );
+    }
+    assert(
+      initial.touchTargets.every(
+        (target) => target.width >= 44 && target.height >= 44,
+      ),
+      "Discover touch target below 44px",
+      initial.touchTargets,
+    );
+    assert(
+      Object.values(initial.onboardingTargets).every(Boolean),
+      "Wave H semantic target contract changed",
+      initial.onboardingTargets,
+    );
+    assert(
+      initial.rootWidth <= viewport.width + 1 &&
+        initial.bodyWidth <= viewport.width + 1,
+      "Horizontal overflow detected",
+      initial,
+    );
+
+    await page.evaluate(() => {
+      const map = globalThis.mapboxPrimaryInstance;
+      map?.setCenter?.([-38.88, -13.35]);
+      map?.setZoom?.(12);
+    });
+    await page.locator("#recenter-map-control").click();
+    await page.waitForTimeout(900);
+    const recentered = await page.evaluate(() => {
+      const map = globalThis.mapboxPrimaryInstance;
+      const center = map?.getCenter?.();
+      return {
+        center: center ? { lng: center.lng, lat: center.lat } : null,
+        zoom: map?.getZoom?.(),
+        geolocationState: document
+          .getElementById("map")
+          ?.getAttribute("data-geolocation-state"),
+      };
+    });
+    assert(
+      recentered.center &&
+        Math.abs(recentered.center.lng - -38.9142193) < 0.02 &&
+        Math.abs(recentered.center.lat - -13.3776181) < 0.02 &&
+        recentered.zoom >= 15.4 &&
+        recentered.geolocationState === "granted",
+      "Recenter/geolocation did not restore a deterministic local camera",
+      recentered,
+    );
+
+    await page.locator('[data-discover-category="beaches"]').click();
+    await page
+      .locator(
+        '#map[data-explore-state="ready"][data-explore-category="beaches"]',
+      )
+      .waitFor({ state: "attached", timeout: 10000 });
+    await page
+      .locator('.morro-explore-marker[data-explore-category="beaches"]')
+      .first()
+      .click();
+    await page
+      .locator(
+        '#map[data-explore-stage="detail"] .morro-explore-marker[data-selected="true"][aria-current="location"]',
+      )
+      .waitFor({ state: "visible", timeout: 10000 });
+
+    await page.evaluate(() => {
+      const heading = document.querySelector(".md-home-header h1");
+      if (heading) {
+        heading.textContent =
+          "Morro de São Paulo — destino com nome excepcionalmente longo para validação";
+      }
+    });
+    const longDestination = await inspect(page);
+    assert(
+      longDestination.rootWidth <= viewport.width + 1 &&
+        longDestination.bodyWidth <= viewport.width + 1 &&
+        inside(longDestination.header, viewport.width, viewport.height),
+      "Long destination breaks layout",
+      longDestination,
+    );
+
+    await page.screenshot({
+      path: `${OUTPUT_DIR}/after-${viewport.name}.png`,
+      animations: "disabled",
+    });
+    assert(pageErrors.length === 0, "Browser page errors", pageErrors);
+    assert(consoleErrors.length === 0, "Browser console errors", consoleErrors);
+    evidence.viewports.push({ viewport, initial, recentered, longDestination, pageErrors, consoleErrors });
+    await context.close();
+  }
+
+  {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await seed(context);
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "permissions", {
+        configurable: true,
+        value: { query: async () => ({ state: "denied" }) },
+      });
+      Object.defineProperty(navigator, "geolocation", {
+        configurable: true,
+        value: {
+          getCurrentPosition(_success, error) {
+            error({ code: 1, message: "permission denied" });
+          },
+        },
+      });
+    });
+    const page = await context.newPage();
+    await page.route("**/api/weather", (route) =>
+      route.fulfill({ status: 503, contentType: "application/json", body: "{}" }),
+    );
+    await page.goto(BASE_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page
+      .locator('#map[data-map-state="ready"][data-map-mode="real"]')
+      .waitFor({ state: "attached", timeout: 30000 });
+    await page
+      .locator('#weather-widget[data-weather-state="error"]')
+      .waitFor({ state: "visible", timeout: 10000 });
+    await page.locator("#recenter-map-control").click();
+    await page.waitForTimeout(100);
+    const negative = await inspect(page);
+    const geoState = await page
+      .locator("#map")
+      .getAttribute("data-geolocation-state");
+    assert(geoState === "denied", "Denied geolocation state was not exposed", geoState);
+    assert(
+      negative.rootWidth <= 391 && negative.bodyWidth <= 391,
+      "Negative states cause horizontal overflow",
+      negative,
+    );
+    await page.screenshot({
+      path: `${OUTPUT_DIR}/after-390x844-negative-states.png`,
+      animations: "disabled",
+    });
+    evidence.negatives = { weather: "error", geolocation: geoState, layout: negative };
+    await context.close();
+  }
+
+  writeFileSync(
+    `${OUTPUT_DIR}/wave-a-convergence.json`,
+    JSON.stringify(evidence, null, 2),
+  );
+  writeFileSync(
+    `${OUTPUT_DIR}/WAVE_A_DISCOVER_CONVERGENCE.txt`,
+    "WAVE_A_DISCOVER_CONVERGENCE = PASS\n",
+  );
+  console.log("WAVE_A_DISCOVER_CONVERGENCE = PASS");
+} catch (error) {
+  writeFileSync(
+    `${OUTPUT_DIR}/WAVE_A_DISCOVER_CONVERGENCE.txt`,
+    "WAVE_A_DISCOVER_CONVERGENCE = FAIL\n",
+  );
+  writeFileSync(`${OUTPUT_DIR}/failure.txt`, String(error?.stack || error));
+  throw error;
+} finally {
+  await browser.close();
+}
