@@ -773,7 +773,8 @@ h3 {
   }
 
   .ticketing-hero-media {
-    min-height: 12rem;
+    height: 15rem;
+    min-height: 15rem;
     border-radius: var(--md-radius-lg);
   }
 
@@ -781,9 +782,27 @@ h3 {
     padding: var(--md-space-4);
   }
 
+  .ticketing-hero-overlay .eyebrow {
+    margin-bottom: var(--md-space-1);
+  }
+
+  .ticketing-hero-overlay h1 {
+    margin-bottom: var(--md-space-2);
+    font-size: 1.75rem;
+    line-height: 1.05;
+  }
+
   .ticketing-hero-overlay .lead {
-    margin-bottom: var(--md-space-3);
+    margin-bottom: var(--md-space-2);
     font-size: var(--md-font-size-sm);
+  }
+
+  .ticketing-trust {
+    margin-bottom: var(--md-space-2);
+  }
+
+  .product-facts {
+    gap: var(--md-space-1);
   }
 
   .ticketing-purchase-layout {
