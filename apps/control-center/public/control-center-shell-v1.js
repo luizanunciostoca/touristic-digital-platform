@@ -1,3 +1,5 @@
+import { createDashboardAuthClient } from "@touristic/auth-browser";
+
 const app = document.querySelector("#app");
 const nav = document.querySelector("#main-nav");
 const menuButton = document.querySelector("#menu-button");
@@ -14,8 +16,17 @@ const profileAvatar = document.querySelector("#profile-avatar");
 const userMenuName = document.querySelector("#user-menu-name");
 const userMenuRole = document.querySelector("#user-menu-role");
 const globalScope = document.querySelector("#global-scope");
+const destinationSelector = document.querySelector("#destination-selector");
+
+const shellAuth = createDashboardAuthClient({
+  fetchFn: globalThis.fetch.bind(globalThis),
+  storage: globalThis.sessionStorage,
+  location: globalThis.location,
+});
 
 const selectedNavKey = "md_control_center_shell_nav_v1";
+const destinationContextKey = "md_control_center_destination_context_v1";
+const destinationScopeKey = "md_control_center_destination_scope_v1";
 
 const groups = [
   {
@@ -289,6 +300,79 @@ function syncActive() {
   });
 }
 
+
+function readDestinationContext() {
+  return globalThis.sessionStorage.getItem(destinationContextKey) || "";
+}
+
+function syncScopeControls() {
+  if (!globalScope || !destinationSelector) return;
+  const scope = globalThis.sessionStorage.getItem(destinationScopeKey) || "global";
+  globalScope.setAttribute("aria-pressed", String(scope === "global"));
+  destinationSelector.dataset.scope = scope;
+  const current = readDestinationContext();
+  if (current && [...destinationSelector.options].some((option) => option.value === current)) {
+    destinationSelector.value = current;
+  }
+}
+
+async function hydrateDestinationSelector() {
+  if (!destinationSelector) return;
+  try {
+    const response = await shellAuth.secureFetch("/api/admin/v1/destinations", {
+      headers: { Accept: "application/json" },
+    });
+    if (!response.ok) throw new Error("DESTINATION_CONTEXT_UNAVAILABLE");
+    const body = await response.json();
+    const destinations = Array.isArray(body.destinations) ? body.destinations : [];
+    const readable = destinations.filter((destination) => destination?.id);
+    if (!readable.length) {
+      syncScopeControls();
+      return;
+    }
+
+    destinationSelector.innerHTML = readable
+      .map((destination) => {
+        const name =
+          destination.branding?.name ||
+          destination.branding?.shortName ||
+          destination.id;
+        return '<option value="' +
+          String(destination.id).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;") +
+          '">' +
+          String(name).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;") +
+          "</option>";
+      })
+      .join("");
+
+    const stored = readDestinationContext();
+    const fallback =
+      readable.find((destination) => destination.status === "active")?.id ||
+      readable[0].id;
+    const selected = readable.some((destination) => destination.id === stored)
+      ? stored
+      : fallback;
+    globalThis.sessionStorage.setItem(destinationContextKey, selected);
+    destinationSelector.value = selected;
+    syncScopeControls();
+  } catch {
+    destinationSelector.dataset.state = "unavailable";
+    syncScopeControls();
+  }
+}
+
+function selectDestinationContext(destinationId) {
+  if (!destinationId) return;
+  globalThis.sessionStorage.setItem(destinationContextKey, destinationId);
+  globalThis.sessionStorage.setItem(destinationScopeKey, "destination");
+  syncScopeControls();
+  globalThis.dispatchEvent(
+    new CustomEvent("md:destination-context-changed", {
+      detail: { scope: "destination", destinationId },
+    }),
+  );
+}
+
 function closeSidebar({ restoreFocus = false } = {}) {
   if (!app) return;
   app.classList.remove("menu-open", "sidebar-open");
@@ -399,8 +483,22 @@ userMenuLogout?.addEventListener("click", () => logoutButton?.click());
 
 globalScope?.addEventListener("click", () => {
   globalThis.sessionStorage.setItem(selectedNavKey, "global");
+  globalThis.sessionStorage.setItem(destinationScopeKey, "global");
   globalThis.location.hash = "#overview";
   syncActive();
+  syncScopeControls();
+  globalThis.dispatchEvent(
+    new CustomEvent("md:destination-context-changed", {
+      detail: {
+        scope: "global",
+        destinationId: readDestinationContext() || null,
+      },
+    }),
+  );
+});
+
+destinationSelector?.addEventListener("change", (event) => {
+  selectDestinationContext(event.currentTarget.value);
 });
 
 document.addEventListener("keydown", (event) => {
@@ -464,3 +562,5 @@ if (actorCard) {
 rebuildNav();
 syncActorIdentity();
 syncSidebarState();
+syncScopeControls();
+void hydrateDestinationSelector();
