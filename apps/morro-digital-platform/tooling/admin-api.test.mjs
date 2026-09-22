@@ -301,24 +301,27 @@ describe("Control Center Admin API", () => {
     expect(modules.audit.state).toBe("runtime-projection");
   });
 
-  it("passes the authenticated request into domain universal-search adapters", async () => {
+  it("passes the authenticated request and destination scope into destination-aware owner search adapters", async () => {
     let received;
-    const crm = {
+    const content = {
+      searchCapability: "content.read",
+      searchDestinationAware: true,
       async search(input) {
         received = input;
         return [
           {
-            type: "lead",
-            id: "42",
+            type: "content",
+            id: "content-toca",
             title: "Toca do Morcego",
-            context: "proposal_sent",
-            href: "/apps/admin-crm/public/lead-detail.html?id=42",
+            context: "published",
+            href: "#content:content-toca",
+            destinationId: "morro-de-sao-paulo",
           },
         ];
       },
     };
     const { api } = fixture(platformOwner, {
-      domainAdapters: { crm },
+      domainAdapters: { content },
     });
     const req = request(
       "/api/admin/v1/search?q=toca&destinationId=morro-de-sao-paulo",
@@ -344,9 +347,10 @@ describe("Control Center Admin API", () => {
     expect(JSON.parse(response.body).results).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          type: "lead",
+          type: "content",
           title: "Toca do Morcego",
-          domain: "crm",
+          domain: "content",
+          destinationId: "morro-de-sao-paulo",
         }),
       ]),
     );
