@@ -1,0 +1,45 @@
+name: Wave A One-Time Doc Format Fix
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wave-a-doc-format-fix
+  cancel-in-progress: true
+
+jobs:
+  format-wave-a-doc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format Wave A certification doc only
+        run: pnpm exec prettier --write docs/deployment/RENDER-STAGING-V2.md
+
+      - name: Commit formatting and remove one-time workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/deployment/RENDER-STAGING-V2.md
+          git rm .github/workflows/wave-a-doc-format-fix.yml
+          git commit -m "chore(discover): format Wave A certification docs"
+          git push origin HEAD:${GITHUB_HEAD_REF}
