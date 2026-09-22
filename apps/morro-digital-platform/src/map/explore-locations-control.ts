@@ -552,6 +552,13 @@ export function installExploreLocationsControl({
         return;
       }
       updateMapState(locations.length, category, "ready");
+      if (openSelectedPopup && locations.length === 1) {
+        const selectedMarker = document.querySelector<HTMLElement>(
+          ".morro-explore-marker[data-morro-explore-marker=\"true\"]",
+        );
+        selectedMarker?.setAttribute("data-selected", "true");
+        selectedMarker?.setAttribute("aria-current", "location");
+      }
       frameLocationsOnMap(locations, geospatialEngine);
       setSheetStatus("ready");
       emitStateChange();
