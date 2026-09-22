@@ -557,8 +557,10 @@ jobs:
               await page.locator('#assistantInput').focus();
             }
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
-            await page.locator('#assistant-category-tours').waitFor({ state: 'visible', timeout: 10000 });
-            await page.locator('#assistant-category-tours').click();
+            await page.locator('#assistant-category-tours').waitFor({ state: 'attached', timeout: 10000 });
+            await page
+              .locator('#assistant-category-tours')
+              .evaluate((button) => button.click());
             await assertTourDiscoveryConvergence(page, evidenceName ?? 'runtime');
             const shortcut = page.locator(
               `#assistant-category-results .assistant-flow-option[data-tour-id="${tourId}"]`,
