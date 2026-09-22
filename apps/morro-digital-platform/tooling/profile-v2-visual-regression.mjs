@@ -45,7 +45,10 @@ try {
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
 
-    await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 45_000 });
+    await page.goto(baseUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: 45_000,
+    });
     await page
       .locator('body[data-public-onboarding-settled="true"]')
       .waitFor({ state: "attached", timeout: 20_000 });
@@ -121,10 +124,14 @@ try {
         mapVisible: visible(map),
         navVisible: visible(nav),
         profileTitle:
-          document.getElementById("home-profile-title")?.textContent?.trim() ?? "",
+          document
+            .getElementById("home-profile-title")
+            ?.textContent?.trim() ?? "",
         composer: (() => {
           const element = document.getElementById("assistant-input-area");
-          if (!(element instanceof HTMLElement) || !visible(element)) return null;
+          if (!(element instanceof HTMLElement) || !visible(element)) {
+            return null;
+          }
           const r = element.getBoundingClientRect();
           return {
             left: r.left,
@@ -133,7 +140,8 @@ try {
             bottom: r.bottom,
             width: r.width,
             height: r.height,
-            zIndex: Number.parseInt(getComputedStyle(element).zIndex || "0", 10) || 0,
+            zIndex:
+              Number.parseInt(getComputedStyle(element).zIndex || "0", 10) || 0,
           };
         })(),
         panelZIndex:
@@ -162,9 +170,18 @@ try {
       `${viewport.label}: Profile panel obscures too much map context`,
       state.panel,
     );
-    assert(state.mapVisible && state.map, `${viewport.label}: map context lost`);
-    assert(state.navVisible && state.nav, `${viewport.label}: bottom nav lost`);
-    assert(state.active, `${viewport.label}: Profile nav active state drift`);
+    assert(
+      state.mapVisible && state.map,
+      `${viewport.label}: map context lost`,
+    );
+    assert(
+      state.navVisible && state.nav,
+      `${viewport.label}: bottom nav lost`,
+    );
+    assert(
+      state.active,
+      `${viewport.label}: Profile nav active state drift`,
+    );
     assert(
       state.panelAriaHidden === "false",
       `${viewport.label}: Profile aria-hidden drift`,
@@ -239,8 +256,14 @@ try {
         overflow: document.documentElement.scrollWidth > innerWidth + 1,
       };
     });
-    assert(privacy.role === "dialog", `${viewport.label}: privacy semantics drift`);
-    assert(!privacy.overflow, `${viewport.label}: privacy creates overflow`);
+    assert(
+      privacy.role === "dialog",
+      `${viewport.label}: privacy semantics drift`,
+    );
+    assert(
+      !privacy.overflow,
+      `${viewport.label}: privacy creates overflow`,
+    );
     assert(
       privacy.rect &&
         privacy.rect.left >= -1 &&
