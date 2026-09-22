@@ -38,7 +38,8 @@ button {
 
 .ticketing-topbar {
   display: grid;
-  grid-template-columns: var(--md-touch-target-min) minmax(0, 1fr) auto;
+  grid-template-columns:
+    var(--md-touch-target-min) minmax(0, 1fr) auto;
   min-height: var(--md-touch-target-min);
   align-items: center;
   gap: var(--md-space-2);
@@ -832,7 +833,8 @@ h3 {
   }
 
   .ticketing-topbar {
-    grid-template-columns: var(--md-touch-target-min) minmax(0, 1fr) var(--md-touch-target-min);
+    grid-template-columns:
+      var(--md-touch-target-min) minmax(0, 1fr) var(--md-touch-target-min);
   }
 
   .ticketing-context-title {
@@ -846,14 +848,16 @@ h3 {
   }
 
   .quantity-stepper {
-    grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(--md-touch-target-min);
+    grid-template-columns:
+      var(--md-touch-target-min) minmax(4rem, 1fr) var(--md-touch-target-min);
   }
 }
 
 .ticketing-footer {
   display: flex;
   justify-content: center;
-  padding: var(--md-space-5) 0 max(var(--md-space-5), var(--md-safe-bottom));
+  padding:
+    var(--md-space-5) 0 max(var(--md-space-5), var(--md-safe-bottom));
 }
 
 .ticketing-privacy-action {
