@@ -2430,14 +2430,10 @@ export function createAdminApi({
           min: 1,
           max: 50,
         });
-        const offset = searchInteger(
-          requestUrl.searchParams.get("offset"),
-          0,
-          {
-            min: 0,
-            max: 500,
-          },
-        );
+        const offset = searchInteger(requestUrl.searchParams.get("offset"), 0, {
+          min: 0,
+          max: 500,
+        });
 
         if (destinationId === null) {
           json(response, 400, { error: "INVALID_DESTINATION_ID" });
