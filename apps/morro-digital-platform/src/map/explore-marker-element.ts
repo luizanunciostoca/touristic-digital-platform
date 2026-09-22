@@ -78,12 +78,22 @@ export function createV1ExploreMarkerElement(
   if (!category || typeof document === "undefined") return undefined;
 
   const visual = getV1ExploreMarkerVisual(category);
+  const markerParts = input.id.split(":");
+  const isTourCluster =
+    category === "tours" && markerParts[2] === "cluster";
+  const clusterCount = isTourCluster
+    ? Number.parseInt(markerParts[3] ?? "", 10)
+    : 0;
   const root = document.createElement("div");
   root.className =
     "mapbox-poi-marker mapbox-category-marker morro-explore-marker";
   root.dataset.morroExploreMarker = "true";
   root.dataset.exploreCategory = category;
   root.dataset.markerId = input.id;
+  if (isTourCluster && clusterCount > 1) {
+    root.dataset.tourCluster = "true";
+    root.dataset.clusterCount = String(clusterCount);
+  }
   if (input.label) root.dataset.locationName = input.label;
   root.setAttribute("role", "img");
   root.setAttribute("aria-label", input.label ?? `POI ${category}`);
@@ -101,8 +111,11 @@ export function createV1ExploreMarkerElement(
   root.style.willChange = "transform";
 
   const pin = document.createElement("div");
-  pin.className = "morro-explore-marker-icon";
-  pin.textContent = visual.icon;
+  pin.className = `morro-explore-marker-icon${
+    isTourCluster ? " morro-explore-marker-cluster" : ""
+  }`;
+  pin.textContent =
+    isTourCluster && clusterCount > 1 ? String(clusterCount) : visual.icon;
   pin.style.width = "36px";
   pin.style.height = "36px";
   pin.style.borderRadius = "50%";
