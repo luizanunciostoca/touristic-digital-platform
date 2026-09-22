@@ -54,7 +54,7 @@ describe("Control Center high-information administrative surfaces", () => {
 
   it("renders Dashboard owner states without synthesizing unavailable values", () => {
     expect(source).toContain(
-      'readOwnerProjection("/affiliates?limit=100", "data")',
+      'readOwnerProjection("/affiliates?limit=250", "data")',
     );
     expect(source).toContain(
       'readOwnerProjection("/destinations", "destinations")',
@@ -65,6 +65,8 @@ describe("Control Center high-information administrative surfaces", () => {
     expect(source).toContain("Precisa de atenção");
     expect(source).toContain("Destination Summary");
     expect(source).toContain("Affiliate Summary");
+    expect(source).toContain("Afiliados carregados (máx. 250)");
+    expect(source).toContain("no recorte carregado");
     expect(source).toContain("nenhum valor foi inferido");
     expect(source).toContain('return "unavailable"');
     expect(source).toContain('"partial"');
