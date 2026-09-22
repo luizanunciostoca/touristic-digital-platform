@@ -15,6 +15,7 @@ const approvedInlineImportMapHashes = Object.freeze([
   "'sha256-m42qLvsHi55hG6DJxpKtlwgH50ivEzS+c7mS4Bsk5CE='",
   "'sha256-8kxcShLx6HFFQPDtnPQPJp+VZhd/lQeB+ir19hB7kTA='",
   "'sha256-v+ikbD8xIyBtt9hWH4Ialp9gTbe357EC4dWfgkMtMOc='",
+  "'sha256-m9MUQ/+BUddSCZ5DPZMI8S+y6QXRnFWyJY1IXWFwTX4='",
 ]);
 
 function firstHeader(value) {
