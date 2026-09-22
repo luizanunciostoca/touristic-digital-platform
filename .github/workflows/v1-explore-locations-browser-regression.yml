@@ -124,6 +124,10 @@ jobs:
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
           }
 
+          async function invokeCategory(page, category) {
+            await page.locator(`#assistant-category-${category}`).evaluate(button => button.click());
+          }
+
           async function waitMap(page, category, count, stage) {
             await page.locator(`#map[data-explore-state="ready"][data-explore-category="${category}"][data-map-marker-count="${count}"][data-explore-stage="${stage}"]`).waitFor({ state: 'attached', timeout: 8000 });
           }
@@ -250,15 +254,14 @@ jobs:
 
               for (const [category, count] of Object.entries(expectedCounts)) {
                 await openAssistant(page);
-                await page.locator(`#assistant-category-${category}`).click();
+                await invokeCategory(page, category);
                 await assertFiltersStage(page, category, count);
                 await page.keyboard.press('Escape');
                 await assertMainMenu(page);
               }
 
               await openAssistant(page);
-              const beaches = page.locator('#assistant-category-beaches');
-              await beaches.click();
+              await invokeCategory(page, 'beaches');
               await assertFiltersStage(page, 'beaches', 8);
 
               await page.locator('#assistant-category-results [data-value="surf"]').click();
@@ -387,7 +390,7 @@ jobs:
 
               if (viewport.id === 'mobile') {
                 await openAssistant(page);
-                await page.locator('#assistant-category-beaches').click();
+                await invokeCategory(page, 'beaches');
                 await assertFiltersStage(page, 'beaches', 8);
                 await page.locator('#assistant-category-results [data-value="proximo"]').click();
                 await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
@@ -402,7 +405,7 @@ jobs:
                 await assertMainMenu(page);
 
                 await openAssistant(page);
-                await page.locator('#assistant-category-tours').click();
+                await invokeCategory(page, 'tours');
                 await assertFiltersStage(page, 'tours', 6);
                 await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
                 await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });

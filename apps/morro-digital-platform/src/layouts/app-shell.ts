@@ -94,7 +94,7 @@ function createAppShellMarkup(): string {
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄
           </div>
-          <div class="assistant-options md-assistant-options" role="group" aria-label="Explore Morro Digital">
+          <div class="assistant-options md-assistant-options" data-assistant-command-source="legacy-category-routing">
             <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
             <button type="button" class="assistant-option-btn" data-value="restaurants">Restaurants</button>
             <button type="button" class="assistant-option-btn" data-value="hotels">Hotels</button>
@@ -152,7 +152,7 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-compact" role="group" aria-label="Assistant composer" data-home-assistant-entry="compact">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-compact" role="group" aria-label="Assistant composer" data-home-assistant-entry="compact" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
         <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
@@ -164,7 +164,7 @@ function createAppShellMarkup(): string {
           data-i18n-aria="assistant_input_label"
         />
         <button id="sendButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
-        <button id="voiceButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send voice message" aria-pressed="false" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
+        <button id="voiceButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send voice message" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone"><i class="fas fa-microphone" aria-hidden="true"></i></button>
       </div>
 
       <section id="home-profile-panel" class="md-home-profile-panel md-card hidden" aria-hidden="true" aria-labelledby="home-profile-title">
