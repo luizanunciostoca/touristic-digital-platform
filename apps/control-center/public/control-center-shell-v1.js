@@ -300,7 +300,6 @@ function syncActive() {
   });
 }
 
-
 function readDestinationContext() {
   return globalThis.sessionStorage.getItem(destinationContextKey) || "";
 }
@@ -311,7 +310,10 @@ function syncScopeControls() {
   globalScope.setAttribute("aria-pressed", String(scope === "global"));
   destinationSelector.dataset.scope = scope;
   const current = readDestinationContext();
-  if (current && [...destinationSelector.options].some((option) => option.value === current)) {
+  if (
+    current &&
+    [...destinationSelector.options].some((option) => option.value === current)
+  ) {
     destinationSelector.value = current;
   }
 }
@@ -337,11 +339,20 @@ async function hydrateDestinationSelector() {
           destination.branding?.name ||
           destination.branding?.shortName ||
           destination.id;
-        return '<option value="' +
-          String(destination.id).replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;") +
+        return (
+          '<option value="' +
+          String(destination.id)
+            .replaceAll("&", "&amp;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;") +
           '">' +
-          String(name).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;") +
-          "</option>";
+          String(name)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;") +
+          "</option>"
+        );
       })
       .join("");
 
