@@ -1254,3 +1254,43 @@ body:has(#map[data-tour-flow-stage="intro"])
     outline-offset: var(--md-focus-ring-offset);
   }
 }
+
+
+/* Wave D active-stop grid row ownership and missing-media recovery. */
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-active-header {
+  grid-row: 1;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-progress-bar {
+  grid-row: 2;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-tips {
+  grid-row: 6;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-desc {
+  font-size: 0.9375rem;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-card[data-photo-state="missing"]
+  :is(.tour-stop-header, .tour-stop-desc, .tour-narration-btn) {
+  grid-column: 1 / -1;
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-card[data-photo-state="missing"]
+  .tour-stop-photo-wrap[hidden] {
+  display: none;
+}
