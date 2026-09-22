@@ -320,6 +320,250 @@ function setHeading(view) {
   breadcrumb.textContent = `Morro Digital → ${destinationLabel} → ${label}`;
 }
 
+function entityTabs(group, tabs) {
+  const availableTabs = tabs.filter(
+    (tab) => tab && typeof tab.content === "string" && tab.content.trim(),
+  );
+  if (!availableTabs.length) return "";
+
+  const buttons = availableTabs
+    .map(
+      (tab, index) =>
+        `<button type="button" class="secondary-button" role="tab" id="${escapeHtml(
+          `${group}-tab-${tab.id}`,
+        )}" aria-controls="${escapeHtml(`${group}-panel-${tab.id}`)}" aria-selected="${
+          index === 0 ? "true" : "false"
+        }" tabindex="${index === 0 ? "0" : "-1"}" data-entity-tab="${escapeHtml(
+          tab.id,
+        )}">${escapeHtml(tab.label)}</button>`,
+    )
+    .join("");
+
+  const panels = availableTabs
+    .map(
+      (tab, index) =>
+        `<section id="${escapeHtml(`${group}-panel-${tab.id}`)}" role="tabpanel" aria-labelledby="${escapeHtml(
+          `${group}-tab-${tab.id}`,
+        )}" data-entity-panel="${escapeHtml(tab.id)}" ${
+          index === 0 ? "" : "hidden"
+        }>${tab.content}</section>`,
+    )
+    .join("");
+
+  return `<div class="entity-360" data-entity-tabs="${escapeHtml(group)}">
+    <div role="tablist" aria-label="Seções da visão 360" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">${buttons}</div>
+    ${panels}
+  </div>`;
+}
+
+function bindEntityTabs(root = content) {
+  root.querySelectorAll("[data-entity-tabs]").forEach((shell) => {
+    const buttons = [...shell.querySelectorAll("[data-entity-tab]")];
+    const activate = (button, focus = false) => {
+      buttons.forEach((candidate) => {
+        const selected = candidate === button;
+        candidate.setAttribute("aria-selected", selected ? "true" : "false");
+        candidate.tabIndex = selected ? 0 : -1;
+        const panel = shell.querySelector(
+          `[data-entity-panel="${candidate.dataset.entityTab}"]`,
+        );
+        if (panel) panel.hidden = !selected;
+      });
+      if (focus) button.focus();
+    };
+
+    shell.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-entity-tab]");
+      if (button) activate(button);
+    });
+    shell.addEventListener("keydown", (event) => {
+      const current = event.target.closest("[data-entity-tab]");
+      if (!current || !buttons.length) return;
+      const currentIndex = buttons.indexOf(current);
+      let nextIndex = currentIndex;
+      if (event.key === "ArrowRight")
+        nextIndex = (currentIndex + 1) % buttons.length;
+      else if (event.key === "ArrowLeft")
+        nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+      else if (event.key === "Home") nextIndex = 0;
+      else if (event.key === "End") nextIndex = buttons.length - 1;
+      else return;
+      event.preventDefault();
+      activate(buttons[nextIndex], true);
+    });
+  });
+}
+
+function supportEntityContext() {
+  const support = state.adminSession?.support;
+  if (!support) return "";
+  return `<div class="callout" data-entity-support-context>
+    <strong>Support Mode:</strong>
+    actor real ${escapeHtml(state.adminSession?.actor?.email ?? "—")} ·
+    effectiveUser ${escapeHtml(
+      support.effectiveUser?.email ?? support.effectiveUser?.id ?? "—",
+    )}.
+    Leituras delegadas preservam o effectiveUser; ações privilegiadas continuam
+    sujeitas à autoridade, capabilities e políticas do actor real.
+  </div>`;
+}
+
+function canonicalEntityAudit(entries, relation) {
+  const source = Array.isArray(entries) ? entries : [];
+  const relatedEntityIds = new Set(relation.relatedEntityIds ?? []);
+  return source.filter((entry) => {
+    if (relation.kind === "business") {
+      return (
+        entry.tenantId === relation.id ||
+        (entry.entityType === "business" && entry.entityId === relation.id) ||
+        relatedEntityIds.has(entry.entityId)
+      );
+    }
+    if (relation.kind === "user") {
+      return (
+        entry.effectiveUserId === relation.id ||
+        (entry.entityType === "auth_principal" &&
+          entry.entityId === relation.id)
+      );
+    }
+    if (relation.kind === "affiliate") {
+      return (
+        (entry.entityType === "affiliate" && entry.entityId === relation.id) ||
+        relatedEntityIds.has(entry.entityId)
+      );
+    }
+    return false;
+  });
+}
+
+function auditDeepLink(entry) {
+  const id = entry?.entityId ? encodeURIComponent(entry.entityId) : "";
+  if (entry?.entityType === "auth_principal" && id) return `#users:${id}`;
+  if (entry?.entityType === "payment" && id) return `#financial:${id}`;
+  if (entry?.entityType === "reservation" && id) return `#reservations:${id}`;
+  if (entry?.entityType === "destination" && id) return `#destinations:${id}`;
+  if (entry?.entityType === "content_document" && id) return `#content:${id}`;
+  if (entry?.entityType === "ticket_inventory" && id) return `#products:${id}`;
+  if (entry?.entityType === "ticketing_operation") return "#ticketing";
+  if (entry?.entityType === "affiliate_membership" && entry.entityId) {
+    const affiliateId = String(entry.entityId).split(":", 1)[0];
+    return affiliateId
+      ? `#affiliates:${encodeURIComponent(affiliateId)}`
+      : "#affiliates";
+  }
+  if (entry?.entityType === "reconciliation_finding") return "#financial";
+  if (entry?.entityType === "auth_session" && entry.effectiveUserId) {
+    return `#users:${encodeURIComponent(entry.effectiveUserId)}`;
+  }
+  return null;
+}
+
+function auditFinancialValue(entry) {
+  for (const stateValue of [entry?.newState, entry?.previousState]) {
+    if (!stateValue || typeof stateValue !== "object") continue;
+    for (const amount of [stateValue.amount, stateValue.pricing?.amount]) {
+      if (
+        amount &&
+        Number.isFinite(Number(amount.minorUnits)) &&
+        typeof amount.currency === "string"
+      ) {
+        return `${amount.minorUnits} ${amount.currency} (minor units)`;
+      }
+    }
+    for (const field of ["commissionMinor", "eligibleRevenueMinor"]) {
+      if (
+        Number.isFinite(Number(stateValue[field])) &&
+        typeof stateValue.currency === "string"
+      ) {
+        return `${stateValue[field]} ${stateValue.currency} (minor units)`;
+      }
+    }
+  }
+  return null;
+}
+
+function recentActivityMarkup(
+  entries,
+  {
+    title = "Recent Activity",
+    emptyMessage = "Nenhuma atividade administrativa neste recorte.",
+  } = {},
+) {
+  const rows = Array.isArray(entries) ? entries : [];
+  return `<section class="card section-card" data-recent-activity data-state="${
+    rows.length ? "success" : "empty"
+  }">
+    <div class="section-title">
+      <h2>${escapeHtml(title)}</h2>
+      <span class="badge">${escapeHtml(rows.length)}</span>
+    </div>
+    <div class="table-wrap" tabindex="0">
+      <table>
+        <thead>
+          <tr>
+            <th>Timestamp</th><th>Actor</th><th>Effective user</th>
+            <th>Destino</th><th>Ação / resultado</th><th>Entidade</th>
+            <th>Valor</th><th>Link</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${
+            rows
+              .map((entry) => {
+                const href = auditDeepLink(entry);
+                const financialValue = auditFinancialValue(entry);
+                return `<tr>
+                  <td>${escapeHtml(entry.timestamp ?? "—")}</td>
+                  <td>${escapeHtml(entry.actorUserId ?? "—")}<br><small>${escapeHtml(
+                    entry.actorRole ?? "—",
+                  )}</small></td>
+                  <td>${escapeHtml(entry.effectiveUserId ?? "—")}</td>
+                  <td>${escapeHtml(entry.destinationId ?? "—")}</td>
+                  <td>${escapeHtml(entry.action ?? "—")}<br>${statusBadge(
+                    entry.result ?? "unknown",
+                  )}</td>
+                  <td>${escapeHtml(entry.entityType ?? "—")}<br><small>${escapeHtml(
+                    entry.entityId ?? "—",
+                  )}</small></td>
+                  <td>${escapeHtml(financialValue ?? "—")}</td>
+                  <td>${href ? `<a href="${escapeHtml(href)}">Abrir</a>` : "—"}</td>
+                </tr>`;
+              })
+              .join("") ||
+            `<tr><td colspan="8" class="empty">${escapeHtml(emptyMessage)}</td></tr>`
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>`;
+}
+
+async function readOwnerProjection(path, field) {
+  try {
+    const payload = await api(path);
+    return {
+      available: true,
+      data: Array.isArray(payload?.[field]) ? payload[field] : [],
+      error: null,
+    };
+  } catch (error) {
+    return { available: false, data: [], error };
+  }
+}
+
+function ownerProjectionState(moduleState, available) {
+  if (!available) return "unavailable";
+  return moduleState === "available" || moduleState === "ready"
+    ? "success"
+    : "partial";
+}
+function dashboardAggregateState(status, fallback = "partial") {
+  if (status === "READY") return "success";
+  if (status === "UNAVAILABLE") return "unavailable";
+  if (status === "PARTIAL" || status === "NOT_SUPPORTED") return "partial";
+  return fallback;
+}
+
 function renderOverview() {
   const dashboard = state.dashboard;
   const health = dashboard.health ?? { checks: [] };
