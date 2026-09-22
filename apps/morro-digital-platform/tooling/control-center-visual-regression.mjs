@@ -540,7 +540,7 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
+main().catch(() => {
+  console.error("CONTROL_CENTER_VISUAL_REGRESSION_ABORTED: inspect report artifact");
   process.exit(1);
 });
