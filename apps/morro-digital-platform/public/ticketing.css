@@ -31,7 +31,10 @@ button {
   width: min(70rem, calc(100% - 2rem));
   margin-inline: auto;
   padding-block: var(--md-space-8)
-    calc(var(--md-space-12) + var(--md-safe-bottom));
+    calc(
+      var(--md-space-12) + var(--md-safe-bottom) +
+        var(--md-touch-target-min)
+    );
   overflow-wrap: anywhere;
 }
 
@@ -58,6 +61,11 @@ button {
 .back-link:hover {
   text-decoration: underline;
   text-underline-offset: 0.2em;
+}
+
+body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
+  top: auto;
+  bottom: max(var(--md-space-3), var(--md-safe-bottom));
 }
 
 .eyebrow {
