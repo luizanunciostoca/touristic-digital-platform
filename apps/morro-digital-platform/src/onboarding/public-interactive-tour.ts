@@ -407,7 +407,11 @@ export function installPublicInteractiveTour(
         </div>
         <h2 class="tour-step-title">${step.title}</h2>
         <p class="tour-step-desc">${step.description}</p>
-        <div class="tour-action-hint"><span class="tour-hint-arrow">↑</span><span>${step.hint}</span></div>
+        ${
+          targetUnavailable
+            ? ""
+            : `<div class="tour-action-hint"><span class="tour-hint-arrow">↑</span><span>${step.hint}</span></div>`
+        }
         ${
           targetUnavailable
             ? `<p class="tour-capability-note" role="status">${tourCopy.unavailable}</p>`
