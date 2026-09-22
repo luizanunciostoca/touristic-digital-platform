@@ -77,7 +77,7 @@ body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
 .ticketing-hero-media {
   position: relative;
   display: grid;
-  min-height: clamp(22rem, 52vw, 34rem);
+  min-height: clamp(12rem, 38vw, 18rem);
   align-items: end;
   overflow: hidden;
   border-radius: var(--md-radius-xl);
@@ -121,7 +121,7 @@ p {
 
 h1 {
   margin-bottom: var(--md-space-3);
-  font-size: clamp(2.2rem, 7vw, 4.75rem);
+  font-size: clamp(1.75rem, 5.8vw, 3.25rem);
   line-height: 0.98;
   letter-spacing: -0.04em;
 }
@@ -144,6 +144,14 @@ h3 {
   margin-bottom: var(--md-space-4);
   font-size: var(--md-font-size-md);
   line-height: var(--md-line-height-body);
+}
+
+.ticketing-trust {
+  max-width: 36rem;
+  margin: 0 0 var(--md-space-3);
+  color: color-mix(in srgb, var(--md-color-text-inverse) 92%, transparent);
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-medium);
 }
 
 .product-facts {
@@ -208,6 +216,52 @@ h3 {
 .secure-note {
   max-width: 18rem;
   margin: 0;
+}
+
+.date-selector {
+  display: flex;
+  gap: var(--md-space-2);
+  margin: 0 calc(var(--md-space-1) * -1) var(--md-space-4);
+  padding: var(--md-space-1);
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: none;
+  scroll-snap-type: inline proximity;
+}
+
+.date-selector::-webkit-scrollbar {
+  display: none;
+}
+
+.date-chip {
+  display: grid;
+  flex: 0 0 auto;
+  min-width: 7.25rem;
+  min-height: var(--md-touch-target-min);
+  gap: 0.15rem;
+  align-content: center;
+  padding: var(--md-space-2) var(--md-space-3);
+  border: 1px solid var(--md-color-border);
+  border-radius: 999px;
+  background: var(--md-color-surface-card);
+  color: var(--md-color-text-primary);
+  scroll-snap-align: start;
+  text-align: left;
+}
+
+.date-chip[aria-selected="true"] {
+  border-color: var(--md-color-interactive-primary);
+  box-shadow: inset 0 0 0 1px var(--md-color-interactive-primary);
+}
+
+.date-chip small {
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+}
+
+.date-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .offer-grid {
@@ -692,5 +746,89 @@ h3 {
 
   .ticket-dialog::backdrop {
     background: Canvas;
+  }
+}
+
+@media (max-width: 48rem) {
+  .ticketing-shell {
+    width: min(100% - 1rem, 39rem);
+  }
+
+  .ticketing-topbar {
+    margin-bottom: var(--md-space-2);
+  }
+
+  .ticketing-product-stage {
+    margin-bottom: var(--md-space-3);
+  }
+
+  .ticketing-hero-media {
+    min-height: 12rem;
+    border-radius: var(--md-radius-lg);
+  }
+
+  .ticketing-hero-overlay {
+    padding: var(--md-space-4);
+  }
+
+  .ticketing-hero-overlay .lead {
+    margin-bottom: var(--md-space-3);
+    font-size: var(--md-font-size-sm);
+  }
+
+  .ticketing-purchase-layout {
+    grid-template-columns: 1fr;
+    gap: var(--md-space-3);
+  }
+
+  .identity-panel {
+    position: static;
+  }
+
+  .panel {
+    padding: var(--md-space-4);
+  }
+
+  .section-heading {
+    margin-bottom: var(--md-space-3);
+  }
+
+  .offer-card {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .card-actions {
+    justify-content: stretch;
+  }
+
+  .card-actions > * {
+    flex: 1 1 10rem;
+  }
+
+  .selection-summary {
+    gap: var(--md-space-4);
+    margin-top: var(--md-space-4);
+    padding-top: var(--md-space-4);
+  }
+
+  .price-summary {
+    padding: var(--md-space-4);
+  }
+}
+
+@media (max-width: 24.375rem) {
+  .session-label {
+    display: none;
+  }
+
+  .quantity-control,
+  .price-summary-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .quantity-stepper {
+    grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(--md-touch-target-min);
   }
 }
