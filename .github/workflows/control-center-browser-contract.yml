@@ -182,6 +182,9 @@ jobs:
                 timeout: 15000,
               });
               await page.locator('#app:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
+              await ownerContext.storageState({
+                path: '/tmp/control-center-owner-storage.json',
+              });
 
               const actor = await page.locator('#actor-card').textContent();
               if (!actor?.includes('PLATFORM_OWNER')) {
