@@ -32,8 +32,7 @@ button {
   margin-inline: auto;
   padding-block: var(--md-space-8)
     calc(
-      var(--md-space-12) + var(--md-safe-bottom) +
-        var(--md-touch-target-min)
+      var(--md-space-12) + var(--md-safe-bottom) + var(--md-touch-target-min)
     );
   overflow-wrap: anywhere;
 }
