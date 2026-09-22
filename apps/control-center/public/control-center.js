@@ -91,7 +91,9 @@ const releaseChip = document.querySelector("#release-chip");
 const searchInput = document.querySelector("#global-search");
 const searchResults = document.querySelector("#search-results");
 const fallbackSearchDestination = document.querySelector("#search-destination");
-const globalDestinationSelector = document.querySelector("#destination-selector");
+const globalDestinationSelector = document.querySelector(
+  "#destination-selector",
+);
 if (globalDestinationSelector && fallbackSearchDestination) {
   fallbackSearchDestination.hidden = true;
 }
