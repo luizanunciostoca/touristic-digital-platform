@@ -97,9 +97,7 @@ function currentCopy(document: Document): SheetCopy {
 }
 
 function isPrimaryTourAction(value: string): boolean {
-  return ["__tour_start__", "__tour_next__", "__tour_finish__"].includes(
-    value,
-  );
+  return ["__tour_start__", "__tour_next__", "__tour_finish__"].includes(value);
 }
 
 const stateGlyph: Readonly<Record<ExploreFlowBottomSheetState, string>> =
@@ -254,8 +252,7 @@ export function installExploreFlowBottomSheet({
       if (direction === "down") child.disabled = current <= 0;
       if (direction === "up") child.disabled = current >= order.length - 1;
       const target = child.dataset.sheetStateTarget as
-        | ExploreFlowBottomSheetState
-        | undefined;
+        ExploreFlowBottomSheetState | undefined;
       if (target) {
         child.disabled = false;
         child.setAttribute("aria-pressed", String(target === nextState));
