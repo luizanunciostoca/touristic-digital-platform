@@ -1136,6 +1136,30 @@ body:has(#map[data-tour-flow-stage="stop"])
   grid-row: 3;
   min-width: 0;
   margin-top: 0;
+  padding: 0;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--md-space-1);
+}
+
+body:has(#map[data-tour-flow-stage="stop"])
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .tour-stop-num-badge {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 1.75rem;
+  padding: var(--md-space-1) var(--md-space-2);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(
+    in srgb,
+    var(--md-color-success) 14%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-success);
+  box-shadow: none;
+  font-size: var(--md-font-size-xs);
+  line-height: 1.2;
 }
 
 body:has(#map[data-tour-flow-stage="stop"])
