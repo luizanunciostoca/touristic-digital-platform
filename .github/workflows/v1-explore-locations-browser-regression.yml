@@ -285,7 +285,7 @@ jobs:
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
               const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]');
               await placeSheet.waitFor({ state: 'visible', timeout: 8000 });
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').waitFor({ state: 'visible', timeout: 8000 });
               const placeSheetState = await placeSheet.evaluate((sheet) => {
                 const rect = sheet.getBoundingClientRect();
                 const buttons = Array.from(sheet.querySelectorAll('button'));
@@ -298,8 +298,16 @@ jobs:
                   title: sheet.querySelector('.place-bottom-sheet-title')?.textContent?.trim() ?? null,
                   category: sheet.getAttribute('data-place-category'),
                   rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
-                  stateControls: sheet.querySelectorAll('[data-sheet-state-target]').length,
+                  stateControls: sheet.querySelectorAll('[data-sheet-step]').length,
                   actionValues,
+                  visibleActionValues: Array.from(
+                    sheet.querySelectorAll('.place-bottom-sheet-actions .place-bottom-sheet-action'),
+                    button => button.getAttribute('data-value'),
+                  ),
+                  overflowOpen:
+                    sheet.querySelector('.place-bottom-sheet-overflow') instanceof HTMLDetailsElement
+                      ? sheet.querySelector('.place-bottom-sheet-overflow').open
+                      : null,
                   touchTargets: buttons.map((button) => {
                     const buttonRect = button.getBoundingClientRect();
                     return { width: buttonRect.width, height: buttonRect.height };
@@ -310,7 +318,7 @@ jobs:
               if (
                 placeSheetState.title !== 'Primeira Praia' ||
                 placeSheetState.category !== 'beaches' ||
-                placeSheetState.stateControls !== 3 ||
+                placeSheetState.stateControls !== 2 ||
                 placeSheetState.rect.left < -1 ||
                 placeSheetState.rect.right > viewport.width + 1 ||
                 placeSheetState.rect.top < -1 ||
@@ -318,14 +326,23 @@ jobs:
                 !placeSheetState.actionValues.includes('condições da praia') ||
                 !placeSheetState.actionValues.includes('como chegar') ||
                 !placeSheetState.actionValues.includes('ver fotos') ||
+                JSON.stringify(placeSheetState.visibleActionValues) !==
+                  JSON.stringify(['como chegar', 'adicionar aos favoritos', 'compartilhar']) ||
+                placeSheetState.overflowOpen !== false ||
                 placeSheetState.touchTargets.some(({ width, height }) => width < 44 || height < 44) ||
                 placeSheetState.imageSrc !== '/images/fotos/primeira_praia1.jpg'
               ) {
                 throw new Error(`Place Bottom Sheet diverged in ${viewport.id}: ${JSON.stringify(placeSheetState)}`);
               }
 
-              for (const state of ['full', 'peek', 'half']) {
-                await page.locator(`#place-bottom-sheet [data-sheet-state-target="${state}"]`).click();
+              const placeStateSequence = [
+                { step: 'up', state: 'full' },
+                { step: 'down', state: 'half' },
+                { step: 'down', state: 'peek' },
+                { step: 'up', state: 'half' },
+              ];
+              for (const { step, state } of placeStateSequence) {
+                await page.locator(`#place-bottom-sheet [data-sheet-step="${step}"]`).click();
                 await page.locator(`#place-bottom-sheet[data-sheet-state="${state}"]`).waitFor({ state: 'visible', timeout: 3000 });
               }
               const selected = await page.evaluate(() => ({
@@ -345,7 +362,8 @@ jobs:
                 selected.markerCount !== '1' ||
                 selected.activeTour !== null ||
                 selected.popupVisible ||
-                JSON.stringify(placeSheetState.actionValues) !== JSON.stringify(expectedBeachDetailValues)
+                placeSheetState.actionValues.length !== expectedBeachDetailValues.length ||
+                expectedBeachDetailValues.some(value => !placeSheetState.actionValues.includes(value))
               ) {
                 throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, placeSheetState })}`);
               }

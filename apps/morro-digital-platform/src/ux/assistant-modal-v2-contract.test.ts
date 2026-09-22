@@ -30,7 +30,7 @@ describe("Assistant Modal V2 contract", () => {
       'role="region"',
       'class="assistant-options md-assistant-options"',
       'role="group"',
-      'class="assistant-input-area md-assistant-composer md-card"',
+      "assistant-input-area md-assistant-composer md-card",
     ]) {
       expect(shell, `missing ${contract}`).toContain(contract);
     }

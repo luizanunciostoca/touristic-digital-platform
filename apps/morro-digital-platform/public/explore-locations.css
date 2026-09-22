@@ -266,7 +266,14 @@
   border-radius: var(--md-radius-pill);
 }
 
-.place-bottom-sheet-state-button[aria-pressed="true"] {
+.place-bottom-sheet-state-button:disabled,
+.explore-flow-sheet-state-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-state-button[aria-pressed="true"] {
   border-color: var(--md-color-brand);
   background: color-mix(
     in srgb,
@@ -378,8 +385,30 @@
 
 .place-bottom-sheet-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--md-space-2);
+}
+
+.place-bottom-sheet-overflow {
+  min-width: 0;
+}
+
+.place-bottom-sheet-overflow-summary {
+  width: 100%;
+  min-height: var(--md-touch-target-min);
+  list-style: none;
+  cursor: pointer;
+}
+
+.place-bottom-sheet-overflow-summary::-webkit-details-marker {
+  display: none;
+}
+
+.place-bottom-sheet-overflow-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--md-space-2);
+  padding-top: var(--md-space-2);
 }
 
 .place-bottom-sheet-action {
@@ -401,13 +430,46 @@
 
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-hero,
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-tags,
-#place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-actions {
+#place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-overflow,
+#place-bottom-sheet[data-sheet-state="half"] .place-bottom-sheet-tags {
+  display: none;
+}
+
+#place-bottom-sheet[data-sheet-state="peek"]
+  .place-bottom-sheet-action:not(:first-child) {
+  display: none;
+}
+
+#place-bottom-sheet[data-sheet-state="peek"]:has(
+    .place-bottom-sheet-primary:not(:empty)
+  )
+  .place-bottom-sheet-actions {
   display: none;
 }
 
 #place-bottom-sheet[data-sheet-state="peek"] .place-bottom-sheet-body {
   gap: var(--md-space-2);
   padding-top: var(--md-space-3);
+}
+
+body[data-md-mode="place"] #place-bottom-sheet[data-sheet-state="half"] {
+  height: min(50dvh, 29rem);
+}
+
+body[data-md-mode="place"] #assistant-input-area {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+body[data-md-mode="place"] .analytics-consent-preferences.is-collapsed,
+body:has(
+    #explore-flow-bottom-sheet[aria-hidden="false"][data-flow-kind="explore"]
+  )
+  .analytics-consent-preferences.is-collapsed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 @media (min-width: 48rem) {
@@ -424,7 +486,11 @@
 
 @media (max-width: 23.5rem) {
   .place-bottom-sheet-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .place-bottom-sheet-share {
+    grid-column: 1 / -1;
   }
 }
 
@@ -432,7 +498,8 @@
   #place-bottom-sheet,
   .place-bottom-sheet-state-button,
   .place-bottom-sheet-close,
-  .place-bottom-sheet-action {
+  .place-bottom-sheet-action,
+  .place-bottom-sheet-overflow-summary {
     border-color: CanvasText;
   }
 }
@@ -496,16 +563,6 @@
 .explore-flow-sheet-close {
   border: 1px solid transparent;
   border-radius: var(--md-radius-pill);
-}
-
-.explore-flow-sheet-state-button[aria-pressed="true"] {
-  border-color: var(--md-color-brand);
-  background: color-mix(
-    in srgb,
-    var(--md-color-brand) 10%,
-    var(--md-color-surface-card)
-  );
-  color: var(--md-color-brand-strong);
 }
 
 .explore-flow-sheet-close {
@@ -618,6 +675,15 @@
   min-width: 0;
   min-height: var(--md-touch-target-min);
   margin: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+#explore-flow-bottom-sheet .explore-flow-sheet-source > [data-location-name] {
+  grid-column: 1 / -1;
+  justify-content: flex-start;
+  text-align: start;
 }
 
 #explore-flow-bottom-sheet
@@ -686,5 +752,154 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   .explore-flow-sheet-close,
   .explore-flow-sheet-option {
     border-color: CanvasText;
+  }
+}
+
+/* Tour manual convergence: preserve map context and remove sheet-debug chrome. */
+#explore-flow-bottom-sheet[data-flow-kind="tour"] {
+  bottom: max(var(--md-space-3), var(--md-safe-bottom));
+  height: auto;
+  max-height: min(48dvh, 30rem);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-drag-handle,
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-state-controls {
+  display: none;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-toolbar {
+  min-height: var(--md-touch-target-min);
+  grid-template-columns: 1fr auto;
+  border-bottom: 0;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-close {
+  grid-column: 2;
+  justify-self: end;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-content {
+  gap: var(--md-space-2);
+  padding: 0 var(--md-space-3) var(--md-space-3);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-title {
+  padding-inline-end: var(--md-space-2);
+  font-size: 1rem;
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1.3;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-rich
+  > :is(
+    .tour-intro-card,
+    .tour-stop-list-card,
+    .tour-stop-card,
+    .tour-finale-card
+  ) {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-progress-bar {
+  margin: 0 0 var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo-wrap {
+  max-height: 8.5rem;
+  overflow: hidden;
+  border-radius: var(--md-radius-md);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo {
+  width: 100%;
+  height: 8.5rem;
+  object-fit: cover;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-header {
+  margin-top: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-desc {
+  margin-block: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-tips {
+  margin-block: var(--md-space-2);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-narration-btn {
+  width: 100%;
+  margin: var(--md-space-2) 0 0;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_exit__"],
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option[data-value="__tour_cancel__"] {
+  display: none;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions,
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-source {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-option--primary {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 30rem) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    max-height: 46dvh;
+  }
+
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo-wrap,
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo {
+    height: 7rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 32rem) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    right: max(var(--md-space-3), var(--md-safe-right));
+    bottom: max(var(--md-space-2), var(--md-safe-bottom));
+    left: auto;
+    width: min(28rem, calc(100vw - var(--md-space-6)));
+    max-height: calc(100dvh - var(--md-space-4));
+  }
+
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo-wrap,
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-stop-photo {
+    height: 5.5rem;
+  }
+}
+
+@media (forced-colors: active) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"] {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+  }
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding-top: var(--md-space-2);
+  background: var(--md-outdoor-surface-strong);
+}
+
+@media (forced-colors: active) {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+    .explore-flow-sheet-actions {
+    background: Canvas;
   }
 }

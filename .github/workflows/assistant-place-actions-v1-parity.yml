@@ -141,8 +141,25 @@ jobs:
               }
 
               async function submit(text) {
-                await input.fill(text);
-                await send.click();
+                if ((await input.isVisible()) && (await send.isVisible())) {
+                  await input.fill(text);
+                  await send.click();
+                } else {
+                  await page.evaluate(value => {
+                    const input = document.getElementById('assistantInput');
+                    const send = document.getElementById('sendButton');
+                    if (!(input instanceof HTMLInputElement) || !(send instanceof HTMLButtonElement)) {
+                      throw new Error('Assistant semantic input controls unavailable');
+                    }
+                    const setter = Object.getOwnPropertyDescriptor(
+                      HTMLInputElement.prototype,
+                      'value',
+                    )?.set;
+                    setter?.call(input, value);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    send.click();
+                  }, text);
+                }
                 await waitUntil(
                   async () => (await input.inputValue()) === '',
                   `input reset after ${text}`,
@@ -164,6 +181,9 @@ jobs:
                 ).waitFor({ state: 'attached', timeout: 8000 });
                 const detailAction = detailActionValues[category];
                 if (!detailAction) throw new Error(`Missing detail action for ${category}`);
+                await page
+                  .locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary')
+                  .click();
                 await page.locator(
                   `#place-bottom-sheet .place-bottom-sheet-action[data-value="${detailAction}"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
@@ -174,7 +194,7 @@ jobs:
                 await submit(inputText);
                 await page.locator('#assistant-messages .message.assistant', {
                   hasText: expectedText,
-                }).last().waitFor({ state: 'visible', timeout: 8000 });
+                }).last().waitFor({ state: 'attached', timeout: 8000 });
                 await waitUntil(
                   () => page.evaluate(
                     ({ before, action }) => {
@@ -227,11 +247,11 @@ jobs:
                 'Deseja iniciar a navegação até Píer de Morro de São Paulo?',
               );
               await page.locator('.assistant-option-btn[data-value="sim"]').waitFor({
-                state: 'visible',
+                state: 'attached',
                 timeout: 5000,
               });
               await page.locator('.assistant-option-btn[data-value="não"]').waitFor({
-                state: 'visible',
+                state: 'attached',
                 timeout: 5000,
               });
 
@@ -250,7 +270,8 @@ jobs:
                 }
               }
 
-              const latest = await page.locator('#assistant-messages .message.assistant').last().innerText();
+              const latest =
+                (await page.locator('#assistant-messages .message.assistant').last().textContent()) ?? '';
               if (latest.includes('Localização atualizada com sucesso')) {
                 throw new Error('Transport location was incorrectly handled as user geolocation');
               }

@@ -167,12 +167,27 @@ async function waitForAssistant(page) {
   await page
     .locator("#assistantInput")
     .waitFor({ state: "visible", timeout: 30000 });
+  await page.locator("#assistantInput").focus();
   await page
     .locator("#voiceButton")
     .waitFor({ state: "visible", timeout: 30000 });
   await page
-    .locator("#configButton")
+    .locator("#home-profile-button")
     .waitFor({ state: "visible", timeout: 30000 });
+  await page
+    .locator("#configButton")
+    .waitFor({ state: "attached", timeout: 30000 });
+}
+
+async function openVoiceSettings(page) {
+  await page.locator("#home-profile-button").click();
+  await page
+    .locator("#configButton")
+    .waitFor({ state: "visible", timeout: 5000 });
+  await page.locator("#configButton").click();
+  await page
+    .locator("#assistantVoiceSettings:not(.hidden)")
+    .waitFor({ state: "visible", timeout: 5000 });
 }
 
 async function runContract(browser) {
@@ -216,10 +231,7 @@ async function runContract(browser) {
     globalThis.__voiceContract.messageObserver = observer;
   });
 
-  await page.locator("#configButton").click();
-  await page
-    .locator("#assistantVoiceSettings:not(.hidden)")
-    .waitFor({ state: "visible" });
+  await openVoiceSettings(page);
 
   const initial = await page.evaluate(() => ({
     expanded: document
@@ -331,6 +343,10 @@ async function runContract(browser) {
     messageEvents: globalThis.__voiceContract.domMessages.length,
     spoken: globalThis.__voiceContract.spoken.length,
   }));
+  await page.locator("#assistantInput").focus();
+  await page
+    .locator("#voiceButton")
+    .waitFor({ state: "visible", timeout: 5000 });
   await page.locator("#voiceButton").click();
 
   await poll(
@@ -430,7 +446,7 @@ async function runContract(browser) {
     microphone,
   );
 
-  await page.locator("#configButton").click();
+  await openVoiceSettings(page);
   await page.locator("#assistantVoiceEnabled").uncheck();
   await page.locator("#assistantVoiceSettingsClose").click();
   const disabledBaseline = await page.evaluate(() => ({

@@ -9,12 +9,12 @@ function createAppShellMarkup(): string {
       data-destination-id="morro-de-sao-paulo"
       data-home-visual-state="loading"
     >
-      <header class="md-home-header">
+      <header class="md-home-header" aria-label="Morro Digital">
         <div class="header-content md-home-header-inner md-card">
           <span class="md-home-brand-mark" aria-hidden="true">M</span>
           <div class="md-home-title-block">
-            <h1 data-i18n="welcome_message">Morro Digital</h1>
-            <p class="tagline" data-i18n="ask_first_time">Descubra o paraíso</p>
+            <span class="md-home-eyebrow">Morro Digital</span>
+            <h1>Morro de São Paulo</h1>
           </div>
         </div>
       </header>
@@ -138,7 +138,8 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card" role="group" aria-label="Assistant composer">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-compact" role="group" aria-label="Assistant composer" data-home-assistant-entry="compact">
+        <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
           id="assistantInput"
@@ -148,10 +149,53 @@ function createAppShellMarkup(): string {
           data-i18n-placeholder="assistant_input_placeholder"
           data-i18n-aria="assistant_input_label"
         />
-        <button id="sendButton" class="md-icon-button" type="button" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
-        <button id="voiceButton" class="md-icon-button" type="button" aria-label="Send voice message" aria-pressed="false" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
-        <button id="configButton" class="md-icon-button" type="button" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label"><i class="fas fa-cog"></i></button>
+        <button id="sendButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
+        <button id="voiceButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send voice message" aria-pressed="false" data-i18n-aria="assistant_voice_label"><i class="fas fa-microphone"></i></button>
       </div>
+
+      <section id="home-profile-panel" class="md-home-profile-panel md-card hidden" aria-hidden="true" aria-labelledby="home-profile-title">
+        <div class="md-home-profile-header">
+          <div>
+            <span class="md-home-profile-eyebrow" data-home-copy="profileEyebrow">Morro Digital</span>
+            <h2 id="home-profile-title" data-home-copy="profileTitle">Perfil e preferências</h2>
+          </div>
+          <button id="home-profile-close" class="md-icon-button" type="button" aria-label="Fechar perfil" data-home-copy-aria="closeProfile">×</button>
+        </div>
+        <p class="md-home-profile-description" data-home-copy="profileDescription">Ajuste voz, idioma e privacidade sem sair do mapa.</p>
+        <div class="md-home-profile-actions">
+          <button id="configButton" class="md-button md-button--secondary" type="button" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label">
+            <i class="fas fa-cog" aria-hidden="true"></i>
+            <span data-home-copy="assistantSettings">Configurações do assistente</span>
+          </button>
+          <button id="home-privacy-button" class="md-button md-button--secondary" type="button">
+            <i class="fas fa-shield-alt" aria-hidden="true"></i>
+            <span data-home-copy="privacy">Privacidade e LGPD</span>
+          </button>
+        </div>
+      </section>
+
+      <nav id="home-bottom-navigation" class="md-home-bottom-nav md-card" aria-label="Navegação principal" data-home-bottom-navigation>
+        <button type="button" class="md-home-nav-item is-active" data-home-nav-action="explore" aria-current="page">
+          <i class="fas fa-compass" aria-hidden="true"></i>
+          <span data-home-copy="explore">Explorar</span>
+        </button>
+        <button type="button" class="md-home-nav-item" data-home-nav-action="tours">
+          <i class="fas fa-route" aria-hidden="true"></i>
+          <span data-home-copy="tours">Tours</span>
+        </button>
+        <button type="button" class="md-home-nav-item" data-home-nav-action="saved">
+          <i class="fas fa-heart" aria-hidden="true"></i>
+          <span data-home-copy="saved">Salvos</span>
+        </button>
+        <a class="md-home-nav-item" data-home-nav-action="tickets" href="/tickets.html">
+          <i class="fas fa-ticket-alt" aria-hidden="true"></i>
+          <span data-home-copy="tickets">Ingressos</span>
+        </a>
+        <button id="home-profile-button" type="button" class="md-home-nav-item" data-home-nav-action="profile" aria-expanded="false" aria-controls="home-profile-panel">
+          <i class="fas fa-user-circle" aria-hidden="true"></i>
+          <span data-home-copy="profile">Perfil</span>
+        </button>
+      </nav>
 
       <div id="globe-map-control" class="globe-map-control md-map-control-stack">
         <button
@@ -173,19 +217,30 @@ function createAppShellMarkup(): string {
       <div id="instruction-banner" class="instruction-banner md-banner md-navigation-banner hidden" aria-labelledby="instruction-main">
         <div class="instruction-primary">
           <span id="instruction-arrow" class="instruction-icon">↑</span>
-          <h2 id="instruction-main" class="instruction-main-text" role="status" aria-live="polite" aria-atomic="true" data-i18n="navigation_continue_straight">Siga em frente</h2>
+          <div class="instruction-copy">
+            <h2 id="instruction-main" class="instruction-main-text" role="status" aria-live="polite" aria-atomic="true" data-i18n="navigation_continue_straight">Siga em frente</h2>
+            <span id="instruction-step-distance" class="instruction-step-distance">0 m</span>
+          </div>
           <button id="minimize-navigation-btn" class="minimize-button md-icon-button" type="button" aria-label="Minimizar instruções de navegação" aria-expanded="true" aria-controls="instruction-secondary" data-i18n-aria="navigation_minimize"></button>
         </div>
         <div id="instruction-secondary" class="instruction-secondary">
           <p id="instruction-details" class="instruction-details">Siga em frente por 100m</p>
           <div class="progress-container"><div id="route-progress" class="progress-indicator-fill" style="width: 0%"></div></div>
           <div id="progress-text">0%</div>
-          <div class="metrics-group">
-            <div class="metric"><span class="metric-label" data-i18n="navigation_distance_label">Distância</span><span id="instruction-distance" class="metric-value">0 m</span></div>
-            <div class="metric"><span class="metric-label" data-i18n="navigation_time_label">Tempo</span><span id="instruction-time" class="metric-value">0 min</span></div>
-          </div>
         </div>
       </div>
+
+      <aside
+        id="navigation-summary"
+        class="navigation-summary md-card"
+        aria-label="Resumo da navegação"
+      >
+        <div class="metrics-group navigation-summary-metrics">
+          <div class="metric"><span class="metric-label" data-i18n="navigation_distance_label">Distância</span><span id="instruction-distance" class="metric-value">0 m</span></div>
+          <div class="metric"><span class="metric-label" data-i18n="navigation_time_label">Tempo</span><span id="instruction-time" class="metric-value">0 min</span></div>
+        </div>
+        <button id="end-navigation-btn" class="end-navigation-btn md-button md-button--destructive" type="button" aria-label="Encerrar Navegação" data-i18n="navigation_stop" data-i18n-aria="navigation_stop" style="display:none;">Encerrar Navegação</button>
+      </aside>
 
       <div id="loading-overlay" class="md-home-loading-overlay">
         <div class="loading-content md-card">
@@ -202,7 +257,6 @@ function createAppShellMarkup(): string {
       </select>
     </div>
 
-    <button id="end-navigation-btn" class="end-navigation-btn md-button md-button--destructive" type="button" aria-label="Encerrar Navegação" data-i18n="navigation_stop" data-i18n-aria="navigation_stop" style="display:none;">Encerrar Navegação</button>
   `;
 }
 

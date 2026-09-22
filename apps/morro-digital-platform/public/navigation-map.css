@@ -50,7 +50,7 @@
   width: 3.5rem;
   height: 3.5rem;
   border-radius: 50%;
-  background: rgba(229, 62, 62, 0.35);
+  background: color-mix(in srgb, var(--md-navigation-primary) 32%, transparent);
   transform: translate(-50%, -50%);
   animation: navigation-user-pulse var(--md-motion-duration-pulse)
     var(--md-motion-ease-decelerate) infinite;
@@ -91,5 +91,31 @@ body.navigation-active
     animation: none;
     opacity: 0.12;
     transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+
+body[data-md-mode="navigation"]
+  #map
+  .mapboxgl-marker.mapbox-user-marker.navigation-user-location-marker {
+  isolation: isolate;
+  filter: drop-shadow(0 0 0.125rem var(--md-navigation-inverse))
+    drop-shadow(0 0.1875rem 0.5rem rgba(0, 0, 0, 0.5));
+}
+
+body[data-md-mode="navigation"] #map .navigation-user-location-marker::after {
+  content: "";
+  position: absolute;
+  inset: 0.25rem;
+  z-index: -1;
+  border: 0.1875rem solid var(--md-navigation-inverse);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--md-navigation-primary) 18%, transparent);
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  body[data-md-mode="navigation"] #map .navigation-user-location-marker::after {
+    border-color: Highlight;
+    background: Canvas;
   }
 }

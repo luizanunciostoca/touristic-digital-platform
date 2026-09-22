@@ -28,6 +28,9 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(runtime).toContain('value: "adicionar aos favoritos"');
     expect(runtime).toContain('shareButton.dataset.value = "compartilhar"');
     expect(runtime).toContain("primaryAction");
+    expect(runtime).toContain("place-bottom-sheet-overflow");
+    expect(runtime).toContain("button.dataset.sheetStep = direction");
+    expect(runtime).not.toContain("dataset.sheetStateTarget");
     expect(runtime).toContain('next.status ?? "ready"');
 
     // Rating is presentation-only and optional: no synthetic score is authored.
@@ -64,6 +67,10 @@ describe("Place + Search/Explore V2 contract", () => {
       expect(flow).toContain(`"${state}"`);
     }
     expect(flow).toContain("explore-flow-sheet-status-skeleton");
+    expect(flow).toContain("button.dataset.sheetStep = direction");
+    expect(flow).toContain("button.dataset.sheetStateTarget = state");
+    expect(flow).toContain('if (kind === "tour")');
+    expect(flow).toContain("rebuildStateControls(presentation.kind)");
     expect(flow).toContain('activeKind !== "explore"');
 
     expect(search).toContain('type: "show_search_results" as const');
@@ -121,7 +128,14 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(css).toContain('html[dir="rtl"] #place-bottom-sheet');
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
-    expect(css).toContain("overflow-wrap: anywhere");
+    expect(css).toContain("> [data-location-name]");
+    expect(css).toContain("grid-column: 1 / -1");
+    expect(css).toContain("overflow-wrap: break-word");
+    expect(css).toContain("word-break: normal");
+    expect(css).toContain('body[data-md-mode="place"] #assistant-input-area');
+    expect(css).toContain(
+      'body[data-md-mode="place"] .analytics-consent-preferences.is-collapsed',
+    );
     expect(css).not.toContain("transition: all");
 
     expect(place).toContain("sheet.tabIndex = -1");
