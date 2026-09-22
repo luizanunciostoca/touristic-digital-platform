@@ -211,22 +211,19 @@ function heroImageFor(offer) {
 
 function friendlyError(error, fallback = copy.createReservationFailed) {
   const code = text(error?.message);
-  if (code.includes("FEATURE_DISABLED") || code.includes("UNAVAILABLE") || error?.status === 503)
+  if (
+    code.includes("FEATURE_DISABLED") ||
+    code.includes("UNAVAILABLE") ||
+    error?.status === 503
+  )
     return copy.ticketingUnavailable;
-  if (code.includes("EXHAUSTED"))
-    return copy.soldOut;
-  if (code.includes("QUANTITY_LIMIT"))
-    return copy.fillFields;
-  if (code.includes("INVENTORY_UNAVAILABLE"))
-    return copy.static.unavailable;
-  if (code.includes("CURRENCY_MISMATCH"))
-    return copy.static.currencyMismatch;
-  if (code.includes("EXPIRED"))
-    return copy.static.quoteExpired;
-  if (error?.status === 409)
-    return copy.static.priceChanged;
-  if (error?.status === 400)
-    return "Revise os dados da reserva e tente novamente.";
+  if (code.includes("EXHAUSTED")) return copy.soldOut;
+  if (code.includes("QUANTITY_LIMIT")) return copy.fillFields;
+  if (code.includes("INVENTORY_UNAVAILABLE")) return copy.static.unavailable;
+  if (code.includes("CURRENCY_MISMATCH")) return copy.static.currencyMismatch;
+  if (code.includes("EXPIRED")) return copy.static.quoteExpired;
+  if (error?.status === 409) return copy.static.priceChanged;
+  if (error?.status === 400) return copy.fillFields;
   return fallback;
 }
 
@@ -247,9 +244,15 @@ function updatePurchaseSummary() {
   const maximum = Math.max(minimum, Number(elements.quantity.max) || minimum);
   const quantity = Math.max(minimum, Number(elements.quantity.value) || minimum);
   elements.summaryQuantity.textContent = String(quantity);
-  elements.summaryUnitPrice.textContent = quote ? money(quote.unitAmount) : "—";
-  elements.summarySubtotal.textContent = quote ? money(quote.totalAmount) : "—";
-  elements.quoteBadge.textContent = quote ? copy.static.quoteConfirmed : copy.static.confirmingValue;
+  elements.summaryUnitPrice.textContent = quote
+    ? money(quote.unitAmount)
+    : "—";
+  elements.summarySubtotal.textContent = quote
+    ? money(quote.totalAmount)
+    : "—";
+  elements.quoteBadge.textContent = quote
+    ? copy.static.quoteConfirmed
+    : copy.static.confirmingValue;
   elements.quantityDecrease.disabled = quantity <= minimum;
   elements.quantityIncrease.disabled = quantity >= maximum;
 }
@@ -275,7 +278,10 @@ async function refreshQuote({ announce = false } = {}) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ inventoryId: offer.id, quantity }),
     });
-    if (requestId !== state.quoteRequest || state.selectedOffer?.id !== offer.id)
+    if (
+      requestId !== state.quoteRequest ||
+      state.selectedOffer?.id !== offer.id
+    )
       return null;
     const quote = payload.data;
     if (
@@ -297,7 +303,10 @@ async function refreshQuote({ announce = false } = {}) {
     state.quote = quote;
     const maximum = Math.max(
       1,
-      Math.min(Number(quote.maxPerReservation) || 1, Number(quote.availableQuantity) || 1),
+      Math.min(
+        Number(quote.maxPerReservation) || 1,
+        Number(quote.availableQuantity) || 1,
+      ),
     );
     elements.quantity.max = String(maximum);
     updatePurchaseSummary();
@@ -324,7 +333,9 @@ async function refreshQuote({ announce = false } = {}) {
 
 function updateProductPresentation(offer) {
   elements.heroTitle.textContent = offer.label || productKindLabel(offer);
-  elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(offer.startsAt)}`;
+  elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(
+    offer.startsAt,
+  )}`;
   elements.productLocation.textContent = destinationLabel(offer);
   const rating = Number(offer.rating ?? offer.product?.rating);
   elements.productRating.hidden = !Number.isFinite(rating) || rating <= 0;
@@ -602,13 +613,19 @@ function renderDateSelector() {
   if (!state.selectedDate || !groups.has(state.selectedDate)) {
     state.selectedDate =
       keys.find((key) =>
-        groups.get(key).some((offer) => offer.sellable !== false && offer.availableQuantity > 0),
+        groups
+          .get(key)
+          .some(
+            (offer) =>
+              offer.sellable !== false && offer.availableQuantity > 0,
+          ),
       ) || keys[0];
   }
   for (const key of keys) {
     const offers = groups.get(key);
     const unavailable = offers.every((offer) => offer.sellable === false);
-    const soldOut = !unavailable && offers.every((offer) => offer.availableQuantity < 1);
+    const soldOut =
+      !unavailable && offers.every((offer) => offer.availableQuantity < 1);
     const button = document.createElement("button");
     button.type = "button";
     button.className = "date-chip";
@@ -616,8 +633,12 @@ function renderDateSelector() {
     button.setAttribute("role", "option");
     button.setAttribute("aria-selected", String(key === state.selectedDate));
     button.disabled = unavailable || soldOut;
-    button.innerHTML =
-      `<span>${dateLabel(key)}</span><small>${unavailable ? copy.static.unavailable : soldOut ? copy.soldOut : copy.static.available}</small>`;
+    const dateStatus = unavailable
+      ? copy.static.unavailable
+      : soldOut
+        ? copy.soldOut
+        : copy.static.available;
+    button.innerHTML = `<span>${dateLabel(key)}</span><small>${dateStatus}</small>`;
     button.addEventListener("click", () => {
       state.selectedDate = key;
       const nextOffer =
