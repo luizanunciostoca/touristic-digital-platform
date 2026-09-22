@@ -147,6 +147,17 @@ async function assertTouchTargets(page, selectors, label) {
   }
 }
 
+async function waitForDrawerOpen(page, timeoutMs = 2_000) {
+  const sidebar = page.locator("#sidebar");
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < timeoutMs) {
+    const box = await sidebar.boundingBox();
+    if (box && box.x >= -2) return box;
+    await page.waitForTimeout(25);
+  }
+  throw new Error("DRAWER_OPEN_TIMEOUT");
+}
+
 async function main() {
   const browser = await chromium.launch({ headless: true });
   const evidence = {
@@ -300,16 +311,7 @@ async function main() {
         ) {
           throw new Error(`DRAWER_ARIA_STATE_FAILED:${viewport.label}`);
         }
-        await page.waitForFunction(
-          () => {
-            const sidebar = document.querySelector("#sidebar");
-            if (!(sidebar instanceof HTMLElement)) return false;
-            return sidebar.getBoundingClientRect().x >= -2;
-          },
-          null,
-          { timeout: 2_000 },
-        );
-        const sidebar = await page.locator("#sidebar").boundingBox();
+        const sidebar = await waitForDrawerOpen(page);
         if (
           !sidebar ||
           sidebar.x < -2 ||
