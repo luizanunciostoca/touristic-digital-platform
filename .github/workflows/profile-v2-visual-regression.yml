@@ -1,0 +1,86 @@
+name: Profile V2 Visual Regression
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - .github/workflows/profile-v2-visual-regression.yml
+      - apps/morro-digital-platform/tooling/profile-v2-visual-regression.mjs
+      - apps/morro-digital-platform/src/home/home-discover-navigation.ts
+      - apps/morro-digital-platform/src/layouts/app-shell.ts
+      - apps/morro-digital-platform/public/tourist-shell-v2.css
+      - apps/morro-digital-platform/public/design-system-v2.css
+      - apps/morro-digital-platform/public/privacy-preferences.css
+      - apps/morro-digital-platform/public/index.html
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  profile-v2-visual:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm -w build
+
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/profile-v2-visual-regression
+
+      - name: Start authenticated map runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || {
+            echo 'MAPBOX_PUBLIC_TOKEN_CI missing'
+            exit 1
+          }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs \
+            >/tmp/profile-v2-visual-regression/server.log 2>&1 &
+          echo $! >/tmp/profile-v2-visual-regression/server.pid
+          for i in $(seq 1 90); do
+            curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/profile-v2-visual-regression/server.log
+          exit 1
+
+      - name: Validate Profile and privacy visual contract
+        run: node apps/morro-digital-platform/tooling/profile-v2-visual-regression.mjs
+
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/profile-v2-visual-regression/server.log || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: profile-v2-visual-regression
+          path: /tmp/profile-v2-visual-regression
+          retention-days: 14
+          if-no-files-found: error
