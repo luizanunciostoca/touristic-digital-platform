@@ -1,3 +1,4 @@
+// Exact-head regression contract for Control Center high-information surfaces.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
