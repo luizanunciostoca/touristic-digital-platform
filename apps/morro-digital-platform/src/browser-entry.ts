@@ -1,5 +1,6 @@
 import type {
   MapboxGlMapLike,
+  MapboxGlMarkerLike,
   MapboxGlModuleLike,
 } from "@touristic/geospatial";
 
@@ -169,6 +170,7 @@ let activeRealMap: MapboxGlMapLike | undefined;
 const mapStyleReadiness = createMapStyleReadinessTracker();
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
 let activeGlobalViewControl: GlobalViewControl | undefined;
+let activeCurrentLocationMarker: MapboxGlMarkerLike | undefined;
 
 installTouristExperienceSnapshotCapture({
   document,
@@ -178,10 +180,57 @@ installTouristExperienceSnapshotCapture({
 });
 
 function clearBrowserNavigationRuntime(): void {
+  activeCurrentLocationMarker?.remove();
+  activeCurrentLocationMarker = undefined;
+  mapContainer?.removeAttribute("data-current-location");
   activeGlobalViewControl?.destroy();
   activeGlobalViewControl = undefined;
   activeNavigationRuntimeInstall?.destroy();
   activeNavigationRuntimeInstall = undefined;
+}
+
+async function installGrantedCurrentLocationMarker(
+  map: MapboxGlMapLike,
+  sdk: MapboxGlModuleLike,
+): Promise<void> {
+  const permissions = window.navigator.permissions;
+  const geolocation = window.navigator.geolocation;
+  if (!permissions || !geolocation) return;
+
+  let permission: PermissionStatus;
+  try {
+    permission = await permissions.query({ name: "geolocation" });
+  } catch {
+    return;
+  }
+  if (permission.state !== "granted") return;
+
+  geolocation.getCurrentPosition(
+    (position) => {
+      if (activeRealMap !== map) return;
+      activeCurrentLocationMarker?.remove();
+
+      const element = document.createElement("div");
+      element.className = "md-current-location-marker";
+      element.setAttribute("aria-hidden", "true");
+
+      activeCurrentLocationMarker = new sdk.Marker({
+        element,
+        anchor: "center",
+      })
+        .setLngLat([position.coords.longitude, position.coords.latitude])
+        .addTo(map);
+      mapContainer?.setAttribute("data-current-location", "visible");
+    },
+    () => {
+      mapContainer?.removeAttribute("data-current-location");
+    },
+    {
+      enableHighAccuracy: false,
+      maximumAge: 60_000,
+      timeout: 5_000,
+    },
+  );
 }
 
 let runtimeStatusDescriptor: RuntimeStatusDescriptor = Object.freeze({
@@ -536,6 +585,7 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
                 sdk: provider.sdk,
                 document,
               });
+              void installGrantedCurrentLocationMarker(map, provider.sdk);
             },
           }
         : {}),
