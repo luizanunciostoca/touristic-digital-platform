@@ -11,6 +11,7 @@ on:
       - "apps/morro-digital-platform/public/ticketing.js"
       - "apps/morro-digital-platform/public/tickets.html"
       - "apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts"
+      - "apps/morro-digital-platform/src/runtime/commerce-i18n.ts"
 
 permissions:
   contents: read
@@ -33,5 +34,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Emit deterministic Prettier patch
         run: |
-          pnpm exec prettier --write             .github/workflows/ticketing-v2-visual-regression.yml             apps/morro-digital-platform/public/experience.js             apps/morro-digital-platform/public/ticketing.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/public/tickets.html             apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts
-          git diff --no-ext-diff --unified=3 --             .github/workflows/ticketing-v2-visual-regression.yml             apps/morro-digital-platform/public/experience.js             apps/morro-digital-platform/public/ticketing.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/public/tickets.html             apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts
+          pnpm exec prettier --write             .github/workflows/ticketing-v2-visual-regression.yml             apps/morro-digital-platform/public/experience.js             apps/morro-digital-platform/public/ticketing.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/public/tickets.html             apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts \
+            apps/morro-digital-platform/src/runtime/commerce-i18n.ts
+          git diff --no-ext-diff --unified=3 --             .github/workflows/ticketing-v2-visual-regression.yml             apps/morro-digital-platform/public/experience.js             apps/morro-digital-platform/public/ticketing.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/public/tickets.html             apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts \
+            apps/morro-digital-platform/src/runtime/commerce-i18n.ts
