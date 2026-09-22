@@ -24,6 +24,61 @@ interface TutorialStepTarget {
   readonly selectors: readonly string[];
 }
 
+interface TutorialRect {
+  readonly left: number;
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+function mapTeachingRect(
+  rect: TutorialRect,
+  viewportLeft: number,
+  viewportTop: number,
+  viewportWidth: number,
+  viewportHeight: number,
+): TutorialRect {
+  const safeInset = 16;
+  const visibleLeft = Math.max(rect.left, viewportLeft + safeInset);
+  const visibleRight = Math.min(
+    rect.right,
+    viewportLeft + viewportWidth - safeInset,
+  );
+  const visibleTop = Math.max(rect.top, viewportTop + safeInset);
+  const visibleBottom = Math.min(
+    rect.bottom,
+    viewportTop + viewportHeight - safeInset,
+  );
+  const visibleWidth = Math.max(44, visibleRight - visibleLeft);
+  const visibleHeight = Math.max(44, visibleBottom - visibleTop);
+  const width = Math.min(220, Math.max(96, visibleWidth * 0.5));
+  const height = Math.min(180, Math.max(96, visibleHeight * 0.32));
+  const left = Math.max(
+    visibleLeft,
+    Math.min(
+      visibleLeft + (visibleWidth - width) / 2,
+      visibleRight - width,
+    ),
+  );
+  const top = Math.max(
+    visibleTop,
+    Math.min(
+      visibleTop + visibleHeight * 0.24,
+      visibleBottom - height,
+    ),
+  );
+  return {
+    left,
+    top,
+    right: left + width,
+    bottom: top + height,
+    width,
+    height,
+  };
+}
+
 const TOUR_FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
   "[href]",
@@ -152,7 +207,7 @@ export function installPublicInteractiveTour(
     }
   };
 
-  const updateBackdropCutout = (rect: DOMRect, margin: number): void => {
+  const updateBackdropCutout = (rect: TutorialRect, margin: number): void => {
     if (!backdrop) return;
     const viewportWidth =
       view?.innerWidth ?? options.document.documentElement.clientWidth;
@@ -166,8 +221,7 @@ export function installPublicInteractiveTour(
   };
 
   const positionStep = (): void => {
-    if (!active || !target || !highlight || !tooltip) return;
-    const rect = target.getBoundingClientRect();
+    if (!active || !highlight || !tooltip) return;
     const margin = 6;
     const viewport = view?.visualViewport;
     const viewportLeft = viewport?.offsetLeft ?? 0;
@@ -175,6 +229,43 @@ export function installPublicInteractiveTour(
     const viewportWidth = viewport?.width ?? view?.innerWidth ?? 390;
     const viewportHeight = viewport?.height ?? view?.innerHeight ?? 844;
     const safeGap = 12;
+
+    if (!target) {
+      highlight.hidden = true;
+      if (backdrop) backdrop.style.clipPath = "";
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipWidth = Math.min(
+        tooltipRect.width || Math.min(304, viewportWidth - safeGap * 2),
+        viewportWidth - safeGap * 2,
+      );
+      const tooltipHeight = Math.min(
+        tooltipRect.height || 168,
+        viewportHeight - safeGap * 2,
+      );
+      tooltip.style.left = `${Math.max(
+        viewportLeft + safeGap,
+        viewportLeft + (viewportWidth - tooltipWidth) / 2,
+      )}px`;
+      tooltip.style.top = `${Math.max(
+        viewportTop + safeGap,
+        viewportTop + viewportHeight - tooltipHeight - safeGap,
+      )}px`;
+      tooltip.removeAttribute("data-overlaps-target");
+      return;
+    }
+
+    highlight.hidden = false;
+    const rawRect = target.getBoundingClientRect();
+    const rect =
+      stepIndex === 0
+        ? mapTeachingRect(
+            rawRect,
+            viewportLeft,
+            viewportTop,
+            viewportWidth,
+            viewportHeight,
+          )
+        : rawRect;
 
     highlight.style.top = `${Math.max(viewportTop + 4, rect.top - margin)}px`;
     highlight.style.left = `${Math.max(viewportLeft + 4, rect.left - margin)}px`;
@@ -303,9 +394,10 @@ export function installPublicInteractiveTour(
     const isLast = stepIndex === STEPS.length - 1;
     const progress = ((stepIndex + 1) / STEPS.length) * 100;
     const targetUnavailable =
-      target?.matches(":disabled") ||
-      target?.getAttribute("aria-disabled") === "true" ||
-      (stepIndex === 3 && target?.id !== "voiceButton");
+      !target ||
+      target.matches(":disabled") ||
+      target.getAttribute("aria-disabled") === "true" ||
+      (stepIndex === 3 && target.id !== "voiceButton");
     tooltip.toggleAttribute(
       "data-target-unavailable",
       Boolean(targetUnavailable),
@@ -366,8 +458,9 @@ export function installPublicInteractiveTour(
     stepIndex = nextIndex;
     target = firstVisibleTarget(options.document, stepTarget.selectors);
     if (!target) {
-      if (nextIndex < STEPS.length - 1) renderStep(nextIndex + 1);
-      else finish("complete");
+      renderTooltip(stepCopy);
+      positionStep();
+      tooltip?.focus({ preventScroll: true });
       return;
     }
 
