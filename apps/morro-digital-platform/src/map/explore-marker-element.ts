@@ -79,8 +79,7 @@ export function createV1ExploreMarkerElement(
 
   const visual = getV1ExploreMarkerVisual(category);
   const markerParts = input.id.split(":");
-  const isTourCluster =
-    category === "tours" && markerParts[2] === "cluster";
+  const isTourCluster = category === "tours" && markerParts[2] === "cluster";
   const clusterCount = isTourCluster
     ? Number.parseInt(markerParts[3] ?? "", 10)
     : 0;
