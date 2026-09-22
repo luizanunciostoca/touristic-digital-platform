@@ -38,3 +38,22 @@ jobs:
             apps/morro-digital-platform/src/runtime/commerce-i18n.ts
           git diff --no-ext-diff --unified=3 --             .github/workflows/ticketing-v2-visual-regression.yml             apps/morro-digital-platform/public/experience.js             apps/morro-digital-platform/public/ticketing.css             apps/morro-digital-platform/public/ticketing.js             apps/morro-digital-platform/public/tickets.html             apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts \
             apps/morro-digital-platform/src/runtime/commerce-i18n.ts
+      - name: Stage formatted files
+        run: |
+          mkdir -p /tmp/ticketing-prettier/.github/workflows
+          mkdir -p /tmp/ticketing-prettier/apps/morro-digital-platform/public
+          mkdir -p /tmp/ticketing-prettier/apps/morro-digital-platform/src/ux
+          mkdir -p /tmp/ticketing-prettier/apps/morro-digital-platform/src/runtime
+          cp .github/workflows/ticketing-v2-visual-regression.yml /tmp/ticketing-prettier/.github/workflows/
+          cp apps/morro-digital-platform/public/experience.js /tmp/ticketing-prettier/apps/morro-digital-platform/public/
+          cp apps/morro-digital-platform/public/ticketing.css /tmp/ticketing-prettier/apps/morro-digital-platform/public/
+          cp apps/morro-digital-platform/public/ticketing.js /tmp/ticketing-prettier/apps/morro-digital-platform/public/
+          cp apps/morro-digital-platform/public/tickets.html /tmp/ticketing-prettier/apps/morro-digital-platform/public/
+          cp apps/morro-digital-platform/src/ux/ticketing-v2-contract.test.ts /tmp/ticketing-prettier/apps/morro-digital-platform/src/ux/
+          cp apps/morro-digital-platform/src/runtime/commerce-i18n.ts /tmp/ticketing-prettier/apps/morro-digital-platform/src/runtime/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ticketing-prettier-files
+          path: /tmp/ticketing-prettier
+          retention-days: 1
+          if-no-files-found: error
