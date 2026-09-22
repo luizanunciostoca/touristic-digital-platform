@@ -111,7 +111,14 @@ async function load() {
     dateTime(offer.salesStartAt),
     dateTime(offer.salesEndAt),
   );
-  elements.reserve.href = `/tickets.html?offer=${encodeURIComponent(offer.id)}`;
+  const ticketingUrl = new URL("/tickets.html", location.origin);
+  ticketingUrl.searchParams.set("offer", offer.id);
+  const currentParams = new URLSearchParams(location.search);
+  for (const key of ["place", "source", "lang", "locale"]) {
+    const value = currentParams.get(key)?.trim();
+    if (value) ticketingUrl.searchParams.set(key, value);
+  }
+  elements.reserve.href = `${ticketingUrl.pathname}${ticketingUrl.search}`;
   elements.reserve.textContent =
     Number(offer.availableQuantity || 0) > 0
       ? copy.reserveNow

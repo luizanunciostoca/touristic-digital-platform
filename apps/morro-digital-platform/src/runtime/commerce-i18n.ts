@@ -87,6 +87,30 @@ const TICKETING_COPY: Readonly<
       documentTitle: "Ingressos · Morro Digital",
       mainTitle: "Ingressos e reservas",
       lead: "Reserve com preço congelado, finalize pelo checkout seguro e apresente o QR emitido após a confirmação do pagamento.",
+      returnToMap: "← Voltar ao mapa",
+      heroEyebrow: "Experiência em Morro de São Paulo",
+      productTitle: "Escolha sua experiência",
+      productLead:
+        "Selecione uma experiência, confira data e preço e reserve com checkout seguro.",
+      selectionStep: "1 · Selecione",
+      selectionTitle: "Data e experiência",
+      quantityStep: "2 · Quantidade",
+      selectionSummaryTitle: "Sua seleção",
+      ticketsLabel: "Ingressos",
+      summaryEyebrow: "Resumo",
+      summaryTitle: "Estimativa da compra",
+      inventoryPrice: "Preço do inventário",
+      unitPrice: "Preço unitário",
+      subtotalEstimate: "Subtotal estimado",
+      authorityNote:
+        "O valor final, moeda, disponibilidade e status de pagamento são confirmados pelo servidor no momento da reserva e do checkout.",
+      identityStep: "3 · Identificação",
+      identityTitle: "Dados para a reserva",
+      selectedExperience: "Experiência selecionada",
+      afterPurchase: "Depois da compra",
+      myTickets: "Meus ingressos",
+      brightnessHint:
+        "Aumente o brilho da tela para facilitar a leitura no acesso.",
       availabilityEyebrow: "Disponibilidade em tempo real",
       offersTitle: "Experiências disponíveis",
       refresh: "Atualizar",
@@ -166,6 +190,30 @@ const TICKETING_COPY: Readonly<
       documentTitle: "Tickets · Morro Digital",
       mainTitle: "Tickets and reservations",
       lead: "Hold the current price, complete the secure checkout, and present the QR issued after verified payment confirmation.",
+      returnToMap: "← Back to the map",
+      heroEyebrow: "Experience in Morro de São Paulo",
+      productTitle: "Choose your experience",
+      productLead:
+        "Select an experience, review the date and price, then reserve with secure checkout.",
+      selectionStep: "1 · Select",
+      selectionTitle: "Date and experience",
+      quantityStep: "2 · Quantity",
+      selectionSummaryTitle: "Your selection",
+      ticketsLabel: "Tickets",
+      summaryEyebrow: "Summary",
+      summaryTitle: "Purchase estimate",
+      inventoryPrice: "Inventory price",
+      unitPrice: "Unit price",
+      subtotalEstimate: "Estimated subtotal",
+      authorityNote:
+        "Final price, currency, availability, and payment status are confirmed by the server when the reservation and checkout are created.",
+      identityStep: "3 · Identification",
+      identityTitle: "Reservation details",
+      selectedExperience: "Selected experience",
+      afterPurchase: "After purchase",
+      myTickets: "My tickets",
+      brightnessHint:
+        "Increase screen brightness to make the access code easier to scan.",
       availabilityEyebrow: "Real-time availability",
       offersTitle: "Available experiences",
       refresh: "Refresh",
@@ -245,6 +293,30 @@ const TICKETING_COPY: Readonly<
       documentTitle: "Entradas · Morro Digital",
       mainTitle: "Entradas y reservas",
       lead: "Reserva con el precio actual, completa el checkout seguro y presenta el QR emitido después de la confirmación verificada del pago.",
+      returnToMap: "← Volver al mapa",
+      heroEyebrow: "Experiencia en Morro de São Paulo",
+      productTitle: "Elige tu experiencia",
+      productLead:
+        "Selecciona una experiencia, revisa la fecha y el precio y reserva con checkout seguro.",
+      selectionStep: "1 · Selecciona",
+      selectionTitle: "Fecha y experiencia",
+      quantityStep: "2 · Cantidad",
+      selectionSummaryTitle: "Tu selección",
+      ticketsLabel: "Entradas",
+      summaryEyebrow: "Resumen",
+      summaryTitle: "Estimación de compra",
+      inventoryPrice: "Precio del inventario",
+      unitPrice: "Precio unitario",
+      subtotalEstimate: "Subtotal estimado",
+      authorityNote:
+        "El precio final, la moneda, la disponibilidad y el estado del pago son confirmados por el servidor al crear la reserva y el checkout.",
+      identityStep: "3 · Identificación",
+      identityTitle: "Datos de la reserva",
+      selectedExperience: "Experiencia seleccionada",
+      afterPurchase: "Después de la compra",
+      myTickets: "Mis entradas",
+      brightnessHint:
+        "Aumenta el brillo de la pantalla para facilitar la lectura del código de acceso.",
       availabilityEyebrow: "Disponibilidad en tiempo real",
       offersTitle: "Experiencias disponibles",
       refresh: "Actualizar",
@@ -325,6 +397,28 @@ const TICKETING_COPY: Readonly<
       documentTitle: "כרטיסים · Morro Digital",
       mainTitle: "כרטיסים והזמנות",
       lead: "שמרו את המחיר הנוכחי, השלימו תשלום מאובטח והציגו את קוד ה-QR שמונפק לאחר אימות התשלום.",
+      returnToMap: "← חזרה למפה",
+      heroEyebrow: "חוויה במורו דה סאו פאולו",
+      productTitle: "בחרו את החוויה שלכם",
+      productLead: "בחרו חוויה, בדקו תאריך ומחיר והמשיכו להזמנה מאובטחת.",
+      selectionStep: "1 · בחירה",
+      selectionTitle: "תאריך וחוויה",
+      quantityStep: "2 · כמות",
+      selectionSummaryTitle: "הבחירה שלכם",
+      ticketsLabel: "כרטיסים",
+      summaryEyebrow: "סיכום",
+      summaryTitle: "הערכת רכישה",
+      inventoryPrice: "מחיר מלאי",
+      unitPrice: "מחיר ליחידה",
+      subtotalEstimate: "סכום ביניים משוער",
+      authorityNote:
+        "המחיר הסופי, המטבע, הזמינות ומצב התשלום מאומתים על ידי השרת בעת יצירת ההזמנה והתשלום.",
+      identityStep: "3 · זיהוי",
+      identityTitle: "פרטי ההזמנה",
+      selectedExperience: "חוויה שנבחרה",
+      afterPurchase: "לאחר הרכישה",
+      myTickets: "הכרטיסים שלי",
+      brightnessHint: "הגבירו את בהירות המסך כדי להקל על סריקת קוד הכניסה.",
       availabilityEyebrow: "זמינות בזמן אמת",
       offersTitle: "חוויות זמינות",
       refresh: "רענון",
@@ -594,26 +688,40 @@ function applyTicketingStaticCopy(
   document: Document,
   copy: Readonly<Record<string, string>>,
 ): void {
-  setText(document, ".ticketing-header h1", copy.mainTitle);
-  setText(document, ".ticketing-header .lead", copy.lead);
+  setText(document, "[data-ticketing-return]", copy.returnToMap);
+  setText(document, ".ticketing-product-stage .eyebrow", copy.heroEyebrow);
+  setText(document, "#ticketing-title", copy.productTitle);
+  setText(document, "#product-lead", copy.productLead);
   setText(
     document,
-    '.panel[aria-labelledby="offers-title"] .eyebrow',
-    copy.availabilityEyebrow,
+    '.panel[aria-labelledby="offers-title"] > .section-heading .eyebrow',
+    copy.selectionStep,
   );
-  setText(document, "#offers-title", copy.offersTitle);
+  setText(document, "#offers-title", copy.selectionTitle);
   setText(document, "#refresh-button", copy.refresh);
+  setText(document, ".selection-copy .eyebrow", copy.quantityStep);
+  setText(document, "#selected-summary-title", copy.selectionSummaryTitle);
+  setText(document, "#quantity-label", copy.ticketsLabel);
+  setText(document, ".price-summary .eyebrow", copy.summaryEyebrow);
+  setText(document, "#price-summary-title", copy.summaryTitle);
+  setText(document, "#quote-badge", copy.inventoryPrice);
+  setText(document, ".price-breakdown > div:nth-child(1) dt", copy.unitPrice);
+  setText(document, ".price-breakdown > div:nth-child(2) dt", copy.quantity);
+  setText(
+    document,
+    ".price-breakdown > div:nth-child(3) dt",
+    copy.subtotalEstimate,
+  );
+  setText(document, ".authority-note", copy.authorityNote);
   setText(
     document,
     '.panel[aria-labelledby="reservation-title"] .eyebrow',
-    copy.reservationEyebrow,
+    copy.identityStep,
   );
-  setText(document, "#reservation-title", copy.reservationTitle);
-  setText(
-    document,
-    '.panel[aria-labelledby="my-tickets-title"] .eyebrow',
-    copy.walletEyebrow,
-  );
+  setText(document, "#reservation-title", copy.identityTitle);
+  setText(document, ".wallet-heading .eyebrow", copy.afterPurchase);
+  setText(document, "#my-tickets-title", copy.myTickets);
+  setText(document, ".ticket-dialog-hint", copy.brightnessHint);
 
   const secureNotes = document.querySelectorAll<HTMLElement>(".secure-note");
   if (secureNotes[0] && copy.securePayment)
@@ -621,7 +729,7 @@ function applyTicketingStaticCopy(
   if (secureNotes[1] && copy.qrAfterPayment)
     secureNotes[1].textContent = copy.qrAfterPayment;
 
-  replaceLeadingLabelText(document, "#selected-offer", copy.experienceLabel);
+  replaceLeadingLabelText(document, "#selected-offer", copy.selectedExperience);
   replaceLeadingLabelText(document, "#holder-name", copy.fullName);
   replaceLeadingLabelText(document, "#holder-email", copy.email);
   replaceLeadingLabelText(document, "#holder-phone", copy.phone, copy.optional);
@@ -631,7 +739,6 @@ function applyTicketingStaticCopy(
     copy.document,
     copy.optional,
   );
-  replaceLeadingLabelText(document, "#quantity", copy.quantity);
 
   const selectedOffer =
     document.querySelector<HTMLInputElement>("#selected-offer");
@@ -639,9 +746,8 @@ function applyTicketingStaticCopy(
     selectedOffer.placeholder = copy.experiencePlaceholder;
 
   setText(document, "#reserve-button", copy.reserveAndPay);
-  setText(document, "#my-tickets-title", copy.walletTitle);
   setAriaLabel(document, "#ticket-close", copy.close);
-  setText(document, ".ticket-dialog .eyebrow", copy.confirmedTicket);
+  setText(document, ".ticket-dialog > .eyebrow", copy.confirmedTicket);
   setText(document, "#ticket-title", copy.yourTicket);
   setAriaLabel(document, "#ticket-qr", copy.ticketQrLabel);
 }
