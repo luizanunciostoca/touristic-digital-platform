@@ -69,6 +69,7 @@ const elements = {
   quantityDecrease: document.querySelector("#quantity-decrease"),
   quantityIncrease: document.querySelector("#quantity-increase"),
   returnLink: document.querySelector("[data-ticketing-return]"),
+  identityPanel: document.querySelector("#identity-panel"),
 };
 
 function readSessionJson(key, fallback) {
@@ -393,6 +394,7 @@ function selectOffer(offer, { scroll = false } = {}) {
   if (Number(elements.quantity.value) > Number(elements.quantity.max))
     elements.quantity.value = "1";
   elements.reserve.disabled = offer.availableQuantity < 1;
+  elements.identityPanel.hidden = false;
   updateProductPresentation(offer);
   for (const card of elements.offers.querySelectorAll(".offer-card")) {
     card.classList.toggle("is-selected", card.dataset.inventoryId === offer.id);
