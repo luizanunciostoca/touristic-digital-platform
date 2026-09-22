@@ -355,10 +355,10 @@ jobs:
                 await page.locator('.offer-card .md-button--primary').click();
                 await page.locator('#selection-summary:not([hidden])').waitFor({ state: 'visible' });
                 await page.locator('#quantity-increase').click();
-                await page.waitForFunction(() => {
-                  const subtotal = document.querySelector('#summary-subtotal')?.textContent?.trim();
-                  return subtotal && subtotal !== '—';
-                });
+                await page
+                  .locator('#summary-subtotal')
+                  .filter({ hasNotText: '—' })
+                  .waitFor({ state: 'visible' });
                 const state = await page.evaluate(() => {
                   const summary = document.querySelector('#selection-summary');
                   const cta = document.querySelector('#reserve-button');
