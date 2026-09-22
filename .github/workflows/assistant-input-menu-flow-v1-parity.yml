@@ -127,7 +127,9 @@ jobs:
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               async function submit(text, keyboard = false) {
-                if (await input.isVisible()) {
+                const visualComposerReady =
+                  (await input.isVisible()) && (await send.isVisible());
+                if (visualComposerReady) {
                   await input.fill(text);
                   if (keyboard) await input.press('Enter');
                   else await send.click();
