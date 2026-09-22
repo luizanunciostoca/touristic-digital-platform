@@ -22,9 +22,7 @@ describe("Navigation / Tour UX Design V2 manual conformance", () => {
     ]);
 
     expect(shell).toContain('id="navigation-summary"');
-    expect(shell).toContain(
-      'class="metrics-group navigation-summary-metrics"',
-    );
+    expect(shell).toContain('class="metrics-group navigation-summary-metrics"');
     expect(shell).toContain('id="instruction-distance"');
     expect(shell).toContain('id="instruction-time"');
     expect(shell).toContain('id="end-navigation-btn"');
@@ -68,14 +66,10 @@ describe("Navigation / Tour UX Design V2 manual conformance", () => {
     expect(css).not.toContain("rgba(229, 62, 62, 0.35)");
   });
 
-  it(
-    "keeps Tour compact, map-first and free of technical sheet controls",
-    async () => {
-      const css = await readPublic("explore-locations.css");
+  it("keeps Tour compact, map-first and free of technical sheet controls", async () => {
+    const css = await readPublic("explore-locations.css");
 
-    expect(css).toContain(
-      '#explore-flow-bottom-sheet[data-flow-kind="tour"]',
-    );
+    expect(css).toContain('#explore-flow-bottom-sheet[data-flow-kind="tour"]');
     expect(css).toContain("max-height: min(48dvh, 30rem)");
     expect(css).toContain(".explore-flow-sheet-drag-handle");
     expect(css).toContain(".explore-flow-sheet-state-controls");
@@ -85,29 +79,25 @@ describe("Navigation / Tour UX Design V2 manual conformance", () => {
     expect(css).toContain(
       '.explore-flow-sheet-option[data-value="__tour_cancel__"]',
     );
-      expect(css).toContain(".tour-stop-progress-bar");
-    },
-  );
+    expect(css).toContain(".tour-stop-progress-bar");
+  });
 
-  it(
-    "uses real Tour authority while exposing tour title and x/y progress",
-    async () => {
-      const controller = await readRepository(
+  it("uses real Tour authority while exposing tour title and x/y progress", async () => {
+    const controller = await readRepository(
       "apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts",
     );
-      const catalog = await readRepository(
-        "apps/morro-digital-platform/src/config/tour-catalog.ts",
-      );
-      const editorial = await readRepository(
-        "apps/morro-digital-platform/src/config/tour-editorial-source.ts",
-      );
+    const catalog = await readRepository(
+      "apps/morro-digital-platform/src/config/tour-catalog.ts",
+    );
+    const editorial = await readRepository(
+      "apps/morro-digital-platform/src/config/tour-editorial-source.ts",
+    );
 
-      expect(controller).toContain(
-        "${tour.title} · ${copy.stopLabel(current, tour.stops.length)}",
-      );
-      expect(controller).toContain("localizeMorroTour");
-      expect(catalog).toContain("export const morroTourCatalog");
-      expect(editorial).toContain("v1TourEditorialSource");
-    },
-  );
+    expect(controller).toContain(
+      "${tour.title} · ${copy.stopLabel(current, tour.stops.length)}",
+    );
+    expect(controller).toContain("localizeMorroTour");
+    expect(catalog).toContain("export const morroTourCatalog");
+    expect(editorial).toContain("v1TourEditorialSource");
+  });
 });
