@@ -667,7 +667,7 @@ function failClosedDestinationScope(view) {
 }
 
 function searchKeyboardSupport() {
-  if (!searchInput || searchInput.dataset.uxKeyboard === "1") return;
+  if (!searchInput || searchInput.dataset.universalSearch === "1" || searchInput.dataset.uxKeyboard === "1") return;
   searchInput.dataset.uxKeyboard = "1";
   let active = -1;
   const options = () => [...searchResults.querySelectorAll("[data-href]")];
