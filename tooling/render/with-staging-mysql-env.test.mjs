@@ -295,7 +295,9 @@ test("accepts a pre-hashed Control Center owner credential without plaintext pas
   assertPasswordHash(password, users[0].passwordHash);
 });
 
-test("rotates exactly one matching Control Center owner while preserving all other users", () => {
+test(
+  "rotates exactly one matching Control Center owner while preserving all other users",
+  () => {
   const password = "temporary control center owner password 2026";
   const credentialDigest = deterministicPasswordHash(password);
   const email = "control-center-owner@morro.digital";
@@ -334,9 +336,12 @@ test("rotates exactly one matching Control Center owner while preserving all oth
   assert.equal(rotated.passwordHash, credentialDigest);
   assertPasswordHash(password, rotated.passwordHash);
   assert.deepEqual(users.find((user) => user.id === sibling.id), sibling);
-});
+  },
+);
 
-test("keeps collision fail-closed when existing-owner rotation is not explicit or email is duplicated", () => {
+test(
+  "keeps collision fail-closed when existing-owner rotation is not explicit or email is duplicated",
+  () => {
   const password = "temporary control center owner password 2026";
   const email = "control-center-owner@morro.digital";
 
@@ -347,9 +352,7 @@ test("keeps collision fail-closed when existing-owner rotation is not explicit o
         STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
         STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
         STAGING_CONTROL_CENTER_OWNER_PASSWORD: password,
-        DASHBOARD_USERS_JSON: JSON.stringify([
-          { id: "existing", email },
-        ]),
+        DASHBOARD_USERS_JSON: JSON.stringify([{ id: "existing", email }]),
       }),
     /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
   );
@@ -369,7 +372,8 @@ test("keeps collision fail-closed when existing-owner rotation is not explicit o
       }),
     /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
   );
-});
+  },
+);
 
 test("fails closed for unsafe Control Center owner bootstrap configuration", () => {
   const strongPassword = "temporary control center owner password 2026";
