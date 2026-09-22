@@ -156,6 +156,8 @@ services:
         sync: false
       - key: STAGING_CONTROL_CENTER_OWNER_PASSWORD
         sync: false
+      - key: STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST
+        sync: false
 
       - key: PLATFORM_SHUTDOWN_READINESS_DELAY_MS
         value: "5000"

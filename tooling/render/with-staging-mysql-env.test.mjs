@@ -42,6 +42,16 @@ function assertPasswordHash(password, encoded) {
   assert.deepEqual(actual, expected);
 }
 
+function deterministicPasswordHash(password) {
+  const salt = Buffer.alloc(16, 71);
+  const derived = scryptSync(password, salt, 64);
+  return [
+    "scrypt",
+    salt.toString("base64url"),
+    derived.toString("base64url"),
+  ].join("$");
+}
+
 test("derives isolated MySQL owners plus durable Control Center audit storage", () => {
   const derived = buildStagingDatabaseEnvironment(fixture());
   assert.deepEqual(Object.keys(derived).sort(), [
@@ -265,6 +275,26 @@ test("adds an isolated PLATFORM_OWNER without replacing existing users", () => {
   assertPasswordHash(password, owner.passwordHash);
 });
 
+test("accepts a pre-hashed Control Center owner credential without plaintext password", () => {
+  const password = "temporary control center owner password 2026";
+  const credentialDigest = deterministicPasswordHash(password);
+  const email = "control-center-owner@morro.digital";
+  const derived = buildStagingControlCenterOwnerAuthEnvironment({
+    RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+    STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+    STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+    STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST: credentialDigest,
+    DASHBOARD_USERS_JSON: "[]",
+  });
+
+  const users = JSON.parse(derived.DASHBOARD_USERS_JSON);
+  assert.equal(users.length, 1);
+  assert.equal(users[0].email, email);
+  assert.equal(users[0].role, "PLATFORM_OWNER");
+  assert.equal(users[0].passwordHash, credentialDigest);
+  assertPasswordHash(password, users[0].passwordHash);
+});
+
 test("fails closed for unsafe Control Center owner bootstrap configuration", () => {
   const strongPassword = "temporary control center owner password 2026";
   const email = "control-center-owner@morro.digital";
@@ -300,6 +330,31 @@ test("fails closed for unsafe Control Center owner bootstrap configuration", () 
         STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
       }),
     /STAGING_CONTROL_CENTER_OWNER_EMAIL_INVALID/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+        STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST:
+          deterministicPasswordHash(strongPassword),
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_SOURCE_CONFLICT/u,
+  );
+
+  assert.throws(
+    () =>
+      buildStagingControlCenterOwnerAuthEnvironment({
+        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+        STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST:
+          "scrypt$invalid$invalid",
+      }),
+    /STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID/u,
   );
 
   assert.throws(
