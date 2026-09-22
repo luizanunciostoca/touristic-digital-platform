@@ -157,9 +157,7 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(css).toContain("UX Design V2 Wave A — Golden Discover convergence");
     expect(css).toContain(".md-discover-category-rail");
     expect(css).toContain('.morro-explore-marker[data-selected="true"]');
-    expect(staging).toContain(
-      "mapbox://styles/mapbox/satellite-streets-v12",
-    );
+    expect(staging).toContain("mapbox://styles/mapbox/satellite-streets-v12");
     expect(staging).toContain('value: "14.8"');
   });
 
@@ -178,5 +176,4 @@ describe("Home / Discover UX V2 manual conformance", () => {
       'Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] })',
     );
   });
-
 });
