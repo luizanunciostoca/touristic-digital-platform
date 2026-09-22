@@ -1226,6 +1226,8 @@ export function createDestinationAdminAdapter(destinationRuntime) {
 
   return Object.freeze({
     state: "ready",
+    searchCapability: "platform.read",
+    searchDestinationAware: true,
     coverage: Object.freeze(["list", "detail", "create", "replace", "status"]),
     async listOwnerDestinations() {
       try {
@@ -1237,17 +1239,17 @@ export function createDestinationAdminAdapter(destinationRuntime) {
         return Object.freeze({ status: "unavailable", data: null });
       }
     },
-    async search({ query }) {
-      const needle = String(query ?? "")
-        .trim()
-        .toLocaleLowerCase();
+    async search({ query, destinationId }) {
+      const needle = foldSearchText(query);
       if (!needle) return [];
       const destinations = await service.list();
       return destinations
-        .filter((item) =>
-          [item.id, item.branding.name, item.branding.shortName].some((value) =>
-            value.toLocaleLowerCase().includes(needle),
-          ),
+        .filter(
+          (item) =>
+            (!destinationId || item.id === destinationId) &&
+            [item.id, item.branding.name, item.branding.shortName].some(
+              (value) => foldSearchText(value).includes(needle),
+            ),
         )
         .map((item) => ({
           type: "destination",
@@ -1255,6 +1257,7 @@ export function createDestinationAdminAdapter(destinationRuntime) {
           title: item.branding.name,
           context: item.status,
           href: `#destinations:${encodeURIComponent(item.id)}`,
+          destinationId: item.id,
         }));
     },
     async handle({ request, response, requestUrl }) {
