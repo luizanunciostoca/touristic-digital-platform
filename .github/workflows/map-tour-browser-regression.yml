@@ -244,6 +244,10 @@ jobs:
                   ? compactHeader.getBoundingClientRect()
                   : null;
               const compactCount = document.querySelector('.tour-active-count');
+              const compactThumb = document.querySelector('.tour-active-thumb');
+              const progressSegments = Array.from(
+                document.querySelectorAll('.tour-stop-progress-segment'),
+              );
               const technicalControls = [
                 document.querySelector('.explore-flow-sheet-state-controls'),
                 document.querySelector('.explore-flow-sheet-drag-handle'),
@@ -272,6 +276,14 @@ jobs:
                     }
                   : null,
                 compactCount: compactCount?.textContent?.trim() ?? '',
+                compactThumbVisible:
+                  compactThumb instanceof HTMLElement &&
+                  !compactThumb.hidden &&
+                  compactThumb.getBoundingClientRect().width > 0,
+                progressSegments: progressSegments.map(element => ({
+                  current: element.classList.contains('is-current'),
+                  complete: element.classList.contains('is-complete'),
+                })),
                 progress: progressRect
                   ? { top: progressRect.top, bottom: progressRect.bottom, width: progressRect.width, height: progressRect.height }
                   : null,
@@ -321,12 +333,17 @@ jobs:
               !state.compactHeader ||
               state.compactHeader.width <= 0 ||
               state.compactHeader.bottom > state.viewport.height + 1 ||
-              !validCompactCount
+              !validCompactCount ||
+              !state.compactThumbVisible ||
+              state.progressSegments.length === 0 ||
+              state.progressSegments.filter(segment => segment.current).length !== 1
             ) {
               throw new Error(
                 `Compact Tour header/current-total missing at ${label}: ${JSON.stringify({
                   compactHeader: state.compactHeader,
                   compactCount: state.compactCount,
+                  compactThumbVisible: state.compactThumbVisible,
+                  progressSegments: state.progressSegments,
                 })}`,
               );
             }
