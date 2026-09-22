@@ -1,4 +1,5 @@
 name: UX V2 Wave G Design System Regression
+# Exact-head evidence gate for shared UX V2 foundations.
 
 on:
   workflow_dispatch:
