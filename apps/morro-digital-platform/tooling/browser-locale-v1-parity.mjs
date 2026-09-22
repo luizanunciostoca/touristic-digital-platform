@@ -11,7 +11,7 @@ const cases = [
     headline: "Morro de São Paulo",
     assistantWelcome:
       "🎉 Bem-vindo ao Morro Digital! Sou seu guia virtual oficial em Morro de São Paulo, pronto para ajudar você a explorar com facilidade pontos turísticos, praias, restaurantes, festas, passeios e tudo o que precisar, na palma da sua mão. Como posso ajudar? 😄",
-    placeholder: "Digite sua pergunta...",
+    placeholder: "Pergunte ao Morro Digital...",
   },
   {
     browserLocale: "en-US",
