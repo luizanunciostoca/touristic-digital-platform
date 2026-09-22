@@ -595,12 +595,24 @@ jobs:
               );
               await affiliateSummary.waitFor({ state: 'visible' });
               const affiliateSummaryText = await affiliateSummary.textContent();
-              if (
-                !affiliateSummaryText?.includes('Memberships aprovadas') ||
-                !affiliateSummaryText.includes('Conversões')
+              const affiliateState = await affiliateSummary.getAttribute('data-state');
+              if (affiliateState === 'ready') {
+                if (
+                  !affiliateSummaryText?.includes('Memberships aprovadas') ||
+                  !affiliateSummaryText.includes('Conversões')
+                ) {
+                  throw new Error(
+                    `Affiliate owner summary missing from UX V1: ${affiliateSummaryText}`,
+                  );
+                }
+              } else if (
+                affiliateState !== 'unavailable' ||
+                !affiliateSummaryText?.includes(
+                  'Affiliates owner indisponível; nenhum total foi inferido.',
+                )
               ) {
                 throw new Error(
-                  `Affiliate owner summary missing from UX V1: ${affiliateSummaryText}`,
+                  `Affiliate owner availability did not fail closed: state=${affiliateState} text=${affiliateSummaryText}`,
                 );
               }
               const recentActivity = page.locator(
