@@ -115,6 +115,28 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(source).not.toContain("assistant-fab");
   });
 
+  it("preserves authoritative Recent Activity fields in the UX V1 timeline", async () => {
+    const ux = await readRepository(
+      "apps/control-center/public/control-center-ux-v1.js",
+    );
+
+    for (const contract of [
+      "data-recent-activity",
+      "entry.actorUserId",
+      "entry.effectiveUserId",
+      "entry.destinationId",
+      "entry.entityType",
+      "entry.entityId",
+      "entry.result",
+      "activityDeepLink(entry)",
+      "activityFinancialValue(entry)",
+      "humanizeAuditAction(entry.action)",
+      "Support Mode iniciado",
+    ]) {
+      expect(ux).toContain(contract);
+    }
+  });
+
   it("uses shared primitives for real Control Center surfaces", async () => {
     const [primitives, core, ux] = await Promise.all([
       readRepository("apps/control-center/public/control-center-primitives.js"),
