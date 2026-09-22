@@ -1089,6 +1089,46 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
   }
 }
 
+
+@media (forced-colors: active) {
+  body[data-md-mode="navigation"] #instruction-banner {
+    border: 1px solid CanvasText;
+    background: Canvas !important;
+    color: CanvasText;
+    box-shadow: none;
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
+    background: Highlight;
+    color: HighlightText;
+  }
+
+  body[data-md-mode="navigation"] #instruction-step-distance,
+  body[data-md-mode="navigation"] #instruction-main,
+  body[data-md-mode="navigation"] #instruction-details,
+  body[data-md-mode="navigation"] #instruction-arrow {
+    color: HighlightText;
+  }
+
+  body[data-md-mode="navigation"] #navigation-summary,
+  body[data-md-mode="navigation"] #navigation-status,
+  body[data-md-mode="navigation"] #globe-map-control #toggle-3d-mode,
+  body[data-md-mode="navigation"] #navigation-recenter-btn {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+    forced-color-adjust: none;
+  }
+
+  body[data-md-mode="navigation"] #navigation-summary #end-navigation-btn {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+    forced-color-adjust: none;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 36rem) {
   body[data-md-mode="navigation"] #instruction-banner {
     top: calc(var(--md-safe-top) + var(--md-space-2)) !important;
