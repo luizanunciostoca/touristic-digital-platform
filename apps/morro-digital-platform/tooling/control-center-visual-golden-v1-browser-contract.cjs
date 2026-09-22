@@ -5,7 +5,7 @@ const pixelmatch = require("/tmp/pw/node_modules/pixelmatch");
 const { PNG } = require("/tmp/pw/node_modules/pngjs");
 
 const origin = process.env.CONTROL_CENTER_ORIGIN || "http://127.0.0.1:4199";
-const exactHead = process.env.GITHUB_SHA || "local";
+const exactHead = process.env.CONTROL_CENTER_EXACT_HEAD || "local";
 const mutation = process.env.CONTROL_CENTER_GOLDEN_MUTATION || "";
 const baselineDir = join(
   process.cwd(),
