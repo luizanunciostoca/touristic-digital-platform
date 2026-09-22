@@ -371,6 +371,30 @@ export function createV1ImmersiveTourController(
     const current = state.currentStopIndex + 1;
     const progress = Math.round((current / tour.stops.length) * 100);
     const card = createElement(document, "div", "tour-stop-card");
+    card.dataset.tourId = tour.id;
+    card.dataset.stopIndex = String(state.currentStopIndex);
+    card.dataset.totalStops = String(tour.stops.length);
+
+    const compactHeader = createElement(
+      document,
+      "div",
+      "tour-active-header",
+    );
+    compactHeader.appendChild(
+      createElement(document, "strong", "tour-active-tour-title", tour.title),
+    );
+    const compactCount = createElement(
+      document,
+      "span",
+      "tour-active-count",
+      `${current}/${tour.stops.length}`,
+    );
+    compactCount.setAttribute(
+      "aria-label",
+      copy.stopLabel(current, tour.stops.length),
+    );
+    compactHeader.appendChild(compactCount);
+    card.appendChild(compactHeader);
 
     const progressBar = createElement(
       document,
@@ -400,10 +424,12 @@ export function createV1ImmersiveTourController(
       image.src = stop.photoPath;
       image.alt = stop.photoAlt || stop.title;
       image.loading = "lazy";
+      card.dataset.photoState = "available";
       image.addEventListener(
         "error",
         () => {
-          photoWrap.style.display = "none";
+          card.dataset.photoState = "missing";
+          photoWrap.hidden = true;
         },
         { once: true },
       );
