@@ -5,6 +5,7 @@ const { chromium } = require("/tmp/pw/node_modules/playwright");
 
 const origin = "http://127.0.0.1:4194";
 const password = "control center browser fixture";
+let failureStage = "startup";
 
 async function login(context, email) {
   const response = await context.request.post(
@@ -27,6 +28,7 @@ async function main() {
     const context = await browser.newContext({
       viewport: { width: 1280, height: 900 },
     });
+    failureStage = "login-owner";
     await login(context, "platform-owner-users@example.com");
     const page = await context.newPage();
 
@@ -35,6 +37,7 @@ async function main() {
       timeout: 30_000,
     });
     await page.locator("#app:not([hidden])").waitFor({ timeout: 15_000 });
+    failureStage = "open-user";
     await page
       .getByRole("link", { name: "business-owner@example.com" })
       .click();
@@ -63,6 +66,7 @@ async function main() {
       .locator('textarea[name="reason"]')
       .fill("Ajustar perfil no contrato browser administrativo");
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
+    failureStage = "change-role-manager";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await selectedUserRow()
       .getByText("BUSINESS_MANAGER", { exact: true })
@@ -75,6 +79,7 @@ async function main() {
       .locator('textarea[name="reason"]')
       .fill("Bloqueio browser para validar política durável");
     await statusForm.locator('input[name="confirmation"]').fill("BLOQUEAR");
+    failureStage = "block-user";
     await statusForm.getByRole("button", { name: "Bloquear conta" }).click();
     await selectedUserRow()
       .getByText("blocked", { exact: true })
@@ -105,6 +110,7 @@ async function main() {
       .locator('textarea[name="reason"]')
       .fill("Reativar conta após validação browser da política");
     await statusForm.locator('input[name="confirmation"]').fill("REATIVAR");
+    failureStage = "reactivate-user";
     await statusForm.getByRole("button", { name: "Reativar conta" }).click();
     await selectedUserRow()
       .getByText("active", { exact: true })
@@ -119,6 +125,7 @@ async function main() {
       .locator('textarea[name="reason"]')
       .fill("Restaurar perfil da fixture após validação browser");
     await roleForm.locator('input[name="confirmation"]').fill("ALTERAR PERFIL");
+    failureStage = "restore-role-owner";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await selectedUserRow()
       .getByText("BUSINESS_OWNER", { exact: true })
@@ -134,9 +141,8 @@ async function main() {
 main().catch((error) => {
   console.error(
     "CONTROL_CENTER_USERS_BROWSER_FAILED",
-    error instanceof Error
-      ? `${error.name}:${error.message}\n${error.stack ?? ""}`
-      : String(error),
+    failureStage,
+    error instanceof Error ? error.name : "UnknownError",
   );
   process.exit(1);
 });
