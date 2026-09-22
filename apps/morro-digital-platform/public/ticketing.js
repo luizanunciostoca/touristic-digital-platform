@@ -607,14 +607,11 @@ function renderDateSelector() {
       `<span>${dateLabel(key)}</span><small>${unavailable ? "Indisponível" : soldOut ? "Esgotado" : "Disponível"}</small>`;
     button.addEventListener("click", () => {
       state.selectedDate = key;
-      if (state.selectedOffer && dateKey(state.selectedOffer) !== key) {
-        state.selectedOffer = null;
-        state.quote = null;
-        elements.identityPanel.hidden = true;
-        elements.selectionSummary.hidden = true;
-        elements.reserve.disabled = true;
-        updatePurchaseSummary();
-      }
+      const nextOffer =
+        offers.find(
+          (offer) => offer.sellable !== false && offer.availableQuantity > 0,
+        ) || offers[0];
+      if (nextOffer) selectOffer(nextOffer);
       renderDateSelector();
       renderOffers();
     });
@@ -713,6 +710,12 @@ async function loadOffers() {
     if (offer) selectOffer(offer);
   } else if (requestedPlace && state.offers.length === 1) {
     selectOffer(state.offers[0]);
+  } else if (state.offers.length > 0) {
+    const firstOffer =
+      state.offers.find(
+        (entry) => entry.sellable !== false && entry.availableQuantity > 0,
+      ) || state.offers[0];
+    selectOffer(firstOffer);
   }
 }
 
