@@ -144,14 +144,9 @@ The runner's `manualP0` and `manualP1` counters only represent invariants that c
 
 The full manual review against UX Design V1 remains a separate release gate. A pixel-stable baseline can still be manually non-compliant.
 
-Current full manual audit findings on the stacked PR #227 candidate:
+The final integration candidate has reconciled the three previously recorded functional P1 dependencies in code: owner-backed Destination Summary alerts, functional Business/Affiliate/User Entity 360 tabs, and human-readable Recent Activity language.
 
-- P0: 0.
-- P1: Destination Summary alert aggregate is not yet owner-backed in the base candidate; tracked by PR #230.
-- P1: Entity 360 tabs are not yet fully functional in the base candidate; tracked by PR #229.
-- P1: Recent Activity still exposes raw technical action identifiers instead of human-readable event language. This remains unresolved in the currently inspected #229 code.
-
-These findings must be reconciled before claiming `MANUAL_P1=0`.
+This reconciliation does **not** by itself set `MANUAL_P1=0`. The committed baselines predate those integrated changes and are deliberately treated as stale until the exact-head comparison is inspected. Any baseline update must correspond only to reviewed, intentional UX V1 changes and must be followed by a fresh comparison run.
 
 ## Commands
 
