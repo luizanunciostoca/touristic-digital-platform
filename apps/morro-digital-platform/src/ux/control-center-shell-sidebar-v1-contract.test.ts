@@ -115,11 +115,15 @@ describe("Control Center UX V1 shell contract", () => {
     expect(css).toContain("@media (max-width: 1199px)");
     expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain("@media (max-width: 430px)");
-    expect(css).toContain("grid-template-columns: 44px minmax(132px, 1fr) 44px auto;");
+    expect(css).toContain(
+      "grid-template-columns: 44px minmax(132px, 1fr) 44px auto;",
+    );
     expect(css).toContain(".scope-button {\n    display: none;");
     expect(css).toContain(".scope-controls {\n    display: flex;");
     expect(css).toContain(".brand-wordmark {\n    display: none;");
-    expect(css).toContain(".destination-control,\n  .destination-control select {\n    max-width: none;");
+    expect(css).toContain(
+      ".destination-control,\n  .destination-control select {\n    max-width: none;",
+    );
     expect(css).toContain("outline: 3px solid var(--md-focus)");
     expect(shell).toContain('event.key !== "Escape"');
     expect(shell).toContain('scrollIntoView({ block: "nearest"');
