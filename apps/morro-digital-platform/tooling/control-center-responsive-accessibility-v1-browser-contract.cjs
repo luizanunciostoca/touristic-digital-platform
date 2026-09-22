@@ -374,7 +374,8 @@ async function checkAxe(page) {
     const transition = await reducedPage
       .locator(".control-center-sidebar")
       .evaluate((node) => getComputedStyle(node).transitionDuration);
-    if (!["0s", "0.01ms"].includes(transition))
+    const transitionSeconds = Number.parseFloat(transition);
+    if (!Number.isFinite(transitionSeconds) || transitionSeconds > 0.00001)
       throw new Error(
         "Reduced motion transition is not suppressed: " + transition,
       );
