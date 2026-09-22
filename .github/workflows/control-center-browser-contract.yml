@@ -571,15 +571,42 @@ jobs:
               evidence.supportMode = true;
 
               await page.locator('[data-view="overview"]').click();
+              await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor({
+                timeout: 30000,
+              });
+              const ownerSummary = page.locator(
+                '[data-summary-source="dashboard-owner"]',
+              );
+              await ownerSummary.waitFor({ state: 'visible', timeout: 30000 });
               await page
-                .locator('#content[data-rendered-view="overview"][aria-busy="false"]')
-                .waitFor({ state: 'attached', timeout: 15000 });
-              await page.getByRole('heading', { name: /^Bom dia,/ }).waitFor();
-              await page.getByRole('heading', { name: 'Precisa de atenção' }).waitFor();
-              await page.getByRole('heading', { name: 'Destination Summary' }).waitFor();
-              await page.getByRole('heading', { name: 'Affiliate Summary' }).waitFor();
-              const recentActivity = page.locator('[data-recent-activity]');
-              await recentActivity.waitFor();
+                .getByRole('heading', { name: 'Precisa da sua atenção' })
+                .waitFor();
+              await page
+                .getByRole('heading', { name: 'Resumo por destino' })
+                .waitFor();
+              const ownerSummaryText = await ownerSummary.textContent();
+              if (ownerSummaryText?.includes('sem agregado por destino')) {
+                throw new Error(
+                  `Owner-backed destination summary regressed to legacy placeholder: ${ownerSummaryText}`,
+                );
+              }
+              const affiliateSummary = page.locator(
+                '[data-affiliate-summary][data-source="affiliates-owner"]',
+              );
+              await affiliateSummary.waitFor({ state: 'visible' });
+              const affiliateSummaryText = await affiliateSummary.textContent();
+              if (
+                !affiliateSummaryText?.includes('Memberships aprovadas') ||
+                !affiliateSummaryText.includes('Conversões')
+              ) {
+                throw new Error(
+                  `Affiliate owner summary missing from UX V1: ${affiliateSummaryText}`,
+                );
+              }
+              const recentActivity = page.locator(
+                '[data-recent-activity][data-source="append-only-audit"]',
+              );
+              await recentActivity.waitFor({ state: 'visible' });
               const recentText = await recentActivity.textContent();
               if (
                 !recentText?.includes('platform-owner-1') ||
@@ -589,6 +616,7 @@ jobs:
                 throw new Error(`Recent Activity actor/effectiveUser evidence missing: ${recentText}`);
               }
               evidence.dashboardHighInformation = true;
+              evidence.dashboardOwnerBacked = true;
               evidence.recentActivityActorEffectiveUser = true;
 
               const stepUp = await ownerContext.request.post(
