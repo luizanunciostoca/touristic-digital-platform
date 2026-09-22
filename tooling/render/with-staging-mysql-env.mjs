@@ -116,7 +116,28 @@ function normalizeControlCenterOwnerEmail(value) {
 function hashAcceptancePassword(password) {
   const salt = randomBytes(16);
   const derived = scryptSync(password, salt, 64);
-  return `scrypt$${salt.toString("base64url")}$${derived.toString("base64url")}`;
+  return [
+    "scrypt",
+    salt.toString("base64url"),
+    derived.toString("base64url"),
+  ].join("$");
+}
+
+function normalizeControlCenterOwnerCredentialDigest(value) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return "";
+  const [scheme, encodedSalt, encodedHash, ...rest] = normalized.split("$");
+  if (
+    scheme !== "scrypt" ||
+    rest.length > 0 ||
+    !/^[A-Za-z0-9_-]+$/u.test(encodedSalt ?? "") ||
+    !/^[A-Za-z0-9_-]+$/u.test(encodedHash ?? "")
+  ) {
+    return "";
+  }
+  const salt = Buffer.from(encodedSalt, "base64url");
+  const hash = Buffer.from(encodedHash, "base64url");
+  return salt.length === 16 && hash.length === 64 ? normalized : "";
 }
 
 function parseDashboardUsers(environment) {
@@ -229,7 +250,13 @@ export function buildStagingControlCenterOwnerAuthEnvironment(
   const password = normalizeAcceptancePassword(
     environment.STAGING_CONTROL_CENTER_OWNER_PASSWORD,
   );
-  if (password.length < 20) {
+  const credentialDigest = normalizeControlCenterOwnerCredentialDigest(
+    environment.STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_DIGEST,
+  );
+  if (password && credentialDigest) {
+    throw new Error("STAGING_CONTROL_CENTER_OWNER_CREDENTIAL_SOURCE_CONFLICT");
+  }
+  if (!credentialDigest && password.length < 20) {
     throw new Error("STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID");
   }
 
@@ -257,7 +284,7 @@ export function buildStagingControlCenterOwnerAuthEnvironment(
   const owner = {
     ...stagingControlCenterOwnerIdentity,
     email,
-    passwordHash: hashAcceptancePassword(password),
+    passwordHash: credentialDigest || hashAcceptancePassword(password),
     businessIds: [],
   };
 
