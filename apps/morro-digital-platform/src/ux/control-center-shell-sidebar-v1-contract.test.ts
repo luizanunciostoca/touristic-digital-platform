@@ -115,9 +115,7 @@ describe("Control Center UX V1 shell contract", () => {
     expect(css).toContain("@media (max-width: 1199px)");
     expect(css).toContain("@media (max-width: 767px)");
     expect(css).toContain("@media (max-width: 430px)");
-    expect(css).toContain(
-      "grid-template-columns: 44px minmax(72px, 84px)",
-    );
+    expect(css).toContain("grid-template-columns: 44px minmax(72px, 84px)");
     expect(css).toContain(".scope-button {\n    display: none;");
     expect(css).toContain(".scope-controls {\n    display: flex;");
     expect(css).toContain("outline: 3px solid var(--md-focus)");
@@ -127,8 +125,8 @@ describe("Control Center UX V1 shell contract", () => {
     expect(shell).toContain('setAttribute("aria-expanded"');
     expect(shell).toContain('"/api/admin/v1/destinations"');
     expect(shell).toContain('"md:destination-context-changed"');
-    expect(shell).toContain('destinationScopeKey');
-    expect(shell).toContain('destinationContextKey');
+    expect(shell).toContain("destinationScopeKey");
+    expect(shell).toContain("destinationContextKey");
   });
 
   it("preserves unique legacy routes used by the current runtime", () => {
