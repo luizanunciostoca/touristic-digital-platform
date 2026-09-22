@@ -271,52 +271,54 @@ test("adds an isolated PLATFORM_OWNER without replacing existing users", () => {
 test(
   "fails closed for unsafe Control Center owner bootstrap configuration",
   () => {
-  const strongPassword = "temporary control center owner password 2026";
-  const email = "control-center-owner@morro.digital";
+    const strongPassword = "temporary control center owner password 2026";
+    const email = "control-center-owner@morro.digital";
 
-  assert.throws(
-    () =>
-      buildStagingControlCenterOwnerAuthEnvironment({
-        RENDER_SERVICE_NAME: "morro-digital-production",
-        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
-        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
-        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
-      }),
-    /STAGING_CONTROL_CENTER_OWNER_SERVICE_DENIED/u,
-  );
+    assert.throws(
+      () =>
+        buildStagingControlCenterOwnerAuthEnvironment({
+          RENDER_SERVICE_NAME: "morro-digital-production",
+          STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+          STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+          STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+        }),
+      /STAGING_CONTROL_CENTER_OWNER_SERVICE_DENIED/u,
+    );
 
-  assert.throws(
-    () =>
-      buildStagingControlCenterOwnerAuthEnvironment({
-        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
-        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
-        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
-        STAGING_CONTROL_CENTER_OWNER_PASSWORD: "too-short",
-      }),
-    /STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID/u,
-  );
+    assert.throws(
+      () =>
+        buildStagingControlCenterOwnerAuthEnvironment({
+          RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+          STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+          STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+          STAGING_CONTROL_CENTER_OWNER_PASSWORD: "too-short",
+        }),
+      /STAGING_CONTROL_CENTER_OWNER_PASSWORD_INVALID/u,
+    );
 
-  assert.throws(
-    () =>
-      buildStagingControlCenterOwnerAuthEnvironment({
-        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
-        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
-        STAGING_CONTROL_CENTER_OWNER_EMAIL: "invalid",
-        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
-      }),
-    /STAGING_CONTROL_CENTER_OWNER_EMAIL_INVALID/u,
-  );
+    assert.throws(
+      () =>
+        buildStagingControlCenterOwnerAuthEnvironment({
+          RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+          STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+          STAGING_CONTROL_CENTER_OWNER_EMAIL: "invalid",
+          STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+        }),
+      /STAGING_CONTROL_CENTER_OWNER_EMAIL_INVALID/u,
+    );
 
-  assert.throws(
-    () =>
-      buildStagingControlCenterOwnerAuthEnvironment({
-        RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
-        STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
-        STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
-        STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
-        DASHBOARD_USERS_JSON: JSON.stringify([{ id: "different-id", email }]),
-      }),
-    /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
+    assert.throws(
+      () =>
+        buildStagingControlCenterOwnerAuthEnvironment({
+          RENDER_SERVICE_NAME: stagingControlCenterOwnerIdentity.serviceName,
+          STAGING_CONTROL_CENTER_OWNER_ENABLED: "true",
+          STAGING_CONTROL_CENTER_OWNER_EMAIL: email,
+          STAGING_CONTROL_CENTER_OWNER_PASSWORD: strongPassword,
+          DASHBOARD_USERS_JSON: JSON.stringify([
+            { id: "different-id", email },
+          ]),
+        }),
+      /STAGING_CONTROL_CENTER_OWNER_USER_COLLISION/u,
     );
   },
 );
