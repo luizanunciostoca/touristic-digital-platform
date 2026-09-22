@@ -459,7 +459,7 @@ async function renderOverview() {
   const dashboard = state.dashboard;
   const health = dashboard.health ?? { checks: [] };
   const [affiliateOwner, destinationOwner, auditOwner] = await Promise.all([
-    readOwnerProjection("/affiliates?limit=100", "data"),
+    readOwnerProjection("/affiliates?limit=250", "data"),
     readOwnerProjection("/destinations", "destinations"),
     readOwnerProjection("/audit?limit=20", "entries"),
   ]);
@@ -512,7 +512,7 @@ async function renderOverview() {
   if (affiliateOwner.available && affiliateSummary.suspended > 0) {
     attention.push({
       label: "Affiliates",
-      detail: `${affiliateSummary.suspended} membership(s) suspensa(s)`,
+      detail: `${affiliateSummary.suspended} membership(s) suspensa(s) no recorte carregado`,
       source: "affiliates-owner",
     });
   }
@@ -534,10 +534,10 @@ async function renderOverview() {
         : "Destination owner indisponível",
     ],
     [
-      "Afiliados",
+      "Afiliados (recorte)",
       affiliateOwner.available ? affiliates.length : "—",
       affiliateOwner.available
-        ? `${affiliateSummary.approved} membership(s) aprovada(s)`
+        ? `${affiliateSummary.approved} membership(s) aprovada(s) no recorte carregado`
         : "Affiliates owner indisponível",
     ],
   ];
@@ -657,16 +657,16 @@ async function renderOverview() {
         ${
           affiliateOwner.available
             ? `<div class="module-list">
-                <div class="module-row"><span>Afiliados</span><strong>${escapeHtml(
+                <div class="module-row"><span>Afiliados carregados (máx. 250)</span><strong>${escapeHtml(
                   affiliates.length,
                 )}</strong></div>
-                <div class="module-row"><span>Memberships aprovadas</span><strong>${escapeHtml(
+                <div class="module-row"><span>Memberships aprovadas no recorte</span><strong>${escapeHtml(
                   affiliateSummary.approved,
                 )}</strong></div>
-                <div class="module-row"><span>Memberships suspensas</span><strong>${escapeHtml(
+                <div class="module-row"><span>Memberships suspensas no recorte</span><strong>${escapeHtml(
                   affiliateSummary.suspended,
                 )}</strong></div>
-                <div class="module-row"><span>Conversões</span><strong>${escapeHtml(
+                <div class="module-row"><span>Conversões no recorte</span><strong>${escapeHtml(
                   affiliateSummary.conversions,
                 )}</strong></div>
               </div>`
