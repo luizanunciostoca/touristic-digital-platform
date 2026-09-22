@@ -52,6 +52,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - name: Bootstrap reviewed Wave 3 goldens once
         if: github.event_name == 'pull_request'
@@ -171,7 +172,10 @@ jobs:
       - name: Validate manual visual conformance
         env:
           CONTROL_CENTER_ORIGIN: http://127.0.0.1:4199
-        run: node apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs
+        shell: bash
+        run: |
+          CONTROL_CENTER_EXACT_HEAD="$(git rev-parse HEAD)" \
+            node apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs
 
       - name: Prove the golden suite rejects deliberate regressions
         env:
@@ -181,7 +185,8 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/control-center-visual-golden-v1/negative
           for mutation in dark-topbar hide-destination narrow-attention remove-kpi shift-sidebar; do
-            if CONTROL_CENTER_GOLDEN_MUTATION="$mutation" \
+            if CONTROL_CENTER_EXACT_HEAD="$(git rev-parse HEAD)" \
+              CONTROL_CENTER_GOLDEN_MUTATION="$mutation" \
               node apps/morro-digital-platform/tooling/control-center-visual-golden-v1-browser-contract.cjs \
               >"/tmp/control-center-visual-golden-v1/negative/${mutation}.log" 2>&1; then
               echo "FALSE_GREEN: mutation '$mutation' unexpectedly passed"
@@ -190,13 +195,14 @@ jobs:
             fi
             echo "Expected failure confirmed: $mutation"
           done
+          rm -f /tmp/control-center-visual-golden-v1/failure.json
 
       - name: Record exact-head evidence identity
         if: always()
         shell: bash
         run: |
           mkdir -p /tmp/control-center-visual-golden-v1
-          printf '%s\n' "$GITHUB_SHA" > /tmp/control-center-visual-golden-v1/exact-head.txt
+          git rev-parse HEAD > /tmp/control-center-visual-golden-v1/exact-head.txt
           printf '%s\n' "$GITHUB_RUN_ID" > /tmp/control-center-visual-golden-v1/workflow-run-id.txt
 
       - name: Show diagnostics
