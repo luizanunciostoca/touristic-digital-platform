@@ -1010,6 +1010,7 @@ async function createCheckout(reservationPayload) {
 
 async function submitReservation(event) {
   event.preventDefault();
+  if (state.submitting) return;
   if (!state.selectedOffer) {
     setMessage(copy.selectExperienceFirst, true);
     return;
@@ -1031,9 +1032,33 @@ async function submitReservation(event) {
     return;
   }
 
+  state.submitting = true;
   elements.reserve.disabled = true;
+  elements.reserve.textContent = "Finalizando…";
   setMessage(copy.creatingReservation);
   try {
+    const previousQuote = quoteIdentity(state.quote);
+    const freshQuote = await refreshQuote();
+    if (!freshQuote) return;
+    if (previousQuote && previousQuote !== quoteIdentity(freshQuote)) {
+      setMessage(
+        "Preço ou disponibilidade mudou. Revise o resumo atualizado antes de finalizar.",
+        true,
+      );
+      return;
+    }
+    if (
+      freshQuote.expiresAt &&
+      Date.parse(freshQuote.expiresAt) <= Date.now()
+    ) {
+      setMessage(
+        "A cotação expirou. Atualizamos o valor; revise antes de finalizar.",
+        true,
+      );
+      return;
+    }
+    elements.reserve.disabled = true;
+    elements.reserve.textContent = "Finalizando…";
     const reference = `web_${crypto.randomUUID().replaceAll("-", "")}`;
     const payload = await api("/api/ticketing/v1/reservations", {
       method: "POST",
@@ -1062,9 +1087,12 @@ async function submitReservation(event) {
     setMessage(copy.reservationCreated);
     await createCheckout(payload.data);
   } catch (error) {
-    setMessage(error.message || copy.createReservationFailed, true);
-    elements.reserve.disabled = false;
+    setMessage(friendlyError(error, copy.createReservationFailed), true);
     await Promise.allSettled([loadOffers(), loadReservations()]);
+  } finally {
+    state.submitting = false;
+    elements.reserve.textContent = "Finalizar Reserva";
+    elements.reserve.disabled = !state.quote;
   }
 }
 
@@ -1073,9 +1101,17 @@ elements.form.addEventListener(
   (event) => void submitReservation(event),
 );
 elements.refresh.addEventListener("click", () => {
-  void Promise.all([loadOffers(), loadReservations()]).catch((error) => {
-    setMessage(error.message || copy.updateFailed, true);
-  });
+  elements.refresh.hidden = true;
+  setMessage("Atualizando disponibilidade…");
+  void Promise.all([loadOffers(), loadReservations()])
+    .then(() => {
+      setMessage("");
+      if (state.selectedOffer) void refreshQuote({ announce: true });
+    })
+    .catch((error) => {
+      elements.refresh.hidden = false;
+      setMessage(friendlyError(error, copy.updateFailed), true);
+    });
 });
 elements.dialogClose.addEventListener("click", () => elements.dialog.close());
 
@@ -1090,12 +1126,18 @@ function changeQuantity(delta) {
   elements.quantity.value = String(
     Math.min(max, Math.max(min, current + delta)),
   );
+  state.quote = null;
   updatePurchaseSummary();
+  void refreshQuote();
 }
 
 elements.quantityDecrease.addEventListener("click", () => changeQuantity(-1));
 elements.quantityIncrease.addEventListener("click", () => changeQuantity(1));
-elements.quantity.addEventListener("input", updatePurchaseSummary);
+elements.quantity.addEventListener("input", () => {
+  state.quote = null;
+  updatePurchaseSummary();
+  void refreshQuote();
+});
 
 elements.returnLink.addEventListener("click", (event) => {
   if (history.length <= 1 || !document.referrer) return;
@@ -1115,8 +1157,10 @@ elements.returnLink.addEventListener("click", (event) => {
   try {
     await session();
     await Promise.all([loadOffers(), loadReservations()]);
+    elements.refresh.hidden = true;
     await resumeCheckout();
   } catch (error) {
-    setMessage(error.message || copy.ticketingUnavailable, true);
+    elements.refresh.hidden = false;
+    setMessage(friendlyError(error, copy.ticketingUnavailable), true);
   }
 })();
