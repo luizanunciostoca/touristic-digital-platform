@@ -110,6 +110,23 @@ async function inspect(page) {
       map: rect("#map"),
       header: rect(".md-home-header-inner"),
       weather: rect("#weather-widget"),
+      weatherEmoji: rect("#weather-widget .weather-emoji"),
+      weatherTemp: rect("#weather-widget .weather-temp"),
+      weatherDirection:
+        getComputedStyle(
+          document.querySelector("#weather-widget .weather-compact-main"),
+        ).flexDirection,
+      weatherError: (() => {
+        const node = document.querySelector("#weather-widget .weather-error");
+        if (!(node instanceof HTMLElement)) return null;
+        return {
+          text: node.textContent ?? "",
+          clientHeight: node.clientHeight,
+          scrollHeight: node.scrollHeight,
+          clientWidth: node.clientWidth,
+          scrollWidth: node.scrollWidth,
+        };
+      })(),
       rail: rect("#discover-category-rail"),
       controls: rect("#globe-map-control"),
       composer: rect("#assistant-input-area"),
@@ -230,6 +247,17 @@ try {
     assert(
       !overlaps(initial.header, initial.weather),
       "Destination and Weather collide",
+      initial,
+    );
+    assert(
+      initial.weatherDirection === "row" &&
+        inside(initial.weatherEmoji, viewport.width, viewport.height) &&
+        inside(initial.weatherTemp, viewport.width, viewport.height) &&
+        initial.weatherEmoji.top >= initial.weather.top - 1 &&
+        initial.weatherEmoji.bottom <= initial.weather.bottom + 1 &&
+        initial.weatherTemp.top >= initial.weather.top - 1 &&
+        initial.weatherTemp.bottom <= initial.weather.bottom + 1,
+      "Compact Weather content is clipped or stacked",
       initial,
     );
     assert(
@@ -485,6 +513,16 @@ try {
       negative.rootWidth <= 391 && negative.bodyWidth <= 391,
       "Negative states cause horizontal overflow",
       negative,
+    );
+    assert(
+      negative.weatherError &&
+        negative.weatherError.text.trim().length > 0 &&
+        negative.weatherError.scrollHeight <=
+          negative.weatherError.clientHeight + 1 &&
+        negative.weatherError.scrollWidth <=
+          negative.weatherError.clientWidth + 1,
+      "Weather unavailable message is clipped",
+      negative.weatherError,
     );
     await page.screenshot({
       path: `${OUTPUT_DIR}/after-390x844-negative-states.png`,
