@@ -144,9 +144,6 @@
         "requirement": "Samsung SM-X820 / Android API 36 physical acceptance PASS"
       }
     },
-    "forbiddenGateStatuses": [
-      "PENDING",
-      "FAIL"
-    ]
+    "forbiddenGateStatuses": ["PENDING", "FAIL"]
   }
 }

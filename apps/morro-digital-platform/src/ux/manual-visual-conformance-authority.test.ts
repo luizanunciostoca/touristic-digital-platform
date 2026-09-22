@@ -129,13 +129,9 @@ describe("UX V2 manual visual conformance authority", () => {
       ".github/workflows/place-explore-v2-visual-regression.yml",
     );
 
-    const initialCapture = workflow.indexOf(
-      "place-initial-${viewport.id}.png",
-    );
+    const initialCapture = workflow.indexOf("place-initial-${viewport.id}.png");
     const stateCycle = workflow.indexOf("const stateSequence = [");
-    const expandedCapture = workflow.indexOf(
-      "place-full-${viewport.id}.png",
-    );
+    const expandedCapture = workflow.indexOf("place-full-${viewport.id}.png");
 
     expect(initialCapture).toBeGreaterThan(-1);
     expect(stateCycle).toBeGreaterThan(initialCapture);

@@ -4,16 +4,16 @@ Authority: `Morro_Digital_Manual_Desenvolvedor_UX_Design_V2.pdf`, especially Sec
 
 A stable implementation screenshot is evidence only. It is not a visual authority. A new golden may be frozen only after manual comparison and human review. Quick Actions and the floating Assistant launcher are approved retired product decisions and are not defects.
 
-| Surface          | Status | Manual authority                | Current proof                                                                                                  | Owner                             |
-| ---------------- | ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Discover / Home  | PASS   | Section 32 + Appendix A         | Pure Discover artifact; map dominance; Weather/Explore/composer hierarchy                                     | Home/Discover                     |
-| Place            | PASS   | Sections 10, 32 + Appendix A    | Initial contextual-sheet golden before state cycling; map context preserved                                   | Place/Search                      |
-| Search / Explore | PASS   | Sections 5, 10, 32 + Appendix A | Mobile result width guard; no half-width orphan; viewport/map-context evidence                                 | Search/Explore visual convergence |
-| Navigation       | PASS   | Sections 9, 32 + Appendix A     | Dominant instruction, route/time visibility and reachable exit                                                | Navigation                        |
-| Tour             | PASS   | Sections 9, 32 + Appendix A     | Successful intro/stop/finale goldens                                                                          | Tour                              |
-| Assistant        | PASS   | Sections 9, 11, 32 + Appendix A | Composer-first evidence; map remains dominant; no floating launcher                                            | Assistant                         |
-| Commerce         | PASS   | Sections 9, 12, 32 + Appendix A | Contextual handoff + return-to-tourist-context goldens and context restoration contract                        | Commerce                          |
-| Ticketing        | PASS   | Section 32 + Appendix A         | Image-led booking hierarchy; 200% text reflow; transaction/QR authority preserved                             | Ticketing visual convergence      |
+| Surface          | Status | Manual authority                | Current proof                                                                           | Owner                             |
+| ---------------- | ------ | ------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------- |
+| Discover / Home  | PASS   | Section 32 + Appendix A         | Pure Discover artifact; map dominance; Weather/Explore/composer hierarchy               | Home/Discover                     |
+| Place            | PASS   | Sections 10, 32 + Appendix A    | Initial contextual-sheet golden before state cycling; map context preserved             | Place/Search                      |
+| Search / Explore | PASS   | Sections 5, 10, 32 + Appendix A | Mobile result width guard; no half-width orphan; viewport/map-context evidence          | Search/Explore visual convergence |
+| Navigation       | PASS   | Sections 9, 32 + Appendix A     | Dominant instruction, route/time visibility and reachable exit                          | Navigation                        |
+| Tour             | PASS   | Sections 9, 32 + Appendix A     | Successful intro/stop/finale goldens                                                    | Tour                              |
+| Assistant        | PASS   | Sections 9, 11, 32 + Appendix A | Composer-first evidence; map remains dominant; no floating launcher                     | Assistant                         |
+| Commerce         | PASS   | Sections 9, 12, 32 + Appendix A | Contextual handoff + return-to-tourist-context goldens and context restoration contract | Commerce                          |
+| Ticketing        | PASS   | Section 32 + Appendix A         | Image-led booking hierarchy; 200% text reflow; transaction/QR authority preserved       | Ticketing visual convergence      |
 
 ## Visual reference matrix
 
