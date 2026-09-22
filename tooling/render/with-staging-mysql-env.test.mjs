@@ -45,7 +45,11 @@ function assertPasswordHash(password, encoded) {
 function deterministicPasswordHash(password) {
   const salt = Buffer.alloc(16, 71);
   const derived = scryptSync(password, salt, 64);
-  return `scrypt${salt.toString("base64url")}${derived.toString("base64url")}`;
+  return [
+    "scrypt",
+    salt.toString("base64url"),
+    derived.toString("base64url"),
+  ].join("$");
 }
 
 test("derives isolated MySQL owners plus durable Control Center audit storage", () => {
