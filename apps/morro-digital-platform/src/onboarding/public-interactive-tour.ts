@@ -379,11 +379,7 @@ export function installPublicInteractiveTour(
 
     renderTooltip(stepCopy);
     positionStep();
-    tooltip
-      ?.querySelector<HTMLElement>(
-        nextIndex === STEPS.length - 1 ? ".tour-btn-finish" : ".tour-btn-next",
-      )
-      ?.focus();
+    tooltip?.focus({ preventScroll: true });
   }
 
   return Object.freeze({
