@@ -29,7 +29,8 @@
   <body data-md-mode="commerce">
     <main class="ticketing-shell" data-md-surface="ticketing">
       <header class="ticketing-topbar">
-        <a class="back-link" href="/" data-ticketing-return>← Voltar ao mapa</a>
+        <a class="back-link" href="/" data-ticketing-return aria-label="Voltar ao mapa">←</a>
+        <strong class="ticketing-context-title">Reservar passeio</strong>
         <p
           id="session-label"
           class="session-label md-badge"
@@ -48,11 +49,10 @@
           aria-label="Morro de São Paulo"
         >
           <div class="ticketing-hero-overlay">
-            <p class="eyebrow">Experiência em Morro de São Paulo</p>
-            <h1 id="ticketing-title">Escolha sua experiência</h1>
+            <p class="eyebrow">Reserva em Morro de São Paulo</p>
+            <h1 id="ticketing-title">Carregando experiência…</h1>
             <p id="product-lead" class="lead">
-              Selecione uma experiência, confira data e preço e reserve com
-              checkout seguro.
+              Data, disponibilidade e preço confirmados em tempo real.
             </p>
             <p class="ticketing-trust">Reserva segura · preço e disponibilidade confirmados pelo servidor</p>
             <div class="product-facts" aria-live="polite">
@@ -178,6 +178,15 @@
                 O valor final, moeda, disponibilidade e status de pagamento são
                 confirmados pelo servidor no momento da reserva e do checkout.
               </p>
+              <button
+                id="reserve-button"
+                class="button button-primary md-button md-button--primary checkout-cta"
+                type="submit"
+                form="reservation-form"
+                disabled
+              >
+                Finalizar Reserva
+              </button>
             </div>
           </div>
         </section>
@@ -252,16 +261,6 @@
                 maxlength="40"
               />
             </label>
-            <div class="form-actions">
-              <button
-                id="reserve-button"
-                class="button button-primary md-button md-button--primary checkout-cta"
-                type="submit"
-                disabled
-              >
-                Finalizar Reserva
-              </button>
-            </div>
           </form>
         </section>
       </div>
