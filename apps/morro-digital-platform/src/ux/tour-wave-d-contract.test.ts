@@ -69,7 +69,10 @@ describe("UX Design V2 Wave D tour contract", () => {
     expect(controller).toContain('"tour-intro-card"');
     expect(controller).toContain('"tour-stop-card"');
     expect(controller).toContain('"tour-active-header"');
+    expect(controller).toContain('"tour-active-thumb"');
     expect(controller).toContain('"tour-active-count"');
+    expect(controller).toContain('"tour-stop-progress-segments"');
+    expect(controller).toContain('"tour-stop-progress-segment"');
     expect(controller).toContain("`${current}/${tour.stops.length}`");
     expect(controller).toContain('card.dataset.stopIndex = String(state.currentStopIndex)');
     expect(controller).toContain('card.dataset.totalStops = String(tour.stops.length)');
