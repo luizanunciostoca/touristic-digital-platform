@@ -267,6 +267,8 @@ export function createCrmAdminAdapter(crmApi, authApi) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "crm.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "contracts",
       "follow-ups",
@@ -277,16 +279,14 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "referrals",
       "trials",
       "search",
+      "destination-filtered-lead-search",
     ]),
-    searchCapability: "crm.read",
-    searchDestinationAware: false,
-    async search({ query, request, effectiveUser, limit }) {
+    async search({ query, request, effectiveUser, destinationId, limit }) {
       if (!request || !query) return [];
       const resultLimit = Math.min(Number(limit) || 20, 50);
 
-      async function ownerList(pathname) {
+      async function ownerList(requestUrl) {
         const response = jsonCaptureResponse();
-        const requestUrl = new URL("http://localhost" + pathname);
         await withEffectiveUser(delegation, request, effectiveUser, () =>
           crmApi.handle(request, response, requestUrl),
         );
@@ -308,59 +308,60 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       const leadUrl = new URL("http://localhost/api/crm/leads");
       leadUrl.searchParams.set("search", query);
       leadUrl.searchParams.set("limit", String(resultLimit));
-      const leads = await ownerList(
-        leadUrl.pathname + "?" + leadUrl.searchParams.toString(),
-      );
-      const contracts = await ownerList("/api/crm/contracts");
-      const needle = foldSearchText(query);
-      const results = [];
+      if (destinationId) leadUrl.searchParams.set("destinationId", destinationId);
+      const leads = await ownerList(leadUrl);
 
-      for (const lead of leads) {
-        results.push(
-          Object.freeze({
-            type: "lead",
-            id: String(lead.id),
-            title: lead.companyName || String(lead.id),
-            context:
-              [lead.contactName, lead.email, lead.stage, lead.status]
-                .filter(Boolean)
-                .join(" · ") || "CRM",
-            href:
-              "/apps/admin-crm/public/lead-detail.html?id=" +
-              encodeURIComponent(String(lead.id)),
-          }),
-        );
-      }
-
-      for (const contract of contracts) {
-        const searchable = foldSearchText(
-          [
-            contract.id,
-            contract.title,
-            contract.leadId,
-            contract.proposalId,
-            contract.status,
-          ]
-            .filter((value) => value !== undefined && value !== null)
-            .join(" "),
-        );
-        if (!searchable.includes(needle)) continue;
-        results.push(
-          Object.freeze({
-            type: "contract",
-            id: String(contract.id),
-            title: contract.title || String(contract.id),
-            context: [
-              contract.status,
-              contract.leadId && "Lead " + contract.leadId,
-            ]
+      const results = leads.map((lead) =>
+        Object.freeze({
+          type: "lead",
+          id: String(lead.id),
+          title: lead.companyName || String(lead.id),
+          context:
+            [lead.destinationId, lead.contactName, lead.email, lead.stage, lead.status]
               .filter(Boolean)
-              .join(" · "),
-            href:
-              "/apps/admin-crm/public/contracts.html?id=" +
-              encodeURIComponent(String(contract.id)),
-          }),
+              .join(" · ") || "CRM",
+          href:
+            "/apps/admin-crm/public/lead-detail.html?id=" +
+            encodeURIComponent(String(lead.id)),
+          ...(lead.destinationId ? { destinationId: lead.destinationId } : {}),
+        }),
+      );
+
+      if (!destinationId) {
+        const contracts = await ownerList(
+          new URL("http://localhost/api/crm/contracts"),
         );
+        const needle = foldSearchText(query);
+        for (const contract of contracts) {
+          const searchable = foldSearchText(
+            [
+              contract.id,
+              contract.title,
+              contract.leadId,
+              contract.proposalId,
+              contract.status,
+            ]
+              .filter((value) => value !== undefined && value !== null)
+              .join(" "),
+          );
+          if (!searchable.includes(needle)) continue;
+          results.push(
+            Object.freeze({
+              type: "contract",
+              id: String(contract.id),
+              title: contract.title || String(contract.id),
+              context: [
+                contract.status,
+                contract.leadId && "Lead " + contract.leadId,
+              ]
+                .filter(Boolean)
+                .join(" · "),
+              href:
+                "/apps/admin-crm/public/contracts.html?id=" +
+                encodeURIComponent(String(contract.id)),
+            }),
+          );
+        }
       }
       return Object.freeze(results.slice(0, resultLimit));
     },
