@@ -107,6 +107,8 @@ O arquivo `src/config/map-markers.ts` continua preservado como baseline inicial 
 
 O browser runtime carrega Mapbox GL JS `3.12.0` quando existe token público configurado e preserva Leaflet como fallback quando o token não existe, o SDK não carrega ou a inicialização real falha.
 
+No Discover UX V2, os POIs iniciais são uma camada visual própria e não alteram `data-map-marker-count`, preservando o lifecycle V1 de Explore/Tour enquanto `data-discover-poi-count` registra apenas os POIs do estado inicial.
+
 A configuração pública é injetada por `/runtime-config.js`. Nenhuma credencial deve ser versionada.
 
 Exemplo local baseado em `.env.example`:
