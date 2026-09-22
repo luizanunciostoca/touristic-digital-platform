@@ -216,6 +216,8 @@ function friendlyError(error, fallback = "Não foi possível concluir agora. Ten
     return "A quantidade escolhida não está mais disponível. Ajuste os ingressos e tente novamente.";
   if (code.includes("INVENTORY_UNAVAILABLE"))
     return "Esta data não está disponível para reserva.";
+  if (code.includes("CURRENCY_MISMATCH"))
+    return "Não foi possível confirmar a moeda desta reserva. Atualize e tente novamente.";
   if (code.includes("EXPIRED"))
     return "A condição da reserva expirou. Atualizamos a disponibilidade para você.";
   if (error?.status === 409)
@@ -238,11 +240,15 @@ function quoteIdentity(quote) {
 
 function updatePurchaseSummary() {
   const quote = state.quote;
-  const quantity = Math.max(1, Number(elements.quantity.value) || 1);
+  const minimum = Math.max(1, Number(elements.quantity.min) || 1);
+  const maximum = Math.max(minimum, Number(elements.quantity.max) || minimum);
+  const quantity = Math.max(minimum, Number(elements.quantity.value) || minimum);
   elements.summaryQuantity.textContent = String(quantity);
   elements.summaryUnitPrice.textContent = quote ? money(quote.unitAmount) : "—";
   elements.summarySubtotal.textContent = quote ? money(quote.totalAmount) : "—";
   elements.quoteBadge.textContent = quote ? "Valor confirmado agora" : "Confirmando valor…";
+  elements.quantityDecrease.disabled = quantity <= minimum;
+  elements.quantityIncrease.disabled = quantity >= maximum;
 }
 
 async function refreshQuote({ announce = false } = {}) {
@@ -279,6 +285,12 @@ async function refreshQuote({ announce = false } = {}) {
     ) {
       throw new Error("QUOTE_RESPONSE_INVALID");
     }
+    if (
+      offer.unitAmount?.currency &&
+      quote.unitAmount.currency !== offer.unitAmount.currency
+    ) {
+      throw new Error("QUOTE_CURRENCY_MISMATCH");
+    }
     state.quote = quote;
     const maximum = Math.max(
       1,
@@ -286,8 +298,8 @@ async function refreshQuote({ announce = false } = {}) {
     );
     elements.quantity.max = String(maximum);
     updatePurchaseSummary();
-    elements.reserve.disabled = false;
-    elements.reserve.textContent = "Finalizar Reserva";
+    elements.reserve.disabled = state.submitting;
+    elements.reserve.textContent = state.submitting ? "Finalizando…" : "Finalizar Reserva";
     if (announce) setMessage("Preço e disponibilidade atualizados.");
     return quote;
   } catch (error) {
@@ -595,6 +607,14 @@ function renderDateSelector() {
       `<span>${dateLabel(key)}</span><small>${unavailable ? "Indisponível" : soldOut ? "Esgotado" : "Disponível"}</small>`;
     button.addEventListener("click", () => {
       state.selectedDate = key;
+      if (state.selectedOffer && dateKey(state.selectedOffer) !== key) {
+        state.selectedOffer = null;
+        state.quote = null;
+        elements.identityPanel.hidden = true;
+        elements.selectionSummary.hidden = true;
+        elements.reserve.disabled = true;
+        updatePurchaseSummary();
+      }
       renderDateSelector();
       renderOffers();
     });
