@@ -106,17 +106,25 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).toContain('id="quantity-increase"');
     expect(html).toContain('id="summary-unit-price"');
     expect(html).toContain('id="summary-subtotal"');
-    expect(html).toContain("O valor final, moeda, disponibilidade e status de pagamento são confirmados pelo servidor");
+    expect(html).toContain(
+      "O valor final, moeda, disponibilidade e status de pagamento são confirmados pelo servidor",
+    );
 
-    expect(runtime).toContain('const canonicalCheckoutPath = "/api/payments/v1/checkouts"');
-    expect(runtime).toContain('const commerceSessionPath = "/api/ticketing/v1/consumer-session"');
+    expect(runtime).toContain(
+      'const canonicalCheckoutPath = "/api/payments/v1/checkouts"',
+    );
+    expect(runtime).toContain(
+      'const commerceSessionPath = "/api/ticketing/v1/consumer-session"',
+    );
     expect(runtime).toContain('api("/api/ticketing/v1/reservations"');
     expect(runtime).toContain("offer.unitAmount");
     expect(runtime).toContain("offer.pricingVersion");
     expect(runtime).toContain("estimatedSubtotal");
     expect(runtime).not.toContain("providerStatus =");
     expect(runtime).not.toContain("paymentStatus =");
-    expect(experience).toContain('for (const key of ["place", "source", "lang", "locale"])');
+    expect(experience).toContain(
+      'for (const key of ["place", "source", "lang", "locale"])',
+    );
   });
 
   it("renders progressive loading structure without weakening accessibility", async () => {
