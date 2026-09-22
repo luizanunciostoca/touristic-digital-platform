@@ -94,7 +94,10 @@ export function createV1ExploreMarkerElement(
     root.dataset.tourCluster = "true";
     root.dataset.clusterCount = String(clusterCount);
   }
-  if (input.label) root.dataset.locationName = input.label;
+  if (input.label) {
+    if (isTourCluster) root.dataset.clusterLabel = input.label;
+    else root.dataset.locationName = input.label;
+  }
   root.setAttribute("role", "img");
   root.setAttribute("aria-label", input.label ?? `POI ${category}`);
   if (category === "tours") root.tabIndex = 0;
