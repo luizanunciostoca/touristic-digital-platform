@@ -25,6 +25,10 @@ const state = {
   csrfToken: "",
   offers: [],
   selectedOffer: null,
+  selectedDate: "",
+  quote: null,
+  quoteRequest: 0,
+  submitting: false,
 };
 
 const checkoutStorageKey = "morro_ticketing_checkout_v1";
@@ -34,6 +38,7 @@ const canonicalCheckoutPath = "/api/payments/v1/checkouts";
 const commerceSessionPath = "/api/ticketing/v1/consumer-session";
 const elements = {
   offers: document.querySelector("#offers"),
+  dateSelector: document.querySelector("#date-selector"),
   reservations: document.querySelector("#reservations"),
   form: document.querySelector("#reservation-form"),
   inventoryId: document.querySelector("#inventory-id"),
@@ -57,6 +62,7 @@ const elements = {
   heroTitle: document.querySelector("#ticketing-title"),
   productLead: document.querySelector("#product-lead"),
   productLocation: document.querySelector("#product-location"),
+  productRating: document.querySelector("#product-rating"),
   productDuration: document.querySelector("#product-duration"),
   productAvailability: document.querySelector("#product-availability"),
   selectionSummary: document.querySelector("#selection-summary"),
@@ -200,29 +206,100 @@ function heroImageFor(offer) {
   return "/images/fotos/farol_do_morro1.jpg";
 }
 
-function estimatedSubtotal(offer, quantity) {
-  if (!offer?.unitAmount || !Number.isSafeInteger(quantity) || quantity < 1)
-    return null;
-  const minorUnits = Number(offer.unitAmount.minorUnits);
-  if (!Number.isSafeInteger(minorUnits)) return null;
-  return {
-    minorUnits: minorUnits * quantity,
-    currency: offer.unitAmount.currency,
-  };
+function friendlyError(error, fallback = "Não foi possível concluir agora. Tente novamente.") {
+  const code = text(error?.message);
+  if (code.includes("FEATURE_DISABLED") || code.includes("UNAVAILABLE") || error?.status === 503)
+    return "Reservas temporariamente indisponíveis. Tente novamente em instantes.";
+  if (code.includes("EXHAUSTED"))
+    return "Esta opção acabou de esgotar. Escolha outra data ou experiência.";
+  if (code.includes("QUANTITY_LIMIT"))
+    return "A quantidade escolhida não está mais disponível. Ajuste os ingressos e tente novamente.";
+  if (code.includes("INVENTORY_UNAVAILABLE"))
+    return "Esta data não está disponível para reserva.";
+  if (code.includes("EXPIRED"))
+    return "A condição da reserva expirou. Atualizamos a disponibilidade para você.";
+  if (error?.status === 409)
+    return "A disponibilidade mudou enquanto você reservava. Revise os dados atualizados.";
+  if (error?.status === 400)
+    return "Revise os dados da reserva e tente novamente.";
+  return fallback;
+}
+
+function quoteIdentity(quote) {
+  if (!quote) return "";
+  return [
+    quote.inventoryId,
+    quote.quantity,
+    quote.pricingVersion,
+    quote.totalAmount?.minorUnits,
+    quote.totalAmount?.currency,
+  ].join(":");
 }
 
 function updatePurchaseSummary() {
-  const offer = state.selectedOffer;
-  if (!offer) return;
+  const quote = state.quote;
   const quantity = Math.max(1, Number(elements.quantity.value) || 1);
-  elements.summaryUnitPrice.textContent = money(offer.unitAmount);
   elements.summaryQuantity.textContent = String(quantity);
-  elements.summarySubtotal.textContent = money(
-    estimatedSubtotal(offer, quantity),
-  );
-  elements.quoteBadge.textContent = offer.pricingVersion
-    ? `${copy.static.inventoryPrice} · ${offer.pricingVersion}`
-    : copy.static.inventoryPrice;
+  elements.summaryUnitPrice.textContent = quote ? money(quote.unitAmount) : "—";
+  elements.summarySubtotal.textContent = quote ? money(quote.totalAmount) : "—";
+  elements.quoteBadge.textContent = quote ? "Valor confirmado agora" : "Confirmando valor…";
+}
+
+async function refreshQuote({ announce = false } = {}) {
+  const offer = state.selectedOffer;
+  if (!offer) return null;
+  const quantity = Number(elements.quantity.value);
+  if (!Number.isSafeInteger(quantity) || quantity < 1) {
+    state.quote = null;
+    updatePurchaseSummary();
+    elements.reserve.disabled = true;
+    return null;
+  }
+  const requestId = ++state.quoteRequest;
+  state.quote = null;
+  elements.reserve.disabled = true;
+  elements.reserve.textContent = "Confirmando disponibilidade…";
+  updatePurchaseSummary();
+  try {
+    const payload = await api("/api/ticketing/v1/quote", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ inventoryId: offer.id, quantity }),
+    });
+    if (requestId !== state.quoteRequest || state.selectedOffer?.id !== offer.id)
+      return null;
+    const quote = payload.data;
+    if (
+      !quote ||
+      quote.inventoryId !== offer.id ||
+      quote.quantity !== quantity ||
+      !quote.unitAmount ||
+      !quote.totalAmount ||
+      quote.unitAmount.currency !== quote.totalAmount.currency
+    ) {
+      throw new Error("QUOTE_RESPONSE_INVALID");
+    }
+    state.quote = quote;
+    const maximum = Math.max(
+      1,
+      Math.min(Number(quote.maxPerReservation) || 1, Number(quote.availableQuantity) || 1),
+    );
+    elements.quantity.max = String(maximum);
+    updatePurchaseSummary();
+    elements.reserve.disabled = false;
+    elements.reserve.textContent = "Finalizar Reserva";
+    if (announce) setMessage("Preço e disponibilidade atualizados.");
+    return quote;
+  } catch (error) {
+    if (requestId !== state.quoteRequest) return null;
+    state.quote = null;
+    updatePurchaseSummary();
+    elements.reserve.disabled = true;
+    elements.reserve.textContent = "Finalizar Reserva";
+    setMessage(friendlyError(error), true);
+    elements.refresh.hidden = false;
+    return null;
+  }
 }
 
 function updateProductPresentation(offer) {
