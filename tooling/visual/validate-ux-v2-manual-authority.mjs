@@ -95,11 +95,19 @@ const blocking = Object.entries(conformance.surfaces || {})
   .filter(([, surface]) => forbidden.has(surface.status))
   .map(([surface, value]) => ({ surface, status: value.status }));
 
+const forbiddenGateStatuses = new Set(
+  conformance.certification?.forbiddenGateStatuses || ["PENDING", "FAIL"],
+);
+const gateBlocking = Object.entries(conformance.certification?.gates || {})
+  .filter(([, gate]) => forbiddenGateStatuses.has(gate.status))
+  .map(([gate, value]) => ({ gate, status: value.status }));
+
 const report = {
   manualAuthority: matrix.manualAuthority,
   appendix: matrix.appendix,
   matrixValid: errors.length === 0,
   blocking,
+  gateBlocking,
   releaseEnforced: process.argv.includes("--enforce-release"),
   errors,
 };
@@ -112,7 +120,10 @@ if (errors.length) {
   console.error(JSON.stringify(report, null, 2));
   process.exit(1);
 }
-if (process.argv.includes("--enforce-release") && blocking.length) {
+if (
+  process.argv.includes("--enforce-release") &&
+  (blocking.length || gateBlocking.length)
+) {
   console.error("MANUAL_VISUAL_CONFORMANCE_BLOCKED");
   console.error(JSON.stringify(report, null, 2));
   process.exit(1);

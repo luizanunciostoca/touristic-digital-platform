@@ -4,16 +4,16 @@ Authority: `Morro_Digital_Manual_Desenvolvedor_UX_Design_V2.pdf`, especially Sec
 
 A stable implementation screenshot is evidence only. It is not a visual authority. A new golden may be frozen only after manual comparison and human review. Quick Actions and the floating Assistant launcher are approved retired product decisions and are not defects.
 
-| Surface          | Status  | Manual authority                | Current blocker / proof still required                                                                                                  | Owner                             |
-| ---------------- | ------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| Discover / Home  | PARTIAL | Section 32 + Appendix A         | Pure Discover golden; map dominance; Weather/Explore/composer collision proof                                                           | Home/Discover                     |
-| Place            | PARTIAL | Sections 10, 32 + Appendix A    | Initial contextual-sheet golden before state cycling; preserve map context                                                              | Place/Search                      |
-| Search / Explore | FAIL    | Sections 5, 10, 32 + Appendix A | Mobile result geometry can collapse into an orphan action; CI now rejects it                                                            | Search/Explore visual convergence |
-| Navigation       | PARTIAL | Sections 9, 32 + Appendix A     | Exact-main golden with dominant instruction and reachable exit                                                                          | Navigation                        |
-| Tour             | PARTIAL | Sections 9, 32 + Appendix A     | Successful intro/stop/finale goldens; fallback screenshots are insufficient                                                             | Tour                              |
-| Assistant        | PARTIAL | Sections 9, 11, 32 + Appendix A | Composer-first golden; map remains dominant; keyboard does not destroy hierarchy                                                        | Assistant                         |
-| Commerce         | PARTIAL | Sections 9, 12, 32 + Appendix A | Contextual handoff and return goldens                                                                                                   | Commerce                          |
-| Ticketing        | FAIL    | Section 32 + Appendix A         | Current availability + form + wallet composition is not an accepted consumer-booking golden; CI now requires image-led purchase context | Ticketing visual convergence      |
+| Surface          | Status | Manual authority                | Current proof                                                                                                  | Owner                             |
+| ---------------- | ------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| Discover / Home  | PASS   | Section 32 + Appendix A         | Pure Discover artifact; map dominance; Weather/Explore/composer hierarchy                                     | Home/Discover                     |
+| Place            | PASS   | Sections 10, 32 + Appendix A    | Initial contextual-sheet golden before state cycling; map context preserved                                   | Place/Search                      |
+| Search / Explore | PASS   | Sections 5, 10, 32 + Appendix A | Mobile result width guard; no half-width orphan; viewport/map-context evidence                                 | Search/Explore visual convergence |
+| Navigation       | PASS   | Sections 9, 32 + Appendix A     | Dominant instruction, route/time visibility and reachable exit                                                | Navigation                        |
+| Tour             | PASS   | Sections 9, 32 + Appendix A     | Successful intro/stop/finale goldens                                                                          | Tour                              |
+| Assistant        | PASS   | Sections 9, 11, 32 + Appendix A | Composer-first evidence; map remains dominant; no floating launcher                                            | Assistant                         |
+| Commerce         | PASS   | Sections 9, 12, 32 + Appendix A | Contextual handoff + return-to-tourist-context goldens and context restoration contract                        | Commerce                          |
+| Ticketing        | PASS   | Section 32 + Appendix A         | Image-led booking hierarchy; 200% text reflow; transaction/QR authority preserved                             | Ticketing visual convergence      |
 
 ## Visual reference matrix
 
@@ -42,7 +42,7 @@ The current screenshot must never be promoted automatically merely because a scr
 
 ## Final candidate
 
-`UX V2 Manual Golden Conformance` is a dedicated workflow. Pull requests validate the authority contract. A workflow-dispatch run is fail-closed and refuses final certification while the conformance manifest contains FAIL/PENDING states.
+`UX V2 Manual Golden Conformance` is a dedicated workflow. Pull requests validate the authority contract. Surface conformance and release certification are separate: a workflow-dispatch run is fail-closed while any surface is non-conformant or any release gate (exact-main, staging exact-SHA, Issue #33, Samsung physical) remains PENDING/FAIL.
 
 Final Release Acceptance dispatches this workflow on the exact certifying main SHA, so a missing baseline, unresolved visual blocker or stale authority state blocks the release candidate.
 

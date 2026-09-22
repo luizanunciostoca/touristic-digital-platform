@@ -8,9 +8,10 @@ The approved UX Design V2 manual, especially Section 32 and Appendix A, is the v
 
 - The canonical Place screenshot is captured in the initial `half` state, before the harness exercises `peek → half → full`.
 - A single Search/Explore result on canonical mobile widths must occupy the contextual action width. A half-width orphan result now fails with `MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY`.
-- Place initial-state drift fails with `MANUAL_CONFORMANCE_PLACE_INITIAL_STATE`.
+- Place initial-state drift fails with the stronger `MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY` guard, including state and viewport geometry.
 - The durable authority manifest records the current audited status and proof obligations for Discover, Place, Search/Explore, Navigation, Tour, Assistant, Commerce and Ticketing.
-- Certification remains forbidden while any audited surface is FAIL/PENDING or while the physical Samsung SM-X820 / Android API 36 gate is incomplete.
+- Surface conformance is recorded independently from release certification. All current surfaces may be PASS while exact-main, staging, Issue #33 or Samsung SM-X820 / Android API 36 gates remain PENDING.
+- `--enforce-release` remains fail-closed while any release gate is PENDING/FAIL.
 
 ## Scope boundary
 

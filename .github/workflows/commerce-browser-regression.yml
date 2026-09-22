@@ -386,6 +386,11 @@ jobs:
                     `Map -> Place -> Ticketing -> Return context drift on ${viewport.name}: ${JSON.stringify({ contextBeforeHandoff, storedSnapshot, contextAfterReturn })}`,
                   );
                 }
+                await page.screenshot({
+                  path: `/tmp/commerce-browser/commerce-return-to-tourist-context-${viewport.name}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
                 evidence.push({
                   viewport: viewport.name,
                   placeActions,
@@ -485,6 +490,11 @@ jobs:
                   ) {
                     throw new Error(`Commerce preview sheet initial state drift on ${viewport.name}: ${JSON.stringify(previewSheet)}`);
                   }
+                  await page.screenshot({
+                    path: `/tmp/commerce-browser/commerce-contextual-handoff-${viewport.name}.png`,
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
                   const handle = page.locator('[data-commerce-sheet-handle="true"]');
                   await handle.press('ArrowUp');
                   await page.locator('#experience-preview-sheet[data-sheet-state="full"]').waitFor({ state: 'attached' });

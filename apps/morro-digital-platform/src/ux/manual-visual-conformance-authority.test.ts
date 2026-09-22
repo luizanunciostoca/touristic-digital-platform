@@ -25,7 +25,17 @@ type ManualAuthority = Readonly<{
   surfaces: Readonly<Record<string, Surface>>;
   certification: Readonly<{
     forbiddenWhileAnyStatusMatches: readonly string[];
+    forbiddenGateStatuses: readonly string[];
     physicalGate: string;
+    gates: Readonly<
+      Record<
+        string,
+        Readonly<{
+          status: string;
+          requirement: string;
+        }>
+      >
+    >;
   }>;
 }>;
 
@@ -85,7 +95,7 @@ describe("UX V2 manual visual conformance authority", () => {
     }
   });
 
-  it("prevents certification while the current audit contains fail or pending surfaces", async () => {
+  it("separates surface conformance from release certification gates", async () => {
     const authority = await readAuthority();
     const forbidden = new Set(
       authority.certification.forbiddenWhileAnyStatusMatches,
@@ -93,11 +103,27 @@ describe("UX V2 manual visual conformance authority", () => {
     const blocking = Object.values(authority.surfaces).filter((surface) =>
       forbidden.has(surface.status),
     );
+    const forbiddenGateStatuses = new Set(
+      authority.certification.forbiddenGateStatuses,
+    );
+    const gateBlocking = Object.values(authority.certification.gates).filter(
+      (gate) => forbiddenGateStatuses.has(gate.status),
+    );
 
-    expect(blocking.length).toBeGreaterThan(0);
+    expect(blocking).toHaveLength(0);
     expect(
-      blocking.some((surface) => surface.status === "MANUAL_CONFORMANCE_FAIL"),
+      Object.values(authority.surfaces).every(
+        (surface) => surface.status === "MANUAL_CONFORMANCE_PASS",
+      ),
     ).toBe(true);
+    expect(gateBlocking.length).toBeGreaterThan(0);
+    expect(authority.certification.gates.exactMain.status).toBe("PENDING");
+    expect(authority.certification.gates.stagingExactSha.status).toBe(
+      "PENDING",
+    );
+    expect(authority.certification.gates.samsungPhysical.status).toBe(
+      "PENDING",
+    );
     expect(authority.certification.physicalGate).toContain("SM-X820");
   });
 
