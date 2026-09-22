@@ -204,14 +204,18 @@ try {
       state.controls,
     );
     if (state.composer) {
-      const composerCovered =
-        state.panel.left <= state.composer.left + 1 &&
-        state.panel.right >= state.composer.right - 1 &&
-        state.panel.top <= state.composer.top + 1 &&
-        state.panel.bottom >= state.composer.bottom - 1 &&
-        state.panelZIndex > state.composer.zIndex;
+      const overlapsHorizontally =
+        state.panel.left < state.composer.right &&
+        state.panel.right > state.composer.left;
+      const overlapsVertically =
+        state.panel.top < state.composer.bottom &&
+        state.panel.bottom > state.composer.top;
+      const visualCompetition =
+        overlapsHorizontally &&
+        overlapsVertically &&
+        state.panelZIndex <= state.composer.zIndex;
       assert(
-        composerCovered,
+        !visualCompetition,
         `${viewport.label}: composer competes visually with open Profile panel`,
         {
           panel: state.panel,
