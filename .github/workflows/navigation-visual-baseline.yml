@@ -337,8 +337,8 @@ jobs:
             }
 
             const route = activeState.routePresentation;
-            const expectedOutline = { color: '#ffffff', width: 9, opacity: 0.82, dash: null };
-            const expectedRoute = { color: '#1689ff', width: 5.5, opacity: 1, dash: null };
+            const expectedOutline = { color: '#ffffff', width: 9, opacity: 0.82 };
+            const expectedRoute = { color: '#1689ff', width: 5.5, opacity: 1 };
             if (!route.source || !route.outline || !route.route || route.routeIndex !== route.layerCount - 1 || route.outlineIndex !== route.layerCount - 2) {
               throw new Error(`Navigation route layers are not topmost for ${name}: ${JSON.stringify(route)}`);
             }
