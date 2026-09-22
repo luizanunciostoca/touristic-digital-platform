@@ -380,6 +380,11 @@ body {
 ) {
   box-sizing: border-box;
   max-inline-size: 100%;
+  min-inline-size: 0;
+}
+
+:where(.md-card, .md-dialog, .md-bottom-sheet, .md-toast, .md-banner) {
+  overflow-wrap: anywhere;
 }
 
 /* Foundation components. These are additive; existing UI is not force-migrated. */
