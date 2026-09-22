@@ -588,3 +588,152 @@ body[data-md-mode="assistant"] .assistant-option-btn {
     transition-delay: 0ms;
   }
 }
+
+
+/* Navigation / Tour manual convergence — mode-priority presentation authority. */
+#navigation-summary {
+  display: none;
+}
+
+body[data-md-mode="navigation"] #assistant-input-area,
+body[data-md-mode="navigation"] #assistant-messages,
+body[data-md-mode="tour"] #assistant-input-area,
+body[data-md-mode="tour"] #assistant-messages,
+body[data-md-mode="navigation"] .analytics-consent-preferences.is-collapsed,
+body[data-md-mode="tour"] .analytics-consent-preferences.is-collapsed {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+body[data-md-mode="navigation"] #instruction-banner {
+  max-width: min(32rem, calc(100vw - var(--md-space-4))) !important;
+  border-radius: 0 0 var(--md-radius-md) var(--md-radius-md) !important;
+  box-shadow: var(--md-elevation-1);
+}
+
+body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
+  gap: var(--md-space-2);
+  padding: max(var(--md-space-2), var(--md-safe-top)) var(--md-space-3)
+    var(--md-space-2);
+}
+
+body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
+  padding: var(--md-space-2) var(--md-space-3) !important;
+}
+
+body[data-md-mode="navigation"] #instruction-details {
+  margin: 0;
+  color: var(--md-navigation-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.35;
+}
+
+body[data-md-mode="navigation"] #progress-text {
+  display: none;
+}
+
+body[data-md-mode="navigation"] .progress-container {
+  margin: var(--md-space-2) 0 0;
+}
+
+body[data-md-mode="navigation"] #navigation-summary {
+  position: fixed;
+  right: auto;
+  bottom: max(var(--md-space-3), var(--md-safe-bottom));
+  left: 50%;
+  z-index: var(--md-layer-navigation);
+  display: grid;
+  width: min(32rem, calc(100vw - var(--md-space-4)));
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-2);
+  transform: translateX(-50%);
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-xl);
+  background: var(--md-navigation-surface);
+  color: var(--md-navigation-text);
+  box-shadow: var(--md-navigation-shadow);
+  font-family: var(--md-font-family-sans);
+}
+
+body[data-md-mode="navigation"] #navigation-summary .metrics-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--md-space-1);
+  margin: 0;
+}
+
+body[data-md-mode="navigation"] #navigation-summary .metric {
+  width: auto;
+  min-width: 0;
+  padding: var(--md-space-1) var(--md-space-2);
+  background: transparent;
+}
+
+body[data-md-mode="navigation"] #navigation-summary .metric-label {
+  margin: 0;
+  font-size: 0.75rem;
+}
+
+body[data-md-mode="navigation"] #navigation-summary .metric-value {
+  font-size: 1rem;
+}
+
+body[data-md-mode="navigation"] #navigation-summary .end-navigation-btn {
+  position: static !important;
+  right: auto !important;
+  bottom: auto !important;
+  left: auto !important;
+  z-index: auto !important;
+  min-height: var(--md-touch-target-min);
+  padding: var(--md-space-2) var(--md-space-3);
+  transform: none !important;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+body[data-md-mode="navigation"] #navigation-summary .end-navigation-btn:active {
+  transform: scale(var(--md-motion-scale-pressed)) !important;
+}
+
+@media (max-width: 23.5rem) {
+  body[data-md-mode="navigation"] #navigation-summary {
+    width: calc(100vw - var(--md-space-3));
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--md-space-1);
+  }
+
+  body[data-md-mode="navigation"] #navigation-summary .end-navigation-btn {
+    padding-inline: var(--md-space-2);
+    font-size: 0.875rem;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 32rem) {
+  body[data-md-mode="navigation"] #instruction-banner {
+    max-width: min(34rem, calc(100vw - var(--md-space-4))) !important;
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
+    display: none !important;
+  }
+
+  body[data-md-mode="navigation"] #navigation-summary {
+    right: max(var(--md-space-3), var(--md-safe-right));
+    bottom: max(var(--md-space-3), var(--md-safe-bottom));
+    left: auto;
+    width: min(24rem, calc(100vw - var(--md-space-6)));
+    transform: none;
+  }
+}
+
+@media (forced-colors: active) {
+  body[data-md-mode="navigation"] #navigation-summary {
+    border-color: CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+  }
+}
