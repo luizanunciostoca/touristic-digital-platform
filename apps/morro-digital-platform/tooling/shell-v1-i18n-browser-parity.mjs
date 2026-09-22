@@ -294,6 +294,12 @@ try {
     ["he", "he-IL"],
   ]) {
     await setLanguage(page, browserLocale);
+    if (!(await page.locator("#home-profile-panel").isVisible())) {
+      await page.locator("#home-profile-button").click();
+      await page
+        .locator("#home-profile-panel:not(.hidden)")
+        .waitFor({ state: "visible", timeout: 5000 });
+    }
     await page.locator("#configButton").click();
     const observed = await waitShell(page, browserLocale, expected[locale]);
     equal(
