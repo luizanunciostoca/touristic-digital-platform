@@ -147,6 +147,10 @@ jobs:
             await page.route('**/api/ticketing/v1/reservations', async route => {
               if (route.request().method() === 'POST') {
                 state.reservationPosts = (state.reservationPosts || 0) + 1;
+                state.reservationIdempotencyKeys = [
+                  ...(state.reservationIdempotencyKeys || []),
+                  route.request().headers()['idempotency-key'] || '',
+                ];
                 if (state.reservationDelay) {
                   await new Promise(resolve => setTimeout(resolve, state.reservationDelay));
                 }
@@ -177,6 +181,11 @@ jobs:
               });
             });
             await page.route('**/api/payments/v1/checkouts', route => {
+              state.checkoutPosts = (state.checkoutPosts || 0) + 1;
+              state.checkoutIdempotencyKeys = [
+                ...(state.checkoutIdempotencyKeys || []),
+                route.request().headers()['idempotency-key'] || '',
+              ];
               if (state.providerFail) return fulfill(route, { error: 'PAYMENTS_UNAVAILABLE' }, 503);
               return fulfill(route, {
                 data: {
@@ -454,6 +463,7 @@ jobs:
               await installRoutes(emptyPage, { empty: true });
               await emptyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
               await emptyPage.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+              await emptyPage.locator('#ticketing-title').filter({ hasText: 'Nenhuma experiência disponível agora' }).waitFor({ state: 'visible' });
               await audit(emptyPage, 'empty-390x844');
               await emptyPage.screenshot({
                 path: '/tmp/ticketing-v2/empty-390x844.png',
@@ -546,6 +556,83 @@ jobs:
                 reservationPosts: transactionalState.reservationPosts,
               });
               await transactionalContext.close();
+
+              const reservationRetryContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const reservationRetryPage = await reservationRetryContext.newPage();
+              const reservationRetryState = {
+                reservationError: 'TICKETING_UNAVAILABLE',
+                reservationStatus: 503,
+              };
+              await installRoutes(reservationRetryPage, reservationRetryState);
+              await reservationRetryPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await reservationRetryPage.locator('#holder-name').fill('Visitante');
+              await reservationRetryPage.locator('#holder-email').fill('visitante@example.com');
+              await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reserve-button').click();
+              await reservationRetryPage.locator('#reservation-message').filter({ hasText: 'Não foi possível criar a reserva' }).waitFor({ state: 'visible' });
+              reservationRetryState.reservationError = null;
+              await reservationRetryPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await reservationRetryPage.locator('#reserve-button').click();
+              await reservationRetryPage.waitForTimeout(300);
+              if ((reservationRetryState.reservationPosts || 0) !== 2) {
+                throw new Error('Reservation retry was not exercised twice');
+              }
+              const reservationKeys = reservationRetryState.reservationIdempotencyKeys || [];
+              if (!reservationKeys[0] || reservationKeys[0] !== reservationKeys[1]) {
+                throw new Error('Ambiguous reservation retry changed idempotency key: ' + JSON.stringify(reservationKeys));
+              }
+              evidence.push({
+                case: 'reservation-retry-idempotency-390x844',
+                reservationPosts: reservationRetryState.reservationPosts,
+                stableKey: true,
+              });
+              await reservationRetryContext.close();
+
+              const providerContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const providerPage = await providerContext.newPage();
+              const providerState = { providerFail: true };
+              await installRoutes(providerPage, providerState);
+              await providerPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              await providerPage.locator('#holder-name').fill('Visitante');
+              await providerPage.locator('#holder-email').fill('visitante@example.com');
+              await providerPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
+              await providerPage.locator('#reserve-button').click();
+              await providerPage.locator('#reserve-button').filter({ hasText: 'Retomar pagamento' }).waitFor({ state: 'visible' });
+              const providerMessage = await providerPage.locator('#reservation-message').textContent();
+              if (/TICKETING_|PAYMENTS_|HTTP_/u.test(providerMessage || '')) {
+                throw new Error('Provider failure leaked technical state: ' + providerMessage);
+              }
+              if ((providerState.reservationPosts || 0) !== 1 || (providerState.checkoutPosts || 0) !== 1) {
+                throw new Error('Provider failure did not preserve exactly one reservation: ' + JSON.stringify(providerState));
+              }
+              providerState.providerFail = false;
+              await providerPage.locator('#reserve-button').click();
+              await providerPage.waitForTimeout(300);
+              if ((providerState.reservationPosts || 0) !== 1 || (providerState.checkoutPosts || 0) !== 2) {
+                throw new Error('Provider retry created a duplicate reservation: ' + JSON.stringify(providerState));
+              }
+              const checkoutKeys = providerState.checkoutIdempotencyKeys || [];
+              if (!checkoutKeys[0] || checkoutKeys[0] !== checkoutKeys[1]) {
+                throw new Error('Checkout retry changed server-issued idempotency key: ' + JSON.stringify(checkoutKeys));
+              }
+              evidence.push({
+                case: 'provider-retry-without-duplicate-reservation-390x844',
+                reservationPosts: providerState.reservationPosts,
+                checkoutPosts: providerState.checkoutPosts,
+                stableCheckoutKey: true,
+              });
+              await providerContext.close();
+
+              const privacyContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
+              const privacyPage = await privacyContext.newPage();
+              await installRoutes(privacyPage, {});
+              await privacyPage.goto(origin + '/tickets.html', { waitUntil: 'domcontentloaded' });
+              const collapsedVisible = await privacyPage.locator('.analytics-consent-trigger').isVisible().catch(() => false);
+              if (collapsedVisible) throw new Error('Floating privacy trigger still competes with transactional UI');
+              await privacyPage.locator('#privacy-settings-button').click();
+              await privacyPage.locator('.analytics-consent-preferences[role="dialog"]').waitFor({ state: 'visible' });
+              evidence.push({ case: 'privacy-inline-access-390x844', floatingTriggerVisible: false });
+              await privacyContext.close();
 
               const stockContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
               const stockPage = await stockContext.newPage();
