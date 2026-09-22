@@ -1737,10 +1737,29 @@ html[dir="rtl"]
   direction: rtl;
 }
 
+body[data-md-mode="place"] #unified-assistant-dock.md-unified-assistant-dock {
+  bottom: calc(
+    min(54dvh, 29rem) + max(var(--md-space-2), var(--md-safe-bottom)) +
+      var(--md-space-2)
+  );
+  z-index: var(--md-layer-contextual-dock);
+}
+
+body[data-md-mode="place"]
+  #unified-assistant-dock
+  > :is(
+    .md-unified-dock-grabber,
+    #assistant-messages,
+    #assistant-category-rail,
+    #home-bottom-navigation
+  ) {
+  display: none;
+}
+
 body[data-md-mode="place"]
   #unified-assistant-dock
   > #assistant-input-area.md-assistant-composer {
-  opacity: 1;
+  opacity: 0.72;
   visibility: visible;
   pointer-events: auto;
 }
