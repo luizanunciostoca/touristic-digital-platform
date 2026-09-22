@@ -554,7 +554,7 @@ export function installExploreLocationsControl({
       updateMapState(locations.length, category, "ready");
       if (openSelectedPopup && locations.length === 1) {
         const selectedMarker = document.querySelector<HTMLElement>(
-          ".morro-explore-marker[data-morro-explore-marker=\"true\"]",
+          '.morro-explore-marker[data-morro-explore-marker="true"]:not([data-discover-initial-poi="true"])',
         );
         selectedMarker?.setAttribute("data-selected", "true");
         selectedMarker?.setAttribute("aria-current", "location");
