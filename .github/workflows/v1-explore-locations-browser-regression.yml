@@ -285,7 +285,10 @@ jobs:
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
               const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]');
               await placeSheet.waitFor({ state: 'visible', timeout: 8000 });
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').waitFor({ state: 'visible', timeout: 8000 });
+              const placeHandle = placeSheet.locator('.place-bottom-sheet-drag-handle');
+              await placeHandle.focus();
+              const handleRole = await placeHandle.getAttribute('role');
+              const handleTabIndex = await placeHandle.getAttribute('tabindex');
               const placeSheetState = await placeSheet.evaluate((sheet) => {
                 const rect = sheet.getBoundingClientRect();
                 const buttons = Array.from(sheet.querySelectorAll('button'));
@@ -318,7 +321,9 @@ jobs:
               if (
                 placeSheetState.title !== 'Primeira Praia' ||
                 placeSheetState.category !== 'beaches' ||
-                placeSheetState.stateControls !== 2 ||
+                placeSheetState.stateControls !== 0 ||
+                handleRole !== 'button' ||
+                handleTabIndex !== '0' ||
                 placeSheetState.rect.left < -1 ||
                 placeSheetState.rect.right > viewport.width + 1 ||
                 placeSheetState.rect.top < -1 ||
@@ -336,13 +341,14 @@ jobs:
               }
 
               const placeStateSequence = [
-                { step: 'up', state: 'full' },
-                { step: 'down', state: 'half' },
-                { step: 'down', state: 'peek' },
-                { step: 'up', state: 'half' },
+                { key: 'ArrowUp', state: 'full' },
+                { key: 'ArrowDown', state: 'half' },
+                { key: 'ArrowDown', state: 'peek' },
+                { key: 'ArrowUp', state: 'half' },
               ];
-              for (const { step, state } of placeStateSequence) {
-                await page.locator(`#place-bottom-sheet [data-sheet-step="${step}"]`).click();
+              for (const { key, state } of placeStateSequence) {
+                await placeHandle.focus();
+                await page.keyboard.press(key);
                 await page.locator(`#place-bottom-sheet[data-sheet-state="${state}"]`).waitFor({ state: 'visible', timeout: 3000 });
               }
               const selected = await page.evaluate(() => ({
