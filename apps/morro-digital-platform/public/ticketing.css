@@ -3,9 +3,13 @@
  * Feature layout only: visual authority remains design-system-v2.css.
  */
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-html { background: var(--md-color-surface-canvas); }
+html {
+  background: var(--md-color-surface-canvas);
+}
 
 body {
   margin: 0;
@@ -14,15 +18,21 @@ body {
   font-family: var(--md-font-family-sans);
 }
 
-button, input { font: inherit; }
-button { cursor: pointer; }
+button,
+input {
+  font: inherit;
+}
+button {
+  cursor: pointer;
+}
 
 .ticketing-shell {
   width: min(74rem, calc(100% - 2rem));
   margin-inline: auto;
-  padding-block:
-    max(var(--md-space-4), var(--md-safe-top))
-    calc(var(--md-space-12) + var(--md-safe-bottom) + var(--md-touch-target-min));
+  padding-block: max(var(--md-space-4), var(--md-safe-top))
+    calc(
+      var(--md-space-12) + var(--md-safe-bottom) + var(--md-touch-target-min)
+    );
   overflow-wrap: anywhere;
 }
 
@@ -49,7 +59,9 @@ button { cursor: pointer; }
   text-underline-offset: 0.2em;
 }
 
-.session-label { margin: 0; }
+.session-label {
+  margin: 0;
+}
 
 body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
   top: auto;
@@ -58,7 +70,9 @@ body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
   left: auto;
 }
 
-.ticketing-product-stage { margin-bottom: var(--md-space-5); }
+.ticketing-product-stage {
+  margin-bottom: var(--md-space-5);
+}
 
 .ticketing-hero-media {
   position: relative;
@@ -68,8 +82,13 @@ body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
   overflow: hidden;
   border-radius: var(--md-radius-xl);
   background:
-    linear-gradient(180deg, transparent 28%, color-mix(in srgb, var(--md-color-brand-strong) 84%, transparent) 100%),
-    var(--ticketing-hero-image, url("/images/fotos/farol_do_morro1.jpg")) center / cover no-repeat;
+    linear-gradient(
+      180deg,
+      transparent 28%,
+      color-mix(in srgb, var(--md-color-brand-strong) 84%, transparent) 100%
+    ),
+    var(--ticketing-hero-image, url("/images/fotos/farol_do_morro1.jpg"))
+      center / cover no-repeat;
   box-shadow: var(--md-elevation-2);
 }
 
@@ -93,7 +112,12 @@ body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
   text-transform: uppercase;
 }
 
-h1, h2, h3, p { margin-top: 0; }
+h1,
+h2,
+h3,
+p {
+  margin-top: 0;
+}
 
 h1 {
   margin-bottom: var(--md-space-3);
@@ -129,7 +153,11 @@ h3 {
 }
 
 .product-facts .md-badge {
-  border-color: color-mix(in srgb, var(--md-color-text-inverse) 28%, transparent);
+  border-color: color-mix(
+    in srgb,
+    var(--md-color-text-inverse) 28%,
+    transparent
+  );
   background: color-mix(in srgb, var(--md-color-surface-card) 22%, transparent);
   color: var(--md-color-text-inverse);
   backdrop-filter: blur(0.35rem);
@@ -146,7 +174,9 @@ h3 {
   padding: clamp(var(--md-space-5), 4vw, var(--md-space-8));
 }
 
-.purchase-panel { min-width: 0; }
+.purchase-panel {
+  min-width: 0;
+}
 
 .identity-panel {
   position: sticky;
@@ -162,7 +192,9 @@ h3 {
   gap: var(--md-space-4);
 }
 
-.section-heading { margin-bottom: var(--md-space-5); }
+.section-heading {
+  margin-bottom: var(--md-space-5);
+}
 
 .session-label,
 .secure-note,
@@ -216,7 +248,9 @@ h3 {
   font-size: var(--md-font-size-sm);
 }
 
-.offer-kind { margin-bottom: var(--md-space-2); }
+.offer-kind {
+  margin-bottom: var(--md-space-2);
+}
 
 .offer-price {
   color: var(--md-color-text-primary);
@@ -231,7 +265,9 @@ h3 {
   gap: var(--md-space-2);
 }
 
-.button { text-decoration: none; }
+.button {
+  text-decoration: none;
+}
 
 .selection-summary {
   display: grid;
@@ -241,8 +277,12 @@ h3 {
   border-top: 1px solid var(--md-color-border);
 }
 
-.selection-copy h2 { margin-bottom: var(--md-space-2); }
-.selection-meta { margin-bottom: 0; }
+.selection-copy h2 {
+  margin-bottom: var(--md-space-2);
+}
+.selection-meta {
+  margin-bottom: 0;
+}
 
 .quantity-control {
   display: flex;
@@ -254,7 +294,9 @@ h3 {
 
 .quantity-stepper {
   display: grid;
-  grid-template-columns: var(--md-touch-target-min) 4.25rem var(--md-touch-target-min);
+  grid-template-columns: var(--md-touch-target-min) 4.25rem var(
+      --md-touch-target-min
+    );
   align-items: stretch;
   gap: var(--md-space-2);
 }
@@ -278,7 +320,9 @@ h3 {
   background: var(--md-color-surface-subtle);
 }
 
-.price-summary-heading { align-items: center; }
+.price-summary-heading {
+  align-items: center;
+}
 
 .price-breakdown {
   display: grid;
@@ -292,7 +336,9 @@ h3 {
   gap: var(--md-space-4);
 }
 
-.price-breakdown dt { color: var(--md-color-text-secondary); }
+.price-breakdown dt {
+  color: var(--md-color-text-secondary);
+}
 
 .price-breakdown dd {
   margin: 0;
@@ -344,7 +390,9 @@ h3 {
   color: var(--md-color-text-secondary);
 }
 
-.selected-offer-field { order: -1; }
+.selected-offer-field {
+  order: -1;
+}
 
 .form-actions {
   display: grid;
@@ -394,7 +442,9 @@ h3 {
   padding: var(--md-space-5);
 }
 
-.reservation-card h3 { margin: 0 0 var(--md-space-2); }
+.reservation-card h3 {
+  margin: 0 0 var(--md-space-2);
+}
 
 .reservation-card p {
   margin: 0;
@@ -432,16 +482,22 @@ h3 {
 .ticket-dialog {
   position: relative;
   width: min(28rem, calc(100% - 1.5rem));
-  max-height: calc(100dvh - var(--md-safe-top) - var(--md-safe-bottom) - var(--md-space-4));
+  max-height: calc(
+    100dvh - var(--md-safe-top) - var(--md-safe-bottom) - var(--md-space-4)
+  );
   padding: var(--md-space-8);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
 
-.ticket-dialog::backdrop { background: var(--md-color-overlay); }
+.ticket-dialog::backdrop {
+  background: var(--md-color-overlay);
+}
 
 @supports (backdrop-filter: blur(0.35rem)) {
-  .ticket-dialog::backdrop { backdrop-filter: blur(0.35rem); }
+  .ticket-dialog::backdrop {
+    backdrop-filter: blur(0.35rem);
+  }
 }
 
 .dialog-close {
@@ -497,9 +553,15 @@ h3 {
   padding: var(--md-space-5);
 }
 
-.ticketing-skeleton-line { min-height: 0.9rem; }
-.ticketing-skeleton-line[data-size="short"] { width: 42%; }
-.ticketing-skeleton-line[data-size="medium"] { width: 68%; }
+.ticketing-skeleton-line {
+  min-height: 0.9rem;
+}
+.ticketing-skeleton-line[data-size="short"] {
+  width: 42%;
+}
+.ticketing-skeleton-line[data-size="medium"] {
+  width: 68%;
+}
 
 .ticketing-skeleton-action {
   width: 7.5rem;
@@ -508,8 +570,12 @@ h3 {
 }
 
 @media (max-width: 58rem) {
-  .ticketing-purchase-layout { grid-template-columns: 1fr; }
-  .identity-panel { position: static; }
+  .ticketing-purchase-layout {
+    grid-template-columns: 1fr;
+  }
+  .identity-panel {
+    position: static;
+  }
 }
 
 @media (max-width: 45rem) {
@@ -518,16 +584,22 @@ h3 {
     padding-top: max(var(--md-space-2), var(--md-safe-top));
   }
 
-  .ticketing-topbar { margin-bottom: var(--md-space-2); }
+  .ticketing-topbar {
+    margin-bottom: var(--md-space-2);
+  }
 
   .ticketing-hero-media {
     min-height: min(56dvh, 29rem);
     border-radius: var(--md-radius-lg);
   }
 
-  .ticketing-hero-overlay { padding: var(--md-space-5); }
+  .ticketing-hero-overlay {
+    padding: var(--md-space-5);
+  }
 
-  h1 { font-size: clamp(2rem, 12vw, 3.35rem); }
+  h1 {
+    font-size: clamp(2rem, 12vw, 3.35rem);
+  }
 
   .section-heading,
   .wallet-heading,
@@ -535,16 +607,22 @@ h3 {
     flex-direction: column;
   }
 
-  .section-heading .md-button { width: 100%; }
+  .section-heading .md-button {
+    width: 100%;
+  }
 
   .offer-card {
     grid-template-columns: 1fr;
     align-items: stretch;
   }
 
-  .card-actions { justify-content: stretch; }
+  .card-actions {
+    justify-content: stretch;
+  }
 
-  .card-actions .md-button { flex: 1 1 9rem; }
+  .card-actions .md-button {
+    flex: 1 1 9rem;
+  }
 
   .quantity-control {
     align-items: flex-start;
@@ -553,7 +631,9 @@ h3 {
 
   .quantity-stepper {
     width: 100%;
-    grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(--md-touch-target-min);
+    grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(
+        --md-touch-target-min
+      );
   }
 
   .ticket-dialog {
@@ -568,7 +648,9 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .offer-card { transition-duration: 0.01ms; }
+  .offer-card {
+    transition-duration: 0.01ms;
+  }
 }
 
 @media (forced-colors: active) {
@@ -598,5 +680,7 @@ h3 {
     border: 1px solid CanvasText;
   }
 
-  .ticket-dialog::backdrop { background: Canvas; }
+  .ticket-dialog::backdrop {
+    background: Canvas;
+  }
 }
