@@ -842,6 +842,9 @@ export function createFinancialAdminAdapter(paymentsApi) {
     coverage: Object.freeze([
       "orders-by-id",
       "payments-by-id",
+      ...(typeof paymentsApi.adminAggregateDestinations === "function"
+        ? ["destination-revenue", "destination-attention"]
+        : []),
       "ledger-by-external-key",
       "reconciliation-findings",
       "reconciliation-run",
@@ -878,7 +881,42 @@ export function createFinancialAdminAdapter(paymentsApi) {
       return Object.freeze(results);
     },
 
+    async aggregateDestinations(input) {
+      if (typeof paymentsApi.adminAggregateDestinations !== "function") {
+        return Object.freeze({ status: "unavailable", data: null });
+      }
+      return paymentsApi.adminAggregateDestinations(input);
+    },
+
     async handle({ request, response, requestUrl }) {
+      if (
+        request.method === "GET" &&
+        requestUrl.pathname ===
+          `${adminPrefix}/financial/destinations/aggregate`
+      ) {
+        const destinationIds = requestUrl.searchParams.getAll("destinationId");
+        const result =
+          typeof paymentsApi.adminAggregateDestinations === "function"
+            ? await paymentsApi.adminAggregateDestinations({
+                destinationIds,
+                from: requestUrl.searchParams.get("from"),
+                to: requestUrl.searchParams.get("to"),
+              })
+            : { status: "unavailable", data: null };
+        if (result.status === "invalid") {
+          sendJson(response, 400, { error: "INVALID_ADMIN_QUERY" });
+          return;
+        }
+        if (result.status === "unavailable") {
+          sendJson(response, 503, {
+            error: "FINANCIAL_ADMIN_AGGREGATE_UNAVAILABLE",
+          });
+          return;
+        }
+        sendJson(response, 200, { data: result.data });
+        return;
+      }
+
       const orderMatch = /^\/api\/admin\/v1\/orders\/([A-Za-z0-9_-]+)$/u.exec(
         requestUrl.pathname,
       );
@@ -1092,6 +1130,9 @@ export function createDestinationAdminAdapter(destinationRuntime) {
     return Object.freeze({
       state: "unavailable",
       coverage: Object.freeze([]),
+      async listOwnerDestinations() {
+        return Object.freeze({ status: "unavailable", data: null });
+      },
       async handle({ response }) {
         sendJson(response, 503, {
           error: "DESTINATION_ADMIN_OWNER_UNAVAILABLE",
@@ -1120,6 +1161,16 @@ export function createDestinationAdminAdapter(destinationRuntime) {
   return Object.freeze({
     state: "ready",
     coverage: Object.freeze(["list", "detail", "create", "replace", "status"]),
+    async listOwnerDestinations() {
+      try {
+        return Object.freeze({
+          status: "found",
+          data: Object.freeze([...(await service.list())]),
+        });
+      } catch {
+        return Object.freeze({ status: "unavailable", data: null });
+      }
+    },
     async search({ query }) {
       const needle = String(query ?? "")
         .trim()
