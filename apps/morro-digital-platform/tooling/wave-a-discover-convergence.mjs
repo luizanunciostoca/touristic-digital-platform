@@ -361,10 +361,7 @@ try {
       const isTopmost = await marker.evaluate((element) => {
         const box = element.getBoundingClientRect();
         const topmost = document
-          .elementFromPoint(
-            box.left + box.width / 2,
-            box.top + box.height / 2,
-          )
+          .elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
           ?.closest(".morro-explore-marker");
         return topmost === element;
       });
