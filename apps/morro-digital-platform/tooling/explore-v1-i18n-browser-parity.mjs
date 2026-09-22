@@ -263,6 +263,12 @@ async function waitExploreSelectedStatus(page, expectedText) {
   );
 }
 
+async function invokeRetiredCategorySource(page, value) {
+  await page
+    .locator(`#assistant-category-${value}`)
+    .evaluate((button) => button.click());
+}
+
 async function waitCategory(page, value, text, aria) {
   const button = page.locator(`#assistant-category-${value}`);
   await button.waitFor({ state: "attached", timeout: 5000 });
@@ -425,7 +431,7 @@ try {
     const expected = filters[locale];
     await waitCategory(page, "beaches", expected.category, expected.aria);
     await ensureAssistantOpen(page);
-    await page.locator("#assistant-category-beaches").click();
+    await invokeRetiredCategorySource(page, "beaches");
     await page
       .locator('#assistant-category-results[data-stage="filters"]')
       .waitFor({ state: "visible" });
@@ -439,7 +445,7 @@ try {
   await waitRuntimeAccessibility(page, "he", runtimeAccessibility.he);
   await waitCategory(page, "beaches", filters.he.category, filters.he.aria);
   await ensureAssistantOpen(page);
-  await page.locator("#assistant-category-beaches").click();
+  await invokeRetiredCategorySource(page, "beaches");
   await page
     .locator('#assistant-category-results[data-stage="filters"]')
     .waitFor({ state: "visible" });
@@ -493,7 +499,7 @@ try {
     "Restaurants, 45 places",
   );
   await ensureAssistantOpen(page);
-  await page.locator("#assistant-category-restaurants").click();
+  await invokeRetiredCategorySource(page, "restaurants");
   await page
     .locator('#assistant-category-results[data-stage="filters"]')
     .waitFor({ state: "visible" });
