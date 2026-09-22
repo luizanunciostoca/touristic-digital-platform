@@ -2,15 +2,24 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const home = readFileSync(
-  new URL("../../../control-center/public/control-center-home-overview-v1.js", import.meta.url),
+  new URL(
+    "../../../control-center/public/control-center-home-overview-v1.js",
+    import.meta.url,
+  ),
   "utf8",
 );
 const css = readFileSync(
-  new URL("../../../control-center/public/control-center-home-overview-v1.css", import.meta.url),
+  new URL(
+    "../../../control-center/public/control-center-home-overview-v1.css",
+    import.meta.url,
+  ),
   "utf8",
 );
 const shell = readFileSync(
-  new URL("../../../control-center/public/control-center-shell-v1.js", import.meta.url),
+  new URL(
+    "../../../control-center/public/control-center-shell-v1.js",
+    import.meta.url,
+  ),
   "utf8",
 );
 const index = readFileSync(
@@ -73,9 +82,9 @@ describe("Control Center Home / Overview UX V1 contract", () => {
   it("loads Home after Wave 1 shell and protects non-vertical text behavior", () => {
     expect(index).toContain("control-center-shell-v1.css");
     expect(index).toContain("control-center-home-overview-v1.css");
-    expect(index.indexOf("control-center-home-overview-v1.css")).toBeGreaterThan(
-      index.indexOf("control-center-shell-v1.css"),
-    );
+    expect(
+      index.indexOf("control-center-home-overview-v1.css"),
+    ).toBeGreaterThan(index.indexOf("control-center-shell-v1.css"));
     expect(css).toContain("grid-template-columns: repeat(5");
     expect(css).toContain("grid-template-columns: repeat(4");
     expect(css).toContain("word-break: normal");

@@ -42,34 +42,41 @@ for (const count of [0, 1, 4, 7]) {
 }
 
 for (const count of [0, 1, 2, 6]) {
-  test("destination summary supports exact authorized cardinality: " + count, () => {
-    const destinations = fixtureDestinations(count);
-    const model = buildHomeModelV1({
-      dashboard: { summary: { businesses: 9 } },
-      destinations,
-      destinationAvailable: true,
-      auditAvailable: true,
-      scope: { scope: "global", destinationId: null },
-    });
-    assert.equal(model.destinations.rows.length, count);
-    assert.deepEqual(
-      model.destinations.rows.map((row) => row.destinationId),
-      destinations.map((destination) => destination.id),
-    );
-  });
+  test(
+    "destination summary supports exact authorized cardinality: " + count,
+    () => {
+      const destinations = fixtureDestinations(count);
+      const model = buildHomeModelV1({
+        dashboard: { summary: { businesses: 9 } },
+        destinations,
+        destinationAvailable: true,
+        auditAvailable: true,
+        scope: { scope: "global", destinationId: null },
+      });
+      assert.equal(model.destinations.rows.length, count);
+      assert.deepEqual(
+        model.destinations.rows.map((row) => row.destinationId),
+        destinations.map((destination) => destination.id),
+      );
+    },
+  );
 }
 
 test("does not fabricate absent owner metrics as zero", () => {
   const model = buildHomeModelV1({
     dashboard: { summary: { businesses: 12 } },
-    affiliates: Array.from({ length: 250 }, (_, index) => ({ id: String(index) })),
+    affiliates: Array.from({ length: 250 }, (_, index) => ({
+      id: String(index),
+    })),
     destinations: fixtureDestinations(1),
     affiliateAvailable: true,
     destinationAvailable: true,
     auditAvailable: false,
     scope: { scope: "global", destinationId: null },
   });
-  const byKey = Object.fromEntries(model.metrics.map((metric) => [metric.key, metric]));
+  const byKey = Object.fromEntries(
+    model.metrics.map((metric) => [metric.key, metric]),
+  );
   assert.equal(byKey.businesses.value, "12");
   assert.equal(byKey.affiliates.value, "—");
   assert.equal(byKey.affiliates.state, "partial");
@@ -103,8 +110,14 @@ test("never infers destination identity from a label", () => {
       destinationSummary: {
         status: "READY",
         items: [
-          { destinationId: "destination-1", businesses: { count: 3, status: "READY" } },
-          { destinationId: "forbidden", businesses: { count: 999, status: "READY" } },
+          {
+            destinationId: "destination-1",
+            businesses: { count: 3, status: "READY" },
+          },
+          {
+            destinationId: "forbidden",
+            businesses: { count: 999, status: "READY" },
+          },
           { name: "Destino 2", businesses: { count: 777, status: "READY" } },
         ],
       },
@@ -114,11 +127,18 @@ test("never infers destination identity from a label", () => {
     auditAvailable: true,
     scope: { scope: "global", destinationId: null },
   });
-  const row1 = model.destinations.rows.find((row) => row.destinationId === "destination-1");
-  const row2 = model.destinations.rows.find((row) => row.destinationId === "destination-2");
+  const row1 = model.destinations.rows.find(
+    (row) => row.destinationId === "destination-1",
+  );
+  const row2 = model.destinations.rows.find(
+    (row) => row.destinationId === "destination-2",
+  );
   assert.equal(row1.businesses.value, 3);
   assert.equal(row2.businesses.value, null);
-  assert.equal(model.destinations.rows.some((row) => row.destinationId === "forbidden"), false);
+  assert.equal(
+    model.destinations.rows.some((row) => row.destinationId === "forbidden"),
+    false,
+  );
 });
 
 test("filters attention and audit by exact readable destination id", () => {
@@ -139,12 +159,26 @@ test("filters attention and audit by exact readable destination id", () => {
     destinationAvailable: true,
     auditAvailable: true,
     auditEntries: [
-      { entityType: "reservation", entityId: "r1", destinationId: "destination-1" },
-      { entityType: "reservation", entityId: "r2", destinationId: "destination-2" },
+      {
+        entityType: "reservation",
+        entityId: "r1",
+        destinationId: "destination-1",
+      },
+      {
+        entityType: "reservation",
+        entityId: "r2",
+        destinationId: "destination-2",
+      },
       { entityType: "reservation", entityId: "rx", destinationId: "forbidden" },
     ],
     scope: { scope: "destination", destinationId: "destination-2" },
   });
-  assert.deepEqual(model.attention.items.map((item) => item.id), ["b"]);
-  assert.deepEqual(model.recent.items.map((item) => item.entity), ["r2"]);
+  assert.deepEqual(
+    model.attention.items.map((item) => item.id),
+    ["b"],
+  );
+  assert.deepEqual(
+    model.recent.items.map((item) => item.entity),
+    ["r2"],
+  );
 });

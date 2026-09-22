@@ -47,7 +47,11 @@ function titleCase(value) {
 
 function actorFirstName(adminSession) {
   const actor = adminSession?.actor;
-  const explicit = firstDefined(actor?.name, actor?.displayName, actor?.firstName);
+  const explicit = firstDefined(
+    actor?.name,
+    actor?.displayName,
+    actor?.firstName,
+  );
   if (typeof explicit === "string" && explicit.trim()) {
     return titleCase(explicit.trim().split(/\s+/u)[0]);
   }
@@ -100,7 +104,11 @@ function currentScope() {
 
 function metricNumber(value, status = "READY") {
   if (!Number.isFinite(Number(value))) {
-    return { value: "—", state: "unavailable", hint: "Dado owner indisponível" };
+    return {
+      value: "—",
+      state: "unavailable",
+      hint: "Dado owner indisponível",
+    };
   }
   return {
     value: new Intl.NumberFormat("pt-BR").format(Number(value)),
@@ -138,7 +146,11 @@ function formatMoneyMinor(minorUnits, currency) {
 
 function metricMoney(aggregate) {
   if (!aggregate || typeof aggregate !== "object") {
-    return { value: "—", state: "unavailable", hint: "Dado owner indisponível" };
+    return {
+      value: "—",
+      state: "unavailable",
+      hint: "Dado owner indisponível",
+    };
   }
   const formatted =
     formatMoneyMinor(aggregate.minorUnits, aggregate.currency) ??
@@ -150,7 +162,11 @@ function metricMoney(aggregate) {
         }).format(Number(aggregate.amount))
       : null);
   if (!formatted) {
-    return { value: "—", state: "unavailable", hint: "Dado owner indisponível" };
+    return {
+      value: "—",
+      state: "unavailable",
+      hint: "Dado owner indisponível",
+    };
   }
   return {
     value: formatted,
@@ -181,7 +197,10 @@ function attentionTitle(item) {
     support_open: "Solicitações de suporte abertas",
     "destination-review": "Destino requer revisão",
   };
-  return mapped[kind] ?? safeHumanCopy(item?.title, "Item operacional requer revisão");
+  return (
+    mapped[kind] ??
+    safeHumanCopy(item?.title, "Item operacional requer revisão")
+  );
 }
 
 function attentionDetail(item, destinationName) {
@@ -208,7 +227,8 @@ function sortAttention(items) {
       (severityRank[severityOf(right)] ?? 9);
     if (severity !== 0) return severity;
     const leftTime = Date.parse(left?.createdAt ?? left?.timestamp ?? "") || 0;
-    const rightTime = Date.parse(right?.createdAt ?? right?.timestamp ?? "") || 0;
+    const rightTime =
+      Date.parse(right?.createdAt ?? right?.timestamp ?? "") || 0;
     return leftTime - rightTime;
   });
 }
@@ -276,7 +296,9 @@ function destinationRow(item, destination) {
     name: destinationName(destination),
     businesses: aggregateCount(item?.businesses),
     affiliates: aggregateCount(item?.affiliates),
-    reservations: aggregateCount(firstDefined(item?.reservationsToday, item?.reservations)),
+    reservations: aggregateCount(
+      firstDefined(item?.reservationsToday, item?.reservations),
+    ),
     revenue: aggregateMoney(firstDefined(item?.revenueToday, item?.revenue)),
     alerts: aggregateCount(item?.alerts),
   };
@@ -299,15 +321,20 @@ function auditMoney(entry) {
 function activityLabel(entry) {
   const entityType = String(entry?.entityType ?? "").toLowerCase();
   const action = String(entry?.action ?? "").toLowerCase();
-  if (entityType === "reservation" || /reservation|reserva/u.test(action)) return "Reserva atualizada";
-  if (entityType === "payment" || /payment|pagamento/u.test(action)) return "Pagamento atualizado";
-  if (entityType === "business" || /business|empresa/u.test(action)) return "Empresa atualizada";
+  if (entityType === "reservation" || /reservation|reserva/u.test(action))
+    return "Reserva atualizada";
+  if (entityType === "payment" || /payment|pagamento/u.test(action))
+    return "Pagamento atualizado";
+  if (entityType === "business" || /business|empresa/u.test(action))
+    return "Empresa atualizada";
   if (
     entityType === "affiliate" ||
     entityType === "affiliate_membership" ||
     /affiliate|afiliad/u.test(action)
-  ) return "Afiliado atualizado";
-  if (/webhook|integration|integra/u.test(action)) return "Integração requer revisão";
+  )
+    return "Afiliado atualizado";
+  if (/webhook|integration|integra/u.test(action))
+    return "Integração requer revisão";
   return "Atividade administrativa";
 }
 
@@ -329,7 +356,9 @@ export function buildHomeModelV1({
 } = {}) {
   const allowedDestinations = new Map(
     (destinationAvailable ? destinations : [])
-      .filter((destination) => destination && typeof destination.id === "string")
+      .filter(
+        (destination) => destination && typeof destination.id === "string",
+      )
       .map((destination) => [destination.id, destination]),
   );
   const selectedDestination =
@@ -349,8 +378,10 @@ export function buildHomeModelV1({
   const filteredAttention = ownerItems
     .filter((item) => {
       if (!item || typeof item !== "object") return false;
-      if (item.destinationId && !allowedDestinations.has(item.destinationId)) return false;
-      if (selectedDestination && item.destinationId !== selectedDestination) return false;
+      if (item.destinationId && !allowedDestinations.has(item.destinationId))
+        return false;
+      if (selectedDestination && item.destinationId !== selectedDestination)
+        return false;
       return true;
     })
     .map((item) => {
@@ -375,13 +406,17 @@ export function buildHomeModelV1({
 
   if (!attentionAggregate && destinationAvailable) {
     for (const destination of allowedDestinations.values()) {
-      if (selectedDestination && destination.id !== selectedDestination) continue;
+      if (selectedDestination && destination.id !== selectedDestination)
+        continue;
       if (destination.status && destination.status !== "active") {
         filteredAttention.push({
           id: "destination:" + destination.id,
           count: 1,
           title: "Destino requer revisão",
-          detail: "Revise o estado operacional de " + destinationName(destination) + ".",
+          detail:
+            "Revise o estado operacional de " +
+            destinationName(destination) +
+            ".",
           severity: "warning",
           href: "#destinations:" + encodeURIComponent(destination.id),
           destinationId: destination.id,
@@ -409,7 +444,8 @@ export function buildHomeModelV1({
       : "unavailable";
 
   const destinationSummary =
-    dashboard.destinationSummary && typeof dashboard.destinationSummary === "object"
+    dashboard.destinationSummary &&
+    typeof dashboard.destinationSummary === "object"
       ? dashboard.destinationSummary
       : null;
   const summaryItems = Array.isArray(destinationSummary?.items)
@@ -426,14 +462,21 @@ export function buildHomeModelV1({
       .map((item) => [item.destinationId, item]),
   );
   const rows = [...allowedDestinations.values()]
-    .filter((destination) => !selectedDestination || destination.id === selectedDestination)
-    .map((destination) => destinationRow(summaryById.get(destination.id), destination));
+    .filter(
+      (destination) =>
+        !selectedDestination || destination.id === selectedDestination,
+    )
+    .map((destination) =>
+      destinationRow(summaryById.get(destination.id), destination),
+    );
 
   const recent = (auditAvailable ? auditEntries : [])
     .filter((entry) => {
       if (!entry || typeof entry !== "object") return false;
-      if (entry.destinationId && !allowedDestinations.has(entry.destinationId)) return false;
-      if (selectedDestination) return entry.destinationId === selectedDestination;
+      if (entry.destinationId && !allowedDestinations.has(entry.destinationId))
+        return false;
+      if (selectedDestination)
+        return entry.destinationId === selectedDestination;
       return true;
     })
     .slice(0, MAX_RECENT_ACTIVITY)
@@ -475,7 +518,10 @@ export function buildHomeModelV1({
     dashboard.summary?.affiliatesStatus &&
     Number.isFinite(Number(dashboard.summary?.affiliates))
       ? {
-          ...metricNumber(dashboard.summary.affiliates, dashboard.summary.affiliatesStatus),
+          ...metricNumber(
+            dashboard.summary.affiliates,
+            dashboard.summary.affiliatesStatus,
+          ),
           hint: "Total global · Affiliates owner",
         }
       : {
@@ -561,7 +607,11 @@ export function buildHomeModelV1({
       rows,
     },
     recent: {
-      state: !auditAvailable ? "unavailable" : recent.length ? "success" : "empty",
+      state: !auditAvailable
+        ? "unavailable"
+        : recent.length
+          ? "success"
+          : "empty",
       items: recent,
     },
     affiliateOwnerKnown: affiliateAvailable,
@@ -572,12 +622,20 @@ export function buildHomeModelV1({
 function iconSvg(kind) {
   const paths = {
     businesses: '<path d="M5 20V5h10v15M15 9h4v11M8 8h4M8 12h4M8 16h4"></path>',
-    affiliates: '<circle cx="6" cy="7" r="2"></circle><circle cx="18" cy="7" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="m7.7 8.1 3.1 7.6M16.3 8.1l-3.1 7.6M8 7h8"></path>',
-    reservations: '<rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path>',
-    revenue: '<circle cx="12" cy="12" r="8"></circle><path d="M15 9.5c-.7-.8-1.7-1.2-3-1.2-1.7 0-3 .8-3 2s1.1 1.8 3.1 2.2c2 .4 2.9 1 2.9 2.2 0 1.3-1.3 2.1-3 2.1-1.4 0-2.5-.4-3.3-1.3M12 6.8v10.4"></path>',
-    alerts: '<path d="M12 4 3.8 19h16.4L12 4Z"></path><path d="M12 9v4M12 16h.01"></path>',
+    affiliates:
+      '<circle cx="6" cy="7" r="2"></circle><circle cx="18" cy="7" r="2"></circle><circle cx="12" cy="18" r="2"></circle><path d="m7.7 8.1 3.1 7.6M16.3 8.1l-3.1 7.6M8 7h8"></path>',
+    reservations:
+      '<rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path>',
+    revenue:
+      '<circle cx="12" cy="12" r="8"></circle><path d="M15 9.5c-.7-.8-1.7-1.2-3-1.2-1.7 0-3 .8-3 2s1.1 1.8 3.1 2.2c2 .4 2.9 1 2.9 2.2 0 1.3-1.3 2.1-3 2.1-1.4 0-2.5-.4-3.3-1.3M12 6.8v10.4"></path>',
+    alerts:
+      '<path d="M12 4 3.8 19h16.4L12 4Z"></path><path d="M12 9v4M12 16h.01"></path>',
   };
-  return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (paths[kind] ?? paths.alerts) + "</svg>";
+  return (
+    '<svg viewBox="0 0 24 24" aria-hidden="true">' +
+    (paths[kind] ?? paths.alerts) +
+    "</svg>"
+  );
 }
 
 function metricMarkup(metric) {
@@ -650,7 +708,8 @@ function attentionMarkup(attention) {
 
 function cellMarkup(metric, kind) {
   const state = metric?.status ?? "UNAVAILABLE";
-  const value = kind === "money" ? metric?.value ?? "—" : displayCount(metric ?? {});
+  const value =
+    kind === "money" ? (metric?.value ?? "—") : displayCount(metric ?? {});
   return (
     '<span class="home-table-value" data-state="' +
     escapeHtml(state.toLowerCase()) +
@@ -669,7 +728,7 @@ function destinationsMarkup(destinations) {
             escapeHtml(row.destinationId) +
             '"><span class="home-destination-mark" aria-hidden="true">⌖</span><span><strong>' +
             escapeHtml(row.name) +
-            '</strong><small>Entrar neste destino</small></span></button></td><td>' +
+            "</strong><small>Entrar neste destino</small></span></button></td><td>" +
             cellMarkup(row.businesses) +
             "</td><td>" +
             cellMarkup(row.affiliates) +
@@ -715,15 +774,21 @@ function recentMarkup(recent) {
           (item) =>
             '<li><span class="home-activity-dot" aria-hidden="true"></span><time>' +
             escapeHtml(formatActivityTime(item.timestamp)) +
-            '</time><div><strong>' +
+            "</time><div><strong>" +
             escapeHtml(item.label) +
             "</strong>" +
             (item.entity
-              ? '<span class="home-activity-entity">' + escapeHtml(item.entity) + "</span>"
+              ? '<span class="home-activity-entity">' +
+                escapeHtml(item.entity) +
+                "</span>"
               : "") +
             "<p>" +
             escapeHtml(
-              [item.destination, item.value, item.actor ? "por " + item.actor : null]
+              [
+                item.destination,
+                item.value,
+                item.actor ? "por " + item.actor : null,
+              ]
                 .filter(Boolean)
                 .join(" · ") || "Contexto administrativo",
             ) +
@@ -770,8 +835,13 @@ function bindDestinationRows(content) {
         (option) => option.value === destinationId,
       );
       if (!authorized) {
-        button.setAttribute("aria-describedby", "home-destination-context-status");
-        const status = document.querySelector("#home-destination-context-status");
+        button.setAttribute(
+          "aria-describedby",
+          "home-destination-context-status",
+        );
+        const status = document.querySelector(
+          "#home-destination-context-status",
+        );
         if (status) {
           status.textContent =
             "Destino indisponível no contexto autorizado. Nenhuma seleção foi inferida.";
@@ -831,7 +901,8 @@ export async function renderHomeOverviewV1({
   const breadcrumb = document.querySelector("#breadcrumb");
   const actions = document.querySelector("#page-actions");
   if (title) title.textContent = greetingFor(now) + ", " + firstName;
-  if (description) description.textContent = "Resumo da operação da plataforma.";
+  if (description)
+    description.textContent = "Resumo da operação da plataforma.";
   if (breadcrumb) breadcrumb.textContent = "Control Center / Visão Geral";
   if (actions) {
     actions.innerHTML =
