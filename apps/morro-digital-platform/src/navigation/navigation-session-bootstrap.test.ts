@@ -270,6 +270,41 @@ describe("navigation session bootstrap", () => {
     ).toEqual([...NAVIGATION_BOOTSTRAP_ATTEMPT_TIMEOUTS_MS]);
   });
 
+  it("fails closed immediately when GPS permission is denied", async () => {
+    const context = setupBrowserAcquisition();
+    context.getCurrentPosition.mockImplementation((_success, error) => {
+      error({
+        code: 1,
+        message: "permission denied",
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+      });
+    });
+
+    await expect(
+      context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
+    ).rejects.toThrow("PERMISSION_DENIED");
+
+    expect(context.getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(context.requestRouteImpl).not.toHaveBeenCalled();
+    expect(context.createWiring).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the routing provider is unavailable", async () => {
+    const context = setup();
+    context.requestRouteImpl.mockRejectedValueOnce(
+      new Error("ROUTING_HTTP_ERROR"),
+    );
+
+    await expect(
+      context.bootstrap.start({ longitude: -38.916, latitude: -13.375 }),
+    ).rejects.toThrow("ROUTING_HTTP_ERROR");
+
+    expect(context.wiringStart).not.toHaveBeenCalled();
+    expect(context.bootstrap.isActive()).toBe(false);
+  });
+
   it("reuses a recent acceptable location without repeating GPS acquisition", async () => {
     rememberBrowserLocation({
       latitude: -13.376,
