@@ -84,9 +84,7 @@ describe("Control Center UX V1 shell contract", () => {
   it("keeps the sidebar below the topbar and independently scrollable", () => {
     expect(css).toContain("--md-sidebar-width: 224px");
     expect(css).toContain("--md-topbar-height: 64px");
-    expect(css).toContain(
-      "inset: var(--md-topbar-height) auto 0 0",
-    );
+    expect(css).toContain("inset: var(--md-topbar-height) auto 0 0");
     expect(css).toContain("overflow-y: auto");
     expect(css).toContain("overflow-x: hidden");
     expect(css).toContain("overscroll-behavior: contain");
