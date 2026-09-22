@@ -358,14 +358,16 @@ try {
       const marker = beachMarkers.nth(index);
       const box = await marker.boundingBox();
       if (!box) continue;
-      const isTopmost = await page.evaluate(
-        ({ x, y }) =>
-          document
-            .elementFromPoint(x, y)
-            ?.closest(".morro-explore-marker")?.dataset.morroExploreMarker ===
-          "true",
-        { x: box.x + box.width / 2, y: box.y + box.height / 2 },
-      );
+      const isTopmost = await marker.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const topmost = document
+          .elementFromPoint(
+            box.left + box.width / 2,
+            box.top + box.height / 2,
+          )
+          ?.closest(".morro-explore-marker");
+        return topmost === element;
+      });
       if (isTopmost) {
         clickableBeachIndex = index;
         break;
