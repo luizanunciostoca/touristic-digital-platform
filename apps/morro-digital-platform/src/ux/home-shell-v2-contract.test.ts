@@ -116,7 +116,7 @@ describe("Home / Discover V2 visual shell", () => {
       'Object.freeze({ selectors: ["#assistant-input-area"] })',
     );
     expect(interactiveTour).toContain(
-      'Object.freeze({ selectors: ["#voiceButton"] })',
+      'Object.freeze({ selectors: ["#voiceButton", "#assistant-input-area"] })',
     );
     expect(interactiveTour).toContain(
       'Object.freeze({ selectors: ["#home-profile-button"] })',
