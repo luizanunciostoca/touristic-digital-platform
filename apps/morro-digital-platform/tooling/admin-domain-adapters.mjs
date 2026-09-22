@@ -118,21 +118,25 @@ export function createAffiliateAdminAdapter(affiliateAdminRuntime) {
       "destination-filter",
     ]),
 
-    async search({ query, actor, destinationId }) {
+    async search({ query, actor, destinationId, limit }) {
       const result = await affiliateAdminRuntime.adminList(actor, {
         query,
         destinationId,
-        limit: 10,
+        limit: Math.min(Number(limit) || 10, 50),
       });
-      if (result.status !== "found") return [];
+      const data = ownerSearchData(
+        result,
+        "AFFILIATE_ADMIN_SEARCH_UNAVAILABLE",
+      );
       return Object.freeze(
-        result.data.map((affiliate) =>
+        data.map((affiliate) =>
           Object.freeze({
             type: "affiliate",
             id: affiliate.affiliateId,
             title: affiliate.identityReference || affiliate.affiliateId,
             context: `${affiliate.status} · ${affiliate.approvedMembershipCount} programa(s) aprovado(s)`,
             href: `#affiliates:${encodeURIComponent(affiliate.affiliateId)}`,
+            ...(destinationId ? { destinationId } : {}),
           }),
         ),
       );
@@ -263,6 +267,8 @@ export function createCrmAdminAdapter(crmApi, authApi) {
 
   return Object.freeze({
     state: "available",
+    searchCapability: "crm.read",
+    searchDestinationAware: true,
     coverage: Object.freeze([
       "contracts",
       "follow-ups",
@@ -273,50 +279,93 @@ export function createCrmAdminAdapter(crmApi, authApi) {
       "referrals",
       "trials",
       "search",
+      "destination-filtered-lead-search",
     ]),
-    async search({ query, request, effectiveUser, destinationId }) {
+    async search({ query, request, effectiveUser, destinationId, limit }) {
       if (!request || !query) return [];
-      const response = jsonCaptureResponse();
-      const requestUrl = new URL("http://localhost/api/crm/leads");
-      requestUrl.searchParams.set("search", query);
-      requestUrl.searchParams.set("limit", "20");
-      if (destinationId) {
-        requestUrl.searchParams.set("destinationId", destinationId);
+      const resultLimit = Math.min(Number(limit) || 20, 50);
+
+      async function ownerList(requestUrl) {
+        const response = jsonCaptureResponse();
+        await withEffectiveUser(delegation, request, effectiveUser, () =>
+          crmApi.handle(request, response, requestUrl),
+        );
+        if (response.statusCode !== 200) {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_UNAVAILABLE");
+        }
+        let payload;
+        try {
+          payload = JSON.parse(response.body || "{}");
+        } catch {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_INVALID_RESPONSE");
+        }
+        if (!Array.isArray(payload.data)) {
+          throw new Error("CRM_ADMIN_SEARCH_OWNER_INVALID_RESPONSE");
+        }
+        return payload.data;
       }
 
-      await withEffectiveUser(delegation, request, effectiveUser, () =>
-        crmApi.handle(request, response, requestUrl),
+      const leadUrl = new URL("http://localhost/api/crm/leads");
+      leadUrl.searchParams.set("search", query);
+      leadUrl.searchParams.set("limit", String(resultLimit));
+      if (destinationId) leadUrl.searchParams.set("destinationId", destinationId);
+      const leads = await ownerList(leadUrl);
+
+      const results = leads.map((lead) =>
+        Object.freeze({
+          type: "lead",
+          id: String(lead.id),
+          title: lead.companyName || String(lead.id),
+          context:
+            [lead.destinationId, lead.contactName, lead.email, lead.stage, lead.status]
+              .filter(Boolean)
+              .join(" · ") || "CRM",
+          href:
+            "/apps/admin-crm/public/lead-detail.html?id=" +
+            encodeURIComponent(String(lead.id)),
+          ...(lead.destinationId ? { destinationId: lead.destinationId } : {}),
+        }),
       );
-      if (response.statusCode !== 200) return [];
 
-      let payload;
-      try {
-        payload = JSON.parse(response.body || "{}");
-      } catch {
-        return [];
-      }
-      const leads = Array.isArray(payload.data) ? payload.data : [];
-      return Object.freeze(
-        leads.map((lead) =>
-          Object.freeze({
-            type: "crm-lead",
-            id: String(lead.id),
-            title: lead.companyName || String(lead.id),
-            context:
-              [
-                lead.destinationId,
-                lead.contactName,
-                lead.email,
-                lead.stage,
-                lead.status,
+      if (!destinationId) {
+        const contracts = await ownerList(
+          new URL("http://localhost/api/crm/contracts"),
+        );
+        const needle = foldSearchText(query);
+        for (const contract of contracts) {
+          const searchable = foldSearchText(
+            [
+              contract.id,
+              contract.title,
+              contract.leadId,
+              contract.proposalId,
+              contract.status,
+            ]
+              .filter((value) => value !== undefined && value !== null)
+              .join(" "),
+          );
+          if (!searchable.includes(needle)) continue;
+          results.push(
+            Object.freeze({
+              type: "contract",
+              id: String(contract.id),
+              title: contract.title || String(contract.id),
+              context: [
+                contract.status,
+                contract.leadId && "Lead " + contract.leadId,
               ]
                 .filter(Boolean)
-                .join(" · ") || "CRM",
-            href: "#crm",
-          }),
-        ),
-      );
+                .join(" · "),
+              href:
+                "/apps/admin-crm/public/contracts.html?id=" +
+                encodeURIComponent(String(contract.id)),
+            }),
+          );
+        }
+      }
+      return Object.freeze(results.slice(0, resultLimit));
     },
+
     async handle({ request, response, requestUrl, effectiveUser }) {
       const relative = requestUrl.pathname.slice(`${adminPrefix}/crm`.length);
       if (!relative || relative === "/") {
