@@ -84,13 +84,6 @@ const copyByLanguage = Object.freeze<Record<string, SheetCopy>>({
   },
 });
 
-const stateGlyph: Readonly<Record<ExploreFlowBottomSheetState, string>> =
-  Object.freeze({
-    peek: "⌄",
-    half: "—",
-    full: "⌃",
-  });
-
 function languageKey(document: Document): string {
   const raw = document.documentElement.lang.trim().toLowerCase();
   if (raw.startsWith("en")) return "en";
@@ -106,18 +99,21 @@ function currentCopy(document: Document): SheetCopy {
 function isPrimaryTourAction(value: string): boolean {
   return ["__tour_start__", "__tour_next__", "__tour_finish__"].includes(value);
 }
-function createStateButton(
+function createStepButton(
   document: Document,
-  state: ExploreFlowBottomSheetState,
+  direction: "up" | "down",
   copy: SheetCopy,
 ): HTMLButtonElement {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "md-icon-button explore-flow-sheet-state-button";
-  button.dataset.sheetStateTarget = state;
-  button.setAttribute("aria-label", copy.states[state]);
-  button.title = copy.states[state];
-  button.textContent = stateGlyph[state];
+  button.dataset.sheetStep = direction;
+  button.setAttribute(
+    "aria-label",
+    direction === "up" ? copy.states.full : copy.states.peek,
+  );
+  button.title = direction === "up" ? copy.states.full : copy.states.peek;
+  button.textContent = direction === "up" ? "⌃" : "⌄";
   return button;
 }
 
@@ -221,13 +217,17 @@ export function installExploreFlowBottomSheet({
     if (destroyed) return;
     state = nextState;
     sheet.dataset.sheetState = nextState;
+    const order: readonly ExploreFlowBottomSheetState[] = [
+      "peek",
+      "half",
+      "full",
+    ];
+    const current = order.indexOf(nextState);
     for (const child of Array.from(stateControls.children)) {
       if (!(child instanceof HTMLButtonElement)) continue;
-      if (!child.dataset.sheetStateTarget) continue;
-      child.setAttribute(
-        "aria-pressed",
-        String(child.dataset.sheetStateTarget === nextState),
-      );
+      const direction = child.dataset.sheetStep;
+      if (direction === "down") child.disabled = current <= 0;
+      if (direction === "up") child.disabled = current >= order.length - 1;
     }
   };
 
@@ -267,9 +267,9 @@ export function installExploreFlowBottomSheet({
   const rebuildStateControls = (): void => {
     const copy = currentCopy(document);
     stateControls.replaceChildren();
-    for (const target of ["peek", "half", "full"] as const) {
-      const button = createStateButton(document, target, copy);
-      button.addEventListener("click", () => setState(target));
+    for (const direction of ["down", "up"] as const) {
+      const button = createStepButton(document, direction, copy);
+      button.addEventListener("click", () => dragStep(direction));
       stateControls.appendChild(button);
     }
     close.setAttribute("aria-label", copy.close);
