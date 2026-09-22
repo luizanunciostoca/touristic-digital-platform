@@ -381,6 +381,24 @@ export function createV1ImmersiveTourController(
       "div",
       "tour-active-header",
     );
+    if (stop.photoPath) {
+      const compactThumb = createElement(
+        document,
+        "img",
+        "tour-active-thumb",
+      );
+      compactThumb.src = stop.photoPath;
+      compactThumb.alt = "";
+      compactThumb.setAttribute("aria-hidden", "true");
+      compactThumb.addEventListener(
+        "error",
+        () => {
+          compactThumb.hidden = true;
+        },
+        { once: true },
+      );
+      compactHeader.appendChild(compactThumb);
+    }
     compactHeader.appendChild(
       createElement(document, "strong", "tour-active-tour-title", tour.title),
     );
@@ -418,6 +436,29 @@ export function createV1ImmersiveTourController(
       ),
     );
     card.appendChild(progressBar);
+
+    const progressSegments = createElement(
+      document,
+      "div",
+      "tour-stop-progress-segments",
+    );
+    progressSegments.setAttribute("aria-hidden", "true");
+    progressSegments.style.gridTemplateColumns = `repeat(${tour.stops.length}, minmax(0, 1fr))`;
+    tour.stops.forEach((_, index) => {
+      const segment = createElement(
+        document,
+        "span",
+        `tour-stop-progress-segment${
+          index === state.currentStopIndex
+            ? " is-current"
+            : index < state.currentStopIndex
+              ? " is-complete"
+              : ""
+        }`,
+      );
+      progressSegments.appendChild(segment);
+    });
+    card.appendChild(progressSegments);
 
     if (stop.photoPath) {
       const photoWrap = createElement(document, "div", "tour-stop-photo-wrap");
