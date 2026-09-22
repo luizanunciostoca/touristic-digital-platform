@@ -381,20 +381,39 @@ export function createV1ImmersiveTourController(
       "div",
       "tour-active-header",
     );
+    const compactThumb = createElement(
+      document,
+      "span",
+      "tour-active-thumb",
+      "🗺️",
+    );
+    compactThumb.setAttribute("aria-hidden", "true");
     if (stop.photoPath) {
-      const compactThumb = createElement(document, "img", "tour-active-thumb");
-      compactThumb.src = stop.photoPath;
-      compactThumb.alt = "";
-      compactThumb.setAttribute("aria-hidden", "true");
-      compactThumb.addEventListener(
-        "error",
+      const compactThumbImage = createElement(
+        document,
+        "img",
+        "tour-active-thumb-image",
+      );
+      compactThumbImage.src = stop.photoPath;
+      compactThumbImage.alt = "";
+      compactThumbImage.addEventListener(
+        "load",
         () => {
-          compactThumb.hidden = true;
+          compactThumb.replaceChildren(compactThumbImage);
         },
         { once: true },
       );
-      compactHeader.appendChild(compactThumb);
+      compactThumbImage.addEventListener(
+        "error",
+        () => {
+          compactThumb.dataset.mediaState = "missing";
+        },
+        { once: true },
+      );
+    } else {
+      compactThumb.dataset.mediaState = "missing";
     }
+    compactHeader.appendChild(compactThumb);
     compactHeader.appendChild(
       createElement(document, "strong", "tour-active-tour-title", tour.title),
     );
