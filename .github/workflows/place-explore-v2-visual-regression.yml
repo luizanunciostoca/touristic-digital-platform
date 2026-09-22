@@ -433,7 +433,9 @@ jobs:
 
                 const placeState = await place.evaluate(sheet => {
                   const image = sheet.querySelector('.place-bottom-sheet-image');
-                  const buttons = Array.from(sheet.querySelectorAll('button'));
+                  const buttons = Array.from(
+                    sheet.querySelectorAll('button, summary'),
+                  );
                   const visibleValues = Array.from(
                     sheet.querySelectorAll('.place-bottom-sheet-actions .place-bottom-sheet-action'),
                     button => button.getAttribute('data-value'),
@@ -545,6 +547,53 @@ jobs:
                   fullPage: false,
                   animations: 'disabled',
                 });
+
+                let themeEvidence = null;
+                if (viewport.id === 'w390') {
+                  await page.evaluate(() => {
+                    document.documentElement.dataset.theme = 'dark';
+                  });
+                  const darkPresentation = await place.evaluate(node => {
+                    const style = getComputedStyle(node);
+                    return {
+                      backgroundColor: style.backgroundColor,
+                      color: style.color,
+                    };
+                  });
+                  if (
+                    !darkPresentation.backgroundColor ||
+                    darkPresentation.backgroundColor === 'rgba(0, 0, 0, 0)' ||
+                    darkPresentation.backgroundColor === darkPresentation.color
+                  ) {
+                    throw new Error(
+                      `Place dark theme lost readable surface: ${JSON.stringify(darkPresentation)}`,
+                    );
+                  }
+                  await page.screenshot({
+                    path: '/tmp/place-explore-v2/place-w390-dark.png',
+                    fullPage: false,
+                    animations: 'disabled',
+                  });
+                  await page.evaluate(() => {
+                    document.documentElement.dataset.theme = 'light';
+                  });
+
+                  await page.emulateMedia({ reducedMotion: 'reduce' });
+                  const reducedMotion = await place.evaluate(node => ({
+                    transitionDuration: getComputedStyle(node).transitionDuration,
+                  }));
+                  if (
+                    !reducedMotion.transitionDuration
+                      .split(',')
+                      .every(value => Number.parseFloat(value) <= 0.01)
+                  ) {
+                    throw new Error(
+                      `Place reduced-motion contract drift: ${JSON.stringify(reducedMotion)}`,
+                    );
+                  }
+                  await page.emulateMedia({ reducedMotion: 'no-preference' });
+                  themeEvidence = { darkPresentation, reducedMotion };
+                }
 
                 const stateSequence = [
                   { step: 'down', state: 'peek' },
@@ -849,6 +898,7 @@ jobs:
                   placeState,
                   initialPlaceGeometry,
                   placeGeometry,
+                  themeEvidence,
                   perf,
                   special,
                 });
