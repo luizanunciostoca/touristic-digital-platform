@@ -499,6 +499,9 @@ jobs:
               }
 
               transactionalState.quoteMinor = 15900;
+              transactionalState.quoteExpiresAt = iso(60000);
+              await transactionalPage.locator('#quantity-increase').click();
+              await transactionalPage.locator('#summary-subtotal').filter({ hasNotText: '—' }).waitFor({ state: 'visible' });
               transactionalState.quoteExpiresAt = iso(-1000);
               await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
               await transactionalPage.locator('#reserve-button').click();
@@ -528,6 +531,8 @@ jobs:
               await transactionalPage.locator('#quantity-increase').click();
               await transactionalPage.locator('#reserve-button:not([disabled])').waitFor({ state: 'visible' });
               transactionalState.reservationDelay = 300;
+              transactionalState.reservationError = 'TICKETING_UNAVAILABLE';
+              transactionalState.reservationStatus = 503;
               await Promise.all([
                 transactionalPage.locator('#reserve-button').click(),
                 transactionalPage.locator('#reserve-button').click({ force: true }),
