@@ -228,7 +228,11 @@ describe("Platform production operations", () => {
     expect(response.header("x-release-version")).toBe("2.0.0");
     expect(response.header("x-deployment-id")).toBe("deploy-42");
     const csp = response.header("content-security-policy");
-    expect(csp.match(/'sha256-[^']+'/gu)).toHaveLength(3);
+    const approvedHashes = csp.match(/'sha256-[^']+'/gu) ?? [];
+    expect(approvedHashes).toHaveLength(4);
+    expect(approvedHashes).toContain(
+      "'sha256-m9MUQ/+BUddSCZ5DPZMI8S+y6QXRnFWyJY1IXWFwTX4='",
+    );
     expect(csp).toContain("script-src-attr 'none'");
   });
 

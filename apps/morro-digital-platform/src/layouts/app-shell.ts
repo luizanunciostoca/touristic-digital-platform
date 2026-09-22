@@ -55,6 +55,20 @@ function createAppShellMarkup(): string {
         </div>
       </section>
 
+      <div
+        id="discover-category-rail"
+        class="md-discover-category-rail"
+        role="group"
+        aria-label="Explorar por categoria"
+        data-discover-category-rail
+      >
+        <button type="button" class="md-discover-chip" data-discover-category="beaches" aria-pressed="false">Praias</button>
+        <button type="button" class="md-discover-chip" data-discover-category="restaurants" aria-pressed="false">Restaurantes</button>
+        <button type="button" class="md-discover-chip" data-discover-category="hotels" aria-pressed="false">Pousadas</button>
+        <button type="button" class="md-discover-chip" data-discover-category="attractions" aria-pressed="false">Passeios</button>
+        <button type="button" class="md-discover-chip" data-discover-category="nightlife" aria-pressed="false">Noite</button>
+      </div>
+
       <section id="submenu" class="hidden">
         <div class="submenu-header">
           <h3 class="submenu-title" data-i18n="submenu_title_explore_places">Explorar locais</h3>
@@ -197,7 +211,21 @@ function createAppShellMarkup(): string {
         </button>
       </nav>
 
-      <div id="globe-map-control" class="globe-map-control md-map-control-stack">
+      <div id="globe-map-control" class="globe-map-control md-map-control-stack" aria-label="Controles do mapa">
+        <button
+          type="button"
+          id="recenter-map-control"
+          class="map-control-button md-icon-button md-map-control"
+          title="Centralizar no Morro ou na sua localização"
+          aria-label="Centralizar mapa no Morro ou na sua localização"
+          data-map-control="recenter"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11Z"></path>
+            <circle cx="12" cy="10" r="2.2"></circle>
+          </svg>
+          <span class="control-tooltip">Centralizar</span>
+        </button>
         <button
           type="button"
           id="toggle-globe-view"

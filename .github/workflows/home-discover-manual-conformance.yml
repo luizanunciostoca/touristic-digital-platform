@@ -87,9 +87,9 @@ jobs:
             exit 1
           }
           VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
-          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/satellite-streets-v12 \
           VITE_MAPBOX_CONTAINER_ID=map \
-          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          VITE_MAPBOX_INITIAL_ZOOM=14.8 \
           node apps/morro-digital-platform/tooling/dev-server.mjs \
             >/tmp/home-discover-manual/server.log 2>&1 &
           echo $! >/tmp/home-discover-manual/server.pid
@@ -102,6 +102,11 @@ jobs:
 
       - name: Validate Home / Discover against manual authority
         run: node apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs
+
+      - name: Validate Wave A Discover convergence
+        env:
+          WAVE_A_EVIDENCE_DIR: /tmp/home-discover-manual/wave-a
+        run: node apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs
 
       - name: Show server diagnostics
         if: failure()

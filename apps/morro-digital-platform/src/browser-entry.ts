@@ -1,8 +1,11 @@
+import { normalizeAssistantVoiceLanguage } from "@touristic/assistant";
 import type {
   MapboxGlMapLike,
   MapboxGlMarkerLike,
   MapboxGlModuleLike,
+  MapMarker,
 } from "@touristic/geospatial";
+import { morroV1SearchCatalog } from "@touristic/search";
 
 import {
   installBrowserAnalyticsConsentPreferences,
@@ -34,6 +37,8 @@ import {
   installGlobalViewControl,
   type GlobalViewControl,
 } from "./map/global-view-control.js";
+import { getExploreLocationsCategories } from "./map/explore-locations-control.js";
+import { createV1ExploreMarkerElement } from "./map/explore-marker-element.js";
 import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
 import {
   loadPublicDestination,
@@ -74,6 +79,16 @@ const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 const TOUR_CAMERA_DURATION_MS = 2000;
 const TOUR_CAMERA_TIMEOUT_MS = 3500;
+const DISCOVER_HOME_ZOOM = 14.8;
+const DISCOVER_POI_CATEGORIES = Object.freeze([
+  "beaches",
+  "restaurants",
+  "hotels",
+  "attractions",
+  "nightlife",
+  "shops",
+  "transport",
+] as const);
 const SPLASH_VISIBLE_MS = 800;
 const SPLASH_FADE_MS = 550;
 
@@ -85,6 +100,104 @@ const privacyPreferences = installBrowserAnalyticsConsentPreferences({
 });
 
 const application = bootstrapMorroDigitalApplication(document);
+
+function discoverInitialMarkers(): readonly MapMarker[] {
+  const selected = DISCOVER_POI_CATEGORIES.flatMap((category) =>
+    morroV1SearchCatalog
+      .filter((location) => location.category === category)
+      .slice(0, category === "beaches" ? 2 : 1),
+  );
+  return Object.freeze(
+    selected.map((location, index) =>
+      Object.freeze({
+        id: `explore:${location.category}:discover:${index}`,
+        position: Object.freeze({
+          latitude: location.latitude,
+          longitude: location.longitude,
+        }),
+        label: location.name,
+      }),
+    ),
+  );
+}
+
+function installDiscoverCategoryRail(): void {
+  const rail = document.getElementById("discover-category-rail");
+  if (!rail) return;
+  const buttons = Array.from(
+    rail.querySelectorAll<HTMLButtonElement>("[data-discover-category]"),
+  );
+
+  const synchronizeLabels = (): void => {
+    const locale = normalizeAssistantVoiceLanguage(
+      document.documentElement.lang,
+    );
+    const categories = new Map(
+      getExploreLocationsCategories(locale).map((category) => [
+        category.value,
+        category,
+      ]),
+    );
+    for (const button of buttons) {
+      const value = button.dataset.discoverCategory ?? "";
+      const category = categories.get(value);
+      if (!category) continue;
+      button.textContent = category.label;
+      button.setAttribute(
+        "aria-label",
+        `${category.label} · ${category.count} locais`,
+      );
+    }
+  };
+
+  for (const button of buttons) {
+    button.addEventListener("click", () => {
+      const category = button.dataset.discoverCategory;
+      if (!category) return;
+      void application.exploreLocations.execute({
+        type: "open_category",
+        category,
+      });
+    });
+  }
+
+  document.addEventListener("morro:explore-state-changed", () => {
+    const activeCategory = mapContainer?.dataset.exploreCategory ?? null;
+    for (const button of buttons) {
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.discoverCategory === activeCategory),
+      );
+    }
+  });
+
+  const observer = new MutationObserver(synchronizeLabels);
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
+  synchronizeLabels();
+}
+
+installDiscoverCategoryRail();
+
+document.addEventListener("click", (event) => {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  const marker = target.closest<HTMLElement>(".morro-explore-marker");
+  if (!marker) return;
+  const place = marker.dataset.locationName?.trim();
+  const category = marker.dataset.exploreCategory?.trim();
+  if (!place || !category) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void application.exploreLocations.execute({
+    type: "select_place",
+    place,
+    category,
+  });
+});
+
 installHomeDiscoverNavigation({
   document,
   openPrivacyPreferences: () => privacyPreferences.open(),
@@ -159,7 +272,7 @@ const developmentEnvironment = Object.freeze({
   VITE_MAPBOX_ACCESS_TOKEN: "development-only-token",
   VITE_MAPBOX_CONTAINER_ID: "map",
   VITE_MAPBOX_STYLE: "development://morro-digital",
-  VITE_MAPBOX_INITIAL_ZOOM: "13.5",
+  VITE_MAPBOX_INITIAL_ZOOM: String(DISCOVER_HOME_ZOOM),
 });
 
 const status = document.getElementById("runtime-status");
@@ -171,6 +284,10 @@ const mapStyleReadiness = createMapStyleReadinessTracker();
 let activeNavigationRuntimeInstall: BrowserNavigationRuntimeInstall | undefined;
 let activeGlobalViewControl: GlobalViewControl | undefined;
 let activeCurrentLocationMarker: MapboxGlMarkerLike | undefined;
+let activeCurrentLocation: readonly [number, number] | undefined;
+let activeDiscoverRecenterCleanup: (() => void) | undefined;
+let activeDiscoverPoiMarkers: MapboxGlMarkerLike[] = [];
+let activeDiscoverPoiCleanup: (() => void) | undefined;
 
 installTouristExperienceSnapshotCapture({
   document,
@@ -180,13 +297,123 @@ installTouristExperienceSnapshotCapture({
 });
 
 function clearBrowserNavigationRuntime(): void {
+  activeDiscoverRecenterCleanup?.();
+  activeDiscoverRecenterCleanup = undefined;
+  activeDiscoverPoiCleanup?.();
+  activeDiscoverPoiCleanup = undefined;
+  for (const marker of activeDiscoverPoiMarkers) marker.remove();
+  activeDiscoverPoiMarkers = [];
   activeCurrentLocationMarker?.remove();
   activeCurrentLocationMarker = undefined;
+  activeCurrentLocation = undefined;
   mapContainer?.removeAttribute("data-current-location");
+  mapContainer?.removeAttribute("data-geolocation-state");
   activeGlobalViewControl?.destroy();
   activeGlobalViewControl = undefined;
   activeNavigationRuntimeInstall?.destroy();
   activeNavigationRuntimeInstall = undefined;
+}
+
+function presentCurrentLocation(
+  map: MapboxGlMapLike,
+  sdk: MapboxGlModuleLike,
+  longitude: number,
+  latitude: number,
+): void {
+  if (activeRealMap !== map) return;
+  activeCurrentLocationMarker?.remove();
+  const element = document.createElement("div");
+  element.className = "md-current-location-marker";
+  element.setAttribute("aria-hidden", "true");
+  activeCurrentLocation = Object.freeze([longitude, latitude]);
+  activeCurrentLocationMarker = new sdk.Marker({ element, anchor: "center" })
+    .setLngLat([longitude, latitude])
+    .addTo(map);
+  mapContainer?.setAttribute("data-current-location", "visible");
+  mapContainer?.setAttribute("data-geolocation-state", "granted");
+}
+
+function installDiscoverPoiMarkers(
+  map: MapboxGlMapLike,
+  sdk: MapboxGlModuleLike,
+): () => void {
+  const markerModels = discoverInitialMarkers();
+  const entries = markerModels.flatMap((markerModel) => {
+    const element = createV1ExploreMarkerElement({
+      id: markerModel.id,
+      ...(markerModel.label ? { label: markerModel.label } : {}),
+    });
+    if (!element) return [];
+    element.dataset.discoverInitialPoi = "true";
+    const marker = new sdk.Marker({ element, anchor: "center" }).setLngLat([
+      markerModel.position.longitude,
+      markerModel.position.latitude,
+    ]);
+    return [{ marker, element, mounted: false }];
+  });
+
+  activeDiscoverPoiMarkers = entries.map(({ marker }) => marker);
+  mapContainer?.setAttribute(
+    "data-discover-poi-count",
+    String(activeDiscoverPoiMarkers.length),
+  );
+
+  const syncVisibility = (): void => {
+    const markerCount = Number(mapContainer?.dataset.mapMarkerCount ?? "0");
+    const exploreCategory = mapContainer?.dataset.exploreCategory?.trim() ?? "";
+    const tourState = mapContainer?.dataset.tourState ?? "idle";
+    const shouldShow =
+      document.body.dataset.mdMode === "discover" &&
+      markerCount === 0 &&
+      exploreCategory.length === 0 &&
+      tourState === "idle";
+    for (const entry of entries) {
+      if (shouldShow && !entry.mounted) {
+        entry.marker.addTo(map);
+        entry.mounted = true;
+      } else if (!shouldShow && entry.mounted) {
+        entry.marker.remove();
+        entry.mounted = false;
+      }
+      entry.element.hidden = !shouldShow;
+      entry.element.setAttribute("aria-hidden", String(!shouldShow));
+    }
+  };
+
+  const onExploreStateChanged = (): void => syncVisibility();
+  const visibilityObserver = new MutationObserver(syncVisibility);
+  if (mapContainer) {
+    visibilityObserver.observe(mapContainer, {
+      attributes: true,
+      attributeFilter: [
+        "data-map-marker-count",
+        "data-explore-category",
+        "data-tour-state",
+      ],
+    });
+  }
+  visibilityObserver.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["data-md-mode"],
+  });
+  document.addEventListener(
+    "morro:explore-state-changed",
+    onExploreStateChanged,
+  );
+  syncVisibility();
+
+  return () => {
+    visibilityObserver.disconnect();
+    document.removeEventListener(
+      "morro:explore-state-changed",
+      onExploreStateChanged,
+    );
+    for (const { marker } of entries) marker.remove();
+    if (activeDiscoverPoiMarkers.length === entries.length) {
+      activeDiscoverPoiMarkers = [];
+    }
+    mapContainer?.removeAttribute("data-discover-poi-count");
+  };
 }
 
 async function installGrantedCurrentLocationMarker(
@@ -195,42 +422,116 @@ async function installGrantedCurrentLocationMarker(
 ): Promise<void> {
   const permissions = window.navigator.permissions;
   const geolocation = window.navigator.geolocation;
-  if (!permissions || !geolocation) return;
+  if (!permissions || !geolocation) {
+    mapContainer?.setAttribute("data-geolocation-state", "unavailable");
+    return;
+  }
 
   let permission: PermissionStatus;
   try {
     permission = await permissions.query({ name: "geolocation" });
   } catch {
+    mapContainer?.setAttribute("data-geolocation-state", "unknown");
     return;
   }
+  mapContainer?.setAttribute("data-geolocation-state", permission.state);
   if (permission.state !== "granted") return;
 
   geolocation.getCurrentPosition(
-    (position) => {
-      if (activeRealMap !== map) return;
-      activeCurrentLocationMarker?.remove();
-
-      const element = document.createElement("div");
-      element.className = "md-current-location-marker";
-      element.setAttribute("aria-hidden", "true");
-
-      activeCurrentLocationMarker = new sdk.Marker({
-        element,
-        anchor: "center",
-      })
-        .setLngLat([position.coords.longitude, position.coords.latitude])
-        .addTo(map);
-      mapContainer?.setAttribute("data-current-location", "visible");
-    },
-    () => {
+    (position) =>
+      presentCurrentLocation(
+        map,
+        sdk,
+        position.coords.longitude,
+        position.coords.latitude,
+      ),
+    (error) => {
       mapContainer?.removeAttribute("data-current-location");
+      mapContainer?.setAttribute(
+        "data-geolocation-state",
+        error.code === 1 ? "denied" : "error",
+      );
     },
-    {
-      enableHighAccuracy: false,
-      maximumAge: 60_000,
-      timeout: 5_000,
-    },
+    { enableHighAccuracy: false, maximumAge: 60_000, timeout: 5_000 },
   );
+}
+
+function installDiscoverRecenterControl(
+  map: MapboxGlMapLike,
+  sdk: MapboxGlModuleLike,
+  homeCenter: readonly [number, number],
+): () => void {
+  const button = document.getElementById("recenter-map-control");
+  if (!(button instanceof HTMLButtonElement)) return () => undefined;
+  const cameraMap = map as MapboxGlMapLike & {
+    easeTo?: (options: {
+      center: [number, number];
+      zoom: number;
+      pitch?: number;
+      bearing?: number;
+      duration?: number;
+      essential?: boolean;
+    }) => void;
+  };
+  const moveCamera = (
+    center: readonly [number, number],
+    zoom: number,
+  ): void => {
+    if (cameraMap.easeTo) {
+      cameraMap.easeTo({
+        center: [...center],
+        zoom,
+        pitch: 0,
+        bearing: 0,
+        duration: 650,
+        essential: true,
+      });
+    } else {
+      cameraMap.setCenter([...center]);
+      cameraMap.setZoom?.(zoom);
+    }
+    document.dispatchEvent(new Event("morro:map-camera-flattened"));
+  };
+  const fallbackHome = (): void => moveCamera(homeCenter, DISCOVER_HOME_ZOOM);
+  const onClick = (): void => {
+    if (activeCurrentLocation) {
+      moveCamera(activeCurrentLocation, Math.max(DISCOVER_HOME_ZOOM, 15.5));
+      return;
+    }
+    const geolocation = window.navigator.geolocation;
+    if (!geolocation) {
+      mapContainer?.setAttribute("data-geolocation-state", "unavailable");
+      fallbackHome();
+      return;
+    }
+    button.setAttribute("aria-busy", "true");
+    geolocation.getCurrentPosition(
+      (position) => {
+        button.removeAttribute("aria-busy");
+        presentCurrentLocation(
+          map,
+          sdk,
+          position.coords.longitude,
+          position.coords.latitude,
+        );
+        moveCamera(
+          [position.coords.longitude, position.coords.latitude],
+          Math.max(DISCOVER_HOME_ZOOM, 15.5),
+        );
+      },
+      (error) => {
+        button.removeAttribute("aria-busy");
+        mapContainer?.setAttribute(
+          "data-geolocation-state",
+          error.code === 1 ? "denied" : "error",
+        );
+        fallbackHome();
+      },
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 8_000 },
+    );
+  };
+  button.addEventListener("click", onClick);
+  return () => button.removeEventListener("click", onClick);
 }
 
 let runtimeStatusDescriptor: RuntimeStatusDescriptor = Object.freeze({
@@ -474,7 +775,7 @@ function createFallbackMapProvider(): ResolvedMapProvider {
           activeDestination.center.longitude,
           activeDestination.center.latitude,
         ],
-        initialZoom: 13.5,
+        initialZoom: DISCOVER_HOME_ZOOM,
       }),
       environment: developmentEnvironment,
       mode: "leaflet" as const,
@@ -503,9 +804,10 @@ function normalizeRealMapboxEnvironment(
       environment.VITE_MAPBOX_CONTAINER_ID?.trim() || "map",
     VITE_MAPBOX_STYLE:
       environment.VITE_MAPBOX_STYLE?.trim() ||
-      "mapbox://styles/mapbox/streets-v12",
+      "mapbox://styles/mapbox/satellite-streets-v12",
     VITE_MAPBOX_INITIAL_ZOOM:
-      environment.VITE_MAPBOX_INITIAL_ZOOM?.trim() || "13.5",
+      environment.VITE_MAPBOX_INITIAL_ZOOM?.trim() ||
+      String(DISCOVER_HOME_ZOOM),
   });
 }
 
@@ -567,6 +869,15 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
             onMapCreated: (map: MapboxGlMapLike) => {
               clearBrowserNavigationRuntime();
               activeRealMap = map;
+              activeDiscoverPoiCleanup = installDiscoverPoiMarkers(
+                map,
+                provider.sdk,
+              );
+              map.setCenter([
+                activeDestination.center.longitude,
+                activeDestination.center.latitude,
+              ]);
+              map.setZoom?.(DISCOVER_HOME_ZOOM);
               mapStyleReadiness.observe(map);
               setV1MapboxCompatibilityAliases(map);
               activeGlobalViewControl = installGlobalViewControl({
@@ -576,10 +887,16 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
                   activeDestination.center.longitude,
                   activeDestination.center.latitude,
                 ],
-                homeZoom: Number(
-                  provider.environment.VITE_MAPBOX_INITIAL_ZOOM || "13.5",
-                ),
+                homeZoom: DISCOVER_HOME_ZOOM,
               });
+              activeDiscoverRecenterCleanup = installDiscoverRecenterControl(
+                map,
+                provider.sdk,
+                [
+                  activeDestination.center.longitude,
+                  activeDestination.center.latitude,
+                ],
+              );
               activeNavigationRuntimeInstall = installBrowserNavigationRuntime({
                 map,
                 sdk: provider.sdk,
@@ -610,6 +927,12 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
       environment: fallbackProvider.environment,
       document,
       createMarkerElement: createTourMarkerElement,
+      onMapCreated: (map: MapboxGlMapLike) => {
+        activeDiscoverPoiCleanup = installDiscoverPoiMarkers(
+          map,
+          fallbackProvider.sdk,
+        );
+      },
     });
   }
 }
@@ -629,6 +952,10 @@ async function start(): Promise<void> {
   mapContainer?.setAttribute("data-tour-state", "idle");
   mapContainer?.setAttribute("data-home-state", "ready");
   mapContainer?.setAttribute("data-map-marker-count", "0");
+  mapContainer?.setAttribute(
+    "data-discover-poi-count",
+    String(activeDiscoverPoiMarkers.length),
+  );
   const providerId = result.geospatialEngine?.providerId;
   updateStatus({
     kind: "runtime-ready",

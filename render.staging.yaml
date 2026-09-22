@@ -238,11 +238,11 @@ services:
       - key: VITE_MAPBOX_ACCESS_TOKEN
         sync: false
       - key: VITE_MAPBOX_STYLE
-        value: mapbox://styles/mapbox/streets-v12
+        value: mapbox://styles/mapbox/satellite-streets-v12
       - key: VITE_MAPBOX_CONTAINER_ID
         value: map
       - key: VITE_MAPBOX_INITIAL_ZOOM
-        value: "14"
+        value: "14.8"
 
       # A key alone never authorizes paid OpenAI traffic. Governance remains
       # explicitly closed until provider/budget evidence is configured.
