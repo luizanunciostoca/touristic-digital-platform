@@ -240,7 +240,7 @@ async function geometry(page, viewport) {
         profileVisible: visible("#profile-button"),
         headingVisible:
           visible("#page-title") &&
-          /^(Bom dia|Boa tarde|Boa noite),\\s+\\S+/u.test(
+          /^(Bom dia|Boa tarde|Boa noite),\s+\S+/u.test(
             document.querySelector("#page-title")?.textContent.trim() || "",
           ) &&
           document.querySelector("#breadcrumb")?.textContent.trim() ===
