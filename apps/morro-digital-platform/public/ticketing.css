@@ -76,10 +76,7 @@ button {
 }
 
 body[data-md-mode="commerce"] .analytics-consent-preferences.is-collapsed {
-  top: auto;
-  right: max(var(--md-space-3), var(--md-safe-right));
-  bottom: max(var(--md-space-3), var(--md-safe-bottom));
-  left: auto;
+  display: none;
 }
 
 .ticketing-product-stage {
@@ -851,4 +848,27 @@ h3 {
   .quantity-stepper {
     grid-template-columns: var(--md-touch-target-min) minmax(4rem, 1fr) var(--md-touch-target-min);
   }
+}
+
+.ticketing-footer {
+  display: flex;
+  justify-content: center;
+  padding: var(--md-space-5) 0 max(var(--md-space-5), var(--md-safe-bottom));
+}
+
+.ticketing-privacy-action {
+  min-height: var(--md-touch-target-min);
+  border: 0;
+  padding: 0 var(--md-space-3);
+  background: transparent;
+  color: var(--md-color-text-secondary);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.ticketing-privacy-action:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-color-focus-ring);
+  outline-offset: var(--md-focus-ring-offset);
 }
