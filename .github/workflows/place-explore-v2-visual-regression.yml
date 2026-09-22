@@ -512,6 +512,12 @@ jobs:
                     composerOverlap:
                       composer instanceof HTMLElement
                         ? (() => {
+                            const composerStyle = getComputedStyle(composer);
+                            const composerVisible =
+                              composerStyle.display !== 'none' &&
+                              composerStyle.visibility !== 'hidden' &&
+                              Number.parseFloat(composerStyle.opacity || '1') > 0;
+                            if (!composerVisible) return false;
                             const composerRect = composer.getBoundingClientRect();
                             const sheetRect = sheet.getBoundingClientRect();
                             return !(
