@@ -207,8 +207,8 @@ function updatePurchaseSummary() {
   elements.summaryQuantity.textContent = String(quantity);
   elements.summarySubtotal.textContent = money(estimatedSubtotal(offer, quantity));
   elements.quoteBadge.textContent = offer.pricingVersion
-    ? `Inventário · ${offer.pricingVersion}`
-    : "Preço do inventário";
+    ? `${copy.static.inventoryPrice} · ${offer.pricingVersion}`
+    : copy.static.inventoryPrice;
 }
 
 function updateProductPresentation(offer) {
