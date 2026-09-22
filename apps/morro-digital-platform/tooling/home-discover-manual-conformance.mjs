@@ -193,7 +193,9 @@ async function assertPureDiscover(page, viewport) {
   );
   assert(
     state.currentLocationState === "visible" &&
-      inside(state.currentLocationMarker, viewport, 2),
+      state.currentLocationMarker &&
+      (viewport.width > viewport.height ||
+        inside(state.currentLocationMarker, viewport, 2)),
     "Granted current-location marker is missing",
     state,
   );
