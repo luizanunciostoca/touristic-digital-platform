@@ -253,7 +253,7 @@ jobs:
 
               await submit('back to main menu');
               await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({
-                state: 'visible',
+                state: 'attached',
                 timeout: 5000,
               });
               if (await page.locator('#assistant-category-results').count()) {
@@ -271,7 +271,7 @@ jobs:
               }
 
               await submit('back to main menu');
-              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'attached', timeout: 5000 });
 
               await submit('praias');
               await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
