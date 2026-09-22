@@ -306,7 +306,8 @@ function readDestinationContext() {
 
 function syncScopeControls() {
   if (!globalScope || !destinationSelector) return;
-  const scope = globalThis.sessionStorage.getItem(destinationScopeKey) || "global";
+  const scope =
+    globalThis.sessionStorage.getItem(destinationScopeKey) || "global";
   globalScope.setAttribute("aria-pressed", String(scope === "global"));
   destinationSelector.dataset.scope = scope;
   const current = readDestinationContext();
@@ -326,7 +327,9 @@ async function hydrateDestinationSelector() {
     });
     if (!response.ok) throw new Error("DESTINATION_CONTEXT_UNAVAILABLE");
     const body = await response.json();
-    const destinations = Array.isArray(body.destinations) ? body.destinations : [];
+    const destinations = Array.isArray(body.destinations)
+      ? body.destinations
+      : [];
     const readable = destinations.filter((destination) => destination?.id);
     if (!readable.length) {
       syncScopeControls();
