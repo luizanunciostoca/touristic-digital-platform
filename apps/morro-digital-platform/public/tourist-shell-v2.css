@@ -1219,7 +1219,6 @@ body[data-md-mode="assistant"] #explore-flow-bottom-sheet {
   );
 }
 
-
 body[data-md-mode="discover"] #place-bottom-sheet,
 body[data-md-mode="assistant"] #place-bottom-sheet {
   bottom: calc(
