@@ -87,7 +87,7 @@ jobs:
             shops: 12,
             transport: 8,
             attractions: 8,
-            tours: 6,
+            tours: 4,
             nightlife: 5,
             emergencies: 4,
           };
