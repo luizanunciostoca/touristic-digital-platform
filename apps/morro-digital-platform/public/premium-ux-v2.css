@@ -737,3 +737,18 @@ body[data-md-mode="navigation"] #navigation-summary .end-navigation-btn:active {
     box-shadow: none;
   }
 }
+
+
+body[data-md-mode="navigation"] #instruction-banner .instruction-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: grid;
+  gap: 0.125rem;
+}
+
+body[data-md-mode="navigation"] #instruction-step-distance {
+  color: color-mix(in srgb, currentColor 86%, transparent);
+  font-size: 0.9375rem;
+  font-weight: var(--md-font-weight-semibold);
+  line-height: 1.2;
+}
