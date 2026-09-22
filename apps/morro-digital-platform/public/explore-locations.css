@@ -689,7 +689,6 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   }
 }
 
-
 /* Tour manual convergence: preserve map context and remove sheet-debug chrome. */
 #explore-flow-bottom-sheet[data-flow-kind="tour"] {
   bottom: max(var(--md-space-3), var(--md-safe-bottom));
@@ -729,7 +728,12 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
 
 #explore-flow-bottom-sheet[data-flow-kind="tour"]
   .explore-flow-sheet-rich
-  > :is(.tour-intro-card, .tour-stop-list-card, .tour-stop-card, .tour-finale-card) {
+  > :is(
+    .tour-intro-card,
+    .tour-stop-list-card,
+    .tour-stop-card,
+    .tour-finale-card
+  ) {
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -819,8 +823,8 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
   }
 }
 
-
-#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-actions {
   position: sticky;
   bottom: 0;
   z-index: 1;
@@ -829,7 +833,8 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
 }
 
 @media (forced-colors: active) {
-  #explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
+  #explore-flow-bottom-sheet[data-flow-kind="tour"]
+    .explore-flow-sheet-actions {
     background: Canvas;
   }
 }
