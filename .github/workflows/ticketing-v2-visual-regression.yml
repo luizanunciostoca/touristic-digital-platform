@@ -42,10 +42,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Static Ticketing V2 contract
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/ticketing-v2-contract.test.ts
-      - name: Ticketing quote authority contract
-        run: pnpm --filter @touristic/ticketing-server exec vitest run src/public-http-transport-validity.test.ts
       - name: Build workspace
         run: pnpm -w build
+      - name: Ticketing quote authority contract
+        run: pnpm --filter @touristic/ticketing-server exec vitest run src/public-http-transport-validity.test.ts
       - name: Install deterministic Chromium
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
