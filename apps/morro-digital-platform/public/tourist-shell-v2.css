@@ -1309,7 +1309,7 @@ body[data-md-mode="discover"] .md-discover-category-rail {
       var(--md-home-bottom-stack-gap) + 3.25rem + var(--md-space-3)
   );
   left: var(--md-shell-gutter);
-  z-index: var(--md-layer-explore-controls);
+  z-index: var(--md-layer-map-control);
   display: flex;
   min-width: 0;
   gap: var(--md-space-2);
