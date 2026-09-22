@@ -141,7 +141,7 @@ jobs:
               }
 
               async function submit(text) {
-                if (await input.isVisible()) {
+                if ((await input.isVisible()) && (await send.isVisible())) {
                   await input.fill(text);
                   await send.click();
                 } else {
