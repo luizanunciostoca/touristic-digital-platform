@@ -79,6 +79,8 @@ describe("Control Center UX V1 shell contract", () => {
     expect(html).toContain(
       'placeholder="Pesquisar empresa, afiliado, reserva, pedido..."',
     );
+    expect(html).toContain('class="topbar-line-icon"');
+    expect(html).toContain('data-scope="global"');
   });
 
   it("keeps the sidebar below the topbar and independently scrollable", () => {
@@ -100,6 +102,11 @@ describe("Control Center UX V1 shell contract", () => {
     expect(css).toContain("--md-primary: #0b63ce");
     expect(css).toContain("--md-primary-soft: #eaf3ff");
     expect(css).toContain("--md-border: #dce6f1");
+    expect(css).toContain("--md-success: #10a760");
+    expect(css).toContain("--md-warning: #d97706");
+    expect(css).toContain("--md-danger: #d92d20");
+    expect(css).toContain("--md-purple: #6d5ce8");
+    expect(css).toContain("--md-radius-lg: 12px");
     expect(css).toContain('nav-item[aria-current="page"]');
     expect(css).not.toContain("linear-gradient");
   });
@@ -113,6 +120,10 @@ describe("Control Center UX V1 shell contract", () => {
     expect(shell).toContain('scrollIntoView({ block: "nearest"');
     expect(shell).toContain('setAttribute("aria-current", "page")');
     expect(shell).toContain('setAttribute("aria-expanded"');
+    expect(shell).toContain('"/api/admin/v1/destinations"');
+    expect(shell).toContain('"md:destination-context-changed"');
+    expect(shell).toContain('destinationScopeKey');
+    expect(shell).toContain('destinationContextKey');
   });
 
   it("preserves unique legacy routes used by the current runtime", () => {
