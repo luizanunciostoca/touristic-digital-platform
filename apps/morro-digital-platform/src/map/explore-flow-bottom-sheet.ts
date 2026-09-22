@@ -97,7 +97,9 @@ function currentCopy(document: Document): SheetCopy {
 }
 
 function isPrimaryTourAction(value: string): boolean {
-  return ["__tour_start__", "__tour_next__", "__tour_finish__"].includes(value);
+  return ["__tour_start__", "__tour_next__", "__tour_finish__"].includes(
+    value,
+  );
 }
 
 const stateGlyph: Readonly<Record<ExploreFlowBottomSheetState, string>> =
