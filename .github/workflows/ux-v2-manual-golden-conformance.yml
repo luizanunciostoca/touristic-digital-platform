@@ -15,6 +15,7 @@ on:
       - ".github/workflows/ticketing-v2-visual-regression.yml"
       - ".github/workflows/navigation-visual-baseline.yml"
       - ".github/workflows/map-tour-browser-regression.yml"
+      - ".github/workflows/mapbox-visual-contract-regression.yml"
       - ".github/workflows/commerce-browser-regression.yml"
       - ".github/workflows/ux-v2-component-state-visual-regression.yml"
 
