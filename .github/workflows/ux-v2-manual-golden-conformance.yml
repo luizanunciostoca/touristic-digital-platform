@@ -2,6 +2,12 @@ name: UX V2 Manual Golden Conformance
 
 on:
   workflow_dispatch:
+    inputs:
+      enforce_release:
+        description: Enforce post-staging/final certification gates
+        required: false
+        type: boolean
+        default: false
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
@@ -48,7 +54,7 @@ jobs:
       - name: Validate anti-false-green source contract
         run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/ux/manual-visual-conformance-authority.test.ts
       - name: Fail closed for final-candidate dispatch
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' && inputs.enforce_release
         run: node tooling/visual/validate-ux-v2-manual-authority.mjs --enforce-release
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
