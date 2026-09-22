@@ -5,6 +5,18 @@ import {
 
 export type ShellPresentationLocale = TourLocale;
 
+export type AssistantCategoryKey =
+  | "beaches"
+  | "restaurants"
+  | "hotels"
+  | "shops"
+  | "transport"
+  | "attractions"
+  | "tours"
+  | "nightlife"
+  | "emergencies"
+  | "help";
+
 export type V1ShellTranslationKey =
   | "welcome_message"
   | "assistant_welcome_message"
@@ -37,6 +49,7 @@ export interface ShellPresentationCopy {
   readonly voicePreferencesSaved: string;
   readonly voiceAutomatic: string;
   readonly voiceDefaultSuffix: string;
+  readonly assistantCategoryLabels: Readonly<Record<AssistantCategoryKey, string>>;
 }
 
 const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
@@ -75,6 +88,18 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
       voicePreferencesSaved: "As preferências são salvas neste navegador.",
       voiceAutomatic: "Automática",
       voiceDefaultSuffix: "padrão",
+      assistantCategoryLabels: Object.freeze({
+        beaches: "Praias",
+        restaurants: "Restaurantes",
+        hotels: "Hotéis",
+        shops: "Lojas",
+        transport: "Transporte",
+        attractions: "Atrações",
+        tours: "Tours",
+        nightlife: "Vida Noturna",
+        emergencies: "Emergências",
+        help: "Ajuda",
+      }),
     }),
     en: Object.freeze({
       legacy: Object.freeze({
@@ -110,6 +135,18 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
       voicePreferencesSaved: "Preferences are saved in this browser.",
       voiceAutomatic: "Automatic",
       voiceDefaultSuffix: "default",
+      assistantCategoryLabels: Object.freeze({
+        beaches: "Beaches",
+        restaurants: "Restaurants",
+        hotels: "Hotels",
+        shops: "Shops",
+        transport: "Transport",
+        attractions: "Attractions",
+        tours: "Tours",
+        nightlife: "Nightlife",
+        emergencies: "Emergencies",
+        help: "Help",
+      }),
     }),
     es: Object.freeze({
       legacy: Object.freeze({
@@ -145,6 +182,18 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
       voicePreferencesSaved: "Las preferencias se guardan en este navegador.",
       voiceAutomatic: "Automática",
       voiceDefaultSuffix: "predeterminada",
+      assistantCategoryLabels: Object.freeze({
+        beaches: "Playas",
+        restaurants: "Restaurantes",
+        hotels: "Hoteles",
+        shops: "Tiendas",
+        transport: "Transporte",
+        attractions: "Atracciones",
+        tours: "Tours",
+        nightlife: "Vida nocturna",
+        emergencies: "Emergencias",
+        help: "Ayuda",
+      }),
     }),
     he: Object.freeze({
       legacy: Object.freeze({
@@ -180,6 +229,18 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
       voicePreferencesSaved: "ההעדפות נשמרות בדפדפן הזה.",
       voiceAutomatic: "אוטומטי",
       voiceDefaultSuffix: "ברירת מחדל",
+      assistantCategoryLabels: Object.freeze({
+        beaches: "חופים",
+        restaurants: "מסעדות",
+        hotels: "מלונות",
+        shops: "חנויות",
+        transport: "תחבורה",
+        attractions: "אטרקציות",
+        tours: "סיורים",
+        nightlife: "חיי לילה",
+        emergencies: "חירום",
+        help: "עזרה",
+      }),
     }),
   });
 
@@ -262,6 +323,32 @@ export function applyV1ShellPresentation(
       const text = legacyText(copy, element.getAttribute("data-i18n-aria"));
       if (text) element.setAttribute("aria-label", text);
     });
+
+  document
+    .querySelectorAll<HTMLElement>("[data-assistant-category]")
+    .forEach((element) => {
+      const key = element.dataset.assistantCategory as AssistantCategoryKey | undefined;
+      if (!key || !Object.hasOwn(copy.assistantCategoryLabels, key)) return;
+      const label = copy.assistantCategoryLabels[key];
+      const labelNode = element.querySelector<HTMLElement>(
+        ".md-assistant-category-label",
+      );
+      if (labelNode) labelNode.textContent = label;
+      element.setAttribute("aria-label", label);
+    });
+
+  document
+    .getElementById("assistant-category-rail")
+    ?.setAttribute(
+      "aria-label",
+      resolvedLocale === "pt-BR"
+        ? "Categorias do assistente"
+        : resolvedLocale === "es"
+          ? "Categorías del asistente"
+          : resolvedLocale === "he"
+            ? "קטגוריות העוזר"
+            : "Assistant categories",
+    );
 
   document
     .getElementById("map")
