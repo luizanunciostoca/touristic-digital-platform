@@ -482,6 +482,35 @@ function auditFinancialValue(entry) {
   return null;
 }
 
+function humanizeAuditAction(value) {
+  const action = String(value ?? "").trim();
+  if (!action) return "Ação administrativa";
+  const labels = Object.freeze({
+    "business.destination.updated": "Destino da empresa atualizado",
+    "user.status.updated": "Status do usuário atualizado",
+    "user.role.updated": "Perfil do usuário atualizado",
+    "affiliate.membership.suspended": "Membership do afiliado suspensa",
+    "affiliate.membership.reactivated": "Membership do afiliado reativada",
+    "support.session.started": "Support Mode iniciado",
+    "support.session.ended": "Support Mode encerrado",
+    "destination.created": "Destino criado",
+    "destination.updated": "Destino atualizado",
+    "destination.status.updated": "Status do destino atualizado",
+    "content.created": "Conteúdo criado",
+    "content.updated": "Conteúdo atualizado",
+    "content.status.updated": "Status do conteúdo atualizado",
+  });
+  if (labels[action]) return labels[action];
+
+  const normalized = action
+    .replace(/[._:/-]+/gu, " ")
+    .replace(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .replace(/\s+/gu, " ")
+    .trim();
+  if (!normalized) return "Ação administrativa";
+  return normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1);
+}
+
 function recentActivityMarkup(
   entries,
   {
@@ -519,7 +548,7 @@ function recentActivityMarkup(
                   )}</small></td>
                   <td>${escapeHtml(entry.effectiveUserId ?? "—")}</td>
                   <td>${escapeHtml(entry.destinationId ?? "—")}</td>
-                  <td>${escapeHtml(entry.action ?? "—")}<br>${statusBadge(
+                  <td title="${escapeHtml(entry.action ?? "")}">${escapeHtml(humanizeAuditAction(entry.action))}<br>${statusBadge(
                     entry.result ?? "unknown",
                   )}</td>
                   <td>${escapeHtml(entry.entityType ?? "—")}<br><small>${escapeHtml(
