@@ -112,10 +112,14 @@ async function inspect(page) {
       weather: rect("#weather-widget"),
       weatherEmoji: rect("#weather-widget .weather-emoji"),
       weatherTemp: rect("#weather-widget .weather-temp"),
-      weatherDirection:
-        getComputedStyle(
-          document.querySelector("#weather-widget .weather-compact-main"),
-        ).flexDirection,
+      weatherDirection: (() => {
+        const node = document.querySelector(
+          "#weather-widget .weather-compact-main",
+        );
+        return node instanceof HTMLElement
+          ? getComputedStyle(node).flexDirection
+          : null;
+      })(),
       weatherError: (() => {
         const node = document.querySelector("#weather-widget .weather-error");
         if (!(node instanceof HTMLElement)) return null;
