@@ -150,7 +150,7 @@ main().catch((error) => {
   console.error(
     "CONTROL_CENTER_USERS_BROWSER_FAILED",
     failureStage,
-    error instanceof Error ? error.stack ?? error.message : String(error),
+    error instanceof Error ? error.name : "UnknownError",
   );
   process.exit(1);
 });
