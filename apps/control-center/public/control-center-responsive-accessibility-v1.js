@@ -65,7 +65,7 @@ for (const [, panel] of popovers) {
     if (event.key !== "Tab") return;
     const controls = [
       ...panel.querySelectorAll(
-        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex=\"-1\"])",
       ),
     ].filter((node) => !node.hidden && node.getClientRects().length > 0);
     if (!controls.length) return;
