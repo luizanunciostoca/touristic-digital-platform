@@ -751,7 +751,6 @@ body[data-md-mode="navigation"] #instruction-step-distance {
   line-height: 1.2;
 }
 
-
 /* UX V2 Wave E — active navigation convergence */
 body[data-md-mode="navigation"] #instruction-banner {
   top: calc(var(--md-safe-top) + var(--md-space-3)) !important;
@@ -816,11 +815,14 @@ body[data-md-mode="navigation"] #instruction-arrow {
   line-height: 1;
 }
 
-body[data-md-mode="navigation"] #instruction-secondary {
+body[data-md-mode="navigation"]
+  #instruction-banner
+  .instruction-secondary {
   margin: 0 0 0 calc(3rem + var(--md-space-3));
   padding: var(--md-space-1) 0 0 !important;
   border: 0;
   background: transparent !important;
+  color: var(--md-navigation-inverse);
 }
 
 body[data-md-mode="navigation"] #instruction-details {
@@ -851,11 +853,7 @@ body[data-md-mode="navigation"] #minimize-navigation-btn {
   border: 1px solid
     color-mix(in srgb, var(--md-navigation-inverse) 28%, transparent);
   border-radius: 50%;
-  background: color-mix(
-    in srgb,
-    var(--md-navigation-inverse) 10%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-navigation-inverse) 10%, transparent);
   color: var(--md-navigation-inverse);
 }
 
@@ -940,7 +938,8 @@ body[data-md-mode="navigation"]
 
 body[data-md-mode="navigation"]
   #navigation-summary
-  .navigation-summary-metrics .metric {
+  .navigation-summary-metrics
+  .metric {
   display: flex;
   min-width: 0;
   flex-direction: row;
@@ -957,7 +956,8 @@ body[data-md-mode="navigation"]
 
 body[data-md-mode="navigation"]
   #navigation-summary
-  .navigation-summary-metrics .metric-label {
+  .navigation-summary-metrics
+  .metric-label {
   display: none;
 }
 
@@ -1088,7 +1088,6 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
     right: calc(var(--md-safe-right) + var(--md-space-2));
   }
 }
-
 
 @media (forced-colors: active) {
   body[data-md-mode="navigation"] #instruction-banner {
