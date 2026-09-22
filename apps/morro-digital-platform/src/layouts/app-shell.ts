@@ -339,7 +339,7 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
   messages.classList.remove("assistant-modal", "auto-size", "grow-upward");
   messages.classList.add("md-assistant-message-region");
   messages.setAttribute("role", "region");
-  messages.setAttribute("aria-modal", "false");
+  messages.removeAttribute("aria-modal");
   messages.removeAttribute("tabindex");
   messages.querySelector<HTMLElement>(".messages-area")?.classList.add(
     "md-assistant-message-scroll",
