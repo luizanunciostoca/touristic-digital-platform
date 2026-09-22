@@ -97,6 +97,7 @@ export function createV1ExploreMarkerElement(
   if (input.label) root.dataset.locationName = input.label;
   root.setAttribute("role", "img");
   root.setAttribute("aria-label", input.label ?? `POI ${category}`);
+  if (category === "tours") root.tabIndex = 0;
   root.style.position = V1_EXPLORE_MARKER_ROOT_STYLE.position;
   root.style.top = V1_EXPLORE_MARKER_ROOT_STYLE.top;
   root.style.left = V1_EXPLORE_MARKER_ROOT_STYLE.left;
