@@ -174,7 +174,9 @@ describe("UX P0 + Design System V2 foundations", () => {
         expect(stylesheetHrefs).toContain(touristShellHref);
         for (const consumer of migratedConsumers) {
           expect(stylesheetHrefs).toContain(consumer);
-          expect(foundationIndex).toBeLessThan(stylesheetHrefs.indexOf(consumer));
+          expect(foundationIndex).toBeLessThan(
+            stylesheetHrefs.indexOf(consumer),
+          );
         }
         expect(stylesheetHrefs.at(-1)).toBe(touristShellHref);
       } else if (surface === "tickets.html") {
