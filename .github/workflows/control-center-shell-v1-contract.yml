@@ -107,7 +107,9 @@ jobs:
         if: always()
         with:
           name: control-center-shell-v1-evidence
-          path: /tmp/control-center-shell-v1-evidence.json
+          path: |
+            /tmp/control-center-shell-v1-evidence.json
+            /tmp/control-center-shell-v1-*.png
           retention-days: 5
           if-no-files-found: ignore
       - name: Stop runtime
