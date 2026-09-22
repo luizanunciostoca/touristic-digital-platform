@@ -29,7 +29,7 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(runtime).toContain('shareButton.dataset.value = "compartilhar"');
     expect(runtime).toContain("primaryAction");
     expect(runtime).toContain("place-bottom-sheet-overflow");
-    expect(runtime).toContain('button.dataset.sheetStep = direction');
+    expect(runtime).toContain("button.dataset.sheetStep = direction");
     expect(runtime).not.toContain("dataset.sheetStateTarget");
     expect(runtime).toContain('next.status ?? "ready"');
 
@@ -67,7 +67,7 @@ describe("Place + Search/Explore V2 contract", () => {
       expect(flow).toContain(`"${state}"`);
     }
     expect(flow).toContain("explore-flow-sheet-status-skeleton");
-    expect(flow).toContain('button.dataset.sheetStep = direction');
+    expect(flow).toContain("button.dataset.sheetStep = direction");
     expect(flow).toContain("button.dataset.sheetStateTarget = state");
     expect(flow).toContain('if (kind === "tour")');
     expect(flow).toContain("rebuildStateControls(presentation.kind)");
@@ -132,9 +132,7 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(css).toContain("grid-column: 1 / -1");
     expect(css).toContain("overflow-wrap: break-word");
     expect(css).toContain("word-break: normal");
-    expect(css).toContain(
-      'body[data-md-mode="place"] #assistant-input-area',
-    );
+    expect(css).toContain('body[data-md-mode="place"] #assistant-input-area');
     expect(css).toContain(
       'body[data-md-mode="place"] .analytics-consent-preferences.is-collapsed',
     );
