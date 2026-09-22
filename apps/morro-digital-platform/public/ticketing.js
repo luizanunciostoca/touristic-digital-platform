@@ -163,14 +163,16 @@ function productKindLabel(offer) {
 }
 
 function destinationLabel(offer) {
-  if (offer?.destinationId === "morro-de-sao-paulo") return "Morro de São Paulo";
+  if (offer?.destinationId === "morro-de-sao-paulo")
+    return "Morro de São Paulo";
   return text(offer?.destinationId).replaceAll("-", " ") || "Morro Digital";
 }
 
 function durationLabel(offer) {
   const start = Date.parse(offer?.startsAt || "");
   const end = Date.parse(offer?.endsAt || "");
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return "";
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start)
+    return "";
   const minutes = Math.round((end - start) / 60000);
   if (minutes >= 60 && minutes % 60 === 0) {
     const hours = minutes / 60;
@@ -184,19 +186,28 @@ function durationLabel(offer) {
 
 function heroImageFor(offer) {
   const reference = text(offer?.product?.reference).toLowerCase();
-  if (reference.includes("toca-do-morcego")) return "/images/fotos/toca_do_morcego1.jpg";
-  if (reference.includes("garapua") && reference.includes("4x4")) return "/images/fotos/passeio_4x4_garapua1.jpg";
-  if (reference.includes("garapua")) return "/images/fotos/passeio_quadriciclo_garapua1.jpg";
-  if (reference.includes("gamboa")) return "/images/fotos/passeio_barco_gamboa1.jpg";
-  if (reference.includes("tinhare") || reference.includes("volta-a-ilha")) return "/images/fotos/passeio_lancha_ilha_tinhare1.jpg";
+  if (reference.includes("toca-do-morcego"))
+    return "/images/fotos/toca_do_morcego1.jpg";
+  if (reference.includes("garapua") && reference.includes("4x4"))
+    return "/images/fotos/passeio_4x4_garapua1.jpg";
+  if (reference.includes("garapua"))
+    return "/images/fotos/passeio_quadriciclo_garapua1.jpg";
+  if (reference.includes("gamboa"))
+    return "/images/fotos/passeio_barco_gamboa1.jpg";
+  if (reference.includes("tinhare") || reference.includes("volta-a-ilha"))
+    return "/images/fotos/passeio_lancha_ilha_tinhare1.jpg";
   return "/images/fotos/farol_do_morro1.jpg";
 }
 
 function estimatedSubtotal(offer, quantity) {
-  if (!offer?.unitAmount || !Number.isSafeInteger(quantity) || quantity < 1) return null;
+  if (!offer?.unitAmount || !Number.isSafeInteger(quantity) || quantity < 1)
+    return null;
   const minorUnits = Number(offer.unitAmount.minorUnits);
   if (!Number.isSafeInteger(minorUnits)) return null;
-  return { minorUnits: minorUnits * quantity, currency: offer.unitAmount.currency };
+  return {
+    minorUnits: minorUnits * quantity,
+    currency: offer.unitAmount.currency,
+  };
 }
 
 function updatePurchaseSummary() {
@@ -205,7 +216,9 @@ function updatePurchaseSummary() {
   const quantity = Math.max(1, Number(elements.quantity.value) || 1);
   elements.summaryUnitPrice.textContent = money(offer.unitAmount);
   elements.summaryQuantity.textContent = String(quantity);
-  elements.summarySubtotal.textContent = money(estimatedSubtotal(offer, quantity));
+  elements.summarySubtotal.textContent = money(
+    estimatedSubtotal(offer, quantity),
+  );
   elements.quoteBadge.textContent = offer.pricingVersion
     ? `${copy.static.inventoryPrice} · ${offer.pricingVersion}`
     : copy.static.inventoryPrice;
@@ -219,8 +232,13 @@ function updateProductPresentation(offer) {
   elements.productDuration.hidden = !duration;
   elements.productDuration.textContent = duration;
   elements.productAvailability.hidden = false;
-  elements.productAvailability.textContent = copy.availableCount(offer.availableQuantity);
-  elements.hero.style.setProperty("--ticketing-hero-image", `url("${heroImageFor(offer)}")`);
+  elements.productAvailability.textContent = copy.availableCount(
+    offer.availableQuantity,
+  );
+  elements.hero.style.setProperty(
+    "--ticketing-hero-image",
+    `url("${heroImageFor(offer)}")`,
+  );
   elements.selectionSummary.hidden = false;
   elements.selectedSummaryTitle.textContent = offer.label;
   elements.selectedSummaryMeta.textContent = `${dateTime(offer.startsAt)} · ${destinationLabel(offer)}`;
@@ -895,8 +913,13 @@ function changeQuantity(delta) {
   if (!state.selectedOffer) return;
   const min = Math.max(1, Number(elements.quantity.min) || 1);
   const max = Math.max(min, Number(elements.quantity.max) || min);
-  const current = Math.min(max, Math.max(min, Number(elements.quantity.value) || min));
-  elements.quantity.value = String(Math.min(max, Math.max(min, current + delta)));
+  const current = Math.min(
+    max,
+    Math.max(min, Number(elements.quantity.value) || min),
+  );
+  elements.quantity.value = String(
+    Math.min(max, Math.max(min, current + delta)),
+  );
   updatePurchaseSummary();
 }
 
