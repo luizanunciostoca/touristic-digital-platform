@@ -141,7 +141,7 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(ux).toContain("enhanceControlCenterSurface(contentRoot)");
   });
 
-  it("preserves Business, Affiliate and User 360 patterns without inventing functional tabs", async () => {
+  it("preserves Business, Affiliate and User 360 headers without duplicating functional tab navigation", async () => {
     const ux = await readRepository(
       "apps/control-center/public/control-center-ux-v1.js",
     );
@@ -176,6 +176,9 @@ describe("Morro Digital Control Center UX Design V1 contract", () => {
     expect(primitives).toContain("Visão 360° administrativa");
     expect(primitives).toContain('class="entity-tabs"');
     expect(primitives).toContain('tabindex="0"');
+    expect(primitives).toContain("const tabNavigation = tabMarkup");
+    expect(ux).toContain('contentRoot.querySelector("[data-entity-tabs]")');
+    expect(ux).toContain("tabs: hasFunctionalTabs ? [] : config[1]");
     expect(ux).toContain("Contexto de destino protegido");
     expect(ux).toContain("não atribui registros por inferência");
   });
