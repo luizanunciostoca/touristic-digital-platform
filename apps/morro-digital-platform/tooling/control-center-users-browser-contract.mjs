@@ -69,6 +69,8 @@ async function main() {
     failureStage = "change-role-manager";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await selectedUserRow()
+      .locator("td")
+      .nth(2)
       .getByText("BUSINESS_MANAGER", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -82,6 +84,8 @@ async function main() {
     failureStage = "block-user";
     await statusForm.getByRole("button", { name: "Bloquear conta" }).click();
     await selectedUserRow()
+      .locator("td")
+      .nth(1)
       .getByText("blocked", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -113,6 +117,8 @@ async function main() {
     failureStage = "reactivate-user";
     await statusForm.getByRole("button", { name: "Reativar conta" }).click();
     await selectedUserRow()
+      .locator("td")
+      .nth(1)
       .getByText("active", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -128,6 +134,8 @@ async function main() {
     failureStage = "restore-role-owner";
     await roleForm.getByRole("button", { name: "Alterar perfil" }).click();
     await selectedUserRow()
+      .locator("td")
+      .nth(2)
       .getByText("BUSINESS_OWNER", { exact: true })
       .waitFor({ timeout: 15_000 });
 
@@ -142,7 +150,7 @@ main().catch((error) => {
   console.error(
     "CONTROL_CENTER_USERS_BROWSER_FAILED",
     failureStage,
-    error instanceof Error ? error.name : "UnknownError",
+    error instanceof Error ? error.stack ?? error.message : String(error),
   );
   process.exit(1);
 });
