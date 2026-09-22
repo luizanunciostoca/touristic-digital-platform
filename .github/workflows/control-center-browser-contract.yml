@@ -252,11 +252,139 @@ jobs:
               evidence.business360 = true;
 
               await page.locator('#global-search').fill('business-owner@example.com');
-              await page.locator('#search-results:not([hidden])').waitFor({ state: 'visible' });
-              if (!(await page.locator('#search-results').textContent()).includes('business-owner@example.com')) {
-                throw new Error('Universal search did not find business owner');
+              await page
+                .locator('#search-results')
+                .getByText('business-owner@example.com', { exact: false })
+                .waitFor({ state: 'visible', timeout: 10000 });
+              if ((await page.locator('#search-results [role="group"]').count()) < 1) {
+                throw new Error('Universal search did not group results by type');
               }
-              evidence.universalSearch = true;
+              await page.keyboard.press('ArrowDown');
+              const activeSearchOption = await page.locator('#global-search').getAttribute('aria-activedescendant');
+              if (!activeSearchOption) {
+                throw new Error('ArrowDown did not establish an active search option');
+              }
+              await page.keyboard.press('ArrowUp');
+              await page.keyboard.press('Escape');
+              if (!(await page.locator('#search-results').evaluate(node => node.hidden))) {
+                throw new Error('Escape did not close universal search');
+              }
+
+              await page.locator('#global-search').fill('x');
+              await page.waitForTimeout(50);
+              if (!(await page.locator('#search-results').evaluate(node => node.hidden))) {
+                throw new Error('Short universal-search query did not stay closed');
+              }
+
+              await page.locator('#search-destination').evaluate(select => {
+                if (![...select.options].some(option => option.value === 'morro-de-sao-paulo')) {
+                  const option = document.createElement('option');
+                  option.value = 'morro-de-sao-paulo';
+                  option.textContent = 'Morro de São Paulo';
+                  select.append(option);
+                }
+                select.value = 'morro-de-sao-paulo';
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+              });
+              const scopedSearchRequest = page.waitForRequest(request => {
+                const url = new URL(request.url());
+                return (
+                  url.pathname === '/api/admin/v1/search' &&
+                  url.searchParams.get('q') === 'scope-probe' &&
+                  url.searchParams.get('destinationId') === 'morro-de-sao-paulo'
+                );
+              });
+              await page.locator('#global-search').fill('scope-probe');
+              await scopedSearchRequest;
+              await page.keyboard.press('Escape');
+              await page.locator('#global-search').fill('');
+              await page.locator('#search-destination').selectOption('');
+
+              await page.route('**/api/admin/v1/search*', async route => {
+                const url = new URL(route.request().url());
+                if (url.searchParams.get('q') === 'xss-probe') {
+                  await route.fulfill({
+                    status: 200,
+                    contentType: 'application/json',
+                    body: JSON.stringify({
+                      query: 'xss-probe',
+                      state: 'partial',
+                      results: [{
+                        type: 'user',
+                        id: 'xss-probe',
+                        title: '<img src=x onerror=globalThis.__searchXss=1>',
+                        context: '<script>globalThis.__searchXss=1</script>',
+                        href: '#users:business-owner-1',
+                        domain: 'users',
+                      }],
+                      groups: [{
+                        type: 'user',
+                        label: 'Usuários',
+                        count: 1,
+                        results: [{
+                          type: 'user',
+                          id: 'xss-probe',
+                          title: '<img src=x onerror=globalThis.__searchXss=1>',
+                          context: '<script>globalThis.__searchXss=1</script>',
+                          href: '#users:business-owner-1',
+                          domain: 'users',
+                        }],
+                      }],
+                      partial: [{ domain: 'ticketing', types: ['ticket'], reason: 'owner_search_unavailable' }],
+                      pagination: { limit: 20, offset: 0, total: 1, hasMore: false, nextOffset: null },
+                    }),
+                  });
+                  return;
+                }
+                if (url.searchParams.get('q') === 'api-failure') {
+                  await route.fulfill({
+                    status: 503,
+                    contentType: 'application/json',
+                    body: JSON.stringify({ error: 'SEARCH_TEST_FAILURE' }),
+                  });
+                  return;
+                }
+                await route.continue();
+              });
+
+              await page.locator('#global-search').fill('xss-probe');
+              await page
+                .locator('#search-results')
+                .getByText('<img src=x onerror=globalThis.__searchXss=1>', {
+                  exact: false,
+                })
+                .waitFor({ state: 'visible', timeout: 10000 });
+              if ((await page.locator('#search-results img').count()) !== 0) {
+                throw new Error('Universal search rendered injected HTML');
+              }
+              if ((await page.evaluate(() => globalThis.__searchXss ?? 0)) !== 0) {
+                throw new Error('Universal search executed injected content');
+              }
+              if (!(await page.locator('#search-results').textContent()).includes('<img src=x')) {
+                throw new Error('Universal search did not preserve injected text as inert content');
+              }
+              if (!(await page.locator('#search-results').textContent()).includes('Resultados parciais')) {
+                throw new Error('Universal search partial state was not exposed');
+              }
+              await page.keyboard.press('ArrowDown');
+              await page.keyboard.press('Enter');
+              await page.waitForFunction(() => location.hash === '#users:business-owner-1');
+
+              await page.keyboard.press('Control+K');
+              await page.locator('#global-search').fill('api-failure');
+              await page.getByRole('alert').waitFor({ state: 'visible' });
+              if (!(await page.getByRole('alert').textContent()).includes('Não foi possível concluir')) {
+                throw new Error('Universal search API failure state missing');
+              }
+              await page.unroute('**/api/admin/v1/search*');
+
+              evidence.universalSearch = {
+                grouped: true,
+                keyboard: true,
+                partial: true,
+                injectionSafe: true,
+                apiFailure: true,
+              };
               await page.keyboard.press('Escape');
 
               const createLead = await ownerContext.request.post(
@@ -426,6 +554,11 @@ jobs:
               await page.keyboard.press('Control+K');
               if (!(await page.locator('#global-search').evaluate(node => node === document.activeElement))) {
                 throw new Error('Ctrl+K did not focus universal search');
+              }
+              await page.locator('#global-search').blur();
+              await page.keyboard.press('Meta+K');
+              if (!(await page.locator('#global-search').evaluate(node => node === document.activeElement))) {
+                throw new Error('Cmd+K did not focus universal search');
               }
               evidence.keyboard = true;
 
