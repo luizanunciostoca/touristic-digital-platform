@@ -5,8 +5,25 @@
   --md-text-muted: #60738f;
   --md-primary: #0b63ce;
   --md-primary-soft: #eaf3ff;
+  --md-success: #10a760;
+  --md-success-soft: #eaf9f1;
+  --md-warning: #d97706;
+  --md-warning-soft: #fff6e8;
+  --md-danger: #d92d20;
+  --md-danger-soft: #fff1f2;
+  --md-purple: #6d5ce8;
   --md-border: #dce6f1;
   --md-focus: #2e90fa;
+  --md-radius-sm: 8px;
+  --md-radius-md: 10px;
+  --md-radius-lg: 12px;
+  --md-radius-xl: 16px;
+  --md-space-1: 4px;
+  --md-space-2: 8px;
+  --md-space-3: 12px;
+  --md-space-4: 16px;
+  --md-space-6: 24px;
+  --md-space-8: 32px;
   --md-sidebar-width: 224px;
   --md-topbar-height: 64px;
   --md-shell-shadow: 0 12px 32px rgba(11, 36, 71, 0.12);
@@ -102,13 +119,32 @@ body {
 }
 
 .scope-icon {
+  width: 18px;
+  height: 18px;
   color: var(--md-primary);
-  font-size: 16px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.scope-icon svg,
+.topbar-line-icon {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .destination-control {
   min-width: 0;
   max-width: 190px;
+}
+
+.destination-control[data-state="unavailable"],
+.destination-control:has(select[data-state="unavailable"]) {
+  opacity: 0.72;
 }
 
 .destination-control select {
@@ -187,7 +223,7 @@ body {
   padding: 0 4px;
   border: 2px solid var(--md-surface);
   border-radius: 999px;
-  background: #d92d20;
+  background: var(--md-danger);
   color: #fff;
   font-size: 9px;
   font-weight: 800;
