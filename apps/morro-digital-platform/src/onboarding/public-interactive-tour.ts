@@ -57,17 +57,11 @@ function mapTeachingRect(
   const height = Math.min(180, Math.max(96, visibleHeight * 0.32));
   const left = Math.max(
     visibleLeft,
-    Math.min(
-      visibleLeft + (visibleWidth - width) / 2,
-      visibleRight - width,
-    ),
+    Math.min(visibleLeft + (visibleWidth - width) / 2, visibleRight - width),
   );
   const top = Math.max(
     visibleTop,
-    Math.min(
-      visibleTop + visibleHeight * 0.24,
-      visibleBottom - height,
-    ),
+    Math.min(visibleTop + visibleHeight * 0.24, visibleBottom - height),
   );
   return {
     left,
