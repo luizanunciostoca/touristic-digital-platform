@@ -24,6 +24,14 @@ describe("Control Center universal search UI contract", () => {
     ).toEqual({ start: 8, end: 11 });
   });
 
+  it("normalizes explicit destination scope and global scope safely", () => {
+    expect(
+      universalSearchTesting.normalizeDestinationId("morro-de-sao-paulo"),
+    ).toBe("morro-de-sao-paulo");
+    expect(universalSearchTesting.normalizeDestinationId(" global ")).toBe("");
+    expect(universalSearchTesting.normalizeDestinationId("")).toBe("");
+  });
+
   it("only accepts internal deep links", () => {
     expect(universalSearchTesting.safeSearchHref("#users:user-1")).toBe(
       "#users:user-1",
