@@ -344,7 +344,7 @@ export function createNavigationAppComposition(
       return runtime.getSnapshot();
     },
     recenter(): boolean {
-      return started ? options.presenter.recenter() : false;
+      return started ? (options.presenter.recenter?.() ?? false) : false;
     },
   });
 }
