@@ -209,7 +209,8 @@ describe("Ticketing UX Design V2 contract", () => {
     expect(html).toContain('min="1"');
     expect(html).toContain('max="1"');
     expect(css).toContain("@media (max-width: 24.375rem)");
-    expect(css).toContain("min-height: 12rem");
+    expect(css).toContain("height: 15rem");
+    expect(css).toContain("min-height: 15rem");
     expect(runtime).toContain("offer.sellable === false");
     expect(runtime).toContain("copy.soldOut");
     expect(runtime).toContain("elements.quantityDecrease.disabled");
