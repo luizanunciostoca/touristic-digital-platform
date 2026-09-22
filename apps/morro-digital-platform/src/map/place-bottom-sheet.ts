@@ -136,25 +136,6 @@ const placeUiCopy = Object.freeze({
   >
 >);
 
-function createStepButton(
-  document: Document,
-  direction: "up" | "down",
-  locale: AssistantLocale,
-): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = "md-icon-button place-bottom-sheet-state-button";
-  button.dataset.sheetStep = direction;
-  button.setAttribute(
-    "aria-label",
-    direction === "up" ? copy[locale].states.full : copy[locale].states.peek,
-  );
-  button.title =
-    direction === "up" ? copy[locale].states.full : copy[locale].states.peek;
-  button.textContent = direction === "up" ? "⌃" : "⌄";
-  return button;
-}
-
 function normalizedTags(location: PlaceBottomSheetLocation): readonly string[] {
   return Object.freeze(
     Array.from(new Set(location.tags ?? []))
@@ -183,12 +164,9 @@ export function installPlaceBottomSheet(
 
   const handle = document.createElement("div");
   handle.className = "md-bottom-sheet-handle place-bottom-sheet-drag-handle";
-  handle.setAttribute("aria-hidden", "true");
+  handle.tabIndex = 0;
+  handle.setAttribute("role", "button");
   toolbar.appendChild(handle);
-  const stateControls = document.createElement("div");
-  stateControls.className = "place-bottom-sheet-state-controls";
-  stateControls.setAttribute("role", "group");
-  toolbar.appendChild(stateControls);
 
   const close = document.createElement("button");
   close.type = "button";
@@ -345,14 +323,8 @@ export function installPlaceBottomSheet(
     if (destroyed) return;
     state = nextState;
     sheet.dataset.sheetState = nextState;
-    const order: readonly PlaceBottomSheetState[] = ["peek", "half", "full"];
-    const current = order.indexOf(nextState);
-    for (const child of Array.from(stateControls.children)) {
-      if (!(child instanceof HTMLButtonElement)) continue;
-      const direction = child.dataset.sheetStep;
-      if (direction === "down") child.disabled = current <= 0;
-      if (direction === "up") child.disabled = current >= order.length - 1;
-    }
+    handle.dataset.sheetState = nextState;
+    handle.setAttribute("aria-expanded", String(nextState !== "peek"));
   };
 
   let dragStartY: number | null = null;
@@ -382,14 +354,41 @@ export function installPlaceBottomSheet(
     dragStartY = null;
     dragPointerId = null;
   });
-
-  const rebuildStateControls = (locale: AssistantLocale): void => {
-    stateControls.replaceChildren();
-    for (const direction of ["down", "up"] as const) {
-      const button = createStepButton(document, direction, locale);
-      button.addEventListener("click", () => dragStep(direction));
-      stateControls.appendChild(button);
+  handle.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      dragStep("up");
+      return;
     }
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      dragStep("down");
+      return;
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      setState("peek");
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      setState("full");
+      return;
+    }
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (state === "full") {
+        setState("half");
+      } else {
+        dragStep("up");
+      }
+    }
+  });
+
+  const updateHandleCopy = (locale: AssistantLocale): void => {
+    const label = `${copy[locale].states.peek} / ${copy[locale].states.full}`;
+    handle.setAttribute("aria-label", label);
+    handle.title = label;
     setState(state);
   };
   const suspendForAssistantAction = (): void => {
@@ -401,7 +400,7 @@ export function installPlaceBottomSheet(
     const localeCopy = copy[next.locale];
     close.setAttribute("aria-label", localeCopy.close);
     close.title = localeCopy.close;
-    rebuildStateControls(next.locale);
+    updateHandleCopy(next.locale);
 
     sheet.dataset.placeName = next.location.name;
     sheet.dataset.placeCategory = next.location.category;
@@ -545,7 +544,10 @@ export function installPlaceBottomSheet(
             setStatus("ready");
             status.textContent = placeUiCopy[next.locale].shareSuccess;
             status.classList.remove("hidden");
+            return;
           }
+          status.textContent = placeUiCopy[next.locale].unavailable;
+          status.classList.remove("hidden");
         } catch (error) {
           if (error instanceof DOMException && error.name === "AbortError")
             return;

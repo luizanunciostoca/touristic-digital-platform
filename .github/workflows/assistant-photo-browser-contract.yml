@@ -232,6 +232,14 @@ jobs:
                 throw new Error(`Place V2 photo action set drifted: ${JSON.stringify(placeValues)}`);
               }
 
+              const placeSheet = page.locator('#place-bottom-sheet');
+              const placeHandle = placeSheet.locator('.place-bottom-sheet-drag-handle');
+              await placeHandle.focus();
+              await page.keyboard.press('End');
+              await page.locator('#place-bottom-sheet[data-sheet-state="full"]').waitFor({
+                state: 'visible',
+                timeout: 3000,
+              });
               await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').click();
               await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').click();
 

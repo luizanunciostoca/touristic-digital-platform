@@ -29,7 +29,12 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(runtime).toContain('shareButton.dataset.value = "compartilhar"');
     expect(runtime).toContain("primaryAction");
     expect(runtime).toContain("place-bottom-sheet-overflow");
-    expect(runtime).toContain("button.dataset.sheetStep = direction");
+    expect(runtime).toContain('handle.setAttribute("role", "button")');
+    expect(runtime).toContain('handle.addEventListener("keydown"');
+    expect(runtime).toContain('event.key === "ArrowUp"');
+    expect(runtime).toContain('event.key === "ArrowDown"');
+    expect(runtime).not.toContain("place-bottom-sheet-state-controls");
+    expect(runtime).not.toContain("button.dataset.sheetStep = direction");
     expect(runtime).not.toContain("dataset.sheetStateTarget");
     expect(runtime).toContain('next.status ?? "ready"');
 
@@ -133,6 +138,13 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(css).toContain("overflow-wrap: break-word");
     expect(css).toContain("word-break: normal");
     expect(css).toContain('body[data-md-mode="place"] #assistant-input-area');
+    expect(css).toContain('body[data-md-mode="place"] #home-bottom-navigation');
+    expect(css).toContain(
+      '#map[data-explore-stage="detail"] .morro-explore-marker-icon',
+    );
+    expect(css).toContain(
+      '#place-bottom-sheet[data-sheet-state="half"] .place-bottom-sheet-overflow',
+    );
     expect(css).toContain(
       'body[data-md-mode="place"] .analytics-consent-preferences.is-collapsed',
     );

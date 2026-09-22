@@ -301,8 +301,15 @@ jobs:
 
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary').click();
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
+              const placeSheet = page.locator('#place-bottom-sheet[aria-hidden="false"]');
+              if ((await placeSheet.getAttribute('data-sheet-state')) !== 'full') {
+                const handle = placeSheet.locator('.place-bottom-sheet-drag-handle');
+                await handle.focus();
+                await page.keyboard.press('End');
+                await page.locator('#place-bottom-sheet[data-sheet-state="full"]').waitFor({ state: 'visible', timeout: 3000 });
+              }
+              await placeSheet.locator('.place-bottom-sheet-overflow-summary').click();
+              await placeSheet.locator('.place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('fotos', true);
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
