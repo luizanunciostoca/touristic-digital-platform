@@ -19,7 +19,7 @@ describe("public onboarding i18n", () => {
     expect(publicOnboardingLocale("fr-FR")).toBe("pt");
   });
 
-  it("provides complete localized first-run and six-step tour copy without the retired Assistant trigger step", () => {
+  it("provides complete localized first-run and six-step V2 tour copy without retired Assistant shortcuts", () => {
     const expectations = [
       ["pt", "Bem-vindo ao Morro Digital", "Passo 1 de 6"],
       ["en", "Welcome to Morro Digital", "Step 1 of 6"],
@@ -37,6 +37,13 @@ describe("public onboarding i18n", () => {
       ).toBe(false);
       expect(
         copy.tour.steps.some((item) => item.description.includes("button")),
+      ).toBe(false);
+      expect(
+        copy.tour.steps.some((item) =>
+          /quick action|quick actions|atalho|atajos|קיצור/iu.test(
+            item.description,
+          ),
+        ),
       ).toBe(false);
       expect(copy.startTitle.length).toBeGreaterThan(0);
       expect(copy.skip.length).toBeGreaterThan(0);

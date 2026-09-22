@@ -1,0 +1,777 @@
+/*
+ * Morro Digital Tourist Shell V2
+ *
+ * Active presentation authority for the public map-first shell.
+ * Legacy CSS remains loaded only as frozen compatibility evidence; this file
+ * owns the visible Home/Discover geometry and consumes Design System V2 tokens.
+ */
+
+:root {
+  --md-shell-gutter: max(var(--md-space-3), var(--md-safe-left));
+  --md-shell-gutter-end: max(var(--md-space-3), var(--md-safe-right));
+  --md-shell-top: max(var(--md-space-3), var(--md-safe-top));
+  --md-shell-bottom: max(var(--md-space-3), var(--md-safe-bottom));
+  --md-shell-composer-height: 3.75rem;
+  --md-shell-control-size: 3rem;
+  --md-shell-home-max-inline: 44rem;
+}
+
+html,
+body {
+  width: 100%;
+  overflow: hidden;
+  background: var(--md-color-surface-canvas);
+  color: var(--md-color-text-primary);
+}
+
+body[data-md-mode] {
+  font-family: var(--md-font-family-sans);
+}
+
+.app-shell.md-tourist-shell-v2 {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--md-color-surface-canvas);
+}
+
+.app-shell.md-tourist-shell-v2 #map-section,
+.app-shell.md-tourist-shell-v2 #map-container,
+.app-shell.md-tourist-shell-v2 #map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+}
+
+.app-shell.md-tourist-shell-v2 #map-section {
+  z-index: var(--md-layer-map);
+  overflow: hidden;
+}
+
+.app-shell.md-tourist-shell-v2 #map-container {
+  overflow: hidden;
+  background: var(--md-color-surface-canvas);
+}
+
+.app-shell.md-tourist-shell-v2 #map {
+  background: var(--md-color-skeleton-base);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Home chrome                                                                */
+/* -------------------------------------------------------------------------- */
+
+.md-home-header {
+  display: none;
+}
+
+body[data-md-mode="discover"] .md-home-header {
+  position: fixed;
+  top: var(--md-shell-top);
+  left: var(--md-shell-gutter);
+  z-index: var(--md-layer-map-control);
+  display: block;
+  width: min(
+    21rem,
+    calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end) - 7.75rem)
+  );
+  padding: 0;
+  pointer-events: none;
+}
+
+.md-home-header-inner {
+  display: flex;
+  width: 100%;
+  min-height: var(--md-touch-target-min);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-2) var(--md-space-3);
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-outdoor-shadow);
+  backdrop-filter: blur(0.875rem) saturate(1.12);
+  -webkit-backdrop-filter: blur(0.875rem) saturate(1.12);
+  pointer-events: auto;
+}
+
+.md-home-brand-mark {
+  display: grid;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-brand);
+  color: var(--md-color-text-inverse);
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1;
+}
+
+.md-home-title-block {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.md-home-header h1 {
+  margin: 0;
+  overflow: hidden;
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-md);
+  font-weight: var(--md-font-weight-bold);
+  line-height: var(--md-line-height-tight);
+  text-overflow: ellipsis;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+.md-home-header .tagline {
+  margin: var(--md-space-1) 0 0;
+  overflow: hidden;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-medium);
+  line-height: var(--md-line-height-tight);
+  text-overflow: ellipsis;
+  text-shadow: none;
+  white-space: nowrap;
+}
+
+/* Keep the privacy preference trigger reachable without competing with the
+ * Home brand/weather cluster. The legacy consent surface remains functionally
+ * authoritative; V2 only relocates its collapsed trigger. */
+body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
+  top: auto;
+  right: auto;
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-shell-composer-height) + var(--md-space-3)
+  );
+  left: var(--md-shell-gutter);
+  z-index: var(--md-layer-map-control);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Weather V2                                                                 */
+/* -------------------------------------------------------------------------- */
+
+#weather-widget.md-weather-control {
+  position: fixed;
+  top: var(--md-shell-top);
+  right: var(--md-shell-gutter-end);
+  z-index: var(--md-layer-map-control);
+  display: none;
+  width: auto;
+  min-width: 6.5rem;
+  max-width: 8rem;
+  height: 3.25rem;
+  min-height: var(--md-touch-target-min);
+  padding: var(--md-space-2) var(--md-space-3);
+  overflow: hidden;
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-outdoor-shadow);
+  backdrop-filter: blur(0.875rem) saturate(1.12);
+  -webkit-backdrop-filter: blur(0.875rem) saturate(1.12);
+  cursor: pointer;
+}
+
+body[data-md-mode="discover"] #weather-widget.md-weather-control,
+body[data-md-mode="assistant"] #weather-widget.md-weather-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#weather-widget.md-weather-control .weather-compact-main,
+#weather-widget.md-weather-control .md-weather-control-content {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+}
+
+#weather-widget.md-weather-control .weather-emoji {
+  display: grid;
+  flex: 0 0 1.75rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  place-items: center;
+  font-size: var(--md-font-size-xl);
+  line-height: 1;
+}
+
+#weather-widget.md-weather-control .weather-temp {
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-md);
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1;
+}
+
+#weather-widget.md-weather-control .weather-compact-footer,
+#weather-widget.md-weather-control .click-here-text {
+  display: none;
+}
+
+#weather-widget.md-weather-control .weather-error {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--md-color-danger);
+  font-size: var(--md-font-size-xs);
+  font-weight: var(--md-font-weight-bold);
+  line-height: var(--md-line-height-tight);
+  text-align: center;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+#weather-widget.md-weather-control[data-weather-state="loading"] {
+  cursor: progress;
+}
+
+#weather-widget.md-weather-control[data-weather-state="loading"]
+  > :not(.weather-error) {
+  display: none;
+}
+
+#weather-widget.md-weather-control[data-weather-state="loading"]::before {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-skeleton-base);
+  content: "";
+}
+
+#weather-widget.md-weather-control[data-weather-state="loading"]::after {
+  width: 2.75rem;
+  height: 0.875rem;
+  border-radius: var(--md-radius-sm);
+  background: var(--md-color-skeleton-base);
+  content: "";
+}
+
+/* -------------------------------------------------------------------------- */
+/* Map controls V2                                                            */
+/* -------------------------------------------------------------------------- */
+
+#globe-map-control.md-map-control-stack {
+  position: fixed;
+  right: var(--md-shell-gutter-end);
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-shell-composer-height) + var(--md-space-4)
+  );
+  z-index: var(--md-layer-map-control);
+  display: flex;
+  flex-direction: column;
+  gap: var(--md-space-2);
+}
+
+#globe-map-control .md-map-control,
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl button {
+  width: var(--md-shell-control-size);
+  min-width: var(--md-shell-control-size);
+  height: var(--md-shell-control-size);
+  min-height: var(--md-shell-control-size);
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-outdoor-shadow);
+  backdrop-filter: blur(0.75rem);
+  -webkit-backdrop-filter: blur(0.75rem);
+}
+
+#globe-map-control .md-map-control:hover,
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl button:hover {
+  background: var(--md-color-interactive-secondary-hover);
+}
+
+#globe-map-control .md-map-control[aria-pressed="true"] {
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+}
+
+#globe-map-control .md-map-control svg {
+  width: 1.375rem;
+  height: 1.375rem;
+}
+
+#globe-map-control .control-tooltip {
+  position: absolute;
+  right: calc(100% + var(--md-space-2));
+  width: max-content;
+  max-width: 12rem;
+  padding: var(--md-space-2) var(--md-space-3);
+  border-radius: var(--md-radius-md);
+  background: var(--md-color-text-primary);
+  color: var(--md-color-text-inverse);
+  font-size: var(--md-font-size-xs);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(var(--md-space-1));
+  transition:
+    opacity var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+#globe-map-control .md-map-control:is(:hover, :focus-visible) .control-tooltip {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-top-left,
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-top-right,
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-bottom-left,
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-bottom-right {
+  z-index: var(--md-layer-map-control);
+}
+
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-top-right {
+  top: calc(var(--md-shell-top) + 4rem);
+  right: var(--md-shell-gutter-end);
+}
+
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-group {
+  overflow: visible;
+  border-radius: var(--md-radius-pill);
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-group button + button {
+  margin-top: var(--md-space-2);
+  border-top: 1px solid var(--md-outdoor-border);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Persistent Assistant composer                                              */
+/* -------------------------------------------------------------------------- */
+
+#assistant-input-area.md-assistant-composer {
+  position: fixed;
+  right: auto;
+  bottom: var(--md-shell-bottom);
+  left: 50%;
+  z-index: var(--md-layer-dock);
+  display: flex;
+  width: min(
+    var(--md-shell-home-max-inline),
+    calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end))
+  );
+  min-height: var(--md-shell-composer-height);
+  align-items: center;
+  gap: var(--md-space-2);
+  padding: var(--md-space-2);
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-glass);
+  box-shadow: var(--md-elevation-3);
+  backdrop-filter: blur(1rem) saturate(1.12);
+  -webkit-backdrop-filter: blur(1rem) saturate(1.12);
+  transform: translateX(-50%);
+}
+
+#assistant-input-area.md-assistant-composer #assistantInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+  padding: 0 var(--md-space-3);
+  border: 0;
+  border-radius: var(--md-radius-pill);
+  outline: 0;
+  background: transparent;
+  color: var(--md-color-text-primary);
+  font: inherit;
+}
+
+#assistant-input-area.md-assistant-composer #assistantInput::placeholder {
+  color: var(--md-color-text-secondary);
+  opacity: 1;
+}
+
+#assistant-input-area.md-assistant-composer #assistantInput:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: 0;
+  background: color-mix(in srgb, var(--md-color-surface-card) 72%, transparent);
+}
+
+#assistant-input-area.md-assistant-composer .md-icon-button {
+  flex: 0 0 var(--md-touch-target-min);
+  width: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+  border-radius: var(--md-radius-pill);
+  color: var(--md-color-text-secondary);
+}
+
+#assistant-input-area.md-assistant-composer #sendButton {
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+}
+
+#assistant-input-area.md-assistant-composer
+  :is(#voiceButton, #configButton):hover:not(:disabled) {
+  background: var(--md-color-interactive-secondary-hover);
+  color: var(--md-color-text-primary);
+}
+
+/* Assistant is a contextual layer above the persistent composer, not a
+ * floating launcher. */
+#assistant-messages.md-assistant-dialog {
+  /*
+   * Compatibility bridge: frozen V1 declares positional !important rules.
+   * These five declarations are intentionally scoped to the migrated V2 shell
+   * and can be retired when the historical Assistant positioning leaves the
+   * active runtime bundle.
+   */
+  position: fixed;
+  right: auto !important;
+  bottom: calc(
+    var(--md-shell-bottom) + var(--md-shell-composer-height) + var(--md-space-3)
+  ) !important;
+  left: 50% !important;
+  top: auto !important;
+  z-index: var(--md-layer-dialog);
+  width: min(
+    var(--md-shell-home-max-inline),
+    calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end))
+  );
+  max-width: var(--md-shell-home-max-inline);
+  max-height: min(62dvh, 34rem) !important;
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-xl);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-3);
+  backdrop-filter: blur(1rem);
+  -webkit-backdrop-filter: blur(1rem);
+  transform: translateX(-50%) !important;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Runtime visual states                                                      */
+/* -------------------------------------------------------------------------- */
+
+.md-map-state-surface {
+  position: absolute;
+  inset: 0;
+  z-index: var(--md-layer-marker);
+  display: grid;
+  place-items: center;
+  padding: calc(var(--md-shell-top) + 4.5rem) var(--md-shell-gutter-end)
+    calc(
+      var(--md-shell-bottom) + var(--md-shell-composer-height) +
+        var(--md-space-4)
+    )
+    var(--md-shell-gutter);
+  background: transparent;
+  pointer-events: none;
+}
+
+.md-map-state-card {
+  display: none;
+  width: min(20rem, calc(100vw - 2rem));
+  align-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-4);
+  border: 1px solid var(--md-outdoor-border);
+  border-radius: var(--md-radius-xl);
+  background: var(--md-outdoor-surface);
+  color: var(--md-outdoor-text);
+  box-shadow: var(--md-outdoor-shadow);
+}
+
+.app-shell[data-home-visual-state="loading"] .md-map-state-loading {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.app-shell[data-home-visual-state="provider-unavailable"]
+  .md-map-state-unavailable {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.md-map-state-card .md-map-state-icon {
+  display: grid;
+  width: var(--md-touch-target-min);
+  height: var(--md-touch-target-min);
+  place-items: center;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-brand);
+  font-size: var(--md-font-size-xl);
+}
+
+.md-map-state-copy {
+  min-width: 0;
+}
+
+.md-map-state-copy strong,
+.md-map-state-copy span {
+  display: block;
+}
+
+.md-map-state-copy strong {
+  font-size: var(--md-font-size-sm);
+  font-weight: var(--md-font-weight-bold);
+}
+
+.md-map-state-copy span {
+  margin-top: var(--md-space-1);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-xs);
+}
+
+.md-map-state-loading .md-map-state-icon {
+  overflow: hidden;
+}
+
+.md-map-state-loading .md-map-state-icon::before {
+  width: 65%;
+  height: 65%;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-skeleton-base);
+  content: "";
+  animation: md-shell-pulse var(--md-motion-duration-slow)
+    var(--md-motion-ease-standard) infinite alternate;
+}
+
+.app-shell[data-home-visual-state="ready"] .md-map-state-surface {
+  visibility: hidden;
+}
+
+/* Initial product splash now follows V2 tokens instead of the historical blue
+ * full-screen spinner. */
+#loading-overlay.md-home-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--md-layer-system);
+  display: grid;
+  place-items: center;
+  padding: var(--md-space-6);
+  background:
+    radial-gradient(
+      circle at 25% 20%,
+      color-mix(in srgb, var(--md-color-accent) 24%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 80% 75%,
+      color-mix(in srgb, var(--md-color-brand) 24%, transparent),
+      transparent 38%
+    ),
+    var(--md-color-surface-canvas);
+  color: var(--md-color-text-primary);
+}
+
+#loading-overlay.md-home-loading-overlay .loading-content {
+  display: grid;
+  width: min(20rem, 100%);
+  justify-items: center;
+  gap: var(--md-space-3);
+  padding: var(--md-space-6);
+  border: 1px solid var(--md-color-border);
+  border-radius: var(--md-radius-xl);
+  background: var(--md-color-surface-glass);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-3);
+  text-align: center;
+  backdrop-filter: blur(1rem);
+  -webkit-backdrop-filter: blur(1rem);
+}
+
+#loading-overlay.md-home-loading-overlay .spinner {
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: 0;
+  border: 0.1875rem solid var(--md-color-border);
+  border-top-color: var(--md-color-brand);
+  border-radius: var(--md-radius-pill);
+  animation: md-spin 700ms linear infinite;
+}
+
+#loading-overlay.md-home-loading-overlay.fade-out {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes md-shell-pulse {
+  from {
+    opacity: 0.45;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Collision and viewport contracts                                           */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 29.99rem) {
+  :root {
+    --md-shell-gutter: max(var(--md-space-2), var(--md-safe-left));
+    --md-shell-gutter-end: max(var(--md-space-2), var(--md-safe-right));
+    --md-shell-top: max(var(--md-space-2), var(--md-safe-top));
+    --md-shell-bottom: max(var(--md-space-2), var(--md-safe-bottom));
+  }
+
+  body[data-md-mode="discover"] .md-home-header {
+    width: min(
+      13.5rem,
+      calc(100vw - var(--md-shell-gutter) - var(--md-shell-gutter-end) - 7rem)
+    );
+  }
+
+  .md-home-header-inner {
+    gap: var(--md-space-2);
+    padding-right: var(--md-space-2);
+  }
+
+  .md-home-header .tagline {
+    display: none;
+  }
+
+  #weather-widget.md-weather-control {
+    min-width: 5.75rem;
+    max-width: 6.25rem;
+    padding-inline: var(--md-space-2);
+  }
+
+  #assistant-input-area.md-assistant-composer {
+    gap: var(--md-space-1);
+  }
+
+  #assistant-input-area.md-assistant-composer #assistantInput {
+    padding-inline: var(--md-space-2);
+  }
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --md-shell-gutter: max(var(--md-space-4), var(--md-safe-left));
+    --md-shell-gutter-end: max(var(--md-space-4), var(--md-safe-right));
+    --md-shell-top: max(var(--md-space-4), var(--md-safe-top));
+    --md-shell-bottom: max(var(--md-space-4), var(--md-safe-bottom));
+  }
+
+  body[data-md-mode="discover"] .md-home-header {
+    width: min(24rem, 42vw);
+  }
+
+  #weather-widget.md-weather-control {
+    min-width: 7rem;
+  }
+
+  #globe-map-control.md-map-control-stack {
+    bottom: calc(
+      var(--md-shell-bottom) + var(--md-shell-composer-height) +
+        var(--md-space-6)
+    );
+  }
+}
+
+@media (min-width: 64rem) {
+  :root {
+    --md-shell-home-max-inline: 46rem;
+  }
+
+  .md-home-header-inner,
+  #weather-widget.md-weather-control,
+  #assistant-input-area.md-assistant-composer,
+  #assistant-messages.md-assistant-dialog {
+    box-shadow: var(--md-elevation-2);
+  }
+
+  #assistant-messages.md-assistant-dialog {
+    max-height: min(58dvh, 36rem);
+  }
+}
+
+@media (max-height: 34rem) and (orientation: landscape) {
+  :root {
+    --md-shell-composer-height: 3.25rem;
+  }
+
+  body[data-md-mode="discover"] .md-home-header .tagline {
+    display: none;
+  }
+
+  #assistant-input-area.md-assistant-composer {
+    min-height: var(--md-shell-composer-height);
+    padding-block: var(--md-space-1);
+  }
+
+  #assistant-messages.md-assistant-dialog {
+    max-height: calc(
+      100dvh - var(--md-shell-top) - var(--md-shell-composer-height) -
+        var(--md-space-8)
+    );
+  }
+}
+
+@supports not (
+  (backdrop-filter: blur(0.5rem)) or (-webkit-backdrop-filter: blur(0.5rem))
+) {
+  .md-home-header-inner,
+  #weather-widget.md-weather-control,
+  #assistant-input-area.md-assistant-composer,
+  #assistant-messages.md-assistant-dialog,
+  #loading-overlay.md-home-loading-overlay .loading-content {
+    background: var(--md-outdoor-surface-strong);
+  }
+}
+
+@media (forced-colors: active) {
+  .md-home-header-inner,
+  #weather-widget.md-weather-control,
+  #globe-map-control .md-map-control,
+  .app-shell.md-tourist-shell-v2 .mapboxgl-ctrl button,
+  #assistant-input-area.md-assistant-composer,
+  #assistant-messages.md-assistant-dialog,
+  .md-map-state-card {
+    border: 1px solid CanvasText;
+    background: Canvas;
+    color: CanvasText;
+    box-shadow: none;
+    backdrop-filter: none;
+  }
+
+  .md-home-brand-mark,
+  #assistant-input-area.md-assistant-composer #sendButton {
+    background: Highlight;
+    color: HighlightText;
+    forced-color-adjust: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #globe-map-control .control-tooltip,
+  #loading-overlay.md-home-loading-overlay,
+  .md-map-state-loading .md-map-state-icon::before {
+    animation: none;
+    transition: none;
+  }
+}

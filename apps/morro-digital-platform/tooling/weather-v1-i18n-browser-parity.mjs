@@ -165,7 +165,7 @@ try {
   await page
     .locator("#weather-widget .click-here-text")
     .filter({ hasText: "Clique aqui" })
-    .waitFor({ state: "visible", timeout: 10000 });
+    .waitFor({ state: "attached", timeout: 10000 });
   await page.locator("#weather-widget").click();
   await page
     .locator(".weather-forecast-modal")

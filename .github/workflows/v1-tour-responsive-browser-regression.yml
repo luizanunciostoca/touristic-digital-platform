@@ -125,7 +125,7 @@ jobs:
               const s = await settledSnapshot(page, viewport, step);
               if (!inside(s.tooltip, viewport)) throw new Error(`${viewport.name} step ${step} tooltip escaped: ${JSON.stringify(s)}`);
               if (!s.target || s.target.width <= 0 || s.target.height <= 0) throw new Error(`${viewport.name} step ${step} target missing: ${JSON.stringify(s)}`);
-              if (s.assistantVisible !== (step >= 3 && step <= 5)) throw new Error(`${viewport.name} step ${step} assistant visibility diverged: ${JSON.stringify(s)}`);
+              if (s.assistantVisible) throw new Error(`${viewport.name} step ${step} opened contextual Assistant unexpectedly: ${JSON.stringify(s)}`);
               if (s.scrollWidth > s.clientWidth + 2) throw new Error(`${viewport.name} step ${step} horizontal overflow: ${JSON.stringify(s)}`);
               steps.push(s);
               if (step < 6) await page.locator('.tour-btn-next').click();
@@ -140,9 +140,10 @@ jobs:
                 settled: document.body.getAttribute('data-public-onboarding-settled'),
                 ariaHidden: node?.getAttribute('aria-hidden') ?? null,
                 visible: style ? style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' : false,
+                composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
               };
             });
-            if (restored.onboarded !== '1' || restored.settled !== 'true' || restored.ariaHidden !== 'false' || !restored.visible) throw new Error(`${viewport.name} restoration diverged: ${JSON.stringify(restored)}`);
+            if (restored.onboarded !== '1' || restored.settled !== 'true' || restored.ariaHidden !== 'true' || restored.visible || !restored.composerVisible) throw new Error(`${viewport.name} V2 restoration diverged: ${JSON.stringify(restored)}`);
             if (pageErrors.length) throw new Error(`${viewport.name} browser errors: ${JSON.stringify(pageErrors)}`);
             await page.screenshot({ path:`${out}/${viewport.name}-restored.png`, animations:'disabled' });
             await context.close();

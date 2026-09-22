@@ -1,5 +1,3 @@
-import { requestAssistantOpen } from "../assistant/assistant-shell-ui.js";
-
 import {
   getPublicOnboardingCopy,
   type PublicOnboardingTourStepCopy,
@@ -38,11 +36,9 @@ const TOUR_FOCUSABLE_SELECTOR = [
 const STEPS: readonly TutorialStepTarget[] = Object.freeze([
   Object.freeze({ selectors: ["#map-container", "#map"] }),
   Object.freeze({ selectors: ["#weather-widget"] }),
-  Object.freeze({ selectors: ["#assistant-messages"] }),
-  Object.freeze({
-    selectors: ["#assistant-messages .assistant-options", ".assistant-options"],
-  }),
   Object.freeze({ selectors: ["#assistant-input-area"] }),
+  Object.freeze({ selectors: ["#voiceButton"] }),
+  Object.freeze({ selectors: ["#configButton"] }),
   Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] }),
 ]);
 
@@ -57,23 +53,6 @@ function firstVisibleTarget(
     if (rect.width > 0 && rect.height > 0) return candidate;
   }
   return null;
-}
-
-function revealAssistantWelcome(document: Document): void {
-  requestAssistantOpen(document);
-  const assistant = document.getElementById("assistant-messages");
-  if (
-    assistant instanceof HTMLElement &&
-    assistant.classList.contains("hidden")
-  ) {
-    assistant.classList.remove("hidden");
-    assistant.setAttribute("aria-hidden", "false");
-    document.body.classList.add("assistant-modal-open");
-  }
-}
-
-export function ensureV1AssistantWelcomeVisible(document: Document): void {
-  revealAssistantWelcome(document);
 }
 
 export function installPublicInteractiveTour(
@@ -145,7 +124,6 @@ export function installPublicInteractiveTour(
   const finish = (result: "complete" | "skip"): void => {
     if (!active) return;
     cleanup();
-    revealAssistantWelcome(options.document);
     restoreFocus();
     if (result === "complete") {
       const toast = options.document.createElement("div");
@@ -350,11 +328,6 @@ export function installPublicInteractiveTour(
     target.classList.add("tour-target-active", "tour-pulse");
     if (computedPosition !== "static") target.style.position = computedPosition;
 
-    const assistantStep = nextIndex >= 2 && nextIndex <= 4;
-    options.document.body.classList.toggle(
-      "tour-show-assistant-modal-step",
-      assistantStep,
-    );
     renderTooltip(stepCopy);
     positionStep();
     tooltip
@@ -379,7 +352,6 @@ export function installPublicInteractiveTour(
         options.document.activeElement instanceof HTMLElement
           ? options.document.activeElement
           : null;
-      revealAssistantWelcome(options.document);
       options.document.body.classList.add("tour-active");
       if (view) {
         view.__tourActive = true;

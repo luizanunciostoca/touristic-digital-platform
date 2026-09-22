@@ -135,7 +135,7 @@ describe("UX P0 + Design System V2 foundations", () => {
     expect(css).toContain("#assistant-voice-selector.minimized");
   });
 
-  it("loads foundations after feature CSS on the primary public surfaces", async () => {
+  it("loads foundations before any surface-specific V2 authority", async () => {
     const surfaces = [
       "index.html",
       "business-dashboard.html",
@@ -145,6 +145,8 @@ describe("UX P0 + Design System V2 foundations", () => {
     ];
     const foundationHref =
       "/apps/morro-digital-platform/public/design-system-v2.css";
+    const touristShellHref =
+      "/apps/morro-digital-platform/public/tourist-shell-v2.css";
 
     for (const surface of surfaces) {
       const html = await readPublic(surface);
@@ -157,10 +159,19 @@ describe("UX P0 + Design System V2 foundations", () => {
       expect(stylesheetHrefs, `${surface} does not load foundations`).toContain(
         foundationHref,
       );
-      expect(
-        stylesheetHrefs.at(-1),
-        `${surface} must load foundations after feature CSS`,
-      ).toBe(foundationHref);
+
+      if (surface === "index.html") {
+        expect(stylesheetHrefs).toContain(touristShellHref);
+        expect(stylesheetHrefs.indexOf(touristShellHref)).toBe(
+          stylesheetHrefs.indexOf(foundationHref) + 1,
+        );
+        expect(stylesheetHrefs.at(-1)).toBe(touristShellHref);
+      } else {
+        expect(
+          stylesheetHrefs.at(-1),
+          `${surface} must load foundations after feature CSS`,
+        ).toBe(foundationHref);
+      }
     }
   });
 

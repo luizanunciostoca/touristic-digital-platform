@@ -57,7 +57,7 @@ jobs:
           done
           cat /tmp/v1-tour-assistant-visibility/server.log
           exit 1
-      - name: Validate V1 assistant display sequence and exit restoration
+      - name: Validate V2 contextual Assistant sequence and composer restoration
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -77,6 +77,7 @@ jobs:
                 ariaHidden: assistant?.getAttribute('aria-hidden') ?? null,
                 target: document.querySelector('.tour-target-active')?.id ||
                   document.querySelector('.tour-target-active')?.className || null,
+                composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
               };
             });
           }
@@ -107,10 +108,11 @@ jobs:
                 restored.display !== null &&
                 restored.visibility !== null &&
                 restored.opacity !== null &&
-                restored.display !== 'none' &&
-                restored.visibility !== 'hidden' &&
-                restored.opacity === '1' &&
-                restored.ariaHidden === 'false' &&
+                (restored.display === 'none' ||
+                  restored.visibility === 'hidden' ||
+                  restored.opacity === '0') &&
+                restored.ariaHidden === 'true' &&
+                restored.composerVisible &&
                 settled === 'true' &&
                 persisted === '1'
               ) {
@@ -118,7 +120,7 @@ jobs:
               }
               await new Promise(resolve => setTimeout(resolve, 50));
             }
-            throw new Error(`Assistant was not restored after ${exitMode}: ${JSON.stringify(snapshot)}`);
+            throw new Error(`V2 contextual Assistant/composer state was not restored after ${exitMode}: ${JSON.stringify(snapshot)}`);
           }
 
           async function resetAndStartTour(page) {
@@ -147,7 +149,7 @@ jobs:
             evidence.push(await assertVisibility(page, 1, false));
             for (let step = 2; step <= 6; step += 1) {
               await page.locator('.tour-btn-next').click();
-              evidence.push(await assertVisibility(page, step, step >= 3 && step <= 5));
+              evidence.push(await assertVisibility(page, step, false));
             }
 
             await page.locator('.tour-btn-finish').click();
@@ -169,7 +171,7 @@ jobs:
 
             if (errors.length) throw new Error(`Browser errors: ${JSON.stringify(errors)}`);
 
-            await page.screenshot({ path: `${outputDir}/final-assistant-restored.png`, fullPage: false, animations: 'disabled' });
+            await page.screenshot({ path: `${outputDir}/final-composer-restored.png`, fullPage: false, animations: 'disabled' });
             writeFileSync(
               `${outputDir}/evidence.json`,
               JSON.stringify({ evidence, finished, skippedByButton, skippedByEscape, errors }, null, 2),
