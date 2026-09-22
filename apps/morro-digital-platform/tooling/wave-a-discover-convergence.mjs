@@ -349,11 +349,33 @@ try {
         '#map[data-explore-state="ready"][data-explore-category="beaches"]',
       )
       .waitFor({ state: "attached", timeout: 10000 });
-    await page
-      .locator(
-        '.morro-explore-marker[data-explore-category="beaches"][data-location-name="Segunda Praia"]',
-      )
-      .click();
+    const beachMarkers = page.locator(
+      '.morro-explore-marker[data-explore-category="beaches"]',
+    );
+    const beachMarkerCount = await beachMarkers.count();
+    let clickableBeachIndex = -1;
+    for (let index = 0; index < beachMarkerCount; index += 1) {
+      const marker = beachMarkers.nth(index);
+      const box = await marker.boundingBox();
+      if (!box) continue;
+      const isTopmost = await page.evaluate(
+        ({ x, y }) =>
+          document
+            .elementFromPoint(x, y)
+            ?.closest(".morro-explore-marker")?.dataset.morroExploreMarker ===
+          "true",
+        { x: box.x + box.width / 2, y: box.y + box.height / 2 },
+      );
+      if (isTopmost) {
+        clickableBeachIndex = index;
+        break;
+      }
+    }
+    assert(
+      clickableBeachIndex >= 0,
+      "No beach POI is pointer-selectable at its visible center",
+    );
+    await beachMarkers.nth(clickableBeachIndex).click();
     await page
       .locator(
         '#map[data-explore-stage="detail"] .morro-explore-marker[data-selected="true"][aria-current="location"]',
