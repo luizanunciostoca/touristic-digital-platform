@@ -17,6 +17,161 @@ const stepUpWindowMs = 15 * 60 * 1000;
 const stepUpAttemptLimit = 5;
 const maxBodyBytes = 32 * 1024;
 
+const searchWindowMs = 10 * 1000;
+const searchAttemptLimit = 40;
+const searchResultTypeOrder = Object.freeze([
+  "business",
+  "affiliate",
+  "user",
+  "lead",
+  "reservation",
+  "ticket",
+  "order",
+  "payment",
+  "product",
+  "offer",
+  "contract",
+  "content",
+  "destination",
+]);
+const searchResultTypeLabels = Object.freeze({
+  business: "Empresas",
+  affiliate: "Afiliados",
+  user: "Usuários",
+  lead: "Leads",
+  reservation: "Reservas",
+  ticket: "Tickets",
+  order: "Pedidos",
+  payment: "Pagamentos",
+  product: "Produtos",
+  offer: "Ofertas",
+  contract: "Contratos",
+  content: "Conteúdo",
+  destination: "Destinos",
+});
+const searchAdapterSources = Object.freeze([
+  Object.freeze({
+    domain: "affiliates",
+    adapterKey: "affiliates",
+    capability: "affiliate.read",
+    types: Object.freeze(["affiliate"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "crm",
+    adapterKey: "crm",
+    capability: "crm.read",
+    types: Object.freeze(["lead", "contract"]),
+    destinationAware: false,
+  }),
+  Object.freeze({
+    domain: "products",
+    adapterKey: "products",
+    capability: "business.read",
+    types: Object.freeze(["product", "offer"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "reservations",
+    adapterKey: "reservations",
+    capability: "ticketing.read",
+    types: Object.freeze(["reservation"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "ticketing",
+    adapterKey: "ticketing",
+    capability: "ticketing.read",
+    types: Object.freeze(["ticket"]),
+    destinationAware: false,
+  }),
+  Object.freeze({
+    domain: "financial",
+    adapterKey: "financial",
+    capability: "financial.read",
+    types: Object.freeze(["order", "payment"]),
+    destinationAware: false,
+  }),
+  Object.freeze({
+    domain: "content",
+    adapterKey: "content",
+    capability: "content.read",
+    types: Object.freeze(["content"]),
+    destinationAware: true,
+  }),
+  Object.freeze({
+    domain: "destinations",
+    adapterKey: "destinations",
+    capability: "platform.read",
+    types: Object.freeze(["destination"]),
+    destinationAware: true,
+  }),
+]);
+
+function normalizeSearchText(value) {
+  return bounded(value, 160)
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLocaleLowerCase("pt-BR");
+}
+
+function searchInteger(value, fallback, { min, max }) {
+  if (value === null || value === undefined || value === "") return fallback;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= min && parsed <= max
+    ? parsed
+    : null;
+}
+
+function searchDestinationId(value) {
+  const normalized = bounded(value, 120).toLocaleLowerCase("en-US");
+  if (!normalized || normalized === "global") return "";
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(normalized) ? normalized : null;
+}
+
+function safeSearchHref(value) {
+  const href = bounded(value, 320);
+  if (!href) return "";
+  if (href.startsWith("#") || href.startsWith("/apps/")) return href;
+  return "";
+}
+
+function normalizedSearchResult(result, source) {
+  const type = bounded(result?.type, 40).toLocaleLowerCase("en-US");
+  if (!source.types.includes(type)) return null;
+  const id = bounded(result?.id, 180);
+  const title = bounded(result?.title, 240);
+  const href = safeSearchHref(result?.href);
+  if (!id || !title || !href) return null;
+  return Object.freeze({
+    type,
+    id,
+    title,
+    context: bounded(result?.context, 320),
+    href,
+    domain: source.domain,
+    ...(result?.destinationId
+      ? { destinationId: bounded(result.destinationId, 120) }
+      : {}),
+  });
+}
+
+function groupSearchResults(results) {
+  return searchResultTypeOrder
+    .map((type) => {
+      const grouped = results.filter((result) => result.type === type);
+      return grouped.length
+        ? Object.freeze({
+            type,
+            label: searchResultTypeLabels[type] ?? type,
+            count: grouped.length,
+            results: Object.freeze(grouped),
+          })
+        : null;
+    })
+    .filter(Boolean);
+}
+
 function json(response, statusCode, payload) {
   response.statusCode = statusCode;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -366,6 +521,22 @@ export function createAdminApi({
       "",
   ).trim();
   const stepUpAttempts = new Map();
+
+  const searchAttempts = new Map();
+
+  function consumeSearchAttempt(actorSubject) {
+    const now = Date.now();
+    const recent = (searchAttempts.get(actorSubject) ?? []).filter(
+      (timestamp) => now - timestamp < searchWindowMs,
+    );
+    if (recent.length >= searchAttemptLimit) {
+      searchAttempts.set(actorSubject, recent);
+      return false;
+    }
+    recent.push(now);
+    searchAttempts.set(actorSubject, recent);
+    return true;
+  }
 
   async function audit(request, actor, event) {
     const entry = Object.freeze({
