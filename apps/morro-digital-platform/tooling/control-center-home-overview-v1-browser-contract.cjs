@@ -381,7 +381,7 @@ async function login(page) {
   } finally {
     await browser.close();
   }
-})().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
+})().catch(() => {
+  console.error("Control Center Home Overview V1 browser contract failed");
   process.exit(1);
 });
