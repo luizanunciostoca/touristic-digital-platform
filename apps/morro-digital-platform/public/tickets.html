@@ -54,10 +54,12 @@
               Selecione uma experiência, confira data e preço e reserve com
               checkout seguro.
             </p>
+            <p class="ticketing-trust">Reserva segura · preço e disponibilidade confirmados pelo servidor</p>
             <div class="product-facts" aria-live="polite">
               <span id="product-location" class="md-badge"
                 >Morro de São Paulo</span
               >
+              <span id="product-rating" class="md-badge" hidden></span>
               <span id="product-duration" class="md-badge" hidden></span>
               <span
                 id="product-availability"
@@ -89,10 +91,17 @@
               id="refresh-button"
               class="button button-secondary md-button md-button--secondary"
               type="button"
+              hidden
             >
-              Atualizar
+              Tentar novamente
             </button>
           </div>
+          <div
+            id="date-selector"
+            class="date-selector"
+            role="listbox"
+            aria-label="Escolha a data"
+          ></div>
           <div id="offers" class="offer-grid" aria-live="polite"></div>
 
           <div
@@ -250,7 +259,7 @@
                 type="submit"
                 disabled
               >
-                Reservar e ir para pagamento
+                Finalizar Reserva
               </button>
             </div>
           </form>
