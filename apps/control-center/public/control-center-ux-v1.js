@@ -689,7 +689,9 @@ async function renderHome() {
       '<section class="card section-card" data-recent-activity data-source="append-only-audit"><div class="section-title"><div><h2>Atividade recente</h2><p>Eventos operacionais e administrativos compreensíveis, com actor e usuário efetivo.</p></div><a class="section-link" href="#audit">Ver todos os eventos</a></div><div class="timeline">' +
       activityHtml(data.audit.entries || []) +
       "</div></section></div>" +
-      '<div class="home-stack"><section class="card section-card affiliate-model-card" data-affiliate-summary data-source="affiliates-owner"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div>' +
+      '<div class="home-stack"><section class="card section-card affiliate-model-card" data-affiliate-summary data-source="affiliates-owner" data-state="' +
+      (affiliateSummary ? "ready" : "unavailable") +
+      '"><div class="section-title"><h2>Afiliados pertencem à Morro Digital</h2></div><div class="affiliate-model-card__body"><span class="affiliate-model-card__icon" aria-hidden="true">◇</span><p>Os afiliados são da Morro Digital e são organizados por destino, não por empresa. Eles podem promover produtos de várias empresas do mesmo destino, fortalecendo todo o ecossistema.</p></div>' +
       (affiliateSummary
         ? '<div class="module-list"><div class="module-row"><span>Memberships aprovadas</span><strong>' +
           escapeHtml(affiliateSummary.approved) +
