@@ -116,7 +116,16 @@ describe("Home / Discover V2 visual shell", () => {
       'Object.freeze({ selectors: ["#assistant-input-area"] })',
     );
     expect(interactiveTour).toContain(
-      'Object.freeze({ selectors: ["#globe-map-control", "#toggle-globe-view"] })',
+      'Object.freeze({ selectors: ["#voiceButton"] })',
+    );
+    expect(interactiveTour).toContain(
+      'Object.freeze({ selectors: ["#home-profile-button"] })',
+    );
+    expect(interactiveTour).toContain(
+      'Object.freeze({ selectors: ["#toggle-globe-view"] })',
+    );
+    expect(interactiveTour).not.toContain(
+      'Object.freeze({ selectors: ["#home-bottom-navigation"] })',
     );
   });
 
