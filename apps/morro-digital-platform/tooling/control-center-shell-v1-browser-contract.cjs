@@ -230,11 +230,17 @@ async function login(page) {
     await destinationSelector.evaluate((node) => {
       node.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    if ((await page.locator("#global-scope").getAttribute("aria-pressed")) !== "false") {
+    if (
+      (await page.locator("#global-scope").getAttribute("aria-pressed")) !==
+      "false"
+    ) {
       throw new Error("Destination selection did not leave Global scope");
     }
     await page.locator("#global-scope").click();
-    if ((await page.locator("#global-scope").getAttribute("aria-pressed")) !== "true") {
+    if (
+      (await page.locator("#global-scope").getAttribute("aria-pressed")) !==
+      "true"
+    ) {
       throw new Error("Global scope did not become visually explicit");
     }
     evidence.keyboard.push("destination-context-global-toggle");
@@ -263,8 +269,9 @@ async function login(page) {
             destinationRect.width > 0 &&
             destinationRect.height > 0 &&
             getComputedStyle(destination).visibility !== "hidden",
-          profileNameVisible:
-            profileName ? getComputedStyle(profileName).display !== "none" : false,
+          profileNameVisible: profileName
+            ? getComputedStyle(profileName).display !== "none"
+            : false,
         };
       });
 
