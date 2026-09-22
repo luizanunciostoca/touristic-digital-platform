@@ -53,7 +53,7 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         submenu_title_explore_places: "Explorar locais",
         submenu_close: "Fechar menu",
         assistant_minimize: "Minimizar assistente",
-        assistant_input_placeholder: "Digite sua pergunta...",
+        assistant_input_placeholder: "Pergunte ao Morro Digital...",
         assistant_input_label: "Mensagem para o assistente",
         assistant_send_label: "Enviar mensagem",
         assistant_voice_label: "Enviar mensagem por voz",
