@@ -677,7 +677,13 @@ export function createV1ImmersiveTourController(
       if (state.stage !== "idle") await stop(false);
       clearFinaleTimer();
       setState(startV1ImmersiveTourState(tour.id, tour.stops.length));
-      await Promise.resolve(options.activateMap(tour.id));
+      try {
+        await Promise.resolve(options.activateMap(tour.id));
+      } catch (error) {
+        setState(idleV1ImmersiveTourState);
+        await Promise.resolve(options.deactivateMap()).catch(() => undefined);
+        throw error;
+      }
       renderIntro();
       return true;
     },
