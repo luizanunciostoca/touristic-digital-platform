@@ -349,7 +349,16 @@ function frameLocationsOnMap(
     const location = locations[0];
     if (!location) return;
     if (map?.flyTo) {
-      map.flyTo({
+      const paddedMap = map as typeof map & {
+        flyTo(options: {
+          center: [number, number];
+          zoom?: number;
+          duration?: number;
+          essential?: boolean;
+          padding?: { top: number; bottom: number; left: number; right: number };
+        }): void;
+      };
+      paddedMap.flyTo({
         center: [location.longitude, location.latitude],
         zoom: 16,
         duration: 650,
