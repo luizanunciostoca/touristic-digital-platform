@@ -492,7 +492,8 @@ function humanizeAuditAction(value) {
     "affiliate.membership.suspended": "Membership do afiliado suspensa",
     "affiliate.membership.reactivated": "Membership do afiliado reativada",
     "affiliate.membership.suspend.complete": "Membership do afiliado suspensa",
-    "affiliate.membership.reactivate.complete": "Membership do afiliado reativada",
+    "affiliate.membership.reactivate.complete":
+      "Membership do afiliado reativada",
     "support.session.start": "Support Mode iniciado",
     "support.session.end": "Support Mode encerrado",
     "support.session.started": "Support Mode iniciado",
