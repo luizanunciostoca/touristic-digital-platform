@@ -124,4 +124,14 @@ describe("UX V2 manual visual conformance authority", () => {
     expect(workflow).toContain("[data-ticketing-experience-media]");
     expect(workflow).toContain("visibleMediaCount < 1");
   });
+
+  it("keeps manual golden authority inside both final acceptance inventories", async () => {
+    const workflow = await readRepository(
+      ".github/workflows/final-release-acceptance.yml",
+    );
+    const matches =
+      workflow.match(/ux-v2-manual-golden-conformance\.yml/gu) ?? [];
+
+    expect(matches).toHaveLength(2);
+  });
 });
