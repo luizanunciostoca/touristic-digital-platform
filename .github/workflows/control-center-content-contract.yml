@@ -196,7 +196,9 @@ jobs:
               );
               await page.locator("#app:not([hidden])").waitFor({ state: "visible" });
 
-              await page.locator('[data-view="content"]').click();
+              await page.evaluate(() => {
+                window.location.hash = "#content";
+              });
               await page.locator("#content-create-id").fill("content-browser-0001");
               await page.locator("#content-create-title").fill("Segunda Praia");
               await page
