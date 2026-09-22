@@ -671,9 +671,7 @@ body:has(
   overflow-wrap: break-word;
 }
 
-#explore-flow-bottom-sheet
-  .explore-flow-sheet-source
-  > [data-location-name] {
+#explore-flow-bottom-sheet .explore-flow-sheet-source > [data-location-name] {
   grid-column: 1 / -1;
   justify-content: flex-start;
   text-align: start;
