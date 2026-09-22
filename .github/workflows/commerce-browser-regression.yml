@@ -152,6 +152,30 @@ jobs:
             await page.route('**/api/ticketing/v1/consumer-session', route => fulfill(route, {
               data: { subject: 'guest:browser', csrfToken: 'csrf_browser_0001', expiresAt: iso(30 * DAY) },
             }, 201, { 'set-cookie': 'morro_commerce_session=browser-token; Path=/; HttpOnly; SameSite=Strict' }));
+            await page.route('**/api/ticketing/v1/quote', route => {
+              const body = route.request().postDataJSON();
+              const selected =
+                (state.inventory ?? [offer, placeOffer]).find(entry => entry.id === body.inventoryId) ?? offer;
+              const quantity = Number(body.quantity);
+              const unitAmount = selected.unitAmount;
+              return fulfill(route, {
+                data: {
+                  inventoryId: selected.id,
+                  quantity,
+                  unitAmount,
+                  totalAmount: {
+                    minorUnits: unitAmount.minorUnits * quantity,
+                    currency: unitAmount.currency,
+                  },
+                  pricingVersion: selected.pricingVersion,
+                  availableQuantity: selected.availableQuantity,
+                  maxPerReservation: selected.maxPerReservation,
+                  observedAt: iso(0),
+                  expiresAt: iso(60_000),
+                },
+              });
+            });
+
             await page.route('**/api/ticketing/v1/reservations', route => {
               const request = route.request();
               if (request.method() === 'GET') return fulfill(route, { data: state.paid ? [reservation] : [] });
