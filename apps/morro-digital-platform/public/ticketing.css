@@ -37,18 +37,30 @@ button {
 }
 
 .ticketing-topbar {
-  display: flex;
+  display: grid;
+  grid-template-columns: var(--md-touch-target-min) minmax(0, 1fr) auto;
   min-height: var(--md-touch-target-min);
   align-items: center;
-  justify-content: space-between;
-  gap: var(--md-space-3);
-  margin-bottom: var(--md-space-4);
+  gap: var(--md-space-2);
+  margin-bottom: var(--md-space-3);
+}
+
+.ticketing-context-title {
+  overflow: hidden;
+  font-size: var(--md-font-size-md);
+  font-weight: var(--md-font-weight-bold);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .back-link {
   display: inline-flex;
+  width: var(--md-touch-target-min);
+  min-width: var(--md-touch-target-min);
   min-height: var(--md-touch-target-min);
   align-items: center;
+  justify-content: center;
   color: var(--md-color-brand-strong);
   font-weight: var(--md-font-weight-bold);
   text-decoration: none;
@@ -820,6 +832,14 @@ h3 {
 @media (max-width: 24.375rem) {
   .session-label {
     display: none;
+  }
+
+  .ticketing-topbar {
+    grid-template-columns: var(--md-touch-target-min) minmax(0, 1fr) var(--md-touch-target-min);
+  }
+
+  .ticketing-context-title {
+    grid-column: 2;
   }
 
   .quantity-control,
