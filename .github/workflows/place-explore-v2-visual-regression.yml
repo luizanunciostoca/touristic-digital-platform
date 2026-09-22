@@ -364,10 +364,10 @@ jobs:
                   });
                   await page.emulateMedia({ forcedColors: 'none' });
 
-                  const fullControl = explore.locator(
-                    '[data-sheet-state-target="full"]',
+                  const expandControl = explore.locator(
+                    '[data-sheet-step="up"]',
                   );
-                  await fullControl.focus();
+                  await expandControl.focus();
                   await page.keyboard.press('Enter');
                   await page.locator(
                     '#explore-flow-bottom-sheet[data-sheet-state="full"]',
@@ -391,6 +391,31 @@ jobs:
                   '#explore-flow-bottom-sheet [data-location-name="Primeira Praia"]',
                 );
                 await result.waitFor({ state: 'visible', timeout: 5000 });
+                const resultGeometry = await result.evaluate(node => {
+                  const rect = node.getBoundingClientRect();
+                  const source = node.closest('.explore-flow-sheet-source');
+                  const sourceRect = source?.getBoundingClientRect();
+                  const style = getComputedStyle(node);
+                  return {
+                    width: rect.width,
+                    sourceWidth: sourceRect?.width ?? null,
+                    wordBreak: style.wordBreak,
+                    overflowWrap: style.overflowWrap,
+                  };
+                });
+                if (
+                  viewport.width <= 430 &&
+                  (
+                    resultGeometry.sourceWidth === null ||
+                    resultGeometry.width < resultGeometry.sourceWidth * 0.92 ||
+                    resultGeometry.wordBreak === 'break-all' ||
+                    resultGeometry.overflowWrap === 'anywhere'
+                  )
+                ) {
+                  throw new Error(
+                    `MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY on ${viewport.id}: ${JSON.stringify(resultGeometry)}`,
+                  );
+                }
                 if (viewport.id === 'w390') {
                   await result.focus();
                   await page.keyboard.press('Enter');
@@ -409,11 +434,22 @@ jobs:
                 const placeState = await place.evaluate(sheet => {
                   const image = sheet.querySelector('.place-bottom-sheet-image');
                   const buttons = Array.from(sheet.querySelectorAll('button'));
-                  const values = Array.from(
-                    sheet.querySelectorAll('.place-bottom-sheet-action'),
+                  const visibleValues = Array.from(
+                    sheet.querySelectorAll('.place-bottom-sheet-actions .place-bottom-sheet-action'),
                     button => button.getAttribute('data-value'),
                   );
+                  const overflowValues = Array.from(
+                    sheet.querySelectorAll('.place-bottom-sheet-overflow-actions .place-bottom-sheet-action'),
+                    button => button.getAttribute('data-value'),
+                  );
+                  const values = [...visibleValues, ...overflowValues];
                   const rating = sheet.querySelector('.place-bottom-sheet-rating');
+                  const overflow = sheet.querySelector('.place-bottom-sheet-overflow');
+                  const primary = sheet.querySelector('.place-bottom-sheet-primary-action');
+                  const composer = document.getElementById('assistant-input-area');
+                  const privacy = document.querySelector(
+                    '.analytics-consent-preferences.is-collapsed',
+                  );
                   const visibleAssistantDuplicates = Array.from(
                     document.querySelectorAll(
                       '#assistant-messages:not(.hidden) .assistant-option-btn',
@@ -432,18 +468,33 @@ jobs:
                       image.complete &&
                       image.naturalWidth > 0,
                     values,
+                    visibleValues,
+                    overflowValues,
+                    overflowOpen: overflow instanceof HTMLDetailsElement ? overflow.open : null,
                     ratingHidden:
                       !rating ||
                       rating.classList.contains('hidden') ||
                       getComputedStyle(rating).display === 'none',
                     duplicatedAssistantActions: visibleAssistantDuplicates,
+                    primaryWidth:
+                      primary instanceof HTMLElement
+                        ? primary.getBoundingClientRect().width
+                        : null,
+                    composerVisible:
+                      composer instanceof HTMLElement &&
+                      getComputedStyle(composer).visibility !== 'hidden' &&
+                      getComputedStyle(composer).opacity !== '0',
+                    privacyVisible:
+                      privacy instanceof HTMLElement &&
+                      getComputedStyle(privacy).visibility !== 'hidden' &&
+                      getComputedStyle(privacy).opacity !== '0',
                     targets: buttons.map(button => {
                       const rect = button.getBoundingClientRect();
                       return { width: rect.width, height: rect.height };
                     }),
                   };
                 });
-                const requiredValues = [
+                const requiredValues = new Set([
                   'condições da praia',
                   'como chegar',
                   'ver fotos',
@@ -451,15 +502,23 @@ jobs:
                   'mais opções',
                   'adicionar aos favoritos',
                   'compartilhar',
-                ];
+                ]);
+                const actualValues = new Set(placeState.values.filter(Boolean));
                 if (
                   placeState.title !== 'Primeira Praia' ||
                   !placeState.meta ||
                   placeState.imagePath !== '/images/fotos/primeira_praia1.jpg' ||
                   !placeState.imageLoaded ||
-                  JSON.stringify(placeState.values) !== JSON.stringify(requiredValues) ||
+                  requiredValues.size !== actualValues.size ||
+                  [...requiredValues].some(value => !actualValues.has(value)) ||
+                  JSON.stringify(placeState.visibleValues) !==
+                    JSON.stringify(['como chegar', 'adicionar aos favoritos', 'compartilhar']) ||
+                  placeState.overflowValues.length !== 4 ||
+                  placeState.overflowOpen !== false ||
                   !placeState.ratingHidden ||
                   placeState.duplicatedAssistantActions.length !== 0 ||
+                  placeState.composerVisible ||
+                  placeState.privacyVisible ||
                   placeState.targets.some(target => target.width < 44 || target.height < 44)
                 ) {
                   throw new Error(
@@ -467,8 +526,33 @@ jobs:
                   );
                 }
 
-                for (const state of ['peek', 'half', 'full']) {
-                  await place.locator(`[data-sheet-state-target="${state}"]`).click();
+                const initialPlaceState = await place.getAttribute('data-sheet-state');
+                const initialPlaceGeometry = await sheetGeometry(
+                  page,
+                  '#place-bottom-sheet',
+                );
+                if (
+                  initialPlaceState !== 'half' ||
+                  initialPlaceGeometry.rect.height > viewport.height * 0.62 ||
+                  initialPlaceGeometry.rect.top < viewport.height * 0.34
+                ) {
+                  throw new Error(
+                    `MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY on ${viewport.id}: ${JSON.stringify({ initialPlaceState, initialPlaceGeometry })}`,
+                  );
+                }
+                await page.screenshot({
+                  path: `/tmp/place-explore-v2/place-initial-${viewport.id}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+
+                const stateSequence = [
+                  { step: 'down', state: 'peek' },
+                  { step: 'up', state: 'half' },
+                  { step: 'up', state: 'full' },
+                ];
+                for (const { step, state } of stateSequence) {
+                  await place.locator(`[data-sheet-step="${step}"]`).click();
                   await page.locator(
                     `#place-bottom-sheet[data-sheet-state="${state}"]`,
                   ).waitFor({ state: 'visible', timeout: 3000 });
@@ -485,7 +569,7 @@ jobs:
                   );
                 }
                 await page.screenshot({
-                  path: `/tmp/place-explore-v2/place-${viewport.id}.png`,
+                  path: `/tmp/place-explore-v2/place-full-${viewport.id}.png`,
                   fullPage: false,
                   animations: 'disabled',
                 });
@@ -761,7 +845,9 @@ jobs:
                   viewport,
                   exploreGeometry,
                   mapGeometry,
+                  resultGeometry,
                   placeState,
+                  initialPlaceGeometry,
                   placeGeometry,
                   perf,
                   special,
