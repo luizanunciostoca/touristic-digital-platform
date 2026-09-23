@@ -8,6 +8,7 @@ const PRECACHE_URLS = Object.freeze([
   "/pwa-register.js",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",
+  "/apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
   "/apps/morro-digital-platform/public/styles.css",
   "/apps/morro-digital-platform/public/commerce.css",
   "/apps/morro-digital-platform/public/assistant-photo-carousel.css",

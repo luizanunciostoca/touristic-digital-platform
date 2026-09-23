@@ -91,7 +91,8 @@ function createAppShellMarkup(): string {
         <p id="assistant-dialog-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
         <div class="messages-area md-assistant-messages" role="region" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions text">
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
-            🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄
+            Bem-vindo ao Morro Digital!
+Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           </div>
           <div class="assistant-options md-assistant-options" data-assistant-command-source="legacy-category-routing">
             <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
@@ -159,43 +160,43 @@ function createAppShellMarkup(): string {
         data-assistant-category-rail
       >
         <div class="md-assistant-category-scroll">
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="beaches" data-value="beaches">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
             <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Praias</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="restaurants" data-value="restaurants">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="restaurants" data-value="restaurants" aria-pressed="false">
             <i class="fas fa-utensils" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Restaurantes</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="hotels" data-value="hotels">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="hotels" data-value="hotels" aria-pressed="false">
             <i class="fas fa-bed" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Hotéis</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="shops" data-value="shops">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="shops" data-value="shops" aria-pressed="false">
             <i class="fas fa-shopping-bag" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Lojas</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="transport" data-value="transport">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="transport" data-value="transport" aria-pressed="false">
             <i class="fas fa-bus" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Transporte</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="attractions" data-value="attractions">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="attractions" data-value="attractions" aria-pressed="false">
             <i class="fas fa-camera" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Atrações</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="tours" data-value="tours">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="tours" data-value="tours" aria-pressed="false">
             <i class="fas fa-route" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Tours</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="nightlife" data-value="nightlife">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="nightlife" data-value="nightlife" aria-pressed="false">
             <i class="fas fa-moon" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Vida Noturna</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="emergencies" data-value="emergencies">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="emergencies" data-value="emergencies" aria-pressed="false">
             <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Emergências</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="help" data-value="help">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="help" data-value="help" aria-pressed="false">
             <i class="fas fa-question-circle" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Ajuda</span>
           </button>
@@ -208,13 +209,13 @@ function createAppShellMarkup(): string {
           type="text"
           id="assistantInput"
           class="md-input"
-          placeholder="Type your question..."
-          aria-label="Assistant input"
+          placeholder="Pergunte ao Morro Digital..."
+          aria-label="Mensagem para o assistente"
           data-i18n-placeholder="assistant_input_placeholder"
           data-i18n-aria="assistant_input_label"
         />
-        <button id="sendButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send message" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
-        <button id="voiceButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Send voice message" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone"><i class="fas fa-microphone" aria-hidden="true"></i></button>
+        <button id="sendButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Enviar mensagem" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
+        <button id="voiceButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Enviar mensagem por voz" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone"><i class="fas fa-microphone" aria-hidden="true"></i></button>
       </div>
 
       <section id="home-profile-panel" class="md-home-profile-panel md-card hidden" aria-hidden="true" aria-labelledby="home-profile-title">
@@ -422,6 +423,27 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
     );
   });
 
+  const synchronizeCategorySelection = (): void => {
+    const activeCategory =
+      document.getElementById("map")?.dataset.exploreCategory ?? null;
+    categories
+      .querySelectorAll<HTMLButtonElement>("[data-assistant-category]")
+      .forEach((button) => {
+        button.setAttribute(
+          "aria-pressed",
+          String(
+            Boolean(activeCategory) &&
+              button.dataset.assistantCategory === activeCategory,
+          ),
+        );
+      });
+  };
+  document.addEventListener(
+    "morro:explore-state-changed",
+    synchronizeCategorySelection,
+  );
+  synchronizeCategorySelection();
+
   document.body.dataset.mdUnifiedDock = "true";
   return dock;
 }
@@ -499,7 +521,17 @@ function synchronizeAssistantLayout(document: Document): void {
     const hasOverflow = messagesArea.scrollHeight > messagesArea.clientHeight;
     assistantMessages.classList.toggle("has-overflow", hasOverflow);
 
-    if (hasOverflow) {
+    const messageNodes = Array.from(
+      messagesArea.querySelectorAll<HTMLElement>(".message"),
+    );
+    const isInitialWelcome =
+      messageNodes.length === 1 &&
+      messageNodes[0]?.getAttribute("data-i18n") ===
+        "assistant_welcome_message";
+
+    if (isInitialWelcome) {
+      messagesArea.scrollTop = 0;
+    } else if (hasOverflow) {
       messagesArea.scrollTop = messagesArea.scrollHeight;
     }
   };

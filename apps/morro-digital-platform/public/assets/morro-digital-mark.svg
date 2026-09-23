@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Morro Digital">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <circle cx="48" cy="48" r="46" fill="#fff"/>
+  <circle cx="26" cy="27" r="10" fill="#fbbf24"/>
+  <g fill="#22c55e">
+    <path d="M58 24c-8-8-19-7-24 0 9-1 15 2 19 8-8-3-16-1-20 5 10-1 17 1 23 7l4-4c-2-6-2-10-2-16Z"/>
+    <path d="M62 25c7-8 18-7 23 0-9-1-15 2-18 8 8-3 15-1 19 5-10-1-17 1-22 7l-4-4c2-6 2-10 2-16Z"/>
+  </g>
+  <path d="M57 34c-1 11-5 21-12 31" fill="none" stroke="#8b5e3c" stroke-width="6" stroke-linecap="round"/>
+  <path d="M15 64c12-8 22-7 33 0s21 8 33 0v8c-12 8-22 7-33 0s-21-8-33 0Z" fill="url(#sea)"/>
+  <path d="M15 76c12-8 22-7 33 0s21 8 33 0v7H15Z" fill="#0ea5e9"/>
+</svg>

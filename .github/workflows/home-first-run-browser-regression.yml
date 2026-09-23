@@ -185,7 +185,7 @@ jobs:
               !started.backdropClipPath.includes('evenodd') ||
               !started.tourHighlight ||
               !started.tourTooltip ||
-              started.tourLabel !== 'Step 1 of 6' ||
+              started.tourLabel !== 'Passo 1 de 6' ||
               started.assistantVisible ||
               !started.composerVisible ||
               !started.welcomeVisible ||
@@ -225,7 +225,7 @@ jobs:
             ];
             for (let step = 2; step <= 6; step += 1) {
               await page.locator('.tour-btn-next').click();
-              await page.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
+              await page.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 6` }).waitFor({ state: 'visible', timeout: 3000 });
               const stepState = await readState(page);
               assertIdleMap(stepState, `Tutorial step ${step}`);
               if (
@@ -266,7 +266,7 @@ jobs:
               !completed.assistantVisible ||
               !completed.composerVisible ||
               !completed.welcomeVisible ||
-              !completed.welcomeText.includes('Welcome to Morro Digital')
+              !completed.welcomeText.includes('Bem-vindo ao Morro Digital')
             ) {
               throw new Error(`Tutorial completion did not preserve the V2 persistent composer state: ${JSON.stringify(completed)}`);
             }
@@ -332,7 +332,7 @@ jobs:
             await missingTargetPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
             await missingTargetPage.evaluate(() => document.getElementById('weather-widget')?.remove());
             await missingTargetPage.locator('.tour-btn-next').click();
-            await missingTargetPage.locator('.tour-step-label').filter({ hasText: 'Step 2 of 6' }).waitFor({ state: 'visible', timeout: 3000 });
+            await missingTargetPage.locator('.tour-step-label').filter({ hasText: 'Passo 2 de 6' }).waitFor({ state: 'visible', timeout: 3000 });
             const missingTarget = await readState(missingTargetPage);
             if (
               missingTarget.targetIdentity !== null ||
@@ -410,7 +410,7 @@ jobs:
             await micDeniedPage.locator('#tour-tooltip').waitFor({ state: 'visible', timeout: 3000 });
             for (let step = 2; step <= 4; step += 1) {
               await micDeniedPage.locator('.tour-btn-next').click();
-              await micDeniedPage.locator('.tour-step-label').filter({ hasText: `Step ${step} of 6` }).waitFor({ state: 'visible', timeout: 3000 });
+              await micDeniedPage.locator('.tour-step-label').filter({ hasText: `Passo ${step} de 6` }).waitFor({ state: 'visible', timeout: 3000 });
             }
             await micDeniedPage.locator('#tour-tooltip[data-target-unavailable]').waitFor({ state: 'visible', timeout: 3000 });
             const micDenied = await readState(micDeniedPage);

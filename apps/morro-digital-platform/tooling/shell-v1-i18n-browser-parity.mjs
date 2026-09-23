@@ -19,7 +19,7 @@ const expected = {
     headline: "Morro de São Paulo",
     tagline: "",
     assistantWelcome:
-      "🎉 Bem-vindo ao Morro Digital! Sou seu guia virtual oficial em Morro de São Paulo, pronto para ajudar você a explorar com facilidade pontos turísticos, praias, restaurantes, festas, passeios e tudo o que precisar, na palma da sua mão. Como posso ajudar? 😄",
+      "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
     mapSection: "Mapa interativo",
     mapRegion: "Mapa interativo de Morro de São Paulo",
     submenu: "Explorar locais",
@@ -48,7 +48,7 @@ const expected = {
     headline: "Morro de São Paulo",
     tagline: "",
     assistantWelcome:
-      "🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄",
+      "Welcome to Morro Digital!\nI can help you find beaches, tours, restaurants and experiences.",
     mapSection: "Interactive map",
     mapRegion: "Interactive map of Morro de São Paulo",
     submenu: "Explore places",
@@ -77,7 +77,7 @@ const expected = {
     headline: "Morro de São Paulo",
     tagline: "",
     assistantWelcome:
-      "🎉 ¡Bienvenido a Morro Digital! Soy tu guía virtual oficial de Morro de São Paulo, listo para ayudarte a explorar fácilmente lugares turísticos, playas, restaurantes, fiestas, paseos y todo lo que necesites al alcance de tu mano. ¿Cómo puedo ayudarte? 😄",
+      "¡Bienvenido a Morro Digital!\nPuedo ayudarte a encontrar playas, paseos, restaurantes y experiencias.",
     mapSection: "Mapa interactivo",
     mapRegion: "Mapa interactivo de Morro de São Paulo",
     submenu: "Explorar lugares",
@@ -106,7 +106,7 @@ const expected = {
     headline: "Morro de São Paulo",
     tagline: "",
     assistantWelcome:
-      "🎉 ברוכים הבאים ל-Morro Digital! אני המדריך הווירטואלי הרשמי שלכם למורו דה סאו פאולו, מוכן לעזור לכם לגלות בקלות אתרי תיירות, חופים, מסעדות, מסיבות, סיורים וכל מה שאתם צריכים — ממש בהישג יד. איך אוכל לעזור? 😄",
+      "ברוכים הבאים ל-Morro Digital!\nאפשר לעזור לכם למצוא חופים, סיורים, מסעדות וחוויות.",
     mapSection: "מפה אינטראקטיבית",
     mapRegion: "מפה אינטראקטיבית של Morro de São Paulo",
     submenu: "חקר מקומות",

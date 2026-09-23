@@ -10,6 +10,7 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("Unified Assistant horizontal category rail", () => {
+  // Golden mobile density keeps approximately six categories visible at 390px.
   it("composes grabber, message, categories, composer and navigation in one dock", async () => {
     const shell = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
@@ -46,6 +47,8 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(shell).toContain('"morro:assistant-option-selected"');
     expect(shell).toContain('source: "unified-category-rail"');
     expect(shell).toContain("button?.dataset.assistantCategory");
+    expect(shell).toContain("synchronizeCategorySelection");
+    expect(shell).toContain('"aria-pressed"');
     expect(shell).not.toContain("showAssistantCategoryDirectly");
   });
 
@@ -64,6 +67,10 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(css).toContain("scrollbar-width: none");
     expect(css).toContain('html[dir="rtl"]');
     expect(css).toContain("min-height: var(--md-touch-target-min)");
+    expect(css).toContain("#assistant-category-rail::after");
+    expect(css).toContain('content: "›"');
+    expect(css).toContain("flex-basis: 3rem");
+    expect(css).toContain("min-width: 3rem");
 
     for (const token of [
       "--md-unified-dock-category-height",

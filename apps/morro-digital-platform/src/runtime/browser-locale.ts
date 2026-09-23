@@ -2,7 +2,11 @@ export const MORRO_LANGUAGE_OVERRIDE_KEY = "morro-digital-language";
 
 export type MorroDocumentLocale = "pt-BR" | "en-US" | "es-ES" | "he-IL";
 export type MorroLocaleResolutionSource =
-  "manual" | "browser" | "browser-fallback" | "document-fallback";
+  | "manual"
+  | "destination-default"
+  | "browser"
+  | "browser-fallback"
+  | "document-fallback";
 
 export interface MorroBrowserLocaleResolution {
   readonly locale: MorroDocumentLocale;
@@ -58,13 +62,15 @@ function nonEmpty(values: readonly (string | null | undefined)[]): string[] {
 }
 
 /**
- * V1 language precedence restored for the public browser runtime:
+ * Public Morro shell language precedence:
  * 1. an explicit Morro Digital language choice;
- * 2. the first supported browser preference from navigator.languages/language;
- * 3. English when the browser reports only unsupported locales, matching the
- *    V1 getGeneralText() unsupported-language fallback;
- * 4. the document fallback (PT-BR in the public shell) when the browser does
- *    not report a language at all.
+ * 2. the destination-configured document locale (PT-BR on the Morro shell);
+ * 3. the first supported browser preference when no destination locale exists;
+ * 4. English for unsupported browser-only environments;
+ * 5. PT-BR as the final safe fallback.
+ *
+ * This keeps the destination experience deterministic on first visit while
+ * preserving explicit user language switching.
  */
 export function resolveMorroBrowserLocale(
   input: MorroBrowserLocaleInput,
@@ -72,6 +78,14 @@ export function resolveMorroBrowserLocale(
   const manual = canonicalSupportedLocale(input.override);
   if (manual) {
     return Object.freeze({ locale: manual, source: "manual" as const });
+  }
+
+  const destinationDefault = canonicalSupportedLocale(input.fallbackLocale);
+  if (destinationDefault) {
+    return Object.freeze({
+      locale: destinationDefault,
+      source: "destination-default" as const,
+    });
   }
 
   const browserCandidates = nonEmpty([
@@ -94,7 +108,7 @@ export function resolveMorroBrowserLocale(
   }
 
   return Object.freeze({
-    locale: canonicalSupportedLocale(input.fallbackLocale) ?? "pt-BR",
+    locale: "pt-BR",
     source: "document-fallback" as const,
   });
 }
