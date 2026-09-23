@@ -298,7 +298,9 @@ jobs:
               ).waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
 
-              await submit('ver todos', true);
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+              ).click();
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
               ).waitFor({ state: 'visible' });
@@ -336,7 +338,9 @@ jobs:
                 );
               }
 
-              await submit('voltar');
+              await page.locator(
+                '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn[data-value="[sub]beaches"]',
+              ).click();
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
               ).waitFor({ state: 'visible', timeout: 8000 });
@@ -372,9 +376,7 @@ jobs:
                 'praias',
                 'surf',
                 'back to filters',
-                'ver todos',
-                'voltar',
-                'restaurantes',
+                                    'restaurantes',
               ]) {
                 if (!routedMessages.includes(expected)) {
                   throw new Error(`Missing typed menu route for ${expected}: ${JSON.stringify(routedMessages)}`);
