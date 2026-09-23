@@ -46,4 +46,18 @@ Runtime-measured values such as `--md-unified-dock-height` and `--md-unified-doc
 - `--md-unified-dock-category-gap`
 - `--md-unified-dock-category-min-width`
 
+### Context Rail button system
+
+The shared Category → Filters → Places → Actions control family also owns:
+
+- `--md-context-rail-control-height`
+- `--md-context-rail-control-radius`
+- `--md-context-rail-control-gap`
+- `--md-context-rail-control-padding-inline`
+- `--md-context-rail-label-size`
+- `--md-context-rail-icon-size`
+- `--md-context-rail-category-min-width`
+- `--md-context-rail-place-min-width`
+- `--md-context-rail-action-min-width`
+
 These are reusable geometry tokens. Horizontal scroll position remains runtime state and is not tokenized.
