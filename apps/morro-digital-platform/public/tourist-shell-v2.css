@@ -1286,6 +1286,7 @@ body[data-md-mode="discover"]
 body[data-md-mode="discover"]
   #weather-widget.md-weather-control[data-weather-state="error"]
   .weather-error {
+  min-height: 2.75rem;
   font-size: 0.625rem;
   line-height: 1.05;
   -webkit-line-clamp: unset;
