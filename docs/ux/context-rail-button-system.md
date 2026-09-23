@@ -17,7 +17,7 @@ O sistema já possuía uma boa base estrutural:
 
 Os principais gaps encontrados eram:
 
-- todos os estágios reutilizavam a classe visual de *category chip*, mesmo quando o item era local ou ação;
+- todos os estágios reutilizavam a classe visual de _category chip_, mesmo quando o item era local ou ação;
 - categoria, local e ação não possuíam semântica visual explícita;
 - cores eram alternadas pela posição do botão com `:nth-child`, sem significado de produto;
 - CTA comercial principal era apenas uma variação parcial dentro de regras antigas;

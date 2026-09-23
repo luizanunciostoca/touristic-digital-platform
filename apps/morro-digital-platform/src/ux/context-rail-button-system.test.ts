@@ -61,9 +61,7 @@ describe("Context Rail button system", () => {
     expect(css).toContain(
       '.md-context-rail-button[data-rail-variant="secondary"]',
     );
-    expect(css).toContain(
-      '.md-context-rail-button[data-rail-variant="back"]',
-    );
+    expect(css).toContain('.md-context-rail-button[data-rail-variant="back"]');
     expect(css).toContain("var(--md-context-rail-control-height)");
     expect(css).toContain("var(--md-context-rail-control-radius)");
     expect(css).toContain("white-space: nowrap");

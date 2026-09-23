@@ -566,8 +566,7 @@ export function installExploreLocationsControl({
             ? "back"
             : "secondary";
       button.type = "button";
-      button.className =
-        `md-assistant-category-chip md-assistant-context-chip assistant-option-btn md-context-rail-button md-context-rail-button--${railKind}`;
+      button.className = `md-assistant-category-chip md-assistant-context-chip assistant-option-btn md-context-rail-button md-context-rail-button--${railKind}`;
       button.dataset.contextRailOption = "true";
       button.dataset.railKind = railKind;
       button.dataset.railVariant = railVariant;

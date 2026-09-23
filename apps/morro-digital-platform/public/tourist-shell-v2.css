@@ -2256,16 +2256,13 @@ html[dir="rtl"]
   }
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Context Rail button system                                                 */
 /* -------------------------------------------------------------------------- */
 
 /* Categories, filters, places and place actions share one interaction
  * geometry. Stage and action priority change emphasis, not component shape. */
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-context-rail-button {
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-button {
   flex: 0 0 auto;
   width: auto;
   min-height: var(--md-context-rail-control-height);
@@ -2277,11 +2274,7 @@ html[dir="rtl"]
   padding: 0 var(--md-context-rail-control-padding-inline);
   border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
   border-radius: var(--md-context-rail-control-radius);
-  background: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 96%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
   color: var(--md-color-text-primary);
   box-shadow: none;
   font-size: var(--md-context-rail-label-size);
@@ -2295,17 +2288,10 @@ html[dir="rtl"]
 #unified-assistant-dock
   > #assistant-category-rail
   .md-context-rail-button:nth-child(n) {
-  background: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 96%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
 }
 
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-context-rail-button
-  i {
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-button i {
   flex: 0 0 var(--md-context-rail-icon-size);
   width: var(--md-context-rail-icon-size);
   height: var(--md-context-rail-icon-size);
@@ -2396,11 +2382,7 @@ html[dir="rtl"]
   > #assistant-category-rail
   .md-context-rail-button[data-rail-variant="secondary"] {
   border-color: color-mix(in srgb, var(--md-color-border) 72%, transparent);
-  background: color-mix(
-    in srgb,
-    var(--md-color-surface-card) 96%,
-    transparent
-  );
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
   color: var(--md-color-text-primary);
 }
 
