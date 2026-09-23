@@ -546,15 +546,32 @@ export function installExploreLocationsControl({
     }
     contextualRail.setAttribute("aria-label", accessibleLabel);
 
+    const railKind =
+      stage === "places"
+        ? "place"
+        : stage === "detail"
+          ? "action"
+          : stage === "filters"
+            ? "filter"
+            : "category";
+
     const buttons: HTMLButtonElement[] = [];
     for (const option of options) {
       const button = document.createElement("button");
+      const action = option.action ?? "command";
+      const railVariant =
+        action === "primary"
+          ? "primary"
+          : action.startsWith("back-") || action === "back-menu"
+            ? "back"
+            : "secondary";
       button.type = "button";
-      button.className =
-        "md-assistant-category-chip md-assistant-context-chip assistant-option-btn";
+      button.className = `md-assistant-category-chip md-assistant-context-chip assistant-option-btn md-context-rail-button md-context-rail-button--${railKind}`;
       button.dataset.contextRailOption = "true";
+      button.dataset.railKind = railKind;
+      button.dataset.railVariant = railVariant;
       button.dataset.value = option.value;
-      button.dataset.exploreAction = option.action ?? "command";
+      button.dataset.exploreAction = action;
       if (option.location) {
         button.dataset.locationName = option.location.name;
         button.dataset.locationCategory = option.location.category;

@@ -33,3 +33,5 @@ The public map shell now treats Assistant message, composer and primary navigati
 - `#assistant-input-area` keeps Send and Voice persistently reachable; focus no longer controls action visibility.
 - `#home-bottom-navigation` remains the canonical five-action navigation but participates in normal dock flow.
 - The dock publishes measured runtime height through `--md-unified-dock-height` / `--md-unified-dock-map-inset` so map controls, onboarding and camera framing avoid covered content.
+- `.md-context-rail-button` is the shared control for Category → Filters → Places → Actions; semantic modifiers distinguish category, filter, place and action without changing interaction geometry.
+- Category selection uses `aria-pressed`, while contextual actions use explicit `data-rail-variant="primary|secondary|back"`; selected navigation state is never styled as a commercial CTA.

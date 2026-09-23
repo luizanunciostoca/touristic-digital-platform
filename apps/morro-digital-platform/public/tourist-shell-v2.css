@@ -2255,3 +2255,187 @@ html[dir="rtl"]
     scroll-behavior: auto !important;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Context Rail button system                                                 */
+/* -------------------------------------------------------------------------- */
+
+/* Categories, filters, places and place actions share one interaction
+ * geometry. Stage and action priority change emphasis, not component shape. */
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-button {
+  flex: 0 0 auto;
+  width: auto;
+  min-height: var(--md-context-rail-control-height);
+  height: var(--md-context-rail-control-height);
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-context-rail-control-gap);
+  padding: 0 var(--md-context-rail-control-padding-inline);
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  border-radius: var(--md-context-rail-control-radius);
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
+  color: var(--md-color-text-primary);
+  box-shadow: none;
+  font-size: var(--md-context-rail-label-size);
+  font-weight: var(--md-font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Neutralize the former decorative per-index palette. Meaning now comes from
+ * selected/primary/back state rather than a button's position in the list. */
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button:nth-child(n) {
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
+}
+
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-button i {
+  flex: 0 0 var(--md-context-rail-icon-size);
+  width: var(--md-context-rail-icon-size);
+  height: var(--md-context-rail-icon-size);
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-context-rail-icon-size);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button
+  :is(.md-assistant-category-label, .md-assistant-context-label) {
+  display: block;
+  max-width: none;
+  overflow: hidden;
+  color: inherit;
+  font-size: var(--md-context-rail-label-size);
+  font-weight: var(--md-font-weight-medium);
+  line-height: 1.1;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-box-orient: initial;
+  -webkit-line-clamp: initial;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-context-rail-button--category {
+  min-width: var(--md-context-rail-category-min-width);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="filters"]
+  .md-context-rail-button--filter {
+  min-width: max-content;
+  max-width: none;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="places"]
+  .md-context-rail-button--place {
+  min-width: var(--md-context-rail-place-min-width);
+  max-width: 13rem;
+  justify-content: flex-start;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="detail"]
+  .md-context-rail-button--action {
+  min-width: var(--md-context-rail-action-min-width);
+  max-width: none;
+}
+
+/* Category selection is a navigational state, intentionally different from a
+ * commercial primary CTA. */
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button--category[aria-pressed="true"] {
+  border-color: color-mix(in srgb, var(--md-color-brand) 56%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-brand) 12%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-brand-strong);
+  box-shadow: inset 0 0 0 var(--md-state-selected-outline-width)
+    color-mix(in srgb, var(--md-color-brand) 20%, transparent);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button--category[aria-pressed="true"]
+  i {
+  color: var(--md-color-brand-strong);
+}
+
+/* Place actions use three explicit levels: primary, secondary and back. */
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button[data-rail-variant="primary"] {
+  border-color: var(--md-color-interactive-primary);
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-text-inverse);
+  font-weight: var(--md-font-weight-bold);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button[data-rail-variant="secondary"] {
+  border-color: color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
+  color: var(--md-color-text-primary);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button[data-rail-variant="back"] {
+  border-color: transparent;
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-subtle) 76%,
+    transparent
+  );
+  color: var(--md-color-text-secondary);
+}
+
+@media (hover: hover) {
+  #unified-assistant-dock
+    > #assistant-category-rail
+    .md-context-rail-button:hover:not(:disabled):not(
+      [data-rail-variant="primary"]
+    ) {
+    border-color: color-mix(in srgb, var(--md-color-brand) 38%, transparent);
+    background: color-mix(
+      in srgb,
+      var(--md-color-brand) 7%,
+      var(--md-color-surface-card)
+    );
+  }
+
+  #unified-assistant-dock
+    > #assistant-category-rail
+    .md-context-rail-button[data-rail-variant="primary"]:hover:not(:disabled) {
+    background: var(--md-color-interactive-primary-hover);
+  }
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button:disabled {
+  opacity: var(--md-state-disabled-opacity);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: var(--md-focus-ring-offset);
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button
+  :is(.md-assistant-category-label, .md-assistant-context-label) {
+  text-align: end;
+}
