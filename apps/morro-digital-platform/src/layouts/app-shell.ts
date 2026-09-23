@@ -161,43 +161,43 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         data-rail-stage="menu"
       >
         <div class="md-assistant-category-scroll">
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
             <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Praias</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="restaurants" data-value="restaurants" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="restaurants" data-value="restaurants" aria-pressed="false">
             <i class="fas fa-utensils" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Restaurantes</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="hotels" data-value="hotels" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="hotels" data-value="hotels" aria-pressed="false">
             <i class="fas fa-bed" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Hotéis</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="shops" data-value="shops" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="shops" data-value="shops" aria-pressed="false">
             <i class="fas fa-shopping-bag" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Lojas</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="transport" data-value="transport" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="transport" data-value="transport" aria-pressed="false">
             <i class="fas fa-bus" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Transporte</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="attractions" data-value="attractions" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="attractions" data-value="attractions" aria-pressed="false">
             <i class="fas fa-camera" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Atrações</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="tours" data-value="tours" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="tours" data-value="tours" aria-pressed="false">
             <i class="fas fa-route" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Tours</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="nightlife" data-value="nightlife" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="nightlife" data-value="nightlife" aria-pressed="false">
             <i class="fas fa-moon" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Vida Noturna</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="emergencies" data-value="emergencies" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="emergencies" data-value="emergencies" aria-pressed="false">
             <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Emergências</span>
           </button>
-          <button type="button" class="md-assistant-category-chip" data-assistant-category="help" data-value="help" aria-pressed="false">
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="help" data-value="help" aria-pressed="false">
             <i class="fas fa-question-circle" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Ajuda</span>
           </button>
