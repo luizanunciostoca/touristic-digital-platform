@@ -418,17 +418,28 @@ const STATIC_ACTIONS: Readonly<
   ],
 });
 
-function resolvePlace(name: string | null): MorroV1SearchCatalogItem | null {
+function resolvePlace(
+  name: string | null,
+  category?: string | null,
+): MorroV1SearchCatalogItem | null {
   if (!name) return null;
   const normalized = normalizeSearchText(name);
+  const normalizedCategory = category ? normalizeSearchText(category) : null;
+  const matchesCategory = (candidate: MorroV1SearchCatalogItem): boolean =>
+    normalizedCategory === null ||
+    normalizeSearchText(candidate.category) === normalizedCategory;
   return (
     morroV1SearchCatalog.find(
-      (candidate) => normalizeSearchText(candidate.name) === normalized,
+      (candidate) =>
+        matchesCategory(candidate) &&
+        normalizeSearchText(candidate.name) === normalized,
     ) ??
-    morroV1SearchCatalog.find((candidate) =>
-      (candidate.aliases ?? []).some(
-        (alias) => normalizeSearchText(alias) === normalized,
-      ),
+    morroV1SearchCatalog.find(
+      (candidate) =>
+        matchesCategory(candidate) &&
+        (candidate.aliases ?? []).some(
+          (alias) => normalizeSearchText(alias) === normalized,
+        ),
     ) ??
     null
   );
@@ -598,7 +609,7 @@ function moreOptions(
 export function resolveAssistantV1PlaceAction(
   request: AssistantV1PlaceActionRequest,
 ): AssistantV1PlaceActionResolution | null {
-  const place = resolvePlace(request.lastPlace);
+  const place = resolvePlace(request.lastPlace, request.lastCategory);
   if (!place) return null;
   if ((request.lastCategory ?? place.category) !== place.category) return null;
 
