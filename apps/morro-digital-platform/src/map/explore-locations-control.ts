@@ -857,15 +857,21 @@ export function installExploreLocationsControl({
     area.appendChild(container);
     area.scrollTop = area.scrollHeight;
 
-    if (
-      exploreFlowBottomSheet &&
-      (activeStage === "filters" ||
-        activeStage === "places" ||
-        activeStage === "tour")
-    ) {
-      const kind = activeStage === "tour" ? "tour" : "explore";
+    let contextualFirst: HTMLButtonElement | null = null;
+    if (activeStage === "filters" || activeStage === "places") {
+      container.classList.add("md-contextual-rail-source");
+      container.setAttribute("aria-hidden", "true");
+      container.setAttribute("inert", "");
+      exploreFlowBottomSheet?.hide();
+      contextualFirst = renderContextualRail(
+        activeStage,
+        text,
+        options,
+        onSelect,
+      );
+    } else if (exploreFlowBottomSheet && activeStage === "tour") {
       exploreFlowBottomSheet.show({
-        kind,
+        kind: "tour",
         accessibleLabel: text,
         source: container,
         messageSource: message,
@@ -873,26 +879,24 @@ export function installExploreLocationsControl({
         ...(statusTextOverride ? { statusText: statusTextOverride } : {}),
         ...(content ? { content } : {}),
         onDismiss() {
-          if (activeStage === "tour") {
-            const exitOption = options.find(
-              (option) =>
-                option.value === "__tour_exit__" ||
-                option.value === "__tour_cancel__",
-            );
-            if (exitOption) {
-              onSelect(exitOption);
-              return;
-            }
+          const exitOption = options.find(
+            (option) =>
+              option.value === "__tour_exit__" ||
+              option.value === "__tour_cancel__",
+          );
+          if (exitOption) {
+            onSelect(exitOption);
+            return;
           }
           backToMenu();
         },
       });
-      if (kind === "explore" && activeCategory?.value !== "tours") {
-        requestAssistantClose(document);
-      }
     }
 
-    return container.querySelector<HTMLButtonElement>(".assistant-flow-option");
+    return (
+      contextualFirst ??
+      container.querySelector<HTMLButtonElement>(".assistant-flow-option")
+    );
   };
 
   exploreFlowBottomSheet = installExploreFlowBottomSheet({ document });
@@ -905,7 +909,7 @@ export function installExploreLocationsControl({
 
   const backToMenu = (restoreFocus = true): void => {
     interactionGeneration += 1;
-    const previousTrigger = activeCategoryButton;
+    const previousCategoryValue = activeCategory?.value;
     if (activeStage === "tour") {
       immersiveTourController?.destroy();
       clearTourPresentation(document);
@@ -934,9 +938,14 @@ export function installExploreLocationsControl({
       Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
       undefined,
     );
+    restoreCategoryRail();
     emitStateChange();
-    if (restoreFocus) {
-      previousTrigger?.focus();
+    if (restoreFocus && previousCategoryValue) {
+      contextualRailScroll
+        ?.querySelector<HTMLButtonElement>(
+          `[data-assistant-category="${previousCategoryValue}"]`,
+        )
+        ?.focus();
     }
   };
 
