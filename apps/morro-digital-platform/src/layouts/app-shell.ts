@@ -79,10 +79,10 @@ function createAppShellMarkup(): string {
 
       <div
         id="assistant-messages"
-        class="md-assistant-dialog md-assistant-message-region hidden"
+        class="md-assistant-dialog md-assistant-message-region"
         role="region"
         aria-label="Morro Digital assistant"
-        aria-hidden="true"
+        aria-hidden="false"
         aria-describedby="assistant-dialog-status"
         tabindex="-1"
         data-assistant-state="idle"
