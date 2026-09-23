@@ -454,7 +454,7 @@ async function runContract(browser) {
     spoken: globalThis.__voiceContract.spoken.length,
   }));
   await page.locator("#assistantInput").fill("help");
-  await page.locator("#sendButton").click();
+  await page.locator("#sendButton").evaluate((button) => button.click());
   await poll(
     page,
     () =>
