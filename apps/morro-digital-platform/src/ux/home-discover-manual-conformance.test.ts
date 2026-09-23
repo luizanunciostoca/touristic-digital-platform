@@ -25,6 +25,11 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(shell).not.toContain('<h1 data-i18n="welcome_message">');
     expect(i18n).toContain('"welcome_message"');
     expect(i18n).toContain('"assistant_welcome_message"');
+    expect(i18n).toContain(
+      '"Bem-vindo ao Morro Digital!\\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências."',
+    );
+    expect(shell).toContain("isInitialWelcome");
+    expect(shell).toContain("messagesArea.scrollTop = 0");
   });
 
   it("keeps the map dominant and exposes exactly five canonical bottom actions", async () => {
