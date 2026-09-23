@@ -1301,21 +1301,32 @@ export function installExploreLocationsControl({
     activeStage = "places";
     clearExploreRuntimeStatus();
 
-    const options = locations.map((location) =>
+    const options = [
+      ...locations.map((location) =>
+        Object.freeze({
+          label: location.area
+            ? `${location.name} · ${location.area}`
+            : location.name,
+          value: createExploreLocationDetailsCommand(location.name),
+          action: "location" as const,
+          location,
+        }),
+      ),
       Object.freeze({
-        label: location.area
-          ? `${location.name} · ${location.area}`
-          : location.name,
-        value: createExploreLocationDetailsCommand(location.name),
-        action: "location" as const,
-        location,
+        label: `🔙 ${getV1ExploreLabel("backMenu", currentLocale())}`,
+        value: "voltar_menu",
+        action: "back-menu" as const,
       }),
-    );
+    ];
     const first = renderFlow(
       message,
       options,
       (option) => {
-        void selectLocation(option.location);
+        if (option.action === "back-menu") {
+          backToMenu();
+          return;
+        }
+        if (option.location) void selectLocation(option.location);
       },
       undefined,
       status,
@@ -1387,6 +1398,7 @@ export function installExploreLocationsControl({
     activeStage = "tour";
     clearExploreRuntimeStatus();
     removeAssistantFlowResults(document);
+    restoreCategoryRail();
 
     if (immersiveTourController) {
       void immersiveTourController.start(tourId).catch((error: unknown) => {
@@ -1565,6 +1577,7 @@ export function installExploreLocationsControl({
     visibleLocations = Object.freeze([...locations]);
     clearExploreRuntimeStatus();
     showMainMenu();
+    restoreCategoryRail();
     updateMapState(locations.length, category, "loading");
 
     try {
@@ -1925,6 +1938,7 @@ export function installExploreLocationsControl({
   // visible labels and accessible names immediately, not only after a later
   // <html lang> mutation.
   refreshCategoryPresentation();
+  restoreCategoryRail();
 
   const MutationObserverCtor = document.defaultView?.MutationObserver;
   const localeObserver = MutationObserverCtor
@@ -2091,6 +2105,7 @@ export function installExploreLocationsControl({
       activeSearchQuery = "";
       activeStage = "menu";
       visibleLocations = Object.freeze([]);
+      restoreCategoryRail();
     },
   });
 }
