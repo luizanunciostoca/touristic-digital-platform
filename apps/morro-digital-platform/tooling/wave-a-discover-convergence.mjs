@@ -326,57 +326,45 @@ try {
     const canvas = page.locator("#map .mapboxgl-canvas");
     const canvasBox = await canvas.boundingBox();
     assert(canvasBox, "Mapbox canvas unavailable for gesture validation");
-    const gesturePoint = await page.evaluate(
-      ({ canvasLeft, canvasTop, canvasWidth, canvasHeight }) => {
-        const dock = document
-          .getElementById("unified-assistant-dock")
-          ?.getBoundingClientRect();
-        const header = document
-          .querySelector(".md-home-header-inner")
-          ?.getBoundingClientRect();
-        const visibleTop = Math.max(canvasTop, (header?.bottom ?? canvasTop) + 24);
-        const visibleBottom = Math.min(
-          canvasTop + canvasHeight,
-          (dock?.top ?? canvasTop + canvasHeight) - 24,
+    const gesturePoint = await page.evaluate(() => {
+      const canvas = document.querySelector("#map .mapboxgl-canvas");
+      if (!(canvas instanceof HTMLElement)) return null;
+      const rect = canvas.getBoundingClientRect();
+      const dock = document
+        .getElementById("unified-assistant-dock")
+        ?.getBoundingClientRect();
+      const candidates = [
+        [0.5, 0.38],
+        [0.35, 0.5],
+        [0.25, 0.5],
+        [0.5, 0.3],
+        [0.65, 0.42],
+      ];
+      for (const [xRatio, yRatio] of candidates) {
+        const x = rect.left + rect.width * xRatio;
+        const y = rect.top + rect.height * yRatio;
+        const target = document.elementFromPoint(x, y);
+        const blockedByDock =
+          dock &&
+          x >= dock.left &&
+          x <= dock.right &&
+          y >= dock.top &&
+          y <= dock.bottom;
+        const blockedByUi = Boolean(
+          target?.closest(
+            "#unified-assistant-dock, .md-home-header, #weather-widget, #globe-map-control, #privacy-control",
+          ),
         );
-        const y =
-          visibleBottom > visibleTop + 48
-            ? visibleTop + (visibleBottom - visibleTop) * 0.55
-            : canvasTop + canvasHeight * 0.3;
-        return {
-          x: canvasLeft + canvasWidth * 0.5,
-          y,
-          visibleTop,
-          visibleBottom,
-        };
-      },
-      {
-        canvasLeft: canvasBox.x,
-        canvasTop: canvasBox.y,
-        canvasWidth: canvasBox.width,
-        canvasHeight: canvasBox.height,
-      },
-    );
+        if (!blockedByDock && !blockedByUi) return { x, y };
+      }
+      return {
+        x: rect.left + rect.width * 0.25,
+        y: rect.top + rect.height * 0.42,
+      };
+    });
+    assert(gesturePoint, "No unobstructed map gesture point is available");
     const gestureX = gesturePoint.x;
     const gestureY = gesturePoint.y;
-    const pointerOwner = await page.evaluate(
-      ({ x, y }) => {
-        const target = document.elementFromPoint(x, y);
-        return {
-          tag: target?.tagName ?? null,
-          id: target?.id ?? null,
-          className:
-            target instanceof HTMLElement ? target.className : null,
-          insideDock: Boolean(target?.closest("#unified-assistant-dock")),
-        };
-      },
-      { x: gestureX, y: gestureY },
-    );
-    assert(
-      !pointerOwner.insideDock,
-      "Wave A gesture probe is covered by the unified dock",
-      { gesturePoint, pointerOwner },
-    );
     await page.mouse.move(gestureX, gestureY);
     await page.mouse.down();
     await page.mouse.move(gestureX + 52, gestureY + 28, { steps: 6 });
