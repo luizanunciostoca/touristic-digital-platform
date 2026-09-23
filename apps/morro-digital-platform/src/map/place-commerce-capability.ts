@@ -10,6 +10,11 @@ export type PlaceCommerceState =
   "sellable" | "multiple" | "sold_out" | "upcoming" | "fallback";
 
 export interface PlacePrimaryAction {
+  readonly actionId:
+    | "nightlife.tickets"
+    | "tour.reserve"
+    | "transport.request"
+    | "transport.ticket";
   readonly label: string;
   readonly value: string;
   readonly presentation: "primary";
@@ -69,6 +74,7 @@ function fallbackPrimaryAction(
     const placeKey = slug(location.name);
     return placeKey
       ? Object.freeze({
+          actionId: "nightlife.tickets",
           label: nightlifeFallbackLabel(locale),
           value: `commerce:place:${placeKey}`,
           presentation: "primary" as const,
@@ -78,6 +84,7 @@ function fallbackPrimaryAction(
   }
   if (category === "tours") {
     return Object.freeze({
+      actionId: "tour.reserve",
       label: `🎟️ ${getV1ExploreLabel("bookTour", locale)}`,
       value: "reservar passeio",
       presentation: "primary" as const,
@@ -86,7 +93,8 @@ function fallbackPrimaryAction(
   }
   if (category === "transport") {
     return Object.freeze({
-      label: `🚕 ${getV1ExploreLabel("requestTransport", locale)}`,
+      actionId: "transport.request",
+      label: `🚕 ${getV1ExploreLabel("requestTransportFull", locale)}`,
       value: "solicitar transporte",
       presentation: "primary" as const,
       commerceState: "fallback" as const,
@@ -309,11 +317,18 @@ export async function resolvePlacePrimaryAction(options: {
   );
   const sellable = active.filter((offer) => offer.availableQuantity > 0);
   const labels = copy(location.category, locale);
+  const commerceActionId =
+    location.category === "nightlife"
+      ? ("nightlife.tickets" as const)
+      : location.category === "tours"
+        ? ("tour.reserve" as const)
+        : ("transport.ticket" as const);
 
   if (sellable.length === 1) {
     const offer = sellable[0];
     if (!offer) return fallback;
     return Object.freeze({
+      actionId: commerceActionId,
       label: labels.single(money(offer, locale)),
       value: `commerce:offer:${offer.id}`,
       presentation: "primary" as const,
@@ -324,6 +339,7 @@ export async function resolvePlacePrimaryAction(options: {
   if (sellable.length > 1) {
     const filteredOffers = sellable.slice(0, 20);
     return Object.freeze({
+      actionId: commerceActionId,
       label: labels.multiple(filteredOffers.length),
       value: `commerce:offers:${filteredOffers.map(({ id }) => id).join(",")}`,
       presentation: "primary" as const,
@@ -333,6 +349,7 @@ export async function resolvePlacePrimaryAction(options: {
 
   if (active.length > 0) {
     return Object.freeze({
+      actionId: commerceActionId,
       label: labels.soldOut,
       value: "commerce-disabled:sold-out",
       presentation: "primary" as const,
@@ -346,6 +363,7 @@ export async function resolvePlacePrimaryAction(options: {
   );
   if (upcoming) {
     return Object.freeze({
+      actionId: commerceActionId,
       label: labels.upcoming,
       value: "commerce-disabled:upcoming",
       presentation: "primary" as const,

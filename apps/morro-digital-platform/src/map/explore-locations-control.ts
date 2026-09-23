@@ -1058,6 +1058,24 @@ export function installExploreLocationsControl({
       return;
     }
     const locationCategory = activePlaceLocation?.category;
+    if (
+      normalized === "fazer tour interativo" &&
+      locationCategory === "tours"
+    ) {
+      const placeName = normalizeSearchText(activePlaceLocation?.name ?? "");
+      const tourId =
+        placeName.includes("volta") && placeName.includes("ilha")
+          ? "volta-a-ilha"
+          : placeName.includes("gamboa")
+            ? "trilha-gamboa"
+            : placeName.includes("quadriciclo")
+              ? "passeio-quadriciclo"
+              : null;
+      if (tourId) {
+        startImmersiveTour(tourId);
+        return;
+      }
+    }
     const locale = currentLocale();
     const detail =
       normalized === "ver fotos" && locationCategory
@@ -1092,51 +1110,37 @@ export function installExploreLocationsControl({
       action: string;
       disabled?: boolean;
     }> = [];
-    if (primaryAction) {
-      options.push({
-        label: primaryAction.label,
-        value: primaryAction.value,
-        action: "primary",
-        ...(primaryAction.disabled === true ? { disabled: true } : {}),
-      });
-    }
-
-    const normalizedValues = new Set(
-      placeActions.map((action) => normalizeSearchText(action.value)),
-    );
-    if (!normalizedValues.has("como chegar")) {
-      options.push({
-        label: `📍 ${getV1ExploreLabel("directions", locale)}`,
-        value: "como chegar",
-        action: "command",
-      });
-    }
+    let primaryReplaced = false;
     for (const action of placeActions) {
+      if (primaryAction && action.actionId === primaryAction.actionId) {
+        primaryReplaced = true;
+        options.push({
+          label: primaryAction.label,
+          value: primaryAction.value,
+          action: "primary",
+          ...(primaryAction.disabled === true ? { disabled: true } : {}),
+        });
+        continue;
+      }
       options.push({
         label: action.label,
         value: action.value,
         action: action.action,
       });
     }
-    if (!normalizedValues.has("adicionar aos favoritos")) {
-      options.push({
-        label: `❤️ ${getV1ExploreLabel("favorite", locale)}`,
-        value: "adicionar aos favoritos",
-        action: "command",
+    if (primaryAction && !primaryReplaced) {
+      options.unshift({
+        label: primaryAction.label,
+        value: primaryAction.value,
+        action: "primary",
+        ...(primaryAction.disabled === true ? { disabled: true } : {}),
       });
     }
-    options.push(
-      {
-        label: `🔗 ${getV1ExploreLabel("share", locale)}`,
-        value: "compartilhar",
-        action: "share",
-      },
-      {
-        label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
-        value: "__back_to_places__",
-        action: "back-places",
-      },
-    );
+    options.push({
+      label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
+      value: "__back_to_places__",
+      action: "back-places",
+    });
 
     activePlaceActionValues = Object.freeze(
       Array.from(
@@ -1198,26 +1202,14 @@ export function installExploreLocationsControl({
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
 
-    const placeActions =
-      "source" in location && location.source === "mapbox"
-        ? Object.freeze([])
-        : getV1ExplorePlaceActionOptions(category, locale).filter(
-            (action) => action.action !== "back-places",
-          );
+    const placeActions = getV1ExplorePlaceActionOptions(category, locale);
     const description =
       "description" in presentationLocation &&
       typeof presentationLocation.description === "string"
         ? presentationLocation.description.trim()
         : "";
     activePlaceActionValues = Object.freeze(
-      Array.from(
-        new Set([
-          ...placeActions.map(({ value }) => value),
-          "como chegar",
-          "adicionar aos favoritos",
-          "compartilhar",
-        ]),
-      ),
+      Array.from(new Set(placeActions.map(({ value }) => value))),
     );
 
     renderPlaceDetailMessage(presentationLocation, categoryLabel, description);
@@ -1232,13 +1224,19 @@ export function installExploreLocationsControl({
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
     );
-    const primaryActionPromise = canonicalLocation
-      ? resolvePlacePrimaryAction({
-          location: canonicalLocation,
-          locale,
-          ...(browserFetch ? { fetch: browserFetch } : {}),
-        })
-      : Promise.resolve(null);
+    const commerceLocation: MorroV1SearchCatalogItem =
+      canonicalLocation ??
+      Object.freeze({
+        name: presentationLocation.name,
+        latitude: presentationLocation.latitude,
+        longitude: presentationLocation.longitude,
+        category: presentationLocation.category,
+      });
+    const primaryActionPromise = resolvePlacePrimaryAction({
+      location: commerceLocation,
+      locale,
+      ...(browserFetch ? { fetch: browserFetch } : {}),
+    });
 
     await renderLocationsOnMap([location], category, true);
     const primaryAction = await primaryActionPromise;

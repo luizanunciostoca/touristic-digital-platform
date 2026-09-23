@@ -2,161 +2,136 @@ import { describe, expect, it } from "vitest";
 
 import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 
-function values(category: string): readonly string[] {
-  return getV1ExplorePlaceActionOptions(category).map(({ value }) => value);
-}
+const values = (category: string): readonly string[] =>
+  getV1ExplorePlaceActionOptions(category).map(({ value }) => value);
 
-describe("V1 explore post-detail actions", () => {
+const labels = (category: string): readonly string[] =>
+  getV1ExplorePlaceActionOptions(category).map(({ label }) => label);
+
+describe("category-aware place actions", () => {
   it.each([
     [
       "restaurants",
+      ["ver cardápio", "reservar mesa", "como chegar", "ver fotos", "whatsapp"],
+    ],
+    [
+      "nightlife",
       [
-        "cardápio",
+        "comprar ingressos",
+        "ver cardápio",
         "como chegar",
         "ver fotos",
-        "contato",
-        "mais opções",
-        "[sub]restaurants",
+        "programação",
+        "whatsapp",
       ],
     ],
     [
       "hotels",
+      ["ver acomodações", "reservar", "como chegar", "ver fotos", "whatsapp"],
+    ],
+    [
+      "tours",
       [
-        "ver quartos",
-        "reservar",
-        "como chegar",
+        "saiba mais",
+        "reservar passeio",
+        "ver horários",
+        "ponto de encontro",
         "ver fotos",
-        "mais opções",
-        "[sub]hotels",
+        "fazer tour interativo",
+        "whatsapp",
       ],
     ],
     [
       "beaches",
-      [
-        "condições da praia",
-        "como chegar",
-        "ver fotos",
-        "informações",
-        "mais opções",
-        "[sub]beaches",
-      ],
-    ],
-  ])(
-    "preserves the non-commerce V1 action sequence for %s",
-    (category, expected) => {
-      expect(values(category)).toEqual(expected);
-    },
-  );
-
-  it.each([
-    [
-      "tours",
-      ["ponto de encontro", "ver fotos", "contato", "adicionar aos favoritos"],
+      ["saiba mais", "como chegar", "ver fotos", "adicionar aos favoritos"],
     ],
     [
-      "nightlife",
-      ["como chegar", "ver fotos", "mais detalhes", "adicionar aos favoritos"],
+      "attractions",
+      ["saiba mais", "como chegar", "ver fotos", "adicionar aos favoritos"],
     ],
     [
       "transport",
-      ["localização", "tarifas", "contato", "adicionar aos favoritos"],
+      [
+        "saiba mais",
+        "solicitar transporte",
+        "comprar passagem",
+        "ver ponto",
+        "horários",
+        "whatsapp",
+      ],
     ],
-  ])(
-    "keeps a four-action 2x2 information grid for commerce category %s",
-    (category, expected) => {
-      expect(values(category)).toEqual(expected);
-    },
-  );
-
-  it.each(["shops", "attractions", "emergencies"])(
-    "uses the V1 generic fallback for %s",
-    (category) => {
-      expect(values(category)).toEqual([
+    [
+      "shops",
+      [
+        "saiba mais",
+        "ver produtos",
+        "horários",
+        "whatsapp",
         "como chegar",
-        "ver fotos",
-        "mais detalhes",
         "adicionar aos favoritos",
-      ]);
-    },
-  );
+      ],
+    ],
+    [
+      "emergencies",
+      [
+        "saiba mais",
+        "horários",
+        "whatsapp",
+        "como chegar",
+        "adicionar aos favoritos",
+      ],
+    ],
+  ])("uses the canonical action sequence for %s", (category, expected) => {
+    expect(values(category)).toEqual(expected);
+  });
 
-  it.each([
-    [
-      "en",
-      [
-        "🍴 Menu",
-        "📍 Directions",
-        "📸 View photos",
-        "📞 Contact",
-        "More options",
-        "⬅️ Back",
-      ],
-    ],
-    [
-      "es",
-      [
-        "🍴 Menú",
-        "📍 Cómo llegar",
-        "📸 Ver fotos",
-        "📞 Contacto",
-        "Más opciones",
-        "⬅️ Volver",
-      ],
-    ],
-    [
-      "he",
-      [
-        "🍴 תפריט",
-        "📍 איך להגיע",
-        "📸 צפה תמונות",
-        "📞 יצירת קשר",
-        "אפשרויות נוספות",
-        "⬅️ חזרה",
-      ],
-    ],
-  ] as const)(
-    "localizes restaurant place actions for %s",
-    (locale, expected) => {
-      expect(
-        getV1ExplorePlaceActionOptions("restaurants", locale).map(
-          ({ label }) => label,
-        ),
-      ).toEqual(expected);
-      expect(values("restaurants")).toEqual(
-        getV1ExplorePlaceActionOptions("restaurants", locale).map(
-          ({ value }) => value,
-        ),
-      );
-    },
-  );
-
-  it("localizes the four commerce-grid actions without changing their command values", () => {
+  it("uses stable action ids independently from translated labels", () => {
     expect(
-      getV1ExplorePlaceActionOptions("tours", "en").map(({ label }) => label),
+      getV1ExplorePlaceActionOptions("restaurants").map(
+        ({ actionId }) => actionId,
+      ),
     ).toEqual([
-      "📍 Meeting point",
-      "📸 View photos",
-      "📞 Contact",
-      "❤️ Favorite",
-    ]);
-    expect(values("tours")).toEqual([
-      "ponto de encontro",
-      "ver fotos",
-      "contato",
-      "adicionar aos favoritos",
+      "restaurant.menu",
+      "restaurant.reserve",
+      "place.directions",
+      "place.photos",
+      "place.whatsapp",
     ]);
   });
 
-  it("preserves the exact user-visible restaurant labels", () => {
-    expect(
-      getV1ExplorePlaceActionOptions("restaurants").map(({ label }) => label),
-    ).toEqual([
-      "🍴 Cardápio",
+  it("renders the exact Portuguese restaurant labels", () => {
+    expect(labels("restaurants")).toEqual([
+      "🍽️ Ver cardápio",
+      "📅 Reservar mesa",
       "📍 Como chegar",
       "📸 Ver fotos",
-      "📞 Contato",
-      "Mais opções",
-      "⬅️ Voltar",
+      "💬 WhatsApp",
+    ]);
+  });
+
+  it("localizes labels without changing action values or ids", () => {
+    const pt = getV1ExplorePlaceActionOptions("transport", "pt");
+    const en = getV1ExplorePlaceActionOptions("transport", "en");
+    expect(en.map(({ value }) => value)).toEqual(pt.map(({ value }) => value));
+    expect(en.map(({ actionId }) => actionId)).toEqual(
+      pt.map(({ actionId }) => actionId),
+    );
+    expect(en.map(({ label }) => label)).toEqual([
+      "ℹ️ Learn more",
+      "🚕 Request transport",
+      "🎫 Buy ticket",
+      "📍 View stop",
+      "🕐 Hours",
+      "💬 WhatsApp",
+    ]);
+  });
+
+  it("keeps a safe generic fallback for unknown categories", () => {
+    expect(values("unknown")).toEqual([
+      "saiba mais",
+      "como chegar",
+      "ver fotos",
+      "adicionar aos favoritos",
     ]);
   });
 });

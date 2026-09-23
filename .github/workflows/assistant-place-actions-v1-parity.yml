@@ -118,11 +118,11 @@ jobs:
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               const detailActionValues = {
-                beaches: 'condições da praia',
-                restaurants: 'cardápio',
-                hotels: 'ver quartos',
+                beaches: 'saiba mais',
+                restaurants: 'ver cardápio',
+                hotels: 'ver acomodações',
                 tours: 'ponto de encontro',
-                transport: 'tarifas',
+                transport: 'horários',
               };
 
               async function waitUntil(check, label, timeout = 8000) {
