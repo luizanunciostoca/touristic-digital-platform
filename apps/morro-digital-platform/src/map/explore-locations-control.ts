@@ -529,6 +529,8 @@ export function installExploreLocationsControl({
       value: string;
       action?: string;
       disabled?: boolean;
+      location?: ExploreMapLocation;
+      tourId?: string;
     }>,
   >(
     stage: ExploreStage,
@@ -560,6 +562,11 @@ export function installExploreLocationsControl({
       button.dataset.contextRailOption = "true";
       button.dataset.value = option.value;
       button.dataset.exploreAction = option.action ?? "command";
+      if (option.location) {
+        button.dataset.locationName = option.location.name;
+        button.dataset.locationCategory = option.location.category;
+      }
+      if (option.tourId) button.dataset.tourId = option.tourId;
       button.disabled = option.disabled === true;
       button.setAttribute("aria-disabled", String(button.disabled));
 
