@@ -812,7 +812,9 @@ export function installExploreLocationsControl({
 
     const meta = document.createElement("span");
     meta.className = "md-assistant-place-detail-meta";
-    meta.textContent = [categoryLabel, location.area].filter(Boolean).join(" · ");
+    meta.textContent = [categoryLabel, location.area]
+      .filter(Boolean)
+      .join(" · ");
 
     const content: Node[] = [title];
     if (meta.textContent) content.push(meta);
@@ -1218,11 +1220,7 @@ export function installExploreLocationsControl({
       ),
     );
 
-    renderPlaceDetailMessage(
-      presentationLocation,
-      categoryLabel,
-      description,
-    );
+    renderPlaceDetailMessage(presentationLocation, categoryLabel, description);
     const firstPlaceAction = renderPlaceActionsRail(
       placeActions,
       null,
@@ -1407,7 +1405,7 @@ export function installExploreLocationsControl({
       return;
     }
     if (!activeCategory) {
-        return;
+      return;
     }
     const locations =
       placeReturnLocations.length > 0
