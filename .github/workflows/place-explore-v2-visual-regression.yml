@@ -473,6 +473,28 @@ jobs:
                   const privacy = document.querySelector(
                     '.analytics-consent-preferences.is-collapsed',
                   );
+                  const contextualRail = document.querySelector(
+                    '#assistant-category-rail[data-rail-stage="detail"]',
+                  );
+                  const contextualActions = Array.from(
+                    contextualRail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
+                  );
+                  const contextualActionValues = contextualActions.map(
+                    button => button.getAttribute('data-value'),
+                  );
+                  const contextualTargets = contextualActions.map(button => {
+                    const rect = button.getBoundingClientRect();
+                    const style = getComputedStyle(button);
+                    return {
+                      width: rect.width,
+                      height: rect.height,
+                      visible:
+                        style.display !== 'none' &&
+                        style.visibility !== 'hidden' &&
+                        rect.width > 0 &&
+                        rect.height > 0,
+                    };
+                  });
                   const visibleAssistantDuplicates = Array.from(
                     document.querySelectorAll(
                       '#assistant-messages:not(.hidden) .assistant-option-btn',
@@ -499,6 +521,14 @@ jobs:
                       rating.classList.contains('hidden') ||
                       getComputedStyle(rating).display === 'none',
                     duplicatedAssistantActions: visibleAssistantDuplicates,
+                    actionsSurface: sheet.getAttribute('data-actions-surface'),
+                    contextualActionValues,
+                    contextualTargets,
+                    contextualRailVisible:
+                      contextualRail instanceof HTMLElement &&
+                      getComputedStyle(contextualRail).display !== 'none' &&
+                      getComputedStyle(contextualRail).visibility !== 'hidden' &&
+                      contextualRail.getBoundingClientRect().height > 0,
                     primaryWidth:
                       primary instanceof HTMLElement
                         ? primary.getBoundingClientRect().width
@@ -594,20 +624,27 @@ jobs:
                   !placeState.imageLoaded ||
                   requiredValues.size !== actualValues.size ||
                   [...requiredValues].some(value => !actualValues.has(value)) ||
-                  JSON.stringify(placeState.visibleValues) !==
-                    JSON.stringify(['como chegar', 'adicionar aos favoritos', 'compartilhar']) ||
-                  placeState.overflowValues.length !== 4 ||
+                  placeState.actionsSurface !== 'contextual-rail' ||
+                  !placeState.contextualRailVisible ||
+                  [...requiredValues].some(
+                    value => !placeState.contextualActionValues.includes(value),
+                  ) ||
+                  !placeState.contextualActionValues.includes('__back_to_places__') ||
+                  placeState.contextualTargets.some(
+                    target => !target.visible || target.width < 44 || target.height < 44,
+                  ) ||
                   placeState.overflowOpen !== false ||
                   !placeState.ratingHidden ||
                   placeState.exposedStateControls !== 0 ||
                   !placeState.handleFocusable ||
-                  placeState.bottomNavVisible ||
+                  !placeState.bottomNavVisible ||
+                  placeState.activeBottomNav !== 'explore' ||
                   placeState.selectedMarkerLabel !== 'Primeira Praia' ||
                   (placeState.heroRatio !== null &&
                     (placeState.heroRatio < 2.15 || placeState.heroRatio > 2.4)) ||
                   placeState.duplicatedAssistantActions.length !== 0 ||
                   placeState.composerOpacity === null ||
-                  placeState.composerOpacity > 0.8 ||
+                  placeState.composerOpacity < 0.95 ||
                   placeState.composerOverlap ||
                   placeState.privacyVisible ||
                   placeState.targets.some(target => target.width < 44 || target.height < 44)
