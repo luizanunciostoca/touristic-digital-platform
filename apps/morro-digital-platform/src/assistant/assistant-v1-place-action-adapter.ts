@@ -246,58 +246,179 @@ const STATIC_ACTIONS: Readonly<
   >
 > = Object.freeze({
   restaurants: [
-    { aliases: ["ver cardapio", "cardapio", "menu"], action: "restaurant_menu" },
-    { aliases: ["reservar mesa", "reserva de mesa"], action: "restaurant_booking" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    {
+      aliases: ["ver cardapio", "cardapio", "menu"],
+      action: "restaurant_menu",
+    },
+    {
+      aliases: ["reservar mesa", "reserva de mesa"],
+      action: "restaurant_booking",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
     { aliases: ["avaliacoes", "reviews"], action: "restaurant_reviews" },
   ],
   nightlife: [
-    { aliases: ["ver cardapio", "cardapio", "menu"], action: "nightlife_menu" },
-    { aliases: ["programacao", "schedule"], action: "nightlife_schedule" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    {
+      aliases: ["ver cardapio", "cardapio", "menu"],
+      action: "nightlife_menu",
+    },
+    {
+      aliases: ["programacao", "schedule"],
+      action: "nightlife_schedule",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
   ],
   hotels: [
-    { aliases: ["ver acomodacoes", "acomodacoes", "ver quartos", "quartos", "rooms"], action: "accommodation_rooms" },
-    { aliases: ["reservar", "reserva", "book", "booking"], action: "accommodation_booking" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
-    { aliases: ["compartilhar", "share"], action: "accommodation_share" },
+    {
+      aliases: [
+        "ver acomodacoes",
+        "acomodacoes",
+        "ver quartos",
+        "quartos",
+        "rooms",
+      ],
+      action: "accommodation_rooms",
+    },
+    {
+      aliases: ["reservar", "reserva", "book", "booking"],
+      action: "accommodation_booking",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
+    {
+      aliases: ["compartilhar", "share"],
+      action: "accommodation_share",
+    },
   ],
   tours: [
-    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
-    { aliases: ["reservar passeio", "reservar", "reserva", "book tour", "booking"], action: "tour_booking" },
-    { aliases: ["ver horarios", "horarios", "schedule"], action: "tour_schedule" },
-    { aliases: ["ponto de encontro", "meeting point", "local de encontro"], action: "tour_meeting_point" },
-    { aliases: ["fazer tour interativo", "tour interativo", "interactive tour"], action: "tour_interactive" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    {
+      aliases: ["saiba mais", "mais informacoes"],
+      action: "place_info",
+    },
+    {
+      aliases: [
+        "reservar passeio",
+        "reservar",
+        "reserva",
+        "book tour",
+        "booking",
+      ],
+      action: "tour_booking",
+    },
+    {
+      aliases: ["ver horarios", "horarios", "schedule"],
+      action: "tour_schedule",
+    },
+    {
+      aliases: ["ponto de encontro", "meeting point", "local de encontro"],
+      action: "tour_meeting_point",
+    },
+    {
+      aliases: [
+        "fazer tour interativo",
+        "tour interativo",
+        "interactive tour",
+      ],
+      action: "tour_interactive",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
   ],
   beaches: [
-    { aliases: ["saiba mais", "mais informacoes", "informacoes"], action: "place_info" },
-    { aliases: ["condicoes da praia", "condicoes", "beach conditions"], action: "beach_conditions" },
+    {
+      aliases: ["saiba mais", "mais informacoes", "informacoes"],
+      action: "place_info",
+    },
+    {
+      aliases: ["condicoes da praia", "condicoes", "beach conditions"],
+      action: "beach_conditions",
+    },
   ],
   attractions: [
-    { aliases: ["saiba mais", "mais informacoes", "informacoes"], action: "place_info" },
+    {
+      aliases: ["saiba mais", "mais informacoes", "informacoes"],
+      action: "place_info",
+    },
   ],
   transport: [
-    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
-    { aliases: ["solicitar transporte", "solicitar", "request transport"], action: "transport_request" },
-    { aliases: ["comprar passagem", "passagem", "buy ticket"], action: "transport_ticket" },
-    { aliases: ["ver ponto", "ponto", "pontos", "stops", "points"], action: "transport_stop" },
-    { aliases: ["horarios", "schedules"], action: "transport_schedules" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
-    { aliases: ["tarifas", "tarifa", "fares", "fare"], action: "transport_fares" },
-    { aliases: ["area atendida", "service area"], action: "transport_service_area" },
-    { aliases: ["avaliacoes", "reviews"], action: "transport_reviews" },
+    {
+      aliases: ["saiba mais", "mais informacoes"],
+      action: "place_info",
+    },
+    {
+      aliases: ["solicitar transporte", "solicitar", "request transport"],
+      action: "transport_request",
+    },
+    {
+      aliases: ["comprar passagem", "passagem", "buy ticket"],
+      action: "transport_ticket",
+    },
+    {
+      aliases: ["ver ponto", "ponto", "pontos", "stops", "points"],
+      action: "transport_stop",
+    },
+    {
+      aliases: ["horarios", "schedules"],
+      action: "transport_schedules",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
+    {
+      aliases: ["tarifas", "tarifa", "fares", "fare"],
+      action: "transport_fares",
+    },
+    {
+      aliases: ["area atendida", "service area"],
+      action: "transport_service_area",
+    },
+    {
+      aliases: ["avaliacoes", "reviews"],
+      action: "transport_reviews",
+    },
   ],
   shops: [
-    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
-    { aliases: ["ver produtos", "produtos", "products"], action: "shop_products" },
-    { aliases: ["horarios", "hours"], action: "shop_hours" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    {
+      aliases: ["saiba mais", "mais informacoes"],
+      action: "place_info",
+    },
+    {
+      aliases: ["ver produtos", "produtos", "products"],
+      action: "shop_products",
+    },
+    {
+      aliases: ["horarios", "hours"],
+      action: "shop_hours",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
   ],
   emergencies: [
-    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
-    { aliases: ["horarios", "hours"], action: "emergency_hours" },
-    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    {
+      aliases: ["saiba mais", "mais informacoes"],
+      action: "place_info",
+    },
+    {
+      aliases: ["horarios", "hours"],
+      action: "emergency_hours",
+    },
+    {
+      aliases: ["whatsapp", "contato", "contact", "contacto"],
+      action: "place_whatsapp",
+    },
   ],
 });
 
