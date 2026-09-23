@@ -120,7 +120,7 @@ const beachDetailHebrew = [
   "📸 צפה תמונות",
   "ℹ️ מידע",
   "אפשרויות נוספות",
-  "❤️ שמירה",
+  "❤️ מועדפים",
   "🔗 שיתוף",
 ];
 const restaurantPrimaryEnglish = [
