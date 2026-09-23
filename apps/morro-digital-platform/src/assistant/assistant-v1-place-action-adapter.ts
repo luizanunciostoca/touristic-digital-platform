@@ -48,7 +48,19 @@ type StaticActionKey =
   | "transport_schedules"
   | "transport_points"
   | "transport_service_area"
-  | "transport_reviews";
+  | "transport_reviews"
+  | "restaurant_booking"
+  | "place_whatsapp"
+  | "nightlife_menu"
+  | "nightlife_schedule"
+  | "place_info"
+  | "tour_schedule"
+  | "tour_interactive"
+  | "transport_ticket"
+  | "transport_stop"
+  | "shop_products"
+  | "shop_hours"
+  | "emergency_hours";
 
 const STATIC_COPY: Readonly<Record<StaticActionKey, Copy>> = Object.freeze({
   restaurant_menu: {
@@ -153,6 +165,78 @@ const STATIC_COPY: Readonly<Record<StaticActionKey, Copy>> = Object.freeze({
     es: "Aún no hay reseñas registradas para este transporte.",
     he: "עדיין אין ביקורות רשומות לשירות זה.",
   },
+  restaurant_booking: {
+    pt: "Este restaurante ainda não possui canal de reserva de mesa cadastrado.",
+    en: "This restaurant does not have a table-booking channel registered yet.",
+    es: "Este restaurante aún no tiene un canal de reserva de mesa registrado.",
+    he: "למסעדה עדיין אין ערוץ להזמנת שולחן.",
+  },
+  place_whatsapp: {
+    pt: "Este local ainda não possui WhatsApp cadastrado.",
+    en: "This place does not have a WhatsApp number registered yet.",
+    es: "Este lugar aún no tiene WhatsApp registrado.",
+    he: "למקום הזה עדיין אין מספר WhatsApp רשום.",
+  },
+  nightlife_menu: {
+    pt: "Este local ainda não possui cardápio digital cadastrado.",
+    en: "This venue does not have a digital menu registered yet.",
+    es: "Este local aún no tiene menú digital registrado.",
+    he: "למקום הזה עדיין אין תפריט דיגיטלי רשום.",
+  },
+  nightlife_schedule: {
+    pt: "A programação deste local ainda não está cadastrada.",
+    en: "This venue schedule is not registered yet.",
+    es: "La programación de este local aún no está registrada.",
+    he: "התוכנית של המקום הזה עדיין לא רשומה.",
+  },
+  place_info: {
+    pt: "Ainda não há informações adicionais cadastradas para este local.",
+    en: "No additional information is registered for this place yet.",
+    es: "Aún no hay información adicional registrada para este lugar.",
+    he: "עדיין אין מידע נוסף רשום למקום הזה.",
+  },
+  tour_schedule: {
+    pt: "Os horários deste passeio ainda não estão cadastrados.",
+    en: "This tour schedule is not registered yet.",
+    es: "Los horarios de este paseo aún no están registrados.",
+    he: "שעות הסיור עדיין לא רשומות.",
+  },
+  tour_interactive: {
+    pt: "Este passeio ainda não possui um Tour Interativo vinculado.",
+    en: "This tour does not have an Interactive Tour linked yet.",
+    es: "Este paseo aún no tiene un Tour Interactivo vinculado.",
+    he: "לסיור הזה עדיין לא מקושר סיור אינטראקטיבי.",
+  },
+  transport_ticket: {
+    pt: "Este transporte ainda não possui passagem disponível para compra.",
+    en: "This transport service does not have a ticket available for purchase yet.",
+    es: "Este transporte aún no tiene pasaje disponible para compra.",
+    he: "לשירות ההסעה הזה עדיין אין כרטיס זמין לרכישה.",
+  },
+  transport_stop: {
+    pt: "O ponto deste transporte ainda não está cadastrado.",
+    en: "This transport stop is not registered yet.",
+    es: "El punto de este transporte aún no está registrado.",
+    he: "תחנת ההסעה עדיין לא רשומה.",
+  },
+  shop_products: {
+    pt: "Esta loja ainda não possui produtos cadastrados.",
+    en: "This shop does not have products registered yet.",
+    es: "Esta tienda aún no tiene productos registrados.",
+    he: "לחנות הזו עדיין אין מוצרים רשומים.",
+  },
+  shop_hours: {
+    pt: "Os horários desta loja ainda não estão cadastrados.",
+    en: "This shop opening hours are not registered yet.",
+    es: "Los horarios de esta tienda aún no están registrados.",
+    he: "שעות הפעילות של החנות עדיין לא רשומות.",
+  },
+  emergency_hours: {
+    pt: "Os horários deste serviço ainda não estão cadastrados.",
+    en: "This service hours are not registered yet.",
+    es: "Los horarios de este servicio aún no están registrados.",
+    he: "שעות השירות עדיין לא רשומות.",
+  },
 });
 
 const STATIC_ACTIONS: Readonly<
@@ -162,73 +246,58 @@ const STATIC_ACTIONS: Readonly<
   >
 > = Object.freeze({
   restaurants: [
-    { aliases: ["cardapio", "menu"], action: "restaurant_menu" },
-    {
-      aliases: ["contato", "contact", "contacto"],
-      action: "restaurant_contact",
-    },
-    {
-      aliases: ["avaliacoes", "reviews"],
-      action: "restaurant_reviews",
-    },
+    { aliases: ["ver cardapio", "cardapio", "menu"], action: "restaurant_menu" },
+    { aliases: ["reservar mesa", "reserva de mesa"], action: "restaurant_booking" },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    { aliases: ["avaliacoes", "reviews"], action: "restaurant_reviews" },
+  ],
+  nightlife: [
+    { aliases: ["ver cardapio", "cardapio", "menu"], action: "nightlife_menu" },
+    { aliases: ["programacao", "schedule"], action: "nightlife_schedule" },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
   ],
   hotels: [
-    {
-      aliases: ["ver quartos", "quartos", "rooms"],
-      action: "accommodation_rooms",
-    },
-    {
-      aliases: ["reservar", "reserva", "book", "booking"],
-      action: "accommodation_booking",
-    },
-    {
-      aliases: ["compartilhar", "share"],
-      action: "accommodation_share",
-    },
+    { aliases: ["ver acomodacoes", "acomodacoes", "ver quartos", "quartos", "rooms"], action: "accommodation_rooms" },
+    { aliases: ["reservar", "reserva", "book", "booking"], action: "accommodation_booking" },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    { aliases: ["compartilhar", "share"], action: "accommodation_share" },
   ],
   tours: [
-    {
-      aliases: [
-        "reservar passeio",
-        "reservar",
-        "reserva",
-        "book tour",
-        "booking",
-      ],
-      action: "tour_booking",
-    },
-    {
-      aliases: ["ponto de encontro", "meeting point", "local de encontro"],
-      action: "tour_meeting_point",
-    },
-    { aliases: ["contato", "contact", "contacto"], action: "tour_contact" },
+    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
+    { aliases: ["reservar passeio", "reservar", "reserva", "book tour", "booking"], action: "tour_booking" },
+    { aliases: ["ver horarios", "horarios", "schedule"], action: "tour_schedule" },
+    { aliases: ["ponto de encontro", "meeting point", "local de encontro"], action: "tour_meeting_point" },
+    { aliases: ["fazer tour interativo", "tour interativo", "interactive tour"], action: "tour_interactive" },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
   ],
   beaches: [
-    {
-      aliases: ["condicoes da praia", "condicoes", "beach conditions"],
-      action: "beach_conditions",
-    },
+    { aliases: ["saiba mais", "mais informacoes", "informacoes"], action: "place_info" },
+    { aliases: ["condicoes da praia", "condicoes", "beach conditions"], action: "beach_conditions" },
+  ],
+  attractions: [
+    { aliases: ["saiba mais", "mais informacoes", "informacoes"], action: "place_info" },
   ],
   transport: [
-    {
-      aliases: ["solicitar transporte", "solicitar", "request transport"],
-      action: "transport_request",
-    },
-    {
-      aliases: ["tarifas", "tarifa", "fares", "fare"],
-      action: "transport_fares",
-    },
-    {
-      aliases: ["contato", "contact", "contacto"],
-      action: "transport_contact",
-    },
+    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
+    { aliases: ["solicitar transporte", "solicitar", "request transport"], action: "transport_request" },
+    { aliases: ["comprar passagem", "passagem", "buy ticket"], action: "transport_ticket" },
+    { aliases: ["ver ponto", "ponto", "pontos", "stops", "points"], action: "transport_stop" },
     { aliases: ["horarios", "schedules"], action: "transport_schedules" },
-    { aliases: ["pontos", "stops", "points"], action: "transport_points" },
-    {
-      aliases: ["area atendida", "service area"],
-      action: "transport_service_area",
-    },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+    { aliases: ["tarifas", "tarifa", "fares", "fare"], action: "transport_fares" },
+    { aliases: ["area atendida", "service area"], action: "transport_service_area" },
     { aliases: ["avaliacoes", "reviews"], action: "transport_reviews" },
+  ],
+  shops: [
+    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
+    { aliases: ["ver produtos", "produtos", "products"], action: "shop_products" },
+    { aliases: ["horarios", "hours"], action: "shop_hours" },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
+  ],
+  emergencies: [
+    { aliases: ["saiba mais", "mais informacoes"], action: "place_info" },
+    { aliases: ["horarios", "hours"], action: "emergency_hours" },
+    { aliases: ["whatsapp", "contato", "contact", "contacto"], action: "place_whatsapp" },
   ],
 });
 
