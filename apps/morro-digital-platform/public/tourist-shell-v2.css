@@ -1926,7 +1926,7 @@ body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
   inset: auto !important;
   width: auto !important;
   max-width: none;
-  min-height: 4rem;
+  min-height: var(--md-bottom-nav-min-height);
   padding: var(--md-space-1);
   border: 0;
   border-top: 1px solid var(--md-unified-dock-divider);
