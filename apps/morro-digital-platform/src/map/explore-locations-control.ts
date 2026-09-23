@@ -1793,6 +1793,7 @@ export function installExploreLocationsControl({
     ? new MutationObserverCtor((records) => {
         if (!records.some((record) => record.attributeName === "lang")) return;
         refreshCategoryPresentation();
+        if (activeStage === "menu") restoreCategoryRail();
         if (exploreRuntimeStatusDescriptor) renderExploreRuntimeStatus();
         if (activeStage === "filters" && activeCategory) renderFilters();
         if (activeStage === "detail" && activePlace) {
@@ -1824,11 +1825,26 @@ export function installExploreLocationsControl({
   };
 
   const onAssistantOptionSelected = (event: Event): void => {
-    if (activeStage === "menu" || !(event instanceof CustomEvent)) return;
+    if (!(event instanceof CustomEvent)) return;
     const detail: unknown = event.detail;
     if (!detail || typeof detail !== "object") return;
     const candidate: unknown = Reflect.get(detail, "value");
     const value = typeof candidate === "string" ? candidate : "";
+    const sourceCandidate: unknown = Reflect.get(detail, "source");
+    const source = typeof sourceCandidate === "string" ? sourceCandidate : "";
+
+    if (activeStage === "menu") {
+      const isUnifiedCategory =
+        source === "unified-category-rail" &&
+        currentCategories().some(
+          (category) =>
+            normalizeSearchText(category.value) === normalizeSearchText(value),
+        );
+      if (!isUnifiedCategory) return;
+      event.stopImmediatePropagation();
+      openCategoryByValue(value);
+      return;
+    }
 
     if (
       activeStage === "detail" &&
