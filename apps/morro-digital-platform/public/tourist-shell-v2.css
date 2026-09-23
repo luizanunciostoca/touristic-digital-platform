@@ -1792,7 +1792,11 @@ html[dir="rtl"] #unified-assistant-dock > #assistant-category-rail::after {
 
 #unified-assistant-dock
   .md-assistant-category-chip[data-assistant-category="shops"] {
-  background: color-mix(in srgb, #d946ef 8%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-category-shops) 8%,
+    var(--md-color-surface-card)
+  );
 }
 
 #unified-assistant-dock
