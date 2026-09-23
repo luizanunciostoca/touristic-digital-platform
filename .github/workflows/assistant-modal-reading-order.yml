@@ -76,12 +76,11 @@ jobs:
               await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 20000 });
               const trigger = page.locator('#assistantInput');
               await trigger.waitFor({ state: 'visible', timeout: 15000 });
-              if (await page.locator('#assistant-messages:not(.hidden)').isVisible()) {
-                await page.keyboard.press('Escape');
-                await page.locator('#assistant-messages.hidden').waitFor({ state: 'attached', timeout: 5000 });
-              }
+              await page.locator('#assistant-messages:not(.hidden)').waitFor({
+                state: 'visible',
+                timeout: 5000,
+              });
               await trigger.focus();
-              await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
               await page.waitForTimeout(150);
 
               const modalV2 = await page.evaluate(() => {
@@ -100,8 +99,8 @@ jobs:
                 };
               });
               if (
-                modalV2.role !== 'dialog' ||
-                modalV2.ariaModal !== 'false' ||
+                modalV2.role !== 'region' ||
+                modalV2.ariaModal !== null ||
                 modalV2.ariaHidden !== 'false' ||
                 modalV2.busy !== 'false' ||
                 modalV2.state !== 'idle' ||
@@ -109,7 +108,7 @@ jobs:
                 modalV2.composerRole !== 'group' ||
                 !modalV2.focusedInput
               ) {
-                throw new Error(`Assistant Modal V2 semantics/focus diverged: ${JSON.stringify(modalV2)}`);
+                throw new Error(`Unified Assistant region semantics/focus diverged: ${JSON.stringify(modalV2)}`);
               }
 
               await page.evaluate(() => {
@@ -138,15 +137,15 @@ jobs:
 
 
               await page.keyboard.press('Escape');
-              await page.locator('#assistant-messages.hidden[aria-hidden="true"]').waitFor({
-                state: 'attached',
+              await page.locator('#assistant-messages:not(.hidden)[aria-hidden="false"]').waitFor({
+                state: 'visible',
                 timeout: 5000,
               });
               const focusRestored = await page.evaluate(() =>
                 document.activeElement?.id === 'assistantInput',
               );
               if (!focusRestored) {
-                throw new Error('Assistant Escape did not restore focus to the composer input');
+                throw new Error('Assistant Escape did not restore focus to the persistent composer input');
               }
 
               const assistant = page.locator('#assistant-messages');
@@ -160,26 +159,47 @@ jobs:
 
               const state = await page.evaluate(() => {
                 const area = document.querySelector('#assistant-messages .messages-area');
-                const children = area ? Array.from(area.children) : [];
-                const feedback = area?.querySelector('.message[data-message-type="navigation-feedback"]') ?? null;
-                const menu = area?.querySelector('.assistant-options:has([data-explore-category])') ?? null;
+                const feedback =
+                  area?.querySelector('.message[data-message-type="navigation-feedback"]') ??
+                  null;
+                const dock = document.getElementById('unified-assistant-dock');
+                const message = document.getElementById('assistant-messages');
+                const categoryRail = document.getElementById('assistant-category-rail');
+                const composer = document.getElementById('assistant-input-area');
+                const navigation = document.getElementById('home-bottom-navigation');
+                const dockChildren = dock ? Array.from(dock.children) : [];
+                const railStyle =
+                  categoryRail instanceof HTMLElement
+                    ? getComputedStyle(categoryRail)
+                    : null;
                 return {
                   feedbackText: feedback?.textContent?.trim() ?? '',
-                  feedbackIndex: feedback ? children.indexOf(feedback) : -1,
-                  menuIndex: menu ? children.indexOf(menu) : -1,
-                  menuVisible: Boolean(menu && !menu.classList.contains('hidden') && menu.getAttribute('aria-hidden') !== 'true'),
-                  optionCount: menu?.querySelectorAll('.assistant-option-btn').length ?? 0,
+                  messageIndex: message ? dockChildren.indexOf(message) : -1,
+                  categoryIndex: categoryRail ? dockChildren.indexOf(categoryRail) : -1,
+                  composerIndex: composer ? dockChildren.indexOf(composer) : -1,
+                  navigationIndex: navigation ? dockChildren.indexOf(navigation) : -1,
+                  categoryVisible: Boolean(
+                    categoryRail &&
+                      railStyle &&
+                      railStyle.display !== 'none' &&
+                      railStyle.visibility !== 'hidden' &&
+                      railStyle.opacity !== '0',
+                  ),
+                  optionCount:
+                    categoryRail?.querySelectorAll('[data-assistant-category]').length ?? 0,
                 };
               });
 
               if (
                 !state.feedbackText.includes('Navegação encerrada. Como posso ajudar?') ||
-                state.feedbackIndex < 0 ||
-                state.menuIndex <= state.feedbackIndex ||
-                !state.menuVisible ||
+                state.messageIndex < 0 ||
+                state.categoryIndex <= state.messageIndex ||
+                state.composerIndex <= state.categoryIndex ||
+                state.navigationIndex <= state.composerIndex ||
+                !state.categoryVisible ||
                 state.optionCount !== 10
               ) {
-                throw new Error(`Assistant modal reading order diverged: ${JSON.stringify(state)}`);
+                throw new Error(`Unified Assistant reading order diverged: ${JSON.stringify(state)}`);
               }
 
               if (pageErrors.length) {

@@ -79,11 +79,10 @@ function createAppShellMarkup(): string {
 
       <div
         id="assistant-messages"
-        class="assistant-modal md-assistant-dialog auto-size grow-upward hidden"
-        role="dialog"
-        aria-modal="false"
+        class="md-assistant-dialog md-assistant-message-region"
+        role="region"
         aria-label="Morro Digital assistant"
-        aria-hidden="true"
+        aria-hidden="false"
         aria-describedby="assistant-dialog-status"
         tabindex="-1"
         data-assistant-state="idle"
@@ -152,7 +151,58 @@ function createAppShellMarkup(): string {
         <p class="assistant-voice-settings-support" aria-live="polite">As preferências são salvas neste navegador.</p>
       </section>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-compact" role="group" aria-label="Assistant composer" data-home-assistant-entry="compact" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
+      <div
+        id="assistant-category-rail"
+        class="md-assistant-category-rail"
+        role="region"
+        aria-label="Categorias do assistente"
+        data-assistant-category-rail
+      >
+        <div class="md-assistant-category-scroll">
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="beaches" data-value="beaches">
+            <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Praias</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="restaurants" data-value="restaurants">
+            <i class="fas fa-utensils" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Restaurantes</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="hotels" data-value="hotels">
+            <i class="fas fa-bed" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Hotéis</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="shops" data-value="shops">
+            <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Lojas</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="transport" data-value="transport">
+            <i class="fas fa-bus" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Transporte</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="attractions" data-value="attractions">
+            <i class="fas fa-camera" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Atrações</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="tours" data-value="tours">
+            <i class="fas fa-route" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Tours</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="nightlife" data-value="nightlife">
+            <i class="fas fa-moon" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Vida Noturna</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="emergencies" data-value="emergencies">
+            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Emergências</span>
+          </button>
+          <button type="button" class="md-assistant-category-chip" data-assistant-category="help" data-value="help">
+            <i class="fas fa-question-circle" aria-hidden="true"></i>
+            <span class="md-assistant-category-label">Ajuda</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent" role="group" aria-label="Assistant composer" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
         <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
@@ -320,6 +370,87 @@ function synchronizeHomeVisualState(document: Document): () => void {
   return () => observer?.disconnect();
 }
 
+function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
+  const shell = document.querySelector<HTMLElement>(".md-tourist-shell-v2");
+  const messages = document.getElementById("assistant-messages");
+  const categories = document.getElementById("assistant-category-rail");
+  const composer = document.getElementById("assistant-input-area");
+  const navigation = document.getElementById("home-bottom-navigation");
+  if (!shell || !messages || !categories || !composer || !navigation)
+    return null;
+
+  let dock = document.getElementById("unified-assistant-dock");
+  if (!(dock instanceof HTMLElement)) {
+    dock = document.createElement("section");
+    dock.id = "unified-assistant-dock";
+    dock.className = "md-unified-assistant-dock";
+    dock.setAttribute("aria-label", "Assistente e navegação principal");
+    dock.dataset.unifiedAssistantDock = "true";
+    messages.before(dock);
+  }
+
+  let grabber = dock.querySelector<HTMLElement>(".md-unified-dock-grabber");
+  if (!grabber) {
+    grabber = document.createElement("div");
+    grabber.className = "md-unified-dock-grabber";
+    grabber.setAttribute("aria-hidden", "true");
+  }
+
+  messages.classList.add("md-assistant-message-region");
+  messages.setAttribute("role", "region");
+  messages.removeAttribute("aria-modal");
+  messages.removeAttribute("tabindex");
+  messages
+    .querySelector<HTMLElement>(".messages-area")
+    ?.classList.add("md-assistant-message-scroll");
+
+  dock.append(grabber, messages, categories, composer, navigation);
+
+  categories.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest<HTMLButtonElement>(
+      "[data-assistant-category]",
+    );
+    const value = button?.dataset.assistantCategory?.trim();
+    if (!button || !value) return;
+
+    document.dispatchEvent(
+      new CustomEvent("morro:assistant-option-selected", {
+        detail: { value, source: "unified-category-rail" },
+      }),
+    );
+  });
+
+  document.body.dataset.mdUnifiedDock = "true";
+  return dock;
+}
+
+function synchronizeUnifiedAssistantDockInset(
+  document: Document,
+  dock: HTMLElement | null,
+): void {
+  if (!dock) return;
+  const root = document.documentElement;
+  const update = (): void => {
+    const height = Math.max(0, Math.ceil(dock.getBoundingClientRect().height));
+    root.style.setProperty("--md-unified-dock-height", `${height}px`);
+    root.style.setProperty(
+      "--md-unified-dock-map-inset",
+      `${Math.max(0, height + 16)}px`,
+    );
+  };
+
+  update();
+  const ResizeObserverConstructor = document.defaultView?.ResizeObserver;
+  const resizeObserver = ResizeObserverConstructor
+    ? new ResizeObserverConstructor(update)
+    : undefined;
+  resizeObserver?.observe(dock);
+  document.defaultView?.addEventListener("resize", update);
+  document.defaultView?.visualViewport?.addEventListener("resize", update);
+}
+
 function synchronizeAssistantLayout(document: Document): void {
   const assistantMessages = document.getElementById("assistant-messages");
   const messagesArea =
@@ -335,7 +466,10 @@ function synchronizeAssistantLayout(document: Document): void {
       ),
     );
     const carouselContainers = messagesArea.querySelectorAll(
-      ".carousel-container",
+      ".carousel-container, .assistant-photo-carousel",
+    );
+    const richInteractiveContainers = messagesArea.querySelectorAll(
+      '.assistant-options:not([data-assistant-command-source="legacy-category-routing"]), #assistant-category-results, .assistant-photo-carousel, .assistant-photo-back-options',
     );
     const totalTextLength = textMessages.reduce(
       (total, message) => total + (message.textContent?.length ?? 0),
@@ -346,6 +480,7 @@ function synchronizeAssistantLayout(document: Document): void {
       "has-long-text",
       "has-short-text",
       "has-mixed-content",
+      "has-rich-content",
     );
 
     if (totalTextLength > 500) {
@@ -356,6 +491,9 @@ function synchronizeAssistantLayout(document: Document): void {
 
     if (textMessages.length > 0 && carouselContainers.length > 0) {
       assistantMessages.classList.add("has-mixed-content");
+    }
+    if (richInteractiveContainers.length > 0) {
+      assistantMessages.classList.add("has-rich-content");
     }
 
     const hasOverflow = messagesArea.scrollHeight > messagesArea.clientHeight;
@@ -368,6 +506,17 @@ function synchronizeAssistantLayout(document: Document): void {
 
   update();
   document.defaultView?.addEventListener("resize", update);
+  const MutationObserverConstructor = document.defaultView?.MutationObserver;
+  const mutationObserver = MutationObserverConstructor
+    ? new MutationObserverConstructor(update)
+    : undefined;
+  mutationObserver?.observe(messagesArea, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["class", "hidden", "aria-hidden"],
+  });
   void document.fonts.ready.then(update);
 }
 
@@ -378,7 +527,9 @@ export function mountAppShell({ document }: AppShellMountOptions): HTMLElement {
   }
 
   root.innerHTML = createAppShellMarkup();
+  const unifiedDock = composeUnifiedAssistantDock(document);
   synchronizeHomeVisualState(document);
   synchronizeAssistantLayout(document);
+  synchronizeUnifiedAssistantDockInset(document, unifiedDock);
   return root;
 }

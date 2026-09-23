@@ -66,7 +66,7 @@ async function waitReady(page) {
     .first()
     .waitFor({ state: "visible", timeout: 10000 });
   await page
-    .locator("#discover-category-rail")
+    .locator("#assistant-category-rail")
     .waitFor({ state: "visible", timeout: 10000 });
   await page
     .locator("#recenter-map-control")
@@ -93,12 +93,12 @@ async function inspect(page) {
     };
     const touchTargets = Array.from(
       document.querySelectorAll(
-        "#discover-category-rail button, #globe-map-control button",
+        "#assistant-category-rail button, #globe-map-control button",
       ),
     ).map((node) => {
       const box = node.getBoundingClientRect();
       return {
-        id: node.id || node.getAttribute("data-discover-category"),
+        id: node.id || node.getAttribute("data-assistant-category"),
         width: box.width,
         height: box.height,
       };
@@ -140,7 +140,7 @@ async function inspect(page) {
           scrollWidth: node.scrollWidth,
         };
       })(),
-      rail: rect("#discover-category-rail"),
+      rail: rect("#assistant-category-rail"),
       controls: rect("#globe-map-control"),
       composer: rect("#assistant-input-area"),
       nav: rect("#home-bottom-navigation"),
@@ -326,8 +326,45 @@ try {
     const canvas = page.locator("#map .mapboxgl-canvas");
     const canvasBox = await canvas.boundingBox();
     assert(canvasBox, "Mapbox canvas unavailable for gesture validation");
-    const gestureX = canvasBox.x + canvasBox.width * 0.5;
-    const gestureY = canvasBox.y + canvasBox.height * 0.5;
+    const gesturePoint = await page.evaluate(() => {
+      const canvas = document.querySelector("#map .mapboxgl-canvas");
+      if (!(canvas instanceof HTMLElement)) return null;
+      const rect = canvas.getBoundingClientRect();
+      const dock = document
+        .getElementById("unified-assistant-dock")
+        ?.getBoundingClientRect();
+      const candidates = [
+        [0.5, 0.38],
+        [0.35, 0.5],
+        [0.25, 0.5],
+        [0.5, 0.3],
+        [0.65, 0.42],
+      ];
+      for (const [xRatio, yRatio] of candidates) {
+        const x = rect.left + rect.width * xRatio;
+        const y = rect.top + rect.height * yRatio;
+        const target = document.elementFromPoint(x, y);
+        const blockedByDock =
+          dock &&
+          x >= dock.left &&
+          x <= dock.right &&
+          y >= dock.top &&
+          y <= dock.bottom;
+        const blockedByUi = Boolean(
+          target?.closest(
+            "#unified-assistant-dock, .md-home-header, #weather-widget, #globe-map-control, #privacy-control",
+          ),
+        );
+        if (!blockedByDock && !blockedByUi) return { x, y };
+      }
+      return {
+        x: rect.left + rect.width * 0.25,
+        y: rect.top + rect.height * 0.42,
+      };
+    });
+    assert(gesturePoint, "No unobstructed map gesture point is available");
+    const gestureX = gesturePoint.x;
+    const gestureY = gesturePoint.y;
     await page.mouse.move(gestureX, gestureY);
     await page.mouse.down();
     await page.mouse.move(gestureX + 52, gestureY + 28, { steps: 6 });
@@ -388,7 +425,7 @@ try {
       recentered,
     );
 
-    await page.locator('[data-discover-category="beaches"]').click();
+    await page.locator('[data-assistant-category="beaches"]').click();
     await page
       .locator(
         '#map[data-explore-state="ready"][data-explore-category="beaches"]',

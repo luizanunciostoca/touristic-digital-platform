@@ -108,10 +108,10 @@ jobs:
                 restored.display !== null &&
                 restored.visibility !== null &&
                 restored.opacity !== null &&
-                (restored.display === 'none' ||
-                  restored.visibility === 'hidden' ||
-                  restored.opacity === '0') &&
-                restored.ariaHidden === 'true' &&
+                restored.display !== 'none' &&
+                restored.visibility !== 'hidden' &&
+                restored.opacity !== '0' &&
+                restored.ariaHidden === 'false' &&
                 restored.composerVisible &&
                 settled === 'true' &&
                 persisted === '1'

@@ -63,6 +63,8 @@ function createElement(initialClasses: string[] = []) {
       return focusCount;
     },
     textContent: "",
+    dataset: {} as Record<string, string>,
+    parentElement: null as { id?: string } | null,
   };
 }
 
@@ -297,6 +299,22 @@ describe("assistant shell UI", () => {
     expect(view.external.focusCount).toBe(1);
     view.scheduled[0]?.();
     expect(view.input.focusCount).toBe(0);
+  });
+
+  it("keeps the message region visible on Escape when the unified dock owns the Assistant", () => {
+    const view = fixture();
+    view.body.dataset.mdUnifiedDock = "true";
+    const shell = installAssistantShellUi({ document: view.document });
+    shell.show();
+    shell.setState("loading");
+
+    view.dispatchKeydown("Escape");
+
+    expect(shell.isVisible()).toBe(true);
+    expect(view.assistant.attributes.get("aria-hidden")).toBe("false");
+    expect(view.assistant.attributes.get("data-assistant-state")).toBe("idle");
+    expect(view.assistant.attributes.get("aria-busy")).toBe("false");
+    expect(view.input.focusCount).toBe(1);
   });
 
   it("removes the readiness marker when destroyed", () => {

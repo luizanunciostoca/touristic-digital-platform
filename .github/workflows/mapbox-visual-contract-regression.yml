@@ -111,7 +111,9 @@ jobs:
                   routeSource: Boolean(map?.getSource?.('tour-route-source')),
                   routeLayer: Boolean(map?.getLayer?.('tour-route-layer')),
                   outline: Boolean(map?.getLayer?.('tour-route-outline')),
-                  assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                  assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)[aria-hidden="false"]')),
+                  categoryVisible: Boolean(document.getElementById('assistant-category-rail')?.getBoundingClientRect().width),
+                  categoryOptions: document.querySelectorAll('#assistant-category-rail [data-assistant-category]').length,
                   composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
                 };
               });
@@ -121,7 +123,9 @@ jobs:
                 !state.routeSource &&
                 !state.routeLayer &&
                 !state.outline &&
-                !state.assistantVisible &&
+                state.assistantVisible &&
+                state.categoryVisible &&
+                state.categoryOptions === 10 &&
                 state.composerVisible
               ) {
                 return state;
@@ -200,9 +204,10 @@ jobs:
                   cap: map.getLayoutProperty?.('tour-route-layer', 'line-cap'),
                 },
                 forcedColors: matchMedia('(forced-colors: active)').matches,
-                assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)[aria-hidden="false"]')),
+                categoryVisible: Boolean(document.getElementById('assistant-category-rail')?.getBoundingClientRect().width),
+                categoryOptions: document.querySelectorAll('#assistant-category-rail [data-assistant-category]').length,
                 composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
-                assistantOptions: document.querySelectorAll('.assistant-option-btn').length,
               };
             });
           }
@@ -224,7 +229,13 @@ jobs:
             if (JSON.stringify(state.outline) !== JSON.stringify(expected.outline) || JSON.stringify(state.route) !== JSON.stringify(expected.route)) {
               throw new Error(`V1 route visual contract diverged for ${viewportName}: ${JSON.stringify(state)}`);
             }
-            if (state.forcedColors !== forcedColors || state.assistantVisible || !state.composerVisible || state.assistantOptions !== 10) {
+            if (
+              state.forcedColors !== forcedColors ||
+              !state.assistantVisible ||
+              !state.categoryVisible ||
+              state.categoryOptions !== 10 ||
+              !state.composerVisible
+            ) {
               throw new Error(`Accessibility state diverged for ${viewportName}: ${JSON.stringify(state)}`);
             }
           }
@@ -305,7 +316,7 @@ jobs:
               mapboxGlJs: '3.12.0',
               style: 'mapbox://styles/mapbox/streets-v12',
               homeLifecycle: 'Home starts centered and idle with zero tour markers; a route appears only after explicit selection.',
-              assistantLifecycle: 'The V2 Home starts with the contextual Assistant layer hidden while the persistent composer remains visible.',
+              assistantLifecycle: 'The V2 Home starts with the Unified Assistant message region, horizontal category rail and persistent composer visible as one dock.',
               evidence,
             }, null, 2));
           })().catch((error) => {

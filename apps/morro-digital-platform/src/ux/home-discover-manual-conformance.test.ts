@@ -44,7 +44,7 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(shell).not.toContain("data-assistant-floating-trigger");
   });
 
-  it("starts with a compact Assistant entry and keeps settings outside the composer", async () => {
+  it("starts with a persistent Assistant composer inside the unified dock", async () => {
     const shell = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
     );
@@ -53,7 +53,10 @@ describe("Home / Discover UX V2 manual conformance", () => {
     const composerEnd = shell.indexOf("</div>", composerStart);
     const composer = shell.slice(composerStart, composerEnd);
 
-    expect(composer).toContain("is-compact");
+    expect(shell).toContain("composeUnifiedAssistantDock");
+    expect(shell).toContain('id = "unified-assistant-dock"');
+    expect(composer).toContain("is-persistent");
+    expect(composer).toContain('data-home-assistant-entry="persistent"');
     expect(composer).toContain('id="assistantInput"');
     expect(composer).toContain('id="sendButton"');
     expect(composer).toContain('id="voiceButton"');

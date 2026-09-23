@@ -186,16 +186,14 @@ export function installHomeDiscoverNavigation({
 
   const expandComposer = (): void => {
     if (!composer) return;
-    composer.classList.remove("is-compact");
-    composer.classList.add("is-expanded");
-    composer.dataset.homeAssistantEntry = "expanded";
+    composer.classList.add("is-focused");
+    composer.dataset.homeAssistantEntry = "focused";
   };
 
   const collapseComposer = (): void => {
     if (!composer || assistantInput?.value.trim()) return;
-    composer.classList.remove("is-expanded");
-    composer.classList.add("is-compact");
-    composer.dataset.homeAssistantEntry = "compact";
+    composer.classList.remove("is-focused");
+    composer.dataset.homeAssistantEntry = "persistent";
   };
 
   const onComposerFocusIn = (): void => {

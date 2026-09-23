@@ -51,6 +51,19 @@ describe("V1 shell presentation i18n", () => {
     expect(
       getShellPresentationCopy("he").legacy.map_loading_morro_digital,
     ).toBe("טוען את Morro Digital...");
+
+    expect(getShellPresentationCopy("pt").assistantCategoryLabels.beaches).toBe(
+      "Praias",
+    );
+    expect(
+      getShellPresentationCopy("en").assistantCategoryLabels.restaurants,
+    ).toBe("Restaurants");
+    expect(getShellPresentationCopy("es").assistantCategoryLabels.hotels).toBe(
+      "Hoteles",
+    );
+    expect(getShellPresentationCopy("he").assistantCategoryLabels.help).toBe(
+      "עזרה",
+    );
   });
 
   it("localizes the V2-only shell accessibility additions without changing language values", () => {

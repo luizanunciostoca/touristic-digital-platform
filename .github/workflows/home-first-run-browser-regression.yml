@@ -122,6 +122,9 @@ jobs:
                 markerCount: map?.getAttribute('data-map-marker-count') ?? null,
                 assistantVisible: Boolean(
                   assistant &&
+                  getComputedStyle(assistant).display !== 'none' &&
+                  getComputedStyle(assistant).visibility !== 'hidden' &&
+                  getComputedStyle(assistant).opacity !== '0' &&
                   !assistant.classList.contains('hidden') &&
                   assistant.getAttribute('aria-hidden') !== 'true'
                 ),
@@ -260,7 +263,7 @@ jobs:
               completed.onboarded !== '1' ||
               completed.tourActive ||
               completed.tourTooltip ||
-              completed.assistantVisible ||
+              !completed.assistantVisible ||
               !completed.composerVisible ||
               !completed.welcomeVisible ||
               !completed.welcomeText.includes('Welcome to Morro Digital')
@@ -276,7 +279,7 @@ jobs:
             if (
               reloaded.onboardingVisible ||
               reloaded.onboarded !== '1' ||
-              reloaded.assistantVisible ||
+              !reloaded.assistantVisible ||
               !reloaded.composerVisible ||
               !reloaded.welcomeVisible
             ) {
@@ -299,7 +302,7 @@ jobs:
             await skipPage.locator('#tour-tooltip').waitFor({ state: 'detached', timeout: 3000 });
             const skipped = await readState(skipPage);
             assertIdleMap(skipped, 'Escape-skipped tutorial');
-            if (skipped.onboarded !== '1' || skipped.tourActive || skipped.assistantVisible || !skipped.composerVisible || !skipped.welcomeVisible) {
+            if (skipped.onboarded !== '1' || skipped.tourActive || !skipped.assistantVisible || !skipped.composerVisible || !skipped.welcomeVisible) {
               throw new Error(`Tutorial Escape skip did not preserve the V2 composer state: ${JSON.stringify(skipped)}`);
             }
             evidence.skip = { skipped, errors: skipErrors };
@@ -314,7 +317,7 @@ jobs:
             await overlaySkipPage.locator('#onboarding-overlay').waitFor({ state: 'detached', timeout: 3000 });
             const overlaySkipped = await readState(overlaySkipPage);
             assertIdleMap(overlaySkipped, 'Escape-skipped onboarding');
-            if (overlaySkipped.onboarded !== '1' || overlaySkipped.assistantVisible || !overlaySkipped.composerVisible || !overlaySkipped.welcomeVisible) {
+            if (overlaySkipped.onboarded !== '1' || !overlaySkipped.assistantVisible || !overlaySkipped.composerVisible || !overlaySkipped.welcomeVisible) {
               throw new Error(`Onboarding Escape skip did not preserve the V2 composer state: ${JSON.stringify(overlaySkipped)}`);
             }
             evidence.overlaySkip = overlaySkipped;

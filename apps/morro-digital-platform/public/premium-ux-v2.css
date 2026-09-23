@@ -594,6 +594,17 @@ body[data-md-mode="assistant"] .assistant-option-btn {
   display: none;
 }
 
+/* The unified dock is one atomic surface: modes that promote a dedicated lower
+ * surface hide the whole dock instead of independently hiding its children. */
+body[data-md-mode="navigation"] #unified-assistant-dock,
+body[data-md-mode="tour"] #unified-assistant-dock,
+body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="false"])
+  #unified-assistant-dock {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 body[data-md-mode="navigation"] #assistant-input-area,
 body[data-md-mode="navigation"] #assistant-messages,
 body[data-md-mode="tour"] #assistant-input-area,

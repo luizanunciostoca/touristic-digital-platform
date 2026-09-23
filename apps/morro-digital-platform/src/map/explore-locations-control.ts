@@ -314,6 +314,18 @@ function categoryBounds(
   ];
 }
 
+function unifiedDockBottomPadding(document: Document, fallback = 260): number {
+  const dock = document.getElementById("unified-assistant-dock");
+  const viewportHeight =
+    document.defaultView?.innerHeight ?? document.documentElement.clientHeight;
+  const dockHeight = dock?.offsetHeight ?? 0;
+  if (dockHeight <= 0) return fallback;
+  return Math.min(
+    Math.max(180, viewportHeight * 0.58),
+    Math.max(fallback, dockHeight + 40),
+  );
+}
+
 function categoryCenter(
   locations: readonly ExploreMapLocation[],
 ): { latitude: number; longitude: number } | null {
@@ -328,6 +340,7 @@ function categoryCenter(
 }
 
 function frameLocationsOnMap(
+  document: Document,
   locations: readonly ExploreMapLocation[],
   geospatialEngine: GeospatialEngine | undefined,
 ): void {
@@ -336,11 +349,31 @@ function frameLocationsOnMap(
     const location = locations[0];
     if (!location) return;
     if (map?.flyTo) {
-      map.flyTo({
+      const paddedMap = map as typeof map & {
+        flyTo(options: {
+          center: [number, number];
+          zoom?: number;
+          duration?: number;
+          essential?: boolean;
+          padding?: {
+            top: number;
+            bottom: number;
+            left: number;
+            right: number;
+          };
+        }): void;
+      };
+      paddedMap.flyTo({
         center: [location.longitude, location.latitude],
         zoom: 16,
         duration: 650,
         essential: true,
+        padding: {
+          top: 120,
+          bottom: unifiedDockBottomPadding(document),
+          left: 56,
+          right: 56,
+        },
       });
     } else if (map) {
       map.setCenter([location.longitude, location.latitude]);
@@ -357,7 +390,12 @@ function frameLocationsOnMap(
   const bounds = categoryBounds(locations);
   if (bounds && map?.fitBounds) {
     map.fitBounds(bounds, {
-      padding: { top: 120, bottom: 260, left: 56, right: 56 },
+      padding: {
+        top: 120,
+        bottom: unifiedDockBottomPadding(document),
+        left: 56,
+        right: 56,
+      },
       duration: 650,
       essential: true,
     });
@@ -620,7 +658,7 @@ export function installExploreLocationsControl({
         selectedMarker?.setAttribute("data-selected", "true");
         selectedMarker?.setAttribute("aria-current", "location");
       }
-      frameLocationsOnMap(locations, geospatialEngine);
+      frameLocationsOnMap(document, locations, geospatialEngine);
       setSheetStatus("ready");
       emitStateChange();
     } catch (error) {
@@ -1285,7 +1323,7 @@ export function installExploreLocationsControl({
       );
       if (generation !== interactionGeneration) return false;
       updateMapState(locations.length, category, "ready");
-      frameLocationsOnMap(locations, geospatialEngine);
+      frameLocationsOnMap(document, locations, geospatialEngine);
       emitStateChange();
       return true;
     } catch (error) {

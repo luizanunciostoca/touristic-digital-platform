@@ -239,6 +239,16 @@ export function installAssistantShellUi(
     if (event.key !== "Escape" || !isVisible()) return;
     event.preventDefault();
     event.stopPropagation();
+
+    const unifiedDockOwnsAssistant =
+      options.document.body.dataset.mdUnifiedDock === "true" ||
+      assistant?.parentElement?.id === "unified-assistant-dock";
+    if (unifiedDockOwnsAssistant) {
+      setState("idle");
+      focusElement(input);
+      return;
+    }
+
     hide();
   };
   const onExploreStateChanged = (): void => {

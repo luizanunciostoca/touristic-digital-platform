@@ -6,6 +6,31 @@ This checklist reconciles the manual with the implementation already merged into
 
 > **Control Tower audit 2026-09-22:** functional/browser PASS is not equivalent to manual visual conformance. See [UX-DESIGN-V2-MANUAL-CONFORMANCE-AUDIT-2026-09-22.md](./UX-DESIGN-V2-MANUAL-CONFORMANCE-AUDIT-2026-09-22.md). Any older `DONE` label is subordinate to the manual-conformance status below until exact-main visual evidence and the physical Samsung gate pass.
 
+## Unified Contextual Assistant Dock convergence
+
+Implementation candidate: `wave/ux-v2-unified-assistant-dock-convergence-20260922`.
+
+- [x] One fixed dock owns Assistant message, composer and five-action navigation.
+- [x] Horizontal category rail is integrated between message and composer inside the same dock.
+- [x] Category chips dispatch existing Assistant option routing and do not duplicate business logic.
+- [x] Category rail is touch-scrollable, single-row, scroll-snapped, RTL-aware and 44px-target-safe.
+- [x] Legacy external Discover category rail is visually retired while unified dock authority is active.
+- [x] Standard Assistant text is bounded and internally scrollable.
+- [x] Rich Assistant content has a separate bounded presentation cap.
+- [x] Send and Voice remain persistently reachable before input focus.
+- [x] Composer focus no longer controls primary action visibility.
+- [x] Runtime dock height is measured and published as map/UI inset state.
+- [x] Explore map framing consumes dock-aware bottom padding.
+- [x] Discover category rail and map controls consume measured dock height.
+- [x] Onboarding/finish-toast positioning consumes measured dock height.
+- [x] Persistent message semantics are a region rather than a modal dialog.
+- [x] Wave B / Home / Wave G source contracts updated for the new composition.
+- [x] Bounded long-response browser assertion added.
+- [ ] Exact-head CI green on the candidate branch.
+- [ ] Dedicated candidate visual evidence reviewed on 390x844 / 430x932.
+- [ ] Safari iPhone physical screenshot reviewed against the approved mockup.
+- [ ] Merge to `main` and post-merge exact-main regression certification.
+
 ## Visual reference surfaces
 
 | Surface                    | Manual-conformance status                  | Current implementation / evidence                                                                                                                                                                                                       | Remaining work                                                                            |

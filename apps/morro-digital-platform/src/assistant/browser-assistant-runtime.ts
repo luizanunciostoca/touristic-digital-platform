@@ -120,6 +120,29 @@ function getMessagesArea(document: Document): HTMLElement | null {
   );
 }
 
+function revealLatestAssistantContent(
+  document: Document,
+  target?: HTMLElement | null,
+): void {
+  const area = getMessagesArea(document);
+  if (!area) return;
+
+  const settle = (): void => {
+    area.scrollTop = area.scrollHeight;
+    target?.scrollIntoView({
+      behavior: "auto",
+      block: "nearest",
+      inline: "nearest",
+    });
+  };
+
+  settle();
+  document.defaultView?.requestAnimationFrame(() => {
+    settle();
+    document.defaultView?.requestAnimationFrame(settle);
+  });
+}
+
 function readPhotoPresentation(
   response: AssistantDialogResponse,
 ): AssistantPhotoPresentation | null {
@@ -412,7 +435,7 @@ function appendPhotoCarousel(
 
   container.appendChild(track);
   messagesArea.appendChild(container);
-  messagesArea.scrollTop = messagesArea.scrollHeight;
+  revealLatestAssistantContent(document, container);
 }
 
 function removePhotoPresentation(document: Document): void {
@@ -435,6 +458,7 @@ function renderPhotoActionOptions(
   if (!container) return null;
 
   container.dataset.presentation = "photo-actions";
+  revealLatestAssistantContent(document, container);
   container.addEventListener(
     "click",
     (event) => {
@@ -994,7 +1018,11 @@ export function installBrowserAssistantRuntime(
       appendStandardMessage("assistant", response.text);
       const responseOptions = readAssistantResponseOptions(response);
       if (responseOptions.length > 0) {
-        renderAssistantDomOptions(options.document, responseOptions);
+        const renderedOptions = renderAssistantDomOptions(
+          options.document,
+          responseOptions,
+        );
+        revealLatestAssistantContent(options.document, renderedOptions);
       }
       currentPresentation = snapshotPresentation(
         response.text,
@@ -1046,7 +1074,11 @@ export function installBrowserAssistantRuntime(
         (option) => !suppressedValues.has(option.value),
       );
       if (responseOptions.length > 0) {
-        renderAssistantDomOptions(options.document, responseOptions);
+        const renderedOptions = renderAssistantDomOptions(
+          options.document,
+          responseOptions,
+        );
+        revealLatestAssistantContent(options.document, renderedOptions);
       }
       currentPresentation = snapshotPresentation(
         response.text,
@@ -1217,7 +1249,11 @@ export function installBrowserAssistantRuntime(
       }
     } else {
       if (responseOptions.length > 0) {
-        renderAssistantDomOptions(options.document, responseOptions);
+        const renderedOptions = renderAssistantDomOptions(
+          options.document,
+          responseOptions,
+        );
+        revealLatestAssistantContent(options.document, renderedOptions);
       }
       currentPresentation = snapshotPresentation(
         response.text,

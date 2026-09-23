@@ -9,8 +9,12 @@ const OUTPUT_DIR =
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
 const viewports = [
+  { name: "320x568", width: 320, height: 568 },
   { name: "360x800", width: 360, height: 800 },
+  { name: "375x812", width: 375, height: 812 },
   { name: "390x844", width: 390, height: 844 },
+  { name: "393x852", width: 393, height: 852 },
+  { name: "412x915", width: 412, height: 915 },
   { name: "430x932", width: 430, height: 932 },
   { name: "768x1024", width: 768, height: 1024 },
   { name: "1440x900", width: 1440, height: 900 },
@@ -64,6 +68,9 @@ async function waitForReady(page) {
     .waitFor({ state: "attached", timeout: 30000 });
   await page
     .locator('#weather-widget[data-weather-state="ready"]')
+    .waitFor({ state: "visible", timeout: 10000 });
+  await page
+    .locator("#unified-assistant-dock")
     .waitFor({ state: "visible", timeout: 10000 });
   await page
     .locator("#home-bottom-navigation")
@@ -126,6 +133,23 @@ async function inspectDiscover(page) {
       header: rect(".md-home-header-inner"),
       weather: rect("#weather-widget"),
       map: rect("#map"),
+      dock: rect("#unified-assistant-dock"),
+      messageRegion: rect("#assistant-messages:not(.hidden)"),
+      legacyCategoryMenuVisible: (() => {
+        const node = document.querySelector(
+          '#assistant-messages .assistant-options[data-assistant-command-source="legacy-category-routing"]',
+        );
+        if (!(node instanceof HTMLElement)) return false;
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          rect.width > 0 &&
+          rect.height > 0
+        );
+      })(),
+      categoryRail: rect("#assistant-category-rail"),
       nav: rect("#home-bottom-navigation"),
       composer: rect("#assistant-input-area"),
       globe: rect("#toggle-globe-view"),
@@ -153,6 +177,58 @@ async function inspectDiscover(page) {
           .getElementById("assistant-input-area")
           ?.querySelector("#configButton"),
       ),
+      unifiedComposition:
+        document.getElementById("assistant-input-area")?.parentElement?.id ===
+          "unified-assistant-dock" &&
+        document.getElementById("assistant-category-rail")?.parentElement
+          ?.id === "unified-assistant-dock" &&
+        document.getElementById("home-bottom-navigation")?.parentElement?.id ===
+          "unified-assistant-dock" &&
+        document.getElementById("assistant-messages")?.parentElement?.id ===
+          "unified-assistant-dock",
+      categoryRailContract: (() => {
+        const rail = document.querySelector(
+          "#assistant-category-rail .md-assistant-category-scroll",
+        );
+        const chips = Array.from(
+          document.querySelectorAll(
+            "#assistant-category-rail [data-assistant-category]",
+          ),
+        );
+        if (!(rail instanceof HTMLElement)) return null;
+        const style = getComputedStyle(rail);
+        return {
+          count: chips.length,
+          overflowX: style.overflowX,
+          scrollSnapType: style.scrollSnapType,
+          scrollWidth: rail.scrollWidth,
+          clientWidth: rail.clientWidth,
+          targets: chips.map((chip) => {
+            const box = chip.getBoundingClientRect();
+            return {
+              value: chip.getAttribute("data-assistant-category"),
+              width: box.width,
+              height: box.height,
+            };
+          }),
+        };
+      })(),
+      messageMaxHeight: (() => {
+        const node = document.getElementById("assistant-messages");
+        if (!(node instanceof HTMLElement)) return null;
+        return Number.parseFloat(getComputedStyle(node).maxHeight);
+      })(),
+      unifiedDockVariables: (() => {
+        const style = getComputedStyle(document.documentElement);
+        return {
+          height: Number.parseFloat(
+            style.getPropertyValue("--md-unified-dock-height"),
+          ),
+          mapInset: Number.parseFloat(
+            style.getPropertyValue("--md-unified-dock-map-inset"),
+          ),
+        };
+      })(),
       currentLocationMarker: rect(".md-current-location-marker"),
       currentLocationState:
         document.getElementById("map")?.getAttribute("data-current-location") ??
@@ -184,13 +260,52 @@ async function assertPureDiscover(page, viewport) {
     state,
   );
   assert(
-    state.composerState === "compact" &&
-      !state.sendVisible &&
-      !state.voiceVisible &&
-      !state.configInsideComposer,
-    "Assistant entry is not compact on pure Discover",
+    state.composerState === "persistent" &&
+      state.sendVisible &&
+      state.voiceVisible &&
+      !state.configInsideComposer &&
+      state.unifiedComposition,
+    "Assistant composer/navigation are not unified and persistently actionable",
     state,
   );
+  assert(
+    state.messageRegion &&
+      state.messageRegion.height > 0 &&
+      !state.legacyCategoryMenuVisible,
+    "Unified dock welcome message is not visible or legacy category grid leaked",
+    {
+      messageRegion: state.messageRegion,
+      legacyCategoryMenuVisible: state.legacyCategoryMenuVisible,
+    },
+  );
+
+  assert(
+    state.categoryRailContract &&
+      state.categoryRailContract.count === 10 &&
+      ["auto", "scroll"].includes(state.categoryRailContract.overflowX) &&
+      state.categoryRailContract.scrollSnapType !== "none" &&
+      state.categoryRailContract.scrollWidth >
+        state.categoryRailContract.clientWidth &&
+      state.categoryRailContract.targets.every(
+        (target) => target.width >= 44 && target.height >= 44,
+      ),
+    "Unified Assistant category rail lost horizontal-scroll/touch-target contract",
+    state.categoryRailContract,
+  );
+
+  assert(
+    state.dock &&
+      Number.isFinite(state.unifiedDockVariables?.height) &&
+      Number.isFinite(state.unifiedDockVariables?.mapInset) &&
+      Math.abs(state.unifiedDockVariables.height - state.dock.height) <= 2 &&
+      state.unifiedDockVariables.mapInset >= state.dock.height,
+    "Unified dock ResizeObserver variables are not synchronized",
+    {
+      dock: state.dock,
+      variables: state.unifiedDockVariables,
+    },
+  );
+
   assert(
     state.currentLocationState === "visible" &&
       state.currentLocationMarker &&
@@ -208,6 +323,8 @@ async function assertPureDiscover(page, viewport) {
     header: state.header,
     weather: state.weather,
     map: state.map,
+    dock: state.dock,
+    categoryRail: state.categoryRail,
     nav: state.nav,
     composer: state.composer,
     globe: state.globe,
@@ -229,11 +346,8 @@ async function assertPureDiscover(page, viewport) {
   );
   assert(
     !overlaps(state.header, state.weather) &&
-      !overlaps(state.nav, state.composer) &&
-      !overlaps(state.nav, state.globe) &&
-      !overlaps(state.nav, state.threeD) &&
-      !overlaps(state.composer, state.globe) &&
-      !overlaps(state.composer, state.threeD),
+      !overlaps(state.dock, state.globe) &&
+      !overlaps(state.dock, state.threeD),
     "Discover chrome collision detected",
     state,
   );
@@ -262,28 +376,105 @@ async function assertPureDiscover(page, viewport) {
 }
 
 async function verifyAssistantEntry(page) {
-  await page.locator("#assistantInput").focus();
-  await page
-    .locator("#assistant-input-area.is-expanded")
-    .waitFor({ state: "visible", timeout: 3000 });
   for (const selector of ["#sendButton", "#voiceButton"]) {
     await page.locator(selector).waitFor({ state: "visible", timeout: 3000 });
     const target = await page.locator(selector).boundingBox();
     assert(
       target && target.width >= 44 && target.height >= 44,
-      "Expanded Assistant target below 44px",
+      "Persistent Assistant target below 44px",
       { selector, target },
     );
   }
+
+  await page.locator("#assistantInput").focus();
+  await page
+    .locator("#assistant-input-area.is-focused")
+    .waitFor({ state: "visible", timeout: 3000 });
+
   const configInComposer = await page
     .locator("#assistant-input-area #configButton")
     .count();
   assert(configInComposer === 0, "Settings returned to primary composer");
   await page.keyboard.press("Escape");
   await page.locator('[data-home-nav-action="explore"]').click();
-  await page
-    .locator("#assistant-input-area.is-compact")
-    .waitFor({ state: "visible", timeout: 3000 });
+  await page.waitForFunction(
+    () =>
+      document
+        .getElementById("assistant-input-area")
+        ?.getAttribute("data-home-assistant-entry") === "persistent",
+  );
+}
+
+async function verifyBoundedAssistantMessage(page) {
+  await page.evaluate(() => {
+    const dialog = document.getElementById("assistant-messages");
+    const area = dialog?.querySelector(".messages-area");
+    if (!(dialog instanceof HTMLElement) || !(area instanceof HTMLElement)) {
+      throw new Error("Assistant message region missing");
+    }
+    dialog.classList.remove("hidden", "has-rich-content");
+    dialog.setAttribute("aria-hidden", "false");
+    const probe = document.createElement("div");
+    probe.className = "message assistant";
+    probe.dataset.messageType = "bounded-regression-probe";
+    probe.textContent = "Mensagem longa de validação. ".repeat(180);
+    area.appendChild(probe);
+  });
+  await page.waitForTimeout(80);
+
+  const result = await page.evaluate(() => {
+    const dialog = document.getElementById("assistant-messages");
+    const area = dialog?.querySelector(".messages-area");
+    const categories = document.getElementById("assistant-category-rail");
+    const composer = document.getElementById("assistant-input-area");
+    const nav = document.getElementById("home-bottom-navigation");
+    if (
+      !(dialog instanceof HTMLElement) ||
+      !(area instanceof HTMLElement) ||
+      !(categories instanceof HTMLElement) ||
+      !(composer instanceof HTMLElement) ||
+      !(nav instanceof HTMLElement)
+    ) {
+      return null;
+    }
+    const messageRect = dialog.getBoundingClientRect();
+    const dock = document.getElementById("unified-assistant-dock");
+    const rootStyle = getComputedStyle(document.documentElement);
+    const dockRect =
+      dock instanceof HTMLElement ? dock.getBoundingClientRect() : null;
+    return {
+      messageHeight: messageRect.height,
+      messageScrolls: area.scrollHeight > area.clientHeight,
+      categoriesVisible: categories.getBoundingClientRect().height > 0,
+      composerVisible: composer.getBoundingClientRect().height > 0,
+      navVisible: nav.getBoundingClientRect().height > 0,
+      dockHeight: dockRect?.height ?? 0,
+      cssDockHeight: Number.parseFloat(
+        rootStyle.getPropertyValue("--md-unified-dock-height"),
+      ),
+      mapInset: Number.parseFloat(
+        rootStyle.getPropertyValue("--md-unified-dock-map-inset"),
+      ),
+    };
+  });
+  assert(result, "Bounded Assistant probe could not inspect layout");
+  assert(
+    result.messageHeight <= 114 &&
+      result.messageScrolls &&
+      result.categoriesVisible &&
+      result.composerVisible &&
+      result.navVisible &&
+      Math.abs(result.cssDockHeight - result.dockHeight) <= 2 &&
+      result.mapInset >= result.dockHeight,
+    "Long Assistant response escaped bounded message region",
+    result,
+  );
+
+  await page.evaluate(() => {
+    document
+      .querySelector('[data-message-type="bounded-regression-probe"]')
+      ?.remove();
+  });
 }
 
 async function verifyProfileAndPrivacy(page) {
@@ -445,6 +636,7 @@ try {
       await verifyLocales(page);
       await verifyProfileAndPrivacy(page);
       await verifyAssistantEntry(page);
+      await verifyBoundedAssistantMessage(page);
       await verifyVariants(page, viewport, evidence);
     }
 

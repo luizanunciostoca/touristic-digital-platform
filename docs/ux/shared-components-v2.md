@@ -6,7 +6,7 @@ The V2 primitive library is now consumed by real tourist surfaces rather than ex
 
 - Home map controls: `md-icon-button`.
 - Runtime-created 3D control: `md-icon-button`.
-- Assistant minimize, send, voice and settings controls: `md-icon-button`; the persistent composer remains the canonical Assistant entry surface.
+- Assistant minimize, send, voice and settings controls: `md-icon-button`; `md-unified-assistant-dock` is the canonical persistent composition joining bounded Assistant message, composer and five-action navigation.
 - Navigation stop action: `md-button md-button--destructive`.
 - Commerce: shared buttons, cards and skeletons.
 - Ticketing: shared buttons, cards and skeletons.
@@ -22,3 +22,14 @@ Feature classes remain alongside primitives when they own domain-specific layout
 This composition approach avoids a risky wholesale rewrite of the frozen V1 evidence while making shared components real runtime dependencies.
 
 - Assistant entry authority: the persistent composer (text/voice/settings) is the canonical entry surface; the floating mood/quick-action trigger is retired from UX V2.
+
+## Unified Contextual Assistant Dock
+
+The public map shell now treats Assistant message, composer and primary navigation as one persistent dock rather than three independently positioned cards.
+
+- `#unified-assistant-dock` owns fixed positioning, safe-area anchoring, surface, elevation and width.
+- `#assistant-messages` is a bounded message region inside the dock; standard text is capped and scrolls internally.
+- Rich Assistant presentations remain bounded by a separate larger cap instead of consuming the full viewport.
+- `#assistant-input-area` keeps Send and Voice persistently reachable; focus no longer controls action visibility.
+- `#home-bottom-navigation` remains the canonical five-action navigation but participates in normal dock flow.
+- The dock publishes measured runtime height through `--md-unified-dock-height` / `--md-unified-dock-map-inset` so map controls, onboarding and camera framing avoid covered content.
