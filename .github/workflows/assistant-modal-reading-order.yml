@@ -142,10 +142,10 @@ jobs:
                 timeout: 5000,
               });
               const focusRestored = await page.evaluate(() =>
-                document.activeElement?.id === 'assistantInput',
+                document.activeElement?.id === 'voiceButton',
               );
               if (!focusRestored) {
-                throw new Error('Assistant Escape did not restore focus to the persistent composer input');
+                throw new Error('Assistant Escape did not restore focus to the voice-first CTA');
               }
 
               const assistant = page.locator('#assistant-messages');
