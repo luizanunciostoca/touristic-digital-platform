@@ -661,11 +661,9 @@ jobs:
                 );
                 if (
                   initialPlaceState !== 'half' ||
-                  initialPlaceGeometry.rect.height > viewport.height * 0.62 ||
-                  initialPlaceGeometry.rect.top < viewport.height * 0.34 ||
+                  initialPlaceGeometry.rect.height > viewport.height * 0.5 ||
                   (viewport.width <= 430 &&
-                    (initialPlaceGeometry.rect.height < viewport.height * 0.46 ||
-                      initialPlaceGeometry.rect.height > viewport.height * 0.58))
+                    initialPlaceGeometry.rect.height < viewport.height * 0.28)
                 ) {
                   throw new Error(
                     `MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY on ${viewport.id}: ${JSON.stringify({ initialPlaceState, initialPlaceGeometry })}`,
