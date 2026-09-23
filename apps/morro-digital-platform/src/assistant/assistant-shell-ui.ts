@@ -118,8 +118,7 @@ export function installAssistantShellUi(
     assistant?.querySelector<HTMLButtonElement>(".minimize-button") ?? null;
   const input = options.document.getElementById("assistantInput");
   const voiceButton = options.document.getElementById("voiceButton");
-  const focusTarget =
-    voiceButton instanceof HTMLElement ? voiceButton : input;
+  const focusTarget = voiceButton ?? input;
   const status = options.document.getElementById("assistant-dialog-status");
   const focusDelayMs = options.focusDelayMs ?? 100;
   let destroyed = false;
