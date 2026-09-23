@@ -204,19 +204,22 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         </div>
       </div>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent" role="group" aria-label="Assistant composer" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent is-voice-first" role="group" aria-label="Assistente por voz" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map" data-assistant-entry-mode="voice-first">
         <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
           id="assistantInput"
-          class="md-input"
-          placeholder="Pergunte ao Morro Digital..."
-          aria-label="Mensagem para o assistente"
-          data-i18n-placeholder="assistant_input_placeholder"
-          data-i18n-aria="assistant_input_label"
+          class="md-assistant-compat-input"
+          aria-label="Entrada de texto de compatibilidade do assistente"
+          tabindex="-1"
+          aria-hidden="true"
+          autocomplete="off"
         />
-        <button id="sendButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Enviar mensagem" data-i18n-aria="assistant_send_label"><i class="fas fa-paper-plane"></i></button>
-        <button id="voiceButton" class="md-icon-button md-assistant-expanded-action" type="button" aria-label="Enviar mensagem por voz" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone"><i class="fas fa-microphone" aria-hidden="true"></i></button>
+        <button id="sendButton" class="md-assistant-compat-send" type="button" tabindex="-1" aria-hidden="true" aria-label="Enviar mensagem de compatibilidade"></button>
+        <button id="voiceButton" class="md-assistant-voice-cta" type="button" aria-label="Fale comigo" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone">
+          <i class="fas fa-microphone" aria-hidden="true"></i>
+          <span data-i18n="assistant_voice_label">Fale comigo</span>
+        </button>
       </div>
 
       <section id="home-profile-panel" class="md-home-profile-panel md-card hidden" aria-hidden="true" aria-labelledby="home-profile-title">

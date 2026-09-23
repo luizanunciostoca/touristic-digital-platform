@@ -166,12 +166,24 @@ async function inspectDiscover(page) {
         document
           .getElementById("assistant-input-area")
           ?.getAttribute("data-home-assistant-entry") ?? null,
-      sendVisible:
-        document.getElementById("sendButton")?.getBoundingClientRect().width !==
-        0,
+      sendVisible: (() => {
+        const node = document.getElementById("sendButton");
+        if (!(node instanceof HTMLElement)) return false;
+        const rect = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return (
+          rect.width >= 44 &&
+          rect.height >= 44 &&
+          style.opacity !== "0" &&
+          style.visibility !== "hidden"
+        );
+      })(),
       voiceVisible:
         document.getElementById("voiceButton")?.getBoundingClientRect()
           .width !== 0,
+      voiceLabel:
+        document.getElementById("voiceButton")?.textContent?.trim() ?? null,
+      voiceRect: rect("#voiceButton"),
       configInsideComposer: Boolean(
         document
           .getElementById("assistant-input-area")
@@ -261,8 +273,12 @@ async function assertPureDiscover(page, viewport) {
   );
   assert(
     state.composerState === "persistent" &&
-      state.sendVisible &&
+      !state.sendVisible &&
       state.voiceVisible &&
+      state.voiceLabel === "Fale comigo" &&
+      state.voiceRect &&
+      state.voiceRect.width >= 180 &&
+      state.voiceRect.height >= 44 &&
       !state.configInsideComposer &&
       state.unifiedComposition,
     "Assistant composer/navigation are not unified and persistently actionable",
@@ -376,17 +392,36 @@ async function assertPureDiscover(page, viewport) {
 }
 
 async function verifyAssistantEntry(page) {
-  for (const selector of ["#sendButton", "#voiceButton"]) {
-    await page.locator(selector).waitFor({ state: "visible", timeout: 3000 });
-    const target = await page.locator(selector).boundingBox();
-    assert(
-      target && target.width >= 44 && target.height >= 44,
-      "Persistent Assistant target below 44px",
-      { selector, target },
-    );
-  }
+  const voice = page.locator("#voiceButton");
+  await voice.waitFor({ state: "visible", timeout: 3000 });
+  const target = await voice.boundingBox();
+  assert(
+    target && target.width >= 180 && target.height >= 44,
+    "Voice-first Assistant CTA is below the approved target size",
+    { target },
+  );
+  assert(
+    (await voice.textContent())?.trim() === "Fale comigo",
+    "Voice-first Assistant CTA copy drifted",
+  );
 
-  await page.locator("#assistantInput").focus();
+  const compatibility = await page.evaluate(() => {
+    const input = document.getElementById("assistantInput");
+    const send = document.getElementById("sendButton");
+    return {
+      inputOpacity:
+        input instanceof HTMLElement ? getComputedStyle(input).opacity : null,
+      sendOpacity:
+        send instanceof HTMLElement ? getComputedStyle(send).opacity : null,
+    };
+  });
+  assert(
+    compatibility.inputOpacity === "0" && compatibility.sendOpacity === "0",
+    "Text composer leaked into the visible voice-first UI",
+    compatibility,
+  );
+
+  await voice.focus();
   await page
     .locator("#assistant-input-area.is-focused")
     .waitFor({ state: "visible", timeout: 3000 });

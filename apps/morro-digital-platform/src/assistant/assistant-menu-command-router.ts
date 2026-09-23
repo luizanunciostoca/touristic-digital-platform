@@ -399,6 +399,14 @@ function clearPriorDynamicPresentation(document: Document): void {
 function tryClickVisibleOption(document: Document, message: string): boolean {
   const normalizedMessage = normalizeAssistantMenuCommand(message);
   if (normalizedMessage === "voltar" || normalizedMessage === "back") {
+    const photoBack = document.querySelector<HTMLButtonElement>(
+      '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn',
+    );
+    if (photoBack && isElementVisible(photoBack)) {
+      photoBack.click();
+      return true;
+    }
+
     const visiblePlaceSheet = document.querySelector(
       '#place-bottom-sheet[aria-hidden="false"]',
     );

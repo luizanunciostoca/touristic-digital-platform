@@ -318,99 +318,73 @@ jobs:
               await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]').click();
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
-              const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"]');
               await page.locator(
-                '#place-bottom-sheet[data-place-name="Primeira Praia"][data-sheet-state="half"]',
+                '#assistant-category-rail[data-rail-stage="detail"][data-context-place="Primeira Praia"]',
               ).waitFor({ state: 'visible', timeout: 8000 });
-              const placeHandle = placeSheet.locator('.place-bottom-sheet-drag-handle');
-              await placeHandle.focus();
-              const handleRole = await placeHandle.getAttribute('role');
-              const handleTabIndex = await placeHandle.getAttribute('tabindex');
-              const placeSheetState = await placeSheet.evaluate((sheet) => {
-                const rect = sheet.getBoundingClientRect();
-                const buttons = Array.from(sheet.querySelectorAll('button'));
-                const actionValues = Array.from(
-                  sheet.querySelectorAll('.place-bottom-sheet-action'),
-                  button => button.getAttribute('data-value'),
+              await page.locator(
+                '#assistant-category-results-message.md-assistant-place-detail-message[data-place="Primeira Praia"]',
+              ).waitFor({ state: 'visible', timeout: 8000 });
+              const placeState = await page.evaluate(() => {
+                const message = document.querySelector(
+                  '#assistant-category-results-message.md-assistant-place-detail-message',
                 );
-                const image = sheet.querySelector('.place-bottom-sheet-image');
-                const contextualRail = document.querySelector(
+                const rail = document.querySelector(
                   '#assistant-category-rail[data-rail-stage="detail"]',
                 );
-                const contextualActionValues = Array.from(
-                  contextualRail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
-                  button => button.getAttribute('data-value'),
+                const actionButtons = Array.from(
+                  rail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
                 );
+                const voice = document.getElementById('voiceButton');
+                const voiceRect =
+                  voice instanceof HTMLElement ? voice.getBoundingClientRect() : null;
                 return {
-                  title: sheet.querySelector('.place-bottom-sheet-title')?.textContent?.trim() ?? null,
-                  category: sheet.getAttribute('data-place-category'),
-                  rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom },
-                  stateControls: sheet.querySelectorAll('[data-sheet-step]').length,
-                  actionValues,
-                  visibleActionValues: Array.from(
-                    sheet.querySelectorAll('.place-bottom-sheet-actions .place-bottom-sheet-action'),
-                    button => button.getAttribute('data-value'),
-                  ),
-                  overflowOpen:
-                    sheet.querySelector('.place-bottom-sheet-overflow') instanceof HTMLDetailsElement
-                      ? sheet.querySelector('.place-bottom-sheet-overflow').open
-                      : null,
-                  touchTargets: buttons
-                    .map((button) => {
-                      const buttonRect = button.getBoundingClientRect();
-                      const style = getComputedStyle(button);
-                      return {
-                        width: buttonRect.width,
-                        height: buttonRect.height,
-                        visible:
-                          style.display !== 'none' &&
-                          style.visibility !== 'hidden' &&
-                          buttonRect.width > 0 &&
-                          buttonRect.height > 0,
-                      };
-                    })
-                    .filter(({ visible }) => visible),
-                  imageSrc: image instanceof HTMLImageElement ? new URL(image.src).pathname : null,
-                  actionsSurface: sheet.getAttribute('data-actions-surface'),
-                  contextualActionValues,
+                  legacySheetExists: Boolean(document.getElementById('place-bottom-sheet')),
+                  title:
+                    message?.querySelector('.md-assistant-place-detail-title')?.textContent?.trim() ??
+                    null,
+                  category: message?.getAttribute('data-category') ?? null,
+                  actionValues: actionButtons.map(button => button.getAttribute('data-value')),
+                  touchTargets: actionButtons.map(button => {
+                    const rect = button.getBoundingClientRect();
+                    const style = getComputedStyle(button);
+                    return {
+                      width: rect.width,
+                      height: rect.height,
+                      visible:
+                        style.display !== 'none' &&
+                        style.visibility !== 'hidden' &&
+                        rect.width > 0 &&
+                        rect.height > 0,
+                    };
+                  }),
+                  voiceLabel: voice?.textContent?.trim() ?? null,
+                  voiceWidth: voiceRect?.width ?? 0,
+                  voiceHeight: voiceRect?.height ?? 0,
                 };
               });
               if (
-                placeSheetState.title !== 'Primeira Praia' ||
-                placeSheetState.category !== 'beaches' ||
-                placeSheetState.stateControls !== 0 ||
-                handleRole !== 'button' ||
-                handleTabIndex !== '0' ||
-                placeSheetState.rect.left < -1 ||
-                placeSheetState.rect.right > viewport.width + 1 ||
-                placeSheetState.rect.top < -1 ||
-                placeSheetState.rect.bottom > viewport.height + 1 ||
-                placeSheetState.actionsSurface !== 'contextual-rail' ||
-                !placeSheetState.contextualActionValues.includes('condições da praia') ||
-                !placeSheetState.contextualActionValues.includes('como chegar') ||
-                !placeSheetState.contextualActionValues.includes('ver fotos') ||
-                !placeSheetState.contextualActionValues.includes('informações') ||
-                !placeSheetState.contextualActionValues.includes('adicionar aos favoritos') ||
-                !placeSheetState.contextualActionValues.includes('compartilhar') ||
-                !placeSheetState.contextualActionValues.includes('__back_to_places__') ||
-                placeSheetState.overflowOpen !== false ||
-                placeSheetState.touchTargets.some(({ width, height }) => width < 44 || height < 44) ||
-                placeSheetState.imageSrc !== '/images/fotos/primeira_praia1.jpg'
+                placeState.legacySheetExists ||
+                placeState.title !== 'Primeira Praia' ||
+                placeState.category !== 'beaches' ||
+                !placeState.actionValues.includes('condições da praia') ||
+                !placeState.actionValues.includes('como chegar') ||
+                !placeState.actionValues.includes('ver fotos') ||
+                !placeState.actionValues.includes('informações') ||
+                !placeState.actionValues.includes('adicionar aos favoritos') ||
+                !placeState.actionValues.includes('compartilhar') ||
+                !placeState.actionValues.includes('__back_to_places__') ||
+                placeState.touchTargets.some(
+                  ({ width, height, visible }) => !visible || width < 44 || height < 44,
+                ) ||
+                placeState.voiceLabel !== 'Fale comigo' ||
+                placeState.voiceWidth < 180 ||
+                placeState.voiceHeight < 44
               ) {
-                throw new Error(`Place Bottom Sheet diverged in ${viewport.id}: ${JSON.stringify(placeSheetState)}`);
+                throw new Error(
+                  `Assistant Place detail diverged in ${viewport.id}: ${JSON.stringify(placeState)}`,
+                );
               }
 
-              const placeStateSequence = [
-                { key: 'ArrowUp', state: 'full' },
-                { key: 'ArrowDown', state: 'half' },
-                { key: 'ArrowDown', state: 'peek' },
-                { key: 'ArrowUp', state: 'half' },
-              ];
-              for (const { key, state } of placeStateSequence) {
-                await placeHandle.focus();
-                await page.keyboard.press(key);
-                await page.locator(`#place-bottom-sheet[data-sheet-state="${state}"]`).waitFor({ state: 'visible', timeout: 3000 });
-              }
               const selected = await page.evaluate(() => ({
                 flowRemoved: !document.getElementById('assistant-category-results'),
                 mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
@@ -428,12 +402,16 @@ jobs:
                 selected.markerCount !== '1' ||
                 selected.activeTour !== null ||
                 selected.popupVisible ||
-                expectedBeachDetailValues.some(value => !placeSheetState.contextualActionValues.includes(value))
+                expectedBeachDetailValues.some(value => !placeState.actionValues.includes(value))
               ) {
-                throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, placeSheetState })}`);
+                throw new Error(
+                  `Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, placeState })}`,
+                );
               }
 
-              await page.locator('#place-bottom-sheet .place-bottom-sheet-close').click();
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="detail"] [data-value="__back_to_places__"]',
+              ).click();
               await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
               await waitMap(page, 'beaches', 8, 'places');
               const returnedPlaces = await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').count();
@@ -442,9 +420,10 @@ jobs:
               }
 
               await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]').click();
-              await page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="detail"][data-context-place="Primeira Praia"]',
+              ).waitFor({ state: 'visible', timeout: 5000 });
               await page.keyboard.press('Escape');
-              await page.locator('#place-bottom-sheet').waitFor({ state: 'hidden', timeout: 5000 });
               await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
 
               await page.keyboard.press('Escape');
@@ -493,7 +472,7 @@ jobs:
                 animations: 'disabled',
               });
 
-              evidence[viewport.id] = { surfState, selected, center, placeSheetState, returnedPlaces };
+              evidence[viewport.id] = { surfState, selected, center, placeState, returnedPlaces };
               await context.close();
             }
 

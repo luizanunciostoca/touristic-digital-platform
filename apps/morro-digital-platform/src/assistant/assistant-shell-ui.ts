@@ -117,6 +117,8 @@ export function installAssistantShellUi(
   const minimizeButton =
     assistant?.querySelector<HTMLButtonElement>(".minimize-button") ?? null;
   const input = options.document.getElementById("assistantInput");
+  const voiceButton = options.document.getElementById("voiceButton");
+  const focusTarget = voiceButton ?? input;
   const status = options.document.getElementById("assistant-dialog-status");
   const focusDelayMs = options.focusDelayMs ?? 100;
   let destroyed = false;
@@ -149,9 +151,9 @@ export function installAssistantShellUi(
     const candidate =
       previousFocus && !assistant?.contains(previousFocus)
         ? previousFocus
-        : input;
+        : focusTarget;
     previousFocus = null;
-    if (!focusElement(candidate)) focusElement(input);
+    if (!focusElement(candidate)) focusElement(focusTarget);
   };
 
   const show = (): boolean => {
@@ -168,6 +170,7 @@ export function installAssistantShellUi(
     assistant.setAttribute("aria-hidden", "false");
     options.document.body.classList.add("assistant-modal-open");
     input?.setAttribute("aria-expanded", "true");
+    voiceButton?.setAttribute("aria-expanded", "true");
     if (!wasVisible && !openedFromComposer) {
       cancelPendingFocus();
       const focusOrigin = activeElement;
@@ -178,7 +181,7 @@ export function installAssistantShellUi(
           isVisible() &&
           options.document.activeElement === focusOrigin
         ) {
-          focusElement(input);
+          focusElement(focusTarget);
         }
       }, focusDelayMs);
     }
@@ -201,6 +204,7 @@ export function installAssistantShellUi(
       "assistant-active",
     );
     input?.setAttribute("aria-expanded", "false");
+    voiceButton?.setAttribute("aria-expanded", "false");
     setState("idle");
     hideAssociatedAssistantContent(options.document);
     if (shouldRestoreFocus) {
@@ -245,7 +249,7 @@ export function installAssistantShellUi(
       assistant?.parentElement?.id === "unified-assistant-dock";
     if (unifiedDockOwnsAssistant) {
       setState("idle");
-      focusElement(input);
+      focusElement(focusTarget);
       return;
     }
 
@@ -273,6 +277,8 @@ export function installAssistantShellUi(
   assistant?.setAttribute("aria-hidden", String(!initiallyVisible));
   input?.setAttribute("aria-controls", "assistant-messages");
   input?.setAttribute("aria-expanded", String(initiallyVisible));
+  voiceButton?.setAttribute("aria-controls", "assistant-messages");
+  voiceButton?.setAttribute("aria-expanded", String(initiallyVisible));
   composer?.setAttribute("data-assistant-shell-ready", "true");
   setState("idle");
   composer?.addEventListener("focusin", onComposerFocusIn);

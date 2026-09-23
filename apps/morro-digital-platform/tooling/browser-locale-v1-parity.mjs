@@ -11,7 +11,7 @@ const cases = [
     headline: "Morro de São Paulo",
     assistantWelcome:
       "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
-    placeholder: "Pergunte ao Morro Digital...",
+    voiceLabel: "Fale comigo",
   },
   {
     browserLocale: "en-US",
@@ -20,7 +20,7 @@ const cases = [
     headline: "Morro de São Paulo",
     assistantWelcome:
       "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
-    placeholder: "Pergunte ao Morro Digital...",
+    voiceLabel: "Fale comigo",
   },
   {
     browserLocale: "es-AR",
@@ -29,7 +29,7 @@ const cases = [
     headline: "Morro de São Paulo",
     assistantWelcome:
       "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
-    placeholder: "Pergunte ao Morro Digital...",
+    voiceLabel: "Fale comigo",
   },
   {
     browserLocale: "he-IL",
@@ -38,7 +38,7 @@ const cases = [
     headline: "Morro de São Paulo",
     assistantWelcome:
       "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
-    placeholder: "Pergunte ao Morro Digital...",
+    voiceLabel: "Fale comigo",
   },
 ];
 
@@ -127,10 +127,8 @@ try {
         document
           .querySelector("#assistant-messages .message.assistant")
           ?.textContent?.trim() ?? "",
-      placeholder:
-        document
-          .getElementById("assistantInput")
-          ?.getAttribute("placeholder") ?? "",
+      voiceLabel:
+        document.getElementById("voiceButton")?.textContent?.trim() ?? "",
       voiceLanguage:
         document.getElementById("assistantVoiceLanguage")?.value ?? "",
     }));
@@ -156,9 +154,9 @@ try {
       `${testCase.browserLocale} assistant initial welcome`,
     );
     assertEqual(
-      observed.placeholder,
-      testCase.placeholder,
-      `${testCase.browserLocale} assistant placeholder`,
+      observed.voiceLabel,
+      testCase.voiceLabel,
+      `${testCase.browserLocale} voice-first Assistant CTA`,
     );
     assertEqual(
       observed.voiceLanguage,

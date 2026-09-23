@@ -24,10 +24,7 @@ const expected = {
     mapRegion: "Mapa interativo de Morro de São Paulo",
     submenu: "Explorar locais",
     submenuClose: "Fechar menu",
-    inputPlaceholder: "Pergunte ao Morro Digital...",
-    inputAria: "Mensagem para o assistente",
-    sendAria: "Enviar mensagem",
-    voiceAria: "Enviar mensagem por voz",
+    voiceAria: "Fale comigo",
     settingsAria: "Configurações do assistente",
     globalView: "Alternar visão global do mapa",
     navigationMain: "Siga em frente",
@@ -53,10 +50,7 @@ const expected = {
     mapRegion: "Interactive map of Morro de São Paulo",
     submenu: "Explore places",
     submenuClose: "Close menu",
-    inputPlaceholder: "Type your question...",
-    inputAria: "Message to the assistant",
-    sendAria: "Send message",
-    voiceAria: "Send voice message",
+    voiceAria: "Talk to me",
     settingsAria: "Assistant settings",
     globalView: "Toggle global map view",
     navigationMain: "Continue straight",
@@ -82,10 +76,7 @@ const expected = {
     mapRegion: "Mapa interactivo de Morro de São Paulo",
     submenu: "Explorar lugares",
     submenuClose: "Cerrar menú",
-    inputPlaceholder: "Escribe tu pregunta...",
-    inputAria: "Mensaje para el asistente",
-    sendAria: "Enviar mensaje",
-    voiceAria: "Enviar mensaje por voz",
+    voiceAria: "Háblame",
     settingsAria: "Configuraciones del asistente",
     globalView: "Alternar vista global del mapa",
     navigationMain: "Continúa recto",
@@ -111,10 +102,7 @@ const expected = {
     mapRegion: "מפה אינטראקטיבית של Morro de São Paulo",
     submenu: "חקר מקומות",
     submenuClose: "סגור תפריט",
-    inputPlaceholder: "הקלד את שאלתך...",
-    inputAria: "הודעה לעוזר",
-    sendAria: "שלח הודעה",
-    voiceAria: "שלח הודעה קולית",
+    voiceAria: "דברו איתי",
     settingsAria: "הגדרות העוזר",
     globalView: "החלף לתצוגה גלובלית של המפה",
     navigationMain: "המשך ישר",
@@ -161,9 +149,6 @@ async function readShell(page) {
       mapRegion: attr("#map", "aria-label"),
       submenu: text("#submenu .submenu-title"),
       submenuClose: attr("#submenu .close-button", "aria-label"),
-      inputPlaceholder: attr("#assistantInput", "placeholder"),
-      inputAria: attr("#assistantInput", "aria-label"),
-      sendAria: attr("#sendButton", "aria-label"),
       voiceAria: attr("#voiceButton", "aria-label"),
       settingsAria: attr("#configButton", "aria-label"),
       globalTitle: attr("#toggle-globe-view", "title"),
@@ -217,7 +202,7 @@ async function waitShell(page, locale, expectedCopy) {
       observed.assistantWelcome === expectedCopy.assistantWelcome &&
       observed.mapSection === expectedCopy.mapSection &&
       observed.mapRegion === expectedCopy.mapRegion &&
-      observed.inputPlaceholder === expectedCopy.inputPlaceholder &&
+      observed.voiceAria === expectedCopy.voiceAria &&
       observed.globalAria === expectedCopy.globalView &&
       observed.navigationMain === expectedCopy.navigationMain
     ) {
@@ -305,12 +290,6 @@ try {
       expected[locale].submenuClose,
       `${locale} submenu close`,
     );
-    equal(
-      observed.inputAria,
-      expected[locale].inputAria,
-      `${locale} input aria`,
-    );
-    equal(observed.sendAria, expected[locale].sendAria, `${locale} send aria`);
     equal(
       observed.voiceAria,
       expected[locale].voiceAria,

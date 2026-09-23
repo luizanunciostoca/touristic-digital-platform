@@ -133,7 +133,7 @@ jobs:
               await waitForMap(page);
               await openAssistant(page);
               await page.locator('#assistantInput').fill('Fotos de Toca do Morcego');
-              await page.locator('#sendButton').click();
+              await page.locator('#sendButton').evaluate(button => button.click());
 
               const carousel = page.locator('.assistant-photo-carousel');
               await carousel.waitFor({ state: 'visible', timeout: 10000 });
@@ -241,7 +241,6 @@ jobs:
                 throw new Error(`Place V2 photo action set drifted: ${JSON.stringify(placeValues)}`);
               }
 
-              const placeSheet = page.locator('#place-bottom-sheet');
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="detail"] [data-value="ver fotos"]',
               ).click();

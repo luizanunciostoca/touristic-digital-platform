@@ -10,41 +10,31 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("Place + Search/Explore V2 contract", () => {
-  it("keeps Place as a real map-first Bottom Sheet with canonical content only", async () => {
-    const runtime = await readRepository(
-      "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
-    );
+  it("retires the legacy Place Bottom Sheet from runtime ownership", async () => {
+    const [control, legacyPlace] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
+      ),
+    ]);
 
-    for (const state of ["peek", "half", "full"]) {
-      expect(runtime).toContain(`"${state}"`);
-    }
-    expect(runtime).toContain("place-bottom-sheet-image");
-    expect(runtime).toContain("place-bottom-sheet-title");
-    expect(runtime).toContain("place-bottom-sheet-meta");
-    expect(runtime).toContain("place-bottom-sheet-description");
-    expect(runtime).toContain("place-bottom-sheet-rating");
-    expect(runtime).toContain("resolveAssistantV1Photos");
-    expect(runtime).toContain('value: "como chegar"');
-    expect(runtime).toContain('value: "adicionar aos favoritos"');
-    expect(runtime).toContain('shareButton.dataset.value = "compartilhar"');
-    expect(runtime).toContain("primaryAction");
-    expect(runtime).toContain("place-bottom-sheet-overflow");
-    expect(runtime).toContain('handle.setAttribute("role", "button")');
-    expect(runtime).toContain('handle.addEventListener("keydown"');
-    expect(runtime).toContain('event.key === "ArrowUp"');
-    expect(runtime).toContain('event.key === "ArrowDown"');
-    expect(runtime).not.toContain("place-bottom-sheet-state-controls");
-    expect(runtime).not.toContain("button.dataset.sheetStep = direction");
-    expect(runtime).not.toContain("dataset.sheetStateTarget");
-    expect(runtime).toContain('next.status ?? "ready"');
+    expect(control).toContain("renderPlaceDetailMessage");
+    expect(control).toContain("md-assistant-place-detail-message");
+    expect(control).toContain("requestAssistantOpen(document)");
+    expect(control).not.toContain("installPlaceBottomSheet");
+    expect(control).not.toContain("placeBottomSheet?.show");
+    expect(control).not.toContain("actionsInContextualRail: true");
 
-    // Rating is presentation-only and optional: no synthetic score is authored.
-    expect(runtime).not.toMatch(/rating:\s*[45](?:\.\d+)?/u);
-    expect(runtime).not.toContain("fakeRating");
-    expect(runtime).not.toContain("mockRating");
+    // Historical component remains available as migration evidence, but is not
+    // installed by the active Explore runtime.
+    expect(legacyPlace).toContain("place-bottom-sheet-image");
+    expect(legacyPlace).toContain("place-bottom-sheet-title");
+    expect(legacyPlace).toContain("resolveAssistantV1Photos");
   });
 
-  it("renders Search/Explore through the V2 sheet and projects results onto the map", async () => {
+  it("renders Search/Explore through the contextual rail and projects results onto the map", async () => {
     const [control, flow, search, browser] = await Promise.all([
       readRepository(
         "apps/morro-digital-platform/src/map/explore-locations-control.ts",
@@ -63,7 +53,7 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(control).toContain('"show_search_results"');
     expect(control).toContain("renderSearchPlaces");
     expect(control).toContain('renderLocationsOnMap(locations, "search")');
-    expect(control).toContain('source: "place-v2"');
+    expect(control).toContain("renderContextualRail");
     expect(control).toContain("placeReturnIsSearch");
     expect(control).toContain("activePlaceLocation");
 
@@ -100,7 +90,9 @@ describe("Place + Search/Explore V2 contract", () => {
 
     expect(selectionStart).toBeGreaterThan(-1);
     expect(selectionEnd).toBeGreaterThan(selectionStart);
-    expect(selection).toContain("placeBottomSheet?.show");
+    expect(selection).toContain("renderPlaceDetailMessage");
+    expect(selection).toContain("renderPlaceActionsRail");
+    expect(selection).not.toContain("placeBottomSheet?.show");
     expect(selection).not.toContain("optionsOverride");
     expect(selection).not.toContain(
       'new CustomEvent("morro:assistant-option-selected"',
@@ -131,6 +123,11 @@ describe("Place + Search/Explore V2 contract", () => {
       expect(css).toContain(`var(${token}`);
     }
     expect(css).toContain('html[dir="rtl"] #place-bottom-sheet');
+    const shellCss = await readRepository(
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
+    );
+    expect(shellCss).toContain(".md-assistant-place-detail-message");
+    expect(shellCss).toContain(".md-assistant-voice-cta");
     expect(css).toContain("@media (forced-colors: active)");
     expect(css).toContain("@media (prefers-reduced-motion: reduce)");
     expect(css).toContain("> [data-location-name]");

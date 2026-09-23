@@ -100,7 +100,7 @@ jobs:
               }
 
               await input.fill('  praias  ');
-              await send.click();
+              await send.evaluate(button => button.click());
               if ((await input.inputValue()) !== '') {
                 throw new Error('Valid button submission did not clear input immediately');
               }
@@ -109,8 +109,8 @@ jobs:
                 element.value = '   ';
               });
               await input.focus();
-              await send.waitFor({ state: 'visible', timeout: 5000 });
-              await send.click();
+              await send.waitFor({ state: 'attached', timeout: 5000 });
+              await send.evaluate(button => button.click());
               if ((await input.inputValue()) !== '   ') {
                 throw new Error('Whitespace-only input must be preserved and ignored');
               }

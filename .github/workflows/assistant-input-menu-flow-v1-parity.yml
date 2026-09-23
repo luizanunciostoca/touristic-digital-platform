@@ -127,44 +127,23 @@ jobs:
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               async function submit(text, keyboard = false) {
-                const visualComposerReady =
-                  (await input.isVisible()) && (await send.isVisible());
-                if (visualComposerReady) {
-                  await input.fill(text);
-                  const placeSheetVisible =
-                    (await page.locator('#place-bottom-sheet[aria-hidden="false"]').count()) > 0;
-                  if (keyboard || placeSheetVisible) await input.press('Enter');
-                  else await send.click();
-                } else {
-                  await page.evaluate(
-                    ({ value, keyboard }) => {
-                      const input = document.getElementById('assistantInput');
-                      const send = document.getElementById('sendButton');
-                      if (!(input instanceof HTMLInputElement) || !(send instanceof HTMLButtonElement)) {
-                        throw new Error('Assistant semantic input controls unavailable');
-                      }
-                      const setter = Object.getOwnPropertyDescriptor(
-                        HTMLInputElement.prototype,
-                        'value',
-                      )?.set;
-                      setter?.call(input, value);
-                      input.dispatchEvent(new Event('input', { bubbles: true }));
-                      if (keyboard) {
-                        input.dispatchEvent(
-                          new KeyboardEvent('keydown', {
-                            key: 'Enter',
-                            code: 'Enter',
-                            bubbles: true,
-                            cancelable: true,
-                          }),
-                        );
-                      } else {
-                        send.click();
-                      }
-                    },
-                    { value: text, keyboard },
-                  );
-                }
+                await page.evaluate(
+                  ({ value, keyboard }) => {
+                    const input = document.getElementById('assistantInput');
+                    const send = document.getElementById('sendButton');
+                    if (!(input instanceof HTMLInputElement) || !(send instanceof HTMLButtonElement)) {
+                      throw new Error('Assistant semantic input controls unavailable');
+                    }
+                    const setter = Object.getOwnPropertyDescriptor(
+                      HTMLInputElement.prototype,
+                      'value',
+                    )?.set;
+                    setter?.call(input, value);
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    send.click();
+                  },
+                  { value: text, keyboard },
+                );
                 if ((await input.inputValue()) !== '') {
                   throw new Error(`Handled menu command did not clear input: ${text}`);
                 }
@@ -319,7 +298,9 @@ jobs:
               ).waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
 
-              await submit('ver todas', true);
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+              ).click();
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
               ).waitFor({ state: 'visible' });
@@ -357,7 +338,9 @@ jobs:
                 );
               }
 
-              await submit('voltar');
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="detail"] [data-value="__back_to_places__"]',
+              ).click();
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
               ).waitFor({ state: 'visible', timeout: 8000 });
@@ -393,9 +376,7 @@ jobs:
                 'praias',
                 'surf',
                 'back to filters',
-                'ver todas',
-                'voltar',
-                'restaurantes',
+                                    'restaurantes',
               ]) {
                 if (!routedMessages.includes(expected)) {
                   throw new Error(`Missing typed menu route for ${expected}: ${JSON.stringify(routedMessages)}`);

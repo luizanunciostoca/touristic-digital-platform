@@ -268,11 +268,13 @@ jobs:
                 );
                 await placePrimary.waitFor({ state: 'visible', timeout: 10000 });
                 const placeActions = await page.evaluate(() => {
-                  const sheet = document.getElementById('place-bottom-sheet');
                   const rail = document.querySelector(
                     '#assistant-category-rail[data-rail-stage="detail"]',
                   );
-                  if (!(sheet instanceof HTMLElement) || !(rail instanceof HTMLElement)) {
+                  const detail = document.querySelector(
+                    '#assistant-category-results-message.md-assistant-place-detail-message',
+                  );
+                  if (!(rail instanceof HTMLElement) || !(detail instanceof HTMLElement)) {
                     return null;
                   }
                   const buttons = Array.from(
@@ -289,10 +291,12 @@ jobs:
                     values: buttons.map(button => button.getAttribute('data-value')),
                     primaryText: primary?.textContent?.trim() ?? null,
                     primaryIndex: buttons.indexOf(primary),
-                    actionsSurface: sheet.getAttribute('data-actions-surface'),
                     railStage: rail.getAttribute('data-rail-stage'),
                     targets,
-                    sheetState: sheet.dataset.sheetState,
+                    detailTitle:
+                      detail.querySelector('.md-assistant-place-detail-title')?.textContent?.trim() ??
+                      null,
+                    legacySheetExists: Boolean(document.getElementById('place-bottom-sheet')),
                   };
                 });
                 const expectedContextualActions = [
@@ -308,10 +312,10 @@ jobs:
                   !placeActions ||
                   JSON.stringify(placeActions.values) !==
                     JSON.stringify(expectedContextualActions) ||
-                  placeActions.actionsSurface !== 'contextual-rail' ||
                   placeActions.railStage !== 'detail' ||
                   placeActions.primaryIndex !== 0 ||
-                  placeActions.sheetState !== 'half' ||
+                  placeActions.detailTitle !== 'Toca do Morcego' ||
+                  placeActions.legacySheetExists ||
                   !placeActions.primaryText?.includes('Comprar ingressos') ||
                   placeActions.targets.some(target => target.width < 44 || target.height < 44)
                 ) {

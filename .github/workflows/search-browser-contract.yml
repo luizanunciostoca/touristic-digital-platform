@@ -143,7 +143,7 @@ jobs:
               await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
 
               await page.locator('#assistantInput').fill('Toca do Morcego');
-              await page.locator('#sendButton').click();
+              await page.locator('#sendButton').evaluate(button => button.click());
               const searchResult = page.locator('.assistant-options .assistant-option-btn', { hasText: 'Toca do Morcego' }).first();
               await searchResult.waitFor({ state: 'visible', timeout: 10000 });
 
