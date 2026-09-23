@@ -95,16 +95,16 @@ function createAppShellMarkup(): string {
 Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           </div>
           <div class="assistant-options md-assistant-options" data-assistant-command-source="legacy-category-routing">
-            <button type="button" class="assistant-option-btn" data-value="beaches" aria-pressed="false">Beaches</button>
-            <button type="button" class="assistant-option-btn" data-value="restaurants" aria-pressed="false">Restaurants</button>
-            <button type="button" class="assistant-option-btn" data-value="hotels" aria-pressed="false">Hotels</button>
-            <button type="button" class="assistant-option-btn" data-value="shops" aria-pressed="false">Shops</button>
-            <button type="button" class="assistant-option-btn" data-value="transport" aria-pressed="false">Transport</button>
-            <button type="button" class="assistant-option-btn" data-value="attractions" aria-pressed="false">Attractions</button>
-            <button type="button" class="assistant-option-btn" data-value="tours" aria-pressed="false">Tours</button>
-            <button type="button" class="assistant-option-btn" data-value="nightlife" aria-pressed="false">Nightlife</button>
-            <button type="button" class="assistant-option-btn" data-value="emergencies" aria-pressed="false">Emergencies</button>
-            <button type="button" class="assistant-option-btn" data-value="help" aria-pressed="false">Help</button>
+            <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
+            <button type="button" class="assistant-option-btn" data-value="restaurants">Restaurants</button>
+            <button type="button" class="assistant-option-btn" data-value="hotels">Hotels</button>
+            <button type="button" class="assistant-option-btn" data-value="shops">Shops</button>
+            <button type="button" class="assistant-option-btn" data-value="transport">Transport</button>
+            <button type="button" class="assistant-option-btn" data-value="attractions">Attractions</button>
+            <button type="button" class="assistant-option-btn" data-value="tours">Tours</button>
+            <button type="button" class="assistant-option-btn" data-value="nightlife">Nightlife</button>
+            <button type="button" class="assistant-option-btn" data-value="emergencies">Emergencies</button>
+            <button type="button" class="assistant-option-btn" data-value="help">Help</button>
           </div>
         </div>
         <div class="navigation-instruction-area" role="status" aria-live="polite"></div>
