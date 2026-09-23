@@ -2031,6 +2031,11 @@ body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
 }
 
 #assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-compat-send {
+  pointer-events: auto !important;
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
   .md-assistant-voice-cta {
   display: inline-flex !important;
   min-width: 0;
