@@ -475,7 +475,21 @@ jobs:
                 if (tourClusters !== 1) {
                   throw new Error(`Tour discovery clustering diverged: ${tourClusters}`);
                 }
-                await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="tour_volta_ilha"]').click();
+                const shortcutCount = await page.locator(
+                  '#assistant-category-rail[data-rail-stage="filters"] [data-tour-id], #assistant-category-rail[data-rail-stage="filters"] [data-value^="tour_"]',
+                ).count();
+                if (shortcutCount !== 0) {
+                  throw new Error(`Interactive Tour shortcuts leaked into the tours filter rail: ${shortcutCount}`);
+                }
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+                ).click();
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Passeio de Barco Volta à Ilha"]',
+                ).click();
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="detail"] [data-value="fazer tour interativo"]',
+                ).click();
                 await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });
                 await page.locator('#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-intro-card').waitFor({
                   state: 'visible',
