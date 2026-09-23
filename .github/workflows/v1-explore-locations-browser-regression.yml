@@ -472,7 +472,7 @@ jobs:
                 animations: 'disabled',
               });
 
-              evidence[viewport.id] = { surfState, selected, center, placeSheetState, returnedPlaces };
+              evidence[viewport.id] = { surfState, selected, center, placeState, returnedPlaces };
               await context.close();
             }
 
