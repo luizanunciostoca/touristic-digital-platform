@@ -92,13 +92,13 @@ describe("Unified Assistant horizontal category rail", () => {
         "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
       ),
       readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
-      readRepository(
-        "apps/morro-digital-platform/src/map/explore-v1-i18n.ts",
-      ),
+      readRepository("apps/morro-digital-platform/src/map/explore-v1-i18n.ts"),
     ]);
 
     expect(control).toContain("const renderContextualRail");
-    expect(control).toContain('activeStage === "filters" || activeStage === "places"');
+    expect(control).toContain(
+      'activeStage === "filters" || activeStage === "places"',
+    );
     expect(control).toContain('"md-contextual-rail-source"');
     expect(control).toMatch(/renderContextualRail\(\s*"detail"/u);
     expect(control).toContain("renderPlaceActionsRail");
@@ -109,7 +109,9 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(css).toContain('[data-rail-stage="filters"]');
     expect(css).toContain('[data-rail-stage="places"]');
     expect(css).toContain('[data-rail-stage="detail"]');
-    expect(css).toContain("#assistant-category-results.md-contextual-rail-source");
+    expect(css).toContain(
+      "#assistant-category-results.md-contextual-rail-source",
+    );
     expect(copy).toContain('pt: "Para surf"');
     expect(copy).not.toContain('pt: "Com ondas para surf"');
   });
