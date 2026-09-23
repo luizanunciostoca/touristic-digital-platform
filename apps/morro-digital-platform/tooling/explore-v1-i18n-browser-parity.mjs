@@ -300,37 +300,24 @@ async function readOptions(page, selector) {
 }
 
 async function readFlow(page) {
-  return readOptions(page, "#assistant-category-results");
+  return readOptions(page, '#assistant-category-rail[data-rail-stage="filters"]');
 }
 
 async function readDynamic(page) {
-  const placeSheet = page.locator('#place-bottom-sheet[aria-hidden="false"]');
-  const placeSheetOptions = placeSheet.locator(".place-bottom-sheet-action");
-  if ((await placeSheetOptions.count()) > 0) {
-    const rows = await placeSheetOptions.evaluateAll((buttons) =>
-      buttons.map((button) => ({
-        label: button.textContent?.trim() ?? "",
-        value: button.getAttribute("data-value"),
-        overflow: Boolean(
-          button.closest(".place-bottom-sheet-overflow-actions"),
-        ),
-      })),
+  const contextualRail = page.locator(
+    '#assistant-category-rail[data-rail-stage="detail"]',
+  );
+  if ((await contextualRail.count()) > 0 && (await contextualRail.isVisible())) {
+    const options = contextualRail.locator(
+      '[data-context-rail-option="true"]:not([data-value="__back_to_places__"])',
     );
-    const visible = rows.filter((row) => !row.overflow);
-    const overflow = rows.filter((row) => row.overflow);
-    const directions = visible.find((row) => row.value === "como chegar");
-    const save = visible.find((row) => row.value === "adicionar aos favoritos");
-    const share = visible.find((row) => row.value === "compartilhar");
-    const ordered = [
-      overflow[0],
-      directions,
-      ...overflow.slice(1),
-      save,
-      share,
-    ].filter(Boolean);
     return {
-      labels: ordered.map((row) => row.label),
-      values: ordered.map((row) => row.value),
+      labels: await options
+        .allTextContents()
+        .then((items) => items.map((item) => item.trim())),
+      values: await options.evaluateAll((buttons) =>
+        buttons.map((button) => button.getAttribute("data-value")),
+      ),
     };
   }
 
@@ -449,7 +436,7 @@ try {
     await ensureAssistantOpen(page);
     await invokeRetiredCategorySource(page, "beaches");
     await page
-      .locator('#assistant-category-results[data-stage="filters"]')
+      .locator('#assistant-category-rail[data-rail-stage="filters"]')
       .waitFor({ state: "visible" });
     const flow = await readFlow(page);
     equal(flow.labels, expected.labels, `${locale} filter labels`);
@@ -463,29 +450,25 @@ try {
   await ensureAssistantOpen(page);
   await invokeRetiredCategorySource(page, "beaches");
   await page
-    .locator('#assistant-category-results[data-stage="filters"]')
+    .locator('#assistant-category-rail[data-rail-stage="filters"]')
     .waitFor({ state: "visible" });
   equal((await readFlow(page)).labels, filters.he.labels, "he filter labels");
   await page
-    .locator('#assistant-category-results [data-value="ver todos"]')
+    .locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]')
     .click();
   await page
     .locator(
-      '#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]',
+      '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
     )
     .waitFor({ state: "visible" });
   await page
     .locator(
-      '#assistant-category-results [data-location-name="Primeira Praia"]',
+      '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
     )
-    .click();
-  await expandPlaceForSecondaryActions(page);
-  await page
-    .locator("#place-bottom-sheet .place-bottom-sheet-overflow-summary")
     .click();
   await page
     .locator(
-      '#place-bottom-sheet .place-bottom-sheet-action[data-value="condições da praia"]',
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="condições da praia"]',
     )
     .waitFor({ state: "visible" });
   let dynamic = await waitDynamic(
@@ -501,9 +484,11 @@ try {
   await waitExploreSelectedStatus(page, "Primeira Praia selected.");
   await setLanguage(page, "he");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
-  await page.locator("#place-bottom-sheet .place-bottom-sheet-close").click();
+  await page.locator(
+    '#assistant-category-rail[data-rail-stage="detail"] [data-value="__back_to_places__"]',
+  ).click();
   await page
-    .locator('#assistant-category-results[data-stage="places"]')
+    .locator('#assistant-category-rail[data-rail-stage="places"]')
     .waitFor({ state: "visible" });
   await page.keyboard.press("Escape");
 
@@ -518,26 +503,22 @@ try {
   await ensureAssistantOpen(page);
   await invokeRetiredCategorySource(page, "restaurants");
   await page
-    .locator('#assistant-category-results[data-stage="filters"]')
+    .locator('#assistant-category-rail[data-rail-stage="filters"]')
     .waitFor({ state: "visible" });
   await page
-    .locator('#assistant-category-results [data-value="ver todos"]')
+    .locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]')
     .click();
   await page
     .locator(
-      '#assistant-category-results[data-stage="places"] [data-location-name="Morena Bela"]',
+      '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Morena Bela"]',
     )
     .waitFor({ state: "visible" });
   await page
-    .locator('#assistant-category-results [data-location-name="Morena Bela"]')
-    .click();
-  await expandPlaceForSecondaryActions(page);
-  await page
-    .locator("#place-bottom-sheet .place-bottom-sheet-overflow-summary")
+    .locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Morena Bela"]')
     .click();
   await page
     .locator(
-      '#place-bottom-sheet .place-bottom-sheet-action[data-value="cardápio"]',
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="cardápio"]',
     )
     .waitFor({ state: "visible" });
   dynamic = await waitDynamic(
@@ -590,7 +571,7 @@ try {
     category.click();
   });
   await page
-    .locator('#assistant-category-results[data-stage="filters"]')
+    .locator('#assistant-category-rail[data-rail-stage="filters"]')
     .waitFor({ state: "visible" });
   await page.keyboard.press("Escape");
 
