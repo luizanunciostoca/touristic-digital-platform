@@ -241,7 +241,6 @@ jobs:
                 throw new Error(`Place V2 photo action set drifted: ${JSON.stringify(placeValues)}`);
               }
 
-              const placeSheet = page.locator('#place-bottom-sheet');
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="detail"] [data-value="ver fotos"]',
               ).click();
