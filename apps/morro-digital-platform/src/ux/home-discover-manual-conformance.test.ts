@@ -61,10 +61,17 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(shell).toContain("composeUnifiedAssistantDock");
     expect(shell).toContain('id = "unified-assistant-dock"');
     expect(composer).toContain("is-persistent");
+    expect(composer).toContain("is-voice-first");
     expect(composer).toContain('data-home-assistant-entry="persistent"');
+    expect(composer).toContain('data-assistant-entry-mode="voice-first"');
     expect(composer).toContain('id="assistantInput"');
+    expect(composer).toContain("md-assistant-compat-input");
     expect(composer).toContain('id="sendButton"');
+    expect(composer).toContain("md-assistant-compat-send");
     expect(composer).toContain('id="voiceButton"');
+    expect(composer).toContain("md-assistant-voice-cta");
+    expect(composer).toContain(">Fale comigo</span>");
+    expect(composer).not.toContain('placeholder="Pergunte ao Morro Digital..."');
     expect(composer).not.toContain('id="configButton"');
     expect(shell.indexOf('id="configButton"')).toBeGreaterThan(composerEnd);
   });
