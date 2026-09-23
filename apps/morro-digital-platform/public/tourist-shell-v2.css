@@ -2003,6 +2003,118 @@ body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
   background: color-mix(in srgb, var(--md-color-surface-card) 68%, transparent);
 }
 
+/* Voice-first composer: text submission remains as a non-visual compatibility
+ * surface for programmatic/runtime contracts, while voice is the only visible
+ * primary entry point. */
+#assistant-input-area.md-assistant-composer.is-voice-first {
+  position: relative;
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  :is(.md-assistant-compat-input, .md-assistant-compat-send) {
+  position: absolute !important;
+  top: 50%;
+  left: var(--md-space-3);
+  width: 1px !important;
+  min-width: 1px !important;
+  max-width: 1px !important;
+  height: 1px !important;
+  min-height: 1px !important;
+  max-height: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(-50%);
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-voice-cta {
+  display: inline-flex !important;
+  min-width: 0;
+  min-height: var(--md-touch-target-min);
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+  padding: 0 var(--md-space-5);
+  border: 1px solid
+    color-mix(in srgb, var(--md-color-text-inverse) 38%, transparent);
+  border-radius: var(--md-radius-pill);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--md-color-brand) 88%, white),
+    var(--md-color-brand)
+  );
+  color: var(--md-color-text-inverse);
+  box-shadow:
+    0 0.35rem 1rem color-mix(in srgb, var(--md-color-brand) 32%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 38%, transparent);
+  font: inherit;
+  font-size: clamp(1rem, 4.2vw, 1.2rem);
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    transform var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    box-shadow var(--md-motion-duration-fast) var(--md-motion-ease-standard),
+    filter var(--md-motion-duration-fast) var(--md-motion-ease-standard);
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-voice-cta
+  i {
+  font-size: 1.2em;
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-voice-cta:is(:hover, :focus-visible) {
+  filter: brightness(1.04);
+  box-shadow:
+    0 0.45rem 1.2rem color-mix(in srgb, var(--md-color-brand) 38%, transparent),
+    inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-voice-cta:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: var(--md-focus-ring-offset);
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-voice-cta:active {
+  transform: scale(var(--md-motion-scale-pressed));
+}
+
+#assistant-input-area.md-assistant-composer.is-voice-first
+  .md-assistant-voice-cta.listening {
+  box-shadow:
+    0 0 0 0.25rem color-mix(in srgb, var(--md-color-brand) 22%, transparent),
+    0 0.5rem 1.3rem color-mix(in srgb, var(--md-color-brand) 42%, transparent);
+}
+
+#unified-assistant-dock .md-assistant-place-detail-message {
+  display: grid;
+  gap: var(--md-space-1);
+}
+
+#unified-assistant-dock .md-assistant-place-detail-title {
+  display: block;
+  color: var(--md-color-text-primary);
+  font-size: var(--md-font-size-lg);
+  line-height: var(--md-line-height-tight);
+}
+
+#unified-assistant-dock .md-assistant-place-detail-meta,
+#unified-assistant-dock .md-assistant-place-detail-description {
+  display: block;
+  color: var(--md-color-text-secondary);
+  font-size: var(--md-font-size-sm);
+  line-height: var(--md-line-height-body);
+}
+
 #unified-assistant-dock > #home-bottom-navigation.md-home-bottom-nav {
   position: static !important;
   inset: auto !important;
@@ -2129,58 +2241,14 @@ body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
   }
 
   #unified-assistant-dock
-    > #assistant-input-area.md-assistant-composer
-    #sendButton {
+    > #assistant-input-area.md-assistant-composer.is-voice-first
+    .md-assistant-voice-cta {
+    border: 1px solid ButtonText;
     background: Highlight;
     color: HighlightText;
+    box-shadow: none;
     forced-color-adjust: none;
   }
-}
-
-body[data-md-mode="place"]:has(
-    #place-bottom-sheet[data-actions-surface="contextual-rail"][aria-hidden="false"]
-  )
-  #place-bottom-sheet[data-actions-surface="contextual-rail"] {
-  bottom: calc(
-    var(--md-shell-bottom) + var(--md-unified-dock-height, 10rem) +
-      var(--md-space-2)
-  );
-  height: auto;
-  max-height: min(34dvh, 20rem);
-}
-
-body[data-md-mode="place"]:has(
-    #place-bottom-sheet[data-actions-surface="contextual-rail"][aria-hidden="false"]
-  )
-  #unified-assistant-dock {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-body[data-md-mode="place"]:has(
-    #place-bottom-sheet[data-actions-surface="contextual-rail"][aria-hidden="false"]
-  )
-  #home-bottom-navigation {
-  display: grid;
-}
-
-body[data-md-mode="place"]:has(
-    #place-bottom-sheet[data-actions-surface="contextual-rail"][aria-hidden="false"]
-  )
-  #assistant-input-area {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-}
-
-#place-bottom-sheet[data-actions-surface="contextual-rail"]
-  .place-bottom-sheet-actions,
-#place-bottom-sheet[data-actions-surface="contextual-rail"]
-  .place-bottom-sheet-primary,
-#place-bottom-sheet[data-actions-surface="contextual-rail"]
-  .place-bottom-sheet-overflow {
-  display: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
