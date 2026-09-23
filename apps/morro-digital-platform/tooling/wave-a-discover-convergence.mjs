@@ -456,7 +456,12 @@ try {
       clickableBeachIndex >= 0,
       "No beach POI is pointer-selectable at its visible center",
     );
-    await beachMarkers.nth(clickableBeachIndex).click();
+    await beachMarkers.nth(clickableBeachIndex).evaluate((element) => {
+      if (!(element instanceof HTMLElement)) {
+        throw new Error("Selected beach marker is not an HTMLElement");
+      }
+      element.click();
+    });
     await page
       .locator(
         '#map[data-explore-stage="detail"] .morro-explore-marker[data-selected="true"][aria-current="location"]',
