@@ -582,8 +582,8 @@ jobs:
 
             const placeByTourId = {
               'volta-a-ilha': 'Passeio de Barco Volta à Ilha',
-              'trilha-gamboa': 'Trilha Ecológica para a Gamboa',
-              'passeio-quadriciclo': 'Expedição de Quadriciclo',
+              'trilha-gamboa': 'Trilha para a Gamboa',
+              'passeio-quadriciclo': 'Passeio de Quadriciclo',
             };
             const placeName = placeByTourId[tourId];
             if (!placeName) throw new Error(`No guided-tour place mapping for ${tourId}.`);
