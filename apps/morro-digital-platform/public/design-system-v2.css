@@ -94,13 +94,23 @@
 
     /* Unified contextual Assistant dock */
     --md-unified-dock-max-inline-size: 34rem;
-    --md-unified-dock-message-max-height: 7rem;
+    --md-unified-dock-message-max-height: 6.25rem;
     --md-unified-dock-rich-max-height: min(38dvh, 18rem);
-    --md-unified-dock-category-height: 6.75rem;
-    --md-unified-dock-category-gap: 0.5rem;
-    --md-unified-dock-category-min-width: 5.75rem;
+    --md-unified-dock-category-height: 5.5rem;
+    --md-unified-dock-category-gap: 0.375rem;
+    --md-unified-dock-category-min-width: 3.625rem;
     --md-unified-dock-radius: 1.75rem;
-    --md-unified-dock-divider: var(--md-outdoor-border);
+    --md-unified-dock-divider: color-mix(
+      in srgb,
+      var(--md-color-border) 42%,
+      transparent
+    );
+    --md-unified-dock-surface: color-mix(
+      in srgb,
+      var(--md-color-surface-card) 94%,
+      transparent
+    );
+    --md-unified-dock-shadow: var(--md-elevation-2);
 
     /* Outdoor readability + bottom-sheet component tokens */
     --md-outdoor-surface: rgb(255 255 255 / 0.96);
