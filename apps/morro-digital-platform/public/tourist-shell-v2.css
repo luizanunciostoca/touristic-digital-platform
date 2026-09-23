@@ -1557,8 +1557,53 @@ body[data-md-unified-dock="true"] #discover-category-rail {
 #unified-assistant-dock
   > #assistant-messages.md-assistant-message-region
   .minimize-button {
-  top: var(--md-space-2);
+  display: none;
+}
+
+#unified-assistant-dock
+  > #assistant-messages
+  .assistant-options[data-assistant-command-source="legacy-category-routing"] {
+  display: none;
+}
+
+#unified-assistant-dock
+  > #assistant-messages
+  [data-i18n="assistant_welcome_message"] {
+  position: relative;
+  min-height: 4rem;
+  padding-left: 4rem;
+}
+
+#unified-assistant-dock
+  > #assistant-messages
+  [data-i18n="assistant_welcome_message"]::before {
+  position: absolute;
+  top: 50%;
+  left: var(--md-space-2);
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--md-radius-pill);
+  background:
+    var(--md-color-surface-card) url("/pwa-icon-192.png") center / 78% no-repeat;
+  box-shadow: var(--md-elevation-1);
+  content: "";
+  transform: translateY(-50%);
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-messages
+  [data-i18n="assistant_welcome_message"] {
+  padding-right: 4rem;
+  padding-left: var(--md-space-3);
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-messages
+  [data-i18n="assistant_welcome_message"]::before {
   right: var(--md-space-2);
+  left: auto;
 }
 
 #unified-assistant-dock
