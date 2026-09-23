@@ -475,17 +475,6 @@ body[data-md-mode="place"] #place-bottom-sheet[data-sheet-state="half"] {
   height: min(54dvh, 29rem);
 }
 
-body[data-md-mode="place"] #home-bottom-navigation,
-body[data-md-mode="place"] .md-home-profile-panel {
-  display: none;
-}
-
-body[data-md-mode="place"] #assistant-input-area {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-}
-
 #place-bottom-sheet .place-bottom-sheet-hero.hidden + .place-bottom-sheet-body {
   padding-top: calc(var(--md-space-6) + var(--md-space-2));
 }
