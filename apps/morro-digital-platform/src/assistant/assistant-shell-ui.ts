@@ -117,6 +117,9 @@ export function installAssistantShellUi(
   const minimizeButton =
     assistant?.querySelector<HTMLButtonElement>(".minimize-button") ?? null;
   const input = options.document.getElementById("assistantInput");
+  const voiceButton = options.document.getElementById("voiceButton");
+  const focusTarget =
+    voiceButton instanceof HTMLElement ? voiceButton : input;
   const status = options.document.getElementById("assistant-dialog-status");
   const focusDelayMs = options.focusDelayMs ?? 100;
   let destroyed = false;
@@ -149,9 +152,9 @@ export function installAssistantShellUi(
     const candidate =
       previousFocus && !assistant?.contains(previousFocus)
         ? previousFocus
-        : input;
+        : focusTarget;
     previousFocus = null;
-    if (!focusElement(candidate)) focusElement(input);
+    if (!focusElement(candidate)) focusElement(focusTarget);
   };
 
   const show = (): boolean => {
@@ -178,7 +181,7 @@ export function installAssistantShellUi(
           isVisible() &&
           options.document.activeElement === focusOrigin
         ) {
-          focusElement(input);
+          focusElement(focusTarget);
         }
       }, focusDelayMs);
     }
@@ -245,7 +248,7 @@ export function installAssistantShellUi(
       assistant?.parentElement?.id === "unified-assistant-dock";
     if (unifiedDockOwnsAssistant) {
       setState("idle");
-      focusElement(input);
+      focusElement(focusTarget);
       return;
     }
 
