@@ -1113,7 +1113,12 @@ export function installExploreLocationsControl({
       ),
     );
 
-    return renderContextualRail(
+    const previousValue =
+      document.activeElement instanceof HTMLButtonElement &&
+      document.activeElement.dataset.contextRailOption === "true"
+        ? document.activeElement.dataset.value
+        : undefined;
+    const first = renderContextualRail(
       "detail",
       `Ações para ${placeName}`,
       options,
@@ -1125,6 +1130,16 @@ export function installExploreLocationsControl({
         handlePlaceAction(option.value);
       },
     );
+    if (previousValue) {
+      Array.from(
+        contextualRailScroll?.querySelectorAll<HTMLButtonElement>(
+          '[data-context-rail-option="true"]',
+        ) ?? [],
+      )
+        .find((button) => button.dataset.value === previousValue)
+        ?.focus();
+    }
+    return first;
   };
 
   const selectLocation = async (
