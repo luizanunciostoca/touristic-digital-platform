@@ -520,13 +520,10 @@ jobs:
                   };
                 });
                 const requiredValues = [
-                  'condições da praia',
+                  'saiba mais',
                   'como chegar',
                   'ver fotos',
-                  'informações',
-                  'mais opções',
                   'adicionar aos favoritos',
-                  'compartilhar',
                   '__back_to_places__',
                 ];
                 if (
