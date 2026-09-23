@@ -1888,7 +1888,10 @@ body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
 @media (max-height: 38rem) and (orientation: portrait) {
   body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
     top: calc(var(--md-shell-top) + 4rem);
+    right: var(--md-shell-gutter-end);
     bottom: auto;
+    flex-direction: row;
+    align-items: center;
   }
 }
 
