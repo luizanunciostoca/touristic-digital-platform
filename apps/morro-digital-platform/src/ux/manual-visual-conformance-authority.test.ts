@@ -124,25 +124,23 @@ describe("UX V2 manual visual conformance authority", () => {
     expect(authority.certification.physicalGate).toContain("SM-X820");
   });
 
-  it("locks the Place/Search visual harness to manual-state evidence instead of a false green", async () => {
+  it("locks Place/Search evidence to Assistant-driven detail instead of the retired sheet", async () => {
     const workflow = await readRepository(
       ".github/workflows/place-explore-v2-visual-regression.yml",
     );
 
-    const initialCapture = workflow.indexOf("place-initial-${viewport.id}.png");
-    const stateCycle = workflow.indexOf("const stateSequence = [");
-    const expandedCapture = workflow.indexOf("place-full-${viewport.id}.png");
-
-    expect(initialCapture).toBeGreaterThan(-1);
-    expect(stateCycle).toBeGreaterThan(initialCapture);
-    expect(expandedCapture).toBeGreaterThan(stateCycle);
-    expect(workflow).toContain("MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY");
+    expect(workflow).toContain("place-assistant-${viewport.id}.png");
+    expect(workflow).toContain("Assistant-driven Place contract drift");
+    expect(workflow).toContain("legacySheetExists");
     expect(workflow).toContain(
-      "initialPlaceGeometry.rect.height > viewport.height * 0.5",
+      '#assistant-category-rail[data-rail-stage="detail"]',
     );
     expect(workflow).toContain(
-      "initialPlaceGeometry.rect.height < viewport.height * 0.28",
+      "#assistant-category-results-message.md-assistant-place-detail-message",
     );
+    expect(workflow).toContain("detailState.voiceLabel !== 'Fale comigo'");
+    expect(workflow).toContain("detailState.voiceHeight < 44");
+    expect(workflow).toContain("detailState.compatInputOpacity !== '0'");
     expect(workflow).toContain("MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY");
     expect(workflow).toContain(
       '#assistant-category-rail[data-rail-stage="places"]',
