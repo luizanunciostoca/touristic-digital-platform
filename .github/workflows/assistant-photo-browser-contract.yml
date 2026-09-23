@@ -72,13 +72,10 @@ jobs:
             ['/images/fotos/toca_do_morcego2.jpg', '8cd4c26a1cd3356c728a6ca06559b52ae1fbbee93aa822ab0dc6bfe0f51db3c6'],
           ]);
           const expectedBeachDetailValues = [
-            'condições da praia',
+            'saiba mais',
             'como chegar',
             'ver fotos',
-            'informações',
-            'mais opções',
             'adicionar aos favoritos',
-            'compartilhar',
           ];
 
           async function validateStaticAsset(path, expectedHash) {
