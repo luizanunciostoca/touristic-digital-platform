@@ -170,10 +170,24 @@ jobs:
                 settled: document.body.getAttribute('data-public-onboarding-settled'),
                 ariaHidden: node?.getAttribute('aria-hidden') ?? null,
                 visible: style ? style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0' : false,
+                categoryRailVisible: Boolean(document.getElementById('assistant-category-rail')?.getBoundingClientRect().width),
                 composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
+                unified:
+                  document.getElementById('assistant-messages')?.parentElement?.id === 'unified-assistant-dock' &&
+                  document.getElementById('assistant-category-rail')?.parentElement?.id === 'unified-assistant-dock' &&
+                  document.getElementById('assistant-input-area')?.parentElement?.id === 'unified-assistant-dock' &&
+                  document.getElementById('home-bottom-navigation')?.parentElement?.id === 'unified-assistant-dock',
               };
             });
-            if (restored.onboarded !== '1' || restored.settled !== 'true' || restored.ariaHidden !== 'true' || restored.visible || !restored.composerVisible) throw new Error(`${viewport.name} V2 restoration diverged: ${JSON.stringify(restored)}`);
+            if (
+              restored.onboarded !== '1' ||
+              restored.settled !== 'true' ||
+              restored.ariaHidden !== 'false' ||
+              !restored.visible ||
+              !restored.categoryRailVisible ||
+              !restored.composerVisible ||
+              !restored.unified
+            ) throw new Error(`${viewport.name} V2 restoration diverged: ${JSON.stringify(restored)}`);
             if (pageErrors.length) throw new Error(`${viewport.name} browser errors: ${JSON.stringify(pageErrors)}`);
             await page.screenshot({ path:`${out}/${viewport.name}-restored.png`, animations:'disabled' });
             await context.close();
