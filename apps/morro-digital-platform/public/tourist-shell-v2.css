@@ -1603,8 +1603,8 @@ body[data-md-unified-dock="true"] #discover-category-rail {
   border-radius: var(--md-radius-pill);
   background:
     var(--md-color-surface-card)
-    url("/apps/morro-digital-platform/public/assets/morro-digital-mark.svg")
-    center / 88% no-repeat;
+    url("/apps/morro-digital-platform/public/assets/morro-digital-mark.svg") center /
+      88% no-repeat;
   box-shadow: var(--md-elevation-1);
   content: "";
   transform: translateY(-50%);
@@ -1795,11 +1795,7 @@ html[dir="rtl"]
 
 #unified-assistant-dock
   .md-assistant-category-chip[data-assistant-category="shops"] {
-  background: color-mix(
-    in srgb,
-    #d946ef 8%,
-    var(--md-color-surface-card)
-  );
+  background: color-mix(in srgb, #d946ef 8%, var(--md-color-surface-card));
 }
 
 #unified-assistant-dock
