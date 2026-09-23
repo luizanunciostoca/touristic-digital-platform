@@ -137,15 +137,15 @@ jobs:
 
 
               await page.keyboard.press('Escape');
-              await page.locator('#assistant-messages.hidden[aria-hidden="true"]').waitFor({
-                state: 'attached',
+              await page.locator('#assistant-messages:not(.hidden)[aria-hidden="false"]').waitFor({
+                state: 'visible',
                 timeout: 5000,
               });
               const focusRestored = await page.evaluate(() =>
                 document.activeElement?.id === 'assistantInput',
               );
               if (!focusRestored) {
-                throw new Error('Assistant Escape did not restore focus to the composer input');
+                throw new Error('Assistant Escape did not restore focus to the persistent composer input');
               }
 
               const assistant = page.locator('#assistant-messages');
