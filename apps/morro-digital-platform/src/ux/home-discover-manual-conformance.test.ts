@@ -71,7 +71,9 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(composer).toContain('id="voiceButton"');
     expect(composer).toContain("md-assistant-voice-cta");
     expect(composer).toContain(">Fale comigo</span>");
-    expect(composer).not.toContain('placeholder="Pergunte ao Morro Digital..."');
+    expect(composer).not.toContain(
+      'placeholder="Pergunte ao Morro Digital..."',
+    );
     expect(composer).not.toContain('id="configButton"');
     expect(shell.indexOf('id="configButton"')).toBeGreaterThan(composerEnd);
   });
