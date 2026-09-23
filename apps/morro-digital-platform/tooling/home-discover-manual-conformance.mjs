@@ -135,6 +135,20 @@ async function inspectDiscover(page) {
       map: rect("#map"),
       dock: rect("#unified-assistant-dock"),
       messageRegion: rect("#assistant-messages:not(.hidden)"),
+      legacyCategoryMenuVisible: (() => {
+        const node = document.querySelector(
+          '#assistant-messages .assistant-options[data-assistant-command-source="legacy-category-routing"]',
+        );
+        if (!(node instanceof HTMLElement)) return false;
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return (
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          rect.width > 0 &&
+          rect.height > 0
+        );
+      })(),
       categoryRail: rect("#assistant-category-rail"),
       nav: rect("#home-bottom-navigation"),
       composer: rect("#assistant-input-area"),
@@ -254,6 +268,17 @@ async function assertPureDiscover(page, viewport) {
     "Assistant composer/navigation are not unified and persistently actionable",
     state,
   );
+  assert(
+    state.messageRegion &&
+      state.messageRegion.height > 0 &&
+      !state.legacyCategoryMenuVisible,
+    "Unified dock welcome message is not visible or legacy category grid leaked",
+    {
+      messageRegion: state.messageRegion,
+      legacyCategoryMenuVisible: state.legacyCategoryMenuVisible,
+    },
+  );
+
   assert(
     state.categoryRailContract &&
       state.categoryRailContract.count === 10 &&
