@@ -337,8 +337,8 @@ function semanticButtonScore(
 
 function activeFlowButtons(document: Document): readonly HTMLButtonElement[] {
   const canQuery =
-    typeof (document as Document & { querySelector?: unknown }).querySelector ===
-    "function";
+    typeof (document as Document & { querySelector?: unknown })
+      .querySelector === "function";
   const contextualRail = canQuery
     ? document.querySelector<HTMLElement>(
         '#assistant-category-rail[data-rail-stage]:not([data-rail-stage="menu"])',
