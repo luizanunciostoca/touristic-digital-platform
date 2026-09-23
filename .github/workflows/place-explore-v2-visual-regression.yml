@@ -492,9 +492,31 @@ jobs:
                       compatSend instanceof HTMLElement
                         ? getComputedStyle(compatSend).opacity
                         : null,
-                    bottomNavVisible:
-                      document.getElementById('home-bottom-navigation') instanceof HTMLElement &&
-                      getComputedStyle(document.getElementById('home-bottom-navigation')).visibility !== 'hidden',
+                    bottomNavVisible: (() => {
+                      const node = document.getElementById('home-bottom-navigation');
+                      if (!(node instanceof HTMLElement)) return false;
+                      const rect = node.getBoundingClientRect();
+                      const style = getComputedStyle(node);
+                      return (
+                        style.display !== 'none' &&
+                        style.visibility !== 'hidden' &&
+                        style.opacity !== '0' &&
+                        rect.width > 0 &&
+                        rect.height > 0
+                      );
+                    })(),
+                    voiceVisible: (() => {
+                      if (!(voiceCta instanceof HTMLElement)) return false;
+                      const rect = voiceCta.getBoundingClientRect();
+                      const style = getComputedStyle(voiceCta);
+                      return (
+                        style.display !== 'none' &&
+                        style.visibility !== 'hidden' &&
+                        style.opacity !== '0' &&
+                        rect.width > 0 &&
+                        rect.height > 0
+                      );
+                    })(),
                   };
                 });
                 const requiredValues = [
@@ -517,6 +539,7 @@ jobs:
                   ) ||
                   detailState.selectedMarkerLabel !== 'Primeira Praia' ||
                   detailState.voiceLabel !== 'Fale comigo' ||
+                  !detailState.voiceVisible ||
                   detailState.voiceWidth < 180 ||
                   detailState.voiceHeight < 44 ||
                   detailState.compatInputOpacity !== '0' ||
