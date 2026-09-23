@@ -1892,55 +1892,9 @@ html[dir="rtl"] #unified-assistant-dock > #assistant-category-rail::after {
 #unified-assistant-dock
   > #assistant-category-rail[data-rail-stage]:not([data-rail-stage="menu"])
   .md-assistant-context-chip {
-  flex: 0 0 auto;
-  min-width: 6.5rem;
-  max-width: 12rem;
-  padding: var(--md-space-2) var(--md-space-3);
   flex-direction: row;
   justify-content: center;
   gap: var(--md-space-1);
-}
-
-#unified-assistant-dock
-  > #assistant-category-rail[data-rail-stage="places"]
-  .md-assistant-context-chip,
-#unified-assistant-dock
-  > #assistant-category-rail[data-rail-stage="detail"]
-  .md-assistant-context-chip {
-  min-width: 7.5rem;
-}
-
-#unified-assistant-dock
-  > #assistant-category-rail[data-rail-stage]:not([data-rail-stage="menu"])
-  .md-assistant-context-label {
-  display: -webkit-box;
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 0.6875rem;
-  line-height: 1.15;
-  text-align: center;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-#unified-assistant-dock
-  > #assistant-category-rail[data-rail-stage="detail"]
-  .md-assistant-context-chip[data-explore-action="primary"] {
-  border-color: color-mix(in srgb, var(--md-color-brand) 50%, transparent);
-  background: color-mix(
-    in srgb,
-    var(--md-color-brand) 16%,
-    var(--md-color-surface-card)
-  );
-}
-
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-assistant-context-chip:disabled {
-  cursor: not-allowed;
-  opacity: 0.52;
 }
 
 #assistant-category-results.md-contextual-rail-source {
