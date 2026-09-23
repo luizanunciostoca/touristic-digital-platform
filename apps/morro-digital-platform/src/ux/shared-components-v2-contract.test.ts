@@ -43,7 +43,9 @@ describe("UX Design V2 shared component adoption", () => {
       "end-navigation-btn md-button md-button--destructive",
     );
     expect(shell).toContain('id="sendButton"');
-    expect(shell).toMatch(/id="sendButton"\s+class="[^"]*md-icon-button/isu);
+    expect(shell).toContain("md-assistant-compat-send");
+    expect(shell).toContain('id="voiceButton"');
+    expect(shell).toContain("md-assistant-voice-cta");
   });
 
   it("uses the same shared icon-button primitive for runtime-created 3D controls", async () => {
