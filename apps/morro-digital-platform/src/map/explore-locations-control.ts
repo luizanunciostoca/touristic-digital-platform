@@ -478,6 +478,10 @@ export function installExploreLocationsControl({
     getExploreLocationsCategories(currentLocale());
 
   const contextualRail = document.getElementById("assistant-category-rail");
+  const contextualRailBack =
+    contextualRail?.querySelector<HTMLButtonElement>(
+      "[data-context-rail-back]",
+    ) ?? null;
   const contextualRailScroll =
     contextualRail?.querySelector<HTMLElement>(
       ".md-assistant-category-scroll",
@@ -499,6 +503,13 @@ export function installExploreLocationsControl({
     contextualRail.removeAttribute("data-context-category");
     contextualRail.removeAttribute("data-context-place");
     contextualRail.setAttribute("aria-label", "Categorias do assistente");
+    if (contextualRailBack) {
+      contextualRailBack.hidden = true;
+      contextualRailBack.onclick = null;
+      contextualRailBack.removeAttribute("data-value");
+      contextualRailBack.removeAttribute("data-explore-action");
+      contextualRailBack.removeAttribute("data-context-rail-option");
+    }
 
     for (const category of currentCategories()) {
       const button = contextualRailScroll.querySelector<HTMLButtonElement>(
@@ -555,16 +566,43 @@ export function installExploreLocationsControl({
             ? "filter"
             : "category";
 
+    const backOption = options.find((option) => {
+      const action = option.action ?? "command";
+      return action.startsWith("back-") || action === "back-menu";
+    });
+
+    if (contextualRailBack) {
+      if (backOption && stage !== "menu") {
+        const backAction = backOption.action ?? "back-menu";
+        contextualRailBack.hidden = false;
+        contextualRailBack.dataset.contextRailOption = "true";
+        contextualRailBack.dataset.value = backOption.value;
+        contextualRailBack.dataset.exploreAction = backAction;
+        contextualRailBack.setAttribute(
+          "aria-label",
+          getV1ExploreLabel("back", currentLocale()),
+        );
+        contextualRailBack.title = getV1ExploreLabel("back", currentLocale());
+        contextualRailBack.onclick = (event) => {
+          event.stopImmediatePropagation();
+          onSelect(backOption);
+        };
+      } else {
+        contextualRailBack.hidden = true;
+        contextualRailBack.onclick = null;
+        contextualRailBack.removeAttribute("data-value");
+        contextualRailBack.removeAttribute("data-explore-action");
+        contextualRailBack.removeAttribute("data-context-rail-option");
+      }
+    }
+
     const buttons: HTMLButtonElement[] = [];
     for (const option of options) {
-      const button = document.createElement("button");
       const action = option.action ?? "command";
-      const railVariant =
-        action === "primary"
-          ? "primary"
-          : action.startsWith("back-") || action === "back-menu"
-            ? "back"
-            : "secondary";
+      if (action.startsWith("back-") || action === "back-menu") continue;
+
+      const button = document.createElement("button");
+      const railVariant = action === "primary" ? "primary" : "secondary";
       button.type = "button";
       button.className = `md-assistant-category-chip md-assistant-context-chip assistant-option-btn md-context-rail-button md-context-rail-button--${railKind}`;
       button.dataset.contextRailOption = "true";
