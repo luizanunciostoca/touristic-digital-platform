@@ -10,35 +10,35 @@ const cases = [
     expectedDir: "ltr",
     headline: "Morro de São Paulo",
     assistantWelcome:
-      "🎉 Bem-vindo ao Morro Digital! Sou seu guia virtual oficial em Morro de São Paulo, pronto para ajudar você a explorar com facilidade pontos turísticos, praias, restaurantes, festas, passeios e tudo o que precisar, na palma da sua mão. Como posso ajudar? 😄",
+      "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
     placeholder: "Pergunte ao Morro Digital...",
   },
   {
     browserLocale: "en-US",
-    expectedLocale: "en-US",
+    expectedLocale: "pt-BR",
     expectedDir: "ltr",
     headline: "Morro de São Paulo",
     assistantWelcome:
-      "🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄",
-    placeholder: "Type your question...",
+      "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
+    placeholder: "Pergunte ao Morro Digital...",
   },
   {
     browserLocale: "es-AR",
-    expectedLocale: "es-ES",
+    expectedLocale: "pt-BR",
     expectedDir: "ltr",
     headline: "Morro de São Paulo",
     assistantWelcome:
-      "🎉 ¡Bienvenido a Morro Digital! Soy tu guía virtual oficial de Morro de São Paulo, listo para ayudarte a explorar fácilmente lugares turísticos, playas, restaurantes, fiestas, paseos y todo lo que necesites al alcance de tu mano. ¿Cómo puedo ayudarte? 😄",
-    placeholder: "Escribe tu pregunta...",
+      "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
+    placeholder: "Pergunte ao Morro Digital...",
   },
   {
     browserLocale: "he-IL",
-    expectedLocale: "he-IL",
-    expectedDir: "rtl",
+    expectedLocale: "pt-BR",
+    expectedDir: "ltr",
     headline: "Morro de São Paulo",
     assistantWelcome:
-      "🎉 ברוכים הבאים ל-Morro Digital! אני המדריך הווירטואלי הרשמי שלכם למורו דה סאו פאולו, מוכן לעזור לכם לגלות בקלות אתרי תיירות, חופים, מסעדות, מסיבות, סיורים וכל מה שאתם צריכים — ממש בהישג יד. איך אוכל לעזור? 😄",
-    placeholder: "הקלד את שאלתך...",
+      "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
+    placeholder: "Pergunte ao Morro Digital...",
   },
 ];
 
@@ -185,30 +185,30 @@ try {
     },
     {
       browserLocale: "en-US",
-      locale: "en-US",
+      locale: "pt-BR",
       dir: "ltr",
-      title: "Welcome to Morro Digital",
-      start: "Explore the App",
-      step: "Step 1 of 6",
-      stepTitle: "Explore Morro on the map",
+      title: "Bem-vindo ao Morro Digital",
+      start: "Conhecer o App",
+      step: "Passo 1 de 6",
+      stepTitle: "Explore Morro pelo mapa",
     },
     {
       browserLocale: "es-AR",
-      locale: "es-ES",
+      locale: "pt-BR",
       dir: "ltr",
-      title: "Bienvenido a Morro Digital",
-      start: "Conocer la App",
-      step: "Paso 1 de 6",
-      stepTitle: "Explora Morro en el mapa",
+      title: "Bem-vindo ao Morro Digital",
+      start: "Conhecer o App",
+      step: "Passo 1 de 6",
+      stepTitle: "Explore Morro pelo mapa",
     },
     {
       browserLocale: "he-IL",
-      locale: "he-IL",
-      dir: "rtl",
-      title: "ברוכים הבאים ל-Morro Digital",
-      start: "הכירו את האפליקציה",
-      step: "שלב 1 מתוך 6",
-      stepTitle: "גלו את מורו דרך המפה",
+      locale: "pt-BR",
+      dir: "ltr",
+      title: "Bem-vindo ao Morro Digital",
+      start: "Conhecer o App",
+      step: "Passo 1 de 6",
+      stepTitle: "Explore Morro pelo mapa",
     },
   ];
 
@@ -351,12 +351,12 @@ try {
   await waitForShell(unsupportedPage);
   assertEqual(
     await unsupportedPage.evaluate(() => document.documentElement.lang),
-    "en-US",
-    "unsupported browser locale V1 fallback",
+    "pt-BR",
+    "unsupported browser locale destination fallback",
   );
   await unsupportedContext.close();
 
-  console.log("V1 browser locale auto-detection parity: PASS");
+  console.log("Morro destination-default browser locale parity: PASS");
 } finally {
   await browser.close();
 }
