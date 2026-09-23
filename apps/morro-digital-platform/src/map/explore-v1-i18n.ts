@@ -72,6 +72,20 @@ export type V1ExploreLabelKey =
   | "hours"
   | "priceRange"
   | "reviews"
+  | "viewMenu"
+  | "reserveTable"
+  | "whatsapp"
+  | "buyTickets"
+  | "programming"
+  | "accommodations"
+  | "learnMore"
+  | "viewHours"
+  | "interactiveTour"
+  | "requestTransportFull"
+  | "buyTransportTicket"
+  | "viewStop"
+  | "viewProducts"
+  | "save"
   | "share";
 
 type Copy = Readonly<Record<AssistantLocale, string>>;
@@ -453,6 +467,80 @@ const LABELS: Readonly<Record<V1ExploreLabelKey, Copy>> = Object.freeze({
     he: "טווח מחירים",
   },
   reviews: { pt: "Avaliações", en: "Reviews", es: "Reseñas", he: "ביקורות" },
+  viewMenu: {
+    pt: "Ver cardápio",
+    en: "View menu",
+    es: "Ver menú",
+    he: "הצגת תפריט",
+  },
+  reserveTable: {
+    pt: "Reservar mesa",
+    en: "Reserve a table",
+    es: "Reservar mesa",
+    he: "הזמנת שולחן",
+  },
+  whatsapp: { pt: "WhatsApp", en: "WhatsApp", es: "WhatsApp", he: "WhatsApp" },
+  buyTickets: {
+    pt: "Comprar ingressos",
+    en: "Buy tickets",
+    es: "Comprar entradas",
+    he: "רכישת כרטיסים",
+  },
+  programming: {
+    pt: "Programação",
+    en: "Schedule",
+    es: "Programación",
+    he: "תוכנית",
+  },
+  accommodations: {
+    pt: "Ver acomodações",
+    en: "View accommodations",
+    es: "Ver alojamientos",
+    he: "הצגת מקומות לינה",
+  },
+  learnMore: {
+    pt: "Saiba mais",
+    en: "Learn more",
+    es: "Saber más",
+    he: "מידע נוסף",
+  },
+  viewHours: {
+    pt: "Ver horários",
+    en: "View hours",
+    es: "Ver horarios",
+    he: "הצגת שעות",
+  },
+  interactiveTour: {
+    pt: "Fazer Tour Interativo",
+    en: "Start Interactive Tour",
+    es: "Iniciar Tour Interactivo",
+    he: "התחלת סיור אינטראקטיבי",
+  },
+  requestTransportFull: {
+    pt: "Solicitar transporte",
+    en: "Request transport",
+    es: "Solicitar transporte",
+    he: "הזמנת הסעה",
+  },
+  buyTransportTicket: {
+    pt: "Comprar passagem",
+    en: "Buy ticket",
+    es: "Comprar pasaje",
+    he: "רכישת כרטיס נסיעה",
+  },
+  viewStop: {
+    pt: "Ver ponto",
+    en: "View stop",
+    es: "Ver punto",
+    he: "הצגת תחנה",
+  },
+  viewProducts: {
+    pt: "Ver Produtos",
+    en: "View products",
+    es: "Ver productos",
+    he: "הצגת מוצרים",
+  },
+  save: { pt: "Salvar", en: "Save", es: "Guardar", he: "שמירה" },
   share: { pt: "Compartilhar", en: "Share", es: "Compartir", he: "שיתוף" },
 });
 
