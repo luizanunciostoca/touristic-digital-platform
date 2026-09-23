@@ -28,7 +28,10 @@ import {
   installExploreFlowBottomSheet,
   type ExploreFlowBottomSheetController,
 } from "./explore-flow-bottom-sheet.js";
-import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
+import {
+  resolvePlacePrimaryAction,
+  type PlacePrimaryAction,
+} from "./place-commerce-capability.js";
 import {
   installPlaceBottomSheet,
   type PlaceBottomSheetController,
@@ -949,6 +952,171 @@ export function installExploreLocationsControl({
     }
   };
 
+  const shareActivePlace = (): void => {
+    const location = activePlaceLocation;
+    const view = document.defaultView;
+    if (!location || !view) return;
+
+    const shareText = [location.name, location.area].filter(Boolean).join(" · ");
+    const shareUrl = view.location.href;
+    const navigator = view.navigator as Navigator & {
+      share?: (data: ShareData) => Promise<void>;
+      clipboard?: Clipboard;
+    };
+
+    void (async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: location.name,
+            text: shareText,
+            ...(shareUrl ? { url: shareUrl } : {}),
+          });
+          return;
+        }
+        if (navigator.clipboard && shareUrl) {
+          await navigator.clipboard.writeText(
+            [shareText, shareUrl].filter(Boolean).join("\n"),
+          );
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    })();
+  };
+
+  const handlePlaceAction = (value: string): void => {
+    const normalized = normalizeSearchText(value);
+    const location = activePlaceLocation;
+    if (normalized === "compartilhar" || normalized === "share") {
+      shareActivePlace();
+      return;
+    }
+    if (
+      location &&
+      ["como chegar", "directions", "localizacao", "location"].includes(
+        normalized,
+      )
+    ) {
+      document.dispatchEvent(
+        new CustomEvent("morro:navigation-requested", {
+          detail: {
+            destination: {
+              name: location.name,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              category: location.category,
+            },
+            source: "place-v2",
+          },
+        }),
+      );
+      return;
+    }
+    const locationCategory = activePlaceLocation?.category;
+    const locale = currentLocale();
+    const detail =
+      normalized === "ver fotos" && locationCategory
+        ? {
+            value,
+            optionsOverride: [
+              {
+                label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
+                value: `[sub]${locationCategory}`,
+              },
+            ],
+          }
+        : {
+            value,
+            suppressOptionValues: activePlaceActionValues,
+          };
+    document.dispatchEvent(
+      new CustomEvent("morro:assistant-option-selected", { detail }),
+    );
+    requestAssistantOpen(document);
+  };
+
+  const renderPlaceActionsRail = (
+    placeActions: readonly ReturnType<typeof getV1ExplorePlaceActionOptions>[number][],
+    primaryAction: PlacePrimaryAction | null,
+    placeName: string,
+    locale: AssistantLocale,
+  ): HTMLButtonElement | null => {
+    const options: Array<{
+      label: string;
+      value: string;
+      action: string;
+      disabled?: boolean;
+    }> = [];
+    if (primaryAction) {
+      options.push({
+        label: primaryAction.label,
+        value: primaryAction.value,
+        action: "primary",
+        ...(primaryAction.disabled === true ? { disabled: true } : {}),
+      });
+    }
+
+    const normalizedValues = new Set(
+      placeActions.map((action) => normalizeSearchText(action.value)),
+    );
+    if (!normalizedValues.has("como chegar")) {
+      options.push({
+        label: `📍 ${getV1ExploreLabel("directions", locale)}`,
+        value: "como chegar",
+        action: "command",
+      });
+    }
+    for (const action of placeActions) {
+      options.push({
+        label: action.label,
+        value: action.value,
+        action: action.action,
+      });
+    }
+    if (!normalizedValues.has("adicionar aos favoritos")) {
+      options.push({
+        label: `❤️ ${getV1ExploreLabel("favorite", locale)}`,
+        value: "adicionar aos favoritos",
+        action: "command",
+      });
+    }
+    options.push(
+      {
+        label: `🔗 ${getV1ExploreLabel("share", locale)}`,
+        value: "compartilhar",
+        action: "share",
+      },
+      {
+        label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
+        value: "__back_to_places__",
+        action: "back-places",
+      },
+    );
+
+    activePlaceActionValues = Object.freeze(
+      Array.from(
+        new Set([
+          ...activePlaceActionValues,
+          ...options.map(({ value }) => value),
+        ]),
+      ),
+    );
+
+    return renderContextualRail(
+      "detail",
+      `Ações para ${placeName}`,
+      options,
+      (option) => {
+        if (option.action === "back-places") {
+          returnFromPlaceDetail();
+          return;
+        }
+        handlePlaceAction(option.value);
+      },
+    );
+  };
+
   const selectLocation = async (
     location: ExploreMapLocation,
   ): Promise<void> => {
@@ -1191,52 +1359,7 @@ export function installExploreLocationsControl({
 
   placeBottomSheet = installPlaceBottomSheet({
     document,
-    onAction(value) {
-      const normalized = normalizeSearchText(value);
-      const location = activePlaceLocation;
-      if (
-        location &&
-        ["como chegar", "directions", "localizacao", "location"].includes(
-          normalized,
-        )
-      ) {
-        document.dispatchEvent(
-          new CustomEvent("morro:navigation-requested", {
-            detail: {
-              destination: {
-                name: location.name,
-                latitude: location.latitude,
-                longitude: location.longitude,
-                category: location.category,
-              },
-              source: "place-v2",
-            },
-          }),
-        );
-        return;
-      }
-      const locationCategory = activePlaceLocation?.category;
-      const locale = currentLocale();
-      const detail =
-        normalized === "ver fotos" && locationCategory
-          ? {
-              value,
-              optionsOverride: [
-                {
-                  label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
-                  value: `[sub]${locationCategory}`,
-                },
-              ],
-            }
-          : {
-              value,
-              suppressOptionValues: activePlaceActionValues,
-            };
-      document.dispatchEvent(
-        new CustomEvent("morro:assistant-option-selected", { detail }),
-      );
-      requestAssistantOpen(document);
-    },
+    onAction: handlePlaceAction,
     onDismiss: returnFromPlaceDetail,
   });
 
