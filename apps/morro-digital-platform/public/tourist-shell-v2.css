@@ -1953,13 +1953,13 @@ body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
   }
 
   #unified-assistant-dock .md-assistant-category-chip {
-    flex-basis: 4.875rem;
-    min-width: 4.875rem;
+    flex-basis: 3.375rem;
+    min-width: 3.375rem;
     padding-inline: var(--md-space-1);
   }
 
   #unified-assistant-dock .md-assistant-category-label {
-    font-size: 0.6875rem;
+    font-size: 0.59375rem;
   }
 
   #unified-assistant-dock
