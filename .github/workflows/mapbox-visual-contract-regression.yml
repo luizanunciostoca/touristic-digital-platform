@@ -204,9 +204,10 @@ jobs:
                   cap: map.getLayoutProperty?.('tour-route-layer', 'line-cap'),
                 },
                 forcedColors: matchMedia('(forced-colors: active)').matches,
-                assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)')),
+                assistantVisible: Boolean(document.querySelector('#assistant-messages:not(.hidden)[aria-hidden="false"]')),
+                categoryVisible: Boolean(document.getElementById('assistant-category-rail')?.getBoundingClientRect().width),
+                categoryOptions: document.querySelectorAll('#assistant-category-rail [data-assistant-category]').length,
                 composerVisible: Boolean(document.getElementById('assistant-input-area')?.getBoundingClientRect().width),
-                assistantOptions: document.querySelectorAll('.assistant-option-btn').length,
               };
             });
           }
@@ -228,7 +229,13 @@ jobs:
             if (JSON.stringify(state.outline) !== JSON.stringify(expected.outline) || JSON.stringify(state.route) !== JSON.stringify(expected.route)) {
               throw new Error(`V1 route visual contract diverged for ${viewportName}: ${JSON.stringify(state)}`);
             }
-            if (state.forcedColors !== forcedColors || state.assistantVisible || !state.composerVisible || state.assistantOptions !== 10) {
+            if (
+              state.forcedColors !== forcedColors ||
+              !state.assistantVisible ||
+              !state.categoryVisible ||
+              state.categoryOptions !== 10 ||
+              !state.composerVisible
+            ) {
               throw new Error(`Accessibility state diverged for ${viewportName}: ${JSON.stringify(state)}`);
             }
           }
