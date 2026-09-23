@@ -1161,16 +1161,24 @@ export function installExploreLocationsControl({
       ),
     );
 
+    const firstPlaceAction = renderPlaceActionsRail(
+      placeActions,
+      null,
+      presentationLocation.name,
+      locale,
+    );
     placeBottomSheet?.show({
       location: presentationLocation,
       categoryLabel,
       locale,
       actions: placeActions,
       primaryAction: null,
+      actionsInContextualRail: true,
       ...(description ? { description } : {}),
       status: "loading",
     });
     requestAssistantClose(document);
+    firstPlaceAction?.focus();
 
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
@@ -1194,12 +1202,19 @@ export function installExploreLocationsControl({
 
     const mapFailed =
       document.getElementById("map")?.dataset.exploreState === "error";
+    renderPlaceActionsRail(
+      placeActions,
+      primaryAction,
+      presentationLocation.name,
+      locale,
+    );
     placeBottomSheet?.show({
       location: presentationLocation,
       categoryLabel,
       locale,
       actions: placeActions,
       primaryAction,
+      actionsInContextualRail: true,
       ...(description ? { description } : {}),
       status: mapFailed ? "error" : "ready",
       ...(mapFailed
