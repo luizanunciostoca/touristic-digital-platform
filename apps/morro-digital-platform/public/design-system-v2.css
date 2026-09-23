@@ -100,6 +100,18 @@
     --md-unified-dock-category-height: 5.5rem;
     --md-unified-dock-category-gap: 0.375rem;
     --md-unified-dock-category-min-width: 3.625rem;
+
+    /* Context Rail button system: one geometry, semantic variants by stage. */
+    --md-context-rail-control-height: 3rem;
+    --md-context-rail-control-radius: 1rem;
+    --md-context-rail-control-gap: 0.5rem;
+    --md-context-rail-control-padding-inline: 0.875rem;
+    --md-context-rail-label-size: 0.875rem;
+    --md-context-rail-icon-size: 1.125rem;
+    --md-context-rail-category-min-width: 5.75rem;
+    --md-context-rail-place-min-width: 7.5rem;
+    --md-context-rail-action-min-width: 6.5rem;
+
     --md-unified-dock-radius: 1.75rem;
     --md-unified-dock-divider: color-mix(
       in srgb,
