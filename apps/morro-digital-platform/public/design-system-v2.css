@@ -25,6 +25,7 @@
     --md-color-warning: #a16207;
     --md-color-danger: #b91c1c;
     --md-color-info: #0369a1;
+    --md-color-category-shops: #d946ef;
 
     /* Canonical semantic aliases consumed by V2 Tourist UI surfaces. */
     --md-color-brand: var(--md-color-brand-primary);
