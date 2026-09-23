@@ -140,18 +140,7 @@ jobs:
                     )?.set;
                     setter?.call(input, value);
                     input.dispatchEvent(new Event('input', { bubbles: true }));
-                    if (keyboard) {
-                      input.dispatchEvent(
-                        new KeyboardEvent('keydown', {
-                          key: 'Enter',
-                          code: 'Enter',
-                          bubbles: true,
-                          cancelable: true,
-                        }),
-                      );
-                    } else {
-                      send.click();
-                    }
+                    send.click();
                   },
                   { value: text, keyboard },
                 );
