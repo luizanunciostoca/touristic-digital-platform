@@ -326,8 +326,57 @@ try {
     const canvas = page.locator("#map .mapboxgl-canvas");
     const canvasBox = await canvas.boundingBox();
     assert(canvasBox, "Mapbox canvas unavailable for gesture validation");
-    const gestureX = canvasBox.x + canvasBox.width * 0.5;
-    const gestureY = canvasBox.y + canvasBox.height * 0.5;
+    const gesturePoint = await page.evaluate(
+      ({ canvasLeft, canvasTop, canvasWidth, canvasHeight }) => {
+        const dock = document
+          .getElementById("unified-assistant-dock")
+          ?.getBoundingClientRect();
+        const header = document
+          .querySelector(".md-home-header-inner")
+          ?.getBoundingClientRect();
+        const visibleTop = Math.max(canvasTop, (header?.bottom ?? canvasTop) + 24);
+        const visibleBottom = Math.min(
+          canvasTop + canvasHeight,
+          (dock?.top ?? canvasTop + canvasHeight) - 24,
+        );
+        const y =
+          visibleBottom > visibleTop + 48
+            ? visibleTop + (visibleBottom - visibleTop) * 0.55
+            : canvasTop + canvasHeight * 0.3;
+        return {
+          x: canvasLeft + canvasWidth * 0.5,
+          y,
+          visibleTop,
+          visibleBottom,
+        };
+      },
+      {
+        canvasLeft: canvasBox.x,
+        canvasTop: canvasBox.y,
+        canvasWidth: canvasBox.width,
+        canvasHeight: canvasBox.height,
+      },
+    );
+    const gestureX = gesturePoint.x;
+    const gestureY = gesturePoint.y;
+    const pointerOwner = await page.evaluate(
+      ({ x, y }) => {
+        const target = document.elementFromPoint(x, y);
+        return {
+          tag: target?.tagName ?? null,
+          id: target?.id ?? null,
+          className:
+            target instanceof HTMLElement ? target.className : null,
+          insideDock: Boolean(target?.closest("#unified-assistant-dock")),
+        };
+      },
+      { x: gestureX, y: gestureY },
+    );
+    assert(
+      !pointerOwner.insideDock,
+      "Wave A gesture probe is covered by the unified dock",
+      { gesturePoint, pointerOwner },
+    );
     await page.mouse.move(gestureX, gestureY);
     await page.mouse.down();
     await page.mouse.move(gestureX + 52, gestureY + 28, { steps: 6 });
