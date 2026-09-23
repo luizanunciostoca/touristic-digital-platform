@@ -340,7 +340,7 @@ jobs:
 
               await page.locator(
                 '.assistant-options[data-presentation="photo-actions"] .assistant-option-btn[data-value="[sub]beaches"]',
-              ).click();
+              ).evaluate(button => button.click());
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
               ).waitFor({ state: 'visible', timeout: 8000 });
