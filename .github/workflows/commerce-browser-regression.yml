@@ -301,11 +301,11 @@ jobs:
                 });
                 const expectedContextualActions = [
                   `commerce:offer:${placeOffer.id}`,
+                  'ver cardápio',
                   'como chegar',
                   'ver fotos',
-                  'mais detalhes',
-                  'adicionar aos favoritos',
-                  'compartilhar',
+                  'programação',
+                  'whatsapp',
                   '__back_to_places__',
                 ];
                 if (
