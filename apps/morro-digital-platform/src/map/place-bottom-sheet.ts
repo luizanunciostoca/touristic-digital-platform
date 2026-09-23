@@ -1,7 +1,6 @@
 import type { AssistantLocale } from "@touristic/assistant";
 import { resolveAssistantV1Photos } from "../assistant/assistant-v1-photo-catalog.js";
 import type { V1ExplorePlaceActionOption } from "./explore-location-actions-v1.js";
-import { getV1ExploreLabel } from "./explore-v1-i18n.js";
 import type { PlacePrimaryAction } from "./place-commerce-capability.js";
 
 export type PlaceBottomSheetState = "peek" | "half" | "full";
