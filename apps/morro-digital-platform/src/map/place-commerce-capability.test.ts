@@ -104,6 +104,7 @@ describe("place commerce capability", () => {
     });
 
     expect(action).toEqual({
+      actionId: "nightlife.tickets",
       label: "🎟️ Comprar ingressos",
       value: "commerce:place:toca-do-morcego",
       presentation: "primary",
@@ -216,7 +217,8 @@ describe("place commerce capability", () => {
     });
 
     expect(action).toMatchObject({
-      label: "🚕 Solicitar",
+      actionId: "transport.request",
+      label: "🚕 Solicitar transporte",
       value: "solicitar transporte",
       presentation: "primary",
       commerceState: "fallback",
