@@ -298,7 +298,7 @@ jobs:
               ).waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
 
-              await submit('ver todas', true);
+              await submit('ver todos', true);
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
               ).waitFor({ state: 'visible' });
@@ -372,7 +372,7 @@ jobs:
                 'praias',
                 'surf',
                 'back to filters',
-                'ver todas',
+                'ver todos',
                 'voltar',
                 'restaurantes',
               ]) {
