@@ -592,11 +592,13 @@ export function installPlaceBottomSheet(
     sheet.classList.remove("hidden");
     sheet.setAttribute("aria-hidden", "false");
     queueMicrotask(syncCompatibilitySource);
-    queueMicrotask(() => {
-      if (sheet.getAttribute("aria-hidden") === "false") {
-        sheet.focus({ preventScroll: true });
-      }
-    });
+    if (!actionsInContextualRail) {
+      queueMicrotask(() => {
+        if (sheet.getAttribute("aria-hidden") === "false") {
+          sheet.focus({ preventScroll: true });
+        }
+      });
+    }
   };
 
   close.addEventListener("click", () => options.onDismiss());
