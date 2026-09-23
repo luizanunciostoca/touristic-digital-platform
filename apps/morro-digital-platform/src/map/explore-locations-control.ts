@@ -1264,12 +1264,12 @@ export function installExploreLocationsControl({
         kind: "map-error",
         error: new Error(getV1ExploreUiCopy(locale).mapUnknown),
       });
+    } else {
+      setExploreRuntimeStatus({
+        kind: "selected",
+        place: presentationLocation.name,
+      });
     }
-
-    setExploreRuntimeStatus({
-      kind: "selected",
-      place: presentationLocation.name,
-    });
     emitStateChange();
   };
 
