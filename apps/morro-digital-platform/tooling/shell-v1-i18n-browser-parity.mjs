@@ -114,7 +114,7 @@ const expected = {
     inputPlaceholder: "הקלד את שאלתך...",
     inputAria: "הודעה לעוזר",
     sendAria: "שלח הודעה",
-    voiceAria: "שלח הודעה קולית",
+    voiceAria: "דברו איתי",
     settingsAria: "הגדרות העוזר",
     globalView: "החלף לתצוגה גלובלית של המפה",
     navigationMain: "המשך ישר",
@@ -217,7 +217,7 @@ async function waitShell(page, locale, expectedCopy) {
       observed.assistantWelcome === expectedCopy.assistantWelcome &&
       observed.mapSection === expectedCopy.mapSection &&
       observed.mapRegion === expectedCopy.mapRegion &&
-      observed.inputPlaceholder === expectedCopy.inputPlaceholder &&
+      observed.voiceAria === expectedCopy.voiceAria &&
       observed.globalAria === expectedCopy.globalView &&
       observed.navigationMain === expectedCopy.navigationMain
     ) {
@@ -305,12 +305,6 @@ try {
       expected[locale].submenuClose,
       `${locale} submenu close`,
     );
-    equal(
-      observed.inputAria,
-      expected[locale].inputAria,
-      `${locale} input aria`,
-    );
-    equal(observed.sendAria, expected[locale].sendAria, `${locale} send aria`);
     equal(
       observed.voiceAria,
       expected[locale].voiceAria,
