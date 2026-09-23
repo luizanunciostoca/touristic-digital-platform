@@ -256,7 +256,9 @@ describe("Chat 6 CSS modernization + Premium UX foundations", () => {
       'body[data-md-mode="navigation"] #unified-assistant-dock',
     );
     expect(css).toContain('body[data-md-mode="tour"] #unified-assistant-dock');
-    expect(css).toContain('body[data-md-mode="place"] #unified-assistant-dock');
+    expect(css).toContain(
+      'body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="false"])',
+    );
     expect(css).toMatch(
       /body\[data-md-mode="navigation"\]:not\(\.assistant-modal-open\)\s+#assistant-input-area/u,
     );
