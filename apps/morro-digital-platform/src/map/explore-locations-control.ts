@@ -487,11 +487,12 @@ export function installExploreLocationsControl({
 
   const contextualRail = document.getElementById("assistant-category-rail");
   const contextualRailScroll =
-    contextualRail?.querySelector<HTMLElement>(".md-assistant-category-scroll") ??
-    null;
-  const categoryRailTemplate = contextualRailScroll?.cloneNode(true) as
-    | HTMLElement
-    | null;
+    contextualRail?.querySelector<HTMLElement>(
+      ".md-assistant-category-scroll",
+    ) ?? null;
+  const categoryRailTemplate = contextualRailScroll?.cloneNode(
+    true,
+  ) as HTMLElement | null;
 
   const restoreCategoryRail = (): HTMLButtonElement | null => {
     if (!contextualRail || !contextualRailScroll || !categoryRailTemplate) {
@@ -967,7 +968,9 @@ export function installExploreLocationsControl({
     const view = document.defaultView;
     if (!location || !view) return;
 
-    const shareText = [location.name, location.area].filter(Boolean).join(" · ");
+    const shareText = [location.name, location.area]
+      .filter(Boolean)
+      .join(" · ");
     const shareUrl = view.location.href;
     const navigator = view.navigator as Navigator & {
       share?: (data: ShareData) => Promise<void>;
@@ -990,7 +993,8 @@ export function installExploreLocationsControl({
           );
         }
       } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
       }
     })();
   };
