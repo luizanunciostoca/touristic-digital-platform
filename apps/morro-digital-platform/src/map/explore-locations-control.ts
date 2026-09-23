@@ -22,7 +22,10 @@ import {
   createV1ImmersiveTourController,
   type V1ImmersiveTourController,
 } from "./immersive-tour-v1-controller.js";
-import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
+import {
+  getV1ExplorePlaceActionOptions,
+  type V1ExplorePlaceActionOption,
+} from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 import {
   installExploreFlowBottomSheet,
@@ -1037,7 +1040,7 @@ export function installExploreLocationsControl({
   };
 
   const renderPlaceActionsRail = (
-    placeActions: readonly ReturnType<typeof getV1ExplorePlaceActionOptions>[number][],
+    placeActions: readonly V1ExplorePlaceActionOption[],
     primaryAction: PlacePrimaryAction | null,
     placeName: string,
     locale: AssistantLocale,
@@ -1301,7 +1304,12 @@ export function installExploreLocationsControl({
     activeStage = "places";
     clearExploreRuntimeStatus();
 
-    const options = [
+    const options: readonly Readonly<{
+      label: string;
+      value: string;
+      action: "location" | "back-menu";
+      location?: ExploreSearchResult;
+    }>[] = [
       ...locations.map((location) =>
         Object.freeze({
           label: location.area
