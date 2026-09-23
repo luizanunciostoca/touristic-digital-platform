@@ -2439,3 +2439,112 @@ html[dir="rtl"]
   :is(.md-assistant-category-label, .md-assistant-context-label) {
   text-align: end;
 }
+
+
+/* Fixed structural back control: navigation stays reachable while contextual
+ * options continue to scroll horizontally. */
+#unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  display: flex;
+  align-items: center;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  display: grid;
+  flex: 0 0 var(--md-context-rail-back-size);
+  width: var(--md-context-rail-back-size);
+  min-width: var(--md-context-rail-back-size);
+  height: var(--md-context-rail-back-size);
+  min-height: var(--md-touch-target-min);
+  margin-inline-start: var(--md-space-3);
+  margin-inline-end: var(--md-space-2);
+  padding: 0;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  border-radius: var(--md-context-rail-control-radius);
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-subtle) 82%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-text-secondary);
+  box-shadow: var(--md-elevation-1);
+  cursor: pointer;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back[hidden] {
+  display: none !important;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: var(--md-font-weight-medium);
+  line-height: 1;
+  transform: translateY(-0.0625rem);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage]:not([data-rail-stage="menu"])
+  .md-assistant-category-scroll {
+  flex: 1 1 auto;
+  width: 0;
+  padding-inline-start: var(--md-space-1);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back:is(:hover, :focus-visible) {
+  border-color: color-mix(in srgb, var(--md-color-brand) 38%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-brand) 7%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-text-primary);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: var(--md-focus-ring-offset);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back:active {
+  transform: scale(var(--md-motion-scale-pressed));
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  transform: scaleX(-1) translateY(-0.0625rem);
+}
+
+@media (max-width: 24.375rem) {
+  #unified-assistant-dock
+    > #assistant-category-rail
+    .md-context-rail-back {
+    margin-inline-start: var(--md-space-2);
+    margin-inline-end: var(--md-space-1);
+  }
+}
+
+@media (forced-colors: active) {
+  #unified-assistant-dock
+    > #assistant-category-rail
+    .md-context-rail-back {
+    border: 1px solid ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+}
