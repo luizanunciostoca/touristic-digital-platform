@@ -1278,7 +1278,9 @@ body[data-md-mode="discover"]
   width: 5.5rem;
   min-width: 5.5rem;
   max-width: 5.5rem;
-  height: 3.25rem;
+  height: 3.75rem;
+  min-height: 3.75rem;
+  padding: var(--md-space-1);
 }
 
 body[data-md-mode="discover"]
@@ -1409,6 +1411,14 @@ body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
     width: 5.25rem;
     min-width: 5.25rem;
     max-width: 5.25rem;
+  }
+
+  body[data-md-mode="discover"]
+    #weather-widget.md-weather-control[data-weather-state="error"] {
+    width: 5.25rem;
+    min-width: 5.25rem;
+    max-width: 5.25rem;
+    padding-inline: var(--md-space-1);
   }
 
   body[data-md-mode="discover"] .md-home-header {
