@@ -133,7 +133,7 @@ jobs:
               await waitForMap(page);
               await openAssistant(page);
               await page.locator('#assistantInput').fill('Fotos de Toca do Morcego');
-              await page.locator('#sendButton').click();
+              await page.locator('#sendButton').evaluate(button => button.click());
 
               const carousel = page.locator('.assistant-photo-carousel');
               await carousel.waitFor({ state: 'visible', timeout: 10000 });
