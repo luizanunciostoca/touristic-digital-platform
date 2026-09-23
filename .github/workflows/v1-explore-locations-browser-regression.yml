@@ -360,6 +360,30 @@ jobs:
                   voiceLabel: voice?.textContent?.trim() ?? null,
                   voiceWidth: voiceRect?.width ?? 0,
                   voiceHeight: voiceRect?.height ?? 0,
+                  voiceVisible: (() => {
+                    if (!(voice instanceof HTMLElement)) return false;
+                    const style = getComputedStyle(voice);
+                    return (
+                      style.display !== 'none' &&
+                      style.visibility !== 'hidden' &&
+                      style.opacity !== '0' &&
+                      (voiceRect?.width ?? 0) > 0 &&
+                      (voiceRect?.height ?? 0) > 0
+                    );
+                  })(),
+                  bottomNavVisible: (() => {
+                    const node = document.getElementById('home-bottom-navigation');
+                    if (!(node instanceof HTMLElement)) return false;
+                    const rect = node.getBoundingClientRect();
+                    const style = getComputedStyle(node);
+                    return (
+                      style.display !== 'none' &&
+                      style.visibility !== 'hidden' &&
+                      style.opacity !== '0' &&
+                      rect.width > 0 &&
+                      rect.height > 0
+                    );
+                  })(),
                 };
               });
               if (
@@ -377,6 +401,8 @@ jobs:
                   ({ width, height, visible }) => !visible || width < 44 || height < 44,
                 ) ||
                 placeState.voiceLabel !== 'Fale comigo' ||
+                !placeState.voiceVisible ||
+                !placeState.bottomNavVisible ||
                 placeState.voiceWidth < 180 ||
                 placeState.voiceHeight < 44
               ) {
