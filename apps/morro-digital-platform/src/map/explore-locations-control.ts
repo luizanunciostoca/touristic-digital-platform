@@ -3,10 +3,7 @@ import {
   normalizeAssistantVoiceLanguage,
   type AssistantLocale,
 } from "@touristic/assistant";
-import {
-  requestAssistantClose,
-  requestAssistantOpen,
-} from "../assistant/assistant-shell-ui.js";
+import { requestAssistantOpen } from "../assistant/assistant-shell-ui.js";
 import type {
   GeospatialEngine,
   MapboxGlMapLike,
@@ -35,10 +32,6 @@ import {
   resolvePlacePrimaryAction,
   type PlacePrimaryAction,
 } from "./place-commerce-capability.js";
-import {
-  installPlaceBottomSheet,
-  type PlaceBottomSheetController,
-} from "./place-bottom-sheet.js";
 import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
@@ -475,7 +468,6 @@ export function installExploreLocationsControl({
   let interactionGeneration = 0;
   let immersiveTourController: V1ImmersiveTourController | undefined;
   let exploreFlowBottomSheet: ExploreFlowBottomSheetController | undefined;
-  let placeBottomSheet: PlaceBottomSheetController | undefined;
   let placeReturnLocations: readonly ExploreMapLocation[] = Object.freeze([]);
   let placeReturnMessage = "";
   let placeReturnIsSearch = false;
@@ -651,11 +643,9 @@ export function installExploreLocationsControl({
         document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
       ),
       sheetState:
-        activeStage === "detail"
-          ? (placeBottomSheet?.getState() ?? null)
-          : activeStage === "filters" || activeStage === "places"
-            ? (exploreFlowBottomSheet?.getState() ?? null)
-            : null,
+        activeStage === "filters" || activeStage === "places"
+          ? (exploreFlowBottomSheet?.getState() ?? null)
+          : null,
       tour,
     });
   };
@@ -704,13 +694,6 @@ export function installExploreLocationsControl({
       status: "loading" | "ready" | "empty" | "error",
       text?: string,
     ): void => {
-      if (activeStage === "detail") {
-        placeBottomSheet?.setStatus(
-          status === "empty" ? "error" : status,
-          text,
-        );
-        return;
-      }
       if (activeStage === "filters" || activeStage === "places") {
         exploreFlowBottomSheet?.setStatus(status, text);
       }
@@ -798,6 +781,52 @@ export function installExploreLocationsControl({
     if (!mainMenuContainer) return;
     mainMenuContainer.classList.remove("hidden");
     mainMenuContainer.setAttribute("aria-hidden", "false");
+  };
+
+  const renderPlaceDetailMessage = (
+    location: ExploreMapLocation,
+    categoryLabel: string,
+    description: string,
+  ): void => {
+    const area = assistantMessagesArea(document);
+    if (!area) return;
+
+    document.getElementById(ASSISTANT_FLOW_RESULTS_ID)?.remove();
+    hideMainMenu();
+
+    let message = document.getElementById(ASSISTANT_FLOW_MESSAGE_ID);
+    if (!(message instanceof HTMLElement)) {
+      message = document.createElement("div");
+      message.id = ASSISTANT_FLOW_MESSAGE_ID;
+      area.appendChild(message);
+    }
+
+    message.className = "message assistant md-assistant-place-detail-message";
+    message.dataset.messageType = "place-detail";
+    message.dataset.category = location.category;
+    message.dataset.place = location.name;
+
+    const title = document.createElement("strong");
+    title.className = "md-assistant-place-detail-title";
+    title.textContent = location.name;
+
+    const meta = document.createElement("span");
+    meta.className = "md-assistant-place-detail-meta";
+    meta.textContent = [categoryLabel, location.area].filter(Boolean).join(" · ");
+
+    const content: Node[] = [title];
+    if (meta.textContent) content.push(meta);
+    if (description) {
+      const body = document.createElement("span");
+      body.className = "md-assistant-place-detail-description";
+      body.textContent = description;
+      content.push(body);
+    }
+    message.replaceChildren(...content);
+    message.classList.remove("hidden");
+    message.setAttribute("aria-hidden", "false");
+    area.scrollTop = area.scrollHeight;
+    requestAssistantOpen(document);
   };
 
   const renderFlow = <
@@ -933,7 +962,6 @@ export function installExploreLocationsControl({
     }
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
-    placeBottomSheet?.hide();
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
@@ -1190,23 +1218,17 @@ export function installExploreLocationsControl({
       ),
     );
 
+    renderPlaceDetailMessage(
+      presentationLocation,
+      categoryLabel,
+      description,
+    );
     const firstPlaceAction = renderPlaceActionsRail(
       placeActions,
       null,
       presentationLocation.name,
       locale,
     );
-    placeBottomSheet?.show({
-      location: presentationLocation,
-      categoryLabel,
-      locale,
-      actions: placeActions,
-      primaryAction: null,
-      actionsInContextualRail: true,
-      ...(description ? { description } : {}),
-      status: "loading",
-    });
-    requestAssistantClose(document);
     firstPlaceAction?.focus();
 
     const browserFetch = document.defaultView?.fetch?.bind(
@@ -1237,23 +1259,12 @@ export function installExploreLocationsControl({
       presentationLocation.name,
       locale,
     );
-    placeBottomSheet?.show({
-      location: presentationLocation,
-      categoryLabel,
-      locale,
-      actions: placeActions,
-      primaryAction,
-      actionsInContextualRail: true,
-      ...(description ? { description } : {}),
-      status: mapFailed ? "error" : "ready",
-      ...(mapFailed
-        ? {
-            statusText: getV1ExploreUiCopy(locale).mapCategoryError(
-              getV1ExploreUiCopy(locale).mapUnknown,
-            ),
-          }
-        : {}),
-    });
+    if (mapFailed) {
+      setExploreRuntimeStatus({
+        kind: "map-error",
+        error: new Error(getV1ExploreUiCopy(locale).mapUnknown),
+      });
+    }
 
     setExploreRuntimeStatus({
       kind: "selected",
@@ -1267,7 +1278,6 @@ export function installExploreLocationsControl({
     message: string,
   ): void => {
     if (!activeCategory) return;
-    placeBottomSheet?.hide();
     placeReturnLocations = Object.freeze([...locations]);
     placeReturnMessage = message;
     placeReturnIsSearch = false;
@@ -1317,7 +1327,6 @@ export function installExploreLocationsControl({
       : "ready",
     statusText?: string,
   ): void => {
-    placeBottomSheet?.hide();
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
@@ -1398,8 +1407,7 @@ export function installExploreLocationsControl({
       return;
     }
     if (!activeCategory) {
-      placeBottomSheet?.hide();
-      return;
+        return;
     }
     const locations =
       placeReturnLocations.length > 0
@@ -1417,15 +1425,8 @@ export function installExploreLocationsControl({
     );
   };
 
-  placeBottomSheet = installPlaceBottomSheet({
-    document,
-    onAction: handlePlaceAction,
-    onDismiss: returnFromPlaceDetail,
-  });
-
   const startImmersiveTour = (tourId: string): void => {
     exploreFlowBottomSheet?.hide();
-    placeBottomSheet?.hide();
     activePlace = undefined;
     activePlaceLocation = undefined;
     activePlaceActionValues = Object.freeze([]);
@@ -1525,7 +1526,6 @@ export function installExploreLocationsControl({
 
   function renderFilters(): void {
     if (!activeCategory) return;
-    placeBottomSheet?.hide();
     activePlace = undefined;
     activeStage = "filters";
     clearExploreRuntimeStatus();
@@ -1602,7 +1602,6 @@ export function installExploreLocationsControl({
     clearTourPresentation(document);
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
-    placeBottomSheet?.hide();
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
@@ -2113,8 +2112,6 @@ export function installExploreLocationsControl({
       immersiveTourController = undefined;
       exploreFlowBottomSheet?.destroy();
       exploreFlowBottomSheet = undefined;
-      placeBottomSheet?.destroy();
-      placeBottomSheet = undefined;
       placeReturnLocations = Object.freeze([]);
       placeReturnMessage = "";
       for (const [button, listener] of categoryListeners) {
