@@ -61,7 +61,7 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         welcome_message:
           "👋 Olá! Sou o assistente virtual do Morro Digital. Como posso ajudar você hoje?",
         assistant_welcome_message:
-          "🎉 Bem-vindo ao Morro Digital! Sou seu guia virtual oficial em Morro de São Paulo, pronto para ajudar você a explorar com facilidade pontos turísticos, praias, restaurantes, festas, passeios e tudo o que precisar, na palma da sua mão. Como posso ajudar? 😄",
+          "Bem-vindo ao Morro Digital!\nPosso ajudar você a encontrar praias, passeios, restaurantes e experiências.",
         ask_first_time:
           "É a sua primeira vez em Morro de São Paulo? Posso te mostrar os melhores lugares para visitar.",
         site_interactive_map_label: "Mapa interativo",
@@ -108,7 +108,7 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         welcome_message:
           "👋 Hello! I'm the Morro Digital virtual assistant. How can I help you today?",
         assistant_welcome_message:
-          "🎉 Welcome to Morro Digital! I am your official virtual guide to Morro de São Paulo, ready to help you easily explore tourist spots, beaches, restaurants, parties, tours, and everything you need at your fingertips. How can I help you? 😄",
+          "Welcome to Morro Digital!\nI can help you find beaches, tours, restaurants and experiences.",
         ask_first_time:
           "Is this your first time in Morro de São Paulo? I can show you the best places to visit.",
         site_interactive_map_label: "Interactive map",
@@ -155,7 +155,7 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         welcome_message:
           "👋 ¡Hola! Soy el asistente virtual de Morro Digital. ¿Cómo puedo ayudarte hoy?",
         assistant_welcome_message:
-          "🎉 ¡Bienvenido a Morro Digital! Soy tu guía virtual oficial de Morro de São Paulo, listo para ayudarte a explorar fácilmente lugares turísticos, playas, restaurantes, fiestas, paseos y todo lo que necesites al alcance de tu mano. ¿Cómo puedo ayudarte? 😄",
+          "¡Bienvenido a Morro Digital!\nPuedo ayudarte a encontrar playas, paseos, restaurantes y experiencias.",
         ask_first_time:
           "¿Es tu primera vez en Morro de São Paulo? Puedo mostrarte los mejores lugares para visitar.",
         site_interactive_map_label: "Mapa interactivo",
@@ -202,7 +202,7 @@ const COPY: Readonly<Record<ShellPresentationLocale, ShellPresentationCopy>> =
         welcome_message:
           "👋 שלום! אני העוזר הווירטואלי של מורו דיגיטל. איך אוכל לעזור לך היום?",
         assistant_welcome_message:
-          "🎉 ברוכים הבאים ל-Morro Digital! אני המדריך הווירטואלי הרשמי שלכם למורו דה סאו פאולו, מוכן לעזור לכם לגלות בקלות אתרי תיירות, חופים, מסעדות, מסיבות, סיורים וכל מה שאתם צריכים — ממש בהישג יד. איך אוכל לעזור? 😄",
+          "ברוכים הבאים ל-Morro Digital!\nאפשר לעזור לכם למצוא חופים, סיורים, מסעדות וחוויות.",
         ask_first_time:
           "האם זו הפעם הראשונה שלך במורו דה סאו פאולו? אני יכול להראות לך את המקומות הטובים ביותר לבקר.",
         site_interactive_map_label: "מפה אינטראקטיבית",
