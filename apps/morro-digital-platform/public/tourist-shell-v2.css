@@ -2138,6 +2138,15 @@ body[data-md-mode="place"]:has(
 body[data-md-mode="place"]:has(
     #place-bottom-sheet[data-actions-surface="contextual-rail"][aria-hidden="false"]
   )
+  #unified-assistant-dock {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+body[data-md-mode="place"]:has(
+    #place-bottom-sheet[data-actions-surface="contextual-rail"][aria-hidden="false"]
+  )
   #home-bottom-navigation {
   display: grid;
 }
