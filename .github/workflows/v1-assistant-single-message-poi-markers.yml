@@ -131,6 +131,12 @@ jobs:
               const flowMessage = document.getElementById('assistant-category-results-message');
               const flowResults = document.getElementById('assistant-category-results');
               const exploreSheet = document.getElementById('explore-flow-bottom-sheet');
+              const contextualRail = document.getElementById('assistant-category-rail');
+              const contextualRailButtons = contextualRail
+                ? Array.from(
+                    contextualRail.querySelectorAll('[data-context-rail-option="true"]'),
+                  )
+                : [];
               return {
                 visibleMessageCount: messages.filter(visible).length,
                 visibleUserMessageCount: messages.filter((message) => message.classList.contains('user') && visible(message)).length,
@@ -140,6 +146,9 @@ jobs:
                 flowMessage: flowMessage ? describeElement(flowMessage) : null,
                 flowResults: flowResults ? describeElement(flowResults) : null,
                 exploreSheet: exploreSheet ? describeElement(exploreSheet) : null,
+                contextualRail: contextualRail ? describeElement(contextualRail) : null,
+                contextualRailStage: contextualRail?.getAttribute('data-rail-stage') ?? null,
+                contextualRailButtonCount: contextualRailButtons.length,
                 assistantVisible: Boolean(assistant && visible(assistant)),
                 mainMenuVisible: Boolean(menu && visible(menu)),
                 markerCountAttribute: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
@@ -179,24 +188,26 @@ jobs:
               await assistant.waitFor({ state: 'visible', timeout: 5000 });
 
               await page
-                .locator('#assistant-category-beaches')
-                .evaluate((button) => button.click());
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible', timeout: 5000 });
+                .locator('#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="beaches"]')
+                .click();
+              await page.locator('#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]').waitFor({ state: 'visible', timeout: 5000 });
               await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 8000 });
               await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'eight beach markers');
               await page.waitForTimeout(2300);
 
               const filtersState = await readState(page);
               if (
-                filtersState.visibleMessageCount !== 0 ||
+                filtersState.visibleMessageCount < 1 ||
                 filtersState.visibleUserMessageCount !== 0 ||
-                filtersState.assistantVisible ||
+                !filtersState.assistantVisible ||
                 !filtersState.exploreSheet ||
-                filtersState.exploreSheet.hiddenClass ||
-                filtersState.exploreSheet.visibility === 'hidden' ||
-                filtersState.flowMessage?.visibility !== 'hidden'
+                !filtersState.exploreSheet.hiddenClass ||
+                filtersState.exploreSheet.ariaHidden !== 'true' ||
+                filtersState.flowResults?.ariaHidden !== 'true' ||
+                filtersState.contextualRailStage !== 'filters' ||
+                filtersState.contextualRailButtonCount < 2
               ) {
-                throw new Error(`V2 Explore presentation contract diverged: ${JSON.stringify(filtersState)}`);
+                throw new Error(`Contextual Explore presentation contract diverged: ${JSON.stringify(filtersState)}`);
               }
               if (filtersState.mainMenuVisible) {
                 throw new Error(`Main categories remained visible with Beaches flow: ${JSON.stringify(filtersState)}`);
@@ -247,19 +258,22 @@ jobs:
                 throw new Error(`Explore rotation lost markers: ${JSON.stringify(landscapeState)}`);
               }
 
-              await page.locator('#assistant-category-results [data-value="ver todos"]').click();
-              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
               await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
               const placesState = await readState(page);
               if (
-                placesState.visibleMessageCount !== 0 ||
+                placesState.visibleMessageCount < 1 ||
                 placesState.visibleUserMessageCount !== 0 ||
-                placesState.assistantVisible ||
+                !placesState.assistantVisible ||
                 placesState.mainMenuVisible ||
                 !placesState.exploreSheet ||
-                placesState.exploreSheet.hiddenClass
+                !placesState.exploreSheet.hiddenClass ||
+                placesState.exploreSheet.ariaHidden !== 'true' ||
+                placesState.contextualRailStage !== 'places' ||
+                placesState.contextualRailButtonCount < 2
               ) {
-                throw new Error(`Places V2 sheet stacked stale Assistant content: ${JSON.stringify(placesState)}`);
+                throw new Error(`Places contextual rail stacked stale presentation: ${JSON.stringify(placesState)}`);
               }
 
               await page.keyboard.press('Escape');
@@ -267,15 +281,19 @@ jobs:
                 const menu = document.querySelector('.assistant-options:has([data-explore-category])');
                 const assistant = document.getElementById('assistant-messages');
                 const sheet = document.getElementById('explore-flow-bottom-sheet');
+                const rail = document.getElementById('assistant-category-rail');
                 return Boolean(
                   menu &&
                   !menu.classList.contains('hidden') &&
-                  assistant?.classList.contains('hidden') &&
-                  assistant.getAttribute('aria-hidden') === 'true' &&
+                  assistant &&
+                  !assistant.classList.contains('hidden') &&
+                  assistant.getAttribute('aria-hidden') !== 'true' &&
                   sheet?.classList.contains('hidden') &&
-                  sheet.getAttribute('aria-hidden') === 'true'
+                  sheet.getAttribute('aria-hidden') === 'true' &&
+                  rail?.getAttribute('data-rail-stage') === 'menu' &&
+                  rail.querySelectorAll('[data-assistant-category]').length === 10
                 );
-              }, 'V2 Discover semantic menu restore');
+              }, 'V2 Discover contextual rail restore');
 
               if (pageErrors.length) throw new Error(`Browser errors: ${JSON.stringify(pageErrors)}`);
             } finally {

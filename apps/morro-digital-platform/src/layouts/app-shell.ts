@@ -158,6 +158,7 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         role="region"
         aria-label="Categorias do assistente"
         data-assistant-category-rail
+        data-rail-stage="menu"
       >
         <div class="md-assistant-category-scroll">
           <button type="button" class="md-assistant-category-chip" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
@@ -491,7 +492,7 @@ function synchronizeAssistantLayout(document: Document): void {
       ".carousel-container, .assistant-photo-carousel",
     );
     const richInteractiveContainers = messagesArea.querySelectorAll(
-      '.assistant-options:not([data-assistant-command-source="legacy-category-routing"]), #assistant-category-results, .assistant-photo-carousel, .assistant-photo-back-options',
+      '.assistant-options:not([data-assistant-command-source="legacy-category-routing"]):not(.md-contextual-rail-source), #assistant-category-results:not(.md-contextual-rail-source), .assistant-photo-carousel, .assistant-photo-back-options',
     );
     const totalTextLength = textMessages.reduce(
       (total, message) => total + (message.textContent?.length ?? 0),

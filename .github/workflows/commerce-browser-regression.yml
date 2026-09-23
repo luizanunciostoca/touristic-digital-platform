@@ -252,73 +252,70 @@ jobs:
                 await page.locator('#assistant-messages:not(.hidden)').waitFor({ state: 'visible', timeout: 5000 });
                 await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
 
-                await page
-                  .locator('#assistant-category-nightlife')
-                  .evaluate((button) => button.click());
-                await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
-                await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
-                const placePrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
+                const nightlifeCategory = page.locator(
+                  '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="nightlife"]',
+                );
+                await nightlifeCategory.waitFor({ state: 'visible', timeout: 5000 });
+                await nightlifeCategory.click();
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+                ).click();
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Toca do Morcego"]',
+                ).click();
+                const placePrimary = page.locator(
+                  '#assistant-category-rail[data-rail-stage="detail"] [data-explore-action="primary"]',
+                );
                 await placePrimary.waitFor({ state: 'visible', timeout: 10000 });
                 const placeActions = await page.evaluate(() => {
                   const sheet = document.getElementById('place-bottom-sheet');
-                  const actions = sheet?.querySelector('.place-bottom-sheet-actions');
-                  const primary = sheet?.querySelector('.place-bottom-sheet-primary-action');
-                  if (
-                    !(sheet instanceof HTMLElement) ||
-                    !(actions instanceof HTMLElement) ||
-                    !(primary instanceof HTMLButtonElement)
-                  ) {
+                  const rail = document.querySelector(
+                    '#assistant-category-rail[data-rail-stage="detail"]',
+                  );
+                  if (!(sheet instanceof HTMLElement) || !(rail instanceof HTMLElement)) {
                     return null;
                   }
-                  const grid = Array.from(actions.querySelectorAll('.place-bottom-sheet-action'));
-                  const overflow = Array.from(
-                    sheet.querySelectorAll(
-                      '.place-bottom-sheet-overflow-actions .place-bottom-sheet-action',
-                    ),
+                  const buttons = Array.from(
+                    rail.querySelectorAll('[data-context-rail-option="true"]'),
                   );
-                  const buttons = [...grid, primary];
-                  const actionsRect = actions.getBoundingClientRect();
-                  const primaryRect = primary.getBoundingClientRect();
-                  const gridBottom = Math.max(...grid.map(button => button.getBoundingClientRect().bottom));
-                  const overflowDetails = sheet.querySelector('.place-bottom-sheet-overflow');
+                  const targets = buttons.map(button => {
+                    const rect = button.getBoundingClientRect();
+                    return { width: rect.width, height: rect.height };
+                  });
+                  const primary = buttons.find(
+                    button => button.getAttribute('data-explore-action') === 'primary',
+                  );
                   return {
                     values: buttons.map(button => button.getAttribute('data-value')),
-                    overflowValues: overflow.map(button => button.getAttribute('data-value')),
-                    overflowOpen:
-                      overflowDetails instanceof HTMLDetailsElement
-                        ? overflowDetails.open
-                        : null,
-                    primaryText: primary.textContent?.trim(),
+                    primaryText: primary?.textContent?.trim() ?? null,
                     primaryIndex: buttons.indexOf(primary),
-                    primaryWidth: primaryRect.width,
-                    containerWidth: actionsRect.width,
-                    primaryTop: primaryRect.top,
-                    gridBottom,
-                    gridColumns: getComputedStyle(actions).gridTemplateColumns,
+                    actionsSurface: sheet.getAttribute('data-actions-surface'),
+                    railStage: rail.getAttribute('data-rail-stage'),
+                    targets,
                     sheetState: sheet.dataset.sheetState,
                   };
                 });
-                const expectedPlaceGrid = [
+                const expectedContextualActions = [
+                  `commerce:offer:${placeOffer.id}`,
                   'como chegar',
+                  'ver fotos',
+                  'mais detalhes',
                   'adicionar aos favoritos',
                   'compartilhar',
-                  `commerce:offer:${placeOffer.id}`,
+                  '__back_to_places__',
                 ];
-                const expectedOverflow = ['ver fotos', 'mais detalhes'];
                 if (
                   !placeActions ||
-                  JSON.stringify(placeActions.values) !== JSON.stringify(expectedPlaceGrid) ||
-                  JSON.stringify(placeActions.overflowValues) !==
-                    JSON.stringify(expectedOverflow) ||
-                  placeActions.overflowOpen !== false ||
-                  placeActions.primaryIndex !== 3 ||
+                  JSON.stringify(placeActions.values) !==
+                    JSON.stringify(expectedContextualActions) ||
+                  placeActions.actionsSurface !== 'contextual-rail' ||
+                  placeActions.railStage !== 'detail' ||
+                  placeActions.primaryIndex !== 0 ||
                   placeActions.sheetState !== 'half' ||
                   !placeActions.primaryText?.includes('Comprar ingressos') ||
-                  placeActions.primaryWidth < placeActions.containerWidth - 18 ||
-                  placeActions.primaryTop < placeActions.gridBottom ||
-                  placeActions.gridColumns.split(' ').length !== 3
+                  placeActions.targets.some(target => target.width < 44 || target.height < 44)
                 ) {
-                  throw new Error(`Place commerce CTA layout drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
+                  throw new Error(`Place commerce contextual CTA drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
                 }
                 const contextBeforeHandoff = await page.evaluate(() => {
                   const map = globalThis.mapboxPrimaryInstance;
@@ -435,12 +432,20 @@ jobs:
                 await page
                   .locator('#assistant-messages:not(.hidden)')
                   .waitFor({ state: 'visible', timeout: 5000 });
-                await page
-                  .locator('#assistant-category-nightlife')
-                  .evaluate((button) => button.click());
-                await page.locator('#assistant-category-results[data-stage="filters"] [data-value="ver todos"]').click();
-                await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Toca do Morcego"]').click();
-                const fallbackPrimary = page.locator('#place-bottom-sheet .place-bottom-sheet-primary-action');
+                const fallbackNightlifeCategory = page.locator(
+                  '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="nightlife"]',
+                );
+                await fallbackNightlifeCategory.waitFor({ state: 'visible', timeout: 5000 });
+                await fallbackNightlifeCategory.click();
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+                ).click();
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Toca do Morcego"]',
+                ).click();
+                const fallbackPrimary = page.locator(
+                  '#assistant-category-rail[data-rail-stage="detail"] [data-explore-action="primary"]',
+                );
                 await fallbackPrimary.waitFor({ state: 'visible', timeout: 10000 });
                 const fallbackAction = await fallbackPrimary.evaluate(node => ({
                   text: node.textContent?.trim(),

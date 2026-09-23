@@ -125,7 +125,11 @@ jobs:
           }
 
           async function invokeCategory(page, category) {
-            await page.locator(`#assistant-category-${category}`).evaluate(button => button.click());
+            const railButton = page.locator(
+              `#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="${category}"]`,
+            );
+            await railButton.waitFor({ state: 'visible', timeout: 5000 });
+            await railButton.click();
           }
 
           async function waitMap(page, category, count, stage) {
@@ -133,48 +137,76 @@ jobs:
           }
 
           async function assertFiltersStage(page, category, count) {
-            await page.locator(`#assistant-category-results[data-category="${category}"][data-stage="filters"]`).waitFor({ state: 'visible', timeout: 5000 });
+            await page.locator(
+              `#assistant-category-rail[data-rail-stage="filters"][data-context-category="${category}"]`,
+            ).waitFor({ state: 'visible', timeout: 5000 });
             await waitMap(page, category, count, 'filters');
-            await page.locator('#explore-flow-bottom-sheet[data-flow-kind="explore"][data-sheet-state="half"]').waitFor({
-              state: 'visible',
-              timeout: 5000,
-            });
             const state = await page.evaluate(() => {
               const main = document.querySelector('.assistant-options:has([data-explore-category])');
               const results = document.getElementById('assistant-category-results');
+              const rail = document.getElementById('assistant-category-rail');
               const sheet = document.getElementById('explore-flow-bottom-sheet');
+              const railButtons = Array.from(
+                rail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
+              );
               return {
                 mainHidden: Boolean(main?.classList.contains('hidden')),
                 mainAriaHidden: main?.getAttribute('aria-hidden'),
-                filterCount: results?.querySelectorAll('[data-explore-action]').length ?? 0,
-                locationCount: results?.querySelectorAll('[data-location-name]').length ?? 0,
-                sheetKind: sheet?.getAttribute('data-flow-kind') ?? null,
-                sheetOptions: sheet?.querySelectorAll('.explore-flow-sheet-option').length ?? 0,
+                sourceHidden:
+                  results?.getAttribute('aria-hidden') === 'true' &&
+                  results?.hasAttribute('inert'),
+                sourceFilterCount:
+                  results?.querySelectorAll('[data-explore-action]').length ?? 0,
+                railStage: rail?.getAttribute('data-rail-stage'),
+                railCategory: rail?.getAttribute('data-context-category'),
+                railFilterCount: railButtons.length,
+                railLocationCount: rail?.querySelectorAll('[data-location-name]').length ?? 0,
+                exploreSheetVisible:
+                  sheet?.getAttribute('aria-hidden') === 'false' &&
+                  !sheet?.classList.contains('hidden'),
+                surfLabel:
+                  rail?.querySelector('[data-value="surf"]')?.textContent?.trim() ?? null,
               };
             });
             if (
               !state.mainHidden ||
               state.mainAriaHidden !== 'true' ||
-              state.filterCount < 2 ||
-              state.locationCount !== 0 ||
-              state.sheetKind !== 'explore' ||
-              state.sheetOptions !== state.filterCount
+              !state.sourceHidden ||
+              state.sourceFilterCount < 2 ||
+              state.railStage !== 'filters' ||
+              state.railCategory !== category ||
+              state.railFilterCount !== state.sourceFilterCount ||
+              state.railLocationCount !== 0 ||
+              state.exploreSheetVisible
             ) {
-              throw new Error(`V1 filter stage diverged for ${category}: ${JSON.stringify(state)}`);
+              throw new Error(`Contextual filter rail diverged for ${category}: ${JSON.stringify(state)}`);
+            }
+            if (category === 'beaches' && state.surfLabel !== '🏄 Para surf') {
+              throw new Error(`Surf filter copy diverged: ${JSON.stringify(state.surfLabel)}`);
             }
           }
 
           async function assertMainMenu(page) {
             const state = await page.evaluate(() => {
               const main = document.querySelector('.assistant-options:has([data-explore-category])');
+              const rail = document.getElementById('assistant-category-rail');
               return {
                 hidden: Boolean(main?.classList.contains('hidden')),
                 ariaHidden: main?.getAttribute('aria-hidden'),
-                categories: main?.querySelectorAll('[data-explore-category]').length ?? 0,
+                legacyCategories: main?.querySelectorAll('[data-explore-category]').length ?? 0,
+                railStage: rail?.getAttribute('data-rail-stage'),
+                railCategories: rail?.querySelectorAll('[data-assistant-category]').length ?? 0,
                 flowExists: Boolean(document.getElementById('assistant-category-results')),
               };
             });
-            if (state.hidden || state.ariaHidden === 'true' || state.categories !== 9 || state.flowExists) {
+            if (
+              state.hidden ||
+              state.ariaHidden === 'true' ||
+              state.legacyCategories !== 9 ||
+              state.railStage !== 'menu' ||
+              state.railCategories !== 10 ||
+              state.flowExists
+            ) {
               throw new Error(`Main menu was not restored: ${JSON.stringify(state)}`);
             }
           }
@@ -264,26 +296,26 @@ jobs:
               await invokeCategory(page, 'beaches');
               await assertFiltersStage(page, 'beaches', 8);
 
-              await page.locator('#assistant-category-results [data-value="surf"]').click();
-              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
+              await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="surf"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible' });
               const surfState = await page.evaluate(() => ({
-                placeCount: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                placeCount: document.querySelectorAll('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').length,
                 markerCount: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
-                hasBackFilters: Boolean(document.querySelector('#assistant-category-results [data-value="voltar_filtros"]')),
+                hasBackFilters: Boolean(document.querySelector('#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_filtros"]')),
                 mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
               }));
               if (surfState.placeCount < 1 || surfState.placeCount !== surfState.markerCount || !surfState.hasBackFilters || !surfState.mainHidden) {
                 throw new Error(`Surf filter diverged in ${viewport.id}: ${JSON.stringify(surfState)}`);
               }
 
-              await page.locator('#assistant-category-results [data-value="voltar_filtros"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_filtros"]').click();
               await assertFiltersStage(page, 'beaches', 8);
 
-              await page.locator('#assistant-category-results [data-value="ver todos"]').click();
-              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
+              await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
               await waitMap(page, 'beaches', 8, 'places');
 
-              await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]').click();
               await waitMap(page, 'beaches', 1, 'detail');
               const center = await waitForSelectedMapCamera(page, -38.9142193, -13.3776181);
               const placeSheet = page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"]');
@@ -302,6 +334,13 @@ jobs:
                   button => button.getAttribute('data-value'),
                 );
                 const image = sheet.querySelector('.place-bottom-sheet-image');
+                const contextualRail = document.querySelector(
+                  '#assistant-category-rail[data-rail-stage="detail"]',
+                );
+                const contextualActionValues = Array.from(
+                  contextualRail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
+                  button => button.getAttribute('data-value'),
+                );
                 return {
                   title: sheet.querySelector('.place-bottom-sheet-title')?.textContent?.trim() ?? null,
                   category: sheet.getAttribute('data-place-category'),
@@ -332,6 +371,8 @@ jobs:
                     })
                     .filter(({ visible }) => visible),
                   imageSrc: image instanceof HTMLImageElement ? new URL(image.src).pathname : null,
+                  actionsSurface: sheet.getAttribute('data-actions-surface'),
+                  contextualActionValues,
                 };
               });
               if (
@@ -344,11 +385,14 @@ jobs:
                 placeSheetState.rect.right > viewport.width + 1 ||
                 placeSheetState.rect.top < -1 ||
                 placeSheetState.rect.bottom > viewport.height + 1 ||
-                !placeSheetState.actionValues.includes('condições da praia') ||
-                !placeSheetState.actionValues.includes('como chegar') ||
-                !placeSheetState.actionValues.includes('ver fotos') ||
-                JSON.stringify(placeSheetState.visibleActionValues) !==
-                  JSON.stringify(['como chegar', 'adicionar aos favoritos', 'compartilhar']) ||
+                placeSheetState.actionsSurface !== 'contextual-rail' ||
+                !placeSheetState.contextualActionValues.includes('condições da praia') ||
+                !placeSheetState.contextualActionValues.includes('como chegar') ||
+                !placeSheetState.contextualActionValues.includes('ver fotos') ||
+                !placeSheetState.contextualActionValues.includes('informações') ||
+                !placeSheetState.contextualActionValues.includes('adicionar aos favoritos') ||
+                !placeSheetState.contextualActionValues.includes('compartilhar') ||
+                !placeSheetState.contextualActionValues.includes('__back_to_places__') ||
                 placeSheetState.overflowOpen !== false ||
                 placeSheetState.touchTargets.some(({ width, height }) => width < 44 || height < 44) ||
                 placeSheetState.imageSrc !== '/images/fotos/primeira_praia1.jpg'
@@ -384,25 +428,24 @@ jobs:
                 selected.markerCount !== '1' ||
                 selected.activeTour !== null ||
                 selected.popupVisible ||
-                placeSheetState.actionValues.length !== expectedBeachDetailValues.length ||
-                expectedBeachDetailValues.some(value => !placeSheetState.actionValues.includes(value))
+                expectedBeachDetailValues.some(value => !placeSheetState.contextualActionValues.includes(value))
               ) {
                 throw new Error(`Location detail diverged in ${viewport.id}: ${JSON.stringify({ selected, placeSheetState })}`);
               }
 
               await page.locator('#place-bottom-sheet .place-bottom-sheet-close').click();
-              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
               await waitMap(page, 'beaches', 8, 'places');
-              const returnedPlaces = await page.locator('#assistant-category-results [data-location-name]').count();
+              const returnedPlaces = await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').count();
               if (returnedPlaces !== 8) {
                 throw new Error(`Detail back did not restore the V1 places list: ${returnedPlaces}`);
               }
 
-              await page.locator('#assistant-category-results [data-location-name="Primeira Praia"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]').click();
               await page.locator('#place-bottom-sheet[data-place-name="Primeira Praia"]').waitFor({ state: 'visible', timeout: 5000 });
               await page.keyboard.press('Escape');
               await page.locator('#place-bottom-sheet').waitFor({ state: 'hidden', timeout: 5000 });
-              await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
+              await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
 
               await page.keyboard.press('Escape');
               await assertMainMenu(page);
@@ -411,10 +454,10 @@ jobs:
                 await openAssistant(page);
                 await invokeCategory(page, 'beaches');
                 await assertFiltersStage(page, 'beaches', 8);
-                await page.locator('#assistant-category-results [data-value="proximo"]').click();
-                await page.locator('#assistant-category-results[data-stage="places"]').waitFor({ state: 'visible' });
+                await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="proximo"]').click();
+                await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible' });
                 const nearby = await page.evaluate(() => ({
-                  places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                  places: document.querySelectorAll('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').length,
                   markers: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
                 }));
                 if (nearby.places < 1 || nearby.places > 12 || nearby.places !== nearby.markers) {
@@ -432,7 +475,7 @@ jobs:
                 if (tourClusters !== 1) {
                   throw new Error(`Tour discovery clustering diverged: ${tourClusters}`);
                 }
-                await page.locator('#assistant-category-results [data-value="tour_volta_ilha"]').click();
+                await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="tour_volta_ilha"]').click();
                 await page.locator('#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 10000 });
                 await page.locator('#explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-intro-card').waitFor({
                   state: 'visible',

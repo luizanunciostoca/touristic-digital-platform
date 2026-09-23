@@ -494,9 +494,22 @@ function snapshotPresentation(
 function readVisiblePresentation(
   document: Document,
 ): AssistantPresentationSnapshot | null {
+  const contextualRail = document.querySelector<HTMLElement>(
+    '#assistant-category-rail[data-rail-stage]:not([data-rail-stage="menu"])',
+  );
+  const contextualButtons = contextualRail
+    ? Array.from(
+        contextualRail.querySelectorAll<HTMLButtonElement>(
+          '.assistant-option-btn[data-context-rail-option="true"]',
+        ),
+      )
+    : [];
+
   const flow = document.getElementById("assistant-category-results");
   const flowButtons =
-    flow && !flow.classList.contains("hidden")
+    flow &&
+    !flow.classList.contains("hidden") &&
+    flow.getAttribute("aria-hidden") !== "true"
       ? Array.from(
           flow.querySelectorAll<HTMLButtonElement>(".assistant-option-btn"),
         )
@@ -505,13 +518,22 @@ function readVisiblePresentation(
     document.querySelectorAll<HTMLElement>(
       "#assistant-messages .assistant-options",
     ),
-  ).filter((container) => !container.querySelector("[data-explore-category]"));
+  ).filter(
+    (container) =>
+      container.getAttribute("aria-hidden") !== "true" &&
+      !container.querySelector("[data-explore-category]"),
+  );
   const dynamicButtons = Array.from(
     dynamicContainers
       .at(-1)
       ?.querySelectorAll<HTMLButtonElement>(".assistant-option-btn") ?? [],
   );
-  const buttons = flowButtons.length > 0 ? flowButtons : dynamicButtons;
+  const buttons =
+    contextualButtons.length > 0
+      ? contextualButtons
+      : flowButtons.length > 0
+        ? flowButtons
+        : dynamicButtons;
   const visibleOptions = buttons.flatMap((button) => {
     const label = button.textContent?.trim();
     const value = button.dataset.value?.trim();

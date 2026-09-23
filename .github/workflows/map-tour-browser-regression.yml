@@ -401,9 +401,9 @@ jobs:
               timeout: 10000,
             });
             const state = await page.evaluate(() => {
-              const sheet = document.querySelector('#explore-flow-bottom-sheet');
-              const source = document.querySelector(
-                '#assistant-category-results[data-category="tours"][data-stage="filters"]',
+              const legacySheet = document.querySelector('#explore-flow-bottom-sheet');
+              const rail = document.querySelector(
+                '#assistant-category-rail[data-rail-stage="filters"][data-context-category="tours"]',
               );
               const markers = Array.from(
                 document.querySelectorAll('.morro-explore-marker[data-explore-category="tours"]'),
@@ -416,16 +416,43 @@ jobs:
                   '.morro-explore-marker[data-explore-category="tours"] .morro-explore-marker-label',
                 ),
               );
-              const filterButtons = source
-                ? Array.from(source.querySelectorAll('.assistant-flow-option'))
+              const filterButtons = rail
+                ? Array.from(rail.querySelectorAll('[data-context-rail-option="true"]'))
                 : [];
-              const sheetRect =
-                sheet instanceof HTMLElement ? sheet.getBoundingClientRect() : null;
+              const railRect =
+                rail instanceof HTMLElement ? rail.getBoundingClientRect() : null;
+              const legacySheetRect =
+                legacySheet instanceof HTMLElement
+                  ? legacySheet.getBoundingClientRect()
+                  : null;
+              const legacySheetStyle =
+                legacySheet instanceof HTMLElement
+                  ? getComputedStyle(legacySheet)
+                  : null;
               return {
-                viewport: { width: innerWidth, height: innerHeight },
-                sheet: sheetRect
-                  ? { width: sheetRect.width, height: sheetRect.height, bottom: sheetRect.bottom }
+                viewport: {
+                  width: innerWidth,
+                  height: innerHeight,
+                  scrollWidth: document.documentElement.scrollWidth,
+                },
+                rail: railRect
+                  ? {
+                      width: railRect.width,
+                      height: railRect.height,
+                      top: railRect.top,
+                      bottom: railRect.bottom,
+                    }
                   : null,
+                legacySheetVisible:
+                  legacySheet instanceof HTMLElement &&
+                  legacySheetStyle?.display !== 'none' &&
+                  legacySheetStyle?.visibility !== 'hidden' &&
+                  legacySheet.getAttribute('aria-hidden') !== 'true' &&
+                  Boolean(
+                    legacySheetRect &&
+                      legacySheetRect.width > 0 &&
+                      legacySheetRect.height > 0,
+                  ),
                 markerCount: markers.length,
                 clusterCounts: clusters.map(marker => marker.getAttribute('data-cluster-count')),
                 visibleLabels: labels.filter(label => {
@@ -434,22 +461,23 @@ jobs:
                 }).length,
                 filters: filterButtons.map(button => {
                   const rect = button.getBoundingClientRect();
-                  const style = getComputedStyle(button);
                   return {
                     width: rect.width,
                     height: rect.height,
-                    whiteSpace: style.whiteSpace,
-                    overflow: style.overflow,
-                    textOverflow: style.textOverflow,
+                    top: rect.top,
+                    bottom: rect.bottom,
                   };
                 }),
               };
             });
 
             if (
-              !state.sheet ||
-              state.sheet.height > state.viewport.height * 0.3 + 1 ||
-              state.sheet.bottom > state.viewport.height + 1
+              !state.rail ||
+              state.rail.height > state.viewport.height * 0.3 + 1 ||
+              state.rail.top < -1 ||
+              state.rail.bottom > state.viewport.height + 1 ||
+              state.viewport.scrollWidth > state.viewport.width + 1 ||
+              state.legacySheetVisible
             ) {
               throw new Error(`Tour discovery is not map-first: ${JSON.stringify(state)}`);
             }
@@ -467,10 +495,10 @@ jobs:
               state.filters.length < 3 ||
               state.filters.some(
                 filter =>
+                  filter.width < 44 ||
                   filter.height < 44 ||
-                  filter.whiteSpace !== 'nowrap' ||
-                  filter.overflow !== 'hidden' ||
-                  filter.textOverflow !== 'ellipsis',
+                  filter.top < 0 ||
+                  filter.bottom > state.viewport.height + 1,
               )
             ) {
               throw new Error(`Tour compact filters drift: ${JSON.stringify(state.filters)}`);
@@ -557,13 +585,14 @@ jobs:
               await page.locator('#assistantInput').focus();
             }
             await assistant.waitFor({ state: 'visible', timeout: 5000 });
-            await page.locator('#assistant-category-tours').waitFor({ state: 'attached', timeout: 10000 });
-            await page
-              .locator('#assistant-category-tours')
-              .evaluate((button) => button.click());
+            const toursCategory = page.locator(
+              '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="tours"]',
+            );
+            await toursCategory.waitFor({ state: 'visible', timeout: 10000 });
+            await toursCategory.click();
             await assertTourDiscoveryConvergence(page, evidenceName ?? 'runtime');
             const shortcut = page.locator(
-              `#assistant-category-results .assistant-flow-option[data-tour-id="${tourId}"]`,
+              `#assistant-category-rail[data-rail-stage="filters"] [data-tour-id="${tourId}"]`,
             );
             await shortcut.waitFor({ state: 'visible', timeout: 10000 });
             await shortcut.click();
@@ -784,8 +813,10 @@ jobs:
               state: 'attached',
               timeout: 10000,
             });
-            await page.locator('#assistant-category-results[data-category="tours"][data-stage="filters"]').waitFor({
-              state: 'attached',
+            await page.locator(
+              '#assistant-category-rail[data-rail-stage="filters"][data-context-category="tours"]',
+            ).waitFor({
+              state: 'visible',
               timeout: 10000,
             });
             const returnedToTours = await guidedSnapshot(page);

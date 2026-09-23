@@ -138,15 +138,18 @@ describe("UX V2 manual visual conformance authority", () => {
     expect(expandedCapture).toBeGreaterThan(stateCycle);
     expect(workflow).toContain("MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY");
     expect(workflow).toContain(
-      "initialPlaceGeometry.rect.height > viewport.height * 0.62",
+      "initialPlaceGeometry.rect.height > viewport.height * 0.5",
     );
     expect(workflow).toContain(
-      "initialPlaceGeometry.rect.top < viewport.height * 0.34",
+      "initialPlaceGeometry.rect.height < viewport.height * 0.28",
     );
     expect(workflow).toContain("MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY");
     expect(workflow).toContain(
-      "resultGeometry.width < resultGeometry.sourceWidth * 0.92",
+      '#assistant-category-rail[data-rail-stage="places"]',
     );
+    expect(workflow).toContain("resultGeometry.width < 44");
+    expect(workflow).toContain("resultGeometry.height < 44");
+    expect(workflow).toContain("resultGeometry.wordBreak === 'break-all'");
   });
 
   it("rejects Ticketing self-regression when the purchase hierarchy is not image-led", async () => {

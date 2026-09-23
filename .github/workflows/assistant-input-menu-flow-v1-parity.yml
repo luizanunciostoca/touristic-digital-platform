@@ -246,7 +246,7 @@ jobs:
               for (const [index, item] of categoryCases.entries()) {
                 await submit(item.message, index % 2 === 1);
                 await page.locator(
-                  `#assistant-category-results[data-category="${item.category}"][data-stage="filters"]`,
+                  `#assistant-category-rail[data-rail-stage="filters"][data-context-category="${item.category}"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
                 await waitStage(item.category, 'filters', item.count);
                 if (item.category === 'tours') {
@@ -260,18 +260,24 @@ jobs:
               }
 
               await submit('back to main menu');
-              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({
-                state: 'attached',
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="beaches"]',
+              ).waitFor({
+                state: 'visible',
                 timeout: 5000,
               });
               if (await page.locator('#assistant-category-results').count()) {
-                throw new Error('Typed back-to-main-menu left the category flow visible');
+                throw new Error('Typed back-to-main-menu left the category flow source mounted');
               }
 
               await submit('quero uma praia tranquila para crianças');
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="places"][data-context-category="beaches"]',
+              ).waitFor({ state: 'visible', timeout: 8000 });
               const familyState = await page.evaluate(() => ({
-                places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                places: document.querySelectorAll(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
+                ).length,
                 markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
               }));
               if (familyState.places < 1 || familyState.places >= 8 || familyState.places !== familyState.markers) {
@@ -279,10 +285,14 @@ jobs:
               }
 
               await submit('back to main menu');
-              await page.locator('.assistant-options [data-explore-category="beaches"]').waitFor({ state: 'attached', timeout: 5000 });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="beaches"]',
+              ).waitFor({ state: 'visible', timeout: 5000 });
 
               await submit('praias');
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({ state: 'visible' });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]',
+              ).waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
               const filtersText = await page.locator('#assistant-category-results-message').innerText();
               if (!filtersText.includes('Praias') || !filtersText.includes('8')) {
@@ -290,9 +300,13 @@ jobs:
               }
 
               await submit('surf', true);
-              await page.locator('#assistant-category-results[data-category="beaches"][data-stage="places"]').waitFor({ state: 'visible' });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="places"][data-context-category="beaches"]',
+              ).waitFor({ state: 'visible' });
               const surfState = await page.evaluate(() => ({
-                places: document.querySelectorAll('#assistant-category-results [data-location-name]').length,
+                places: document.querySelectorAll(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
+                ).length,
                 markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
               }));
               if (surfState.places < 1 || surfState.places !== surfState.markers) {
@@ -300,33 +314,31 @@ jobs:
               }
 
               await submit('back to filters');
-              await page.locator('#assistant-category-results[data-stage="filters"]').waitFor({ state: 'visible' });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]',
+              ).waitFor({ state: 'visible' });
               await waitStage('beaches', 'filters', 8);
 
               await submit('ver todas', true);
-              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible' });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
+              ).waitFor({ state: 'visible' });
               await waitStage('beaches', 'places', 8);
 
               await submit('Primeira Praia');
               await waitStage('beaches', 'detail', 1);
-              const placeSheet = page.locator('#place-bottom-sheet[aria-hidden="false"]');
-              if ((await placeSheet.getAttribute('data-sheet-state')) !== 'full') {
-                const handle = placeSheet.locator('.place-bottom-sheet-drag-handle');
-                await handle.focus();
-                await page.keyboard.press('End');
-                await page.locator('#place-bottom-sheet[data-sheet-state="full"]').waitFor({ state: 'visible', timeout: 3000 });
-              }
-              await placeSheet.locator('.place-bottom-sheet-overflow-summary').click();
-              await placeSheet.locator('.place-bottom-sheet-action[data-value="ver fotos"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="detail"][data-context-place="Primeira Praia"] [data-value="ver fotos"]',
+              ).waitFor({ state: 'visible', timeout: 8000 });
 
               await submit('fotos', true);
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
               const photoOwnership = await page.evaluate(() => ({
-                placePhotoAction: document.querySelectorAll(
-                  '#place-bottom-sheet[aria-hidden="false"] .place-bottom-sheet-action[data-value="ver fotos"]',
+                contextualPhotoAction: document.querySelectorAll(
+                  '#assistant-category-rail[data-rail-stage="detail"] [data-context-rail-option="true"][data-value="ver fotos"]',
                 ).length,
                 assistantPhotoDuplicates: document.querySelectorAll(
-                  '#assistant-messages:not(.hidden) .assistant-option-btn[data-value="ver fotos"]',
+                  '#assistant-messages:not(.hidden) .assistant-options:not([data-presentation="photo-actions"]) .assistant-option-btn[data-value="ver fotos"]',
                 ).length,
                 photoCarouselVisible: Array.from(
                   document.querySelectorAll('.assistant-photo-carousel'),
@@ -336,17 +348,19 @@ jobs:
                 }),
               }));
               if (
-                photoOwnership.placePhotoAction !== 1 ||
+                photoOwnership.contextualPhotoAction !== 1 ||
                 photoOwnership.assistantPhotoDuplicates !== 0 ||
-                photoOwnership.photoCarouselVisible
+                !photoOwnership.photoCarouselVisible
               ) {
                 throw new Error(
-                  `Typed photos violated V2 Place action ownership: ${JSON.stringify(photoOwnership)}`,
+                  `Typed photos violated contextual Place action ownership: ${JSON.stringify(photoOwnership)}`,
                 );
               }
 
               await submit('voltar');
-              await page.locator('#assistant-category-results[data-stage="places"] [data-location-name="Primeira Praia"]').waitFor({ state: 'visible', timeout: 8000 });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
+              ).waitFor({ state: 'visible', timeout: 8000 });
               await waitStage('beaches', 'places', 8);
 
               await submit('Primeira Praia');
@@ -355,12 +369,16 @@ jobs:
               await page.locator('.assistant-photo-carousel').waitFor({ state: 'attached', timeout: 8000 });
 
               await submit('restaurantes', true);
-              await page.locator('#assistant-category-results[data-category="restaurants"][data-stage="filters"]').waitFor({ state: 'visible' });
+              await page.locator(
+                '#assistant-category-rail[data-rail-stage="filters"][data-context-category="restaurants"]',
+              ).waitFor({ state: 'visible' });
               await waitStage('restaurants', 'filters', 45);
               const cleanupState = await page.evaluate(() => ({
                 photos: document.querySelectorAll('.assistant-photo-carousel').length,
                 stalePhotoButtons: Array.from(
-                  document.querySelectorAll('.assistant-options:not(#assistant-category-results) .assistant-option-btn'),
+                  document.querySelectorAll(
+                    '#assistant-messages .assistant-options:not(#assistant-category-results) .assistant-option-btn',
+                  ),
                 ).filter(button => button.getAttribute('data-value') === 'ver fotos').length,
               }));
               if (cleanupState.photos !== 0 || cleanupState.stalePhotoButtons !== 0) {

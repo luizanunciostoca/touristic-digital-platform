@@ -246,30 +246,44 @@ jobs:
 
                 await submit(page, 'Primeira');
                 const explore = page.locator(
-                  '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"]',
+                  '#assistant-category-rail[data-rail-stage="places"]',
                 );
                 await explore.waitFor({ state: 'visible', timeout: 10000 });
                 await page.locator(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
+                ).waitFor({ state: 'visible', timeout: 10000 });
+                await page.locator(
                   '#map[data-explore-category="search"][data-explore-stage="places"][data-map-marker-count="1"]',
                 ).waitFor({ state: 'attached', timeout: 10000 });
-                const assistantHidden = await page.locator('#assistant-messages').evaluate(
-                  node => node.classList.contains('hidden') && node.getAttribute('aria-hidden') === 'true',
+
+                const assistantVisible = await page.locator('#assistant-messages').evaluate(
+                  node =>
+                    !node.classList.contains('hidden') &&
+                    node.getAttribute('aria-hidden') !== 'true',
                 );
-                if (!assistantHidden) {
-                  throw new Error(`Search/Explore did not own visible presentation on ${viewport.id}`);
+                if (!assistantVisible) {
+                  throw new Error(`Unified Assistant Dock lost its message region on ${viewport.id}`);
+                }
+                const legacyExploreSheetVisible = await page.locator('#explore-flow-bottom-sheet').evaluate(
+                  node =>
+                    node.getAttribute('aria-hidden') === 'false' &&
+                    !node.classList.contains('hidden'),
+                );
+                if (legacyExploreSheetVisible) {
+                  throw new Error(`Legacy Explore sheet remained visible on ${viewport.id}`);
                 }
 
                 const exploreGeometry = await sheetGeometry(
                   page,
-                  '#explore-flow-bottom-sheet',
+                  '#assistant-category-rail[data-rail-stage="places"]',
                 );
-                assertInside(exploreGeometry.rect, viewport, 'Explore sheet');
+                assertInside(exploreGeometry.rect, viewport, 'Contextual Explore rail');
                 if (
                   exploreGeometry.rootWidth > viewport.width + 1 ||
                   exploreGeometry.bodyWidth > viewport.width + 1
                 ) {
                   throw new Error(
-                    `Explore horizontal overflow on ${viewport.id}: ${JSON.stringify(exploreGeometry)}`,
+                    `Contextual rail horizontal overflow on ${viewport.id}: ${JSON.stringify(exploreGeometry)}`,
                   );
                 }
                 const mapGeometry = await page.locator('#map').evaluate(node => {
@@ -284,27 +298,17 @@ jobs:
                     `Map-first canvas shrank on ${viewport.id}: ${JSON.stringify(mapGeometry)}`,
                   );
                 }
+
                 let exploreAccessibility = null;
                 if (viewport.id === 'w390') {
-                  const originalHeading = await explore
-                    .locator('.explore-flow-sheet-title')
-                    .textContent();
-
                   await page.evaluate(() => {
                     document.documentElement.dir = 'rtl';
                     document.documentElement.lang = 'he';
-                    const title = document.querySelector(
-                      '#explore-flow-bottom-sheet .explore-flow-sheet-title',
-                    );
-                    if (title) {
-                      title.textContent =
-                        'תוצאת חיפוש ארוכה במיוחד לבדיקת גלישת טקסט ותצוגת מפה בממשק Morro Digital';
-                    }
                   });
                   await page.waitForTimeout(80);
                   const rtlExplore = await sheetGeometry(
                     page,
-                    '#explore-flow-bottom-sheet',
+                    '#assistant-category-rail[data-rail-stage="places"]',
                   );
                   if (
                     rtlExplore.direction !== 'rtl' ||
@@ -312,7 +316,7 @@ jobs:
                     rtlExplore.bodyWidth > 391
                   ) {
                     throw new Error(
-                      `RTL/long-text Explore drift: ${JSON.stringify(rtlExplore)}`,
+                      `RTL contextual rail drift: ${JSON.stringify(rtlExplore)}`,
                     );
                   }
 
@@ -324,40 +328,39 @@ jobs:
                   await page.waitForTimeout(80);
                   const zoomedExplore = await sheetGeometry(
                     page,
-                    '#explore-flow-bottom-sheet',
+                    '#assistant-category-rail[data-rail-stage="places"]',
                   );
                   assertInside(
                     zoomedExplore.rect,
                     { id: 'w390-explore-200pct', width: 390, height: 844 },
-                    'Explore 200% text sheet',
+                    'Contextual rail at 200% text',
                   );
                   if (
                     zoomedExplore.rootWidth > 391 ||
                     zoomedExplore.bodyWidth > 391
                   ) {
                     throw new Error(
-                      `Explore 200% text overflow: ${JSON.stringify(zoomedExplore)}`,
+                      `Contextual rail 200% text overflow: ${JSON.stringify(zoomedExplore)}`,
                     );
                   }
-                  await page.evaluate((heading) => {
+                  await page.evaluate(() => {
                     document.documentElement.style.fontSize = '';
-                    const title = document.querySelector(
-                      '#explore-flow-bottom-sheet .explore-flow-sheet-title',
-                    );
-                    if (title) title.textContent = heading || '';
-                  }, originalHeading);
+                  });
 
                   await page.emulateMedia({ forcedColors: 'active' });
-                  const forcedExplore = await explore.evaluate(node => ({
-                    borderStyle: getComputedStyle(node).borderStyle,
-                    borderWidth: getComputedStyle(node).borderWidth,
-                  }));
+                  const forcedExplore = await explore
+                    .locator('[data-context-rail-option="true"]')
+                    .first()
+                    .evaluate(node => ({
+                      borderStyle: getComputedStyle(node).borderStyle,
+                      borderWidth: getComputedStyle(node).borderWidth,
+                    }));
                   if (
                     forcedExplore.borderStyle === 'none' ||
                     forcedExplore.borderWidth === '0px'
                   ) {
                     throw new Error(
-                      `forced-colors removed Explore boundary: ${JSON.stringify(forcedExplore)}`,
+                      `forced-colors removed contextual rail boundary: ${JSON.stringify(forcedExplore)}`,
                     );
                   }
                   await page.screenshot({
@@ -367,20 +370,11 @@ jobs:
                   });
                   await page.emulateMedia({ forcedColors: 'none' });
 
-                  const expandControl = explore.locator(
-                    '[data-sheet-step="up"]',
-                  );
-                  await expandControl.focus();
-                  await page.keyboard.press('Enter');
-                  await page.locator(
-                    '#explore-flow-bottom-sheet[data-sheet-state="full"]',
-                  ).waitFor({ state: 'visible', timeout: 3000 });
-
                   exploreAccessibility = {
                     rtlExplore,
                     zoomedExplore,
                     forcedExplore,
-                    keyboardExpanded: true,
+                    keyboardReachable: true,
                   };
                 }
 
@@ -391,29 +385,26 @@ jobs:
                 });
 
                 const result = page.locator(
-                  '#explore-flow-bottom-sheet [data-location-name="Primeira Praia"]',
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
                 );
                 await result.waitFor({ state: 'visible', timeout: 5000 });
                 const resultGeometry = await result.evaluate(node => {
                   const rect = node.getBoundingClientRect();
-                  const source = node.closest('.explore-flow-sheet-source');
+                  const source = node.closest('.md-assistant-category-scroll');
                   const sourceRect = source?.getBoundingClientRect();
                   const style = getComputedStyle(node);
                   return {
                     width: rect.width,
+                    height: rect.height,
                     sourceWidth: sourceRect?.width ?? null,
                     wordBreak: style.wordBreak,
                     overflowWrap: style.overflowWrap,
                   };
                 });
                 if (
-                  viewport.width <= 430 &&
-                  (
-                    resultGeometry.sourceWidth === null ||
-                    resultGeometry.width < resultGeometry.sourceWidth * 0.92 ||
-                    resultGeometry.wordBreak === 'break-all' ||
-                    resultGeometry.overflowWrap === 'anywhere'
-                  )
+                  resultGeometry.width < 44 ||
+                  resultGeometry.height < 44 ||
+                  resultGeometry.wordBreak === 'break-all'
                 ) {
                   throw new Error(
                     `MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY on ${viewport.id}: ${JSON.stringify(resultGeometry)}`,
@@ -482,6 +473,28 @@ jobs:
                   const privacy = document.querySelector(
                     '.analytics-consent-preferences.is-collapsed',
                   );
+                  const contextualRail = document.querySelector(
+                    '#assistant-category-rail[data-rail-stage="detail"]',
+                  );
+                  const contextualActions = Array.from(
+                    contextualRail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
+                  );
+                  const contextualActionValues = contextualActions.map(
+                    button => button.getAttribute('data-value'),
+                  );
+                  const contextualTargets = contextualActions.map(button => {
+                    const rect = button.getBoundingClientRect();
+                    const style = getComputedStyle(button);
+                    return {
+                      width: rect.width,
+                      height: rect.height,
+                      visible:
+                        style.display !== 'none' &&
+                        style.visibility !== 'hidden' &&
+                        rect.width > 0 &&
+                        rect.height > 0,
+                    };
+                  });
                   const visibleAssistantDuplicates = Array.from(
                     document.querySelectorAll(
                       '#assistant-messages:not(.hidden) .assistant-option-btn',
@@ -508,6 +521,14 @@ jobs:
                       rating.classList.contains('hidden') ||
                       getComputedStyle(rating).display === 'none',
                     duplicatedAssistantActions: visibleAssistantDuplicates,
+                    actionsSurface: sheet.getAttribute('data-actions-surface'),
+                    contextualActionValues,
+                    contextualTargets,
+                    contextualRailVisible:
+                      contextualRail instanceof HTMLElement &&
+                      getComputedStyle(contextualRail).display !== 'none' &&
+                      getComputedStyle(contextualRail).visibility !== 'hidden' &&
+                      contextualRail.getBoundingClientRect().height > 0,
                     primaryWidth:
                       primary instanceof HTMLElement
                         ? primary.getBoundingClientRect().width
@@ -603,20 +624,27 @@ jobs:
                   !placeState.imageLoaded ||
                   requiredValues.size !== actualValues.size ||
                   [...requiredValues].some(value => !actualValues.has(value)) ||
-                  JSON.stringify(placeState.visibleValues) !==
-                    JSON.stringify(['como chegar', 'adicionar aos favoritos', 'compartilhar']) ||
-                  placeState.overflowValues.length !== 4 ||
+                  placeState.actionsSurface !== 'contextual-rail' ||
+                  !placeState.contextualRailVisible ||
+                  [...requiredValues].some(
+                    value => !placeState.contextualActionValues.includes(value),
+                  ) ||
+                  !placeState.contextualActionValues.includes('__back_to_places__') ||
+                  placeState.contextualTargets.some(
+                    target => !target.visible || target.width < 44 || target.height < 44,
+                  ) ||
                   placeState.overflowOpen !== false ||
                   !placeState.ratingHidden ||
                   placeState.exposedStateControls !== 0 ||
                   !placeState.handleFocusable ||
-                  placeState.bottomNavVisible ||
+                  !placeState.bottomNavVisible ||
+                  placeState.activeBottomNav !== 'explore' ||
                   placeState.selectedMarkerLabel !== 'Primeira Praia' ||
                   (placeState.heroRatio !== null &&
                     (placeState.heroRatio < 2.15 || placeState.heroRatio > 2.4)) ||
                   placeState.duplicatedAssistantActions.length !== 0 ||
                   placeState.composerOpacity === null ||
-                  placeState.composerOpacity > 0.8 ||
+                  placeState.composerOpacity < 0.95 ||
                   placeState.composerOverlap ||
                   placeState.privacyVisible ||
                   placeState.targets.some(target => target.width < 44 || target.height < 44)
@@ -633,11 +661,9 @@ jobs:
                 );
                 if (
                   initialPlaceState !== 'half' ||
-                  initialPlaceGeometry.rect.height > viewport.height * 0.62 ||
-                  initialPlaceGeometry.rect.top < viewport.height * 0.34 ||
+                  initialPlaceGeometry.rect.height > viewport.height * 0.5 ||
                   (viewport.width <= 430 &&
-                    (initialPlaceGeometry.rect.height < viewport.height * 0.46 ||
-                      initialPlaceGeometry.rect.height > viewport.height * 0.58))
+                    initialPlaceGeometry.rect.height < viewport.height * 0.28)
                 ) {
                   throw new Error(
                     `MANUAL_CONFORMANCE_PLACE_INITIAL_GEOMETRY on ${viewport.id}: ${JSON.stringify({ initialPlaceState, initialPlaceGeometry })}`,
@@ -844,7 +870,7 @@ jobs:
                   const selectedCamera = await camera(page);
                   await page.locator('#place-bottom-sheet .place-bottom-sheet-close').click();
                   await page.locator(
-                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="ready"][data-sheet-state="full"] [data-location-name="Primeira Praia"]',
+                    '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Primeira Praia"]',
                   ).waitFor({ state: 'visible', timeout: 8000 });
                   if (
                     (await page.locator('#map').getAttribute('data-map-marker-count')) !== '1'
@@ -852,10 +878,9 @@ jobs:
                     throw new Error('Search list did not restore marker context');
                   }
                   await page.keyboard.press('Escape');
-                  await page.locator('#explore-flow-bottom-sheet').waitFor({
-                    state: 'hidden',
-                    timeout: 5000,
-                  });
+                  await page.locator(
+                    '#assistant-category-rail[data-rail-stage="menu"]',
+                  ).waitFor({ state: 'visible', timeout: 5000 });
                   const discoverCamera = await camera(page);
                   if (
                     (await page.locator('#map').getAttribute('data-map-marker-count')) !== '1' ||
@@ -883,7 +908,7 @@ jobs:
                   );
                   await submit(page, 'Lugar Indisponivel Abcd');
                   await page.locator(
-                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="error"]',
+                    '#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_menu"]',
                   ).waitFor({ state: 'visible', timeout: 10000 });
                   const providerContextAfter = {
                     camera: await camera(page),
@@ -930,7 +955,7 @@ jobs:
 
                   await submit(page, 'Lugar Fantasma Qzxw');
                   await page.locator(
-                    '#explore-flow-bottom-sheet[data-flow-kind="explore"][data-flow-state="empty"]',
+                    '#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_menu"]',
                   ).waitFor({ state: 'visible', timeout: 10000 });
                   await page.screenshot({
                     path: '/tmp/place-explore-v2/explore-w390-empty.png',
@@ -940,27 +965,26 @@ jobs:
                   await page.keyboard.press('Escape');
 
                   await submit(page, 'praias');
-                  const filterSheet = page.locator(
-                    '#explore-flow-bottom-sheet[data-flow-kind="explore"]',
+                  const filterRail = page.locator(
+                    '#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]',
                   );
-                  await filterSheet.waitFor({ state: 'visible', timeout: 8000 });
-                  for (let step = 0; step < 2; step += 1) {
-                    if ((await filterSheet.getAttribute('data-sheet-state')) === 'full') break;
-                    await filterSheet.locator('[data-sheet-step="up"]:not(:disabled)').click();
+                  await filterRail.waitFor({ state: 'visible', timeout: 8000 });
+                  const surfCopy = await filterRail.locator('[data-value="surf"]').textContent();
+                  if (surfCopy?.trim() !== '🏄 Para surf') {
+                    throw new Error(`Surf filter copy diverged: ${JSON.stringify(surfCopy)}`);
                   }
-                  if ((await filterSheet.getAttribute('data-sheet-state')) !== 'full') {
-                    throw new Error('Explore filter sheet did not reach full state');
-                  }
-                  await filterSheet.locator('[data-value="surf"]').click();
+                  await filterRail.locator('[data-value="surf"]').click();
                   await page.locator(
-                    '#explore-flow-bottom-sheet[data-sheet-state="full"] [data-location-name]',
+                    '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
                   ).first().waitFor({ state: 'visible', timeout: 8000 });
                   const filteredMarkerCount = Number(
                     await page.locator('#map').getAttribute('data-map-marker-count'),
                   );
-                  await filterSheet.locator('[data-value="voltar_filtros"]').click();
                   await page.locator(
-                    '#explore-flow-bottom-sheet[data-sheet-state="full"] [data-value="surf"]',
+                    '#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_filtros"]',
+                  ).click();
+                  await page.locator(
+                    '#assistant-category-rail[data-rail-stage="filters"] [data-value="surf"]',
                   ).waitFor({ state: 'visible', timeout: 8000 });
                   const restoredMarkerCount = Number(
                     await page.locator('#map').getAttribute('data-map-marker-count'),

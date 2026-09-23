@@ -336,6 +336,23 @@ function semanticButtonScore(
 }
 
 function activeFlowButtons(document: Document): readonly HTMLButtonElement[] {
+  const canQuery =
+    typeof (document as Document & { querySelector?: unknown })
+      .querySelector === "function";
+  const contextualRail = canQuery
+    ? document.querySelector<HTMLElement>(
+        '#assistant-category-rail[data-rail-stage]:not([data-rail-stage="menu"])',
+      )
+    : null;
+  if (contextualRail && isElementVisible(contextualRail)) {
+    const contextualButtons = Array.from(
+      contextualRail.querySelectorAll<HTMLButtonElement>(
+        '.assistant-option-btn[data-context-rail-option="true"]',
+      ),
+    ).filter((button) => !button.disabled);
+    if (contextualButtons.length > 0) return contextualButtons;
+  }
+
   const flow = document.getElementById("assistant-category-results");
   if (flow && isElementVisible(flow)) {
     return Array.from(

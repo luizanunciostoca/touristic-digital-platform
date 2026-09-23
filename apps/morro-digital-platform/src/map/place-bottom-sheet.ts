@@ -21,6 +21,7 @@ export interface PlaceBottomSheetPresentation {
   readonly locale: AssistantLocale;
   readonly actions: readonly V1ExplorePlaceActionOption[];
   readonly primaryAction: PlacePrimaryAction | null;
+  readonly actionsInContextualRail?: boolean;
   readonly description?: string;
   readonly rating?: Readonly<{ value: number; count?: number }>;
   readonly status?: PlaceBottomSheetStatus;
@@ -398,6 +399,7 @@ export function installPlaceBottomSheet(
 
   const render = (next: PlaceBottomSheetPresentation): void => {
     const localeCopy = copy[next.locale];
+    const actionsInContextualRail = next.actionsInContextualRail === true;
     close.setAttribute("aria-label", localeCopy.close);
     close.title = localeCopy.close;
     updateHandleCopy(next.locale);
@@ -505,7 +507,7 @@ export function installPlaceBottomSheet(
     }
     overflow.classList.toggle(
       "hidden",
-      overflowActions.childElementCount === 0,
+      actionsInContextualRail || overflowActions.childElementCount === 0,
     );
 
     const shareButton = document.createElement("button");
@@ -575,6 +577,14 @@ export function installPlaceBottomSheet(
       primary.appendChild(button);
     }
 
+    actions.classList.toggle("hidden", actionsInContextualRail);
+    primary.classList.toggle("hidden", actionsInContextualRail);
+    if (actionsInContextualRail) {
+      sheet.dataset.actionsSurface = "contextual-rail";
+    } else {
+      delete sheet.dataset.actionsSurface;
+    }
+
     compatibilityValues = new Set([
       ...next.actions.map(({ value }) => value),
       ...(next.primaryAction ? [next.primaryAction.value] : []),
@@ -582,11 +592,13 @@ export function installPlaceBottomSheet(
     sheet.classList.remove("hidden");
     sheet.setAttribute("aria-hidden", "false");
     queueMicrotask(syncCompatibilitySource);
-    queueMicrotask(() => {
-      if (sheet.getAttribute("aria-hidden") === "false") {
-        sheet.focus({ preventScroll: true });
-      }
-    });
+    if (!actionsInContextualRail) {
+      queueMicrotask(() => {
+        if (sheet.getAttribute("aria-hidden") === "false") {
+          sheet.focus({ preventScroll: true });
+        }
+      });
+    }
   };
 
   close.addEventListener("click", () => options.onDismiss());
@@ -607,6 +619,7 @@ export function installPlaceBottomSheet(
       syncCompatibilitySource();
       delete sheet.dataset.placeName;
       delete sheet.dataset.placeCategory;
+      delete sheet.dataset.actionsSurface;
     },
     setState,
     getState(): PlaceBottomSheetState {

@@ -22,13 +22,19 @@ import {
   createV1ImmersiveTourController,
   type V1ImmersiveTourController,
 } from "./immersive-tour-v1-controller.js";
-import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
+import {
+  getV1ExplorePlaceActionOptions,
+  type V1ExplorePlaceActionOption,
+} from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 import {
   installExploreFlowBottomSheet,
   type ExploreFlowBottomSheetController,
 } from "./explore-flow-bottom-sheet.js";
-import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
+import {
+  resolvePlacePrimaryAction,
+  type PlacePrimaryAction,
+} from "./place-commerce-capability.js";
 import {
   installPlaceBottomSheet,
   type PlaceBottomSheetController,
@@ -478,6 +484,110 @@ export function installExploreLocationsControl({
     normalizeAssistantVoiceLanguage(document.documentElement.lang);
   const currentCategories = (): readonly ExploreLocationsCategory[] =>
     getExploreLocationsCategories(currentLocale());
+
+  const contextualRail = document.getElementById("assistant-category-rail");
+  const contextualRailScroll =
+    contextualRail?.querySelector<HTMLElement>(
+      ".md-assistant-category-scroll",
+    ) ?? null;
+  const categoryRailTemplate = contextualRailScroll?.cloneNode(
+    true,
+  ) as HTMLElement | null;
+
+  const restoreCategoryRail = (): HTMLButtonElement | null => {
+    if (!contextualRail || !contextualRailScroll || !categoryRailTemplate) {
+      return null;
+    }
+    contextualRailScroll.replaceChildren(
+      ...Array.from(categoryRailTemplate.childNodes, (node) =>
+        node.cloneNode(true),
+      ),
+    );
+    contextualRail.dataset.railStage = "menu";
+    contextualRail.removeAttribute("data-context-category");
+    contextualRail.removeAttribute("data-context-place");
+    contextualRail.setAttribute("aria-label", "Categorias do assistente");
+
+    for (const category of currentCategories()) {
+      const button = contextualRailScroll.querySelector<HTMLButtonElement>(
+        `[data-assistant-category="${category.value}"]`,
+      );
+      const label = button?.querySelector<HTMLElement>(
+        ".md-assistant-category-label",
+      );
+      if (label) label.textContent = category.label;
+      button?.setAttribute("aria-pressed", "false");
+    }
+    contextualRailScroll.scrollLeft = 0;
+    return contextualRailScroll.querySelector<HTMLButtonElement>(
+      "[data-assistant-category]",
+    );
+  };
+
+  const renderContextualRail = <
+    T extends Readonly<{
+      label: string;
+      value: string;
+      action?: string;
+      disabled?: boolean;
+      location?: ExploreMapLocation;
+      tourId?: string;
+    }>,
+  >(
+    stage: ExploreStage,
+    accessibleLabel: string,
+    options: readonly T[],
+    onSelect: (option: T) => void,
+  ): HTMLButtonElement | null => {
+    if (!contextualRail || !contextualRailScroll) return null;
+
+    contextualRail.dataset.railStage = stage;
+    if (activeCategory?.value) {
+      contextualRail.dataset.contextCategory = activeCategory.value;
+    } else {
+      contextualRail.removeAttribute("data-context-category");
+    }
+    if (activePlace) {
+      contextualRail.dataset.contextPlace = activePlace;
+    } else {
+      contextualRail.removeAttribute("data-context-place");
+    }
+    contextualRail.setAttribute("aria-label", accessibleLabel);
+
+    const buttons: HTMLButtonElement[] = [];
+    for (const option of options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className =
+        "md-assistant-category-chip md-assistant-context-chip assistant-option-btn";
+      button.dataset.contextRailOption = "true";
+      button.dataset.value = option.value;
+      button.dataset.exploreAction = option.action ?? "command";
+      if (option.location) {
+        button.dataset.locationName = option.location.name;
+        button.dataset.locationCategory = option.location.category;
+      }
+      if (option.tourId) button.dataset.tourId = option.tourId;
+      button.disabled = option.disabled === true;
+      button.setAttribute("aria-disabled", String(button.disabled));
+
+      const label = document.createElement("span");
+      label.className =
+        "md-assistant-category-label md-assistant-context-label";
+      label.textContent = option.label;
+      button.appendChild(label);
+      button.addEventListener("click", (event) => {
+        event.stopImmediatePropagation();
+        if (!button.disabled) onSelect(option);
+      });
+      buttons.push(button);
+    }
+
+    contextualRailScroll.replaceChildren(...buttons);
+    contextualRailScroll.scrollLeft = 0;
+    return buttons[0] ?? null;
+  };
+
   let exploreRuntimeStatusDescriptor:
     ExploreRuntimeStatusDescriptor | undefined;
 
@@ -761,15 +871,21 @@ export function installExploreLocationsControl({
     area.appendChild(container);
     area.scrollTop = area.scrollHeight;
 
-    if (
-      exploreFlowBottomSheet &&
-      (activeStage === "filters" ||
-        activeStage === "places" ||
-        activeStage === "tour")
-    ) {
-      const kind = activeStage === "tour" ? "tour" : "explore";
+    let contextualFirst: HTMLButtonElement | null = null;
+    if (activeStage === "filters" || activeStage === "places") {
+      container.classList.add("md-contextual-rail-source");
+      container.setAttribute("aria-hidden", "true");
+      container.setAttribute("inert", "");
+      exploreFlowBottomSheet?.hide();
+      contextualFirst = renderContextualRail(
+        activeStage,
+        text,
+        options,
+        onSelect,
+      );
+    } else if (exploreFlowBottomSheet && activeStage === "tour") {
       exploreFlowBottomSheet.show({
-        kind,
+        kind: "tour",
         accessibleLabel: text,
         source: container,
         messageSource: message,
@@ -777,26 +893,24 @@ export function installExploreLocationsControl({
         ...(statusTextOverride ? { statusText: statusTextOverride } : {}),
         ...(content ? { content } : {}),
         onDismiss() {
-          if (activeStage === "tour") {
-            const exitOption = options.find(
-              (option) =>
-                option.value === "__tour_exit__" ||
-                option.value === "__tour_cancel__",
-            );
-            if (exitOption) {
-              onSelect(exitOption);
-              return;
-            }
+          const exitOption = options.find(
+            (option) =>
+              option.value === "__tour_exit__" ||
+              option.value === "__tour_cancel__",
+          );
+          if (exitOption) {
+            onSelect(exitOption);
+            return;
           }
           backToMenu();
         },
       });
-      if (kind === "explore" && activeCategory?.value !== "tours") {
-        requestAssistantClose(document);
-      }
     }
 
-    return container.querySelector<HTMLButtonElement>(".assistant-flow-option");
+    return (
+      contextualFirst ??
+      container.querySelector<HTMLButtonElement>(".assistant-flow-option")
+    );
   };
 
   exploreFlowBottomSheet = installExploreFlowBottomSheet({ document });
@@ -809,7 +923,7 @@ export function installExploreLocationsControl({
 
   const backToMenu = (restoreFocus = true): void => {
     interactionGeneration += 1;
-    const previousTrigger = activeCategoryButton;
+    const previousCategoryValue = activeCategory?.value;
     if (activeStage === "tour") {
       immersiveTourController?.destroy();
       clearTourPresentation(document);
@@ -838,10 +952,198 @@ export function installExploreLocationsControl({
       Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
       undefined,
     );
+    restoreCategoryRail();
     emitStateChange();
-    if (restoreFocus) {
-      previousTrigger?.focus();
+    if (restoreFocus && previousCategoryValue) {
+      contextualRailScroll
+        ?.querySelector<HTMLButtonElement>(
+          `[data-assistant-category="${previousCategoryValue}"]`,
+        )
+        ?.focus();
     }
+  };
+
+  const shareActivePlace = (): void => {
+    const location = activePlaceLocation;
+    const view = document.defaultView;
+    if (!location || !view) return;
+
+    const shareText = [location.name, location.area]
+      .filter(Boolean)
+      .join(" · ");
+    const shareUrl = view.location.href;
+    const navigator = view.navigator as Navigator & {
+      share?: (data: ShareData) => Promise<void>;
+      clipboard?: Clipboard;
+    };
+
+    void (async () => {
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: location.name,
+            text: shareText,
+            ...(shareUrl ? { url: shareUrl } : {}),
+          });
+          return;
+        }
+        if (navigator.clipboard && shareUrl) {
+          await navigator.clipboard.writeText(
+            [shareText, shareUrl].filter(Boolean).join("\n"),
+          );
+        }
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+      }
+    })();
+  };
+
+  const handlePlaceAction = (value: string): void => {
+    const normalized = normalizeSearchText(value);
+    const location = activePlaceLocation;
+    if (normalized === "compartilhar" || normalized === "share") {
+      shareActivePlace();
+      return;
+    }
+    if (
+      location &&
+      ["como chegar", "directions", "localizacao", "location"].includes(
+        normalized,
+      )
+    ) {
+      document.dispatchEvent(
+        new CustomEvent("morro:navigation-requested", {
+          detail: {
+            destination: {
+              name: location.name,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              category: location.category,
+            },
+            source: "place-v2",
+          },
+        }),
+      );
+      return;
+    }
+    const locationCategory = activePlaceLocation?.category;
+    const locale = currentLocale();
+    const detail =
+      normalized === "ver fotos" && locationCategory
+        ? {
+            value,
+            optionsOverride: [
+              {
+                label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
+                value: `[sub]${locationCategory}`,
+              },
+            ],
+          }
+        : {
+            value,
+            suppressOptionValues: activePlaceActionValues,
+          };
+    document.dispatchEvent(
+      new CustomEvent("morro:assistant-option-selected", { detail }),
+    );
+    requestAssistantOpen(document);
+  };
+
+  const renderPlaceActionsRail = (
+    placeActions: readonly V1ExplorePlaceActionOption[],
+    primaryAction: PlacePrimaryAction | null,
+    placeName: string,
+    locale: AssistantLocale,
+  ): HTMLButtonElement | null => {
+    const options: Array<{
+      label: string;
+      value: string;
+      action: string;
+      disabled?: boolean;
+    }> = [];
+    if (primaryAction) {
+      options.push({
+        label: primaryAction.label,
+        value: primaryAction.value,
+        action: "primary",
+        ...(primaryAction.disabled === true ? { disabled: true } : {}),
+      });
+    }
+
+    const normalizedValues = new Set(
+      placeActions.map((action) => normalizeSearchText(action.value)),
+    );
+    if (!normalizedValues.has("como chegar")) {
+      options.push({
+        label: `📍 ${getV1ExploreLabel("directions", locale)}`,
+        value: "como chegar",
+        action: "command",
+      });
+    }
+    for (const action of placeActions) {
+      options.push({
+        label: action.label,
+        value: action.value,
+        action: action.action,
+      });
+    }
+    if (!normalizedValues.has("adicionar aos favoritos")) {
+      options.push({
+        label: `❤️ ${getV1ExploreLabel("favorite", locale)}`,
+        value: "adicionar aos favoritos",
+        action: "command",
+      });
+    }
+    options.push(
+      {
+        label: `🔗 ${getV1ExploreLabel("share", locale)}`,
+        value: "compartilhar",
+        action: "share",
+      },
+      {
+        label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
+        value: "__back_to_places__",
+        action: "back-places",
+      },
+    );
+
+    activePlaceActionValues = Object.freeze(
+      Array.from(
+        new Set([
+          ...activePlaceActionValues,
+          ...options.map(({ value }) => value),
+        ]),
+      ),
+    );
+
+    const previousValue =
+      document.activeElement instanceof HTMLButtonElement &&
+      document.activeElement.dataset.contextRailOption === "true"
+        ? document.activeElement.dataset.value
+        : undefined;
+    const first = renderContextualRail(
+      "detail",
+      `Ações para ${placeName}`,
+      options,
+      (option) => {
+        if (option.action === "back-places") {
+          returnFromPlaceDetail();
+          return;
+        }
+        handlePlaceAction(option.value);
+      },
+    );
+    if (previousValue) {
+      Array.from(
+        contextualRailScroll?.querySelectorAll<HTMLButtonElement>(
+          '[data-context-rail-option="true"]',
+        ) ?? [],
+      )
+        .find((button) => button.dataset.value === previousValue)
+        ?.focus();
+    }
+    return first;
   };
 
   const selectLocation = async (
@@ -888,16 +1190,24 @@ export function installExploreLocationsControl({
       ),
     );
 
+    const firstPlaceAction = renderPlaceActionsRail(
+      placeActions,
+      null,
+      presentationLocation.name,
+      locale,
+    );
     placeBottomSheet?.show({
       location: presentationLocation,
       categoryLabel,
       locale,
       actions: placeActions,
       primaryAction: null,
+      actionsInContextualRail: true,
       ...(description ? { description } : {}),
       status: "loading",
     });
     requestAssistantClose(document);
+    firstPlaceAction?.focus();
 
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
@@ -921,12 +1231,19 @@ export function installExploreLocationsControl({
 
     const mapFailed =
       document.getElementById("map")?.dataset.exploreState === "error";
+    renderPlaceActionsRail(
+      placeActions,
+      primaryAction,
+      presentationLocation.name,
+      locale,
+    );
     placeBottomSheet?.show({
       location: presentationLocation,
       categoryLabel,
       locale,
       actions: placeActions,
       primaryAction,
+      actionsInContextualRail: true,
       ...(description ? { description } : {}),
       status: mapFailed ? "error" : "ready",
       ...(mapFailed
@@ -1013,21 +1330,37 @@ export function installExploreLocationsControl({
     activeStage = "places";
     clearExploreRuntimeStatus();
 
-    const options = locations.map((location) =>
+    const options: readonly Readonly<{
+      label: string;
+      value: string;
+      action: "location" | "back-menu";
+      location?: ExploreSearchResult;
+    }>[] = [
+      ...locations.map((location) =>
+        Object.freeze({
+          label: location.area
+            ? `${location.name} · ${location.area}`
+            : location.name,
+          value: createExploreLocationDetailsCommand(location.name),
+          action: "location" as const,
+          location,
+        }),
+      ),
       Object.freeze({
-        label: location.area
-          ? `${location.name} · ${location.area}`
-          : location.name,
-        value: createExploreLocationDetailsCommand(location.name),
-        action: "location" as const,
-        location,
+        label: `🔙 ${getV1ExploreLabel("backMenu", currentLocale())}`,
+        value: "voltar_menu",
+        action: "back-menu" as const,
       }),
-    );
+    ];
     const first = renderFlow(
       message,
       options,
       (option) => {
-        void selectLocation(option.location);
+        if (option.action === "back-menu") {
+          backToMenu();
+          return;
+        }
+        if (option.location) void selectLocation(option.location);
       },
       undefined,
       status,
@@ -1086,52 +1419,7 @@ export function installExploreLocationsControl({
 
   placeBottomSheet = installPlaceBottomSheet({
     document,
-    onAction(value) {
-      const normalized = normalizeSearchText(value);
-      const location = activePlaceLocation;
-      if (
-        location &&
-        ["como chegar", "directions", "localizacao", "location"].includes(
-          normalized,
-        )
-      ) {
-        document.dispatchEvent(
-          new CustomEvent("morro:navigation-requested", {
-            detail: {
-              destination: {
-                name: location.name,
-                latitude: location.latitude,
-                longitude: location.longitude,
-                category: location.category,
-              },
-              source: "place-v2",
-            },
-          }),
-        );
-        return;
-      }
-      const locationCategory = activePlaceLocation?.category;
-      const locale = currentLocale();
-      const detail =
-        normalized === "ver fotos" && locationCategory
-          ? {
-              value,
-              optionsOverride: [
-                {
-                  label: `⬅️ ${getV1ExploreLabel("back", locale)}`,
-                  value: `[sub]${locationCategory}`,
-                },
-              ],
-            }
-          : {
-              value,
-              suppressOptionValues: activePlaceActionValues,
-            };
-      document.dispatchEvent(
-        new CustomEvent("morro:assistant-option-selected", { detail }),
-      );
-      requestAssistantOpen(document);
-    },
+    onAction: handlePlaceAction,
     onDismiss: returnFromPlaceDetail,
   });
 
@@ -1144,6 +1432,7 @@ export function installExploreLocationsControl({
     activeStage = "tour";
     clearExploreRuntimeStatus();
     removeAssistantFlowResults(document);
+    restoreCategoryRail();
 
     if (immersiveTourController) {
       void immersiveTourController.start(tourId).catch((error: unknown) => {
@@ -1288,9 +1577,16 @@ export function installExploreLocationsControl({
       (candidate) => normalizeSearchText(candidate.value) === normalized,
     );
     if (!category) return false;
-    const trigger = document.getElementById(
+    const visibleTrigger =
+      contextualRailScroll?.querySelector<HTMLButtonElement>(
+        `[data-assistant-category="${category.value}"]`,
+      ) ?? null;
+    const legacyTrigger = document.getElementById(
       getAssistantCategoryButtonId(category.value),
     );
+    const trigger =
+      visibleTrigger ??
+      (legacyTrigger instanceof HTMLButtonElement ? legacyTrigger : null);
     if (!(trigger instanceof HTMLButtonElement)) return false;
     openCategory(category, trigger);
     return true;
@@ -1315,6 +1611,7 @@ export function installExploreLocationsControl({
     visibleLocations = Object.freeze([...locations]);
     clearExploreRuntimeStatus();
     showMainMenu();
+    restoreCategoryRail();
     updateMapState(locations.length, category, "loading");
 
     try {
@@ -1675,12 +1972,14 @@ export function installExploreLocationsControl({
   // visible labels and accessible names immediately, not only after a later
   // <html lang> mutation.
   refreshCategoryPresentation();
+  restoreCategoryRail();
 
   const MutationObserverCtor = document.defaultView?.MutationObserver;
   const localeObserver = MutationObserverCtor
     ? new MutationObserverCtor((records) => {
         if (!records.some((record) => record.attributeName === "lang")) return;
         refreshCategoryPresentation();
+        if (activeStage === "menu") restoreCategoryRail();
         if (exploreRuntimeStatusDescriptor) renderExploreRuntimeStatus();
         if (activeStage === "filters" && activeCategory) renderFilters();
         if (activeStage === "detail" && activePlace) {
@@ -1712,11 +2011,26 @@ export function installExploreLocationsControl({
   };
 
   const onAssistantOptionSelected = (event: Event): void => {
-    if (activeStage === "menu" || !(event instanceof CustomEvent)) return;
+    if (!(event instanceof CustomEvent)) return;
     const detail: unknown = event.detail;
     if (!detail || typeof detail !== "object") return;
     const candidate: unknown = Reflect.get(detail, "value");
     const value = typeof candidate === "string" ? candidate : "";
+    const sourceCandidate: unknown = Reflect.get(detail, "source");
+    const source = typeof sourceCandidate === "string" ? sourceCandidate : "";
+
+    if (activeStage === "menu") {
+      const isUnifiedCategory =
+        source === "unified-category-rail" &&
+        currentCategories().some(
+          (category) =>
+            normalizeSearchText(category.value) === normalizeSearchText(value),
+        );
+      if (!isUnifiedCategory) return;
+      event.stopImmediatePropagation();
+      openCategoryByValue(value);
+      return;
+    }
 
     if (
       activeStage === "detail" &&
@@ -1825,6 +2139,7 @@ export function installExploreLocationsControl({
       activeSearchQuery = "";
       activeStage = "menu";
       visibleLocations = Object.freeze([]);
+      restoreCategoryRail();
     },
   });
 }
