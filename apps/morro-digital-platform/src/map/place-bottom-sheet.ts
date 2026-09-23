@@ -463,31 +463,11 @@ export function installPlaceBottomSheet(
     overflow.open = false;
     overflowActions.replaceChildren();
     overflowSummary.textContent = placeUiCopy[next.locale].more;
-    const visibleActions: V1ExplorePlaceActionOption[] = [...next.actions];
-    const hasValue = (value: string): boolean =>
-      visibleActions.some(
-        (action) => action.value.trim().toLowerCase() === value.toLowerCase(),
-      );
-    if (!hasValue("como chegar")) {
-      visibleActions.unshift(
-        Object.freeze({
-          label: `📍 ${getV1ExploreLabel("directions", next.locale)}`,
-          value: "como chegar",
-          action: "command" as const,
-        }),
-      );
-    }
-    if (!hasValue("adicionar aos favoritos")) {
-      visibleActions.push(
-        Object.freeze({
-          label: `❤️ ${placeUiCopy[next.locale].save}`,
-          value: "adicionar aos favoritos",
-          action: "command" as const,
-        }),
-      );
-    }
-
-    const essentialValues = new Set(["como chegar", "adicionar aos favoritos"]);
+    const visibleActions: V1ExplorePlaceActionOption[] = next.primaryAction
+      ? next.actions.filter(
+          (action) => action.actionId !== next.primaryAction?.actionId,
+        )
+      : [...next.actions];
     for (const action of visibleActions) {
       const button = document.createElement("button");
       button.type = "button";
@@ -495,71 +475,15 @@ export function installPlaceBottomSheet(
         "md-button md-button--secondary place-bottom-sheet-action";
       button.dataset.value = action.value;
       button.dataset.placeAction = action.action;
+      button.dataset.placeActionId = action.actionId;
       button.textContent = action.label;
       button.addEventListener("click", () => {
         suspendForAssistantAction();
         options.onAction(action.value);
       });
-      const destination = essentialValues.has(action.value.trim().toLowerCase())
-        ? actions
-        : overflowActions;
-      destination.appendChild(button);
+      actions.appendChild(button);
     }
-    overflow.classList.toggle(
-      "hidden",
-      actionsInContextualRail || overflowActions.childElementCount === 0,
-    );
-
-    const shareButton = document.createElement("button");
-    shareButton.type = "button";
-    shareButton.className =
-      "md-button md-button--secondary place-bottom-sheet-action place-bottom-sheet-share";
-    shareButton.dataset.placeNativeAction = "share";
-    shareButton.dataset.value = "compartilhar";
-    shareButton.textContent = `🔗 ${placeUiCopy[next.locale].share}`;
-    shareButton.addEventListener("click", () => {
-      const view = document.defaultView;
-      const shareText = [next.location.name, next.location.area]
-        .filter(Boolean)
-        .join(" · ");
-      const shareUrl = view?.location.href;
-      const navigator = view?.navigator as
-        | (Navigator & {
-            share?: (data: ShareData) => Promise<void>;
-            clipboard?: Clipboard;
-          })
-        | undefined;
-      void (async () => {
-        try {
-          if (navigator?.share) {
-            await navigator.share({
-              title: next.location.name,
-              text: shareText,
-              ...(shareUrl ? { url: shareUrl } : {}),
-            });
-            return;
-          }
-          if (navigator?.clipboard && shareUrl) {
-            await navigator.clipboard.writeText(
-              [shareText, shareUrl].filter(Boolean).join("\n"),
-            );
-            setStatus("ready");
-            status.textContent = placeUiCopy[next.locale].shareSuccess;
-            status.classList.remove("hidden");
-            return;
-          }
-          status.textContent = placeUiCopy[next.locale].unavailable;
-          status.classList.remove("hidden");
-        } catch (error) {
-          if (error instanceof DOMException && error.name === "AbortError")
-            return;
-          status.textContent = placeUiCopy[next.locale].unavailable;
-          status.classList.remove("hidden");
-        }
-      })();
-    });
-    actions.appendChild(shareButton);
-
+    overflow.classList.add("hidden");
     primary.replaceChildren();
     if (next.primaryAction) {
       const primaryAction = next.primaryAction;
