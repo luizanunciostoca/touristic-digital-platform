@@ -83,6 +83,58 @@ describe("Unified Assistant horizontal category rail", () => {
     }
   });
 
+  it("reuses the same rail for filters, places and place actions", async () => {
+    const [control, place, css, copy] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
+      ),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+      readRepository(
+        "apps/morro-digital-platform/src/map/explore-v1-i18n.ts",
+      ),
+    ]);
+
+    expect(control).toContain("const renderContextualRail");
+    expect(control).toContain('activeStage === "filters" || activeStage === "places"');
+    expect(control).toContain('"md-contextual-rail-source"');
+    expect(control).toContain('renderContextualRail("detail"');
+    expect(control).toContain("renderPlaceActionsRail");
+    expect(control).toContain("actionsInContextualRail: true");
+    expect(control).toContain("restoreCategoryRail()");
+    expect(place).toContain("actionsInContextualRail?: boolean");
+    expect(place).toContain('sheet.dataset.actionsSurface = "contextual-rail"');
+    expect(css).toContain('[data-rail-stage="filters"]');
+    expect(css).toContain('[data-rail-stage="places"]');
+    expect(css).toContain('[data-rail-stage="detail"]');
+    expect(css).toContain("#assistant-category-results.md-contextual-rail-source");
+    expect(copy).toContain('pt: "Para surf"');
+    expect(copy).not.toContain('pt: "Com ondas para surf"');
+  });
+
+  it("keeps search and semantic assistant navigation connected to the contextual rail", async () => {
+    const [control, router, runtime] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      ),
+    ]);
+
+    expect(control).toContain('action: "back-menu" as const');
+    expect(control).toContain('value: "voltar_menu"');
+    expect(router).toContain("data-context-rail-option");
+    expect(router).toContain('data-rail-stage="menu"');
+    expect(runtime).toContain("contextualButtons");
+    expect(runtime).toContain("data-context-rail-option");
+  });
+
   it("retires the old independent Discover category rail when the unified dock is active", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
