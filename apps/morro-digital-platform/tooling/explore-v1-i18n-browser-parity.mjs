@@ -300,7 +300,10 @@ async function readOptions(page, selector) {
 }
 
 async function readFlow(page) {
-  return readOptions(page, '#assistant-category-rail[data-rail-stage="filters"]');
+  return readOptions(
+    page,
+    '#assistant-category-rail[data-rail-stage="filters"]',
+  );
 }
 
 async function readDynamic(page) {
@@ -334,22 +337,6 @@ async function readDynamic(page) {
       buttons.map((button) => button.getAttribute("data-value")),
     ),
   };
-}
-
-async function expandPlaceForSecondaryActions(page) {
-  const placeSheet = page.locator('#place-bottom-sheet[aria-hidden="false"]');
-  await placeSheet.waitFor({ state: "visible", timeout: 8000 });
-  if ((await placeSheet.getAttribute("data-sheet-state")) !== "full") {
-    const handle = placeSheet.locator(".place-bottom-sheet-drag-handle");
-    await handle.focus();
-    await page.keyboard.press("End");
-    await page
-      .locator('#place-bottom-sheet[data-sheet-state="full"]')
-      .waitFor({ state: "visible", timeout: 3000 });
-  }
-  await placeSheet
-    .locator(".place-bottom-sheet-overflow-summary")
-    .waitFor({ state: "visible", timeout: 3000 });
 }
 
 async function waitDynamic(page, expectedLabels, expectedValues, label) {
