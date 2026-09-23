@@ -505,7 +505,9 @@ try {
     .locator('#assistant-category-rail[data-rail-stage="filters"]')
     .waitFor({ state: "visible" });
   await page
-    .locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]')
+    .locator(
+      '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+    )
     .click();
   await page
     .locator(
