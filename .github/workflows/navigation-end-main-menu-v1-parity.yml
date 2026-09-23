@@ -179,6 +179,7 @@ jobs:
                 const assistant = document.getElementById('assistant-messages');
                 const feedback = document.querySelector('#assistant-messages .message[data-message-type="navigation-feedback"]');
                 const menu = document.querySelector('#assistant-messages .messages-area > .assistant-options:has([data-explore-category])');
+                const rail = document.getElementById('assistant-category-rail');
                 return Boolean(
                   assistant &&
                   !assistant.classList.contains('hidden') &&
@@ -189,6 +190,8 @@ jobs:
                   getComputedStyle(menu).display === 'none' &&
                   menu.querySelectorAll('.assistant-option-btn').length === 10 &&
                   menu.querySelectorAll('[data-explore-category]').length === 9 &&
+                  rail?.getAttribute('data-rail-stage') === 'menu' &&
+                  rail.querySelectorAll('[data-assistant-category]').length === 10 &&
                   !document.getElementById('assistant-category-results') &&
                   !document.getElementById('assistant-category-results-message')
                 );
@@ -214,10 +217,14 @@ jobs:
               throw new Error(`Category buttons were not reset after navigation: ${JSON.stringify(state)}`);
             }
 
-            await page
-              .locator('#assistant-category-beaches')
-              .evaluate((button) => button.click());
-            await page.locator('#assistant-category-results[data-category="beaches"][data-stage="filters"]').waitFor({
+            const beachesCategory = page.locator(
+              '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="beaches"]',
+            );
+            await beachesCategory.waitFor({ state: 'visible', timeout: 5000 });
+            await beachesCategory.click();
+            await page.locator(
+              '#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]',
+            ).waitFor({
               state: 'visible',
               timeout: 5000,
             });
