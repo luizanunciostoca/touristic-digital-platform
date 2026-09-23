@@ -1583,8 +1583,8 @@ body[data-md-unified-dock="true"] #discover-category-rail {
   width: 3rem;
   height: 3rem;
   border-radius: var(--md-radius-pill);
-  background:
-    var(--md-color-surface-card) url("/pwa-icon-192.png") center / 78% no-repeat;
+  background: var(--md-color-surface-card) url("/pwa-icon-192.png") center / 78%
+    no-repeat;
   box-shadow: var(--md-elevation-1);
   content: "";
   transform: translateY(-50%);
