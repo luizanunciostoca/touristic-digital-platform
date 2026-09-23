@@ -21,7 +21,7 @@ describe("Assistant Modal V2 contract", () => {
     );
 
     for (const contract of [
-      'class="md-assistant-dialog md-assistant-message-region hidden"',
+      'class="md-assistant-dialog md-assistant-message-region"',
       'role="region"',
       'aria-describedby="assistant-dialog-status"',
       'id="assistant-dialog-status"',
