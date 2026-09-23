@@ -327,7 +327,10 @@ async function readDynamic(page) {
   const contextualRail = page.locator(
     '#assistant-category-rail[data-rail-stage="detail"]',
   );
-  if ((await contextualRail.count()) > 0 && (await contextualRail.isVisible())) {
+  if (
+    (await contextualRail.count()) > 0 &&
+    (await contextualRail.isVisible())
+  ) {
     const options = contextualRail.locator(
       '[data-context-rail-option="true"]:not([data-value="__back_to_places__"])',
     );
@@ -478,9 +481,11 @@ try {
   await waitExploreSelectedStatus(page, "Primeira Praia selected.");
   await setLanguage(page, "he");
   await waitExploreSelectedStatus(page, "Primeira Praia נבחר.");
-  await page.locator(
-    '#assistant-category-rail[data-rail-stage="detail"] [data-value="__back_to_places__"]',
-  ).click();
+  await page
+    .locator(
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="__back_to_places__"]',
+    )
+    .click();
   await page
     .locator('#assistant-category-rail[data-rail-stage="places"]')
     .waitFor({ state: "visible" });
