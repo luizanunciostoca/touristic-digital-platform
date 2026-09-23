@@ -1764,6 +1764,15 @@ body[data-md-mode="place"]
   pointer-events: auto;
 }
 
+body[data-md-mode="place"]:has(
+    #place-bottom-sheet[aria-hidden="false"][data-sheet-state="full"]
+  )
+  #unified-assistant-dock.md-unified-assistant-dock {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 #unified-assistant-dock > #assistant-input-area.md-assistant-composer {
   position: static !important;
   inset: auto !important;
