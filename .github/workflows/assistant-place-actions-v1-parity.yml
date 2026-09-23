@@ -169,11 +169,11 @@ jobs:
               async function openPlace(category, place) {
                 await submit(category);
                 await page.locator(
-                  `#assistant-category-results[data-category="${category}"][data-stage="filters"]`,
+                  `#assistant-category-rail[data-rail-stage="filters"][data-context-category="${category}"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
                 await submit('ver todos');
                 await page.locator(
-                  `#assistant-category-results[data-category="${category}"][data-stage="places"] [data-location-name="${place}"]`,
+                  `#assistant-category-rail[data-rail-stage="places"][data-context-category="${category}"] [data-location-name="${place}"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
                 await submit(place);
                 await page.locator(
@@ -181,20 +181,8 @@ jobs:
                 ).waitFor({ state: 'attached', timeout: 8000 });
                 const detailAction = detailActionValues[category];
                 if (!detailAction) throw new Error(`Missing detail action for ${category}`);
-                const placeSheet = page.locator('#place-bottom-sheet');
-                if ((await placeSheet.getAttribute('data-sheet-state')) !== 'full') {
-                  const handle = placeSheet.locator('.place-bottom-sheet-drag-handle');
-                  await handle.focus();
-                  await page.keyboard.press('End');
-                  await page.locator(
-                    '#place-bottom-sheet[data-sheet-state="full"]',
-                  ).waitFor({ state: 'visible', timeout: 3000 });
-                }
-                await page
-                  .locator('#place-bottom-sheet .place-bottom-sheet-overflow-summary')
-                  .click();
                 await page.locator(
-                  `#place-bottom-sheet .place-bottom-sheet-action[data-value="${detailAction}"]`,
+                  `#assistant-category-rail[data-rail-stage="detail"][data-context-place="${place}"] [data-value="${detailAction}"]`,
                 ).waitFor({ state: 'visible', timeout: 8000 });
               }
 
