@@ -2,7 +2,11 @@ export const MORRO_LANGUAGE_OVERRIDE_KEY = "morro-digital-language";
 
 export type MorroDocumentLocale = "pt-BR" | "en-US" | "es-ES" | "he-IL";
 export type MorroLocaleResolutionSource =
-  "manual" | "destination-default" | "browser" | "browser-fallback" | "document-fallback";
+  | "manual"
+  | "destination-default"
+  | "browser"
+  | "browser-fallback"
+  | "document-fallback";
 
 export interface MorroBrowserLocaleResolution {
   readonly locale: MorroDocumentLocale;
