@@ -84,12 +84,9 @@ describe("Unified Assistant horizontal category rail", () => {
   });
 
   it("reuses the same rail for filters, places and place actions", async () => {
-    const [control, place, css, copy] = await Promise.all([
+    const [control, css, copy] = await Promise.all([
       readRepository(
         "apps/morro-digital-platform/src/map/explore-locations-control.ts",
-      ),
-      readRepository(
-        "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
       ),
       readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
       readRepository("apps/morro-digital-platform/src/map/explore-v1-i18n.ts"),
@@ -102,10 +99,10 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(control).toContain('"md-contextual-rail-source"');
     expect(control).toMatch(/renderContextualRail\(\s*"detail"/u);
     expect(control).toContain("renderPlaceActionsRail");
-    expect(control).toContain("actionsInContextualRail: true");
+    expect(control).toContain("renderPlaceDetailMessage");
+    expect(control).not.toContain("placeBottomSheet?.show");
+    expect(control).not.toContain("installPlaceBottomSheet");
     expect(control).toContain("restoreCategoryRail()");
-    expect(place).toContain("actionsInContextualRail?: boolean");
-    expect(place).toContain('sheet.dataset.actionsSurface = "contextual-rail"');
     expect(css).toContain('[data-rail-stage="filters"]');
     expect(css).toContain('[data-rail-stage="places"]');
     expect(css).toContain('[data-rail-stage="detail"]');
