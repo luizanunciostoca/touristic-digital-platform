@@ -100,7 +100,7 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(control).toContain("const renderContextualRail");
     expect(control).toContain('activeStage === "filters" || activeStage === "places"');
     expect(control).toContain('"md-contextual-rail-source"');
-    expect(control).toContain('renderContextualRail("detail"');
+    expect(control).toMatch(/renderContextualRail\(\s*"detail"/u);
     expect(control).toContain("renderPlaceActionsRail");
     expect(control).toContain("actionsInContextualRail: true");
     expect(control).toContain("restoreCategoryRail()");
