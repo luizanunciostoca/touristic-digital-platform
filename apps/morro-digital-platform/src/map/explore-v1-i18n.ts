@@ -140,7 +140,7 @@ const LABELS: Readonly<Record<V1ExploreLabelKey, Copy>> = Object.freeze({
     he: "בר / נשנושים",
   },
   beachesSurf: {
-    pt: "Com ondas para surf",
+    pt: "Para surf",
     en: "Good waves for surfing",
     es: "Con olas para surf",
     he: "עם גלים לגלישה",
