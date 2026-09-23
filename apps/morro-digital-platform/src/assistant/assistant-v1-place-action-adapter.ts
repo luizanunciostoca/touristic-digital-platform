@@ -322,11 +322,7 @@ const STATIC_ACTIONS: Readonly<
       action: "tour_meeting_point",
     },
     {
-      aliases: [
-        "fazer tour interativo",
-        "tour interativo",
-        "interactive tour",
-      ],
+      aliases: ["fazer tour interativo", "tour interativo", "interactive tour"],
       action: "tour_interactive",
     },
     {

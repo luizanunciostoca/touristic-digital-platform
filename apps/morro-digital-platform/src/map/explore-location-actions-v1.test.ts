@@ -112,9 +112,7 @@ describe("category-aware place actions", () => {
   it("localizes labels without changing action values or ids", () => {
     const pt = getV1ExplorePlaceActionOptions("transport", "pt");
     const en = getV1ExplorePlaceActionOptions("transport", "en");
-    expect(en.map(({ value }) => value)).toEqual(
-      pt.map(({ value }) => value),
-    );
+    expect(en.map(({ value }) => value)).toEqual(pt.map(({ value }) => value));
     expect(en.map(({ actionId }) => actionId)).toEqual(
       pt.map(({ actionId }) => actionId),
     );
