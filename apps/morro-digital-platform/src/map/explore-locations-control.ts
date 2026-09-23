@@ -478,6 +478,102 @@ export function installExploreLocationsControl({
     normalizeAssistantVoiceLanguage(document.documentElement.lang);
   const currentCategories = (): readonly ExploreLocationsCategory[] =>
     getExploreLocationsCategories(currentLocale());
+
+  const contextualRail = document.getElementById("assistant-category-rail");
+  const contextualRailScroll =
+    contextualRail?.querySelector<HTMLElement>(".md-assistant-category-scroll") ??
+    null;
+  const categoryRailTemplate = contextualRailScroll?.cloneNode(true) as
+    | HTMLElement
+    | null;
+
+  const restoreCategoryRail = (): HTMLButtonElement | null => {
+    if (!contextualRail || !contextualRailScroll || !categoryRailTemplate) {
+      return null;
+    }
+    contextualRailScroll.replaceChildren(
+      ...Array.from(categoryRailTemplate.childNodes, (node) =>
+        node.cloneNode(true),
+      ),
+    );
+    contextualRail.dataset.railStage = "menu";
+    contextualRail.removeAttribute("data-context-category");
+    contextualRail.removeAttribute("data-context-place");
+    contextualRail.setAttribute("aria-label", "Categorias do assistente");
+
+    for (const category of currentCategories()) {
+      const button = contextualRailScroll.querySelector<HTMLButtonElement>(
+        `[data-assistant-category="${category.value}"]`,
+      );
+      const label = button?.querySelector<HTMLElement>(
+        ".md-assistant-category-label",
+      );
+      if (label) label.textContent = category.label;
+      button?.setAttribute("aria-pressed", "false");
+    }
+    contextualRailScroll.scrollLeft = 0;
+    return contextualRailScroll.querySelector<HTMLButtonElement>(
+      "[data-assistant-category]",
+    );
+  };
+
+  const renderContextualRail = <
+    T extends Readonly<{
+      label: string;
+      value: string;
+      action?: string;
+      disabled?: boolean;
+    }>,
+  >(
+    stage: ExploreStage,
+    accessibleLabel: string,
+    options: readonly T[],
+    onSelect: (option: T) => void,
+  ): HTMLButtonElement | null => {
+    if (!contextualRail || !contextualRailScroll) return null;
+
+    contextualRail.dataset.railStage = stage;
+    if (activeCategory?.value) {
+      contextualRail.dataset.contextCategory = activeCategory.value;
+    } else {
+      contextualRail.removeAttribute("data-context-category");
+    }
+    if (activePlace) {
+      contextualRail.dataset.contextPlace = activePlace;
+    } else {
+      contextualRail.removeAttribute("data-context-place");
+    }
+    contextualRail.setAttribute("aria-label", accessibleLabel);
+
+    const buttons: HTMLButtonElement[] = [];
+    for (const option of options) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className =
+        "md-assistant-category-chip md-assistant-context-chip assistant-option-btn";
+      button.dataset.contextRailOption = "true";
+      button.dataset.value = option.value;
+      button.dataset.exploreAction = option.action ?? "command";
+      button.disabled = option.disabled === true;
+      button.setAttribute("aria-disabled", String(button.disabled));
+
+      const label = document.createElement("span");
+      label.className =
+        "md-assistant-category-label md-assistant-context-label";
+      label.textContent = option.label;
+      button.appendChild(label);
+      button.addEventListener("click", (event) => {
+        event.stopImmediatePropagation();
+        if (!button.disabled) onSelect(option);
+      });
+      buttons.push(button);
+    }
+
+    contextualRailScroll.replaceChildren(...buttons);
+    contextualRailScroll.scrollLeft = 0;
+    return buttons[0] ?? null;
+  };
+
   let exploreRuntimeStatusDescriptor:
     ExploreRuntimeStatusDescriptor | undefined;
 
