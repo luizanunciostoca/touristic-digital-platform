@@ -169,27 +169,6 @@ const SUBCATEGORY_SPECS = Object.freeze({
     { icon: "🌅", key: "nightlifeSunset", value: "sunset", action: "filter" },
   ]),
   tours: Object.freeze([
-    {
-      icon: "🗺️",
-      key: "tourIsland",
-      value: "tour_volta_ilha",
-      action: "tour",
-      tourId: "volta-a-ilha",
-    },
-    {
-      icon: "🥾",
-      key: "tourGamboa",
-      value: "tour_trilha_gamboa",
-      action: "tour",
-      tourId: "trilha-gamboa",
-    },
-    {
-      icon: "🚤",
-      key: "tourAtv",
-      value: "tour_quadriciclo",
-      action: "tour",
-      tourId: "passeio-quadriciclo",
-    },
     { icon: "⛵", key: "tourBoat", value: "barco", action: "filter" },
     { icon: "🤿", key: "tourDiving", value: "mergulho", action: "filter" },
     { icon: "🚵", key: "tourAdventure", value: "aventura", action: "filter" },

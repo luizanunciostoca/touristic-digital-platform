@@ -31,15 +31,19 @@ describe("V1 assistant category subflows", () => {
     ]);
   });
 
-  it("preserves the three immersive-tour shortcuts before tour filters", () => {
+  it("keeps immersive-tour shortcuts out of the tours category filter rail", () => {
     const options = getV1ExploreSubcategoryOptions("tours");
-    expect(
-      options.slice(0, 3).map(({ value, tourId }) => [value, tourId]),
-    ).toEqual([
-      ["tour_volta_ilha", "volta-a-ilha"],
-      ["tour_trilha_gamboa", "trilha-gamboa"],
-      ["tour_quadriciclo", "passeio-quadriciclo"],
+    expect(options.map(({ value, action }) => ({ value, action }))).toEqual([
+      { value: "barco", action: "filter" },
+      { value: "mergulho", action: "filter" },
+      { value: "aventura", action: "filter" },
+      { value: "fauna", action: "filter" },
+      { value: "proximo", action: "nearby" },
+      { value: "ver todos", action: "all" },
+      { value: "voltar_menu", action: "back-menu" },
     ]);
+    expect(options.some(({ action }) => action === "tour")).toBe(false);
+    expect(options.some(({ tourId }) => tourId !== undefined)).toBe(false);
   });
 
   it("localizes V1 filter presentation without changing command values", () => {
@@ -61,18 +65,18 @@ describe("V1 assistant category subflows", () => {
     );
   });
 
-  it("restores the canonical V1 localized immersive tour titles", () => {
+  it("localizes the tours filters without reintroducing immersive shortcuts", () => {
     expect(getV1ExploreSubcategoryOptions("tours", "pt")[0]?.label).toBe(
-      "🗺️ Passeio Volta à Ilha",
+      "⛵ Passeio de barco",
     );
     expect(getV1ExploreSubcategoryOptions("tours", "en")[0]?.label).toBe(
-      "🗺️ Island Round Trip",
+      "⛵ Boat tour",
     );
     expect(getV1ExploreSubcategoryOptions("tours", "es")[0]?.label).toBe(
-      "🗺️ Vuelta a la Isla",
+      "⛵ Paseo en barco",
     );
-    expect(getV1ExploreSubcategoryOptions("tours", "he")[0]?.label).toBe(
-      "🗺️ סיבוב האי",
+    expect(getV1ExploreSubcategoryOptions("tours", "he")[0]?.value).toBe(
+      "barco",
     );
   });
 

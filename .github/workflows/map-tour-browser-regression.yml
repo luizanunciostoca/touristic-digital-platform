@@ -580,6 +580,14 @@ jobs:
               timeout: 20000,
             });
 
+            const placeByTourId = {
+              'volta-a-ilha': 'Passeio de Barco Volta à Ilha',
+              'trilha-gamboa': 'Trilha para a Gamboa',
+              'passeio-quadriciclo': 'Passeio de Quadriciclo',
+            };
+            const placeName = placeByTourId[tourId];
+            if (!placeName) throw new Error(`No guided-tour place mapping for ${tourId}.`);
+
             const assistant = page.locator('#assistant-messages');
             if (!(await assistant.isVisible())) {
               await page.locator('#assistantInput').focus();
@@ -591,11 +599,25 @@ jobs:
             await toursCategory.waitFor({ state: 'visible', timeout: 10000 });
             await toursCategory.click();
             await assertTourDiscoveryConvergence(page, evidenceName ?? 'runtime');
-            const shortcut = page.locator(
-              `#assistant-category-rail[data-rail-stage="filters"] [data-tour-id="${tourId}"]`,
+
+            const seeAll = page.locator(
+              '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
             );
-            await shortcut.waitFor({ state: 'visible', timeout: 10000 });
-            await shortcut.click();
+            await seeAll.waitFor({ state: 'visible', timeout: 10000 });
+            await seeAll.click();
+
+            const place = page.locator(
+              `#assistant-category-rail[data-rail-stage="places"] [data-location-name="${placeName}"]`,
+            );
+            await place.waitFor({ state: 'visible', timeout: 10000 });
+            await place.click();
+
+            const interactiveTour = page.locator(
+              '#assistant-category-rail[data-rail-stage="detail"] [data-value="fazer tour interativo"]',
+            );
+            await interactiveTour.waitFor({ state: 'visible', timeout: 10000 });
+            await interactiveTour.click();
+
             const intro = await waitForGuidedStage(page, 'intro', tourId);
             await assertTourModeComposition(page, 'intro');
             await page.locator('.tour-intro-card').waitFor({ state: 'visible', timeout: 10000 });
