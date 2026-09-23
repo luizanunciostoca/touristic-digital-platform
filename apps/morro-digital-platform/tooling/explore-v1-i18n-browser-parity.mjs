@@ -129,7 +129,7 @@ const restaurantPrimaryEnglish = [
   "📸 View photos",
   "📞 Contact",
   "More options",
-  "❤️ Save",
+  "❤️ Favorite",
   "🔗 Share",
 ];
 const restaurantSecondaryEnglish = [
