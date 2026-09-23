@@ -216,9 +216,9 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           autocomplete="off"
         />
         <button id="sendButton" class="md-assistant-compat-send" type="button" tabindex="-1" aria-hidden="true" aria-label="Enviar mensagem de compatibilidade"></button>
-        <button id="voiceButton" class="md-assistant-voice-cta" type="button" aria-label="Fale comigo" aria-pressed="false" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone">
+        <button id="voiceButton" class="md-assistant-voice-cta" type="button" aria-label="Fale comigo" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone">
           <i class="fas fa-microphone" aria-hidden="true"></i>
-          <span>Fale comigo</span>
+          <span data-i18n="assistant_voice_label">Fale comigo</span>
         </button>
       </div>
 
