@@ -1058,7 +1058,10 @@ export function installExploreLocationsControl({
       return;
     }
     const locationCategory = activePlaceLocation?.category;
-    if (normalized === "fazer tour interativo" && locationCategory === "tours") {
+    if (
+      normalized === "fazer tour interativo" &&
+      locationCategory === "tours"
+    ) {
       const placeName = normalizeSearchText(activePlaceLocation?.name ?? "");
       const tourId =
         placeName.includes("volta") && placeName.includes("ilha")
