@@ -307,6 +307,23 @@ async function readFlow(page) {
 }
 
 async function readDynamic(page) {
+  const dynamicContainers = page.locator(
+    ".assistant-options:not(#assistant-category-results):not(:has([data-explore-category]))",
+  );
+  if ((await dynamicContainers.count()) > 0) {
+    const options = dynamicContainers.last().locator(".assistant-option-btn");
+    if ((await options.count()) > 0 && (await options.first().isVisible())) {
+      return {
+        labels: await options
+          .allTextContents()
+          .then((items) => items.map((item) => item.trim())),
+        values: await options.evaluateAll((buttons) =>
+          buttons.map((button) => button.getAttribute("data-value")),
+        ),
+      };
+    }
+  }
+
   const contextualRail = page.locator(
     '#assistant-category-rail[data-rail-stage="detail"]',
   );
@@ -324,19 +341,7 @@ async function readDynamic(page) {
     };
   }
 
-  const containers = page.locator(
-    ".assistant-options:not(#assistant-category-results):not(:has([data-explore-category]))",
-  );
-  if ((await containers.count()) === 0) return { labels: [], values: [] };
-  const options = containers.last().locator(".assistant-option-btn");
-  return {
-    labels: await options
-      .allTextContents()
-      .then((items) => items.map((item) => item.trim())),
-    values: await options.evaluateAll((buttons) =>
-      buttons.map((button) => button.getAttribute("data-value")),
-    ),
-  };
+  return { labels: [], values: [] };
 }
 
 async function waitDynamic(page, expectedLabels, expectedValues, label) {
@@ -441,7 +446,9 @@ try {
     .waitFor({ state: "visible" });
   equal((await readFlow(page)).labels, filters.he.labels, "he filter labels");
   await page
-    .locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]')
+    .locator(
+      '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
+    )
     .click();
   await page
     .locator(
@@ -501,7 +508,9 @@ try {
     )
     .waitFor({ state: "visible" });
   await page
-    .locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name="Morena Bela"]')
+    .locator(
+      '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Morena Bela"]',
+    )
     .click();
   await page
     .locator(
@@ -521,7 +530,7 @@ try {
   );
   await page
     .locator(
-      '#place-bottom-sheet .place-bottom-sheet-action[data-value="mais opções"]',
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="mais opções"]',
     )
     .click();
   await page
