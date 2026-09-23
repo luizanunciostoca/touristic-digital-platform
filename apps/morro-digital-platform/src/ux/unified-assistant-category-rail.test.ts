@@ -10,6 +10,7 @@ async function readRepository(path: string): Promise<string> {
 }
 
 describe("Unified Assistant horizontal category rail", () => {
+  // Golden mobile density keeps approximately six categories visible at 390px.
   it("composes grabber, message, categories, composer and navigation in one dock", async () => {
     const shell = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
