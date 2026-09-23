@@ -7,15 +7,15 @@ import {
   resolveMorroBrowserLocale,
 } from "./browser-locale.js";
 
-describe("V1 browser locale parity", () => {
-  it("uses the first supported navigator preference and normalizes aliases", () => {
+describe("Morro browser locale policy", () => {
+  it("uses the destination locale before browser preferences and normalizes browser aliases when no destination locale exists", () => {
     expect(
       resolveMorroBrowserLocale({
         languages: ["fr-FR", "es-AR", "en-US"],
         language: "fr-FR",
         fallbackLocale: "pt",
       }),
-    ).toEqual({ locale: "es-ES", source: "browser" });
+    ).toEqual({ locale: "pt-BR", source: "destination-default" });
 
     expect(
       resolveMorroBrowserLocale({
@@ -35,22 +35,20 @@ describe("V1 browser locale parity", () => {
     ).toEqual({ locale: "pt-BR", source: "manual" });
   });
 
-  it("keeps the V1 unsupported-browser fallback to English", () => {
+  it("keeps unsupported-browser fallback to English only when no destination locale is configured", () => {
     expect(
       resolveMorroBrowserLocale({
         languages: ["fr-FR", "de-DE"],
         language: "fr-FR",
-        fallbackLocale: "pt-BR",
       }),
     ).toEqual({ locale: "en-US", source: "browser-fallback" });
   });
 
-  it("falls back to PT-BR only when the browser exposes no locale", () => {
+  it("falls back to PT-BR when neither destination nor browser locale exists", () => {
     expect(
       resolveMorroBrowserLocale({
         languages: [],
         language: "",
-        fallbackLocale: "pt",
       }),
     ).toEqual({ locale: "pt-BR", source: "document-fallback" });
   });
