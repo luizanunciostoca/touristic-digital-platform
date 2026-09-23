@@ -1393,9 +1393,16 @@ export function installExploreLocationsControl({
       (candidate) => normalizeSearchText(candidate.value) === normalized,
     );
     if (!category) return false;
-    const trigger = document.getElementById(
+    const visibleTrigger =
+      contextualRailScroll?.querySelector<HTMLButtonElement>(
+        `[data-assistant-category="${category.value}"]`,
+      ) ?? null;
+    const legacyTrigger = document.getElementById(
       getAssistantCategoryButtonId(category.value),
     );
+    const trigger =
+      visibleTrigger ??
+      (legacyTrigger instanceof HTMLButtonElement ? legacyTrigger : null);
     if (!(trigger instanceof HTMLButtonElement)) return false;
     openCategory(category, trigger);
     return true;
