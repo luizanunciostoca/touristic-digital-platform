@@ -514,7 +514,6 @@ try {
     "en restaurant primary labels",
   );
 
-
   // Leave the active Explore detail before asserting the generic runtime status.
   // While a place is selected, Explore intentionally owns #runtime-status and
   // must survive language changes; that contract is verified above with
