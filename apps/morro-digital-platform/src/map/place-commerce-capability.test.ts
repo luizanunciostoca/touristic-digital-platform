@@ -247,7 +247,7 @@ describe("place commerce capability", () => {
     });
 
     expect(action).toMatchObject({
-      label: "🚕 Solicitar",
+      label: "🚕 Solicitar transporte",
       value: "solicitar transporte",
       commerceState: "fallback",
     });
