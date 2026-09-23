@@ -106,45 +106,23 @@ const filterValues = [
   "voltar_menu",
 ];
 const beachDetailValues = [
-  "condições da praia",
+  "saiba mais",
   "como chegar",
   "ver fotos",
-  "informações",
-  "mais opções",
   "adicionar aos favoritos",
-  "compartilhar",
 ];
 const beachDetailHebrew = [
-  "🌊 תנאי החוף",
+  "ℹ️ מידע נוסף",
   "📍 איך להגיע",
   "📸 צפה תמונות",
-  "ℹ️ מידע",
-  "אפשרויות נוספות",
-  "❤️ מועדפים",
-  "🔗 שיתוף",
+  "❤️ שמירה",
 ];
 const restaurantPrimaryEnglish = [
-  "🍴 Menu",
+  "🍽️ View menu",
+  "📅 Reserve a table",
   "📍 Directions",
   "📸 View photos",
-  "📞 Contact",
-  "More options",
-  "❤️ Favorite",
-  "🔗 Share",
-];
-const restaurantSecondaryEnglish = [
-  "ℹ️ Information",
-  "🕒 Hours",
-  "💰 Price range",
-  "⭐ Reviews",
-  "⬅️ Back",
-];
-const restaurantSecondaryValues = [
-  "mais detalhes",
-  "horário de funcionamento",
-  "quanto custa",
-  "avaliações",
-  "Morena Bela",
+  "💬 WhatsApp",
 ];
 
 function equal(actual, expected, label) {
@@ -465,7 +443,7 @@ try {
     .click();
   await page
     .locator(
-      '#assistant-category-rail[data-rail-stage="detail"] [data-value="condições da praia"]',
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="saiba mais"]',
     )
     .waitFor({ state: "visible" });
   let dynamic = await waitDynamic(
@@ -521,7 +499,7 @@ try {
     .click();
   await page
     .locator(
-      '#assistant-category-rail[data-rail-stage="detail"] [data-value="cardápio"]',
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="ver cardápio"]',
     )
     .waitFor({ state: "visible" });
   dynamic = await waitDynamic(
@@ -535,31 +513,7 @@ try {
     restaurantPrimaryEnglish,
     "en restaurant primary labels",
   );
-  await page
-    .locator(
-      '#assistant-category-rail[data-rail-stage="detail"] [data-value="mais opções"]',
-    )
-    .click();
-  await page
-    .locator('.assistant-option-btn[data-value="avaliações"]')
-    .last()
-    .waitFor({ state: "visible" });
-  dynamic = await waitDynamic(
-    page,
-    restaurantSecondaryEnglish,
-    restaurantSecondaryValues,
-    "en restaurant secondary",
-  );
-  equal(
-    dynamic.labels,
-    restaurantSecondaryEnglish,
-    "en restaurant secondary labels",
-  );
-  equal(
-    dynamic.values,
-    restaurantSecondaryValues,
-    "en restaurant secondary canonical values",
-  );
+
 
   // Leave the active Explore detail before asserting the generic runtime status.
   // While a place is selected, Explore intentionally owns #runtime-status and
