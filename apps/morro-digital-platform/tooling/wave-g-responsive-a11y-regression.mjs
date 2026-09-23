@@ -326,6 +326,11 @@ try {
       viewport: { width: 390, height: 844 },
       locale: "he-IL",
     });
+    await context.addInitScript(() => {
+      localStorage.setItem("morro-digital-onboarded", "1");
+      localStorage.setItem("voice-enabled", "false");
+      localStorage.setItem("morro-digital-language", "he-IL");
+    });
     const page = await context.newPage();
     await page.goto(baseUrl, {
       waitUntil: "domcontentloaded",
