@@ -1288,7 +1288,7 @@ body[data-md-mode="discover"]
   .weather-error {
   font-size: 0.625rem;
   line-height: 1.05;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
 }
 
 body[data-md-mode="discover"] .md-home-header {
