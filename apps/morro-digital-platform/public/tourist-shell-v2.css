@@ -1737,6 +1737,14 @@ html[dir="rtl"]
   direction: rtl;
 }
 
+body[data-md-mode="place"]:has(#place-bottom-sheet[aria-hidden="true"])
+  #unified-assistant-dock
+  > #assistant-input-area.md-assistant-composer {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
 #unified-assistant-dock > #assistant-input-area.md-assistant-composer {
   position: static !important;
   inset: auto !important;
