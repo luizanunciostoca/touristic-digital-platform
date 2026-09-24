@@ -157,7 +157,7 @@ jobs:
           echo "deploy_id=${deploy_id:-unknown}" >> "$GITHUB_OUTPUT"
           echo "Render deploy accepted for exact SHA $EXPECTED_SHA"
 
-      - name: Wait for exact-SHA production health and identity
+      - name: Wait for exact-SHA production readiness, payments and identity
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           MORRO_V2_BASE_URL: ${{ env.PRODUCTION_URL }}
@@ -166,7 +166,7 @@ jobs:
           set -euo pipefail
           last_output=''
           for _ in $(seq 1 90); do
-            if output="$(pnpm --silent release:identity:smoke 2>&1)"; then
+            if output="$(pnpm --silent payments:render:smoke 2>&1)"; then
               release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
               if [ "$release_sha" = "$EXPECTED_SHA" ]; then
                 printf '%s\n' "$output"
