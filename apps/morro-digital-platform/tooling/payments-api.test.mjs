@@ -111,9 +111,9 @@ describe("payments startup failure diagnostics", () => {
     expect(
       safeStartupFailureCode(new Error("ORDERING_DATABASE_URL is required")),
     ).toBe("ORDERING_DATABASE_URL_REQUIRED");
-    expect(safeStartupFailureCode(new Error("mysql://user:secret@host/db"))).toBe(
-      "PAYMENTS_RUNTIME_START_UNCLASSIFIED",
-    );
+    expect(
+      safeStartupFailureCode(new Error("mysql://user:secret@host/db")),
+    ).toBe("PAYMENTS_RUNTIME_START_UNCLASSIFIED");
   });
 });
 
