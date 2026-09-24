@@ -34,6 +34,7 @@ import {
 } from "./assistant-contextual-state.js";
 import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
+import { composeConversationVoice } from "./assistant-conversation-voice-composer.js";
 import { evaluateConversationPolicy } from "./assistant-conversation-policy.js";
 import {
   clearAssistantDomOptions,
@@ -1577,11 +1578,19 @@ export function installBrowserAssistantRuntime(
       ...(place ? { place } : {}),
       count: state.markerCount,
     });
+    const voiceCopy = composeConversationVoice({
+      messageKey: contextualState,
+      language,
+      fallback: rendered.voiceCopy,
+      ...(category ? { category } : {}),
+      ...(place ? { place } : {}),
+      count: state.markerCount,
+    });
     const turn = conversation.transition({
       cause: contextualState,
       messageKey: contextualState,
       renderedText: rendered.message,
-      voiceText: rendered.voiceCopy,
+      voiceText: voiceCopy,
       source: "explore",
       ...(category ? { category } : {}),
       ...(place ? { place } : {}),
@@ -1603,7 +1612,7 @@ export function installBrowserAssistantRuntime(
     canonicalMessage.dataset.conversationPriority = turn.priority;
     if (rendered.cta) canonicalMessage.dataset.contextualCta = rendered.cta;
     else delete canonicalMessage.dataset.contextualCta;
-    canonicalMessage.dataset.contextualVoiceCopy = rendered.voiceCopy;
+    canonicalMessage.dataset.contextualVoiceCopy = voiceCopy;
 
     const isPlainCategoryFlow =
       canonicalMessage.dataset.messageType === "category-flow" &&
