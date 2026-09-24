@@ -30,7 +30,7 @@ function detail(): PublicPlaceDetail {
       openingHours: null,
       amenities: Object.freeze([]),
       tags: Object.freeze(["sunset"]),
-      capabilities: Object.freeze(["directions"]),
+      capabilities: Object.freeze(["directions"] as const),
     }),
     media: Object.freeze({
       placeId: "place-toca",
