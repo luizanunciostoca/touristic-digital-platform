@@ -156,3 +156,5 @@ This wave does not:
 - change Inventory/Ticketing authority;
 - merge;
 - deploy.
+
+Validation checkpoint: exact-head CI must pass on the permanent source tree.
