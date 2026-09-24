@@ -215,8 +215,133 @@ export function createNavigationGuidanceUi(
   const supportUi = ensureNavigationSupportUi(document);
   const originalEndText = endButton?.textContent ?? "Encerrar Navegação";
   const originalEndAria = endButton?.getAttribute("aria-label");
+  const unifiedDock = document.getElementById("unified-assistant-dock");
+  const categoryRail = document.getElementById("assistant-category-rail");
+  const voiceButton = document.getElementById(
+    "voiceButton",
+  ) as HTMLButtonElement | null;
+  const originalVoiceMarkup = voiceButton?.innerHTML ?? "";
+  const originalVoiceAria = voiceButton?.getAttribute("aria-label");
+  const originalVoiceI18nAria = voiceButton?.getAttribute("data-i18n-aria");
+  let navigationDockSummary: HTMLElement | null = null;
   let active = false;
   let destroyed = false;
+
+  const navigationStopLabel = (): string => {
+    const language = document.documentElement.lang.toLowerCase();
+    if (language.startsWith("en")) return "End navigation";
+    if (language.startsWith("es")) return "Finalizar navegación";
+    if (language.startsWith("he")) return "סיום ניווט";
+    return "Encerrar navegação";
+  };
+
+  const navigationTravelModeLabel = (): string => {
+    const language = document.documentElement.lang.toLowerCase();
+    if (language.startsWith("en")) return "Walking";
+    if (language.startsWith("es")) return "Caminando";
+    if (language.startsWith("he")) return "הליכה";
+    return "Caminhada";
+  };
+
+  const ensureNavigationDockSummary = (): HTMLElement | null => {
+    if (!categoryRail) return null;
+    if (navigationDockSummary?.isConnected) return navigationDockSummary;
+
+    const existing = categoryRail.querySelector<HTMLElement>(
+      "[data-navigation-dock-summary]",
+    );
+    if (existing) {
+      navigationDockSummary = existing;
+      return existing;
+    }
+
+    const summary = document.createElement("div");
+    summary.className = "md-navigation-dock-summary";
+    summary.dataset.navigationDockSummary = "true";
+    summary.setAttribute("role", "status");
+    summary.setAttribute("aria-live", "polite");
+    summary.setAttribute("aria-atomic", "true");
+    summary.innerHTML =
+      '<strong class="md-navigation-dock-time" data-navigation-dock-time>0 min</strong>' +
+      '<span class="md-navigation-dock-meta">' +
+      "<span data-navigation-dock-distance>0 m</span>" +
+      '<span aria-hidden="true">·</span>' +
+      "<span data-navigation-dock-mode></span>" +
+      "</span>";
+    categoryRail.appendChild(summary);
+    navigationDockSummary = summary;
+    return summary;
+  };
+
+  const updateNavigationDockSummary = (
+    remainingDuration: number,
+    remainingDistance: number,
+  ): void => {
+    const summary = ensureNavigationDockSummary();
+    if (!summary) return;
+    const timeValue = summary.querySelector<HTMLElement>(
+      "[data-navigation-dock-time]",
+    );
+    const distanceValue = summary.querySelector<HTMLElement>(
+      "[data-navigation-dock-distance]",
+    );
+    const modeValue = summary.querySelector<HTMLElement>(
+      "[data-navigation-dock-mode]",
+    );
+    if (timeValue) timeValue.textContent = formatDuration(remainingDuration);
+    if (distanceValue)
+      distanceValue.textContent = formatDistance(remainingDistance);
+    if (modeValue) modeValue.textContent = navigationTravelModeLabel();
+  };
+
+  const setNavigationDockActive = (enabled: boolean): void => {
+    if (enabled) {
+      unifiedDock?.setAttribute("data-dock-mode", "navigation");
+      categoryRail?.setAttribute("data-navigation-summary", "true");
+      const summary = ensureNavigationDockSummary();
+      summary?.removeAttribute("hidden");
+      if (voiceButton) {
+        const label = navigationStopLabel();
+        voiceButton.dataset.navigationStop = "true";
+        voiceButton.classList.add("is-navigation-stop");
+        voiceButton.setAttribute("aria-label", label);
+        voiceButton.setAttribute("aria-pressed", "false");
+        voiceButton.removeAttribute("data-i18n-aria");
+        voiceButton.innerHTML =
+          '<i class="fas fa-times" aria-hidden="true"></i><span>' +
+          label +
+          "</span>";
+      }
+      return;
+    }
+
+    unifiedDock?.removeAttribute("data-dock-mode");
+    categoryRail?.removeAttribute("data-navigation-summary");
+    navigationDockSummary?.setAttribute("hidden", "");
+    if (voiceButton) {
+      delete voiceButton.dataset.navigationStop;
+      voiceButton.classList.remove("is-navigation-stop");
+      voiceButton.innerHTML = originalVoiceMarkup;
+      if (originalVoiceAria) {
+        voiceButton.setAttribute("aria-label", originalVoiceAria);
+      } else {
+        voiceButton.removeAttribute("aria-label");
+      }
+      if (originalVoiceI18nAria) {
+        voiceButton.setAttribute("data-i18n-aria", originalVoiceI18nAria);
+      } else {
+        voiceButton.removeAttribute("data-i18n-aria");
+      }
+    }
+  };
+
+  const onNavigationStopVoiceClick = (event: Event): void => {
+    if (!active || voiceButton?.dataset.navigationStop !== "true") return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    endButton?.click();
+  };
+  voiceButton?.addEventListener("click", onNavigationStopVoiceClick, true);
 
   const show = (): void => {
     if (destroyed) return;
@@ -224,6 +349,7 @@ export function createNavigationGuidanceUi(
     document.body.classList.add("navigation-active");
     banner?.classList.remove("hidden");
     endButton?.setAttribute("style", "display:block;");
+    setNavigationDockActive(true);
     if (
       endButton &&
       document.documentElement.lang.toLowerCase().startsWith("pt")
@@ -237,6 +363,7 @@ export function createNavigationGuidanceUi(
     if (destroyed) return;
     active = false;
     document.body.classList.remove("navigation-active");
+    setNavigationDockActive(false);
     banner?.classList.add("hidden");
     banner?.classList.remove("minimized", "arrive");
     minimizeButton?.setAttribute("aria-expanded", "true");
@@ -296,6 +423,10 @@ export function createNavigationGuidanceUi(
       if (distance)
         distance.textContent = formatDistance(snapshot.remainingDistance);
       if (time) time.textContent = formatDuration(snapshot.remainingDuration);
+      updateNavigationDockSummary(
+        snapshot.remainingDuration,
+        snapshot.remainingDistance,
+      );
       if (progress) progress.style.width = `${percent}%`;
       if (progressText) progressText.textContent = `${percent}%`;
       setDirectionClass(direction.className);
@@ -314,6 +445,7 @@ export function createNavigationGuidanceUi(
       if (stepDistance) stepDistance.textContent = "0 m";
       if (distance) distance.textContent = "0 m";
       if (time) time.textContent = "< 1 min";
+      updateNavigationDockSummary(0, 0);
       if (progress) progress.style.width = "100%";
       if (progressText) progressText.textContent = "100%";
       setDirectionClass("arrive");
@@ -332,6 +464,11 @@ export function createNavigationGuidanceUi(
       destroyed = true;
       minimizeButton?.removeEventListener("click", toggleMinimized);
       supportUi.recenter?.removeEventListener("click", requestRecenter);
+      voiceButton?.removeEventListener(
+        "click",
+        onNavigationStopVoiceClick,
+        true,
+      );
     },
   });
 }
