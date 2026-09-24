@@ -387,7 +387,10 @@ describe("Place Action Registry", () => {
     ["emergencies", ["directions", "call"] as const],
   ])(
     "resolves category × capability matrix for %s without category-only leakage",
-    (key, capabilities) => {
+    (
+      key: CanonicalPlaceCategory,
+      capabilities: readonly PlaceCapability[],
+    ) => {
       const p = place(capabilities);
       const resolved = resolvePlacePresentationActions({
         place: p,
