@@ -33,6 +33,8 @@ export interface RestaurantReservation {
   readonly status: RestaurantReservationStatus;
   readonly depositPolicy: RestaurantDepositPolicy;
   readonly holdExpiresAt: string | null;
+  readonly orderId: string | null;
+  readonly paymentId: string | null;
   readonly createdAt: string;
   readonly updatedAt: string;
 }
@@ -62,7 +64,9 @@ function timestamp(value: unknown): string | null {
 function serviceDate(value: unknown): string | null {
   const normalized = text(value, 10);
   if (!normalized || !/^\d{4}-\d{2}-\d{2}$/u.test(normalized)) return null;
-  return Number.isFinite(Date.parse(`${normalized}T00:00:00.000Z`))
+  const epoch = Date.parse(`${normalized}T00:00:00.000Z`);
+  if (!Number.isFinite(epoch)) return null;
+  return new Date(epoch).toISOString().slice(0, 10) === normalized
     ? normalized
     : null;
 }
@@ -112,6 +116,8 @@ export function createRestaurantReservation(input: {
   readonly status: unknown;
   readonly depositPolicy: unknown;
   readonly holdExpiresAt?: unknown;
+  readonly orderId?: unknown;
+  readonly paymentId?: unknown;
   readonly createdAt: unknown;
   readonly updatedAt?: unknown;
 }): RestaurantReservation | null {
@@ -137,6 +143,14 @@ export function createRestaurantReservation(input: {
     input.holdExpiresAt === null || input.holdExpiresAt === undefined
       ? null
       : timestamp(input.holdExpiresAt);
+  const orderId =
+    input.orderId === null || input.orderId === undefined
+      ? null
+      : id(input.orderId);
+  const paymentId =
+    input.paymentId === null || input.paymentId === undefined
+      ? null
+      : id(input.paymentId);
   const seatingArea =
     input.seatingArea === null || input.seatingArea === undefined
       ? null
@@ -170,7 +184,9 @@ export function createRestaurantReservation(input: {
     (input.seatingArea !== null &&
       input.seatingArea !== undefined &&
       !seatingArea) ||
-    (input.notes !== null && input.notes !== undefined && !notes)
+    (input.notes !== null && input.notes !== undefined && !notes) ||
+    (input.orderId !== null && input.orderId !== undefined && !orderId) ||
+    (input.paymentId !== null && input.paymentId !== undefined && !paymentId)
   ) {
     return null;
   }
@@ -187,7 +203,12 @@ export function createRestaurantReservation(input: {
       status !== "held" &&
       status !== "confirmed" &&
       status !== "cancelled" &&
-      status !== "expired")
+      status !== "expired") ||
+    (status === "confirmed" &&
+      depositPolicy.kind === "required" &&
+      (!orderId || !paymentId)) ||
+    (depositPolicy.kind === "none" && (orderId !== null || paymentId !== null)) ||
+    (status !== "confirmed" && (orderId !== null || paymentId !== null))
   ) {
     return null;
   }
@@ -207,6 +228,8 @@ export function createRestaurantReservation(input: {
     status,
     depositPolicy,
     holdExpiresAt,
+    orderId,
+    paymentId,
     createdAt,
     updatedAt,
   });
