@@ -212,6 +212,12 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
             <span class="md-assistant-category-label">Ajuda</span>
           </button>
         </div>
+        <span
+          class="md-category-scroll-hint"
+          data-category-scroll-hint
+          aria-hidden="true"
+          hidden
+        >›</span>
       </div>
 
       <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent is-voice-first" role="group" aria-label="Assistente por voz" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map" data-assistant-entry-mode="voice-first">
@@ -498,6 +504,56 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
       }),
     );
   });
+
+  const categoryScroller = categories.querySelector<HTMLElement>(
+    ".md-assistant-category-scroll",
+  );
+  const categoryScrollHint = categories.querySelector<HTMLElement>(
+    "[data-category-scroll-hint]",
+  );
+  const synchronizeCategoryScrollHint = (): void => {
+    if (!categoryScroller || !categoryScrollHint) return;
+    const lastOption = categoryScroller.lastElementChild;
+    if (!(lastOption instanceof HTMLElement)) {
+      categoryScrollHint.hidden = true;
+      categories.removeAttribute("data-has-scroll-forward");
+      return;
+    }
+
+    const scrollerRect = categoryScroller.getBoundingClientRect();
+    const lastOptionRect = lastOption.getBoundingClientRect();
+    const isRtl =
+      document.defaultView?.getComputedStyle(categoryScroller).direction ===
+      "rtl";
+    const hasForwardOverflow = isRtl
+      ? lastOptionRect.left < scrollerRect.left - 1
+      : lastOptionRect.right > scrollerRect.right + 1;
+
+    categoryScrollHint.hidden = !hasForwardOverflow;
+    categories.toggleAttribute("data-has-scroll-forward", hasForwardOverflow);
+  };
+
+  categoryScroller?.addEventListener("scroll", synchronizeCategoryScrollHint, {
+    passive: true,
+  });
+  document.defaultView?.addEventListener(
+    "resize",
+    synchronizeCategoryScrollHint,
+  );
+  const CategoryResizeObserver = document.defaultView?.ResizeObserver;
+  const categoryResizeObserver = CategoryResizeObserver
+    ? new CategoryResizeObserver(synchronizeCategoryScrollHint)
+    : undefined;
+  if (categoryScroller) categoryResizeObserver?.observe(categoryScroller);
+  const CategoryMutationObserver = document.defaultView?.MutationObserver;
+  const categoryMutationObserver = CategoryMutationObserver
+    ? new CategoryMutationObserver(synchronizeCategoryScrollHint)
+    : undefined;
+  categoryMutationObserver?.observe(categoryScroller ?? categories, {
+    childList: true,
+    subtree: true,
+  });
+  synchronizeCategoryScrollHint();
 
   const synchronizeCategorySelection = (): void => {
     const activeCategory =
