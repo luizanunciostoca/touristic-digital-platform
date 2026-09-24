@@ -65,12 +65,34 @@ export interface MorroProModuleAccess {
     | "owner_only";
 }
 
+function isMorroProBusinessRole(role: AuthRole): boolean {
+  const canonicalRole = canonicalAuthRole(role);
+  return (
+    canonicalRole === "BUSINESS_OWNER" ||
+    canonicalRole === "BUSINESS_MANAGER" ||
+    canonicalRole === "BUSINESS_VIEWER"
+  );
+}
+
 export function resolveMorroProModuleAccess(
   role: AuthRole,
   sessionCapabilities: readonly string[] | undefined,
   placeCapabilities: readonly string[] = [],
 ): readonly MorroProModuleAccess[] {
   const canonicalRole = canonicalAuthRole(role);
+  if (!isMorroProBusinessRole(role)) {
+    return Object.freeze(
+      morroProModulePolicies.map((policy) =>
+        Object.freeze({
+          id: policy.id,
+          label: policy.label,
+          visible: false,
+          mutable: false,
+          reason: "capability_missing" as const,
+        }),
+      ),
+    );
+  }
   const effectiveCapabilities = new Set(sessionCapabilities ?? []);
   const hasCapability = (capability: AuthCapability): boolean =>
     effectiveCapabilities.has(capability) || hasAuthCapability(role, capability);
@@ -135,6 +157,9 @@ export function resolveBusinessContext(
   session: DashboardSessionResponse,
   requestedBusinessId?: unknown,
 ): string {
+  if (!isMorroProBusinessRole(session.user.role)) {
+    throw new Error("MORRO_PRO_ROLE_DENIED");
+  }
   const allowed = normalizedBusinessScopes(session);
   const requested = normalizeBusinessId(requestedBusinessId);
   if (requestedBusinessId !== undefined && requestedBusinessId !== null) {
