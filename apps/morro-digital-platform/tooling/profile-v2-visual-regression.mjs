@@ -125,7 +125,7 @@ try {
             "aria-expanded",
           ),
         quickActions:
-          panel?.querySelectorAll(".md-home-profile-quick-action").length ?? 0,
+          panel?.querySelectorAll(".md-home-profile-shortcut").length ?? 0,
         focusedClose: document.activeElement?.id === "home-profile-close",
         controls,
         mapVisible: visible(map),
