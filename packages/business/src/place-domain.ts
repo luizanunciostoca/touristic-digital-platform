@@ -59,7 +59,7 @@ export interface Business {
 
 export interface Category {
   readonly id: CategoryId;
-  readonly key: CanonicalPlaceCategory | string;
+  readonly key: string;
   readonly label: string;
   readonly active: boolean;
 }
