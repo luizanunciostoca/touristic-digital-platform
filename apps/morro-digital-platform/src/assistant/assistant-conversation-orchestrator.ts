@@ -83,6 +83,7 @@ export interface ConversationTransitionInput {
 export interface ConversationObservabilitySnapshot {
   readonly turnsCreated: number;
   readonly duplicateAttempts: number;
+  readonly staleResponsesDropped: number;
   readonly asyncSequence: number;
 }
 
@@ -92,6 +93,7 @@ export interface AssistantConversationOrchestrator {
   recentTurns(): readonly ConversationTurn[];
   issueSequence(): number;
   isCurrentSequence(sequence: number): boolean;
+  recordStaleResponseDropped(): void;
   observability(): ConversationObservabilitySnapshot;
 }
 
@@ -229,6 +231,7 @@ export function createAssistantConversationOrchestrator(options?: {
   let turnSequence = 0;
   let asyncSequence = 0;
   let duplicateAttempts = 0;
+  let staleResponsesDropped = 0;
   let turnsCreated = 0;
   let lastTransitionFingerprint: string | null = null;
 
@@ -277,10 +280,14 @@ export function createAssistantConversationOrchestrator(options?: {
     isCurrentSequence(candidate: number): boolean {
       return candidate === asyncSequence;
     },
+    recordStaleResponseDropped(): void {
+      staleResponsesDropped += 1;
+    },
     observability(): ConversationObservabilitySnapshot {
       return Object.freeze({
         turnsCreated,
         duplicateAttempts,
+        staleResponsesDropped,
         asyncSequence,
       });
     },
