@@ -80,7 +80,7 @@
     },
     {
       "workflow": "v1-home-responsive-browser-regression.yml",
-      "reuse_tree_equivalent": true
+      "reuse_tree_equivalent": false
     },
     {
       "workflow": "v1-explore-locations-browser-regression.yml",
@@ -112,15 +112,15 @@
     },
     {
       "workflow": "ticketing-v2-visual-regression.yml",
-      "reuse_tree_equivalent": true
+      "reuse_tree_equivalent": false
     },
     {
       "workflow": "ux-v2-component-state-visual-regression.yml",
-      "reuse_tree_equivalent": true
+      "reuse_tree_equivalent": false
     },
     {
       "workflow": "ux-v2-manual-golden-conformance.yml",
-      "reuse_tree_equivalent": true
+      "reuse_tree_equivalent": false
     },
     {
       "workflow": "pwa-offline-browser-contract.yml",
@@ -168,7 +168,7 @@
     },
     {
       "workflow": "commerce-browser-regression.yml",
-      "reuse_tree_equivalent": true
+      "reuse_tree_equivalent": false
     },
     {
       "workflow": "v1-assistant-single-message-poi-markers.yml",
