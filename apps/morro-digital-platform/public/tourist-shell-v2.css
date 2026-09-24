@@ -1576,7 +1576,8 @@ body[data-md-mode="discover"] .md-discover-category-rail::-webkit-scrollbar {
   color: var(--md-color-text-inverse);
 }
 
-body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+body[data-md-mode="discover"] #globe-map-control.md-map-control-stack,
+body[data-md-mode="place"] #globe-map-control.md-map-control-stack {
   bottom: calc(
     var(--md-shell-bottom) + var(--md-unified-dock-height, 10rem) +
       var(--md-space-5)
