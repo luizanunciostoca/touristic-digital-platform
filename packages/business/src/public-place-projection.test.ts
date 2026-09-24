@@ -120,7 +120,7 @@ describe("parsePublicPlaceMapQuery", () => {
       parsePublicPlaceMapQuery({
         destinationId: "morro-de-sao-paulo",
         bbox: "-38.93,-13.40,-38.89,-13.35",
-        categoryId: "nightlife",
+        category: "nightlife",
         zoom: "15",
         limit: "5000",
       }),
@@ -132,7 +132,7 @@ describe("parsePublicPlaceMapQuery", () => {
         east: -38.89,
         north: -13.35,
       },
-      categoryId: "nightlife",
+      category: "nightlife",
       zoom: 15,
       limit: 1000,
     });
@@ -199,7 +199,7 @@ describe("createPublicPlaceReadModel", () => {
     const result = await service.listMap({
       destinationId: "morro-de-sao-paulo",
       bbox: "-38.93,-13.40,-38.89,-13.35",
-      categoryId: "nightlife",
+      category: "nightlife",
       zoom: 15,
     });
 
@@ -207,9 +207,9 @@ describe("createPublicPlaceReadModel", () => {
     expect(result.page.items[0]).toEqual({
       id: asPlaceId("place-1"),
       name: "Toca do Morcego",
-      categoryId: asCategoryId("nightlife"),
-      latitude: -13.377,
-      longitude: -38.915,
+      category: asCategoryId("nightlife"),
+      lat: -13.377,
+      lng: -38.915,
       presentation: { markerKey: "nightlife", priority: 0 },
     });
     expect(result.page.items[0]).not.toHaveProperty("businessId");
