@@ -1,0 +1,36 @@
+name: Temporary Dispatch Staging Promotion
+
+on:
+  push:
+    branches:
+      - ops/dispatch-staging-c5597ea6-20260924
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops/dispatch-staging-c5597ea6-20260924
+          fetch-depth: 0
+      - name: Dispatch exact-SHA staging workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: c5597ea63d4f7beb4b69cbae4b84d4f4c9bb78b8
+        run: |
+          set -euo pipefail
+          current_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          test "$current_main" = "$EXPECTED_SHA"
+          gh workflow run staging-render-promotion.yml             --ref main             -f expected_sha="$EXPECTED_SHA"             -f confirm_staging=DEPLOY
+      - name: Remove temporary dispatcher
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-dispatch-staging.yml
+          git commit -m "chore(ci): remove staging dispatch helper"
+          git push origin HEAD:ops/dispatch-staging-c5597ea6-20260924
