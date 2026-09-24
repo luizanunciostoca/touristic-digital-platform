@@ -99,6 +99,22 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(css).toContain(".md-category-scroll-hint[hidden]");
   });
 
+  it("scrolls forward when the category rail cue is activated", async () => {
+    const [shell, css] = await Promise.all([
+      readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+    ]);
+
+    expect(shell).toContain('aria-label="Ver próximas opções"');
+    expect(shell).toContain("scrollCategoryRailForward");
+    expect(shell).toContain("categoryScroller.scrollBy");
+    expect(shell).toContain('behavior: "smooth"');
+    expect(shell).toContain("categoryScroller.clientWidth * 0.72");
+    expect(css).toContain("cursor: pointer");
+    expect(css).toContain("pointer-events: auto");
+    expect(css).toContain(".md-category-scroll-hint:focus-visible");
+  });
+
   it("reuses the same rail for filters, places and place actions", async () => {
     const [control, css, copy] = await Promise.all([
       readRepository(
