@@ -25,6 +25,7 @@ import {
 } from "./assistant-v1-residual-command-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
+import { installAssistantContextualMessaging } from "./assistant-contextual-state.js";
 import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
@@ -894,6 +895,12 @@ export function installBrowserAssistantRuntime(
   const readExploreState = () =>
     options.explore?.getState() ?? readAssistantExploreState(options.document);
 
+  const contextualMessaging = installAssistantContextualMessaging({
+    document: options.document,
+    messages,
+    readExploreState,
+  });
+
   const syncExploreContext = (placeHint?: string): void => {
     const state = readExploreState();
     context.updateContext({
@@ -1551,6 +1558,7 @@ export function installBrowserAssistantRuntime(
         "morro:assistant-option-selected",
         onOptionSelected,
       );
+      contextualMessaging.destroy();
       voiceSettings.destroy();
       voiceInput?.destroy();
       voice?.destroy();
