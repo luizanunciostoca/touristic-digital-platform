@@ -120,6 +120,27 @@ describe("payments startup failure diagnostics", () => {
       ),
     ).toBe("PAYMENTS_RETURN_URL_ORIGINS_REQUIRED");
     expect(
+      safeStartupFailureCode(new Error("MERCADO_PAGO_ACCESS_TOKEN is required")),
+    ).toBe("MERCADO_PAGO_ACCESS_TOKEN_REQUIRED");
+    expect(
+      safeStartupFailureCode(
+        new Error("MERCADO_PAGO_CHECKOUT_ORIGINS is required"),
+      ),
+    ).toBe("MERCADO_PAGO_CHECKOUT_ORIGINS_REQUIRED");
+    expect(
+      safeStartupFailureCode(
+        new Error("MERCADO_PAGO_CHECKOUT_ORIGINS is invalid"),
+      ),
+    ).toBe("MERCADO_PAGO_CHECKOUT_ORIGINS_INVALID");
+    expect(
+      safeStartupFailureCode(new Error("MERCADO_PAGO_CHECKOUT_MODE is invalid")),
+    ).toBe("MERCADO_PAGO_CHECKOUT_MODE_INVALID");
+    expect(
+      safeStartupFailureCode(
+        new Error("MERCADO_PAGO_WEBHOOK_SECRET is required"),
+      ),
+    ).toBe("MERCADO_PAGO_WEBHOOK_SECRET_REQUIRED");
+    expect(
       safeStartupFailureCode(
         new Error("secret-bearing arbitrary failure"),
         "DATABASE_SCHEMA",
