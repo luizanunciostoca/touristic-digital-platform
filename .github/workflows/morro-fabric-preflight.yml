@@ -70,10 +70,6 @@ jobs:
           restore-keys: |
             fabric-turbo-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml','turbo.json','eslint.config.mjs','tsconfig.base.json') }}-
       - run: pnpm install --frozen-lockfile --prefer-offline
-      - name: Diagnostic Prettier diff
-        run: |
-          pnpm exec prettier tooling/fabric/plan-change.mjs > /tmp/plan-change.formatted.mjs
-          diff -u tooling/fabric/plan-change.mjs /tmp/plan-change.formatted.mjs || true
       - name: Static proof
         run: |
           pnpm secret-patterns:check
