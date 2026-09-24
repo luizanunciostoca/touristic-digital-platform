@@ -2720,6 +2720,9 @@ html:not([dir="rtl"])
   min-width: 0;
   margin: 0;
   padding-inline: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  isolation: isolate;
 }
 
 html[dir="rtl"]
@@ -2772,7 +2775,8 @@ html[dir="rtl"]
 #unified-assistant-dock
   > #assistant-category-rail
   .md-context-rail-back::before {
-  inset: -0.125rem;
+  inset: 0;
+  pointer-events: none;
 }
 
 @media (max-width: 24.375rem) {
