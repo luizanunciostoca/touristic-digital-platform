@@ -2,6 +2,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repository.js";
 import { MySqlOrderRepository } from "./mysql-order-repository.js";
+import { MySqlRestaurantReservationOrderBindingRepository } from "./mysql-restaurant-reservation-order-binding-repository.js";
 import {
   MySqlSubscriptionRenewalIntentRepository,
   MySqlSubscriptionRepository,
@@ -16,11 +17,16 @@ import {
   orderingTicketingBridgeRollbackSql,
   orderingTicketingBridgeSchemaSql,
 } from "./ticketing-bridge-schema.js";
+import {
+  orderingRestaurantReservationRollbackSql,
+  orderingRestaurantReservationSchemaSql,
+} from "./restaurant-reservation-schema.js";
 import { orderingTicketingReservationSchemaSql } from "./ticketing-reservation-schema.js";
 
 export {
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlRestaurantReservationOrderBindingRepository,
   MySqlSubscriptionRenewalIntentRepository,
   MySqlSubscriptionRepository,
   MySqlTicketingOrderBindingRepository,
@@ -29,6 +35,8 @@ export {
   orderingM151SchemaSql,
   orderingTicketingBridgeRollbackSql,
   orderingTicketingBridgeSchemaSql,
+  orderingRestaurantReservationRollbackSql,
+  orderingRestaurantReservationSchemaSql,
   orderingTicketingReservationSchemaSql,
 };
 export * from "./card-payment-http-transport.js";
@@ -95,4 +103,11 @@ export async function applyOrderingTicketingReservationSchema(
   await applyOrderingM137Schema(pool);
   await applySqlStatements(pool, orderingTicketingBridgeSchemaSql);
   await applySqlStatements(pool, orderingTicketingReservationSchemaSql);
+}
+
+export async function applyOrderingRestaurantReservationSchema(
+  pool: Pool,
+): Promise<void> {
+  await applyOrderingTicketingReservationSchema(pool);
+  await applySqlStatements(pool, orderingRestaurantReservationSchemaSql);
 }
