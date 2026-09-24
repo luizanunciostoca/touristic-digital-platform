@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="pt-BR" data-theme="light" data-destination-theme="morro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Morro Commerce · Morro Digital</title>
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/design-system-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/premium-ux-v2.css"
+    />
+    <link rel="stylesheet" href="/commerce.css" />
+  </head>
+  <body data-md-mode="commerce" data-commerce-mode="table_reservation">
+    <main class="commerce-shell" data-commerce-shell>
+      <header class="commerce-topbar">
+        <button
+          class="commerce-back md-icon-button"
+          type="button"
+          data-commerce-back
+          aria-label="Voltar"
+        >
+          ‹
+        </button>
+        <strong>Reserva</strong>
+        <span class="commerce-secure-mark" aria-label="Conexão segura">🔒</span>
+      </header>
+
+      <section class="commerce-hero" aria-labelledby="commerce-title">
+        <div class="commerce-hero-media" data-commerce-hero aria-hidden="true">
+          <span class="commerce-mode-badge">🍽️ Reserva de mesa</span>
+        </div>
+        <div class="commerce-identity">
+          <p class="commerce-kicker">Morro Commerce</p>
+          <h1 id="commerce-title">Reserve sua mesa</h1>
+          <div class="commerce-facts" aria-live="polite">
+            <span data-commerce-place hidden></span>
+            <span data-commerce-date-fact hidden></span>
+            <span data-commerce-deposit-fact hidden></span>
+          </div>
+          <p class="commerce-description">
+            Escolha uma data, um horário disponível e o número de pessoas.
+          </p>
+        </div>
+      </section>
+
+      <p
+        class="commerce-status"
+        data-commerce-status
+        aria-live="polite"
+        aria-atomic="true"
+      ></p>
+
+      <section class="commerce-section" aria-labelledby="commerce-date-title">
+        <div class="commerce-section-heading">
+          <div>
+            <p class="commerce-step">1 · Quando</p>
+            <h2 id="commerce-date-title">Escolha a data</h2>
+          </div>
+        </div>
+        <div class="commerce-date-row">
+          <button type="button" class="commerce-date-chip" data-date-offset="0">
+            Hoje
+          </button>
+          <button type="button" class="commerce-date-chip" data-date-offset="1">
+            Amanhã
+          </button>
+          <label class="commerce-date-picker">
+            <span>Outra data</span>
+            <input
+              class="md-input"
+              type="date"
+              data-commerce-date
+              aria-label="Data da reserva"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="commerce-section" aria-labelledby="commerce-slot-title">
+        <div class="commerce-section-heading">
+          <div>
+            <p class="commerce-step">2 · Horário</p>
+            <h2 id="commerce-slot-title">Horários disponíveis</h2>
+          </div>
+          <button
+            class="commerce-retry md-button md-button--secondary"
+            type="button"
+            data-commerce-retry
+            hidden
+          >
+            Tentar novamente
+          </button>
+        </div>
+        <div
+          class="commerce-slot-grid"
+          data-commerce-slots
+          role="listbox"
+          aria-label="Horários disponíveis"
+          aria-busy="true"
+        ></div>
+      </section>
+
+      <section
+        class="commerce-section commerce-selection"
+        data-commerce-selection
+        aria-labelledby="commerce-party-title"
+        hidden
+      >
+        <div class="commerce-section-heading">
+          <div>
+            <p class="commerce-step">3 · Pessoas</p>
+            <h2 id="commerce-party-title">Tamanho do grupo</h2>
+          </div>
+          <span class="commerce-seating" data-commerce-seating></span>
+        </div>
+        <div class="commerce-party-row">
+          <span data-commerce-party-label>2 pessoas</span>
+          <div class="commerce-stepper" aria-label="Número de pessoas">
+            <button
+              type="button"
+              class="md-icon-button"
+              data-party-decrease
+              aria-label="Diminuir número de pessoas"
+            >
+              −
+            </button>
+            <output data-party-size aria-live="polite">2</output>
+            <button
+              type="button"
+              class="md-icon-button"
+              data-party-increase
+              aria-label="Aumentar número de pessoas"
+            >
+              +
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="commerce-section commerce-customer"
+        data-commerce-customer
+        aria-labelledby="commerce-customer-title"
+        hidden
+      >
+        <div class="commerce-section-heading">
+          <div>
+            <p class="commerce-step">4 · Responsável</p>
+            <h2 id="commerce-customer-title">Dados da reserva</h2>
+          </div>
+        </div>
+        <form data-commerce-form novalidate>
+          <label>
+            Nome completo
+            <input
+              class="md-input"
+              name="name"
+              autocomplete="name"
+              maxlength="160"
+              required
+            />
+          </label>
+          <label>
+            E-mail
+            <input
+              class="md-input"
+              name="email"
+              type="email"
+              autocomplete="email"
+              maxlength="200"
+              required
+            />
+          </label>
+          <label>
+            Telefone <span>opcional</span>
+            <input
+              class="md-input"
+              name="phone"
+              autocomplete="tel"
+              maxlength="40"
+            />
+          </label>
+          <label>
+            Observações <span>opcional</span>
+            <textarea
+              class="md-input"
+              name="notes"
+              maxlength="500"
+              rows="3"
+              placeholder="Acessibilidade, comemoração ou outra observação"
+            ></textarea>
+          </label>
+        </form>
+      </section>
+
+      <section class="commerce-summary" data-commerce-summary hidden>
+        <div>
+          <p class="commerce-step">Sua reserva</p>
+          <strong data-commerce-summary-title>—</strong>
+          <span data-commerce-summary-meta></span>
+        </div>
+        <div class="commerce-deposit" data-commerce-deposit hidden>
+          <span>Depósito</span>
+          <strong data-commerce-deposit-amount>—</strong>
+        </div>
+        <button
+          type="submit"
+          form="commerce-reservation-form"
+          class="md-button md-button--primary commerce-primary-cta"
+          data-commerce-submit
+          disabled
+        >
+          Reservar mesa
+        </button>
+        <p class="commerce-trust">
+          🔒 Disponibilidade e valores confirmados pelo servidor. Pagamentos,
+          quando exigidos, usam o checkout seguro do Morro Digital.
+        </p>
+      </section>
+
+      <section
+        class="commerce-confirmation"
+        data-commerce-confirmation
+        aria-live="polite"
+        hidden
+      >
+        <span class="commerce-confirmation-icon" aria-hidden="true">✓</span>
+        <div>
+          <p class="commerce-step">Reserva</p>
+          <h2 data-confirmation-title>Reserva confirmada</h2>
+          <p data-confirmation-copy></p>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.querySelector("[data-commerce-form]").id =
+        "commerce-reservation-form";
+    </script>
+    <script type="module" src="/commerce.js"></script>
+  </body>
+</html>
