@@ -165,7 +165,11 @@ describe("Home / Discover UX V2 manual conformance", () => {
       expect(shell).toContain(`data-discover-category="${category}"`);
     }
     expect(shell).toContain('id="recenter-map-control"');
-    expect(shell).toContain('data-map-control="recenter"');
+    expect(shell).toContain('data-map-control="user-location"');
+    expect(shell).toContain("Minha localização");
+    expect(runtime).toContain('setText("Você está aqui")');
+    expect(css).toContain('#globe-map-control [data-map-control="user-location"]');
+    expect(css).toContain('#globe-map-control [data-map-control="3d"]');
     expect(runtime).toContain("const DISCOVER_HOME_ZOOM = 14.8");
     expect(runtime).toContain("discoverInitialMarkers()");
     expect(runtime).toContain('"data-discover-poi-count"');
