@@ -2793,7 +2793,6 @@ html[dir="rtl"]
   }
 }
 
-
 /* Final no-overlap geometry: reserve a physical lane for Back and start the
  * horizontal scroll viewport after that lane. This is intentionally not Grid
  * or flex ordering so horizontal scrolling can never place an option under
@@ -2970,8 +2969,7 @@ html[dir="rtl"]
  * structural Back control and horizontally scrollable options. No option can
  * paint or receive pointer events outside the viewport, even after
  * scrollIntoView() or scroll-snap adjustments. */
-#unified-assistant-dock
-  > #assistant-category-rail.md-assistant-category-rail {
+#unified-assistant-dock > #assistant-category-rail.md-assistant-category-rail {
   position: relative;
   display: grid;
   grid-template-columns: 2.75rem minmax(0, 1fr);
@@ -2983,9 +2981,7 @@ html[dir="rtl"]
   pointer-events: auto;
 }
 
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-context-rail-back {
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-back {
   position: static;
   inset: auto;
   grid-column: 1;
@@ -3011,9 +3007,7 @@ html[dir="rtl"]
   display: none;
 }
 
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-context-rail-back-icon {
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-back-icon {
   display: grid;
   width: 2.5rem;
   height: 2.5rem;
@@ -3063,8 +3057,7 @@ html[dir="rtl"]
 }
 
 /* Menu has no Back control, so the viewport can use the entire rail width. */
-#unified-assistant-dock
-  > #assistant-category-rail[data-rail-stage="menu"] {
+#unified-assistant-dock > #assistant-category-rail[data-rail-stage="menu"] {
   grid-template-columns: minmax(0, 1fr);
 }
 
