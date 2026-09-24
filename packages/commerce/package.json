@@ -13,6 +13,11 @@
       "types": "./src/restaurant-reservations.ts",
       "node": "./dist/restaurant-reservations.js",
       "default": "./src/restaurant-reservations.ts"
+    },
+    "./restaurant-availability": {
+      "types": "./src/restaurant-availability.ts",
+      "node": "./dist/restaurant-availability.js",
+      "default": "./src/restaurant-availability.ts"
     }
   },
   "scripts": {
