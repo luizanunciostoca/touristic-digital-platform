@@ -17,6 +17,7 @@ interface HomeCopy {
   readonly privacy: string;
   readonly profilePreferences: string;
   readonly profileQuickActions: string;
+  readonly profileExpandedNote: string;
   readonly expandProfile: string;
   readonly collapseProfile: string;
   readonly closeProfile: string;
@@ -36,6 +37,8 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     privacy: "Privacidade e LGPD",
     profilePreferences: "Preferências",
     profileQuickActions: "Atalhos do perfil",
+    profileExpandedNote:
+      "Idioma, voz e privacidade continuam acessíveis sem tirar você do mapa.",
     expandProfile: "Expandir perfil",
     collapseProfile: "Recolher perfil",
     closeProfile: "Fechar perfil",
@@ -54,6 +57,8 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     privacy: "Privacy and LGPD",
     profilePreferences: "Preferences",
     profileQuickActions: "Profile shortcuts",
+    profileExpandedNote:
+      "Language, voice and privacy stay accessible without taking you away from the map.",
     expandProfile: "Expand profile",
     collapseProfile: "Collapse profile",
     closeProfile: "Close profile",
@@ -71,6 +76,8 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     privacy: "Privacidad y LGPD",
     profilePreferences: "Preferencias",
     profileQuickActions: "Atajos del perfil",
+    profileExpandedNote:
+      "Idioma, voz y privacidad siguen accesibles sin sacarte del mapa.",
     expandProfile: "Expandir perfil",
     collapseProfile: "Contraer perfil",
     closeProfile: "Cerrar perfil",
@@ -88,6 +95,8 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     privacy: "פרטיות ו-LGPD",
     profilePreferences: "העדפות",
     profileQuickActions: "קיצורי דרך בפרופיל",
+    profileExpandedNote:
+      "שפה, קול ופרטיות נשארים נגישים בלי להוציא אותך מהמפה.",
     expandProfile: "הרחבת הפרופיל",
     collapseProfile: "כיווץ הפרופיל",
     closeProfile: "סגירת הפרופיל",
