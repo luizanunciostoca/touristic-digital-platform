@@ -128,10 +128,7 @@ export const ASSISTANT_CONTEXTUAL_STATE_MATRIX: Readonly<
     "Você voltou para a etapa anterior. Escolha como deseja continuar.",
     null,
   ),
-  back: copy(
-    "Voltamos uma etapa sem perder o contexto da sua busca.",
-    null,
-  ),
+  back: copy("Voltamos uma etapa sem perder o contexto da sua busca.", null),
   cancelled: copy(
     "A ação foi cancelada. Você pode escolher outra opção quando quiser.",
     null,
@@ -156,7 +153,9 @@ function copy(message: string, cta: string | null): AssistantContextualCopy {
 }
 
 function safeLabel(value: string | null | undefined, fallback: string): string {
-  const normalized = String(value ?? "").trim().slice(0, 160);
+  const normalized = String(value ?? "")
+    .trim()
+    .slice(0, 160);
   return normalized || fallback;
 }
 
