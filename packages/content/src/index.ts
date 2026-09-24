@@ -302,3 +302,5 @@ export function publishScheduledContent(
 export function isContentPublic(document: ContentDocument): boolean {
   return document.status === "published";
 }
+
+export * from "./place-media.js";
