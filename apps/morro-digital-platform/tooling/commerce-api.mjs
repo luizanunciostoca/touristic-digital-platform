@@ -1,7 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import { createRestaurantReservationSlot } from "@touristic/commerce/restaurant-availability";
-import { createRestaurantReservationRequestKey } from "@touristic/commerce/restaurant-reservations";
+import {
+  createRestaurantReservationSlot,
+} from "@touristic/commerce/restaurant-availability";
+import {
+  createRestaurantReservationRequestKey,
+} from "@touristic/commerce/restaurant-reservations";
 import {
   MySqlRestaurantReservationRepository,
   applyCommerceRestaurantReservationSchema,
