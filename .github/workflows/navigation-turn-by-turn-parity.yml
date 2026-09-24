@@ -184,6 +184,25 @@ jobs:
             await context.setGeolocation(approach);
             await poll(page, () => globalThis.__turnByTurnEvidence?.speech?.some((entry) => entry.text.includes('chegando ao destino')), 'approach-speech');
 
+            const activeContext = await page.evaluate(() => {
+              const nodes = Array.from(document.querySelectorAll(
+                '#assistant-messages .navigation-instruction-area #assistant-navigation-contextual-state',
+              ));
+              return {
+                count: nodes.length,
+                text: nodes[0]?.textContent?.trim() ?? '',
+              };
+            });
+            if (
+              activeContext.count !== 1 ||
+              !activeContext.text.includes('Navegação ativa') ||
+              /-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?/u.test(activeContext.text)
+            ) {
+              throw new Error(
+                `Assistant navigation context diverged after repeated status updates: ${JSON.stringify(activeContext)}`,
+              );
+            }
+
             await context.setGeolocation(destination);
             await poll(page, () => globalThis.__turnByTurnEvidence?.statuses?.some((status) => status.phase === 'arrived'), 'arrival-status');
             await poll(page, () => document.getElementById('instruction-main')?.textContent?.includes('chegou ao destino'), 'arrival-banner');
