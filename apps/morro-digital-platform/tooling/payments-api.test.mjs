@@ -120,7 +120,9 @@ describe("payments startup failure diagnostics", () => {
       ),
     ).toBe("PAYMENTS_RETURN_URL_ORIGINS_REQUIRED");
     expect(
-      safeStartupFailureCode(new Error("MERCADO_PAGO_ACCESS_TOKEN is required")),
+      safeStartupFailureCode(
+        new Error("MERCADO_PAGO_ACCESS_TOKEN is required"),
+      ),
     ).toBe("MERCADO_PAGO_ACCESS_TOKEN_REQUIRED");
     expect(
       safeStartupFailureCode(
@@ -133,7 +135,9 @@ describe("payments startup failure diagnostics", () => {
       ),
     ).toBe("MERCADO_PAGO_CHECKOUT_ORIGINS_INVALID");
     expect(
-      safeStartupFailureCode(new Error("MERCADO_PAGO_CHECKOUT_MODE is invalid")),
+      safeStartupFailureCode(
+        new Error("MERCADO_PAGO_CHECKOUT_MODE is invalid"),
+      ),
     ).toBe("MERCADO_PAGO_CHECKOUT_MODE_INVALID");
     expect(
       safeStartupFailureCode(
