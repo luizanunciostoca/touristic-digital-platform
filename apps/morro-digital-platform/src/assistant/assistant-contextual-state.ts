@@ -153,6 +153,15 @@ function safeLabel(value: string | null | undefined, fallback: string): string {
   return normalized || fallback;
 }
 
+const CONTEXTUAL_ERROR_FALLBACK: Readonly<
+  Record<AssistantContextualLanguage, string>
+> = Object.freeze({
+  pt: "Não foi possível concluir esta etapa. Tente novamente.",
+  en: "I couldn’t complete this step. Please try again.",
+  es: "No fue posible completar esta etapa. Inténtalo de nuevo.",
+  he: "לא ניתן היה להשלים את השלב הזה. נסה שוב.",
+});
+
 export function resolveAssistantContextualCopy(
   state: AssistantContextualState,
   variables: AssistantContextualVariables = {},
@@ -177,7 +186,7 @@ export function resolveAssistantContextualCopy(
   return Object.freeze({
     message: interpolate(template.message),
     cta: template.cta,
-    errorFallback: interpolate(template.errorFallback),
+    errorFallback: interpolate(CONTEXTUAL_ERROR_FALLBACK[language]),
     voiceCopy: interpolate(template.voiceCopy),
   });
 }
