@@ -978,7 +978,8 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   -webkit-backdrop-filter: blur(1rem);
   transform: translateX(-50%);
   transition:
-    max-height var(--md-motion-duration-standard) var(--md-motion-easing-standard),
+    max-height var(--md-motion-duration-standard)
+      var(--md-motion-easing-standard),
     box-shadow var(--md-motion-duration-fast) var(--md-motion-easing-standard);
   scrollbar-width: thin;
 }
