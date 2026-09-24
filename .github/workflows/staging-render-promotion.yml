@@ -20,6 +20,10 @@ env:
   PNPM_VERSION: "10.15.0"
   TURBO_TELEMETRY_DISABLED: "1"
   STAGING_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_STAGING_ENVIRONMENT: staging
+  EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging
+  EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0
+  EXPECTED_STAGING_CANONICAL_URL: https://morro-digital-v2-staging.onrender.com
 
 concurrency:
   group: staging-render-promotion
@@ -94,11 +98,40 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Require protected Render staging deploy hook
+      - name: Prove canonical Render staging target before deploy
         env:
+          RENDER_STAGING_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
           RENDER_STAGING_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK_URL }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          RENDER_STAGING_CANONICAL_URL: ${{ secrets.RENDER_STAGING_CANONICAL_URL }}
         shell: bash
-        run: test -n "$RENDER_STAGING_DEPLOY_HOOK_URL"
+        run: |
+          set -euo pipefail
+          for value in RENDER_STAGING_API_KEY RENDER_STAGING_DEPLOY_HOOK_URL RENDER_STAGING_SERVICE_ID RENDER_STAGING_CANONICAL_URL; do
+            test -n "${!value}"
+          done
+          test "$RENDER_STAGING_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$RENDER_STAGING_CANONICAL_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+
+          http_status="$(curl --silent --show-error             --header "Authorization: Bearer $RENDER_STAGING_API_KEY"             --output /tmp/render-staging-service.json             --write-out '%{http_code}'             "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID")"
+          test "$http_status" = "200"
+
+          service_id="$(jq -r '.id // empty' /tmp/render-staging-service.json)"
+          service_name="$(jq -r '.name // empty' /tmp/render-staging-service.json)"
+          service_url="$(jq -r '.serviceDetails.url // .url // empty' /tmp/render-staging-service.json)"
+          service_branch="$(jq -r '.branch // empty' /tmp/render-staging-service.json)"
+          auto_deploy="$(jq -r '.autoDeploy // empty' /tmp/render-staging-service.json)"
+
+          test "$service_id" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$service_name" = "$EXPECTED_STAGING_SERVICE_NAME"
+          test "$service_url" = "$EXPECTED_STAGING_CANONICAL_URL"
+          test "$service_branch" = "main"
+          case "$auto_deploy" in
+            no|false|"") ;;
+            *) echo "Staging autoDeploy must be disabled; observed=$auto_deploy" >&2; exit 1 ;;
+          esac
+
+          echo "Canonical staging target proved: $service_name ($service_id) $service_url"
 
       - name: Trigger exact-SHA Render staging deploy
         id: render-deploy
@@ -126,10 +159,44 @@ jobs:
               ;;
           esac
           deploy_id="$(jq -r '.deploy.id // .id // empty' /tmp/render-staging-deploy-response.json 2>/dev/null || true)"
-          echo "deploy_id=${deploy_id:-unknown}" >> "$GITHUB_OUTPUT"
-          echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA"
+          test -n "$deploy_id"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+          echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA as $deploy_id"
+
+      - name: Prove deployment belongs to canonical staging service
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
+          RENDER_STAGING_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 120); do
+            http_status="$(curl --silent --show-error               --header "Authorization: Bearer $RENDER_STAGING_API_KEY"               --output /tmp/render-staging-deploy.json               --write-out '%{http_code}'               "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys/$DEPLOY_ID")"
+            test "$http_status" = "200"
+
+            observed_deploy_id="$(jq -r '.id // empty' /tmp/render-staging-deploy.json)"
+            observed_sha="$(jq -r '.commit.id // empty' /tmp/render-staging-deploy.json)"
+            status="$(jq -r '.status // empty' /tmp/render-staging-deploy.json)"
+
+            test "$observed_deploy_id" = "$DEPLOY_ID"
+            test "$observed_sha" = "$EXPECTED_SHA"
+
+            case "$status" in
+              live) echo "Canonical staging deploy is live: $DEPLOY_ID @ $observed_sha"; exit 0 ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|cancelled)
+                cat /tmp/render-staging-deploy.json >&2
+                exit 1
+                ;;
+            esac
+            sleep 5
+          done
+          echo "Timed out waiting for canonical staging deployment $DEPLOY_ID" >&2
+          exit 1
 
       - name: Wait for exact-SHA staging health and identity
+        id: live-staging
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           MORRO_V2_BASE_URL: ${{ env.STAGING_URL }}
@@ -142,6 +209,7 @@ jobs:
               release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
               if [ "$release_sha" = "$EXPECTED_SHA" ]; then
                 printf '%s\n' "$output"
+                echo "live_sha=$release_sha" >> "$GITHUB_OUTPUT"
                 echo "Exact-SHA staging smoke PASS: $release_sha"
                 exit 0
               fi
@@ -157,27 +225,44 @@ jobs:
           echo "Exact-SHA staging smoke timed out for $EXPECTED_SHA" >&2
           exit 1
 
-      - name: Publish staging deployment evidence
-        if: always()
+      - name: Publish structured staging deployment evidence
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
+          LIVE_SHA: ${{ steps.live-staging.outputs.live_sha }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          RENDER_STAGING_CANONICAL_URL: ${{ secrets.RENDER_STAGING_CANONICAL_URL }}
         shell: bash
         run: |
           set -euo pipefail
-          {
-            echo "expected_sha=$EXPECTED_SHA"
-            echo "render_deploy_id=${DEPLOY_ID:-unknown}"
-            echo "staging_url=$STAGING_URL"
-            echo "workflow_run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          } > staging-deployment-evidence.txt
-          cat staging-deployment-evidence.txt
+          test "$EXPECTED_SHA" = "$LIVE_SHA"
+          test "$RENDER_STAGING_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$RENDER_STAGING_CANONICAL_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$RENDER_STAGING_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --arg canonicalUrl "$RENDER_STAGING_CANONICAL_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
+              expectedSha: $expectedSha,
+              serviceId: $serviceId,
+              serviceName: $serviceName,
+              environment: $environment,
+              deploymentId: $deploymentId,
+              canonicalUrl: $canonicalUrl,
+              liveSha: $liveSha,
+              verifiedAt: $verifiedAt,
+              workflowRun: $workflowRun
+            }' > staging-deployment-evidence.json
+          jq -e '
+            .expectedSha == .liveSha and
+            .environment == "staging" and
+            .serviceName == "morro-digital-v2-staging" and
+            .serviceId == "srv-da4hb6c9v7es7386ttt0" and
+            .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
+            (.deploymentId | length > 0)
+          ' staging-deployment-evidence.json >/dev/null
+          cat staging-deployment-evidence.json
 
       - name: Upload staging deployment evidence
-        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: staging-deployment-evidence-${{ github.run_id }}
-          path: staging-deployment-evidence.txt
+          path: staging-deployment-evidence.json
           if-no-files-found: error
           retention-days: 30
