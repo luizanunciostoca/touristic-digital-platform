@@ -1,11 +1,13 @@
 import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
+import { MySqlRestaurantReservationRepository } from "./mysql-restaurant-reservation-repository.js";
 import {
   commerceRestaurantReservationRollbackSql,
   commerceRestaurantReservationSchemaSql,
 } from "./restaurant-schema.js";
 
 export {
+  MySqlRestaurantReservationRepository,
   commerceRestaurantReservationRollbackSql,
   commerceRestaurantReservationSchemaSql,
 };
