@@ -95,14 +95,27 @@ async function inspect(page) {
       document.querySelectorAll(
         "#assistant-category-rail button, #globe-map-control button",
       ),
-    ).map((node) => {
-      const box = node.getBoundingClientRect();
-      return {
-        id: node.id || node.getAttribute("data-assistant-category"),
-        width: box.width,
-        height: box.height,
-      };
-    });
+    )
+      .filter((node) => {
+        if (!(node instanceof HTMLElement)) return false;
+        const box = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return (
+          !node.hidden &&
+          style.display !== "none" &&
+          style.visibility !== "hidden" &&
+          box.width > 0 &&
+          box.height > 0
+        );
+      })
+      .map((node) => {
+        const box = node.getBoundingClientRect();
+        return {
+          id: node.id || node.getAttribute("data-assistant-category"),
+          width: box.width,
+          height: box.height,
+        };
+      });
     const map = globalThis.mapboxPrimaryInstance;
     const center = map?.getCenter?.();
     return {
