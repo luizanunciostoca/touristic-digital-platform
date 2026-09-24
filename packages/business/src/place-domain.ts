@@ -385,7 +385,8 @@ export function validatePlace(
     issues.push({ code: "INVALID_LONGITUDE", field: "location.longitude" });
   }
   if (
-    (place.location.latitude === null) !== (place.location.longitude === null)
+    (place.location.latitude === null) !==
+    (place.location.longitude === null)
   ) {
     issues.push({
       code: "INCOMPLETE_COORDINATES",
