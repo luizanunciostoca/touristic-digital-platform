@@ -34,7 +34,11 @@ describe("app shell canonical UX contracts", () => {
 
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(ids.every((id) => markup.match(new RegExp(`id="${id}"`, "g"))?.length === 1)).toBe(true);
+    expect(
+      ids.every(
+        (id) => markup.match(new RegExp(`id="${id}"`, "g"))?.length === 1,
+      ),
+    ).toBe(true);
   });
 
   it("derives all category surfaces from the same canonical contract", () => {
