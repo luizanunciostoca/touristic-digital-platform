@@ -1,8 +1,11 @@
-import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
 
 const source = readFileSync(
-  new URL("../../../control-center/public/control-center-business-cms.js", import.meta.url),
+  new URL(
+    "../../../control-center/public/control-center-business-cms.js",
+    import.meta.url,
+  ),
   "utf8",
 );
 
@@ -24,7 +27,9 @@ describe("Control Center Business CMS contract", () => {
       "Equipe",
       "Auditoria",
       "Publicação",
-    ]) expect(source).toContain(label);
+    ]) {
+      expect(source).toContain(label);
+    }
   });
 
   it("keeps CTA resolution and money authority outside the browser", () => {
@@ -35,5 +40,6 @@ describe("Control Center Business CMS contract", () => {
   it("preserves legacy Business 360 as explicit integration fallback", () => {
     expect(source).toContain("legacyRender");
     expect(source).toContain("Modo compatibilidade");
+    expect(source).toContain("BUSINESS_ADMIN_ROUTE_NOT_ALLOWED");
   });
 });
