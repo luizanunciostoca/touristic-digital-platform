@@ -44,7 +44,7 @@ test("staging promotion is exclusively bound to canonical V2 staging", async () 
     `EXPECTED_STAGING_SERVICE_NAME: ${CANONICAL_STAGING.serviceName}`,
     `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
     'url.hostname !== "api.render.com"',
-    "url.pathname.match(/^\\\\/deploy\\\\/(srv-[A-Za-z0-9]+)$/)",
+    "url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)",
     "staging-deployment-evidence.json",
   ]) {
     assert.ok(
@@ -76,7 +76,7 @@ test("staging OCI promotion is bound to the same canonical Render service", asyn
     `EXPECTED_STAGING_SERVICE_NAME: ${CANONICAL_STAGING.serviceName}`,
     `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
     'url.hostname !== "api.render.com"',
-    "url.pathname.match(/^\\\\/deploy\\\\/(srv-[A-Za-z0-9]+)$/)",
+    "url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)",
   ]) {
     assert.ok(
       stagingOci.includes(marker),
