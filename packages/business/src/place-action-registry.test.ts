@@ -375,22 +375,24 @@ describe("Place Action Registry", () => {
     expect(new Set(firstIds).size).toBe(firstIds.length);
   });
 
-  it.each([
-    ["restaurants", ["menu", "directions", "whatsapp"] as const],
-    ["nightlife", ["tickets", "directions", "photos"] as const],
-    ["hotels", ["booking", "directions", "photos", "whatsapp"] as const],
-    ["tours", ["tourBooking", "directions", "photos"] as const],
-    ["transport", ["transportBooking", "directions", "whatsapp"] as const],
-    ["shops", ["products", "directions"] as const],
-    ["attractions", ["directions", "photos"] as const],
-    ["beaches", ["directions", "photos"] as const],
-    ["emergencies", ["directions", "call"] as const],
-  ])(
+  const categoryCapabilityCases = [
+    ["restaurants", ["menu", "directions", "whatsapp"]],
+    ["nightlife", ["tickets", "directions", "photos"]],
+    ["hotels", ["booking", "directions", "photos", "whatsapp"]],
+    ["tours", ["tourBooking", "directions", "photos"]],
+    ["transport", ["transportBooking", "directions", "whatsapp"]],
+    ["shops", ["products", "directions"]],
+    ["attractions", ["directions", "photos"]],
+    ["beaches", ["directions", "photos"]],
+    ["emergencies", ["directions", "call"]],
+  ] satisfies readonly (readonly [
+    CanonicalPlaceCategory,
+    readonly PlaceCapability[],
+  ])[];
+
+  it.each(categoryCapabilityCases)(
     "resolves category × capability matrix for %s without category-only leakage",
-    (
-      key: CanonicalPlaceCategory,
-      capabilities: readonly PlaceCapability[],
-    ) => {
+    (key, capabilities) => {
       const p = place(capabilities);
       const resolved = resolvePlacePresentationActions({
         place: p,
