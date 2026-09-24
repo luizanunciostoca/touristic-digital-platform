@@ -9,10 +9,7 @@ export interface AffiliateMembershipView {
   readonly status: "pending" | "approved" | "suspended" | "closed";
   readonly accepted_terms_version: string | null;
   readonly financial_onboarding_status:
-    | "not_started"
-    | "pending"
-    | "eligible"
-    | "blocked";
+    "not_started" | "pending" | "eligible" | "blocked";
   readonly destination_id: string;
   readonly program_status: "active" | "inactive";
   readonly terms_version: string;
@@ -38,19 +35,12 @@ export interface AffiliateConversionView {
   readonly entitlementId: string;
   readonly revision: number;
   readonly entitlementStatus:
-    | "pending"
-    | "earned"
-    | "cancelled"
-    | "reversed"
-    | "disputed";
+    "pending" | "earned" | "cancelled" | "reversed" | "disputed";
   readonly commissionMinor: string;
   readonly rateBasisPoints: number;
   readonly maturityAt: string;
   readonly materializationState:
-    | "not_requested"
-    | "pending"
-    | "accepted"
-    | "rejected";
+    "not_requested" | "pending" | "accepted" | "rejected";
   readonly financialReference: string | null;
   readonly rejectionCode: string | null;
 }
