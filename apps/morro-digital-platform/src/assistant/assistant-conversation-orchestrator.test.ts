@@ -156,5 +156,9 @@ describe("assistant conversation orchestrator", () => {
     expect(snapshot.currentPlace).toBeNull();
     expect(orchestrator.isCurrentSequence(firstRequest)).toBe(false);
     expect(orchestrator.isCurrentSequence(secondRequest)).toBe(true);
+
+    orchestrator.recordStaleResponseDropped();
+    orchestrator.recordStaleResponseDropped();
+    expect(orchestrator.observability().staleResponsesDropped).toBe(2);
   });
 });
