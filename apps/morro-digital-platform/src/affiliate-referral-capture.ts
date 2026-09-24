@@ -21,10 +21,14 @@ function pendingToken(): string {
   }
 }
 function rememberToken(token: string): void {
-  try { window.sessionStorage.setItem(pendingStorageKey, token); } catch {}
+  try {
+    window.sessionStorage.setItem(pendingStorageKey, token);
+  } catch {}
 }
 function forgetToken(): void {
-  try { window.sessionStorage.removeItem(pendingStorageKey); } catch {}
+  try {
+    window.sessionStorage.removeItem(pendingStorageKey);
+  } catch {}
 }
 
 async function captureReferral(token: string): Promise<boolean> {
