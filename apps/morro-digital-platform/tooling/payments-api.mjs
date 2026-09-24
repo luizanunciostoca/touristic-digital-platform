@@ -226,7 +226,12 @@ export function safeStartupFailureCode(error) {
 
   while (queue.length > 0 && inspected < 16) {
     const current = queue.shift();
-    if (!current || typeof current !== "object" || visited.has(current)) continue;
+    if (
+      !current ||
+      typeof current !== "object" ||
+      visited.has(current)
+    )
+      continue;
     visited.add(current);
     inspected += 1;
 
