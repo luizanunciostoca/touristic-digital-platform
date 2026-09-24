@@ -90,6 +90,29 @@ function checkoutHandoff() {
 }
 
 describe("M139/M141 payments API runtime boundary", () => {
+  it("classifies missing production return origins without exposing configuration values", async () => {
+    const audit = [];
+    const api = createPaymentsApi({
+      authApi: {},
+      getEnvironmentValue: (key) =>
+        key === "NODE_ENV"
+          ? "production"
+          : key === "PAYMENTS_DESTINATION_ID"
+            ? "morro-de-sao-paulo"
+            : "",
+      audit: (event) => audit.push(event),
+    });
+
+    await expect(api.start()).resolves.toBe(false);
+    expect(audit).toContainEqual(
+      expect.objectContaining({
+        action: "checkout.runtime",
+        result: "failure",
+        reason: "PAYMENTS_RETURN_URL_ORIGINS_REQUIRED",
+      }),
+    );
+  });
+
   it("stays fail-closed when operational configuration is absent", async () => {
     const audit = [];
     const api = createPaymentsApi({
