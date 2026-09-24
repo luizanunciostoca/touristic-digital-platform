@@ -661,7 +661,6 @@ export function createPaymentsCheckoutAuthorizationPort({
       }
       return Object.freeze({ allowed: true, context });
     },
-    },
   });
 }
 
