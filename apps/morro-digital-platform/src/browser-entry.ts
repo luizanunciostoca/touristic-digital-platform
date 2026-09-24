@@ -80,6 +80,9 @@ const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 const TOUR_CAMERA_DURATION_MS = 2000;
 const TOUR_CAMERA_TIMEOUT_MS = 3500;
 const DISCOVER_HOME_ZOOM = 14.8;
+const DISCOVER_DEFAULT_MAP_STYLE = "mapbox://styles/mapbox/streets-v12";
+const DISCOVER_SATELLITE_MAP_STYLE =
+  "mapbox://styles/mapbox/satellite-streets-v12";
 const DISCOVER_POI_CATEGORIES = Object.freeze([
   "beaches",
   "restaurants",
@@ -286,6 +289,7 @@ let activeGlobalViewControl: GlobalViewControl | undefined;
 let activeCurrentLocationMarker: MapboxGlMarkerLike | undefined;
 let activeCurrentLocation: readonly [number, number] | undefined;
 let activeDiscoverRecenterCleanup: (() => void) | undefined;
+let activeMapLayerCleanup: (() => void) | undefined;
 let activeDiscoverPoiMarkers: MapboxGlMarkerLike[] = [];
 let activeDiscoverPoiCleanup: (() => void) | undefined;
 
@@ -299,6 +303,8 @@ installTouristExperienceSnapshotCapture({
 function clearBrowserNavigationRuntime(): void {
   activeDiscoverRecenterCleanup?.();
   activeDiscoverRecenterCleanup = undefined;
+  activeMapLayerCleanup?.();
+  activeMapLayerCleanup = undefined;
   activeDiscoverPoiCleanup?.();
   activeDiscoverPoiCleanup = undefined;
   for (const marker of activeDiscoverPoiMarkers) marker.remove();
@@ -476,6 +482,55 @@ function discoverCameraPadding(): {
     ),
     left: 24,
     right: 24,
+  };
+}
+
+function installMapLayerToggle(map: MapboxGlMapLike): () => void {
+  const button = document.getElementById("toggle-map-layer");
+  const mapElement = document.getElementById("map");
+  if (!(button instanceof HTMLButtonElement)) return () => undefined;
+
+  const styleMap = map as MapboxGlMapLike & {
+    setStyle?: (style: string) => void;
+  };
+  const canSetStyle = typeof styleMap.setStyle === "function";
+  let satellite = false;
+  let destroyed = false;
+
+  const render = (): void => {
+    button.classList.toggle("active", satellite);
+    button.setAttribute("aria-pressed", String(satellite));
+    button.title = satellite ? "Usar mapa padrão" : "Usar mapa de satélite";
+    button.setAttribute(
+      "aria-label",
+      satellite ? "Alterar para mapa padrão" : "Alterar para mapa de satélite",
+    );
+    mapElement?.setAttribute(
+      "data-map-layer",
+      satellite ? "satellite" : "standard",
+    );
+  };
+
+  const onClick = (): void => {
+    if (destroyed || !canSetStyle) return;
+    satellite = !satellite;
+    render();
+    styleMap.setStyle?.(
+      satellite ? DISCOVER_SATELLITE_MAP_STYLE : DISCOVER_DEFAULT_MAP_STYLE,
+    );
+  };
+
+  button.disabled = !canSetStyle;
+  button.setAttribute("aria-disabled", String(!canSetStyle));
+  render();
+  button.addEventListener("click", onClick);
+
+  return () => {
+    if (destroyed) return;
+    destroyed = true;
+    button.removeEventListener("click", onClick);
+    button.disabled = true;
+    button.setAttribute("aria-disabled", "true");
   };
 }
 
@@ -827,9 +882,7 @@ function normalizeRealMapboxEnvironment(
     ...environment,
     VITE_MAPBOX_CONTAINER_ID:
       environment.VITE_MAPBOX_CONTAINER_ID?.trim() || "map",
-    VITE_MAPBOX_STYLE:
-      environment.VITE_MAPBOX_STYLE?.trim() ||
-      "mapbox://styles/mapbox/satellite-streets-v12",
+    VITE_MAPBOX_STYLE: DISCOVER_DEFAULT_MAP_STYLE,
     VITE_MAPBOX_INITIAL_ZOOM:
       environment.VITE_MAPBOX_INITIAL_ZOOM?.trim() ||
       String(DISCOVER_HOME_ZOOM),
@@ -914,6 +967,7 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
                 ],
                 homeZoom: DISCOVER_HOME_ZOOM,
               });
+              activeMapLayerCleanup = installMapLayerToggle(map);
               activeDiscoverRecenterCleanup = installDiscoverRecenterControl(
                 map,
                 provider.sdk,

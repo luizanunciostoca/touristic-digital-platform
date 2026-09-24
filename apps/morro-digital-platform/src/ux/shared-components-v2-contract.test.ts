@@ -54,8 +54,20 @@ describe("UX Design V2 shared component adoption", () => {
     );
 
     expect(map).toContain(
-      'button.className = "map-control-button md-icon-button"',
+      'button.className = "map-control-button md-icon-button md-map-control"',
     );
+  });
+
+  it("renders the map-layer control with the shared map-control primitive", async () => {
+    const shell = await readRepository(
+      "apps/morro-digital-platform/src/layouts/app-shell.ts",
+    );
+
+    expect(shell).toContain('id="toggle-map-layer"');
+    expect(shell).toContain(
+      'class="map-control-button md-icon-button md-map-control"',
+    );
+    expect(shell).toContain('data-map-control="layer"');
   });
 
   it("adopts shared banner and toast primitives in real tourist feedback surfaces", async () => {
