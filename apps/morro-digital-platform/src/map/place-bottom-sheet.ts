@@ -1,7 +1,5 @@
 import type { AssistantLocale } from "@touristic/assistant";
 import { resolveAssistantV1Photos } from "../assistant/assistant-v1-photo-catalog.js";
-import type { V1ExplorePlaceActionOption } from "./explore-location-actions-v1.js";
-import type { PlacePrimaryAction } from "./place-commerce-capability.js";
 
 export type PlaceBottomSheetState = "peek" | "half" | "full";
 
@@ -14,12 +12,33 @@ export interface PlaceBottomSheetLocation {
   readonly tags?: readonly string[];
 }
 
+export interface PlaceBottomSheetAction {
+  readonly actionId: string;
+  readonly label: string;
+  readonly value: string;
+  readonly action?: string;
+  readonly disabled?: boolean;
+}
+
+export interface PlaceBottomSheetPrimaryAction {
+  readonly actionId: string;
+  readonly label: string;
+  readonly value: string;
+  readonly disabled?: boolean;
+}
+
+export interface PlaceBottomSheetHeroImage {
+  readonly src: string;
+  readonly alt: string;
+}
+
 export interface PlaceBottomSheetPresentation {
   readonly location: PlaceBottomSheetLocation;
   readonly categoryLabel: string;
   readonly locale: AssistantLocale;
-  readonly actions: readonly V1ExplorePlaceActionOption[];
-  readonly primaryAction: PlacePrimaryAction | null;
+  readonly actions: readonly PlaceBottomSheetAction[];
+  readonly primaryAction: PlaceBottomSheetPrimaryAction | null;
+  readonly heroImage?: PlaceBottomSheetHeroImage | null;
   readonly actionsInContextualRail?: boolean;
   readonly description?: string;
   readonly rating?: Readonly<{ value: number; count?: number }>;
@@ -439,10 +458,11 @@ export function installPlaceBottomSheet(
             : undefined),
     );
 
-    const photo = resolveAssistantV1Photos(next.location.name)?.images[0];
+    const legacyPhoto = resolveAssistantV1Photos(next.location.name)?.images[0];
+    const photo = next.heroImage?.src || legacyPhoto;
     if (photo) {
       heroImage.src = photo;
-      heroImage.alt = next.location.name;
+      heroImage.alt = next.heroImage?.alt || next.location.name;
       hero.classList.remove("hidden");
     } else {
       heroImage.removeAttribute("src");
@@ -462,7 +482,7 @@ export function installPlaceBottomSheet(
     overflow.open = false;
     overflowActions.replaceChildren();
     overflowSummary.textContent = placeUiCopy[next.locale].more;
-    const visibleActions: V1ExplorePlaceActionOption[] = next.primaryAction
+    const visibleActions: PlaceBottomSheetAction[] = next.primaryAction
       ? next.actions.filter(
           (action) => action.actionId !== next.primaryAction?.actionId,
         )
@@ -473,7 +493,7 @@ export function installPlaceBottomSheet(
       button.className =
         "md-button md-button--secondary place-bottom-sheet-action";
       button.dataset.value = action.value;
-      button.dataset.placeAction = action.action;
+      button.dataset.placeAction = action.action ?? "command";
       button.dataset.placeActionId = action.actionId;
       button.textContent = action.label;
       button.addEventListener("click", () => {
