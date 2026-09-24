@@ -667,9 +667,6 @@ export function installExploreLocationsControl({
 
     contextualRailScroll.replaceChildren(...buttons);
     contextualRailScroll.scrollLeft = 0;
-    if (contextualRailBack && !contextualRailBack.hidden) {
-      contextualRail.append(contextualRailBack);
-    }
     return buttons[0] ?? null;
   };
 
