@@ -28,15 +28,15 @@ function isMapItem(value: unknown): value is PublicPlaceMapItem {
   const presentation = value.presentation;
   return Boolean(
     typeof value.id === "string" &&
-      typeof value.name === "string" &&
-      typeof value.category === "string" &&
-      typeof value.lat === "number" &&
-      Number.isFinite(value.lat) &&
-      typeof value.lng === "number" &&
-      Number.isFinite(value.lng) &&
-      isRecord(presentation) &&
-      typeof presentation.markerKey === "string" &&
-      typeof presentation.priority === "number",
+    typeof value.name === "string" &&
+    typeof value.category === "string" &&
+    typeof value.lat === "number" &&
+    Number.isFinite(value.lat) &&
+    typeof value.lng === "number" &&
+    Number.isFinite(value.lng) &&
+    isRecord(presentation) &&
+    typeof presentation.markerKey === "string" &&
+    typeof presentation.priority === "number",
   );
 }
 
@@ -64,19 +64,19 @@ function isPublicPlaceDetail(value: unknown): value is PublicPlaceDetail {
   const revision = value.revision;
   return Boolean(
     isRecord(profile) &&
-      typeof profile.id === "string" &&
-      typeof profile.name === "string" &&
-      typeof profile.categoryId === "string" &&
-      isRecord(profile.location) &&
-      typeof profile.location.latitude === "number" &&
-      typeof profile.location.longitude === "number" &&
-      isRecord(actions) &&
-      typeof actions.placeId === "string" &&
-      Array.isArray(actions.secondaryActions) &&
-      isRecord(partial) &&
-      isRecord(revision) &&
-      typeof revision.id === "string" &&
-      typeof revision.number === "number",
+    typeof profile.id === "string" &&
+    typeof profile.name === "string" &&
+    typeof profile.categoryId === "string" &&
+    isRecord(profile.location) &&
+    typeof profile.location.latitude === "number" &&
+    typeof profile.location.longitude === "number" &&
+    isRecord(actions) &&
+    typeof actions.placeId === "string" &&
+    Array.isArray(actions.secondaryActions) &&
+    isRecord(partial) &&
+    isRecord(revision) &&
+    typeof revision.id === "string" &&
+    typeof revision.number === "number",
   );
 }
 
@@ -93,11 +93,14 @@ export function createPublicPlaceMapClient(
       if (input.category) query.set("category", input.category);
       if (input.cursor) query.set("cursor", input.cursor);
 
-      const response = await fetchImpl(`/api/places/v1/map?${query.toString()}`, {
-        method: "GET",
-        headers: { Accept: "application/json" },
-        signal: input.signal,
-      });
+      const response = await fetchImpl(
+        `/api/places/v1/map?${query.toString()}`,
+        {
+          method: "GET",
+          headers: { Accept: "application/json" },
+          signal: input.signal,
+        },
+      );
       if (!response.ok) {
         throw new Error(`PUBLIC_PLACE_MAP_HTTP_${response.status}`);
       }

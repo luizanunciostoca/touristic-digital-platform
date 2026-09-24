@@ -11,10 +11,13 @@ import type {
   PlaceBottomSheetPrimaryAction,
 } from "./place-bottom-sheet.js";
 
-function publicImageSource(image: PublicPlaceMediaImage | null | undefined): string | null {
+function publicImageSource(
+  image: PublicPlaceMediaImage | null | undefined,
+): string | null {
   const reference = image?.providerReference?.trim();
   if (!reference) return null;
-  if (/^https:\/\//u.test(reference) || reference.startsWith("/")) return reference;
+  if (/^https:\/\//u.test(reference) || reference.startsWith("/"))
+    return reference;
   return null;
 }
 
@@ -72,9 +75,10 @@ export function toCanonicalPlaceBottomSheetPresentation(
         }
       : {}),
     ...(description ? { description } : {}),
-    status:
-      Object.values(detail.partial).some((state) => state === "unavailable")
-        ? "error"
-        : "ready",
+    status: Object.values(detail.partial).some(
+      (state) => state === "unavailable",
+    )
+      ? "error"
+      : "ready",
   });
 }

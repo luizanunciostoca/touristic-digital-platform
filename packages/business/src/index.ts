@@ -234,7 +234,6 @@ export {
   type SubcategoryId,
 } from "./place-domain.js";
 
-
 export {
   createPublicPlaceReadModel,
   handlePublicPlaceApiRequest,
