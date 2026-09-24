@@ -1,5 +1,9 @@
 import type { AssistantLocale } from "@touristic/assistant";
 import {
+  adaptLegacyTicketingInventoryOffer,
+  offeringMatchesPlace,
+} from "@touristic/commerce";
+import {
   normalizeSearchText,
   type MorroV1SearchCatalogItem,
 } from "@touristic/search";
@@ -24,6 +28,9 @@ export interface PlacePrimaryAction {
 
 interface PublicInventoryOffer {
   readonly id: string;
+  readonly offerId?: string;
+  readonly businessId?: string;
+  readonly placeId?: string;
   readonly destinationId: string;
   readonly product: Readonly<{
     kind: string;
@@ -140,6 +147,17 @@ function offerMatchesLocation(
   offer: PublicInventoryOffer,
 ): boolean {
   if (!categoryAcceptsKind(location.category, offer.product.kind)) return false;
+
+  const canonical = adaptLegacyTicketingInventoryOffer(offer);
+  if (
+    canonical &&
+    offeringMatchesPlace(canonical.offering, {
+      id: location.id ?? null,
+      destinationId: null,
+    })
+  ) {
+    return true;
+  }
 
   const placeName = normalizeSearchText(location.name);
   const placeLabels = [
