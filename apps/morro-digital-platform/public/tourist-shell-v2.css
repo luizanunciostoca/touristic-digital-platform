@@ -2677,3 +2677,107 @@ html[dir="rtl"]
     padding-inline: 0.75rem;
   }
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Context Rail structural back placement                                     */
+/* -------------------------------------------------------------------------- */
+
+/* The back control is structural navigation. Use explicit grid columns rather
+ * than flex ordering/logical margins so browser direction state can never
+ * move it to the opposite side or let it overlap scrollable options. */
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  display: grid;
+  grid-template-columns: var(--md-context-rail-back-size) minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: center;
+  padding-inline: 0.75rem;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  position: relative;
+  inset: auto;
+  z-index: 1;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-inline: 0;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--md-context-rail-back-size);
+  column-gap: 0.5rem;
+  align-items: center;
+  padding-inline: 0.75rem;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  position: relative;
+  inset: auto;
+  z-index: 1;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding-inline: 0;
+}
+
+/* Remove the legacy floating continuation affordance entirely. Horizontal
+ * overflow is communicated by partially visible chips, never by an overlaid
+ * pseudo-control. */
+#unified-assistant-dock > #assistant-category-rail::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* The back control may expand its hit target, but that target must stay inside
+ * its own grid cell so it can never intercept taps on the first option. */
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  inset: 0;
+}
+
+@media (max-width: 24.375rem) {
+  html:not([dir="rtl"])
+    #unified-assistant-dock
+    > #assistant-category-rail.md-assistant-category-rail,
+  html[dir="rtl"]
+    #unified-assistant-dock
+    > #assistant-category-rail.md-assistant-category-rail {
+    column-gap: 0.375rem;
+    padding-inline: 0.5rem;
+  }
+}
