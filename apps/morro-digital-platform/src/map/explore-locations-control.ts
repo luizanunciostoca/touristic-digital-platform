@@ -422,7 +422,7 @@ function tourTicketingUrl(value: string, placeName: string): string | null {
   if (value.startsWith("commerce:offer:")) {
     const id = value.slice("commerce:offer:".length);
     return TICKETING_OFFER_ID.test(id)
-      ? `/tickets.html?offer=${encodeURIComponent(id)}&source=map&mode=tour`
+      ? `/tour-booking.html?offer=${encodeURIComponent(id)}&source=map&mode=tour`
       : null;
   }
 
@@ -434,14 +434,14 @@ function tourTicketingUrl(value: string, placeName: string): string | null {
     ) {
       return null;
     }
-    return `/tickets.html?offers=${rawIds
+    return `/tour-booking.html?offers=${rawIds
       .map(encodeURIComponent)
       .join(",")}&source=map&mode=tour`;
   }
 
   const placeKey = ticketingPlaceKey(placeName);
   return placeKey
-    ? `/tickets.html?place=${encodeURIComponent(placeKey)}&source=map&mode=tour`
+    ? `/tour-booking.html?place=${encodeURIComponent(placeKey)}&source=map&mode=tour`
     : null;
 }
 
