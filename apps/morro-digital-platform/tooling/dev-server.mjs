@@ -14,6 +14,7 @@ import { createBusinessApi } from "./business-api.mjs";
 import { createContentAdminRuntime } from "./content-admin-runtime.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
+import { createDatabaseEnvironmentResolver } from "./database-environment.mjs";
 import { resolvePublicDestination } from "./destination-public-projection.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
@@ -150,8 +151,10 @@ async function loadLocalEnvironment() {
 }
 
 const localEnvironment = await loadLocalEnvironment();
-const getEnvironmentValue = (key) =>
-  process.env[key] ?? localEnvironment[key] ?? "";
+const getEnvironmentValue = createDatabaseEnvironmentResolver({
+  processEnvironment: process.env,
+  localEnvironment,
+});
 
 let platformOperations = null;
 let paymentsRuntimeReady = false;
