@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "morro-digital";
-const STATIC_CACHE = `${CACHE_PREFIX}-static-v1`;
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v2`;
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = Object.freeze([
@@ -63,6 +63,11 @@ function isCacheableStatic(pathname) {
   );
 }
 
+function isRuntimeAsset(pathname) {
+  return /\.(?:css|html|js|json)$/u.test(pathname);
+}
+
+
 async function cachePrecacheEntry(cache, url) {
   try {
     const response = await fetch(new Request(url, { cache: "reload" }));
@@ -72,6 +77,19 @@ async function cachePrecacheEntry(cache, url) {
   } catch {
     // Installation remains available even when an optional shell asset is
     // temporarily unreachable. Runtime fetches can fill it later.
+  }
+}
+
+async function networkFirstStatic(request) {
+  const cache = await caches.open(STATIC_CACHE);
+  try {
+    const response = await fetch(request);
+    if (response.ok && response.type === "basic") {
+      await cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return (await cache.match(request)) ?? Response.error();
   }
 }
 
@@ -162,6 +180,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isCacheableStatic(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(request, event));
+    event.respondWith(
+      isRuntimeAsset(url.pathname)
+        ? networkFirstStatic(request)
+        : staleWhileRevalidate(request, event),
+    );
   }
 });
