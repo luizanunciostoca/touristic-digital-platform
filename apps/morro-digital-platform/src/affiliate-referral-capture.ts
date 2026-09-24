@@ -23,12 +23,16 @@ function pendingToken(): string {
 function rememberToken(token: string): void {
   try {
     window.sessionStorage.setItem(pendingStorageKey, token);
-  } catch {}
+  } catch {
+    // Storage may be unavailable in privacy-restricted browser contexts.
+  }
 }
 function forgetToken(): void {
   try {
     window.sessionStorage.removeItem(pendingStorageKey);
-  } catch {}
+  } catch {
+    // Storage may be unavailable in privacy-restricted browser contexts.
+  }
 }
 
 async function captureReferral(token: string): Promise<boolean> {
