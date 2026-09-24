@@ -2689,9 +2689,9 @@ html:not([dir="rtl"])
   #unified-assistant-dock
   > #assistant-category-rail.md-assistant-category-rail {
   display: grid;
-  grid-template-columns: calc(
-      var(--md-context-rail-back-size) + 0.25rem
-    ) minmax(0, 1fr);
+  grid-template-columns:
+    calc(var(--md-context-rail-back-size) + 0.25rem)
+    minmax(0, 1fr);
   column-gap: 0.5rem;
   align-items: center;
   padding-inline: 0.75rem;
