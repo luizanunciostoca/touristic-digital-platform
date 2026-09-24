@@ -261,6 +261,7 @@ export {
   type PublicPlaceMediaImage,
   type PublicPlaceMediaPort,
   type PublicPlaceMediaProjection,
+  type PublicPlacePartialState,
   type PublicPlaceProfile,
   type PublicPlacePublishedRecord,
   type PublicPlaceReadModelOptions,
