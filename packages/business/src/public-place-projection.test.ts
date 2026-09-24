@@ -259,7 +259,7 @@ describe("createPublicPlaceReadModel", () => {
     expect(result.cache?.cacheControl).toContain("stale-while-revalidate");
   });
 
-  it("fails partial composition locally instead of mixing data from another Place", async () => {
+  it("degrades failed sections locally without mixing data from another Place", async () => {
     const service = createPublicPlaceReadModel({
       repository: {
         listPublished: vi.fn(async () => ({ items: [], nextCursor: null })),
@@ -274,9 +274,16 @@ describe("createPublicPlaceReadModel", () => {
       actions: { resolvePublicActions: vi.fn(async () => []) },
     });
 
-    await expect(service.getDetail(asPlaceId("place-1"))).rejects.toThrow(
-      "MEDIA_UNAVAILABLE",
-    );
+    const result = await service.getDetail(asPlaceId("place-1"));
+
+    expect(result.detail?.profile.id).toBe(asPlaceId("place-1"));
+    expect(result.detail?.media).toBeNull();
+    expect(result.detail?.commerce).toBeNull();
+    expect(result.detail?.partial).toEqual({
+      media: "unavailable",
+      commerce: "ready",
+      actions: "ready",
+    });
   });
 
   it("returns null for private/unlisted data even if an adapter accidentally supplies it", async () => {
