@@ -126,3 +126,7 @@ Canonical compact geometry:
 - On mobile, the decorative right-side `›` affordance is removed; partially visible horizontal content remains the scroll affordance.
 - Rail and composer spacing must not grow with the number of options. Overflow happens only on the horizontal axis.
 - Changes to contextual stages must preserve or increase visible map area rather than increase dock height.
+
+## Leading-edge back placement
+
+In LTR locales such as pt-BR, the structural back control occupies the leading (left) grid column and the scrollable options occupy a separate second column. The back hit target must remain fully contained inside its reserved column and must never overlap or intercept contextual option buttons. RTL mirrors the two-column structure explicitly.
