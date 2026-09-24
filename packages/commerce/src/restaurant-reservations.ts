@@ -102,13 +102,16 @@ export function normalizeRestaurantDepositPolicy(
   if (input.kind === "none") return Object.freeze({ kind: "none" as const });
   if (input.kind !== "required") return null;
   const amount =
-    input.amount && typeof input.amount === "object" && !Array.isArray(input.amount)
+    input.amount &&
+    typeof input.amount === "object" &&
+    !Array.isArray(input.amount)
       ? (input.amount as Record<string, unknown>)
       : null;
   const minorUnits = amount?.minorUnits;
-  const currency = typeof amount?.currency === "string"
-    ? amount.currency.trim().toUpperCase()
-    : "";
+  const currency =
+    typeof amount?.currency === "string"
+      ? amount.currency.trim().toUpperCase()
+      : "";
   if (
     typeof minorUnits !== "number" ||
     !Number.isSafeInteger(minorUnits) ||
@@ -227,8 +230,7 @@ export function createRestaurantReservation(input: {
       Date.parse(holdExpiresAt) <= Date.parse(createdAt)) ||
     (holdExpiresAt !== null &&
       Date.parse(holdExpiresAt) >= Date.parse(startsAt)) ||
-    (depositPolicy.kind === "required" &&
-      status === "pending_confirmation") ||
+    (depositPolicy.kind === "required" && status === "pending_confirmation") ||
     (depositPolicy.kind === "required" &&
       (status === "confirmed" ||
         status === "completed" ||
@@ -296,8 +298,6 @@ export function assertRestaurantReservationTransition(
   to: RestaurantReservationStatus,
 ): void {
   if (!isRestaurantReservationTransitionAllowed(from, to)) {
-    throw new Error(
-      `COMMERCE_RESTAURANT_INVALID_TRANSITION:${from}:${to}`,
-    );
+    throw new Error(`COMMERCE_RESTAURANT_INVALID_TRANSITION:${from}:${to}`);
   }
 }
