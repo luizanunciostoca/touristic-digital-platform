@@ -95,20 +95,23 @@ describe("Context Rail button system", () => {
     expect(css).toContain("content: none");
   });
 
-  it("reserves a physical leading lane so Back cannot overlap options", async () => {
+  it("enforces definitive same-row geometry so Back cannot overlap options", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
     );
 
-    expect(css).toContain("Context Rail physical leading lane authority");
-    expect(css).toContain("padding: 0.375rem 0.5rem 0.375rem 3.75rem");
-    expect(css).toContain("padding: 0.375rem 3.75rem 0.375rem 0.5rem");
-    expect(css).toContain("left: 0.5rem");
-    expect(css).toContain("right: 0.5rem");
-    expect(css).toContain("pointer-events: none");
-    expect(css).toContain("pointer-events: auto");
-    expect(css).toContain("width: 100%");
-    expect(css).toContain("min-width: 0");
+    expect(css).toContain("Context Rail definitive geometry authority");
+    expect(css).toContain(
+      "grid-template-columns: 2.75rem minmax(0, 1fr) !important",
+    );
+    expect(css).toContain(
+      "grid-template-columns: minmax(0, 1fr) 2.75rem !important",
+    );
+    expect(css).toContain("grid-template-rows: 2.75rem !important");
+    expect(css).toContain("position: static !important");
+    expect(css).toContain("grid-column: 1 !important");
+    expect(css).toContain("grid-column: 2 !important");
+    expect(css).toContain("pointer-events: auto !important");
     expect(css).toContain("content: none !important");
     expect(css).toContain("display: none !important");
   });
