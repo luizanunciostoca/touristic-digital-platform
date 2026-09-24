@@ -46,11 +46,7 @@ export type PlaceCapability = (typeof placeCapabilities)[number];
 
 export type PlaceVisibility = "public" | "unlisted" | "private";
 export type PlacePublicationState =
-  | "draft"
-  | "review"
-  | "published"
-  | "suspended"
-  | "archived";
+  "draft" | "review" | "published" | "suspended" | "archived";
 
 export interface Business {
   readonly id: BusinessId;
@@ -270,10 +266,7 @@ export function asCategoryId(value: unknown): CategoryId {
 }
 
 export function asSubcategoryId(value: unknown): SubcategoryId {
-  return requiredCanonicalId<SubcategoryId>(
-    value,
-    "INVALID_SUBCATEGORY_ID",
-  );
+  return requiredCanonicalId<SubcategoryId>(value, "INVALID_SUBCATEGORY_ID");
 }
 
 export function asProductId(value: unknown): ProductId {
@@ -574,8 +567,7 @@ export function migrateLegacyCatalogItemToPlace(
       description: input.item.description,
     },
     legacyAliases: input.item.aliases ?? [],
-    legacyReference:
-      typeof input.item.id === "string" ? input.item.id : null,
+    legacyReference: typeof input.item.id === "string" ? input.item.id : null,
   });
 
   const latitude =
