@@ -13,11 +13,14 @@ import {
   createRestaurantReservation,
   isRestaurantReservationTransitionAllowed,
   normalizeRestaurantReservationRequestKey,
+  type RestaurantDepositPolicy,
   type RestaurantReservation,
   type RestaurantReservationStatus,
 } from "@touristic/commerce/restaurant-reservations";
 
 const RESERVATION_ID = /^rrv_[A-Za-z0-9_-]{8,116}$/u;
+const SLOT_ID = /^rsl_[A-Za-z0-9_-]{8,116}$/u;
+const BUSINESS_ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
 const ACTOR = /^[A-Za-z0-9][A-Za-z0-9@._:-]{1,119}$/u;
 
 interface SlotRow extends RowDataPacket {
@@ -113,6 +116,26 @@ function positiveMinor(value: string | number | null): number | null {
   return parsed;
 }
 
+function depositPolicyFromRow(
+  kind: "none" | "required",
+  amount: string | number | null,
+  currency: string | null,
+): RestaurantDepositPolicy {
+  if (kind === "none") return Object.freeze({ kind: "none" as const });
+  const minorUnits = positiveMinor(amount);
+  if (
+    minorUnits === null ||
+    currency === null ||
+    !/^[A-Z]{3}$/u.test(currency)
+  ) {
+    throw new Error("COMMERCE_RESTAURANT_DB_DEPOSIT_INVALID");
+  }
+  return Object.freeze({
+    kind: "required" as const,
+    amount: Object.freeze({ minorUnits, currency }),
+  });
+}
+
 function integer(value: string | number | null): number {
   const parsed = Number(value ?? 0);
   if (!Number.isSafeInteger(parsed) || parsed < 0) {
@@ -147,16 +170,11 @@ function reservationId(value: unknown): string {
 }
 
 function slotFromRow(row: SlotRow): RestaurantReservationSlot {
-  const depositPolicy =
-    row.deposit_kind === "none"
-      ? { kind: "none" as const }
-      : {
-          kind: "required" as const,
-          amount: {
-            minorUnits: positiveMinor(row.deposit_amount_minor),
-            currency: row.deposit_currency,
-          },
-        };
+  const depositPolicy = depositPolicyFromRow(
+    row.deposit_kind,
+    row.deposit_amount_minor,
+    row.deposit_currency,
+  );
   const slot = createRestaurantReservationSlot({
     id: row.slot_id,
     businessId: row.business_id,
@@ -182,16 +200,11 @@ function slotFromRow(row: SlotRow): RestaurantReservationSlot {
 }
 
 function reservationFromRow(row: ReservationRow): RestaurantReservation {
-  const depositPolicy =
-    row.deposit_kind === "none"
-      ? { kind: "none" as const }
-      : {
-          kind: "required" as const,
-          amount: {
-            minorUnits: positiveMinor(row.deposit_amount_minor),
-            currency: row.deposit_currency,
-          },
-        };
+  const depositPolicy = depositPolicyFromRow(
+    row.deposit_kind,
+    row.deposit_amount_minor,
+    row.deposit_currency,
+  );
   const reservation = createRestaurantReservation({
     id: row.reservation_id,
     requestKey: row.request_key,
@@ -249,11 +262,13 @@ async function selectReservationById(
   connection: PoolConnection,
   id: string,
   lock: boolean,
+  businessId?: string,
 ): Promise<RestaurantReservation | null> {
+  const businessPredicate = businessId ? " AND business_id = ?" : "";
   const [rows] = await connection.execute<ReservationRow[]>(
     `SELECT * FROM commerce_restaurant_reservations
-     WHERE reservation_id = ?${lock ? " FOR UPDATE" : ""}`,
-    [id],
+     WHERE reservation_id = ?${businessPredicate}${lock ? " FOR UPDATE" : ""}`,
+    businessId ? [id, businessId] : [id],
   );
   return rows[0] ? reservationFromRow(rows[0]) : null;
 }
@@ -504,8 +519,12 @@ export class MySqlRestaurantReservationRepository {
 
   async availability(
     slotId: string,
+    businessId: string,
     observedAtInput: unknown,
   ): Promise<RestaurantSlotAvailability> {
+    if (!SLOT_ID.test(slotId) || !BUSINESS_ID.test(businessId)) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
     const observedAt = instant(
       observedAtInput,
       "COMMERCE_RESTAURANT_OBSERVED_AT_INVALID",
@@ -514,7 +533,9 @@ export class MySqlRestaurantReservationRepository {
     try {
       await connection.beginTransaction();
       const slot = await selectSlot(connection, slotId, true);
-      if (!slot) throw new Error("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
+      if (!slot || slot.businessId !== businessId) {
+        throw new Error("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
+      }
       await expireStaleHolds(connection, slot, observedAt);
       const committed = await committedGuests(connection, slot.id);
       const availability = createRestaurantSlotAvailability({
@@ -547,6 +568,12 @@ export class MySqlRestaurantReservationRepository {
     readonly actorReference: unknown;
   }): Promise<RestaurantReservationHoldResult> {
     const id = reservationId(input.reservationId);
+    if (
+      !SLOT_ID.test(input.slotId) ||
+      !BUSINESS_ID.test(input.businessId)
+    ) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
     const requestKey = normalizeRestaurantReservationRequestKey(
       input.requestKey,
     );
@@ -722,6 +749,9 @@ export class MySqlRestaurantReservationRepository {
     readonly actorReference: unknown;
   }): Promise<RestaurantReservationMutationResult> {
     const id = reservationId(input.reservationId);
+    if (!BUSINESS_ID.test(input.businessId)) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
     const confirmedAt = instant(
       input.confirmedAt,
       "COMMERCE_RESTAURANT_CONFIRMED_AT_INVALID",
@@ -730,7 +760,12 @@ export class MySqlRestaurantReservationRepository {
     const connection = await this.pool.getConnection();
     try {
       await connection.beginTransaction();
-      const snapshot = await selectReservationById(connection, id, false);
+      const snapshot = await selectReservationById(
+        connection,
+        id,
+        false,
+        input.businessId,
+      );
       if (!snapshot) {
         throw new Error("COMMERCE_RESTAURANT_RESERVATION_NOT_FOUND");
       }
@@ -740,12 +775,14 @@ export class MySqlRestaurantReservationRepository {
         true,
       );
       if (!slot) throw new Error("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
-      const current = await selectReservationById(connection, id, true);
+      const current = await selectReservationById(
+        connection,
+        id,
+        true,
+        input.businessId,
+      );
       if (!current) {
         throw new Error("COMMERCE_RESTAURANT_RESERVATION_NOT_FOUND");
-      }
-      if (current.businessId !== input.businessId) {
-        throw new Error("COMMERCE_RESTAURANT_BUSINESS_SCOPE_DENIED");
       }
       if (current.depositPolicy.kind !== "none") {
         throw new Error(
