@@ -78,8 +78,15 @@ jobs:
               await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
 
               async function submit(text) {
-                await page.locator('#assistantInput').fill(text);
-                await page.locator('#sendButton').click();
+                const input = page.locator('#assistantInput');
+                await input.fill(text);
+                await page.locator('#sendButton').evaluate(button => button.click());
+                const deadline = Date.now() + 8000;
+                while (Date.now() < deadline) {
+                  if ((await input.inputValue()) === '') return;
+                  await page.waitForTimeout(50);
+                }
+                throw new Error('composer did not submit: ' + text);
               }
               async function contextual(expectedState) {
                 const node = page.locator('#assistant-contextual-state');
