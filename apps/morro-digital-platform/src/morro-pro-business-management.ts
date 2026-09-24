@@ -37,20 +37,98 @@ export interface MorroProModulePolicy {
 
 export const morroProModulePolicies: readonly MorroProModulePolicy[] =
   Object.freeze([
-    { id: "dashboard", label: "Dashboard", readCapability: "business.read", mutationCapability: null },
-    { id: "profile", label: "Perfil", readCapability: "business.read", mutationCapability: "business.update" },
-    { id: "location", label: "Localização", readCapability: "business.read", mutationCapability: "business.update", placeCapability: "directions" },
-    { id: "photos", label: "Fotos", readCapability: "content.read", mutationCapability: "content.manage", placeCapability: "photos" },
-    { id: "products", label: "Produtos", readCapability: "business.read", mutationCapability: "business.update", placeCapability: "products" },
-    { id: "offers", label: "Ofertas", readCapability: "ticketing.read", mutationCapability: "ticketing.manage", placeCapability: "offers" },
-    { id: "menu", label: "Cardápio", readCapability: "business.read", mutationCapability: "business.update", placeCapability: "menu" },
-    { id: "reservations", label: "Reservas", readCapability: "business.read", mutationCapability: "business.update", placeCapability: "tableReservation" },
-    { id: "ticketing", label: "Ticketing / check-in", readCapability: "ticketing.read", mutationCapability: "ticketing.manage", placeCapability: "tickets" },
-    { id: "financial", label: "Financeiro", readCapability: "financial.read", mutationCapability: null },
-    { id: "content", label: "Conteúdo", readCapability: "content.read", mutationCapability: "content.manage" },
-    { id: "preview", label: "Preview", readCapability: "business.read", mutationCapability: null },
-    { id: "team", label: "Equipe", readCapability: "business.read", mutationCapability: "business.update", ownerOnly: true },
-    { id: "settings", label: "Configurações", readCapability: "business.read", mutationCapability: "business.update" },
+    {
+      id: "dashboard",
+      label: "Dashboard",
+      readCapability: "business.read",
+      mutationCapability: null,
+    },
+    {
+      id: "profile",
+      label: "Perfil",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+    },
+    {
+      id: "location",
+      label: "Localização",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+      placeCapability: "directions",
+    },
+    {
+      id: "photos",
+      label: "Fotos",
+      readCapability: "content.read",
+      mutationCapability: "content.manage",
+      placeCapability: "photos",
+    },
+    {
+      id: "products",
+      label: "Produtos",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+      placeCapability: "products",
+    },
+    {
+      id: "offers",
+      label: "Ofertas",
+      readCapability: "ticketing.read",
+      mutationCapability: "ticketing.manage",
+      placeCapability: "offers",
+    },
+    {
+      id: "menu",
+      label: "Cardápio",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+      placeCapability: "menu",
+    },
+    {
+      id: "reservations",
+      label: "Reservas",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+      placeCapability: "tableReservation",
+    },
+    {
+      id: "ticketing",
+      label: "Ticketing / check-in",
+      readCapability: "ticketing.read",
+      mutationCapability: "ticketing.manage",
+      placeCapability: "tickets",
+    },
+    {
+      id: "financial",
+      label: "Financeiro",
+      readCapability: "financial.read",
+      mutationCapability: null,
+    },
+    {
+      id: "content",
+      label: "Conteúdo",
+      readCapability: "content.read",
+      mutationCapability: "content.manage",
+    },
+    {
+      id: "preview",
+      label: "Preview",
+      readCapability: "business.read",
+      mutationCapability: null,
+    },
+    {
+      id: "team",
+      label: "Equipe",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+      ownerOnly: true,
+    },
+    {
+      id: "settings",
+      label: "Configurações",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
+    },
   ]);
 
 export interface MorroProModuleAccess {
@@ -149,7 +227,11 @@ export function normalizedBusinessScopes(
   session: DashboardSessionResponse,
 ): readonly string[] {
   return Object.freeze(
-    [...new Set(session.user.businessIds.map(normalizeBusinessId).filter(Boolean))] as string[],
+    [
+      ...new Set(
+        session.user.businessIds.map(normalizeBusinessId).filter(Boolean),
+      ),
+    ] as string[],
   );
 }
 
@@ -183,7 +265,9 @@ export interface BusinessContextController {
   readonly scopes: () => readonly string[];
   readonly switchTo: (businessId: unknown) => BusinessContextRequest;
   readonly request: () => BusinessContextRequest;
-  readonly isCurrent: (request: Pick<BusinessContextRequest, "businessId" | "generation">) => boolean;
+  readonly isCurrent: (
+    request: Pick<BusinessContextRequest, "businessId" | "generation">,
+  ) => boolean;
   readonly dispose: () => void;
 }
 
