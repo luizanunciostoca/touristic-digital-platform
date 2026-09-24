@@ -189,11 +189,18 @@ export interface PublicPlaceProfile {
   readonly capabilities: readonly PlaceCapability[];
 }
 
+export interface PublicPlacePartialState {
+  readonly media: "ready" | "unavailable";
+  readonly commerce: "ready" | "unavailable";
+  readonly actions: "ready" | "unavailable";
+}
+
 export interface PublicPlaceDetail {
   readonly profile: PublicPlaceProfile;
   readonly media: PublicPlaceMediaProjection | null;
   readonly commerce: PublicPlaceCommerceProjection | null;
   readonly actions: readonly PublicPlaceAction[];
+  readonly partial: PublicPlacePartialState;
   readonly revision: {
     readonly id: string;
     readonly number: number;
@@ -516,22 +523,41 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
       const profile = assertRecordScope(record);
       if (!profile) return Object.freeze({ detail: null, cache: null });
 
-      const [media, commerce] = await Promise.all([
+      const [mediaResult, commerceResult] = await Promise.allSettled([
         options.media.getPublishedMedia(record.place),
         options.commerce.getPublicCommerce(record.place),
       ]);
-      const actions = await options.actions.resolvePublicActions({
-        place: profile,
-        media,
-        commerce,
-        locale,
-      });
+      const media =
+        mediaResult.status === "fulfilled" ? mediaResult.value : null;
+      const commerce =
+        commerceResult.status === "fulfilled" ? commerceResult.value : null;
+
+      const actionsResult = await Promise.resolve(
+        options.actions.resolvePublicActions({
+          place: profile,
+          media,
+          commerce,
+          locale,
+        }),
+      ).then(
+        (value) => ({ status: "fulfilled" as const, value }),
+        () => ({ status: "rejected" as const }),
+      );
+      const actions =
+        actionsResult.status === "fulfilled" ? actionsResult.value : [];
 
       const detail = Object.freeze<PublicPlaceDetail>({
         profile,
         media,
         commerce,
         actions: Object.freeze([...actions]),
+        partial: Object.freeze({
+          media: mediaResult.status === "fulfilled" ? "ready" : "unavailable",
+          commerce:
+            commerceResult.status === "fulfilled" ? "ready" : "unavailable",
+          actions:
+            actionsResult.status === "fulfilled" ? "ready" : "unavailable",
+        }),
         revision: Object.freeze({
           id: record.publishedRevisionId,
           number: record.publishedRevision,
