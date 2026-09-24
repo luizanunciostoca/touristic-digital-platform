@@ -575,6 +575,7 @@ export function createPaymentsCheckoutAuthorizationPort({
         });
       }
       return Object.freeze({ allowed: true, context });
+    },
     async authorizeRestaurantCreate(request, handoff) {
       const token = header(request, "x-checkout-handoff-token");
       const context = token
