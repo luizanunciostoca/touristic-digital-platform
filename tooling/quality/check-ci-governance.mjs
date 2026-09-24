@@ -326,7 +326,7 @@ requireIncludes(ociPromotion, ".github/workflows/oci-release-promotion-gate.yml"
   "MORRO_RELEASE_SHA",
 ]);
 
-for (const file of ["staging-oci-promotion.yml", "production-oci-promotion.yml"]) {
+for (const file of [\n  "staging-oci-promotion.yml",\n  "production-oci-promotion.yml",\n]) {
   const source = workflowSources.get(file);
   if (!source) fail(`${file} is missing`);
   requireIncludes(source, `.github/workflows/${file}`, [
