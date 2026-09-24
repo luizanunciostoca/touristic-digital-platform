@@ -2,6 +2,7 @@ import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-rou
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
 import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
+import { evaluateConversationPolicy } from "./assistant-conversation-policy.js";
 
 export type AssistantContextualState =
   | "category_selected"
@@ -522,6 +523,14 @@ export function installAssistantContextualMessaging(
     }
 
     const resolvedLanguage = language();
+    const previousState = conversation.snapshot();
+    const policy = evaluateConversationPolicy({
+      cause: state,
+      source: area === "navigation" ? "navigation" : "contextual",
+      previousState,
+    });
+    if (!policy.present) return;
+
     const draft = resolveAssistantContextualCopy(
       state,
       variables,
@@ -531,7 +540,7 @@ export function installAssistantContextualMessaging(
       messageKey: state,
       language: resolvedLanguage,
       draft,
-      previousState: conversation.snapshot(),
+      previousState,
       ...(variables.category ? { category: variables.category } : {}),
       ...(variables.place ? { place: variables.place } : {}),
       ...(Number.isFinite(variables.count)
@@ -571,6 +580,7 @@ export function installAssistantContextualMessaging(
       ...(state.startsWith("navigation_")
         ? { navigationPhase: state, journey: "navigation" }
         : {}),
+      priority: policy.priority,
     });
     const id = nodeId(area);
     options.messages.append({
@@ -584,7 +594,7 @@ export function installAssistantContextualMessaging(
           ? "assistant-navigation-contextual-state"
           : "assistant-contextual-state",
       avoidDuplicate: false,
-      speak: area !== "navigation",
+      speak: policy.speak && area !== "navigation",
       navigationActive: area === "navigation",
     });
     const created = options.document.getElementById(id);
@@ -598,6 +608,7 @@ export function installAssistantContextualMessaging(
       }
       created.dataset.conversationCause = turn.cause;
       created.dataset.conversationMessageKey = turn.messageKey;
+      created.dataset.conversationPriority = turn.priority;
     }
     if (area === "messages") lastGlobalState = state;
   };
