@@ -65,6 +65,9 @@ importers:
       "@touristic/business":
         specifier: workspace:*
         version: link:../../packages/business
+      "@touristic/commerce":
+        specifier: workspace:*
+        version: link:../../packages/commerce
       "@touristic/content":
         specifier: workspace:*
         version: link:../../packages/content
@@ -132,6 +135,8 @@ importers:
         version: link:../auth
 
   packages/core: {}
+
+  packages/commerce: {}
 
   packages/content: {}
 
@@ -2697,7 +2702,6 @@ snapshots:
       callsites: 3.1.0
 
   path-exists@4.0.0: {}
-
   path-key@3.1.1: {}
 
   pathe@2.0.3: {}
