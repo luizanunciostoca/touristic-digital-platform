@@ -1,6 +1,7 @@
 import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-router.js";
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
 import { createAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
+import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
 
 export type AssistantContextualState =
   | "category_selected"
@@ -520,11 +521,23 @@ export function installAssistantContextualMessaging(
       return;
     }
 
-    const rendered = resolveAssistantContextualCopy(
+    const resolvedLanguage = language();
+    const draft = resolveAssistantContextualCopy(
       state,
       variables,
-      language(),
+      resolvedLanguage,
     );
+    const rendered = composeConversationResponse({
+      messageKey: state,
+      language: resolvedLanguage,
+      draft,
+      previousState: conversation.snapshot(),
+      ...(variables.category ? { category: variables.category } : {}),
+      ...(variables.place ? { place: variables.place } : {}),
+      ...(Number.isFinite(variables.count)
+        ? { count: Number(variables.count) }
+        : {}),
+    });
     const turn = conversation.transition({
       cause: state,
       messageKey: state,
