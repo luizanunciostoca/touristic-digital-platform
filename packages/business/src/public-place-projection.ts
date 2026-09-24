@@ -69,13 +69,28 @@ export interface PublicPlaceCommerceProjection {
   readonly menu: PublicMenu | null;
 }
 
+export type PublicPlaceActionAvailability =
+  | "available"
+  | "sold_out"
+  | "upcoming"
+  | "unavailable";
+
 export interface PublicPlaceAction {
   readonly id: string;
-  readonly kind: string;
   readonly label: string;
-  readonly href?: string | null;
-  readonly method?: "GET" | "POST";
-  readonly metadata?: Readonly<Record<string, string | number | boolean | null>>;
+  readonly value: string;
+  readonly presentation: "primary" | "secondary";
+  readonly priority: number;
+  readonly disabled: boolean;
+  readonly availability: PublicPlaceActionAvailability;
+}
+
+export interface PublicPlacePresentationActions {
+  readonly placeId: PlaceId;
+  readonly businessId: string;
+  readonly destinationId: string;
+  readonly primaryAction: PublicPlaceAction | null;
+  readonly secondaryActions: readonly PublicPlaceAction[];
 }
 
 export interface PublicPlacePublishedRecord {
@@ -160,7 +175,7 @@ export interface PublicPlaceActionPort {
     readonly media: PublicPlaceMediaProjection | null;
     readonly commerce: PublicPlaceCommerceProjection | null;
     readonly locale: string;
-  }): Promise<readonly PublicPlaceAction[]>;
+  }): Promise<PublicPlacePresentationActions>;
 }
 
 export interface PublicPlaceMarkerPresentation {
@@ -209,7 +224,7 @@ export interface PublicPlaceDetail {
   readonly profile: PublicPlaceProfile;
   readonly media: PublicPlaceMediaProjection | null;
   readonly commerce: PublicPlaceCommerceProjection | null;
-  readonly actions: readonly PublicPlaceAction[];
+  readonly actions: PublicPlacePresentationActions;
   readonly partial: PublicPlacePartialState;
   readonly revision: {
     readonly id: string;
@@ -559,13 +574,29 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
         () => ({ status: "rejected" as const }),
       );
       const actions =
-        actionsResult.status === "fulfilled" ? actionsResult.value : [];
+        actionsResult.status === "fulfilled"
+          ? actionsResult.value
+          : Object.freeze<PublicPlacePresentationActions>({
+              placeId: profile.id,
+              businessId: String(record.place.businessId),
+              destinationId: profile.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            });
+
+      if (
+        actions.placeId !== profile.id ||
+        actions.businessId !== String(record.place.businessId) ||
+        actions.destinationId !== profile.destinationId
+      ) {
+        throw new Error("PUBLIC_PLACE_ACTION_SCOPE_MISMATCH");
+      }
 
       const detail = Object.freeze<PublicPlaceDetail>({
         profile,
         media,
         commerce,
-        actions: Object.freeze([...actions]),
+        actions,
         partial: Object.freeze({
           media: mediaResult.status === "fulfilled" ? "ready" : "unavailable",
           commerce:
