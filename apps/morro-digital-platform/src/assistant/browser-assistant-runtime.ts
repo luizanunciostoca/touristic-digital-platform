@@ -25,7 +25,7 @@ import {
 } from "./assistant-v1-residual-command-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
-import { installAssistantContextualMessaging } from "./assistant-contextual-state.js";
+import {\n  installAssistantContextualMessaging,\n  resolveExploreContextualState,\n} from "./assistant-contextual-state.js";
 import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
@@ -1474,6 +1474,22 @@ export function installBrowserAssistantRuntime(
     }
   };
 
+  const syncExploreContextualMessage = (placeHint?: string): void => {
+    const state = readExploreState();
+    const contextualState = resolveExploreContextualState(state);
+    if (!contextualState) return;
+    contextualMessaging.publish(contextualState, {
+      category: state.category,
+      place: placeHint ?? state.place,
+      count: state.markerCount,
+    });
+  };
+
+  const syncExplorePresentation = (placeHint?: string): void => {
+    syncExploreContext(placeHint);
+    syncExploreContextualMessage(placeHint);
+  };
+
   const scheduleExploreContextSync = (event: Event): void => {
     const target = event.target;
     const button =
@@ -1484,14 +1500,14 @@ export function installBrowserAssistantRuntime(
         : null;
     const placeHint = button?.dataset.locationName;
     if (!button && event.type !== "morro:assistant-option-selected") return;
-    queueMicrotask(() => syncExploreContext(placeHint));
+    queueMicrotask(() => syncExplorePresentation(placeHint));
   };
 
   const onExploreEscape = (event: Event): void => {
     if (!(event instanceof KeyboardEvent) || event.key !== "Escape") return;
     queueMicrotask(() => syncExploreContext());
   };
-  const onExploreStateChanged = (): void => syncExploreContext();
+  const onExploreStateChanged = (): void => syncExplorePresentation();
 
   sendButton?.addEventListener("click", onSendClick);
   input?.addEventListener("keydown", onInputKeyDown);
