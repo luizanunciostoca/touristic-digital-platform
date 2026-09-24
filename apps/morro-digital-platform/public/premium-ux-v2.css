@@ -1253,6 +1253,7 @@ body[data-md-mode="navigation"]
   );
   color: var(--md-navigation-danger);
   box-shadow: none;
+  touch-action: manipulation;
 }
 
 body[data-md-mode="navigation"]
