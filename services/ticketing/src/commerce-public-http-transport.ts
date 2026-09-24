@@ -36,7 +36,8 @@ interface ScopedTicketingActor extends TicketingHttpActor {
   readonly businessIds?: readonly string[];
 }
 
-export interface TicketingCommerceHttpTransportDependencies extends TicketingPublicHttpTransportDependencies {
+export interface TicketingCommerceHttpTransportDependencies
+  extends TicketingPublicHttpTransportDependencies {
   readonly businessInventory: TicketingBusinessInventoryRepositoryPort;
   readonly destinationId: string;
 }
@@ -237,7 +238,13 @@ export class CommerceSessionAuthority {
   authorizeMutation(
     request: TicketingHttpRequest,
     session: CommerceSession,
-  ): Readonly<{ allowed: true } | { allowed: false; reason: "cross_origin_request" | "invalid_csrf" }> {
+  ): Readonly<
+    | { allowed: true }
+    | {
+        allowed: false;
+        reason: "cross_origin_request" | "invalid_csrf";
+      }
+  > {
     if (!sameOrigin(request)) {
       return Object.freeze({
         allowed: false as const,
