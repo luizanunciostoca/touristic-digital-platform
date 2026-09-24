@@ -36,6 +36,7 @@
     "dev": "pnpm -w build && node tooling/dev-server.mjs",
     "lint": "eslint src",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "pnpm --filter @touristic/commerce-server build"
   }
 }
