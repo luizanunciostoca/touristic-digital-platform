@@ -5,6 +5,7 @@ import type { MorroV1SearchCatalogItem } from "@touristic/search";
 import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
 
 const nightlife: MorroV1SearchCatalogItem = Object.freeze({
+  id: "place_toca",
   name: "Toca do Morcego",
   latitude: -13.3766787,
   longitude: -38.9172057,
@@ -68,6 +69,34 @@ describe("place commerce capability", () => {
     });
     expect(action?.label).toContain("Comprar ingressos");
     expect(action?.label).toContain("80");
+  });
+
+  it("prefers an explicit canonical placeId before textual heuristics", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        offer({
+          placeId: "place_toca",
+          businessId: "business_toca",
+          offerId: "offer_party",
+          product: {
+            kind: "business_experience",
+            reference: "business_experience:opaque_12345678",
+          },
+          label: "Evento noturno",
+        }),
+      ]),
+    );
+    const action = await resolvePlacePrimaryAction({
+      location: nightlife,
+      locale: "pt",
+      fetch,
+      now: () => Date.parse("2026-09-19T22:00:00.000Z"),
+    });
+
+    expect(action).toMatchObject({
+      value: "commerce:offer:mpi_12345678",
+      commerceState: "sellable",
+    });
   });
 
   it("matches an explicitly place-bound Morro Pro offer even when its label omits the venue", async () => {
