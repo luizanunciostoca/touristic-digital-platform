@@ -52,6 +52,17 @@ describe("PWA offline authority boundary", () => {
     expect(precache).not.toContain("/api/");
   });
 
+  it("uses a versioned cache and network-first runtime assets", async () => {
+    const worker = await readPublicFile("service-worker.js");
+
+    expect(worker).toContain("static-v2");
+    expect(worker).toContain("function isRuntimeAsset(pathname)");
+    expect(worker).toContain("networkFirstStatic(request)");
+    expect(worker).toContain("isRuntimeAsset(url.pathname)");
+    expect(worker).toContain("staleWhileRevalidate(request, event)");
+    expect(worker).toContain("name !== STATIC_CACHE");
+  });
+
   it("provides a root navigation fallback without hijacking other routes", async () => {
     const worker = await readPublicFile("service-worker.js");
 
