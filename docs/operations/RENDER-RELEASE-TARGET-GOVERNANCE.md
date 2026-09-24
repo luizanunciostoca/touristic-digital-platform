@@ -4,10 +4,23 @@ Status: canonical policy for Morro Digital V2 staging and production release tar
 
 ## Canonical targets
 
-| Environment | Service                    | Service ID                   | URL                                              | Repository                                         | Branch | Auto deploy |
-| ----------- | -------------------------- | ---------------------------- | ------------------------------------------------ | -------------------------------------------------- | ------ | ----------- |
-| staging     | `morro-digital-v2-staging` | `srv-da4hb6c9v7es7386ttt0` | `https://morro-digital-v2-staging.onrender.com` | `luizanunciostoca/touristic-digital-platform`     | `main` | disabled    |
-| production  | `morro-digital-v2`         | `srv-daqgk83ncjis739tghig` | `https://morro-digital-v2.onrender.com`         | `luizanunciostoca/touristic-digital-platform`     | `main` | disabled    |
+Canonical V2 staging:
+
+- service: `morro-digital-v2-staging`;
+- service ID: `srv-da4hb6c9v7es7386ttt0`;
+- URL: `https://morro-digital-v2-staging.onrender.com`;
+- repository: `luizanunciostoca/touristic-digital-platform`;
+- branch: `main`;
+- auto deploy: disabled.
+
+Canonical V2 production:
+
+- service: `morro-digital-v2`;
+- service ID: `srv-daqgk83ncjis739tghig`;
+- URL: `https://morro-digital-v2.onrender.com`;
+- repository: `luizanunciostoca/touristic-digital-platform`;
+- branch: `main`;
+- auto deploy: disabled.
 
 The service `morro-digital-staging` (`srv-d9p0to6gekts73f0lh90`) belongs to the older
 `luizidebook/morro-de-sao-paulo-digital` repository and is **LEGACY / DO NOT DEPLOY**
