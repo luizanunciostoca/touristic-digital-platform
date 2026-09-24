@@ -75,6 +75,10 @@ interface SumRow extends RowDataPacket {
   committed_guests: string | number | null;
 }
 
+interface AvailabilityRow extends SlotRow {
+  committed_guests: string | number | null;
+}
+
 export interface RestaurantReservationHoldResult {
   readonly reservation: RestaurantReservation;
   readonly availability: RestaurantSlotAvailability;
@@ -512,6 +516,91 @@ export class MySqlRestaurantReservationRepository {
     } catch (error) {
       await connection.rollback();
       throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
+  async listAvailabilityForDate(input: {
+    readonly businessId: string;
+    readonly placeId?: string | null;
+    readonly serviceDate: string;
+    readonly observedAt: unknown;
+  }): Promise<
+    readonly Readonly<{
+      slot: RestaurantReservationSlot;
+      availability: RestaurantSlotAvailability;
+    }>[]
+  > {
+    if (
+      !BUSINESS_ID.test(input.businessId) ||
+      (input.placeId !== undefined &&
+        input.placeId !== null &&
+        !BUSINESS_ID.test(input.placeId))
+    ) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(input.serviceDate)) {
+      throw new Error("COMMERCE_RESTAURANT_SERVICE_DATE_INVALID");
+    }
+    const dateEpoch = Date.parse(`${input.serviceDate}T00:00:00.000Z`);
+    if (
+      !Number.isFinite(dateEpoch) ||
+      new Date(dateEpoch).toISOString().slice(0, 10) !== input.serviceDate
+    ) {
+      throw new Error("COMMERCE_RESTAURANT_SERVICE_DATE_INVALID");
+    }
+    const observedAt = instant(
+      input.observedAt,
+      "COMMERCE_RESTAURANT_OBSERVED_AT_INVALID",
+    );
+    const connection = await this.pool.getConnection();
+    try {
+      const placePredicate = input.placeId ? " AND s.place_id = ?" : "";
+      const parameters: unknown[] = [
+        new Date(observedAt),
+        input.businessId,
+        input.serviceDate,
+      ];
+      if (input.placeId) parameters.push(input.placeId);
+      const [rows] = await connection.execute<AvailabilityRow[]>(
+        `SELECT
+           s.*,
+           COALESCE(
+             SUM(
+               CASE
+                 WHEN r.status = 'confirmed' THEN r.party_size
+                 WHEN r.status IN ('held','pending_confirmation')
+                      AND r.hold_expires_at > ? THEN r.party_size
+                 ELSE 0
+               END
+             ),
+             0
+           ) AS committed_guests
+         FROM commerce_restaurant_slots s
+         LEFT JOIN commerce_restaurant_reservations r
+           ON r.slot_id = s.slot_id
+         WHERE s.business_id = ?
+           AND s.service_date = ?
+           AND s.enabled = TRUE${placePredicate}
+         GROUP BY s.slot_id
+         ORDER BY s.starts_at ASC, s.seating_area ASC`,
+        parameters,
+      );
+      return Object.freeze(
+        rows.map((row) => {
+          const slot = slotFromRow(row);
+          const availability = createRestaurantSlotAvailability({
+            slot,
+            committedGuests: integer(row.committed_guests),
+            observedAt,
+          });
+          if (!availability) {
+            throw new Error("COMMERCE_RESTAURANT_AVAILABILITY_INVALID");
+          }
+          return Object.freeze({ slot, availability });
+        }),
+      );
     } finally {
       connection.release();
     }
