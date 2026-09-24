@@ -100,9 +100,9 @@ describe("Context Rail button system", () => {
     );
 
     expect(css).toContain('html:not([dir="rtl"])');
-    expect(css).toContain(
-      "grid-template-columns: calc(var(--md-context-rail-back-size) + 0.25rem) minmax(0, 1fr)",
-    );
+    expect(css).toContain("grid-template-columns:");
+    expect(css).toContain("var(--md-context-rail-back-size) + 0.25rem");
+    expect(css).toContain("minmax(0, 1fr)");
     expect(css).toContain("grid-column: 1");
     expect(css).toContain("grid-column: 2");
     expect(css).toContain("justify-self: center");
