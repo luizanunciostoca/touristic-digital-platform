@@ -127,7 +127,7 @@ export interface CatalogService {
   createOffer(scope: CatalogScope, input: Offer): Promise<Offer>;
   updateOffer(scope: CatalogScope, input: Offer): Promise<Offer>;
   createMenu(scope: CatalogScope, input: Menu): Promise<Menu>;
-  saveMenuCategory(scope: CatalogScope, input: MenuCategory): Promise<MenuCategory>;
+  saveMenuCategory(\n    scope: CatalogScope,\n    input: MenuCategory,\n  ): Promise<MenuCategory>;
   saveMenuItem(scope: CatalogScope, input: MenuItem): Promise<MenuItem>;
 }
 
@@ -176,12 +176,12 @@ function safeText(value: unknown, max = 500): string {
 }
 
 function assertBusiness(scope: CatalogScope, businessId: BusinessId): void {
-  if (scope.businessId !== businessId) throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
+  if (scope.businessId !== businessId) {\n    throw new Error("CATALOG_CROSS_BUSINESS_DENIED");\n  }
 }
 
 function assertDate(value: string | null, field: string): void {
   if (value === null) return;
-  if (!Number.isFinite(Date.parse(value))) throw new Error(`INVALID_${field.toUpperCase()}`);
+  if (!Number.isFinite(Date.parse(value))) {\n    throw new Error(`INVALID_${field.toUpperCase()}`);\n  }
 }
 
 function assertPrice(price: OfferPrice): void {
@@ -192,7 +192,7 @@ function assertPrice(price: OfferPrice): void {
 }
 
 function assertSortOrder(value: number): void {
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error("INVALID_SORT_ORDER");
+  if (!Number.isSafeInteger(value) || value < 0) {\n    throw new Error("INVALID_SORT_ORDER");\n  }
 }
 
 export function asMenuId(value: unknown): MenuId {
@@ -223,8 +223,8 @@ export function validateOfferRelation(offer: Offer, product: Product): void {
   assertDate(offer.salesEndsAt, "sales_ends_at");
   assertDate(offer.experienceStartsAt, "experience_starts_at");
   assertDate(offer.experienceEndsAt, "experience_ends_at");
-  if (offer.businessId !== product.businessId) throw new Error("OFFER_PRODUCT_BUSINESS_MISMATCH");
-  if (offer.productId !== product.id) throw new Error("OFFER_PRODUCT_ID_MISMATCH");
+  if (offer.businessId !== product.businessId) {\n    throw new Error("OFFER_PRODUCT_BUSINESS_MISMATCH");\n  }
+  if (offer.productId !== product.id) {\n    throw new Error("OFFER_PRODUCT_ID_MISMATCH");\n  }
   if (
     offer.placeId !== null &&
     product.placeId !== null &&
@@ -239,15 +239,15 @@ export function validateOfferRelation(offer: Offer, product: Product): void {
   ) {
     throw new Error("OFFER_PRODUCT_DESTINATION_MISMATCH");
   }
-  if (offer.capacity !== null && (!Number.isSafeInteger(offer.capacity) || offer.capacity < 0)) {
+  if (\n    offer.capacity !== null &&\n    (!Number.isSafeInteger(offer.capacity) || offer.capacity < 0)\n  ) {
     throw new Error("INVALID_OFFER_CAPACITY");
   }
 }
 
-export function validateMenuCategoryRelation(category: MenuCategory, menu: Menu): void {
-  if (category.businessId !== menu.businessId) throw new Error("MENU_CATEGORY_BUSINESS_MISMATCH");
-  if (category.menuId !== menu.id) throw new Error("MENU_CATEGORY_MENU_MISMATCH");
-  if (!safeText(category.name, 180)) throw new Error("INVALID_MENU_CATEGORY_NAME");
+export function validateMenuCategoryRelation(\n  category: MenuCategory,\n  menu: Menu,\n): void {
+  if (category.businessId !== menu.businessId) {\n    throw new Error("MENU_CATEGORY_BUSINESS_MISMATCH");\n  }
+  if (category.menuId !== menu.id) {\n    throw new Error("MENU_CATEGORY_MENU_MISMATCH");\n  }
+  if (!safeText(category.name, 180)) {\n    throw new Error("INVALID_MENU_CATEGORY_NAME");\n  }
   assertSortOrder(category.sortOrder);
 }
 
@@ -258,14 +258,14 @@ export function validateMenuItemRelation(
 ): void {
   assertPrice(item.price);
   assertSortOrder(item.sortOrder);
-  if (item.businessId !== menu.businessId || item.businessId !== category.businessId) {
+  if (\n    item.businessId !== menu.businessId ||\n    item.businessId !== category.businessId\n  ) {
     throw new Error("MENU_ITEM_BUSINESS_MISMATCH");
   }
   if (item.menuId !== menu.id || item.menuId !== category.menuId) {
     throw new Error("MENU_ITEM_MENU_MISMATCH");
   }
-  if (item.categoryId !== category.id) throw new Error("MENU_ITEM_CATEGORY_MISMATCH");
-  if (!safeText(item.name, 180)) throw new Error("INVALID_MENU_ITEM_NAME");
+  if (item.categoryId !== category.id) {\n    throw new Error("MENU_ITEM_CATEGORY_MISMATCH");\n  }
+  if (!safeText(item.name, 180)) {\n    throw new Error("INVALID_MENU_ITEM_NAME");\n  }
 }
 
 export function evaluateOfferSellability(
@@ -275,15 +275,15 @@ export function evaluateOfferSellability(
   const now = Date.parse(context.now);
   if (!Number.isFinite(now)) throw new Error("INVALID_NOW");
 
-  if (offer.status === "sold_out") return Object.freeze({ sellable: false, reason: "SOLD_OUT" as const });
-  if (offer.status === "expired" || (offer.salesEndsAt && Date.parse(offer.salesEndsAt) < now)) {
+  if (offer.status === "sold_out") {\n    return Object.freeze({ sellable: false, reason: "SOLD_OUT" as const });\n  }
+  if (\n    offer.status === "expired" ||\n    (offer.salesEndsAt && Date.parse(offer.salesEndsAt) < now)\n  ) {
     return Object.freeze({ sellable: false, reason: "EXPIRED" as const });
   }
   if (offer.status !== "active") {
     return Object.freeze({ sellable: false, reason: "NOT_ACTIVE" as const });
   }
   if (offer.salesStartsAt && Date.parse(offer.salesStartsAt) > now) {
-    return Object.freeze({ sellable: false, reason: "SALES_NOT_STARTED" as const });
+    return Object.freeze({\n      sellable: false,\n      reason: "SALES_NOT_STARTED" as const,\n    });
   }
   if (context.authoritativeAvailableQuantity === 0) {
     return Object.freeze({ sellable: false, reason: "SOLD_OUT" as const });
@@ -315,33 +315,33 @@ export function resolveLegacyCommerceReference(
         ((productReference &&
           entry.productReference !== null &&
           entry.productReference === productReference) ||
-          (offerLabel && entry.offerLabel !== null && entry.offerLabel === offerLabel)),
+          (offerLabel &&\n            entry.offerLabel !== null &&\n            entry.offerLabel === offerLabel)),
     ) ?? null
   );
 }
 
-export function createCatalogService(repository: CatalogRepository): CatalogService {
+export function createCatalogService(\n  repository: CatalogRepository,\n): CatalogService {
   return Object.freeze({
-    async createProduct(scope: CatalogScope, input: Product): Promise<Product> {
+    async createProduct(\n      scope: CatalogScope,\n      input: Product,\n    ): Promise<Product> {
       assertBusiness(scope, input.businessId);
       validateProduct(input);
-      if (await repository.getProduct(input.id)) throw new Error("PRODUCT_ALREADY_EXISTS");
+      if (await repository.getProduct(input.id)) {\n        throw new Error("PRODUCT_ALREADY_EXISTS");\n      }
       return repository.saveProduct(Object.freeze({ ...input }));
     },
 
-    async updateProduct(scope: CatalogScope, input: Product): Promise<Product> {
+    async updateProduct(\n      scope: CatalogScope,\n      input: Product,\n    ): Promise<Product> {
       assertBusiness(scope, input.businessId);
       validateProduct(input);
       const existing = await repository.getProduct(input.id);
       if (!existing) throw new Error("PRODUCT_NOT_FOUND");
       assertBusiness(scope, existing.businessId);
-      if (existing.businessId !== input.businessId) throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
+      if (existing.businessId !== input.businessId) {\n        throw new Error("CATALOG_CROSS_BUSINESS_DENIED");\n      }
       return repository.saveProduct(Object.freeze({ ...input }));
     },
 
-    async createOffer(scope: CatalogScope, input: Offer): Promise<Offer> {
+    async createOffer(\n      scope: CatalogScope,\n      input: Offer,\n    ): Promise<Offer> {
       assertBusiness(scope, input.businessId);
-      if (await repository.getOffer(input.id)) throw new Error("OFFER_ALREADY_EXISTS");
+      if (await repository.getOffer(input.id)) {\n        throw new Error("OFFER_ALREADY_EXISTS");\n      }
       const product = await repository.getProduct(input.productId);
       if (!product) throw new Error("PRODUCT_NOT_FOUND");
       assertBusiness(scope, product.businessId);
@@ -349,7 +349,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveOffer(Object.freeze({ ...input }));
     },
 
-    async updateOffer(scope: CatalogScope, input: Offer): Promise<Offer> {
+    async updateOffer(\n      scope: CatalogScope,\n      input: Offer,\n    ): Promise<Offer> {
       assertBusiness(scope, input.businessId);
       const existing = await repository.getOffer(input.id);
       if (!existing) throw new Error("OFFER_NOT_FOUND");
@@ -361,15 +361,15 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveOffer(Object.freeze({ ...input }));
     },
 
-    async createMenu(scope: CatalogScope, input: Menu): Promise<Menu> {
+    async createMenu(\n      scope: CatalogScope,\n      input: Menu,\n    ): Promise<Menu> {
       assertBusiness(scope, input.businessId);
-      if (await repository.getMenu(input.id)) throw new Error("MENU_ALREADY_EXISTS");
-      if (!safeText(input.name, 180)) throw new Error("INVALID_MENU_NAME");
+      if (await repository.getMenu(input.id)) {\n        throw new Error("MENU_ALREADY_EXISTS");\n      }
+      if (!safeText(input.name, 180)) {\n        throw new Error("INVALID_MENU_NAME");\n      }
       if (input.placeId !== null) asPlaceId(input.placeId);
       return repository.saveMenu(Object.freeze({ ...input }));
     },
 
-    async saveMenuCategory(scope: CatalogScope, input: MenuCategory): Promise<MenuCategory> {
+    async saveMenuCategory(\n      scope: CatalogScope,\n      input: MenuCategory,\n    ): Promise<MenuCategory> {
       assertBusiness(scope, input.businessId);
       const menu = await repository.getMenu(input.menuId);
       if (!menu) throw new Error("MENU_NOT_FOUND");
@@ -378,7 +378,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveMenuCategory(Object.freeze({ ...input }));
     },
 
-    async saveMenuItem(scope: CatalogScope, input: MenuItem): Promise<MenuItem> {
+    async saveMenuItem(\n      scope: CatalogScope,\n      input: MenuItem,\n    ): Promise<MenuItem> {
       assertBusiness(scope, input.businessId);
       const menu = await repository.getMenu(input.menuId);
       if (!menu) throw new Error("MENU_NOT_FOUND");
