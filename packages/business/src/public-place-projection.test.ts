@@ -220,7 +220,17 @@ describe("createPublicPlaceReadModel", () => {
       },
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
-      actions: { resolvePublicActions: vi.fn(async () => []) },
+      actions: {
+        resolvePublicActions: vi.fn(async ({ place }) =>
+          Object.freeze({
+            placeId: place.id,
+            businessId: "business-1",
+            destinationId: place.destinationId,
+            primaryAction: null,
+            secondaryActions: Object.freeze([]),
+          }),
+        ),
+      },
     });
 
     const result = await service.listMap({
@@ -255,14 +265,22 @@ describe("createPublicPlaceReadModel", () => {
       offers: Object.freeze([]),
       menu: null,
     });
-    const actionResolver = vi.fn(async () =>
-      Object.freeze([
-        Object.freeze({
+    const actionResolver = vi.fn(async ({ place }) =>
+      Object.freeze({
+        placeId: place.id,
+        businessId: "business-1",
+        destinationId: place.destinationId,
+        primaryAction: Object.freeze({
           id: "directions",
-          kind: "directions",
           label: "Como chegar",
+          value: "place-action:directions:place-1",
+          presentation: "primary" as const,
+          priority: 30,
+          disabled: false,
+          availability: "available" as const,
         }),
-      ]),
+        secondaryActions: Object.freeze([]),
+      }),
     );
     const service = createPublicPlaceReadModel({
       repository: {
@@ -279,7 +297,7 @@ describe("createPublicPlaceReadModel", () => {
     expect(result.detail?.profile.id).toBe(asPlaceId("place-1"));
     expect(result.detail?.media).toBe(media);
     expect(result.detail?.commerce).toBe(commerce);
-    expect(result.detail?.actions[0]?.id).toBe("directions");
+    expect(result.detail?.actions.primaryAction?.id).toBe("directions");
     expect(actionResolver).toHaveBeenCalledTimes(1);
     expect(result.detail).not.toHaveProperty("businessId");
     expect(result.detail).not.toHaveProperty("publicationState");
@@ -299,7 +317,17 @@ describe("createPublicPlaceReadModel", () => {
         }),
       },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
-      actions: { resolvePublicActions: vi.fn(async () => []) },
+      actions: {
+        resolvePublicActions: vi.fn(async ({ place }) =>
+          Object.freeze({
+            placeId: place.id,
+            businessId: "business-1",
+            destinationId: place.destinationId,
+            primaryAction: null,
+            secondaryActions: Object.freeze([]),
+          }),
+        ),
+      },
     });
 
     const result = await service.getDetail(asPlaceId("place-1"));
