@@ -4,7 +4,6 @@ export interface AppShellMountOptions {
   readonly document: Document;
 }
 
-
 const CATEGORY_ICONS = {
   beaches: "fa-umbrella-beach",
   tours: "fa-route",
