@@ -176,20 +176,9 @@ function ensureNavigationSupportUi(document: Document): {
     summary.parentElement.insertBefore(status, summary);
   }
 
-  let recenter = document.getElementById(
-    "navigation-recenter-btn",
+  const recenter = document.getElementById(
+    "recenter-map-control",
   ) as HTMLButtonElement | null;
-  if (!recenter && controls) {
-    recenter = document.createElement("button");
-    recenter.type = "button";
-    recenter.id = "navigation-recenter-btn";
-    recenter.className = "map-control-button md-icon-button md-map-control";
-    recenter.title = "Recentralizar";
-    recenter.setAttribute("aria-label", "Recentralizar navegação");
-    recenter.innerHTML =
-      '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="5"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"></circle></svg><span class="control-tooltip">Recentralizar</span>';
-    controls.appendChild(recenter);
-  }
 
   return {
     status,
@@ -385,11 +374,13 @@ export function createNavigationGuidanceUi(
   };
   minimizeButton?.addEventListener("click", toggleMinimized);
 
-  const requestRecenter = (): void => {
+  const requestRecenter = (event: Event): void => {
     if (destroyed || !active) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
     document.dispatchEvent(new CustomEvent(NAVIGATION_RECENTER_REQUEST_EVENT));
   };
-  supportUi.recenter?.addEventListener("click", requestRecenter);
+  supportUi.recenter?.addEventListener("click", requestRecenter, true);
 
   const setDirectionClass = (className: string): void => {
     banner?.classList.remove(
@@ -463,7 +454,7 @@ export function createNavigationGuidanceUi(
       hide();
       destroyed = true;
       minimizeButton?.removeEventListener("click", toggleMinimized);
-      supportUi.recenter?.removeEventListener("click", requestRecenter);
+      supportUi.recenter?.removeEventListener("click", requestRecenter, true);
       voiceButton?.removeEventListener(
         "click",
         onNavigationStopVoiceClick,
