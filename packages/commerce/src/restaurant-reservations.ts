@@ -21,6 +21,7 @@ export type RestaurantDepositPolicy =
 export interface RestaurantReservation {
   readonly id: string;
   readonly requestKey: string;
+  readonly slotId: string;
   readonly businessId: string;
   readonly placeId: string;
   readonly destinationId: string;
@@ -126,6 +127,7 @@ export function normalizeRestaurantDepositPolicy(
 export function createRestaurantReservation(input: {
   readonly id: unknown;
   readonly requestKey: unknown;
+  readonly slotId: unknown;
   readonly businessId: unknown;
   readonly placeId: unknown;
   readonly destinationId: unknown;
@@ -146,6 +148,7 @@ export function createRestaurantReservation(input: {
 }): RestaurantReservation | null {
   const reservationId = text(input.id, 120);
   const requestKey = normalizeRestaurantReservationRequestKey(input.requestKey);
+  const slotId = id(input.slotId);
   const businessId = id(input.businessId);
   const placeId = id(input.placeId);
   const destinationId = id(input.destinationId);
@@ -188,6 +191,7 @@ export function createRestaurantReservation(input: {
     !reservationId ||
     !RESERVATION_ID.test(reservationId) ||
     !requestKey ||
+    !slotId ||
     !businessId ||
     !placeId ||
     !destinationId ||
@@ -240,6 +244,7 @@ export function createRestaurantReservation(input: {
   return Object.freeze({
     id: reservationId,
     requestKey,
+    slotId,
     businessId,
     placeId,
     destinationId,
