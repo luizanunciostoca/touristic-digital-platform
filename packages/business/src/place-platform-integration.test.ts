@@ -13,6 +13,9 @@ import {
   publishedRecordFromGovernedRecord,
   resolvePlacePresentationActions,
   type CatalogRepository,
+  type Menu,
+  type MenuCategory,
+  type MenuItem,
   type Offer,
   type Place,
   type Product,
@@ -74,9 +77,9 @@ function place(): Place {
 function catalogRepository(): CatalogRepository {
   const products = new Map<Product["id"], Product>();
   const offers = new Map<Offer["id"], Offer>();
-  const menus = new Map();
-  const categories = new Map();
-  const items = new Map();
+  const menus = new Map<Menu["id"], Menu>();
+  const categories = new Map<MenuCategory["id"], MenuCategory>();
+  const items = new Map<MenuItem["id"], MenuItem>();
 
   return {
     getProduct: async (id) => products.get(id) ?? null,
