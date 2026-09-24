@@ -64,6 +64,9 @@ function governed(input: {
 } = {}): PublicPlaceGovernedRecord {
   const published = input.published === undefined ? place() : input.published;
   return Object.freeze({
+    placeId: "place-1",
+    businessId: "business-1",
+    destinationId: "morro-de-sao-paulo",
     publicationState: input.state ?? "published",
     publishedRevision:
       published === null
@@ -105,6 +108,21 @@ describe("publishedRecordFromGovernedRecord", () => {
         previous,
       )?.publishedRevision,
     ).toBe(8);
+  });
+
+  it("rejects a canonical snapshot from another Place scope", () => {
+    expect(
+      publishedRecordFromGovernedRecord(
+        governed(),
+        place({ id: asPlaceId("place-2") }),
+      ),
+    ).toBeNull();
+    expect(
+      publishedRecordFromGovernedRecord(
+        governed(),
+        place({ businessId: asBusinessId("business-2") }),
+      ),
+    ).toBeNull();
   });
 
   it("hides suspended and archived records even when a published revision exists", () => {
