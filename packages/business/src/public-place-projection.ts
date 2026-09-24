@@ -91,7 +91,6 @@ export interface PublicPlacePublishedRecord {
 export interface PublicPlaceGovernedRevision {
   readonly id: string;
   readonly revision: number;
-  readonly data: Place;
 }
 
 export interface PublicPlaceGovernedRecord {
@@ -106,6 +105,7 @@ export interface PublicPlaceGovernedRecord {
 
 export function publishedRecordFromGovernedRecord(
   record: PublicPlaceGovernedRecord,
+  publishedPlace: Place | null,
 ): PublicPlacePublishedRecord | null {
   if (
     record.publicationState === "suspended" ||
@@ -114,9 +114,9 @@ export function publishedRecordFromGovernedRecord(
     return null;
   }
   const published = record.publishedRevision;
-  if (!published) return null;
+  if (!published || !publishedPlace) return null;
   return Object.freeze({
-    place: published.data,
+    place: publishedPlace,
     publishedRevisionId: published.id,
     publishedRevision: published.revision,
   });
