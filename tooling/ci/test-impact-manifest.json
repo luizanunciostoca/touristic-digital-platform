@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "failClosed": true,
+  "riskOrder": [
+    "LOW",
+    "MEDIUM",
+    "HIGH",
+    "CRITICAL"
+  ],
+  "domains": {
+    "assistant-conversation": {
+      "paths": [
+        "apps/morro-digital-platform/src/assistant/assistant-conversation-",
+        "apps/morro-digital-platform/src/assistant/assistant-contextual-state",
+        "apps/morro-digital-platform/src/assistant/assistant-single-message-controller",
+        "apps/morro-digital-platform/src/assistant/assistant-message-dom",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime"
+      ],
+      "risk": "MEDIUM",
+      "dependsOn": [
+        "assistant",
+        "explore",
+        "map",
+        "navigation",
+        "search",
+        "commerce",
+        "payments",
+        "geolocation",
+        "network",
+        "shell"
+      ],
+      "suites": [
+        "assistant-conversation-continuity-browser-contract.yml",
+        "assistant-input-menu-flow-v1-parity.yml",
+        "navigation-turn-by-turn-parity.yml",
+        "navigation-accessibility-baseline.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "navigation": {
+      "paths": [
+        "apps/morro-digital-platform/src/navigation/",
+        "packages/navigation/",
+        "packages/geospatial/src/adapters/navigation-"
+      ],
+      "risk": "MEDIUM",
+      "dependsOn": [
+        "assistant-conversation",
+        "map",
+        "geolocation",
+        "shell"
+      ],
+      "suites": [
+        "navigation-turn-by-turn-parity.yml",
+        "navigation-visual-baseline.yml",
+        "navigation-accessibility-baseline.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "payments": {
+      "paths": [
+        "packages/payments/",
+        "apps/morro-digital-platform/src/payments/",
+        "apps/morro-digital-platform/src/commerce/"
+      ],
+      "risk": "CRITICAL",
+      "dependsOn": [
+        "assistant-conversation",
+        "commerce",
+        "security"
+      ],
+      "suites": [
+        "payments-browser-checkout-contract.yml",
+        "commerce-browser-regression.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": true,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
+    },
+    "dependencies": {
+      "paths": [
+        "pnpm-lock.yaml",
+        "package.json",
+        "pnpm-workspace.yaml"
+      ],
+      "risk": "CRITICAL",
+      "dependsOn": [
+        "security"
+      ],
+      "suites": [
+        "dependency-security-audit.yml",
+        "security-scanning.yml"
+      ],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": true,
+      "needsFullSecurity": true
+    },
+    "cicd": {
+      "paths": [
+        ".github/workflows/",
+        "tooling/ci/",
+        "tooling/quality/"
+      ],
+      "risk": "CRITICAL",
+      "dependsOn": [
+        "release-governance",
+        "security"
+      ],
+      "suites": [
+        "security-scanning.yml"
+      ],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
+    },
+    "database": {
+      "paths": [
+        "packages/**/migrations/",
+        "tooling/**/mysql",
+        "docker-compose",
+        "Dockerfile"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [
+        "security"
+      ],
+      "suites": [],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": true,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
+    }
+  }
+}
