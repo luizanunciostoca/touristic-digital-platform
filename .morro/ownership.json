@@ -35,18 +35,11 @@
     },
     {
       "id": "auth",
-      "paths": [
-        "packages/auth/**",
-        "services/auth/**"
-      ]
+      "paths": ["packages/auth/**", "services/auth/**"]
     },
     {
       "id": "ci-release",
-      "paths": [
-        ".github/workflows/**",
-        "tooling/quality/**",
-        ".morro/**"
-      ]
+      "paths": [".github/workflows/**", "tooling/quality/**", ".morro/**"]
     }
   ],
   "collisionPolicy": "serialize overlapping ownership or explicitly stack dependent changes"
