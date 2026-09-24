@@ -7,6 +7,7 @@ import {
 } from "./place-domain.js";
 import {
   createPublicPlaceReadModel,
+  handlePublicPlaceApiRequest,
   parsePublicPlaceMapQuery,
   publishedRecordFromGovernedRecord,
   type PublicPlaceGovernedRecord,
@@ -311,5 +312,79 @@ describe("createPublicPlaceReadModel", () => {
 
     expect(map.page.items).toEqual([]);
     expect(detail.detail).toBeNull();
+  });
+});
+
+
+describe("handlePublicPlaceApiRequest", () => {
+  function apiReadModel() {
+    const published: PublicPlacePublishedRecord = Object.freeze({
+      place: place(),
+      publishedRevisionId: "place-1:r3",
+      publishedRevision: 3,
+    });
+    return createPublicPlaceReadModel({
+      repository: {
+        listPublished: vi.fn(async () => ({
+          items: [published],
+          nextCursor: null,
+        })),
+        getPublished: vi.fn(async () => published),
+      },
+      media: { getPublishedMedia: vi.fn(async () => null) },
+      commerce: { getPublicCommerce: vi.fn(async () => null) },
+      actions: { resolvePublicActions: vi.fn(async () => []) },
+    });
+  }
+
+  it("serves GET /api/places/v1/map and supports conditional ETag", async () => {
+    const readModel = apiReadModel();
+    const first = await handlePublicPlaceApiRequest(readModel, {
+      method: "GET",
+      pathname: "/api/places/v1/map",
+      query: {
+        destinationId: "morro-de-sao-paulo",
+        bbox: "-38.93,-13.40,-38.89,-13.35",
+        zoom: 15,
+      },
+    });
+    expect(first?.status).toBe(200);
+    const etag = first?.headers.etag;
+    expect(etag).toBeTruthy();
+
+    const conditional = await handlePublicPlaceApiRequest(readModel, {
+      method: "GET",
+      pathname: "/api/places/v1/map",
+      query: {
+        destinationId: "morro-de-sao-paulo",
+        bbox: "-38.93,-13.40,-38.89,-13.35",
+        zoom: 15,
+      },
+      headers: { "if-none-match": etag },
+    });
+    expect(conditional?.status).toBe(304);
+  });
+
+  it("serves published place detail and rejects malformed queries/ids", async () => {
+    const readModel = apiReadModel();
+    const detail = await handlePublicPlaceApiRequest(readModel, {
+      method: "GET",
+      pathname: "/api/places/v1/place-1",
+      locale: "pt-BR",
+    });
+    expect(detail?.status).toBe(200);
+
+    const malformedMap = await handlePublicPlaceApiRequest(readModel, {
+      method: "GET",
+      pathname: "/api/places/v1/map",
+      query: { destinationId: "morro", bbox: "bad", zoom: 15 },
+    });
+    expect(malformedMap?.status).toBe(400);
+
+    const malformedId = await handlePublicPlaceApiRequest(readModel, {
+      method: "GET",
+      pathname: "/api/places/v1/%2Fetc",
+    });
+    expect(malformedId?.status).toBe(400);
   });
 });
