@@ -29,12 +29,15 @@ repository.
 
 ## Required GitHub secrets
 
-Staging uses only staging-scoped credentials and identifiers:
+Staging uses protected staging-scoped deploy hooks:
 
-- `RENDER_STAGING_API_KEY`
 - `RENDER_STAGING_DEPLOY_HOOK_URL`
-- `RENDER_STAGING_SERVICE_ID`
-- `RENDER_STAGING_CANONICAL_URL`
+- `RENDER_STAGING_IMAGE_DEPLOY_HOOK_URL`
+
+The service ID, service name and canonical URL are non-secret release constants committed
+in the workflow. Before a POST is allowed, the workflow parses the protected Render hook,
+requires `https://api.render.com/deploy/<service-id>`, and proves that the embedded
+service ID equals the canonical staging service ID.
 
 Production remains isolated behind production-scoped values:
 
@@ -51,9 +54,9 @@ A staging promotion is valid only when all edges are proved:
 
 `expected SHA -> staging workflow -> canonical service ID/name -> deployment ID -> canonical URL -> live SHA`
 
-The promotion fails closed if the Render API cannot prove the service identity, if the
-deploy ID does not belong to the canonical staging service, if the deploy commit differs
-from the requested SHA, or if the canonical URL serves a different release SHA.
+The promotion fails closed if the protected deploy hook does not embed the canonical
+staging service ID, if the hook does not return a deployment ID, or if the canonical URL
+does not serve the requested exact release SHA.
 
 The staging workflow publishes `staging-deployment-evidence.json` containing:
 
@@ -77,7 +80,7 @@ The repository contract test `tooling/quality/release-target-governance.test.mjs
 - active workflows reference the legacy staging service ID or URL;
 - staging references the production V2 service ID or URL;
 - staging uses a generic Render deployment secret;
-- staging loses its canonical service/API proof;
+- staging loses its canonical deploy-hook service-ID proof;
 - Final Release Acceptance stops consuming structured staging evidence.
 
 The legacy Render service is not deleted by this repository change. Its current Render
