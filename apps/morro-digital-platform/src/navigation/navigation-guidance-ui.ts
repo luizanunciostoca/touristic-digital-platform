@@ -146,7 +146,6 @@ function ensureNavigationSupportUi(document: Document): {
 } {
   const summary = document.getElementById("navigation-summary");
   const distance = document.getElementById("instruction-distance");
-  const controls = document.getElementById("globe-map-control");
 
   let handle = document.getElementById("navigation-summary-handle");
   if (!handle && summary) {
