@@ -22,10 +22,13 @@ describe("Morro Commerce restaurant browser contract", () => {
     expect(runtime).toContain("payload.data?.verifiedPayment?.verified === true");
   });
 
-  it("fails closed when canonical business identity is absent", async () => {
+  it("resolves restaurant identity only through canonical business/place ids", async () => {
     const runtime = await publicFile("commerce.js");
 
     expect(runtime).toContain("businessIdPattern.test(businessId)");
+    expect(runtime).toContain(
+      "/api/commerce/v1/places/${encodeURIComponent(placeId)}/offerings",
+    );
     expect(runtime).toContain(
       "Este restaurante ainda não possui uma identidade Commerce vinculada.",
     );
