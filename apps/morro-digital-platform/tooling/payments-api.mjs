@@ -219,6 +219,14 @@ function safeStartupFailureCode(error) {
     error instanceof Error && typeof error.message === "string"
       ? error.message.trim()
       : "";
+
+  const knownMessages = new Map([
+    ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
+    ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
+  ]);
+  const knownMessageCode = knownMessages.get(message);
+  if (knownMessageCode) return knownMessageCode;
+
   if (/^[A-Z0-9_]{2,120}$/u.test(message)) return message;
 
   return "PAYMENTS_RUNTIME_START_UNCLASSIFIED";
