@@ -155,6 +155,26 @@ describe("restaurant reservation domain", () => {
     });
   });
 
+  it("preserves verified financial lineage after a paid reservation is cancelled", () => {
+    expect(
+      createRestaurantReservation(
+        reservation({
+          status: "cancelled",
+          depositPolicy: {
+            kind: "required",
+            amount: { minorUnits: 5000, currency: "BRL" },
+          },
+          orderId: "ord_restaurant_0001",
+          paymentId: "pay_restaurant_0001",
+        }),
+      ),
+    ).toMatchObject({
+      status: "cancelled",
+      orderId: "ord_restaurant_0001",
+      paymentId: "pay_restaurant_0001",
+    });
+  });
+
   it("never attaches financial identities to a no-deposit reservation", () => {
     expect(
       createRestaurantReservation(
