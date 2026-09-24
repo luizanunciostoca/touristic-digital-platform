@@ -88,6 +88,40 @@ export interface PublicPlacePublishedRecord {
   readonly publishedRevision: number;
 }
 
+export interface PublicPlaceGovernedRevision {
+  readonly id: string;
+  readonly revision: number;
+  readonly data: Place;
+}
+
+export interface PublicPlaceGovernedRecord {
+  readonly publicationState:
+    | "draft"
+    | "review"
+    | "published"
+    | "suspended"
+    | "archived";
+  readonly publishedRevision: PublicPlaceGovernedRevision | null;
+}
+
+export function publishedRecordFromGovernedRecord(
+  record: PublicPlaceGovernedRecord,
+): PublicPlacePublishedRecord | null {
+  if (
+    record.publicationState === "suspended" ||
+    record.publicationState === "archived"
+  ) {
+    return null;
+  }
+  const published = record.publishedRevision;
+  if (!published) return null;
+  return Object.freeze({
+    place: published.data,
+    publishedRevisionId: published.id,
+    publishedRevision: published.revision,
+  });
+}
+
 export interface PublicPlaceRepository {
   listPublished(input: {
     readonly destinationId: string;
