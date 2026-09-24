@@ -11,10 +11,18 @@ describe("business dashboard surface", () => {
   it("freezes the V1-equivalent primary view inventory", () => {
     expect(businessDashboardViews).toEqual([
       "dashboard",
-      "performance",
-      "audience",
+      "profile",
+      "location",
+      "photos",
+      "products",
       "offers",
-      "promotions",
+      "menu",
+      "reservations",
+      "ticketing",
+      "financial",
+      "content",
+      "preview",
+      "team",
       "settings",
     ]);
   });
