@@ -255,16 +255,18 @@ export function createCommerceApi({
     await Promise.allSettled(pools.map((candidate) => candidate.end()));
   }
 
-  async function consumerActor(request) {
+  async function consumerActor(request, { mutation = true } = {}) {
     const active = await authApi.resolveSession(request);
     if (active) {
-      const decision = authApi.authorizeMutation(
-        request,
-        active,
-        "commerce.restaurant.reserve",
-      );
-      if (!decision.allowed) {
-        return Object.freeze({ allowed: false, reason: decision.reason });
+      if (mutation) {
+        const decision = authApi.authorizeMutation(
+          request,
+          active,
+          "commerce.restaurant.reserve",
+        );
+        if (!decision.allowed) {
+          return Object.freeze({ allowed: false, reason: decision.reason });
+        }
       }
       return Object.freeze({
         allowed: true,
@@ -283,15 +285,17 @@ export function createCommerceApi({
         reason: "authentication_required",
       });
     }
-    const decision = runtime.sessions.authorizeMutation(
-      {
-        method: String(request.method || "GET"),
-        pathname: String(request.url || "/").split("?", 1)[0],
-        headers: request.headers ?? {},
-      },
-      session,
-    );
-    if (!decision.allowed) return decision;
+    if (mutation) {
+      const decision = runtime.sessions.authorizeMutation(
+        {
+          method: String(request.method || "GET"),
+          pathname: String(request.url || "/").split("?", 1)[0],
+          headers: request.headers ?? {},
+        },
+        session,
+      );
+      if (!decision.allowed) return decision;
+    }
     return Object.freeze({
       allowed: true,
       subject: session.claims.subject,
@@ -352,6 +356,40 @@ export function createCommerceApi({
         })),
       },
       correlationId(request),
+    );
+  }
+
+  async function handleReservationRead(
+    request,
+    response,
+    businessId,
+    reservationId,
+  ) {
+    const correlation = correlationId(request);
+    const actor = await consumerActor(request, { mutation: false });
+    if (!actor.allowed) {
+      denyConsumer(response, actor, correlation);
+      return;
+    }
+    const reservation = await runtime.repository.findForHolder({
+      reservationId,
+      businessId,
+      holderReference: actor.subject,
+    });
+    if (!reservation) {
+      json(
+        response,
+        404,
+        { error: "COMMERCE_RESTAURANT_RESERVATION_NOT_FOUND" },
+        correlation,
+      );
+      return;
+    }
+    json(
+      response,
+      200,
+      { data: publicReservationProjection(reservation) },
+      correlation,
     );
   }
 
@@ -570,6 +608,23 @@ export function createCommerceApi({
             response,
             requestUrl,
             availabilityMatch[1],
+          );
+          return;
+        }
+        const reservationReadMatch =
+          /^\/api\/commerce\/v1\/restaurants\/([a-z0-9][a-z0-9_-]{0,119})\/reservations\/(rrv_[A-Za-z0-9_-]{8,116})$/u.exec(
+            requestUrl.pathname,
+          );
+        if (
+          reservationReadMatch?.[1] &&
+          reservationReadMatch[2] &&
+          method === "GET"
+        ) {
+          await handleReservationRead(
+            request,
+            response,
+            reservationReadMatch[1],
+            reservationReadMatch[2],
           );
           return;
         }
