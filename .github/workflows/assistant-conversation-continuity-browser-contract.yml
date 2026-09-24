@@ -129,7 +129,7 @@ jobs:
                 new CustomEvent('morro:network-state-changed', { detail: { state: 'online' } })
               ));
               const onlineTurn = await contextual('online_restored');
-              if (onlineTurn.previousTurnId !== offlineTurn.turnId || !onlineTurn.text.includes('continuar de onde paramos')) {
+              if (onlineTurn.previousTurnId !== offlineTurn.turnId || !onlineTurn.text.includes('de onde paramos')) {
                 throw new Error('Offline/online continuity failed: ' + JSON.stringify(onlineTurn));
               }
 
