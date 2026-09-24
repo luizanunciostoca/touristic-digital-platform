@@ -161,7 +161,7 @@ function consumerRouteAllowed(pathname: string, method: string): boolean {
   return false;
 }
 
-class CommerceSessionAuthority {
+export class CommerceSessionAuthority {
   private readonly key: Buffer;
 
   constructor(rootSecret: string) {
@@ -232,6 +232,25 @@ class CommerceSessionAuthority {
   fromRequest(request: TicketingHttpRequest): CommerceSession | null {
     const token = cookieValue(request, SESSION_COOKIE);
     return token ? this.resolve(token) : null;
+  }
+
+  authorizeMutation(
+    request: TicketingHttpRequest,
+    session: CommerceSession,
+  ): Readonly<{ allowed: true } | { allowed: false; reason: "cross_origin_request" | "invalid_csrf" }> {
+    if (!sameOrigin(request)) {
+      return Object.freeze({
+        allowed: false as const,
+        reason: "cross_origin_request" as const,
+      });
+    }
+    if (!safeEqual(header(request, "x-csrf-token"), session.csrfToken)) {
+      return Object.freeze({
+        allowed: false as const,
+        reason: "invalid_csrf" as const,
+      });
+    }
+    return Object.freeze({ allowed: true as const });
   }
 
   cookie(session: CommerceSession, secure: boolean): string {
