@@ -107,8 +107,12 @@ function appendConversion(
 function renderProjection(projection: AffiliatePortalProjection): void {
   byId("affiliate-id").textContent = projection.affiliate.affiliateId;
   setStatusBadge(byId("affiliate-status"), projection.affiliate.status);
-  byId("metric-attributions").textContent = String(projection.attribution.count);
-  byId("metric-conversions").textContent = String(projection.conversions.length);
+  byId("metric-attributions").textContent = String(
+    projection.attribution.count,
+  );
+  byId("metric-conversions").textContent = String(
+    projection.conversions.length,
+  );
 
   const brl = projection.summaryByCurrency.find(
     (summary) => summary.currency === "BRL",
@@ -148,7 +152,8 @@ function renderProjection(projection: AffiliatePortalProjection): void {
     }
     const option = document.createElement("option");
     option.value = membership.program_id;
-    option.textContent = `${membership.program_id} · ${membership.destination_id}`;
+    option.textContent =
+      `${membership.program_id} · ${membership.destination_id}`;
     select.append(option);
   }
   byId<HTMLButtonElement>("generate-referral").disabled =
@@ -195,7 +200,8 @@ byId("generate-referral").addEventListener("click", () => {
   void (async () => {
     const button = byId<HTMLButtonElement>("generate-referral");
     const programId = byId<HTMLSelectElement>("affiliate-program").value;
-    const path = byId<HTMLInputElement>("affiliate-link-path").value.trim() || "/";
+    const path =
+      byId<HTMLInputElement>("affiliate-link-path").value.trim() || "/";
     button.disabled = true;
     try {
       const referral = await portal.issueReferralLink(programId, path);
