@@ -342,6 +342,26 @@ export function createCommerceApi({
     json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
   }
 
+  async function ticketedAdmissionRows(observedAt) {
+    if (!runtime.ticketingReads || !runtime.ticketingInventory) return [];
+    const inventoryRows = await runtime.ticketingReads.listInventory();
+    if (inventoryRows.length === 0) return [];
+    return Promise.all(
+      inventoryRows.map(async (inventory) => {
+        const availability = await runtime.ticketingInventory.availability(
+          inventory.id,
+          observedAt,
+        );
+        return Object.freeze({
+          ...inventory,
+          availableQuantity: availability.remainingQuantity,
+          sellable: availability.sellable,
+          observedAt: availability.observedAt,
+        });
+      }),
+    );
+  }
+
   async function handlePlaceOfferings(
     request,
     response,
@@ -358,30 +378,10 @@ export function createCommerceApi({
       return;
     }
     const observedAt = now();
-    const [restaurantRows, inventoryRows] = await Promise.all([
+    const [restaurantRows, ticketingRows] = await Promise.all([
       runtime.repository.listRestaurantOfferingsForPlace(placeId, observedAt),
-      runtime.ticketingReads
-        ? runtime.ticketingReads.listInventory()
-        : Promise.resolve([]),
+      ticketedAdmissionRows(observedAt),
     ]);
-    const ticketingRows =
-      runtime.ticketingInventory && inventoryRows.length > 0
-        ? await Promise.all(
-            inventoryRows.map(async (inventory) => {
-              const availability =
-                await runtime.ticketingInventory.availability(
-                  inventory.id,
-                  observedAt,
-                );
-              return Object.freeze({
-                ...inventory,
-                availableQuantity: availability.remainingQuantity,
-                sellable: availability.sellable,
-                observedAt: availability.observedAt,
-              });
-            }),
-          )
-        : [];
     const admissions = resolveTicketedAdmissionOfferings(ticketingRows).filter(
       ({ offering }) => offering.identity.placeId === placeId,
     );
@@ -417,6 +417,45 @@ export function createCommerceApi({
       ),
     ];
     json(response, 200, { data }, correlation);
+  }
+
+  async function handleAdmissionOffering(
+    request,
+    response,
+    offerId,
+  ) {
+    const correlation = correlationId(request);
+    const observedAt = now();
+    const rows = await ticketedAdmissionRows(observedAt);
+    const admission = resolveTicketedAdmissionOfferings(rows).find(
+      ({ offering }) => offering.identity.offerId === offerId,
+    );
+    if (!admission) {
+      json(
+        response,
+        404,
+        { error: "COMMERCE_ADMISSION_NOT_FOUND" },
+        correlation,
+      );
+      return;
+    }
+    json(
+      response,
+      200,
+      {
+        data: {
+          offerId: admission.offering.identity.offerId,
+          placeId: admission.offering.identity.placeId,
+          businessId: admission.offering.identity.businessId,
+          destinationId: admission.offering.identity.destinationId,
+          commerceMode: admission.offering.commerceMode,
+          subtype: admission.subtype,
+          title: admission.offering.presentation.title,
+          variants: admission.variants,
+        },
+      },
+      correlation,
+    );
   }
 
   async function handleAvailability(request, response, requestUrl, businessId) {
@@ -702,6 +741,18 @@ export function createCommerceApi({
       }
       const method = String(request.method || "GET").toUpperCase();
       try {
+        const admissionOfferingMatch =
+          /^\/api\/commerce\/v1\/admissions\/([A-Za-z0-9][A-Za-z0-9:_-]{1,119})$/u.exec(
+            requestUrl.pathname,
+          );
+        if (admissionOfferingMatch?.[1] && method === "GET") {
+          await handleAdmissionOffering(
+            request,
+            response,
+            admissionOfferingMatch[1],
+          );
+          return;
+        }
         const placeOfferingsMatch =
           /^\/api\/commerce\/v1\/places\/([A-Za-z0-9][A-Za-z0-9:_-]{1,119})\/offerings$/u.exec(
             requestUrl.pathname,
