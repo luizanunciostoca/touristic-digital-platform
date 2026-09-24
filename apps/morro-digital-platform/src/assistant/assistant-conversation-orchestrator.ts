@@ -180,7 +180,7 @@ export function createAssistantConversationOrchestrator(options?: {
   let sequence = 0;
 
   return Object.freeze({
-    transition(input): ConversationTurn {
+    transition(input: ConversationTransitionInput): ConversationTurn {
       const timestamp = input.timestamp ?? now();
       const previousState = state;
       const previousTurnId = turns.at(-1)?.id ?? null;
