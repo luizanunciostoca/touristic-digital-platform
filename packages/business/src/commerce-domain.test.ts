@@ -67,11 +67,11 @@ function offer(overrides: Partial<Offer> = {}): Offer {
 }
 
 function memoryRepository(): CatalogRepository {
-  const products = new Map();
-  const offers = new Map();
-  const menus = new Map();
-  const categories = new Map();
-  const items = new Map();
+  const products = new Map<Product["id"], Product>();
+  const offers = new Map<Offer["id"], Offer>();
+  const menus = new Map<Menu["id"], Menu>();
+  const categories = new Map<MenuCategory["id"], MenuCategory>();
+  const items = new Map<MenuItem["id"], MenuItem>();
   return {
     getProduct: async (id) => products.get(id) ?? null,
     saveProduct: async (value) => (products.set(value.id, value), value),
