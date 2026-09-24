@@ -95,8 +95,43 @@ describe("Unified Assistant horizontal category rail", () => {
     expect(shell).toContain("lastOptionRect.right > scrollerRect.right + 1");
     expect(shell).toContain("lastOptionRect.left < scrollerRect.left - 1");
     expect(css).toContain(".md-category-scroll-hint");
-    expect(css).toContain("padding-inline-end: 3rem !important");
+    expect(css).toContain("padding-inline-end: 3.5rem !important");
     expect(css).toContain(".md-category-scroll-hint[hidden]");
+  });
+
+  it("scrolls forward when the category rail cue is activated", async () => {
+    const [shell, css] = await Promise.all([
+      readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+    ]);
+
+    expect(shell).toContain('aria-label="Ver próximas opções"');
+    expect(shell).toContain("scrollCategoryRailForward");
+    expect(shell).toContain("categoryScroller.scrollBy");
+    expect(shell).toContain('behavior: "smooth"');
+    expect(shell).toContain("categoryScroller.clientWidth * 0.72");
+    expect(shell).toContain("left: isRtl ? -step : step");
+    expect(css).toContain(".md-category-scroll-hint:focus-visible");
+    expect(css).toContain("cursor: pointer");
+    expect(css).toContain("pointer-events: auto");
+    expect(css).toContain("touch-action: manipulation");
+    expect(css).toContain("appearance: none");
+    expect(css).toContain("width: 2.75rem");
+    expect(css).toContain("height: 2.75rem");
+  });
+
+  it("keeps the back control physically separated from scrollable options", async () => {
+    const css = await readRepository(
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
+    );
+
+    expect(css).toContain("grid-template-columns: 2.75rem minmax(0, 1fr)");
+    expect(css).toContain("grid-template-columns: minmax(0, 1fr) 2.75rem");
+    expect(css).toContain("column-gap: 0.5rem");
+    expect(css).toContain("grid-column: 1 !important");
+    expect(css).toContain("grid-column: 2 !important");
+    expect(css).toContain("left: calc(0.5rem + 2.75rem + 0.5rem)");
+    expect(css).toContain("padding-inline-end: 3.5rem !important");
   });
 
   it("reuses the same rail for filters, places and place actions", async () => {

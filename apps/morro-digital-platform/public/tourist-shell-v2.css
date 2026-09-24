@@ -1576,7 +1576,8 @@ body[data-md-mode="discover"] .md-discover-category-rail::-webkit-scrollbar {
   color: var(--md-color-text-inverse);
 }
 
-body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+body[data-md-mode="discover"] #globe-map-control.md-map-control-stack,
+body[data-md-mode="place"] #globe-map-control.md-map-control-stack {
   bottom: calc(
     var(--md-shell-bottom) + var(--md-unified-dock-height, 10rem) +
       var(--md-space-5)
@@ -3074,8 +3075,8 @@ html[dir="rtl"]
   right: 0.5rem;
   z-index: 4;
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   place-items: center;
   border: 1px solid color-mix(in srgb, var(--md-color-border) 42%, transparent);
   border-radius: var(--md-radius-pill);
@@ -3084,11 +3085,22 @@ html[dir="rtl"]
   box-shadow:
     0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 6%, transparent),
     var(--md-elevation-1);
+  padding: 0;
   font-size: 1.5rem;
   font-weight: var(--md-font-weight-bold);
   line-height: 1;
-  pointer-events: none;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
   transform: translateY(-50%);
+  appearance: none;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-category-scroll-hint:focus-visible {
+  outline: 2px solid var(--md-color-brand-strong);
+  outline-offset: 2px;
 }
 
 #unified-assistant-dock
@@ -3100,7 +3112,7 @@ html[dir="rtl"]
 #unified-assistant-dock
   > #assistant-category-rail[data-has-scroll-forward]
   .md-assistant-category-scroll {
-  padding-inline-end: 3rem !important;
+  padding-inline-end: 3.5rem !important;
 }
 
 html[dir="rtl"]
@@ -3108,7 +3120,7 @@ html[dir="rtl"]
   > #assistant-category-rail
   .md-category-scroll-hint {
   right: auto;
-  left: 0.5rem;
+  left: calc(0.5rem + 2.75rem + 0.5rem);
 }
 
 html[dir="rtl"]
