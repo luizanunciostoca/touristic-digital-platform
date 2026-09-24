@@ -39,14 +39,12 @@ test("staging promotion is exclusively bound to canonical V2 staging", async () 
   assert.ok(staging, "staging-render-promotion.yml must exist");
 
   for (const marker of [
-    "RENDER_STAGING_API_KEY",
     "RENDER_STAGING_DEPLOY_HOOK_URL",
-    "RENDER_STAGING_SERVICE_ID",
-    "RENDER_STAGING_CANONICAL_URL",
     `EXPECTED_STAGING_SERVICE_ID: ${CANONICAL_STAGING.serviceId}`,
     `EXPECTED_STAGING_SERVICE_NAME: ${CANONICAL_STAGING.serviceName}`,
     `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
-    "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID",
+    'url.hostname !== "api.render.com"',
+    'url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)',
     "staging-deployment-evidence.json",
   ]) {
     assert.ok(
@@ -73,14 +71,12 @@ test("staging OCI promotion is bound to the same canonical Render service", asyn
   assert.ok(stagingOci, "staging-oci-promotion.yml must exist");
 
   for (const marker of [
-    "RENDER_STAGING_API_KEY",
-    "RENDER_STAGING_SERVICE_ID",
-    "RENDER_STAGING_CANONICAL_URL",
+    "RENDER_STAGING_IMAGE_DEPLOY_HOOK_URL",
     `EXPECTED_STAGING_SERVICE_ID: ${CANONICAL_STAGING.serviceId}`,
     `EXPECTED_STAGING_SERVICE_NAME: ${CANONICAL_STAGING.serviceName}`,
     `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
-    "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID",
-    "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys/$DEPLOY_ID",
+    'url.hostname !== "api.render.com"',
+    'url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)',
   ]) {
     assert.ok(
       stagingOci.includes(marker),
