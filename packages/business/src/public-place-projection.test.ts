@@ -355,7 +355,17 @@ describe("createPublicPlaceReadModel", () => {
       },
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
-      actions: { resolvePublicActions: vi.fn(async () => []) },
+      actions: {
+        resolvePublicActions: vi.fn(async ({ place }) =>
+          Object.freeze({
+            placeId: place.id,
+            businessId: "business-1",
+            destinationId: place.destinationId,
+            primaryAction: null,
+            secondaryActions: Object.freeze([]),
+          }),
+        ),
+      },
     });
 
     const map = await service.listMap({
@@ -388,7 +398,17 @@ describe("handlePublicPlaceApiRequest", () => {
       },
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
-      actions: { resolvePublicActions: vi.fn(async () => []) },
+      actions: {
+        resolvePublicActions: vi.fn(async ({ place }) =>
+          Object.freeze({
+            placeId: place.id,
+            businessId: "business-1",
+            destinationId: place.destinationId,
+            primaryAction: null,
+            secondaryActions: Object.freeze([]),
+          }),
+        ),
+      },
     });
   }
 
