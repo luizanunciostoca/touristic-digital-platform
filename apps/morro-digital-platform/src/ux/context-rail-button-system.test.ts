@@ -76,6 +76,24 @@ describe("Context Rail button system", () => {
     expect(css).toContain("white-space: nowrap");
   });
 
+  it("keeps the contextual flow compact and map-first", async () => {
+    const [tokens, css] = await Promise.all([
+      readRepository("apps/morro-digital-platform/public/design-system-v2.css"),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+    ]);
+
+    expect(tokens).toContain("--md-unified-dock-category-height: 3.5rem");
+    expect(tokens).toContain("--md-context-rail-control-height: 2.75rem");
+    expect(tokens).toContain("--md-context-rail-back-size: 2.5rem");
+    expect(css).toContain("#assistant-category-results-message");
+    expect(css).toContain("min-height: 2.5rem");
+    expect(css).toContain("padding: 0.375rem 0");
+    expect(css).toContain(".md-context-rail-back::before");
+    expect(css).toContain("inset: -0.125rem");
+    expect(css).toContain("@media (max-width: 48rem)");
+    expect(css).toContain("content: none");
+  });
+
   it("keeps horizontal rail accessibility and interaction contracts", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
