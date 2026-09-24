@@ -118,6 +118,38 @@ describe("assistant V1 message pipeline", () => {
     ).toEqual(["nav"]);
   });
 
+
+  it("replaces keyed records and removes them by id without leaving stale pipeline state", () => {
+    const pipeline = createAssistantMessagePipeline({
+      sanitize: (html) => html,
+    });
+
+    pipeline.append({
+      sender: "assistant",
+      html: "Navegação iniciando",
+      id: "assistant-navigation-contextual-state",
+      area: "navigation",
+      avoidDuplicate: false,
+    });
+    pipeline.append({
+      sender: "assistant",
+      html: "Navegação ativa",
+      id: "assistant-navigation-contextual-state",
+      area: "navigation",
+      avoidDuplicate: false,
+    });
+
+    expect(pipeline.getMessages("navigation")).toHaveLength(1);
+    expect(pipeline.getMessages("navigation")[0]?.html).toBe("Navegação ativa");
+    expect(
+      pipeline.removeById(
+        "assistant-navigation-contextual-state",
+        "navigation",
+      ),
+    ).toBe(true);
+    expect(pipeline.getMessages("navigation")).toEqual([]);
+  });
+
   it("clears all or selected messages per area", () => {
     const pipeline = createAssistantMessagePipeline({
       sanitize: (html) => html,
