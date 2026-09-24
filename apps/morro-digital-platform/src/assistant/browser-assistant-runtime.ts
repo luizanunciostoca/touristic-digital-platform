@@ -34,6 +34,7 @@ import {
 } from "./assistant-contextual-state.js";
 import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
+import { evaluateConversationPolicy } from "./assistant-conversation-policy.js";
 import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
@@ -1559,11 +1560,19 @@ export function installBrowserAssistantRuntime(
       },
       language,
     );
+    const previousState = conversation.snapshot();
+    const policy = evaluateConversationPolicy({
+      cause: contextualState,
+      source: "explore",
+      previousState,
+    });
+    if (!policy.present) return;
+
     const rendered = composeConversationResponse({
       messageKey: contextualState,
       language,
       draft,
-      previousState: conversation.snapshot(),
+      previousState,
       ...(category ? { category } : {}),
       ...(place ? { place } : {}),
       count: state.markerCount,
@@ -1579,6 +1588,7 @@ export function installBrowserAssistantRuntime(
       resultCount: state.markerCount,
       journey: "explore",
       journeyStep: state.stage,
+      priority: policy.priority,
     });
 
     canonicalMessage.dataset.contextualState = contextualState;
@@ -1590,6 +1600,7 @@ export function installBrowserAssistantRuntime(
     }
     canonicalMessage.dataset.conversationCause = turn.cause;
     canonicalMessage.dataset.conversationMessageKey = turn.messageKey;
+    canonicalMessage.dataset.conversationPriority = turn.priority;
     if (rendered.cta) canonicalMessage.dataset.contextualCta = rendered.cta;
     else delete canonicalMessage.dataset.contextualCta;
     canonicalMessage.dataset.contextualVoiceCopy = rendered.voiceCopy;
