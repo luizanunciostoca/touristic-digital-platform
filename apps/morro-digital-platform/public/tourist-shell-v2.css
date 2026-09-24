@@ -2885,8 +2885,7 @@ html[dir="rtl"]
   width: 2.25rem;
   height: 2.25rem;
   place-items: center;
-  border: 1px solid
-    color-mix(in srgb, var(--md-color-border) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 42%, transparent);
   border-radius: var(--md-radius-pill);
   background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
   color: var(--md-color-brand-strong);
