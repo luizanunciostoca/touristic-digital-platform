@@ -54,7 +54,8 @@ describe("affiliate portal browser client", () => {
     const secureFetch = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({
         referral: {
-          url: "https://morro.example/affiliate-portal-capture.html?aff_ref=signed",
+          url:
+            "https://morro.example/affiliate-portal-capture.html?aff_ref=signed",
           expiresAt: "2026-10-20T12:00:00.000Z",
         },
       }), { status: 201, headers: { "Content-Type": "application/json" } }),
