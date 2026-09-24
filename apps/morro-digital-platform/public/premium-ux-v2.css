@@ -1170,7 +1170,7 @@ body[data-md-mode="navigation"]
 
 body[data-md-mode="navigation"]
   #unified-assistant-dock[data-dock-mode="navigation"]
-  > #assistant-category-rail {
+  > #assistant-category-rail[data-navigation-summary="true"] {
   display: block !important;
   height: 3.5rem !important;
   min-height: 3.5rem !important;
