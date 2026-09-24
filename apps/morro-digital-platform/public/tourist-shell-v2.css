@@ -313,18 +313,21 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
   height: 1.375rem;
 }
 
-/* Canonical one-hand order from top to bottom: 3D → global → location.
- * The retired map-layer action is intentionally absent from the public control stack. */
+/* Canonical one-hand order from top to bottom: 3D → map → global → location. */
 #globe-map-control [data-map-control="3d"] {
   order: 1;
 }
 
-#globe-map-control #toggle-globe-view {
+#globe-map-control [data-map-control="layer"] {
   order: 2;
 }
 
-#globe-map-control [data-map-control="user-location"] {
+#globe-map-control #toggle-globe-view {
   order: 3;
+}
+
+#globe-map-control [data-map-control="user-location"] {
+  order: 4;
 }
 
 /* The Morro Digital location control owns geolocation in Discover. Prevent a
