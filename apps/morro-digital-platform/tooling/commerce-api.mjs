@@ -1,19 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import {
-  createRestaurantReservationSlot,
-} from "@touristic/commerce/restaurant-availability";
-import {
-  createRestaurantReservationRequestKey,
-} from "@touristic/commerce/restaurant-reservations";
+import { createRestaurantReservationSlot } from "@touristic/commerce/restaurant-availability";
+import { createRestaurantReservationRequestKey } from "@touristic/commerce/restaurant-reservations";
 import {
   MySqlRestaurantReservationRepository,
   applyCommerceRestaurantReservationSchema,
   createCommerceMySqlPoolFromEnvironment,
 } from "@touristic/commerce-server";
-import {
-  CommerceSessionAuthority,
-} from "@touristic/ticketing-server";
+import { CommerceSessionAuthority } from "@touristic/ticketing-server";
 
 const prefix = "/api/commerce/v1";
 const maxBodyBytes = 32 * 1024;
@@ -115,7 +109,8 @@ function reservationIdFor(requestKey) {
 }
 
 function safeError(error) {
-  const raw = error instanceof Error ? error.message : "COMMERCE_UNAVAILABLE";
+  const raw =
+    error instanceof Error ? error.message : "COMMERCE_UNAVAILABLE";
   return /^[A-Z0-9_:-]{3,160}$/u.test(raw)
     ? raw
     : "COMMERCE_UNAVAILABLE";
@@ -278,7 +273,12 @@ export function createCommerceApi({
     json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
   }
 
-  async function handleAvailability(request, response, requestUrl, businessId) {
+  async function handleAvailability(
+    request,
+    response,
+    requestUrl,
+    businessId,
+  ) {
     const date = requestUrl.searchParams.get("date") ?? "";
     const placeId = requestUrl.searchParams.get("placeId");
     if (placeId && !placeIdPattern.test(placeId)) {
@@ -402,11 +402,7 @@ export function createCommerceApi({
     );
   }
 
-  async function handleOperatorSlotCreate(
-    request,
-    response,
-    businessId,
-  ) {
+  async function handleOperatorSlotCreate(request, response, businessId) {
     const correlation = correlationId(request);
     const authorization = await authApi.authorizeBusinessRequest(
       request,
