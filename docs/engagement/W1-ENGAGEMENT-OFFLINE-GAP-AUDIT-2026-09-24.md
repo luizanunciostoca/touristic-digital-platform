@@ -207,36 +207,36 @@ The absence of offline Payment/Ordering/Ticketing authority is **not a defect**.
 
 ## 3. Capability vs evidence matrix
 
-| Capability | Code in current main | Tests/evidence in current main | Production/external effect | Classification |
-| --- | --- | --- | --- | --- |
-| Analytics canonical taxonomy | Yes | Unit tests | None required | IMPLEMENTED_AND_PROVEN |
-| Analytics browser consent boundary | Yes | Browser/unit tests and evidence docs | Browser storage only | IMPLEMENTED_AND_PROVEN |
-| Analytics privacy sanitation | Yes | Negative unit tests | None required | IMPLEMENTED_AND_PROVEN |
-| Analytics browser instrumentation | Yes | Contract/unit evidence | Requires live product events | IMPLEMENTED_AND_PROVEN |
-| Analytics same-origin transport | Yes | Unit/integration evidence | Requires configured host | IMPLEMENTED_AND_PROVEN |
-| Analytics durable ingestion | Yes | Package/service tests | Requires DB | IMPLEMENTED_AND_PROVEN |
-| Analytics durable MySQL persistence | Yes | Schema/repository tests and evidence | Requires provisioned database | CODE_PRESENT_EXTERNAL_EFFECT_MISSING |
-| Analytics runtime composition | Yes | Runtime tests | Feature flag + DB required | CODE_PRESENT_EXTERNAL_EFFECT_MISSING |
-| Analytics production activation | No repository proof of activation | No production credential/provision proof | External configuration | EXTERNAL_EFFECT_GAP |
-| Notifications provider-neutral dispatcher | Yes | Unit tests | None required | IMPLEMENTED_AND_PROVEN |
-| Notification templates/topics | Yes | Unit tests | None required | IMPLEMENTED_AND_PROVEN |
-| Notification preferences contract | Yes | Unit tests | Durable store absent | FOUNDATION_IMPLEMENTED |
-| Notification idempotency contract | Yes | Unit tests | Durable atomic adapter absent | FOUNDATION_IMPLEMENTED |
-| Notification provider fallback | Yes | Unit tests | Real providers absent | FOUNDATION_IMPLEMENTED |
-| Browser Push permission boundary | Yes | Package evidence/tests | User permission still required | IMPLEMENTED_AND_PROVEN |
-| Notification event mapping | Yes | Unit/evidence | Source-domain event wiring required per integration | IMPLEMENTED_AND_PROVEN |
-| Durable Notification queue/outbox | No production adapter located | None proving durable runtime | Database/worker required | CODE_GAP |
-| Production email/SMS/push delivery | No real provider located | None | Credentials/provider accounts required | CODE_PLUS_EXTERNAL_GAP |
-| Push subscription persistence | No | None | Browser + backend + VAPID/provider | CODE_PLUS_EXTERNAL_GAP |
-| PWA manifest/install shell | Yes | Unit + browser CI | Device install action | IMPLEMENTED_AND_PROVEN |
-| Service Worker static caching | Yes | Unit + browser CI | Browser runtime | IMPLEMENTED_AND_PROVEN |
-| PWA explicit update flow | Yes | Contract tests | User/app update action | IMPLEMENTED_AND_PROVEN |
-| Network-only server APIs | Yes | Unit + browser offline test | Network required | IMPLEMENTED_AND_PROVEN |
-| Root offline shell | Yes | Browser evidence | Browser cache | IMPLEMENTED_AND_PROVEN |
-| Offline domain snapshots | No general durable model located | None | Product-specific | CODE_GAP |
-| Background sync | No | Current docs explicitly exclude it | Browser support + backend semantics | CODE_GAP |
-| Offline server-authoritative mutations | Intentionally absent | Current tests prove network-only boundary | Server required | NOT_A_GAP_BY_DEFAULT |
-| Production device/install matrix | Workflow proves Chromium contract only | Chromium evidence | Real device/browser matrix | EXTERNAL_EVIDENCE_GAP |
+| Capability                                | Code in current main                   | Tests/evidence in current main            | Production/external effect                          | Classification                       |
+| ----------------------------------------- | -------------------------------------- | ----------------------------------------- | --------------------------------------------------- | ------------------------------------ |
+| Analytics canonical taxonomy              | Yes                                    | Unit tests                                | None required                                       | IMPLEMENTED_AND_PROVEN               |
+| Analytics browser consent boundary        | Yes                                    | Browser/unit tests and evidence docs      | Browser storage only                                | IMPLEMENTED_AND_PROVEN               |
+| Analytics privacy sanitation              | Yes                                    | Negative unit tests                       | None required                                       | IMPLEMENTED_AND_PROVEN               |
+| Analytics browser instrumentation         | Yes                                    | Contract/unit evidence                    | Requires live product events                        | IMPLEMENTED_AND_PROVEN               |
+| Analytics same-origin transport           | Yes                                    | Unit/integration evidence                 | Requires configured host                            | IMPLEMENTED_AND_PROVEN               |
+| Analytics durable ingestion               | Yes                                    | Package/service tests                     | Requires DB                                         | IMPLEMENTED_AND_PROVEN               |
+| Analytics durable MySQL persistence       | Yes                                    | Schema/repository tests and evidence      | Requires provisioned database                       | CODE_PRESENT_EXTERNAL_EFFECT_MISSING |
+| Analytics runtime composition             | Yes                                    | Runtime tests                             | Feature flag + DB required                          | CODE_PRESENT_EXTERNAL_EFFECT_MISSING |
+| Analytics production activation           | No repository proof of activation      | No production credential/provision proof  | External configuration                              | EXTERNAL_EFFECT_GAP                  |
+| Notifications provider-neutral dispatcher | Yes                                    | Unit tests                                | None required                                       | IMPLEMENTED_AND_PROVEN               |
+| Notification templates/topics             | Yes                                    | Unit tests                                | None required                                       | IMPLEMENTED_AND_PROVEN               |
+| Notification preferences contract         | Yes                                    | Unit tests                                | Durable store absent                                | FOUNDATION_IMPLEMENTED               |
+| Notification idempotency contract         | Yes                                    | Unit tests                                | Durable atomic adapter absent                       | FOUNDATION_IMPLEMENTED               |
+| Notification provider fallback            | Yes                                    | Unit tests                                | Real providers absent                               | FOUNDATION_IMPLEMENTED               |
+| Browser Push permission boundary          | Yes                                    | Package evidence/tests                    | User permission still required                      | IMPLEMENTED_AND_PROVEN               |
+| Notification event mapping                | Yes                                    | Unit/evidence                             | Source-domain event wiring required per integration | IMPLEMENTED_AND_PROVEN               |
+| Durable Notification queue/outbox         | No production adapter located          | None proving durable runtime              | Database/worker required                            | CODE_GAP                             |
+| Production email/SMS/push delivery        | No real provider located               | None                                      | Credentials/provider accounts required              | CODE_PLUS_EXTERNAL_GAP               |
+| Push subscription persistence             | No                                     | None                                      | Browser + backend + VAPID/provider                  | CODE_PLUS_EXTERNAL_GAP               |
+| PWA manifest/install shell                | Yes                                    | Unit + browser CI                         | Device install action                               | IMPLEMENTED_AND_PROVEN               |
+| Service Worker static caching             | Yes                                    | Unit + browser CI                         | Browser runtime                                     | IMPLEMENTED_AND_PROVEN               |
+| PWA explicit update flow                  | Yes                                    | Contract tests                            | User/app update action                              | IMPLEMENTED_AND_PROVEN               |
+| Network-only server APIs                  | Yes                                    | Unit + browser offline test               | Network required                                    | IMPLEMENTED_AND_PROVEN               |
+| Root offline shell                        | Yes                                    | Browser evidence                          | Browser cache                                       | IMPLEMENTED_AND_PROVEN               |
+| Offline domain snapshots                  | No general durable model located       | None                                      | Product-specific                                    | CODE_GAP                             |
+| Background sync                           | No                                     | Current docs explicitly exclude it        | Browser support + backend semantics                 | CODE_GAP                             |
+| Offline server-authoritative mutations    | Intentionally absent                   | Current tests prove network-only boundary | Server required                                     | NOT_A_GAP_BY_DEFAULT                 |
+| Production device/install matrix          | Workflow proves Chromium contract only | Chromium evidence                         | Real device/browser matrix                          | EXTERNAL_EVIDENCE_GAP                |
 
 ## 4. Tests and workflow inventory
 
