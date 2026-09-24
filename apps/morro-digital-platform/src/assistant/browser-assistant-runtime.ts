@@ -882,6 +882,10 @@ export function installBrowserAssistantRuntime(
   const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
   let requestGeneration = 0;
+  const dropStaleResponse = (): AssistantDialogResponse => {
+    conversation.recordStaleResponseDropped();
+    return dropStaleResponse();
+  };
   let currentPresentation: AssistantPresentationSnapshot | null = null;
   let legacyMenuRouting = false;
   let profiledExploreCategory: string | null = null;
@@ -1090,7 +1094,7 @@ export function installBrowserAssistantRuntime(
         navigationActive,
       });
       if (destroyed || generation !== requestGeneration) {
-        return supersededResponse();
+        return dropStaleResponse();
       }
 
       clearAssistantDomOptions(options.document);
@@ -1138,7 +1142,7 @@ export function installBrowserAssistantRuntime(
 
     if (placeAction) {
       if (destroyed || generation !== requestGeneration) {
-        return supersededResponse();
+        return dropStaleResponse();
       }
 
       clearAssistantDomOptions(options.document);
@@ -1259,7 +1263,7 @@ export function installBrowserAssistantRuntime(
     }
 
     if (destroyed || generation !== requestGeneration) {
-      return supersededResponse();
+      return dropStaleResponse();
     }
 
     if (menuRouted) {
@@ -1294,7 +1298,9 @@ export function installBrowserAssistantRuntime(
     removePhotoPresentation(options.document);
     appendStandardMessage("user", submittedValue);
     const response = await controller.processUserInput(value);
-    if (destroyed || generation !== requestGeneration) return response;
+    if (destroyed || generation !== requestGeneration) {
+      return dropStaleResponse();
+    }
 
     appendStandardMessage("assistant", response.text, submittedValue);
     const suppressedValues = new Set([
@@ -1350,7 +1356,7 @@ export function installBrowserAssistantRuntime(
       for (const command of deterministicCommands) {
         const executed = await options.explore.execute(command);
         if (destroyed || generation !== requestGeneration) {
-          return supersededResponse();
+          return dropStaleResponse();
         }
         if (!executed) {
           actionExecuted = false;
