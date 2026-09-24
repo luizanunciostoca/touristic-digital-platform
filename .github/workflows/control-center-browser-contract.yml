@@ -192,7 +192,7 @@ jobs:
               }
               await page.locator('[data-home-overview-v1]').waitFor();
               await page
-                .getByRole('heading', { name: /^Bom (dia|tarde|noite), / })
+                .getByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), / })
                 .waitFor();
               evidence.login = 'PLATFORM_OWNER';
 
@@ -389,7 +389,7 @@ jobs:
               await page.locator('[data-view="overview"]').click();
               await page.locator('[data-home-overview-v1]').waitFor();
               await page
-                .getByRole('heading', { name: /^Bom (dia|tarde|noite), / })
+                .getByRole('heading', { name: /^(Bom dia|Boa tarde|Boa noite), / })
                 .waitFor();
               await page.getByRole('heading', { name: 'Precisa da sua atenção' }).waitFor();
               await page.getByRole('heading', { name: 'Resumo por destino' }).waitFor();

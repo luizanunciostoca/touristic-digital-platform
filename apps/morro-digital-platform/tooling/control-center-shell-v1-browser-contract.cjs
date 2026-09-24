@@ -211,7 +211,7 @@ async function login(page) {
       .click();
     await page.locator("[data-home-overview-v1]").waitFor();
     await page
-      .getByRole("heading", { name: /^Bom (dia|tarde|noite), / })
+      .getByRole("heading", { name: /^(Bom dia|Boa tarde|Boa noite), / })
       .waitFor();
 
     await page.keyboard.press("Control+K");
