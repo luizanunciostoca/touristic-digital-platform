@@ -1,11 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 
-import {
-  createRestaurantReservationSlot,
-} from "@touristic/commerce/restaurant-availability";
-import {
-  createRestaurantReservationRequestKey,
-} from "@touristic/commerce/restaurant-reservations";
+import { createRestaurantReservationSlot } from "@touristic/commerce/restaurant-availability";
+import { createRestaurantReservationRequestKey } from "@touristic/commerce/restaurant-reservations";
 import {
   MySqlRestaurantReservationRepository,
   applyCommerceRestaurantReservationSchema,
@@ -89,9 +85,15 @@ async function readJsonBody(request) {
 }
 
 function featureEnabled(value, ticketingValue) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
   if (!normalized) {
-    return String(ticketingValue || "").trim().toLowerCase() === "true";
+    return (
+      String(ticketingValue || "")
+        .trim()
+        .toLowerCase() === "true"
+    );
   }
   if (normalized === "true") return true;
   if (normalized === "false") return false;
@@ -113,11 +115,8 @@ function reservationIdFor(requestKey) {
 }
 
 function safeError(error) {
-  const raw =
-    error instanceof Error ? error.message : "COMMERCE_UNAVAILABLE";
-  return /^[A-Z0-9_:-]{3,160}$/u.test(raw)
-    ? raw
-    : "COMMERCE_UNAVAILABLE";
+  const raw = error instanceof Error ? error.message : "COMMERCE_UNAVAILABLE";
+  return /^[A-Z0-9_:-]{3,160}$/u.test(raw) ? raw : "COMMERCE_UNAVAILABLE";
 }
 
 function statusForError(code) {
@@ -277,12 +276,7 @@ export function createCommerceApi({
     json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
   }
 
-  async function handleAvailability(
-    request,
-    response,
-    requestUrl,
-    businessId,
-  ) {
+  async function handleAvailability(request, response, requestUrl, businessId) {
     const date = requestUrl.searchParams.get("date") ?? "";
     const placeId = requestUrl.searchParams.get("placeId");
     if (placeId && !placeIdPattern.test(placeId)) {
@@ -335,12 +329,7 @@ export function createCommerceApi({
     }
     const key = header(request, "idempotency-key");
     if (!idempotencyKeyPattern.test(key)) {
-      json(
-        response,
-        400,
-        { error: "INVALID_IDEMPOTENCY_KEY" },
-        correlation,
-      );
+      json(response, 400, { error: "INVALID_IDEMPOTENCY_KEY" }, correlation);
       return;
     }
     const body = await readJsonBody(request);
@@ -353,10 +342,7 @@ export function createCommerceApi({
       );
       return;
     }
-    const requestKey = createRestaurantReservationRequestKey(
-      body.slotId,
-      key,
-    );
+    const requestKey = createRestaurantReservationRequestKey(body.slotId, key);
     if (!requestKey) {
       json(
         response,
@@ -478,12 +464,7 @@ export function createCommerceApi({
     async handle(request, response, requestUrl) {
       const correlation = correlationId(request);
       if (!started || !runtime) {
-        json(
-          response,
-          503,
-          { error: "COMMERCE_UNAVAILABLE" },
-          correlation,
-        );
+        json(response, 503, { error: "COMMERCE_UNAVAILABLE" }, correlation);
         return;
       }
       if (!runtime.enabled || !runtime.repository) {
@@ -515,11 +496,7 @@ export function createCommerceApi({
             requestUrl.pathname,
           );
         if (reservationMatch?.[1] && method === "POST") {
-          await handleReservationCreate(
-            request,
-            response,
-            reservationMatch[1],
-          );
+          await handleReservationCreate(request, response, reservationMatch[1]);
           return;
         }
         const operatorSlotMatch =
@@ -534,20 +511,10 @@ export function createCommerceApi({
           );
           return;
         }
-        json(
-          response,
-          405,
-          { error: "METHOD_NOT_ALLOWED" },
-          correlation,
-        );
+        json(response, 405, { error: "METHOD_NOT_ALLOWED" }, correlation);
       } catch (error) {
         if (error instanceof CommerceHttpInputError) {
-          json(
-            response,
-            error.status,
-            { error: error.code },
-            correlation,
-          );
+          json(response, error.status, { error: error.code }, correlation);
           return;
         }
         const code = safeError(error);
