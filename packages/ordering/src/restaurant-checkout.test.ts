@@ -1,5 +1,23 @@
 import { describe, expect, it } from "vitest";
 
+import type {
+  Payment,
+  PaymentId,
+} from "@touristic/financial";
+import {
+  createOrder,
+  createPricingQuote,
+  capturePricingSnapshot,
+  createRestaurantOrderRequestKey,
+  normalizeOrderId,
+  normalizeOrderSourceReference,
+  type Order,
+} from "./index.js";
+import {
+  createRestaurantReservationOrderBinding,
+  type RestaurantReservationOrderBinding,
+} from "./restaurant-reservation.js";
+
 import {
   createRestaurantCheckoutApplicationService,
   normalizeRestaurantCheckoutHandoff,
@@ -24,26 +42,47 @@ describe("restaurant checkout", () => {
   });
 
   it("creates one pending payment for an existing restaurant order", async () => {
-    const order = {
-      id: "ord_restaurant_12345678",
-      requestKey: "restaurant:rrv_restaurant_12345678",
-      source: {
-        kind: "restaurant_reservation",
-        reference: "rrv_restaurant_12345678",
-      },
+    const orderId = normalizeOrderId("ord_restaurant_12345678");
+    const requestKey = createRestaurantOrderRequestKey(
+      "rrv_restaurant_12345678",
+    );
+    const source = normalizeOrderSourceReference(
+      "rrv_restaurant_12345678",
+      "restaurant_reservation",
+    );
+    const quote = createPricingQuote({
+      planId: "rrv_restaurant_12345678",
+      planName: "restaurant_deposit",
+      minorUnits: 5000,
+      currency: "BRL",
+      pricingVersion: "rdep_12345678",
+    });
+    const pricing = quote
+      ? capturePricingSnapshot(quote, "2026-09-24T01:00:00.000Z")
+      : null;
+    if (!orderId || !requestKey || !source || !pricing) {
+      throw new Error("FIXTURE_INVALID");
+    }
+    const order = createOrder({
+      id: orderId,
+      requestKey,
+      source,
       status: "pending_payment",
-      pricing: {
-        planId: "rrv_restaurant_12345678",
-        planName: "restaurant_deposit",
-        amount: { minorUnits: 5000, currency: "BRL" },
-        pricingVersion: "rdep_12345678",
-        capturedAt: "2026-09-24T01:00:00.000Z",
-      },
+      pricing,
       createdAt: "2026-09-24T01:00:00.000Z",
-      updatedAt: "2026-09-24T01:00:00.000Z",
-    };
-    let payment = null;
-    let claimed = null;
+    });
+    if (!order) throw new Error("FIXTURE_INVALID");
+    const binding = createRestaurantReservationOrderBinding({
+      reservationReference: "rrv_restaurant_12345678",
+      orderId: order.id,
+      businessId: "business_restaurant_a",
+      amount: order.pricing.amount,
+      pricingVersion: order.pricing.pricingVersion,
+      boundAt: order.createdAt,
+    });
+    if (!binding) throw new Error("FIXTURE_INVALID");
+    let payment: Payment | null = null;
+    let claimed: PaymentId | null = null;
     const service = createRestaurantCheckoutApplicationService({
       orders: {
         async findById() {
@@ -58,14 +97,7 @@ describe("restaurant checkout", () => {
       },
       bindings: {
         async findByReservationReference() {
-          return {
-            reservationReference: "rrv_restaurant_12345678",
-            orderId: order.id,
-            businessId: "business_restaurant_a",
-            amount: { minorUnits: 5000, currency: "BRL" },
-            pricingVersion: "rdep_12345678",
-            boundAt: order.createdAt,
-          };
+          return binding;
         },
         async findByOrderId() {
           return null;
