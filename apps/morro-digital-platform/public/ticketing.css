@@ -900,3 +900,470 @@ h3 {
   outline: var(--md-focus-ring-width) solid var(--md-color-focus-ring);
   outline-offset: var(--md-focus-ring-offset);
 }
+
+/* Tour reservation convergence — approved mobile reference */
+body[data-ticketing-context="tour"] {
+  background:
+    radial-gradient(
+      circle at 50% -10%,
+      color-mix(in srgb, var(--md-color-interactive-primary) 8%, transparent),
+      transparent 34rem
+    ),
+    var(--md-color-surface-canvas);
+}
+
+body[data-ticketing-context="tour"] .ticketing-shell {
+  width: min(100%, 46rem);
+  padding: max(0.65rem, var(--md-safe-top)) 0 calc(2rem + var(--md-safe-bottom));
+}
+
+body[data-ticketing-context="tour"] .ticketing-topbar {
+  position: sticky;
+  z-index: var(--md-z-controls);
+  top: 0;
+  grid-template-columns: 3.25rem minmax(0, 1fr) 3.25rem;
+  min-height: 4.4rem;
+  margin: 0;
+  padding: 0 0.8rem;
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--md-color-text-primary) 5%, transparent);
+  background: color-mix(in srgb, var(--md-color-surface-card) 94%, transparent);
+  backdrop-filter: blur(1.125rem);
+}
+
+body[data-ticketing-context="tour"] .ticketing-context-title {
+  font-size: clamp(1.2rem, 5vw, 1.55rem);
+  color: var(--md-color-text-primary);
+  letter-spacing: -0.025em;
+}
+
+body[data-ticketing-context="tour"] .back-link {
+  width: 3.25rem;
+  min-width: 3.25rem;
+  min-height: 3.25rem;
+  color: var(--md-color-text-primary);
+  font-size: 3rem;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.ticketing-search-action {
+  display: none;
+}
+
+body[data-ticketing-context="tour"] .ticketing-search-action {
+  position: relative;
+  display: inline-grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--md-color-brand-strong);
+}
+
+body[data-ticketing-context="tour"] .ticketing-search-action span {
+  position: relative;
+  width: 1.35rem;
+  height: 1.35rem;
+  border: 0.24rem solid currentColor;
+  border-radius: 50%;
+}
+
+body[data-ticketing-context="tour"] .ticketing-search-action span::after {
+  position: absolute;
+  width: 0.72rem;
+  height: 0.24rem;
+  content: "";
+  right: -0.62rem;
+  bottom: -0.32rem;
+  border-radius: 6.1875rem;
+  background: currentColor;
+  transform: rotate(45deg);
+  transform-origin: center;
+}
+
+body[data-ticketing-context="tour"] .session-label {
+  display: none;
+}
+
+body[data-ticketing-context="tour"] .ticketing-product-stage {
+  margin: 0;
+  padding: 0 0.95rem 0.4rem;
+}
+
+body[data-ticketing-context="tour"] .ticketing-hero-media {
+  min-height: 0;
+  height: clamp(13rem, 55vw, 18rem);
+  align-items: start;
+  margin: 0;
+  border-radius: 1.35rem;
+  background: var(
+      --ticketing-hero-image,
+      url("/images/fotos/passeio_lancha_ilha_tinhare1.jpg")
+    )
+    center / cover no-repeat;
+  box-shadow: none;
+}
+
+.ticketing-recommended-badge {
+  display: none;
+}
+
+body[data-ticketing-context="tour"] .ticketing-recommended-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.9rem;
+  padding: 0.48rem 0.85rem;
+  border: 1px solid color-mix(in srgb, var(--md-color-success) 14%, transparent);
+  border-radius: 62.4375rem;
+  background: color-mix(
+    in srgb,
+    var(--md-color-success) 12%,
+    var(--md-color-surface-card)
+  );
+  color: var(--md-color-success);
+  font-size: 0.92rem;
+  font-weight: 800;
+  box-shadow: 0 0.2rem 0.7rem
+    color-mix(in srgb, var(--md-color-success) 8%, transparent);
+  backdrop-filter: blur(0.5rem);
+}
+
+body[data-ticketing-context="tour"] .ticketing-product-copy {
+  padding: 1rem 0.15rem 0.1rem;
+}
+
+body[data-ticketing-context="tour"] .ticketing-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+body[data-ticketing-context="tour"] #ticketing-title {
+  flex: 1;
+  margin: 0;
+  color: var(--md-color-text-primary);
+  font-size: clamp(2rem, 9vw, 2.75rem);
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+}
+
+body[data-ticketing-context="tour"] .ticketing-rating {
+  flex: 0 0 auto;
+  color: var(--md-color-text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+body[data-ticketing-context="tour"] .ticketing-rating::first-letter {
+  color: var(--md-color-warning);
+}
+
+body[data-ticketing-context="tour"] .product-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem 0.7rem;
+  margin-top: 0.9rem;
+}
+
+body[data-ticketing-context="tour"] .ticketing-fact {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--md-color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+body[data-ticketing-context="tour"] #product-location,
+body[data-ticketing-context="tour"] .ticketing-fact--availability {
+  grid-column: 1 / -1;
+  color: var(--md-color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+body[data-ticketing-context="tour"] .ticketing-product-copy .lead {
+  margin: 0.85rem 0 0;
+  color: var(--md-color-text-primary);
+  font-size: 1rem;
+  line-height: 1.42;
+}
+
+body[data-ticketing-context="tour"] .ticketing-product-copy .ticketing-trust {
+  margin: 0.55rem 0 0;
+  color: var(--md-color-text-secondary);
+  font-size: 0.78rem;
+}
+
+body[data-ticketing-context="tour"] .ticketing-status {
+  margin: 0 1rem 0.5rem;
+}
+
+body[data-ticketing-context="tour"] .ticketing-purchase-layout {
+  display: block;
+  padding: 0 0.95rem;
+}
+
+body[data-ticketing-context="tour"] .purchase-panel,
+body[data-ticketing-context="tour"] .identity-panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-ticketing-context="tour"] .purchase-panel {
+  padding: 0.8rem 0 0;
+}
+
+body[data-ticketing-context="tour"] .section-heading {
+  align-items: end;
+  margin-bottom: 0.7rem;
+}
+
+body[data-ticketing-context="tour"] .section-heading .eyebrow,
+body[data-ticketing-context="tour"] .selection-copy .eyebrow,
+body[data-ticketing-context="tour"] .price-summary .eyebrow {
+  margin-bottom: 0.18rem;
+  color: var(--md-color-text-primary);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+body[data-ticketing-context="tour"] .section-heading h2,
+body[data-ticketing-context="tour"] .selection-copy h2 {
+  color: var(--md-color-text-primary);
+  font-size: 1.2rem;
+}
+
+body[data-ticketing-context="tour"] .date-selector {
+  gap: 0.55rem;
+  margin: 0 -0.1rem 0.7rem;
+  padding: 0.1rem;
+}
+
+body[data-ticketing-context="tour"] .date-chip {
+  min-width: 6.7rem;
+  min-height: 5.4rem;
+  justify-items: center;
+  border: 1px solid var(--md-color-border);
+  border-radius: 0.85rem;
+  padding: 0.65rem;
+  color: var(--md-color-text-primary);
+  text-align: center;
+  background: var(--md-color-surface-card);
+}
+
+body[data-ticketing-context="tour"] .date-chip span {
+  font-weight: 800;
+}
+
+body[data-ticketing-context="tour"] .date-chip small {
+  color: var(--md-color-text-secondary);
+}
+
+body[data-ticketing-context="tour"] .date-chip[aria-selected="true"] {
+  border-color: var(--md-color-interactive-primary);
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-surface-card);
+  box-shadow: none;
+}
+
+body[data-ticketing-context="tour"] .date-chip[aria-selected="true"] small {
+  color: color-mix(in srgb, var(--md-color-text-inverse) 90%, transparent);
+}
+
+body[data-ticketing-context="tour"] .offer-grid {
+  margin: 0 0 0.9rem;
+}
+
+body[data-ticketing-context="tour"][data-ticketing-single-place="true"]
+  .offer-grid {
+  display: none;
+}
+
+body[data-ticketing-context="tour"] .selection-summary {
+  gap: 0.75rem;
+  margin-top: 0.55rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--md-color-border);
+}
+
+body[data-ticketing-context="tour"] .selection-copy {
+  display: none;
+}
+
+body[data-ticketing-context="tour"] .quantity-control {
+  align-items: center;
+  flex-direction: row;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--md-color-border);
+  border-bottom: 1px solid var(--md-color-border);
+}
+
+body[data-ticketing-context="tour"] #quantity-label {
+  color: var(--md-color-text-primary);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+body[data-ticketing-context="tour"] .quantity-stepper {
+  width: auto;
+  grid-template-columns: 3.25rem 3.4rem 3.25rem;
+  gap: 0.35rem;
+}
+
+body[data-ticketing-context="tour"] .quantity-stepper .md-icon-button {
+  min-width: 3.25rem;
+  min-height: 3.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: var(--md-color-surface-subtle);
+  color: var(--md-color-text-primary);
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
+body[data-ticketing-context="tour"] .quantity-stepper #quantity-increase {
+  background: var(--md-color-interactive-primary);
+  color: var(--md-color-surface-card);
+}
+
+body[data-ticketing-context="tour"] .quantity-stepper .md-input {
+  width: 3.4rem;
+  min-width: 3.4rem;
+  min-height: 3.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--md-color-text-primary);
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+body[data-ticketing-context="tour"] .price-summary {
+  gap: 0.75rem;
+  padding: 0.9rem 0 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+body[data-ticketing-context="tour"] .price-summary-heading {
+  align-items: center;
+  flex-direction: row;
+}
+
+body[data-ticketing-context="tour"] #price-summary-title {
+  color: var(--md-color-text-primary);
+  font-size: 1.08rem;
+}
+
+body[data-ticketing-context="tour"] #quote-badge {
+  border: 0;
+  background: transparent;
+  color: var(--md-color-success);
+  font-weight: 750;
+}
+
+body[data-ticketing-context="tour"] .price-breakdown {
+  gap: 0.45rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid var(--md-color-border);
+  border-bottom: 1px solid var(--md-color-border);
+}
+
+body[data-ticketing-context="tour"] .price-breakdown > div:last-child {
+  margin-top: 0.2rem;
+  padding-top: 0.75rem;
+  color: var(--md-color-success);
+  font-size: 1.35rem;
+}
+
+body[data-ticketing-context="tour"] .authority-note {
+  position: relative;
+  margin: 0.15rem 0 0;
+  padding-left: 1.6rem;
+  color: var(--md-color-success);
+  font-size: 0.82rem;
+}
+
+body[data-ticketing-context="tour"] .authority-note::before {
+  position: absolute;
+  left: 0;
+  top: -0.1rem;
+  content: "🔒";
+}
+
+body[data-ticketing-context="tour"] .checkout-cta {
+  min-height: 3.8rem;
+  border: 0;
+  border-radius: 62.4375rem;
+  background: linear-gradient(
+    180deg,
+    var(--md-color-success),
+    color-mix(
+      in srgb,
+      var(--md-color-success) 86%,
+      var(--md-color-text-primary)
+    )
+  );
+  color: var(--md-color-surface-card);
+  box-shadow: 0 0.5rem 1.25rem
+    color-mix(in srgb, var(--md-color-success) 22%, transparent);
+  font-size: 1.12rem;
+  font-weight: 850;
+}
+
+body[data-ticketing-context="tour"] .checkout-cta::before {
+  content: "✹";
+  margin-right: 0.55rem;
+}
+
+body[data-ticketing-context="tour"] .identity-panel {
+  margin-top: 0.85rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--md-color-border);
+}
+
+body[data-ticketing-context="tour"] .identity-panel .section-heading {
+  align-items: flex-start;
+}
+
+body[data-ticketing-context="tour"] .wallet-section {
+  margin: 1.5rem 0.95rem 0;
+  padding-top: 1.2rem;
+}
+
+body[data-ticketing-context="tour"] .ticketing-footer {
+  padding-bottom: max(1.5rem, var(--md-safe-bottom));
+}
+
+@media (min-width: 48.01rem) {
+  body[data-ticketing-context="tour"] .ticketing-shell {
+    margin-top: 1.2rem;
+    overflow: hidden;
+    border: 1px solid
+      color-mix(in srgb, var(--md-color-text-primary) 8%, transparent);
+    border-radius: 2rem;
+    background: var(--md-color-surface-card);
+    box-shadow: 0 1.5rem 5rem
+      color-mix(in srgb, var(--md-color-text-primary) 12%, transparent);
+  }
+}
+
+@media (max-width: 27rem) {
+  body[data-ticketing-context="tour"] .product-facts {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body[data-ticketing-context="tour"] .ticketing-fact:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
