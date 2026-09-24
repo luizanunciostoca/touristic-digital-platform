@@ -95,3 +95,18 @@ A geometria reutilizável pertence a `public/design-system-v2.css`:
 - [x] Preservar touch target, scroll horizontal, snap e RTL.
 - [x] Adicionar contrato automatizado para o novo sistema.
 - [x] Documentar a autoridade visual.
+
+## Fixed back navigation
+
+The back action is structural navigation, not scrollable contextual content.
+
+- `.md-context-rail-back` is a direct child of `#assistant-category-rail`, before `.md-assistant-category-scroll`.
+- It is hidden at the `menu` stage.
+- At `filters`, it routes to the category menu.
+- At `places`, it routes to the previous filters, or to the menu for search results.
+- At `detail`, it routes to the previous places result set.
+- Legacy synthetic values such as `voltar_menu`, `voltar_filtros` and `__back_to_places__` remain internal compatibility commands, but are no longer rendered inside the horizontal scrolling options container.
+- The visible control is icon-only on mobile, with localized `aria-label` and `title`.
+- RTL mirrors the chevron while preserving the same DOM order and navigation semantics.
+
+The fixed back control remains visually outside the horizontal option list.

@@ -20,11 +20,17 @@ describe("Context Rail button system", () => {
 
     expect(shell).toContain("md-context-rail-button");
     expect(shell).toContain("md-context-rail-button--category");
+    expect(shell).toContain("data-context-rail-back");
     expect(control).toContain("md-context-rail-button--${railKind}");
     expect(control).toContain("button.dataset.railKind = railKind");
     expect(control).toContain("button.dataset.railVariant = railVariant");
     expect(control).toContain('action === "primary"');
     expect(control).toContain('action.startsWith("back-")');
+    expect(control).toContain("contextualRailBack.hidden = false");
+    expect(control).toContain("contextualRailBack.onclick");
+    expect(control).toContain(
+      'if (action.startsWith("back-") || action === "back-menu") continue',
+    );
   });
 
   it("owns reusable geometry in design tokens", async () => {
@@ -42,6 +48,7 @@ describe("Context Rail button system", () => {
       "--md-context-rail-category-min-width",
       "--md-context-rail-place-min-width",
       "--md-context-rail-action-min-width",
+      "--md-context-rail-back-size",
     ]) {
       expect(tokens).toContain(token);
     }
@@ -61,7 +68,9 @@ describe("Context Rail button system", () => {
     expect(css).toContain(
       '.md-context-rail-button[data-rail-variant="secondary"]',
     );
-    expect(css).toContain('.md-context-rail-button[data-rail-variant="back"]');
+    expect(css).toContain(".md-context-rail-back");
+    expect(css).toContain(".md-context-rail-back[hidden]");
+    expect(css).toContain("var(--md-context-rail-back-size)");
     expect(css).toContain("var(--md-context-rail-control-height)");
     expect(css).toContain("var(--md-context-rail-control-radius)");
     expect(css).toContain("white-space: nowrap");
@@ -78,5 +87,8 @@ describe("Context Rail button system", () => {
     expect(css).toContain('html[dir="rtl"]');
     expect(css).toContain(".md-context-rail-button:focus-visible");
     expect(css).toContain(".md-context-rail-button:disabled");
+    expect(css).toContain(".md-context-rail-back:focus-visible");
+    expect(css).toContain('html[dir="rtl"]');
+    expect(css).toContain(".md-context-rail-back-icon");
   });
 });

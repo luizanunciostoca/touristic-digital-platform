@@ -160,6 +160,16 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         data-assistant-category-rail
         data-rail-stage="menu"
       >
+        <button
+          type="button"
+          class="md-context-rail-back"
+          data-context-rail-back
+          aria-label="Voltar"
+          title="Voltar"
+          hidden
+        >
+          <span class="md-context-rail-back-icon" aria-hidden="true">‹</span>
+        </button>
         <div class="md-assistant-category-scroll">
           <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
             <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
