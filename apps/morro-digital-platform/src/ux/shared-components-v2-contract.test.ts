@@ -58,13 +58,16 @@ describe("UX Design V2 shared component adoption", () => {
     );
   });
 
-  it("does not render the retired map-layer control", async () => {
+  it("renders the map-layer control with the shared map-control primitive", async () => {
     const shell = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
     );
 
-    expect(shell).not.toContain('id="toggle-map-layer"');
-    expect(shell).not.toContain('data-map-control="layer"');
+    expect(shell).toContain('id="toggle-map-layer"');
+    expect(shell).toContain(
+      'class="map-control-button md-icon-button md-map-control"',
+    );
+    expect(shell).toContain('data-map-control="layer"');
   });
 
   it("adopts shared banner and toast primitives in real tourist feedback surfaces", async () => {
