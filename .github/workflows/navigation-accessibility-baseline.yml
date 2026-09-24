@@ -196,9 +196,11 @@ jobs:
                   submenu: presentation('#submenu'),
                   globe: presentation('#globe-map-control'),
                   globeToggle: presentation('#toggle-globe-view'),
+                  mapLayer: presentation('#toggle-map-layer'),
                   threeD: presentation('#toggle-3d-mode'),
-                  recenter: presentation('#navigation-recenter-btn'),
+                  location: presentation('#recenter-map-control'),
                   assistantInput: presentation('#assistant-input-area'),
+                  bottomNavigation: presentation('#home-bottom-navigation'),
                 },
                 instruction: instruction?.textContent?.trim() ?? '',
                 bannerRect: bannerRect ? { left: bannerRect.left, right: bannerRect.right, top: bannerRect.top, bottom: bannerRect.bottom, width: bannerRect.width, height: bannerRect.height } : null,
@@ -216,6 +218,8 @@ jobs:
                 documentWidth: document.documentElement.clientWidth,
                 scrollWidth: document.documentElement.scrollWidth,
                 markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
+                dynamicRecenterCount: document.querySelectorAll('#navigation-recenter-btn').length,
+                bottomNavigationItemCount: document.querySelectorAll('#home-bottom-navigation [data-home-nav-action]').length,
                 events: globalThis.__navigationA11yEvidence.events,
               };
             });
@@ -234,9 +238,14 @@ jobs:
               !hidden(state.modeComposition.submenu) ||
               state.modeComposition.globe?.visibility !== 'visible' ||
               state.modeComposition.globe?.pointerEvents !== 'auto' ||
-              state.modeComposition.globeToggle?.display !== 'none' ||
+              state.modeComposition.globeToggle?.display === 'none' ||
+              state.modeComposition.mapLayer?.display === 'none' ||
               state.modeComposition.threeD?.display === 'none' ||
-              state.modeComposition.recenter?.display === 'none' ||
+              state.modeComposition.location?.display === 'none' ||
+              state.dynamicRecenterCount !== 0 ||
+              state.bottomNavigationItemCount !== 5 ||
+              state.modeComposition.bottomNavigation?.visibility !== 'visible' ||
+              state.modeComposition.bottomNavigation?.pointerEvents !== 'auto' ||
               (state.modeComposition.assistantInput?.visibility !== 'visible' ||
                 state.modeComposition.assistantInput?.pointerEvents !== 'auto')
             ) {

@@ -1387,14 +1387,13 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
 /* Home chrome yields to the dedicated navigation experience. The navigation
  * wave remains authoritative; this only prevents Discover controls from
  * occupying its one-hand action zone. */
-body[data-md-mode="navigation"] #home-bottom-navigation,
 body[data-md-mode="navigation"] .md-home-profile-panel {
   display: none;
 }
 
-body[data-md-mode="navigation"] #assistant-input-area.md-assistant-composer {
-  bottom: var(--md-shell-bottom);
-}
+/* Navigation keeps the persistent bottom navigation inside the unified dock.
+ * The dock itself owns positioning in navigation mode, so do not detach the
+ * assistant composer from that stack here. */
 
 /* Keep contextual Explore results above the Home navigation + Assistant stack
  * so typed follow-up actions remain reachable without pointer interception. */

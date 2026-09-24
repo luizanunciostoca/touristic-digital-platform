@@ -23,7 +23,10 @@ describe("UX V2 Wave E active navigation convergence", () => {
       'body[data-md-mode="navigation"] #navigation-summary',
     );
     expect(css).toContain(
-      'body[data-md-mode="navigation"] #navigation-recenter-btn',
+      'body[data-md-mode="navigation"] #globe-map-control .md-map-control',
+    );
+    expect(css).not.toContain(
+      'body[data-md-mode="navigation"] #globe-map-control #toggle-globe-view {\n  display: none !important;',
     );
     expect(css).toContain("@media (max-width: 24.375rem)");
     expect(css).toContain(
@@ -66,11 +69,12 @@ describe("UX V2 Wave E active navigation convergence", () => {
   });
 
   it("keeps the unified dock and bottom navigation available while repurposing category and voice surfaces", async () => {
-    const [guidance, premium] = await Promise.all([
+    const [guidance, premium, shellCss] = await Promise.all([
       readRepository(
         "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
       ),
       readRepository("apps/morro-digital-platform/public/premium-ux-v2.css"),
+      readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
     ]);
 
     expect(guidance).toContain('setAttribute("data-dock-mode", "navigation")');
@@ -80,6 +84,11 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(guidance).toContain("updateNavigationDockSummary");
     expect(guidance).toContain('voiceButton.dataset.navigationStop = "true"');
     expect(guidance).toContain("endButton?.click()");
+    expect(guidance).toContain('"recenter-map-control"');
+    expect(guidance).not.toContain('"navigation-recenter-btn"');
+    expect(guidance).toContain(
+      'addEventListener("click", requestRecenter, true)',
+    );
     expect(guidance).toContain('removeAttribute("data-dock-mode")');
     expect(guidance).toContain('removeAttribute("data-navigation-summary")');
 
@@ -96,5 +105,8 @@ describe("UX V2 Wave E active navigation convergence", () => {
       'body[data-md-mode="navigation"] #navigation-summary',
     );
     expect(premium).toContain("display: none !important");
+    expect(shellCss).not.toContain(
+      'body[data-md-mode="navigation"] #home-bottom-navigation,',
+    );
   });
 });
