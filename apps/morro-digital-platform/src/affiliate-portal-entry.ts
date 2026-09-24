@@ -74,10 +74,9 @@ function appendMembership(
   setStatusBadge(status, membership.status);
 
   const detail = document.createElement("p");
-  detail.textContent =
-    `Destino: ${membership.destination_id} · Financeiro: ${labelStatus(
-      membership.financial_onboarding_status,
-    )}`;
+  detail.textContent = `Destino: ${membership.destination_id} · Financeiro: ${labelStatus(
+    membership.financial_onboarding_status,
+  )}`;
 
   item.append(title, status, detail);
   container.append(item);
