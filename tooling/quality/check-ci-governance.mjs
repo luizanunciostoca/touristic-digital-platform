@@ -223,7 +223,7 @@ requireIncludes(
     "name: production",
     "RENDER_PRODUCTION_DEPLOY_HOOK_URL",
     "ref=${EXPECTED_SHA}",
-    "pnpm --silent release:identity:smoke",
+    "pnpm --silent payments:render:smoke",
     "production-deployment-evidence.txt",
   ],
 );
