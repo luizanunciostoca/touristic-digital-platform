@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertRestaurantReservationTransition,
   createRestaurantReservation,
+  createRestaurantReservationRequestKey,
   isRestaurantReservationTransitionAllowed,
   normalizeRestaurantDepositPolicy,
 } from "./restaurant-reservations.js";
@@ -10,6 +11,7 @@ import {
 function reservation(overrides: Record<string, unknown> = {}) {
   return {
     id: "rrv_12345678",
+    requestKey: "rrq_rsl_dinner_0001_attempt_0001",
     businessId: "business_toca",
     placeId: "place_toca",
     destinationId: "morro-de-sao-paulo",
@@ -29,6 +31,15 @@ function reservation(overrides: Record<string, unknown> = {}) {
 }
 
 describe("restaurant reservation domain", () => {
+  it("creates a bounded idempotency key tied to the requested slot", () => {
+    expect(
+      createRestaurantReservationRequestKey(
+        "rsl_dinner_0001",
+        "attempt 0001",
+      ),
+    ).toBe("rrq_rsl_dinner_0001_attempt_0001");
+  });
+
   it("accepts a bounded hold with explicit business and place identity", () => {
     expect(createRestaurantReservation(reservation())).toMatchObject({
       id: "rrv_12345678",
