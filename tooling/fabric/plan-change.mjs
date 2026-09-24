@@ -1,50 +1,61 @@
 import { execFileSync } from "node:child_process";
-import { appendFile, readFile } from "node:fs/promises";
+import { appendFile, readFile, writeFile } from "node:fs/promises";
 
 const args = new Map();
-for (let i = 2; i < process.argv.length; i += 2)
-  args.set(process.argv[i], process.argv[i + 1]);
+
+for (let index = 2; index < process.argv.length; index += 2) {
+  args.set(process.argv[index], process.argv[index + 1]);
+}
+
 const base = args.get("--base");
 const head = args.get("--head") || "HEAD";
 const out = args.get("--json");
-if (!base) throw new Error("--base is required");
 
-const policy = JSON.parse(await readFile(".morro/risk-policy.json", "utf8"));
-const raw = execFileSync(
-  "git",
-  ["diff", "--name-only", `${base}...${head}`],
-  { encoding: "utf8" },
-).trim();
+if (!base) {
+  throw new Error("--base is required");
+}
+
+const policyText = await readFile(".morro/risk-policy.json", "utf8");
+const policy = JSON.parse(policyText);
+const diffArgs = ["diff", "--name-only", `${base}...${head}`];
+const raw = execFileSync("git", diffArgs, { encoding: "utf8" }).trim();
 const files = raw ? raw.split("\n").filter(Boolean) : [];
+const lower = files.map((file) => file.toLowerCase());
 
-const lower = files.map((f) => f.toLowerCase());
-const isCritical = files.some((f) =>
-  policy.criticalPaths.some((p) => f.includes(p)),
+const isCritical = files.some((file) =>
+  policy.criticalPaths.some((path) => file.includes(path)),
 );
-const isHigh = files.some((f) =>
-  policy.highPaths.some((p) => f.includes(p)),
+const isHigh = files.some((file) =>
+  policy.highPaths.some((path) => file.includes(path)),
 );
 const docsOnly =
   files.length > 0 &&
-  files.every((f) => policy.lowExtensions.some((ext) => f.endsWith(ext)));
-const risk = isCritical
-  ? "critical"
-  : isHigh
-    ? "high"
-    : docsOnly
-      ? "low"
-      : "medium";
+  files.every((file) =>
+    policy.lowExtensions.some((extension) => file.endsWith(extension)),
+  );
+
+let risk = "medium";
+
+if (isCritical) {
+  risk = "critical";
+} else if (isHigh) {
+  risk = "high";
+} else if (docsOnly) {
+  risk = "low";
+}
 
 const flags = {
-  ui: lower.some((f) => f.includes("apps/morro-digital-platform")),
-  auth: lower.some((f) => f.includes("/auth/") || f.includes("auth-")),
-  payments: lower.some((f) => /financial|ordering|payment/.test(f)),
-  ticketing: lower.some((f) => f.includes("ticketing")),
+  ui: lower.some((file) => file.includes("apps/morro-digital-platform")),
+  auth: lower.some(
+    (file) => file.includes("/auth/") || file.includes("auth-"),
+  ),
+  payments: lower.some((file) => /financial|ordering|payment/.test(file)),
+  ticketing: lower.some((file) => file.includes("ticketing")),
   ci: lower.some(
-    (f) =>
-      f.startsWith(".github/workflows/") ||
-      f.startsWith("tooling/quality/") ||
-      f.startsWith(".morro/"),
+    (file) =>
+      file.startsWith(".github/workflows/") ||
+      file.startsWith("tooling/quality/") ||
+      file.startsWith(".morro/"),
   ),
 };
 
@@ -57,16 +68,24 @@ const plan = {
   flags,
   requiredEvidence: policy.levels[risk].required,
 };
-const serialized = JSON.stringify(plan, null, 2) + "\n";
+
+const serialized = `${JSON.stringify(plan, null, 2)}\n`;
+
 process.stdout.write(serialized);
+
 if (out) {
-  const { writeFile } = await import("node:fs/promises");
   await writeFile(out, serialized);
 }
 
 if (process.env.GITHUB_OUTPUT) {
   await appendFile(process.env.GITHUB_OUTPUT, `risk=${risk}\n`);
-  for (const [name, value] of Object.entries(flags))
+
+  for (const [name, value] of Object.entries(flags)) {
     await appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
-  await appendFile(process.env.GITHUB_OUTPUT, `docs_only=${docsOnly}\n`);
+  }
+
+  await appendFile(
+    process.env.GITHUB_OUTPUT,
+    `docs_only=${docsOnly}\n`,
+  );
 }
