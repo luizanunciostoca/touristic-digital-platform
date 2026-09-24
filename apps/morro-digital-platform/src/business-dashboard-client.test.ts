@@ -89,7 +89,7 @@ describe("M51 Business dashboard browser client", () => {
     const client = createBusinessDashboardClient(fixture.authClient);
 
     await expect(client.bootstrap("toca-do-morcego")).rejects.toThrow(
-      "BUSINESS_ACCESS_DENIED",
+      "MORRO_PRO_ROLE_DENIED",
     );
     expect(fixture.secureFetch).not.toHaveBeenCalled();
   });
