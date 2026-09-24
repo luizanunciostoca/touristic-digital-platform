@@ -3064,3 +3064,64 @@ html[dir="rtl"]
   content: none !important;
   display: none !important;
 }
+
+/* Horizontal-scroll affordance for the unified category/context rail.
+ * A real DOM hint is used instead of the retired ::after pseudo-element so
+ * mobile contextual stages can expose overflow without covering options. */
+#unified-assistant-dock > #assistant-category-rail .md-category-scroll-hint {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  z-index: 4;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 42%, transparent);
+  border-radius: var(--md-radius-pill);
+  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
+  color: var(--md-color-brand-strong);
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 6%, transparent),
+    var(--md-elevation-1);
+  font-size: 1.5rem;
+  font-weight: var(--md-font-weight-bold);
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-category-scroll-hint[hidden] {
+  display: none !important;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-has-scroll-forward]
+  .md-assistant-category-scroll {
+  padding-inline-end: 3rem !important;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-category-scroll-hint {
+  right: auto;
+  left: 0.5rem;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-category-scroll-hint {
+  transform: translateY(-50%) scaleX(-1);
+}
+
+@media (forced-colors: active) {
+  #unified-assistant-dock > #assistant-category-rail .md-category-scroll-hint {
+    border-color: ButtonText;
+    background: ButtonFace;
+    color: ButtonText;
+  }
+}
