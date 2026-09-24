@@ -3133,3 +3133,42 @@ html[dir="rtl"]
     color: ButtonText;
   }
 }
+
+/* Profile owns the assistant settings row layout. Neutralize frozen legacy
+ * circular #configButton styles while keeping Tourist Shell V2 as the final
+ * surface-specific presentation authority. */
+#home-profile-panel #configButton.md-home-profile-row {
+  display: grid;
+  width: 100%;
+  height: auto;
+  min-width: 0;
+  min-height: var(--md-touch-target-min);
+  margin-left: 0;
+  padding: var(--md-space-2);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  justify-content: initial;
+  gap: var(--md-space-2);
+  border: 0;
+  border-radius: var(--md-radius-md);
+  position: static;
+  overflow: visible;
+  background: transparent;
+  color: var(--md-color-text-primary);
+  box-shadow: none;
+}
+
+#home-profile-panel #configButton.md-home-profile-row::before {
+  content: none;
+}
+
+#home-profile-panel #configButton.md-home-profile-row:hover,
+#home-profile-panel #configButton.md-home-profile-row:active {
+  transform: none;
+  box-shadow: none;
+}
+
+#home-profile-panel #configButton.md-home-profile-row:hover {
+  background: color-mix(in srgb, var(--md-color-brand) 7%, transparent);
+  color: var(--md-color-text-primary);
+}
