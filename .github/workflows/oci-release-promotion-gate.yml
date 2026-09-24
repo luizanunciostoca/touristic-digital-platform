@@ -1,0 +1,159 @@
+name: OCI Release Promotion Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA approved for immutable OCI promotion
+        required: true
+        type: string
+      image_digest:
+        description: Immutable sha256 digest produced by Release OCI Image
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: oci-release-promotion-${{ inputs.expected_sha }}-${{ inputs.image_digest }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/morro-digital-v2
+
+jobs:
+  smoke:
+    name: oci-release / smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+
+      - name: Prove exact candidate is current main
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$remote_main_sha" = "$EXPECTED_SHA"
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Validate promotion contracts without rebuilding
+        run: |
+          pnpm release:acceptance-manifest:check
+          pnpm platform:contracts:check
+          pnpm migration:dry-run
+          pnpm release:readiness:check
+          pnpm secret-patterns:check
+          pnpm ci:governance:check
+          pnpm ci:supply-chain:strict
+
+      - name: Re-prove required upstream gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for workflow in \
+            final-release-acceptance.yml \
+            dependency-security-audit.yml \
+            security-scanning.yml
+          do
+            run_id="$(gh run list \
+              --workflow "$workflow" \
+              --branch main \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty')"
+            test -n "$run_id"
+            echo "PASS: $workflow run $run_id @ $EXPECTED_SHA"
+          done
+
+      - name: Re-prove immutable image provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="$(
+            gh run list \
+              --workflow release-oci-image.yml \
+              --branch main \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId // empty'
+          )"
+          test -n "$run_id"
+          mkdir -p /tmp/release-provenance
+          gh run download "$run_id" \
+            --name "release-provenance-$EXPECTED_SHA" \
+            --dir /tmp/release-provenance
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg digest "$IMAGE_DIGEST" \
+            '.source_sha == $sha and .digest == $digest' \
+            /tmp/release-provenance/release-provenance.json >/dev/null
+
+      - name: Pull exact immutable image
+        env:
+          GH_TOKEN: ${{ github.token }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker pull "$IMAGE_REPOSITORY@$IMAGE_DIGEST"
+
+      - name: Smoke exact immutable image locally
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          id="$(docker run -d --rm \
+            -e NODE_ENV=development \
+            -e PORT=3000 \
+            -e HOST=0.0.0.0 \
+            -p 127.0.0.1:4199:3000 \
+            "$IMAGE_REPOSITORY@$IMAGE_DIGEST")"
+          trap 'docker stop "$id" >/dev/null 2>&1 || true' EXIT
+          for _ in $(seq 1 80); do
+            if curl --fail --silent http://127.0.0.1:4199/runtime-config.js >/dev/null; then
+              break
+            fi
+            sleep .25
+          done
+          curl --fail --silent --show-error http://127.0.0.1:4199/runtime-config.js >/tmp/runtime-config.js
+          test -s /tmp/runtime-config.js
+          observed="$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' "$id" | sed -n 's/^MORRO_RELEASE_SHA=//p' | head -n1)"
+          test "$observed" = "$EXPECTED_SHA"
