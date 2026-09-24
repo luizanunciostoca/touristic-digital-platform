@@ -195,6 +195,7 @@ function reservationFromRow(row: ReservationRow): RestaurantReservation {
   const reservation = createRestaurantReservation({
     id: row.reservation_id,
     requestKey: row.request_key,
+    slotId: row.slot_id,
     businessId: row.business_id,
     placeId: row.place_id,
     destinationId: row.destination_id,
@@ -300,7 +301,7 @@ async function appendEvent(
     [
       eventId(reservation, eventType, occurredAt),
       reservation.id,
-      reservation.requestKey.split("_").slice(1, -2).join("_"),
+      reservation.slotId,
       reservation.businessId,
       eventType,
       actorReference,
@@ -630,6 +631,7 @@ export class MySqlRestaurantReservationRepository {
       const reservation = createRestaurantReservation({
         id,
         requestKey,
+        slotId: slot.id,
         businessId: slot.businessId,
         placeId: slot.placeId,
         destinationId: slot.destinationId,
@@ -734,7 +736,7 @@ export class MySqlRestaurantReservationRepository {
       }
       const slot = await selectSlot(
         connection,
-        snapshot.requestKey.split("_").slice(1, -2).join("_"),
+        snapshot.slotId,
         true,
       );
       if (!slot) throw new Error("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
