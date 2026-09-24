@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "domains": [
+    {
+      "id": "map",
+      "paths": [
+        "apps/morro-digital-platform/public/*map*",
+        "apps/morro-digital-platform/**/*map*"
+      ]
+    },
+    {
+      "id": "commerce",
+      "paths": [
+        "packages/commerce/**",
+        "apps/morro-digital-platform/**/*commerce*"
+      ]
+    },
+    {
+      "id": "ticketing",
+      "paths": [
+        "packages/ticketing/**",
+        "services/ticketing/**",
+        "tooling/ticketing/**"
+      ]
+    },
+    {
+      "id": "payments",
+      "paths": [
+        "packages/financial/**",
+        "services/financial/**",
+        "packages/ordering/**",
+        "services/ordering/**",
+        "tooling/payments/**"
+      ]
+    },
+    {
+      "id": "auth",
+      "paths": ["packages/auth/**", "services/auth/**"]
+    },
+    {
+      "id": "ci-release",
+      "paths": [".github/workflows/**", "tooling/quality/**", ".morro/**"]
+    }
+  ],
+  "collisionPolicy": "serialize overlapping ownership or explicitly stack dependent changes"
+}

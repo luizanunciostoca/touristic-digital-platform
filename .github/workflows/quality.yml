@@ -18,6 +18,7 @@ env:
   NODE_VERSION: "22"
   PNPM_VERSION: "10.15.0"
   TURBO_TELEMETRY_DISABLED: "1"
+  TURBO_CACHE_DIR: /tmp/turbo-cache
 
 jobs:
   quality:
@@ -46,7 +47,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - name: Restore Turbo lint/typecheck cache
+      - name: Restore shared Turbo proof cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /tmp/turbo-cache
@@ -54,7 +55,7 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
@@ -76,12 +77,8 @@ jobs:
       - name: Enforce workflow supply chain
         run: pnpm ci:supply-chain:strict
       - name: Lint
-        env:
-          TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm lint
       - name: Typecheck
-        env:
-          TURBO_CACHE_DIR: /tmp/turbo-cache
         run: pnpm typecheck
       - name: Test
         if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
