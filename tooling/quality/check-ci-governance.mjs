@@ -252,7 +252,7 @@ requireIncludes(
     "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa",
     "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346",
     "git/ref/heads/main",
-    "test \"$acceptance_state\" = \"success\"",
+    'test "$acceptance_state" = "success"',
     "pages / deploy certified SHA",
   ],
 );
@@ -323,13 +323,17 @@ if (/^\s{2}(pull_request|push):/m.test(stagingPromotion)) {
 
 const mergeQueue = workflowSources.get("merge-queue-full-regression.yml");
 if (!mergeQueue) fail("merge-queue-full-regression.yml is missing");
-requireIncludes(mergeQueue, ".github/workflows/merge-queue-full-regression.yml", [
-  "merge_group:",
-  "merge-queue-full-regression",
-  "release-acceptance-manifest.json",
-  "gh workflow run",
-  "headSha",
-]);
+requireIncludes(
+  mergeQueue,
+  ".github/workflows/merge-queue-full-regression.yml",
+  [
+    "merge_group:",
+    "merge-queue-full-regression",
+    "release-acceptance-manifest.json",
+    "gh workflow run",
+    "headSha",
+  ],
+);
 
 const releaseImage = workflowSources.get("release-oci-image.yml");
 if (!releaseImage) fail("release-oci-image.yml is missing");
@@ -345,15 +349,19 @@ requireIncludes(releaseImage, ".github/workflows/release-oci-image.yml", [
 
 const ociPromotion = workflowSources.get("oci-release-promotion-gate.yml");
 if (!ociPromotion) fail("oci-release-promotion-gate.yml is missing");
-requireIncludes(ociPromotion, ".github/workflows/oci-release-promotion-gate.yml", [
-  "workflow_dispatch:",
-  "expected_sha:",
-  "image_digest:",
-  "release-oci-image.yml",
-  "final-release-acceptance.yml",
-  "docker pull",
-  "MORRO_RELEASE_SHA",
-]);
+requireIncludes(
+  ociPromotion,
+  ".github/workflows/oci-release-promotion-gate.yml",
+  [
+    "workflow_dispatch:",
+    "expected_sha:",
+    "image_digest:",
+    "release-oci-image.yml",
+    "final-release-acceptance.yml",
+    "docker pull",
+    "MORRO_RELEASE_SHA",
+  ],
+);
 
 for (const file of [
   "staging-oci-promotion.yml",

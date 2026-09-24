@@ -60,18 +60,7 @@ jobs:
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
-        run: |
-          if ! pnpm format:check; then
-            pnpm exec prettier --write \
-              tooling/quality/check-ci-governance.mjs \
-              tooling/quality/check-release-gate-negative-cases.mjs
-            echo "::group::Prettier exact diff"
-            git diff -- \
-              tooling/quality/check-ci-governance.mjs \
-              tooling/quality/check-release-gate-negative-cases.mjs
-            echo "::endgroup::"
-            exit 1
-          fi
+        run: pnpm format:check
       - name: Enforce Stylelint V2 CSS governance
         run: pnpm css:stylelint
       - name: Check architecture boundaries

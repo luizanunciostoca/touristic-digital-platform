@@ -68,7 +68,9 @@ assert.equal(
   "artifact tree mismatch must fail closed",
 );
 
-const pages = await source(".github/workflows/pages-after-final-acceptance.yml");
+const pages = await source(
+  ".github/workflows/pages-after-final-acceptance.yml",
+);
 for (const marker of [
   'test "$current_main_sha" = "$ACCEPTED_SHA"',
   'test "$acceptance_state" = "success"',
@@ -82,8 +84,7 @@ assert.ok(
   "Pages workflow must not deploy directly from push/pull_request",
 );
 
-const acceptanceWorkflowPath =
-  ".github/workflows/final-release-acceptance.yml";
+const acceptanceWorkflowPath = ".github/workflows/final-release-acceptance.yml";
 const acceptance = await source(acceptanceWorkflowPath);
 for (const marker of [
   'candidate_tree="$(commit_tree "$candidate_sha")"',
