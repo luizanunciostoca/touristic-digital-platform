@@ -208,6 +208,22 @@ function configuredStatusTtl(value) {
   return parsed;
 }
 
+function safeStartupFailureCode(error) {
+  const code =
+    error && typeof error === "object" && typeof error.code === "string"
+      ? error.code.trim()
+      : "";
+  if (/^[A-Z0-9_]{2,120}$/u.test(code)) return code;
+
+  const message =
+    error instanceof Error && typeof error.message === "string"
+      ? error.message.trim()
+      : "";
+  if (/^[A-Z0-9_]{2,120}$/u.test(message)) return message;
+
+  return "PAYMENTS_RUNTIME_START_UNCLASSIFIED";
+}
+
 function allowedOrigins(value) {
   return new Set(
     value
@@ -1066,14 +1082,14 @@ export function createPaymentsApi({
         reason: "ready",
       });
       return true;
-    } catch {
+    } catch (error) {
       await Promise.allSettled(pools.map((pool) => pool.end()));
       runtime = null;
       startAttempted = false;
       runtimeAudit(audit, {
         action: "checkout.runtime",
         result: "failure",
-        reason: "configuration_or_persistence_unavailable",
+        reason: safeStartupFailureCode(error),
       });
       return false;
     }
