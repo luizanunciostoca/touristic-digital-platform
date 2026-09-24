@@ -253,6 +253,12 @@ export function installAssistantContextualMessaging(
     if (rendered.cta) node.dataset.contextualCta = rendered.cta;
     else delete node.dataset.contextualCta;
     node.dataset.contextualVoiceCopy = rendered.voiceCopy;
+    const nonBlocking =
+      state === "geolocation_allowed" ||
+      state === "geolocation_denied" ||
+      state === "offline";
+    if (nonBlocking) node.dataset.contextualNonBlocking = "true";
+    else delete node.dataset.contextualNonBlocking;
   };
 
   const publish = (
