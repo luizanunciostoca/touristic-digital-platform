@@ -239,6 +239,76 @@ jobs:
             sleep 10
           done
 
+      - name: Dispatch exact-SHA staging promotion
+        id: staging-promotion
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run staging-render-promotion.yml \
+            --ref main \
+            -f expected_sha="$GITHUB_SHA" \
+            -f confirm_staging=DEPLOY
+
+          run_id=""
+          for _ in $(seq 1 45); do
+            run_id="$(
+              gh run list \
+                --workflow staging-render-promotion.yml \
+                --event workflow_dispatch \
+                --branch main \
+                --limit 20 \
+                --json databaseId,headSha,createdAt \
+              | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+            )"
+            if [ -n "$run_id" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          if [ -z "$run_id" ]; then
+            echo "Unable to resolve staging promotion run for $GITHUB_SHA" >&2
+            exit 1
+          fi
+
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "Staging promotion dispatched: run $run_id for $GITHUB_SHA"
+
+      - name: Wait for exact-SHA staging promotion
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_PROMOTION_RUN_ID: ${{ steps.staging-promotion.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 120); do
+            state="$(gh run view "$STAGING_PROMOTION_RUN_ID" --json status,conclusion,headSha)"
+            status="$(jq -r '.status' <<<"$state")"
+            conclusion="$(jq -r '.conclusion // ""' <<<"$state")"
+            observed_sha="$(jq -r '.headSha' <<<"$state")"
+
+            if [ "$observed_sha" != "$GITHUB_SHA" ]; then
+              echo "Staging promotion SHA drift: expected $GITHUB_SHA got $observed_sha" >&2
+              exit 1
+            fi
+
+            if [ "$status" = "completed" ]; then
+              if [ "$conclusion" != "success" ]; then
+                echo "Staging promotion failed: run $STAGING_PROMOTION_RUN_ID conclusion=$conclusion" >&2
+                exit 1
+              fi
+              echo "Staging promotion PASS: run $STAGING_PROMOTION_RUN_ID"
+              exit 0
+            fi
+
+            sleep 10
+          done
+
+          echo "Staging promotion timed out: run $STAGING_PROMOTION_RUN_ID" >&2
+          exit 1
+
       - name: Prove exact-SHA live staging health and readiness
         shell: bash
         run: |
