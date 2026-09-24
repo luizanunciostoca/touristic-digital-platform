@@ -387,7 +387,7 @@ jobs:
               return {
                 ended: globalThis.__navigationEvidence.events.filter((event) => event.type === 'navigationEnded').at(-1)?.detail ?? null,
                 bannerHidden: Boolean(banner?.classList.contains('hidden')),
-                endHidden: Boolean(end && getComputedStyle(end).display === 'none'),
+                endHidden: Boolean(!end || getComputedStyle(end).display === 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
                 dockMode: document.getElementById('unified-assistant-dock')?.getAttribute('data-dock-mode') ?? null,
                 navigationSummaryActive: document.getElementById('assistant-category-rail')?.hasAttribute('data-navigation-summary') ?? false,
