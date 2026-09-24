@@ -1493,7 +1493,12 @@ export function installBrowserAssistantRuntime(
     // Explore owns its canonical rich detail/tour presentation. Project
     // contextual copy only into the plain category-flow message so the global
     // single-message controller never has to arbitrate a second message node.
-    if (canonicalMessage.dataset.messageType !== "category-flow") return;
+    if (
+      canonicalMessage.dataset.messageType !== "category-flow" ||
+      canonicalMessage.dataset.preserveContent === "true"
+    ) {
+      return;
+    }
 
     const rendered = resolveAssistantContextualCopy(contextualState, {
       category: state.category,
