@@ -816,6 +816,81 @@ export class MySqlRestaurantReservationRepository {
     }
   }
 
+  async confirmFromVerifiedPayment(input: {
+    readonly reservationId: unknown;
+    readonly businessId: string;
+    readonly orderId: string;
+    readonly paymentId: string;
+    readonly confirmedAt: unknown;
+    readonly actorReference: unknown;
+  }): Promise<RestaurantReservationMutationResult> {
+    const id = reservationId(input.reservationId);
+    if (!BUSINESS_ID.test(input.businessId)) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
+    const confirmedAt = instant(
+      input.confirmedAt,
+      "COMMERCE_RESTAURANT_CONFIRMED_AT_INVALID",
+    );
+    const actorReference = actor(input.actorReference);
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const current = await selectReservationById(
+        connection,
+        id,
+        true,
+        input.businessId,
+      );
+      if (!current) {
+        throw new Error("COMMERCE_RESTAURANT_RESERVATION_NOT_FOUND");
+      }
+      if (current.depositPolicy.kind !== "required") {
+        throw new Error("COMMERCE_RESTAURANT_DEPOSIT_NOT_REQUIRED");
+      }
+      if (
+        current.status === "confirmed" &&
+        current.orderId === input.orderId &&
+        current.paymentId === input.paymentId
+      ) {
+        await connection.commit();
+        return Object.freeze({ reservation: current, replayed: true });
+      }
+      if (
+        current.status !== "held" ||
+        !current.holdExpiresAt ||
+        Date.parse(current.holdExpiresAt) <= Date.parse(confirmedAt)
+      ) {
+        throw new Error("COMMERCE_RESTAURANT_CONFIRMATION_INVALID");
+      }
+      const confirmed = createRestaurantReservation({
+        ...current,
+        status: "confirmed",
+        orderId: input.orderId,
+        paymentId: input.paymentId,
+        updatedAt: confirmedAt,
+      });
+      if (!confirmed) {
+        throw new Error("COMMERCE_RESTAURANT_CONFIRMATION_INVALID");
+      }
+      await updateReservationStatus(connection, confirmed);
+      await appendEvent(
+        connection,
+        confirmed,
+        "confirmed",
+        actorReference,
+        confirmedAt,
+      );
+      await connection.commit();
+      return Object.freeze({ reservation: confirmed, replayed: false });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   async confirmWithoutDeposit(input: {
     readonly reservationId: unknown;
     readonly businessId: string;
