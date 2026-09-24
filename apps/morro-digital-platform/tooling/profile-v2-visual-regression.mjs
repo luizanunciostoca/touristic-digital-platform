@@ -91,6 +91,10 @@ try {
       const button = document.getElementById("home-profile-button");
       const nav = document.getElementById("home-bottom-navigation");
       const map = document.getElementById("map");
+      const expand = document.getElementById("home-profile-expand");
+      const quickActionCount = panel
+        ? panel.querySelectorAll(".md-home-profile-shortcut").length
+        : 0;
       const controls = panel
         ? Array.from(panel.querySelectorAll("button")).map((control) => {
             const r = control.getBoundingClientRect();
@@ -119,6 +123,9 @@ try {
           button?.getAttribute("aria-current") === "page" &&
           button?.getAttribute("aria-expanded") === "true",
         panelAriaHidden: panel?.getAttribute("aria-hidden"),
+        profileExpanded: panel?.dataset.profileExpanded,
+        expandAria: expand?.getAttribute("aria-expanded"),
+        quickActions: quickActionCount,
         focusedClose: document.activeElement?.id === "home-profile-close",
         controls,
         mapVisible: visible(map),
@@ -165,9 +172,19 @@ try {
       state.panel,
     );
     assert(
-      state.panel.height <= state.viewport.height * 0.72 + 1,
-      `${viewport.label}: Profile panel obscures too much map context`,
+      state.panel.height <= state.viewport.height * 0.56 + 1,
+      `${viewport.label}: Compact Profile panel obscures too much map context`,
       state.panel,
+    );
+    assert(
+      state.profileExpanded === "false" && state.expandAria === "false",
+      `${viewport.label}: Profile must open compact`,
+      state,
+    );
+    assert(
+      state.quickActions === 3,
+      `${viewport.label}: Profile quick actions drift`,
+      state.quickActions,
     );
     assert(
       state.mapVisible && state.map,
@@ -226,6 +243,41 @@ try {
 
     await page.screenshot({
       path: `${evidenceDir}/profile-${viewport.label}.png`,
+      fullPage: false,
+      animations: "disabled",
+    });
+
+    await page.locator("#home-profile-expand").click();
+    await page
+      .locator('#home-profile-panel[data-profile-expanded="true"]')
+      .waitFor({ state: "visible", timeout: 5_000 });
+    await page
+      .locator(".md-home-profile-expanded-content")
+      .waitFor({ state: "visible", timeout: 5_000 });
+    const expanded = await page.evaluate(() => {
+      const panel = document.getElementById("home-profile-panel");
+      const handle = document.getElementById("home-profile-expand");
+      const r =
+        panel instanceof HTMLElement ? panel.getBoundingClientRect() : null;
+      return {
+        expanded: panel?.dataset.profileExpanded,
+        ariaExpanded: handle?.getAttribute("aria-expanded"),
+        height: r?.height ?? 0,
+        viewportHeight: innerHeight,
+      };
+    });
+    assert(
+      expanded.expanded === "true" && expanded.ariaExpanded === "true",
+      `${viewport.label}: Profile expansion state drift`,
+      expanded,
+    );
+    assert(
+      expanded.height <= expanded.viewportHeight * 0.72 + 1,
+      `${viewport.label}: Expanded Profile obscures too much map context`,
+      expanded,
+    );
+    await page.screenshot({
+      path: `${evidenceDir}/profile-expanded-${viewport.label}.png`,
       fullPage: false,
       animations: "disabled",
     });
