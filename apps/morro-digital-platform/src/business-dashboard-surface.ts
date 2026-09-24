@@ -714,11 +714,20 @@ export async function mountBusinessDashboardSurface(
           businessId = request.businessId;
           status.textContent = "Trocando contexto do negócio…";
           offersSurface.status.textContent = "";
+          offersSurface.list.replaceChildren();
+          renderProfile(null);
           void dashboardClient
             .loadProfile(request.businessId, request.signal)
-            .then((profile) => {
+            .then(async (profile) => {
               if (!contextController?.isCurrent(request)) return;
               renderProfile(profile);
+              const offersPanel = document.querySelector<HTMLElement>(
+                '[data-view-panel="offers"]',
+              );
+              if (offersPanel?.classList.contains("active")) {
+                await reloadOffers(request.signal);
+                if (!contextController?.isCurrent(request)) return;
+              }
               status.textContent = "";
             })
             .catch((error: unknown) => {
