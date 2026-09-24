@@ -144,7 +144,7 @@ jobs:
               document.dispatchEvent(new CustomEvent('morro:navigation-requested', { detail: { destination: nextDestination } }));
             }, destination);
             await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
-            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
+            await page.locator('#voiceButton.is-navigation-stop').waitFor({ state: 'visible', timeout: 15000 });
             await context.setGeolocation(livePosition);
             await poll(page, () => globalThis.__navigationA11yEvidence.events.some((event) => event.type === 'navigationRouteRuntimeUpdated'), 'runtime');
             await page.waitForTimeout(500);
@@ -152,7 +152,7 @@ jobs:
             const state = await page.evaluate(() => {
               const banner = document.getElementById('instruction-banner');
               const minimize = document.getElementById('minimize-navigation-btn');
-              const end = document.getElementById('end-navigation-btn');
+              const end = document.querySelector('#voiceButton.is-navigation-stop');
               const assistantInput = document.getElementById('assistant-input-area');
               const instruction = document.getElementById('instruction-main');
               const bannerRect = banner?.getBoundingClientRect();
@@ -237,8 +237,8 @@ jobs:
               state.modeComposition.globeToggle?.display !== 'none' ||
               state.modeComposition.threeD?.display === 'none' ||
               state.modeComposition.recenter?.display === 'none' ||
-              (!state.assistantOpen &&
-                !hidden(state.modeComposition.assistantInput))
+              (state.modeComposition.assistantInput?.visibility !== 'visible' ||
+                state.modeComposition.assistantInput?.pointerEvents !== 'auto')
             ) {
               throw new Error(
                 `Navigation mode composition drift for ${testCase.name}: ${JSON.stringify(state.modeComposition)}`,
@@ -303,7 +303,7 @@ jobs:
             }
 
             await page.screenshot({ path: `${outputDir}/${testCase.name}.png`, fullPage: false, animations: 'disabled' });
-            await page.locator('#end-navigation-btn').click();
+            await page.locator('#voiceButton.is-navigation-stop').click();
             await poll(page, () => globalThis.__navigationA11yEvidence.events.some((event) => event.type === 'navigationEnded'), 'navigation-ended', 5000);
             await context.close();
             return { state, pageErrors };
