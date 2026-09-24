@@ -193,7 +193,9 @@ export function createBusinessContextController(
       return nextRequest();
     },
     request: nextRequest,
-    isCurrent(request): boolean {
+    isCurrent(
+      request: Pick<BusinessContextRequest, "businessId" | "generation">,
+    ): boolean {
       return (
         request.businessId === currentBusinessId &&
         request.generation === generation &&
