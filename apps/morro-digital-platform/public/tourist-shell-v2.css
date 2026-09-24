@@ -2274,7 +2274,11 @@ html[dir="rtl"]
   padding: 0 var(--md-context-rail-control-padding-inline);
   border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
   border-radius: var(--md-context-rail-control-radius);
-  background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-card) 96%,
+    transparent
+  );
   color: var(--md-color-text-primary);
   box-shadow: none;
   font-size: var(--md-context-rail-label-size);
@@ -2867,7 +2871,6 @@ html[dir="rtl"]
   display: none !important;
 }
 
-
 /* Horizontal-scroll affordance for the unified category/context rail.
  * A real DOM hint is used instead of the retired ::after pseudo-element so
  * mobile contextual stages can expose overflow without covering options. */
@@ -2882,7 +2885,8 @@ html[dir="rtl"]
   width: 2.25rem;
   height: 2.25rem;
   place-items: center;
-  border: 1px solid color-mix(in srgb, var(--md-color-border) 42%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--md-color-border) 42%, transparent);
   border-radius: var(--md-radius-pill);
   background: color-mix(in srgb, var(--md-color-surface-card) 96%, transparent);
   color: var(--md-color-brand-strong);
