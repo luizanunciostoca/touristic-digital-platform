@@ -9,7 +9,7 @@ Dependencies reviewed:
 - Wave C / PR #345 — published media projection contract.
 - Wave D / PR #346 — Product / Offer / Menu relations and public-active semantics.
 - Wave J / PR #347 — publishedRevision authority and suspended/archived removal.
-- Wave E action registry was not yet available as an implemented branch/PR at audit time; Wave G therefore consumes an injected `PublicPlaceActionPort` and contains no duplicated action-selection rules.
+- Wave E / PR #351 exact audited head `47b44d9fad4e6d40d83349bee1e31bd7191aff9a` — canonical Place Action Registry / CTA resolver.
 
 ## Public endpoints
 
@@ -74,7 +74,13 @@ Returns one cohesive published read model:
   };
   media;
   commerce;
-  actions;
+  actions: {
+    placeId;
+    businessId;
+    destinationId;
+    primaryAction;
+    secondaryActions;
+  };
   partial: {
     media: "ready" | "unavailable";
     commerce: "ready" | "unavailable";
@@ -134,7 +140,7 @@ Wave G contains no category -> action table.
 - available public commerce;
 - locale.
 
-Wave E remains authority for action selection/resolution. When its contract lands, adapt it behind this port rather than copying its rules.
+Wave E is the authority for action selection/resolution. `PublicPlaceActionPort` now mirrors the Wave E `PlacePresentationActions` wire contract and the public detail includes that result verbatim. Wave G validates `placeId + businessId + destinationId` before emitting it and contains no category-to-action rules.
 
 ## Partial failures
 
@@ -176,7 +182,7 @@ The service enforces a maximum page size of 1000 and exposes a cursor. Clusterin
 ## Privacy boundary
 
 Public projection does not expose:
-- businessId;
+- business administration/profile metadata (the action authority envelope may carry canonical `businessId` solely for scope identity);
 - publication state;
 - editable revision;
 - admin metadata;
@@ -200,7 +206,7 @@ Consume only these public contracts:
 - Treat `partial.* === "unavailable"` as section degradation, not as permission to recover legacy data from another Place.
 - Do not display admin fields because they are intentionally absent.
 - Marker presentation may use `presentation.markerKey` and `priority`, but Wave H owns visual rendering.
-- Wave H must not reimplement action selection. Render `actions` as supplied by the resolver.
+- Wave H must not reimplement action selection. Render `actions.primaryAction` and `actions.secondaryActions` in their supplied order and dispatch each supplied `value`.
 
 ## Tests implemented
 
