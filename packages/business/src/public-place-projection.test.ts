@@ -71,7 +71,6 @@ function governed(input: {
         : Object.freeze({
             id: "place-1:r3",
             revision: input.revision ?? 3,
-            data: published,
           }),
   });
 }
@@ -81,11 +80,13 @@ describe("publishedRecordFromGovernedRecord", () => {
     expect(
       publishedRecordFromGovernedRecord(
         governed({ state: "draft", published: null }),
+        null,
       ),
     ).toBeNull();
     expect(
       publishedRecordFromGovernedRecord(
         governed({ state: "review", published: null }),
+        null,
       ),
     ).toBeNull();
   });
@@ -95,21 +96,29 @@ describe("publishedRecordFromGovernedRecord", () => {
     expect(
       publishedRecordFromGovernedRecord(
         governed({ state: "draft", published: previous, revision: 8 }),
+        previous,
       )?.place.description,
     ).toBe("Versão pública anterior");
     expect(
       publishedRecordFromGovernedRecord(
         governed({ state: "review", published: previous, revision: 8 }),
+        previous,
       )?.publishedRevision,
     ).toBe(8);
   });
 
   it("hides suspended and archived records even when a published revision exists", () => {
     expect(
-      publishedRecordFromGovernedRecord(governed({ state: "suspended" })),
+      publishedRecordFromGovernedRecord(
+        governed({ state: "suspended" }),
+        place(),
+      ),
     ).toBeNull();
     expect(
-      publishedRecordFromGovernedRecord(governed({ state: "archived" })),
+      publishedRecordFromGovernedRecord(
+        governed({ state: "archived" }),
+        place(),
+      ),
     ).toBeNull();
   });
 });
