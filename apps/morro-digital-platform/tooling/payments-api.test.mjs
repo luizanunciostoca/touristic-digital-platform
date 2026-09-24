@@ -92,9 +92,14 @@ function checkoutHandoff() {
 
 describe("payments startup failure diagnostics", () => {
   it("classifies bounded nested causes without exposing arbitrary messages", () => {
-    const nested = Object.assign(new Error("connect failed for mysql://secret@example"), {
-      cause: Object.assign(new Error("socket failure"), { code: "ECONNREFUSED" }),
-    });
+    const nested = Object.assign(
+      new Error("connect failed for mysql://secret@example"),
+      {
+        cause: Object.assign(new Error("socket failure"), {
+          code: "ECONNREFUSED",
+        }),
+      },
+    );
     expect(safeStartupFailureCode(nested)).toBe("ECONNREFUSED");
 
     const aggregate = new AggregateError(
