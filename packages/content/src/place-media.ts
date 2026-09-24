@@ -242,10 +242,10 @@ export function createInMemoryPlaceMediaRepository(): PlaceMediaRepository {
     `${placeId}::${mediaId}`;
 
   return Object.freeze({
-    async getAsset(mediaId) {
+    async getAsset(mediaId: string) {
       return assets.get(mediaId) ?? null;
     },
-    async getAssetByChecksum(businessId, checksumSha256) {
+    async getAssetByChecksum(businessId: string, checksumSha256: string) {
       for (const asset of assets.values()) {
         if (
           asset.businessId === businessId &&
@@ -256,26 +256,26 @@ export function createInMemoryPlaceMediaRepository(): PlaceMediaRepository {
       }
       return null;
     },
-    async saveAsset(asset) {
+    async saveAsset(asset: MediaAsset) {
       assets.set(asset.id, asset);
     },
-    async deleteAsset(mediaId) {
+    async deleteAsset(mediaId: string) {
       assets.delete(mediaId);
     },
-    async listLinks(placeId) {
+    async listLinks(placeId: string) {
       return sortedLinks(
         [...links.values()].filter((link) => link.placeId === placeId),
       );
     },
-    async listLinksByMedia(mediaId) {
+    async listLinksByMedia(mediaId: string) {
       return sortedLinks(
         [...links.values()].filter((link) => link.mediaId === mediaId),
       );
     },
-    async saveLink(link) {
+    async saveLink(link: PlaceMedia) {
       links.set(linkKey(link.placeId, link.mediaId), link);
     },
-    async deleteLink(placeId, mediaId) {
+    async deleteLink(placeId: string, mediaId: string) {
       links.delete(linkKey(placeId, mediaId));
     },
   });
