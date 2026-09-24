@@ -515,6 +515,33 @@ export class MySqlRestaurantReservationRepository {
     }
   }
 
+  async findForHolder(input: {
+    readonly reservationId: unknown;
+    readonly businessId: string;
+    readonly holderReference: unknown;
+  }): Promise<RestaurantReservation | null> {
+    const id = reservationId(input.reservationId);
+    if (!BUSINESS_ID.test(input.businessId)) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
+    const holderReference = actor(input.holderReference);
+    const connection = await this.pool.getConnection();
+    try {
+      const [rows] = await connection.execute<ReservationRow[]>(
+        `SELECT *
+         FROM commerce_restaurant_reservations
+         WHERE reservation_id = ?
+           AND business_id = ?
+           AND holder_reference = ?
+         LIMIT 1`,
+        [id, input.businessId, holderReference],
+      );
+      return rows[0] ? reservationFromRow(rows[0]) : null;
+    } finally {
+      connection.release();
+    }
+  }
+
   async listAvailabilityForDate(input: {
     readonly businessId: string;
     readonly placeId?: string | null;
