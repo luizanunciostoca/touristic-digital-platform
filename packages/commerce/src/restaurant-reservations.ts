@@ -20,6 +20,7 @@ export type RestaurantDepositPolicy =
 
 export interface RestaurantReservation {
   readonly id: string;
+  readonly requestKey: string;
   readonly businessId: string;
   readonly placeId: string;
   readonly destinationId: string;
@@ -41,6 +42,7 @@ export interface RestaurantReservation {
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
 const RESERVATION_ID = /^rrv_[A-Za-z0-9_-]{8,116}$/u;
+const REQUEST_KEY = /^rrq_[A-Za-z0-9_-]{8,156}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 
 function text(value: unknown, max: number): string | null {
@@ -69,6 +71,26 @@ function serviceDate(value: unknown): string | null {
   return new Date(epoch).toISOString().slice(0, 10) === normalized
     ? normalized
     : null;
+}
+
+export function normalizeRestaurantReservationRequestKey(
+  value: unknown,
+): string | null {
+  const normalized = text(value, 160);
+  return normalized && REQUEST_KEY.test(normalized) ? normalized : null;
+}
+
+export function createRestaurantReservationRequestKey(
+  slotIdInput: unknown,
+  attemptInput: unknown,
+): string | null {
+  const slotId = id(slotIdInput);
+  const attempt = text(attemptInput, 80);
+  if (!slotId || !attempt) return null;
+  const compactAttempt = attempt.replace(/[^A-Za-z0-9_-]/gu, "_");
+  return normalizeRestaurantReservationRequestKey(
+    `rrq_${slotId}_${compactAttempt}`.slice(0, 160),
+  );
 }
 
 export function normalizeRestaurantDepositPolicy(
@@ -103,6 +125,7 @@ export function normalizeRestaurantDepositPolicy(
 
 export function createRestaurantReservation(input: {
   readonly id: unknown;
+  readonly requestKey: unknown;
   readonly businessId: unknown;
   readonly placeId: unknown;
   readonly destinationId: unknown;
@@ -122,6 +145,7 @@ export function createRestaurantReservation(input: {
   readonly updatedAt?: unknown;
 }): RestaurantReservation | null {
   const reservationId = text(input.id, 120);
+  const requestKey = normalizeRestaurantReservationRequestKey(input.requestKey);
   const businessId = id(input.businessId);
   const placeId = id(input.placeId);
   const destinationId = id(input.destinationId);
@@ -163,6 +187,7 @@ export function createRestaurantReservation(input: {
   if (
     !reservationId ||
     !RESERVATION_ID.test(reservationId) ||
+    !requestKey ||
     !businessId ||
     !placeId ||
     !destinationId ||
@@ -194,7 +219,6 @@ export function createRestaurantReservation(input: {
   const requiresHold = status === "held" || status === "pending_confirmation";
   if (
     (requiresHold && !holdExpiresAt) ||
-    (!requiresHold && holdExpiresAt !== null) ||
     (holdExpiresAt !== null &&
       Date.parse(holdExpiresAt) <= Date.parse(createdAt)) ||
     (holdExpiresAt !== null &&
@@ -215,6 +239,7 @@ export function createRestaurantReservation(input: {
 
   return Object.freeze({
     id: reservationId,
+    requestKey,
     businessId,
     placeId,
     destinationId,
