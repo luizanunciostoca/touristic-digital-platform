@@ -1,5 +1,9 @@
 import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-router.js";
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
+import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
+import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
+import { composeConversationVoice } from "./assistant-conversation-voice-composer.js";
+import { evaluateConversationPolicy } from "./assistant-conversation-policy.js";
 
 export type AssistantContextualState =
   | "category_selected"
@@ -14,6 +18,7 @@ export type AssistantContextualState =
   | "payment_declined"
   | "timeout"
   | "offline"
+  | "online_restored"
   | "provider_error"
   | "geolocation_allowed"
   | "geolocation_denied";
@@ -50,11 +55,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
 > = Object.freeze({
   pt: Object.freeze({
     category_selected: copy(
-      "Categoria selecionada: {{category}}. Escolha um filtro para refinar os resultados.",
+      "{{category}}, ótima escolha. Quer ver todas as opções ou prefere filtrar primeiro?",
       "Ver filtros",
     ),
     results_found: copy(
-      "Encontrei {{count}} opções para você. Escolha um lugar para ver os detalhes.",
+      "Perfeito. Encontrei {{count}} opções para você. Quer escolher uma delas agora?",
       "Ver lugares",
     ),
     no_results: copy(
@@ -62,27 +67,27 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Alterar filtros",
     ),
     place_selected: copy(
-      "{{place}} selecionado. Veja os detalhes e escolha a próxima ação.",
+      "Essa é {{place}}. Posso te levar até lá ou você pode ver mais informações primeiro.",
       "Ver ações",
     ),
     action_available: copy(
-      "As ações disponíveis para {{place}} estão prontas.",
-      "Escolher ação",
+      "O que você quer fazer em {{place}} agora?",
+      "Ver opções",
     ),
     navigation_starting: copy(
-      "Preparando a rota até {{place}}.",
+      "Perfeito, vou preparar a rota para {{place}}.",
       "Iniciar navegação",
     ),
     navigation_active: copy(
-      "Navegação ativa até {{place}}. Siga as orientações do mapa.",
+      "Estamos a caminho de {{place}}. Continue seguindo o mapa.",
       null,
     ),
     payment_started: copy(
-      "Pagamento iniciado com segurança. Aguarde a confirmação antes de sair desta etapa.",
+      "Tudo certo, o pagamento foi iniciado. Vou acompanhar a confirmação por aqui.",
       null,
     ),
     payment_approved: copy(
-      "Pagamento aprovado. A confirmação da sua compra já está disponível.",
+      "Pagamento confirmado. Sua compra está concluída.",
       "Ver confirmação",
     ),
     payment_declined: copy(
@@ -94,7 +99,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Tentar novamente",
     ),
     offline: copy(
-      "Você está offline. Algumas informações salvas continuam disponíveis, mas ações online ficam pausadas.",
+      "Parece que a conexão caiu. O que já carregou continua disponível; aviso quando voltarmos online.",
+      null,
+    ),
+    online_restored: copy(
+      "Conexão de volta. Podemos continuar de onde paramos.",
       null,
     ),
     provider_error: copy(
@@ -102,21 +111,21 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Tentar novamente",
     ),
     geolocation_allowed: copy(
-      "Localização permitida. Agora posso usar sua posição para melhorar mapa e rotas.",
+      "Perfeito, agora consigo ordenar os lugares pela sua posição.",
       null,
     ),
     geolocation_denied: copy(
-      "Localização não permitida. Você ainda pode explorar e escolher lugares manualmente.",
+      "Tudo bem. Você pode continuar explorando normalmente e escolher sua localização manualmente.",
       "Explorar sem localização",
     ),
   }),
   en: Object.freeze({
     category_selected: copy(
-      "Selected category: {{category}}. Choose a filter to refine the results.",
+      "{{category}}, great choice. Would you like to see all options or filter first?",
       "View filters",
     ),
     results_found: copy(
-      "I found {{count}} options for you. Choose a place to see its details.",
+      "Great. I found {{count}} options for you. Want to choose one now?",
       "View places",
     ),
     no_results: copy(
@@ -124,19 +133,19 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Change filters",
     ),
     place_selected: copy(
-      "{{place}} selected. Review the details and choose the next action.",
+      "This is {{place}}. I can take you there or show more details first.",
       "View actions",
     ),
     action_available: copy(
-      "The available actions for {{place}} are ready.",
-      "Choose action",
+      "What would you like to do at {{place}} now?",
+      "View options",
     ),
     navigation_starting: copy(
       "Preparing the route to {{place}}.",
       "Start navigation",
     ),
     navigation_active: copy(
-      "Navigation to {{place}} is active. Follow the map guidance.",
+      "We’re on the way to {{place}}. Keep following the map.",
       null,
     ),
     payment_started: copy(
@@ -156,7 +165,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Try again",
     ),
     offline: copy(
-      "You’re offline. Some saved information remains available, but online actions are paused.",
+      "It looks like the connection dropped. What is already loaded remains available; I’ll let you know when we’re back online.",
+      null,
+    ),
+    online_restored: copy(
+      "We’re back online. We can continue from where we left off.",
       null,
     ),
     provider_error: copy(
@@ -174,11 +187,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   }),
   es: Object.freeze({
     category_selected: copy(
-      "Categoría seleccionada: {{category}}. Elige un filtro para refinar los resultados.",
+      "{{category}}, buena elección. ¿Quieres ver todas las opciones o filtrar primero?",
       "Ver filtros",
     ),
     results_found: copy(
-      "Encontré {{count}} opciones para ti. Elige un lugar para ver los detalles.",
+      "Perfecto. Encontré {{count}} opciones para ti. ¿Quieres elegir una ahora?",
       "Ver lugares",
     ),
     no_results: copy(
@@ -186,19 +199,19 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Cambiar filtros",
     ),
     place_selected: copy(
-      "{{place}} seleccionado. Revisa los detalles y elige la siguiente acción.",
+      "Este es {{place}}. Puedo llevarte hasta allí o mostrarte más detalles primero.",
       "Ver acciones",
     ),
     action_available: copy(
-      "Las acciones disponibles para {{place}} están listas.",
-      "Elegir acción",
+      "¿Qué quieres hacer en {{place}} ahora?",
+      "Ver opciones",
     ),
     navigation_starting: copy(
       "Preparando la ruta hasta {{place}}.",
       "Iniciar navegación",
     ),
     navigation_active: copy(
-      "La navegación hasta {{place}} está activa. Sigue las indicaciones del mapa.",
+      "Vamos camino a {{place}}. Sigue las indicaciones del mapa.",
       null,
     ),
     payment_started: copy(
@@ -218,7 +231,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Intentar de nuevo",
     ),
     offline: copy(
-      "Estás sin conexión. Parte de la información guardada sigue disponible, pero las acciones en línea están pausadas.",
+      "Parece que se perdió la conexión. Lo que ya cargó sigue disponible; te aviso cuando volvamos a estar en línea.",
+      null,
+    ),
+    online_restored: copy(
+      "La conexión volvió. Podemos continuar donde lo dejamos.",
       null,
     ),
     provider_error: copy(
@@ -236,11 +253,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   }),
   he: Object.freeze({
     category_selected: copy(
-      "הקטגוריה שנבחרה: {{category}}. בחר מסנן כדי למקד את התוצאות.",
+      "{{category}}, בחירה מצוינת. לראות את כל האפשרויות או לסנן קודם?",
       "הצג מסננים",
     ),
     results_found: copy(
-      "מצאתי {{count}} אפשרויות עבורך. בחר מקום כדי לראות פרטים.",
+      "מצאתי {{count}} אפשרויות. רוצה לבחור אחת עכשיו?",
       "הצג מקומות",
     ),
     no_results: copy(
@@ -248,16 +265,13 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "שנה מסננים",
     ),
     place_selected: copy(
-      "{{place}} נבחר. עיין בפרטים ובחר את הפעולה הבאה.",
+      "זה {{place}}. אפשר לנווט לשם או לראות קודם פרטים נוספים.",
       "הצג פעולות",
     ),
-    action_available: copy(
-      "הפעולות הזמינות עבור {{place}} מוכנות.",
-      "בחר פעולה",
-    ),
+    action_available: copy("מה תרצה לעשות ב-{{place}} עכשיו?", "הצג אפשרויות"),
     navigation_starting: copy("מכין מסלול אל {{place}}.", "התחל ניווט"),
     navigation_active: copy(
-      "הניווט אל {{place}} פעיל. עקוב אחר הנחיות המפה.",
+      "אנחנו בדרך אל {{place}}. המשך לעקוב אחרי המפה.",
       null,
     ),
     payment_started: copy(
@@ -274,9 +288,10 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "נסה שוב",
     ),
     offline: copy(
-      "אין חיבור לרשת. חלק מהמידע השמור עדיין זמין, אך פעולות מקוונות מושהות.",
+      "נראה שהחיבור נותק. מה שכבר נטען עדיין זמין; אעדכן כשהחיבור יחזור.",
       null,
     ),
+    online_restored: copy("החיבור חזר. אפשר להמשיך מהמקום שבו עצרנו.", null),
     provider_error: copy(
       "השירות הנדרש אינו זמין זמנית. נסה שוב בעוד רגע.",
       "נסה שוב",
@@ -460,6 +475,7 @@ export function installAssistantContextualMessaging(
   let destroyed = false;
   let lastGlobalState: AssistantContextualState | null = null;
   let networkOffline = false;
+  const conversation = getAssistantConversationOrchestrator(options.document);
 
   const language = (): AssistantContextualLanguage =>
     normalizeAssistantContextualLanguage(options.document.documentElement.lang);
@@ -501,16 +517,78 @@ export function installAssistantContextualMessaging(
       return;
     }
 
-    const rendered = resolveAssistantContextualCopy(
+    const resolvedLanguage = language();
+    const previousState = conversation.snapshot();
+    const policy = evaluateConversationPolicy({
+      cause: state,
+      source: area === "navigation" ? "navigation" : "contextual",
+      previousState,
+    });
+    if (!policy.present) return;
+
+    const draft = resolveAssistantContextualCopy(
       state,
       variables,
-      language(),
+      resolvedLanguage,
     );
+    const rendered = composeConversationResponse({
+      messageKey: state,
+      language: resolvedLanguage,
+      draft,
+      previousState,
+      ...(variables.category ? { category: variables.category } : {}),
+      ...(variables.place ? { place: variables.place } : {}),
+      ...(Number.isFinite(variables.count)
+        ? { count: Number(variables.count) }
+        : {}),
+    });
+    const voiceCopy = composeConversationVoice({
+      messageKey: state,
+      language: resolvedLanguage,
+      fallback: rendered.voiceCopy,
+      ...(variables.category ? { category: variables.category } : {}),
+      ...(variables.place ? { place: variables.place } : {}),
+      ...(Number.isFinite(variables.count)
+        ? { count: Number(variables.count) }
+        : {}),
+    });
+    const turn = conversation.transition({
+      cause: state,
+      messageKey: state,
+      renderedText: rendered.message,
+      voiceText: voiceCopy,
+      source: area === "navigation" ? "navigation" : "contextual",
+      ...(variables.category ? { category: variables.category } : {}),
+      ...(variables.place
+        ? {
+            place: variables.place,
+            ...(state === "navigation_starting" || state === "navigation_active"
+              ? { navigationDestination: variables.place }
+              : {}),
+          }
+        : {}),
+      ...(Number.isFinite(variables.count)
+        ? { resultCount: Number(variables.count) }
+        : {}),
+      ...(state === "offline"
+        ? { networkState: "offline" as const }
+        : state === "online_restored"
+          ? { networkState: "online" as const }
+          : {}),
+      ...(state.startsWith("payment_") ? { paymentState: state } : {}),
+      ...(state.startsWith("geolocation_")
+        ? { locationPermission: state }
+        : {}),
+      ...(state.startsWith("navigation_")
+        ? { navigationPhase: state, journey: "navigation" }
+        : {}),
+      priority: policy.priority,
+    });
     const id = nodeId(area);
     options.messages.append({
       sender: "assistant",
       area,
-      html: rendered.message,
+      html: turn.renderedText,
       messageType: "contextual_state",
       id,
       customClass:
@@ -518,12 +596,24 @@ export function installAssistantContextualMessaging(
           ? "assistant-navigation-contextual-state"
           : "assistant-contextual-state",
       avoidDuplicate: false,
-      speak: area !== "navigation",
+      speak: policy.speak && area !== "navigation",
       navigationActive: area === "navigation",
     });
     const created = options.document.getElementById(id);
     if (created instanceof HTMLElement) {
-      applyMetadata(created, state, rendered);
+      applyMetadata(created, state, {
+        ...rendered,
+        voiceCopy,
+      });
+      created.dataset.conversationTurnId = turn.id;
+      if (turn.previousTurnId) {
+        created.dataset.previousConversationTurnId = turn.previousTurnId;
+      } else {
+        delete created.dataset.previousConversationTurnId;
+      }
+      created.dataset.conversationCause = turn.cause;
+      created.dataset.conversationMessageKey = turn.messageKey;
+      created.dataset.conversationPriority = turn.priority;
     }
     if (area === "messages") lastGlobalState = state;
   };
@@ -585,8 +675,7 @@ export function installAssistantContextualMessaging(
     if (detail?.state === "online") {
       networkOffline = false;
       if (lastGlobalState === "offline") {
-        options.messages.removeById(nodeId("messages"), "messages");
-        lastGlobalState = null;
+        publish("online_restored");
       }
     }
   };

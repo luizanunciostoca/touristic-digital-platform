@@ -1,6 +1,7 @@
 import { requestAssistantOpen } from "./assistant-shell-ui.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import { clearAssistantDomOptions } from "./assistant-dom-view.js";
+import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 
 export interface AssistantNavigationFeedback {
   destroy(): void;
@@ -153,6 +154,7 @@ export function installAssistantNavigationFeedback(
 ): AssistantNavigationFeedback {
   const view = document.defaultView;
   const messages = createAssistantMessageDom({ document });
+  const conversation = getAssistantConversationOrchestrator(document);
   const canListenToNavigationRequests =
     typeof document.addEventListener === "function" &&
     typeof document.removeEventListener === "function";
@@ -198,12 +200,41 @@ export function installAssistantNavigationFeedback(
     // bypasses duplicate suppression so every completed navigation can restore
     // the canonical assistant surface.
     preparePostNavigationSurface();
+    const renderedText = feedbackText(document, reason, destination);
+    const turn = conversation.transition({
+      cause: reason === "arrived" ? "arrived" : "navigation_cancelled",
+      messageKey: reason === "arrived" ? "arrived" : "navigation_cancelled",
+      renderedText,
+      voiceText: renderedText.replace(/<[^>]+>/gu, ""),
+      source: "navigation",
+      ...(destination
+        ? {
+            place: destination,
+            navigationDestination: destination,
+          }
+        : {}),
+      journey: "navigation",
+      journeyStep: reason === "arrived" ? "arrived" : "cancelled",
+      navigationPhase: reason,
+      priority: "navigation",
+    });
     messages.append({
       sender: "assistant",
-      html: feedbackText(document, reason, destination),
+      html: turn.renderedText,
       messageType: "navigation-feedback",
       priority: "high",
+      id: "assistant-navigation-completion",
+      avoidDuplicate: false,
     });
+    const created = document.getElementById("assistant-navigation-completion");
+    if (created instanceof HTMLElement) {
+      created.dataset.conversationTurnId = turn.id;
+      if (turn.previousTurnId) {
+        created.dataset.previousConversationTurnId = turn.previousTurnId;
+      }
+      created.dataset.conversationCause = turn.cause;
+      created.dataset.conversationMessageKey = turn.messageKey;
+    }
     showMainCategoryMenu(document);
 
     if (view) {

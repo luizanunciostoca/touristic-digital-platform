@@ -27,6 +27,7 @@ const REQUIRED_STATES: readonly AssistantContextualState[] = [
   "payment_declined",
   "timeout",
   "offline",
+  "online_restored",
   "provider_error",
   "geolocation_allowed",
   "geolocation_denied",
@@ -68,7 +69,7 @@ describe("assistant contextual state messaging", () => {
         { category: "Beaches" },
         "en",
       ).message,
-    ).toContain("Selected category: Beaches");
+    ).toContain("Beaches");
     expect(
       resolveAssistantContextualCopy("results_found", { count: 3 }, "es")
         .message,
@@ -76,6 +77,9 @@ describe("assistant contextual state messaging", () => {
     expect(
       resolveAssistantContextualCopy("provider_error", {}, "he").errorFallback,
     ).toContain("נסה שוב");
+    expect(
+      resolveAssistantContextualCopy("online_restored", {}, "pt").message,
+    ).toContain("Conexão de volta");
   });
 
   it("interpolates bounded contextual values without executable markup", () => {
@@ -134,6 +138,8 @@ describe("assistant contextual state messaging", () => {
     expect(contextual).toContain('publish("provider_error", {}, "navigation")');
     expect(contextual).toContain("options.messages.removeById");
     expect(contextual).toContain("contextualNonBlocking");
+    expect(contextual).toContain("conversationTurnId");
+    expect(contextual).toContain('publish("online_restored")');
     expect(contextual).toContain(
       "Completion feedback has a dedicated canonical presenter",
     );

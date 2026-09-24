@@ -4,6 +4,7 @@ import {
 } from "@touristic/search";
 
 import { createAssistantMessageDom } from "../assistant/assistant-message-dom.js";
+import { getAssistantConversationOrchestrator } from "../assistant/assistant-conversation-orchestrator.js";
 import type { BrowserLocation } from "./browser-geolocation.js";
 import type {
   NavigationSpeech,
@@ -502,6 +503,7 @@ export function createNavigationContextualSuggestions(options: {
     policy,
   });
   const messages = createAssistantMessageDom({ document: options.document });
+  const conversation = getAssistantConversationOrchestrator(options.document);
   let messageVisible = false;
   let clearTimer: number | null = null;
   let messageVersion = 0;
@@ -564,17 +566,46 @@ export function createNavigationContextualSuggestions(options: {
         message,
       });
 
+      const turn = conversation.transition({
+        cause: "navigation_contextual_suggestion",
+        messageKey: "navigation_contextual_suggestion",
+        renderedText: message,
+        voiceText: message.replace(HTML_TAG_PATTERN, ""),
+        source: "navigation",
+        place: selected.placeName,
+        navigationPhase: "active",
+        journey: "navigation",
+        journeyStep: "contextual_suggestion",
+        entities: {
+          category: selected.category,
+          sponsored: String(selected.sponsored),
+        },
+        priority: "proactive",
+      });
+
       clearMessage();
       messages.append({
         sender: "assistant",
         area: "navigation",
-        html: message,
+        html: turn.renderedText,
         avoidDuplicate: false,
         messageType: "navigation_suggestion",
         customClass: "navigation-contextual-suggestion",
+        id: "assistant-navigation-suggestion",
         speak: false,
         navigationActive: true,
       });
+      const created = options.document.getElementById(
+        "assistant-navigation-suggestion",
+      );
+      if (created instanceof HTMLElement) {
+        created.dataset.conversationTurnId = turn.id;
+        if (turn.previousTurnId) {
+          created.dataset.previousConversationTurnId = turn.previousTurnId;
+        }
+        created.dataset.conversationCause = turn.cause;
+        created.dataset.conversationMessageKey = turn.messageKey;
+      }
       messageVisible = true;
       const version = ++messageVersion;
       scheduleClear(version);

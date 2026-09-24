@@ -1,0 +1,54 @@
+name: Security Lite
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-lite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison base
+        id: base
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "sha=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "merge_group" ]; then
+            echo "sha=${{ github.event.merge_group.base_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=HEAD^" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reject credential-like additions
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ steps.base.outputs.sha }}"
+          git diff --unified=0 "$base...$GITHUB_SHA" -- .             | grep '^+'             | grep -v '^+++'             > /tmp/added-lines.txt || true
+
+          if grep -E -n             '(-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|gh[pousr]_[A-Za-z0-9_]{30,}|sk_live_[A-Za-z0-9]{20,}|xox[baprs]-[A-Za-z0-9-]{10,})'             /tmp/added-lines.txt; then
+            echo "::error::Credential-like material was added to the diff."
+            exit 1
+          fi
+
+      - name: Reject unsafe runtime logging patterns
+        run: node tooling/quality/check-log-pii-exposure.mjs
+
+      - name: Validate patch integrity
+        run: git diff --check "${{ steps.base.outputs.sha }}...$GITHUB_SHA"
