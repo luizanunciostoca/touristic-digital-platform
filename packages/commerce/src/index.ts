@@ -52,9 +52,7 @@ export interface LegacyTicketingInventoryOffer {
 }
 
 export type CommerceIdentitySource =
-  | "explicit"
-  | "legacy_reference"
-  | "inventory_only";
+  "explicit" | "legacy_reference" | "inventory_only";
 
 export interface CommerceOfferingResolution {
   readonly offering: CommerceOffering;
@@ -75,9 +73,7 @@ function record(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
-export function commerceModeForProductKind(
-  kind: unknown,
-): CommerceMode | null {
+export function commerceModeForProductKind(kind: unknown): CommerceMode | null {
   if (kind === "tour") return "activity_reservation";
   if (kind === "business_experience") return "ticketed_admission";
   if (kind === "transport") return "transport_ticket";
@@ -98,8 +94,9 @@ function legacyIdentity(reference: string): Readonly<{
   businessId: string | null;
   placeId: string | null;
 }> {
-  const morroPro =
-    /^morro-pro:([^:]+)(?::place-([^:]+))?(?::|$)/u.exec(reference);
+  const morroPro = /^morro-pro:([^:]+)(?::place-([^:]+))?(?::|$)/u.exec(
+    reference,
+  );
   if (!morroPro) return Object.freeze({ businessId: null, placeId: null });
   return Object.freeze({
     businessId: boundedId(morroPro[1]),
