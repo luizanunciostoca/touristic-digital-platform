@@ -3310,3 +3310,146 @@ html[dir="rtl"]
   content: none !important;
   display: none !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Context Rail physical leading lane authority                               */
+/* -------------------------------------------------------------------------- */
+
+/* Physical reservation beats flex/grid/order interactions from legacy layers:
+ * the rail content box begins after the Back lane, so scrollable controls can
+ * never occupy the Back hit area. The rail itself never receives pointer
+ * events; only its interactive children do. */
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.375rem 0.5rem 0.375rem 3.75rem;
+  overflow: hidden;
+  direction: ltr;
+  pointer-events: none;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  right: auto;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  z-index: 2;
+  pointer-events: auto;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+/* Menu does not need a reserved Back lane. */
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  padding-left: 0.5rem;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.375rem 3.75rem 0.375rem 0.5rem;
+  overflow: hidden;
+  direction: rtl;
+  pointer-events: none;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  left: auto;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+  z-index: 2;
+  pointer-events: auto;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  padding-right: 0.5rem;
+}
+
+#unified-assistant-dock > #assistant-category-rail::after {
+  content: none !important;
+  display: none !important;
+}
