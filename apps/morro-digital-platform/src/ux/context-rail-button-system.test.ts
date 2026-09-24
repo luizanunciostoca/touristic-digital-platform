@@ -95,19 +95,20 @@ describe("Context Rail button system", () => {
     expect(css).toContain("content: none");
   });
 
-  it("keeps back and scroll in physically separate direct grid columns", async () => {
+  it("reserves a physical leading lane so Back cannot overlap options", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
     );
 
-    expect(css).toContain("Context Rail direct two-column authority");
-    expect(css).toContain("grid-template-columns: 2.75rem minmax(0, 1fr)");
-    expect(css).toContain("grid-template-columns: minmax(0, 1fr) 2.75rem");
-    expect(css).toContain("grid-column: 1");
-    expect(css).toContain("grid-column: 2");
-    expect(css).toContain("position: static");
+    expect(css).toContain("Context Rail physical leading lane authority");
+    expect(css).toContain("padding: 0.375rem 0.5rem 0.375rem 3.75rem");
+    expect(css).toContain("padding: 0.375rem 3.75rem 0.375rem 0.5rem");
+    expect(css).toContain("left: 0.5rem");
+    expect(css).toContain("right: 0.5rem");
+    expect(css).toContain("pointer-events: none");
     expect(css).toContain("pointer-events: auto");
-    expect(css).toContain("clip-path: none");
+    expect(css).toContain("width: 100%");
+    expect(css).toContain("min-width: 0");
     expect(css).toContain("content: none !important");
     expect(css).toContain("display: none !important");
   });
