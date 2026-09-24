@@ -6,6 +6,17 @@ const BUSINESS_ID = /^[a-z0-9][a-z0-9_-]{0,119}$/u;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_-]{8,120}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const PRODUCT_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u;
+const ADMISSION_ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
+const ADMISSION_LABEL = /^[^\u0000-\u001f\u007f]{1,80}$/u;
+
+export interface MorroProAdmissionProfile {
+  readonly offeringId: string;
+  readonly placeId: string;
+  readonly subtype: "sunset" | "event" | "party";
+  readonly ticketType: string;
+  readonly tierLabel: string | null;
+  readonly displayOrder: number;
+}
 
 export interface MorroProInventoryOffer {
   readonly id: string;
@@ -24,6 +35,7 @@ export interface MorroProInventoryOffer {
   readonly startsAt: string;
   readonly endsAt: string;
   readonly enabled: boolean;
+  readonly admission?: MorroProAdmissionProfile;
 }
 
 export interface TicketingBusinessInventoryRepositoryPort {
@@ -66,6 +78,12 @@ interface BusinessInventoryRow extends RowDataPacket {
   starts_at: Date | string;
   ends_at: Date | string;
   enabled: number | boolean;
+  admission_offering_id: string | null;
+  admission_place_id: string | null;
+  admission_subtype: "sunset" | "event" | "party" | null;
+  admission_ticket_type: string | null;
+  admission_tier_label: string | null;
+  admission_display_order: number | null;
 }
 
 function iso(value: Date | string): string {
@@ -90,6 +108,55 @@ function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function normalizeAdmissionProfile(
+  value: unknown,
+  productKind: "tour" | "business_experience" | "transport",
+): MorroProAdmissionProfile | null {
+  if (value === undefined || value === null) return null;
+  if (productKind !== "business_experience") {
+    throw new Error("MORRO_PRO_ADMISSION_PRODUCT_KIND_INVALID");
+  }
+  const input = record(value);
+  if (!input) throw new Error("MORRO_PRO_ADMISSION_INVALID");
+  const offeringId =
+    typeof input.offeringId === "string" ? input.offeringId.trim() : "";
+  const placeId =
+    typeof input.placeId === "string" ? input.placeId.trim() : "";
+  const subtype =
+    input.subtype === "sunset" ||
+    input.subtype === "event" ||
+    input.subtype === "party"
+      ? input.subtype
+      : null;
+  const ticketType =
+    typeof input.ticketType === "string" ? input.ticketType.trim() : "";
+  const tierLabel =
+    input.tierLabel === undefined || input.tierLabel === null
+      ? null
+      : typeof input.tierLabel === "string"
+        ? input.tierLabel.trim()
+        : "";
+  const displayOrder = asSafeInteger(input.displayOrder ?? 0, 0, 999);
+  if (
+    !ADMISSION_ID.test(offeringId) ||
+    !ADMISSION_ID.test(placeId) ||
+    !subtype ||
+    !ADMISSION_LABEL.test(ticketType) ||
+    (tierLabel !== null && !ADMISSION_LABEL.test(tierLabel)) ||
+    displayOrder === null
+  ) {
+    throw new Error("MORRO_PRO_ADMISSION_INVALID");
+  }
+  return Object.freeze({
+    offeringId,
+    placeId,
+    subtype,
+    ticketType,
+    tierLabel,
+    displayOrder,
+  });
 }
 
 function canonicalBusinessId(value: unknown): string {
@@ -131,6 +198,9 @@ function normalizeOffer(
     typeof value.pricingVersion === "string" && value.pricingVersion.trim()
       ? value.pricingVersion.trim().slice(0, 80)
       : "morro-pro-v1";
+  const admission = productKind
+    ? normalizeAdmissionProfile(value.admission, productKind)
+    : null;
   const unitAmountMinor = asSafeInteger(
     value.unitAmountMinor,
     1,
@@ -183,10 +253,26 @@ function normalizeOffer(
     salesEndAt,
     startsAt,
     endsAt,
+    ...(admission ? { admission } : {}),
   });
 }
 
 function fromRow(row: BusinessInventoryRow): MorroProInventoryOffer {
+  const admission =
+    row.admission_offering_id &&
+    row.admission_place_id &&
+    row.admission_subtype &&
+    row.admission_ticket_type &&
+    row.admission_display_order !== null
+      ? Object.freeze({
+          offeringId: row.admission_offering_id,
+          placeId: row.admission_place_id,
+          subtype: row.admission_subtype,
+          ticketType: row.admission_ticket_type,
+          tierLabel: row.admission_tier_label,
+          displayOrder: row.admission_display_order,
+        })
+      : null;
   return Object.freeze({
     id: row.inventory_id,
     businessId: row.business_id,
@@ -204,12 +290,24 @@ function fromRow(row: BusinessInventoryRow): MorroProInventoryOffer {
     startsAt: iso(row.starts_at),
     endsAt: iso(row.ends_at),
     enabled: Boolean(row.enabled),
+    ...(admission ? { admission } : {}),
   });
 }
 
-const SELECT_OWNED = `SELECT i.*, o.business_id
+const SELECT_OWNED = `SELECT
+    i.*,
+    o.business_id,
+    p.offering_id AS admission_offering_id,
+    p.place_id AS admission_place_id,
+    p.admission_subtype AS admission_subtype,
+    p.ticket_type AS admission_ticket_type,
+    p.tier_label AS admission_tier_label,
+    p.display_order AS admission_display_order
   FROM ticketing_inventory AS i
-  INNER JOIN ticketing_inventory_ownership AS o ON o.inventory_id = i.inventory_id`;
+  INNER JOIN ticketing_inventory_ownership AS o
+    ON o.inventory_id = i.inventory_id
+  LEFT JOIN ticketing_admission_profiles AS p
+    ON p.inventory_id = i.inventory_id`;
 
 async function ownedById(
   connection: PoolConnection,
@@ -308,6 +406,25 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
         ) VALUES (?, ?, ?, ?, ?)`,
         [inventoryId, businessId, input.actorSubject, recordedAt, recordedAt],
       );
+      if (offer.admission) {
+        await connection.execute(
+          `INSERT INTO ticketing_admission_profiles (
+            inventory_id, offering_id, place_id, admission_subtype,
+            ticket_type, tier_label, display_order, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            inventoryId,
+            offer.admission.offeringId,
+            offer.admission.placeId,
+            offer.admission.subtype,
+            offer.admission.ticketType,
+            offer.admission.tierLabel,
+            offer.admission.displayOrder,
+            recordedAt,
+            recordedAt,
+          ],
+        );
+      }
       const created = await ownedById(connection, inventoryId);
       if (!created) throw new Error("MORRO_PRO_CREATE_FAILED");
       await connection.commit();
