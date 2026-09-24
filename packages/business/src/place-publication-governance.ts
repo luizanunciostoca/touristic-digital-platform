@@ -132,7 +132,8 @@ export interface PlaceMutationPolicy {
   readonly reason: string;
 }
 
-export const placeMutationPolicies: readonly PlaceMutationPolicy[] = Object.freeze([
+export const placeMutationPolicies: readonly PlaceMutationPolicy[] =
+  Object.freeze([
   Object.freeze({
     field: "description",
     approval: "auto_publish_eligible" as const,
@@ -163,7 +164,7 @@ export const placeMutationPolicies: readonly PlaceMutationPolicy[] = Object.free
     approval: "review_required" as const,
     reason: "Destination scope is tenant/geographic authority.",
   }),
-]);
+  ]);
 
 function text(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
@@ -186,18 +187,72 @@ export function validatePlaceForPublication(
   data: GovernedPlaceRevisionData,
 ): readonly PlacePublicationValidationIssue[] {
   const issues: PlacePublicationValidationIssue[] = [];
-  if (!text(data.name)) issues.push({ code: "NAME_REQUIRED", field: "name", severity: "required" });
-  if (!text(data.categoryId)) issues.push({ code: "CATEGORY_REQUIRED", field: "categoryId", severity: "required" });
-  if (!text(data.destinationId)) issues.push({ code: "DESTINATION_REQUIRED", field: "destinationId", severity: "required" });
-  if (!text(data.businessId)) issues.push({ code: "BUSINESS_REQUIRED", field: "businessId", severity: "required" });
-  if (!text(data.description)) issues.push({ code: "DESCRIPTION_REQUIRED", field: "description", severity: "required" });
-  if (!validCoordinates(data.location)) issues.push({ code: "VALID_COORDINATES_REQUIRED", field: "location", severity: "required" });
+  if (!text(data.name)) {
+    issues.push({ code: "NAME_REQUIRED", field: "name", severity: "required" });
+  }
+  if (!text(data.categoryId)) {
+    issues.push({
+      code: "CATEGORY_REQUIRED",
+      field: "categoryId",
+      severity: "required",
+    });
+  }
+  if (!text(data.destinationId)) {
+    issues.push({
+      code: "DESTINATION_REQUIRED",
+      field: "destinationId",
+      severity: "required",
+    });
+  }
+  if (!text(data.businessId)) {
+    issues.push({
+      code: "BUSINESS_REQUIRED",
+      field: "businessId",
+      severity: "required",
+    });
+  }
+  if (!text(data.description)) {
+    issues.push({
+      code: "DESCRIPTION_REQUIRED",
+      field: "description",
+      severity: "required",
+    });
+  }
+  if (!validCoordinates(data.location)) {
+    issues.push({
+      code: "VALID_COORDINATES_REQUIRED",
+      field: "location",
+      severity: "required",
+    });
+  }
 
-  if (!text(data.coverMediaId)) issues.push({ code: "COVER_RECOMMENDED", field: "coverMediaId", severity: "recommended" });
-  if (!data.openingHoursPresent) issues.push({ code: "HOURS_RECOMMENDED", field: "openingHours", severity: "recommended" });
-  if (!data.contactPresent) issues.push({ code: "CONTACT_RECOMMENDED", field: "contact", severity: "recommended" });
+  if (!text(data.coverMediaId)) {
+    issues.push({
+      code: "COVER_RECOMMENDED",
+      field: "coverMediaId",
+      severity: "recommended",
+    });
+  }
+  if (!data.openingHoursPresent) {
+    issues.push({
+      code: "HOURS_RECOMMENDED",
+      field: "openingHours",
+      severity: "recommended",
+    });
+  }
+  if (!data.contactPresent) {
+    issues.push({
+      code: "CONTACT_RECOMMENDED",
+      field: "contact",
+      severity: "recommended",
+    });
+  }
   if (data.capabilities.enabled.includes("menu") && !data.menuPresent) {
-    issues.push({ code: "MENU_RECOMMENDED", field: "menu", severity: "recommended" });
+    issues.push({
+      code: "MENU_RECOMMENDED",
+      field: "menu",
+      severity: "recommended",
+    });
   }
   return Object.freeze(issues);
 }
@@ -230,9 +285,15 @@ function assertImmutableScope(
   record: GovernedPlaceRecord,
   data: GovernedPlaceRevisionData,
 ): void {
-  if (data.placeId !== record.placeId) throw publicationError("PLACE_ID_MISMATCH");
-  if (data.businessId !== record.businessId) throw publicationError("CROSS_BUSINESS_MUTATION");
-  if (data.destinationId !== record.destinationId) throw publicationError("CROSS_DESTINATION_MUTATION");
+  if (data.placeId !== record.placeId) {
+    throw publicationError("PLACE_ID_MISMATCH");
+  }
+  if (data.businessId !== record.businessId) {
+    throw publicationError("CROSS_BUSINESS_MUTATION");
+  }
+  if (data.destinationId !== record.destinationId) {
+    throw publicationError("CROSS_DESTINATION_MUTATION");
+  }
 }
 
 async function validateExternalAuthorities(
@@ -247,7 +308,13 @@ async function validateExternalAuthorities(
       throw publicationError("UNAUTHORIZED_MEDIA");
     }
   }
-  if (data.coverMediaId && !(await catalog.mediaBelongsToBusiness(data.businessId, data.coverMediaId))) {
+  if (
+    data.coverMediaId &&
+    !(await catalog.mediaBelongsToBusiness(
+      data.businessId,
+      data.coverMediaId,
+    ))
+  ) {
     throw publicationError("UNAUTHORIZED_MEDIA");
   }
   for (const capability of data.capabilities.enabled) {
@@ -266,7 +333,8 @@ async function audit(
   reason: string | null,
   afterRevision: number | null,
 ): Promise<void> {
-  await port.record(Object.freeze({
+  await port.record(
+    Object.freeze({
     actor: context.session?.subject ?? "anonymous",
     role: context.session ? canonicalAuthRole(context.session.role) : "ANONYMOUS",
     businessId: record.businessId,
@@ -278,8 +346,9 @@ async function audit(
     timestamp: context.now,
     correlationId: context.correlationId,
     result,
-    reason,
-  }));
+      reason,
+    }),
+  );
 }
 
 export function publicPlaceProjection(
@@ -330,10 +399,28 @@ export function createPlacePublicationService(
           updatedAt: context.now,
         });
         const saved = await repository.saveDraft(next, expectedRevision);
-        await audit(auditPort, context, record, "place.revision.save", "success", null, saved.editableRevision.revision);
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.revision.save",
+          "success",
+          null,
+          saved.editableRevision.revision,
+        );
         return saved;
       } catch (error) {
-        await audit(auditPort, context, record, "place.revision.save", error instanceof Error && error.message.includes("STALE_REVISION") ? "conflict" : "denied", error instanceof Error ? error.message : "UNKNOWN", null);
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.revision.save",
+          error instanceof Error && error.message.includes("STALE_REVISION")
+            ? "conflict"
+            : "denied",
+          error instanceof Error ? error.message : "UNKNOWN",
+          null,
+        );
         throw error;
       }
     },
@@ -347,16 +434,42 @@ export function createPlacePublicationService(
       if (!record) throw publicationError("NOT_FOUND");
       try {
         assertActiveSession(context, record.businessId);
-        if (record.editableRevision.revision !== expectedRevision) throw publicationError("STALE_REVISION");
+        if (record.editableRevision.revision !== expectedRevision) {
+          throw publicationError("STALE_REVISION");
+        }
         assertImmutableScope(record, record.editableRevision.data);
-        const requiredIssues = validatePlaceForPublication(record.editableRevision.data).filter((issue) => issue.severity === "required");
-        if (requiredIssues.length) throw publicationError("REQUIRED_FIELDS_INVALID");
+        const requiredIssues = validatePlaceForPublication(
+          record.editableRevision.data,
+        ).filter((issue) => issue.severity === "required");
+        if (requiredIssues.length) {
+          throw publicationError("REQUIRED_FIELDS_INVALID");
+        }
         await validateExternalAuthorities(catalog, record.editableRevision.data);
-        const next = await repository.setState(record.placeId, "review", expectedRevision);
-        await audit(auditPort, context, record, "place.review.request", "success", null, expectedRevision);
+        const next = await repository.setState(
+          record.placeId,
+          "review",
+          expectedRevision,
+        );
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.review.request",
+          "success",
+          null,
+          expectedRevision,
+        );
         return next;
       } catch (error) {
-        await audit(auditPort, context, record, "place.review.request", "invalid", error instanceof Error ? error.message : "UNKNOWN", null);
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.review.request",
+          "invalid",
+          error instanceof Error ? error.message : "UNKNOWN",
+          null,
+        );
         throw error;
       }
     },
@@ -371,11 +484,19 @@ export function createPlacePublicationService(
       try {
         assertActiveSession(context, record.businessId);
         assertPlatformPublisher(context);
-        if (record.publicationState !== "review") throw publicationError("NOT_READY_FOR_PUBLICATION");
-        if (record.editableRevision.revision !== expectedRevision) throw publicationError("STALE_REVISION");
+        if (record.publicationState !== "review") {
+          throw publicationError("NOT_READY_FOR_PUBLICATION");
+        }
+        if (record.editableRevision.revision !== expectedRevision) {
+          throw publicationError("STALE_REVISION");
+        }
         assertImmutableScope(record, record.editableRevision.data);
-        const requiredIssues = validatePlaceForPublication(record.editableRevision.data).filter((issue) => issue.severity === "required");
-        if (requiredIssues.length) throw publicationError("REQUIRED_FIELDS_INVALID");
+        const requiredIssues = validatePlaceForPublication(
+          record.editableRevision.data,
+        ).filter((issue) => issue.severity === "required");
+        if (requiredIssues.length) {
+          throw publicationError("REQUIRED_FIELDS_INVALID");
+        }
         await validateExternalAuthorities(catalog, record.editableRevision.data);
 
         const next: GovernedPlaceRecord = Object.freeze({
@@ -390,10 +511,28 @@ export function createPlacePublicationService(
           next,
           publicProjection: record.editableRevision.data,
         });
-        await audit(auditPort, context, record, "place.publish", "success", null, expectedRevision);
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.publish",
+          "success",
+          null,
+          expectedRevision,
+        );
         return published;
       } catch (error) {
-        await audit(auditPort, context, record, "place.publish", error instanceof Error && error.message.includes("STALE_REVISION") ? "conflict" : "denied", error instanceof Error ? error.message : "UNKNOWN", null);
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.publish",
+          error instanceof Error && error.message.includes("STALE_REVISION")
+            ? "conflict"
+            : "denied",
+          error instanceof Error ? error.message : "UNKNOWN",
+          null,
+        );
         throw error;
       }
     },
@@ -407,9 +546,23 @@ export function createPlacePublicationService(
       if (!record) throw publicationError("NOT_FOUND");
       assertActiveSession(context, record.businessId);
       assertPlatformPublisher(context);
-      if (record.editableRevision.revision !== expectedRevision) throw publicationError("STALE_REVISION");
-      const next = await repository.setState(placeId, "suspended", expectedRevision);
-      await audit(auditPort, context, record, "place.suspend", "success", null, expectedRevision);
+      if (record.editableRevision.revision !== expectedRevision) {
+        throw publicationError("STALE_REVISION");
+      }
+      const next = await repository.setState(
+        placeId,
+        "suspended",
+        expectedRevision,
+      );
+      await audit(
+        auditPort,
+        context,
+        record,
+        "place.suspend",
+        "success",
+        null,
+        expectedRevision,
+      );
       return next;
     },
 
@@ -422,9 +575,23 @@ export function createPlacePublicationService(
       if (!record) throw publicationError("NOT_FOUND");
       assertActiveSession(context, record.businessId);
       assertPlatformPublisher(context);
-      if (record.editableRevision.revision !== expectedRevision) throw publicationError("STALE_REVISION");
-      const next = await repository.setState(placeId, "archived", expectedRevision);
-      await audit(auditPort, context, record, "place.archive", "success", null, expectedRevision);
+      if (record.editableRevision.revision !== expectedRevision) {
+        throw publicationError("STALE_REVISION");
+      }
+      const next = await repository.setState(
+        placeId,
+        "archived",
+        expectedRevision,
+      );
+      await audit(
+        auditPort,
+        context,
+        record,
+        "place.archive",
+        "success",
+        null,
+        expectedRevision,
+      );
       return next;
     },
   });
