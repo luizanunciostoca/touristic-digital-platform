@@ -17,7 +17,8 @@ if (
 }
 
 const seen = new Set();
-const shaSensitivePattern = /\bGITHUB_SHA\b|github\.sha|releaseSha|expected_sha/i;
+const shaSensitivePattern =
+  /\bGITHUB_SHA\b|github\.sha|releaseSha|expected_sha/i;
 
 for (const suite of manifest.suites) {
   if (!suite || typeof suite.workflow !== "string") {
@@ -40,7 +41,10 @@ for (const suite of manifest.suites) {
     throw new Error(`Workflow is not manually dispatchable: ${suite.workflow}`);
   }
 
-  if (suite.reuse_tree_equivalent === true && shaSensitivePattern.test(source)) {
+  if (
+    suite.reuse_tree_equivalent === true &&
+    shaSensitivePattern.test(source)
+  ) {
     throw new Error(
       `Workflow marked tree-reusable contains SHA-sensitive tokens: ${suite.workflow}`,
     );

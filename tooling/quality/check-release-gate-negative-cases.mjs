@@ -74,14 +74,19 @@ for (const marker of [
   'test "$acceptance_state" = "success"',
   'test "$current_main_sha" = "$CERTIFIED_SHA"',
 ]) {
-  assert.ok(\n    pages.includes(marker),\n    `Pages fail-closed marker missing: ${marker}`,\n  );
+  assert.ok(
+    pages.includes(marker),
+    `Pages fail-closed marker missing: ${marker}`,
+  );
 }
 assert.ok(
   !/^  (push|pull_request):/m.test(pages),
   "Pages workflow must not deploy directly from push/pull_request",
 );
 
-const acceptance = await source(\n  ".github/workflows/final-release-acceptance.yml",\n);
+const acceptance = await source(
+  ".github/workflows/final-release-acceptance.yml",
+);
 for (const marker of [
   'candidate_tree="$(commit_tree "$candidate_sha")"',
   'if [ "$candidate_tree" = "$CURRENT_TREE" ]; then',
@@ -101,7 +106,9 @@ for (const path of [
 ]) {
   const workflow = await source(path);
   assert.ok(
-    workflow.includes(\n      ".source_sha == $sha and .tree_sha == $tree and .digest == $digest",\n    ),
+    workflow.includes(
+      ".source_sha == $sha and .tree_sha == $tree and .digest == $digest",
+    ),
     `${path} must bind provenance to SHA, tree and digest`,
   );
   assert.ok(

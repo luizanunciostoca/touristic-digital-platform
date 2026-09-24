@@ -252,7 +252,7 @@ requireIncludes(
     "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa",
     "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346",
     "git/ref/heads/main",
-    "test \"$acceptance_state\" = \"success\"",
+    'test "$acceptance_state" = "success"',
     "pages / deploy certified SHA",
   ],
 );
