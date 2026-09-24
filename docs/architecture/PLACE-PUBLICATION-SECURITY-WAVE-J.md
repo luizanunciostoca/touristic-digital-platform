@@ -227,3 +227,5 @@ Not implemented:
 - Media implementation;
 - merge;
 - deployment.
+
+Validation checkpoint: exact-head CI must pass on the permanent source tree after temporary formatting helpers are removed.
