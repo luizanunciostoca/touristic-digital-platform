@@ -1,4 +1,5 @@
 name: Temporary Wave Prettier
+# second sync trigger
 
 on:
   workflow_dispatch:
