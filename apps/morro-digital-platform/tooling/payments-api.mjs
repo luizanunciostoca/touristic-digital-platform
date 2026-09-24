@@ -221,6 +221,13 @@ function safeStartupFailureCode(error) {
       : "";
   if (/^[A-Z0-9_]{2,120}$/u.test(message)) return message;
 
+  const knownRequiredConfiguration = new Map([
+    ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
+    ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
+  ]);
+  const mapped = knownRequiredConfiguration.get(message);
+  if (mapped) return mapped;
+
   return "PAYMENTS_RUNTIME_START_UNCLASSIFIED";
 }
 
