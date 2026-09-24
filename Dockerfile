@@ -33,7 +33,12 @@ RUN pnpm build && pnpm install --frozen-lockfile --prod
 # shipping npm/pnpm dependency trees that are not part of the application.
 FROM node:22.23.2-trixie-slim AS production
 WORKDIR /app
-ENV NODE_ENV=production
+
+ARG MORRO_RELEASE_SHA=unknown
+ARG MORRO_RELEASE_VERSION=unknown
+ENV NODE_ENV=production \
+    MORRO_RELEASE_SHA=$MORRO_RELEASE_SHA \
+    MORRO_RELEASE_VERSION=$MORRO_RELEASE_VERSION
 
 RUN set -eux; \
     apt-get update; \

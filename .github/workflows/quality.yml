@@ -5,6 +5,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
   push:
     branches: [main]
+  merge_group:
   workflow_dispatch:
 
 permissions:
@@ -74,6 +75,8 @@ jobs:
         run: pnpm secret-patterns:check
       - name: Validate CI and repository governance contracts
         run: pnpm ci:governance:check
+      - name: Release gate negative contracts
+        run: pnpm release:gates:negative-check
       - name: Enforce workflow supply chain
         run: pnpm ci:supply-chain:strict
       - name: Lint

@@ -93,7 +93,8 @@ jobs:
           pnpm secret-patterns:check
           pnpm ci:governance:check
           pnpm ci:supply-chain:strict
-          pnpm build
+          # Build authority is release-promotion-gate.yml for this exact SHA.
+          # Production re-proves that upstream gate above instead of rebuilding.
 
   deploy:
     name: production / deploy

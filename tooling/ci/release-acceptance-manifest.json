@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "description": "Deterministic release-acceptance suites. Tree-equivalent evidence may be reused only when the workflow is SHA-insensitive and the tested source tree is byte-identical to the current main tree.",
+  "suites": [
+    {
+      "workflow": "assistant-photo-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "assistant-input-menu-flow-v1-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "assistant-v1-residual-command-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "assistant-voice-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "auth-login-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-dashboard-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-live-runtime-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-adapter-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-commercial-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-lifecycle-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-profile-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-route-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-onboarding-workspace-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "business-production-profile-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "crm-equivalence-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "crm-lead-detail-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "home-first-run-browser-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "v1-home-parity-browser-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "v1-home-responsive-browser-regression.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "v1-explore-locations-browser-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "v1-tour-assistant-visibility-browser-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "v1-tour-responsive-browser-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "map-provider-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "map-tour-browser-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "mapbox-visual-contract-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "place-explore-v2-visual-regression.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "ticketing-v2-visual-regression.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "ux-v2-component-state-visual-regression.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "ux-v2-manual-golden-conformance.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "pwa-offline-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "morro-performance-budget.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "morro-runtime-startup-performance.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "navigation-accessibility-baseline.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "navigation-visual-baseline.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "payments-browser-checkout-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "search-browser-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "shell-v1-i18n-browser-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "weather-v1-i18n-browser-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "assistant-input-v1-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "assistant-place-actions-v1-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "commerce-browser-regression.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "v1-assistant-single-message-poi-markers.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "navigation-end-main-menu-v1-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "navigation-turn-by-turn-parity.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "ticketing-m147-contract.yml",
+      "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "ticketing-m148-transaction-contract.yml",
+      "reuse_tree_equivalent": true
+    }
+  ]
+}

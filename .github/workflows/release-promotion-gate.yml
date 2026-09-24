@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: release-promotion-${{ inputs.expected_sha }}
@@ -39,6 +40,24 @@ jobs:
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
           REMOTE_MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           test "$REMOTE_MAIN_SHA" = "$EXPECTED_SHA"
+      - name: Re-prove Final Release Acceptance for exact SHA
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id="$(gh run list \
+            --workflow final-release-acceptance.yml \
+            --branch main \
+            --commit "$EXPECTED_SHA" \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')"
+          test -n "$run_id"
+          echo "PASS: final-release-acceptance.yml run $run_id @ $EXPECTED_SHA"
+
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -48,7 +67,9 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Validate canonical Platform contracts
-        run: pnpm platform:contracts:check
+        run: |
+          pnpm release:acceptance-manifest:check
+          pnpm platform:contracts:check
       - name: Build release candidate
         run: pnpm build
       - name: Start local release candidate
