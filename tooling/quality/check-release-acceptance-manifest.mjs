@@ -5,7 +5,7 @@ const root = process.cwd();
 const manifestPath = path.join(root, "tooling/ci/release-acceptance-manifest.json");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 
-if (manifest.version !== 1 || !Array.isArray(manifest.suites) || manifest.suites.length === 0) {
+if (\n  manifest.version !== 1 ||\n  !Array.isArray(manifest.suites) ||\n  manifest.suites.length === 0\n) {
   throw new Error("Invalid release acceptance manifest.");
 }
 
@@ -14,7 +14,7 @@ const shaSensitivePattern = /\bGITHUB_SHA\b|github\.sha|releaseSha|expected_sha/
 
 for (const suite of manifest.suites) {
   if (!suite || typeof suite.workflow !== "string") {
-    throw new Error("Every release acceptance suite requires a workflow filename.");
+    throw new Error(\n      "Every release acceptance suite requires a workflow filename.",\n    );
   }
   if (seen.has(suite.workflow)) {
     throw new Error(`Duplicate release acceptance workflow: ${suite.workflow}`);
