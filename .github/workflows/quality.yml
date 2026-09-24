@@ -55,7 +55,7 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-node22-${{ hashFiles('pnpm-lock.yaml', 'turbo.json', 'eslint.config.mjs', 'tsconfig.base.json') }}-
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check formatting
