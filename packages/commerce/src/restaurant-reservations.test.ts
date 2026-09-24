@@ -62,6 +62,18 @@ describe("restaurant reservation domain", () => {
     ).toBeNull();
   });
 
+  it("rejects impossible civil service dates", () => {
+    expect(
+      createRestaurantReservation(
+        reservation({
+          serviceDate: "2026-02-31",
+          startsAt: "2026-02-28T22:00:00.000Z",
+          endsAt: "2026-03-01T00:00:00.000Z",
+        }),
+      ),
+    ).toBeNull();
+  });
+
   it("requires active holds to expire before service starts", () => {
     expect(
       createRestaurantReservation(
@@ -94,6 +106,51 @@ describe("restaurant reservation domain", () => {
             kind: "required",
             amount: { minorUnits: 5000, currency: "BRL" },
           },
+        }),
+      ),
+    ).toBeNull();
+
+    expect(
+      createRestaurantReservation(
+        reservation({
+          status: "confirmed",
+          holdExpiresAt: null,
+          depositPolicy: {
+            kind: "required",
+            amount: { minorUnits: 5000, currency: "BRL" },
+          },
+        }),
+      ),
+    ).toBeNull();
+
+    expect(
+      createRestaurantReservation(
+        reservation({
+          status: "confirmed",
+          holdExpiresAt: null,
+          orderId: "ord_restaurant_0001",
+          paymentId: "pay_restaurant_0001",
+          depositPolicy: {
+            kind: "required",
+            amount: { minorUnits: 5000, currency: "BRL" },
+          },
+        }),
+      ),
+    ).toMatchObject({
+      status: "confirmed",
+      orderId: "ord_restaurant_0001",
+      paymentId: "pay_restaurant_0001",
+    });
+  });
+
+  it("never attaches financial identities to a no-deposit reservation", () => {
+    expect(
+      createRestaurantReservation(
+        reservation({
+          status: "confirmed",
+          holdExpiresAt: null,
+          orderId: "ord_fake_0001",
+          paymentId: "pay_fake_0001",
         }),
       ),
     ).toBeNull();
