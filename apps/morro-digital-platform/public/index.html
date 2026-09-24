@@ -1,1 +1,126 @@
 <!doctype html>
+<html lang="pt" data-theme="light" data-destination-theme="morro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-icon-192.png" />
+    <link rel="apple-touch-icon" href="/pwa-icon-192.png" />
+    <meta
+      name="description"
+      content="Guia digital interativo de Morro de São Paulo"
+    />
+    <title>Morro de São Paulo Digital</title>
+    <!-- Vendor styles: external libraries own their namespaces only. -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Frozen/transitional V1 compatibility. -->
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/styles.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/legacy/legacy.bundle.css"
+    />
+
+    <!-- V2 authority: canonical tokens and shared foundations precede consumers. -->
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/design-system-v2.css"
+    />
+
+    <!-- Feature consumers. Unmigrated V1 bridges remain explicit and isolated. -->
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/commerce.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/assistant-photo-carousel.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/explore-locations.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/navigation-map.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/v1-tour-assistant-visibility.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/v1-weather-runtime-parity.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/privacy-preferences.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/assistant-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/premium-ux-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/onboarding-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/tourist-shell-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/profile-settings-row-fix.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "@touristic/analytics": "/packages/analytics/dist/index.js",
+          "@touristic/assistant": "/packages/assistant/dist/index.js",
+          "@touristic/core": "/packages/core/dist/index.js",
+          "@touristic/geospatial": "/packages/geospatial/dist/index.js",
+          "@touristic/navigation": "/packages/navigation/dist/index.js",
+          "@touristic/search": "/packages/search/dist/index.js"
+        }
+      }
+    </script>
+    <script src="/runtime-config.js"></script>
+    <script type="module" src="/pwa-register.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script
+      type="module"
+      src="/apps/morro-digital-platform/public/assistant-input-v1-parity.js"
+    ></script>
+    <script
+      type="module"
+      src="/apps/morro-digital-platform/dist/browser-entry.js"
+    ></script>
+  </body>
+</html>
