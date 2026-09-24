@@ -75,8 +75,11 @@ describe("affiliate portal browser client", () => {
       "/api/affiliates/v1/referral-links",
       expect.objectContaining({
         credentials: "same-origin",
-        headers: expect.objectContaining({ "X-CSRF-Token": "csrf-token" }),
       }),
+    );
+    const requestInit = secureFetch.mock.calls[0]?.[1] as unknown as RequestInit;
+    expect(new Headers(requestInit.headers).get("X-CSRF-Token")).toBe(
+      "csrf-token",
     );
   });
   it("loads only the authenticated server projection", async () => {
