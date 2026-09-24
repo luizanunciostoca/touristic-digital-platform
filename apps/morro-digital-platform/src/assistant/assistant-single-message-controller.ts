@@ -101,7 +101,10 @@ export function installAssistantSingleMessageController({
         const navigationFeedback =
           latestDynamicMessage.dataset.messageType ===
           NAVIGATION_FEEDBACK_MESSAGE_TYPE;
-        if (navigationFeedback) {
+        const nonBlockingContext =
+          latestDynamicMessage.dataset.messageType === "contextual_state" &&
+          latestDynamicMessage.dataset.contextualNonBlocking === "true";
+        if (navigationFeedback || nonBlockingContext) {
           delete shellOptions?.dataset.singleMessageHidden;
           setHidden(shellOptions, false);
           return;
