@@ -67,6 +67,35 @@ test("staging promotion is exclusively bound to canonical V2 staging", async () 
   assert.ok(!/secrets\.RENDER_CANONICAL_URL\b/u.test(staging));
 });
 
+test("staging OCI promotion is bound to the same canonical Render service", async () => {
+  const workflows = await workflowSources();
+  const stagingOci = workflows.get("staging-oci-promotion.yml");
+  assert.ok(stagingOci, "staging-oci-promotion.yml must exist");
+
+  for (const marker of [
+    "RENDER_STAGING_API_KEY",
+    "RENDER_STAGING_SERVICE_ID",
+    "RENDER_STAGING_CANONICAL_URL",
+    `EXPECTED_STAGING_SERVICE_ID: ${CANONICAL_STAGING.serviceId}`,
+    `EXPECTED_STAGING_SERVICE_NAME: ${CANONICAL_STAGING.serviceName}`,
+    `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
+    "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID",
+    "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys/$DEPLOY_ID",
+  ]) {
+    assert.ok(
+      stagingOci.includes(marker),
+      `staging OCI target proof missing marker: ${marker}`,
+    );
+  }
+
+  for (const forbidden of FORBIDDEN_STAGING_TARGETS) {
+    assert.ok(
+      !stagingOci.includes(forbidden),
+      `staging OCI workflow references forbidden target: ${forbidden}`,
+    );
+  }
+});
+
 test("Final Release Acceptance consumes structured staging target evidence", async () => {
   const workflows = await workflowSources();
   const acceptance = workflows.get("final-release-acceptance.yml");
