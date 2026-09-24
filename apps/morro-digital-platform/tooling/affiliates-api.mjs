@@ -577,7 +577,9 @@ export function createAffiliatesApi({
         !runtimeDependencies.createApplication;
       const server =
         runtimeDependencies.serverModule ??
-        (needsServerModule ? await import("@touristic/affiliates-server") : null);
+        (needsServerModule
+          ? await import("@touristic/affiliates-server")
+          : null);
       const createPool =
         runtimeDependencies.createPool ?? server.createAffiliatePool;
       const applySchema =
