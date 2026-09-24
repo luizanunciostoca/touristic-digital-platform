@@ -1,7 +1,6 @@
 export const businessCmsContract = Object.freeze({
   list: "/businesses/cms",
-  detail: (businessId) =>
-    `/businesses/${encodeURIComponent(businessId)}/cms`,
+  detail: (businessId) => `/businesses/${encodeURIComponent(businessId)}/cms`,
   create: "/businesses/cms",
   updateProfile: (businessId) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/profile`,
@@ -23,9 +22,7 @@ function safeArray(value) {
 }
 
 function statusLabel(value) {
-  return (
-    lifecycleLabels[String(value ?? "").toLowerCase()] ?? value ?? "Draft"
-  );
+  return lifecycleLabels[String(value ?? "").toLowerCase()] ?? value ?? "Draft";
 }
 
 function isCmsContractUnavailable(error) {
@@ -111,11 +108,7 @@ function filterMarkup(model, escapeHtml) {
           Localização
           <select name="locationStatus">
             <option value="">Todas</option>
-            ${option(
-              "confirmed",
-              "Confirmada",
-              model.filters?.locationStatus,
-            )}
+            ${option("confirmed", "Confirmada", model.filters?.locationStatus)}
             ${option("pending", "Pendente", model.filters?.locationStatus)}
             ${option(
               "missing",
@@ -390,12 +383,14 @@ function detailTabs(detail, escapeHtml, canMutate) {
       `<section class="card section-card">
         <h2>Equipe</h2>
         <div class="module-list">
-          ${team
-            .map(
-              (member) =>
-                `<div class="module-row"><span>${escapeHtml(member.email ?? member.id)}</span><strong>${escapeHtml(member.role ?? "")}</strong></div>`,
-            )
-            .join("") || '<div class="empty">Nenhum membro projetado.</div>'}
+          ${
+            team
+              .map(
+                (member) =>
+                  `<div class="module-row"><span>${escapeHtml(member.email ?? member.id)}</span><strong>${escapeHtml(member.role ?? "")}</strong></div>`,
+              )
+              .join("") || '<div class="empty">Nenhum membro projetado.</div>'
+          }
         </div>
       </section>`,
     ],
@@ -405,13 +400,16 @@ function detailTabs(detail, escapeHtml, canMutate) {
       `<section class="card section-card">
         <h2>Auditoria</h2>
         <div class="module-list">
-          ${audit
-            .slice(0, 30)
-            .map(
-              (entry) =>
-                `<div class="module-row"><span>${escapeHtml(entry.action)}</span><strong>${escapeHtml(entry.result ?? "")} · ${escapeHtml(entry.timestamp ?? "")}</strong></div>`,
-            )
-            .join("") || '<div class="empty">Nenhum evento no recorte atual.</div>'}
+          ${
+            audit
+              .slice(0, 30)
+              .map(
+                (entry) =>
+                  `<div class="module-row"><span>${escapeHtml(entry.action)}</span><strong>${escapeHtml(entry.result ?? "")} · ${escapeHtml(entry.timestamp ?? "")}</strong></div>`,
+              )
+              .join("") ||
+            '<div class="empty">Nenhum evento no recorte atual.</div>'
+          }
         </div>
       </section>`,
     ],
