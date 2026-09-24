@@ -228,15 +228,19 @@ export function createRestaurantReservation(input: {
     (holdExpiresAt !== null &&
       Date.parse(holdExpiresAt) >= Date.parse(startsAt)) ||
     (depositPolicy.kind === "required" &&
-      status !== "held" &&
-      status !== "confirmed" &&
-      status !== "cancelled" &&
-      status !== "expired") ||
-    (status === "confirmed" &&
-      depositPolicy.kind === "required" &&
+      status === "pending_confirmation") ||
+    (depositPolicy.kind === "required" &&
+      (status === "confirmed" ||
+        status === "completed" ||
+        status === "no_show") &&
       (!orderId || !paymentId)) ||
-    (depositPolicy.kind === "none" && (orderId !== null || paymentId !== null)) ||
-    (status !== "confirmed" && (orderId !== null || paymentId !== null))
+    (depositPolicy.kind === "required" &&
+      (status === "held" || status === "expired") &&
+      (orderId !== null || paymentId !== null)) ||
+    (depositPolicy.kind === "required" &&
+      status === "cancelled" &&
+      ((orderId === null) !== (paymentId === null))) ||
+    (depositPolicy.kind === "none" && (orderId !== null || paymentId !== null))
   ) {
     return null;
   }
