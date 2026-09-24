@@ -1,5 +1,6 @@
 import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-router.js";
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
+import { createAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 
 export type AssistantContextualState =
   | "category_selected"
@@ -14,6 +15,7 @@ export type AssistantContextualState =
   | "payment_declined"
   | "timeout"
   | "offline"
+  | "online_restored"
   | "provider_error"
   | "geolocation_allowed"
   | "geolocation_denied";
@@ -50,11 +52,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
 > = Object.freeze({
   pt: Object.freeze({
     category_selected: copy(
-      "Categoria selecionada: {{category}}. Escolha um filtro para refinar os resultados.",
+      "{{category}}, ótima escolha. Quer ver todas as opções ou prefere filtrar primeiro?",
       "Ver filtros",
     ),
     results_found: copy(
-      "Encontrei {{count}} opções para você. Escolha um lugar para ver os detalhes.",
+      "Perfeito. Encontrei {{count}} opções para você. Quer escolher uma delas agora?",
       "Ver lugares",
     ),
     no_results: copy(
@@ -62,27 +64,27 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Alterar filtros",
     ),
     place_selected: copy(
-      "{{place}} selecionado. Veja os detalhes e escolha a próxima ação.",
+      "Essa é {{place}}. Posso te levar até lá ou você pode ver mais informações primeiro.",
       "Ver ações",
     ),
     action_available: copy(
-      "As ações disponíveis para {{place}} estão prontas.",
-      "Escolher ação",
+      "O que você quer fazer em {{place}} agora?",
+      "Ver opções",
     ),
     navigation_starting: copy(
-      "Preparando a rota até {{place}}.",
+      "Perfeito, vou preparar a rota para {{place}}.",
       "Iniciar navegação",
     ),
     navigation_active: copy(
-      "Navegação ativa até {{place}}. Siga as orientações do mapa.",
+      "Estamos a caminho de {{place}}. Continue seguindo o mapa.",
       null,
     ),
     payment_started: copy(
-      "Pagamento iniciado com segurança. Aguarde a confirmação antes de sair desta etapa.",
+      "Tudo certo, o pagamento foi iniciado. Vou acompanhar a confirmação por aqui.",
       null,
     ),
     payment_approved: copy(
-      "Pagamento aprovado. A confirmação da sua compra já está disponível.",
+      "Pagamento confirmado. Sua compra está concluída.",
       "Ver confirmação",
     ),
     payment_declined: copy(
@@ -94,7 +96,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Tentar novamente",
     ),
     offline: copy(
-      "Você está offline. Algumas informações salvas continuam disponíveis, mas ações online ficam pausadas.",
+      "Parece que a conexão caiu. O que já carregou continua disponível; aviso quando voltarmos online.",
+      null,
+    ),
+    online_restored: copy(
+      "Conexão de volta. Podemos continuar de onde paramos.",
       null,
     ),
     provider_error: copy(
@@ -102,11 +108,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Tentar novamente",
     ),
     geolocation_allowed: copy(
-      "Localização permitida. Agora posso usar sua posição para melhorar mapa e rotas.",
+      "Perfeito, agora consigo ordenar os lugares pela sua posição.",
       null,
     ),
     geolocation_denied: copy(
-      "Localização não permitida. Você ainda pode explorar e escolher lugares manualmente.",
+      "Tudo bem. Você pode continuar explorando normalmente e escolher sua localização manualmente.",
       "Explorar sem localização",
     ),
   }),
@@ -156,7 +162,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Try again",
     ),
     offline: copy(
-      "You’re offline. Some saved information remains available, but online actions are paused.",
+      "It looks like the connection dropped. What is already loaded remains available; I’ll let you know when we’re back online.",
+      null,
+    ),
+    online_restored: copy(
+      "We’re back online. We can continue from where we left off.",
       null,
     ),
     provider_error: copy(
@@ -218,7 +228,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Intentar de nuevo",
     ),
     offline: copy(
-      "Estás sin conexión. Parte de la información guardada sigue disponible, pero las acciones en línea están pausadas.",
+      "Parece que se perdió la conexión. Lo que ya cargó sigue disponible; te aviso cuando volvamos a estar en línea.",
+      null,
+    ),
+    online_restored: copy(
+      "La conexión volvió. Podemos continuar donde lo dejamos.",
       null,
     ),
     provider_error: copy(
@@ -274,7 +288,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "נסה שוב",
     ),
     offline: copy(
-      "אין חיבור לרשת. חלק מהמידע השמור עדיין זמין, אך פעולות מקוונות מושהות.",
+      "נראה שהחיבור נותק. מה שכבר נטען עדיין זמין; אעדכן כשהחיבור יחזור.",
+      null,
+    ),
+    online_restored: copy(
+      "החיבור חזר. אפשר להמשיך מהמקום שבו עצרנו.",
       null,
     ),
     provider_error: copy(
@@ -460,6 +478,7 @@ export function installAssistantContextualMessaging(
   let destroyed = false;
   let lastGlobalState: AssistantContextualState | null = null;
   let networkOffline = false;
+  const conversation = createAssistantConversationOrchestrator();
 
   const language = (): AssistantContextualLanguage =>
     normalizeAssistantContextualLanguage(options.document.documentElement.lang);
@@ -506,11 +525,45 @@ export function installAssistantContextualMessaging(
       variables,
       language(),
     );
+    const turn = conversation.transition({
+      cause: state,
+      messageKey: state,
+      renderedText: rendered.message,
+      voiceText: rendered.voiceCopy,
+      source: area === "navigation" ? "navigation" : "contextual",
+      ...(variables.category ? { category: variables.category } : {}),
+      ...(variables.place
+        ? {
+            place: variables.place,
+            navigationDestination:
+              state === "navigation_starting" || state === "navigation_active"
+                ? variables.place
+                : undefined,
+          }
+        : {}),
+      ...(Number.isFinite(variables.count)
+        ? { resultCount: Number(variables.count) }
+        : {}),
+      ...(state === "offline"
+        ? { networkState: "offline" as const }
+        : state === "online_restored"
+          ? { networkState: "online" as const }
+          : {}),
+      ...(state.startsWith("payment_")
+        ? { paymentState: state }
+        : {}),
+      ...(state.startsWith("geolocation_")
+        ? { locationPermission: state }
+        : {}),
+      ...(state.startsWith("navigation_")
+        ? { navigationPhase: state, journey: "navigation" }
+        : {}),
+    });
     const id = nodeId(area);
     options.messages.append({
       sender: "assistant",
       area,
-      html: rendered.message,
+      html: turn.renderedText,
       messageType: "contextual_state",
       id,
       customClass:
@@ -524,6 +577,14 @@ export function installAssistantContextualMessaging(
     const created = options.document.getElementById(id);
     if (created instanceof HTMLElement) {
       applyMetadata(created, state, rendered);
+      created.dataset.conversationTurnId = turn.id;
+      if (turn.previousTurnId) {
+        created.dataset.previousConversationTurnId = turn.previousTurnId;
+      } else {
+        delete created.dataset.previousConversationTurnId;
+      }
+      created.dataset.conversationCause = turn.cause;
+      created.dataset.conversationMessageKey = turn.messageKey;
     }
     if (area === "messages") lastGlobalState = state;
   };
@@ -585,8 +646,7 @@ export function installAssistantContextualMessaging(
     if (detail?.state === "online") {
       networkOffline = false;
       if (lastGlobalState === "offline") {
-        options.messages.removeById(nodeId("messages"), "messages");
-        lastGlobalState = null;
+        publish("online_restored");
       }
     }
   };
