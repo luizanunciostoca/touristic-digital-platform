@@ -84,8 +84,5 @@ if (process.env.GITHUB_OUTPUT) {
     await appendFile(process.env.GITHUB_OUTPUT, `${name}=${value}\n`);
   }
 
-  await appendFile(
-    process.env.GITHUB_OUTPUT,
-    `docs_only=${docsOnly}\n`,
-  );
+  await appendFile(process.env.GITHUB_OUTPUT, `docs_only=${docsOnly}\n`);
 }
