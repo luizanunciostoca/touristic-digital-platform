@@ -47,7 +47,7 @@ function ensureControlButton(
   const button = document.createElement("button");
   button.type = "button";
   button.id = "toggle-3d-mode";
-  button.className = "map-control-button md-icon-button";
+  button.className = "map-control-button md-icon-button md-map-control";
   button.title = "Alternar perspectiva 3D";
   button.setAttribute("aria-label", "Alternar perspectiva 3D");
   button.setAttribute("aria-pressed", "false");
