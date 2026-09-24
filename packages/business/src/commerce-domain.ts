@@ -322,14 +322,14 @@ export function resolveLegacyCommerceReference(
 
 export function createCatalogService(repository: CatalogRepository): CatalogService {
   return Object.freeze({
-    async createProduct(scope, input) {
+    async createProduct(scope: CatalogScope, input: Product): Promise<Product> {
       assertBusiness(scope, input.businessId);
       validateProduct(input);
       if (await repository.getProduct(input.id)) throw new Error("PRODUCT_ALREADY_EXISTS");
       return repository.saveProduct(Object.freeze({ ...input }));
     },
 
-    async updateProduct(scope, input) {
+    async updateProduct(scope: CatalogScope, input: Product): Promise<Product> {
       assertBusiness(scope, input.businessId);
       validateProduct(input);
       const existing = await repository.getProduct(input.id);
@@ -339,7 +339,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveProduct(Object.freeze({ ...input }));
     },
 
-    async createOffer(scope, input) {
+    async createOffer(scope: CatalogScope, input: Offer): Promise<Offer> {
       assertBusiness(scope, input.businessId);
       if (await repository.getOffer(input.id)) throw new Error("OFFER_ALREADY_EXISTS");
       const product = await repository.getProduct(input.productId);
@@ -349,7 +349,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveOffer(Object.freeze({ ...input }));
     },
 
-    async updateOffer(scope, input) {
+    async updateOffer(scope: CatalogScope, input: Offer): Promise<Offer> {
       assertBusiness(scope, input.businessId);
       const existing = await repository.getOffer(input.id);
       if (!existing) throw new Error("OFFER_NOT_FOUND");
@@ -361,7 +361,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveOffer(Object.freeze({ ...input }));
     },
 
-    async createMenu(scope, input) {
+    async createMenu(scope: CatalogScope, input: Menu): Promise<Menu> {
       assertBusiness(scope, input.businessId);
       if (await repository.getMenu(input.id)) throw new Error("MENU_ALREADY_EXISTS");
       if (!safeText(input.name, 180)) throw new Error("INVALID_MENU_NAME");
@@ -369,7 +369,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveMenu(Object.freeze({ ...input }));
     },
 
-    async saveMenuCategory(scope, input) {
+    async saveMenuCategory(scope: CatalogScope, input: MenuCategory): Promise<MenuCategory> {
       assertBusiness(scope, input.businessId);
       const menu = await repository.getMenu(input.menuId);
       if (!menu) throw new Error("MENU_NOT_FOUND");
@@ -378,7 +378,7 @@ export function createCatalogService(repository: CatalogRepository): CatalogServ
       return repository.saveMenuCategory(Object.freeze({ ...input }));
     },
 
-    async saveMenuItem(scope, input) {
+    async saveMenuItem(scope: CatalogScope, input: MenuItem): Promise<MenuItem> {
       assertBusiness(scope, input.businessId);
       const menu = await repository.getMenu(input.menuId);
       if (!menu) throw new Error("MENU_NOT_FOUND");
