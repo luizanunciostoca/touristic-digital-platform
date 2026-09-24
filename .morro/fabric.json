@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "mode": "proof-graph",
+  "defaultBase": "main",
+  "states": [
+    "IMPLEMENTING",
+    "LOCAL_PROVEN",
+    "REMOTE_PROVEN",
+    "COMPOSITION_PROVEN",
+    "POLICY_SATISFIED",
+    "MERGE_READY",
+    "MERGED",
+    "RELEASE_CANDIDATE",
+    "RELEASED"
+  ],
+  "authorities": {
+    "worker": [
+      "implement",
+      "test",
+      "push",
+      "open_pr"
+    ],
+    "integrator": [
+      "reconcile",
+      "composition_test",
+      "mark_merge_ready"
+    ],
+    "release": [
+      "certify_exact_head",
+      "promote",
+      "rollback"
+    ],
+    "orchestrator": [
+      "decompose",
+      "schedule",
+      "assign",
+      "prioritize"
+    ]
+  },
+  "invariants": [
+    "no-direct-main-feature-work",
+    "exact-head-before-merge",
+    "exact-main-sha-before-production",
+    "payments-financial-authority-must-not-be-bypassed",
+    "evidence-must-identify-input-sha"
+  ],
+  "branchPrefixes": [
+    "agent/",
+    "feat/",
+    "fix/",
+    "infra/",
+    "wave/"
+  ],
+  "pullRequestPolicy": {
+    "developAsDraft": true,
+    "readyOnlyAfterRemoteProof": true,
+    "preferSmallSemanticChanges": true
+  }
+}
