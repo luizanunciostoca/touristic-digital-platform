@@ -588,7 +588,34 @@ export async function mountBusinessDashboardSurface(
       bootstrap.session.user.capabilities,
       [],
     );
-    renderMorroProNavigation(document, access, (view) => {
+    const accessByModule = new Map(access.map((item) => [item.id, item] as const));
+    const profileAccess = accessByModule.get("profile");
+    if (!profileAccess?.mutable) {
+      form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>(
+        "input, textarea, button[type=submit]",
+      ).forEach((control) => {
+        control.disabled = true;
+      });
+      status.textContent = "Seu acesso ao perfil é somente leitura.";
+    }
+    const offersAccess = accessByModule.get("offers");
+    if (!offersAccess?.mutable) {
+      offersSurface.form
+        .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(
+          "input, select, button[type=submit]",
+        )
+        .forEach((control) => {
+          control.disabled = true;
+        });
+      offersSurface.status.textContent =
+        offersAccess?.visible === true
+          ? "Seu acesso a ofertas é somente leitura."
+          : "";
+    }
+
+    const activateAuthorizedView = (view: BusinessDashboardView): void => {
+      const moduleAccess = accessByModule.get(view);
+      if (!moduleAccess?.visible) return;
       activateView(view);
       if (view === "offers") {
         const request = contextController?.request();
@@ -601,7 +628,28 @@ export async function mountBusinessDashboardSurface(
               : "Falha ao carregar ofertas.";
         });
       }
+    };
+
+    renderMorroProNavigation(document, access, (view) => {
+      activateAuthorizedView(view);
     });
+    document
+      .querySelectorAll<HTMLElement>("[data-dashboard-view]")
+      .forEach((button) => {
+        if (button.closest(".sidebar-nav")) return;
+        const view = button.dataset.dashboardView as BusinessDashboardView | undefined;
+        if (!view || !businessDashboardViews.includes(view)) return;
+        const moduleAccess = accessByModule.get(view);
+        if (!moduleAccess?.visible) {
+          button.hidden = true;
+          return;
+        }
+        if (!moduleAccess.mutable && view === "offers") {
+          button.hidden = true;
+          return;
+        }
+        button.addEventListener("click", () => activateAuthorizedView(view));
+      });
 
     const scopes = contextController.scopes();
     if (scopes.length > 1) {
