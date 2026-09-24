@@ -12,6 +12,7 @@ import {
   createBusinessPlaceRelationship,
   findDuplicatePlace,
   migrateLegacyBusinessProfileToPlace,
+  migrateLegacyCatalogItemToPlace,
   normalizeLegacyCategory,
   normalizePlaceCapabilities,
   validateBusinessPlaceRelationship,
@@ -275,6 +276,31 @@ describe("legacy migration", () => {
       legacyAliases: ["Toca", "Morcego"],
       legacyReference: "legacy-product-reference",
     });
+  });
+
+  it("migrates V1 catalog coordinates while still requiring explicit canonical IDs", () => {
+    const migrated = migrateLegacyCatalogItemToPlace({
+      placeId: "segunda-praia",
+      businessId: "business-catalog-owner",
+      destinationId: "morro-de-sao-paulo",
+      categoryId: "beaches",
+      now: "2026-09-24T20:00:00.000Z",
+      item: {
+        id: "legacy-segunda-praia",
+        name: "Segunda Praia",
+        category: "Praias",
+        latitude: -13.381,
+        longitude: -38.914,
+        aliases: ["2a Praia"],
+      },
+    });
+
+    expect(migrated.place.location).toMatchObject({
+      latitude: -13.381,
+      longitude: -38.914,
+      source: "catalog",
+    });
+    expect(migrated.place.businessId).toBe("business-catalog-owner");
   });
 
   it("normalizes known legacy category labels without turning them into authority", () => {
