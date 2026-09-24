@@ -264,9 +264,9 @@ export function createNavigationGuidanceUi(
     summary.innerHTML =
       '<strong class="md-navigation-dock-time" data-navigation-dock-time>0 min</strong>' +
       '<span class="md-navigation-dock-meta">' +
-      '<span data-navigation-dock-distance>0 m</span>' +
+      "<span data-navigation-dock-distance>0 m</span>" +
       '<span aria-hidden="true">·</span>' +
-      '<span data-navigation-dock-mode></span>' +
+      "<span data-navigation-dock-mode></span>" +
       "</span>";
     categoryRail.appendChild(summary);
     navigationDockSummary = summary;
