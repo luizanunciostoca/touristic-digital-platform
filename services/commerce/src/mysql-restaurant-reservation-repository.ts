@@ -515,6 +515,61 @@ export class MySqlRestaurantReservationRepository {
     }
   }
 
+  async listRestaurantOfferingsForPlace(
+    placeId: string,
+    observedAtInput: unknown,
+  ): Promise<
+    readonly Readonly<{
+      businessId: string;
+      placeId: string;
+      destinationId: string;
+      nextServiceDate: string;
+      hasAvailability: boolean;
+    }>[]
+  > {
+    if (!BUSINESS_ID.test(placeId)) {
+      throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
+    }
+    const observedAt = instant(
+      observedAtInput,
+      "COMMERCE_RESTAURANT_OBSERVED_AT_INVALID",
+    );
+    const [rows] = await this.pool.execute<
+      (RowDataPacket & {
+        business_id: string;
+        place_id: string;
+        destination_id: string;
+        next_service_date: Date | string;
+        active_slot_count: number | string;
+      })[]
+    >(
+      `SELECT
+         business_id,
+         place_id,
+         destination_id,
+         MIN(service_date) AS next_service_date,
+         COUNT(*) AS active_slot_count
+       FROM commerce_restaurant_slots
+       WHERE place_id = ?
+         AND enabled = TRUE
+         AND ends_at > ?
+       GROUP BY business_id, place_id, destination_id
+       ORDER BY next_service_date ASC, business_id ASC`,
+      [placeId, new Date(observedAt)],
+    );
+    return Object.freeze(
+      rows.map((row) =>
+        Object.freeze({
+          businessId: row.business_id,
+          placeId: row.place_id,
+          destinationId: row.destination_id,
+          nextServiceDate: dateOnly(row.next_service_date),
+          hasAvailability: Number(row.active_slot_count) > 0,
+        }),
+      ),
+    );
+  }
+
   async findForHolder(input: {
     readonly reservationId: unknown;
     readonly businessId: string;
