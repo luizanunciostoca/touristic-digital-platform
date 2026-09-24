@@ -130,6 +130,9 @@ importers:
       "@touristic/auth":
         specifier: workspace:*
         version: link:../auth
+      "@touristic/core":
+        specifier: workspace:*
+        version: link:../core
 
   packages/core: {}
 
