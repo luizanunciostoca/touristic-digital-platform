@@ -62,6 +62,11 @@
       "types": "./src/commerce-domain.ts",
       "node": "./dist/commerce-domain.js",
       "default": "./src/commerce-domain.ts"
+    },
+    "./place-action-registry": {
+      "types": "./src/place-action-registry.ts",
+      "node": "./dist/place-action-registry.js",
+      "default": "./src/place-action-registry.ts"
     }
   },
   "scripts": {

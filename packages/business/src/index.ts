@@ -235,3 +235,4 @@ export {
 } from "./place-domain.js";
 
 export * from "./commerce-domain.js";
+export * from "./place-action-registry.js";
