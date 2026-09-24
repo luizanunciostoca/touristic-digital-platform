@@ -12,6 +12,7 @@ import { createAffiliateAdminRuntime } from "./affiliate-admin-runtime.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createContentAdminRuntime } from "./content-admin-runtime.mjs";
+import { createCommerceApi } from "./commerce-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
 import { resolvePublicDestination } from "./destination-public-projection.mjs";
@@ -156,6 +157,7 @@ const getEnvironmentValue = (key) =>
 let platformOperations = null;
 let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
+let commerceApi = null;
 let contentAdminRuntime = null;
 let destinationRuntimeReady = false;
 
@@ -238,6 +240,14 @@ platformOperations = createPlatformOperations({
         : "TICKETING_RUNTIME_UNAVAILABLE",
     },
     {
+      name: "commerce-runtime",
+      ...(commerceApi?.readinessCheck() ?? {
+        status: "fail",
+        critical: false,
+        detail: "COMMERCE_RUNTIME_NOT_STARTED",
+      }),
+    },
+    {
       name: "content-admin-runtime",
       ...(contentAdminRuntime?.readinessCheck() ?? {
         status: "fail",
@@ -272,6 +282,9 @@ paymentsRuntimeReady = await paymentsApi.start();
 const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
 ticketingRuntimeReady = await ticketingApi.start();
+
+commerceApi = createCommerceApi({ authApi, getEnvironmentValue });
+await commerceApi.start();
 
 contentAdminRuntime = createContentAdminRuntime({ getEnvironmentValue });
 await contentAdminRuntime.start();
@@ -667,6 +680,13 @@ const server = createServer(async (request, response) => {
       return;
     }
     if (
+      requestUrl.pathname.startsWith("/api/commerce") &&
+      commerceApi?.matches(requestUrl.pathname)
+    ) {
+      await commerceApi.handle(request, response, requestUrl);
+      return;
+    }
+    if (
       requestUrl.pathname.startsWith("/api/ticketing") &&
       ticketingApi.matches(requestUrl.pathname)
     ) {
@@ -813,6 +833,7 @@ async function shutdown(signal) {
 
   const stops = await Promise.allSettled([
     analyticsApi.stop(),
+    commerceApi?.stop(),
     adminApi.stop(),
     adminAuditRuntime.stop(),
     authApi.stop(),
