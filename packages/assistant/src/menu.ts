@@ -8,6 +8,19 @@ export const ASSISTANT_MAIN_MENU = [
     labels: { pt: "Praias", en: "Beaches", es: "Playas", he: "חופים" },
   },
   {
+    value: "tours",
+    labels: { pt: "Passeios", en: "Tours", es: "Paseos", he: "סיורים" },
+  },
+  {
+    value: "attractions",
+    labels: {
+      pt: "Atrações",
+      en: "Attractions",
+      es: "Atracciones",
+      he: "אטרקציות",
+    },
+  },
+  {
     value: "restaurants",
     labels: {
       pt: "Restaurantes",
@@ -21,6 +34,15 @@ export const ASSISTANT_MAIN_MENU = [
     labels: { pt: "Pousadas", en: "Hotels", es: "Hoteles", he: "מלונות" },
   },
   {
+    value: "nightlife",
+    labels: {
+      pt: "Vida Noturna",
+      en: "Nightlife",
+      es: "Vida Nocturna",
+      he: "חיי לילה",
+    },
+  },
+  {
     value: "shops",
     labels: { pt: "Lojas", en: "Shops", es: "Tiendas", he: "חנויות" },
   },
@@ -31,28 +53,6 @@ export const ASSISTANT_MAIN_MENU = [
       en: "Transport",
       es: "Transporte",
       he: "תחבורה",
-    },
-  },
-  {
-    value: "attractions",
-    labels: {
-      pt: "Atrações",
-      en: "Attractions",
-      es: "Atracciones",
-      he: "אטרקציות",
-    },
-  },
-  {
-    value: "tours",
-    labels: { pt: "Passeios", en: "Tours", es: "Paseos", he: "סיורים" },
-  },
-  {
-    value: "nightlife",
-    labels: {
-      pt: "Vida Noturna",
-      en: "Nightlife",
-      es: "Vida Nocturna",
-      he: "חיי לילה",
     },
   },
   {

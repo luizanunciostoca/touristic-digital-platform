@@ -25,24 +25,24 @@ describe("V1 explore locations control", () => {
 
     expect(categories.map(({ value }) => value)).toEqual([
       "beaches",
+      "tours",
+      "attractions",
       "restaurants",
       "hotels",
+      "nightlife",
       "shops",
       "transport",
-      "attractions",
-      "tours",
-      "nightlife",
       "emergencies",
     ]);
     expect(categories.map(({ label }) => label)).toEqual([
       "Praias",
+      "Passeios",
+      "Atrações",
       "Restaurantes",
       "Pousadas",
+      "Vida Noturna",
       "Lojas",
       "Transporte",
-      "Atrações",
-      "Passeios",
-      "Vida Noturna",
       "Emergências",
     ]);
   });
