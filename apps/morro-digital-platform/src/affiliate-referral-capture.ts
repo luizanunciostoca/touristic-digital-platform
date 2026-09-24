@@ -14,7 +14,11 @@ function safeReturnPath(value: string | null): string {
 }
 
 function pendingToken(): string {
-  try { return window.sessionStorage.getItem(pendingStorageKey) ?? ""; } catch { return ""; }
+  try {
+    return window.sessionStorage.getItem(pendingStorageKey) ?? "";
+  } catch {
+    return "";
+  }
 }
 function rememberToken(token: string): void {
   try { window.sessionStorage.setItem(pendingStorageKey, token); } catch {}
@@ -32,7 +36,10 @@ async function captureReferral(token: string): Promise<boolean> {
     const response = await window.fetch("/api/affiliates/v1/referral-capture", {
       method: "POST",
       credentials: "same-origin",
-      headers: { Accept: "application/json", "Content-Type": "application/json" },
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({ token }),
     });
     if (response.ok) {
