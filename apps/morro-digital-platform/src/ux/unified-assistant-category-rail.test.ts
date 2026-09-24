@@ -88,14 +88,20 @@ describe("Unified Assistant horizontal category rail", () => {
     async () => {
       const [shell, css] = await Promise.all([
         readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
-        readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
+        readRepository(
+          "apps/morro-digital-platform/public/tourist-shell-v2.css",
+        ),
       ]);
 
       expect(shell).toContain("data-category-scroll-hint");
       expect(shell).toContain("synchronizeCategoryScrollHint");
       expect(shell).toContain("data-has-scroll-forward");
-      expect(shell).toContain("lastOptionRect.right > scrollerRect.right + 1");
-      expect(shell).toContain("lastOptionRect.left < scrollerRect.left - 1");
+      expect(shell).toContain(
+        "lastOptionRect.right > scrollerRect.right + 1",
+      );
+      expect(shell).toContain(
+        "lastOptionRect.left < scrollerRect.left - 1",
+      );
       expect(css).toContain(".md-category-scroll-hint");
       expect(css).toContain("padding-inline-end: 3rem !important");
       expect(css).toContain(".md-category-scroll-hint[hidden]");
