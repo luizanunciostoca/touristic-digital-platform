@@ -24,8 +24,7 @@ export const canonicalPlaceCategories = Object.freeze([
   "emergencies",
 ] as const);
 
-export type CanonicalPlaceCategory =
-  (typeof canonicalPlaceCategories)[number];
+export type CanonicalPlaceCategory = (typeof canonicalPlaceCategories)[number];
 
 export const placeCapabilities = Object.freeze([
   "directions",
@@ -47,11 +46,7 @@ export type PlaceCapability = (typeof placeCapabilities)[number];
 
 export type PlaceVisibility = "public" | "unlisted" | "private";
 export type PlacePublicationState =
-  | "draft"
-  | "review"
-  | "published"
-  | "suspended"
-  | "archived";
+  "draft" | "review" | "published" | "suspended" | "archived";
 
 export interface Business {
   readonly id: BusinessId;
@@ -64,7 +59,7 @@ export interface Business {
 
 export interface Category {
   readonly id: CategoryId;
-  readonly key: CanonicalPlaceCategory | string;
+  readonly key: string;
   readonly label: string;
   readonly active: boolean;
 }
@@ -252,10 +247,7 @@ function safeText(value: unknown, fallback = ""): string {
   return value.replace(/[<>]/gu, "").trim().slice(0, 500);
 }
 
-function requiredCanonicalId<TId>(
-  value: unknown,
-  errorCode: string,
-): TId {
+function requiredCanonicalId<TId>(value: unknown, errorCode: string): TId {
   const normalized = canonicalToken(value);
   if (!normalized) throw new Error(errorCode);
   return normalized as TId;
@@ -274,10 +266,7 @@ export function asCategoryId(value: unknown): CategoryId {
 }
 
 export function asSubcategoryId(value: unknown): SubcategoryId {
-  return requiredCanonicalId<SubcategoryId>(
-    value,
-    "INVALID_SUBCATEGORY_ID",
-  );
+  return requiredCanonicalId<SubcategoryId>(value, "INVALID_SUBCATEGORY_ID");
 }
 
 export function asProductId(value: unknown): ProductId {
@@ -303,7 +292,11 @@ export function normalizePlaceCapabilities(
 ): readonly PlaceCapability[] {
   return Object.freeze(
     Array.from(
-      new Set(values.filter((value): value is PlaceCapability => isPlaceCapability(value))),
+      new Set(
+        values.filter((value): value is PlaceCapability =>
+          isPlaceCapability(value),
+        ),
+      ),
     ),
   );
 }
@@ -325,7 +318,10 @@ export function validateBusinessPlaceRelationship(
   relationship: BusinessPlaceRelationship,
 ): readonly PlaceDomainValidationIssue[] {
   const issues: PlaceDomainValidationIssue[] = [];
-  if (relationship.businessId !== business.id || place.businessId !== business.id) {
+  if (
+    relationship.businessId !== business.id ||
+    place.businessId !== business.id
+  ) {
     issues.push({ code: "CROSS_BUSINESS_RELATION", field: "businessId" });
   }
   if (relationship.placeId !== place.id) {
@@ -361,7 +357,9 @@ export function validatePlace(
       continue;
     }
     seenSubcategories.add(subcategoryId);
-    const subcategory = subcategories.find((entry) => entry.id === subcategoryId);
+    const subcategory = subcategories.find(
+      (entry) => entry.id === subcategoryId,
+    );
     if (
       !subcategory ||
       !subcategory.active ||
@@ -525,7 +523,9 @@ export function migrateLegacyBusinessProfileToPlace(
     }),
     openingHours: null,
     amenities: Object.freeze([]),
-    tags: Object.freeze(legacySpecialty ? [canonicalToken(legacySpecialty)] : []),
+    tags: Object.freeze(
+      legacySpecialty ? [canonicalToken(legacySpecialty)] : [],
+    ),
     capabilities: Object.freeze({
       enabled: Object.freeze([]),
     }),
@@ -567,8 +567,7 @@ export function migrateLegacyCatalogItemToPlace(
       description: input.item.description,
     },
     legacyAliases: input.item.aliases ?? [],
-    legacyReference:
-      typeof input.item.id === "string" ? input.item.id : null,
+    legacyReference: typeof input.item.id === "string" ? input.item.id : null,
   });
 
   const latitude =
