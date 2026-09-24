@@ -14,6 +14,10 @@ permissions:
   contents: read
   pages: read
 
+concurrency:
+  group: pages-source-governance-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     name: pages / workflow-only source
