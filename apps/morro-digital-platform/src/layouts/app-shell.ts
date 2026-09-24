@@ -266,35 +266,36 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           <button id="home-profile-close" class="md-icon-button md-home-profile-close" type="button" aria-label="Fechar perfil" data-home-copy-aria="closeProfile">×</button>
         </div>
 
-        <div class="md-home-profile-quick-actions" role="group" aria-label="Atalhos do perfil" data-home-copy-aria="profileQuickActions">
-          <button type="button" class="md-home-profile-quick-action" data-profile-action="saved">
+        <div class="md-home-profile-shortcuts" role="group" aria-label="Atalhos do perfil" data-home-copy-aria="profileQuickActions">
+          <button type="button" class="md-home-profile-shortcut" data-profile-action="saved">
             <i class="fas fa-heart" aria-hidden="true"></i>
             <span data-home-copy="saved">Salvos</span>
           </button>
-          <a class="md-home-profile-quick-action" href="/tickets.html">
+          <a class="md-home-profile-shortcut" href="/tickets.html">
             <i class="fas fa-ticket-alt" aria-hidden="true"></i>
             <span data-home-copy="tickets">Ingressos</span>
           </a>
-          <button type="button" class="md-home-profile-quick-action" data-profile-action="tours">
+          <button type="button" class="md-home-profile-shortcut" data-profile-action="tours">
             <i class="fas fa-route" aria-hidden="true"></i>
             <span data-home-copy="tours">Tours</span>
           </button>
         </div>
 
+        <div class="md-home-profile-section-heading" data-home-copy="profilePreferences">Preferências</div>
+        <div class="md-home-profile-actions">
+          <button id="configButton" class="md-home-profile-row" type="button" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label">
+            <span class="md-home-profile-row-icon" aria-hidden="true"><i class="fas fa-cog"></i></span>
+            <span data-home-copy="assistantSettings">Configurações do assistente</span>
+            <i class="fas fa-chevron-right md-home-profile-row-chevron" aria-hidden="true"></i>
+          </button>
+          <button id="home-privacy-button" class="md-home-profile-row" type="button">
+            <span class="md-home-profile-row-icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
+            <span data-home-copy="privacy">Privacidade e LGPD</span>
+            <i class="fas fa-chevron-right md-home-profile-row-chevron" aria-hidden="true"></i>
+          </button>
+        </div>
         <div class="md-home-profile-expanded-content">
-          <div class="md-home-profile-section-heading" data-home-copy="profilePreferences">Preferências</div>
-          <div class="md-home-profile-actions">
-            <button id="configButton" class="md-home-profile-row" type="button" aria-label="Assistant settings" data-i18n-aria="assistant_settings_label">
-              <span class="md-home-profile-row-icon" aria-hidden="true"><i class="fas fa-cog"></i></span>
-              <span data-home-copy="assistantSettings">Configurações do assistente</span>
-              <i class="fas fa-chevron-right md-home-profile-row-chevron" aria-hidden="true"></i>
-            </button>
-            <button id="home-privacy-button" class="md-home-profile-row" type="button">
-              <span class="md-home-profile-row-icon" aria-hidden="true"><i class="fas fa-shield-alt"></i></span>
-              <span data-home-copy="privacy">Privacidade e LGPD</span>
-              <i class="fas fa-chevron-right md-home-profile-row-chevron" aria-hidden="true"></i>
-            </button>
-          </div>
+          <p class="md-home-profile-expanded-note" data-home-copy="profileExpandedNote">Idioma, voz e privacidade continuam acessíveis sem tirar você do mapa.</p>
         </div>
       </section>
 
