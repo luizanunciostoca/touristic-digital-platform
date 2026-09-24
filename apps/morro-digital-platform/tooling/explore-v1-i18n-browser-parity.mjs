@@ -26,7 +26,6 @@ const filters = {
       "🎵 With bars / facilities",
       "📍 Nearby",
       "🗺️ See all",
-      "🔙 Back to menu",
     ],
   },
   es: {
@@ -40,7 +39,6 @@ const filters = {
       "🎵 Con estructura / bares",
       "📍 Cercanos a mí",
       "🗺️ Ver todos",
-      "🔙 Volver al menú",
     ],
   },
   he: {
@@ -54,7 +52,6 @@ const filters = {
       "🎵 עם ברים / תשתיות",
       "📍 קרובים אלי",
       "🗺️ ראה הכל",
-      "🔙 חזרה לתפריט",
     ],
   },
 };
@@ -103,7 +100,6 @@ const filterValues = [
   "estrutura",
   "proximo",
   "ver todos",
-  "voltar_menu",
 ];
 const beachDetailValues = [
   "saiba mais",
