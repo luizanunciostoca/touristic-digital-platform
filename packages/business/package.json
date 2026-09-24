@@ -57,6 +57,11 @@
       "types": "./src/place-domain.ts",
       "node": "./dist/place-domain.js",
       "default": "./src/place-domain.ts"
+    },
+    "./commerce-domain": {
+      "types": "./src/commerce-domain.ts",
+      "node": "./dist/commerce-domain.js",
+      "default": "./src/commerce-domain.ts"
     }
   },
   "scripts": {
