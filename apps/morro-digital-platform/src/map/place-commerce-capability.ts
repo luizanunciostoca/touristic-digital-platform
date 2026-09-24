@@ -397,7 +397,7 @@ async function resolveRestaurantPrimaryAction(options: {
             : options.locale === "he"
               ? `🍽️ הצגת הזמנות (${restaurants.length})`
               : `🍽️ View reservations (${restaurants.length} options)`,
-      value: `commerce:place:${placeId}`,
+      value: `commerce:restaurant-place:${placeId}`,
       presentation: "primary" as const,
       commerceState: "multiple" as const,
     });
