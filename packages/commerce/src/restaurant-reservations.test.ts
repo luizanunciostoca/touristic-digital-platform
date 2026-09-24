@@ -34,10 +34,7 @@ function reservation(overrides: Record<string, unknown> = {}) {
 describe("restaurant reservation domain", () => {
   it("creates a bounded idempotency key tied to the requested slot", () => {
     expect(
-      createRestaurantReservationRequestKey(
-        "rsl_dinner_0001",
-        "attempt 0001",
-      ),
+      createRestaurantReservationRequestKey("rsl_dinner_0001", "attempt 0001"),
     ).toBe("rrq_rsl_dinner_0001_attempt_0001");
   });
 
