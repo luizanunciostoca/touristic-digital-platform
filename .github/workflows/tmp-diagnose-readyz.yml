@@ -18,3 +18,5 @@ jobs:
           set -euo pipefail
           body="$(curl --silent --show-error --fail-with-body https://morro-digital-v2.onrender.com/readyz || true)"
           printf '%s' "$body" | jq '{readiness, checks: [.checks[] | {name,status,critical,detail}]}'
+
+# final-post-rotation
