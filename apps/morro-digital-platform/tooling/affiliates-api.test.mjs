@@ -94,7 +94,6 @@ describe("affiliate referral token", () => {
   });
 });
 
-
 function request(method, body, headers = {}) {
   const payload = body === undefined ? [] : [Buffer.from(JSON.stringify(body))];
   return {
