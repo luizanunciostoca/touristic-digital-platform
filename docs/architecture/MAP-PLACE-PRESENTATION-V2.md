@@ -30,3 +30,6 @@ Legacy `place-commerce-capability.ts` remains outside this presentation adapter.
 Control Tower must bind the canonical map/detail fetch path to this presentation adapter after Waves E and G are composed on the integrated HEAD. Do not reintroduce name/slug/alias matching during that binding.
 
 Validation checkpoint: exact-head CI must pass after the canonical formatter is removed; no merge or deploy is authorized by this document.
+## Exact-head validation
+
+This stacked wave must be validated after reconciliation with the current Wave G head; CI evidence from an earlier parent is not accepted.
