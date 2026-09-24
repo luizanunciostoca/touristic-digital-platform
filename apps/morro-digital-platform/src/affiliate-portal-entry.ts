@@ -152,8 +152,7 @@ function renderProjection(projection: AffiliatePortalProjection): void {
     }
     const option = document.createElement("option");
     option.value = membership.program_id;
-    option.textContent =
-      `${membership.program_id} · ${membership.destination_id}`;
+    option.textContent = `${membership.program_id} · ${membership.destination_id}`;
     select.append(option);
   }
   byId<HTMLButtonElement>("generate-referral").disabled =
