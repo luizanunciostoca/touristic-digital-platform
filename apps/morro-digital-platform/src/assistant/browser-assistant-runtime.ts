@@ -25,7 +25,10 @@ import {
 } from "./assistant-v1-residual-command-adapter.js";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
-import {\n  installAssistantContextualMessaging,\n  resolveExploreContextualState,\n} from "./assistant-contextual-state.js";
+import {
+  installAssistantContextualMessaging,
+  resolveExploreContextualState,
+} from "./assistant-contextual-state.js";
 import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
