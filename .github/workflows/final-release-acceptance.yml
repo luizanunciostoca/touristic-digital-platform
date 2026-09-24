@@ -91,59 +91,67 @@ jobs:
       - name: Build exact-head release candidate once
         run: pnpm build
 
-      - name: Discover tree-equivalent tested parent
+      - name: Capture exact current tree
         id: tree-source
         shell: bash
         run: |
           set -euo pipefail
           current_tree="$(git rev-parse "$GITHUB_SHA^{tree}")"
-          source_sha=""
-          source_tree=""
-
-          if git rev-parse "$GITHUB_SHA^2" >/dev/null 2>&1; then
-            candidate="$(git rev-parse "$GITHUB_SHA^2")"
-            candidate_tree="$(git rev-parse "$candidate^{tree}")"
-            if [ "$candidate_tree" = "$current_tree" ]; then
-              source_sha="$candidate"
-              source_tree="$candidate_tree"
-              echo "Tree-equivalent evidence source: $source_sha"
-            fi
-          fi
-
           echo "current_tree=$current_tree" >> "$GITHUB_OUTPUT"
-          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
-          echo "source_tree=$source_tree" >> "$GITHUB_OUTPUT"
+          echo "Exact release tree: $current_tree"
 
       - name: Reuse proven tree-equivalent evidence and dispatch only missing suites
         id: dispatch
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          REUSE_SOURCE_SHA: ${{ steps.tree-source.outputs.source_sha }}
+          CURRENT_TREE: ${{ steps.tree-source.outputs.current_tree }}
         run: |
           set -euo pipefail
           : > /tmp/final-acceptance-runs.tsv
+          : > /tmp/tree-cache.tsv
+
+          commit_tree() {
+            local sha="$1"
+            local cached
+            cached="$(awk -F '\t' -v sha="$sha" '$1 == sha {print $2; exit}' /tmp/tree-cache.tsv)"
+            if [ -n "$cached" ]; then
+              printf '%s' "$cached"
+              return
+            fi
+            local tree
+            tree="$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$sha" --jq '.tree.sha' 2>/dev/null || true)"
+            if [ -n "$tree" ]; then
+              printf '%s\t%s\n' "$sha" "$tree" >> /tmp/tree-cache.tsv
+            fi
+            printf '%s' "$tree"
+          }
 
           while IFS=$'\t' read -r workflow reuse_tree_equivalent; do
             run_id=""
             mode="dispatch"
             expected_sha="$GITHUB_SHA"
 
-            if [ "$reuse_tree_equivalent" = "true" ] && [ -n "$REUSE_SOURCE_SHA" ]; then
-              run_id="$(
+            if [ "$reuse_tree_equivalent" = "true" ]; then
+              while IFS=$'\t' read -r candidate_run candidate_sha candidate_event; do
+                [ -n "$candidate_run" ] || continue
+                [ "$candidate_sha" != "$GITHUB_SHA" ] || continue
+                candidate_tree="$(commit_tree "$candidate_sha")"
+                if [ "$candidate_tree" = "$CURRENT_TREE" ]; then
+                  run_id="$candidate_run"
+                  mode="reuse"
+                  expected_sha="$candidate_sha"
+                  echo "REUSE: $workflow -> run $run_id @ $candidate_sha ($candidate_event), identical tree $CURRENT_TREE"
+                  break
+                fi
+              done < <(
                 gh run list \
                   --workflow "$workflow" \
-                  --commit "$REUSE_SOURCE_SHA" \
                   --status success \
-                  --limit 20 \
-                  --json databaseId,headSha,conclusion \
-                | jq -r --arg sha "$REUSE_SOURCE_SHA" '[.[] | select(.headSha == $sha and .conclusion == "success")][0].databaseId // empty'
-              )"
-              if [ -n "$run_id" ]; then
-                mode="reuse"
-                expected_sha="$REUSE_SOURCE_SHA"
-                echo "REUSE: $workflow -> run $run_id @ $REUSE_SOURCE_SHA"
-              fi
+                  --limit 30 \
+                  --json databaseId,headSha,event \
+                | jq -r '.[] | [.databaseId, .headSha, .event] | @tsv'
+              )
             fi
 
             if [ -z "$run_id" ]; then
@@ -266,7 +274,6 @@ jobs:
         shell: bash
         env:
           CURRENT_TREE: ${{ steps.tree-source.outputs.current_tree }}
-          REUSE_SOURCE_SHA: ${{ steps.tree-source.outputs.source_sha }}
           REUSED: ${{ steps.dispatch.outputs.reused }}
           DISPATCHED: ${{ steps.dispatch.outputs.dispatched }}
         run: |
@@ -274,7 +281,6 @@ jobs:
           {
             echo "exact_sha=$GITHUB_SHA"
             echo "tree_sha=$CURRENT_TREE"
-            echo "tree_equivalent_source_sha=${REUSE_SOURCE_SHA:-none}"
             echo "reused_suites=${REUSED:-0}"
             echo "dispatched_suites=${DISPATCHED:-0}"
           } > final-release-acceptance-evidence.txt
