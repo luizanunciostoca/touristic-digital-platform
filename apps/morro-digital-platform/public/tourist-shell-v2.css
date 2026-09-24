@@ -313,21 +313,21 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
   height: 1.375rem;
 }
 
-/* Canonical one-hand order: location → global → map layer → 3D.
- * Explicit ordering keeps the stack stable even when 3D is mounted at runtime. */
-#globe-map-control [data-map-control="user-location"] {
+/* Canonical one-hand order from top to bottom: 3D → map layer → global → location.
+ * This intentionally inverts the previous stack while keeping runtime-mounted 3D stable. */
+#globe-map-control [data-map-control="3d"] {
   order: 1;
 }
 
-#globe-map-control #toggle-globe-view {
+#globe-map-control [data-map-control="layer"] {
   order: 2;
 }
 
-#globe-map-control [data-map-control="layer"] {
+#globe-map-control #toggle-globe-view {
   order: 3;
 }
 
-#globe-map-control [data-map-control="3d"] {
+#globe-map-control [data-map-control="user-location"] {
   order: 4;
 }
 
