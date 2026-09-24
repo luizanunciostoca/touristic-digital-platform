@@ -2595,7 +2595,7 @@ html[dir="rtl"]
   padding-inline: 0.875rem;
   border-radius: 0.875rem;
   font-size: 0.875rem;
-  font-weight: var(--md-font-weight-semibold);
+  font-weight: 600;
 }
 
 #unified-assistant-dock
@@ -2603,7 +2603,7 @@ html[dir="rtl"]
   .md-context-rail-button
   :is(.md-assistant-category-label, .md-assistant-context-label) {
   font-size: 0.875rem;
-  font-weight: var(--md-font-weight-semibold);
+  font-weight: 600;
 }
 
 #unified-assistant-dock > #assistant-category-rail .md-context-rail-button i {
@@ -2614,6 +2614,7 @@ html[dir="rtl"]
 }
 
 #unified-assistant-dock > #assistant-category-rail .md-context-rail-back {
+  position: relative;
   box-sizing: border-box;
   flex: 0 0 var(--md-context-rail-back-size);
   width: var(--md-context-rail-back-size);
@@ -2626,6 +2627,12 @@ html[dir="rtl"]
   box-shadow:
     0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 5%, transparent),
     0 2px 6px color-mix(in srgb, var(--md-color-text-primary) 4%, transparent);
+}
+
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-back::before {
+  position: absolute;
+  inset: -0.125rem;
+  content: "";
 }
 
 #unified-assistant-dock > #assistant-category-rail .md-context-rail-back-icon {
