@@ -1,4 +1,4 @@
-import mysql, { type Pool } from "mysql2/promise";
+import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
@@ -95,7 +95,7 @@ describeMySql.sequential("Ticketing admission profile MySQL integration", () => 
       },
     });
 
-    const [profileRows] = await pool.query(
+    const [profileRows] = await pool.execute<RowDataPacket[]>(
       "SELECT * FROM ticketing_admission_profiles WHERE inventory_id = ?",
       [created.offer.id],
     );
