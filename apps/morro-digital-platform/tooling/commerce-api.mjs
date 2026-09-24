@@ -10,6 +10,7 @@ import {
 } from "@touristic/commerce-server";
 import {
   CommerceSessionAuthority,
+  MySqlTicketReservationRepository,
   MySqlTicketingPublicReadRepository,
   createTicketingMySqlPoolFromEnvironment,
 } from "@touristic/ticketing-server";
@@ -246,6 +247,9 @@ export function createCommerceApi({
         ticketingReads: ticketingPool
           ? new MySqlTicketingPublicReadRepository(ticketingPool)
           : null,
+        ticketingInventory: ticketingPool
+          ? new MySqlTicketReservationRepository(ticketingPool)
+          : null,
         repository: new MySqlRestaurantReservationRepository(pool),
         reservationOrders: createRestaurantReservationOrderApplicationService({
           orders,
@@ -354,12 +358,30 @@ export function createCommerceApi({
       return;
     }
     const observedAt = now();
-    const [restaurantRows, ticketingRows] = await Promise.all([
+    const [restaurantRows, inventoryRows] = await Promise.all([
       runtime.repository.listRestaurantOfferingsForPlace(placeId, observedAt),
       runtime.ticketingReads
         ? runtime.ticketingReads.listInventory()
         : Promise.resolve([]),
     ]);
+    const ticketingRows =
+      runtime.ticketingInventory && inventoryRows.length > 0
+        ? await Promise.all(
+            inventoryRows.map(async (inventory) => {
+              const availability =
+                await runtime.ticketingInventory.availability(
+                  inventory.id,
+                  observedAt,
+                );
+              return Object.freeze({
+                ...inventory,
+                availableQuantity: availability.remainingQuantity,
+                sellable: availability.sellable,
+                observedAt: availability.observedAt,
+              });
+            }),
+          )
+        : [];
     const admissions = resolveTicketedAdmissionOfferings(ticketingRows).filter(
       ({ offering }) => offering.identity.placeId === placeId,
     );
