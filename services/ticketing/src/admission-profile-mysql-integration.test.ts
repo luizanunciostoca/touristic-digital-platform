@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   MySqlTicketingBusinessInventoryRepository,
+  MySqlTicketingPublicReadRepository,
   applyTicketingPublicApiSchema,
   createTicketingMySqlPoolFromEnvironment,
 } from "./index.js";
@@ -104,6 +105,14 @@ describeMySql.sequential("Ticketing admission profile MySQL integration", () => 
 
     await expect(inventory.listByBusiness("business-a")).resolves.toEqual([
       created.offer,
+    ]);
+
+    const publicInventory = new MySqlTicketingPublicReadRepository(pool);
+    await expect(publicInventory.listInventory()).resolves.toEqual([
+      expect.objectContaining({
+        id: created.offer.id,
+        admission: created.offer.admission,
+      }),
     ]);
   });
 
