@@ -208,25 +208,43 @@ function configuredStatusTtl(value) {
   return parsed;
 }
 
-function safeStartupFailureCode(error) {
-  const code =
-    error && typeof error === "object" && typeof error.code === "string"
-      ? error.code.trim()
-      : "";
-  if (/^[A-Z0-9_]{2,120}$/u.test(code)) return code;
+const knownStartupConfigurationFailures = new Map([
+  ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
+  ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
+]);
 
-  const message =
-    error instanceof Error && typeof error.message === "string"
-      ? error.message.trim()
-      : "";
-  if (/^[A-Z0-9_]{2,120}$/u.test(message)) return message;
+function safeStartupErrorToken(value) {
+  const token = typeof value === "string" ? value.trim() : "";
+  if (/^[A-Z0-9_]{2,120}$/u.test(token)) return token;
+  return knownStartupConfigurationFailures.get(token) ?? "";
+}
 
-  const knownRequiredConfiguration = new Map([
-    ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
-    ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
-  ]);
-  const mapped = knownRequiredConfiguration.get(message);
-  if (mapped) return mapped;
+export function safeStartupFailureCode(error) {
+  const queue = [error];
+  const visited = new Set();
+  let inspected = 0;
+
+  while (queue.length > 0 && inspected < 16) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object" || visited.has(current)) continue;
+    visited.add(current);
+    inspected += 1;
+
+    const code = safeStartupErrorToken(current.code);
+    if (code) return code;
+
+    const message = safeStartupErrorToken(current.message);
+    if (message) return message;
+
+    if (current.cause && typeof current.cause === "object") {
+      queue.push(current.cause);
+    }
+    if (Array.isArray(current.errors)) {
+      for (const nested of current.errors.slice(0, 8)) {
+        if (nested && typeof nested === "object") queue.push(nested);
+      }
+    }
+  }
 
   return "PAYMENTS_RUNTIME_START_UNCLASSIFIED";
 }
