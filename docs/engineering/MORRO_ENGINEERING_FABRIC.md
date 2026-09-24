@@ -40,6 +40,7 @@ Evidence is valid only for the inputs it proves. Prefer reusable content-address
 ## Chat assignment template
 
 Give a worker:
+
 - repository and exact base SHA;
 - ChangeSet ID and acceptance criteria;
 - owned paths;
@@ -50,10 +51,12 @@ Give a worker:
 - instruction to open/update a Draft PR and stop before merge.
 
 Give the integrator:
+
 - PR numbers/HEAD SHAs;
 - dependency ordering;
 - instruction to compare with current main, reconcile, validate cross-PR composition, and merge only with expected_head_sha.
 
 Give the release manager:
+
 - exact merged main SHA;
 - instruction to validate Final Release Acceptance and Release Promotion Gate for the same SHA before production promotion.
