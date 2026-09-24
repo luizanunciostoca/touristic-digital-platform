@@ -111,7 +111,9 @@ describe("products", () => {
 });
 
 describe("offers", () => {
-  it("requires explicit product/business/place relation and never name matching", async () => {
+  it(
+    "requires explicit product/business/place relation and never name matching",
+    async () => {
     const service = createCatalogService(memoryRepository());
     await service.createProduct({ businessId }, product());
     const saved = await service.createOffer({ businessId }, offer());
@@ -146,7 +148,9 @@ describe("offers", () => {
     ).rejects.toThrow("INVALID_CURRENCY");
   });
 
-  it("identifies expired and sold-out offers from explicit state/owner facts", () => {
+  it(
+    "identifies expired and sold-out offers from explicit state/owner facts",
+    () => {
     expect(
       evaluateOfferSellability(
         offer({ salesEndsAt: "2026-09-20T00:00:00.000Z" }),
@@ -186,7 +190,9 @@ describe("offers", () => {
 });
 
 describe("menus", () => {
-  it("persists menu categories in explicit order and item availability", async () => {
+  it(
+    "persists menu categories in explicit order and item availability",
+    async () => {
     const service = createCatalogService(memoryRepository());
     const menu: Menu = Object.freeze({
       id: asMenuId("menu-principal"),
