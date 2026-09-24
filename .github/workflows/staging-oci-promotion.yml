@@ -30,6 +30,9 @@ env:
   PNPM_VERSION: "10.15.0"
   IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/morro-digital-v2
   TARGET_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging
+  EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0
+  EXPECTED_STAGING_CANONICAL_URL: https://morro-digital-v2-staging.onrender.com
 
 jobs:
   preflight:
@@ -112,6 +115,31 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Prove canonical Render staging target before image deploy
+        env:
+          RENDER_STAGING_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+          RENDER_STAGING_CANONICAL_URL: ${{ secrets.RENDER_STAGING_CANONICAL_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_STAGING_API_KEY"
+          test -n "$RENDER_STAGING_SERVICE_ID"
+          test -n "$RENDER_STAGING_CANONICAL_URL"
+          test "$RENDER_STAGING_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$RENDER_STAGING_CANONICAL_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+
+          curl --fail --silent --show-error             --header "Authorization: Bearer $RENDER_STAGING_API_KEY"             "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID"             > /tmp/render-staging-oci-service.json
+
+          test "$(jq -r '.id // empty' /tmp/render-staging-oci-service.json)" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$(jq -r '.name // empty' /tmp/render-staging-oci-service.json)" = "$EXPECTED_STAGING_SERVICE_NAME"
+          test "$(jq -r '.serviceDetails.url // .url // empty' /tmp/render-staging-oci-service.json)" = "$EXPECTED_STAGING_CANONICAL_URL"
+          test "$(jq -r '.branch // empty' /tmp/render-staging-oci-service.json)" = "main"
+          case "$(jq -r '.autoDeploy // empty' /tmp/render-staging-oci-service.json)" in
+            no|false|"") ;;
+            *) echo "Staging autoDeploy must remain disabled" >&2; exit 1 ;;
+          esac
+
       - name: Trigger Render image deploy by exact digest
         id: render
         env:
@@ -131,7 +159,32 @@ jobs:
             "${DEPLOY_HOOK}${separator}imgURL=${encoded}")"
           case "$status" in 200|202) ;; *) cat /tmp/render-image-deploy.json >&2; exit 1 ;; esac
           deploy_id="$(jq -r '.deploy.id // .id // empty' /tmp/render-image-deploy.json 2>/dev/null || true)"
-          echo "deploy_id=${deploy_id:-unknown}" >> "$GITHUB_OUTPUT"
+          test -n "$deploy_id"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+      - name: Prove image deployment belongs to canonical staging service
+        env:
+          DEPLOY_ID: ${{ steps.render.outputs.deploy_id }}
+          RENDER_STAGING_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
+          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for _ in $(seq 1 120); do
+            curl --fail --silent --show-error               --header "Authorization: Bearer $RENDER_STAGING_API_KEY"               "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys/$DEPLOY_ID"               > /tmp/render-staging-oci-deploy.json
+            test "$(jq -r '.id // empty' /tmp/render-staging-oci-deploy.json)" = "$DEPLOY_ID"
+            status="$(jq -r '.status // empty' /tmp/render-staging-oci-deploy.json)"
+            case "$status" in
+              live) exit 0 ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|cancelled)
+                cat /tmp/render-staging-oci-deploy.json >&2
+                exit 1
+                ;;
+            esac
+            sleep 5
+          done
+          echo "Timed out waiting for canonical staging image deployment $DEPLOY_ID" >&2
+          exit 1
 
       - name: Wait for exact-SHA runtime identity
         env:

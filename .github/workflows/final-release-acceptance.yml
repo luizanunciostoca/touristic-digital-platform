@@ -309,6 +309,30 @@ jobs:
           echo "Staging promotion timed out: run $STAGING_PROMOTION_RUN_ID" >&2
           exit 1
 
+      - name: Consume and validate structured staging target evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGING_PROMOTION_RUN_ID: ${{ steps.staging-promotion.outputs.run_id }}
+          EXPECTED_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/staging-target-evidence
+          mkdir -p /tmp/staging-target-evidence
+          gh run download "$STAGING_PROMOTION_RUN_ID"             --name "staging-deployment-evidence-$STAGING_PROMOTION_RUN_ID"             --dir /tmp/staging-target-evidence
+          evidence=/tmp/staging-target-evidence/staging-deployment-evidence.json
+          test -s "$evidence"
+          jq -e             --arg sha "$EXPECTED_SHA"             '.expectedSha == $sha and
+             .liveSha == $sha and
+             .environment == "staging" and
+             .serviceName == "morro-digital-v2-staging" and
+             .serviceId == "srv-da4hb6c9v7es7386ttt0" and
+             .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
+             (.deploymentId | length > 0) and
+             (.verifiedAt | length > 0)' "$evidence" >/dev/null
+          cp "$evidence" final-release-staging-target-evidence.json
+          echo "Structured staging target evidence PASS for $EXPECTED_SHA"
+
       - name: Prove exact-SHA live staging health and readiness
         shell: bash
         run: |
@@ -371,6 +395,7 @@ jobs:
           path: |
             final-release-acceptance-evidence.txt
             final-release-acceptance-runs.tsv
+            final-release-staging-target-evidence.json
           if-no-files-found: error
           retention-days: 30
 
