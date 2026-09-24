@@ -877,12 +877,7 @@ body[data-md-mode="navigation"] #globe-map-control {
   transform: none;
 }
 
-body[data-md-mode="navigation"] #globe-map-control #toggle-globe-view {
-  display: none !important;
-}
-
-body[data-md-mode="navigation"] #globe-map-control #toggle-3d-mode,
-body[data-md-mode="navigation"] #navigation-recenter-btn {
+body[data-md-mode="navigation"] #globe-map-control .md-map-control {
   display: grid !important;
   width: var(--md-touch-target-min);
   min-width: var(--md-touch-target-min);
