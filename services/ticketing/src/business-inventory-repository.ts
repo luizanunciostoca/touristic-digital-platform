@@ -2,21 +2,16 @@ import { createHash } from "node:crypto";
 
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
+import {
+  normalizeTicketAdmissionProfile,
+  type TicketAdmissionProfile,
+} from "@touristic/ticketing/reservations";
+
 const BUSINESS_ID = /^[a-z0-9][a-z0-9_-]{0,119}$/u;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_-]{8,120}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const PRODUCT_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u;
-const ADMISSION_ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
-const ADMISSION_LABEL = /^[^\u0000-\u001f\u007f]{1,80}$/u;
-
-export interface MorroProAdmissionProfile {
-  readonly offeringId: string;
-  readonly placeId: string;
-  readonly subtype: "sunset" | "event" | "party";
-  readonly ticketType: string;
-  readonly tierLabel: string | null;
-  readonly displayOrder: number;
-}
+export type MorroProAdmissionProfile = TicketAdmissionProfile;
 
 export interface MorroProInventoryOffer {
   readonly id: string;
@@ -118,45 +113,9 @@ function normalizeAdmissionProfile(
   if (productKind !== "business_experience") {
     throw new Error("MORRO_PRO_ADMISSION_PRODUCT_KIND_INVALID");
   }
-  const input = record(value);
-  if (!input) throw new Error("MORRO_PRO_ADMISSION_INVALID");
-  const offeringId =
-    typeof input.offeringId === "string" ? input.offeringId.trim() : "";
-  const placeId =
-    typeof input.placeId === "string" ? input.placeId.trim() : "";
-  const subtype =
-    input.subtype === "sunset" ||
-    input.subtype === "event" ||
-    input.subtype === "party"
-      ? input.subtype
-      : null;
-  const ticketType =
-    typeof input.ticketType === "string" ? input.ticketType.trim() : "";
-  const tierLabel =
-    input.tierLabel === undefined || input.tierLabel === null
-      ? null
-      : typeof input.tierLabel === "string"
-        ? input.tierLabel.trim()
-        : "";
-  const displayOrder = asSafeInteger(input.displayOrder ?? 0, 0, 999);
-  if (
-    !ADMISSION_ID.test(offeringId) ||
-    !ADMISSION_ID.test(placeId) ||
-    !subtype ||
-    !ADMISSION_LABEL.test(ticketType) ||
-    (tierLabel !== null && !ADMISSION_LABEL.test(tierLabel)) ||
-    displayOrder === null
-  ) {
-    throw new Error("MORRO_PRO_ADMISSION_INVALID");
-  }
-  return Object.freeze({
-    offeringId,
-    placeId,
-    subtype,
-    ticketType,
-    tierLabel,
-    displayOrder,
-  });
+  const admission = normalizeTicketAdmissionProfile(value);
+  if (!admission) throw new Error("MORRO_PRO_ADMISSION_INVALID");
+  return admission;
 }
 
 function canonicalBusinessId(value: unknown): string {
