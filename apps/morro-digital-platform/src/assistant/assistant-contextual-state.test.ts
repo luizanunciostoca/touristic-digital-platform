@@ -76,6 +76,9 @@ describe("assistant contextual state messaging", () => {
         "es",
       ).message,
     ).toContain("3");
+    expect(
+      resolveAssistantContextualCopy("provider_error", {}, "he").errorFallback,
+    ).toContain("נסה שוב");
   });
 
   it("interpolates bounded contextual values without executable markup", () => {
