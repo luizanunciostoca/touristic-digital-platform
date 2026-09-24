@@ -2688,6 +2688,7 @@ html[dir="rtl"]
 html:not([dir="rtl"])
   #unified-assistant-dock
   > #assistant-category-rail.md-assistant-category-rail {
+  direction: ltr;
   display: grid;
   grid-template-columns:
     calc(var(--md-context-rail-back-size) + 0.25rem)
@@ -2728,6 +2729,7 @@ html:not([dir="rtl"])
 html[dir="rtl"]
   #unified-assistant-dock
   > #assistant-category-rail.md-assistant-category-rail {
+  direction: ltr;
   display: grid;
   grid-template-columns: minmax(0, 1fr) calc(
       var(--md-context-rail-back-size) + 0.25rem
