@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@touristic/auth": "workspace:*"
+    "@touristic/auth": "workspace:*",
+    "@touristic/core": "workspace:*"
   },
   "exports": {
     ".": {
@@ -51,6 +52,11 @@
       "types": "./src/onboarding-commercial-conversion.ts",
       "node": "./dist/onboarding-commercial-conversion.js",
       "default": "./src/onboarding-commercial-conversion.ts"
+    },
+    "./place-domain": {
+      "types": "./src/place-domain.ts",
+      "node": "./dist/place-domain.js",
+      "default": "./src/place-domain.ts"
     }
   },
   "scripts": {
