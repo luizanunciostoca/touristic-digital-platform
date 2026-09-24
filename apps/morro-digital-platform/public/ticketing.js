@@ -16,8 +16,47 @@ const copy = getTicketingPresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
 const ticketingParams = new URLSearchParams(location.search);
 const ticketingContext =
-  ticketingParams.get("mode") === "tour" ? "tour" : "generic";
+  location.pathname.endsWith("/tour-booking.html") ||
+  document.documentElement.dataset.ticketingContext === "tour" ||
+  document.body.dataset.ticketingContext === "tour" ||
+  ticketingParams.get("mode") === "tour"
+    ? "tour"
+    : "generic";
+const hasDedicatedTourTarget =
+  ticketingContext === "tour" &&
+  ["offer", "offers", "place"].some((key) => {
+    const value = ticketingParams.get(key);
+    return typeof value === "string" && value.trim().length > 0;
+  });
+document.documentElement.dataset.ticketingContext = ticketingContext;
 document.body.dataset.ticketingContext = ticketingContext;
+if (ticketingContext === "tour") {
+  document.documentElement.dataset.ticketingSingleProduct = String(
+    hasDedicatedTourTarget,
+  );
+  document.body.dataset.ticketingSingleProduct = String(hasDedicatedTourTarget);
+}
+
+function defaultReserveLabel() {
+  return ticketingContext === "tour"
+    ? "Finalizar reserva"
+    : copy.static.reserveAndPay;
+}
+
+function finalizingReserveLabel() {
+  return ticketingContext === "tour"
+    ? "Finalizando reserva…"
+    : copy.static.finalizing;
+}
+
+function reservationReturnUrl() {
+  if (ticketingContext !== "tour") {
+    return `${location.origin}/tickets.html`;
+  }
+  const url = new URL(location.href);
+  url.hash = "";
+  return url.toString();
+}
 
 const browserAnalytics = installMorroBrowserAnalytics({ document, window });
 const privacyPreferences = installBrowserAnalyticsConsentPreferences({
@@ -320,10 +359,10 @@ async function refreshQuote({ announce = false } = {}) {
     const pendingCheckout = pendingCheckoutState();
     elements.reserve.disabled = state.submitting;
     elements.reserve.textContent = state.submitting
-      ? copy.static.finalizing
+      ? finalizingReserveLabel()
       : pendingCheckout
         ? copy.static.resumePayment
-        : copy.static.reserveAndPay;
+        : defaultReserveLabel();
     if (announce) setMessage(copy.static.priceUpdated);
     return quote;
   } catch (error) {
@@ -331,7 +370,7 @@ async function refreshQuote({ announce = false } = {}) {
     state.quote = null;
     updatePurchaseSummary();
     elements.reserve.disabled = true;
-    elements.reserve.textContent = copy.static.reserveAndPay;
+    elements.reserve.textContent = defaultReserveLabel();
     setMessage(friendlyError(error), true);
     elements.refresh.hidden = false;
     return null;
@@ -340,6 +379,9 @@ async function refreshQuote({ announce = false } = {}) {
 
 function updateProductPresentation(offer) {
   elements.heroTitle.textContent = offer.label || productKindLabel(offer);
+  if (ticketingContext === "tour") {
+    document.body.dataset.ticketingLoading = "false";
+  }
   elements.productLead.textContent = `${productKindLabel(offer)} · ${dateTime(
     offer.startsAt,
   )}`;
@@ -746,13 +788,23 @@ async function loadOffers() {
               offerMatchesPlace(entry, requestedPlace),
             )
           : [];
-  document.body.dataset.ticketingSinglePlace = String(
-    ticketingContext === "tour" && Boolean(requestedPlace),
-  );
+  const requestedOfferParam = ticketingParams.get("offer")?.trim() ?? "";
+  const hasSingleTourTarget =
+    ticketingContext === "tour" &&
+    (requestedOffers.length > 0 ||
+      Boolean(requestedPlace) ||
+      offerIdPattern.test(requestedOfferParam));
+  document.documentElement.dataset.ticketingSingleProduct =
+    String(hasSingleTourTarget);
+  document.body.dataset.ticketingSingleProduct = String(hasSingleTourTarget);
+  document.body.dataset.ticketingSinglePlace = String(hasSingleTourTarget);
   renderDateSelector();
   renderOffers();
 
   if (state.offers.length === 0) {
+    if (ticketingContext === "tour") {
+      document.body.dataset.ticketingLoading = "false";
+    }
     state.selectedOffer = null;
     state.quote = null;
     elements.selectionSummary.hidden = true;
@@ -1183,7 +1235,7 @@ async function submitReservation(event) {
       const stillPending = pendingCheckoutState();
       elements.reserve.textContent = stillPending
         ? copy.static.resumePayment
-        : copy.static.reserveAndPay;
+        : defaultReserveLabel();
       elements.reserve.disabled = stillPending ? false : !state.quote;
     }
     return;
@@ -1212,7 +1264,7 @@ async function submitReservation(event) {
 
   state.submitting = true;
   elements.reserve.disabled = true;
-  elements.reserve.textContent = copy.static.finalizing;
+  elements.reserve.textContent = finalizingReserveLabel();
   setMessage(copy.creatingReservation);
   try {
     const previousQuote = quoteIdentity(state.quote);
@@ -1230,7 +1282,7 @@ async function submitReservation(event) {
       return;
     }
     elements.reserve.disabled = true;
-    elements.reserve.textContent = copy.static.finalizing;
+    elements.reserve.textContent = finalizingReserveLabel();
     const reference = reservationAttemptReference(
       state.selectedOffer.id,
       quantity,
@@ -1245,7 +1297,7 @@ async function submitReservation(event) {
         inventoryId: state.selectedOffer.id,
         quantity,
         holder,
-        returnUrl: `${location.origin}/tickets.html`,
+        returnUrl: reservationReturnUrl(),
       }),
     });
     if (!payload.data?.reservation || !payload.data?.checkout)
@@ -1274,7 +1326,7 @@ async function submitReservation(event) {
     const pendingCheckout = pendingCheckoutState();
     elements.reserve.textContent = pendingCheckout
       ? copy.static.resumePayment
-      : copy.static.reserveAndPay;
+      : defaultReserveLabel();
     elements.reserve.disabled = !state.quote && !pendingCheckout;
   }
 }
@@ -1287,18 +1339,7 @@ elements.privacySettings?.addEventListener("click", () => {
   privacyPreferences.open();
 });
 elements.searchAction?.addEventListener("click", () => {
-  if (history.length > 1 && document.referrer) {
-    try {
-      const previous = new URL(document.referrer);
-      if (previous.origin === location.origin) {
-        history.back();
-        return;
-      }
-    } catch {
-      // Fall through to the canonical Explore surface.
-    }
-  }
-  location.assign("/");
+  location.assign("/?category=tours");
 });
 
 elements.refresh.addEventListener("click", () => {
@@ -1360,6 +1401,9 @@ elements.returnLink.addEventListener("click", (event) => {
     await Promise.all([loadOffers(), loadReservations()]);
     await resumeCheckout();
   } catch (error) {
+    if (ticketingContext === "tour") {
+      document.body.dataset.ticketingLoading = "false";
+    }
     elements.refresh.hidden = false;
     setMessage(friendlyError(error, copy.ticketingUnavailable), true);
   }
