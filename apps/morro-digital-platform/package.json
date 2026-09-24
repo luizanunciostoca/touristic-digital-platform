@@ -14,6 +14,7 @@
     "@touristic/auth-server": "workspace:*",
     "@touristic/business": "workspace:*",
     "@touristic/commerce": "workspace:*",
+    "@touristic/commerce-server": "workspace:*",
     "@touristic/content": "workspace:*",
     "@touristic/content-server": "workspace:*",
     "@touristic/core": "workspace:*",
