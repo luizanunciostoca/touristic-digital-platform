@@ -1,0 +1,112 @@
+name: Release OCI Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact commit SHA to package as immutable OCI image
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-image-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/morro-digital-v2
+
+jobs:
+  image:
+    name: release-image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      digest: ${{ steps.publish.outputs.digest }}
+      image: ${{ steps.publish.outputs.image }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+
+      - name: Prove exact source identity
+        id: identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          echo "tree=$(git rev-parse "$EXPECTED_SHA^{tree}")" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to GHCR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Build and publish immutable image
+        id: publish
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          image="$IMAGE_REPOSITORY:$EXPECTED_SHA"
+          docker build --pull --target production \
+            --label "org.opencontainers.image.revision=$EXPECTED_SHA" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            -t "$image" .
+          docker push "$image"
+          digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$image" | sed 's/^.*@//')"
+          test -n "$digest"
+          echo "image=$IMAGE_REPOSITORY" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          echo "Published $IMAGE_REPOSITORY@$digest"
+
+      - name: Verify immutable registry digest
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote="$(docker buildx imagetools inspect "$IMAGE_REPOSITORY:$EXPECTED_SHA" --format '{{json .Manifest}}' | jq -r '.digest // empty')"
+          test "$remote" = "$DIGEST"
+
+      - name: Write release provenance
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          TREE_SHA: ${{ steps.identity.outputs.tree }}
+          DIGEST: ${{ steps.publish.outputs.digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg source_sha "$EXPECTED_SHA" \
+            --arg tree_sha "$TREE_SHA" \
+            --arg image "$IMAGE_REPOSITORY" \
+            --arg digest "$DIGEST" \
+            --arg workflow_run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            '{
+              source_sha: $source_sha,
+              tree_sha: $tree_sha,
+              image: $image,
+              digest: $digest,
+              workflow_run: $workflow_run
+            }' > release-provenance.json
+          cat release-provenance.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-provenance-${{ inputs.expected_sha }}
+          path: release-provenance.json
+          if-no-files-found: error
+          retention-days: 90
