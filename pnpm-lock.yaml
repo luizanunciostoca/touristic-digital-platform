@@ -131,6 +131,8 @@ importers:
         specifier: workspace:*
         version: link:../auth
 
+  packages/commerce: {}
+
   packages/core: {}
 
   packages/content: {}
