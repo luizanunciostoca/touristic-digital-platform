@@ -2539,7 +2539,6 @@ html[dir="rtl"]
   }
 }
 
-
 /* -------------------------------------------------------------------------- */
 /* Map-first compact contextual flow                                           */
 /* -------------------------------------------------------------------------- */
@@ -2629,7 +2628,9 @@ html[dir="rtl"]
     0 2px 6px color-mix(in srgb, var(--md-color-text-primary) 4%, transparent);
 }
 
-#unified-assistant-dock > #assistant-category-rail .md-context-rail-back::before {
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
   position: absolute;
   inset: -0.125rem;
   content: "";

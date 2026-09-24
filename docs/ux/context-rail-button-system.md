@@ -111,7 +111,6 @@ The back action is structural navigation, not scrollable contextual content.
 
 The fixed back control remains visually outside the horizontal option list.
 
-
 ## Map-first compact density
 
 The public map is the primary visual surface. The contextual dock must therefore behave like a compact HUD rather than a content panel.
