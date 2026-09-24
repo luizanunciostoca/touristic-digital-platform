@@ -884,7 +884,7 @@ export function installBrowserAssistantRuntime(
   let requestGeneration = 0;
   const dropStaleResponse = (): AssistantDialogResponse => {
     conversation.recordStaleResponseDropped();
-    return dropStaleResponse();
+    return supersededResponse();
   };
   let currentPresentation: AssistantPresentationSnapshot | null = null;
   let legacyMenuRouting = false;
