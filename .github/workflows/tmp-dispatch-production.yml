@@ -1,0 +1,39 @@
+name: Temporary Dispatch Production Promotion
+
+on:
+  push:
+    branches:
+      - ops/dispatch-production-e82a6bb2-20260924
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops/dispatch-production-e82a6bb2-20260924
+          fetch-depth: 0
+      - name: Dispatch certified production workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: e82a6bb2ef491744bd4d12e270c08d7bd9b5df92
+        run: |
+          set -euo pipefail
+          current_main="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
+          test "$current_main" = "$EXPECTED_SHA"
+          gh workflow run production-render-promotion.yml \
+            --ref main \
+            -f expected_sha="$EXPECTED_SHA" \
+            -f confirm_production=DEPLOY
+      - name: Remove temporary dispatcher
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-dispatch-production.yml
+          git commit -m "chore(ci): remove production dispatch helper"
+          git push origin HEAD:ops/dispatch-production-e82a6bb2-20260924
