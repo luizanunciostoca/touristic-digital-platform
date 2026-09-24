@@ -62,14 +62,14 @@ describe("Morro Commerce foundation", () => {
     const resolved = adaptLegacyTicketingInventoryOffer({
       id: "tin_tour_0001",
       destinationId: "morro-de-sao-paulo",
-      placeId: "place_garapuá",
+      placeId: "place_garapua",
       product: { kind: "tour", reference: "tour:garapua" },
       label: "Garapuá",
     });
     expect(resolved).not.toBeNull();
     expect(
       resolved &&
-        offeringMatchesPlace(resolved.offering, { id: "place_garapuá" }),
+        offeringMatchesPlace(resolved.offering, { id: "place_garapua" }),
     ).toBe(true);
     expect(
       resolved &&
