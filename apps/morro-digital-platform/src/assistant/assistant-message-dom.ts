@@ -14,6 +14,7 @@ export interface AssistantMessageDomOptions {
 
 export interface AssistantMessageDom {
   append(input: AssistantMessageInput): AssistantMessageRecord | null;
+  removeById(id: string, area?: AssistantMessageArea): boolean;
   clear(
     area?: AssistantMessageArea,
     predicate?: (message: AssistantMessageRecord) => boolean,
@@ -98,8 +99,20 @@ export function createAssistantMessageDom(
       const container = getOrCreateArea(options.document, record.area);
       if (!container) return null;
       if (input.clear) container.replaceChildren();
+      if (record.id) {
+        const existing = options.document.getElementById(record.id);
+        if (existing && existing.parentElement === container) existing.remove();
+      }
       renderRecord(options.document, record);
       return record;
+    },
+
+    removeById(id: string, area: AssistantMessageArea = "messages"): boolean {
+      const removed = pipeline.removeById(id, area);
+      const container = getOrCreateArea(options.document, area);
+      const existing = options.document.getElementById(id);
+      if (existing && existing.parentElement === container) existing.remove();
+      return removed || Boolean(existing);
     },
 
     clear(

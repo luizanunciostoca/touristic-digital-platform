@@ -2,29 +2,19 @@ import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-rou
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
 
 export type AssistantContextualState =
-  | "start"
-  | "welcome"
   | "category_selected"
-  | "filter_selected"
   | "results_found"
   | "no_results"
   | "place_selected"
   | "action_available"
   | "navigation_starting"
   | "navigation_active"
-  | "arrival"
-  | "book_tour"
-  | "book_table"
-  | "buy_ticket"
   | "payment_started"
   | "payment_approved"
   | "payment_declined"
   | "timeout"
   | "offline"
   | "provider_error"
-  | "return"
-  | "back"
-  | "cancelled"
   | "geolocation_allowed"
   | "geolocation_denied";
 
@@ -35,113 +25,13 @@ export interface AssistantContextualCopy {
   readonly voiceCopy: string;
 }
 
+export type AssistantContextualLanguage = "pt" | "en" | "es" | "he";
+
 export interface AssistantContextualVariables {
   readonly category?: string | null;
   readonly place?: string | null;
   readonly count?: number | null;
 }
-
-export const ASSISTANT_CONTEXTUAL_STATE_MATRIX: Readonly<
-  Record<AssistantContextualState, AssistantContextualCopy>
-> = Object.freeze({
-  start: copy(
-    "Olá! Posso ajudar você a explorar Morro de São Paulo.",
-    "Explorar",
-  ),
-  welcome: copy(
-    "O que você gostaria de encontrar agora?",
-    "Escolher categoria",
-  ),
-  category_selected: copy(
-    "Categoria selecionada: {{category}}. Escolha um filtro para refinar os resultados.",
-    "Ver filtros",
-  ),
-  filter_selected: copy(
-    "Filtro aplicado. Estou atualizando os lugares disponíveis.",
-    "Ver resultados",
-  ),
-  results_found: copy(
-    "Encontrei {{count}} opções para você. Escolha um lugar para ver os detalhes.",
-    "Ver lugares",
-  ),
-  no_results: copy(
-    "Não encontrei resultados com esses critérios. Você pode voltar e ajustar os filtros.",
-    "Alterar filtros",
-  ),
-  place_selected: copy(
-    "{{place}} selecionado. Veja os detalhes e escolha a próxima ação.",
-    "Ver ações",
-  ),
-  action_available: copy(
-    "As ações disponíveis para {{place}} estão prontas.",
-    "Escolher ação",
-  ),
-  navigation_starting: copy(
-    "Preparando a rota até {{place}}.",
-    "Iniciar navegação",
-  ),
-  navigation_active: copy(
-    "Navegação ativa até {{place}}. Siga as orientações do mapa.",
-    null,
-  ),
-  arrival: copy(
-    "Você chegou a {{place}}. Posso ajudar com a próxima ação.",
-    "Ver opções",
-  ),
-  book_tour: copy(
-    "Vamos preparar a reserva do passeio com as opções disponíveis.",
-    "Reservar passeio",
-  ),
-  book_table: copy(
-    "Vamos preparar a reserva da mesa com os horários disponíveis.",
-    "Reservar mesa",
-  ),
-  buy_ticket: copy(
-    "Vamos preparar a compra do ingresso com os dados disponíveis.",
-    "Comprar ingresso",
-  ),
-  payment_started: copy(
-    "Pagamento iniciado com segurança. Aguarde a confirmação antes de sair desta etapa.",
-    null,
-  ),
-  payment_approved: copy(
-    "Pagamento aprovado. A confirmação da sua compra já está disponível.",
-    "Ver confirmação",
-  ),
-  payment_declined: copy(
-    "O pagamento não foi aprovado. Revise os dados ou tente outra forma de pagamento.",
-    "Tentar novamente",
-  ),
-  timeout: copy(
-    "A operação demorou mais do que o esperado. Você pode tentar novamente sem duplicar a solicitação.",
-    "Tentar novamente",
-  ),
-  offline: copy(
-    "Você está offline. Algumas informações salvas continuam disponíveis, mas ações online ficam pausadas.",
-    null,
-  ),
-  provider_error: copy(
-    "O serviço necessário está temporariamente indisponível. Tente novamente em instantes.",
-    "Tentar novamente",
-  ),
-  return: copy(
-    "Você voltou para a etapa anterior. Escolha como deseja continuar.",
-    null,
-  ),
-  back: copy("Voltamos uma etapa sem perder o contexto da sua busca.", null),
-  cancelled: copy(
-    "A ação foi cancelada. Você pode escolher outra opção quando quiser.",
-    null,
-  ),
-  geolocation_allowed: copy(
-    "Localização permitida. Agora posso usar sua posição para melhorar mapa e rotas.",
-    null,
-  ),
-  geolocation_denied: copy(
-    "Localização não permitida. Você ainda pode explorar e escolher lugares manualmente.",
-    "Explorar sem localização",
-  ),
-});
 
 function copy(message: string, cta: string | null): AssistantContextualCopy {
   return Object.freeze({
@@ -152,6 +42,332 @@ function copy(message: string, cta: string | null): AssistantContextualCopy {
   });
 }
 
+const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
+  Record<
+    AssistantContextualLanguage,
+    Readonly<Record<AssistantContextualState, AssistantContextualCopy>>
+  >
+> = Object.freeze({
+  pt: Object.freeze({
+    category_selected: copy(
+      "Categoria selecionada: {{category}}. Escolha um filtro para refinar os resultados.",
+      "Ver filtros",
+    ),
+    results_found: copy(
+      "Encontrei {{count}} opções para você. Escolha um lugar para ver os detalhes.",
+      "Ver lugares",
+    ),
+    no_results: copy(
+      "Não encontrei resultados com esses critérios. Você pode voltar e ajustar os filtros.",
+      "Alterar filtros",
+    ),
+    place_selected: copy(
+      "{{place}} selecionado. Veja os detalhes e escolha a próxima ação.",
+      "Ver ações",
+    ),
+    action_available: copy(
+      "As ações disponíveis para {{place}} estão prontas.",
+      "Escolher ação",
+    ),
+    navigation_starting: copy(
+      "Preparando a rota até {{place}}.",
+      "Iniciar navegação",
+    ),
+    navigation_active: copy(
+      "Navegação ativa até {{place}}. Siga as orientações do mapa.",
+      null,
+    ),
+    payment_started: copy(
+      "Pagamento iniciado com segurança. Aguarde a confirmação antes de sair desta etapa.",
+      null,
+    ),
+    payment_approved: copy(
+      "Pagamento aprovado. A confirmação da sua compra já está disponível.",
+      "Ver confirmação",
+    ),
+    payment_declined: copy(
+      "O pagamento não foi aprovado. Revise os dados ou tente outra forma de pagamento.",
+      "Tentar novamente",
+    ),
+    timeout: copy(
+      "A operação demorou mais do que o esperado. Você pode tentar novamente sem duplicar a solicitação.",
+      "Tentar novamente",
+    ),
+    offline: copy(
+      "Você está offline. Algumas informações salvas continuam disponíveis, mas ações online ficam pausadas.",
+      null,
+    ),
+    provider_error: copy(
+      "O serviço necessário está temporariamente indisponível. Tente novamente em instantes.",
+      "Tentar novamente",
+    ),
+    geolocation_allowed: copy(
+      "Localização permitida. Agora posso usar sua posição para melhorar mapa e rotas.",
+      null,
+    ),
+    geolocation_denied: copy(
+      "Localização não permitida. Você ainda pode explorar e escolher lugares manualmente.",
+      "Explorar sem localização",
+    ),
+  }),
+  en: Object.freeze({
+    category_selected: copy(
+      "Selected category: {{category}}. Choose a filter to refine the results.",
+      "View filters",
+    ),
+    results_found: copy(
+      "I found {{count}} options for you. Choose a place to see its details.",
+      "View places",
+    ),
+    no_results: copy(
+      "I couldn’t find results with these criteria. Go back and adjust the filters.",
+      "Change filters",
+    ),
+    place_selected: copy(
+      "{{place}} selected. Review the details and choose the next action.",
+      "View actions",
+    ),
+    action_available: copy(
+      "The available actions for {{place}} are ready.",
+      "Choose action",
+    ),
+    navigation_starting: copy(
+      "Preparing the route to {{place}}.",
+      "Start navigation",
+    ),
+    navigation_active: copy(
+      "Navigation to {{place}} is active. Follow the map guidance.",
+      null,
+    ),
+    payment_started: copy(
+      "Payment started securely. Wait for confirmation before leaving this step.",
+      null,
+    ),
+    payment_approved: copy(
+      "Payment approved. Your purchase confirmation is now available.",
+      "View confirmation",
+    ),
+    payment_declined: copy(
+      "The payment was not approved. Review the details or try another payment method.",
+      "Try again",
+    ),
+    timeout: copy(
+      "The operation took longer than expected. You can try again without duplicating the request.",
+      "Try again",
+    ),
+    offline: copy(
+      "You’re offline. Some saved information remains available, but online actions are paused.",
+      null,
+    ),
+    provider_error: copy(
+      "The required service is temporarily unavailable. Try again shortly.",
+      "Try again",
+    ),
+    geolocation_allowed: copy(
+      "Location access allowed. I can now use your position to improve maps and routes.",
+      null,
+    ),
+    geolocation_denied: copy(
+      "Location access was not allowed. You can still explore and choose places manually.",
+      "Explore without location",
+    ),
+  }),
+  es: Object.freeze({
+    category_selected: copy(
+      "Categoría seleccionada: {{category}}. Elige un filtro para refinar los resultados.",
+      "Ver filtros",
+    ),
+    results_found: copy(
+      "Encontré {{count}} opciones para ti. Elige un lugar para ver los detalles.",
+      "Ver lugares",
+    ),
+    no_results: copy(
+      "No encontré resultados con estos criterios. Puedes volver y ajustar los filtros.",
+      "Cambiar filtros",
+    ),
+    place_selected: copy(
+      "{{place}} seleccionado. Revisa los detalles y elige la siguiente acción.",
+      "Ver acciones",
+    ),
+    action_available: copy(
+      "Las acciones disponibles para {{place}} están listas.",
+      "Elegir acción",
+    ),
+    navigation_starting: copy(
+      "Preparando la ruta hasta {{place}}.",
+      "Iniciar navegación",
+    ),
+    navigation_active: copy(
+      "La navegación hasta {{place}} está activa. Sigue las indicaciones del mapa.",
+      null,
+    ),
+    payment_started: copy(
+      "El pago se inició de forma segura. Espera la confirmación antes de salir de esta etapa.",
+      null,
+    ),
+    payment_approved: copy(
+      "Pago aprobado. La confirmación de tu compra ya está disponible.",
+      "Ver confirmación",
+    ),
+    payment_declined: copy(
+      "El pago no fue aprobado. Revisa los datos o prueba otro método de pago.",
+      "Intentar de nuevo",
+    ),
+    timeout: copy(
+      "La operación tardó más de lo esperado. Puedes intentarlo de nuevo sin duplicar la solicitud.",
+      "Intentar de nuevo",
+    ),
+    offline: copy(
+      "Estás sin conexión. Parte de la información guardada sigue disponible, pero las acciones en línea están pausadas.",
+      null,
+    ),
+    provider_error: copy(
+      "El servicio necesario no está disponible temporalmente. Inténtalo de nuevo en unos instantes.",
+      "Intentar de nuevo",
+    ),
+    geolocation_allowed: copy(
+      "Ubicación permitida. Ahora puedo usar tu posición para mejorar mapas y rutas.",
+      null,
+    ),
+    geolocation_denied: copy(
+      "Ubicación no permitida. Aún puedes explorar y elegir lugares manualmente.",
+      "Explorar sin ubicación",
+    ),
+  }),
+  he: Object.freeze({
+    category_selected: copy(
+      "הקטגוריה שנבחרה: {{category}}. בחר מסנן כדי למקד את התוצאות.",
+      "הצג מסננים",
+    ),
+    results_found: copy(
+      "מצאתי {{count}} אפשרויות עבורך. בחר מקום כדי לראות פרטים.",
+      "הצג מקומות",
+    ),
+    no_results: copy(
+      "לא מצאתי תוצאות לפי הקריטריונים האלה. אפשר לחזור ולשנות את המסננים.",
+      "שנה מסננים",
+    ),
+    place_selected: copy(
+      "{{place}} נבחר. עיין בפרטים ובחר את הפעולה הבאה.",
+      "הצג פעולות",
+    ),
+    action_available: copy(
+      "הפעולות הזמינות עבור {{place}} מוכנות.",
+      "בחר פעולה",
+    ),
+    navigation_starting: copy("מכין מסלול אל {{place}}.", "התחל ניווט"),
+    navigation_active: copy(
+      "הניווט אל {{place}} פעיל. עקוב אחר הנחיות המפה.",
+      null,
+    ),
+    payment_started: copy(
+      "התשלום התחיל בצורה מאובטחת. המתן לאישור לפני יציאה מהשלב.",
+      null,
+    ),
+    payment_approved: copy("התשלום אושר. אישור הרכישה זמין כעת.", "הצג אישור"),
+    payment_declined: copy(
+      "התשלום לא אושר. בדוק את הפרטים או נסה אמצעי תשלום אחר.",
+      "נסה שוב",
+    ),
+    timeout: copy(
+      "הפעולה ארכה יותר מהצפוי. אפשר לנסות שוב בלי ליצור בקשה כפולה.",
+      "נסה שוב",
+    ),
+    offline: copy(
+      "אין חיבור לרשת. חלק מהמידע השמור עדיין זמין, אך פעולות מקוונות מושהות.",
+      null,
+    ),
+    provider_error: copy(
+      "השירות הנדרש אינו זמין זמנית. נסה שוב בעוד רגע.",
+      "נסה שוב",
+    ),
+    geolocation_allowed: copy(
+      "הגישה למיקום אושרה. כעת אפשר להשתמש במיקום שלך כדי לשפר מפות ומסלולים.",
+      null,
+    ),
+    geolocation_denied: copy(
+      "הגישה למיקום לא אושרה. עדיין אפשר לחקור ולבחור מקומות ידנית.",
+      "חקור ללא מיקום",
+    ),
+  }),
+});
+
+export const ASSISTANT_CONTEXTUAL_STATE_MATRIX = CONTEXTUAL_COPY_BY_LANGUAGE.pt;
+
+export function normalizeAssistantContextualLanguage(
+  value: string | null | undefined,
+): AssistantContextualLanguage {
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "en" || normalized.startsWith("en-")) return "en";
+  if (normalized === "es" || normalized.startsWith("es-")) return "es";
+  if (normalized === "he" || normalized.startsWith("he-")) return "he";
+  return "pt";
+}
+
+const CATEGORY_LABELS: Readonly<
+  Record<AssistantContextualLanguage, Readonly<Record<string, string>>>
+> = Object.freeze({
+  pt: Object.freeze({
+    beaches: "Praias",
+    tours: "Passeios",
+    attractions: "Atrações",
+    restaurants: "Restaurantes",
+    hotels: "Pousadas",
+    nightlife: "Vida noturna",
+    shops: "Lojas",
+    transport: "Transporte",
+    emergencies: "Emergências",
+    help: "Ajuda",
+  }),
+  en: Object.freeze({
+    beaches: "Beaches",
+    tours: "Tours",
+    attractions: "Attractions",
+    restaurants: "Restaurants",
+    hotels: "Hotels",
+    nightlife: "Nightlife",
+    shops: "Shops",
+    transport: "Transport",
+    emergencies: "Emergencies",
+    help: "Help",
+  }),
+  es: Object.freeze({
+    beaches: "Playas",
+    tours: "Paseos",
+    attractions: "Atracciones",
+    restaurants: "Restaurantes",
+    hotels: "Alojamientos",
+    nightlife: "Vida nocturna",
+    shops: "Tiendas",
+    transport: "Transporte",
+    emergencies: "Emergencias",
+    help: "Ayuda",
+  }),
+  he: Object.freeze({
+    beaches: "חופים",
+    tours: "סיורים",
+    attractions: "אטרקציות",
+    restaurants: "מסעדות",
+    hotels: "לינה",
+    nightlife: "חיי לילה",
+    shops: "חנויות",
+    transport: "תחבורה",
+    emergencies: "חירום",
+    help: "עזרה",
+  }),
+});
+
+export function resolveAssistantContextualCategoryLabel(
+  value: string | null | undefined,
+  language: AssistantContextualLanguage,
+): string | null {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return null;
+  return CATEGORY_LABELS[language][normalized] ?? normalized;
+}
+
 function safeLabel(value: string | null | undefined, fallback: string): string {
   const normalized = String(value ?? "")
     .trim()
@@ -159,11 +375,21 @@ function safeLabel(value: string | null | undefined, fallback: string): string {
   return normalized || fallback;
 }
 
+const CONTEXTUAL_ERROR_FALLBACK: Readonly<
+  Record<AssistantContextualLanguage, string>
+> = Object.freeze({
+  pt: "Não foi possível concluir esta etapa. Tente novamente.",
+  en: "I couldn’t complete this step. Please try again.",
+  es: "No fue posible completar esta etapa. Inténtalo de nuevo.",
+  he: "לא ניתן היה להשלים את השלב הזה. נסה שוב.",
+});
+
 export function resolveAssistantContextualCopy(
   state: AssistantContextualState,
   variables: AssistantContextualVariables = {},
+  language: AssistantContextualLanguage = "pt",
 ): AssistantContextualCopy {
-  const template = ASSISTANT_CONTEXTUAL_STATE_MATRIX[state];
+  const template = CONTEXTUAL_COPY_BY_LANGUAGE[language][state];
   const replacements = Object.freeze({
     category: safeLabel(variables.category, "esta categoria"),
     place: safeLabel(variables.place, "este lugar"),
@@ -182,7 +408,7 @@ export function resolveAssistantContextualCopy(
   return Object.freeze({
     message: interpolate(template.message),
     cta: template.cta,
-    errorFallback: interpolate(template.errorFallback),
+    errorFallback: interpolate(CONTEXTUAL_ERROR_FALLBACK[language]),
     voiceCopy: interpolate(template.voiceCopy),
   });
 }
@@ -207,6 +433,9 @@ export interface AssistantContextualMessagingOptions {
   readonly document: Document;
   readonly messages: AssistantMessageDom;
   readonly readExploreState: () => AssistantExploreStateSnapshot;
+  readonly resolveNavigationDestination?: (
+    candidate: string | null,
+  ) => string | null;
 }
 
 export interface AssistantContextualMessaging {
@@ -229,65 +458,142 @@ export function installAssistantContextualMessaging(
 ): AssistantContextualMessaging {
   const view = options.document.defaultView;
   let destroyed = false;
-  let lastState: AssistantContextualState | null = null;
+  let lastGlobalState: AssistantContextualState | null = null;
+  let networkOffline = false;
+
+  const language = (): AssistantContextualLanguage =>
+    normalizeAssistantContextualLanguage(options.document.documentElement.lang);
+
+  const nodeId = (area: "messages" | "navigation"): string =>
+    area === "navigation"
+      ? "assistant-navigation-contextual-state"
+      : "assistant-contextual-state";
+
+  const applyMetadata = (
+    node: HTMLElement,
+    state: AssistantContextualState,
+    rendered: AssistantContextualCopy,
+  ): void => {
+    node.dataset.contextualState = state;
+    if (rendered.cta) node.dataset.contextualCta = rendered.cta;
+    else delete node.dataset.contextualCta;
+    node.dataset.contextualVoiceCopy = rendered.voiceCopy;
+
+    const nonBlocking =
+      state === "geolocation_allowed" ||
+      state === "geolocation_denied" ||
+      state === "offline";
+    if (nonBlocking) node.dataset.contextualNonBlocking = "true";
+    else delete node.dataset.contextualNonBlocking;
+  };
 
   const publish = (
     state: AssistantContextualState,
     variables: AssistantContextualVariables = {},
+    area: "messages" | "navigation" = "messages",
   ): void => {
     if (destroyed) return;
-    const rendered = resolveAssistantContextualCopy(state, variables);
-    options.document.getElementById("assistant-contextual-state")?.remove();
+    if (
+      area === "messages" &&
+      networkOffline &&
+      (state === "geolocation_allowed" || state === "geolocation_denied")
+    ) {
+      return;
+    }
+
+    const rendered = resolveAssistantContextualCopy(
+      state,
+      variables,
+      language(),
+    );
+    const id = nodeId(area);
     options.messages.append({
       sender: "assistant",
+      area,
       html: rendered.message,
       messageType: "contextual_state",
-      id: "assistant-contextual-state",
-      customClass: "assistant-contextual-state",
-      avoidDuplicate: true,
-      speak: true,
+      id,
+      customClass:
+        area === "navigation"
+          ? "assistant-navigation-contextual-state"
+          : "assistant-contextual-state",
+      avoidDuplicate: false,
+      speak: area !== "navigation",
+      navigationActive: area === "navigation",
     });
-    lastState = state;
+    const created = options.document.getElementById(id);
+    if (created instanceof HTMLElement) {
+      applyMetadata(created, state, rendered);
+    }
+    if (area === "messages") lastGlobalState = state;
+  };
+
+  const removeNavigationContext = (): void => {
+    options.messages.removeById(nodeId("navigation"), "navigation");
+  };
+
+  const navigationDestination = (event: Event): string | null => {
+    const detail = eventDetail(event);
+    const raw =
+      typeof detail?.destination === "string" ? detail.destination : null;
+    return options.resolveNavigationDestination
+      ? options.resolveNavigationDestination(raw)
+      : raw;
   };
 
   const onNavigationStarted = (event: Event): void => {
-    const detail = eventDetail(event);
-    publish("navigation_starting", {
-      place:
-        typeof detail?.destination === "string" ? detail.destination : null,
-    });
+    publish(
+      "navigation_starting",
+      { place: navigationDestination(event) },
+      "navigation",
+    );
   };
+
   const onNavigationStatusChanged = (event: Event): void => {
     const detail = eventDetail(event);
     if (detail?.phase === "active" || detail?.phase === "ui_ready") {
-      publish("navigation_active", {
-        place:
-          typeof detail.destination === "string" ? detail.destination : null,
-      });
+      publish(
+        "navigation_active",
+        { place: navigationDestination(event) },
+        "navigation",
+      );
     } else if (detail?.phase === "failed") {
-      publish("provider_error");
+      publish("provider_error", {}, "navigation");
+    } else if (
+      detail?.phase === "ended" ||
+      detail?.phase === "arrived" ||
+      detail?.phase === "idle"
+    ) {
+      removeNavigationContext();
     }
   };
-  const onNavigationEnded = (event: Event): void => {
-    const detail = eventDetail(event);
-    publish(detail?.reason === "arrived" ? "arrival" : "cancelled", {
-      place:
-        typeof detail?.destination === "string" ? detail.destination : null,
-    });
+
+  const onNavigationEnded = (): void => {
+    // Completion feedback has a dedicated canonical presenter in
+    // assistant-navigation-feedback.ts. Only clear the active navigation
+    // contextual surface here so two presenters never compete.
+    removeNavigationContext();
   };
+
   const onNetworkStateChanged = (event: Event): void => {
     const detail = eventDetail(event);
     if (detail?.state === "offline") {
+      networkOffline = true;
       publish("offline");
       return;
     }
-    if (detail?.state === "online" && lastState === "offline") {
-      options.document.getElementById("assistant-contextual-state")?.remove();
-      lastState = null;
+    if (detail?.state === "online") {
+      networkOffline = false;
+      if (lastGlobalState === "offline") {
+        options.messages.removeById(nodeId("messages"), "messages");
+        lastGlobalState = null;
+      }
     }
   };
+
   const onPaymentStarted = (): void => publish("payment_started");
   const onPaymentVerified = (): void => publish("payment_approved");
+
   const onPaymentFailed = (event: Event): void => {
     const detail = eventDetail(event);
     const code = typeof detail?.code === "string" ? detail.code : "";
@@ -347,6 +653,8 @@ export function installAssistantContextualMessaging(
         "businessPaymentVerificationFailed",
         onPaymentFailed,
       );
+      options.messages.removeById(nodeId("messages"), "messages");
+      options.messages.removeById(nodeId("navigation"), "navigation");
     },
   });
 }

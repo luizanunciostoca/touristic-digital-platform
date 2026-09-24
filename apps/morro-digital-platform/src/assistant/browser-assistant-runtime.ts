@@ -27,6 +27,8 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import {
   installAssistantContextualMessaging,
+  normalizeAssistantContextualLanguage,
+  resolveAssistantContextualCategoryLabel,
   resolveAssistantContextualCopy,
   resolveExploreContextualState,
 } from "./assistant-contextual-state.js";
@@ -903,6 +905,15 @@ export function installBrowserAssistantRuntime(
     document: options.document,
     messages,
     readExploreState,
+    resolveNavigationDestination(candidate) {
+      const normalized = candidate?.trim() ?? "";
+      const coordinateDestination =
+        /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u.test(normalized);
+      if (normalized && !coordinateDestination) return normalized;
+      const explorePlace = readExploreState().place?.trim();
+      if (explorePlace) return explorePlace;
+      return context.getContext().lastPlace?.trim() || null;
+    },
   });
 
   const syncExploreContext = (placeHint?: string): void => {
@@ -1488,24 +1499,47 @@ export function installBrowserAssistantRuntime(
     );
     if (!(canonicalMessage instanceof HTMLElement)) return;
 
-    canonicalMessage.dataset.contextualState = contextualState;
+    const language = normalizeAssistantContextualLanguage(
+      options.document.documentElement.lang,
+    );
+    const rendered = resolveAssistantContextualCopy(
+      contextualState,
+      {
+        category: resolveAssistantContextualCategoryLabel(
+          state.category,
+          language,
+        ),
+        place: placeHint ?? state.place,
+        count: state.markerCount,
+      },
+      language,
+    );
 
-    // Explore owns its canonical rich detail/tour presentation. Project
-    // contextual copy only into the plain category-flow message so the global
-    // single-message controller never has to arbitrate a second message node.
-    if (
-      canonicalMessage.dataset.messageType !== "category-flow" ||
-      canonicalMessage.dataset.preserveContent === "true"
-    ) {
+    canonicalMessage.dataset.contextualState = contextualState;
+    if (rendered.cta) canonicalMessage.dataset.contextualCta = rendered.cta;
+    else delete canonicalMessage.dataset.contextualCta;
+    canonicalMessage.dataset.contextualVoiceCopy = rendered.voiceCopy;
+
+    const isPlainCategoryFlow =
+      canonicalMessage.dataset.messageType === "category-flow" &&
+      canonicalMessage.dataset.preserveContent !== "true";
+    if (isPlainCategoryFlow) {
+      canonicalMessage.textContent = rendered.message;
       return;
     }
 
-    const rendered = resolveAssistantContextualCopy(contextualState, {
-      category: state.category,
-      place: placeHint ?? state.place,
-      count: state.markerCount,
-    });
-    canonicalMessage.textContent = rendered.message;
+    // Rich Explore presenters remain the single visual authority. Contextual
+    // copy is projected as a bounded submessage inside the existing presenter
+    // instead of creating a competing assistant message node.
+    let contextualCopy = canonicalMessage.querySelector<HTMLElement>(
+      ":scope > .md-assistant-contextual-copy",
+    );
+    if (!contextualCopy) {
+      contextualCopy = options.document.createElement("span");
+      contextualCopy.className = "md-assistant-contextual-copy";
+      canonicalMessage.appendChild(contextualCopy);
+    }
+    contextualCopy.textContent = rendered.message;
   };
 
   const syncExplorePresentation = (placeHint?: string): void => {

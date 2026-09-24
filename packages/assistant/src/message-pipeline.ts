@@ -92,6 +92,13 @@ export function createAssistantMessagePipeline(
       }
 
       const areaMessages = messages[area];
+      if (input.id) {
+        const existingIndex = areaMessages.findIndex(
+          (message) => message.id === input.id,
+        );
+        if (existingIndex >= 0) areaMessages.splice(existingIndex, 1);
+      }
+
       const previous = areaMessages.at(-1);
       if (
         avoidDuplicate &&
@@ -121,6 +128,13 @@ export function createAssistantMessagePipeline(
       messages[area].push(record);
       if (avoidDuplicate) lastMessageSent = { html: input.html, timestamp };
       return structuredClone(record);
+    },
+
+    removeById(id: string, area: AssistantMessageArea = "messages"): boolean {
+      const index = messages[area].findIndex((message) => message.id === id);
+      if (index < 0) return false;
+      messages[area].splice(index, 1);
+      return true;
     },
 
     clear(

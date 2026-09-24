@@ -117,6 +117,18 @@ function destinationFromDetail(detail: unknown): string {
   return normalized;
 }
 
+function destinationFromCurrentSurface(document: Document): string {
+  const flowPlace = document
+    .getElementById(CATEGORY_FLOW_MESSAGE_ID)
+    ?.dataset.place?.trim();
+  if (flowPlace) return flowPlace;
+
+  const sheetPlace = document
+    .getElementById("place-bottom-sheet")
+    ?.dataset.placeName?.trim();
+  return sheetPlace ?? "";
+}
+
 function feedbackText(
   document: Document,
   reason: FeedbackReason,
@@ -176,7 +188,9 @@ export function installAssistantNavigationFeedback(
     if (reason !== "arrived" && reason !== "cancelled") return;
 
     clearRestoreTimer();
-    const destination = destinationFromDetail(event.detail);
+    const destination =
+      destinationFromDetail(event.detail) ||
+      destinationFromCurrentSurface(document);
 
     // V1 restores the category menu after navigation teardown. V2 also needs
     // completion feedback synchronously because existing arrival/cancellation
