@@ -27,6 +27,12 @@ interface InventoryRow extends RowDataPacket {
   enabled: number | boolean;
   created_at: Date | string;
   updated_at: Date | string;
+  admission_offering_id: string | null;
+  admission_place_id: string | null;
+  admission_subtype: "sunset" | "event" | "party" | null;
+  admission_ticket_type: string | null;
+  admission_tier_label: string | null;
+  admission_display_order: number | null;
 }
 
 interface ReservationRow extends RowDataPacket {
@@ -62,6 +68,21 @@ function iso(value: Date | string | null): string | null {
 }
 
 function inventoryFromRow(row: InventoryRow): TicketInventoryOffer {
+  const admission =
+    row.admission_offering_id &&
+    row.admission_place_id &&
+    row.admission_subtype &&
+    row.admission_ticket_type &&
+    row.admission_display_order !== null
+      ? {
+          offeringId: row.admission_offering_id,
+          placeId: row.admission_place_id,
+          subtype: row.admission_subtype,
+          ticketType: row.admission_ticket_type,
+          tierLabel: row.admission_tier_label,
+          displayOrder: row.admission_display_order,
+        }
+      : null;
   const value = createTicketInventoryOffer({
     id: row.inventory_id,
     destinationId: row.destination_id,
@@ -81,6 +102,7 @@ function inventoryFromRow(row: InventoryRow): TicketInventoryOffer {
     enabled: Boolean(row.enabled),
     createdAt: iso(row.created_at),
     updatedAt: iso(row.updated_at),
+    ...(admission ? { admission } : {}),
   });
   if (!value) throw new Error("TICKETING_INVALID_PERSISTED_INVENTORY");
   return value;
@@ -120,9 +142,19 @@ export class MySqlTicketingPublicReadRepository {
 
   async listInventory(): Promise<readonly TicketInventoryOffer[]> {
     const [rows] = await this.pool.execute<InventoryRow[]>(
-      `SELECT * FROM ticketing_inventory
-       WHERE enabled = TRUE
-       ORDER BY starts_at ASC, inventory_id ASC`,
+      `SELECT
+         i.*,
+         p.offering_id AS admission_offering_id,
+         p.place_id AS admission_place_id,
+         p.admission_subtype AS admission_subtype,
+         p.ticket_type AS admission_ticket_type,
+         p.tier_label AS admission_tier_label,
+         p.display_order AS admission_display_order
+       FROM ticketing_inventory AS i
+       LEFT JOIN ticketing_admission_profiles AS p
+         ON p.inventory_id = i.inventory_id
+       WHERE i.enabled = TRUE
+       ORDER BY i.starts_at ASC, i.inventory_id ASC`,
     );
     return Object.freeze(rows.map(inventoryFromRow));
   }
