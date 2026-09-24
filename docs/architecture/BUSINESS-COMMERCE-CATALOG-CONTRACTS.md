@@ -7,7 +7,7 @@ Stack dependency: Wave A / PR #344
 
 ## Domain ownership
 
-`@touristic/business/commerce-domain` owns catalog identity and relationships for:
+`@touristic/business/commerce-domain` owns catalog identity and relationships:
 
 - Business → Product → Offer
 - Business/Place → Menu → MenuCategory → MenuItem
@@ -19,19 +19,20 @@ Canonical identity comes from Wave A:
 - `ProductId`
 - `OfferId`
 
-Names, slugs, aliases, `product.reference`, and `offer.label` are never identity
-authority for new data.
+Names, slugs, aliases, `product.reference`, and `offer.label` are never
+identity authority for new data.
 
 ## Product
 
-`Product` is the permanent/conceptual commercial item. It carries explicit
-`businessId`, optional `placeId`, optional `destinationId`, lifecycle status, tags,
-and an optional legacy reference retained only for migration compatibility.
+`Product` is the permanent commercial item. It carries explicit
+`businessId`, optional `placeId`, optional `destinationId`, lifecycle
+status, tags, and an optional legacy reference retained only for migration.
 
 ## Offer
 
-`Offer` is a sellable commercial condition attached explicitly to one `productId`
-and `businessId`, with optional `placeId` and `destinationId`.
+`Offer` is a sellable commercial condition attached explicitly to one
+`productId` and `businessId`, with optional `placeId` and
+`destinationId`.
 
 It carries:
 
@@ -41,10 +42,10 @@ It carries:
 - capacity metadata;
 - lifecycle status.
 
-The amount in this contract is not transaction authority. Financial remains the
-authoritative source for checkout/payment price confirmation. Inventory and
-Ticketing remain authoritative for stock/capacity state. The browser must not
-derive an authoritative price or inventory state.
+The amount in this contract is not transaction authority. Financial remains
+authoritative for checkout/payment price confirmation. Inventory and Ticketing
+remain authoritative for stock/capacity. The browser must not derive an
+authoritative price or inventory state.
 
 `evaluateOfferSellability()` accepts an optional
 `authoritativeAvailableQuantity` supplied by the owning subsystem. Absence of
@@ -81,9 +82,10 @@ by canonical IDs.
 
 ## Legacy compatibility
 
-`resolveLegacyCommerceReference()` exists only for migration compatibility. It
-can consume pre-existing `product.reference` or `offer.label` values only when a
-compatibility record already binds them to canonical Business/Product/Offer IDs.
+`resolveLegacyCommerceReference()` exists only for migration compatibility.
+It can consume pre-existing `product.reference` or `offer.label` values only
+when a compatibility record already binds them to canonical
+Business/Product/Offer IDs.
 
 It never resolves a Place from:
 
@@ -103,27 +105,27 @@ types. Any CTA/action layer should receive canonical IDs, not labels.
 
 ### Chat 6
 
-For public/search/map read models, project `businessId`, `placeId`, `productId`,
-and `offerId` explicitly. Legacy text matching may remain fallback-only for
-legacy rows.
+For public/search/map read models, project `businessId`, `placeId`,
+`productId`, and `offerId` explicitly. Legacy text matching may remain
+fallback-only for legacy rows.
 
 ### Chat 7
 
-For ordering/ticketing integration, translate canonical `productId`/`offerId` at
-the boundary. Existing `TicketProductReference` may remain a legacy/provider
-compatibility field, but must not become Place identity authority.
-Inventory/Ticketing remain stock owners.
+For Ordering/Ticketing integration, translate canonical `productId` and
+`offerId` at the boundary. Existing `TicketProductReference` may remain a
+legacy/provider compatibility field, but must not become Place identity
+authority. Inventory/Ticketing remain stock owners.
 
 ### Chat 8
 
-For Financial/payment integration, treat `Offer.price` and `MenuItem.price` as
-catalog/display amounts. Re-confirm authoritative money in Financial before
+For Financial/payment integration, treat `Offer.price` and `MenuItem.price`
+as catalog/display amounts. Re-confirm authoritative money in Financial before
 transaction execution.
 
 ### Chat 9
 
 For Control Center/Morro Pro/admin surfaces, create/update products, offers,
-menus, categories and items through canonical IDs and explicit Business scope.
+menus, categories, and items through canonical IDs and explicit Business scope.
 Do not add browser-side authoritative price calculations.
 
 ## Required regression cases
