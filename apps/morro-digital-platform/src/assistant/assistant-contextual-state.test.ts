@@ -85,6 +85,9 @@ describe("assistant contextual state messaging", () => {
     expect(runtime).toContain(
       'canonicalMessage.dataset.messageType !== "category-flow"',
     );
+    expect(runtime).toContain(
+      'canonicalMessage.dataset.preserveContent === "true"',
+    );
     expect(runtime).toContain("canonicalMessage.textContent = rendered.message");
     expect(runtime).not.toContain(
       "contextualMessaging.publish(contextualState",
