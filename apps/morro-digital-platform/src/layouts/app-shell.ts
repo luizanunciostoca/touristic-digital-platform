@@ -360,21 +360,6 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           </svg>
           <span class="control-tooltip">Global view</span>
         </button>
-        <button
-          type="button"
-          id="toggle-map-layer"
-          class="map-control-button md-icon-button md-map-control"
-          title="Alternar camada do mapa"
-          aria-label="Alternar entre mapa padrão e satélite"
-          aria-pressed="false"
-          data-map-control="layer"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m3 6 5-3 8 3 5-3v15l-5 3-8-3-5 3V6Z"></path>
-            <path d="M8 3v15M16 6v15"></path>
-          </svg>
-          <span class="control-tooltip">Camada do mapa</span>
-        </button>
       </div>
 
       <div id="instruction-banner" class="instruction-banner md-banner md-navigation-banner hidden" aria-labelledby="instruction-main">
