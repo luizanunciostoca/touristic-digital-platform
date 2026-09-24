@@ -74,22 +74,24 @@ describe("M51 Business dashboard browser client", () => {
     );
   });
 
-  it("does not trust an out-of-scope requested business id for non-admin sessions", async () => {
-    const fixture = authFixture(session(), [profileResponse()]);
+  it("fails closed for an explicitly requested business outside the session scope", async () => {
+    const fixture = authFixture(session(), []);
     const client = createBusinessDashboardClient(fixture.authClient);
 
-    const result = await client.bootstrap("outra-empresa");
-
-    expect(result.businessId).toBe("toca-do-morcego");
+    await expect(client.bootstrap("outra-empresa")).rejects.toThrow(
+      "BUSINESS_ACCESS_DENIED",
+    );
+    expect(fixture.secureFetch).not.toHaveBeenCalled();
   });
 
-  it("lets admin sessions select an explicit normalized business id", async () => {
-    const fixture = authFixture(session("admin", []), [profileResponse()]);
+  it("does not let a platform role bypass explicit Morro Pro businessIds", async () => {
+    const fixture = authFixture(session("admin", []), []);
     const client = createBusinessDashboardClient(fixture.authClient);
 
-    const result = await client.bootstrap(" Toca do Morcego ");
-
-    expect(result.businessId).toBe("toca-do-morcego");
+    await expect(client.bootstrap("toca-do-morcego")).rejects.toThrow(
+      "BUSINESS_ACCESS_DENIED",
+    );
+    expect(fixture.secureFetch).not.toHaveBeenCalled();
   });
 
   it("saves profile mutations only through the Auth secureFetch port", async () => {
