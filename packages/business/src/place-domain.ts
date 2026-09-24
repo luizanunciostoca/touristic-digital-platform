@@ -24,8 +24,7 @@ export const canonicalPlaceCategories = Object.freeze([
   "emergencies",
 ] as const);
 
-export type CanonicalPlaceCategory =
-  (typeof canonicalPlaceCategories)[number];
+export type CanonicalPlaceCategory = (typeof canonicalPlaceCategories)[number];
 
 export const placeCapabilities = Object.freeze([
   "directions",
