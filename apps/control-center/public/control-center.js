@@ -1,5 +1,6 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
 import { renderHomeOverviewV1 } from "./control-center-home-overview-v1.js";
+import { renderBusinessCms } from "./control-center-business-cms.js";
 
 const navItems = [
   ["overview", "Visão Geral", "◫"],
@@ -1126,7 +1127,7 @@ async function renderDestinations(destinationId) {
     });
 }
 
-async function renderBusinesses(businessId) {
+async function renderBusinessesLegacy(businessId) {
   const data = await api("/businesses");
   if (businessId) {
     const business = data.businesses.find((entry) => entry.id === businessId);
@@ -1435,6 +1436,23 @@ async function renderBusinesses(businessId) {
         </tbody>
       </table>
     </div>`;
+}
+
+async function renderBusinesses(businessId) {
+  return renderBusinessCms(
+    {
+      api,
+      content,
+      escapeHtml,
+      actorHasCapability,
+      supportEntityContext,
+    },
+    businessId,
+    {
+      legacyRender: (legacyBusinessId) =>
+        renderBusinessesLegacy(legacyBusinessId ?? businessId),
+    },
+  );
 }
 
 async function renderAffiliates(affiliateId) {
