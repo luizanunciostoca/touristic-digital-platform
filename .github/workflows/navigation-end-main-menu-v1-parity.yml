@@ -164,8 +164,8 @@ jobs:
               }));
             }, destination);
 
-            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
-            await page.locator('#end-navigation-btn').click();
+            await page.locator('#voiceButton.is-navigation-stop').waitFor({ state: 'visible', timeout: 15000 });
+            await page.locator('#voiceButton.is-navigation-stop').click();
             await poll(
               page,
               () => globalThis.__postNavigationEvidence?.ended?.some((entry) => entry?.reason === 'cancelled'),
