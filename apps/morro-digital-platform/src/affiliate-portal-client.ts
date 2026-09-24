@@ -102,7 +102,9 @@ async function readError(response: Response): Promise<string> {
     .clone()
     .json()
     .catch(() => ({}))) as { error?: unknown };
-  return typeof body.error === "string" ? body.error : `HTTP_${response.status}`;
+  return typeof body.error === "string"
+    ? body.error
+    : `HTTP_${response.status}`;
 }
 
 export function createAffiliatePortalClient(
