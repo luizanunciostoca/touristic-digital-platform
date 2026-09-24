@@ -2,7 +2,6 @@ import type { DestinationId } from "@touristic/core";
 
 import {
   asBusinessId,
-  asOfferId,
   asPlaceId,
   asProductId,
   type BusinessId,
