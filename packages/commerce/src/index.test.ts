@@ -42,6 +42,34 @@ describe("Morro Commerce foundation", () => {
     expect(resolved?.offering.context).toBe("sunset");
   });
 
+  it("uses admission metadata as the canonical identity for ticketed admission", () => {
+    const resolved = adaptLegacyTicketingInventoryOffer({
+      id: "tin_party_20260926",
+      destinationId: "morro-de-sao-paulo",
+      product: {
+        kind: "business_experience",
+        reference: "morro-pro:legacy-business:place-legacy-place:sunset",
+      },
+      label: "The Party · Pista · 1º lote",
+      admission: {
+        offeringId: "event_the_party_20260926",
+        placeId: "place_toca_do_morcego",
+        subtype: "party",
+        ticketType: "Pista",
+        tierLabel: "1º lote",
+        displayOrder: 10,
+      },
+    });
+    expect(resolved?.identitySource).toBe("explicit");
+    expect(resolved?.offering.identity.offerId).toBe(
+      "event_the_party_20260926",
+    );
+    expect(resolved?.offering.identity.placeId).toBe(
+      "place_toca_do_morcego",
+    );
+    expect(resolved?.offering.context).toBe("party");
+  });
+
   it("keeps legacy reference parsing as an explicit compatibility source", () => {
     const resolved = adaptLegacyTicketingInventoryOffer({
       id: "tin_party_20260926",
