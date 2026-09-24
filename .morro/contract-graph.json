@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "contracts": {
+    "commerce-offering-identity": {
+      "owners": ["commerce"],
+      "consumers": ["map", "business", "ticketing", "ordering"],
+      "risk": "high"
+    },
+    "reservation-capacity": {
+      "owners": ["commerce"],
+      "consumers": ["business", "ordering"],
+      "risk": "high"
+    },
+    "verified-payment-outcome": {
+      "owners": ["payments"],
+      "consumers": ["ordering", "ticketing", "commerce"],
+      "risk": "critical"
+    },
+    "ticket-fulfillment": {
+      "owners": ["ticketing"],
+      "consumers": ["commerce", "business"],
+      "risk": "critical"
+    },
+    "platform-authz": {
+      "owners": ["auth"],
+      "consumers": [
+        "business",
+        "commerce",
+        "ticketing",
+        "payments",
+        "ci-release"
+      ],
+      "risk": "critical"
+    }
+  }
+}

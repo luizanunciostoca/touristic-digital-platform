@@ -1,46 +1,62 @@
 {
-  "version": 1,
+  "version": 2,
   "domains": [
     {
       "id": "map",
-      "paths": [
-        "apps/morro-digital-platform/public/*map*",
-        "apps/morro-digital-platform/**/*map*"
-      ]
+      "pathPrefixes": [
+        "apps/morro-digital-platform/src/map/",
+        "apps/morro-digital-platform/public/"
+      ],
+      "contracts": []
     },
     {
       "id": "commerce",
-      "paths": [
-        "packages/commerce/**",
-        "apps/morro-digital-platform/**/*commerce*"
-      ]
+      "pathPrefixes": ["packages/commerce/", "services/commerce/"],
+      "contracts": ["commerce-offering-identity", "reservation-capacity"]
     },
     {
       "id": "ticketing",
-      "paths": [
-        "packages/ticketing/**",
-        "services/ticketing/**",
-        "tooling/ticketing/**"
-      ]
+      "pathPrefixes": [
+        "packages/ticketing/",
+        "services/ticketing/",
+        "tooling/ticketing/"
+      ],
+      "contracts": ["ticket-fulfillment"]
+    },
+    {
+      "id": "ordering",
+      "pathPrefixes": ["packages/ordering/", "services/ordering/"],
+      "contracts": ["verified-payment-outcome"]
     },
     {
       "id": "payments",
-      "paths": [
-        "packages/financial/**",
-        "services/financial/**",
-        "packages/ordering/**",
-        "services/ordering/**",
-        "tooling/payments/**"
-      ]
+      "pathPrefixes": [
+        "packages/financial/",
+        "services/financial/",
+        "tooling/payments/"
+      ],
+      "contracts": ["verified-payment-outcome"]
     },
     {
       "id": "auth",
-      "paths": ["packages/auth/**", "services/auth/**"]
+      "pathPrefixes": ["packages/auth/", "services/auth/"],
+      "contracts": ["platform-authz"]
+    },
+    {
+      "id": "business",
+      "pathPrefixes": ["packages/business/", "services/business/"],
+      "contracts": []
     },
     {
       "id": "ci-release",
-      "paths": [".github/workflows/**", "tooling/quality/**", ".morro/**"]
+      "pathPrefixes": [
+        ".github/workflows/",
+        "tooling/quality/",
+        "tooling/fabric/",
+        ".morro/"
+      ],
+      "contracts": []
     }
   ],
-  "collisionPolicy": "serialize overlapping ownership or explicitly stack dependent changes"
+  "collisionPolicy": "serialize overlapping paths, contracts, events, tables, routes or auth capabilities unless dependencies are explicitly stacked"
 }

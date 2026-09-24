@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "states": ["required", "optional", "not-applicable"],
+  "rules": {
+    "requiredSkippedIsFailure": true,
+    "requiredMissingIsFailure": true,
+    "headShaMustMatch": true,
+    "treeShaMustMatchForReuse": true,
+    "mainDriftRequiresImpactRecompute": true
+  },
+  "globalEvidence": ["format", "secrets", "lint", "typecheck"],
+  "criticalInvariants": [
+    "architecture",
+    "auth-isolation",
+    "financial-double-entry",
+    "payment-outcome-authority",
+    "ticket-single-use",
+    "reservation-capacity",
+    "migration-validity"
+  ]
+}

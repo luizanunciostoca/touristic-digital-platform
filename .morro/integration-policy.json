@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "autoMerge": {
+    "allowedOnlyInState": "MERGE_READY",
+    "expectedHeadShaRequired": true,
+    "mainReproofRequired": true
+  },
+  "shadowMain": {
+    "enabled": true,
+    "authoritativeForRelease": false,
+    "treeEquivalentEvidenceReuseOnly": true
+  },
+  "changeLimits": {
+    "softFiles": 15,
+    "softLines": 800,
+    "hardFiles": 30,
+    "hardLines": 1500
+  }
+}

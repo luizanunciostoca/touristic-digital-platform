@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "allowedStates": [
+    "NOT_REQUIRED",
+    "PREPARED",
+    "AWAITING_OPERATOR",
+    "VERIFIED"
+  ],
+  "gates": [
+    { "id": "github-pages-actions-source", "state": "AWAITING_OPERATOR" },
+    { "id": "github-merge-queue", "state": "AWAITING_OPERATOR" },
+    { "id": "render-oci-cutover", "state": "AWAITING_OPERATOR" },
+    { "id": "production-secrets", "state": "AWAITING_OPERATOR" },
+    { "id": "dns-tls", "state": "AWAITING_OPERATOR" },
+    { "id": "backup-retention", "state": "AWAITING_OPERATOR" },
+    { "id": "pitr", "state": "AWAITING_OPERATOR" },
+    { "id": "physical-sm-x820", "state": "AWAITING_OPERATOR" },
+    { "id": "real-provider-activation", "state": "AWAITING_OPERATOR" }
+  ]
+}

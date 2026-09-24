@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "enabled": false,
+  "activationRequires": [
+    "certified-exact-sha",
+    "traffic-control-capability",
+    "health-and-error-telemetry",
+    "automated-rollback-capability"
+  ],
+  "stages": [1, 5, 25, 50, 100],
+  "rollbackOn": [
+    "health-failure",
+    "readiness-failure",
+    "error-budget-breach",
+    "critical-business-invariant-failure"
+  ],
+  "note": "Policy is versioned now; runtime activation remains fail-closed until infrastructure capabilities are verified."
+}

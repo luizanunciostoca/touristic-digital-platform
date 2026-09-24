@@ -45,7 +45,17 @@
     "ticketing:browser:smoke": "node --test tooling/ticketing/browser-contract.test.mjs",
     "css:stylelint": "pnpm dlx stylelint@17.15.0 \"apps/morro-digital-platform/public/design-system-v2.css\" \"apps/morro-digital-platform/public/premium-ux-v2.css\" \"apps/morro-digital-platform/public/tourist-shell-v2.css\" \"apps/morro-digital-platform/public/commerce.css\" \"apps/morro-digital-platform/public/ticketing.css\" \"apps/morro-digital-platform/public/explore-locations.css\" \"apps/morro-digital-platform/public/navigation-map.css\"",
     "release:acceptance-manifest:check": "node tooling/quality/check-release-acceptance-manifest.mjs",
-    "release:gates:negative-check": "node tooling/quality/check-release-gate-negative-cases.mjs"
+    "release:gates:negative-check": "node tooling/quality/check-release-gate-negative-cases.mjs",
+    "fabric:registry:check": "node tooling/fabric/validate-registry.mjs",
+    "fabric:external-gates:check": "node tooling/fabric/check-external-gates.mjs",
+    "fabric:changeset:check": "node tooling/fabric/validate-changeset.mjs",
+    "fabric:change-size:check": "node tooling/fabric/check-change-size.mjs",
+    "fabric:impact": "node tooling/fabric/compute-impact.mjs",
+    "fabric:queue:plan": "node tooling/fabric/plan-integration-queue.mjs",
+    "fabric:shadow-main": "node tooling/fabric/build-shadow-main.mjs",
+    "fabric:evidence-key": "node tooling/fabric/build-evidence-key.mjs",
+    "fabric:merge-ready:check": "node tooling/fabric/check-merge-ready.mjs",
+    "fabric:release-attestation": "node tooling/fabric/build-release-attestation.mjs"
   },
   "pnpm": {
     "overrides": {

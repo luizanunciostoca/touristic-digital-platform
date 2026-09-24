@@ -1,0 +1,42 @@
+{
+  "id": "MD-W2-FABRIC-V2",
+  "baseSha": "06be5aa60caa32990ccc744c169ebf144e7dd660",
+  "branch": "infra/morro-engineering-fabric-v2-20260924",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".morro/**",
+      "tooling/fabric/**",
+      ".github/workflows/morro-fabric-preflight.yml",
+      "docs/engineering/**",
+      "package.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "architecture",
+    "ci-governance",
+    "supply-chain",
+    "tests"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
