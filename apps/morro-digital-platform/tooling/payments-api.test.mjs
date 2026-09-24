@@ -113,11 +113,45 @@ describe("payments startup failure diagnostics", () => {
     ).toBe("ORDERING_DATABASE_URL_REQUIRED");
     expect(
       safeStartupFailureCode(new Error("mysql://user:secret@host/db")),
-    ).toBe("PAYMENTS_RUNTIME_START_UNCLASSIFIED");
+    ).toBe("PAYMENTS_RUNTIME_START_FAILED");
+    expect(
+      safeStartupFailureCode(
+        new Error("PAYMENTS_RETURN_URL_ORIGINS is required"),
+      ),
+    ).toBe("PAYMENTS_RETURN_URL_ORIGINS_REQUIRED");
+    expect(
+      safeStartupFailureCode(
+        new Error("secret-bearing arbitrary failure"),
+        "DATABASE_SCHEMA",
+      ),
+    ).toBe("PAYMENTS_RUNTIME_DATABASE_SCHEMA_FAILED");
   });
 });
 
 describe("M139/M141 payments API runtime boundary", () => {
+  it("classifies missing production return origins without exposing configuration values", async () => {
+    const audit = [];
+    const api = createPaymentsApi({
+      authApi: {},
+      getEnvironmentValue: (key) =>
+        key === "NODE_ENV"
+          ? "production"
+          : key === "PAYMENTS_DESTINATION_ID"
+            ? "morro-de-sao-paulo"
+            : "",
+      audit: (event) => audit.push(event),
+    });
+
+    await expect(api.start()).resolves.toBe(false);
+    expect(audit).toContainEqual(
+      expect.objectContaining({
+        action: "checkout.runtime",
+        result: "failure",
+        reason: "PAYMENTS_RETURN_URL_ORIGINS_REQUIRED",
+      }),
+    );
+  });
+
   it("stays fail-closed when operational configuration is absent", async () => {
     const audit = [];
     const api = createPaymentsApi({
