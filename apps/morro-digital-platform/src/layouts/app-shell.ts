@@ -212,12 +212,14 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
             <span class="md-assistant-category-label">Ajuda</span>
           </button>
         </div>
-        <span
+        <button
+          type="button"
           class="md-category-scroll-hint"
           data-category-scroll-hint
-          aria-hidden="true"
+          aria-label="Ver próximas opções"
+          title="Ver próximas opções"
           hidden
-        >›</span>
+        >›</button>
       </div>
 
       <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent is-voice-first" role="group" aria-label="Assistente por voz" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map" data-assistant-entry-mode="voice-first">
@@ -532,6 +534,27 @@ function composeUnifiedAssistantDock(document: Document): HTMLElement | null {
     categoryScrollHint.hidden = !hasForwardOverflow;
     categories.toggleAttribute("data-has-scroll-forward", hasForwardOverflow);
   };
+
+  const scrollCategoryRailForward = (): void => {
+    if (!categoryScroller || !categoryScrollHint) return;
+    const isRtl =
+      document.defaultView?.getComputedStyle(categoryScroller).direction ===
+      "rtl";
+    const step = Math.max(
+      120,
+      Math.floor(categoryScroller.clientWidth * 0.72),
+    );
+    categoryScroller.scrollBy({
+      left: isRtl ? -step : step,
+      behavior: "smooth",
+    });
+  };
+
+  categoryScrollHint?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    scrollCategoryRailForward();
+  });
 
   categoryScroller?.addEventListener("scroll", synchronizeCategoryScrollHint, {
     passive: true,
