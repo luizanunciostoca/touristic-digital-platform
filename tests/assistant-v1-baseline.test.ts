@@ -18,13 +18,13 @@ describe("FEATURE-0004 V1 assistant baseline", () => {
       V1_ASSISTANT_BASELINE.canonicalMenu.map(({ value }) => value),
     ).toEqual([
       "beaches",
+      "tours",
+      "attractions",
       "restaurants",
       "hotels",
+      "nightlife",
       "shops",
       "transport",
-      "attractions",
-      "tours",
-      "nightlife",
       "emergencies",
       "help",
     ]);
