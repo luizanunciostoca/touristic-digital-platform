@@ -189,7 +189,8 @@ export function installAssistantNavigationFeedback(
 
     clearRestoreTimer();
     const destination =
-      destinationFromDetail(event.detail) || destinationFromCurrentSurface(document);
+      destinationFromDetail(event.detail) ||
+      destinationFromCurrentSurface(document);
 
     // V1 restores the category menu after navigation teardown. V2 also needs
     // completion feedback synchronously because existing arrival/cancellation
