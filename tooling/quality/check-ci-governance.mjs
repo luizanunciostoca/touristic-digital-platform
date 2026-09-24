@@ -292,6 +292,56 @@ if (/^\s{2}(pull_request|push):/m.test(stagingPromotion)) {
   fail("staging Render promotion must remain explicit workflow_dispatch only");
 }
 
+const mergeQueue = workflowSources.get("merge-queue-full-regression.yml");
+if (!mergeQueue) fail("merge-queue-full-regression.yml is missing");
+requireIncludes(mergeQueue, ".github/workflows/merge-queue-full-regression.yml", [
+  "merge_group:",
+  "merge-queue-full-regression",
+  "release-acceptance-manifest.json",
+  "gh workflow run",
+  "headSha",
+]);
+
+const releaseImage = workflowSources.get("release-oci-image.yml");
+if (!releaseImage) fail("release-oci-image.yml is missing");
+requireIncludes(releaseImage, ".github/workflows/release-oci-image.yml", [
+  "workflow_dispatch:",
+  "expected_sha:",
+  "packages: write",
+  "docker build",
+  "docker push",
+  "MORRO_RELEASE_SHA",
+  "release-provenance.json",
+]);
+
+const ociPromotion = workflowSources.get("oci-release-promotion-gate.yml");
+if (!ociPromotion) fail("oci-release-promotion-gate.yml is missing");
+requireIncludes(ociPromotion, ".github/workflows/oci-release-promotion-gate.yml", [
+  "workflow_dispatch:",
+  "expected_sha:",
+  "image_digest:",
+  "release-oci-image.yml",
+  "final-release-acceptance.yml",
+  "docker pull",
+  "MORRO_RELEASE_SHA",
+]);
+
+for (const file of ["staging-oci-promotion.yml", "production-oci-promotion.yml"]) {
+  const source = workflowSources.get(file);
+  if (!source) fail(`${file} is missing`);
+  requireIncludes(source, `.github/workflows/${file}`, [
+    "workflow_dispatch:",
+    "expected_sha:",
+    "image_digest:",
+    "confirm_deploy:",
+    "imgURL=",
+    "payments:render:smoke",
+  ]);
+  if (/^\s{2}(pull_request|push):/m.test(source)) {
+    fail(`${file} must remain explicit workflow_dispatch only`);
+  }
+}
+
 const codeowners = await text(".github/CODEOWNERS");
 requireIncludes(codeowners, ".github/CODEOWNERS", [
   "* @luizanunciostoca",
