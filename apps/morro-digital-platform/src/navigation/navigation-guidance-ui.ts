@@ -464,7 +464,11 @@ export function createNavigationGuidanceUi(
       destroyed = true;
       minimizeButton?.removeEventListener("click", toggleMinimized);
       supportUi.recenter?.removeEventListener("click", requestRecenter);
-      voiceButton?.removeEventListener("click", onNavigationStopVoiceClick, true);
+      voiceButton?.removeEventListener(
+        "click",
+        onNavigationStopVoiceClick,
+        true,
+      );
     },
   });
 }
