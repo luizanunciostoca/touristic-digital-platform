@@ -168,6 +168,11 @@ function collectEnvironment(getEnvironmentValue) {
     "PAYMENTS_WEBHOOK_URL",
     "PAYMENTS_SANDBOX_WEBHOOK_SECRET",
     "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS",
+    "MERCADO_PAGO_ACCESS_TOKEN",
+    "MERCADO_PAGO_WEBHOOK_SECRET",
+    "MERCADO_PAGO_CHECKOUT_ORIGINS",
+    "MERCADO_PAGO_CHECKOUT_MODE",
+    "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED",
   ];
   return Object.freeze(
     Object.fromEntries(
@@ -219,6 +224,30 @@ const knownStartupConfigurationFailures = new Map([
   ],
   ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
   ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
+  [
+    "MERCADO_PAGO_ACCESS_TOKEN is required",
+    "MERCADO_PAGO_ACCESS_TOKEN_REQUIRED",
+  ],
+  [
+    "MERCADO_PAGO_WEBHOOK_SECRET is required",
+    "MERCADO_PAGO_WEBHOOK_SECRET_REQUIRED",
+  ],
+  [
+    "MERCADO_PAGO_CHECKOUT_ORIGINS is required",
+    "MERCADO_PAGO_CHECKOUT_ORIGINS_REQUIRED",
+  ],
+  [
+    "MERCADO_PAGO_CHECKOUT_ORIGINS is invalid",
+    "MERCADO_PAGO_CHECKOUT_ORIGINS_INVALID",
+  ],
+  [
+    "MERCADO_PAGO_CHECKOUT_MODE is invalid",
+    "MERCADO_PAGO_CHECKOUT_MODE_INVALID",
+  ],
+  [
+    "PAYMENTS_PROVIDER_MODE=mercado_pago is required",
+    "PAYMENTS_PROVIDER_MODE_MERCADO_PAGO_REQUIRED",
+  ],
 ]);
 
 function safeStartupErrorToken(value) {
