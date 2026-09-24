@@ -2,7 +2,7 @@
   "id": "MD-W2-FABRIC-V2",
   "baseSha": "06be5aa60caa32990ccc744c169ebf144e7dd660",
   "branch": "infra/morro-engineering-fabric-v2-20260924",
-  "state": "IMPLEMENTING",
+  "state": "MERGE_READY",
   "risk": "critical",
   "owns": {
     "paths": [
