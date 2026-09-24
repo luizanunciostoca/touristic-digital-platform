@@ -60,10 +60,8 @@ export function evaluateConversationPolicy(
   const now = input.now ?? Date.now();
   const elapsed = Math.max(0, now - input.previousState.timestamp);
 
-  const lowPriority =
-    priority === "proactive" || priority === "passive";
-  const present =
-    !lowPriority || elapsed >= PROACTIVE_COOLDOWN_MS;
+  const lowPriority = priority === "proactive" || priority === "passive";
+  const present = !lowPriority || elapsed >= PROACTIVE_COOLDOWN_MS;
 
   const speak =
     present &&
@@ -76,8 +74,6 @@ export function evaluateConversationPolicy(
     speak,
     priority,
     replace: priority !== "emergency",
-    reason: present
-      ? "allowed"
-      : "low_priority_cooldown",
+    reason: present ? "allowed" : "low_priority_cooldown",
   });
 }

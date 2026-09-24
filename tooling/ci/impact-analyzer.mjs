@@ -5,7 +5,9 @@ import { readFileSync } from "node:fs";
 const manifest = JSON.parse(
   readFileSync(new URL("./test-impact-manifest.json", import.meta.url), "utf8"),
 );
-const riskRank = new Map(manifest.riskOrder.map((risk, index) => [risk, index]));
+const riskRank = new Map(
+  manifest.riskOrder.map((risk, index) => [risk, index]),
+);
 
 function git(...args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -52,7 +54,9 @@ try {
   let needsFullSecurity = false;
 
   for (const [name, config] of Object.entries(manifest.domains)) {
-    if (!files.some((file) => config.paths.some((rule) => matches(file, rule)))) {
+    if (
+      !files.some((file) => config.paths.some((rule) => matches(file, rule)))
+    ) {
       continue;
     }
     domains.push(name);
@@ -84,8 +88,9 @@ try {
     needsBrowser: needsFullRegression || needsBrowser,
     needsVisual,
     needsDatabase: needsFullRegression || needsDatabase,
-    needsContainer:
-      files.some((file) => /(^|\/)(Dockerfile|docker-compose)/u.test(file)),
+    needsContainer: files.some((file) =>
+      /(^|\/)(Dockerfile|docker-compose)/u.test(file),
+    ),
     needsDependencyAudit: needsFullRegression || needsDependencyAudit,
     needsFullSecurity: needsFullRegression || needsFullSecurity,
     needsFullRegression,

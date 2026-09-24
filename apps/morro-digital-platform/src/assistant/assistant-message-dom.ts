@@ -21,7 +21,10 @@ export interface AssistantMessageDom {
   ): number;
 }
 
-const SHARED_MESSAGE_DOM_BY_DOCUMENT = new WeakMap<Document, AssistantMessageDom>();
+const SHARED_MESSAGE_DOM_BY_DOCUMENT = new WeakMap<
+  Document,
+  AssistantMessageDom
+>();
 
 function getOrCreateArea(
   document: Document,

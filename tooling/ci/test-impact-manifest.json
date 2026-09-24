@@ -1,12 +1,7 @@
 {
   "version": 1,
   "failClosed": true,
-  "riskOrder": [
-    "LOW",
-    "MEDIUM",
-    "HIGH",
-    "CRITICAL"
-  ],
+  "riskOrder": ["LOW", "MEDIUM", "HIGH", "CRITICAL"],
   "domains": {
     "assistant-conversation": {
       "paths": [
@@ -48,12 +43,7 @@
         "packages/geospatial/src/adapters/navigation-"
       ],
       "risk": "MEDIUM",
-      "dependsOn": [
-        "assistant-conversation",
-        "map",
-        "geolocation",
-        "shell"
-      ],
+      "dependsOn": ["assistant-conversation", "map", "geolocation", "shell"],
       "suites": [
         "navigation-turn-by-turn-parity.yml",
         "navigation-visual-baseline.yml",
@@ -72,11 +62,7 @@
         "apps/morro-digital-platform/src/commerce/"
       ],
       "risk": "CRITICAL",
-      "dependsOn": [
-        "assistant-conversation",
-        "commerce",
-        "security"
-      ],
+      "dependsOn": ["assistant-conversation", "commerce", "security"],
       "suites": [
         "payments-browser-checkout-contract.yml",
         "commerce-browser-regression.yml"
@@ -88,19 +74,10 @@
       "needsFullSecurity": true
     },
     "dependencies": {
-      "paths": [
-        "pnpm-lock.yaml",
-        "package.json",
-        "pnpm-workspace.yaml"
-      ],
+      "paths": ["pnpm-lock.yaml", "package.json", "pnpm-workspace.yaml"],
       "risk": "CRITICAL",
-      "dependsOn": [
-        "security"
-      ],
-      "suites": [
-        "dependency-security-audit.yml",
-        "security-scanning.yml"
-      ],
+      "dependsOn": ["security"],
+      "suites": ["dependency-security-audit.yml", "security-scanning.yml"],
       "needsBrowser": false,
       "needsVisual": false,
       "needsDatabase": false,
@@ -108,19 +85,10 @@
       "needsFullSecurity": true
     },
     "cicd": {
-      "paths": [
-        ".github/workflows/",
-        "tooling/ci/",
-        "tooling/quality/"
-      ],
+      "paths": [".github/workflows/", "tooling/ci/", "tooling/quality/"],
       "risk": "CRITICAL",
-      "dependsOn": [
-        "release-governance",
-        "security"
-      ],
-      "suites": [
-        "security-scanning.yml"
-      ],
+      "dependsOn": ["release-governance", "security"],
+      "suites": ["security-scanning.yml"],
       "needsBrowser": false,
       "needsVisual": false,
       "needsDatabase": false,
@@ -135,9 +103,7 @@
         "Dockerfile"
       ],
       "risk": "HIGH",
-      "dependsOn": [
-        "security"
-      ],
+      "dependsOn": ["security"],
       "suites": [],
       "needsBrowser": false,
       "needsVisual": false,

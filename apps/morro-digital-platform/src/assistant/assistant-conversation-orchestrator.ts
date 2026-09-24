@@ -97,7 +97,10 @@ export interface AssistantConversationOrchestrator {
   observability(): ConversationObservabilitySnapshot;
 }
 
-function initialState(sessionId: string, now: number): ConversationStateSnapshot {
+function initialState(
+  sessionId: string,
+  now: number,
+): ConversationStateSnapshot {
   return Object.freeze({
     sessionId,
     previousAssistantMessage: null,
@@ -143,7 +146,9 @@ function nextState(
       has("category") && input.category !== previous.currentCategory
         ? previous.currentCategory
         : previous.previousCategory,
-    currentCategory: has("category") ? (input.category ?? null) : previous.currentCategory,
+    currentCategory: has("category")
+      ? (input.category ?? null)
+      : previous.currentCategory,
     previousPlace:
       has("place") && input.place !== previous.currentPlace
         ? previous.currentPlace
@@ -152,9 +157,15 @@ function nextState(
     currentFilters: has("filters")
       ? Object.freeze([...(input.filters ?? [])])
       : previous.currentFilters,
-    currentSearch: has("search") ? (input.search ?? null) : previous.currentSearch,
-    resultCount: has("resultCount") ? (input.resultCount ?? null) : previous.resultCount,
-    currentJourney: has("journey") ? (input.journey ?? null) : previous.currentJourney,
+    currentSearch: has("search")
+      ? (input.search ?? null)
+      : previous.currentSearch,
+    resultCount: has("resultCount")
+      ? (input.resultCount ?? null)
+      : previous.resultCount,
+    currentJourney: has("journey")
+      ? (input.journey ?? null)
+      : previous.currentJourney,
     currentJourneyStep: has("journeyStep")
       ? (input.journeyStep ?? null)
       : previous.currentJourneyStep,
@@ -168,7 +179,9 @@ function nextState(
       ? (input.locationPermission ?? null)
       : previous.locationPermission,
     networkState: input.networkState ?? previous.networkState,
-    paymentState: has("paymentState") ? (input.paymentState ?? null) : previous.paymentState,
+    paymentState: has("paymentState")
+      ? (input.paymentState ?? null)
+      : previous.paymentState,
     lastMeaningfulTurn: turnId,
     source: input.source ?? previous.source,
     timestamp: now,
@@ -176,8 +189,8 @@ function nextState(
 }
 
 function transitionFingerprint(input: ConversationTransitionInput): string {
-  const entities = Object.entries(input.entities ?? {}).sort(([left], [right]) =>
-    left.localeCompare(right),
+  const entities = Object.entries(input.entities ?? {}).sort(
+    ([left], [right]) => left.localeCompare(right),
   );
   return JSON.stringify({
     cause: input.cause,
@@ -205,7 +218,10 @@ function transitionFingerprint(input: ConversationTransitionInput): string {
   });
 }
 
-const CONVERSATION_BY_DOCUMENT = new WeakMap<Document, AssistantConversationOrchestrator>();
+const CONVERSATION_BY_DOCUMENT = new WeakMap<
+  Document,
+  AssistantConversationOrchestrator
+>();
 
 export function getAssistantConversationOrchestrator(
   document: Document,
@@ -223,9 +239,11 @@ export function createAssistantConversationOrchestrator(options?: {
   readonly now?: () => number;
 }): AssistantConversationOrchestrator {
   const now = options?.now ?? (() => Date.now());
-  const sessionId =
-    options?.sessionId ?? `assistant-${now().toString(36)}`;
-  const maxRecentTurns = Math.max(4, Math.min(50, options?.maxRecentTurns ?? 16));
+  const sessionId = options?.sessionId ?? `assistant-${now().toString(36)}`;
+  const maxRecentTurns = Math.max(
+    4,
+    Math.min(50, options?.maxRecentTurns ?? 16),
+  );
   let state = initialState(sessionId, now());
   let turns: ConversationTurn[] = [];
   let turnSequence = 0;

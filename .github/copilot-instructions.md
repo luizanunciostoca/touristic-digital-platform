@@ -1,12 +1,14 @@
 # Morro Digital Copilot Repository Instructions
 
 ## Engineering invariants
+
 - Treat canonical domain owners as authority; never create a second source of truth.
 - Preserve exact IDs, tenant/destination boundaries and server-side authorization.
 - Never bypass release governance, required checks, exact-head proof or target identity.
 - Prefer small semantic changes with focused evidence over broad rewrites.
 
 ## Conversation architecture
+
 - User/domain actions must flow through context reduction and the conversation authority before presentation.
 - The Assistant must preserve session context even when only one message is visible.
 - New public messages require a conversation cause, message key and turn linkage.
@@ -18,6 +20,7 @@
 - Deterministic critical flows (navigation, payment, geolocation, errors) must not depend on an LLM.
 
 ## CI / test impact
+
 - Classify changes by affected domain and risk using tooling/ci/test-impact-manifest.json.
 - Unknown impact is fail-closed and requires full regression.
 - Assistant conversation changes require focused unit tests plus the continuity browser contract.
@@ -26,6 +29,7 @@
 - Build a release candidate once and promote the same immutable artifact; do not rebuild per environment.
 
 ## Review questions
+
 1. Who owns this state/message?
 2. What previous context is preserved?
 3. Can a stale async result overwrite a newer turn?

@@ -17,11 +17,21 @@ function valueOr(value: string | null | undefined, fallback: string): string {
 export function composeConversationVoice(
   input: ConversationVoiceComposerInput,
 ): string {
-  const category = valueOr(input.category, input.language === "pt" ? "essa categoria" : "this category");
-  const place = valueOr(input.place, input.language === "pt" ? "esse lugar" : "this place");
-  const count = Number.isFinite(input.count) ? Math.max(0, Math.trunc(Number(input.count))) : 0;
+  const category = valueOr(
+    input.category,
+    input.language === "pt" ? "essa categoria" : "this category",
+  );
+  const place = valueOr(
+    input.place,
+    input.language === "pt" ? "esse lugar" : "this place",
+  );
+  const count = Number.isFinite(input.count)
+    ? Math.max(0, Math.trunc(Number(input.count)))
+    : 0;
 
-  const byLanguage: Readonly<Record<ConversationVoiceLanguage, Readonly<Record<string, string>>>> = {
+  const byLanguage: Readonly<
+    Record<ConversationVoiceLanguage, Readonly<Record<string, string>>>
+  > = {
     pt: {
       category_selected: `${category}. Quer filtrar ou ver todas?`,
       results_found: `Encontrei ${count} opções. Quer escolher uma?`,
@@ -32,13 +42,17 @@ export function composeConversationVoice(
       navigation_active: `Estamos a caminho de ${place}.`,
       payment_started: "Pagamento iniciado. Vou acompanhar a confirmação.",
       payment_approved: "Pagamento confirmado. Compra concluída.",
-      payment_declined: "O pagamento não foi confirmado. Você pode tentar novamente.",
+      payment_declined:
+        "O pagamento não foi confirmado. Você pode tentar novamente.",
       timeout: "Isso demorou mais que o esperado. Você pode tentar novamente.",
       offline: "A conexão caiu. O que já carregou continua disponível.",
       online_restored: "Conexão de volta. Podemos continuar.",
-      provider_error: "Esse serviço está indisponível agora. Tente novamente em instantes.",
-      geolocation_allowed: "Localização ativada. Agora consigo usar sua posição.",
-      geolocation_denied: "Tudo bem. Você pode continuar sem compartilhar sua localização.",
+      provider_error:
+        "Esse serviço está indisponível agora. Tente novamente em instantes.",
+      geolocation_allowed:
+        "Localização ativada. Agora consigo usar sua posição.",
+      geolocation_denied:
+        "Tudo bem. Você pode continuar sem compartilhar sua localização.",
     },
     en: {
       category_selected: `${category}. Would you like to filter or see all options?`,
@@ -52,11 +66,14 @@ export function composeConversationVoice(
       payment_approved: "Payment confirmed. Your purchase is complete.",
       payment_declined: "Payment wasn't confirmed. You can try again.",
       timeout: "That took longer than expected. You can try again.",
-      offline: "The connection dropped. What is already loaded remains available.",
+      offline:
+        "The connection dropped. What is already loaded remains available.",
       online_restored: "Connection restored. We can continue.",
-      provider_error: "That service is unavailable right now. Try again shortly.",
+      provider_error:
+        "That service is unavailable right now. Try again shortly.",
       geolocation_allowed: "Location is on. I can now use your position.",
-      geolocation_denied: "That's okay. You can continue without sharing your location.",
+      geolocation_denied:
+        "That's okay. You can continue without sharing your location.",
     },
     es: {
       category_selected: `${category}. ¿Quieres filtrar o ver todas las opciones?`,
@@ -68,13 +85,16 @@ export function composeConversationVoice(
       navigation_active: `Vamos camino a ${place}.`,
       payment_started: "El pago comenzó. Voy a seguir la confirmación.",
       payment_approved: "Pago confirmado. La compra está completa.",
-      payment_declined: "El pago no fue confirmado. Puedes intentarlo de nuevo.",
+      payment_declined:
+        "El pago no fue confirmado. Puedes intentarlo de nuevo.",
       timeout: "Esto tardó más de lo esperado. Puedes intentarlo de nuevo.",
       offline: "Se perdió la conexión. Lo que ya cargó sigue disponible.",
       online_restored: "La conexión volvió. Podemos continuar.",
-      provider_error: "Ese servicio no está disponible ahora. Inténtalo en unos instantes.",
+      provider_error:
+        "Ese servicio no está disponible ahora. Inténtalo en unos instantes.",
       geolocation_allowed: "Ubicación activada. Ahora puedo usar tu posición.",
-      geolocation_denied: "Está bien. Puedes continuar sin compartir tu ubicación.",
+      geolocation_denied:
+        "Está bien. Puedes continuar sin compartir tu ubicación.",
     },
     he: {
       category_selected: `${category}. לסנן או לראות את כל האפשרויות?`,

@@ -268,10 +268,7 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "זה {{place}}. אפשר לנווט לשם או לראות קודם פרטים נוספים.",
       "הצג פעולות",
     ),
-    action_available: copy(
-      "מה תרצה לעשות ב-{{place}} עכשיו?",
-      "הצג אפשרויות",
-    ),
+    action_available: copy("מה תרצה לעשות ב-{{place}} עכשיו?", "הצג אפשרויות"),
     navigation_starting: copy("מכין מסלול אל {{place}}.", "התחל ניווט"),
     navigation_active: copy(
       "אנחנו בדרך אל {{place}}. המשך לעקוב אחרי המפה.",
@@ -294,10 +291,7 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "נראה שהחיבור נותק. מה שכבר נטען עדיין זמין; אעדכן כשהחיבור יחזור.",
       null,
     ),
-    online_restored: copy(
-      "החיבור חזר. אפשר להמשיך מהמקום שבו עצרנו.",
-      null,
-    ),
+    online_restored: copy("החיבור חזר. אפשר להמשיך מהמקום שבו עצרנו.", null),
     provider_error: copy(
       "השירות הנדרש אינו זמין זמנית. נסה שוב בעוד רגע.",
       "נסה שוב",
@@ -568,8 +562,7 @@ export function installAssistantContextualMessaging(
       ...(variables.place
         ? {
             place: variables.place,
-            ...(state === "navigation_starting" ||
-            state === "navigation_active"
+            ...(state === "navigation_starting" || state === "navigation_active"
               ? { navigationDestination: variables.place }
               : {}),
           }
@@ -582,9 +575,7 @@ export function installAssistantContextualMessaging(
         : state === "online_restored"
           ? { networkState: "online" as const }
           : {}),
-      ...(state.startsWith("payment_")
-        ? { paymentState: state }
-        : {}),
+      ...(state.startsWith("payment_") ? { paymentState: state } : {}),
       ...(state.startsWith("geolocation_")
         ? { locationPermission: state }
         : {}),

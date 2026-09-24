@@ -60,7 +60,8 @@ export function composeConversationResponse(
   ) {
     return Object.freeze({
       ...draft,
-      message: "Conexão de volta. Podemos continuar exatamente de onde paramos.",
+      message:
+        "Conexão de volta. Podemos continuar exatamente de onde paramos.",
       voiceCopy: "Conexão de volta. Podemos continuar.",
     });
   }
@@ -83,7 +84,8 @@ export function composeConversationResponse(
   ) {
     return Object.freeze({
       ...draft,
-      message: "Pagamento confirmado. Sua compra está concluída e podemos continuar.",
+      message:
+        "Pagamento confirmado. Sua compra está concluída e podemos continuar.",
       voiceCopy: "Pagamento confirmado. Compra concluída.",
     });
   }
