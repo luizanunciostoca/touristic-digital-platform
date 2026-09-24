@@ -17,7 +17,8 @@ if (
 }
 
 const seen = new Set();
-const shaSensitivePattern = /\bGITHUB_SHA\b|github\.sha|releaseSha|expected_sha/i;
+const shaSensitivePattern =
+  /\bGITHUB_SHA\b|github\.sha|releaseSha|expected_sha/i;
 
 for (const suite of manifest.suites) {
   if (!suite || typeof suite.workflow !== "string") {
