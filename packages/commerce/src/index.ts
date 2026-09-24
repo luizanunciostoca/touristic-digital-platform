@@ -49,6 +49,7 @@ export interface LegacyTicketingInventoryOffer {
   readonly businessId?: unknown;
   readonly placeId?: unknown;
   readonly offerId?: unknown;
+  readonly admission?: unknown;
 }
 
 export type CommerceIdentitySource =
@@ -90,6 +91,60 @@ export function commerceModeForPlaceCategory(
   return null;
 }
 
+function explicitAdmission(value: unknown): Readonly<{
+  offeringId: string;
+  placeId: string;
+  subtype: TicketedAdmissionContext;
+  ticketType: string;
+  tierLabel: string | null;
+  displayOrder: number;
+}> | null {
+  const input = record(value);
+  if (!input) return null;
+  const offeringId = boundedId(input.offeringId);
+  const placeId = boundedId(input.placeId);
+  const subtype = ticketedAdmissionContexts.includes(
+    input.subtype as TicketedAdmissionContext,
+  )
+    ? (input.subtype as TicketedAdmissionContext)
+    : null;
+  const ticketType =
+    typeof input.ticketType === "string" && input.ticketType.trim()
+      ? input.ticketType.trim().slice(0, 80)
+      : "";
+  const tierLabel =
+    input.tierLabel === null || input.tierLabel === undefined
+      ? null
+      : typeof input.tierLabel === "string" && input.tierLabel.trim()
+        ? input.tierLabel.trim().slice(0, 80)
+        : "";
+  const displayOrder =
+    typeof input.displayOrder === "number" &&
+    Number.isSafeInteger(input.displayOrder) &&
+    input.displayOrder >= 0 &&
+    input.displayOrder <= 999
+      ? input.displayOrder
+      : null;
+  if (
+    !offeringId ||
+    !placeId ||
+    !subtype ||
+    !ticketType ||
+    tierLabel === "" ||
+    displayOrder === null
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    offeringId,
+    placeId,
+    subtype,
+    ticketType,
+    tierLabel,
+    displayOrder,
+  });
+}
+
 function legacyIdentity(reference: string): Readonly<{
   businessId: string | null;
   placeId: string | null;
@@ -129,14 +184,18 @@ export function adaptLegacyTicketingInventoryOffer(
     return null;
   }
 
+  const admission =
+    commerceMode === "ticketed_admission"
+      ? explicitAdmission(value.admission)
+      : null;
   const explicitBusinessId = boundedId(value.businessId);
-  const explicitPlaceId = boundedId(value.placeId);
-  const explicitOfferId = boundedId(value.offerId);
+  const explicitPlaceId = admission?.placeId ?? boundedId(value.placeId);
+  const explicitOfferId = admission?.offeringId ?? boundedId(value.offerId);
   const legacy = legacyIdentity(reference);
   const businessId = explicitBusinessId ?? legacy.businessId;
   const placeId = explicitPlaceId ?? legacy.placeId;
   const identitySource: CommerceIdentitySource =
-    explicitBusinessId || explicitPlaceId || explicitOfferId
+    admission || explicitBusinessId || explicitPlaceId || explicitOfferId
       ? "explicit"
       : businessId || placeId
         ? "legacy_reference"
@@ -154,7 +213,7 @@ export function adaptLegacyTicketingInventoryOffer(
       commerceMode,
       context:
         commerceMode === "ticketed_admission"
-          ? admissionContext(reference)
+          ? (admission?.subtype ?? admissionContext(reference))
           : null,
       product: Object.freeze({ kind, reference }),
       presentation: Object.freeze({ title }),
