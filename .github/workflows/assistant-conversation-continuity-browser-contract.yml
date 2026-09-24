@@ -1,0 +1,147 @@
+name: Assistant Conversation Continuity Browser Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - .github/workflows/assistant-conversation-continuity-browser-contract.yml
+      - apps/morro-digital-platform/src/assistant/**
+      - apps/morro-digital-platform/src/map/**
+      - apps/morro-digital-platform/src/navigation/**
+      - packages/assistant/src/**
+      - tooling/ci/test-impact-manifest.json
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  continuity:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Focused conversation tests
+        run: pnpm --filter @touristic/morro-digital-platform test -- assistant-conversation-orchestrator assistant-contextual-state
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated map runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/assistant-continuity.log 2>&1 &
+          for i in $(seq 1 90); do
+            curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/assistant-continuity.log
+          exit 1
+      - name: Prove semantic continuity and single presenter metadata
+        run: |
+          node <<'NODE'
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            try {
+              const context = await browser.newContext({
+                viewport: { width: 390, height: 844 },
+                geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+                permissions: ['geolocation'],
+              });
+              await context.addInitScript(() => {
+                localStorage.setItem('morro-digital-onboarded', '1');
+                localStorage.setItem('morro-digital-language', 'pt-BR');
+                localStorage.setItem('voice-enabled', 'false');
+              });
+              const page = await context.newPage();
+              await page.goto('http://127.0.0.1:4173/', { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await page.locator('#map[data-map-state="ready"]').waitFor({ state: 'attached', timeout: 30000 });
+
+              async function submit(text) {
+                await page.locator('#assistantInput').fill(text);
+                await page.locator('#sendButton').click();
+              }
+              async function contextual(expectedState) {
+                const node = page.locator('#assistant-contextual-state');
+                await node.waitFor({ state: 'attached', timeout: 8000 });
+                const snapshot = await node.evaluate(el => ({
+                  text: el.textContent?.trim() || '',
+                  state: el.dataset.contextualState || '',
+                  turnId: el.dataset.conversationTurnId || '',
+                  previousTurnId: el.dataset.previousConversationTurnId || '',
+                  cause: el.dataset.conversationCause || '',
+                  key: el.dataset.conversationMessageKey || '',
+                }));
+                if (snapshot.state !== expectedState || snapshot.cause !== expectedState || snapshot.key !== expectedState) {
+                  throw new Error('Context metadata mismatch: ' + JSON.stringify(snapshot));
+                }
+                if (!snapshot.turnId) throw new Error('Missing conversation turn id');
+                if (/Categoria selecionada:|Ações disponíveis estão prontas|Navegação ativa/u.test(snapshot.text)) {
+                  throw new Error('Technical copy leaked to user: ' + snapshot.text);
+                }
+                return snapshot;
+              }
+
+              await submit('praias');
+              await page.locator('#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]').waitFor({ state: 'visible', timeout: 8000 });
+              const categoryTurn = await contextual('category_selected');
+              if (!categoryTurn.text.includes('Praias')) throw new Error('Category entity missing: ' + categoryTurn.text);
+
+              await page.locator('#assistant-category-rail [data-value="ver todos"]').click();
+              await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 8000 });
+              const resultsTurn = await contextual('results_found');
+              if (resultsTurn.previousTurnId !== categoryTurn.turnId) {
+                throw new Error('Conversation chain broke between category and results');
+              }
+
+              await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').first().click();
+              await page.locator('#assistant-category-rail[data-rail-stage="detail"]').waitFor({ state: 'visible', timeout: 8000 });
+              const placeTurn = await contextual('place_selected');
+              if (placeTurn.previousTurnId !== resultsTurn.turnId) {
+                throw new Error('Conversation chain broke between results and place');
+              }
+
+              await page.evaluate(() => document.dispatchEvent(
+                new CustomEvent('morro:network-state-changed', { detail: { state: 'offline' } })
+              ));
+              const offlineTurn = await contextual('offline');
+              await page.evaluate(() => document.dispatchEvent(
+                new CustomEvent('morro:network-state-changed', { detail: { state: 'online' } })
+              ));
+              const onlineTurn = await contextual('online_restored');
+              if (onlineTurn.previousTurnId !== offlineTurn.turnId || !onlineTurn.text.includes('continuar de onde paramos')) {
+                throw new Error('Offline/online continuity failed: ' + JSON.stringify(onlineTurn));
+              }
+
+              const principalCount = await page.locator(
+                '#assistant-messages .messages-area #assistant-contextual-state'
+              ).count();
+              if (principalCount !== 1) {
+                throw new Error('Expected one contextual principal presenter, got ' + principalCount);
+              }
+              await context.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: Diagnostics
+        if: failure()
+        run: cat /tmp/assistant-continuity.log || true
