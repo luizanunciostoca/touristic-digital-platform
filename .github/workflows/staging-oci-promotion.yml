@@ -78,10 +78,12 @@ jobs:
           gh run download "$run_id" \
             --name "release-provenance-$EXPECTED_SHA" \
             --dir /tmp/release-provenance
+          expected_tree="$(git rev-parse "$EXPECTED_SHA^{tree}")"
           jq -e \
             --arg sha "$EXPECTED_SHA" \
+            --arg tree "$expected_tree" \
             --arg digest "$IMAGE_DIGEST" \
-            '.source_sha == $sha and .digest == $digest' \
+            '.source_sha == $sha and .tree_sha == $tree and .digest == $digest' \
             /tmp/release-provenance/release-provenance.json >/dev/null
           echo "PASS: immutable image $IMAGE_REPOSITORY@$IMAGE_DIGEST from run $run_id"
 
