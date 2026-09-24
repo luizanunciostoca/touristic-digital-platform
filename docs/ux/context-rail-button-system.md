@@ -108,3 +108,5 @@ The back action is structural navigation, not scrollable contextual content.
 - Legacy synthetic values such as `voltar_menu`, `voltar_filtros` and `__back_to_places__` remain internal compatibility commands, but are no longer rendered inside the horizontal scrolling options container.
 - The visible control is icon-only on mobile, with localized `aria-label` and `title`.
 - RTL mirrors the chevron while preserving the same DOM order and navigation semantics.
+
+The fixed back control remains visually outside the horizontal option list.
