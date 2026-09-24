@@ -46,6 +46,7 @@ export default defineConfig({
         replacement: source("business", "onboarding.ts"),
       },
       { find: "@touristic/business", replacement: source("business") },
+      { find: "@touristic/commerce", replacement: source("commerce") },
       { find: "@touristic/core", replacement: source("core") },
       { find: "@touristic/shared", replacement: source("shared") },
       {
@@ -148,6 +149,14 @@ export default defineConfig({
         replacement: source("ordering", "subscription-application.ts"),
       },
       {
+        find: "@touristic/ordering/restaurant-reservation",
+        replacement: source("ordering", "restaurant-reservation.ts"),
+      },
+      {
+        find: "@touristic/ordering/restaurant-checkout",
+        replacement: source("ordering", "restaurant-checkout.ts"),
+      },
+      {
         find: "@touristic/ordering/ticketing-reservation",
         replacement: source("ordering", "ticketing-reservation.ts"),
       },
@@ -161,6 +170,10 @@ export default defineConfig({
       },
       { find: "@touristic/ordering", replacement: source("ordering") },
       { find: "@touristic/ticketing", replacement: source("ticketing") },
+      {
+        find: "@touristic/commerce-server",
+        replacement: serviceSource("commerce"),
+      },
       {
         find: "@touristic/ordering-server",
         replacement: serviceSource("ordering"),
