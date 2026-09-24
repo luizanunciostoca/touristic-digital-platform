@@ -28,7 +28,9 @@ describe("Context Rail button system", () => {
     expect(control).toContain('action.startsWith("back-")');
     expect(control).toContain("contextualRailBack.hidden = false");
     expect(control).toContain("contextualRailBack.onclick");
-    expect(control).toContain("if (action.startsWith(\"back-\") || action === \"back-menu\") continue");
+    expect(control).toContain(
+      'if (action.startsWith("back-") || action === "back-menu") continue',
+    );
   });
 
   it("owns reusable geometry in design tokens", async () => {

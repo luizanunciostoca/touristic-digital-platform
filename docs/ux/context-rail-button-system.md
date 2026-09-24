@@ -96,7 +96,6 @@ A geometria reutilizável pertence a `public/design-system-v2.css`:
 - [x] Adicionar contrato automatizado para o novo sistema.
 - [x] Documentar a autoridade visual.
 
-
 ## Fixed back navigation
 
 The back action is structural navigation, not scrollable contextual content.

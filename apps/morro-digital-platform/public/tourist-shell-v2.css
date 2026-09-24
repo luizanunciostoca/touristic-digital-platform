@@ -2440,18 +2440,14 @@ html[dir="rtl"]
   text-align: end;
 }
 
-
 /* Fixed structural back control: navigation stays reachable while contextual
  * options continue to scroll horizontally. */
-#unified-assistant-dock
-  > #assistant-category-rail.md-assistant-category-rail {
+#unified-assistant-dock > #assistant-category-rail.md-assistant-category-rail {
   display: flex;
   align-items: center;
 }
 
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-context-rail-back {
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-back {
   display: grid;
   flex: 0 0 var(--md-context-rail-back-size);
   width: var(--md-context-rail-back-size);
@@ -2480,9 +2476,7 @@ html[dir="rtl"]
   display: none !important;
 }
 
-#unified-assistant-dock
-  > #assistant-category-rail
-  .md-context-rail-back-icon {
+#unified-assistant-dock > #assistant-category-rail .md-context-rail-back-icon {
   display: block;
   font-size: 1.75rem;
   font-weight: var(--md-font-weight-medium);
@@ -2531,18 +2525,14 @@ html[dir="rtl"]
 }
 
 @media (max-width: 24.375rem) {
-  #unified-assistant-dock
-    > #assistant-category-rail
-    .md-context-rail-back {
+  #unified-assistant-dock > #assistant-category-rail .md-context-rail-back {
     margin-inline-start: var(--md-space-2);
     margin-inline-end: var(--md-space-1);
   }
 }
 
 @media (forced-colors: active) {
-  #unified-assistant-dock
-    > #assistant-category-rail
-    .md-context-rail-back {
+  #unified-assistant-dock > #assistant-category-rail .md-context-rail-back {
     border: 1px solid ButtonText;
     background: ButtonFace;
     color: ButtonText;
