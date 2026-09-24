@@ -325,6 +325,7 @@ function presentCurrentLocation(
   sdk: MapboxGlModuleLike,
   longitude: number,
   latitude: number,
+  openPopup = false,
 ): void {
   if (activeRealMap !== map) return;
   activeCurrentLocationMarker?.remove();
@@ -332,9 +333,17 @@ function presentCurrentLocation(
   element.className = "md-current-location-marker";
   element.setAttribute("aria-hidden", "true");
   activeCurrentLocation = Object.freeze([longitude, latitude]);
-  activeCurrentLocationMarker = new sdk.Marker({ element, anchor: "center" })
-    .setLngLat([longitude, latitude])
-    .addTo(map);
+  const marker = new sdk.Marker({ element, anchor: "center" }).setLngLat([
+    longitude,
+    latitude,
+  ]);
+  if (sdk.Popup && marker.setPopup) {
+    marker.setPopup(
+      new sdk.Popup({ closeButton: false }).setText("Você está aqui"),
+    );
+  }
+  activeCurrentLocationMarker = marker.addTo(map);
+  if (openPopup) activeCurrentLocationMarker.togglePopup?.();
   mapContainer?.setAttribute("data-current-location", "visible");
   mapContainer?.setAttribute("data-geolocation-state", "granted");
 }
@@ -572,16 +581,21 @@ function installDiscoverRecenterControl(
     }
     document.dispatchEvent(new Event("morro:map-camera-flattened"));
   };
-  const fallbackHome = (): void => moveCamera(homeCenter, DISCOVER_HOME_ZOOM);
   const onClick = (): void => {
     if (activeCurrentLocation) {
+      presentCurrentLocation(
+        map,
+        sdk,
+        activeCurrentLocation[0],
+        activeCurrentLocation[1],
+        true,
+      );
       moveCamera(activeCurrentLocation, Math.max(DISCOVER_HOME_ZOOM, 15.5));
       return;
     }
     const geolocation = window.navigator.geolocation;
     if (!geolocation) {
       mapContainer?.setAttribute("data-geolocation-state", "unavailable");
-      fallbackHome();
       return;
     }
     button.setAttribute("aria-busy", "true");
@@ -593,6 +607,7 @@ function installDiscoverRecenterControl(
           sdk,
           position.coords.longitude,
           position.coords.latitude,
+          true,
         );
         moveCamera(
           [position.coords.longitude, position.coords.latitude],
@@ -605,7 +620,6 @@ function installDiscoverRecenterControl(
           "data-geolocation-state",
           error.code === 1 ? "denied" : "error",
         );
-        fallbackHome();
       },
       { enableHighAccuracy: true, maximumAge: 15_000, timeout: 8_000 },
     );
