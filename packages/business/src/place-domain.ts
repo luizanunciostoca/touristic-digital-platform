@@ -215,6 +215,24 @@ export interface LegacyPlaceMigrationResult {
   readonly compatibility: LegacyPlaceCompatibility;
 }
 
+export interface LegacyCatalogPlaceMigrationInput {
+  readonly placeId: string;
+  readonly businessId: string;
+  readonly destinationId: string;
+  readonly categoryId: string;
+  readonly subcategoryIds?: readonly string[];
+  readonly now: string;
+  readonly item: {
+    readonly id?: unknown;
+    readonly name?: unknown;
+    readonly category?: unknown;
+    readonly description?: unknown;
+    readonly latitude?: unknown;
+    readonly longitude?: unknown;
+    readonly aliases?: readonly string[];
+  };
+}
+
 const canonicalCategorySet = new Set<string>(canonicalPlaceCategories);
 const placeCapabilitySet = new Set<string>(placeCapabilities);
 
@@ -529,5 +547,56 @@ export function migrateLegacyBusinessProfileToPlace(
       legacyCategory,
       legacyReference: input.legacyReference ?? null,
     }),
+  });
+}
+
+export function migrateLegacyCatalogItemToPlace(
+  input: LegacyCatalogPlaceMigrationInput,
+): LegacyPlaceMigrationResult {
+  const migrated = migrateLegacyBusinessProfileToPlace({
+    placeId: input.placeId,
+    businessId: input.businessId,
+    destinationId: input.destinationId,
+    categoryId: input.categoryId,
+    ...(input.subcategoryIds ? { subcategoryIds: input.subcategoryIds } : {}),
+    now: input.now,
+    profile: {
+      id: input.item.id,
+      name: input.item.name,
+      categoryLabel: input.item.category,
+      description: input.item.description,
+    },
+    legacyAliases: input.item.aliases ?? [],
+    legacyReference:
+      typeof input.item.id === "string" ? input.item.id : null,
+  });
+
+  const latitude =
+    typeof input.item.latitude === "number" &&
+    Number.isFinite(input.item.latitude) &&
+    input.item.latitude >= -90 &&
+    input.item.latitude <= 90
+      ? input.item.latitude
+      : null;
+  const longitude =
+    typeof input.item.longitude === "number" &&
+    Number.isFinite(input.item.longitude) &&
+    input.item.longitude >= -180 &&
+    input.item.longitude <= 180
+      ? input.item.longitude
+      : null;
+  const hasCoordinates = latitude !== null && longitude !== null;
+
+  return Object.freeze({
+    place: Object.freeze({
+      ...migrated.place,
+      location: Object.freeze({
+        ...migrated.place.location,
+        latitude: hasCoordinates ? latitude : null,
+        longitude: hasCoordinates ? longitude : null,
+        source: "catalog" as const,
+      }),
+    }),
+    compatibility: migrated.compatibility,
   });
 }
