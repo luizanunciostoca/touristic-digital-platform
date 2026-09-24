@@ -107,7 +107,7 @@ export function createBusinessDashboardClient(
         method: "GET",
         headers: { Accept: "application/json" },
         cache: "no-store",
-        signal,
+        signal: signal ?? null,
       },
     );
     if (response.status === 404) return null;
@@ -147,7 +147,7 @@ export function createBusinessDashboardClient(
         method: "GET",
         headers: { Accept: "application/json" },
         cache: "no-store",
-        signal,
+        signal: signal ?? null,
       },
     );
     if (!response.ok) throw new Error(await readError(response));
