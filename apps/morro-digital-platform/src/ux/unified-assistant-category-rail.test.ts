@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { createAppShellMarkup } from "../layouts/app-shell.js";
+
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 async function readRepository(path: string): Promise<string> {
@@ -12,30 +14,31 @@ async function readRepository(path: string): Promise<string> {
 describe("Unified Assistant horizontal category rail", () => {
   // Golden mobile density keeps approximately six categories visible at 390px.
   it("composes grabber, message, categories, composer and navigation in one dock", async () => {
-    const shell = await readRepository(
+    const shellSource = await readRepository(
       "apps/morro-digital-platform/src/layouts/app-shell.ts",
     );
+    const shellMarkup = createAppShellMarkup();
 
-    expect(shell).toContain('id="assistant-category-rail"');
-    expect(shell).toContain('class="md-assistant-category-scroll"');
-    expect(shell).toContain('className = "md-unified-dock-grabber"');
-    expect(shell).toContain(
+    expect(shellMarkup).toContain('id="assistant-category-rail"');
+    expect(shellMarkup).toContain('class="md-assistant-category-scroll"');
+    expect(shellSource).toContain('className = "md-unified-dock-grabber"');
+    expect(shellSource).toContain(
       "dock.append(grabber, messages, categories, composer, navigation)",
     );
 
     for (const value of [
       "beaches",
+      "tours",
+      "attractions",
       "restaurants",
       "hotels",
+      "nightlife",
       "shops",
       "transport",
-      "attractions",
-      "tours",
-      "nightlife",
       "emergencies",
       "help",
     ]) {
-      expect(shell).toContain(`data-assistant-category="${value}"`);
+      expect(shellMarkup).toContain(`data-assistant-category="${value}"`);
     }
   });
 
