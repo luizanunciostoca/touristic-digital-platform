@@ -12,6 +12,14 @@ const nightlife: MorroV1SearchCatalogItem = Object.freeze({
   category: "nightlife",
 });
 
+const restaurant: MorroV1SearchCatalogItem = Object.freeze({
+  id: "place_restaurante_0001",
+  name: "Restaurante do Morro",
+  latitude: -13.377,
+  longitude: -38.914,
+  category: "restaurants",
+});
+
 const transport: MorroV1SearchCatalogItem = Object.freeze({
   name: "Agência de Passagens do Terminal",
   latitude: -13.3774,
@@ -235,6 +243,88 @@ describe("place commerce capability", () => {
       commerceState: "sellable",
     });
     expect(action?.label).toContain("Comprar ingressos");
+  });
+
+  it("resolves a restaurant CTA only from canonical place offerings", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        {
+          commerceMode: "table_reservation",
+          offerId:
+            "restaurant:business_restaurante_0001:place_restaurante_0001",
+          placeId: "place_restaurante_0001",
+          businessId: "business_restaurante_0001",
+          destinationId: "morro-de-sao-paulo",
+          title: "Reservar mesa",
+          sellable: true,
+        },
+      ]),
+    );
+    const action = await resolvePlacePrimaryAction({
+      location: restaurant,
+      locale: "pt",
+      fetch,
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/commerce/v1/places/place_restaurante_0001/offerings",
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(action).toEqual({
+      actionId: "restaurant.reserve",
+      label: "🍽️ Reservar mesa",
+      value:
+        "commerce:restaurant:business_restaurante_0001:place_restaurante_0001",
+      presentation: "primary",
+      commerceState: "sellable",
+    });
+  });
+
+  it("does not expose a false restaurant CTA when the place has no canonical offering", async () => {
+    const fetch = vi.fn().mockResolvedValue(response([]));
+    await expect(
+      resolvePlacePrimaryAction({
+        location: restaurant,
+        locale: "pt",
+        fetch,
+      }),
+    ).resolves.toBeNull();
+  });
+
+  it("routes multiple restaurant offerings to the Commerce selector", async () => {
+    const fetch = vi.fn().mockResolvedValue(
+      response([
+        {
+          commerceMode: "table_reservation",
+          offerId: "restaurant:business_a:place_restaurante_0001",
+          placeId: "place_restaurante_0001",
+          businessId: "business_a",
+          destinationId: "morro-de-sao-paulo",
+          title: "Reservar mesa",
+          sellable: true,
+        },
+        {
+          commerceMode: "table_reservation",
+          offerId: "restaurant:business_b:place_restaurante_0001",
+          placeId: "place_restaurante_0001",
+          businessId: "business_b",
+          destinationId: "morro-de-sao-paulo",
+          title: "Reservar mesa",
+          sellable: true,
+        },
+      ]),
+    );
+    const action = await resolvePlacePrimaryAction({
+      location: restaurant,
+      locale: "pt",
+      fetch,
+    });
+
+    expect(action).toMatchObject({
+      actionId: "restaurant.reserve",
+      value: "commerce:restaurant-place:place_restaurante_0001",
+      commerceState: "multiple",
+    });
   });
 
   it("falls back to the transport request action when no ticketable inventory matches", async () => {
