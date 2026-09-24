@@ -20,7 +20,7 @@ function session(
       email: "owner@example.com",
       role,
       businessIds,
-      capabilities,
+      ...(capabilities ? { capabilities } : {}),
     },
   };
 }
