@@ -154,7 +154,7 @@
             <h2 id="commerce-customer-title">Dados da reserva</h2>
           </div>
         </div>
-        <form data-commerce-form novalidate>
+        <form id="commerce-reservation-form" data-commerce-form novalidate>
           <label>
             Nome completo
             <input
@@ -238,10 +238,6 @@
       </section>
     </main>
 
-    <script>
-      document.querySelector("[data-commerce-form]").id =
-        "commerce-reservation-form";
-    </script>
     <script type="module" src="/commerce.js"></script>
   </body>
 </html>
