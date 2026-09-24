@@ -251,6 +251,9 @@ requireIncludes(
     "actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697",
     "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa",
     "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346",
+    "repos/$GITHUB_REPOSITORY/pages",
+    ".build_type // empty",
+    'test "$pages_build_type" = "workflow"',
     "git/ref/heads/main",
     'test "$acceptance_state" = "success"',
     "pages / deploy certified SHA",
@@ -261,6 +264,25 @@ if (/^\s{2}(pull_request|push):/m.test(pagesAfterFinalAcceptance)) {
     "Pages deployment must never publish directly from push/pull_request; it must follow Final Release Acceptance",
   );
 }
+
+const pagesSourceGovernance = workflowSources.get(
+  "pages-source-governance.yml",
+);
+if (!pagesSourceGovernance) {
+  fail("pages-source-governance.yml is missing");
+}
+requireIncludes(
+  pagesSourceGovernance,
+  ".github/workflows/pages-source-governance.yml",
+  [
+    "name: Pages Source Governance",
+    "pages: read",
+    "repos/$GITHUB_REPOSITORY/pages",
+    ".build_type // empty",
+    'if [ "$build_type" != "workflow" ]',
+    "Branch-based Pages can publish before Final Release Acceptance",
+  ],
+);
 
 const productionRollback = workflowSources.get(
   "production-render-rollback.yml",

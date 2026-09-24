@@ -35,6 +35,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          pages_build_type="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type // empty')"
+          test "$pages_build_type" = "workflow"
+
           current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
           test "$current_main_sha" = "$ACCEPTED_SHA"
 
@@ -77,6 +80,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          pages_build_type="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type // empty')"
+          test "$pages_build_type" = "workflow"
+
           current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
           test "$current_main_sha" = "$CERTIFIED_SHA"
           acceptance_state="$(gh api "repos/$GITHUB_REPOSITORY/commits/$CERTIFIED_SHA/status" \

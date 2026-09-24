@@ -1,0 +1,39 @@
+name: Pages Source Governance
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/pages-after-final-acceptance.yml"
+      - ".github/workflows/pages-source-governance.yml"
+      - "tooling/quality/check-ci-governance.mjs"
+
+permissions:
+  contents: read
+  pages: read
+
+concurrency:
+  group: pages-source-governance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: pages / workflow-only source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify Pages cannot publish directly from a branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pages="$(gh api "repos/$GITHUB_REPOSITORY/pages")"
+          build_type="$(jq -r '.build_type // empty' <<<"$pages")"
+          if [ "$build_type" != "workflow" ]; then
+            echo "::error::GitHub Pages build_type is '$build_type'; expected 'workflow'. Branch-based Pages can publish before Final Release Acceptance."
+            exit 1
+          fi
+          echo "GitHub Pages source governance PASS: build_type=workflow"
