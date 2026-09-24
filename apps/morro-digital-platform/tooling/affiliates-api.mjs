@@ -113,7 +113,11 @@ async function readJsonBody(request) {
 }
 
 function enabledValue(value) {
-  return String(value || "").trim().toLowerCase() === "true";
+  return (
+    String(value || "")
+      .trim()
+      .toLowerCase() === "true"
+  );
 }
 
 function configuredTtl(value) {
@@ -361,9 +365,9 @@ async function commercialProjection(pool, account, destinationId) {
     attributionRows,
     materializationRows,
   ] = await Promise.all([
-      membershipsForAffiliate(pool, affiliateId, destinationId),
-      pool.execute(
-        `SELECT e.currency AS currency,
+    membershipsForAffiliate(pool, affiliateId, destinationId),
+    pool.execute(
+      `SELECT e.currency AS currency,
                 COUNT(*) AS entitlement_count,
                 CAST(SUM(CASE WHEN e.status = 'pending' THEN e.commission_minor ELSE 0 END) AS CHAR) AS pending_minor,
                 CAST(SUM(CASE WHEN e.status = 'earned' THEN e.commission_minor ELSE 0 END) AS CHAR) AS earned_minor,
@@ -375,10 +379,10 @@ async function commercialProjection(pool, account, destinationId) {
             AND p.destination_id = ?
           GROUP BY e.currency
           ORDER BY e.currency ASC`,
-        [affiliateId, destinationId],
-      ),
-      pool.execute(
-        `SELECT c.conversion_id, c.order_id, c.currency,
+      [affiliateId, destinationId],
+    ),
+    pool.execute(
+      `SELECT c.conversion_id, c.order_id, c.currency,
                 CAST(c.eligible_revenue_minor AS CHAR) AS eligible_revenue_minor,
                 c.payment_confirmed_at, c.service_occurred_at, c.created_at,
                 e.entitlement_id, e.revision, e.status AS entitlement_status,
@@ -396,19 +400,19 @@ async function commercialProjection(pool, account, destinationId) {
             AND p.destination_id = ?
           ORDER BY c.created_at DESC
           LIMIT 50`,
-        [affiliateId, destinationId],
-      ),
-      pool.execute(
-        `SELECT COUNT(*) AS attribution_count,
+      [affiliateId, destinationId],
+    ),
+    pool.execute(
+      `SELECT COUNT(*) AS attribution_count,
                 MAX(established_at) AS latest_attribution_at
            FROM affiliate_attributions a
            JOIN affiliate_programs p ON p.program_id = a.program_id
           WHERE a.affiliate_id = ?
             AND p.destination_id = ?`,
-        [affiliateId, destinationId],
-      ),
-      pool.execute(
-        `SELECT mr2.request_id, mr2.entitlement_id, mr2.entitlement_revision, mr2.conversion_id,
+      [affiliateId, destinationId],
+    ),
+    pool.execute(
+      `SELECT mr2.request_id, mr2.entitlement_id, mr2.entitlement_revision, mr2.conversion_id,
                 mr2.state, mr2.financial_reference, mr2.rejection_code, mr2.retryable, mr2.attempts,
                 mr2.created_at, mr2.updated_at
            FROM affiliate_materialization_requests mr2
@@ -418,9 +422,9 @@ async function commercialProjection(pool, account, destinationId) {
             AND p2.destination_id = ?
           ORDER BY mr2.updated_at DESC
           LIMIT 50`,
-        [affiliateId, destinationId],
-      ),
-    ]);
+      [affiliateId, destinationId],
+    ),
+  ]);
 
   const summaries = summaryRows[0].map((row) => ({
     currency: row.currency,
@@ -488,8 +492,7 @@ async function commercialProjection(pool, account, destinationId) {
     payoutAuthority: Object.freeze({
       owner: "Financial",
       affiliateCanInitiatePayout: false,
-      note:
-        "Repasse, wallet, settlement e payout permanecem autoridade exclusiva do domínio Financial.",
+      note: "Repasse, wallet, settlement e payout permanecem autoridade exclusiva do domínio Financial.",
     }),
   });
 }
@@ -521,12 +524,14 @@ export function createAffiliatesApi({
     getEnvironmentValue("AFFILIATES_RUNTIME_ENABLED"),
   );
   const production = getEnvironmentValue("NODE_ENV") === "production";
-  const configuredDestinationId =
-    safeReference(getEnvironmentValue("AFFILIATE_DESTINATION_ID"), 120)
-      ? String(getEnvironmentValue("AFFILIATE_DESTINATION_ID")).trim()
-      : production
-        ? ""
-        : "morro-de-sao-paulo";
+  const configuredDestinationId = safeReference(
+    getEnvironmentValue("AFFILIATE_DESTINATION_ID"),
+    120,
+  )
+    ? String(getEnvironmentValue("AFFILIATE_DESTINATION_ID")).trim()
+    : production
+      ? ""
+      : "morro-de-sao-paulo";
   const configuredPublicOrigin = normalizeOrigin(
     getEnvironmentValue("AFFILIATE_PUBLIC_ORIGIN"),
   );
