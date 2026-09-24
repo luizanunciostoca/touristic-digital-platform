@@ -233,7 +233,6 @@ if (/^\s{2}(pull_request|push):/m.test(productionPromotion)) {
   );
 }
 
-
 const pagesAfterFinalAcceptance = workflowSources.get(
   "pages-after-final-acceptance.yml",
 );
@@ -257,7 +256,7 @@ requireIncludes(
     "pages / deploy certified SHA",
   ],
 );
-if (/^\\s{2}(pull_request|push):/m.test(pagesAfterFinalAcceptance)) {
+if (/^\s{2}(pull_request|push):/m.test(pagesAfterFinalAcceptance)) {
   fail(
     "Pages deployment must never publish directly from push/pull_request; it must follow Final Release Acceptance",
   );
