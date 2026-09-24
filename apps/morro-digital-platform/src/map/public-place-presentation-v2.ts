@@ -47,6 +47,8 @@ export function toCanonicalPlaceBottomSheetPresentation(
   const canonicalImage =
     detail.media?.coverImage ?? detail.media?.gallery[0] ?? null;
   const src = publicImageSource(canonicalImage);
+  const description =
+    detail.profile.description || detail.profile.shortDescription;
 
   return Object.freeze({
     location: Object.freeze({
@@ -69,8 +71,7 @@ export function toCanonicalPlaceBottomSheetPresentation(
           }),
         }
       : {}),
-    description:
-      detail.profile.description || detail.profile.shortDescription || undefined,
+    ...(description ? { description } : {}),
     status:
       Object.values(detail.partial).some((state) => state === "unavailable")
         ? "error"
