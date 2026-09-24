@@ -285,7 +285,12 @@ async function audit(
 export function publicPlaceProjection(
   record: GovernedPlaceRecord,
 ): GovernedPlaceRevisionData | null {
-  if (record.publicationState !== "published") return null;
+  if (
+    record.publicationState === "suspended" ||
+    record.publicationState === "archived"
+  ) {
+    return null;
+  }
   return record.publishedRevision?.data ?? null;
 }
 
