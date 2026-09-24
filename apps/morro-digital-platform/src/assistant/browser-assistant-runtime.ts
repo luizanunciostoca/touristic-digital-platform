@@ -613,8 +613,35 @@ function readOptionOverride(
 
 const COMMERCE_OPTION_ID = /^[A-Za-z0-9_-]{3,120}$/u;
 const COMMERCE_PLACE_KEY = /^[a-z0-9][a-z0-9-]{2,119}$/u;
+const COMMERCE_BUSINESS_ID = /^[a-z0-9][a-z0-9_-]{0,119}$/u;
+const COMMERCE_CANONICAL_PLACE_ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
 
 function commerceCheckoutUrl(value: string): string | null {
+  if (value.startsWith("commerce:restaurant:")) {
+    const raw = value.slice("commerce:restaurant:".length);
+    const separator = raw.indexOf(":");
+    if (separator <= 0) return null;
+    const businessId = raw.slice(0, separator);
+    const placeId = raw.slice(separator + 1);
+    if (
+      !COMMERCE_BUSINESS_ID.test(businessId) ||
+      !COMMERCE_CANONICAL_PLACE_ID.test(placeId)
+    ) {
+      return null;
+    }
+    return `/commerce.html?mode=table_reservation&businessId=${encodeURIComponent(
+      businessId,
+    )}&placeId=${encodeURIComponent(placeId)}&source=map`;
+  }
+
+  if (value.startsWith("commerce:restaurant-place:")) {
+    const placeId = value.slice("commerce:restaurant-place:".length);
+    return COMMERCE_CANONICAL_PLACE_ID.test(placeId)
+      ? `/commerce.html?mode=table_reservation&placeId=${encodeURIComponent(
+          placeId,
+        )}&source=map`
+      : null;
+  }
   if (value.startsWith("commerce:offer:")) {
     const id = value.slice("commerce:offer:".length);
     return COMMERCE_OPTION_ID.test(id)
