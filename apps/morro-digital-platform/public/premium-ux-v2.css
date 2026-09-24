@@ -1150,10 +1150,10 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
   }
 }
 
-
 /* Navigation unified dock continuity — keep the persistent lower shell while
  * guidance is active and temporarily repurpose category + voice surfaces. */
-body[data-md-mode="navigation"] #unified-assistant-dock[data-dock-mode="navigation"] {
+body[data-md-mode="navigation"]
+  #unified-assistant-dock[data-dock-mode="navigation"] {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
