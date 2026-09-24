@@ -96,27 +96,32 @@ It never resolves a Place from:
 ## Integration handoff
 
 ### Chat 5
+
 Consume `Product`, `Offer`, and canonical IDs from
 `@touristic/business/commerce-domain`. Do not recreate Product/Offer identity
 types. Any CTA/action layer should receive canonical IDs, not labels.
 
 ### Chat 6
+
 For public/search/map read models, project `businessId`, `placeId`, `productId`,
 and `offerId` explicitly. Legacy text matching may remain fallback-only for
 legacy rows.
 
 ### Chat 7
+
 For ordering/ticketing integration, translate canonical `productId`/`offerId` at
 the boundary. Existing `TicketProductReference` may remain a legacy/provider
 compatibility field, but must not become Place identity authority.
 Inventory/Ticketing remain stock owners.
 
 ### Chat 8
+
 For Financial/payment integration, treat `Offer.price` and `MenuItem.price` as
 catalog/display amounts. Re-confirm authoritative money in Financial before
 transaction execution.
 
 ### Chat 9
+
 For Control Center/Morro Pro/admin surfaces, create/update products, offers,
 menus, categories and items through canonical IDs and explicit Business scope.
 Do not add browser-side authoritative price calculations.
