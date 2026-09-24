@@ -890,8 +890,42 @@ export function installBrowserAssistantRuntime(
   const appendStandardMessage = (
     sender: "user" | "assistant",
     text: string,
+    userAction?: string,
   ): void => {
-    messages.append({ sender, html: text, messageType: "standard" });
+    if (sender === "user") {
+      messages.append({ sender, html: text, messageType: "standard" });
+      return;
+    }
+
+    const turn = conversation.transition({
+      cause: "assistant_response",
+      messageKey: "assistant_response",
+      renderedText: text,
+      source: "assistant_runtime",
+      ...(userAction ? { userAction } : {}),
+      priority: userAction ? "explicit" : "contextual",
+    });
+    messages.append({
+      sender,
+      html: turn.renderedText,
+      messageType: "standard",
+    });
+    const assistantMessages = Array.from(
+      options.document.querySelectorAll<HTMLElement>(
+        "#assistant-messages .messages-area .message.assistant",
+      ),
+    );
+    const created = assistantMessages.at(-1);
+    if (created) {
+      created.dataset.conversationTurnId = turn.id;
+      if (turn.previousTurnId) {
+        created.dataset.previousConversationTurnId = turn.previousTurnId;
+      } else {
+        delete created.dataset.previousConversationTurnId;
+      }
+      created.dataset.conversationCause = turn.cause;
+      created.dataset.conversationMessageKey = turn.messageKey;
+    }
   };
 
   const voiceLanguage = () =>
@@ -1062,7 +1096,7 @@ export function installBrowserAssistantRuntime(
       clearAssistantDomOptions(options.document);
       removePhotoPresentation(options.document);
       appendStandardMessage("user", submittedValue);
-      appendStandardMessage("assistant", response.text);
+      appendStandardMessage("assistant", response.text, submittedValue);
       const responseOptions = readAssistantResponseOptions(response);
       if (responseOptions.length > 0) {
         const renderedOptions = renderAssistantDomOptions(
@@ -1112,7 +1146,7 @@ export function installBrowserAssistantRuntime(
       appendStandardMessage("user", submittedValue);
 
       const response = placeAction.response;
-      appendStandardMessage("assistant", response.text);
+      appendStandardMessage("assistant", response.text, submittedValue);
       const suppressedValues = new Set([
         ...suppressOptionValues.map((item) => item.trim()).filter(Boolean),
         ...readPlaceOwnedActionValues(options.document),
@@ -1262,7 +1296,7 @@ export function installBrowserAssistantRuntime(
     const response = await controller.processUserInput(value);
     if (destroyed || generation !== requestGeneration) return response;
 
-    appendStandardMessage("assistant", response.text);
+    appendStandardMessage("assistant", response.text, submittedValue);
     const suppressedValues = new Set([
       ...suppressOptionValues.map((value) => value.trim()).filter(Boolean),
       ...readPlaceOwnedActionValues(options.document),
