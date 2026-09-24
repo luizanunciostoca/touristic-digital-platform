@@ -130,10 +130,7 @@ export function createAssistantMessagePipeline(
       return structuredClone(record);
     },
 
-    removeById(
-      id: string,
-      area: AssistantMessageArea = "messages",
-    ): boolean {
+    removeById(id: string, area: AssistantMessageArea = "messages"): boolean {
       const index = messages[area].findIndex((message) => message.id === id);
       if (index < 0) return false;
       messages[area].splice(index, 1);
