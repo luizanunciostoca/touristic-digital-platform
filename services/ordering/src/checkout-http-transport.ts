@@ -10,6 +10,7 @@ import {
 import {
   CheckoutApplicationError,
   createBusinessOrderRequestKey,
+  createRestaurantOrderRequestKey,
   createTicketingOrderRequestKey,
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
@@ -19,6 +20,11 @@ import {
   type ProviderNeutralCheckoutApplicationService,
   type ValidatedBusinessCheckoutHandoff,
 } from "@touristic/ordering";
+import {
+  normalizeRestaurantCheckoutHandoff,
+  type RestaurantCheckoutApplicationRequest,
+  type ValidatedRestaurantCheckoutHandoff,
+} from "@touristic/ordering/restaurant-checkout";
 import {
   normalizeTicketingCheckoutHandoff,
   type TicketingCheckoutApplicationRequest,
@@ -40,6 +46,7 @@ import {
   type CheckoutReturnUrlPolicy,
   type CheckoutStatusCapability,
 } from "./checkout-security.js";
+import { restaurantCheckoutRequestFingerprint } from "./restaurant-checkout-handoff.js";
 import { ticketingCheckoutRequestFingerprint } from "./ticketing-checkout-handoff.js";
 
 export interface CheckoutHttpRequest {
@@ -85,6 +92,10 @@ export interface CheckoutHttpAuthorizationPort {
     request: CheckoutHttpRequest,
     handoff: ValidatedTicketingCheckoutHandoff,
   ): Promise<CheckoutHttpAuthorizationDecision>;
+  authorizeRestaurantCreate?(
+    request: CheckoutHttpRequest,
+    handoff: ValidatedRestaurantCheckoutHandoff,
+  ): Promise<CheckoutHttpAuthorizationDecision>;
 }
 
 export type CheckoutRateLimitBucket = "checkout-create" | "checkout-status";
@@ -128,6 +139,11 @@ export interface CheckoutHttpClockPort {
 export interface CheckoutHttpTransportDependencies {
   readonly application: ProviderNeutralCheckoutApplicationService;
   readonly ticketingApplication?: TicketingCheckoutApplicationService;
+  readonly restaurantApplication?: Readonly<{
+    startCheckout(
+      input: RestaurantCheckoutApplicationRequest,
+    ): Promise<Readonly<{ order: Order; payment: Payment; replayed: boolean }>>;
+  }>;
   readonly orders: OrderRepositoryPort;
   readonly payments: PaymentRepositoryPort;
   readonly paymentResults?: VerifiedPaymentResultRepositoryPort;
@@ -160,6 +176,10 @@ type CheckoutCreateHandoff =
   | {
       readonly kind: "ticketing";
       readonly value: ValidatedTicketingCheckoutHandoff;
+    }
+  | {
+      readonly kind: "restaurant";
+      readonly value: ValidatedRestaurantCheckoutHandoff;
     };
 
 function route(pathname: string): CheckoutRoute | null {
@@ -351,18 +371,29 @@ async function recordAudit(
 function normalizedCreateHandoff(
   body: unknown,
   ticketingEnabled: boolean,
+  restaurantEnabled: boolean,
 ): CheckoutCreateHandoff | null {
   const business = normalizeBusinessCheckoutHandoff(
     body as CheckoutApplicationRequest,
   );
   if (business) return Object.freeze({ kind: "business", value: business });
-  if (!ticketingEnabled) return null;
-  const ticketing = normalizeTicketingCheckoutHandoff(
-    body as TicketingCheckoutApplicationRequest,
-  );
-  return ticketing
-    ? Object.freeze({ kind: "ticketing", value: ticketing })
-    : null;
+  if (ticketingEnabled) {
+    const ticketing = normalizeTicketingCheckoutHandoff(
+      body as TicketingCheckoutApplicationRequest,
+    );
+    if (ticketing) {
+      return Object.freeze({ kind: "ticketing", value: ticketing });
+    }
+  }
+  if (restaurantEnabled) {
+    const restaurant = normalizeRestaurantCheckoutHandoff(
+      body as RestaurantCheckoutApplicationRequest,
+    );
+    if (restaurant) {
+      return Object.freeze({ kind: "restaurant", value: restaurant });
+    }
+  }
+  return null;
 }
 
 export class CheckoutHttpTransport {
@@ -420,6 +451,7 @@ export class CheckoutHttpTransport {
     const selected = normalizedCreateHandoff(
       request.body,
       Boolean(this.dependencies.ticketingApplication),
+      Boolean(this.dependencies.restaurantApplication),
     );
     if (!selected) {
       await recordAudit(this.dependencies.audit, {
@@ -445,7 +477,13 @@ export class CheckoutHttpTransport {
             selected.value.sessionId,
             selected.value.planId,
           )
-        : createTicketingOrderRequestKey(selected.value.reservationReference);
+        : selected.kind === "ticketing"
+          ? createTicketingOrderRequestKey(
+              selected.value.reservationReference,
+            )
+          : createRestaurantOrderRequestKey(
+              selected.value.reservationReference,
+            );
     if (!expectedIdempotency || providedIdempotency !== expectedIdempotency) {
       return errorResponse(409, "IDEMPOTENCY_KEY_MISMATCH", correlationId);
     }
@@ -456,12 +494,19 @@ export class CheckoutHttpTransport {
             request,
             selected.value,
           )
-        : this.dependencies.authorization.authorizeTicketingCreate
-          ? await this.dependencies.authorization.authorizeTicketingCreate(
-              request,
-              selected.value,
-            )
-          : ({ allowed: false, reason: "authentication_required" } as const);
+        : selected.kind === "ticketing"
+          ? this.dependencies.authorization.authorizeTicketingCreate
+            ? await this.dependencies.authorization.authorizeTicketingCreate(
+                request,
+                selected.value,
+              )
+            : ({ allowed: false, reason: "authentication_required" } as const)
+          : this.dependencies.authorization.authorizeRestaurantCreate
+            ? await this.dependencies.authorization.authorizeRestaurantCreate(
+                request,
+                selected.value,
+              )
+            : ({ allowed: false, reason: "authentication_required" } as const);
     if (!authorization.allowed) {
       await recordAudit(this.dependencies.audit, {
         action: "checkout.create",
@@ -521,13 +566,19 @@ export class CheckoutHttpTransport {
       const result =
         selected.kind === "business"
           ? await this.dependencies.application.startCheckout(selected.value)
-          : await this.dependencies.ticketingApplication!.startCheckout(
-              selected.value,
-            );
+          : selected.kind === "ticketing"
+            ? await this.dependencies.ticketingApplication!.startCheckout(
+                selected.value,
+              )
+            : await this.dependencies.restaurantApplication!.startCheckout(
+                selected.value,
+              );
       const fingerprint =
         selected.kind === "business"
           ? checkoutRequestFingerprint(selected.value, context)
-          : ticketingCheckoutRequestFingerprint(selected.value, context);
+          : selected.kind === "ticketing"
+            ? ticketingCheckoutRequestFingerprint(selected.value, context)
+            : restaurantCheckoutRequestFingerprint(selected.value, context);
       const capability = this.dependencies.statusCapabilities.issue(
         result.order.id,
       );
@@ -634,7 +685,7 @@ export class CheckoutHttpTransport {
             ? replayed
               ? "replayed"
               : "created"
-            : `ticketing:${replayed ? "replayed" : "created"}`,
+            : `${selected.kind}:${replayed ? "replayed" : "created"}`,
         correlationId,
         actorSubject: context.actorSubject,
         destinationId: context.destinationId,
