@@ -107,10 +107,7 @@ export function createAssistantMessageDom(
       return record;
     },
 
-    removeById(
-      id: string,
-      area: AssistantMessageArea = "messages",
-    ): boolean {
+    removeById(id: string, area: AssistantMessageArea = "messages"): boolean {
       const removed = pipeline.removeById(id, area);
       const container = getOrCreateArea(options.document, area);
       const existing = options.document.getElementById(id);
