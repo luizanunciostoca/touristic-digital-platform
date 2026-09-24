@@ -23,6 +23,11 @@
       "types": "./src/ticketed-admission.ts",
       "node": "./dist/ticketed-admission.js",
       "default": "./src/ticketed-admission.ts"
+    },
+    "./ticketed-admission-resolver": {
+      "types": "./src/ticketed-admission-resolver.ts",
+      "node": "./dist/ticketed-admission-resolver.js",
+      "default": "./src/ticketed-admission-resolver.ts"
     }
   },
   "scripts": {
