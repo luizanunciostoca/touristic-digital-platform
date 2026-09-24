@@ -164,6 +164,7 @@ function collectEnvironment(getEnvironmentValue) {
     "ORDERING_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
     "COMMERCE_DATABASE_URL",
+    "TICKETING_DATABASE_URL",
     "ORDERING_PRICING_CATALOG_JSON",
     "PAYMENTS_STATUS_TOKEN_SECRET",
     "PAYMENTS_HANDOFF_SECRET",
@@ -990,8 +991,12 @@ export function createPaymentsApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
-      const commercePool = environment.COMMERCE_DATABASE_URL
-        ? createCommerceMySqlPoolFromEnvironment(environment)
+      const commerceDatabaseUrl =
+        environment.COMMERCE_DATABASE_URL || environment.TICKETING_DATABASE_URL;
+      const commercePool = commerceDatabaseUrl
+        ? createCommerceMySqlPoolFromEnvironment({
+            COMMERCE_DATABASE_URL: commerceDatabaseUrl,
+          })
         : null;
       if (commercePool) pools.push(commercePool);
       await Promise.all([
