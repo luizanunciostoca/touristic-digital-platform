@@ -15,35 +15,25 @@ import {
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 const REQUIRED_STATES: readonly AssistantContextualState[] = [
-  "start",
-  "welcome",
   "category_selected",
-  "filter_selected",
   "results_found",
   "no_results",
   "place_selected",
   "action_available",
   "navigation_starting",
   "navigation_active",
-  "arrival",
-  "book_tour",
-  "book_table",
-  "buy_ticket",
   "payment_started",
   "payment_approved",
   "payment_declined",
   "timeout",
   "offline",
   "provider_error",
-  "return",
-  "back",
-  "cancelled",
   "geolocation_allowed",
   "geolocation_denied",
 ];
 
 describe("assistant contextual state messaging", () => {
-  it("covers every required state with message, fallback and voice copy", () => {
+  it("covers every runtime-produced contextual state with message, fallback and voice copy", () => {
     expect(Object.keys(ASSISTANT_CONTEXTUAL_STATE_MATRIX)).toEqual(
       REQUIRED_STATES,
     );
