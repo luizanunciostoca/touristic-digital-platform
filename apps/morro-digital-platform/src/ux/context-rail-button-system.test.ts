@@ -21,7 +21,7 @@ describe("Context Rail button system", () => {
     expect(shell).toContain("md-context-rail-button");
     expect(shell).toContain("md-context-rail-button--category");
     expect(shell).toContain("data-context-rail-back");
-    expect(shell).toContain("md-context-rail-scroll-viewport");
+    expect(shell).not.toContain("md-context-rail-scroll-viewport");
     expect(control).toContain("md-context-rail-button--${railKind}");
     expect(control).toContain("button.dataset.railKind = railKind");
     expect(control).toContain("button.dataset.railVariant = railVariant");
@@ -95,19 +95,19 @@ describe("Context Rail button system", () => {
     expect(css).toContain("content: none");
   });
 
-  it("clips options inside a viewport beside structural back navigation", async () => {
+  it("keeps back and scroll in physically separate direct grid columns", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
     );
 
+    expect(css).toContain("Context Rail direct two-column authority");
     expect(css).toContain("grid-template-columns: 2.75rem minmax(0, 1fr)");
-    expect(css).toContain(".md-context-rail-scroll-viewport");
-    expect(css).toContain("overflow: hidden");
-    expect(css).toContain("isolation: isolate");
-    expect(css).toContain("clip-path: inset(0)");
+    expect(css).toContain("grid-template-columns: minmax(0, 1fr) 2.75rem");
     expect(css).toContain("grid-column: 1");
     expect(css).toContain("grid-column: 2");
     expect(css).toContain("position: static");
+    expect(css).toContain("pointer-events: auto");
+    expect(css).toContain("clip-path: none");
     expect(css).toContain("content: none !important");
     expect(css).toContain("display: none !important");
   });
