@@ -10,6 +10,11 @@ const maxBodyBytes = 16 * 1024;
 const maxReferralTtlSeconds = 30 * 24 * 60 * 60;
 const minReferralTtlSeconds = 5 * 60;
 const captureActorReference = "affiliate-referral-capture:v1";
+const affiliatesServerPackage = ["@touristic", "affiliates-server"].join("/");
+
+async function loadAffiliatesServerModule() {
+  return import(affiliatesServerPackage);
+}
 const attributionSubjectCookie = "md_aff_subject";
 const forbiddenReferralAuthorityFields = new Set([
   "affiliateId",
@@ -582,9 +587,7 @@ export function createAffiliatesApi({
         !runtimeDependencies.createApplication;
       const server =
         runtimeDependencies.serverModule ??
-        (needsServerModule
-          ? await import("@touristic/affiliates-server")
-          : null);
+        (needsServerModule ? await loadAffiliatesServerModule() : null);
       const createPool =
         runtimeDependencies.createPool ?? server.createAffiliatePool;
       const applySchema =
