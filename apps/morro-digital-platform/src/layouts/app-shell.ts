@@ -327,15 +327,16 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           type="button"
           id="recenter-map-control"
           class="map-control-button md-icon-button md-map-control"
-          title="Centralizar no Morro ou na sua localização"
-          aria-label="Centralizar mapa no Morro ou na sua localização"
-          data-map-control="recenter"
+          title="Mostrar minha localização"
+          aria-label="Mostrar minha localização no mapa"
+          data-map-control="user-location"
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M12 21s6-5.3 6-11a6 6 0 1 0-12 0c0 5.7 6 11 6 11Z"></path>
-            <circle cx="12" cy="10" r="2.2"></circle>
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+            <circle cx="12" cy="12" r="9"></circle>
           </svg>
-          <span class="control-tooltip">Centralizar</span>
+          <span class="control-tooltip">Minha localização</span>
         </button>
         <button
           type="button"

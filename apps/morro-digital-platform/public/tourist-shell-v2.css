@@ -313,6 +313,30 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
   height: 1.375rem;
 }
 
+/* Canonical one-hand order: location → global → map layer → 3D.
+ * Explicit ordering keeps the stack stable even when 3D is mounted at runtime. */
+#globe-map-control [data-map-control="user-location"] {
+  order: 1;
+}
+
+#globe-map-control #toggle-globe-view {
+  order: 2;
+}
+
+#globe-map-control [data-map-control="layer"] {
+  order: 3;
+}
+
+#globe-map-control [data-map-control="3d"] {
+  order: 4;
+}
+
+/* The Morro Digital location control owns geolocation in Discover. Prevent a
+ * provider-native geolocate button from creating a duplicate fifth action. */
+.app-shell.md-tourist-shell-v2 .mapboxgl-ctrl-geolocate {
+  display: none !important;
+}
+
 #globe-map-control .control-tooltip {
   position: absolute;
   right: calc(100% + var(--md-space-2));
@@ -1323,8 +1347,7 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #assistant-input-area.md-assistant-composer,
-  .md-home-profile-panel {
+  #assistant-input-area.md-assistant-composer {
     transition: none;
   }
 }
