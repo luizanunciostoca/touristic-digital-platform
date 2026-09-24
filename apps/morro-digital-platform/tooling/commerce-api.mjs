@@ -1,13 +1,18 @@
 import { createHash, randomUUID } from "node:crypto";
 
 import { createRestaurantReservationSlot } from "@touristic/commerce/restaurant-availability";
+import { resolveTicketedAdmissionOfferings } from "@touristic/commerce/ticketed-admission-resolver";
 import { createRestaurantReservationRequestKey } from "@touristic/commerce/restaurant-reservations";
 import {
   MySqlRestaurantReservationRepository,
   applyCommerceRestaurantReservationSchema,
   createCommerceMySqlPoolFromEnvironment,
 } from "@touristic/commerce-server";
-import { CommerceSessionAuthority } from "@touristic/ticketing-server";
+import {
+  CommerceSessionAuthority,
+  MySqlTicketingPublicReadRepository,
+  createTicketingMySqlPoolFromEnvironment,
+} from "@touristic/ticketing-server";
 
 const prefix = "/api/commerce/v1";
 const maxBodyBytes = 32 * 1024;
@@ -185,6 +190,7 @@ export function createCommerceApi({
     startAttempted = true;
     let pool = null;
     let orderingPool = null;
+    let ticketingPool = null;
     try {
       if (!authApi) throw new Error("COMMERCE_AUTH_API_REQUIRED");
       const enabled = featureEnabled(
@@ -217,6 +223,14 @@ export function createCommerceApi({
           getEnvironmentValue("ORDERING_DATABASE_URL") || "",
         ).trim(),
       });
+      const ticketingDatabaseUrl = String(
+        getEnvironmentValue("TICKETING_DATABASE_URL") || "",
+      ).trim();
+      ticketingPool = ticketingDatabaseUrl
+        ? createTicketingMySqlPoolFromEnvironment({
+            TICKETING_DATABASE_URL: ticketingDatabaseUrl,
+          })
+        : null;
       await Promise.all([
         applyCommerceRestaurantReservationSchema(pool),
         applyOrderingRestaurantReservationSchema(orderingPool),
@@ -228,6 +242,10 @@ export function createCommerceApi({
         enabled: true,
         pool,
         orderingPool,
+        ticketingPool,
+        ticketingReads: ticketingPool
+          ? new MySqlTicketingPublicReadRepository(ticketingPool)
+          : null,
         repository: new MySqlRestaurantReservationRepository(pool),
         reservationOrders: createRestaurantReservationOrderApplicationService({
           orders,
@@ -242,6 +260,7 @@ export function createCommerceApi({
       await Promise.allSettled([
         pool?.end(),
         orderingPool?.end(),
+        ticketingPool?.end(),
       ]);
       runtime = null;
       return false;
@@ -249,7 +268,11 @@ export function createCommerceApi({
   }
 
   async function stop() {
-    const pools = [runtime?.pool, runtime?.orderingPool].filter(Boolean);
+    const pools = [
+      runtime?.pool,
+      runtime?.orderingPool,
+      runtime?.ticketingPool,
+    ].filter(Boolean);
     runtime = null;
     started = false;
     await Promise.allSettled(pools.map((candidate) => candidate.end()));
@@ -313,6 +336,65 @@ export function createCommerceApi({
       return;
     }
     json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
+  }
+
+  async function handlePlaceOfferings(
+    request,
+    response,
+    placeId,
+  ) {
+    const correlation = correlationId(request);
+    if (!placeIdPattern.test(placeId)) {
+      json(
+        response,
+        400,
+        { error: "COMMERCE_PLACE_ID_INVALID" },
+        correlation,
+      );
+      return;
+    }
+    const observedAt = now();
+    const [restaurantRows, ticketingRows] = await Promise.all([
+      runtime.repository.listRestaurantOfferingsForPlace(placeId, observedAt),
+      runtime.ticketingReads
+        ? runtime.ticketingReads.listInventory()
+        : Promise.resolve([]),
+    ]);
+    const admissions = resolveTicketedAdmissionOfferings(ticketingRows).filter(
+      ({ offering }) => offering.identity.placeId === placeId,
+    );
+    const data = [
+      ...admissions.map(({ offering, subtype, variants }) =>
+        Object.freeze({
+          commerceMode: "ticketed_admission",
+          offerId: offering.identity.offerId,
+          placeId,
+          businessId: offering.identity.businessId,
+          destinationId: offering.identity.destinationId,
+          subtype,
+          title: offering.presentation.title,
+          variantCount: variants.length,
+          startsAt: variants[0]?.startsAt ?? null,
+          sellable: variants.some((variant) => variant.sellable),
+        }),
+      ),
+      ...restaurantRows.map((restaurant) =>
+        Object.freeze({
+          commerceMode: "table_reservation",
+          offerId: `restaurant:${restaurant.businessId}:${restaurant.placeId}`,
+          placeId: restaurant.placeId,
+          businessId: restaurant.businessId,
+          destinationId: restaurant.destinationId,
+          subtype: null,
+          title: "Reservar mesa",
+          variantCount: 1,
+          startsAt: null,
+          nextServiceDate: restaurant.nextServiceDate,
+          sellable: restaurant.hasAvailability,
+        }),
+      ),
+    ];
+    json(response, 200, { data }, correlation);
   }
 
   async function handleAvailability(request, response, requestUrl, businessId) {
@@ -598,6 +680,18 @@ export function createCommerceApi({
       }
       const method = String(request.method || "GET").toUpperCase();
       try {
+        const placeOfferingsMatch =
+          /^\/api\/commerce\/v1\/places\/([A-Za-z0-9][A-Za-z0-9:_-]{1,119})\/offerings$/u.exec(
+            requestUrl.pathname,
+          );
+        if (placeOfferingsMatch?.[1] && method === "GET") {
+          await handlePlaceOfferings(
+            request,
+            response,
+            placeOfferingsMatch[1],
+          );
+          return;
+        }
         const availabilityMatch =
           /^\/api\/commerce\/v1\/restaurants\/([a-z0-9][a-z0-9_-]{0,119})\/availability$/u.exec(
             requestUrl.pathname,
