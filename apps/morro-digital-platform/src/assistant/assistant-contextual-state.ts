@@ -1,6 +1,6 @@
 import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-router.js";
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
-import { createAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
+import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
 
 export type AssistantContextualState =
@@ -479,7 +479,7 @@ export function installAssistantContextualMessaging(
   let destroyed = false;
   let lastGlobalState: AssistantContextualState | null = null;
   let networkOffline = false;
-  const conversation = createAssistantConversationOrchestrator();
+  const conversation = getAssistantConversationOrchestrator(options.document);
 
   const language = (): AssistantContextualLanguage =>
     normalizeAssistantContextualLanguage(options.document.documentElement.lang);
