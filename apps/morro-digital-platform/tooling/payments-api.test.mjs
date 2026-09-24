@@ -97,11 +97,13 @@ describe("M139/M141 payments API runtime boundary", () => {
       getEnvironmentValue: (key) =>
         key === "PAYMENTS_DESTINATION_ID"
           ? "morro-de-sao-paulo"
-          : key === "PAYMENTS_WEBHOOK_URL"
-            ? "https://example.com/api/payments/v1/webhooks/sandbox"
-            : key === "PAYMENTS_STATUS_TOKEN_TTL_SECONDS"
-              ? "86400"
-              : "",
+          : key === "PAYMENTS_RETURN_URL_ORIGINS"
+            ? "https://example.com"
+            : key === "PAYMENTS_WEBHOOK_URL"
+              ? "https://example.com/api/payments/v1/webhooks/sandbox"
+              : key === "PAYMENTS_STATUS_TOKEN_TTL_SECONDS"
+                ? "86400"
+                : "",
       audit: (event) => audit.push(event),
     });
     await expect(api.start()).resolves.toBe(false);
