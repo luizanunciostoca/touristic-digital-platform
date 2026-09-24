@@ -304,14 +304,6 @@ export function installAssistantContextualMessaging(
     if (destroyed) return;
     const rendered = resolveAssistantContextualCopy(state, variables, language());
     const id = nodeId(area);
-    const existing = options.document.getElementById(id);
-    if (existing instanceof HTMLElement) {
-      existing.textContent = rendered.message;
-      applyMetadata(existing, state, rendered);
-      lastState = state;
-      return;
-    }
-
     options.messages.append({
       sender: "assistant",
       area,
@@ -332,7 +324,7 @@ export function installAssistantContextualMessaging(
   };
 
   const removeNavigationContext = (): void => {
-    options.document.getElementById(nodeId("navigation"))?.remove();
+    options.messages.removeById(nodeId("navigation"), "navigation");
   };
 
   const navigationDestination = (event: Event): string | null => {
@@ -379,7 +371,7 @@ export function installAssistantContextualMessaging(
       return;
     }
     if (detail?.state === "online" && lastState === "offline") {
-      options.document.getElementById(nodeId("messages"))?.remove();
+      options.messages.removeById(nodeId("messages"), "messages");
       lastState = null;
     }
   };
@@ -444,8 +436,8 @@ export function installAssistantContextualMessaging(
         "businessPaymentVerificationFailed",
         onPaymentFailed,
       );
-      options.document.getElementById(nodeId("messages"))?.remove();
-      options.document.getElementById(nodeId("navigation"))?.remove();
+      options.messages.removeById(nodeId("messages"), "messages");
+      options.messages.removeById(nodeId("navigation"), "navigation");
     },
   });
 }
