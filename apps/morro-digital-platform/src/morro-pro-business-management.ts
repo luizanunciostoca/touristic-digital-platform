@@ -171,9 +171,12 @@ export function resolveMorroProModuleAccess(
       ),
     );
   }
-  const effectiveCapabilities = new Set(sessionCapabilities ?? []);
+  const effectiveCapabilities =
+    sessionCapabilities === undefined ? null : new Set(sessionCapabilities);
   const hasCapability = (capability: AuthCapability): boolean =>
-    effectiveCapabilities.has(capability) || hasAuthCapability(role, capability);
+    effectiveCapabilities === null
+      ? hasAuthCapability(role, capability)
+      : effectiveCapabilities.has(capability);
 
   return Object.freeze(
     morroProModulePolicies.map((policy) => {
