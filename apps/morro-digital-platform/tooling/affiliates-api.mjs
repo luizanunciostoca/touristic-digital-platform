@@ -4,14 +4,6 @@ import {
   randomUUID,
   timingSafeEqual,
 } from "node:crypto";
-import {
-  AffiliateApplicationService,
-  ReferralEvidenceVerificationAdapter,
-  applyAffiliatesIdentityEligibilityM155,
-  applyAffiliatesM154Schema,
-  createAffiliatePool,
-} from "@touristic/affiliates-server";
-
 export const affiliatesApiPrefix = "/api/affiliates/v1";
 
 const maxBodyBytes = 16 * 1024;
@@ -295,7 +287,7 @@ function createAuthorizationPort() {
   });
 }
 
-function createEvidenceVerifier(secret) {
+function createEvidenceVerifier(secret, ReferralEvidenceVerificationAdapter) {
   return new ReferralEvidenceVerificationAdapter(async (input) => {
     if (
       input.source !== "platform_link" ||
@@ -525,22 +517,6 @@ export function createAffiliatesApi({
     throw new Error("AFFILIATES_AUTH_API_REQUIRED");
   }
 
-  const createPool = runtimeDependencies.createPool ?? createAffiliatePool;
-  const applySchema =
-    runtimeDependencies.applySchema ?? applyAffiliatesM154Schema;
-  const applyIdentitySchema =
-    runtimeDependencies.applyIdentitySchema ??
-    applyAffiliatesIdentityEligibilityM155;
-  const createApplication =
-    runtimeDependencies.createApplication ??
-    ((activePool) =>
-      new AffiliateApplicationService(
-        activePool,
-        createAuthorizationPort(),
-        createDigestPort(),
-        createEvidenceVerifier(referralSecret),
-      ));
-
   const runtimeEnabled = enabledValue(
     getEnvironmentValue("AFFILIATES_RUNTIME_ENABLED"),
   );
@@ -594,6 +570,28 @@ export function createAffiliatesApi({
       if (production && !configuredPublicOrigin) {
         throw new Error("AFFILIATE_PUBLIC_ORIGIN_REQUIRED");
       }
+      const server =
+        runtimeDependencies.serverModule ??
+        (await import("@touristic/affiliates-server"));
+      const createPool = runtimeDependencies.createPool ?? server.createAffiliatePool;
+      const applySchema =
+        runtimeDependencies.applySchema ?? server.applyAffiliatesM154Schema;
+      const applyIdentitySchema =
+        runtimeDependencies.applyIdentitySchema ??
+        server.applyAffiliatesIdentityEligibilityM155;
+      const createApplication =
+        runtimeDependencies.createApplication ??
+        ((activePool) =>
+          new server.AffiliateApplicationService(
+            activePool,
+            createAuthorizationPort(),
+            createDigestPort(),
+            createEvidenceVerifier(
+              referralSecret,
+              server.ReferralEvidenceVerificationAdapter,
+            ),
+          ));
+
       pool = createPool(getEnvironmentValue("AFFILIATES_DATABASE_URL"));
       await applySchema(pool);
       await applyIdentitySchema(pool);
