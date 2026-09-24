@@ -85,7 +85,6 @@ jobs:
             /tmp/release-provenance/release-provenance.json >/dev/null
           echo "PASS: immutable image $IMAGE_REPOSITORY@$IMAGE_DIGEST from run $run_id"
 
-
   deploy:
     needs: preflight
     if: github.ref == 'refs/heads/main' && inputs.confirm_deploy == 'DEPLOY'
