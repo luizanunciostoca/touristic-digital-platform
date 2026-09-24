@@ -19,6 +19,27 @@ const maxReferralTtlSeconds = 30 * 24 * 60 * 60;
 const minReferralTtlSeconds = 5 * 60;
 const captureActorReference = "affiliate-referral-capture:v1";
 const attributionSubjectCookie = "md_aff_subject";
+const forbiddenReferralAuthorityFields = new Set([
+  "affiliateId",
+  "destinationId",
+  "commissionMinor",
+  "commission",
+  "revenue",
+  "revenueMinor",
+  "eligibleRevenueMinor",
+  "rateBasisPoints",
+  "payout",
+  "payoutId",
+  "settlement",
+  "settlementId",
+  "wallet",
+  "walletId",
+]);
+
+function forbiddenReferralAuthority(body) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return false;
+  return Object.keys(body).some((key) => forbiddenReferralAuthorityFields.has(key));
+}
 
 function firstHeader(value) {
   return Array.isArray(value) ? value[0] : value;
@@ -487,10 +508,25 @@ function linkEligibility(account, membership) {
 export function createAffiliatesApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
+  runtimeDependencies = {},
 } = {}) {
   if (!authApi?.resolveSession || !authApi?.authorizeMutation) {
     throw new Error("AFFILIATES_AUTH_API_REQUIRED");
   }
+
+  const createPool = runtimeDependencies.createPool ?? createAffiliatePool;
+  const applySchema = runtimeDependencies.applySchema ?? applyAffiliatesM154Schema;
+  const applyIdentitySchema =
+    runtimeDependencies.applyIdentitySchema ?? applyAffiliatesIdentityEligibilityM155;
+  const createApplication =
+    runtimeDependencies.createApplication ??
+    ((activePool) =>
+      new AffiliateApplicationService(
+        activePool,
+        createAuthorizationPort(),
+        createDigestPort(),
+        createEvidenceVerifier(referralSecret),
+      ));
 
   const runtimeEnabled = enabledValue(
     getEnvironmentValue("AFFILIATES_RUNTIME_ENABLED"),
@@ -545,15 +581,10 @@ export function createAffiliatesApi({
       if (production && !configuredPublicOrigin) {
         throw new Error("AFFILIATE_PUBLIC_ORIGIN_REQUIRED");
       }
-      pool = createAffiliatePool(getEnvironmentValue("AFFILIATES_DATABASE_URL"));
-      await applyAffiliatesM154Schema(pool);
-      await applyAffiliatesIdentityEligibilityM155(pool);
-      application = new AffiliateApplicationService(
-        pool,
-        createAuthorizationPort(),
-        createDigestPort(),
-        createEvidenceVerifier(referralSecret),
-      );
+      pool = createPool(getEnvironmentValue("AFFILIATES_DATABASE_URL"));
+      await applySchema(pool);
+      await applyIdentitySchema(pool);
+      application = createApplication(pool);
       started = true;
       startError = null;
       return true;
@@ -648,6 +679,10 @@ export function createAffiliatesApi({
       body = await readJsonBody(request);
     } catch {
       json(response, 400, { error: "INVALID_REFERRAL_LINK_REQUEST" }, correlation);
+      return;
+    }
+    if (forbiddenReferralAuthority(body)) {
+      json(response, 400, { error: "REFERRAL_AUTHORITY_FORBIDDEN" }, correlation);
       return;
     }
     const programId = body?.programId;
