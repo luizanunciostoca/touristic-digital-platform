@@ -265,6 +265,25 @@ if (/^\s{2}(pull_request|push):/m.test(pagesAfterFinalAcceptance)) {
   );
 }
 
+const pagesSourceGovernance = workflowSources.get(
+  "pages-source-governance.yml",
+);
+if (!pagesSourceGovernance) {
+  fail("pages-source-governance.yml is missing");
+}
+requireIncludes(
+  pagesSourceGovernance,
+  ".github/workflows/pages-source-governance.yml",
+  [
+    "name: Pages Source Governance",
+    "pages: read",
+    "repos/$GITHUB_REPOSITORY/pages",
+    ".build_type // empty",
+    'if [ "$build_type" != "workflow" ]',
+    "Branch-based Pages can publish before Final Release Acceptance",
+  ],
+);
+
 const productionRollback = workflowSources.get(
   "production-render-rollback.yml",
 );
