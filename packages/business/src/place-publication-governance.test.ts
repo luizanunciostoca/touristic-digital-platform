@@ -153,6 +153,7 @@ function harness(initial = record()) {
   };
   return {
     repository,
+    publishAtomically,
     catalog,
     audit,
     audits,
@@ -359,13 +360,13 @@ describe("place publication governance", () => {
     const h = harness(record("review"));
     await h.service.publish(context("PLATFORM_OWNER"), "place-a", 1);
 
-    expect(h.repository.publishAtomically).toHaveBeenCalledWith(
-      expect.objectContaining({
-        placeId: "place-a",
-        expectedRevision: 1,
-        publicProjection: expect.objectContaining({ placeId: "place-a" }),
-      }),
-    );
+    expect(h.publishAtomically).toHaveBeenCalledTimes(1);
+    const publishInput = h.publishAtomically.mock.calls[0]?.[0];
+    expect(publishInput).toMatchObject({
+      placeId: "place-a",
+      expectedRevision: 1,
+    });
+    expect(publishInput?.publicProjection.placeId).toBe("place-a");
     expect(h.current().publishedRevision?.revision).toBe(1);
   });
 
