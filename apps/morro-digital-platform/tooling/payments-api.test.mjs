@@ -10,6 +10,7 @@ import {
 import {
   createPaymentsApi,
   createPaymentsCheckoutAuthorizationPort,
+  safeStartupFailureCode,
   createPaymentsReconciliationAuthorizationPort,
   createPaymentsRefundAuthorizationPort,
 } from "./payments-api.mjs";
@@ -88,6 +89,33 @@ function checkoutHandoff() {
     requiresPaymentsCapability: true,
   };
 }
+
+describe("payments startup failure diagnostics", () => {
+  it("classifies bounded nested causes without exposing arbitrary messages", () => {
+    const nested = Object.assign(
+      new Error("connect failed for mysql://secret@example"),
+      {
+        cause: Object.assign(new Error("socket failure"), {
+          code: "ECONNREFUSED",
+        }),
+      },
+    );
+    expect(safeStartupFailureCode(nested)).toBe("ECONNREFUSED");
+
+    const aggregate = new AggregateError(
+      [Object.assign(new Error("dns"), { code: "ENOTFOUND" })],
+      "provider startup failed",
+    );
+    expect(safeStartupFailureCode(aggregate)).toBe("ENOTFOUND");
+
+    expect(
+      safeStartupFailureCode(new Error("ORDERING_DATABASE_URL is required")),
+    ).toBe("ORDERING_DATABASE_URL_REQUIRED");
+    expect(
+      safeStartupFailureCode(new Error("mysql://user:secret@host/db")),
+    ).toBe("PAYMENTS_RUNTIME_START_UNCLASSIFIED");
+  });
+});
 
 describe("M139/M141 payments API runtime boundary", () => {
   it("stays fail-closed when operational configuration is absent", async () => {
