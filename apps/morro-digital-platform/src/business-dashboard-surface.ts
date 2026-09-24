@@ -79,7 +79,8 @@ const moduleDescriptions: Readonly<Record<MorroProModule, string>> =
       "Edite os dados públicos do negócio usando o Business/Place canônico.",
     location:
       "Gerencie a localização conforme a política geográfica e de publicação.",
-    photos: "Gerencie fotos vinculadas ao Place através da autoridade de mídia.",
+    photos:
+      "Gerencie fotos vinculadas ao Place através da autoridade de mídia.",
     products:
       "Gerencie produtos vinculados explicitamente ao negócio e aos Places.",
     offers: "Crie e acompanhe ofertas autorizadas do negócio.",
@@ -672,8 +673,7 @@ export async function mountBusinessDashboardSurface(
       .forEach((button) => {
         if (button.closest(".sidebar-nav")) return;
         const view = button.dataset.dashboardView as
-          | BusinessDashboardView
-          | undefined;
+          BusinessDashboardView | undefined;
         if (!view || !businessDashboardViews.includes(view)) return;
         const moduleAccess = accessByModule.get(view);
         if (!moduleAccess?.visible) {
@@ -732,9 +732,12 @@ export async function mountBusinessDashboardSurface(
             })
             .catch((error: unknown) => {
               if (!contextController?.isCurrent(request)) return;
-              if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
+              if (
+                error instanceof DOMException &&
+                error.name === "AbortError"
+              ) {
+                return;
+              }
               status.textContent =
                 error instanceof Error
                   ? error.message

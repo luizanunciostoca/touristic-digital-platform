@@ -39,22 +39,22 @@ Rules:
 
 ## Capability matrix
 
-| Module | Viewer | Manager | Owner | Additional gate |
-| --- | --- | --- | --- | --- |
-| Dashboard | read | read | read | business.read |
-| Perfil | read | mutate | mutate | business.update |
-| Localização | read | mutate | mutate | Place directions + governance policy |
-| Fotos | read | read | mutate | content.read/manage + Place photos |
-| Produtos | read | mutate | mutate | business.update + Place products |
-| Ofertas | read | mutate | mutate | ticketing.read/manage + Place offers |
-| Cardápio | read | mutate | mutate | business.update + Place menu |
-| Reservas | read | mutate | mutate | business.update + tableReservation |
-| Ticketing/check-in | read | mutate | mutate | ticketing.read/manage + Place tickets |
-| Financeiro | read-only | read-only | read-only | financial.read; no ledger authority |
-| Conteúdo | read | read-only | mutate | content.read/manage |
-| Preview | read | read | read | canonical public projection |
-| Equipe | hidden | hidden | mutate | owner-only |
-| Configurações | read | mutate | mutate | business.update |
+| Module             | Viewer    | Manager   | Owner     | Additional gate                       |
+| ------------------ | --------- | --------- | --------- | ------------------------------------- |
+| Dashboard          | read      | read      | read      | business.read                         |
+| Perfil             | read      | mutate    | mutate    | business.update                       |
+| Localização        | read      | mutate    | mutate    | Place directions + governance policy  |
+| Fotos              | read      | read      | mutate    | content.read/manage + Place photos    |
+| Produtos           | read      | mutate    | mutate    | business.update + Place products      |
+| Ofertas            | read      | mutate    | mutate    | ticketing.read/manage + Place offers  |
+| Cardápio           | read      | mutate    | mutate    | business.update + Place menu          |
+| Reservas           | read      | mutate    | mutate    | business.update + tableReservation    |
+| Ticketing/check-in | read      | mutate    | mutate    | ticketing.read/manage + Place tickets |
+| Financeiro         | read-only | read-only | read-only | financial.read; no ledger authority   |
+| Conteúdo           | read      | read-only | mutate    | content.read/manage                   |
+| Preview            | read      | read      | read      | canonical public projection           |
+| Equipe             | hidden    | hidden    | mutate    | owner-only                            |
+| Configurações      | read      | mutate    | mutate    | business.update                       |
 
 Manager does not receive `content.manage` from the current canonical role map, therefore Content remains read-only for Manager until Auth policy explicitly changes.
 

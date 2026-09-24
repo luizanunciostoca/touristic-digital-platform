@@ -229,13 +229,11 @@ export function resolveMorroProModuleAccess(
 export function normalizedBusinessScopes(
   session: DashboardSessionResponse,
 ): readonly string[] {
-  return Object.freeze(
-    [
-      ...new Set(
-        session.user.businessIds.map(normalizeBusinessId).filter(Boolean),
-      ),
-    ] as string[],
-  );
+  return Object.freeze([
+    ...new Set(
+      session.user.businessIds.map(normalizeBusinessId).filter(Boolean),
+    ),
+  ] as string[]);
 }
 
 export function resolveBusinessContext(
@@ -297,7 +295,8 @@ export function createBusinessContextController(
     switchTo(businessIdInput: unknown): BusinessContextRequest {
       const businessId = normalizeBusinessId(businessIdInput);
       if (!businessId) throw new Error("INVALID_BUSINESS_ID");
-      if (!allowed.includes(businessId)) throw new Error("BUSINESS_ACCESS_DENIED");
+      if (!allowed.includes(businessId))
+        throw new Error("BUSINESS_ACCESS_DENIED");
       controller.abort("business-context-switch");
       controller = new AbortController();
       generation += 1;

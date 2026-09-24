@@ -73,11 +73,7 @@ describe("Morro Pro business context", () => {
       ),
     ).toThrow("MORRO_PRO_ROLE_DENIED");
 
-    const access = resolveMorroProModuleAccess(
-      "PLATFORM_ADMIN",
-      undefined,
-      [],
-    );
+    const access = resolveMorroProModuleAccess("PLATFORM_ADMIN", undefined, []);
     expect(access.every((item) => !item.visible && !item.mutable)).toBe(true);
   });
 
@@ -94,7 +90,11 @@ describe("Morro Pro business context", () => {
 
 describe("Morro Pro role and module policy", () => {
   it("keeps viewer read-only", () => {
-    const access = resolveMorroProModuleAccess("BUSINESS_VIEWER", undefined, []);
+    const access = resolveMorroProModuleAccess(
+      "BUSINESS_VIEWER",
+      undefined,
+      [],
+    );
     expect(access.find((item) => item.id === "profile")).toMatchObject({
       visible: true,
       mutable: false,
@@ -106,7 +106,11 @@ describe("Morro Pro role and module policy", () => {
   });
 
   it("allows manager mutations only where its capabilities permit", () => {
-    const access = resolveMorroProModuleAccess("BUSINESS_MANAGER", undefined, []);
+    const access = resolveMorroProModuleAccess(
+      "BUSINESS_MANAGER",
+      undefined,
+      [],
+    );
     expect(access.find((item) => item.id === "profile")?.mutable).toBe(true);
     expect(access.find((item) => item.id === "offers")?.mutable).toBe(true);
     expect(access.find((item) => item.id === "content")?.mutable).toBe(false);
@@ -144,11 +148,11 @@ describe("Morro Pro role and module policy", () => {
   });
 
   it("filters capability-specific modules when Place capabilities are known", () => {
-    const access = resolveMorroProModuleAccess(
-      "BUSINESS_OWNER",
-      undefined,
-      ["directions", "photos", "offers"],
-    );
+    const access = resolveMorroProModuleAccess("BUSINESS_OWNER", undefined, [
+      "directions",
+      "photos",
+      "offers",
+    ]);
     expect(access.find((item) => item.id === "photos")?.visible).toBe(true);
     expect(access.find((item) => item.id === "offers")?.visible).toBe(true);
     expect(access.find((item) => item.id === "menu")?.visible).toBe(false);
