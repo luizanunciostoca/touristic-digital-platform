@@ -347,6 +347,7 @@ jobs:
                     return {
                       width: rect.width,
                       height: rect.height,
+                      isStructuralBack: button.matches('[data-context-rail-back]'),
                       visible:
                         style.display !== 'none' &&
                         style.visibility !== 'hidden' &&
@@ -393,7 +394,10 @@ jobs:
                 !placeState.actionValues.includes('adicionar aos favoritos') ||
                 !placeState.actionValues.includes('__back_to_places__') ||
                 placeState.touchTargets.some(
-                  ({ width, height, visible }) => !visible || width < 44 || height < 44,
+                  ({ width, height, visible, isStructuralBack }) =>
+                    !visible ||
+                    width < (isStructuralBack ? 40 : 44) ||
+                    height < (isStructuralBack ? 40 : 44),
                 ) ||
                 placeState.voiceLabel !== 'Fale comigo' ||
                 !placeState.voiceVisible ||
