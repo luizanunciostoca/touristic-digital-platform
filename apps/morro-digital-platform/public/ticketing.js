@@ -14,6 +14,11 @@ const localeResolution = initializeMorroBrowserLocale({ document });
 const presentationLocale = commerceIntlLocale(localeResolution.locale);
 const copy = getTicketingPresentationCopy(presentationLocale);
 applyCommerceDocumentCopy(document, "ticketing", presentationLocale);
+const ticketingParams = new URLSearchParams(location.search);
+const ticketingContext =
+  ticketingParams.get("mode") === "tour" ? "tour" : "generic";
+document.body.dataset.ticketingContext = ticketingContext;
+
 const browserAnalytics = installMorroBrowserAnalytics({ document, window });
 const privacyPreferences = installBrowserAnalyticsConsentPreferences({
   document,
@@ -79,6 +84,7 @@ const elements = {
   returnLink: document.querySelector("[data-ticketing-return]"),
   identityPanel: document.querySelector("#identity-panel"),
   privacySettings: document.querySelector("#privacy-settings-button"),
+  searchAction: document.querySelector("[data-ticketing-search]"),
 };
 
 function readSessionJson(key, fallback) {
@@ -740,6 +746,9 @@ async function loadOffers() {
               offerMatchesPlace(entry, requestedPlace),
             )
           : [];
+  document.body.dataset.ticketingSinglePlace = String(
+    ticketingContext === "tour" && Boolean(requestedPlace),
+  );
   renderDateSelector();
   renderOffers();
 
@@ -1276,6 +1285,20 @@ elements.form.addEventListener(
 );
 elements.privacySettings?.addEventListener("click", () => {
   privacyPreferences.open();
+});
+elements.searchAction?.addEventListener("click", () => {
+  if (history.length > 1 && document.referrer) {
+    try {
+      const previous = new URL(document.referrer);
+      if (previous.origin === location.origin) {
+        history.back();
+        return;
+      }
+    } catch {
+      // Fall through to the canonical Explore surface.
+    }
+  }
+  location.assign("/");
 });
 
 elements.refresh.addEventListener("click", () => {
