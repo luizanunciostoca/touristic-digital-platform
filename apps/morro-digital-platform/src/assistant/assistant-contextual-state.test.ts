@@ -72,38 +72,35 @@ describe("assistant contextual state messaging", () => {
     ).toContain("<script>");
   });
 
-  it(
-    "wires the canonical Explore state listener to contextual publication",
-    async () => {
-      const runtime = await readFile(
-        `${repositoryRoot}apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts`,
-        "utf8",
-      );
+  it("wires the canonical Explore state listener to contextual publication", async () => {
+    const runtime = await readFile(
+      `${repositoryRoot}apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts`,
+      "utf8",
+    );
 
-      expect(runtime).toContain("resolveExploreContextualState");
-      expect(runtime).toContain("resolveAssistantContextualCopy");
-      expect(runtime).toContain("syncExploreContextualMessage");
-      expect(runtime).toContain("syncExplorePresentation");
-      expect(runtime).toContain(
-        'canonicalMessage.dataset.messageType !== "category-flow"',
-      );
-      expect(runtime).toContain(
-        'canonicalMessage.dataset.preserveContent === "true"',
-      );
-      expect(runtime).toContain(
-        "canonicalMessage.textContent = rendered.message",
-      );
-      expect(runtime).not.toContain(
-        "contextualMessaging.publish(contextualState",
-      );
-      expect(runtime).toContain(
-        "const onExploreStateChanged = (): void => syncExplorePresentation();",
-      );
-      expect(runtime).toContain(
-        "queueMicrotask(() => syncExplorePresentation(placeHint));",
-      );
-    },
-  );
+    expect(runtime).toContain("resolveExploreContextualState");
+    expect(runtime).toContain("resolveAssistantContextualCopy");
+    expect(runtime).toContain("syncExploreContextualMessage");
+    expect(runtime).toContain("syncExplorePresentation");
+    expect(runtime).toContain(
+      'canonicalMessage.dataset.messageType !== "category-flow"',
+    );
+    expect(runtime).toContain(
+      'canonicalMessage.dataset.preserveContent === "true"',
+    );
+    expect(runtime).toContain(
+      "canonicalMessage.textContent = rendered.message",
+    );
+    expect(runtime).not.toContain(
+      "contextualMessaging.publish(contextualState",
+    );
+    expect(runtime).toContain(
+      "const onExploreStateChanged = (): void => syncExplorePresentation();",
+    );
+    expect(runtime).toContain(
+      "queueMicrotask(() => syncExplorePresentation(placeHint));",
+    );
+  });
 
   it("maps Explore stages to coherent contextual states", () => {
     const base = {
