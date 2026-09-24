@@ -8,6 +8,11 @@
       "types": "./src/index.ts",
       "node": "./dist/index.js",
       "default": "./src/index.ts"
+    },
+    "./restaurant-reservations": {
+      "types": "./src/restaurant-reservations.ts",
+      "node": "./dist/restaurant-reservations.js",
+      "default": "./src/restaurant-reservations.ts"
     }
   },
   "scripts": {
