@@ -94,7 +94,7 @@ jobs:
           set -euo pipefail
           for workflow in \
             final-release-acceptance.yml \
-            release-promotion-gate.yml \
+            oci-release-promotion-gate.yml \
             dependency-security-audit.yml \
             security-scanning.yml
           do
