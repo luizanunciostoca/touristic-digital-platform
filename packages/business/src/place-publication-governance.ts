@@ -312,10 +312,7 @@ async function validateExternalAuthorities(
   }
   if (
     data.coverMediaId &&
-    !(await catalog.mediaBelongsToBusiness(
-      data.businessId,
-      data.coverMediaId,
-    ))
+    !(await catalog.mediaBelongsToBusiness(data.businessId, data.coverMediaId))
   ) {
     throw publicationError("UNAUTHORIZED_MEDIA");
   }
@@ -457,7 +454,10 @@ export function createPlacePublicationService(
         if (requiredIssues.length) {
           throw publicationError("REQUIRED_FIELDS_INVALID");
         }
-        await validateExternalAuthorities(catalog, record.editableRevision.data);
+        await validateExternalAuthorities(
+          catalog,
+          record.editableRevision.data,
+        );
         const next = await repository.setState(
           record.placeId,
           "review",
@@ -521,7 +521,10 @@ export function createPlacePublicationService(
         if (requiredIssues.length) {
           throw publicationError("REQUIRED_FIELDS_INVALID");
         }
-        await validateExternalAuthorities(catalog, record.editableRevision.data);
+        await validateExternalAuthorities(
+          catalog,
+          record.editableRevision.data,
+        );
 
         const next: GovernedPlaceRecord = Object.freeze({
           ...record,

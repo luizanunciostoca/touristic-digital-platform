@@ -92,8 +92,8 @@ function record(
 function harness(initial = record()) {
   let current = initial;
   const audits: unknown[] = [];
-  const get = vi.fn<PlacePublicationRepository["get"]>(
-    async (placeId) => (placeId === current.placeId ? current : null),
+  const get = vi.fn<PlacePublicationRepository["get"]>(async (placeId) =>
+    placeId === current.placeId ? current : null,
   );
   const saveDraft = vi.fn<PlacePublicationRepository["saveDraft"]>(
     async (next, expectedRevision) => {
@@ -142,8 +142,7 @@ function harness(initial = record()) {
       PlacePublicationCatalog["capabilityIsSupported"]
     >(
       async (categoryId, capability) =>
-        categoryId === "nightlife" &&
-        ["photos", "menu"].includes(capability),
+        categoryId === "nightlife" && ["photos", "menu"].includes(capability),
     ),
   };
   const audit: PlacePublicationAuditPort = {
