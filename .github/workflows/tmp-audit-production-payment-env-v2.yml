@@ -1,0 +1,77 @@
+name: Temporary Audit Production Payment Env V2
+
+on:
+  push:
+    branches:
+      - ops/audit-production-payment-env-v2-20260924
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops/audit-production-payment-env-v2-20260924
+          fetch-depth: 0
+
+      - name: Audit Render payment environment without exposing values
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          RENDER_PRODUCTION_SERVICE_ID: ${{ secrets.RENDER_PRODUCTION_SERVICE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+          test -n "$RENDER_PRODUCTION_SERVICE_ID"
+
+          umask 077
+          curl --fail --silent --show-error             --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"             --header "Accept: application/json"             "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID/env-vars"             > /tmp/render-env.json
+
+          jq -c '
+            def rows:
+              if type == "array" then .
+              elif (.envVars? | type) == "array" then .envVars
+              elif (.items? | type) == "array" then .items
+              else [] end;
+            def k: (.envVar.key // .key // "");
+            def v: (.envVar.value // .value // "");
+            def find($name): [rows[] | select(k == $name) | v][0] // "";
+            {
+              accessToken: ((find("MERCADO_PAGO_ACCESS_TOKEN") | length) >= 32),
+              webhookSecret: ((find("MERCADO_PAGO_WEBHOOK_SECRET") | length) >= 16),
+              checkoutOrigins: ((find("MERCADO_PAGO_CHECKOUT_ORIGINS") | length) > 0),
+              checkoutModeTest: (find("MERCADO_PAGO_CHECKOUT_MODE") == "test"),
+              providerModeMercado: (find("PAYMENTS_PROVIDER_MODE") == "mercado_pago"),
+              testCredentialsConfirmed: (find("MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED") == "true"),
+              webhookUrl: ((find("PAYMENTS_WEBHOOK_URL") | length) > 0),
+              returnOrigins: ((find("PAYMENTS_RETURN_URL_ORIGINS") | length) > 0)
+            }
+          ' /tmp/render-env.json > /tmp/payment-audit.json
+
+          jq -r '
+            "PAYMENT_ENV_AUDIT MERCADO_PAGO_ACCESS_TOKEN=" + (if .accessToken then "VALID_PRESENT" else "MISSING_OR_INVALID" end),
+            "PAYMENT_ENV_AUDIT MERCADO_PAGO_WEBHOOK_SECRET=" + (if .webhookSecret then "VALID_PRESENT" else "MISSING_OR_INVALID" end),
+            "PAYMENT_ENV_AUDIT MERCADO_PAGO_CHECKOUT_ORIGINS=" + (if .checkoutOrigins then "PRESENT" else "MISSING" end),
+            "PAYMENT_ENV_AUDIT MERCADO_PAGO_CHECKOUT_MODE=" + (if .checkoutModeTest then "TEST" else "NOT_TEST" end),
+            "PAYMENT_ENV_AUDIT PAYMENTS_PROVIDER_MODE=" + (if .providerModeMercado then "MERCADO_PAGO" else "NOT_MERCADO_PAGO" end),
+            "PAYMENT_ENV_AUDIT MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=" + (if .testCredentialsConfirmed then "TRUE" else "NOT_TRUE" end),
+            "PAYMENT_ENV_AUDIT PAYMENTS_WEBHOOK_URL=" + (if .webhookUrl then "PRESENT" else "MISSING" end),
+            "PAYMENT_ENV_AUDIT PAYMENTS_RETURN_URL_ORIGINS=" + (if .returnOrigins then "PRESENT" else "MISSING" end)
+          ' /tmp/payment-audit.json
+
+          rm -f /tmp/render-env.json /tmp/payment-audit.json
+
+      - name: Remove temporary workflow
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-audit-production-payment-env-v2.yml
+          git commit -m "chore(ci): remove production payment env audit helper v2"
+          git push origin HEAD:ops/audit-production-payment-env-v2-20260924
