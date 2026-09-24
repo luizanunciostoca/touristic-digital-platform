@@ -5,6 +5,7 @@ Status: implemented on `wave/public-place-projection-20260923`.
 Base: Wave A exact head `5ed3fa161b2fa8304ebdb99022f36beff022ac33`.
 
 Dependencies reviewed:
+
 - Wave A / PR #344 — canonical Business + Place identity and capabilities.
 - Wave C / PR #345 — published media projection contract.
 - Wave D / PR #346 — Product / Offer / Menu relations and public-active semantics.
@@ -14,6 +15,7 @@ Dependencies reviewed:
 ## Public endpoints
 
 Canonical HTTP contract:
+
 - `GET /api/places/v1/map`
 - `GET /api/places/v1/:placeId`
 
@@ -22,16 +24,19 @@ The reusable adapter is `handlePublicPlaceApiRequest`. It is transport-neutral a
 ### GET /api/places/v1/map
 
 Required:
+
 - `destinationId`
 - `bbox=west,south,east,north`
 
 Optional:
+
 - `category` (legacy/internal alias `categoryId` is accepted by the parser)
 - `zoom` (default 14, valid 0..24)
 - `limit` (default 250, hard cap 1000)
 - `cursor`
 
 Response:
+
 ```ts
 {
   items: Array<{
@@ -54,6 +59,7 @@ The map payload intentionally excludes descriptions, contacts, media arrays, bus
 ### GET /api/places/v1/:placeId
 
 Returns one cohesive published read model:
+
 ```ts
 {
   profile: {
@@ -71,7 +77,7 @@ Returns one cohesive published read model:
     amenities;
     tags;
     capabilities;
-  };
+  }
   media;
   commerce;
   actions: {
@@ -80,22 +86,23 @@ Returns one cohesive published read model:
     destinationId;
     primaryAction;
     secondaryActions;
-  };
+  }
   partial: {
     media: "ready" | "unavailable";
     commerce: "ready" | "unavailable";
     actions: "ready" | "unavailable";
-  };
+  }
   revision: {
     id;
     number;
-  };
+  }
 }
 ```
 
 ## Publication authority
 
 `publishedRecordFromGovernedRecord` implements Wave J's public visibility rule:
+
 - never-published draft/review => hidden;
 - published revision + editable draft/review => previous published revision remains public;
 - suspended => hidden;
@@ -112,6 +119,7 @@ The publication adapter also rejects any canonical Place snapshot whose `placeId
 Wave G does not own storage or media publication logic.
 
 `PublicPlaceMediaPort.getPublishedMedia` is the only media dependency. The adapter must use Wave C and return only its public/published projection:
+
 - cover;
 - gallery;
 - logo.
@@ -123,6 +131,7 @@ Draft assets, ownership metadata, checksums and storage-internal fields must not
 Wave G does not infer transactional state.
 
 `PublicPlaceCommercePort.getPublicCommerce` must adapt Wave D using explicit IDs:
+
 - active Products only;
 - active/non-expired Offers according to Wave D semantics;
 - active Menu only;
@@ -135,6 +144,7 @@ Inventory/ticketing authority remains external. Wave G must not manufacture auth
 Wave G contains no category -> action table.
 
 `PublicPlaceActionPort.resolvePublicActions` receives:
+
 - published public profile;
 - available public media;
 - available public commerce;
@@ -155,12 +165,14 @@ Place identity is never recovered by name/slug/alias matching inside Wave G.
 ## Cache / ETag
 
 Both endpoints return:
+
 - weak ETag derived from public revision identity and query scope;
 - `Cache-Control: public, max-age=..., stale-while-revalidate=...`.
 
 Conditional requests with matching `If-None-Match` return 304.
 
 Default TTL:
+
 - map: 30s;
 - detail: 60s.
 
@@ -171,6 +183,7 @@ Adapters may tune TTLs without changing public identity semantics.
 The repository port is responsible for indexed/materialized query execution.
 
 Required indexes/materialized-read-model strategy for the persistent adapter:
+
 - destinationId;
 - publication visibility/public projection;
 - geospatial location/bbox;
@@ -182,6 +195,7 @@ The service enforces a maximum page size of 1000 and exposes a cursor. Clusterin
 ## Privacy boundary
 
 Public projection does not expose:
+
 - business administration/profile metadata (the action authority envelope may carry canonical `businessId` solely for scope identity);
 - publication state;
 - editable revision;
@@ -197,6 +211,7 @@ Public projection does not expose:
 ## Handoff to Chat 8 / Wave H
 
 Consume only these public contracts:
+
 - `GET /api/places/v1/map` for map pins.
 - `GET /api/places/v1/:placeId` for place detail.
 - Pin identity is always `PlaceId`.
@@ -211,6 +226,7 @@ Consume only these public contracts:
 ## Tests implemented
 
 Coverage includes:
+
 - published-only authority;
 - draft/review hidden when never published;
 - previous published revision retained during edit/review;

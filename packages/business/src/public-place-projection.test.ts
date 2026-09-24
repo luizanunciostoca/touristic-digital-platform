@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  asBusinessId,
-  asCategoryId,
-  asPlaceId,
-} from "./place-domain.js";
+import { asBusinessId, asCategoryId, asPlaceId } from "./place-domain.js";
 import {
   createPublicPlaceReadModel,
   handlePublicPlaceApiRequest,
@@ -58,11 +54,13 @@ function place(overrides: Partial<Place> = {}): Place {
   });
 }
 
-function governed(input: {
-  state?: PublicPlaceGovernedRecord["publicationState"];
-  published?: Place | null;
-  revision?: number;
-} = {}): PublicPlaceGovernedRecord {
+function governed(
+  input: {
+    state?: PublicPlaceGovernedRecord["publicationState"];
+    published?: Place | null;
+    revision?: number;
+  } = {},
+): PublicPlaceGovernedRecord {
   const published = input.published === undefined ? place() : input.published;
   return Object.freeze({
     placeId: "place-1",
@@ -222,14 +220,17 @@ describe("createPublicPlaceReadModel", () => {
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
-          Object.freeze({
-            placeId: place.id,
-            businessId: "business-1",
-            destinationId: place.destinationId,
-            primaryAction: null,
-            secondaryActions: Object.freeze([]),
-          }),
+        resolvePublicActions: vi.fn(
+          async ({
+            place,
+          }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+            Object.freeze({
+              placeId: place.id,
+              businessId: "business-1",
+              destinationId: place.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            }),
         ),
       },
     });
@@ -266,22 +267,25 @@ describe("createPublicPlaceReadModel", () => {
       offers: Object.freeze([]),
       menu: null,
     });
-    const actionResolver = vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
-      Object.freeze({
-        placeId: place.id,
-        businessId: "business-1",
-        destinationId: place.destinationId,
-        primaryAction: Object.freeze({
-          id: "directions",
-          label: "Como chegar",
-          value: "place-action:directions:place-1",
-          presentation: "primary" as const,
-          priority: 30,
-          disabled: false,
-          availability: "available" as const,
+    const actionResolver = vi.fn(
+      async ({
+        place,
+      }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+        Object.freeze({
+          placeId: place.id,
+          businessId: "business-1",
+          destinationId: place.destinationId,
+          primaryAction: Object.freeze({
+            id: "directions",
+            label: "Como chegar",
+            value: "place-action:directions:place-1",
+            presentation: "primary" as const,
+            priority: 30,
+            disabled: false,
+            availability: "available" as const,
+          }),
+          secondaryActions: Object.freeze([]),
         }),
-        secondaryActions: Object.freeze([]),
-      }),
     );
     const service = createPublicPlaceReadModel({
       repository: {
@@ -319,14 +323,17 @@ describe("createPublicPlaceReadModel", () => {
       },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
-          Object.freeze({
-            placeId: place.id,
-            businessId: "business-1",
-            destinationId: place.destinationId,
-            primaryAction: null,
-            secondaryActions: Object.freeze([]),
-          }),
+        resolvePublicActions: vi.fn(
+          async ({
+            place,
+          }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+            Object.freeze({
+              placeId: place.id,
+              businessId: "business-1",
+              destinationId: place.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            }),
         ),
       },
     });
@@ -357,14 +364,17 @@ describe("createPublicPlaceReadModel", () => {
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
-          Object.freeze({
-            placeId: place.id,
-            businessId: "business-1",
-            destinationId: place.destinationId,
-            primaryAction: null,
-            secondaryActions: Object.freeze([]),
-          }),
+        resolvePublicActions: vi.fn(
+          async ({
+            place,
+          }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+            Object.freeze({
+              placeId: place.id,
+              businessId: "business-1",
+              destinationId: place.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            }),
         ),
       },
     });
@@ -380,7 +390,6 @@ describe("createPublicPlaceReadModel", () => {
     expect(detail.detail).toBeNull();
   });
 });
-
 
 describe("handlePublicPlaceApiRequest", () => {
   function apiReadModel() {
@@ -400,14 +409,17 @@ describe("handlePublicPlaceApiRequest", () => {
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
-          Object.freeze({
-            placeId: place.id,
-            businessId: "business-1",
-            destinationId: place.destinationId,
-            primaryAction: null,
-            secondaryActions: Object.freeze([]),
-          }),
+        resolvePublicActions: vi.fn(
+          async ({
+            place,
+          }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+            Object.freeze({
+              placeId: place.id,
+              businessId: "business-1",
+              destinationId: place.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            }),
         ),
       },
     });

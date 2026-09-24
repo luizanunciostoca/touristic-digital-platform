@@ -70,10 +70,7 @@ export interface PublicPlaceCommerceProjection {
 }
 
 export type PublicPlaceActionAvailability =
-  | "available"
-  | "sold_out"
-  | "upcoming"
-  | "unavailable";
+  "available" | "sold_out" | "upcoming" | "unavailable";
 
 export interface PublicPlaceAction {
   readonly id: string;
@@ -113,11 +110,7 @@ export interface PublicPlaceGovernedRecord {
   readonly businessId: string;
   readonly destinationId: string;
   readonly publicationState:
-    | "draft"
-    | "review"
-    | "published"
-    | "suspended"
-    | "archived";
+    "draft" | "review" | "published" | "suspended" | "archived";
   readonly publishedRevision: PublicPlaceGovernedRevision | null;
 }
 
@@ -162,11 +155,15 @@ export interface PublicPlaceRepository {
 }
 
 export interface PublicPlaceMediaPort {
-  getPublishedMedia(place: Pick<Place, "id" | "businessId">): Promise<PublicPlaceMediaProjection | null>;
+  getPublishedMedia(
+    place: Pick<Place, "id" | "businessId">,
+  ): Promise<PublicPlaceMediaProjection | null>;
 }
 
 export interface PublicPlaceCommercePort {
-  getPublicCommerce(place: Pick<Place, "id" | "businessId" | "destinationId">): Promise<PublicPlaceCommerceProjection | null>;
+  getPublicCommerce(
+    place: Pick<Place, "id" | "businessId" | "destinationId">,
+  ): Promise<PublicPlaceCommerceProjection | null>;
 }
 
 export interface PublicPlaceActionPort {
@@ -282,7 +279,12 @@ function finiteNumber(value: unknown, code: string): number {
   return parsed;
 }
 
-function assertCoordinate(value: number, min: number, max: number, code: string): number {
+function assertCoordinate(
+  value: number,
+  min: number,
+  max: number,
+  code: string,
+): number {
   if (value < min || value > max) throw new Error(code);
   return value;
 }
@@ -443,9 +445,8 @@ export function publicPlaceCacheMetadata(
   revisionIdentity: string,
   cacheSeconds: number,
 ): PublicPlaceCacheMetadata {
-  const safeSeconds = Number.isSafeInteger(cacheSeconds) && cacheSeconds >= 0
-    ? cacheSeconds
-    : 0;
+  const safeSeconds =
+    Number.isSafeInteger(cacheSeconds) && cacheSeconds >= 0 ? cacheSeconds : 0;
   return Object.freeze({
     etag: `W/"places-${scope}-${stableHash(revisionIdentity)}"`,
     cacheControl: `public, max-age=${safeSeconds}, stale-while-revalidate=${safeSeconds * 2}`,
@@ -462,11 +463,12 @@ function assertRecordScope(
   return profile;
 }
 
-export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions) {
+export function createPublicPlaceReadModel(
+  options: PublicPlaceReadModelOptions,
+) {
   const markerPresentation =
     options.markerPresentation ?? defaultMarkerPresentation;
-  const mapCacheSeconds =
-    options.mapCacheSeconds ?? DEFAULT_MAP_CACHE_SECONDS;
+  const mapCacheSeconds = options.mapCacheSeconds ?? DEFAULT_MAP_CACHE_SECONDS;
   const detailCacheSeconds =
     options.detailCacheSeconds ?? DEFAULT_DETAIL_CACHE_SECONDS;
 
@@ -621,7 +623,6 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
   });
 }
 
-
 export const publicPlaceApiRoutes = Object.freeze({
   map: "/api/places/v1/map",
   detailPrefix: "/api/places/v1/",
@@ -658,7 +659,9 @@ function apiResponse(
   });
 }
 
-function cacheHeaders(cache: PublicPlaceCacheMetadata): Readonly<Record<string, string>> {
+function cacheHeaders(
+  cache: PublicPlaceCacheMetadata,
+): Readonly<Record<string, string>> {
   return Object.freeze({
     etag: cache.etag,
     "cache-control": cache.cacheControl,
@@ -666,7 +669,11 @@ function cacheHeaders(cache: PublicPlaceCacheMetadata): Readonly<Record<string, 
 }
 
 function ifNoneMatch(request: PublicPlaceApiRequest): string {
-  return request.headers?.["if-none-match"] ?? request.headers?.["If-None-Match"] ?? "";
+  return (
+    request.headers?.["if-none-match"] ??
+    request.headers?.["If-None-Match"] ??
+    ""
+  );
 }
 
 function publicPlaceErrorStatus(error: unknown): number {
@@ -689,37 +696,65 @@ export async function handlePublicPlaceApiRequest(
       return apiResponse(200, result.page, cacheHeaders(result.cache));
     } catch (error) {
       const status = publicPlaceErrorStatus(error);
-      return apiResponse(status, {
-        error: status === 400 ? "INVALID_PUBLIC_PLACE_QUERY" : "INTERNAL_SERVER_ERROR",
-      }, { "cache-control": "no-store" });
+      return apiResponse(
+        status,
+        {
+          error:
+            status === 400
+              ? "INVALID_PUBLIC_PLACE_QUERY"
+              : "INTERNAL_SERVER_ERROR",
+        },
+        { "cache-control": "no-store" },
+      );
     }
   }
 
   if (request.pathname.startsWith(publicPlaceApiRoutes.detailPrefix)) {
-    const encodedPlaceId = request.pathname.slice(publicPlaceApiRoutes.detailPrefix.length);
+    const encodedPlaceId = request.pathname.slice(
+      publicPlaceApiRoutes.detailPrefix.length,
+    );
     if (!encodedPlaceId || encodedPlaceId.includes("/")) return null;
     let placeId: PlaceId;
     try {
       const decoded = decodeURIComponent(encodedPlaceId).trim();
       if (!/^[a-z0-9][a-z0-9_-]*$/u.test(decoded)) {
-        return apiResponse(400, { error: "INVALID_PLACE_ID" }, { "cache-control": "no-store" });
+        return apiResponse(
+          400,
+          { error: "INVALID_PLACE_ID" },
+          { "cache-control": "no-store" },
+        );
       }
       placeId = decoded as PlaceId;
     } catch {
-      return apiResponse(400, { error: "INVALID_PLACE_ID" }, { "cache-control": "no-store" });
+      return apiResponse(
+        400,
+        { error: "INVALID_PLACE_ID" },
+        { "cache-control": "no-store" },
+      );
     }
 
     try {
-      const result = await readModel.getDetail(placeId, request.locale ?? "pt-BR");
+      const result = await readModel.getDetail(
+        placeId,
+        request.locale ?? "pt-BR",
+      );
       if (!result.detail || !result.cache) {
-        return apiResponse(404, { error: "PLACE_NOT_FOUND" }, { "cache-control": "no-store" });
+        return apiResponse(
+          404,
+          { error: "PLACE_NOT_FOUND" },
+          { "cache-control": "no-store" },
+        );
       }
       if (ifNoneMatch(request) === result.cache.etag) {
         return apiResponse(304, null, cacheHeaders(result.cache));
       }
       return apiResponse(200, result.detail, cacheHeaders(result.cache));
     } catch {
-      return apiResponse(500, { error: "INTERNAL_SERVER_ERROR" }, { "cache-control": "no-store" });
+      return apiResponse(
+        500,
+        { error: "INTERNAL_SERVER_ERROR" },
+        { "cache-control": "no-store" },
+      );
     }
   }
 
