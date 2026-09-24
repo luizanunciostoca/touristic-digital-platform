@@ -94,6 +94,24 @@ describe("Context Rail button system", () => {
     expect(css).toContain("content: none");
   });
 
+  it("pins back navigation to the leading edge without overlapping options", async () => {
+    const css = await readRepository(
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
+    );
+
+    expect(css).toContain('html:not([dir="rtl"])');
+    expect(css).toContain(
+      "grid-template-columns: calc(var(--md-context-rail-back-size) + 0.25rem) minmax(0, 1fr)",
+    );
+    expect(css).toContain("grid-column: 1");
+    expect(css).toContain("grid-column: 2");
+    expect(css).toContain("justify-self: center");
+    expect(css).toContain("width: 100%");
+    expect(css).toContain("min-width: 0");
+    expect(css).toContain("content: none !important");
+    expect(css).toContain("display: none !important");
+  });
+
   it("keeps horizontal rail accessibility and interaction contracts", async () => {
     const css = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
