@@ -445,6 +445,11 @@ jobs:
                   const selectedMarker = document.querySelector(
                     '#map[data-explore-stage="detail"] .morro-explore-marker[data-location-name]',
                   );
+                  const unifiedDock = document.getElementById('unified-assistant-dock');
+                  const dockRect =
+                    unifiedDock instanceof HTMLElement
+                      ? unifiedDock.getBoundingClientRect()
+                      : null;
                   const actionValues = actions.map(button => button.getAttribute('data-value'));
                   const actionTargets = actions.map(button => {
                     const rect = button.getBoundingClientRect();
@@ -507,10 +512,31 @@ jobs:
                         rect.height > 0
                       );
                     })(),
-                    mapControls: ['recenter-map-control', 'toggle-globe-view', 'toggle-3d-mode'].map(id => {
+                    dockRect: dockRect
+                      ? {
+                          top: dockRect.top,
+                          right: dockRect.right,
+                          bottom: dockRect.bottom,
+                          left: dockRect.left,
+                          width: dockRect.width,
+                          height: dockRect.height,
+                        }
+                      : null,
+                    mapControls: [
+                      'toggle-3d-mode',
+                      'toggle-map-layer',
+                      'toggle-globe-view',
+                      'recenter-map-control',
+                    ].map(id => {
                       const node = document.getElementById(id);
                       if (!(node instanceof HTMLElement)) {
-                        return { id, visible: false, width: 0, height: 0 };
+                        return {
+                          id,
+                          visible: false,
+                          width: 0,
+                          height: 0,
+                          rect: null,
+                        };
                       }
                       const rect = node.getBoundingClientRect();
                       const style = getComputedStyle(node);
@@ -525,6 +551,14 @@ jobs:
                           rect.height > 0,
                         width: rect.width,
                         height: rect.height,
+                        rect: {
+                          top: rect.top,
+                          right: rect.right,
+                          bottom: rect.bottom,
+                          left: rect.left,
+                          width: rect.width,
+                          height: rect.height,
+                        },
                       };
                     }),
                     voiceVisible: (() => {
@@ -572,7 +606,23 @@ jobs:
                   !detailState.bottomNavVisible ||
                   detailState.mapControls.some(control =>
                     !control.visible || control.width < 44 || control.height < 44
-                  )
+                  ) ||
+                  !detailState.dockRect ||
+                  detailState.mapControls.some(control => {
+                    const rect = control.rect;
+                    if (!rect || !detailState.dockRect) return true;
+                    const overlapsDock =
+                      rect.left < detailState.dockRect.right &&
+                      rect.right > detailState.dockRect.left &&
+                      rect.top < detailState.dockRect.bottom &&
+                      rect.bottom > detailState.dockRect.top;
+                    const escapedViewport =
+                      rect.left < -1 ||
+                      rect.top < -1 ||
+                      rect.right > viewport.width + 1 ||
+                      rect.bottom > viewport.height + 1;
+                    return overlapsDock || escapedViewport;
+                  })
                 ) {
                   throw new Error(
                     `Assistant-driven Place contract drift on ${viewport.id}: ${JSON.stringify(detailState)}`,
