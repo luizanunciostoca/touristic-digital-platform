@@ -570,10 +570,18 @@ export function createAffiliatesApi({
       if (production && !configuredPublicOrigin) {
         throw new Error("AFFILIATE_PUBLIC_ORIGIN_REQUIRED");
       }
+      const needsServerModule =
+        !runtimeDependencies.createPool ||
+        !runtimeDependencies.applySchema ||
+        !runtimeDependencies.applyIdentitySchema ||
+        !runtimeDependencies.createApplication;
       const server =
         runtimeDependencies.serverModule ??
-        (await import("@touristic/affiliates-server"));
-      const createPool = runtimeDependencies.createPool ?? server.createAffiliatePool;
+        (needsServerModule
+          ? await import("@touristic/affiliates-server")
+          : null);
+      const createPool =
+        runtimeDependencies.createPool ?? server.createAffiliatePool;
       const applySchema =
         runtimeDependencies.applySchema ?? server.applyAffiliatesM154Schema;
       const applyIdentitySchema =
