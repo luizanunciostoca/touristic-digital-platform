@@ -126,6 +126,18 @@ describe("Place + Search/Explore V2 contract", () => {
     const shellCss = await readRepository(
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
     );
+    const premiumCss = await readRepository(
+      "apps/morro-digital-platform/public/premium-ux-v2.css",
+    );
+    expect(premiumCss).not.toContain(
+      'body[data-md-mode="place"] #globe-map-control',
+    );
+    expect(premiumCss).toContain(
+      'body[data-md-mode="navigation"] #globe-map-control',
+    );
+    expect(premiumCss).toContain(
+      'body[data-md-mode="tour"] #globe-map-control',
+    );
     expect(shellCss).toContain(".md-assistant-place-detail-message");
     expect(shellCss).toContain(".md-assistant-voice-cta");
     expect(css).toContain("@media (forced-colors: active)");
