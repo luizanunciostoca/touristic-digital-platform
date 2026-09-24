@@ -44,7 +44,6 @@ The active repository ruleset `main-release-protection` currently requires pull 
 
 After Merge Queue is enabled, `quality` is already prepared to execute on `merge_group`, removing the recurring "main moved, refresh branch, rerun" cycle without weakening the required quality gate.
 
-
 ## Pages certification gate
 
 GitHub Pages is versioned through `.github/workflows/pages-after-final-acceptance.yml`.
