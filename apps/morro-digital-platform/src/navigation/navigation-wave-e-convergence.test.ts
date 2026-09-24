@@ -86,7 +86,9 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(guidance).toContain("endButton?.click()");
     expect(guidance).toContain('"recenter-map-control"');
     expect(guidance).not.toContain('"navigation-recenter-btn"');
-    expect(guidance).toContain('addEventListener("click", requestRecenter, true)');
+    expect(guidance).toContain(
+      'addEventListener("click", requestRecenter, true)',
+    );
     expect(guidance).toContain('removeAttribute("data-dock-mode")');
     expect(guidance).toContain('removeAttribute("data-navigation-summary")');
 
