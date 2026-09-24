@@ -557,7 +557,7 @@ export class MySqlRestaurantReservationRepository {
     const connection = await this.pool.getConnection();
     try {
       const placePredicate = input.placeId ? " AND s.place_id = ?" : "";
-      const parameters: unknown[] = [
+      const parameters: (Date | string)[] = [
         new Date(observedAt),
         input.businessId,
         input.serviceDate,
