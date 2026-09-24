@@ -65,41 +65,36 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(runtime).toContain("Rota indisponível.");
   });
 
-  it(
-    "keeps the unified dock and bottom navigation available while repurposing category and voice surfaces",
-    async () => {
-      const [guidance, premium] = await Promise.all([
-        readRepository(
-          "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
-        ),
-        readRepository("apps/morro-digital-platform/public/premium-ux-v2.css"),
-      ]);
+  it("keeps the unified dock and bottom navigation available while repurposing category and voice surfaces", async () => {
+    const [guidance, premium] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+      ),
+      readRepository("apps/morro-digital-platform/public/premium-ux-v2.css"),
+    ]);
 
-      expect(guidance).toContain(
-        'setAttribute("data-dock-mode", "navigation")',
-      );
-      expect(guidance).toContain(
-        'setAttribute("data-navigation-summary", "true")',
-      );
-      expect(guidance).toContain("updateNavigationDockSummary");
-      expect(guidance).toContain('voiceButton.dataset.navigationStop = "true"');
-      expect(guidance).toContain("endButton?.click()");
-      expect(guidance).toContain('removeAttribute("data-dock-mode")');
-      expect(guidance).toContain('removeAttribute("data-navigation-summary")');
+    expect(guidance).toContain('setAttribute("data-dock-mode", "navigation")');
+    expect(guidance).toContain(
+      'setAttribute("data-navigation-summary", "true")',
+    );
+    expect(guidance).toContain("updateNavigationDockSummary");
+    expect(guidance).toContain('voiceButton.dataset.navigationStop = "true"');
+    expect(guidance).toContain("endButton?.click()");
+    expect(guidance).toContain('removeAttribute("data-dock-mode")');
+    expect(guidance).toContain('removeAttribute("data-navigation-summary")');
 
-      expect(premium).toContain("Navigation unified dock continuity");
-      expect(premium).toContain(
-        '#unified-assistant-dock[data-dock-mode="navigation"]',
-      );
-      expect(premium).toContain(
-        '#assistant-category-rail[data-navigation-summary="true"]',
-      );
-      expect(premium).toContain(".md-navigation-dock-summary");
-      expect(premium).toContain("#voiceButton.is-navigation-stop");
-      expect(premium).toContain(
-        'body[data-md-mode="navigation"] #navigation-summary',
-      );
-      expect(premium).toContain("display: none !important");
-    },
-  );
+    expect(premium).toContain("Navigation unified dock continuity");
+    expect(premium).toContain(
+      '#unified-assistant-dock[data-dock-mode="navigation"]',
+    );
+    expect(premium).toContain(
+      '#assistant-category-rail[data-navigation-summary="true"]',
+    );
+    expect(premium).toContain(".md-navigation-dock-summary");
+    expect(premium).toContain("#voiceButton.is-navigation-stop");
+    expect(premium).toContain(
+      'body[data-md-mode="navigation"] #navigation-summary',
+    );
+    expect(premium).toContain("display: none !important");
+  });
 });
