@@ -31,29 +31,33 @@ jobs:
           umask 077
           curl --fail --silent --show-error             --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"             --header "Accept: application/json"             "https://api.render.com/v1/services/$RENDER_PRODUCTION_SERVICE_ID/env-vars"             > /tmp/render-env.json
 
-          jq -e 'type == "array"' /tmp/render-env.json >/dev/null
+          normalize='
+            def records:
+              if type == "array" then .
+              elif (.envVars? | type) == "array" then .envVars
+              elif (.items? | type) == "array" then .items
+              else [] end;
+            def envkey: (.envVar.key // .key // "");
+            def envvalue: (.envVar.value // .value // "");
+          '
+
+          jq -e "$normalize records | length >= 0" /tmp/render-env.json >/dev/null
 
           has_nonempty() {
             local key="$1"
-            jq -e --arg key "$key" '
-              any(.[]; (.envVar.key // "") == $key and ((.envVar.value // "") | length) > 0)
-            ' /tmp/render-env.json >/dev/null
+            jq -e --arg key "$key" "$normalize records | any(.[]; (envkey == \$key) and ((envvalue | length) > 0))" /tmp/render-env.json >/dev/null
           }
 
           value_equals() {
             local key="$1"
             local expected="$2"
-            jq -e --arg key "$key" --arg expected "$expected" '
-              any(.[]; (.envVar.key // "") == $key and (.envVar.value // "") == $expected)
-            ' /tmp/render-env.json >/dev/null
+            jq -e --arg key "$key" --arg expected "$expected" "$normalize records | any(.[]; (envkey == \$key) and (envvalue == \$expected))" /tmp/render-env.json >/dev/null
           }
 
           min_length() {
             local key="$1"
             local min="$2"
-            jq -e --arg key "$key" --argjson min "$min" '
-              any(.[]; (.envVar.key // "") == $key and ((.envVar.value // "") | length) >= $min)
-            ' /tmp/render-env.json >/dev/null
+            jq -e --arg key "$key" --argjson min "$min" "$normalize records | any(.[]; (envkey == \$key) and ((envvalue | length) >= \$min))" /tmp/render-env.json >/dev/null
           }
 
           report() {
@@ -74,6 +78,7 @@ jobs:
           rm -f /tmp/render-env.json
 
       - name: Remove temporary workflow
+        if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
