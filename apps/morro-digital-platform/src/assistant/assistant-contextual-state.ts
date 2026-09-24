@@ -2,29 +2,19 @@ import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-rou
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
 
 export type AssistantContextualState =
-  | "start"
-  | "welcome"
   | "category_selected"
-  | "filter_selected"
   | "results_found"
   | "no_results"
   | "place_selected"
   | "action_available"
   | "navigation_starting"
   | "navigation_active"
-  | "arrival"
-  | "book_tour"
-  | "book_table"
-  | "buy_ticket"
   | "payment_started"
   | "payment_approved"
   | "payment_declined"
   | "timeout"
   | "offline"
   | "provider_error"
-  | "return"
-  | "back"
-  | "cancelled"
   | "geolocation_allowed"
   | "geolocation_denied";
 
@@ -47,110 +37,70 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   Record<AssistantContextualLanguage, Readonly<Record<AssistantContextualState, AssistantContextualCopy>>>
 > = Object.freeze({
   pt: Object.freeze({
-    start: copy("Olá! Posso ajudar você a explorar Morro de São Paulo.", "Explorar"),
-    welcome: copy("O que você gostaria de encontrar agora?", "Escolher categoria"),
     category_selected: copy("Categoria selecionada: {{category}}. Escolha um filtro para refinar os resultados.", "Ver filtros"),
-    filter_selected: copy("Filtro aplicado. Estou atualizando os lugares disponíveis.", "Ver resultados"),
     results_found: copy("Encontrei {{count}} opções para você. Escolha um lugar para ver os detalhes.", "Ver lugares"),
     no_results: copy("Não encontrei resultados com esses critérios. Você pode voltar e ajustar os filtros.", "Alterar filtros"),
     place_selected: copy("{{place}} selecionado. Veja os detalhes e escolha a próxima ação.", "Ver ações"),
     action_available: copy("As ações disponíveis para {{place}} estão prontas.", "Escolher ação"),
     navigation_starting: copy("Preparando a rota até {{place}}.", "Iniciar navegação"),
     navigation_active: copy("Navegação ativa até {{place}}. Siga as orientações do mapa.", null),
-    arrival: copy("Você chegou a {{place}}. Posso ajudar com a próxima ação.", "Ver opções"),
-    book_tour: copy("Vamos preparar a reserva do passeio com as opções disponíveis.", "Reservar passeio"),
-    book_table: copy("Vamos preparar a reserva da mesa com os horários disponíveis.", "Reservar mesa"),
-    buy_ticket: copy("Vamos preparar a compra do ingresso com os dados disponíveis.", "Comprar ingresso"),
     payment_started: copy("Pagamento iniciado com segurança. Aguarde a confirmação antes de sair desta etapa.", null),
     payment_approved: copy("Pagamento aprovado. A confirmação da sua compra já está disponível.", "Ver confirmação"),
     payment_declined: copy("O pagamento não foi aprovado. Revise os dados ou tente outra forma de pagamento.", "Tentar novamente"),
     timeout: copy("A operação demorou mais do que o esperado. Você pode tentar novamente sem duplicar a solicitação.", "Tentar novamente"),
     offline: copy("Você está offline. Algumas informações salvas continuam disponíveis, mas ações online ficam pausadas.", null),
     provider_error: copy("O serviço necessário está temporariamente indisponível. Tente novamente em instantes.", "Tentar novamente"),
-    return: copy("Você voltou para a etapa anterior. Escolha como deseja continuar.", null),
-    back: copy("Voltamos uma etapa sem perder o contexto da sua busca.", null),
-    cancelled: copy("A ação foi cancelada. Você pode escolher outra opção quando quiser.", null),
     geolocation_allowed: copy("Localização permitida. Agora posso usar sua posição para melhorar mapa e rotas.", null),
     geolocation_denied: copy("Localização não permitida. Você ainda pode explorar e escolher lugares manualmente.", "Explorar sem localização"),
   }),
   en: Object.freeze({
-    start: copy("Hi! I can help you explore Morro de São Paulo.", "Explore"),
-    welcome: copy("What would you like to find right now?", "Choose category"),
     category_selected: copy("Selected category: {{category}}. Choose a filter to refine the results.", "View filters"),
-    filter_selected: copy("Filter applied. I’m updating the available places.", "View results"),
     results_found: copy("I found {{count}} options for you. Choose a place to see its details.", "View places"),
     no_results: copy("I couldn’t find results with these criteria. Go back and adjust the filters.", "Change filters"),
     place_selected: copy("{{place}} selected. Review the details and choose the next action.", "View actions"),
     action_available: copy("The available actions for {{place}} are ready.", "Choose action"),
     navigation_starting: copy("Preparing the route to {{place}}.", "Start navigation"),
     navigation_active: copy("Navigation to {{place}} is active. Follow the map guidance.", null),
-    arrival: copy("You arrived at {{place}}. I can help with the next action.", "View options"),
-    book_tour: copy("Let’s prepare the tour booking with the available options.", "Book tour"),
-    book_table: copy("Let’s prepare the table reservation with the available times.", "Book table"),
-    buy_ticket: copy("Let’s prepare the ticket purchase with the available information.", "Buy ticket"),
     payment_started: copy("Payment started securely. Wait for confirmation before leaving this step.", null),
     payment_approved: copy("Payment approved. Your purchase confirmation is now available.", "View confirmation"),
     payment_declined: copy("The payment was not approved. Review the details or try another payment method.", "Try again"),
     timeout: copy("The operation took longer than expected. You can try again without duplicating the request.", "Try again"),
     offline: copy("You’re offline. Some saved information remains available, but online actions are paused.", null),
     provider_error: copy("The required service is temporarily unavailable. Try again shortly.", "Try again"),
-    return: copy("You returned to the previous step. Choose how you want to continue.", null),
-    back: copy("We went back one step without losing your search context.", null),
-    cancelled: copy("The action was cancelled. You can choose another option whenever you want.", null),
     geolocation_allowed: copy("Location access allowed. I can now use your position to improve maps and routes.", null),
     geolocation_denied: copy("Location access was not allowed. You can still explore and choose places manually.", "Explore without location"),
   }),
   es: Object.freeze({
-    start: copy("¡Hola! Puedo ayudarte a explorar Morro de São Paulo.", "Explorar"),
-    welcome: copy("¿Qué te gustaría encontrar ahora?", "Elegir categoría"),
     category_selected: copy("Categoría seleccionada: {{category}}. Elige un filtro para refinar los resultados.", "Ver filtros"),
-    filter_selected: copy("Filtro aplicado. Estoy actualizando los lugares disponibles.", "Ver resultados"),
     results_found: copy("Encontré {{count}} opciones para ti. Elige un lugar para ver los detalles.", "Ver lugares"),
     no_results: copy("No encontré resultados con estos criterios. Puedes volver y ajustar los filtros.", "Cambiar filtros"),
     place_selected: copy("{{place}} seleccionado. Revisa los detalles y elige la siguiente acción.", "Ver acciones"),
     action_available: copy("Las acciones disponibles para {{place}} están listas.", "Elegir acción"),
     navigation_starting: copy("Preparando la ruta hasta {{place}}.", "Iniciar navegación"),
     navigation_active: copy("La navegación hasta {{place}} está activa. Sigue las indicaciones del mapa.", null),
-    arrival: copy("Llegaste a {{place}}. Puedo ayudarte con la siguiente acción.", "Ver opciones"),
-    book_tour: copy("Vamos a preparar la reserva del paseo con las opciones disponibles.", "Reservar paseo"),
-    book_table: copy("Vamos a preparar la reserva de mesa con los horarios disponibles.", "Reservar mesa"),
-    buy_ticket: copy("Vamos a preparar la compra de la entrada con la información disponible.", "Comprar entrada"),
     payment_started: copy("El pago se inició de forma segura. Espera la confirmación antes de salir de esta etapa.", null),
     payment_approved: copy("Pago aprobado. La confirmación de tu compra ya está disponible.", "Ver confirmación"),
     payment_declined: copy("El pago no fue aprobado. Revisa los datos o prueba otro método de pago.", "Intentar de nuevo"),
     timeout: copy("La operación tardó más de lo esperado. Puedes intentarlo de nuevo sin duplicar la solicitud.", "Intentar de nuevo"),
     offline: copy("Estás sin conexión. Parte de la información guardada sigue disponible, pero las acciones en línea están pausadas.", null),
     provider_error: copy("El servicio necesario no está disponible temporalmente. Inténtalo de nuevo en unos instantes.", "Intentar de nuevo"),
-    return: copy("Volviste a la etapa anterior. Elige cómo quieres continuar.", null),
-    back: copy("Volvimos una etapa sin perder el contexto de tu búsqueda.", null),
-    cancelled: copy("La acción fue cancelada. Puedes elegir otra opción cuando quieras.", null),
     geolocation_allowed: copy("Ubicación permitida. Ahora puedo usar tu posición para mejorar mapas y rutas.", null),
     geolocation_denied: copy("Ubicación no permitida. Aún puedes explorar y elegir lugares manualmente.", "Explorar sin ubicación"),
   }),
   he: Object.freeze({
-    start: copy("שלום! אני יכול לעזור לך לחקור את מורו דה סאו פאולו.", "לחקור"),
-    welcome: copy("מה תרצה למצוא עכשיו?", "בחר קטגוריה"),
     category_selected: copy("הקטגוריה שנבחרה: {{category}}. בחר מסנן כדי למקד את התוצאות.", "הצג מסננים"),
-    filter_selected: copy("המסנן הוחל. אני מעדכן את המקומות הזמינים.", "הצג תוצאות"),
     results_found: copy("מצאתי {{count}} אפשרויות עבורך. בחר מקום כדי לראות פרטים.", "הצג מקומות"),
     no_results: copy("לא מצאתי תוצאות לפי הקריטריונים האלה. אפשר לחזור ולשנות את המסננים.", "שנה מסננים"),
     place_selected: copy("{{place}} נבחר. עיין בפרטים ובחר את הפעולה הבאה.", "הצג פעולות"),
     action_available: copy("הפעולות הזמינות עבור {{place}} מוכנות.", "בחר פעולה"),
     navigation_starting: copy("מכין מסלול אל {{place}}.", "התחל ניווט"),
     navigation_active: copy("הניווט אל {{place}} פעיל. עקוב אחר הנחיות המפה.", null),
-    arrival: copy("הגעת אל {{place}}. אוכל לעזור בפעולה הבאה.", "הצג אפשרויות"),
-    book_tour: copy("נכין את הזמנת הסיור לפי האפשרויות הזמינות.", "הזמן סיור"),
-    book_table: copy("נכין את הזמנת השולחן לפי השעות הזמינות.", "הזמן שולחן"),
-    buy_ticket: copy("נכין את רכישת הכרטיס לפי המידע הזמין.", "קנה כרטיס"),
     payment_started: copy("התשלום התחיל בצורה מאובטחת. המתן לאישור לפני יציאה מהשלב.", null),
     payment_approved: copy("התשלום אושר. אישור הרכישה זמין כעת.", "הצג אישור"),
     payment_declined: copy("התשלום לא אושר. בדוק את הפרטים או נסה אמצעי תשלום אחר.", "נסה שוב"),
     timeout: copy("הפעולה ארכה יותר מהצפוי. אפשר לנסות שוב בלי ליצור בקשה כפולה.", "נסה שוב"),
     offline: copy("אין חיבור לרשת. חלק מהמידע השמור עדיין זמין, אך פעולות מקוונות מושהות.", null),
     provider_error: copy("השירות הנדרש אינו זמין זמנית. נסה שוב בעוד רגע.", "נסה שוב"),
-    return: copy("חזרת לשלב הקודם. בחר כיצד להמשיך.", null),
-    back: copy("חזרנו שלב אחד בלי לאבד את הקשר החיפוש.", null),
-    cancelled: copy("הפעולה בוטלה. אפשר לבחור אפשרות אחרת בכל עת.", null),
     geolocation_allowed: copy("הגישה למיקום אושרה. כעת אפשר להשתמש במיקום שלך כדי לשפר מפות ומסלולים.", null),
     geolocation_denied: copy("הגישה למיקום לא אושרה. עדיין אפשר לחקור ולבחור מקומות ידנית.", "חקור ללא מיקום"),
   }),
