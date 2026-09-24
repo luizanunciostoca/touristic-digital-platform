@@ -125,6 +125,24 @@ describe("Morro Pro role and module policy", () => {
     });
   });
 
+  it("treats explicit session capabilities as an authoritative narrowing", () => {
+    const access = resolveMorroProModuleAccess(
+      "BUSINESS_OWNER",
+      ["business.read", "financial.read"],
+      [],
+    );
+    expect(access.find((item) => item.id === "profile")).toMatchObject({
+      visible: true,
+      mutable: false,
+    });
+    expect(access.find((item) => item.id === "offers")?.visible).toBe(false);
+    expect(access.find((item) => item.id === "content")?.visible).toBe(false);
+    expect(access.find((item) => item.id === "financial")).toMatchObject({
+      visible: true,
+      mutable: false,
+    });
+  });
+
   it("filters capability-specific modules when Place capabilities are known", () => {
     const access = resolveMorroProModuleAccess(
       "BUSINESS_OWNER",
