@@ -91,6 +91,10 @@ try {
       const button = document.getElementById("home-profile-button");
       const nav = document.getElementById("home-bottom-navigation");
       const map = document.getElementById("map");
+      const expand = document.getElementById("home-profile-expand");
+      const quickActionCount = panel
+        ? panel.querySelectorAll(".md-home-profile-shortcut").length
+        : 0;
       const controls = panel
         ? Array.from(panel.querySelectorAll("button")).map((control) => {
             const r = control.getBoundingClientRect();
@@ -120,12 +124,8 @@ try {
           button?.getAttribute("aria-expanded") === "true",
         panelAriaHidden: panel?.getAttribute("aria-hidden"),
         profileExpanded: panel?.dataset.profileExpanded,
-        expandAria:
-          document.getElementById("home-profile-expand")?.getAttribute(
-            "aria-expanded",
-          ),
-        quickActions:
-          panel?.querySelectorAll(".md-home-profile-shortcut").length ?? 0,
+        expandAria: expand?.getAttribute("aria-expanded"),
+        quickActions: quickActionCount,
         focusedClose: document.activeElement?.id === "home-profile-close",
         controls,
         mapVisible: visible(map),
@@ -179,7 +179,7 @@ try {
     assert(
       state.profileExpanded === "false" && state.expandAria === "false",
       `${viewport.label}: Profile must open compact`,
-      { profileExpanded: state.profileExpanded, expandAria: state.expandAria },
+      state,
     );
     assert(
       state.quickActions === 3,
