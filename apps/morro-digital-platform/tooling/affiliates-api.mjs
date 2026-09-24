@@ -314,7 +314,12 @@ async function accountForIdentity(pool, identityReference) {
 
 async function membershipsForAffiliate(pool, affiliateId, destinationId) {
   const [rows] = await pool.execute(
-    `SELECT m.membership_id, m.program_id, m.status,
+    `SELECT m.membership_id, m.program_id,
+            CASE m.status
+              WHEN 'active' THEN 'approved'
+              WHEN 'inactive' THEN 'closed'
+              ELSE m.status
+            END AS status,
             m.accepted_terms_version, m.financial_onboarding_status,
             m.joined_at, m.ended_at, m.updated_at,
             p.destination_id, p.status AS program_status, p.terms_version
@@ -334,12 +339,12 @@ async function commercialProjection(pool, account, destinationId) {
     await Promise.all([
       membershipsForAffiliate(pool, affiliateId, destinationId),
       pool.execute(
-        `SELECT currency,
+        `SELECT e.currency AS currency,
                 COUNT(*) AS entitlement_count,
-                CAST(SUM(CASE WHEN status = 'pending' THEN commission_minor ELSE 0 END) AS CHAR) AS pending_minor,
-                CAST(SUM(CASE WHEN status = 'earned' THEN commission_minor ELSE 0 END) AS CHAR) AS earned_minor,
-                CAST(SUM(CASE WHEN status = 'reversed' THEN commission_minor ELSE 0 END) AS CHAR) AS reversed_minor,
-                CAST(SUM(CASE WHEN status = 'disputed' THEN commission_minor ELSE 0 END) AS CHAR) AS disputed_minor
+                CAST(SUM(CASE WHEN e.status = 'pending' THEN e.commission_minor ELSE 0 END) AS CHAR) AS pending_minor,
+                CAST(SUM(CASE WHEN e.status = 'earned' THEN e.commission_minor ELSE 0 END) AS CHAR) AS earned_minor,
+                CAST(SUM(CASE WHEN e.status = 'reversed' THEN e.commission_minor ELSE 0 END) AS CHAR) AS reversed_minor,
+                CAST(SUM(CASE WHEN e.status = 'disputed' THEN e.commission_minor ELSE 0 END) AS CHAR) AS disputed_minor
            FROM affiliate_entitlements e
            JOIN affiliate_programs p ON p.program_id = e.program_id
           WHERE e.affiliate_id = ?
@@ -379,9 +384,9 @@ async function commercialProjection(pool, account, destinationId) {
         [affiliateId, destinationId],
       ),
       pool.execute(
-        `SELECT request_id, entitlement_id, entitlement_revision, conversion_id,
-                state, financial_reference, rejection_code, retryable, attempts,
-                created_at, updated_at
+        `SELECT mr2.request_id, mr2.entitlement_id, mr2.entitlement_revision, mr2.conversion_id,
+                mr2.state, mr2.financial_reference, mr2.rejection_code, mr2.retryable, mr2.attempts,
+                mr2.created_at, mr2.updated_at
            FROM affiliate_materialization_requests mr2
            JOIN affiliate_conversions c2 ON c2.conversion_id = mr2.conversion_id
            JOIN affiliate_programs p2 ON p2.program_id = c2.program_id
