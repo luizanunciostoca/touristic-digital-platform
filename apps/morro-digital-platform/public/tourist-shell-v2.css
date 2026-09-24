@@ -3134,7 +3134,6 @@ html[dir="rtl"]
   }
 }
 
-
 /* Profile owns the assistant settings row layout. Neutralize frozen legacy
  * circular #configButton styles while keeping Tourist Shell V2 as the final
  * surface-specific presentation authority. */
