@@ -165,6 +165,38 @@ describeMySql.sequential(
       ).rejects.toThrow("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
     });
 
+    it("reads a reservation only for its holder and business", async () => {
+      const repository = new MySqlRestaurantReservationRepository(pool);
+      const resource = slot();
+      await repository.saveSlot(resource);
+      const held = await repository.hold({
+        reservationId: "rrv_mysql_scoped_read_0001",
+        requestKey: requestKey(resource.id, "scoped_read_0001"),
+        slotId: resource.id,
+        businessId: resource.businessId,
+        holderReference: "guest_scoped_read_0001",
+        partySize: 2,
+        heldAt: "2026-10-10T20:00:00.000Z",
+        actorReference: "reservation_api",
+      });
+
+      await expect(
+        repository.findForHolder({
+          reservationId: held.reservation.id,
+          businessId: resource.businessId,
+          holderReference: "guest_scoped_read_0001",
+        }),
+      ).resolves.toMatchObject({ id: held.reservation.id, status: "held" });
+
+      await expect(
+        repository.findForHolder({
+          reservationId: held.reservation.id,
+          businessId: resource.businessId,
+          holderReference: "guest_other_0001",
+        }),
+      ).resolves.toBeNull();
+    });
+
     it("confirms no-deposit reservations without creating fake payment identities", async () => {
       const repository = new MySqlRestaurantReservationRepository(pool);
       const resource = slot();
