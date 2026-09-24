@@ -98,7 +98,8 @@ function legacyIdentity(reference: string): Readonly<{
   businessId: string | null;
   placeId: string | null;
 }> {
-  const morroPro = /^morro-pro:([^:]+)(?::place-([^:]+))?(?::|$)/u.exec(reference);
+  const morroPro =
+    /^morro-pro:([^:]+)(?::place-([^:]+))?(?::|$)/u.exec(reference);
   if (!morroPro) return Object.freeze({ businessId: null, placeId: null });
   return Object.freeze({
     businessId: boundedId(morroPro[1]),
@@ -141,8 +142,8 @@ export function adaptLegacyTicketingInventoryOffer(
     explicitBusinessId || explicitPlaceId || explicitOfferId
       ? "explicit"
       : businessId || placeId
-        ? "legacy_reference"
-        : "inventory_only";
+          ? "legacy_reference"
+          : "inventory_only";
 
   return Object.freeze({
     offering: Object.freeze({
