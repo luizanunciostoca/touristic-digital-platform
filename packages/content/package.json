@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./public-projection": "./src/public-projection.ts"
+    "./public-projection": "./src/public-projection.ts",
+    "./place-media": "./src/place-media.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
