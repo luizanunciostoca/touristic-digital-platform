@@ -5,6 +5,8 @@ on:
   pull_request:
     paths:
       - ".github/workflows/final-release-acceptance.yml"
+      - "tooling/ci/release-acceptance-manifest.json"
+      - "tooling/quality/check-release-acceptance-manifest.mjs"
   push:
     branches:
       - main
@@ -31,64 +33,16 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Validate deterministic acceptance inventory
-        shell: bash
-        run: |
-          set -euo pipefail
-          workflows=(
-            assistant-photo-browser-contract.yml
-            assistant-input-menu-flow-v1-parity.yml
-            assistant-v1-residual-command-parity.yml
-            assistant-voice-browser-contract.yml
-            auth-login-browser-contract.yml
-            business-dashboard-browser-contract.yml
-            business-live-runtime-browser-contract.yml
-            business-onboarding-adapter-browser-contract.yml
-            business-onboarding-browser-contract.yml
-            business-onboarding-commercial-browser-contract.yml
-            business-onboarding-lifecycle-browser-contract.yml
-            business-onboarding-profile-browser-contract.yml
-            business-onboarding-route-browser-contract.yml
-            business-onboarding-workspace-browser-contract.yml
-            business-production-profile-browser-contract.yml
-            crm-equivalence-browser-contract.yml
-            crm-lead-detail-browser-contract.yml
-            home-first-run-browser-regression.yml
-            v1-home-parity-browser-regression.yml
-            v1-home-responsive-browser-regression.yml
-            v1-explore-locations-browser-regression.yml
-            v1-tour-assistant-visibility-browser-regression.yml
-            v1-tour-responsive-browser-regression.yml
-            map-provider-regression.yml
-            map-tour-browser-regression.yml
-            mapbox-visual-contract-regression.yml
-            place-explore-v2-visual-regression.yml
-            ticketing-v2-visual-regression.yml
-            ux-v2-component-state-visual-regression.yml
-            ux-v2-manual-golden-conformance.yml
-            pwa-offline-browser-contract.yml
-            morro-performance-budget.yml
-            morro-runtime-startup-performance.yml
-            navigation-accessibility-baseline.yml
-            navigation-visual-baseline.yml
-            payments-browser-checkout-contract.yml
-            search-browser-contract.yml
-            shell-v1-i18n-browser-parity.yml
-            weather-v1-i18n-browser-parity.yml
-            assistant-input-v1-parity.yml
-            assistant-place-actions-v1-parity.yml
-            commerce-browser-regression.yml
-            v1-assistant-single-message-poi-markers.yml
-            navigation-end-main-menu-v1-parity.yml
-            navigation-turn-by-turn-parity.yml
-            ticketing-m147-contract.yml
-            ticketing-m148-transaction-contract.yml
-          )
-          for workflow in "${workflows[@]}"; do
-            test -f ".github/workflows/$workflow"
-            grep -Eq '^[[:space:]]*workflow_dispatch:' ".github/workflows/$workflow"
-          done
-          echo "Validated ${#workflows[@]} deterministic acceptance workflows."
+        run: pnpm release:acceptance-manifest:check
 
   acceptance:
     if: github.event_name != 'pull_request'
@@ -122,128 +76,157 @@ jobs:
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
-          version: 10.15.0
+          version: ${{ env.PNPM_VERSION }}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Dispatch exact-head deterministic browser matrix
+      - name: Validate release acceptance manifest
+        run: pnpm release:acceptance-manifest:check
+
+      - name: Build exact-head release candidate once
+        run: pnpm build
+
+      - name: Discover tree-equivalent tested parent
+        id: tree-source
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_tree="$(git rev-parse "$GITHUB_SHA^{tree}")"
+          source_sha=""
+          source_tree=""
+
+          if git rev-parse "$GITHUB_SHA^2" >/dev/null 2>&1; then
+            candidate="$(git rev-parse "$GITHUB_SHA^2")"
+            candidate_tree="$(git rev-parse "$candidate^{tree}")"
+            if [ "$candidate_tree" = "$current_tree" ]; then
+              source_sha="$candidate"
+              source_tree="$candidate_tree"
+              echo "Tree-equivalent evidence source: $source_sha"
+            fi
+          fi
+
+          echo "current_tree=$current_tree" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+          echo "source_tree=$source_tree" >> "$GITHUB_OUTPUT"
+
+      - name: Reuse proven tree-equivalent evidence and dispatch only missing suites
         id: dispatch
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          REUSE_SOURCE_SHA: ${{ steps.tree-source.outputs.source_sha }}
         run: |
           set -euo pipefail
-          workflows=(
-            assistant-photo-browser-contract.yml
-            assistant-input-menu-flow-v1-parity.yml
-            assistant-v1-residual-command-parity.yml
-            assistant-voice-browser-contract.yml
-            auth-login-browser-contract.yml
-            business-dashboard-browser-contract.yml
-            business-live-runtime-browser-contract.yml
-            business-onboarding-adapter-browser-contract.yml
-            business-onboarding-browser-contract.yml
-            business-onboarding-commercial-browser-contract.yml
-            business-onboarding-lifecycle-browser-contract.yml
-            business-onboarding-profile-browser-contract.yml
-            business-onboarding-route-browser-contract.yml
-            business-onboarding-workspace-browser-contract.yml
-            business-production-profile-browser-contract.yml
-            crm-equivalence-browser-contract.yml
-            crm-lead-detail-browser-contract.yml
-            home-first-run-browser-regression.yml
-            v1-home-parity-browser-regression.yml
-            v1-home-responsive-browser-regression.yml
-            v1-explore-locations-browser-regression.yml
-            v1-tour-assistant-visibility-browser-regression.yml
-            v1-tour-responsive-browser-regression.yml
-            map-provider-regression.yml
-            map-tour-browser-regression.yml
-            mapbox-visual-contract-regression.yml
-            place-explore-v2-visual-regression.yml
-            ticketing-v2-visual-regression.yml
-            ux-v2-component-state-visual-regression.yml
-            ux-v2-manual-golden-conformance.yml
-            pwa-offline-browser-contract.yml
-            morro-performance-budget.yml
-            morro-runtime-startup-performance.yml
-            navigation-accessibility-baseline.yml
-            navigation-visual-baseline.yml
-            payments-browser-checkout-contract.yml
-            search-browser-contract.yml
-            shell-v1-i18n-browser-parity.yml
-            weather-v1-i18n-browser-parity.yml
-            assistant-input-v1-parity.yml
-            assistant-place-actions-v1-parity.yml
-            commerce-browser-regression.yml
-            v1-assistant-single-message-poi-markers.yml
-            navigation-end-main-menu-v1-parity.yml
-            navigation-turn-by-turn-parity.yml
-            ticketing-m147-contract.yml
-            ticketing-m148-transaction-contract.yml
-          )
-
           : > /tmp/final-acceptance-runs.tsv
-          for workflow in "${workflows[@]}"; do
-            echo "Dispatching $workflow on main@$GITHUB_SHA"
-            gh workflow run "$workflow" --ref main
 
+          while IFS=$'\t' read -r workflow reuse_tree_equivalent; do
             run_id=""
-            for _ in $(seq 1 45); do
+            mode="dispatch"
+            expected_sha="$GITHUB_SHA"
+
+            if [ "$reuse_tree_equivalent" = "true" ] && [ -n "$REUSE_SOURCE_SHA" ]; then
               run_id="$(
                 gh run list \
                   --workflow "$workflow" \
-                  --event workflow_dispatch \
-                  --branch main \
-                  --limit 10 \
-                  --json databaseId,headSha,createdAt \
-                | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+                  --commit "$REUSE_SOURCE_SHA" \
+                  --status success \
+                  --limit 20 \
+                  --json databaseId,headSha,conclusion \
+                | jq -r --arg sha "$REUSE_SOURCE_SHA" '[.[] | select(.headSha == $sha and .conclusion == "success")][0].databaseId // empty'
               )"
               if [ -n "$run_id" ]; then
-                break
+                mode="reuse"
+                expected_sha="$REUSE_SOURCE_SHA"
+                echo "REUSE: $workflow -> run $run_id @ $REUSE_SOURCE_SHA"
               fi
-              sleep 2
-            done
+            fi
 
             if [ -z "$run_id" ]; then
-              echo "Unable to discover dispatched run for $workflow" >&2
+              echo "DISPATCH: $workflow on main@$GITHUB_SHA"
+              gh workflow run "$workflow" --ref main
+
+              for _ in $(seq 1 45); do
+                run_id="$(
+                  gh run list \
+                    --workflow "$workflow" \
+                    --event workflow_dispatch \
+                    --branch main \
+                    --limit 10 \
+                    --json databaseId,headSha,createdAt \
+                  | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+                )"
+                if [ -n "$run_id" ]; then
+                  break
+                fi
+                sleep 2
+              done
+            fi
+
+            if [ -z "$run_id" ]; then
+              echo "Unable to resolve evidence run for $workflow" >&2
               exit 1
             fi
 
-            printf '%s\t%s\n' "$workflow" "$run_id" >> /tmp/final-acceptance-runs.tsv
-            echo "$workflow -> run $run_id"
-          done
+            printf '%s\t%s\t%s\t%s\n' "$workflow" "$mode" "$run_id" "$expected_sha" >> /tmp/final-acceptance-runs.tsv
+          done < <(
+            jq -r '.suites[] | [.workflow, (.reuse_tree_equivalent // false | tostring)] | @tsv' \
+              tooling/ci/release-acceptance-manifest.json
+          )
 
-          echo "Dispatched ${#workflows[@]} workflows."
+          reused="$(awk -F '\t' '$2 == "reuse" {count++} END {print count+0}' /tmp/final-acceptance-runs.tsv)"
+          dispatched="$(awk -F '\t' '$2 == "dispatch" {count++} END {print count+0}' /tmp/final-acceptance-runs.tsv)"
+          echo "reused=$reused" >> "$GITHUB_OUTPUT"
+          echo "dispatched=$dispatched" >> "$GITHUB_OUTPUT"
+          echo "Acceptance evidence: $reused reused, $dispatched dispatched."
 
-      - name: Wait for exact-head browser matrix
+      - name: Wait collectively for acceptance evidence
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          failed=0
-          while IFS=$'\t' read -r workflow run_id; do
-            echo "Waiting for $workflow (run $run_id)"
-            if ! gh run watch "$run_id" --exit-status; then
-              echo "FAILED: $workflow (run $run_id)" >&2
-              failed=1
-            else
-              observed_sha="$(gh run view "$run_id" --json headSha --jq '.headSha')"
-              if [ "$observed_sha" != "$GITHUB_SHA" ]; then
-                echo "SHA DRIFT: $workflow expected $GITHUB_SHA got $observed_sha" >&2
+          while true; do
+            pending=0
+            failed=0
+
+            while IFS=$'\t' read -r workflow mode run_id expected_sha; do
+              state="$(gh run view "$run_id" --json status,conclusion,headSha)"
+              status="$(jq -r '.status' <<<"$state")"
+              conclusion="$(jq -r '.conclusion // ""' <<<"$state")"
+              observed_sha="$(jq -r '.headSha' <<<"$state")"
+
+              if [ "$observed_sha" != "$expected_sha" ]; then
+                echo "SHA DRIFT: $workflow expected $expected_sha got $observed_sha" >&2
                 failed=1
-              else
-                echo "PASS: $workflow @ $observed_sha"
+                continue
               fi
+
+              if [ "$status" != "completed" ]; then
+                pending=$((pending + 1))
+                continue
+              fi
+
+              if [ "$conclusion" != "success" ]; then
+                echo "FAILED: $workflow ($mode run $run_id) conclusion=$conclusion" >&2
+                failed=1
+              fi
+            done < /tmp/final-acceptance-runs.tsv
+
+            if [ "$failed" -ne 0 ]; then
+              exit 1
             fi
-          done < /tmp/final-acceptance-runs.tsv
-          exit "$failed"
+            if [ "$pending" -eq 0 ]; then
+              break
+            fi
+
+            echo "Waiting for $pending acceptance suites..."
+            sleep 10
+          done
 
       - name: Prove exact-SHA live staging health and readiness
         shell: bash
@@ -277,6 +260,40 @@ jobs:
           remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
           test "$remote_main_sha" = "$GITHUB_SHA"
           echo "Final acceptance SHA remained frozen: $GITHUB_SHA"
+
+      - name: Publish acceptance evidence artifact
+        if: always()
+        shell: bash
+        env:
+          CURRENT_TREE: ${{ steps.tree-source.outputs.current_tree }}
+          REUSE_SOURCE_SHA: ${{ steps.tree-source.outputs.source_sha }}
+          REUSED: ${{ steps.dispatch.outputs.reused }}
+          DISPATCHED: ${{ steps.dispatch.outputs.dispatched }}
+        run: |
+          set -euo pipefail
+          {
+            echo "exact_sha=$GITHUB_SHA"
+            echo "tree_sha=$CURRENT_TREE"
+            echo "tree_equivalent_source_sha=${REUSE_SOURCE_SHA:-none}"
+            echo "reused_suites=${REUSED:-0}"
+            echo "dispatched_suites=${DISPATCHED:-0}"
+          } > final-release-acceptance-evidence.txt
+          if [ -f /tmp/final-acceptance-runs.tsv ]; then
+            cp /tmp/final-acceptance-runs.tsv final-release-acceptance-runs.tsv
+          else
+            : > final-release-acceptance-runs.tsv
+          fi
+
+      - name: Upload acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: final-release-acceptance-evidence-${{ github.run_id }}
+          path: |
+            final-release-acceptance-evidence.txt
+            final-release-acceptance-runs.tsv
+          if-no-files-found: error
+          retention-days: 30
 
       - name: Publish final acceptance status
         if: always()
