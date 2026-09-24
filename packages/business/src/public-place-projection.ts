@@ -94,6 +94,9 @@ export interface PublicPlaceGovernedRevision {
 }
 
 export interface PublicPlaceGovernedRecord {
+  readonly placeId: string;
+  readonly businessId: string;
+  readonly destinationId: string;
   readonly publicationState:
     | "draft"
     | "review"
@@ -115,6 +118,13 @@ export function publishedRecordFromGovernedRecord(
   }
   const published = record.publishedRevision;
   if (!published || !publishedPlace) return null;
+  if (
+    String(publishedPlace.id) !== record.placeId ||
+    String(publishedPlace.businessId) !== record.businessId ||
+    String(publishedPlace.destinationId) !== record.destinationId
+  ) {
+    return null;
+  }
   return Object.freeze({
     place: publishedPlace,
     publishedRevisionId: published.id,
