@@ -65,6 +65,22 @@ describe("Morro Pro business context", () => {
     expect(controller.isCurrent(fresh)).toBe(true);
   });
 
+  it("rejects platform roles from the Morro Pro tenant portal", () => {
+    expect(() =>
+      resolveBusinessContext(
+        session("PLATFORM_ADMIN", ["business-a"]),
+        "business-a",
+      ),
+    ).toThrow("MORRO_PRO_ROLE_DENIED");
+
+    const access = resolveMorroProModuleAccess(
+      "PLATFORM_ADMIN",
+      undefined,
+      [],
+    );
+    expect(access.every((item) => !item.visible && !item.mutable)).toBe(true);
+  });
+
   it("rejects cross-business switching", () => {
     const controller = createBusinessContextController(
       session("BUSINESS_MANAGER", ["business-a"]),
