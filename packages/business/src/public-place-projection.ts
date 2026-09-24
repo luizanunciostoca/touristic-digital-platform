@@ -126,7 +126,7 @@ export interface PublicPlaceRepository {
   listPublished(input: {
     readonly destinationId: string;
     readonly bbox: PublicPlaceBoundingBox;
-    readonly categoryId?: string;
+    readonly category?: string;
     readonly limit: number;
     readonly cursor?: string | null;
   }): Promise<{
@@ -161,9 +161,9 @@ export interface PublicPlaceMarkerPresentation {
 export interface PublicPlaceMapItem {
   readonly id: PlaceId;
   readonly name: string;
-  readonly categoryId: CategoryId;
-  readonly latitude: number;
-  readonly longitude: number;
+  readonly category: CategoryId;
+  readonly lat: number;
+  readonly lng: number;
   readonly presentation: PublicPlaceMarkerPresentation;
 }
 
@@ -265,6 +265,7 @@ function assertCoordinate(value: number, min: number, max: number, code: string)
 export function parsePublicPlaceMapQuery(input: {
   readonly destinationId?: unknown;
   readonly bbox?: unknown;
+  readonly category?: unknown;
   readonly categoryId?: unknown;
   readonly zoom?: unknown;
   readonly limit?: unknown;
@@ -321,9 +322,13 @@ export function parsePublicPlaceMapQuery(input: {
     throw new Error("PUBLIC_PLACE_INVALID_LIMIT");
   }
 
-  const categoryId =
-    typeof input.categoryId === "string" && input.categoryId.trim()
-      ? input.categoryId.trim()
+  const categorySource =
+    typeof input.category === "string" && input.category.trim()
+      ? input.category
+      : input.categoryId;
+  const category =
+    typeof categorySource === "string" && categorySource.trim()
+      ? categorySource.trim()
       : undefined;
   const cursor =
     typeof input.cursor === "string" && input.cursor.trim()
@@ -333,7 +338,7 @@ export function parsePublicPlaceMapQuery(input: {
   return Object.freeze({
     destinationId,
     bbox: Object.freeze({ west, south, east, north }),
-    ...(categoryId ? { categoryId } : {}),
+    ...(category ? { category } : {}),
     zoom,
     limit: Math.min(requestedLimit, MAX_LIMIT),
     ...(cursor ? { cursor } : {}),
@@ -451,7 +456,7 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
       const page = await options.repository.listPublished({
         destinationId: query.destinationId,
         bbox: query.bbox,
-        ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+        ...(query.category ? { categoryId: query.category } : {}),
         limit: query.limit,
         cursor: query.cursor ?? null,
       });
@@ -461,7 +466,7 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
       for (const record of page.items) {
         const profile = assertRecordScope(record, query.destinationId);
         if (!profile) continue;
-        if (query.categoryId && String(profile.categoryId) !== query.categoryId) {
+        if (query.category && String(profile.categoryId) !== query.category) {
           continue;
         }
         if (
@@ -476,9 +481,9 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
           Object.freeze({
             id: profile.id,
             name: profile.name,
-            categoryId: profile.categoryId,
-            latitude: profile.location.latitude,
-            longitude: profile.location.longitude,
+            category: profile.categoryId,
+            lat: profile.location.latitude,
+            lng: profile.location.longitude,
             presentation: markerPresentation(profile, query.zoom),
           }),
         );
@@ -497,7 +502,7 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
           "map",
           [
             query.destinationId,
-            query.categoryId ?? "*",
+            query.category ?? "*",
             query.zoom,
             query.bbox.west,
             query.bbox.south,
