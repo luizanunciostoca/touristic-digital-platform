@@ -1,4 +1,7 @@
-import { readFile } from "node:fs/promises";\nimport { fileURLToPath } from "node:url";\n\nimport { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+import { describe, expect, it } from "vitest";
 
 import {
   ASSISTANT_CONTEXTUAL_STATE_MATRIX,
@@ -7,7 +10,9 @@ import {
   type AssistantContextualState,
 } from "./assistant-contextual-state.js";
 
-const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));\n\nconst REQUIRED_STATES: readonly AssistantContextualState[] = [
+const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+
+const REQUIRED_STATES: readonly AssistantContextualState[] = [
   "start",
   "welcome",
   "category_selected",
