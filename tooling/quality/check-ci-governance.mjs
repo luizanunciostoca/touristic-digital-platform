@@ -340,7 +340,7 @@ requireIncludes(
     "EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging",
     "ref=${EXPECTED_SHA}",
     'url.hostname !== "api.render.com"',
-    'url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)',
+    "url.pathname.match(/^\\\\/deploy\\\\/(srv-[A-Za-z0-9]+)$/)",
     "pnpm --silent payments:render:smoke",
     "staging-deployment-evidence.json",
   ],
