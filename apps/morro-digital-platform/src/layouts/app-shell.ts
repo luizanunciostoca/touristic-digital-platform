@@ -50,7 +50,7 @@ function createAssistantCategoryRailMarkup(): string {
     .join("\n");
 }
 
-function createAppShellMarkup(): string {
+export function createAppShellMarkup(): string {
   return `
     <div
       class="app-shell md-viewport-shell md-tourist-shell-v2"
