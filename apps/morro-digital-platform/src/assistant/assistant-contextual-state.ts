@@ -534,7 +534,9 @@ export function installAssistantContextualMessaging(
     const detail = eventDetail(event);
     const raw =
       typeof detail?.destination === "string" ? detail.destination : null;
-    return options.resolveNavigationDestination?.(raw) ?? raw;
+    return options.resolveNavigationDestination
+      ? options.resolveNavigationDestination(raw)
+      : raw;
   };
 
   const onNavigationStarted = (event: Event): void => {
