@@ -41,6 +41,31 @@ CREATE TABLE IF NOT EXISTS ticketing_inventory_ownership (
   INDEX idx_ticketing_inventory_ownership_business (business_id, updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS ticketing_admission_profiles (
+  inventory_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  offering_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  place_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  admission_subtype ENUM('sunset','event','party') NOT NULL,
+  ticket_type VARCHAR(80) NOT NULL,
+  tier_label VARCHAR(80) NULL,
+  display_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  CONSTRAINT fk_ticketing_admission_profile_inventory
+    FOREIGN KEY (inventory_id)
+    REFERENCES ticketing_inventory(inventory_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  CONSTRAINT chk_ticketing_admission_display_order
+    CHECK (display_order <= 999),
+  INDEX idx_ticketing_admission_offering (
+    offering_id, display_order, inventory_id
+  ),
+  INDEX idx_ticketing_admission_place (
+    place_id, admission_subtype, updated_at
+  )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ticketing_commerce_crm_outbox (
   event_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
   event_type VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -70,6 +95,7 @@ CREATE TABLE IF NOT EXISTS ticketing_commerce_crm_outbox (
 `;
 
 export const ticketingPublicApiRollbackSql = `DROP TABLE IF EXISTS ticketing_commerce_crm_outbox;
+DROP TABLE IF EXISTS ticketing_admission_profiles;
 DROP TABLE IF EXISTS ticketing_inventory_ownership;
 DROP TABLE IF EXISTS ticketing_offline_devices;
 DROP TABLE IF EXISTS ticketing_holder_profiles;
