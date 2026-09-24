@@ -410,6 +410,41 @@ function frameLocationsOnMap(
   }
 }
 
+const TICKETING_OFFER_ID = /^[A-Za-z0-9_-]{3,120}$/u;
+
+function ticketingPlaceKey(value: string): string {
+  return normalizeSearchText(value)
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/^-+|-+$/gu, "");
+}
+
+function tourTicketingUrl(value: string, placeName: string): string | null {
+  if (value.startsWith("commerce:offer:")) {
+    const id = value.slice("commerce:offer:".length);
+    return TICKETING_OFFER_ID.test(id)
+      ? `/tickets.html?offer=${encodeURIComponent(id)}&source=map&mode=tour`
+      : null;
+  }
+
+  if (value.startsWith("commerce:offers:")) {
+    const rawIds = value.slice("commerce:offers:".length).split(",");
+    if (
+      rawIds.length === 0 ||
+      rawIds.some((id) => !TICKETING_OFFER_ID.test(id))
+    ) {
+      return null;
+    }
+    return `/tickets.html?offers=${rawIds
+      .map(encodeURIComponent)
+      .join(",")}&source=map&mode=tour`;
+  }
+
+  const placeKey = ticketingPlaceKey(placeName);
+  return placeKey
+    ? `/tickets.html?place=${encodeURIComponent(placeKey)}&source=map&mode=tour`
+    : null;
+}
+
 function isBackToMenuValue(value: string): boolean {
   const normalized = normalizeSearchText(value);
   return [
@@ -1113,6 +1148,19 @@ export function installExploreLocationsControl({
       return;
     }
     const locationCategory = activePlaceLocation?.category;
+    if (
+      locationCategory === "tours" &&
+      activePlaceLocation &&
+      (normalized === "reservar passeio" ||
+        value.startsWith("commerce:offer:") ||
+        value.startsWith("commerce:offers:"))
+    ) {
+      const targetUrl = tourTicketingUrl(value, activePlaceLocation.name);
+      if (targetUrl) {
+        document.defaultView?.location.assign(targetUrl);
+        return;
+      }
+    }
     if (
       normalized === "fazer tour interativo" &&
       locationCategory === "tours"
