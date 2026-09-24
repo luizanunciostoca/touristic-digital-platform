@@ -72,6 +72,7 @@ describe("assistant contextual state messaging", () => {
     ).toContain("<script>");
   });
 
+  // Explore contextual copy must never replace rich Place/Tour presentation.
   it("wires the canonical Explore state listener to contextual publication", async () => {
     const runtime = await readFile(
       `${repositoryRoot}apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts`,
