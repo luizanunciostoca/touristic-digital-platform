@@ -18,6 +18,11 @@
       "types": "./src/restaurant-availability.ts",
       "node": "./dist/restaurant-availability.js",
       "default": "./src/restaurant-availability.ts"
+    },
+    "./ticketed-admission": {
+      "types": "./src/ticketed-admission.ts",
+      "node": "./dist/ticketed-admission.js",
+      "default": "./src/ticketed-admission.ts"
     }
   },
   "scripts": {
