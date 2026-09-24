@@ -5,13 +5,13 @@ describe("assistant canonical menu", () => {
   it("keeps the ten canonical V1 semantic values in order", () => {
     expect(ASSISTANT_MAIN_MENU.map(({ value }) => value)).toEqual([
       "beaches",
+      "tours",
+      "attractions",
       "restaurants",
       "hotels",
+      "nightlife",
       "shops",
       "transport",
-      "attractions",
-      "tours",
-      "nightlife",
       "emergencies",
       "help",
     ]);
@@ -20,13 +20,13 @@ describe("assistant canonical menu", () => {
   it("returns the V1 labels for every supported locale", () => {
     expect(getAssistantMainMenu("pt").map(({ label }) => label)).toEqual([
       "Praias",
+      "Passeios",
+      "Atrações",
       "Restaurantes",
       "Pousadas",
+      "Vida Noturna",
       "Lojas",
       "Transporte",
-      "Atrações",
-      "Passeios",
-      "Vida Noturna",
       "Emergências",
       "Ajuda",
     ]);
