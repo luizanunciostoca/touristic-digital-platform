@@ -134,36 +134,38 @@ export interface PlaceMutationPolicy {
 
 export const placeMutationPolicies: readonly PlaceMutationPolicy[] =
   Object.freeze([
-  Object.freeze({
-    field: "description",
-    approval: "auto_publish_eligible" as const,
-    reason: "Presentation copy does not change canonical ownership or geography.",
-  }),
-  Object.freeze({
-    field: "name",
-    approval: "review_required" as const,
-    reason: "Name affects public identity and discovery.",
-  }),
-  Object.freeze({
-    field: "categoryId",
-    approval: "review_required" as const,
-    reason: "Category changes capabilities and public discovery semantics.",
-  }),
-  Object.freeze({
-    field: "location",
-    approval: "review_required" as const,
-    reason: "Coordinates are security-sensitive public geography.",
-  }),
-  Object.freeze({
-    field: "businessId",
-    approval: "review_required" as const,
-    reason: "Ownership is canonical authority and cannot be silently reassigned.",
-  }),
-  Object.freeze({
-    field: "destinationId",
-    approval: "review_required" as const,
-    reason: "Destination scope is tenant/geographic authority.",
-  }),
+    Object.freeze({
+      field: "description",
+      approval: "auto_publish_eligible" as const,
+      reason:
+        "Presentation copy does not change canonical ownership or geography.",
+    }),
+    Object.freeze({
+      field: "name",
+      approval: "review_required" as const,
+      reason: "Name affects public identity and discovery.",
+    }),
+    Object.freeze({
+      field: "categoryId",
+      approval: "review_required" as const,
+      reason: "Category changes capabilities and public discovery semantics.",
+    }),
+    Object.freeze({
+      field: "location",
+      approval: "review_required" as const,
+      reason: "Coordinates are security-sensitive public geography.",
+    }),
+    Object.freeze({
+      field: "businessId",
+      approval: "review_required" as const,
+      reason:
+        "Ownership is canonical authority and cannot be silently reassigned.",
+    }),
+    Object.freeze({
+      field: "destinationId",
+      approval: "review_required" as const,
+      reason: "Destination scope is tenant/geographic authority.",
+    }),
   ]);
 
 function text(value: unknown): string {
@@ -335,17 +337,19 @@ async function audit(
 ): Promise<void> {
   await port.record(
     Object.freeze({
-    actor: context.session?.subject ?? "anonymous",
-    role: context.session ? canonicalAuthRole(context.session.role) : "ANONYMOUS",
-    businessId: record.businessId,
-    placeId: record.placeId,
-    destinationId: record.destinationId,
-    action,
-    beforeRevision: record.editableRevision.revision,
-    afterRevision,
-    timestamp: context.now,
-    correlationId: context.correlationId,
-    result,
+      actor: context.session?.subject ?? "anonymous",
+      role: context.session
+        ? canonicalAuthRole(context.session.role)
+        : "ANONYMOUS",
+      businessId: record.businessId,
+      placeId: record.placeId,
+      destinationId: record.destinationId,
+      action,
+      beforeRevision: record.editableRevision.revision,
+      afterRevision,
+      timestamp: context.now,
+      correlationId: context.correlationId,
+      result,
       reason,
     }),
   );
@@ -394,7 +398,10 @@ export function createPlacePublicationService(
         const next: GovernedPlaceRecord = Object.freeze({
           ...record,
           publicationState:
-            record.publicationState === "archived" ? "archived" : "draft",
+            record.publicationState === "suspended" ||
+            record.publicationState === "archived"
+              ? record.publicationState
+              : "draft",
           editableRevision: nextRevision,
           updatedAt: context.now,
         });
@@ -434,6 +441,12 @@ export function createPlacePublicationService(
       if (!record) throw publicationError("NOT_FOUND");
       try {
         assertActiveSession(context, record.businessId);
+        if (
+          record.publicationState === "suspended" ||
+          record.publicationState === "archived"
+        ) {
+          throw publicationError("STATE_REVIEW_DENIED");
+        }
         if (record.editableRevision.revision !== expectedRevision) {
           throw publicationError("STALE_REVISION");
         }
@@ -461,12 +474,23 @@ export function createPlacePublicationService(
         );
         return next;
       } catch (error) {
+        const result =
+          error instanceof Error && error.message.includes("STALE_REVISION")
+            ? "conflict"
+            : error instanceof Error &&
+                (error.message.includes("AUTHENTICATION") ||
+                  error.message.includes("CAPABILITY") ||
+                  error.message.includes("BUSINESS_ACCESS") ||
+                  error.message.includes("READ_ONLY") ||
+                  error.message.includes("STATE_REVIEW_DENIED"))
+              ? "denied"
+              : "invalid";
         await audit(
           auditPort,
           context,
           record,
           "place.review.request",
-          "invalid",
+          result,
           error instanceof Error ? error.message : "UNKNOWN",
           null,
         );
@@ -544,26 +568,41 @@ export function createPlacePublicationService(
     ): Promise<GovernedPlaceRecord> {
       const record = await repository.get(placeId);
       if (!record) throw publicationError("NOT_FOUND");
-      assertActiveSession(context, record.businessId);
-      assertPlatformPublisher(context);
-      if (record.editableRevision.revision !== expectedRevision) {
-        throw publicationError("STALE_REVISION");
+      try {
+        assertActiveSession(context, record.businessId);
+        assertPlatformPublisher(context);
+        if (record.editableRevision.revision !== expectedRevision) {
+          throw publicationError("STALE_REVISION");
+        }
+        const next = await repository.setState(
+          placeId,
+          "suspended",
+          expectedRevision,
+        );
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.suspend",
+          "success",
+          null,
+          expectedRevision,
+        );
+        return next;
+      } catch (error) {
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.suspend",
+          error instanceof Error && error.message.includes("STALE_REVISION")
+            ? "conflict"
+            : "denied",
+          error instanceof Error ? error.message : "UNKNOWN",
+          null,
+        );
+        throw error;
       }
-      const next = await repository.setState(
-        placeId,
-        "suspended",
-        expectedRevision,
-      );
-      await audit(
-        auditPort,
-        context,
-        record,
-        "place.suspend",
-        "success",
-        null,
-        expectedRevision,
-      );
-      return next;
     },
 
     async archive(
@@ -573,26 +612,41 @@ export function createPlacePublicationService(
     ): Promise<GovernedPlaceRecord> {
       const record = await repository.get(placeId);
       if (!record) throw publicationError("NOT_FOUND");
-      assertActiveSession(context, record.businessId);
-      assertPlatformPublisher(context);
-      if (record.editableRevision.revision !== expectedRevision) {
-        throw publicationError("STALE_REVISION");
+      try {
+        assertActiveSession(context, record.businessId);
+        assertPlatformPublisher(context);
+        if (record.editableRevision.revision !== expectedRevision) {
+          throw publicationError("STALE_REVISION");
+        }
+        const next = await repository.setState(
+          placeId,
+          "archived",
+          expectedRevision,
+        );
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.archive",
+          "success",
+          null,
+          expectedRevision,
+        );
+        return next;
+      } catch (error) {
+        await audit(
+          auditPort,
+          context,
+          record,
+          "place.archive",
+          error instanceof Error && error.message.includes("STALE_REVISION")
+            ? "conflict"
+            : "denied",
+          error instanceof Error ? error.message : "UNKNOWN",
+          null,
+        );
+        throw error;
       }
-      const next = await repository.setState(
-        placeId,
-        "archived",
-        expectedRevision,
-      );
-      await audit(
-        auditPort,
-        context,
-        record,
-        "place.archive",
-        "success",
-        null,
-        expectedRevision,
-      );
-      return next;
     },
   });
 }
