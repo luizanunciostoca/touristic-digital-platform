@@ -264,10 +264,7 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "התשלום התחיל בצורה מאובטחת. המתן לאישור לפני יציאה מהשלב.",
       null,
     ),
-    payment_approved: copy(
-      "התשלום אושר. אישור הרכישה זמין כעת.",
-      "הצג אישור",
-    ),
+    payment_approved: copy("התשלום אושר. אישור הרכישה זמין כעת.", "הצג אישור"),
     payment_declined: copy(
       "התשלום לא אושר. בדוק את הפרטים או נסה אמצעי תשלום אחר.",
       "נסה שוב",
@@ -295,13 +292,14 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   }),
 });
 
-export const ASSISTANT_CONTEXTUAL_STATE_MATRIX =
-  CONTEXTUAL_COPY_BY_LANGUAGE.pt;
+export const ASSISTANT_CONTEXTUAL_STATE_MATRIX = CONTEXTUAL_COPY_BY_LANGUAGE.pt;
 
 export function normalizeAssistantContextualLanguage(
   value: string | null | undefined,
 ): AssistantContextualLanguage {
-  const normalized = String(value ?? "").trim().toLowerCase();
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (normalized === "en" || normalized.startsWith("en-")) return "en";
   if (normalized === "es" || normalized.startsWith("es-")) return "es";
   if (normalized === "he" || normalized.startsWith("he-")) return "he";
@@ -503,7 +501,11 @@ export function installAssistantContextualMessaging(
       return;
     }
 
-    const rendered = resolveAssistantContextualCopy(state, variables, language());
+    const rendered = resolveAssistantContextualCopy(
+      state,
+      variables,
+      language(),
+    );
     const id = nodeId(area);
     options.messages.append({
       sender: "assistant",

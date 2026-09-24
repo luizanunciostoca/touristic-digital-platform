@@ -118,9 +118,7 @@ describe("assistant V1 message pipeline", () => {
     ).toEqual(["nav"]);
   });
 
-  it(
-    "replaces keyed records and removes them by id without leaving stale pipeline state",
-    () => {
+  it("replaces keyed records and removes them by id without leaving stale pipeline state", () => {
     const pipeline = createAssistantMessagePipeline({
       sanitize: (html) => html,
     });
@@ -148,9 +146,8 @@ describe("assistant V1 message pipeline", () => {
         "navigation",
       ),
     ).toBe(true);
-      expect(pipeline.getMessages("navigation")).toEqual([]);
-    },
-  );
+    expect(pipeline.getMessages("navigation")).toEqual([]);
+  });
 
   it("clears all or selected messages per area", () => {
     const pipeline = createAssistantMessagePipeline({
