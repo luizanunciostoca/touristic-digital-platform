@@ -241,7 +241,7 @@ export function createRestaurantReservation(input: {
       (orderId !== null || paymentId !== null)) ||
     (depositPolicy.kind === "required" &&
       status === "cancelled" &&
-      ((orderId === null) !== (paymentId === null))) ||
+      (orderId === null) !== (paymentId === null)) ||
     (depositPolicy.kind === "none" && (orderId !== null || paymentId !== null))
   ) {
     return null;
@@ -298,8 +298,6 @@ export function assertRestaurantReservationTransition(
   to: RestaurantReservationStatus,
 ): void {
   if (!isRestaurantReservationTransitionAllowed(from, to)) {
-    throw new Error(
-      `COMMERCE_RESTAURANT_INVALID_TRANSITION:${from}:${to}`,
-    );
+    throw new Error(`COMMERCE_RESTAURANT_INVALID_TRANSITION:${from}:${to}`);
   }
 }
