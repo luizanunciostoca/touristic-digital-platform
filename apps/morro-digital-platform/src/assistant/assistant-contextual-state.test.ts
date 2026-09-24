@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";\nimport { fileURLToPath } from "node:url";\n\nimport { describe, expect, it } from "vitest";
 
 import {
   ASSISTANT_CONTEXTUAL_STATE_MATRIX,
@@ -7,7 +7,7 @@ import {
   type AssistantContextualState,
 } from "./assistant-contextual-state.js";
 
-const REQUIRED_STATES: readonly AssistantContextualState[] = [
+const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));\n\nconst REQUIRED_STATES: readonly AssistantContextualState[] = [
   "start",
   "welcome",
   "category_selected",
@@ -65,6 +65,23 @@ describe("assistant contextual state messaging", () => {
         place: "<script>alert(1)</script>",
       }).message,
     ).toContain("<script>");
+  });
+
+  it("wires the canonical Explore state listener to contextual publication", async () => {
+    const runtime = await readFile(
+      `${repositoryRoot}apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts`,
+      "utf8",
+    );
+
+    expect(runtime).toContain("resolveExploreContextualState");
+    expect(runtime).toContain("syncExploreContextualMessage");
+    expect(runtime).toContain("syncExplorePresentation");
+    expect(runtime).toContain(
+      "const onExploreStateChanged = (): void => syncExplorePresentation();",
+    );
+    expect(runtime).toContain(
+      "queueMicrotask(() => syncExplorePresentation(placeHint));",
+    );
   });
 
   it("maps Explore stages to coherent contextual states", () => {
