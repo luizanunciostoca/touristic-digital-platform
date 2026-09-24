@@ -49,11 +49,17 @@ test("staging promotion is exclusively bound to canonical V2 staging", async () 
     "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID",
     "staging-deployment-evidence.json",
   ]) {
-    assert.ok(staging.includes(marker), `missing staging target proof marker: ${marker}`);
+    assert.ok(
+      staging.includes(marker),
+      `missing staging target proof marker: ${marker}`,
+    );
   }
 
   for (const forbidden of FORBIDDEN_STAGING_TARGETS) {
-    assert.ok(!staging.includes(forbidden), `staging workflow references forbidden target: ${forbidden}`);
+    assert.ok(
+      !staging.includes(forbidden),
+      `staging workflow references forbidden target: ${forbidden}`,
+    );
   }
 
   assert.ok(!/secrets\.RENDER_DEPLOY_HOOK_URL\b/u.test(staging));
@@ -76,7 +82,10 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
     ".liveSha == $sha",
     ".deploymentId | length > 0",
   ]) {
-    assert.ok(acceptance.includes(marker), `Final Release Acceptance missing target evidence marker: ${marker}`);
+    assert.ok(
+      acceptance.includes(marker),
+      `Final Release Acceptance missing target evidence marker: ${marker}`,
+    );
   }
 });
 
@@ -94,10 +103,16 @@ test("active workflows cannot resurrect legacy staging targets or generic Render
 
   for (const [name, source] of workflows) {
     for (const forbidden of legacyOnly) {
-      assert.ok(!source.includes(forbidden), `${name} references legacy Render target ${forbidden}`);
+      assert.ok(
+        !source.includes(forbidden),
+        `${name} references legacy Render target ${forbidden}`,
+      );
     }
     for (const pattern of genericSecrets) {
-      assert.ok(!pattern.test(source), `${name} uses ambiguous Render secret ${pattern}`);
+      assert.ok(
+        !pattern.test(source),
+        `${name} uses ambiguous Render secret ${pattern}`,
+      );
     }
   }
 });
