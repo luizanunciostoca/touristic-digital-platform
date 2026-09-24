@@ -160,7 +160,9 @@ function fakePool() {
       if (sql.includes("FROM affiliate_attributions a")) {
         return [[{ attribution_count: 0, latest_attribution_at: null }]];
       }
-      if (sql.includes("FROM affiliate_materialization_requests mr2")) return [[]];
+      if (sql.includes("FROM affiliate_materialization_requests mr2")) {
+        return [[]];
+      }
       throw new Error(`UNEXPECTED_SQL:${sql}`);
     },
     async end() {},
@@ -199,7 +201,10 @@ function apiHarness({ resolveSession, authorizeMutation } = {}) {
       applyIdentitySchema: async () => {},
       createApplication: () => ({
         recordReferralAndEstablishAttribution: async () => ({
-          attribution: { id: "attr_0001", expiresAt: "2026-10-01T00:00:00.000Z" },
+          attribution: {
+            id: "attr_0001",
+            expiresAt: "2026-10-01T00:00:00.000Z",
+          },
           replayed: false,
         }),
       }),
@@ -230,7 +235,9 @@ describe("affiliate portal HTTP security contract", () => {
     await api.handle(
       request("GET"),
       res,
-      new URL("https://morro.example/api/affiliates/v1/me?affiliateId=aff_forged_9999&destinationId=other"),
+      new URL(
+        "https://morro.example/api/affiliates/v1/me?affiliateId=aff_forged_9999&destinationId=other",
+      ),
     );
     expect(res.statusCode).toBe(200);
     const body = JSON.parse(res.body);
@@ -266,7 +273,9 @@ describe("affiliate portal HTTP security contract", () => {
         new URL("https://morro.example/api/affiliates/v1/referral-links"),
       );
       expect(res.statusCode).toBe(400);
-      expect(JSON.parse(res.body)).toEqual({ error: "REFERRAL_AUTHORITY_FORBIDDEN" });
+      expect(JSON.parse(res.body)).toEqual({
+        error: "REFERRAL_AUTHORITY_FORBIDDEN",
+      });
     }
     await api.stop();
   });
