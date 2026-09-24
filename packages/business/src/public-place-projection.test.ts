@@ -10,6 +10,7 @@ import {
   handlePublicPlaceApiRequest,
   parsePublicPlaceMapQuery,
   publishedRecordFromGovernedRecord,
+  type PublicPlaceActionPort,
   type PublicPlaceGovernedRecord,
   type PublicPlacePublishedRecord,
 } from "./public-place-projection.js";
@@ -221,7 +222,7 @@ describe("createPublicPlaceReadModel", () => {
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }) =>
+        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
           Object.freeze({
             placeId: place.id,
             businessId: "business-1",
@@ -265,7 +266,7 @@ describe("createPublicPlaceReadModel", () => {
       offers: Object.freeze([]),
       menu: null,
     });
-    const actionResolver = vi.fn(async ({ place }) =>
+    const actionResolver = vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
       Object.freeze({
         placeId: place.id,
         businessId: "business-1",
@@ -318,7 +319,7 @@ describe("createPublicPlaceReadModel", () => {
       },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }) =>
+        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
           Object.freeze({
             placeId: place.id,
             businessId: "business-1",
@@ -356,7 +357,7 @@ describe("createPublicPlaceReadModel", () => {
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }) =>
+        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
           Object.freeze({
             placeId: place.id,
             businessId: "business-1",
@@ -399,7 +400,7 @@ describe("handlePublicPlaceApiRequest", () => {
       media: { getPublishedMedia: vi.fn(async () => null) },
       commerce: { getPublicCommerce: vi.fn(async () => null) },
       actions: {
-        resolvePublicActions: vi.fn(async ({ place }) =>
+        resolvePublicActions: vi.fn(async ({ place }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
           Object.freeze({
             placeId: place.id,
             businessId: "business-1",
