@@ -69,12 +69,12 @@ function record(
     publishedRevision:
       state === "published"
         ? Object.freeze({
-          id: "place-a:r1",
-          revision: 1,
-          expectedPreviousRevision: 0,
-          data: revisionData,
-          createdAt: "2026-09-24T20:00:00.000Z",
-          createdBy: "platform_admin",
+            id: "place-a:r1",
+            revision: 1,
+            expectedPreviousRevision: 0,
+            data: revisionData,
+            createdAt: "2026-09-24T20:00:00.000Z",
+            createdBy: "platform_admin",
           })
         : null,
     editableRevision: Object.freeze({
@@ -377,6 +377,27 @@ describe("place publication governance", () => {
     const archived = harness(record("published"));
     await archived.service.archive(context("PLATFORM_OWNER"), "place-a", 1);
     expect(publicPlaceProjection(archived.current())).toBeNull();
+  });
+
+  it("keeps a suspended Place non-public when its owner edits the draft", async () => {
+    const suspendedRecord: GovernedPlaceRecord = Object.freeze({
+      ...record("published"),
+      publicationState: "suspended",
+    });
+    const h = harness(suspendedRecord);
+
+    await h.service.saveRevision(
+      context("BUSINESS_OWNER"),
+      "place-a",
+      data({ description: "Correção durante suspensão" }),
+      1,
+    );
+
+    expect(h.current().publicationState).toBe("suspended");
+    expect(publicPlaceProjection(h.current())).toBeNull();
+    await expect(
+      h.service.requestReview(context("BUSINESS_OWNER"), "place-a", 2),
+    ).rejects.toThrow("PLACE_PUBLICATION_STATE_REVIEW_DENIED");
   });
 
   it("records auditable success with actor, scope and correlation id", async () => {
