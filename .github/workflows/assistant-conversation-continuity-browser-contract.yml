@@ -2,6 +2,9 @@ name: Assistant Conversation Continuity Browser Contract
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feat/fast-safe-continuous-assistant-20260924
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
