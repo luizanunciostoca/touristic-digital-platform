@@ -18,6 +18,7 @@ const filters = {
   en: {
     category: "Beaches",
     aria: "Beaches, 8 places",
+    backLabel: "Back",
     labels: [
       "🏄 Good waves for surfing",
       "🤿 For diving / snorkel",
@@ -26,12 +27,12 @@ const filters = {
       "🎵 With bars / facilities",
       "📍 Nearby",
       "🗺️ See all",
-      "🔙 Back to menu",
     ],
   },
   es: {
     category: "Playas",
     aria: "Playas, 8 lugares",
+    backLabel: "Volver",
     labels: [
       "🏄 Con olas para surf",
       "🤿 Para buceo / snorkel",
@@ -40,12 +41,12 @@ const filters = {
       "🎵 Con estructura / bares",
       "📍 Cercanos a mí",
       "🗺️ Ver todos",
-      "🔙 Volver al menú",
     ],
   },
   he: {
     category: "חופים",
     aria: "חופים, 8 מקומות",
+    backLabel: "חזרה",
     labels: [
       "🏄 עם גלים לגלישה",
       "🤿 לצלילה / שנורקל",
@@ -54,7 +55,6 @@ const filters = {
       "🎵 עם ברים / תשתיות",
       "📍 קרובים אלי",
       "🗺️ ראה הכל",
-      "🔙 חזרה לתפריט",
     ],
   },
 };
@@ -103,7 +103,6 @@ const filterValues = [
   "estrutura",
   "proximo",
   "ver todos",
-  "voltar_menu",
 ];
 const beachDetailValues = [
   "saiba mais",
@@ -414,6 +413,19 @@ try {
     const flow = await readFlow(page);
     equal(flow.labels, expected.labels, `${locale} filter labels`);
     equal(flow.values, filterValues, `${locale} canonical filter values`);
+    const structuralBack = page.locator(
+      '#assistant-category-rail[data-rail-stage="filters"] [data-context-rail-back]',
+    );
+    equal(
+      await structuralBack.getAttribute("data-value"),
+      "voltar_menu",
+      `${locale} structural back value`,
+    );
+    equal(
+      await structuralBack.getAttribute("aria-label"),
+      expected.backLabel,
+      `${locale} structural back label`,
+    );
     await page.keyboard.press("Escape");
   }
 
@@ -426,6 +438,19 @@ try {
     .locator('#assistant-category-rail[data-rail-stage="filters"]')
     .waitFor({ state: "visible" });
   equal((await readFlow(page)).labels, filters.he.labels, "he filter labels");
+  const hebrewStructuralBack = page.locator(
+    '#assistant-category-rail[data-rail-stage="filters"] [data-context-rail-back]',
+  );
+  equal(
+    await hebrewStructuralBack.getAttribute("data-value"),
+    "voltar_menu",
+    "he structural back value",
+  );
+  equal(
+    await hebrewStructuralBack.getAttribute("aria-label"),
+    filters.he.backLabel,
+    "he structural back label",
+  );
   await page
     .locator(
       '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',

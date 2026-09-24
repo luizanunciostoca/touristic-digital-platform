@@ -2677,3 +2677,192 @@ html[dir="rtl"]
     padding-inline: 0.75rem;
   }
 }
+
+/* Context Rail definitive geometry authority                                 */
+/* -------------------------------------------------------------------------- */
+
+/* This block intentionally uses explicit important geometry to neutralize
+ * legacy/fallback rail rules loaded earlier in the same stylesheet. Back and
+ * contextual options are direct siblings in one fixed-height row. */
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: 2.75rem minmax(0, 1fr) !important;
+  grid-template-rows: 2.75rem !important;
+  column-gap: 0.5rem !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 3.5rem !important;
+  min-height: 3.5rem !important;
+  padding: 0.375rem 0.5rem !important;
+  overflow: hidden !important;
+  direction: ltr !important;
+  pointer-events: auto !important;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: static !important;
+  inset: auto !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  justify-self: center !important;
+  width: 2.75rem !important;
+  min-width: 2.75rem !important;
+  max-width: 2.75rem !important;
+  height: 2.75rem !important;
+  min-height: 2.75rem !important;
+  max-height: 2.75rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative !important;
+  inset: auto !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 2.75rem !important;
+  min-height: 2.75rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  transform: none !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button {
+  position: relative;
+  pointer-events: auto !important;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-assistant-category-scroll {
+  grid-column: 1 !important;
+}
+
+/* RTL receives the same physical separation mirrored to the right. */
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 2.75rem !important;
+  grid-template-rows: 2.75rem !important;
+  column-gap: 0.5rem !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 3.5rem !important;
+  min-height: 3.5rem !important;
+  padding: 0.375rem 0.5rem !important;
+  overflow: hidden !important;
+  direction: rtl !important;
+  pointer-events: auto !important;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: static !important;
+  inset: auto !important;
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  align-self: center !important;
+  justify-self: center !important;
+  width: 2.75rem !important;
+  min-width: 2.75rem !important;
+  max-width: 2.75rem !important;
+  height: 2.75rem !important;
+  min-height: 2.75rem !important;
+  max-height: 2.75rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative !important;
+  inset: auto !important;
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  height: 2.75rem !important;
+  min-height: 2.75rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  transform: none !important;
+  z-index: 1 !important;
+  pointer-events: auto !important;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-button {
+  position: relative;
+  pointer-events: auto !important;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-assistant-category-scroll {
+  grid-column: 1 !important;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none !important;
+  display: none !important;
+}
+
+#unified-assistant-dock > #assistant-category-rail::after {
+  content: none !important;
+  display: none !important;
+}
