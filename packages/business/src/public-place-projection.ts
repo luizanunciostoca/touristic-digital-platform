@@ -574,3 +574,108 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
     },
   });
 }
+
+
+export const publicPlaceApiRoutes = Object.freeze({
+  map: "/api/places/v1/map",
+  detailPrefix: "/api/places/v1/",
+});
+
+export interface PublicPlaceApiRequest {
+  readonly method: string;
+  readonly pathname: string;
+  readonly query?: Readonly<Record<string, unknown>>;
+  readonly headers?: Readonly<Record<string, string | undefined>>;
+  readonly locale?: string;
+}
+
+export interface PublicPlaceApiResponse {
+  readonly status: number;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly body: unknown;
+}
+
+type PublicPlaceReadModel = ReturnType<typeof createPublicPlaceReadModel>;
+
+function apiResponse(
+  status: number,
+  body: unknown,
+  headers: Readonly<Record<string, string>> = {},
+): PublicPlaceApiResponse {
+  return Object.freeze({
+    status,
+    headers: Object.freeze({
+      "content-type": "application/json; charset=utf-8",
+      ...headers,
+    }),
+    body,
+  });
+}
+
+function cacheHeaders(cache: PublicPlaceCacheMetadata): Readonly<Record<string, string>> {
+  return Object.freeze({
+    etag: cache.etag,
+    "cache-control": cache.cacheControl,
+  });
+}
+
+function ifNoneMatch(request: PublicPlaceApiRequest): string {
+  return request.headers?.["if-none-match"] ?? request.headers?.["If-None-Match"] ?? "";
+}
+
+function publicPlaceErrorStatus(error: unknown): number {
+  const code = error instanceof Error ? error.message : "";
+  return code.startsWith("PUBLIC_PLACE_") ? 400 : 500;
+}
+
+export async function handlePublicPlaceApiRequest(
+  readModel: PublicPlaceReadModel,
+  request: PublicPlaceApiRequest,
+): Promise<PublicPlaceApiResponse | null> {
+  if (request.method.toUpperCase() !== "GET") return null;
+
+  if (request.pathname === publicPlaceApiRoutes.map) {
+    try {
+      const result = await readModel.listMap(request.query ?? {});
+      if (ifNoneMatch(request) === result.cache.etag) {
+        return apiResponse(304, null, cacheHeaders(result.cache));
+      }
+      return apiResponse(200, result.page, cacheHeaders(result.cache));
+    } catch (error) {
+      const status = publicPlaceErrorStatus(error);
+      return apiResponse(status, {
+        error: status === 400 ? "INVALID_PUBLIC_PLACE_QUERY" : "INTERNAL_SERVER_ERROR",
+      }, { "cache-control": "no-store" });
+    }
+  }
+
+  if (request.pathname.startsWith(publicPlaceApiRoutes.detailPrefix)) {
+    const encodedPlaceId = request.pathname.slice(publicPlaceApiRoutes.detailPrefix.length);
+    if (!encodedPlaceId || encodedPlaceId.includes("/")) return null;
+    let placeId: PlaceId;
+    try {
+      const decoded = decodeURIComponent(encodedPlaceId).trim();
+      if (!/^[a-z0-9][a-z0-9_-]*$/u.test(decoded)) {
+        return apiResponse(400, { error: "INVALID_PLACE_ID" }, { "cache-control": "no-store" });
+      }
+      placeId = decoded as PlaceId;
+    } catch {
+      return apiResponse(400, { error: "INVALID_PLACE_ID" }, { "cache-control": "no-store" });
+    }
+
+    try {
+      const result = await readModel.getDetail(placeId, request.locale ?? "pt-BR");
+      if (!result.detail || !result.cache) {
+        return apiResponse(404, { error: "PLACE_NOT_FOUND" }, { "cache-control": "no-store" });
+      }
+      if (ifNoneMatch(request) === result.cache.etag) {
+        return apiResponse(304, null, cacheHeaders(result.cache));
+      }
+      return apiResponse(200, result.detail, cacheHeaders(result.cache));
+    } catch {
+      return apiResponse(500, { error: "INTERNAL_SERVER_ERROR" }, { "cache-control": "no-store" });
+    }
+  }
+
+  return null;
+}
