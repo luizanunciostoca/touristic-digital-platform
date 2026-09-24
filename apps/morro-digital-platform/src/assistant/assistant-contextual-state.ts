@@ -230,7 +230,6 @@ export function installAssistantContextualMessaging(
 ): AssistantContextualMessaging {
   const view = options.document.defaultView;
   let destroyed = false;
-  let previousExploreStage: string | null = null;
   let lastState: AssistantContextualState | null = null;
 
   const publish = (
@@ -252,36 +251,11 @@ export function installAssistantContextualMessaging(
     lastState = state;
   };
 
-  const onExploreStateChanged = (): void => {
-    const snapshot = options.readExploreState();
-    if (
-      previousExploreStage === "detail" &&
-      (snapshot.stage === "places" || snapshot.stage === "filters")
-    ) {
-      publish("back");
-    } else if (
-      previousExploreStage !== null &&
-      snapshot.stage === "menu" &&
-      previousExploreStage !== "menu"
-    ) {
-      publish("return");
-    } else {
-      const state = resolveExploreContextualState(snapshot);
-      if (state) {
-        publish(state, {
-          category: snapshot.category,
-          place: snapshot.place,
-          count: snapshot.markerCount,
-        });
-      }
-    }
-    previousExploreStage = snapshot.stage;
-  };
-
   const onNavigationStarted = (event: Event): void => {
     const detail = eventDetail(event);
     publish("navigation_starting", {
-      place: typeof detail?.destination === "string" ? detail.destination : null,
+      place:
+        typeof detail?.destination === "string" ? detail.destination : null,
     });
   };
   const onNavigationStatusChanged = (event: Event): void => {
@@ -327,10 +301,6 @@ export function installAssistantContextualMessaging(
   };
 
   options.document.addEventListener(
-    "morro:explore-state-changed",
-    onExploreStateChanged,
-  );
-  options.document.addEventListener(
     "morro:network-state-changed",
     onNetworkStateChanged,
   );
@@ -355,18 +325,12 @@ export function installAssistantContextualMessaging(
     attributeFilter: ["data-geolocation-state"],
   });
 
-  previousExploreStage = options.readExploreState().stage;
-
   return Object.freeze({
     publish,
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
       observer?.disconnect();
-      options.document.removeEventListener(
-        "morro:explore-state-changed",
-        onExploreStateChanged,
-      );
       options.document.removeEventListener(
         "morro:network-state-changed",
         onNetworkStateChanged,
