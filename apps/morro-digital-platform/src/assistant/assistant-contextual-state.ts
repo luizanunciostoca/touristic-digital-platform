@@ -2,6 +2,7 @@ import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-rou
 import type { AssistantMessageDom } from "./assistant-message-dom.js";
 import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
+import { composeConversationVoice } from "./assistant-conversation-voice-composer.js";
 import { evaluateConversationPolicy } from "./assistant-conversation-policy.js";
 
 export type AssistantContextualState =
@@ -547,11 +548,21 @@ export function installAssistantContextualMessaging(
         ? { count: Number(variables.count) }
         : {}),
     });
+    const voiceCopy = composeConversationVoice({
+      messageKey: state,
+      language: resolvedLanguage,
+      fallback: rendered.voiceCopy,
+      ...(variables.category ? { category: variables.category } : {}),
+      ...(variables.place ? { place: variables.place } : {}),
+      ...(Number.isFinite(variables.count)
+        ? { count: Number(variables.count) }
+        : {}),
+    });
     const turn = conversation.transition({
       cause: state,
       messageKey: state,
       renderedText: rendered.message,
-      voiceText: rendered.voiceCopy,
+      voiceText: voiceCopy,
       source: area === "navigation" ? "navigation" : "contextual",
       ...(variables.category ? { category: variables.category } : {}),
       ...(variables.place
@@ -599,7 +610,10 @@ export function installAssistantContextualMessaging(
     });
     const created = options.document.getElementById(id);
     if (created instanceof HTMLElement) {
-      applyMetadata(created, state, rendered);
+      applyMetadata(created, state, {
+        ...rendered,
+        voiceCopy,
+      });
       created.dataset.conversationTurnId = turn.id;
       if (turn.previousTurnId) {
         created.dataset.previousConversationTurnId = turn.previousTurnId;
