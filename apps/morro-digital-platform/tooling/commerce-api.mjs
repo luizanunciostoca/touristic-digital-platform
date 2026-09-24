@@ -114,6 +114,20 @@ function reservationIdFor(requestKey) {
     .slice(0, 32)}`;
 }
 
+function depositPricingVersion(reservation) {
+  if (reservation.depositPolicy.kind !== "required") return null;
+  return `rdep_${createHash("sha256")
+    .update(
+      [
+        reservation.slotId,
+        reservation.depositPolicy.amount.minorUnits,
+        reservation.depositPolicy.amount.currency,
+      ].join(":"),
+    )
+    .digest("hex")
+    .slice(0, 32)}`;
+}
+
 function safeError(error) {
   const raw = error instanceof Error ? error.message : "COMMERCE_UNAVAILABLE";
   return /^[A-Z0-9_:-]{3,160}$/u.test(raw) ? raw : "COMMERCE_UNAVAILABLE";
@@ -170,6 +184,7 @@ export function createCommerceApi({
     if (started || startAttempted) return started;
     startAttempted = true;
     let pool = null;
+    let orderingPool = null;
     try {
       if (!authApi) throw new Error("COMMERCE_AUTH_API_REQUIRED");
       const enabled = featureEnabled(
@@ -197,27 +212,47 @@ export function createCommerceApi({
       pool = createCommerceMySqlPoolFromEnvironment({
         COMMERCE_DATABASE_URL: databaseUrl,
       });
-      await applyCommerceRestaurantReservationSchema(pool);
+      orderingPool = createOrderingMySqlPoolFromEnvironment({
+        ORDERING_DATABASE_URL: String(
+          getEnvironmentValue("ORDERING_DATABASE_URL") || "",
+        ).trim(),
+      });
+      await Promise.all([
+        applyCommerceRestaurantReservationSchema(pool),
+        applyOrderingRestaurantReservationSchema(orderingPool),
+      ]);
+      const orders = new MySqlOrderRepository(orderingPool);
+      const orderBindings =
+        new MySqlRestaurantReservationOrderBindingRepository(orderingPool);
       runtime = Object.freeze({
         enabled: true,
         pool,
+        orderingPool,
         repository: new MySqlRestaurantReservationRepository(pool),
+        reservationOrders: createRestaurantReservationOrderApplicationService({
+          orders,
+          bindings: orderBindings,
+          identities: createNodeCheckoutIdentityPort(),
+        }),
         sessions: new CommerceSessionAuthority(sessionSecret),
       });
       started = true;
       return true;
     } catch {
-      await pool?.end().catch(() => {});
+      await Promise.allSettled([
+        pool?.end(),
+        orderingPool?.end(),
+      ]);
       runtime = null;
       return false;
     }
   }
 
   async function stop() {
-    const pool = runtime?.pool ?? null;
+    const pools = [runtime?.pool, runtime?.orderingPool].filter(Boolean);
     runtime = null;
     started = false;
-    await pool?.end();
+    await Promise.allSettled(pools.map((candidate) => candidate.end()));
   }
 
   async function consumerActor(request) {
@@ -381,12 +416,59 @@ export function createCommerceApi({
       );
       return;
     }
+    const pricingVersion = depositPricingVersion(held.reservation);
+    if (!pricingVersion) {
+      throw new Error("COMMERCE_RESTAURANT_DEPOSIT_INVALID");
+    }
+    const orderResult = await runtime.reservationOrders.placeReservationOrder({
+      reservationReference: held.reservation.id,
+      businessId,
+      amount: held.reservation.depositPolicy.amount,
+      pricingVersion,
+      capturedAt: held.reservation.createdAt,
+    });
+    const handoff = normalizeRestaurantCheckoutHandoff({
+      reservationReference: held.reservation.id,
+      customer: body.customer,
+      returnUrl: body.returnUrl,
+      requiresPaymentsCapability: true,
+    });
+    if (!handoff) {
+      json(
+        response,
+        400,
+        { error: "COMMERCE_RESTAURANT_CHECKOUT_CUSTOMER_INVALID" },
+        correlation,
+      );
+      return;
+    }
+    const token = createRestaurantCheckoutHandoffCapability(
+      handoff,
+      {
+        actorSubject: actor.subject,
+        destinationId: held.reservation.destinationId,
+        tenantId: businessId,
+        requesterKind:
+          actor.source === "commerce_session"
+            ? "guest_capability"
+            : "authenticated",
+      },
+      String(getEnvironmentValue("PAYMENTS_HANDOFF_SECRET") || "").trim(),
+    );
+    if (!token) {
+      throw new Error("COMMERCE_RESTAURANT_CHECKOUT_CAPABILITY_INVALID");
+    }
     json(
       response,
-      held.replayed ? 200 : 202,
+      held.replayed && orderResult.replayed ? 200 : 202,
       {
         data: publicReservationProjection(held.reservation),
         paymentRequired: true,
+        checkout: {
+          handoff,
+          token,
+          idempotencyKey: orderResult.order.requestKey,
+        },
       },
       correlation,
     );
