@@ -2,7 +2,7 @@
 
 Branch: `wave/business-catalog-offers-menus-20260923`
 
-Stack dependency: Wave A / PR #344 (`wave/place-business-canonical-model-20260923`).
+Stack dependency: Wave A / PR #344\n(`wave/place-business-canonical-model-20260923`).
 
 ## Domain ownership
 
@@ -18,15 +18,15 @@ Canonical identity comes from Wave A:
 - `ProductId`
 - `OfferId`
 
-Names, slugs, aliases, `product.reference`, and `offer.label` are never identity authority for new data.
+Names, slugs, aliases, `product.reference`, and `offer.label` are never identity\nauthority for new data.
 
 ## Product
 
-`Product` is the permanent/conceptual commercial item. It carries explicit `businessId`, optional `placeId`, optional `destinationId`, lifecycle status, tags, and an optional legacy reference retained only for migration compatibility.
+`Product` is the permanent/conceptual commercial item. It carries explicit\n`businessId`, optional `placeId`, optional `destinationId`, lifecycle status, tags,\nand an optional legacy reference retained only for migration compatibility.
 
 ## Offer
 
-`Offer` is a sellable commercial condition attached explicitly to one `productId` and `businessId`, with optional `placeId` and `destinationId`.
+`Offer` is a sellable commercial condition attached explicitly to one `productId`\nand `businessId`, with optional `placeId` and `destinationId`.
 
 It carries:
 
@@ -36,13 +36,13 @@ It carries:
 - capacity metadata;
 - lifecycle status.
 
-The amount in this contract is not transaction authority. Financial remains the authoritative source for checkout/payment price confirmation. Inventory and Ticketing remain authoritative for stock/capacity state. The browser must not derive an authoritative price or inventory state.
+The amount in this contract is not transaction authority. Financial remains the\nauthoritative source for checkout/payment price confirmation. Inventory and\nTicketing remain authoritative for stock/capacity state. The browser must not\nderive an authoritative price or inventory state.
 
-`evaluateOfferSellability()` accepts an optional `authoritativeAvailableQuantity` supplied by the owning subsystem. Absence of that fact does not cause this layer to infer stock.
+`evaluateOfferSellability()` accepts an optional\n`authoritativeAvailableQuantity` supplied by the owning subsystem. Absence of\nthat fact does not cause this layer to infer stock.
 
 ## Menu
 
-`Menu` is a first-class structured catalog. A PDF/image may be attached as fallback through `fallbackMediaId` or `fallbackDocumentUrl`, but structured categories/items remain canonical.
+`Menu` is a first-class structured catalog. A PDF/image may be attached as\nfallback through `fallbackMediaId` or `fallbackDocumentUrl`, but structured\ncategories/items remain canonical.
 
 `MenuItem` includes:
 
@@ -61,13 +61,13 @@ The amount in this contract is not transaction authority. Financial remains the 
 
 ## Isolation
 
-All service mutations require an explicit `CatalogScope.businessId`. Cross-business writes fail with `CATALOG_CROSS_BUSINESS_DENIED`.
+All service mutations require an explicit `CatalogScope.businessId`.\nCross-business writes fail with `CATALOG_CROSS_BUSINESS_DENIED`.
 
-Offer/Product, Menu/Category, and Menu/Category/Item relationships are checked by canonical IDs.
+Offer/Product, Menu/Category, and Menu/Category/Item relationships are checked\nby canonical IDs.
 
 ## Legacy compatibility
 
-`resolveLegacyCommerceReference()` exists only for migration compatibility. It can consume pre-existing `product.reference` or `offer.label` values only when a compatibility record already binds them to canonical Business/Product/Offer IDs.
+`resolveLegacyCommerceReference()` exists only for migration compatibility. It\ncan consume pre-existing `product.reference` or `offer.label` values only when a\ncompatibility record already binds them to canonical Business/Product/Offer IDs.
 
 It never resolves a Place from:
 
@@ -80,19 +80,19 @@ It never resolves a Place from:
 ## Integration handoff
 
 ### Chat 5
-Consume `Product`, `Offer`, and canonical IDs from `@touristic/business/commerce-domain`. Do not recreate Product/Offer identity types. Any CTA/action layer should receive canonical IDs, not labels.
+Consume `Product`, `Offer`, and canonical IDs from\n`@touristic/business/commerce-domain`. Do not recreate Product/Offer identity\ntypes. Any CTA/action layer should receive canonical IDs, not labels.
 
 ### Chat 6
-For public/search/map read models, project `businessId`, `placeId`, `productId`, and `offerId` explicitly. Legacy text matching may remain fallback-only for legacy rows.
+For public/search/map read models, project `businessId`, `placeId`, `productId`,\nand `offerId` explicitly. Legacy text matching may remain fallback-only for\nlegacy rows.
 
 ### Chat 7
-For ordering/ticketing integration, translate canonical `productId`/`offerId` at the boundary. Existing `TicketProductReference` may remain a legacy/provider compatibility field, but must not become Place identity authority. Inventory/Ticketing remain stock owners.
+For ordering/ticketing integration, translate canonical `productId`/`offerId` at\nthe boundary. Existing `TicketProductReference` may remain a legacy/provider\ncompatibility field, but must not become Place identity authority.\nInventory/Ticketing remain stock owners.
 
 ### Chat 8
-For Financial/payment integration, treat `Offer.price` and `MenuItem.price` as catalog/display amounts. Re-confirm authoritative money in Financial before transaction execution.
+For Financial/payment integration, treat `Offer.price` and `MenuItem.price` as\ncatalog/display amounts. Re-confirm authoritative money in Financial before\ntransaction execution.
 
 ### Chat 9
-For Control Center/Morro Pro/admin surfaces, create/update products, offers, menus, categories and items through canonical IDs and explicit Business scope. Do not add browser-side authoritative price calculations.
+For Control Center/Morro Pro/admin surfaces, create/update products, offers,\nmenus, categories and items through canonical IDs and explicit Business scope.\nDo not add browser-side authoritative price calculations.
 
 ## Required regression cases
 
