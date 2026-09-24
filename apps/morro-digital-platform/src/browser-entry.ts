@@ -546,7 +546,6 @@ function installMapLayerToggle(map: MapboxGlMapLike): () => void {
 function installDiscoverRecenterControl(
   map: MapboxGlMapLike,
   sdk: MapboxGlModuleLike,
-  homeCenter: readonly [number, number],
 ): () => void {
   const button = document.getElementById("recenter-map-control");
   if (!(button instanceof HTMLButtonElement)) return () => undefined;
