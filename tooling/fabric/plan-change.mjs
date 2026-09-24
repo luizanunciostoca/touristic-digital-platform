@@ -46,9 +46,7 @@ if (isCritical) {
 
 const flags = {
   ui: lower.some((file) => file.includes("apps/morro-digital-platform")),
-  auth: lower.some(
-    (file) => file.includes("/auth/") || file.includes("auth-"),
-  ),
+  auth: lower.some((file) => file.includes("/auth/") || file.includes("auth-")),
   payments: lower.some((file) => /financial|ordering|payment/.test(file)),
   ticketing: lower.some((file) => file.includes("ticketing")),
   ci: lower.some(
