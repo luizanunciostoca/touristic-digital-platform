@@ -969,9 +969,14 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   padding: var(--md-space-1) var(--md-space-3) var(--md-space-3);
   overflow: hidden auto;
   overscroll-behavior: contain;
-  border: 1px solid color-mix(in srgb, var(--md-color-border) 82%, transparent);
+  border: 1px solid
+    color-mix(in srgb, var(--md-color-border) 82%, transparent);
   border-radius: calc(var(--md-radius-xl) + 0.25rem);
-  background: color-mix(in srgb, var(--md-color-surface-glass) 96%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-glass) 96%,
+    transparent
+  );
   color: var(--md-color-text-primary);
   box-shadow: var(--md-elevation-3);
   backdrop-filter: blur(1rem);
@@ -1008,7 +1013,11 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   width: 2.5rem;
   height: 0.25rem;
   border-radius: var(--md-radius-pill);
-  background: color-mix(in srgb, var(--md-color-text-secondary) 42%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-text-secondary) 42%,
+    transparent
+  );
 }
 
 .md-home-profile-header {
@@ -1032,7 +1041,11 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   height: var(--md-touch-target-min);
   place-items: center;
   border-radius: var(--md-radius-pill);
-  background: color-mix(in srgb, var(--md-color-brand) 12%, var(--md-color-surface-card));
+  background: color-mix(
+    in srgb,
+    var(--md-color-brand) 12%,
+    var(--md-color-surface-card)
+  );
   color: var(--md-color-brand);
   font-size: 1rem;
 }
@@ -1084,7 +1097,11 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   gap: var(--md-space-1);
   border: 1px solid color-mix(in srgb, var(--md-color-border) 82%, transparent);
   border-radius: var(--md-radius-lg);
-  background: color-mix(in srgb, var(--md-color-surface-card) 86%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-card) 86%,
+    transparent
+  );
   color: var(--md-color-text-primary);
   font: inherit;
   font-size: var(--md-font-size-xs);
@@ -1107,15 +1124,12 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
   outline-offset: 0.125rem;
 }
 
-.md-home-profile-section-heading {
-  margin-top: var(--md-space-3);
-}
-
 .md-home-profile-expanded-content {
   display: none;
   margin-top: var(--md-space-2);
   padding-top: var(--md-space-2);
-  border-top: 1px solid color-mix(in srgb, var(--md-color-border) 76%, transparent);
+  border-top: 1px solid
+    color-mix(in srgb, var(--md-color-border) 76%, transparent);
 }
 
 .md-home-profile-expanded-note {
@@ -1131,7 +1145,7 @@ body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed {
 }
 
 .md-home-profile-section-heading {
-  margin: 0 0 var(--md-space-2);
+  margin: var(--md-space-3) 0 var(--md-space-2);
   color: var(--md-color-text-secondary);
   font-size: var(--md-font-size-xs);
   font-weight: var(--md-font-weight-semibold);
