@@ -37,7 +37,9 @@ describe("database environment resolver", () => {
       expect(url.hostname).toBe("mysql.example");
       expect(url.port).toBe("3307");
       expect(url.username).toBe("morro_app");
-      expect(url.password).toBe(\n        "secret%20with%20symbols%3A%2F%3F%23%5B%5D%40!",\n      );
+      expect(url.password).toBe(
+        "secret%20with%20symbols%3A%2F%3F%23%5B%5D%40!",
+      );
       expect(url.pathname).toBe(`/${schema}`);
     }
   });
