@@ -6,6 +6,7 @@ import {
   type TicketingBusinessInventoryRepositoryPort,
 } from "./business-inventory-repository.js";
 import {
+  CommerceSessionAuthority,
   TicketingCommerceHttpTransport,
   commerceSessionCookieName,
   commerceSessionTtlSeconds,
@@ -123,6 +124,7 @@ export {
   MySqlTicketingBusinessInventoryRepository,
   MySqlTicketingPublicReadRepository,
   MySqlTicketingTransactionalCommand,
+  CommerceSessionAuthority,
   TicketReservationApplicationError,
   TicketingApplicationError,
   TicketingCommerceHttpTransport,
