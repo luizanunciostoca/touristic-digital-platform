@@ -10,9 +10,7 @@ import {
   type ProductId,
 } from "./place-domain.js";
 
-type Brand<TValue, TBrand extends string> = TValue & {
-  readonly __brand: TBrand;
-};
+type Brand<TValue, TBrand extends string> = TValue & { readonly __brand: TBrand };
 
 export type MenuId = Brand<string, "MenuId">;
 export type MenuCategoryId = Brand<string, "MenuCategoryId">;
@@ -20,7 +18,12 @@ export type MenuItemId = Brand<string, "MenuItemId">;
 
 export type ProductStatus = "draft" | "active" | "inactive" | "archived";
 export type OfferStatus =
-  "draft" | "active" | "paused" | "sold_out" | "expired" | "archived";
+  | "draft"
+  | "active"
+  | "paused"
+  | "sold_out"
+  | "expired"
+  | "archived";
 export type MenuStatus = "draft" | "active" | "inactive" | "archived";
 
 export interface Product {
@@ -139,7 +142,11 @@ export interface OfferSellabilityContext {
 export interface OfferSellability {
   readonly sellable: boolean;
   readonly reason:
-    "AVAILABLE" | "NOT_ACTIVE" | "SALES_NOT_STARTED" | "EXPIRED" | "SOLD_OUT";
+    | "AVAILABLE"
+    | "NOT_ACTIVE"
+    | "SALES_NOT_STARTED"
+    | "EXPIRED"
+    | "SOLD_OUT";
 }
 
 export interface LegacyCommerceCompatibility {
@@ -358,7 +365,10 @@ export function createCatalogService(
   repository: CatalogRepository,
 ): CatalogService {
   return Object.freeze({
-    async createProduct(scope: CatalogScope, input: Product): Promise<Product> {
+    async createProduct(
+      scope: CatalogScope,
+      input: Product,
+    ): Promise<Product> {
       assertBusiness(scope, input.businessId);
       validateProduct(input);
       if (await repository.getProduct(input.id)) {
@@ -367,7 +377,10 @@ export function createCatalogService(
       return repository.saveProduct(Object.freeze({ ...input }));
     },
 
-    async updateProduct(scope: CatalogScope, input: Product): Promise<Product> {
+    async updateProduct(
+      scope: CatalogScope,
+      input: Product,
+    ): Promise<Product> {
       assertBusiness(scope, input.businessId);
       validateProduct(input);
       const existing = await repository.getProduct(input.id);
@@ -379,7 +392,10 @@ export function createCatalogService(
       return repository.saveProduct(Object.freeze({ ...input }));
     },
 
-    async createOffer(scope: CatalogScope, input: Offer): Promise<Offer> {
+    async createOffer(
+      scope: CatalogScope,
+      input: Offer,
+    ): Promise<Offer> {
       assertBusiness(scope, input.businessId);
       if (await repository.getOffer(input.id)) {
         throw new Error("OFFER_ALREADY_EXISTS");
@@ -391,7 +407,10 @@ export function createCatalogService(
       return repository.saveOffer(Object.freeze({ ...input }));
     },
 
-    async updateOffer(scope: CatalogScope, input: Offer): Promise<Offer> {
+    async updateOffer(
+      scope: CatalogScope,
+      input: Offer,
+    ): Promise<Offer> {
       assertBusiness(scope, input.businessId);
       const existing = await repository.getOffer(input.id);
       if (!existing) throw new Error("OFFER_NOT_FOUND");
@@ -403,7 +422,10 @@ export function createCatalogService(
       return repository.saveOffer(Object.freeze({ ...input }));
     },
 
-    async createMenu(scope: CatalogScope, input: Menu): Promise<Menu> {
+    async createMenu(
+      scope: CatalogScope,
+      input: Menu,
+    ): Promise<Menu> {
       assertBusiness(scope, input.businessId);
       if (await repository.getMenu(input.id)) {
         throw new Error("MENU_ALREADY_EXISTS");
