@@ -90,6 +90,8 @@ Mutation fails closed when any editable revision attempts to change:
 
 Ownership transfer and destination reassignment are not ordinary Place edits. They require separate, explicit administrative workflows.
 
+A suspended Place may receive corrective draft edits, but editing does not clear suspension. It remains non-public and cannot move to review until a platform-authorized workflow changes its governance state. Archived Places likewise cannot be moved into review through the Business editing flow.
+
 ## Publication authority
 
 Business owners/managers may prepare a valid revision and move it to `review`.
@@ -213,6 +215,8 @@ Consumers must enforce these rules:
 10. Required and recommended validation must remain distinct.
 11. All mutation outcomes should preserve correlation IDs for audit.
 12. Stale/replayed writes must fail closed.
+13. Editing a suspended Place must never clear suspension or restore its public projection.
+14. Suspended/archived Places cannot enter review through Business self-service.
 
 ## Out of scope honored
 
