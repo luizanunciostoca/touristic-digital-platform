@@ -18,6 +18,6 @@
     "lint": "eslint src",
     "test": "pnpm --filter @touristic/content build && vitest run --passWithNoTests",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:integration": "pnpm --filter @touristic/content build && pnpm build && vitest run --maxWorkers=1 src/mysql-integration.test.ts"
+    "test:integration": "pnpm --filter @touristic/content build && pnpm build && vitest run --maxWorkers=1 src/*integration.test.ts"
   }
 }
