@@ -222,6 +222,8 @@ function safeStartupFailureCode(error) {
   if (/^[A-Z0-9_]{2,120}$/u.test(message)) return message;
 
   const knownRequiredConfiguration = new Map([
+    ["PAYMENTS_RETURN_URL_ORIGINS is required", "PAYMENTS_RETURN_URL_ORIGINS_REQUIRED"],
+    ["PAYMENTS_RETURN_URL_ORIGINS is invalid", "PAYMENTS_RETURN_URL_ORIGINS_INVALID"],
     ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
     ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
   ]);
