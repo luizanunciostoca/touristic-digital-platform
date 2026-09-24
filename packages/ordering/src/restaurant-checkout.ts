@@ -42,7 +42,11 @@ function text(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   const normalized = value.trim();
   if (!normalized || normalized.length > max) return "";
-  return normalized;
+  const invalid = [...normalized].some((character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return code <= 31 || code === 127 || character === "<" || character === ">";
+  });
+  return invalid ? "" : normalized;
 }
 
 function optionalText(value: unknown, max: number): string | null {
@@ -102,6 +106,21 @@ export function normalizeRestaurantCheckoutHandoff(
   });
 }
 
+function assertPayment(payment: Payment, order: Order): void {
+  const key = createPaymentIdempotencyKey(order.id);
+  if (
+    !key ||
+    payment.idempotencyKey !== key ||
+    payment.subject.kind !== "order" ||
+    payment.subject.reference !== order.id ||
+    payment.amount.minorUnits !== order.pricing.amount.minorUnits ||
+    payment.amount.currency !== order.pricing.amount.currency ||
+    payment.createdAt !== order.createdAt
+  ) {
+    throw new Error("ORDERING_RESTAURANT_PAYMENT_CONFLICT");
+  }
+}
+
 export function createRestaurantCheckoutApplicationService(dependencies: {
   readonly orders: OrderRepositoryPort;
   readonly bindings: RestaurantReservationOrderBindingRepositoryPort;
@@ -138,7 +157,9 @@ export function createRestaurantCheckoutApplicationService(dependencies: {
         (order.status !== "pending_payment" &&
           order.status !== "payment_confirmed") ||
         order.pricing.amount.minorUnits !== binding.amount.minorUnits ||
-        order.pricing.amount.currency !== binding.amount.currency
+        order.pricing.amount.currency !== binding.amount.currency ||
+        order.pricing.pricingVersion !== binding.pricingVersion ||
+        order.pricing.planName !== "restaurant_deposit"
       ) {
         throw new Error("ORDERING_RESTAURANT_CHECKOUT_CONFLICT");
       }
@@ -183,6 +204,7 @@ export function createRestaurantCheckoutApplicationService(dependencies: {
       } else {
         replayed = true;
       }
+      assertPayment(payment, order);
       return Object.freeze({ order, payment, replayed });
     },
   });
