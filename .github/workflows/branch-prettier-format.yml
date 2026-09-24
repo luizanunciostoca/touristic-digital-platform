@@ -1,4 +1,5 @@
 name: One-shot branch formatter
+# second push activates this branch-only formatter
 
 on:
   push:
