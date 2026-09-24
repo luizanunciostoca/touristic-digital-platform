@@ -68,13 +68,13 @@ Recommendations must not be promoted to hard requirements without an explicit pr
 
 ## Authorization matrix
 
-| Role | Read own Place | Edit own draft | Request review | Publish | Suspend/archive |
-| --- | --- | --- | --- | --- | --- |
-| PLATFORM_OWNER | yes | yes | yes | yes | yes |
-| PLATFORM_ADMIN | yes | yes | yes | yes | yes |
-| BUSINESS_OWNER | yes | yes | yes | no | no |
-| BUSINESS_MANAGER | yes | yes | yes | no | no |
-| BUSINESS_VIEWER | yes | no | no | no | no |
+| Role             | Read own Place | Edit own draft | Request review | Publish | Suspend/archive |
+| ---------------- | -------------- | -------------- | -------------- | ------- | --------------- |
+| PLATFORM_OWNER   | yes            | yes            | yes            | yes     | yes             |
+| PLATFORM_ADMIN   | yes            | yes            | yes            | yes     | yes             |
+| BUSINESS_OWNER   | yes            | yes            | yes            | no      | no              |
+| BUSINESS_MANAGER | yes            | yes            | yes            | no      | no              |
+| BUSINESS_VIEWER  | yes            | no             | no             | no      | no              |
 
 All mutation authorization is server-side.
 
