@@ -6,6 +6,11 @@ import {
   isReadOnlyAuthRole,
 } from "@touristic/auth";
 import {
+  MySqlRestaurantReservationRepository,
+  applyCommerceRestaurantReservationSchema,
+  createCommerceMySqlPoolFromEnvironment,
+} from "@touristic/commerce-server";
+import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
@@ -158,6 +163,7 @@ function collectEnvironment(getEnvironmentValue) {
     "NODE_ENV",
     "ORDERING_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
+    "COMMERCE_DATABASE_URL",
     "ORDERING_PRICING_CATALOG_JSON",
     "PAYMENTS_STATUS_TOKEN_SECRET",
     "PAYMENTS_HANDOFF_SECRET",
@@ -779,6 +785,7 @@ const safeCheckoutProviderFailureReasons = Object.freeze({
 export function createOrderConfirmingVerifiedPaymentOutcomeService({
   outcomes,
   orders,
+  restaurantFulfillment = null,
   clock = systemCheckoutClock,
 }) {
   if (!outcomes || typeof outcomes.apply !== "function") {
@@ -824,40 +831,51 @@ export function createOrderConfirmingVerifiedPaymentOutcomeService({
       if (!order) {
         throw new Error("PAYMENTS_VERIFIED_ORDER_NOT_FOUND");
       }
-      if (order.status === "payment_confirmed") {
-        return outcome;
-      }
-      if (order.status !== "pending_payment") {
-        throw new Error("PAYMENTS_VERIFIED_ORDER_STATUS_CONFLICT");
-      }
-
-      const currentMs = Date.parse(order.updatedAt);
-      const recordedMs = Date.parse(result.recordedAt);
-      const clockMs = Date.parse(clock.now());
-      if (
-        !Number.isFinite(currentMs) ||
-        !Number.isFinite(recordedMs) ||
-        !Number.isFinite(clockMs)
-      ) {
-        throw new Error("PAYMENTS_VERIFIED_ORDER_CLOCK_INVALID");
-      }
-      const updatedAt = new Date(
-        Math.max(currentMs + 1, recordedMs, clockMs),
-      ).toISOString();
-      const confirmedOrder = Object.freeze({
-        ...order,
-        status: "payment_confirmed",
-        updatedAt,
-      });
-
-      try {
-        await orders.save(confirmedOrder);
-      } catch (error) {
-        const latest = await orders.findById(orderId);
-        if (latest?.status === "payment_confirmed") {
-          return outcome;
+      let confirmedOrder = order;
+      if (order.status !== "payment_confirmed") {
+        if (order.status !== "pending_payment") {
+          throw new Error("PAYMENTS_VERIFIED_ORDER_STATUS_CONFLICT");
         }
-        throw error;
+
+        const currentMs = Date.parse(order.updatedAt);
+        const recordedMs = Date.parse(result.recordedAt);
+        const clockMs = Date.parse(clock.now());
+        if (
+          !Number.isFinite(currentMs) ||
+          !Number.isFinite(recordedMs) ||
+          !Number.isFinite(clockMs)
+        ) {
+          throw new Error("PAYMENTS_VERIFIED_ORDER_CLOCK_INVALID");
+        }
+        const updatedAt = new Date(
+          Math.max(currentMs + 1, recordedMs, clockMs),
+        ).toISOString();
+        const proposed = Object.freeze({
+          ...order,
+          status: "payment_confirmed",
+          updatedAt,
+        });
+
+        try {
+          confirmedOrder = await orders.save(proposed);
+        } catch (error) {
+          const latest = await orders.findById(orderId);
+          if (latest?.status !== "payment_confirmed") {
+            throw error;
+          }
+          confirmedOrder = latest;
+        }
+      }
+
+      if (
+        confirmedOrder.source.kind === "restaurant_reservation" &&
+        restaurantFulfillment?.handle
+      ) {
+        await restaurantFulfillment.handle({
+          order: confirmedOrder,
+          payment,
+          result,
+        });
       }
       return outcome;
     },
@@ -957,6 +975,10 @@ export function createPaymentsApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
+      const commercePool = environment.COMMERCE_DATABASE_URL
+        ? createCommerceMySqlPoolFromEnvironment(environment)
+        : null;
+      if (commercePool) pools.push(commercePool);
       await Promise.all([
         (async () => {
           await applyOrderingM151Schema(orderingPool);
@@ -964,6 +986,9 @@ export function createPaymentsApi({
           await applyOrderingRestaurantReservationSchema(orderingPool);
         })(),
         applyFinancialM145Schema(financialPool),
+        ...(commercePool
+          ? [applyCommerceRestaurantReservationSchema(commercePool)]
+          : []),
       ]);
 
       const orders = new MySqlOrderRepository(orderingPool);
@@ -973,6 +998,11 @@ export function createPaymentsApi({
       );
       const ledger = new MySqlLedgerTransactionRepository(financialPool);
       const checkoutAccess = new MySqlCheckoutAccessRepository(orderingPool);
+      const restaurantBindings =
+        new MySqlRestaurantReservationOrderBindingRepository(orderingPool);
+      const restaurantReservations = commercePool
+        ? new MySqlRestaurantReservationRepository(commercePool)
+        : null;
       const paymentIdempotency = new MySqlPaymentIdempotencyPort(financialPool);
       const identities = createNodeCheckoutIdentityPort();
       const rateLimits = createInMemoryCheckoutRateLimitPort();
@@ -984,6 +1014,31 @@ export function createPaymentsApi({
       const outcomes = createOrderConfirmingVerifiedPaymentOutcomeService({
         outcomes: financialOutcomes,
         orders,
+        restaurantFulfillment: restaurantReservations
+          ? {
+              async handle({ order, payment, result }) {
+                const binding = await restaurantBindings.findByOrderId(order.id);
+                if (
+                  !binding ||
+                  binding.reservationReference !== order.source.reference ||
+                  result.orderReference !== order.id ||
+                  result.paymentId !== payment.id
+                ) {
+                  throw new Error(
+                    "PAYMENTS_RESTAURANT_VERIFIED_BINDING_CONFLICT",
+                  );
+                }
+                await restaurantReservations.confirmFromVerifiedPayment({
+                  reservationId: binding.reservationReference,
+                  businessId: binding.businessId,
+                  orderId: order.id,
+                  paymentId: payment.id,
+                  confirmedAt: result.recordedAt,
+                  actorReference: "financial_verified_outcome",
+                });
+              },
+            }
+          : null,
         clock: systemCheckoutClock,
       });
       const accounting = createVerifiedPaymentAccountingService({
@@ -1007,9 +1062,7 @@ export function createPaymentsApi({
       });
       const restaurantApplication = createRestaurantCheckoutApplicationService({
         orders,
-        bindings: new MySqlRestaurantReservationOrderBindingRepository(
-          orderingPool,
-        ),
+        bindings: restaurantBindings,
         payments,
         paymentIdempotency,
         identities,
