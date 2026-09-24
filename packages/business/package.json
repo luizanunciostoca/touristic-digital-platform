@@ -57,6 +57,11 @@
       "types": "./src/place-domain.ts",
       "node": "./dist/place-domain.js",
       "default": "./src/place-domain.ts"
+    },
+    "./public-place-projection": {
+      "types": "./src/public-place-projection.ts",
+      "node": "./dist/public-place-projection.js",
+      "default": "./src/public-place-projection.ts"
     }
   },
   "scripts": {
