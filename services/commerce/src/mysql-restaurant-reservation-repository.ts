@@ -341,9 +341,7 @@ async function updateReservationStatus(
      WHERE reservation_id = ?`,
     [
       reservation.status,
-      reservation.holdExpiresAt
-        ? new Date(reservation.holdExpiresAt)
-        : null,
+      reservation.holdExpiresAt ? new Date(reservation.holdExpiresAt) : null,
       reservation.orderId,
       reservation.paymentId,
       new Date(reservation.updatedAt),
@@ -367,9 +365,7 @@ async function expireStaleHolds(
   );
   for (const row of rows) {
     const current = reservationFromRow(row);
-    if (
-      !isRestaurantReservationTransitionAllowed(current.status, "expired")
-    ) {
+    if (!isRestaurantReservationTransitionAllowed(current.status, "expired")) {
       throw new Error("COMMERCE_RESTAURANT_EXPIRY_TRANSITION_INVALID");
     }
     const expired = createRestaurantReservation({
@@ -411,11 +407,9 @@ function assertReplay(
   }
 }
 
-function depositColumns(slot: RestaurantReservationSlot): readonly [
-  string,
-  number | null,
-  string | null,
-] {
+function depositColumns(
+  slot: RestaurantReservationSlot,
+): readonly [string, number | null, string | null] {
   return slot.depositPolicy.kind === "none"
     ? ["none", null, null]
     : [
@@ -435,7 +429,8 @@ export class MySqlRestaurantReservationRepository {
     try {
       await connection.beginTransaction();
       const existing = await selectSlot(connection, slot.id, true);
-      const [depositKind, depositAmount, depositCurrency] = depositColumns(slot);
+      const [depositKind, depositAmount, depositCurrency] =
+        depositColumns(slot);
       if (existing) {
         if (
           existing.businessId !== slot.businessId ||
@@ -449,9 +444,7 @@ export class MySqlRestaurantReservationRepository {
         }
         const committed = await committedGuests(connection, slot.id);
         if (slot.capacity < committed) {
-          throw new Error(
-            "COMMERCE_RESTAURANT_SLOT_CAPACITY_BELOW_COMMITTED",
-          );
+          throw new Error("COMMERCE_RESTAURANT_SLOT_CAPACITY_BELOW_COMMITTED");
         }
         await connection.execute(
           `UPDATE commerce_restaurant_slots
@@ -658,10 +651,7 @@ export class MySqlRestaurantReservationRepository {
     readonly actorReference: unknown;
   }): Promise<RestaurantReservationHoldResult> {
     const id = reservationId(input.reservationId);
-    if (
-      !SLOT_ID.test(input.slotId) ||
-      !BUSINESS_ID.test(input.businessId)
-    ) {
+    if (!SLOT_ID.test(input.slotId) || !BUSINESS_ID.test(input.businessId)) {
       throw new Error("COMMERCE_RESTAURANT_SCOPE_INVALID");
     }
     const requestKey = normalizeRestaurantReservationRequestKey(
@@ -669,10 +659,7 @@ export class MySqlRestaurantReservationRepository {
     );
     const holderReference = actor(input.holderReference);
     const actorReference = actor(input.actorReference);
-    const heldAt = instant(
-      input.heldAt,
-      "COMMERCE_RESTAURANT_HELD_AT_INVALID",
-    );
+    const heldAt = instant(input.heldAt, "COMMERCE_RESTAURANT_HELD_AT_INVALID");
     const partySize =
       typeof input.partySize === "number" &&
       Number.isSafeInteger(input.partySize) &&
@@ -726,10 +713,7 @@ export class MySqlRestaurantReservationRepository {
       if (!isRestaurantSlotBookable(slot, heldAt)) {
         throw new Error("COMMERCE_RESTAURANT_SLOT_NOT_BOOKABLE");
       }
-      if (
-        partySize < slot.minPartySize ||
-        partySize > slot.maxPartySize
-      ) {
+      if (partySize < slot.minPartySize || partySize > slot.maxPartySize) {
         throw new Error("COMMERCE_RESTAURANT_PARTY_SIZE_INVALID");
       }
       const committedBefore = await committedGuests(connection, slot.id);
@@ -859,11 +843,7 @@ export class MySqlRestaurantReservationRepository {
       if (!snapshot) {
         throw new Error("COMMERCE_RESTAURANT_RESERVATION_NOT_FOUND");
       }
-      const slot = await selectSlot(
-        connection,
-        snapshot.slotId,
-        true,
-      );
+      const slot = await selectSlot(connection, snapshot.slotId, true);
       if (!slot) throw new Error("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
       const current = await selectReservationById(
         connection,
@@ -875,9 +855,7 @@ export class MySqlRestaurantReservationRepository {
         throw new Error("COMMERCE_RESTAURANT_RESERVATION_NOT_FOUND");
       }
       if (current.depositPolicy.kind !== "none") {
-        throw new Error(
-          "COMMERCE_RESTAURANT_VERIFIED_PAYMENT_REQUIRED",
-        );
+        throw new Error("COMMERCE_RESTAURANT_VERIFIED_PAYMENT_REQUIRED");
       }
       if (current.status === "confirmed") {
         await connection.commit();
