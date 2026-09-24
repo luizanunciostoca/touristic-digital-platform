@@ -616,7 +616,7 @@ const COMMERCE_PLACE_KEY = /^[a-z0-9][a-z0-9-]{2,119}$/u;
 const COMMERCE_BUSINESS_ID = /^[a-z0-9][a-z0-9_-]{0,119}$/u;
 const COMMERCE_CANONICAL_PLACE_ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
 
-function commerceCheckoutUrl(value: string): string | null {
+export function commerceCheckoutUrl(value: string): string | null {
   if (value.startsWith("commerce:restaurant:")) {
     const raw = value.slice("commerce:restaurant:".length);
     const separator = raw.indexOf(":");
