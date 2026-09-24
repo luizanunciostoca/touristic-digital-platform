@@ -73,6 +73,58 @@ describe("assistant conversation orchestrator", () => {
     });
   });
 
+  it("does not deduplicate equal copy when semantic context changes", () => {
+    const orchestrator = createAssistantConversationOrchestrator({
+      sessionId: "semantic-dedupe-session",
+      now: () => 700,
+    });
+
+    const first = orchestrator.transition({
+      cause: "results_found",
+      messageKey: "results_found",
+      renderedText: "Encontrei 4 opções.",
+      source: "explore",
+      category: "beaches",
+      resultCount: 4,
+    });
+    const second = orchestrator.transition({
+      cause: "results_found",
+      messageKey: "results_found",
+      renderedText: "Encontrei 4 opções.",
+      source: "explore",
+      category: "restaurants",
+      resultCount: 4,
+    });
+
+    expect(second.id).not.toBe(first.id);
+    expect(second.nextState.previousCategory).toBe("beaches");
+    expect(second.nextState.currentCategory).toBe("restaurants");
+    expect(orchestrator.observability()).toMatchObject({
+      turnsCreated: 2,
+      duplicateAttempts: 0,
+    });
+  });
+
+  it("keeps cumulative turn metrics beyond the bounded recent-turn buffer", () => {
+    const orchestrator = createAssistantConversationOrchestrator({
+      sessionId: "metrics-session",
+      maxRecentTurns: 4,
+      now: () => 900,
+    });
+
+    for (let index = 0; index < 7; index += 1) {
+      orchestrator.transition({
+        cause: "assistant_response",
+        messageKey: "assistant_response",
+        renderedText: `Resposta ${index}`,
+        source: "assistant_runtime",
+      });
+    }
+
+    expect(orchestrator.recentTurns()).toHaveLength(4);
+    expect(orchestrator.observability().turnsCreated).toBe(7);
+  });
+
   it("keeps previous category/place and supports stale async supersession", () => {
     const orchestrator = createAssistantConversationOrchestrator({
       sessionId: "session-2",
