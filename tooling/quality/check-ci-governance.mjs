@@ -233,6 +233,34 @@ if (/^\s{2}(pull_request|push):/m.test(productionPromotion)) {
   );
 }
 
+const pagesAfterFinalAcceptance = workflowSources.get(
+  "pages-after-final-acceptance.yml",
+);
+if (!pagesAfterFinalAcceptance) {
+  fail("pages-after-final-acceptance.yml is missing");
+}
+requireIncludes(
+  pagesAfterFinalAcceptance,
+  ".github/workflows/pages-after-final-acceptance.yml",
+  [
+    "workflow_run:",
+    "Final Release Acceptance",
+    "github.event.workflow_run.conclusion == 'success'",
+    "github.event.workflow_run.head_branch == 'main'",
+    "github.event.workflow_run.head_sha",
+    "actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697",
+    "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa",
+    "actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346",
+    "git/ref/heads/main",
+    "pages / deploy certified SHA",
+  ],
+);
+if (/^\s{2}(pull_request|push):/m.test(pagesAfterFinalAcceptance)) {
+  fail(
+    "Pages deployment must never publish directly from push/pull_request; it must follow Final Release Acceptance",
+  );
+}
+
 const productionRollback = workflowSources.get(
   "production-render-rollback.yml",
 );
