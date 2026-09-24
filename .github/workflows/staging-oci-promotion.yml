@@ -30,6 +30,9 @@ env:
   PNPM_VERSION: "10.15.0"
   IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/morro-digital-v2
   TARGET_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging
+  EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0
+  EXPECTED_STAGING_CANONICAL_URL: https://morro-digital-v2-staging.onrender.com
 
 jobs:
   preflight:
@@ -112,6 +115,24 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Prove canonical Render staging image hook target before deploy
+        env:
+          DEPLOY_HOOK: ${{ secrets.RENDER_STAGING_IMAGE_DEPLOY_HOOK_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_HOOK"
+          hook_service_id="$(node -e '
+            const value = process.env.DEPLOY_HOOK;
+            const url = new URL(value);
+            if (url.protocol !== "https:" || url.hostname !== "api.render.com") process.exit(2);
+            const match = url.pathname.match(/^\/deploy\/(srv-[A-Za-z0-9]+)$/);
+            if (!match) process.exit(3);
+            process.stdout.write(match[1]);
+          ')"
+          test "$hook_service_id" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$TARGET_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+
       - name: Trigger Render image deploy by exact digest
         id: render
         env:
@@ -131,7 +152,8 @@ jobs:
             "${DEPLOY_HOOK}${separator}imgURL=${encoded}")"
           case "$status" in 200|202) ;; *) cat /tmp/render-image-deploy.json >&2; exit 1 ;; esac
           deploy_id="$(jq -r '.deploy.id // .id // empty' /tmp/render-image-deploy.json 2>/dev/null || true)"
-          echo "deploy_id=${deploy_id:-unknown}" >> "$GITHUB_OUTPUT"
+          test -n "$deploy_id"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
 
       - name: Wait for exact-SHA runtime identity
         env:

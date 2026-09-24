@@ -20,6 +20,10 @@ env:
   PNPM_VERSION: "10.15.0"
   TURBO_TELEMETRY_DISABLED: "1"
   STAGING_URL: https://morro-digital-v2-staging.onrender.com
+  EXPECTED_STAGING_ENVIRONMENT: staging
+  EXPECTED_STAGING_SERVICE_NAME: morro-digital-v2-staging
+  EXPECTED_STAGING_SERVICE_ID: srv-da4hb6c9v7es7386ttt0
+  EXPECTED_STAGING_CANONICAL_URL: https://morro-digital-v2-staging.onrender.com
 
 concurrency:
   group: staging-render-promotion
@@ -94,11 +98,28 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Require protected Render staging deploy hook
+      - name: Prove canonical Render staging hook target before deploy
+        id: staging-target
         env:
           RENDER_STAGING_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK_URL }}
         shell: bash
-        run: test -n "$RENDER_STAGING_DEPLOY_HOOK_URL"
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_STAGING_DEPLOY_HOOK_URL"
+
+          hook_service_id="$(node -e '
+            const value = process.env.RENDER_STAGING_DEPLOY_HOOK_URL;
+            const url = new URL(value);
+            if (url.protocol !== "https:" || url.hostname !== "api.render.com") process.exit(2);
+            const match = url.pathname.match(/^\/deploy\/(srv-[A-Za-z0-9]+)$/);
+            if (!match) process.exit(3);
+            process.stdout.write(match[1]);
+          ')"
+
+          test "$hook_service_id" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+          echo "service_id=$hook_service_id" >> "$GITHUB_OUTPUT"
+          echo "Canonical staging hook target proved: $EXPECTED_STAGING_SERVICE_NAME ($hook_service_id)"
 
       - name: Trigger exact-SHA Render staging deploy
         id: render-deploy
@@ -126,10 +147,12 @@ jobs:
               ;;
           esac
           deploy_id="$(jq -r '.deploy.id // .id // empty' /tmp/render-staging-deploy-response.json 2>/dev/null || true)"
-          echo "deploy_id=${deploy_id:-unknown}" >> "$GITHUB_OUTPUT"
-          echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA"
+          test -n "$deploy_id"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+          echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA as $deploy_id"
 
       - name: Wait for exact-SHA staging health and identity
+        id: live-staging
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           MORRO_V2_BASE_URL: ${{ env.STAGING_URL }}
@@ -142,6 +165,7 @@ jobs:
               release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
               if [ "$release_sha" = "$EXPECTED_SHA" ]; then
                 printf '%s\n' "$output"
+                echo "live_sha=$release_sha" >> "$GITHUB_OUTPUT"
                 echo "Exact-SHA staging smoke PASS: $release_sha"
                 exit 0
               fi
@@ -157,27 +181,43 @@ jobs:
           echo "Exact-SHA staging smoke timed out for $EXPECTED_SHA" >&2
           exit 1
 
-      - name: Publish staging deployment evidence
-        if: always()
+      - name: Publish structured staging deployment evidence
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
+          LIVE_SHA: ${{ steps.live-staging.outputs.live_sha }}
+          PROVED_SERVICE_ID: ${{ steps.staging-target.outputs.service_id }}
         shell: bash
         run: |
           set -euo pipefail
-          {
-            echo "expected_sha=$EXPECTED_SHA"
-            echo "render_deploy_id=${DEPLOY_ID:-unknown}"
-            echo "staging_url=$STAGING_URL"
-            echo "workflow_run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          } > staging-deployment-evidence.txt
-          cat staging-deployment-evidence.txt
+          test "$EXPECTED_SHA" = "$LIVE_SHA"
+          test "$PROVED_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$PROVED_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --arg canonicalUrl "$STAGING_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
+              expectedSha: $expectedSha,
+              serviceId: $serviceId,
+              serviceName: $serviceName,
+              environment: $environment,
+              deploymentId: $deploymentId,
+              canonicalUrl: $canonicalUrl,
+              liveSha: $liveSha,
+              verifiedAt: $verifiedAt,
+              workflowRun: $workflowRun
+            }' > staging-deployment-evidence.json
+          jq -e '
+            .expectedSha == .liveSha and
+            .environment == "staging" and
+            .serviceName == "morro-digital-v2-staging" and
+            .serviceId == "srv-da4hb6c9v7es7386ttt0" and
+            .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
+            (.deploymentId | length > 0)
+          ' staging-deployment-evidence.json >/dev/null
+          cat staging-deployment-evidence.json
 
       - name: Upload staging deployment evidence
-        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: staging-deployment-evidence-${{ github.run_id }}
-          path: staging-deployment-evidence.txt
+          path: staging-deployment-evidence.json
           if-no-files-found: error
           retention-days: 30
