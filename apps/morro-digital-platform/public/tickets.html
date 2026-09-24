@@ -34,11 +34,19 @@
           href="/"
           data-ticketing-return
           aria-label="Voltar ao mapa"
-          >←</a
+          >‹</a
         >
         <strong class="ticketing-context-title" data-commerce-i18n="mainTitle"
-          >Reservar passeio</strong
+          >Reservar Passeio</strong
         >
+        <button
+          class="ticketing-search-action"
+          type="button"
+          aria-label="Buscar outro passeio"
+          data-ticketing-search
+        >
+          <span aria-hidden="true"></span>
+        </button>
         <p
           id="session-label"
           class="session-label md-badge"
@@ -56,28 +64,42 @@
           role="img"
           aria-label="Morro de São Paulo"
         >
-          <div class="ticketing-hero-overlay">
-            <p class="eyebrow">Reserva em Morro de São Paulo</p>
+          <span class="ticketing-recommended-badge" aria-label="Recomendado">
+            <span aria-hidden="true">●</span>
+            Recomendado
+          </span>
+        </div>
+
+        <div class="ticketing-product-copy">
+          <div class="ticketing-title-row">
             <h1 id="ticketing-title">Carregando experiência…</h1>
-            <p id="product-lead" class="lead">
-              Data, disponibilidade e preço confirmados em tempo real.
-            </p>
-            <p class="ticketing-trust">
-              Reserva segura · preço e disponibilidade confirmados pelo servidor
-            </p>
-            <div class="product-facts" aria-live="polite">
-              <span id="product-location" class="md-badge"
-                >Morro de São Paulo</span
-              >
-              <span id="product-rating" class="md-badge" hidden></span>
-              <span id="product-duration" class="md-badge" hidden></span>
-              <span
-                id="product-availability"
-                class="md-badge md-badge--success"
-                hidden
-              ></span>
-            </div>
+            <span id="product-rating" class="ticketing-rating" hidden></span>
           </div>
+
+          <div class="product-facts" aria-live="polite">
+            <span id="product-duration" class="ticketing-fact" hidden></span>
+            <span class="ticketing-fact" data-tour-group>
+              <span aria-hidden="true">♙♙</span> Grupo
+            </span>
+            <span class="ticketing-fact" data-tour-guide>
+              <span aria-hidden="true">⌖</span> Guia local
+            </span>
+            <span id="product-location" class="ticketing-fact"
+              >Morro de São Paulo</span
+            >
+            <span
+              id="product-availability"
+              class="ticketing-fact ticketing-fact--availability"
+              hidden
+            ></span>
+          </div>
+
+          <p id="product-lead" class="lead">
+            Data, disponibilidade e preço confirmados em tempo real.
+          </p>
+          <p class="ticketing-trust">
+            Reserva segura · preço e disponibilidade confirmados pelo servidor
+          </p>
         </div>
       </section>
 
@@ -94,8 +116,8 @@
         >
           <div class="section-heading">
             <div>
-              <p class="eyebrow">1 · Selecione</p>
-              <h2 id="offers-title">Data e experiência</h2>
+              <p class="eyebrow">Escolha quando você quer ir</p>
+              <h2 id="offers-title">Selecionar data</h2>
             </div>
             <button
               id="refresh-button"
@@ -121,8 +143,8 @@
             hidden
           >
             <div class="selection-copy">
-              <p class="eyebrow">2 · Quantidade</p>
-              <h2 id="selected-summary-title">Sua seleção</h2>
+              <p class="eyebrow">Quantidade</p>
+              <h2 id="selected-summary-title">Ingressos</h2>
               <p id="selected-summary-meta" class="selection-meta"></p>
             </div>
 
@@ -163,8 +185,8 @@
             <div class="price-summary" aria-labelledby="price-summary-title">
               <div class="price-summary-heading">
                 <div>
-                  <p class="eyebrow">Resumo</p>
-                  <h3 id="price-summary-title">Estimativa da compra</h3>
+                  <p class="eyebrow">Total</p>
+                  <h3 id="price-summary-title">Resumo da reserva</h3>
                 </div>
                 <span id="quote-badge" class="md-badge"
                   >Preço do inventário</span
