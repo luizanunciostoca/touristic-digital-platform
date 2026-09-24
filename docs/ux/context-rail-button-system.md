@@ -110,3 +110,20 @@ The back action is structural navigation, not scrollable contextual content.
 - RTL mirrors the chevron while preserving the same DOM order and navigation semantics.
 
 The fixed back control remains visually outside the horizontal option list.
+
+
+## Map-first compact density
+
+The public map is the primary visual surface. The contextual dock must therefore behave like a compact HUD rather than a content panel.
+
+Canonical compact geometry:
+
+- Context rail total height: `3.5rem` (56px).
+- Category/filter/place/action controls: `2.75rem` (44px).
+- Fixed back control visual size: `2.5rem` (40px).
+- The back control expands its interactive hit area to approximately 44px with a pseudo-element while keeping the visible control lighter than contextual actions.
+- Contextual message targets a compact 40–52px band with tight vertical padding.
+- Composer keeps the voice CTA at 44px and removes accumulated vertical whitespace.
+- On mobile, the decorative right-side `›` affordance is removed; partially visible horizontal content remains the scroll affordance.
+- Rail and composer spacing must not grow with the number of options. Overflow happens only on the horizontal axis.
+- Changes to contextual stages must preserve or increase visible map area rather than increase dock height.
