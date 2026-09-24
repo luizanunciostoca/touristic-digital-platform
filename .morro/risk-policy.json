@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "levels": {
+    "low": {
+      "description": "docs, copy, isolated non-runtime metadata",
+      "required": [
+        "format",
+        "secrets"
+      ]
+    },
+    "medium": {
+      "description": "UI, styling, isolated application behavior",
+      "required": [
+        "format",
+        "secrets",
+        "lint",
+        "typecheck",
+        "affected-tests"
+      ]
+    },
+    "high": {
+      "description": "API, auth, data, shared contracts, workflows",
+      "required": [
+        "format",
+        "secrets",
+        "lint",
+        "typecheck",
+        "affected-tests",
+        "build",
+        "integration"
+      ]
+    },
+    "critical": {
+      "description": "payments, financial, ordering, ticketing, migrations, release or production controls",
+      "required": [
+        "full-quality",
+        "domain-invariants",
+        "integration",
+        "exact-head-release-gates"
+      ]
+    }
+  },
+  "criticalPaths": [
+    "packages/financial/",
+    "services/financial/",
+    "packages/ordering/",
+    "services/ordering/",
+    "packages/ticketing/",
+    "services/ticketing/",
+    "tooling/payments/",
+    ".github/workflows/production-",
+    ".github/workflows/release-",
+    "render"
+  ],
+  "highPaths": [
+    "packages/auth/",
+    "services/auth/",
+    ".github/workflows/",
+    "tooling/quality/",
+    "packages/platform/"
+  ],
+  "lowExtensions": [
+    ".md",
+    ".txt"
+  ]
+}
