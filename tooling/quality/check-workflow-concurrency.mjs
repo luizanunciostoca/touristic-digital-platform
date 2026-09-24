@@ -9,9 +9,13 @@ const workflowFiles = readdirSync(workflowsDir)
 const nonInterruptible = new Set([
   "final-release-acceptance.yml",
   "production-render-promotion.yml",
+  "production-oci-promotion.yml",
   "production-render-rollback.yml",
   "release-promotion-gate.yml",
+  "oci-release-promotion-gate.yml",
+  "release-oci-image.yml",
   "staging-render-promotion.yml",
+  "staging-oci-promotion.yml",
 ]);
 
 const failures = [];
