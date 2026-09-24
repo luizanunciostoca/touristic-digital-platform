@@ -3,20 +3,11 @@
   "levels": {
     "low": {
       "description": "docs, copy, isolated non-runtime metadata",
-      "required": [
-        "format",
-        "secrets"
-      ]
+      "required": ["format", "secrets"]
     },
     "medium": {
       "description": "UI, styling, isolated application behavior",
-      "required": [
-        "format",
-        "secrets",
-        "lint",
-        "typecheck",
-        "affected-tests"
-      ]
+      "required": ["format", "secrets", "lint", "typecheck", "affected-tests"]
     },
     "high": {
       "description": "API, auth, data, shared contracts, workflows",
@@ -59,8 +50,5 @@
     "tooling/quality/",
     "packages/platform/"
   ],
-  "lowExtensions": [
-    ".md",
-    ".txt"
-  ]
+  "lowExtensions": [".md", ".txt"]
 }
