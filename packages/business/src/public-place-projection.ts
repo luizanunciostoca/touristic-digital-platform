@@ -217,7 +217,7 @@ export interface PublicPlaceBoundingBox {
 export interface PublicPlaceMapQuery {
   readonly destinationId: string;
   readonly bbox: PublicPlaceBoundingBox;
-  readonly categoryId?: string;
+  readonly category?: string;
   readonly zoom: number;
   readonly limit: number;
   readonly cursor?: string | null;
@@ -456,7 +456,7 @@ export function createPublicPlaceReadModel(options: PublicPlaceReadModelOptions)
       const page = await options.repository.listPublished({
         destinationId: query.destinationId,
         bbox: query.bbox,
-        ...(query.category ? { categoryId: query.category } : {}),
+        ...(query.category ? { category: query.category } : {}),
         limit: query.limit,
         cursor: query.cursor ?? null,
       });
