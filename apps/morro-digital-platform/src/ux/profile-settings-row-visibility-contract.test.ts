@@ -5,16 +5,14 @@ const readPublic = (path: string) =>
   readFile(new URL(`../../public/${path}`, import.meta.url), "utf8");
 
 describe("Profile assistant settings row visibility", () => {
-  it("loads the scoped override after tourist shell authority", async () => {
+  it("keeps Tourist Shell V2 as the final surface-specific CSS authority", async () => {
     const html = await readPublic("index.html");
-    const shell = html.indexOf("tourist-shell-v2.css");
-    const fix = html.indexOf("profile-settings-row-fix.css");
-    expect(shell).toBeGreaterThan(-1);
-    expect(fix).toBeGreaterThan(shell);
+    expect(html).toContain("tourist-shell-v2.css");
+    expect(html).not.toContain("profile-settings-row-fix.css");
   });
 
-  it("neutralizes frozen circular configButton geometry only inside Profile", async () => {
-    const css = await readPublic("profile-settings-row-fix.css");
+  it("neutralizes frozen circular configButton geometry inside Tourist Shell V2", async () => {
+    const css = await readPublic("tourist-shell-v2.css");
     expect(css).toContain(
       "#home-profile-panel #configButton.md-home-profile-row",
     );
