@@ -240,7 +240,7 @@ jobs:
                   globalCommerceCta: document.getElementById('assistant-commerce-cta') !== null,
                   messages: document.querySelectorAll('#assistant-messages .messages-area > .message').length,
                 }));
-                const expected = ['beaches','restaurants','hotels','shops','transport','attractions','tours','nightlife','emergencies','help'];
+                const expected = ['beaches','tours','attractions','restaurants','hotels','nightlife','shops','transport','emergencies','help'];
                 if (JSON.stringify(home.values) !== JSON.stringify(expected) || home.globalCommerceCta || home.messages !== 1) {
                   throw new Error(`V1 Assistant home menu contract drift on ${viewport.name}: ${JSON.stringify(home)}`);
                 }
