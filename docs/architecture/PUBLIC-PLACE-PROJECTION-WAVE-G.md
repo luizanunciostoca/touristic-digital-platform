@@ -26,7 +26,7 @@ Required:
 - `bbox=west,south,east,north`
 
 Optional:
-- `categoryId`
+- `category` (legacy/internal alias `categoryId` is accepted by the parser)
 - `zoom` (default 14, valid 0..24)
 - `limit` (default 250, hard cap 1000)
 - `cursor`
@@ -37,9 +37,9 @@ Response:
   items: Array<{
     id: PlaceId;
     name: string;
-    categoryId: CategoryId;
-    latitude: number;
-    longitude: number;
+    category: CategoryId;
+    lat: number;
+    lng: number;
     presentation: {
       markerKey: string;
       priority: number;
