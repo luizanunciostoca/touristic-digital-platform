@@ -298,6 +298,8 @@ export function assertRestaurantReservationTransition(
   to: RestaurantReservationStatus,
 ): void {
   if (!isRestaurantReservationTransitionAllowed(from, to)) {
-    throw new Error(`COMMERCE_RESTAURANT_INVALID_TRANSITION:${from}:${to}`);
+    throw new Error(
+      `COMMERCE_RESTAURANT_INVALID_TRANSITION:${from}:${to}`,
+    );
   }
 }
