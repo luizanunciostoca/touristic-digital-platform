@@ -119,7 +119,7 @@ jobs:
               camera: globalThis.__navigationEvidence?.camera ?? [],
               bannerClass: document.getElementById('instruction-banner')?.className ?? null,
               bannerText: document.getElementById('instruction-main')?.textContent ?? null,
-              endDisplay: document.getElementById('end-navigation-btn') ? getComputedStyle(document.getElementById('end-navigation-btn')).display : null,
+              endDisplay: document.querySelector('#voiceButton.is-navigation-stop') ? getComputedStyle(document.querySelector('#voiceButton.is-navigation-stop')).display : null,
               markerCount: document.querySelectorAll('#map .mapboxgl-marker').length,
               navigationMarker: Boolean(document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker')),
               routeSource: Boolean(globalThis.mapboxPrimaryInstance?.getSource?.('navigation-route-source')),
@@ -214,7 +214,7 @@ jobs:
             }, destination);
 
             await page.locator('#instruction-banner:not(.hidden)').waitFor({ state: 'visible', timeout: 15000 });
-            await page.locator('#end-navigation-btn').waitFor({ state: 'visible', timeout: 15000 });
+            await page.locator('#voiceButton.is-navigation-stop').waitFor({ state: 'visible', timeout: 15000 });
             await poll(
               page,
               () => globalThis.__navigationEvidence?.events?.some((event) => event.type === 'navigationStarted'),
@@ -244,10 +244,10 @@ jobs:
             const activeState = await page.evaluate(() => {
               const map = globalThis.mapboxPrimaryInstance;
               const banner = document.getElementById('instruction-banner');
-              const end = document.getElementById('end-navigation-btn');
+              const end = document.querySelector('#voiceButton.is-navigation-stop');
               const events = globalThis.__navigationEvidence.events;
               const navigationMarker = document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker');
-              const summary = document.getElementById('navigation-summary');
+              const summary = document.querySelector('[data-navigation-dock-summary]');
               const composer = document.getElementById('assistant-input-area');
               const assistant = document.getElementById('assistant-messages');
               const privacy = document.querySelector('.analytics-consent-preferences.is-collapsed');
@@ -271,8 +271,8 @@ jobs:
                 bannerVisible: Boolean(banner && !banner.classList.contains('hidden')),
                 instruction: document.getElementById('instruction-main')?.textContent?.trim() ?? '',
                 details: document.getElementById('instruction-details')?.textContent?.trim() ?? '',
-                distance: document.getElementById('instruction-distance')?.textContent?.trim() ?? '',
-                time: document.getElementById('instruction-time')?.textContent?.trim() ?? '',
+                distance: document.querySelector('[data-navigation-dock-distance]')?.textContent?.trim() ?? '',
+                time: document.querySelector('[data-navigation-dock-time]')?.textContent?.trim() ?? '',
                 progress: document.getElementById('progress-text')?.textContent?.trim() ?? '',
                 progressWidth: document.getElementById('route-progress')?.style.width ?? '',
                 endVisible: Boolean(end && getComputedStyle(end).display !== 'none'),
@@ -339,7 +339,7 @@ jobs:
             if (!activeState.endRect || activeState.endRect.bottom > activeState.viewport.height + 1 || activeState.endRect.height < 44) throw new Error(`Navigation exit action is not safely reachable for ${name}: ${JSON.stringify(activeState.endRect)}`);
             if (activeState.viewport.width <= 430 && (activeState.endRect.top + activeState.endRect.height / 2) < activeState.viewport.height * 0.62) throw new Error(`Navigation exit action escaped one-hand region for ${name}: ${JSON.stringify(activeState.endRect)}`);
             if (activeState.viewport.scrollWidth > activeState.viewport.width + 1) throw new Error(`Navigation introduced horizontal overflow for ${name}: ${JSON.stringify(activeState.viewport)}`);
-            if (activeState.unrelatedControls.composerVisible || activeState.unrelatedControls.assistantVisible || activeState.unrelatedControls.privacyVisible) throw new Error(`Unrelated controls compete with Navigation for ${name}: ${JSON.stringify(activeState.unrelatedControls)}`);
+            if (!activeState.unrelatedControls.composerVisible || activeState.unrelatedControls.assistantVisible || activeState.unrelatedControls.privacyVisible) throw new Error(`Unified navigation dock composition diverged for ${name}: ${JSON.stringify(activeState.unrelatedControls)}`);
             if (!activeState.started || !activeState.runtime || !activeState.location) throw new Error(`Canonical navigation events missing for ${name}: ${JSON.stringify(activeState.events)}`);
             if (activeState.started.sessionId !== activeState.runtime.sessionId || activeState.started.sessionId !== activeState.location.sessionId) throw new Error(`Navigation session IDs diverged for ${name}: ${JSON.stringify(activeState.events)}`);
             const latestCamera = activeState.camera.at(-1);
@@ -373,7 +373,7 @@ jobs:
             if (!minimized.minimized || minimized.expanded !== 'false' || minimized.secondaryDisplay !== 'none') throw new Error(`Navigation minimize state diverged for ${name}: ${JSON.stringify(minimized)}`);
             await page.screenshot({ path: `${outputDir}/${name}-minimized.png`, fullPage: false, animations: 'disabled' });
 
-            await page.locator('#end-navigation-btn').click();
+            await page.locator('#voiceButton.is-navigation-stop').click();
             await poll(
               page,
               () => globalThis.__navigationEvidence.events.some((event) => event.type === 'navigationEnded' && event.detail?.reason === 'cancelled'),
@@ -383,12 +383,15 @@ jobs:
             const endedState = await page.evaluate(() => {
               const map = globalThis.mapboxPrimaryInstance;
               const banner = document.getElementById('instruction-banner');
-              const end = document.getElementById('end-navigation-btn');
+              const end = document.querySelector('#voiceButton.is-navigation-stop');
               return {
                 ended: globalThis.__navigationEvidence.events.filter((event) => event.type === 'navigationEnded').at(-1)?.detail ?? null,
                 bannerHidden: Boolean(banner?.classList.contains('hidden')),
                 endHidden: Boolean(end && getComputedStyle(end).display === 'none'),
                 bodyNavigationActive: document.body.classList.contains('navigation-active'),
+                dockMode: document.getElementById('unified-assistant-dock')?.getAttribute('data-dock-mode') ?? null,
+                navigationSummaryActive: document.getElementById('assistant-category-rail')?.hasAttribute('data-navigation-summary') ?? false,
+                voiceStopActive: document.getElementById('voiceButton')?.classList.contains('is-navigation-stop') ?? false,
                 navigationMarkerPresent: Boolean(document.querySelector('#map .mapboxgl-marker.navigation-user-location-marker')),
                 routeSourcePresent: Boolean(map.getSource?.('navigation-route-source')),
                 routeOutlinePresent: Boolean(map.getLayer?.('navigation-route-outline')),
@@ -396,7 +399,7 @@ jobs:
                 events: globalThis.__navigationEvidence.events,
               };
             });
-            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive || endedState.navigationMarkerPresent || endedState.routeSourcePresent || endedState.routeOutlinePresent || endedState.routeLayerPresent) throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
+            if (endedState.ended?.reason !== 'cancelled' || !endedState.bannerHidden || !endedState.endHidden || endedState.bodyNavigationActive || endedState.dockMode !== null || endedState.navigationSummaryActive || endedState.voiceStopActive || endedState.navigationMarkerPresent || endedState.routeSourcePresent || endedState.routeOutlinePresent || endedState.routeLayerPresent) throw new Error(`Navigation teardown diverged for ${name}: ${JSON.stringify(endedState)}`);
             if (pageErrors.length || httpErrors.length) throw new Error(`Browser errors for ${name}: ${JSON.stringify({ pageErrors, httpErrors })}`);
 
             const result = { activeState, minimized, endedState, pageErrors, httpErrors };
