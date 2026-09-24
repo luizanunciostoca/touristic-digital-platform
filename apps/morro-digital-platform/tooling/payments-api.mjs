@@ -1060,13 +1060,15 @@ export function createPaymentsApi({
         paymentIdempotency,
         identities,
       });
-      const restaurantApplication = createRestaurantCheckoutApplicationService({
-        orders,
-        bindings: restaurantBindings,
-        payments,
-        paymentIdempotency,
-        identities,
-      });
+      const restaurantApplication = restaurantReservations
+        ? createRestaurantCheckoutApplicationService({
+            orders,
+            bindings: restaurantBindings,
+            payments,
+            paymentIdempotency,
+            identities,
+          })
+        : null;
       const origins = allowedOrigins(environment.PAYMENTS_RETURN_URL_ORIGINS);
       const authorityBootstrapTransport =
         createPaymentsCheckoutAuthorityBootstrap({
@@ -1080,7 +1082,7 @@ export function createPaymentsApi({
       const transport = new CheckoutHttpTransport({
         application,
         ticketingApplication,
-        restaurantApplication,
+        ...(restaurantApplication ? { restaurantApplication } : {}),
         orders,
         payments,
         paymentResults,
