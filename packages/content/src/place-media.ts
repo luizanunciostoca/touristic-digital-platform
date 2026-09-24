@@ -242,41 +242,49 @@ export function createInMemoryPlaceMediaRepository(): PlaceMediaRepository {
     `${placeId}::${mediaId}`;
 
   return Object.freeze({
-    async getAsset(mediaId: string) {
-      return assets.get(mediaId) ?? null;
+    getAsset(mediaId: string) {
+      return Promise.resolve(assets.get(mediaId) ?? null);
     },
-    async getAssetByChecksum(businessId: string, checksumSha256: string) {
+    getAssetByChecksum(businessId: string, checksumSha256: string) {
       for (const asset of assets.values()) {
         if (
           asset.businessId === businessId &&
           asset.checksumSha256 === checksumSha256
         ) {
-          return asset;
+          return Promise.resolve(asset);
         }
       }
-      return null;
+      return Promise.resolve(null);
     },
-    async saveAsset(asset: MediaAsset) {
+    saveAsset(asset: MediaAsset) {
       assets.set(asset.id, asset);
+      return Promise.resolve();
     },
-    async deleteAsset(mediaId: string) {
+    deleteAsset(mediaId: string) {
       assets.delete(mediaId);
+      return Promise.resolve();
     },
-    async listLinks(placeId: string) {
-      return sortedLinks(
-        [...links.values()].filter((link) => link.placeId === placeId),
+    listLinks(placeId: string) {
+      return Promise.resolve(
+        sortedLinks(
+          [...links.values()].filter((link) => link.placeId === placeId),
+        ),
       );
     },
-    async listLinksByMedia(mediaId: string) {
-      return sortedLinks(
-        [...links.values()].filter((link) => link.mediaId === mediaId),
+    listLinksByMedia(mediaId: string) {
+      return Promise.resolve(
+        sortedLinks(
+          [...links.values()].filter((link) => link.mediaId === mediaId),
+        ),
       );
     },
-    async saveLink(link: PlaceMedia) {
+    saveLink(link: PlaceMedia) {
       links.set(linkKey(link.placeId, link.mediaId), link);
+      return Promise.resolve();
     },
-    async deleteLink(placeId: string, mediaId: string) {
+    deleteLink(placeId: string, mediaId: string) {
       links.delete(linkKey(placeId, mediaId));
+      return Promise.resolve();
     },
   });
 }
