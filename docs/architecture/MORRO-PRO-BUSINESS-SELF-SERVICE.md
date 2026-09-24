@@ -26,6 +26,8 @@ The portal must never infer ownership from name, slug, destination, label or fro
 
 The browser receives `businessIds[]` from the authenticated session.
 
+Only canonical `BUSINESS_OWNER`, `BUSINESS_MANAGER` and `BUSINESS_VIEWER` roles (including their legacy business-role aliases) may enter Morro Pro. Platform roles fail closed with `MORRO_PRO_ROLE_DENIED`; Control Center remains the administrative surface.
+
 Rules:
 
 1. explicit requested business not in `businessIds[]` => fail closed with `BUSINESS_ACCESS_DENIED`;
