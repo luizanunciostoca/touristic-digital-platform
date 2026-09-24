@@ -15,6 +15,11 @@ interface HomeCopy {
   readonly profileDescription: string;
   readonly assistantSettings: string;
   readonly privacy: string;
+  readonly profilePreferences: string;
+  readonly profileQuickActions: string;
+  readonly profileExpandedNote: string;
+  readonly expandProfile: string;
+  readonly collapseProfile: string;
   readonly closeProfile: string;
 }
 
@@ -27,9 +32,15 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     profile: "Perfil",
     profileEyebrow: "Morro Digital",
     profileTitle: "Perfil e preferências",
-    profileDescription: "Ajuste voz, idioma e privacidade sem sair do mapa.",
+    profileDescription: "Ajuste sua experiência sem tirar o mapa de cena.",
     assistantSettings: "Configurações do assistente",
     privacy: "Privacidade e LGPD",
+    profilePreferences: "Preferências",
+    profileQuickActions: "Atalhos do perfil",
+    profileExpandedNote:
+      "Idioma, voz e privacidade continuam acessíveis sem tirar você do mapa.",
+    expandProfile: "Expandir perfil",
+    collapseProfile: "Recolher perfil",
     closeProfile: "Fechar perfil",
   }),
   en: Object.freeze({
@@ -41,9 +52,15 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     profileEyebrow: "Morro Digital",
     profileTitle: "Profile and preferences",
     profileDescription:
-      "Adjust voice, language and privacy without leaving the map.",
+      "Adjust your experience without taking the map out of view.",
     assistantSettings: "Assistant settings",
     privacy: "Privacy and LGPD",
+    profilePreferences: "Preferences",
+    profileQuickActions: "Profile shortcuts",
+    profileExpandedNote:
+      "Language, voice and privacy stay accessible without taking you away from the map.",
+    expandProfile: "Expand profile",
+    collapseProfile: "Collapse profile",
     closeProfile: "Close profile",
   }),
   es: Object.freeze({
@@ -54,9 +71,15 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     profile: "Perfil",
     profileEyebrow: "Morro Digital",
     profileTitle: "Perfil y preferencias",
-    profileDescription: "Ajusta voz, idioma y privacidad sin salir del mapa.",
+    profileDescription: "Ajusta tu experiencia sin quitar el mapa de escena.",
     assistantSettings: "Configuración del asistente",
     privacy: "Privacidad y LGPD",
+    profilePreferences: "Preferencias",
+    profileQuickActions: "Atajos del perfil",
+    profileExpandedNote:
+      "Idioma, voz y privacidad siguen accesibles sin sacarte del mapa.",
+    expandProfile: "Expandir perfil",
+    collapseProfile: "Contraer perfil",
     closeProfile: "Cerrar perfil",
   }),
   he: Object.freeze({
@@ -67,9 +90,15 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     profile: "פרופיל",
     profileEyebrow: "Morro Digital",
     profileTitle: "פרופיל והעדפות",
-    profileDescription: "אפשר לשנות קול, שפה ופרטיות בלי לצאת מהמפה.",
+    profileDescription: "אפשר להתאים את החוויה בלי להסתיר את המפה.",
     assistantSettings: "הגדרות העוזר",
     privacy: "פרטיות ו-LGPD",
+    profilePreferences: "העדפות",
+    profileQuickActions: "קיצורי דרך בפרופיל",
+    profileExpandedNote:
+      "שפה, קול ופרטיות נשארים נגישים בלי להוציא אותך מהמפה.",
+    expandProfile: "הרחבת הפרופיל",
+    collapseProfile: "כיווץ הפרופיל",
     closeProfile: "סגירת הפרופיל",
   }),
 });
@@ -112,6 +141,9 @@ export function installHomeDiscoverNavigation({
   const profileClose = document.getElementById(
     "home-profile-close",
   ) as HTMLButtonElement | null;
+  const profileExpand = document.getElementById(
+    "home-profile-expand",
+  ) as HTMLButtonElement | null;
   const privacyButton = document.getElementById(
     "home-privacy-button",
   ) as HTMLButtonElement | null;
@@ -139,8 +171,27 @@ export function installHomeDiscoverNavigation({
       });
   };
 
+  const currentCopy = (): HomeCopy =>
+    COPY[normalizeLocale(document.documentElement.lang || "pt")];
+
+  const syncProfileExpansionCopy = (): void => {
+    if (!profilePanel || !profileExpand) return;
+    const expanded = profilePanel.dataset.profileExpanded === "true";
+    const copy = currentCopy();
+    const label = expanded ? copy.collapseProfile : copy.expandProfile;
+    profileExpand.setAttribute("aria-label", label);
+    profileExpand.setAttribute("title", label);
+  };
+
+  const setProfileExpanded = (expanded: boolean): void => {
+    if (!profilePanel || !profileExpand) return;
+    profilePanel.dataset.profileExpanded = expanded ? "true" : "false";
+    profileExpand.setAttribute("aria-expanded", expanded ? "true" : "false");
+    syncProfileExpansionCopy();
+  };
+
   const renderLocale = (): void => {
-    const copy = COPY[normalizeLocale(document.documentElement.lang || "pt")];
+    const copy = currentCopy();
     document
       .querySelectorAll<HTMLElement>("[data-home-copy]")
       .forEach((element) => {
@@ -159,10 +210,12 @@ export function installHomeDiscoverNavigation({
         ? "Navegação principal"
         : copy.explore,
     );
+    syncProfileExpansionCopy();
   };
 
   const closeProfile = (): void => {
     if (!profilePanel || !profileButton) return;
+    setProfileExpanded(false);
     profilePanel.classList.add("hidden");
     profilePanel.setAttribute("aria-hidden", "true");
     profileButton.setAttribute("aria-expanded", "false");
@@ -175,6 +228,7 @@ export function installHomeDiscoverNavigation({
     profilePanel.classList.remove("hidden");
     profilePanel.setAttribute("aria-hidden", "false");
     profileButton.setAttribute("aria-expanded", "true");
+    setProfileExpanded(false);
     setActive("profile");
     profileClose?.focus();
   };
@@ -182,6 +236,27 @@ export function installHomeDiscoverNavigation({
   const toggleProfile = (): void => {
     if (profilePanel?.classList.contains("hidden")) openProfile();
     else closeProfile();
+  };
+
+  const toggleProfileExpansion = (): void => {
+    if (!profilePanel) return;
+    setProfileExpanded(profilePanel.dataset.profileExpanded !== "true");
+  };
+
+  const onProfileAction = (event: Event): void => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const actionButton = target.closest<HTMLElement>("[data-profile-action]");
+    const action = actionButton?.dataset.profileAction;
+    if (action !== "saved" && action !== "tours") return;
+
+    closeProfile();
+    expandComposer();
+    dispatch(document, ASSISTANT_OPEN_REQUEST_EVENT);
+    dispatch(document, "morro:assistant-option-selected", {
+      value: action === "tours" ? "tours" : "favorites",
+    });
+    setActive(action);
   };
 
   const expandComposer = (): void => {
@@ -271,6 +346,8 @@ export function installHomeDiscoverNavigation({
   setActive("explore");
   nav?.addEventListener("click", onNavClick);
   profileClose?.addEventListener("click", closeProfile);
+  profileExpand?.addEventListener("click", toggleProfileExpansion);
+  profilePanel?.addEventListener("click", onProfileAction);
   privacyButton?.addEventListener("click", onPrivacyClick);
   configButton?.addEventListener("click", onConfigClick);
   composer?.addEventListener("focusin", onComposerFocusIn);
@@ -289,6 +366,8 @@ export function installHomeDiscoverNavigation({
       localeObserver.disconnect();
       nav?.removeEventListener("click", onNavClick);
       profileClose?.removeEventListener("click", closeProfile);
+      profileExpand?.removeEventListener("click", toggleProfileExpansion);
+      profilePanel?.removeEventListener("click", onProfileAction);
       privacyButton?.removeEventListener("click", onPrivacyClick);
       configButton?.removeEventListener("click", onConfigClick);
       composer?.removeEventListener("focusin", onComposerFocusIn);
