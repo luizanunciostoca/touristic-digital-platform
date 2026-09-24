@@ -99,6 +99,8 @@ The read model additionally fails closed on `visibility !== "public"` and invali
 
 No editable revision is accepted by the public projection contract.
 
+The publication adapter also rejects any canonical Place snapshot whose `placeId`, `businessId` or `destinationId` differs from the governed record, preventing accidental cross-Place/cross-tenant joins.
+
 ## Media
 
 Wave G does not own storage or media publication logic.
