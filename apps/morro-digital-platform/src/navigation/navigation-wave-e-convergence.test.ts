@@ -25,6 +25,13 @@ describe("UX V2 Wave E active navigation convergence", () => {
     expect(css).toContain(
       'body[data-md-mode="navigation"] #globe-map-control .md-map-control',
     );
+    expect(css).toContain("var(--md-unified-dock-height, 10rem)");
+    expect(css).toMatch(
+      /body\[data-md-mode="navigation"\] #globe-map-control \{[^}]*top:\s*auto;[^}]*bottom:\s*calc\(/su,
+    );
+    expect(css).not.toMatch(
+      /body\[data-md-mode="navigation"\] #globe-map-control \{[^}]*top:\s*calc\(var\(--md-safe-top\)/su,
+    );
     expect(css).not.toContain(
       'body[data-md-mode="navigation"] #globe-map-control #toggle-globe-view {\n  display: none !important;',
     );
