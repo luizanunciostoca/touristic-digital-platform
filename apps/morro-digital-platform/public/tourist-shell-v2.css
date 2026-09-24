@@ -3107,3 +3107,207 @@ html[dir="rtl"]
   content: none !important;
   display: none !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Context Rail direct two-column authority                                   */
+/* -------------------------------------------------------------------------- */
+
+/* Final interaction authority: Back and the scroll surface are direct sibling
+ * grid items. The 44px structural lane is physically separate from the
+ * horizontal scroller, so neither surface can overlap or intercept the other. */
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  overflow: hidden;
+  direction: ltr;
+  pointer-events: auto;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: static;
+  inset: auto;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  border-radius: 0.8125rem;
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-subtle) 82%,
+    var(--md-color-surface-card)
+  );
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 5%, transparent),
+    0 2px 6px color-mix(in srgb, var(--md-color-text-primary) 4%, transparent);
+  pointer-events: none;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative;
+  inset: auto;
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding-inline: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  isolation: auto;
+  clip-path: none;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-assistant-category-scroll {
+  grid-column: 1;
+}
+
+/* RTL mirrors the physical structural lane only for RTL locales. */
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  column-gap: 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  overflow: hidden;
+  direction: rtl;
+  pointer-events: auto;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: static;
+  inset: auto;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  pointer-events: none;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative;
+  inset: auto;
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding-inline: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  isolation: auto;
+  clip-path: none;
+  z-index: auto;
+  pointer-events: auto;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-assistant-category-scroll {
+  grid-column: 1;
+}
+
+#unified-assistant-dock > #assistant-category-rail::after {
+  content: none !important;
+  display: none !important;
+}
