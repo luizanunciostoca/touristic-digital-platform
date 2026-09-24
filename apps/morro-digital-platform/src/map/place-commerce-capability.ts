@@ -273,6 +273,14 @@ function copy(
   return variants[locale];
 }
 
+/**
+ * @deprecated Compatibility adapter for the legacy V1 public map only.
+ *
+ * Canonical Place action authority lives in @touristic/business/place-action-registry.
+ * This resolver still performs legacy category/name/reference matching so current V1
+ * consumers do not break before Wave G/H migrate to the canonical projection. New
+ * callers MUST consume PlacePresentationActions and MUST NOT add new rules here.
+ */
 export async function resolvePlacePrimaryAction(options: {
   readonly location: MorroV1SearchCatalogItem;
   readonly locale: AssistantLocale;
