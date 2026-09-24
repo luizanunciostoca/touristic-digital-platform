@@ -1,0 +1,38 @@
+name: Temporary Cancel Duplicate Production Dispatchers
+
+on:
+  push:
+    branches:
+      - ops/cancel-duplicate-production-dispatchers-c559-20260924
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  cancel:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops/cancel-duplicate-production-dispatchers-c559-20260924
+          fetch-depth: 0
+      - name: Cancel duplicate dispatchers only
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for run_id in 36035741229 36035738447; do
+            status="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" --jq '.status')"
+            if [ "$status" != "completed" ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/cancel"
+            fi
+          done
+      - name: Remove temporary cancellation helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-cancel-duplicate-production.yml
+          git commit -m "chore(ci): remove duplicate-dispatch cancellation helper"
+          git push origin HEAD:ops/cancel-duplicate-production-dispatchers-c559-20260924
