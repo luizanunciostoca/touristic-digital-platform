@@ -18,12 +18,27 @@ export interface PlacePrimaryAction {
     | "nightlife.tickets"
     | "tour.reserve"
     | "transport.request"
-    | "transport.ticket";
+    | "transport.ticket"
+    | "restaurant.reserve";
   readonly label: string;
   readonly value: string;
   readonly presentation: "primary";
   readonly disabled?: boolean;
   readonly commerceState: PlaceCommerceState;
+}
+
+interface PlaceResolvedCommerceOffering {
+  readonly commerceMode:
+    | "ticketed_admission"
+    | "table_reservation"
+    | "activity_reservation"
+    | "transport_ticket";
+  readonly offerId: string;
+  readonly placeId: string;
+  readonly businessId: string | null;
+  readonly destinationId: string;
+  readonly title: string;
+  readonly sellable: boolean;
 }
 
 interface PublicInventoryOffer {
@@ -47,7 +62,12 @@ interface PublicInventoryOffer {
   readonly availableQuantity: number;
 }
 
-const COMMERCE_CATEGORIES = new Set(["tours", "nightlife", "transport"]);
+const COMMERCE_CATEGORIES = new Set([
+  "tours",
+  "nightlife",
+  "restaurants",
+  "transport",
+]);
 const OFFER_ID = /^[A-Za-z0-9_-]{3,120}$/u;
 
 const localeTag: Readonly<Record<AssistantLocale, string>> = Object.freeze({
@@ -108,6 +128,27 @@ function fallbackPrimaryAction(
     });
   }
   return null;
+}
+
+function validPlaceOffering(
+  value: unknown,
+): value is PlaceResolvedCommerceOffering {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const offer = value as Partial<PlaceResolvedCommerceOffering>;
+  return Boolean(
+    (offer.commerceMode === "ticketed_admission" ||
+      offer.commerceMode === "table_reservation" ||
+      offer.commerceMode === "activity_reservation" ||
+      offer.commerceMode === "transport_ticket") &&
+      typeof offer.offerId === "string" &&
+      OFFER_ID.test(offer.offerId.replace(/[:]/gu, "_")) &&
+      typeof offer.placeId === "string" &&
+      offer.placeId.length >= 2 &&
+      typeof offer.destinationId === "string" &&
+      typeof offer.title === "string" &&
+      typeof offer.sellable === "boolean" &&
+      (offer.businessId === null || typeof offer.businessId === "string"),
+  );
 }
 
 function validOffer(value: unknown): value is PublicInventoryOffer {
@@ -291,6 +332,80 @@ function copy(
   return variants[locale];
 }
 
+async function resolveRestaurantPrimaryAction(options: {
+  readonly location: MorroV1SearchCatalogItem;
+  readonly locale: AssistantLocale;
+  readonly fetch: typeof globalThis.fetch;
+}): Promise<PlacePrimaryAction | null> {
+  const placeId = options.location.id?.trim();
+  if (!placeId) return null;
+
+  try {
+    const response = await options.fetch(
+      `/api/commerce/v1/places/${encodeURIComponent(placeId)}/offerings`,
+      {
+        method: "GET",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      },
+    );
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { data?: unknown };
+    const offerings = Array.isArray(payload.data)
+      ? payload.data.filter(validPlaceOffering)
+      : [];
+    const restaurants = offerings.filter(
+      (offer) =>
+        offer.commerceMode === "table_reservation" &&
+        offer.placeId === placeId &&
+        offer.businessId,
+    );
+    if (restaurants.length === 0) return null;
+
+    const label =
+      options.locale === "pt"
+        ? "🍽️ Reservar mesa"
+        : options.locale === "es"
+          ? "🍽️ Reservar mesa"
+          : options.locale === "he"
+            ? "🍽️ הזמנת שולחן"
+            : "🍽️ Reserve a table";
+
+    if (restaurants.length === 1) {
+      const restaurant = restaurants[0];
+      if (!restaurant?.businessId) return null;
+      return Object.freeze({
+        actionId: "restaurant.reserve" as const,
+        label,
+        value: `commerce:restaurant:${restaurant.businessId}:${placeId}`,
+        presentation: "primary" as const,
+        commerceState: restaurant.sellable
+          ? ("sellable" as const)
+          : ("upcoming" as const),
+        ...(restaurant.sellable ? {} : { disabled: true }),
+      });
+    }
+
+    return Object.freeze({
+      actionId: "restaurant.reserve" as const,
+      label:
+        options.locale === "pt"
+          ? `🍽️ Ver reservas (${restaurants.length} opções)`
+          : options.locale === "es"
+            ? `🍽️ Ver reservas (${restaurants.length} opciones)`
+            : options.locale === "he"
+              ? `🍽️ הצגת הזמנות (${restaurants.length})`
+              : `🍽️ View reservations (${restaurants.length} options)`,
+      value: `commerce:place:${placeId}`,
+      presentation: "primary" as const,
+      commerceState: "multiple" as const,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function resolvePlacePrimaryAction(options: {
   readonly location: MorroV1SearchCatalogItem;
   readonly locale: AssistantLocale;
@@ -302,6 +417,14 @@ export async function resolvePlacePrimaryAction(options: {
 
   const fallback = fallbackPrimaryAction(location, locale);
   if (!options.fetch) return fallback;
+
+  if (location.category === "restaurants") {
+    return resolveRestaurantPrimaryAction({
+      location,
+      locale,
+      fetch: options.fetch,
+    });
+  }
 
   let offers: readonly PublicInventoryOffer[] = [];
   try {
