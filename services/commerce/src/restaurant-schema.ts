@@ -95,13 +95,28 @@ CREATE TABLE IF NOT EXISTS commerce_restaurant_reservations (
       OR
       (deposit_kind = 'required'
         AND deposit_amount_minor BETWEEN 1 AND 9007199254740991
-        AND deposit_currency IS NOT NULL)
+        AND deposit_currency IS NOT NULL
+        AND (
+          (status IN ('held','expired')
+            AND order_id IS NULL
+            AND payment_id IS NULL)
+          OR
+          (status IN ('confirmed','completed','no_show')
+            AND order_id IS NOT NULL
+            AND payment_id IS NOT NULL)
+          OR
+          (status = 'cancelled'
+            AND (
+              (order_id IS NULL AND payment_id IS NULL)
+              OR
+              (order_id IS NOT NULL AND payment_id IS NOT NULL)
+            ))
+        ))
     ),
-  CONSTRAINT chk_commerce_restaurant_reservation_payment_pair
+  CONSTRAINT chk_commerce_restaurant_reservation_hold
     CHECK (
-      (order_id IS NULL AND payment_id IS NULL)
-      OR
-      (order_id IS NOT NULL AND payment_id IS NOT NULL)
+      status NOT IN ('held','pending_confirmation')
+      OR hold_expires_at IS NOT NULL
     ),
   INDEX idx_commerce_restaurant_reservation_capacity (
     slot_id, status, hold_expires_at
