@@ -237,7 +237,9 @@ export {
 
 export {
   createPublicPlaceReadModel,
+  handlePublicPlaceApiRequest,
   parsePublicPlaceMapQuery,
+  publicPlaceApiRoutes,
   publicPlaceCacheMetadata,
   publishedRecordFromGovernedRecord,
   type PublicMenu,
@@ -246,6 +248,8 @@ export {
   type PublicOfferPrice,
   type PublicOfferSummary,
   type PublicPlaceAction,
+  type PublicPlaceApiRequest,
+  type PublicPlaceApiResponse,
   type PublicPlaceActionPort,
   type PublicPlaceBoundingBox,
   type PublicPlaceCacheMetadata,
