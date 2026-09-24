@@ -173,6 +173,36 @@ function nextState(
   });
 }
 
+function transitionFingerprint(input: ConversationTransitionInput): string {
+  const entities = Object.entries(input.entities ?? {}).sort(([left], [right]) =>
+    left.localeCompare(right),
+  );
+  return JSON.stringify({
+    cause: input.cause,
+    messageKey: input.messageKey,
+    renderedText: input.renderedText,
+    voiceText: input.voiceText ?? null,
+    userAction: input.userAction ?? null,
+    intent: input.intent ?? null,
+    source: input.source ?? null,
+    category: input.category ?? null,
+    place: input.place ?? null,
+    filters: input.filters ?? [],
+    search: input.search ?? null,
+    resultCount: input.resultCount ?? null,
+    journey: input.journey ?? null,
+    journeyStep: input.journeyStep ?? null,
+    navigationDestination: input.navigationDestination ?? null,
+    navigationPhase: input.navigationPhase ?? null,
+    locationPermission: input.locationPermission ?? null,
+    networkState: input.networkState ?? null,
+    paymentState: input.paymentState ?? null,
+    entities,
+    actions: input.actions ?? [],
+    priority: input.priority ?? "contextual",
+  });
+}
+
 const CONVERSATION_BY_DOCUMENT = new WeakMap<Document, AssistantConversationOrchestrator>();
 
 export function getAssistantConversationOrchestrator(
@@ -199,19 +229,16 @@ export function createAssistantConversationOrchestrator(options?: {
   let turnSequence = 0;
   let asyncSequence = 0;
   let duplicateAttempts = 0;
+  let turnsCreated = 0;
+  let lastTransitionFingerprint: string | null = null;
 
   return Object.freeze({
     transition(input: ConversationTransitionInput): ConversationTurn {
       const timestamp = input.timestamp ?? now();
       const previousState = state;
       const previousTurn = turns.at(-1);
-      if (
-        previousTurn &&
-        previousTurn.cause === input.cause &&
-        previousTurn.messageKey === input.messageKey &&
-        previousTurn.renderedText === input.renderedText &&
-        previousTurn.nextState.source === (input.source ?? previousState.source)
-      ) {
+      const fingerprint = transitionFingerprint(input);
+      if (previousTurn && lastTransitionFingerprint === fingerprint) {
         duplicateAttempts += 1;
         return previousTurn;
       }
@@ -238,6 +265,8 @@ export function createAssistantConversationOrchestrator(options?: {
       });
       state = updated;
       turns = [...turns, turn].slice(-maxRecentTurns);
+      turnsCreated += 1;
+      lastTransitionFingerprint = fingerprint;
       return turn;
     },
     snapshot: () => state,
@@ -250,7 +279,7 @@ export function createAssistantConversationOrchestrator(options?: {
     },
     observability(): ConversationObservabilitySnapshot {
       return Object.freeze({
-        turnsCreated: turns.length,
+        turnsCreated,
         duplicateAttempts,
         asyncSequence,
       });
