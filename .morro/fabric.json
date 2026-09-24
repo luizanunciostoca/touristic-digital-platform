@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "mode": "proof-graph",
   "defaultBase": "main",
   "states": [
@@ -10,26 +10,53 @@
     "POLICY_SATISFIED",
     "MERGE_READY",
     "MERGED",
+    "POST_MERGE_PROVEN",
     "RELEASE_CANDIDATE",
-    "RELEASED"
+    "STAGING_PROVEN",
+    "CERTIFIED",
+    "RELEASED",
+    "PRODUCTION_VERIFIED"
   ],
   "authorities": {
     "worker": ["implement", "test", "push", "open_pr"],
-    "integrator": ["reconcile", "composition_test", "mark_merge_ready"],
+    "integrator": [
+      "reconcile",
+      "composition_test",
+      "mark_merge_ready",
+      "enable_auto_merge"
+    ],
     "release": ["certify_exact_head", "promote", "rollback"],
-    "orchestrator": ["decompose", "schedule", "assign", "prioritize"]
+    "orchestrator": [
+      "decompose",
+      "schedule",
+      "assign",
+      "prioritize",
+      "maintain_changeset_registry"
+    ]
   },
   "invariants": [
     "no-direct-main-feature-work",
     "exact-head-before-merge",
     "exact-main-sha-before-production",
     "payments-financial-authority-must-not-be-bypassed",
-    "evidence-must-identify-input-sha"
+    "evidence-must-identify-input-sha",
+    "required-skipped-evidence-is-failure",
+    "auto-merge-only-after-merge-ready",
+    "external-effects-require-verifiable-evidence"
   ],
   "branchPrefixes": ["agent/", "feat/", "fix/", "infra/", "wave/"],
   "pullRequestPolicy": {
     "developAsDraft": true,
     "readyOnlyAfterRemoteProof": true,
-    "preferSmallSemanticChanges": true
+    "preferSmallSemanticChanges": true,
+    "autoMergeOnlyAfterMergeReady": true
+  },
+  "rollout": {
+    "registryEnforcement": "shadow-until-first-wave-closes",
+    "proofBundle": "required-for-v2-registered-changesets",
+    "semanticOwnership": "enforced",
+    "integrationQueue": "shadow",
+    "shadowMain": "shadow",
+    "progressiveDelivery": "disabled-until-capability-verified"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "levels": {
     "low": {
       "description": "docs, copy, isolated non-runtime metadata",
@@ -46,9 +46,20 @@
   "highPaths": [
     "packages/auth/",
     "services/auth/",
+    "packages/commerce/",
+    "services/commerce/",
     ".github/workflows/",
     "tooling/quality/",
+    "tooling/fabric/",
+    ".morro/",
     "packages/platform/"
   ],
+  "semanticRiskFloor": {
+    "commerce-offering-identity": "high",
+    "reservation-capacity": "high",
+    "verified-payment-outcome": "critical",
+    "ticket-fulfillment": "critical",
+    "platform-authz": "critical"
+  },
   "lowExtensions": [".md", ".txt"]
 }

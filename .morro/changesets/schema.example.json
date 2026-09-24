@@ -1,0 +1,33 @@
+{
+  "id": "MD-W2-EXAMPLE",
+  "baseSha": "REPLACE_WITH_EXACT_SHA",
+  "branch": "wave/w2-example",
+  "state": "IMPLEMENTING",
+  "risk": "medium",
+  "owns": {
+    "paths": ["apps/example/**"],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
