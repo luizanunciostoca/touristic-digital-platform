@@ -577,9 +577,7 @@ export function createAffiliatesApi({
         !runtimeDependencies.createApplication;
       const server =
         runtimeDependencies.serverModule ??
-        (needsServerModule
-          ? await import("@touristic/affiliates-server")
-          : null);
+        (needsServerModule ? await import("@touristic/affiliates-server") : null);
       const createPool =
         runtimeDependencies.createPool ?? server.createAffiliatePool;
       const applySchema =
@@ -722,7 +720,12 @@ export function createAffiliatesApi({
     const programId = body?.programId;
     const path = safeReturnPath(body?.path);
     if (!safeReference(programId, 120) || path === null) {
-      json(response, 400, { error: "INVALID_REFERRAL_LINK_REQUEST" }, correlation);
+      json(
+        response,
+        400,
+        { error: "INVALID_REFERRAL_LINK_REQUEST" },
+        correlation,
+      );
       return;
     }
 
@@ -807,7 +810,12 @@ export function createAffiliatesApi({
       return;
     }
     if (payload.destinationId !== configuredDestinationId) {
-      json(response, 403, { error: "AFFILIATE_DESTINATION_FORBIDDEN" }, correlation);
+      json(
+        response,
+        403,
+        { error: "AFFILIATE_DESTINATION_FORBIDDEN" },
+        correlation,
+      );
       return;
     }
     const subjectReference = referralSubjectReference(request);
