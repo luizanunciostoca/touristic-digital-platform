@@ -125,6 +125,7 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
     for (const table of [
       "ordering_subscription_renewal_intents",
       "ordering_subscriptions",
+      "ordering_restaurant_reservation_bindings",
       "ordering_ticketing_reservation_bindings",
     ]) {
       try {
