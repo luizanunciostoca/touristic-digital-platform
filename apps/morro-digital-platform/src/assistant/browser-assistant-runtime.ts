@@ -32,6 +32,8 @@ import {
   resolveAssistantContextualCopy,
   resolveExploreContextualState,
 } from "./assistant-contextual-state.js";
+import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
+import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
 import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
@@ -718,6 +720,7 @@ export function installBrowserAssistantRuntime(
   });
   const profile = createAssistantUserProfileManager(storage ? { storage } : {});
   const messages = createAssistantMessageDom({ document: options.document });
+  const conversation = getAssistantConversationOrchestrator(options.document);
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
     resolver: createMorroAssistantV1DestinationResolver(),
@@ -1502,20 +1505,51 @@ export function installBrowserAssistantRuntime(
     const language = normalizeAssistantContextualLanguage(
       options.document.documentElement.lang,
     );
-    const rendered = resolveAssistantContextualCopy(
+    const category = resolveAssistantContextualCategoryLabel(
+      state.category,
+      language,
+    );
+    const place = placeHint ?? state.place;
+    const draft = resolveAssistantContextualCopy(
       contextualState,
       {
-        category: resolveAssistantContextualCategoryLabel(
-          state.category,
-          language,
-        ),
-        place: placeHint ?? state.place,
+        category,
+        place,
         count: state.markerCount,
       },
       language,
     );
+    const rendered = composeConversationResponse({
+      messageKey: contextualState,
+      language,
+      draft,
+      previousState: conversation.snapshot(),
+      ...(category ? { category } : {}),
+      ...(place ? { place } : {}),
+      count: state.markerCount,
+    });
+    const turn = conversation.transition({
+      cause: contextualState,
+      messageKey: contextualState,
+      renderedText: rendered.message,
+      voiceText: rendered.voiceCopy,
+      source: "explore",
+      ...(category ? { category } : {}),
+      ...(place ? { place } : {}),
+      resultCount: state.markerCount,
+      journey: "explore",
+      journeyStep: state.stage,
+    });
 
     canonicalMessage.dataset.contextualState = contextualState;
+    canonicalMessage.dataset.conversationTurnId = turn.id;
+    if (turn.previousTurnId) {
+      canonicalMessage.dataset.previousConversationTurnId = turn.previousTurnId;
+    } else {
+      delete canonicalMessage.dataset.previousConversationTurnId;
+    }
+    canonicalMessage.dataset.conversationCause = turn.cause;
+    canonicalMessage.dataset.conversationMessageKey = turn.messageKey;
     if (rendered.cta) canonicalMessage.dataset.contextualCta = rendered.cta;
     else delete canonicalMessage.dataset.contextualCta;
     canonicalMessage.dataset.contextualVoiceCopy = rendered.voiceCopy;
