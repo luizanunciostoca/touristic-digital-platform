@@ -51,6 +51,11 @@
       "types": "./src/onboarding-commercial-conversion.ts",
       "node": "./dist/onboarding-commercial-conversion.js",
       "default": "./src/onboarding-commercial-conversion.ts"
+    },
+    "./place-publication-governance": {
+      "types": "./src/place-publication-governance.ts",
+      "node": "./dist/place-publication-governance.js",
+      "default": "./src/place-publication-governance.ts"
     }
   },
   "scripts": {
