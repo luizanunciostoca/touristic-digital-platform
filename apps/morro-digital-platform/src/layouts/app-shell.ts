@@ -170,7 +170,8 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         >
           <span class="md-context-rail-back-icon" aria-hidden="true">‹</span>
         </button>
-        <div class="md-assistant-category-scroll">
+        <div class="md-context-rail-scroll-viewport">
+          <div class="md-assistant-category-scroll">
           <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
             <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Praias</span>
@@ -211,6 +212,7 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
             <i class="fas fa-question-circle" aria-hidden="true"></i>
             <span class="md-assistant-category-label">Ajuda</span>
           </button>
+          </div>
         </div>
       </div>
 
