@@ -1,4 +1,5 @@
 name: Temporary Wave Prettier
+# one-shot trigger
 
 on:
   workflow_dispatch:
