@@ -209,6 +209,14 @@ function configuredStatusTtl(value) {
 }
 
 const knownStartupConfigurationFailures = new Map([
+  [
+    "PAYMENTS_RETURN_URL_ORIGINS is required",
+    "PAYMENTS_RETURN_URL_ORIGINS_REQUIRED",
+  ],
+  [
+    "PAYMENTS_RETURN_URL_ORIGINS is invalid",
+    "PAYMENTS_RETURN_URL_ORIGINS_INVALID",
+  ],
   ["ORDERING_DATABASE_URL is required", "ORDERING_DATABASE_URL_REQUIRED"],
   ["FINANCIAL_DATABASE_URL is required", "FINANCIAL_DATABASE_URL_REQUIRED"],
 ]);
@@ -219,7 +227,7 @@ function safeStartupErrorToken(value) {
   return knownStartupConfigurationFailures.get(token) ?? "";
 }
 
-export function safeStartupFailureCode(error) {
+export function safeStartupFailureCode(error, stage = "START") {
   const queue = [error];
   const visited = new Set();
   let inspected = 0;
@@ -247,7 +255,11 @@ export function safeStartupFailureCode(error) {
     }
   }
 
-  return "PAYMENTS_RUNTIME_START_UNCLASSIFIED";
+  const normalizedStage =
+    typeof stage === "string" && /^[A-Z0-9_]{2,64}$/u.test(stage)
+      ? stage
+      : "START";
+  return `PAYMENTS_RUNTIME_${normalizedStage}_FAILED`;
 }
 
 function allowedOrigins(value) {
@@ -898,6 +910,7 @@ export function createPaymentsApi({
     if (started || startAttempted) return started;
     startAttempted = true;
     const pools = [];
+    let startupStage = "CONFIG";
     try {
       if (!authApi) throw new Error("PAYMENTS_AUTH_API_REQUIRED");
       const environment = collectEnvironment(getEnvironmentValue);
@@ -920,11 +933,13 @@ export function createPaymentsApi({
         environment.NODE_ENV === "production",
       );
       if (!webhookUrl) throw new Error("PAYMENTS_WEBHOOK_URL_REQUIRED");
+      startupStage = "DATABASE_POOL";
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
       pools.push(orderingPool);
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
+      startupStage = "DATABASE_SCHEMA";
       await Promise.all([
         (async () => {
           await applyOrderingM151Schema(orderingPool);
@@ -933,6 +948,7 @@ export function createPaymentsApi({
         applyFinancialM145Schema(financialPool),
       ]);
 
+      startupStage = "APPLICATION";
       const orders = new MySqlOrderRepository(orderingPool);
       const payments = new MySqlPaymentRepository(financialPool);
       const paymentResults = new MySqlVerifiedPaymentResultRepository(
@@ -982,6 +998,7 @@ export function createPaymentsApi({
           rateLimits,
           audit: (event) => runtimeAudit(audit, event),
         });
+      startupStage = "CHECKOUT_PROVIDER";
       const transport = new CheckoutHttpTransport({
         application,
         ticketingApplication,
@@ -1015,6 +1032,7 @@ export function createPaymentsApi({
         clock: systemCheckoutClock,
         ...(statusTtlSeconds === undefined ? {} : { statusTtlSeconds }),
       });
+      startupStage = "RECONCILIATION_PROVIDER";
       const reconciliationRepository =
         new MySqlFinancialReconciliationRepository(financialPool);
       const reconciliationApplication = createReconciliationApplicationService({
@@ -1044,6 +1062,7 @@ export function createPaymentsApi({
         },
         clock: systemCheckoutClock,
       });
+      startupStage = "REFUND_PROVIDER";
       const refundApplication = createRefundApplicationService({
         payments,
         results: paymentResults,
@@ -1072,6 +1091,7 @@ export function createPaymentsApi({
         },
         clock: systemCheckoutClock,
       });
+      startupStage = "WEBHOOK_PROVIDER";
       const webhookTransport = new FinancialWebhookHttpTransport({
         verifier: createSandboxWebhookVerifierFromEnvironment(environment),
         events: new MySqlProviderWebhookEventRepository(financialPool),
@@ -1086,6 +1106,7 @@ export function createPaymentsApi({
         },
         clock: systemCheckoutClock,
       });
+      startupStage = "FINALIZE";
       runtime = Object.freeze({
         transport,
         authorityBootstrapTransport,
@@ -1115,7 +1136,7 @@ export function createPaymentsApi({
       runtimeAudit(audit, {
         action: "checkout.runtime",
         result: "failure",
-        reason: safeStartupFailureCode(error),
+        reason: safeStartupFailureCode(error, startupStage),
       });
       return false;
     }
