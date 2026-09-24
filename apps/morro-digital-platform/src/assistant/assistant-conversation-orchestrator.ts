@@ -166,6 +166,18 @@ function nextState(
   });
 }
 
+const CONVERSATION_BY_DOCUMENT = new WeakMap<Document, AssistantConversationOrchestrator>();
+
+export function getAssistantConversationOrchestrator(
+  document: Document,
+): AssistantConversationOrchestrator {
+  const existing = CONVERSATION_BY_DOCUMENT.get(document);
+  if (existing) return existing;
+  const created = createAssistantConversationOrchestrator();
+  CONVERSATION_BY_DOCUMENT.set(document, created);
+  return created;
+}
+
 export function createAssistantConversationOrchestrator(options?: {
   readonly sessionId?: string;
   readonly maxRecentTurns?: number;
