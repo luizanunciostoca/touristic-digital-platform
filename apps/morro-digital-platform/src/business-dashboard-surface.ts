@@ -143,6 +143,13 @@ interface OfferSurface {
   readonly salesEnd: HTMLInputElement;
   readonly startsAt: HTMLInputElement;
   readonly endsAt: HTMLInputElement;
+  readonly admissionFields: HTMLFieldSetElement;
+  readonly admissionSubtype: HTMLSelectElement;
+  readonly admissionOfferingId: HTMLInputElement;
+  readonly admissionPlaceId: HTMLInputElement;
+  readonly admissionTicketType: HTMLInputElement;
+  readonly admissionTierLabel: HTMLInputElement;
+  readonly admissionDisplayOrder: HTMLInputElement;
 }
 
 function createOfferSurface(document: Document): OfferSurface {
@@ -168,6 +175,21 @@ function createOfferSurface(document: Document): OfferSurface {
             <option value="transport">Transporte / passagem</option>
           </select>
         </label>
+        <fieldset id="morro-pro-admission-fields">
+          <legend>Ingresso / entrada</legend>
+          <label>Contexto
+            <select id="morro-pro-admission-subtype">
+              <option value="sunset">Sunset</option>
+              <option value="event">Evento</option>
+              <option value="party">Festa</option>
+            </select>
+          </label>
+          <label>ID canônico da oferta<input id="morro-pro-admission-offering-id" maxlength="120" placeholder="event_the_party_20260926" /></label>
+          <label>Place ID canônico<input id="morro-pro-admission-place-id" maxlength="120" placeholder="place_toca_do_morcego" /></label>
+          <label>Tipo de ingresso<input id="morro-pro-admission-ticket-type" maxlength="80" placeholder="Pista, VIP, Adulto…" /></label>
+          <label>Lote <span>opcional</span><input id="morro-pro-admission-tier" maxlength="80" placeholder="1º lote" /></label>
+          <label>Ordem de exibição<input id="morro-pro-admission-order" type="number" min="0" max="999" value="0" /></label>
+        </fieldset>
         <label>Valor (BRL)<input id="morro-pro-offer-price" type="number" min="0.01" step="0.01" required /></label>
         <label>Capacidade<input id="morro-pro-offer-capacity" type="number" min="1" max="100000" value="20" required /></label>
         <label>Máximo por reserva<input id="morro-pro-offer-max" type="number" min="1" max="20" value="4" required /></label>
@@ -215,6 +237,34 @@ function createOfferSurface(document: Document): OfferSurface {
       "morro-pro-offer-start",
     ),
     endsAt: requiredElement<HTMLInputElement>(document, "morro-pro-offer-end"),
+    admissionFields: requiredElement<HTMLFieldSetElement>(
+      document,
+      "morro-pro-admission-fields",
+    ),
+    admissionSubtype: requiredElement<HTMLSelectElement>(
+      document,
+      "morro-pro-admission-subtype",
+    ),
+    admissionOfferingId: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-admission-offering-id",
+    ),
+    admissionPlaceId: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-admission-place-id",
+    ),
+    admissionTicketType: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-admission-ticket-type",
+    ),
+    admissionTierLabel: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-admission-tier",
+    ),
+    admissionDisplayOrder: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-admission-order",
+    ),
   });
 }
 
@@ -224,6 +274,17 @@ function parsePositiveInteger(
 ): number {
   const value = Number(input.value);
   if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
+    throw new Error(`Valor inválido em ${input.id}.`);
+  }
+  return value;
+}
+
+function parseNonNegativeInteger(
+  input: HTMLInputElement,
+  maximum: number,
+): number {
+  const value = Number(input.value);
+  if (!Number.isSafeInteger(value) || value < 0 || value > maximum) {
     throw new Error(`Valor inválido em ${input.id}.`);
   }
   return value;
@@ -239,7 +300,7 @@ function offerInput(
     surface.kind.value === "tour" || surface.kind.value === "transport"
       ? surface.kind.value
       : "business_experience";
-  return Object.freeze({
+  const base = {
     productKind,
     productReference: createMorroProOfferReference(
       businessId,
@@ -248,7 +309,7 @@ function offerInput(
     ),
     label,
     unitAmountMinor: priceToMinorUnits(surface.price.value),
-    currency: "BRL",
+    currency: "BRL" as const,
     pricingVersion: "morro-pro-v1",
     capacity: parsePositiveInteger(surface.capacity, 100_000),
     maxPerReservation: parsePositiveInteger(surface.maxPerReservation, 20),
@@ -256,6 +317,30 @@ function offerInput(
     salesEndAt: localDateTimeToIso(surface.salesEnd.value),
     startsAt: localDateTimeToIso(surface.startsAt.value),
     endsAt: localDateTimeToIso(surface.endsAt.value),
+  };
+  if (productKind !== "business_experience") {
+    return Object.freeze(base);
+  }
+  const subtype =
+    surface.admissionSubtype.value === "sunset" ||
+    surface.admissionSubtype.value === "event" ||
+    surface.admissionSubtype.value === "party"
+      ? surface.admissionSubtype.value
+      : null;
+  if (!subtype) throw new Error("Contexto comercial inválido.");
+  return Object.freeze({
+    ...base,
+    admission: Object.freeze({
+      offeringId: surface.admissionOfferingId.value.trim(),
+      placeId: surface.admissionPlaceId.value.trim(),
+      subtype,
+      ticketType: surface.admissionTicketType.value.trim(),
+      tierLabel: surface.admissionTierLabel.value.trim() || null,
+      displayOrder: parseNonNegativeInteger(
+        surface.admissionDisplayOrder,
+        999,
+      ),
+    }),
   });
 }
 
@@ -284,7 +369,12 @@ function renderOffers(
     const title = document.createElement("h3");
     title.textContent = offer.label;
     const meta = document.createElement("p");
-    meta.textContent = `${offerMoney(offer)} · ${offer.capacity} vagas · ${offer.enabled ? "ativa" : "desativada"}`;
+    const admission = offer.admission
+      ? ` · ${offer.admission.subtype} · ${offer.admission.ticketType}${
+          offer.admission.tierLabel ? ` · ${offer.admission.tierLabel}` : ""
+        }`
+      : "";
+    meta.textContent = `${offerMoney(offer)} · ${offer.capacity} vagas${admission} · ${offer.enabled ? "ativa" : "desativada"}`;
     const id = document.createElement("small");
     id.textContent = offer.id;
     article.append(title, meta, id);
@@ -327,6 +417,25 @@ export async function mountBusinessDashboardSurface(
 
   let activeProfile: BusinessProfile | null = null;
   let businessId = "";
+
+  function syncAdmissionFields(): void {
+    const admission = offersSurface.kind.value === "business_experience";
+    offersSurface.admissionFields.hidden = !admission;
+    for (const input of [
+      offersSurface.admissionOfferingId,
+      offersSurface.admissionPlaceId,
+      offersSurface.admissionTicketType,
+    ]) {
+      input.required = admission;
+      input.disabled = !admission;
+    }
+    offersSurface.admissionSubtype.disabled = !admission;
+    offersSurface.admissionTierLabel.disabled = !admission;
+    offersSurface.admissionDisplayOrder.disabled = !admission;
+  }
+
+  offersSurface.kind.addEventListener("change", syncAdmissionFields);
+  syncAdmissionFields();
 
   function closeMobileMenu(): void {
     sidebar.classList.remove("mobile-open");
@@ -499,6 +608,8 @@ export async function mountBusinessDashboardSurface(
           offersSurface.form.reset();
           offersSurface.capacity.value = "20";
           offersSurface.maxPerReservation.value = "4";
+          offersSurface.admissionDisplayOrder.value = "0";
+          syncAdmissionFields();
           offersSurface.status.textContent = "Oferta publicada no inventário.";
         })
         .catch((error: unknown) => {
