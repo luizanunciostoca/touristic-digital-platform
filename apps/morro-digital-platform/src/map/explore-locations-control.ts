@@ -610,6 +610,7 @@ export function installExploreLocationsControl({
       if (backOption && stage !== "menu") {
         const backAction = backOption.action ?? "back-menu";
         contextualRailBack.hidden = false;
+        contextualRailBack.dataset.contextRailOption = "true";
         contextualRailBack.dataset.value = backOption.value;
         contextualRailBack.dataset.exploreAction = backAction;
         contextualRailBack.setAttribute(
@@ -666,6 +667,9 @@ export function installExploreLocationsControl({
 
     contextualRailScroll.replaceChildren(...buttons);
     contextualRailScroll.scrollLeft = 0;
+    if (contextualRailBack && !contextualRailBack.hidden) {
+      contextualRail.append(contextualRailBack);
+    }
     return buttons[0] ?? null;
   };
 
