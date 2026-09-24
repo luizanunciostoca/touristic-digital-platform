@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 
+import type { Order, OrderRequestKey } from "./index.js";
+
 import {
   createRestaurantReservationOrderApplicationService,
+  type RestaurantReservationOrderBinding,
 } from "./restaurant-reservation.js";
 
 describe("restaurant reservation ordering", () => {
   it("creates one pending-payment order and replays by reservation reference", async () => {
-    const byKey = new Map();
-    const bindings = new Map();
+    const byKey = new Map<OrderRequestKey, Order>();
+    const bindings = new Map<string, RestaurantReservationOrderBinding>();
     const service = createRestaurantReservationOrderApplicationService({
       orders: {
         async findById(id) {
@@ -68,8 +71,8 @@ describe("restaurant reservation ordering", () => {
   });
 
   it("rejects amount drift for the same reservation", async () => {
-    let order = null;
-    let binding = null;
+    let order: Order | null = null;
+    let binding: RestaurantReservationOrderBinding | null = null;
     const service = createRestaurantReservationOrderApplicationService({
       orders: {
         async findById(id) {
