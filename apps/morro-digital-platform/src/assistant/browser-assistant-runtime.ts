@@ -27,6 +27,7 @@ import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter
 import { createAssistantMessageDom } from "./assistant-message-dom.js";
 import {
   installAssistantContextualMessaging,
+  resolveAssistantContextualCopy,
   resolveExploreContextualState,
 } from "./assistant-contextual-state.js";
 import {
@@ -1481,11 +1482,25 @@ export function installBrowserAssistantRuntime(
     const state = readExploreState();
     const contextualState = resolveExploreContextualState(state);
     if (!contextualState) return;
-    contextualMessaging.publish(contextualState, {
+
+    const canonicalMessage = options.document.getElementById(
+      "assistant-category-results-message",
+    );
+    if (!(canonicalMessage instanceof HTMLElement)) return;
+
+    canonicalMessage.dataset.contextualState = contextualState;
+
+    // Explore owns its canonical rich detail/tour presentation. Project
+    // contextual copy only into the plain category-flow message so the global
+    // single-message controller never has to arbitrate a second message node.
+    if (canonicalMessage.dataset.messageType !== "category-flow") return;
+
+    const rendered = resolveAssistantContextualCopy(contextualState, {
       category: state.category,
       place: placeHint ?? state.place,
       count: state.markerCount,
     });
+    canonicalMessage.textContent = rendered.message;
   };
 
   const syncExplorePresentation = (placeHint?: string): void => {
