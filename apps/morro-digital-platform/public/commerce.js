@@ -16,7 +16,7 @@ if (mode !== "table_reservation") {
   location.replace(target);
 }
 
-const businessId = params.get("businessId") || "";
+let businessId = params.get("businessId") || "";
 const placeId = params.get("placeId") || "";
 const title = (params.get("title") || "").trim().slice(0, 160);
 const placeLabel = (params.get("place") || "").trim().slice(0, 160);
@@ -299,6 +299,67 @@ function renderSlots() {
     button.append(time, meta);
     button.addEventListener("click", () => selectSlot(entry));
     elements.slots.append(button);
+  }
+}
+
+async function resolveRestaurantIdentity() {
+  if (businessIdPattern.test(businessId)) return true;
+  if (!placeId || !placeIdPattern.test(placeId)) return false;
+
+  setStatus("Localizando opções de reserva…");
+  try {
+    const payload = await api(
+      `/api/commerce/v1/places/${encodeURIComponent(placeId)}/offerings`,
+    );
+    const restaurants = Array.isArray(payload.data)
+      ? payload.data.filter(
+          (offer) =>
+            offer?.commerceMode === "table_reservation" &&
+            offer?.placeId === placeId &&
+            businessIdPattern.test(offer?.businessId || ""),
+        )
+      : [];
+
+    if (restaurants.length === 0) return false;
+    if (restaurants.length === 1) {
+      businessId = restaurants[0].businessId;
+      return true;
+    }
+
+    elements.slots.replaceChildren();
+    elements.slots.removeAttribute("aria-busy");
+    elements.date.disabled = true;
+    for (const chip of elements.dateChips) chip.disabled = true;
+    setStatus("Escolha a opção de reserva deste local.");
+
+    restaurants.forEach((offer, index) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "commerce-slot";
+      button.setAttribute("role", "option");
+      button.dataset.businessId = offer.businessId;
+      const title = document.createElement("strong");
+      title.textContent =
+        typeof offer.title === "string" &&
+        offer.title.trim() &&
+        offer.title !== "Reservar mesa"
+          ? offer.title.trim()
+          : `Opção ${index + 1}`;
+      const meta = document.createElement("small");
+      meta.textContent = offer.sellable ? "Disponível" : "Em breve";
+      button.disabled = offer.sellable !== true;
+      button.append(title, meta);
+      button.addEventListener("click", () => {
+        businessId = offer.businessId;
+        elements.date.disabled = false;
+        for (const chip of elements.dateChips) chip.disabled = false;
+        void loadAvailability();
+      });
+      elements.slots.append(button);
+    });
+    return null;
+  } catch {
+    return false;
   }
 }
 
@@ -661,20 +722,22 @@ function configurePresentation() {
 async function initialize() {
   configurePresentation();
 
-  if (!businessIdPattern.test(businessId)) {
-    setStatus(
-      "Este restaurante ainda não possui uma identidade Commerce vinculada. A reserva online não pode ser aberta com segurança.",
-      "error",
-    );
-    elements.date.disabled = true;
-    for (const chip of elements.dateChips) chip.disabled = true;
-    elements.slots.removeAttribute("aria-busy");
-    elements.slots.replaceChildren();
-    return;
-  }
-
   try {
     await session();
+    const identity = await resolveRestaurantIdentity();
+    if (identity === false) {
+      setStatus(
+        "Este restaurante ainda não possui uma identidade Commerce vinculada. A reserva online não pode ser aberta com segurança.",
+        "error",
+      );
+      elements.date.disabled = true;
+      for (const chip of elements.dateChips) chip.disabled = true;
+      elements.slots.removeAttribute("aria-busy");
+      elements.slots.replaceChildren();
+      return;
+    }
+    if (identity === null) return;
+
     state.date = bahiaDate(0);
     await loadAvailability();
     await resumeCheckout();
