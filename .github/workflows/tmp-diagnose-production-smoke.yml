@@ -1,0 +1,35 @@
+name: Temporary Diagnose Production Smoke
+
+on:
+  push:
+    branches:
+      - ops/diagnose-production-smoke-c559-20260924
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: c5597ea63d4f7beb4b69cbae4b84d4f4c9bb78b8
+          fetch-depth: 1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+      - name: Run exact production smoke with diagnostics
+        env:
+          MORRO_V2_BASE_URL: https://morro-digital-v2.onrender.com
+        run: node tooling/payments/render-v2-smoke.mjs
+      - name: Remove helper
+        if: always()
+        run: |
+          git checkout ops/diagnose-production-smoke-c559-20260924
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-diagnose-production-smoke.yml
+          git commit -m "chore(ci): remove production smoke diagnostic helper"
+          git push origin HEAD:ops/diagnose-production-smoke-c559-20260924
