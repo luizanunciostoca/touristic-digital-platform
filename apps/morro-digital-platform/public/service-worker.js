@@ -67,7 +67,6 @@ function isRuntimeAsset(pathname) {
   return /\.(?:css|html|js|json)$/u.test(pathname);
 }
 
-
 async function cachePrecacheEntry(cache, url) {
   try {
     const response = await fetch(new Request(url, { cache: "reload" }));
