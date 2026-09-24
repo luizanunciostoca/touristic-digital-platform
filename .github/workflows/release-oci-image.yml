@@ -61,6 +61,8 @@ jobs:
           set -euo pipefail
           image="$IMAGE_REPOSITORY:$EXPECTED_SHA"
           docker build --pull --target production \
+            --build-arg "MORRO_RELEASE_SHA=$EXPECTED_SHA" \
+            --build-arg "MORRO_RELEASE_VERSION=$EXPECTED_SHA" \
             --label "org.opencontainers.image.revision=$EXPECTED_SHA" \
             --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
             -t "$image" .
