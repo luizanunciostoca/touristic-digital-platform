@@ -2449,6 +2449,7 @@ html[dir="rtl"]
 
 #unified-assistant-dock > #assistant-category-rail .md-context-rail-back {
   display: grid;
+  order: -1;
   flex: 0 0 var(--md-context-rail-back-size);
   width: var(--md-context-rail-back-size);
   min-width: var(--md-context-rail-back-size);
