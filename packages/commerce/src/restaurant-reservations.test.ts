@@ -12,6 +12,7 @@ function reservation(overrides: Record<string, unknown> = {}) {
   return {
     id: "rrv_12345678",
     requestKey: "rrq_rsl_dinner_0001_attempt_0001",
+    slotId: "rsl_dinner_0001",
     businessId: "business_toca",
     placeId: "place_toca",
     destinationId: "morro-de-sao-paulo",
