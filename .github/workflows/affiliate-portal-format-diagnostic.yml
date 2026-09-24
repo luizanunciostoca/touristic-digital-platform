@@ -45,7 +45,10 @@ jobs:
             apps/morro-digital-platform/tooling/affiliates-api.test.mjs
           )
           pnpm exec prettier --write "${files[@]}"
-          echo "===== PRETTIER_DIFF_BEGIN ====="
-          git diff --no-ext-diff --unified=20 -- "${files[@]}"
-          echo "===== PRETTIER_DIFF_END ====="
+          for file in "${files[@]}"; do
+            echo "===== PRETTIER_FILE_BEGIN:${file} ====="
+            base64 -w 0 "${file}"
+            echo
+            echo "===== PRETTIER_FILE_END:${file} ====="
+          done
           test -z "$(git diff --name-only -- "${files[@]}")" || true
