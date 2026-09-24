@@ -51,8 +51,9 @@ function ensureControlButton(
   button.title = "Alternar perspectiva 3D";
   button.setAttribute("aria-label", "Alternar perspectiva 3D");
   button.setAttribute("aria-pressed", "false");
+  button.dataset.mapControl = "3d";
   button.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4.5 7.2 12 11.4l7.5-4.2L12 3Z"></path><path d="m4.5 7.2 7.5 4.2 7.5-4.2v9.6L12 21l-7.5-4.2V7.2Z"></path><path d="M12 11.4V21"></path></svg><span class="control-tooltip">Visão 3D</span>`;
-  container.prepend(button);
+  container.append(button);
   return button;
 }
 
