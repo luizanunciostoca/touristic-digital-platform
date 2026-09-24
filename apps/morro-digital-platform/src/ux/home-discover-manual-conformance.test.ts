@@ -3,6 +3,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { createAppShellMarkup } from "../layouts/app-shell.js";
+
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 async function readRepository(path: string): Promise<string> {
@@ -147,20 +149,25 @@ describe("Home / Discover UX V2 manual conformance", () => {
   });
 
   it("pins Wave A Discover camera, POIs, chips and recenter semantics to the Golden contract", async () => {
-    const [shell, runtime, css, staging] = await Promise.all([
-      readRepository("apps/morro-digital-platform/src/layouts/app-shell.ts"),
+    const [runtime, css, staging] = await Promise.all([
       readRepository("apps/morro-digital-platform/src/browser-entry.ts"),
       readRepository("apps/morro-digital-platform/public/tourist-shell-v2.css"),
       readRepository("render.staging.yaml"),
     ]);
+    const shell = createAppShellMarkup();
 
     expect(shell).toContain('id="discover-category-rail"');
     for (const category of [
       "beaches",
+      "tours",
+      "attractions",
       "restaurants",
       "hotels",
-      "attractions",
       "nightlife",
+      "shops",
+      "transport",
+      "emergencies",
+      "help",
     ]) {
       expect(shell).toContain(`data-discover-category="${category}"`);
     }

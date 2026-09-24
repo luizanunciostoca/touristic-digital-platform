@@ -1,8 +1,55 @@
+import { getAssistantMainMenu } from "@touristic/assistant";
+
 export interface AppShellMountOptions {
   readonly document: Document;
 }
 
-function createAppShellMarkup(): string {
+const CATEGORY_ICONS = {
+  beaches: "fa-umbrella-beach",
+  tours: "fa-route",
+  attractions: "fa-camera",
+  restaurants: "fa-utensils",
+  hotels: "fa-bed",
+  nightlife: "fa-moon",
+  shops: "fa-shopping-bag",
+  transport: "fa-bus",
+  emergencies: "fa-exclamation-triangle",
+  help: "fa-question-circle",
+} as const;
+
+const canonicalCategories = getAssistantMainMenu("pt");
+
+function createDiscoverCategoryMarkup(): string {
+  return canonicalCategories
+    .map(
+      ({ value, label }) =>
+        `<button type="button" class="md-discover-chip" data-discover-category="${value}" aria-pressed="false">${label}</button>`,
+    )
+    .join("\n");
+}
+
+function createLegacyAssistantCategoryMarkup(): string {
+  return canonicalCategories
+    .map(
+      ({ value, label }) =>
+        `<button type="button" class="assistant-option-btn" data-value="${value}">${label}</button>`,
+    )
+    .join("\n");
+}
+
+function createAssistantCategoryRailMarkup(): string {
+  return canonicalCategories
+    .map(
+      ({ value, label }) => `
+          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="${value}" data-value="${value}" aria-pressed="false">
+          <i class="fas ${CATEGORY_ICONS[value]}" aria-hidden="true"></i>
+          <span class="md-assistant-category-label">${label}</span>
+          </button>`,
+    )
+    .join("\n");
+}
+
+export function createAppShellMarkup(): string {
   return `
     <div
       class="app-shell md-viewport-shell md-tourist-shell-v2"
@@ -62,11 +109,7 @@ function createAppShellMarkup(): string {
         aria-label="Explorar por categoria"
         data-discover-category-rail
       >
-        <button type="button" class="md-discover-chip" data-discover-category="beaches" aria-pressed="false">Praias</button>
-        <button type="button" class="md-discover-chip" data-discover-category="restaurants" aria-pressed="false">Restaurantes</button>
-        <button type="button" class="md-discover-chip" data-discover-category="hotels" aria-pressed="false">Pousadas</button>
-        <button type="button" class="md-discover-chip" data-discover-category="attractions" aria-pressed="false">Passeios</button>
-        <button type="button" class="md-discover-chip" data-discover-category="nightlife" aria-pressed="false">Noite</button>
+        ${createDiscoverCategoryMarkup()}
       </div>
 
       <section id="submenu" class="hidden">
@@ -95,16 +138,7 @@ function createAppShellMarkup(): string {
 Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           </div>
           <div class="assistant-options md-assistant-options" data-assistant-command-source="legacy-category-routing">
-            <button type="button" class="assistant-option-btn" data-value="beaches">Beaches</button>
-            <button type="button" class="assistant-option-btn" data-value="tours">Tours</button>
-            <button type="button" class="assistant-option-btn" data-value="attractions">Attractions</button>
-            <button type="button" class="assistant-option-btn" data-value="restaurants">Restaurants</button>
-            <button type="button" class="assistant-option-btn" data-value="hotels">Hotels</button>
-            <button type="button" class="assistant-option-btn" data-value="nightlife">Nightlife</button>
-            <button type="button" class="assistant-option-btn" data-value="shops">Shops</button>
-            <button type="button" class="assistant-option-btn" data-value="transport">Transport</button>
-            <button type="button" class="assistant-option-btn" data-value="emergencies">Emergencies</button>
-            <button type="button" class="assistant-option-btn" data-value="help">Help</button>
+            ${createLegacyAssistantCategoryMarkup()}
           </div>
         </div>
         <div class="navigation-instruction-area" role="status" aria-live="polite"></div>
@@ -171,46 +205,7 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
           <span class="md-context-rail-back-icon" aria-hidden="true">‹</span>
         </button>
         <div class="md-assistant-category-scroll">
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="beaches" data-value="beaches" aria-pressed="false">
-          <i class="fas fa-umbrella-beach" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Praias</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="tours" data-value="tours" aria-pressed="false">
-          <i class="fas fa-route" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Tours</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="attractions" data-value="attractions" aria-pressed="false">
-          <i class="fas fa-camera" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Atrações</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="restaurants" data-value="restaurants" aria-pressed="false">
-          <i class="fas fa-utensils" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Restaurantes</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="hotels" data-value="hotels" aria-pressed="false">
-          <i class="fas fa-bed" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Hotéis</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="nightlife" data-value="nightlife" aria-pressed="false">
-          <i class="fas fa-moon" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Vida Noturna</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="shops" data-value="shops" aria-pressed="false">
-          <i class="fas fa-shopping-bag" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Lojas</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="transport" data-value="transport" aria-pressed="false">
-          <i class="fas fa-bus" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Transporte</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="emergencies" data-value="emergencies" aria-pressed="false">
-          <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Emergências</span>
-          </button>
-          <button type="button" class="md-assistant-category-chip md-context-rail-button md-context-rail-button--category" data-assistant-category="help" data-value="help" aria-pressed="false">
-          <i class="fas fa-question-circle" aria-hidden="true"></i>
-          <span class="md-assistant-category-label">Ajuda</span>
-          </button>
+          ${createAssistantCategoryRailMarkup()}
         </div>
         <button
           type="button"
@@ -333,32 +328,19 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
       <div id="globe-map-control" class="globe-map-control md-map-control-stack" aria-label="Controles do mapa">
         <button
           type="button"
-          id="recenter-map-control"
+          id="toggle-3d-mode"
           class="map-control-button md-icon-button md-map-control"
-          title="Mostrar minha localização"
-          aria-label="Mostrar minha localização no mapa"
-          data-map-control="user-location"
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="4"></circle>
-            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
-            <circle cx="12" cy="12" r="9"></circle>
-          </svg>
-          <span class="control-tooltip">Minha localização</span>
-        </button>
-        <button
-          type="button"
-          id="toggle-globe-view"
-          class="map-control-button md-icon-button md-map-control"
-          title="Toggle global map view"
-          aria-label="Toggle global map view"
+          title="Alternar perspectiva 3D"
+          aria-label="Alternar perspectiva 3D"
           aria-pressed="false"
+          data-map-control="3d"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
-            <circle cx="12" cy="12" r="9"></circle>
-            <path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21M12 3c-2.4 2.5-3.6 5.5-3.6 9S9.6 18.5 12 21"></path>
+            <path d="M12 3 4.5 7.2 12 11.4l7.5-4.2L12 3Z"></path>
+            <path d="m4.5 7.2 7.5 4.2 7.5-4.2v9.6L12 21l-7.5-4.2V7.2Z"></path>
+            <path d="M12 11.4V21"></path>
           </svg>
-          <span class="control-tooltip">Global view</span>
+          <span class="control-tooltip">Visão 3D</span>
         </button>
         <button
           type="button"
@@ -374,6 +356,36 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
             <path d="M8 3v15M16 6v15"></path>
           </svg>
           <span class="control-tooltip">Mapa</span>
+        </button>
+        <button
+          type="button"
+          id="toggle-globe-view"
+          class="map-control-button md-icon-button md-map-control"
+          title="Alternar visualização global"
+          aria-label="Alternar visualização global"
+          aria-pressed="false"
+          data-map-control="global"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M3 12h18M12 3c2.4 2.5 3.6 5.5 3.6 9S14.4 18.5 12 21M12 3c-2.4 2.5-3.6 5.5-3.6 9S9.6 18.5 12 21"></path>
+          </svg>
+          <span class="control-tooltip">Global View</span>
+        </button>
+        <button
+          type="button"
+          id="recenter-map-control"
+          class="map-control-button md-icon-button md-map-control"
+          title="Mostrar minha localização"
+          aria-label="Mostrar minha localização no mapa"
+          data-map-control="user-location"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+          </svg>
+          <span class="control-tooltip">Minha localização</span>
         </button>
       </div>
 

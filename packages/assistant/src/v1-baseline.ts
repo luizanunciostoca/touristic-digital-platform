@@ -1,3 +1,5 @@
+import { ASSISTANT_MAIN_MENU } from "./menu.js";
+
 // prettier-ignore
 export const V1_ASSISTANT_BASELINE = {
   featureId: "FEATURE-0004",
@@ -6,78 +8,13 @@ export const V1_ASSISTANT_BASELINE = {
   legacyCommit: "60746fd7fed97b805758b37adfdbe3bad2582bfe",
   legacyRoot: "js/assistant",
 
-  canonicalMenu: [
-    {
-      value: "beaches",
-      pt: "Praias",
-      en: "Beaches",
-      es: "Playas",
-      he: "חופים",
-    },
-    {
-      value: "restaurants",
-      pt: "Restaurantes",
-      en: "Restaurants",
-      es: "Restaurantes",
-      he: "מסעדות",
-    },
-    {
-      value: "hotels",
-      pt: "Pousadas",
-      en: "Hotels",
-      es: "Hoteles",
-      he: "מלונות",
-    },
-    {
-      value: "shops",
-      pt: "Lojas",
-      en: "Shops",
-      es: "Tiendas",
-      he: "חנויות",
-    },
-    {
-      value: "transport",
-      pt: "Transporte",
-      en: "Transport",
-      es: "Transporte",
-      he: "תחבורה",
-    },
-    {
-      value: "attractions",
-      pt: "Atrações",
-      en: "Attractions",
-      es: "Atracciones",
-      he: "אטרקציות",
-    },
-    {
-      value: "tours",
-      pt: "Passeios",
-      en: "Tours",
-      es: "Paseos",
-      he: "סיורים",
-    },
-    {
-      value: "nightlife",
-      pt: "Vida Noturna",
-      en: "Nightlife",
-      es: "Vida Nocturna",
-      he: "חיי לילה",
-    },
-    {
-      value: "emergencies",
-      pt: "Emergências",
-      en: "Emergencies",
-      es: "Emergencias",
-      he: "מקרי חירום",
-    },
-    {
-      value: "help",
-      pt: "Ajuda",
-      en: "Help",
-      es: "Ayuda",
-      he: "עזרה",
-    },
-  ],
+  canonicalMenu: ASSISTANT_MAIN_MENU.map(({ value, labels }) => ({
+    value,
+    pt: labels.pt,
+    en: labels.en,
+    es: labels.es,
+    he: labels.he,
+  })),
 
   locales: ["pt", "en", "es", "he"],
 

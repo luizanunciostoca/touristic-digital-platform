@@ -2,75 +2,66 @@ export const ASSISTANT_LOCALES = ["pt", "en", "es", "he"] as const;
 
 export type AssistantLocale = (typeof ASSISTANT_LOCALES)[number];
 
-export const ASSISTANT_MAIN_MENU = [
-  {
-    value: "beaches",
-    labels: { pt: "Praias", en: "Beaches", es: "Playas", he: "חופים" },
-  },
-  {
-    value: "tours",
-    labels: { pt: "Passeios", en: "Tours", es: "Paseos", he: "סיורים" },
-  },
-  {
-    value: "attractions",
-    labels: {
-      pt: "Atrações",
-      en: "Attractions",
-      es: "Atracciones",
-      he: "אטרקציות",
-    },
-  },
-  {
-    value: "restaurants",
-    labels: {
-      pt: "Restaurantes",
-      en: "Restaurants",
-      es: "Restaurantes",
-      he: "מסעדות",
-    },
-  },
-  {
-    value: "hotels",
-    labels: { pt: "Pousadas", en: "Hotels", es: "Hoteles", he: "מלונות" },
-  },
-  {
-    value: "nightlife",
-    labels: {
-      pt: "Vida Noturna",
-      en: "Nightlife",
-      es: "Vida Nocturna",
-      he: "חיי לילה",
-    },
-  },
-  {
-    value: "shops",
-    labels: { pt: "Lojas", en: "Shops", es: "Tiendas", he: "חנויות" },
-  },
-  {
-    value: "transport",
-    labels: {
-      pt: "Transporte",
-      en: "Transport",
-      es: "Transporte",
-      he: "תחבורה",
-    },
-  },
-  {
-    value: "emergencies",
-    labels: {
-      pt: "Emergências",
-      en: "Emergencies",
-      es: "Emergencias",
-      he: "מקרי חירום",
-    },
-  },
-  {
-    value: "help",
-    labels: { pt: "Ajuda", en: "Help", es: "Ayuda", he: "עזרה" },
-  },
+export const CANONICAL_CATEGORY_ORDER = [
+  "beaches",
+  "tours",
+  "attractions",
+  "restaurants",
+  "hotels",
+  "nightlife",
+  "shops",
+  "transport",
+  "emergencies",
+  "help",
 ] as const;
 
-export type AssistantMenuValue = (typeof ASSISTANT_MAIN_MENU)[number]["value"];
+export type AssistantMenuValue = (typeof CANONICAL_CATEGORY_ORDER)[number];
+
+export const CANONICAL_CATEGORY_LABELS = {
+  beaches: { pt: "Praias", en: "Beaches", es: "Playas", he: "חופים" },
+  tours: { pt: "Passeios", en: "Tours", es: "Paseos", he: "סיורים" },
+  attractions: {
+    pt: "Atrações",
+    en: "Attractions",
+    es: "Atracciones",
+    he: "אטרקציות",
+  },
+  restaurants: {
+    pt: "Restaurantes",
+    en: "Restaurants",
+    es: "Restaurantes",
+    he: "מסעדות",
+  },
+  hotels: { pt: "Pousadas", en: "Hotels", es: "Hoteles", he: "מלונות" },
+  nightlife: {
+    pt: "Vida Noturna",
+    en: "Nightlife",
+    es: "Vida Nocturna",
+    he: "חיי לילה",
+  },
+  shops: { pt: "Lojas", en: "Shops", es: "Tiendas", he: "חנויות" },
+  transport: {
+    pt: "Transporte",
+    en: "Transport",
+    es: "Transporte",
+    he: "תחבורה",
+  },
+  emergencies: {
+    pt: "Emergências",
+    en: "Emergencies",
+    es: "Emergencias",
+    he: "מקרי חירום",
+  },
+  help: { pt: "Ajuda", en: "Help", es: "Ayuda", he: "עזרה" },
+} as const satisfies Record<
+  AssistantMenuValue,
+  Record<AssistantLocale, string>
+>;
+
+export const ASSISTANT_MAIN_MENU = CANONICAL_CATEGORY_ORDER.map((value) => ({
+  value,
+  labels: CANONICAL_CATEGORY_LABELS[value],
+}));
 
 export function getAssistantMainMenu(locale: AssistantLocale = "pt") {
   return ASSISTANT_MAIN_MENU.map((item) => ({
