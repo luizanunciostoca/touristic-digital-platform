@@ -2690,7 +2690,7 @@ html:not([dir="rtl"])
   #unified-assistant-dock
   > #assistant-category-rail.md-assistant-category-rail {
   display: grid;
-  grid-template-columns: var(--md-context-rail-back-size) minmax(0, 1fr);
+  grid-template-columns: calc(var(--md-context-rail-back-size) + 0.25rem) minmax(0, 1fr);
   column-gap: 0.5rem;
   align-items: center;
   padding-inline: 0.75rem;
@@ -2702,6 +2702,7 @@ html:not([dir="rtl"])
   .md-context-rail-back {
   grid-column: 1;
   grid-row: 1;
+  justify-self: center;
   margin: 0;
   position: relative;
   inset: auto;
@@ -2724,7 +2725,7 @@ html[dir="rtl"]
   #unified-assistant-dock
   > #assistant-category-rail.md-assistant-category-rail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--md-context-rail-back-size);
+  grid-template-columns: minmax(0, 1fr) calc(var(--md-context-rail-back-size) + 0.25rem);
   column-gap: 0.5rem;
   align-items: center;
   padding-inline: 0.75rem;
@@ -2736,6 +2737,7 @@ html[dir="rtl"]
   .md-context-rail-back {
   grid-column: 2;
   grid-row: 1;
+  justify-self: center;
   margin: 0;
   position: relative;
   inset: auto;
@@ -2767,7 +2769,7 @@ html[dir="rtl"]
 #unified-assistant-dock
   > #assistant-category-rail
   .md-context-rail-back::before {
-  inset: 0;
+  inset: -0.125rem;
 }
 
 @media (max-width: 24.375rem) {
