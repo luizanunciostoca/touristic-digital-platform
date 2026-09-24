@@ -80,12 +80,19 @@ export interface ConversationTransitionInput {
   readonly timestamp?: number;
 }
 
+export interface ConversationObservabilitySnapshot {
+  readonly turnsCreated: number;
+  readonly duplicateAttempts: number;
+  readonly asyncSequence: number;
+}
+
 export interface AssistantConversationOrchestrator {
   transition(input: ConversationTransitionInput): ConversationTurn;
   snapshot(): ConversationStateSnapshot;
   recentTurns(): readonly ConversationTurn[];
   issueSequence(): number;
   isCurrentSequence(sequence: number): boolean;
+  observability(): ConversationObservabilitySnapshot;
 }
 
 function initialState(sessionId: string, now: number): ConversationStateSnapshot {
@@ -189,14 +196,29 @@ export function createAssistantConversationOrchestrator(options?: {
   const maxRecentTurns = Math.max(4, Math.min(50, options?.maxRecentTurns ?? 16));
   let state = initialState(sessionId, now());
   let turns: ConversationTurn[] = [];
-  let sequence = 0;
+  let turnSequence = 0;
+  let asyncSequence = 0;
+  let duplicateAttempts = 0;
 
   return Object.freeze({
     transition(input: ConversationTransitionInput): ConversationTurn {
       const timestamp = input.timestamp ?? now();
       const previousState = state;
-      const previousTurnId = turns.at(-1)?.id ?? null;
-      const id = `${sessionId}:${++sequence}`;
+      const previousTurn = turns.at(-1);
+      if (
+        previousTurn &&
+        previousTurn.cause === input.cause &&
+        previousTurn.messageKey === input.messageKey &&
+        previousTurn.renderedText === input.renderedText &&
+        previousTurn.nextState.source === (input.source ?? previousState.source)
+      ) {
+        duplicateAttempts += 1;
+        return previousTurn;
+      }
+
+      const previousTurnId = previousTurn?.id ?? null;
+      const id = `${sessionId}:${++turnSequence}`;
+      asyncSequence += 1;
       const updated = nextState(previousState, input, id, timestamp);
       const turn = Object.freeze({
         id,
@@ -221,10 +243,17 @@ export function createAssistantConversationOrchestrator(options?: {
     snapshot: () => state,
     recentTurns: () => Object.freeze([...turns]),
     issueSequence(): number {
-      return ++sequence;
+      return ++asyncSequence;
     },
     isCurrentSequence(candidate: number): boolean {
-      return candidate === sequence;
+      return candidate === asyncSequence;
+    },
+    observability(): ConversationObservabilitySnapshot {
+      return Object.freeze({
+        turnsCreated: turns.length,
+        duplicateAttempts,
+        asyncSequence,
+      });
     },
   });
 }
