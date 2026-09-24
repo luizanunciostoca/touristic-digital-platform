@@ -548,10 +548,10 @@ export function installAssistantContextualMessaging(
       ...(variables.place
         ? {
             place: variables.place,
-            navigationDestination:
-              state === "navigation_starting" || state === "navigation_active"
-                ? variables.place
-                : undefined,
+            ...(state === "navigation_starting" ||
+            state === "navigation_active"
+              ? { navigationDestination: variables.place }
+              : {}),
           }
         : {}),
       ...(Number.isFinite(variables.count)
