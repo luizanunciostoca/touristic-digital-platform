@@ -2961,3 +2961,157 @@ html[dir="rtl"]
   content: none !important;
   display: none !important;
 }
+
+
+/* -------------------------------------------------------------------------- */
+/* Context Rail clipped viewport authority                                    */
+/* -------------------------------------------------------------------------- */
+
+/* A dedicated clipping viewport creates a real layout boundary between the
+ * structural Back control and horizontally scrollable options. No option can
+ * paint or receive pointer events outside the viewport, even after
+ * scrollIntoView() or scroll-snap adjustments. */
+#unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem minmax(0, 1fr);
+  column-gap: 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  overflow: hidden;
+  direction: ltr;
+  pointer-events: auto;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: static;
+  inset: auto;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  z-index: auto;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  border-radius: 0.8125rem;
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-subtle) 82%,
+    var(--md-color-surface-card)
+  );
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 5%, transparent),
+    0 2px 6px color-mix(in srgb, var(--md-color-text-primary) 4%, transparent);
+  pointer-events: none;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-scroll-viewport {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: auto;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-scroll-viewport
+  .md-assistant-category-scroll {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding-inline: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-padding-inline: 0;
+  clip-path: inset(0);
+  pointer-events: auto;
+}
+
+/* Menu has no Back control, so the viewport can use the entire rail width. */
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-context-rail-scroll-viewport {
+  grid-column: 1;
+}
+
+/* True RTL mirrors the two physical columns; the scroll content itself keeps
+ * its existing RTL direction contract. */
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  direction: rtl;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  grid-column: 2;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-scroll-viewport {
+  grid-column: 1;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail[data-rail-stage="menu"]
+  .md-context-rail-scroll-viewport {
+  grid-column: 1;
+}
+
+#unified-assistant-dock > #assistant-category-rail::after {
+  content: none !important;
+  display: none !important;
+}
