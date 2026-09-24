@@ -485,9 +485,7 @@ function discoverCameraPadding(): {
   };
 }
 
-function installMapLayerToggle(
-  map: MapboxGlMapLike,
-): () => void {
+function installMapLayerToggle(map: MapboxGlMapLike): () => void {
   const button = document.getElementById("toggle-map-layer");
   const mapElement = document.getElementById("map");
   if (!(button instanceof HTMLButtonElement)) return () => undefined;
@@ -502,14 +500,10 @@ function installMapLayerToggle(
   const render = (): void => {
     button.classList.toggle("active", satellite);
     button.setAttribute("aria-pressed", String(satellite));
-    button.title = satellite
-      ? "Usar mapa padrão"
-      : "Usar mapa de satélite";
+    button.title = satellite ? "Usar mapa padrão" : "Usar mapa de satélite";
     button.setAttribute(
       "aria-label",
-      satellite
-        ? "Alterar para mapa padrão"
-        : "Alterar para mapa de satélite",
+      satellite ? "Alterar para mapa padrão" : "Alterar para mapa de satélite",
     );
     mapElement?.setAttribute(
       "data-map-layer",
