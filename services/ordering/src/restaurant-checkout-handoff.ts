@@ -172,12 +172,6 @@ export function verifyRestaurantCheckoutHandoffCapability(
         : payload.rk === "authenticated"
           ? "authenticated"
           : null;
-    const context = normalizeCheckoutRequestContext({
-      requesterKind,
-      actorSubject,
-      destinationId,
-      tenantId,
-    });
     const issuedAt = payload.iat;
     const expiresAt = payload.exp;
     if (
@@ -197,7 +191,6 @@ export function verifyRestaurantCheckoutHandoffCapability(
       expiresAt <= nowEpochSeconds ||
       expiresAt <= issuedAt ||
       expiresAt - issuedAt > maxTtlSeconds ||
-      !context ||
       !safeEqual(
         payload.fp,
         restaurantCheckoutHandoffFingerprint(handoff),
@@ -205,7 +198,12 @@ export function verifyRestaurantCheckoutHandoffCapability(
     ) {
       return null;
     }
-    return context;
+    return normalizeCheckoutRequestContext({
+      requesterKind,
+      actorSubject,
+      destinationId,
+      tenantId,
+    });
   } catch {
     return null;
   }
