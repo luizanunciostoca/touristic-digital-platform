@@ -1,0 +1,33 @@
+name: Temporary Dispatch Release Promotion
+
+on:
+  push:
+    branches:
+      - ops/dispatch-release-promotion-e82a6bb2
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  dispatch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops/dispatch-release-promotion-e82a6bb2
+          fetch-depth: 0
+      - name: Dispatch exact-SHA release promotion gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run release-promotion-gate.yml --ref main -f expected_sha=e82a6bb2ef491744bd4d12e270c08d7bd9b5df92
+      - name: Remove temporary dispatcher
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-dispatch-release-promotion.yml
+          git commit -m "chore(ci): remove release promotion dispatcher"
+          git push origin HEAD:ops/dispatch-release-promotion-e82a6bb2
