@@ -5,6 +5,15 @@ import type {
 } from "@touristic/auth-browser";
 import { normalizeBusinessId, type BusinessProfile } from "@touristic/business";
 
+export interface MorroProAdmissionProfile {
+  readonly offeringId: string;
+  readonly placeId: string;
+  readonly subtype: "sunset" | "event" | "party";
+  readonly ticketType: string;
+  readonly tierLabel: string | null;
+  readonly displayOrder: number;
+}
+
 export interface MorroProInventoryOffer {
   readonly id: string;
   readonly businessId: string;
@@ -22,6 +31,7 @@ export interface MorroProInventoryOffer {
   readonly startsAt: string;
   readonly endsAt: string;
   readonly enabled: boolean;
+  readonly admission?: MorroProAdmissionProfile;
 }
 
 export interface MorroProOfferInput {
@@ -37,6 +47,7 @@ export interface MorroProOfferInput {
   readonly salesEndAt: string;
   readonly startsAt: string;
   readonly endsAt: string;
+  readonly admission?: MorroProAdmissionProfile;
 }
 
 export interface BusinessDashboardBootstrap {
