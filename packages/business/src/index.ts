@@ -233,3 +233,5 @@ export {
   type Subcategory,
   type SubcategoryId,
 } from "./place-domain.js";
+
+export * from "./commerce-domain.js";
