@@ -75,7 +75,9 @@ describe("UX V2 Wave E active navigation convergence", () => {
         readRepository("apps/morro-digital-platform/public/premium-ux-v2.css"),
       ]);
 
-      expect(guidance).toContain('setAttribute("data-dock-mode", "navigation")');
+      expect(guidance).toContain(
+        'setAttribute("data-dock-mode", "navigation")',
+      );
       expect(guidance).toContain(
         'setAttribute("data-navigation-summary", "true")',
       );
