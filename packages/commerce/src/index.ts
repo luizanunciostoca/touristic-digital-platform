@@ -142,8 +142,8 @@ export function adaptLegacyTicketingInventoryOffer(
     explicitBusinessId || explicitPlaceId || explicitOfferId
       ? "explicit"
       : businessId || placeId
-          ? "legacy_reference"
-          : "inventory_only";
+        ? "legacy_reference"
+        : "inventory_only";
 
   return Object.freeze({
     offering: Object.freeze({
