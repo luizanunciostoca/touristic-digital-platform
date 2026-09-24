@@ -106,24 +106,47 @@ export class MySqlPlaceMediaRepository implements PlaceMediaRepository {
     if (existing && existing.businessId !== asset.businessId) {
       throw new Error("MEDIA_ASSET_BUSINESS_IMMUTABLE");
     }
+
+    if (existing) {
+      await this.pool.execute(
+        `UPDATE media_assets
+            SET type = ?,
+                provider = ?,
+                provider_reference = ?,
+                mime_type = ?,
+                width = ?,
+                height = ?,
+                byte_size = ?,
+                checksum_sha256 = ?,
+                alt_text = ?,
+                publication_state = ?,
+                updated_at = ?
+          WHERE id = ? AND business_id = ?`,
+        [
+          asset.type,
+          asset.provider,
+          asset.providerReference,
+          asset.mimeType,
+          asset.width,
+          asset.height,
+          asset.byteSize,
+          asset.checksumSha256,
+          asset.alt,
+          asset.publicationState,
+          new Date(asset.updatedAt),
+          asset.id,
+          asset.businessId,
+        ],
+      );
+      return;
+    }
+
     await this.pool.execute(
       `INSERT INTO media_assets
         (id, business_id, type, provider, provider_reference, mime_type,
          width, height, byte_size, checksum_sha256, alt_text,
          publication_state, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-         type = VALUES(type),
-         provider = VALUES(provider),
-         provider_reference = VALUES(provider_reference),
-         mime_type = VALUES(mime_type),
-         width = VALUES(width),
-         height = VALUES(height),
-         byte_size = VALUES(byte_size),
-         checksum_sha256 = VALUES(checksum_sha256),
-         alt_text = VALUES(alt_text),
-         publication_state = VALUES(publication_state),
-         updated_at = VALUES(updated_at)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         asset.id,
         asset.businessId,
