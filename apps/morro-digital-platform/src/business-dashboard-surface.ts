@@ -442,14 +442,22 @@ export async function mountBusinessDashboardSurface(
     offersSurface.status.textContent = "Atualizando inventário…";
     const offers = await dashboardClient.listOffers(businessId, signal);
     renderOffers(document, offersSurface.list, offers, (offer) => {
+      const request = contextController?.request();
+      const targetBusinessId = request?.businessId ?? businessId;
       offersSurface.status.textContent = "Desativando oferta…";
       void dashboardClient
-        .disableOffer(businessId, offer.id)
-        .then(() => reloadOffers())
+        .disableOffer(targetBusinessId, offer.id)
+        .then(async () => {
+          if (request && !contextController?.isCurrent(request)) return;
+          await reloadOffers(request?.signal);
+        })
         .then(() => {
+          if (request && !contextController?.isCurrent(request)) return;
           offersSurface.status.textContent = "Oferta desativada.";
         })
         .catch((error: unknown) => {
+          if (request && !contextController?.isCurrent(request)) return;
+          if (error instanceof DOMException && error.name === "AbortError") return;
           offersSurface.status.textContent =
             error instanceof Error
               ? error.message
@@ -520,14 +528,16 @@ export async function mountBusinessDashboardSurface(
       description: descriptionInput.value,
     });
     const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
     void dashboardClient
-      .saveProfile(businessId, nextProfile)
+      .saveProfile(targetBusinessId, nextProfile)
       .then((saved) => {
         if (request && !contextController?.isCurrent(request)) return;
         renderProfile(saved);
         status.textContent = "Perfil salvo com segurança.";
       })
       .catch((error: unknown) => {
+        if (request && !contextController?.isCurrent(request)) return;
         status.textContent =
           error instanceof Error ? error.message : "Falha ao salvar perfil.";
       });
@@ -545,18 +555,26 @@ export async function mountBusinessDashboardSurface(
         activeProfile?.name ?? nameInput.value,
       );
       const key = requestKey(document);
+      const request = contextController?.request();
+      const targetBusinessId = request?.businessId ?? businessId;
       offerSubmissionPending = true;
       offersSurface.form.setAttribute("aria-busy", "true");
       void dashboardClient
-        .createOffer(businessId, input, key)
-        .then(() => reloadOffers())
+        .createOffer(targetBusinessId, input, key)
+        .then(async () => {
+          if (request && !contextController?.isCurrent(request)) return;
+          await reloadOffers(request?.signal);
+        })
         .then(() => {
+          if (request && !contextController?.isCurrent(request)) return;
           offersSurface.form.reset();
           offersSurface.capacity.value = "20";
           offersSurface.maxPerReservation.value = "4";
           offersSurface.status.textContent = "Oferta publicada no inventário.";
         })
         .catch((error: unknown) => {
+          if (request && !contextController?.isCurrent(request)) return;
+          if (error instanceof DOMException && error.name === "AbortError") return;
           offersSurface.status.textContent =
             error instanceof Error
               ? error.message
