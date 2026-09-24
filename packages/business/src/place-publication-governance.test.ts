@@ -226,6 +226,23 @@ describe("place publication governance", () => {
     expect(publicPlaceProjection(record("published"))).not.toBeNull();
   });
 
+  it("keeps the last published revision visible while a newer draft is edited", async () => {
+    const h = harness(record("published"));
+    const before = publicPlaceProjection(h.current());
+
+    await h.service.saveRevision(
+      context("BUSINESS_OWNER"),
+      "place-a",
+      data({ description: "Nova descrição ainda não publicada" }),
+      1,
+    );
+
+    expect(h.current().publicationState).toBe("draft");
+    expect(h.current().editableRevision.revision).toBe(2);
+    expect(publicPlaceProjection(h.current())).toEqual(before);
+    expect(publicPlaceProjection(h.current())?.description).toBe("Experiência local");
+  });
+
   it("rejects invalid category, unsupported capability and unauthorized media", async () => {
     const invalidCategory = harness(record("draft", data({ categoryId: "unknown" })));
     await expect(
