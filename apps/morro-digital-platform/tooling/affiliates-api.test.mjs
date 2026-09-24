@@ -178,9 +178,7 @@ function apiHarness({ resolveSession, authorizeMutation } = {}) {
           subject: "identity-affiliate-1",
           role: "owner",
         })),
-      authorizeMutation:
-        authorizeMutation ??
-        (() => ({ allowed: true })),
+      authorizeMutation: authorizeMutation ?? (() => ({ allowed: true })),
     },
     getEnvironmentValue(key) {
       const values = {
@@ -252,10 +250,8 @@ describe("affiliate portal HTTP security contract", () => {
     await api.stop();
   });
 
-  it(
-    "rejects forged affiliate, destination and monetary authority on link issuance",
-    async () => {
-      const api = apiHarness();
+  it("rejects forged affiliate, destination and monetary authority on link issuance", async () => {
+    const api = apiHarness();
     expect(await api.start()).toBe(true);
     for (const forged of [
       { affiliateId: "aff_other_0001" },
@@ -278,13 +274,10 @@ describe("affiliate portal HTTP security contract", () => {
         error: "REFERRAL_AUTHORITY_FORBIDDEN",
       });
     }
-      await api.stop();
-    },
-  );
+    await api.stop();
+  });
 
-  it(
-    "denies invalid CSRF and origin decisions from auth authority",
-    async () => {
+  it("denies invalid CSRF and origin decisions from auth authority", async () => {
     const api = apiHarness({
       authorizeMutation: () => ({ allowed: false, reason: "invalid_csrf" }),
     });
@@ -297,9 +290,8 @@ describe("affiliate portal HTTP security contract", () => {
     );
     expect(res.statusCode).toBe(403);
     expect(JSON.parse(res.body)).toEqual({ error: "INVALID_CSRF" });
-      await api.stop();
-    },
-  );
+    await api.stop();
+  });
 
   it("rejects a validly signed referral for another destination", async () => {
     const api = apiHarness();
