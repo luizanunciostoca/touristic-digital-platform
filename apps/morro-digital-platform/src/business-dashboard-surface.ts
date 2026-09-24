@@ -12,17 +12,18 @@ import {
   openBusinessProfileView,
   type BusinessProfileViewAction,
 } from "./business-profile-view.js";
+import {
+  createBusinessContextController,
+  morroProModules,
+  resolveMorroProModuleAccess,
+  type BusinessContextController,
+  type MorroProModule,
+  type MorroProModuleAccess,
+} from "./morro-pro-business-management.js";
 
-export const businessDashboardViews = Object.freeze([
-  "dashboard",
-  "performance",
-  "audience",
-  "offers",
-  "promotions",
-  "settings",
-] as const);
+export const businessDashboardViews = morroProModules;
 
-export type BusinessDashboardView = (typeof businessDashboardViews)[number];
+export type BusinessDashboardView = MorroProModule;
 
 export function requestedBusinessId(search: string): string | undefined {
   const value = new URLSearchParams(search).get("businessId")?.trim();
@@ -69,6 +70,77 @@ function requiredElement<T extends HTMLElement>(
 
 function setText(document: Document, id: string, value: string): void {
   requiredElement(document, id).textContent = value || "—";
+}
+
+const moduleDescriptions: Readonly<Record<MorroProModule, string>> = Object.freeze({
+  dashboard: "Visão geral do seu negócio na Morro Digital.",
+  profile: "Edite os dados públicos do negócio usando o Business/Place canônico.",
+  location: "Gerencie a localização conforme a política geográfica e de publicação.",
+  photos: "Gerencie fotos vinculadas ao Place através da autoridade de mídia.",
+  products: "Gerencie produtos vinculados explicitamente ao negócio e aos Places.",
+  offers: "Crie e acompanhe ofertas autorizadas do negócio.",
+  menu: "Gerencie cardápio estruturado quando esta capacidade estiver disponível.",
+  reservations: "Acompanhe reservas quando habilitadas para este Place.",
+  ticketing: "Acesse ticketing e check-in quando habilitados.",
+  financial: "Consulte projeções financeiras autorizadas em modo somente leitura.",
+  content: "Gerencie conteúdo conforme sua role e capabilities.",
+  preview: "Visualize a presença pública antes da publicação governada.",
+  team: "Gerencie o acesso da equipe dentro do escopo deste negócio.",
+  settings: "Ajuste preferências do Morro Pro sem receber capacidades de plataforma.",
+});
+
+function ensureMorroProPanels(document: Document): void {
+  const profilePanel = document.querySelector<HTMLElement>(
+    '[data-view-panel="settings"]',
+  );
+  if (profilePanel) profilePanel.dataset.viewPanel = "profile";
+
+  const main = document.querySelector<HTMLElement>(".dashboard-main");
+  if (!main) throw new Error("MISSING_DASHBOARD_MAIN");
+
+  for (const moduleId of morroProModules) {
+    if (document.querySelector(`[data-view-panel="${moduleId}"]`)) continue;
+    const section = document.createElement("section");
+    section.className = "view";
+    section.dataset.viewPanel = moduleId;
+    section.innerHTML = `
+      <div class="empty-state">
+        <h2></h2>
+        <p></p>
+      </div>
+    `;
+    const access = section.querySelector("h2");
+    const description = section.querySelector("p");
+    if (access) access.textContent = moduleId;
+    if (description) description.textContent = moduleDescriptions[moduleId];
+    main.append(section);
+  }
+}
+
+function renderMorroProNavigation(
+  document: Document,
+  access: readonly MorroProModuleAccess[],
+  activate: (view: BusinessDashboardView) => void,
+): void {
+  const nav = document.querySelector<HTMLElement>(".sidebar-nav");
+  if (!nav) throw new Error("MISSING_DASHBOARD_NAV");
+  nav.replaceChildren();
+  for (const moduleAccess of access) {
+    if (!moduleAccess.visible) continue;
+    const button = document.createElement("button");
+    button.className = "nav-item";
+    button.type = "button";
+    button.dataset.dashboardView = moduleAccess.id;
+    button.textContent = moduleAccess.label;
+    button.setAttribute(
+      "aria-label",
+      moduleAccess.mutable
+        ? moduleAccess.label
+        : `${moduleAccess.label} — somente leitura`,
+    );
+    button.addEventListener("click", () => activate(moduleAccess.id));
+    nav.append(button);
+  }
 }
 
 function dispatchProfileAction(
@@ -323,10 +395,12 @@ export async function mountBusinessDashboardSurface(
     document,
     "profile-description",
   );
+  ensureMorroProPanels(document);
   const offersSurface = createOfferSurface(document);
 
   let activeProfile: BusinessProfile | null = null;
   let businessId = "";
+  let contextController: BusinessContextController | null = null;
 
   function closeMobileMenu(): void {
     sidebar.classList.remove("mobile-open");
@@ -363,10 +437,10 @@ export async function mountBusinessDashboardSurface(
     descriptionInput.value = safeProfile.description;
   }
 
-  async function reloadOffers(): Promise<void> {
+  async function reloadOffers(signal?: AbortSignal): Promise<void> {
     if (!businessId) return;
     offersSurface.status.textContent = "Atualizando inventário…";
-    const offers = await dashboardClient.listOffers(businessId);
+    const offers = await dashboardClient.listOffers(businessId, signal);
     renderOffers(document, offersSurface.list, offers, (offer) => {
       offersSurface.status.textContent = "Desativando oferta…";
       void dashboardClient
@@ -403,27 +477,6 @@ export async function mountBusinessDashboardSurface(
     });
   });
   profileSummary.append(previewButton);
-
-  document
-    .querySelectorAll<HTMLElement>("[data-dashboard-view]")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        const candidate = button.dataset.dashboardView;
-        if (
-          businessDashboardViews.includes(candidate as BusinessDashboardView)
-        ) {
-          activateView(candidate as BusinessDashboardView);
-          if (candidate === "offers") {
-            void reloadOffers().catch((error: unknown) => {
-              offersSurface.status.textContent =
-                error instanceof Error
-                  ? error.message
-                  : "Falha ao carregar ofertas.";
-            });
-          }
-        }
-      });
-    });
 
   requiredElement<HTMLButtonElement>(document, "mobile-menu").addEventListener(
     "click",
@@ -466,9 +519,11 @@ export async function mountBusinessDashboardSurface(
       categoryLabel: categoryInput.value,
       description: descriptionInput.value,
     });
+    const request = contextController?.request();
     void dashboardClient
       .saveProfile(businessId, nextProfile)
       .then((saved) => {
+        if (request && !contextController?.isCurrent(request)) return;
         renderProfile(saved);
         status.textContent = "Perfil salvo com segurança.";
       })
@@ -522,7 +577,81 @@ export async function mountBusinessDashboardSurface(
       requestedBusinessId(search),
     );
     businessId = bootstrap.businessId;
+    contextController = createBusinessContextController(
+      bootstrap.session,
+      businessId,
+    );
+
     renderProfile(bootstrap.profile);
+    const access = resolveMorroProModuleAccess(
+      bootstrap.session.user.role,
+      bootstrap.session.user.capabilities,
+      [],
+    );
+    renderMorroProNavigation(document, access, (view) => {
+      activateView(view);
+      if (view === "offers") {
+        const request = contextController?.request();
+        void reloadOffers(request?.signal).catch((error: unknown) => {
+          if (request && !contextController?.isCurrent(request)) return;
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          offersSurface.status.textContent =
+            error instanceof Error
+              ? error.message
+              : "Falha ao carregar ofertas.";
+        });
+      }
+    });
+
+    const scopes = contextController.scopes();
+    if (scopes.length > 1) {
+      const header = requiredElement<HTMLElement>(document, "business-name").parentElement;
+      if (!header) throw new Error("MISSING_BUSINESS_HEADER");
+      const label = document.createElement("label");
+      label.className = "business-context";
+      label.textContent = "Negócio";
+      const selector = document.createElement("select");
+      selector.id = "business-context-selector";
+      selector.setAttribute("aria-label", "Selecionar negócio");
+      for (const scope of scopes) {
+        const option = document.createElement("option");
+        option.value = scope;
+        option.textContent = scope;
+        option.selected = scope === businessId;
+        selector.append(option);
+      }
+      selector.addEventListener("change", () => {
+        try {
+          const request = contextController?.switchTo(selector.value);
+          if (!request) return;
+          businessId = request.businessId;
+          status.textContent = "Trocando contexto do negócio…";
+          offersSurface.status.textContent = "";
+          void dashboardClient
+            .loadProfile(request.businessId, request.signal)
+            .then((profile) => {
+              if (!contextController?.isCurrent(request)) return;
+              renderProfile(profile);
+              status.textContent = "";
+            })
+            .catch((error: unknown) => {
+              if (!contextController?.isCurrent(request)) return;
+              if (error instanceof DOMException && error.name === "AbortError") return;
+              status.textContent =
+                error instanceof Error
+                  ? error.message
+                  : "Falha ao trocar contexto do negócio.";
+            });
+        } catch (error: unknown) {
+          selector.value = businessId;
+          status.textContent =
+            error instanceof Error ? error.message : "Negócio não autorizado.";
+        }
+      });
+      label.append(selector);
+      header.append(label);
+    }
+
     entryScreen.hidden = true;
     mainDashboard.hidden = false;
     activateView("dashboard");
