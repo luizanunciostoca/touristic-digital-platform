@@ -38,7 +38,9 @@ const forbiddenReferralAuthorityFields = new Set([
 
 function forbiddenReferralAuthority(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return false;
-  return Object.keys(body).some((key) => forbiddenReferralAuthorityFields.has(key));
+  return Object.keys(body).some((key) =>
+    forbiddenReferralAuthorityFields.has(key),
+  );
 }
 
 function firstHeader(value) {
@@ -46,7 +48,9 @@ function firstHeader(value) {
 }
 
 function header(request, name) {
-  return String(firstHeader(request.headers?.[name.toLowerCase()]) || "").trim();
+  return String(
+    firstHeader(request.headers?.[name.toLowerCase()]) || "",
+  ).trim();
 }
 
 function cookieValue(request, name) {
@@ -176,7 +180,9 @@ function encodeTokenPayload(payload) {
 }
 
 function signatureFor(encodedPayload, secret) {
-  return createHmac("sha256", secret).update(encodedPayload).digest("base64url");
+  return createHmac("sha256", secret)
+    .update(encodedPayload)
+    .digest("base64url");
 }
 
 function safeEqual(left, right) {
@@ -356,8 +362,13 @@ async function membershipsForAffiliate(pool, affiliateId, destinationId) {
 
 async function commercialProjection(pool, account, destinationId) {
   const affiliateId = account.affiliate_id;
-  const [memberships, summaryRows, activityRows, attributionRows, materializationRows] =
-    await Promise.all([
+  const [
+    memberships,
+    summaryRows,
+    activityRows,
+    attributionRows,
+    materializationRows,
+  ] = await Promise.all([
       membershipsForAffiliate(pool, affiliateId, destinationId),
       pool.execute(
         `SELECT e.currency AS currency,
@@ -515,9 +526,11 @@ export function createAffiliatesApi({
   }
 
   const createPool = runtimeDependencies.createPool ?? createAffiliatePool;
-  const applySchema = runtimeDependencies.applySchema ?? applyAffiliatesM154Schema;
+  const applySchema =
+    runtimeDependencies.applySchema ?? applyAffiliatesM154Schema;
   const applyIdentitySchema =
-    runtimeDependencies.applyIdentitySchema ?? applyAffiliatesIdentityEligibilityM155;
+    runtimeDependencies.applyIdentitySchema ??
+    applyAffiliatesIdentityEligibilityM155;
   const createApplication =
     runtimeDependencies.createApplication ??
     ((activePool) =>
@@ -637,7 +650,12 @@ export function createAffiliatesApi({
       configuredDestinationId,
     );
     if (!projection) {
-      json(response, 403, { error: "AFFILIATE_DESTINATION_FORBIDDEN" }, correlation);
+      json(
+        response,
+        403,
+        { error: "AFFILIATE_DESTINATION_FORBIDDEN" },
+        correlation,
+      );
       return;
     }
     json(response, 200, projection, correlation);
@@ -678,11 +696,21 @@ export function createAffiliatesApi({
     try {
       body = await readJsonBody(request);
     } catch {
-      json(response, 400, { error: "INVALID_REFERRAL_LINK_REQUEST" }, correlation);
+      json(
+        response,
+        400,
+        { error: "INVALID_REFERRAL_LINK_REQUEST" },
+        correlation,
+      );
       return;
     }
     if (forbiddenReferralAuthority(body)) {
-      json(response, 400, { error: "REFERRAL_AUTHORITY_FORBIDDEN" }, correlation);
+      json(
+        response,
+        400,
+        { error: "REFERRAL_AUTHORITY_FORBIDDEN" },
+        correlation,
+      );
       return;
     }
     const programId = body?.programId;
@@ -697,7 +725,9 @@ export function createAffiliatesApi({
       active.account.affiliate_id,
       configuredDestinationId,
     );
-    const membership = memberships.find((item) => item.program_id === programId);
+    const membership = memberships.find(
+      (item) => item.program_id === programId,
+    );
     if (!linkEligibility(active.account, membership)) {
       json(response, 409, { error: "AFFILIATE_NOT_ELIGIBLE" }, correlation);
       return;
@@ -706,7 +736,12 @@ export function createAffiliatesApi({
     const origin =
       configuredPublicOrigin || (production ? "" : requestOrigin(request));
     if (!origin) {
-      json(response, 503, { error: "AFFILIATE_PUBLIC_ORIGIN_UNAVAILABLE" }, correlation);
+      json(
+        response,
+        503,
+        { error: "AFFILIATE_PUBLIC_ORIGIN_UNAVAILABLE" },
+        correlation,
+      );
       return;
     }
     const issued = issueAffiliateReferralToken(
@@ -744,7 +779,11 @@ export function createAffiliatesApi({
     const expectedOrigin =
       configuredPublicOrigin || (production ? "" : requestOrigin(request));
     const suppliedOrigin = normalizeOrigin(header(request, "origin"));
-    if (!expectedOrigin || !suppliedOrigin || suppliedOrigin !== expectedOrigin) {
+    if (
+      !expectedOrigin ||
+      !suppliedOrigin ||
+      suppliedOrigin !== expectedOrigin
+    ) {
       json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
       return;
     }
@@ -769,7 +808,9 @@ export function createAffiliatesApi({
 
     try {
       const result = await application.recordReferralAndEstablishAttribution({
-        requestId: `capture:${tokenDigest(body.token).slice(0, 40)}:${tokenDigest(subjectReference).slice(0, 40)}`,
+        requestId: `capture:${tokenDigest(body.token).slice(0, 40)}:${tokenDigest(
+          subjectReference,
+        ).slice(0, 40)}`,
         affiliateId: payload.affiliateId,
         programId: payload.programId,
         destinationId: payload.destinationId,
@@ -817,16 +858,29 @@ export function createAffiliatesApi({
     stop,
     readinessCheck,
     matches(pathname) {
-      return pathname === affiliatesApiPrefix || pathname.startsWith(`${affiliatesApiPrefix}/`);
+      return (
+        pathname === affiliatesApiPrefix ||
+        pathname.startsWith(`${affiliatesApiPrefix}/`)
+      );
     },
     async handle(request, response, requestUrl) {
       const correlation = correlationId(request);
       if (!runtimeEnabled) {
-        json(response, 503, { error: "AFFILIATES_RUNTIME_DISABLED" }, correlation);
+        json(
+          response,
+          503,
+          { error: "AFFILIATES_RUNTIME_DISABLED" },
+          correlation,
+        );
         return;
       }
       if (!started || !pool || !application) {
-        json(response, 503, { error: "AFFILIATES_RUNTIME_UNAVAILABLE" }, correlation);
+        json(
+          response,
+          503,
+          { error: "AFFILIATES_RUNTIME_UNAVAILABLE" },
+          correlation,
+        );
         return;
       }
       if (requestUrl.pathname === `${affiliatesApiPrefix}/me`) {
