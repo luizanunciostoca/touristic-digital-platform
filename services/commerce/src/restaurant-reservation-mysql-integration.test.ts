@@ -79,44 +79,44 @@ describeMySql.sequential(
     });
 
     it("serializes concurrent holds and prevents restaurant overbooking", async () => {
-        const repository = new MySqlRestaurantReservationRepository(pool);
-        const resource = slot({ capacity: 4, maxPartySize: 4 });
-        await repository.saveSlot(resource);
+      const repository = new MySqlRestaurantReservationRepository(pool);
+      const resource = slot({ capacity: 4, maxPartySize: 4 });
+      await repository.saveSlot(resource);
 
-        const attempts = await Promise.allSettled([
-          repository.hold({
-            reservationId: "rrv_mysql_concurrent_0001",
-            requestKey: requestKey(resource.id, "concurrent_0001"),
-            slotId: resource.id,
-            businessId: resource.businessId,
-            holderReference: "guest_concurrent_0001",
-            partySize: 3,
-            heldAt: "2026-10-10T20:00:00.000Z",
-            actorReference: "reservation_api",
-          }),
-          repository.hold({
-            reservationId: "rrv_mysql_concurrent_0002",
-            requestKey: requestKey(resource.id, "concurrent_0002"),
-            slotId: resource.id,
-            businessId: resource.businessId,
-            holderReference: "guest_concurrent_0002",
-            partySize: 3,
-            heldAt: "2026-10-10T20:00:00.000Z",
-            actorReference: "reservation_api",
-          }),
-        ]);
+      const attempts = await Promise.allSettled([
+        repository.hold({
+          reservationId: "rrv_mysql_concurrent_0001",
+          requestKey: requestKey(resource.id, "concurrent_0001"),
+          slotId: resource.id,
+          businessId: resource.businessId,
+          holderReference: "guest_concurrent_0001",
+          partySize: 3,
+          heldAt: "2026-10-10T20:00:00.000Z",
+          actorReference: "reservation_api",
+        }),
+        repository.hold({
+          reservationId: "rrv_mysql_concurrent_0002",
+          requestKey: requestKey(resource.id, "concurrent_0002"),
+          slotId: resource.id,
+          businessId: resource.businessId,
+          holderReference: "guest_concurrent_0002",
+          partySize: 3,
+          heldAt: "2026-10-10T20:00:00.000Z",
+          actorReference: "reservation_api",
+        }),
+      ]);
 
-        expect(
-          attempts.filter(({ status }) => status === "fulfilled"),
-        ).toHaveLength(1);
-        const rejected = attempts.filter(
-          (attempt): attempt is PromiseRejectedResult =>
-            attempt.status === "rejected",
-        );
-        expect(rejected).toHaveLength(1);
-        expect(rejected[0]?.reason).toMatchObject({
-          message: "COMMERCE_RESTAURANT_CAPACITY_EXHAUSTED",
-        });
+      expect(
+        attempts.filter(({ status }) => status === "fulfilled"),
+      ).toHaveLength(1);
+      const rejected = attempts.filter(
+        (attempt): attempt is PromiseRejectedResult =>
+          attempt.status === "rejected",
+      );
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0]?.reason).toMatchObject({
+        message: "COMMERCE_RESTAURANT_CAPACITY_EXHAUSTED",
+      });
     });
 
     it("replays the same request without consuming capacity twice", async () => {
@@ -152,82 +152,82 @@ describeMySql.sequential(
     });
 
     it("prevents cross-business reads through the availability boundary", async () => {
-        const repository = new MySqlRestaurantReservationRepository(pool);
-        const resource = slot();
-        await repository.saveSlot(resource);
+      const repository = new MySqlRestaurantReservationRepository(pool);
+      const resource = slot();
+      await repository.saveSlot(resource);
 
-        await expect(
-          repository.availability(
-            resource.id,
-            "business_restaurant_b",
-            "2026-10-10T20:00:00.000Z",
-          ),
-        ).rejects.toThrow("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
+      await expect(
+        repository.availability(
+          resource.id,
+          "business_restaurant_b",
+          "2026-10-10T20:00:00.000Z",
+        ),
+      ).rejects.toThrow("COMMERCE_RESTAURANT_SLOT_NOT_FOUND");
     });
 
     it("confirms no-deposit reservations without creating fake payment identities", async () => {
-        const repository = new MySqlRestaurantReservationRepository(pool);
-        const resource = slot();
-        await repository.saveSlot(resource);
-        const held = await repository.hold({
-          reservationId: "rrv_mysql_confirm_0001",
-          requestKey: requestKey(resource.id, "confirm_0001"),
-          slotId: resource.id,
-          businessId: resource.businessId,
-          holderReference: "guest_confirm_0001",
-          partySize: 2,
-          heldAt: "2026-10-10T20:00:00.000Z",
-          actorReference: "reservation_api",
-        });
+      const repository = new MySqlRestaurantReservationRepository(pool);
+      const resource = slot();
+      await repository.saveSlot(resource);
+      const held = await repository.hold({
+        reservationId: "rrv_mysql_confirm_0001",
+        requestKey: requestKey(resource.id, "confirm_0001"),
+        slotId: resource.id,
+        businessId: resource.businessId,
+        holderReference: "guest_confirm_0001",
+        partySize: 2,
+        heldAt: "2026-10-10T20:00:00.000Z",
+        actorReference: "reservation_api",
+      });
 
-        const confirmed = await repository.confirmWithoutDeposit({
+      const confirmed = await repository.confirmWithoutDeposit({
+        reservationId: held.reservation.id,
+        businessId: resource.businessId,
+        confirmedAt: "2026-10-10T20:01:00.000Z",
+        actorReference: "reservation_api",
+      });
+
+      expect(confirmed.reservation).toMatchObject({
+        status: "confirmed",
+        orderId: null,
+        paymentId: null,
+        depositPolicy: { kind: "none" },
+      });
+    });
+
+    it("blocks direct confirmation when a server-owned deposit is required", async () => {
+      const repository = new MySqlRestaurantReservationRepository(pool);
+      const resource = slot({
+        id: "rsl_mysql_deposit_0001",
+        depositPolicy: {
+          kind: "required",
+          amount: { minorUnits: 5000, currency: "BRL" },
+        },
+      });
+      await repository.saveSlot(resource);
+      const held = await repository.hold({
+        reservationId: "rrv_mysql_deposit_0001",
+        requestKey: requestKey(resource.id, "deposit_0001"),
+        slotId: resource.id,
+        businessId: resource.businessId,
+        holderReference: "guest_deposit_0001",
+        partySize: 2,
+        heldAt: "2026-10-10T20:00:00.000Z",
+        actorReference: "reservation_api",
+      });
+
+      expect(held.reservation.depositPolicy).toEqual({
+        kind: "required",
+        amount: { minorUnits: 5000, currency: "BRL" },
+      });
+      await expect(
+        repository.confirmWithoutDeposit({
           reservationId: held.reservation.id,
           businessId: resource.businessId,
           confirmedAt: "2026-10-10T20:01:00.000Z",
           actorReference: "reservation_api",
-        });
-
-        expect(confirmed.reservation).toMatchObject({
-          status: "confirmed",
-          orderId: null,
-          paymentId: null,
-          depositPolicy: { kind: "none" },
-        });
-    });
-
-    it("blocks direct confirmation when a server-owned deposit is required", async () => {
-        const repository = new MySqlRestaurantReservationRepository(pool);
-        const resource = slot({
-          id: "rsl_mysql_deposit_0001",
-          depositPolicy: {
-            kind: "required",
-            amount: { minorUnits: 5000, currency: "BRL" },
-          },
-        });
-        await repository.saveSlot(resource);
-        const held = await repository.hold({
-          reservationId: "rrv_mysql_deposit_0001",
-          requestKey: requestKey(resource.id, "deposit_0001"),
-          slotId: resource.id,
-          businessId: resource.businessId,
-          holderReference: "guest_deposit_0001",
-          partySize: 2,
-          heldAt: "2026-10-10T20:00:00.000Z",
-          actorReference: "reservation_api",
-        });
-
-        expect(held.reservation.depositPolicy).toEqual({
-          kind: "required",
-          amount: { minorUnits: 5000, currency: "BRL" },
-        });
-        await expect(
-          repository.confirmWithoutDeposit({
-            reservationId: held.reservation.id,
-            businessId: resource.businessId,
-            confirmedAt: "2026-10-10T20:01:00.000Z",
-            actorReference: "reservation_api",
-          }),
-        ).rejects.toThrow("COMMERCE_RESTAURANT_VERIFIED_PAYMENT_REQUIRED");
+        }),
+      ).rejects.toThrow("COMMERCE_RESTAURANT_VERIFIED_PAYMENT_REQUIRED");
     });
   },
 );
