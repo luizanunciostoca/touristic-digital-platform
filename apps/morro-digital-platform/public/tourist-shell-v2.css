@@ -1928,8 +1928,12 @@ html[dir="rtl"]
   content: "›";
   font-size: var(--md-font-size-xl);
   line-height: 1;
-  pointer-events: none;
+  padding: 0;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
   transform: translateY(-50%);
+  appearance: none;
 }
 
 html[dir="rtl"] #unified-assistant-dock > #assistant-category-rail::after {
@@ -3095,6 +3099,13 @@ html[dir="rtl"]
   > #assistant-category-rail
   .md-category-scroll-hint[hidden] {
   display: none !important;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  .md-category-scroll-hint:focus-visible {
+  outline: 2px solid var(--md-color-brand-strong);
+  outline-offset: 2px;
 }
 
 #unified-assistant-dock
