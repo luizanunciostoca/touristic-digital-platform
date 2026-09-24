@@ -10,6 +10,7 @@ import {
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
 } from "@touristic/ordering";
+import { createRestaurantCheckoutApplicationService } from "@touristic/ordering/restaurant-checkout";
 import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
 import {
   normalizePaymentId,
@@ -44,8 +45,10 @@ import {
   CheckoutHttpTransport,
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlRestaurantReservationOrderBindingRepository,
   MySqlTicketingOrderBindingRepository,
   applyOrderingM151Schema,
+  applyOrderingRestaurantReservationSchema,
   applyOrderingTicketingReservationSchema,
   createCheckoutHandoffCapability,
   createCheckoutReturnUrlPolicyFromEnvironment,
@@ -58,6 +61,7 @@ import {
   normalizeCheckoutRequestContext,
   systemCheckoutClock,
   verifyCheckoutHandoffCapability,
+  verifyRestaurantCheckoutHandoffCapability,
   verifyTicketingCheckoutHandoffCapability,
 } from "@touristic/ordering-server";
 
@@ -565,6 +569,76 @@ export function createPaymentsCheckoutAuthorizationPort({
         });
       }
       return Object.freeze({ allowed: true, context });
+    async authorizeRestaurantCreate(request, handoff) {
+      const token = header(request, "x-checkout-handoff-token");
+      const context = token
+        ? verifyRestaurantCheckoutHandoffCapability(
+            token,
+            handoff,
+            handoffSecret,
+          )
+        : null;
+
+      if (
+        context?.requesterKind === "guest_capability" &&
+        context.destinationId === destinationId &&
+        context.tenantId
+      ) {
+        if (!browserOriginAllowed(request, origins, production)) {
+          return Object.freeze({
+            allowed: false,
+            reason: "cross_origin_request",
+          });
+        }
+        return Object.freeze({ allowed: true, context });
+      }
+
+      const active = await authApi.resolveSession(request);
+      if (!active) {
+        return Object.freeze({
+          allowed: false,
+          reason: token
+            ? "invalid_guest_capability"
+            : "authentication_required",
+        });
+      }
+      if (isReadOnlyAuthRole(active.role)) {
+        return Object.freeze({ allowed: false, reason: "read_only_role" });
+      }
+      const mutation = authApi.authorizeMutation(
+        request,
+        active,
+        "checkout.create",
+      );
+      if (!mutation.allowed) {
+        return Object.freeze({
+          allowed: false,
+          reason:
+            mutation.reason === "invalid_csrf"
+              ? "invalid_csrf"
+              : "cross_origin_request",
+        });
+      }
+      if (
+        !context ||
+        context.requesterKind !== "authenticated" ||
+        context.actorSubject !== active.subject ||
+        context.destinationId !== destinationId ||
+        !context.tenantId
+      ) {
+        return Object.freeze({
+          allowed: false,
+          reason: "invalid_guest_capability",
+        });
+      }
+      if (!browserOriginAllowed(request, origins, production)) {
+        return Object.freeze({
+          allowed: false,
+          reason: "cross_origin_request",
+        });
+      }
+      return Object.freeze({ allowed: true, context });
+    },
     },
   });
 }
@@ -887,6 +961,7 @@ export function createPaymentsApi({
         (async () => {
           await applyOrderingM151Schema(orderingPool);
           await applyOrderingTicketingReservationSchema(orderingPool);
+          await applyOrderingRestaurantReservationSchema(orderingPool);
         })(),
         applyFinancialM145Schema(financialPool),
       ]);
@@ -930,6 +1005,15 @@ export function createPaymentsApi({
         paymentIdempotency,
         identities,
       });
+      const restaurantApplication = createRestaurantCheckoutApplicationService({
+        orders,
+        bindings: new MySqlRestaurantReservationOrderBindingRepository(
+          orderingPool,
+        ),
+        payments,
+        paymentIdempotency,
+        identities,
+      });
       const origins = allowedOrigins(environment.PAYMENTS_RETURN_URL_ORIGINS);
       const authorityBootstrapTransport =
         createPaymentsCheckoutAuthorityBootstrap({
@@ -943,6 +1027,7 @@ export function createPaymentsApi({
       const transport = new CheckoutHttpTransport({
         application,
         ticketingApplication,
+        restaurantApplication,
         orders,
         payments,
         paymentResults,
