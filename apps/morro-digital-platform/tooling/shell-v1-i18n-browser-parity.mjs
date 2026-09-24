@@ -253,13 +253,13 @@ try {
 
   const canonicalCategoryValues = [
     "beaches",
+    "tours",
+    "attractions",
     "restaurants",
     "hotels",
+    "nightlife",
     "shops",
     "transport",
-    "attractions",
-    "tours",
-    "nightlife",
     "emergencies",
     "help",
   ];
