@@ -2790,3 +2790,172 @@ html[dir="rtl"]
     padding-inline: 0.5rem;
   }
 }
+
+
+/* Final no-overlap geometry: reserve a physical lane for Back and start the
+ * horizontal scroll viewport after that lane. This is intentionally not Grid
+ * or flex ordering so horizontal scrolling can never place an option under
+ * the structural navigation control. */
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: block;
+  direction: ltr;
+  padding-inline: 0.5rem;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: absolute;
+  top: 50%;
+  left: 0.5rem;
+  z-index: 3;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  border-radius: 0.8125rem;
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-subtle) 82%,
+    var(--md-color-surface-card)
+  );
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 5%, transparent),
+    0 2px 6px color-mix(in srgb, var(--md-color-text-primary) 4%, transparent);
+  pointer-events: none;
+}
+
+html:not([dir="rtl"])
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative;
+  z-index: 1;
+  width: calc(100% - 3.25rem);
+  min-width: 0;
+  height: 100%;
+  margin: 0 0 0 3.25rem;
+  padding-inline: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Mirror the reserved lane only for true RTL locales. */
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail.md-assistant-category-rail {
+  position: relative;
+  display: block;
+  direction: rtl;
+  padding-inline: 0.5rem;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  left: auto;
+  z-index: 3;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back::before {
+  content: none;
+  display: none;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-context-rail-back-icon {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--md-color-border) 72%, transparent);
+  border-radius: 0.8125rem;
+  background: color-mix(
+    in srgb,
+    var(--md-color-surface-subtle) 82%,
+    var(--md-color-surface-card)
+  );
+  box-shadow:
+    0 1px 2px color-mix(in srgb, var(--md-color-text-primary) 5%, transparent),
+    0 2px 6px color-mix(in srgb, var(--md-color-text-primary) 4%, transparent);
+  pointer-events: none;
+}
+
+html[dir="rtl"]
+  #unified-assistant-dock
+  > #assistant-category-rail
+  .md-assistant-category-scroll {
+  position: relative;
+  z-index: 1;
+  width: calc(100% - 3.25rem);
+  min-width: 0;
+  height: 100%;
+  margin: 0 3.25rem 0 0;
+  padding-inline: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* The rail itself is layout only; interactive descendants own pointer events. */
+#unified-assistant-dock > #assistant-category-rail.md-assistant-category-rail {
+  pointer-events: none;
+}
+
+#unified-assistant-dock
+  > #assistant-category-rail
+  :is(.md-context-rail-back, .md-assistant-category-scroll) {
+  pointer-events: auto;
+}
+
+#unified-assistant-dock > #assistant-category-rail::after {
+  content: none !important;
+  display: none !important;
+}
