@@ -138,6 +138,10 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(premiumCss).toContain(
       'body[data-md-mode="tour"] #globe-map-control',
     );
+    expect(shellCss).toContain(
+      'body[data-md-mode="place"] #globe-map-control.md-map-control-stack',
+    );
+    expect(shellCss).toContain("var(--md-unified-dock-height, 10rem)");
     expect(shellCss).toContain(".md-assistant-place-detail-message");
     expect(shellCss).toContain(".md-assistant-voice-cta");
     expect(css).toContain("@media (forced-colors: active)");
