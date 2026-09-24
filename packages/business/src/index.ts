@@ -227,6 +227,7 @@ export {
   type PlaceHoursPeriod,
   type PlaceId,
   type PlaceLocation,
+  type PlaceLocationSource,
   type PlacePublicationState,
   type PlaceVisibility,
   type ProductId,

@@ -72,12 +72,21 @@ export interface Subcategory {
   readonly active: boolean;
 }
 
+export type PlaceLocationSource =
+  | "mapbox"
+  | "manual"
+  | "device"
+  | "imported"
+  | "catalog"
+  | "provider"
+  | "migration";
+
 export interface PlaceLocation {
   readonly latitude: number | null;
   readonly longitude: number | null;
   readonly address: string;
   readonly area: string;
-  readonly source: "manual" | "catalog" | "provider" | "migration";
+  readonly source: PlaceLocationSource;
   readonly externalProvider: string | null;
   readonly externalPlaceId: string | null;
   readonly verifiedAt: string | null;
