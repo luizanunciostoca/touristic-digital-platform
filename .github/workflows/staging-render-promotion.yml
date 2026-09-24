@@ -98,40 +98,28 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - name: Prove canonical Render staging target before deploy
+      - name: Prove canonical Render staging hook target before deploy
+        id: staging-target
         env:
-          RENDER_STAGING_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
           RENDER_STAGING_DEPLOY_HOOK_URL: ${{ secrets.RENDER_STAGING_DEPLOY_HOOK_URL }}
-          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
-          RENDER_STAGING_CANONICAL_URL: ${{ secrets.RENDER_STAGING_CANONICAL_URL }}
         shell: bash
         run: |
           set -euo pipefail
-          for value in RENDER_STAGING_API_KEY RENDER_STAGING_DEPLOY_HOOK_URL RENDER_STAGING_SERVICE_ID RENDER_STAGING_CANONICAL_URL; do
-            test -n "${!value}"
-          done
-          test "$RENDER_STAGING_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
-          test "$RENDER_STAGING_CANONICAL_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+          test -n "$RENDER_STAGING_DEPLOY_HOOK_URL"
 
-          http_status="$(curl --silent --show-error             --header "Authorization: Bearer $RENDER_STAGING_API_KEY"             --output /tmp/render-staging-service.json             --write-out '%{http_code}'             "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID")"
-          test "$http_status" = "200"
+          hook_service_id="$(node -e '
+            const value = process.env.RENDER_STAGING_DEPLOY_HOOK_URL;
+            const url = new URL(value);
+            if (url.protocol !== "https:" || url.hostname !== "api.render.com") process.exit(2);
+            const match = url.pathname.match(/^\/deploy\/(srv-[A-Za-z0-9]+)$/);
+            if (!match) process.exit(3);
+            process.stdout.write(match[1]);
+          ')"
 
-          service_id="$(jq -r '.id // empty' /tmp/render-staging-service.json)"
-          service_name="$(jq -r '.name // empty' /tmp/render-staging-service.json)"
-          service_url="$(jq -r '.serviceDetails.url // .url // empty' /tmp/render-staging-service.json)"
-          service_branch="$(jq -r '.branch // empty' /tmp/render-staging-service.json)"
-          auto_deploy="$(jq -r '.autoDeploy // empty' /tmp/render-staging-service.json)"
-
-          test "$service_id" = "$EXPECTED_STAGING_SERVICE_ID"
-          test "$service_name" = "$EXPECTED_STAGING_SERVICE_NAME"
-          test "$service_url" = "$EXPECTED_STAGING_CANONICAL_URL"
-          test "$service_branch" = "main"
-          case "$auto_deploy" in
-            no|false|"") ;;
-            *) echo "Staging autoDeploy must be disabled; observed=$auto_deploy" >&2; exit 1 ;;
-          esac
-
-          echo "Canonical staging target proved: $service_name ($service_id) $service_url"
+          test "$hook_service_id" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+          echo "service_id=$hook_service_id" >> "$GITHUB_OUTPUT"
+          echo "Canonical staging hook target proved: $EXPECTED_STAGING_SERVICE_NAME ($hook_service_id)"
 
       - name: Trigger exact-SHA Render staging deploy
         id: render-deploy
@@ -162,38 +150,6 @@ jobs:
           test -n "$deploy_id"
           echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
           echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA as $deploy_id"
-
-      - name: Prove deployment belongs to canonical staging service
-        env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
-          RENDER_STAGING_API_KEY: ${{ secrets.RENDER_STAGING_API_KEY }}
-          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for _ in $(seq 1 120); do
-            http_status="$(curl --silent --show-error               --header "Authorization: Bearer $RENDER_STAGING_API_KEY"               --output /tmp/render-staging-deploy.json               --write-out '%{http_code}'               "https://api.render.com/v1/services/$RENDER_STAGING_SERVICE_ID/deploys/$DEPLOY_ID")"
-            test "$http_status" = "200"
-
-            observed_deploy_id="$(jq -r '.id // empty' /tmp/render-staging-deploy.json)"
-            observed_sha="$(jq -r '.commit.id // empty' /tmp/render-staging-deploy.json)"
-            status="$(jq -r '.status // empty' /tmp/render-staging-deploy.json)"
-
-            test "$observed_deploy_id" = "$DEPLOY_ID"
-            test "$observed_sha" = "$EXPECTED_SHA"
-
-            case "$status" in
-              live) echo "Canonical staging deploy is live: $DEPLOY_ID @ $observed_sha"; exit 0 ;;
-              build_failed|update_failed|pre_deploy_failed|canceled|cancelled)
-                cat /tmp/render-staging-deploy.json >&2
-                exit 1
-                ;;
-            esac
-            sleep 5
-          done
-          echo "Timed out waiting for canonical staging deployment $DEPLOY_ID" >&2
-          exit 1
 
       - name: Wait for exact-SHA staging health and identity
         id: live-staging
@@ -230,15 +186,14 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
           LIVE_SHA: ${{ steps.live-staging.outputs.live_sha }}
-          RENDER_STAGING_SERVICE_ID: ${{ secrets.RENDER_STAGING_SERVICE_ID }}
-          RENDER_STAGING_CANONICAL_URL: ${{ secrets.RENDER_STAGING_CANONICAL_URL }}
+          PROVED_SERVICE_ID: ${{ steps.staging-target.outputs.service_id }}
         shell: bash
         run: |
           set -euo pipefail
           test "$EXPECTED_SHA" = "$LIVE_SHA"
-          test "$RENDER_STAGING_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
-          test "$RENDER_STAGING_CANONICAL_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
-          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$RENDER_STAGING_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --arg canonicalUrl "$RENDER_STAGING_CANONICAL_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
+          test "$PROVED_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
+          test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$PROVED_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --arg canonicalUrl "$STAGING_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
               expectedSha: $expectedSha,
               serviceId: $serviceId,
               serviceName: $serviceName,
