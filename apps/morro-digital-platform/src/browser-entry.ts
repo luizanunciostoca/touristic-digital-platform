@@ -984,10 +984,6 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
               activeDiscoverRecenterCleanup = installDiscoverRecenterControl(
                 map,
                 provider.sdk,
-                [
-                  activeDestination.center.longitude,
-                  activeDestination.center.latitude,
-                ],
               );
               activeNavigationRuntimeInstall = installBrowserNavigationRuntime({
                 map,
