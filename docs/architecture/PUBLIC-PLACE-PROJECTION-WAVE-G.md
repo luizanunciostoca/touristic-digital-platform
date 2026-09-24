@@ -35,69 +35,13 @@ Optional:
 - `limit` (default 250, hard cap 1000)
 - `cursor`
 
-Response:
-
-```ts
-{
-  items: Array<{
-    id: PlaceId;
-    name: string;
-    category: CategoryId;
-    lat: number;
-    lng: number;
-    presentation: {
-      markerKey: string;
-      priority: number;
-    };
-  }>;
-  nextCursor: string | null;
-}
-```
+Response: a paginated `PublicPlaceMapPage` containing only canonical `PlaceId`, name, `CategoryId`, coordinates and marker presentation (`markerKey`, `priority`), plus `nextCursor`.
 
 The map payload intentionally excludes descriptions, contacts, media arrays, business/admin identity and audit metadata.
 
 ### GET /api/places/v1/:placeId
 
-Returns one cohesive published read model:
-
-```ts
-{
-  profile: {
-    id;
-    destinationId;
-    name;
-    slug;
-    categoryId;
-    subcategoryIds;
-    shortDescription;
-    description;
-    location;
-    contact;
-    openingHours;
-    amenities;
-    tags;
-    capabilities;
-  }
-  media;
-  commerce;
-  actions: {
-    placeId;
-    businessId;
-    destinationId;
-    primaryAction;
-    secondaryActions;
-  }
-  partial: {
-    media: "ready" | "unavailable";
-    commerce: "ready" | "unavailable";
-    actions: "ready" | "unavailable";
-  }
-  revision: {
-    id;
-    number;
-  }
-}
-```
+Returns one cohesive published read model containing the public profile, published media, public commerce, server-resolved actions, per-section partial status and public revision identity. The action envelope contains canonical place/business/destination IDs plus primary and ordered secondary actions.
 
 ## Publication authority
 
@@ -210,38 +154,10 @@ Public projection does not expose:
 
 ## Handoff to Chat 8 / Wave H
 
-Consume only these public contracts:
-
-- `GET /api/places/v1/map` for map pins.
-- `GET /api/places/v1/:placeId` for place detail.
-- Pin identity is always `PlaceId`.
-- Never join Browser UI data by name, label, alias or slug.
-- Never call Business, Media, Catalog and Actions independently from the browser to reconstruct a Place.
-- Respect ETag/304.
-- Treat `partial.* === "unavailable"` as section degradation, not as permission to recover legacy data from another Place.
-- Do not display admin fields because they are intentionally absent.
-- Marker presentation may use `presentation.markerKey` and `priority`, but Wave H owns visual rendering.
-- Wave H must not reimplement action selection. Render `actions.primaryAction` and `actions.secondaryActions` in their supplied order and dispatch each supplied `value`.
+Wave H consumes only `GET /api/places/v1/map` and `GET /api/places/v1/:placeId`. Browser identity is always `PlaceId`; it must not reconstruct Place data by independently joining Business, Media, Catalog or Actions, nor recover by name/label/alias/slug. It must honor ETag/304, treat partial failures as section degradation, use supplied marker presentation, and render/dispatch the server-resolved action order and values without reimplementing action selection.
 
 ## Tests implemented
 
-Coverage includes:
-
-- published-only authority;
-- draft/review hidden when never published;
-- previous published revision retained during edit/review;
-- suspended/archived hidden;
-- destination isolation;
-- bbox;
-- category;
-- correct Place IDs;
-- public detail composition;
-- action resolver delegation;
-- no admin fields in map/detail;
-- partial section degradation;
-- malformed query handling;
-- malformed Place IDs;
-- ETag / 304;
-- limit cap for scale fixtures.
+Coverage includes published-only lifecycle behavior (including retained prior publication during edit/review and suspended/archived hiding), destination/bbox/category isolation, canonical Place IDs, cohesive detail composition, delegated actions, privacy boundaries, partial degradation, malformed queries/IDs, ETag/304 and page-size limits.
 
 No UI, Control Center, merge or deployment is part of Wave G.
