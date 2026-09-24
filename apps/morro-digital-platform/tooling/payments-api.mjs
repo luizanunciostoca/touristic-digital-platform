@@ -637,6 +637,20 @@ export function createPaymentsCheckoutAuthorizationPort({
           reason: "invalid_guest_capability",
         });
       }
+      const businessAccess = authorizeBusinessAccess(
+        active,
+        context.tenantId,
+        { mutation: true },
+      );
+      if (!businessAccess.allowed || !businessAccess.businessId) {
+        return Object.freeze({
+          allowed: false,
+          reason:
+            businessAccess.reason === "read_only_role"
+              ? "read_only_role"
+              : "business_access_denied",
+        });
+      }
       if (!browserOriginAllowed(request, origins, production)) {
         return Object.freeze({
           allowed: false,
