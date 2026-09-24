@@ -1,0 +1,328 @@
+<!doctype html>
+<html
+  lang="pt-BR"
+  data-theme="light"
+  data-destination-theme="morro"
+  data-ticketing-context="tour"
+  data-ticketing-single-product="true"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Reservar passeio · Morro Digital</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "@touristic/analytics": "/packages/analytics/dist/index.js"
+        }
+      }
+    </script>
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/design-system-v2.css"
+    />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/privacy-preferences.css"
+    />
+    <link rel="stylesheet" href="/tour-booking.css" />
+  </head>
+  <body
+    data-md-mode="commerce"
+    data-ticketing-context="tour"
+    data-ticketing-single-product="true"
+    data-ticketing-loading="true"
+  >
+    <main class="tour-booking-shell" data-md-surface="tour-booking">
+      <header class="tour-booking-topbar">
+        <a
+          class="tour-booking-back"
+          href="/"
+          data-ticketing-return
+          aria-label="Voltar ao mapa"
+        >
+          <span aria-hidden="true">‹</span>
+        </a>
+        <strong class="tour-booking-heading">Reservar Passeio</strong>
+        <button
+          class="tour-booking-search"
+          type="button"
+          aria-label="Buscar outro passeio"
+          data-ticketing-search
+        >
+          <span aria-hidden="true"></span>
+        </button>
+        <p id="session-label" class="session-label" aria-live="polite"></p>
+      </header>
+
+      <section class="tour-product" aria-labelledby="ticketing-title">
+        <div
+          class="tour-hero ticketing-hero-media"
+          data-ticketing-hero
+          role="img"
+          aria-label="Passeio em Morro de São Paulo"
+        >
+          <span class="tour-recommended">
+            <span class="tour-recommended-dot" aria-hidden="true"></span>
+            Recomendado
+          </span>
+        </div>
+
+        <div class="tour-product-copy">
+          <div class="tour-title-row">
+            <h1 id="ticketing-title">Carregando passeio…</h1>
+            <span id="product-rating" class="tour-rating" hidden></span>
+          </div>
+
+          <div class="tour-facts" aria-live="polite">
+            <span id="product-duration" class="tour-fact" hidden></span>
+            <span class="tour-fact">
+              <span aria-hidden="true">♙♙</span>
+              Grupo
+            </span>
+            <span class="tour-fact">
+              <span aria-hidden="true">⌖</span>
+              Guia local
+            </span>
+          </div>
+
+          <p id="product-location" class="tour-location">Morro de São Paulo</p>
+          <p id="product-lead" class="tour-description">
+            Carregando informações do passeio…
+          </p>
+          <p
+            id="product-availability"
+            class="tour-availability"
+            aria-live="polite"
+            hidden
+          ></p>
+        </div>
+      </section>
+
+      <p id="reservation-message" class="tour-status" aria-live="polite"></p>
+
+      <section class="tour-booking-panel" aria-labelledby="offers-title">
+        <div class="tour-section-heading">
+          <div>
+            <p class="tour-kicker">Escolha quando você quer ir</p>
+            <h2 id="offers-title">Selecionar data</h2>
+          </div>
+          <button
+            id="refresh-button"
+            class="md-button md-button--secondary"
+            type="button"
+            hidden
+          >
+            Tentar novamente
+          </button>
+        </div>
+
+        <div
+          id="date-selector"
+          class="date-selector"
+          role="listbox"
+          aria-label="Escolha a data"
+        ></div>
+
+        <div id="offers" class="offer-grid" aria-live="polite"></div>
+
+        <div
+          id="selection-summary"
+          class="selection-summary"
+          aria-live="polite"
+          hidden
+        >
+          <div class="selection-copy" hidden>
+            <h2 id="selected-summary-title">Passeio selecionado</h2>
+            <p id="selected-summary-meta"></p>
+          </div>
+
+          <div class="quantity-control" aria-labelledby="quantity-label">
+            <div>
+              <span id="quantity-label">Ingressos</span>
+              <small>Quantidade de pessoas</small>
+            </div>
+            <div class="quantity-stepper">
+              <button
+                id="quantity-decrease"
+                class="tour-quantity-button"
+                type="button"
+                aria-label="Diminuir quantidade"
+              >
+                −
+              </button>
+              <input
+                id="quantity"
+                name="quantity"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="1"
+                value="1"
+                required
+                aria-label="Quantidade de ingressos"
+              />
+              <button
+                id="quantity-increase"
+                class="tour-quantity-button tour-quantity-button--primary"
+                type="button"
+                aria-label="Aumentar quantidade"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          <div class="price-summary" aria-labelledby="price-summary-title">
+            <div class="price-summary-heading">
+              <div>
+                <p class="tour-kicker">Total</p>
+                <h3 id="price-summary-title">Resumo da reserva</h3>
+              </div>
+              <span id="quote-badge" class="tour-price-state">
+                Preço confirmado
+              </span>
+            </div>
+
+            <dl class="price-breakdown">
+              <div>
+                <dt>Preço por pessoa</dt>
+                <dd id="summary-unit-price">—</dd>
+              </div>
+              <div>
+                <dt>Quantidade</dt>
+                <dd id="summary-quantity">1</dd>
+              </div>
+              <div class="price-total-row">
+                <dt>Total</dt>
+                <dd id="summary-subtotal">—</dd>
+              </div>
+            </dl>
+
+            <p class="authority-note">
+              <span aria-hidden="true">🔒</span>
+              Valor, disponibilidade e pagamento são confirmados com segurança
+              pelo servidor.
+            </p>
+
+            <button
+              id="reserve-button"
+              class="tour-checkout-cta"
+              type="submit"
+              form="reservation-form"
+              disabled
+            >
+              Finalizar Reserva
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="identity-panel"
+        class="tour-identity-panel"
+        aria-labelledby="reservation-title"
+        hidden
+      >
+        <div class="tour-section-heading">
+          <div>
+            <p class="tour-kicker">Dados da reserva</p>
+            <h2 id="reservation-title">Quem vai fazer o passeio?</h2>
+          </div>
+        </div>
+        <form id="reservation-form" class="reservation-form" novalidate>
+          <input id="inventory-id" name="inventoryId" type="hidden" />
+          <label class="selected-offer-field" hidden>
+            Experiência selecionada
+            <input id="selected-offer" type="text" readonly />
+          </label>
+          <label>
+            Nome completo
+            <input
+              id="holder-name"
+              name="name"
+              autocomplete="name"
+              maxlength="160"
+              required
+            />
+          </label>
+          <label>
+            E-mail
+            <input
+              id="holder-email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              maxlength="200"
+              required
+            />
+          </label>
+          <label>
+            Telefone <span>opcional</span>
+            <input
+              id="holder-phone"
+              name="phone"
+              autocomplete="tel"
+              maxlength="40"
+            />
+          </label>
+          <label>
+            Documento <span>opcional</span>
+            <input
+              id="holder-document"
+              name="document"
+              autocomplete="off"
+              maxlength="40"
+            />
+          </label>
+        </form>
+      </section>
+
+      <section class="wallet-section" aria-labelledby="my-tickets-title" hidden>
+        <h2 id="my-tickets-title">Meus ingressos</h2>
+        <div id="reservations" aria-live="polite"></div>
+      </section>
+
+      <footer class="tour-booking-footer">
+        <button
+          id="privacy-settings-button"
+          class="tour-privacy-action"
+          type="button"
+          aria-label="Preferências de privacidade"
+        >
+          Privacidade
+        </button>
+      </footer>
+    </main>
+
+    <dialog
+      id="ticket-dialog"
+      class="ticket-dialog"
+      aria-labelledby="ticket-title"
+    >
+      <button
+        id="ticket-close"
+        class="ticket-dialog-close"
+        type="button"
+        aria-label="Fechar"
+      >
+        ×
+      </button>
+      <p class="tour-kicker">Ingresso confirmado</p>
+      <h2 id="ticket-title">Seu ingresso</h2>
+      <p class="ticket-dialog-hint">
+        Aumente o brilho da tela para facilitar a leitura no acesso.
+      </p>
+      <div
+        id="ticket-qr"
+        class="ticket-qr"
+        aria-label="QR code do ingresso"
+      ></div>
+      <p id="ticket-code" class="ticket-code"></p>
+      <p id="ticket-meta" class="ticket-meta"></p>
+    </dialog>
+
+    <script type="module" src="/ticketing.js"></script>
+  </body>
+</html>
