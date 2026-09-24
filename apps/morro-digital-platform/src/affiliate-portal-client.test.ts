@@ -52,8 +52,10 @@ describe("affiliate portal browser client", () => {
 
   it("sends server session credentials and CSRF for referral issuance", async () => {
     const secureFetch = vi.fn(
-      async (_input: string | URL | Request, _init?: RequestInit) =>
-        new Response(
+      async (_input: string | URL | Request, _init?: RequestInit) => {
+        void _input;
+        void _init;
+        return new Response(
           JSON.stringify({
             referral: {
               url: "https://morro.example/affiliate-portal-capture.html?aff_ref=signed",
@@ -61,7 +63,8 @@ describe("affiliate portal browser client", () => {
             },
           }),
           { status: 201, headers: { "Content-Type": "application/json" } },
-        ),
+        );
+      },
     );
     const client = createAffiliatePortalClient({
       getSession: vi.fn().mockResolvedValue(session),
