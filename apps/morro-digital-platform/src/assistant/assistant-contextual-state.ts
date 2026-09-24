@@ -121,11 +121,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   }),
   en: Object.freeze({
     category_selected: copy(
-      "Selected category: {{category}}. Choose a filter to refine the results.",
+      "{{category}}, great choice. Would you like to see all options or filter first?",
       "View filters",
     ),
     results_found: copy(
-      "I found {{count}} options for you. Choose a place to see its details.",
+      "Great. I found {{count}} options for you. Want to choose one now?",
       "View places",
     ),
     no_results: copy(
@@ -133,19 +133,19 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Change filters",
     ),
     place_selected: copy(
-      "{{place}} selected. Review the details and choose the next action.",
+      "This is {{place}}. I can take you there or show more details first.",
       "View actions",
     ),
     action_available: copy(
-      "The available actions for {{place}} are ready.",
-      "Choose action",
+      "What would you like to do at {{place}} now?",
+      "View options",
     ),
     navigation_starting: copy(
       "Preparing the route to {{place}}.",
       "Start navigation",
     ),
     navigation_active: copy(
-      "Navigation to {{place}} is active. Follow the map guidance.",
+      "We’re on the way to {{place}}. Keep following the map.",
       null,
     ),
     payment_started: copy(
@@ -187,11 +187,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   }),
   es: Object.freeze({
     category_selected: copy(
-      "Categoría seleccionada: {{category}}. Elige un filtro para refinar los resultados.",
+      "{{category}}, buena elección. ¿Quieres ver todas las opciones o filtrar primero?",
       "Ver filtros",
     ),
     results_found: copy(
-      "Encontré {{count}} opciones para ti. Elige un lugar para ver los detalles.",
+      "Perfecto. Encontré {{count}} opciones para ti. ¿Quieres elegir una ahora?",
       "Ver lugares",
     ),
     no_results: copy(
@@ -199,19 +199,19 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "Cambiar filtros",
     ),
     place_selected: copy(
-      "{{place}} seleccionado. Revisa los detalles y elige la siguiente acción.",
+      "Este es {{place}}. Puedo llevarte hasta allí o mostrarte más detalles primero.",
       "Ver acciones",
     ),
     action_available: copy(
-      "Las acciones disponibles para {{place}} están listas.",
-      "Elegir acción",
+      "¿Qué quieres hacer en {{place}} ahora?",
+      "Ver opciones",
     ),
     navigation_starting: copy(
       "Preparando la ruta hasta {{place}}.",
       "Iniciar navegación",
     ),
     navigation_active: copy(
-      "La navegación hasta {{place}} está activa. Sigue las indicaciones del mapa.",
+      "Vamos camino a {{place}}. Sigue las indicaciones del mapa.",
       null,
     ),
     payment_started: copy(
@@ -253,11 +253,11 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
   }),
   he: Object.freeze({
     category_selected: copy(
-      "הקטגוריה שנבחרה: {{category}}. בחר מסנן כדי למקד את התוצאות.",
+      "{{category}}, בחירה מצוינת. לראות את כל האפשרויות או לסנן קודם?",
       "הצג מסננים",
     ),
     results_found: copy(
-      "מצאתי {{count}} אפשרויות עבורך. בחר מקום כדי לראות פרטים.",
+      "מצאתי {{count}} אפשרויות. רוצה לבחור אחת עכשיו?",
       "הצג מקומות",
     ),
     no_results: copy(
@@ -265,16 +265,16 @@ const CONTEXTUAL_COPY_BY_LANGUAGE: Readonly<
       "שנה מסננים",
     ),
     place_selected: copy(
-      "{{place}} נבחר. עיין בפרטים ובחר את הפעולה הבאה.",
+      "זה {{place}}. אפשר לנווט לשם או לראות קודם פרטים נוספים.",
       "הצג פעולות",
     ),
     action_available: copy(
-      "הפעולות הזמינות עבור {{place}} מוכנות.",
-      "בחר פעולה",
+      "מה תרצה לעשות ב-{{place}} עכשיו?",
+      "הצג אפשרויות",
     ),
     navigation_starting: copy("מכין מסלול אל {{place}}.", "התחל ניווט"),
     navigation_active: copy(
-      "הניווט אל {{place}} פעיל. עקוב אחר הנחיות המפה.",
+      "אנחנו בדרך אל {{place}}. המשך לעקוב אחרי המפה.",
       null,
     ),
     payment_started: copy(
