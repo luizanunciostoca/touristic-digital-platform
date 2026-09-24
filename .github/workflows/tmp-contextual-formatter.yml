@@ -1,0 +1,40 @@
+name: Temporary Contextual Formatter
+
+on:
+  push:
+    branches:
+      - fix/contextual-messages-map-position-20260924
+    paths:
+      - ".github/workflows/tmp-contextual-formatter.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Apply canonical Prettier
+        run: pnpm exec prettier --write apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts
+      - name: Commit formatter output and remove helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/tmp-contextual-formatter.yml
+          git add apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts
+          git commit -m "style(assistant): apply canonical formatter"
+          git push origin HEAD:fix/contextual-messages-map-position-20260924
