@@ -908,9 +908,7 @@ export function installBrowserAssistantRuntime(
     resolveNavigationDestination(candidate) {
       const normalized = candidate?.trim() ?? "";
       const coordinateDestination =
-        /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u.test(
-          normalized,
-        );
+        /^-?\d{1,2}(?:\.\d+)?\s*,\s*-?\d{1,3}(?:\.\d+)?$/u.test(normalized);
       if (normalized && !coordinateDestination) return normalized;
       const explorePlace = readExploreState().place?.trim();
       if (explorePlace) return explorePlace;
@@ -1533,10 +1531,9 @@ export function installBrowserAssistantRuntime(
     // Rich Explore presenters remain the single visual authority. Contextual
     // copy is projected as a bounded submessage inside the existing presenter
     // instead of creating a competing assistant message node.
-    let contextualCopy =
-      canonicalMessage.querySelector<HTMLElement>(
-        ":scope > .md-assistant-contextual-copy",
-      );
+    let contextualCopy = canonicalMessage.querySelector<HTMLElement>(
+      ":scope > .md-assistant-contextual-copy",
+    );
     if (!contextualCopy) {
       contextualCopy = options.document.createElement("span");
       contextualCopy.className = "md-assistant-contextual-copy";
