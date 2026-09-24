@@ -48,6 +48,31 @@ describe("assistant conversation orchestrator", () => {
     expect(orchestrator.recentTurns()).toHaveLength(3);
   });
 
+  it("deduplicates repeated semantic presentations without losing the visible turn", () => {
+    const orchestrator = createAssistantConversationOrchestrator({
+      sessionId: "dedupe-session",
+      now: () => 500,
+    });
+    const input = {
+      cause: "results_found",
+      messageKey: "results_found",
+      renderedText: "Encontrei 4 opções.",
+      source: "explore",
+      category: "beaches",
+      resultCount: 4,
+    } as const;
+
+    const first = orchestrator.transition(input);
+    const duplicate = orchestrator.transition(input);
+
+    expect(duplicate.id).toBe(first.id);
+    expect(orchestrator.recentTurns()).toHaveLength(1);
+    expect(orchestrator.observability()).toMatchObject({
+      turnsCreated: 1,
+      duplicateAttempts: 1,
+    });
+  });
+
   it("keeps previous category/place and supports stale async supersession", () => {
     const orchestrator = createAssistantConversationOrchestrator({
       sessionId: "session-2",
