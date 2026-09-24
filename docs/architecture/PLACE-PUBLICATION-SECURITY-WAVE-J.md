@@ -32,14 +32,14 @@ Editing a published Place does not overwrite the public projection. A new edit r
 
 ## Public projection rule
 
-Only `publicationState === "published"` may produce a public Place projection.
+A public projection exists when a `publishedRevision` exists, except while the Place is `suspended` or `archived`.
 
-These states produce no public projection:
+This distinction is intentional:
 
-- draft;
-- review;
-- suspended;
-- archived.
+- a never-published draft/review has no public projection;
+- editing or reviewing a previously published Place keeps the previous `publishedRevision` public;
+- the new editable revision does not become public until atomic publication;
+- suspended and archived Places have no public projection.
 
 This is the contract Search, Assistant, Map and indexing consumers must use.
 
@@ -204,7 +204,7 @@ Consumers must enforce these rules:
 1. UI state is never authorization authority.
 2. Mutation requests carry canonical IDs and expected revision.
 3. Business and destination identity are immutable in normal Place edit flows.
-4. Draft/review/suspended/archived records are excluded from public Search/Map/Assistant projections.
+4. Never-published draft/review records are excluded; previously published draft/review records keep only the prior published revision visible; suspended/archived records are excluded.
 5. Publish is a distinct command from save.
 6. Publish uses exact editable revision and atomic public-projection update.
 7. Viewer is read-only.
