@@ -89,7 +89,17 @@ jobs:
                 throw new Error('composer did not submit: ' + text);
               }
               async function contextual(expectedState) {
-                const node = page.locator('#assistant-contextual-state');
+                const exploreStates = new Set([
+                  'category_selected',
+                  'results_found',
+                  'no_results',
+                  'place_selected',
+                  'action_available',
+                ]);
+                const selector = exploreStates.has(expectedState)
+                  ? '#assistant-category-results-message'
+                  : '#assistant-contextual-state';
+                const node = page.locator(selector);
                 await node.waitFor({ state: 'attached', timeout: 8000 });
                 const snapshot = await node.evaluate(el => ({
                   text: el.textContent?.trim() || '',
@@ -100,7 +110,7 @@ jobs:
                   key: el.dataset.conversationMessageKey || '',
                 }));
                 if (snapshot.state !== expectedState || snapshot.cause !== expectedState || snapshot.key !== expectedState) {
-                  throw new Error('Context metadata mismatch: ' + JSON.stringify(snapshot));
+                  throw new Error('Context metadata mismatch: ' + JSON.stringify({ selector, ...snapshot }));
                 }
                 if (!snapshot.turnId) throw new Error('Missing conversation turn id');
                 if (/Categoria selecionada:|Ações disponíveis estão prontas|Navegação ativa/u.test(snapshot.text)) {
