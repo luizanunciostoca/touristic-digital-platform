@@ -136,6 +136,7 @@ describe("assistant contextual state messaging", () => {
     expect(contextual).toContain('area === "navigation"');
     expect(contextual).toContain('publish("provider_error", {}, "navigation")');
     expect(contextual).toContain("options.messages.removeById");
+    expect(contextual).toContain("contextualNonBlocking");
     expect(contextual).toContain(
       "Completion feedback has a dedicated canonical presenter",
     );
