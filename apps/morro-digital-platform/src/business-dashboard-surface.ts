@@ -72,22 +72,28 @@ function setText(document: Document, id: string, value: string): void {
   requiredElement(document, id).textContent = value || "—";
 }
 
-const moduleDescriptions: Readonly<Record<MorroProModule, string>> = Object.freeze({
-  dashboard: "Visão geral do seu negócio na Morro Digital.",
-  profile: "Edite os dados públicos do negócio usando o Business/Place canônico.",
-  location: "Gerencie a localização conforme a política geográfica e de publicação.",
-  photos: "Gerencie fotos vinculadas ao Place através da autoridade de mídia.",
-  products: "Gerencie produtos vinculados explicitamente ao negócio e aos Places.",
-  offers: "Crie e acompanhe ofertas autorizadas do negócio.",
-  menu: "Gerencie cardápio estruturado quando esta capacidade estiver disponível.",
-  reservations: "Acompanhe reservas quando habilitadas para este Place.",
-  ticketing: "Acesse ticketing e check-in quando habilitados.",
-  financial: "Consulte projeções financeiras autorizadas em modo somente leitura.",
-  content: "Gerencie conteúdo conforme sua role e capabilities.",
-  preview: "Visualize a presença pública antes da publicação governada.",
-  team: "Gerencie o acesso da equipe dentro do escopo deste negócio.",
-  settings: "Ajuste preferências do Morro Pro sem receber capacidades de plataforma.",
-});
+const moduleDescriptions: Readonly<Record<MorroProModule, string>> =
+  Object.freeze({
+    dashboard: "Visão geral do seu negócio na Morro Digital.",
+    profile:
+      "Edite os dados públicos do negócio usando o Business/Place canônico.",
+    location:
+      "Gerencie a localização conforme a política geográfica e de publicação.",
+    photos: "Gerencie fotos vinculadas ao Place através da autoridade de mídia.",
+    products:
+      "Gerencie produtos vinculados explicitamente ao negócio e aos Places.",
+    offers: "Crie e acompanhe ofertas autorizadas do negócio.",
+    menu: "Gerencie cardápio estruturado quando esta capacidade estiver disponível.",
+    reservations: "Acompanhe reservas quando habilitadas para este Place.",
+    ticketing: "Acesse ticketing e check-in quando habilitados.",
+    financial:
+      "Consulte projeções financeiras autorizadas em modo somente leitura.",
+    content: "Gerencie conteúdo conforme sua role e capabilities.",
+    preview: "Visualize a presença pública antes da publicação governada.",
+    team: "Gerencie o acesso da equipe dentro do escopo deste negócio.",
+    settings:
+      "Ajuste preferências do Morro Pro sem receber capacidades de plataforma.",
+  });
 
 function ensureMorroProPanels(document: Document): void {
   const profilePanel = document.querySelector<HTMLElement>(
@@ -457,7 +463,9 @@ export async function mountBusinessDashboardSurface(
         })
         .catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
           offersSurface.status.textContent =
             error instanceof Error
               ? error.message
@@ -574,7 +582,9 @@ export async function mountBusinessDashboardSurface(
         })
         .catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
           offersSurface.status.textContent =
             error instanceof Error
               ? error.message
@@ -606,22 +616,26 @@ export async function mountBusinessDashboardSurface(
       bootstrap.session.user.capabilities,
       [],
     );
-    const accessByModule = new Map(access.map((item) => [item.id, item] as const));
+    const accessByModule = new Map(
+      access.map((item) => [item.id, item] as const),
+    );
     const profileAccess = accessByModule.get("profile");
     if (!profileAccess?.mutable) {
-      form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement>(
-        "input, textarea, button[type=submit]",
-      ).forEach((control) => {
-        control.disabled = true;
-      });
+      form
+        .querySelectorAll<
+          HTMLInputElement | HTMLTextAreaElement | HTMLButtonElement
+        >("input, textarea, button[type=submit]")
+        .forEach((control) => {
+          control.disabled = true;
+        });
       status.textContent = "Seu acesso ao perfil é somente leitura.";
     }
     const offersAccess = accessByModule.get("offers");
     if (!offersAccess?.mutable) {
       offersSurface.form
-        .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(
-          "input, select, button[type=submit]",
-        )
+        .querySelectorAll<
+          HTMLInputElement | HTMLSelectElement | HTMLButtonElement
+        >("input, select, button[type=submit]")
         .forEach((control) => {
           control.disabled = true;
         });
@@ -639,7 +653,9 @@ export async function mountBusinessDashboardSurface(
         const request = contextController?.request();
         void reloadOffers(request?.signal).catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
           offersSurface.status.textContent =
             error instanceof Error
               ? error.message
@@ -655,7 +671,9 @@ export async function mountBusinessDashboardSurface(
       .querySelectorAll<HTMLElement>("[data-dashboard-view]")
       .forEach((button) => {
         if (button.closest(".sidebar-nav")) return;
-        const view = button.dataset.dashboardView as BusinessDashboardView | undefined;
+        const view = button.dataset.dashboardView as
+          | BusinessDashboardView
+          | undefined;
         if (!view || !businessDashboardViews.includes(view)) return;
         const moduleAccess = accessByModule.get(view);
         if (!moduleAccess?.visible) {
@@ -671,7 +689,10 @@ export async function mountBusinessDashboardSurface(
 
     const scopes = contextController.scopes();
     if (scopes.length > 1) {
-      const header = requiredElement<HTMLElement>(document, "business-name").parentElement;
+      const header = requiredElement<HTMLElement>(
+        document,
+        "business-name",
+      ).parentElement;
       if (!header) throw new Error("MISSING_BUSINESS_HEADER");
       const label = document.createElement("label");
       label.className = "business-context";
@@ -702,7 +723,9 @@ export async function mountBusinessDashboardSurface(
             })
             .catch((error: unknown) => {
               if (!contextController?.isCurrent(request)) return;
-              if (error instanceof DOMException && error.name === "AbortError") return;
+              if (error instanceof DOMException && error.name === "AbortError") {
+            return;
+          }
               status.textContent =
                 error instanceof Error
                   ? error.message
