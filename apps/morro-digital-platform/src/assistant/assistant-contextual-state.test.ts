@@ -79,8 +79,16 @@ describe("assistant contextual state messaging", () => {
     );
 
     expect(runtime).toContain("resolveExploreContextualState");
+    expect(runtime).toContain("resolveAssistantContextualCopy");
     expect(runtime).toContain("syncExploreContextualMessage");
     expect(runtime).toContain("syncExplorePresentation");
+    expect(runtime).toContain(
+      'canonicalMessage.dataset.messageType !== "category-flow"',
+    );
+    expect(runtime).toContain("canonicalMessage.textContent = rendered.message");
+    expect(runtime).not.toContain(
+      "contextualMessaging.publish(contextualState",
+    );
     expect(runtime).toContain(
       "const onExploreStateChanged = (): void => syncExplorePresentation();",
     );
