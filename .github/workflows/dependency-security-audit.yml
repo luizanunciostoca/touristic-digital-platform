@@ -2,8 +2,22 @@ name: Dependency Security Audit
 
 on:
   pull_request:
+    paths:
+      - ".github/workflows/dependency-security-audit.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "**/package.json"
   push:
     branches: [main]
+    paths:
+      - ".github/workflows/dependency-security-audit.yml"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "**/package.json"
+  schedule:
+    - cron: "23 6 * * 1"
   workflow_dispatch:
 
 permissions:
