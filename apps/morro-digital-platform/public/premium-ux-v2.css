@@ -866,8 +866,12 @@ body[data-md-mode="navigation"] #minimize-navigation-btn {
 body[data-md-mode="navigation"] #globe-map-control {
   position: fixed;
   z-index: var(--md-layer-navigation);
-  top: calc(var(--md-safe-top) + 12.5rem);
+  top: auto;
   right: calc(var(--md-safe-right) + var(--md-space-3));
+  bottom: calc(
+    var(--md-safe-bottom) + var(--md-unified-dock-height, 10rem) +
+      var(--md-space-5)
+  );
   display: flex !important;
   flex-direction: column;
   gap: var(--md-space-2);
@@ -1137,7 +1141,7 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
   }
 
   body[data-md-mode="navigation"] #globe-map-control {
-    top: calc(var(--md-safe-top) + var(--md-space-2));
+    top: auto;
   }
 
   body[data-md-mode="navigation"] #navigation-summary {
