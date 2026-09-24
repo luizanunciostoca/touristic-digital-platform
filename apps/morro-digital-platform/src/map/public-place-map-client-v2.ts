@@ -84,7 +84,7 @@ export function createPublicPlaceMapClient(
   fetchImpl: typeof fetch = fetch,
 ): PublicPlaceMapClient {
   return Object.freeze({
-    async listMap(input) {
+    async listMap(input: Parameters<PublicPlaceMapClient["listMap"]>[0]) {
       const query = new URLSearchParams({
         destinationId: input.destinationId,
         bbox: input.bbox.join(","),
@@ -104,7 +104,10 @@ export function createPublicPlaceMapClient(
       return parseMapPage(await response.json());
     },
 
-    async getDetail(placeId, input = {}) {
+    async getDetail(
+      placeId: string,
+      input: Readonly<{ locale?: string; signal?: AbortSignal }> = {},
+    ) {
       if (!/^[a-z0-9][a-z0-9_-]*$/u.test(placeId)) {
         throw new Error("PUBLIC_PLACE_INVALID_PLACE_ID");
       }
