@@ -36,6 +36,16 @@
       "types": "./src/ticketing-checkout.ts",
       "node": "./dist/ticketing-checkout.js",
       "default": "./src/ticketing-checkout.ts"
+    },
+    "./restaurant-reservation": {
+      "types": "./src/restaurant-reservation.ts",
+      "node": "./dist/restaurant-reservation.js",
+      "default": "./src/restaurant-reservation.ts"
+    },
+    "./restaurant-checkout": {
+      "types": "./src/restaurant-checkout.ts",
+      "node": "./dist/restaurant-checkout.js",
+      "default": "./src/restaurant-checkout.ts"
     }
   },
   "scripts": {
