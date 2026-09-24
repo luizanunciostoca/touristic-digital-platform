@@ -112,9 +112,7 @@ export function createAffiliatePortalClient(
 ): AffiliatePortalClient {
   let currentSession: DashboardSessionResponse | null = null;
 
-  async function requireSession(
-    force = false,
-  ): Promise<DashboardSessionResponse> {
+  async function requireSession(force = false): Promise<DashboardSessionResponse> {
     const session = await authClient.getSession(force);
     if (!session?.authenticated || !session.csrfToken) {
       currentSession = null;
