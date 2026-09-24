@@ -1438,7 +1438,6 @@ async function renderBusinessesLegacy(businessId) {
     </div>`;
 }
 
-
 async function renderBusinesses(businessId) {
   return renderBusinessCms(
     {
