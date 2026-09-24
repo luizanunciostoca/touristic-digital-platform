@@ -2,6 +2,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import {
   MySqlTicketingBusinessInventoryRepository,
+  type MorroProAdmissionProfile,
   type MorroProInventoryOffer,
   type TicketingBusinessInventoryRepositoryPort,
 } from "./business-inventory-repository.js";
@@ -153,6 +154,7 @@ export {
 export type {
   FinancialResultCursor,
   FinancialResultCursorRepositoryPort,
+  MorroProAdmissionProfile,
   MorroProInventoryOffer,
   RefundedReservationCancellationRepositoryPort,
   TicketHolderProfilePort,
