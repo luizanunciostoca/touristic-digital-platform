@@ -3,6 +3,7 @@ name: Temporary Wave Prettier
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - wave/morro-pro-business-management-20260923
