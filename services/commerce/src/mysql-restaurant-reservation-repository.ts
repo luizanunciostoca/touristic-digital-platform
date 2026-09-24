@@ -367,7 +367,9 @@ async function expireStaleHolds(
   );
   for (const row of rows) {
     const current = reservationFromRow(row);
-    if (!isRestaurantReservationTransitionAllowed(current.status, "expired")) {
+    if (
+      !isRestaurantReservationTransitionAllowed(current.status, "expired")
+    ) {
       throw new Error("COMMERCE_RESTAURANT_EXPIRY_TRANSITION_INVALID");
     }
     const expired = createRestaurantReservation({
@@ -433,8 +435,7 @@ export class MySqlRestaurantReservationRepository {
     try {
       await connection.beginTransaction();
       const existing = await selectSlot(connection, slot.id, true);
-      const [depositKind, depositAmount, depositCurrency] =
-        depositColumns(slot);
+      const [depositKind, depositAmount, depositCurrency] = depositColumns(slot);
       if (existing) {
         if (
           existing.businessId !== slot.businessId ||
