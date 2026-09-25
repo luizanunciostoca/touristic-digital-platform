@@ -262,6 +262,7 @@ try {
       markers: [],
       centers: [],
       actions: [],
+      states: [],
     };
 
     application.exploreLocations.setGeospatialEngine({
@@ -280,6 +281,11 @@ try {
     document.addEventListener("morro:assistant-action-executed", (event) => {
       if (event instanceof CustomEvent) {
         globalThis.__canonicalProof.actions.push(event.detail);
+      }
+    });
+    document.addEventListener("morro:explore-state-changed", (event) => {
+      if (event instanceof CustomEvent) {
+        globalThis.__canonicalProof.states.push(event.detail);
       }
     });
 
@@ -351,6 +357,19 @@ try {
   );
 
   const canonicalRail = await railSnapshot(page);
+  const canonicalState = await page.evaluate(
+    () =>
+      globalThis.__canonicalProof.states
+        .filter((state) => state?.stage === "detail")
+        .at(-1) ?? null,
+  );
+  if (canonicalState?.source !== "canonical") {
+    throw new Error(
+      `Canonical Explore state lost discovery source: ${JSON.stringify(
+        canonicalState,
+      )}`,
+    );
+  }
   if (
     canonicalRail.place !== "Toca do Morcego" ||
     !canonicalRail.options.some(
@@ -440,6 +459,19 @@ try {
   await clickPlace(page, "External Cafe");
 
   const externalRail = await railSnapshot(page);
+  const externalState = await page.evaluate(
+    () =>
+      globalThis.__canonicalProof.states
+        .filter((state) => state?.stage === "detail")
+        .at(-1) ?? null,
+  );
+  if (externalState?.source !== "mapbox") {
+    throw new Error(
+      `External Explore state lost discovery source: ${JSON.stringify(
+        externalState,
+      )}`,
+    );
+  }
   assertNoCommercialFallback(externalRail, "external Mapbox Place");
   if (
     !externalRail.options.some(
@@ -474,8 +506,10 @@ try {
     result: "pass",
     canonicalRequests,
     commandEvidence,
+    canonicalState,
     canonicalRail,
     failClosedRail,
+    externalState,
     externalRail,
     pageErrors,
   };
