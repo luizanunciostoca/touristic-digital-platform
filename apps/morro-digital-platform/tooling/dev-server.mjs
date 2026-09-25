@@ -277,8 +277,6 @@ destinationRuntimeReady = (await destinationRuntime.readiness()).ready;
 const crmApi = createCrmApi({ authApi, getEnvironmentValue });
 await crmApi.start();
 
-const businessApi = createBusinessApi({ authApi });
-
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
 paymentsRuntimeReady = await paymentsApi.start();
 
@@ -295,6 +293,8 @@ placePlatformRuntime = createPlacePlatformRuntime({
   platformOperations,
 });
 await placePlatformRuntime.start();
+
+const businessApi = createBusinessApi({ authApi, placePlatformRuntime });
 
 const adminApi = createAdminApi({
   authApi,
