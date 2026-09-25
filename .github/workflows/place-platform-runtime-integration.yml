@@ -1,12 +1,11 @@
 name: Place Platform Runtime Integration
 on:
   pull_request:
-    paths:
-      - ".github/workflows/place-platform-runtime-integration.yml"
-      - "apps/morro-digital-platform/**"
-      - "packages/business/**"
-      - "services/content/**"
+    paths: [".github/workflows/place-platform-runtime-integration.yml", "apps/morro-digital-platform/**", "packages/business/**", "services/content/**"]
 permissions: {contents: read}
+concurrency:
+  group: place-platform-runtime-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 jobs:
   mysql-runtime:
     runs-on: ubuntu-24.04
