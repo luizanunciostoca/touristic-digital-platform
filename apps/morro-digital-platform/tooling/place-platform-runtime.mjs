@@ -6,7 +6,6 @@ import {
   resolvePlacePresentationActions,
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
-import { createPlaceMediaService } from "@touristic/content/place-media";
 import {
   applyCatalogSchema,
   createCatalogRuntime,
@@ -760,6 +759,9 @@ export function createPlacePlatformRuntime({
           getEnvironmentValue("MEDIA_STORAGE_BASE_PATH") || "",
         ).trim();
         if (mediaStorageBasePath) {
+          const { createPlaceMediaService } = await import(
+            "@touristic/content/place-media"
+          );
           mediaStorage = createFilesystemMediaStorage({
             basePath: mediaStorageBasePath,
             publicPrefix: "/media",
