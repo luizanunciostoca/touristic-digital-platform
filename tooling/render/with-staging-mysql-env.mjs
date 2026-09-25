@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { randomBytes, scryptSync } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { reconcileStagingMysqlDomains } from "./reconcile-staging-mysql-domains.mjs";
 import { waitForStagingMysql } from "./wait-for-staging-mysql.mjs";
 
 const databaseDomains = Object.freeze([
@@ -9,6 +10,9 @@ const databaseDomains = Object.freeze([
   ["ORDERING", "ORDERING_DATABASE_URL"],
   ["FINANCIAL", "FINANCIAL_DATABASE_URL"],
   ["AFFILIATES", "AFFILIATES_DATABASE_URL"],
+  ["BUSINESS", "BUSINESS_DATABASE_URL"],
+  ["CONTENT", "CONTENT_DATABASE_URL"],
+  ["DESTINATIONS", "DESTINATIONS_DATABASE_URL"],
 ]);
 const providerAcceptanceRunner = fileURLToPath(
   new URL("./payments-provider-acceptance-runner.mjs", import.meta.url),
@@ -418,6 +422,14 @@ if (isDirectInvocation()) {
           status: readiness.status,
           attempts: readiness.attempts,
           elapsedMs: readiness.elapsedMs,
+        })}\n`,
+      );
+      const reconciliation = await reconcileStagingMysqlDomains(process.env);
+      process.stdout.write(
+        `${JSON.stringify({
+          contract: "MORRO-STAGING-MYSQL-RECONCILE",
+          status: reconciliation.status,
+          domains: reconciliation.domains,
         })}\n`,
       );
       derived = buildStagingDatabaseEnvironment(process.env);

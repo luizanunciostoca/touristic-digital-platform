@@ -52,7 +52,10 @@ for candidate in \
   "${AUTH_DATABASE_NAME:-}" \
   "${ORDERING_DATABASE_NAME:-}" \
   "${FINANCIAL_DATABASE_NAME:-}" \
-  "${AFFILIATES_DATABASE_NAME:-}"; do
+  "${AFFILIATES_DATABASE_NAME:-}" \
+  "${BUSINESS_DATABASE_NAME:-}" \
+  "${CONTENT_DATABASE_NAME:-}" \
+  "${DESTINATIONS_DATABASE_NAME:-}"; do
   if [ -n "$candidate" ]; then
     validate_identifier "$candidate"
     if [ "$source_database" = "$candidate" ]; then

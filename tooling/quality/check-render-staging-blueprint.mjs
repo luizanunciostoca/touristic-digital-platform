@@ -117,8 +117,11 @@ for (const required of [
 
 for (const required of [
   'from "./wait-for-staging-mysql.mjs"',
+  'from "./reconcile-staging-mysql-domains.mjs"',
   "await waitForStagingMysql(process.env)",
+  "await reconcileStagingMysqlDomains(process.env)",
   '"MORRO-STAGING-MYSQL-WAIT"',
+  '"MORRO-STAGING-MYSQL-RECONCILE"',
 ]) {
   requireText(stagingMysqlWrapper, required);
 }
@@ -157,6 +160,9 @@ for (const key of [
   "ORDERING_DATABASE_PASSWORD",
   "FINANCIAL_DATABASE_PASSWORD",
   "AFFILIATES_DATABASE_PASSWORD",
+  "BUSINESS_DATABASE_PASSWORD",
+  "CONTENT_DATABASE_PASSWORD",
+  "DESTINATIONS_DATABASE_PASSWORD",
   "DASHBOARD_AUTH_SECRET",
   "PAYMENTS_STATUS_TOKEN_SECRET",
   "PAYMENTS_HANDOFF_SECRET",
@@ -196,6 +202,16 @@ for (const key of [
   "STAGING_AFFILIATES_DATABASE_NAME",
   "STAGING_AFFILIATES_DATABASE_USER",
   "STAGING_AFFILIATES_DATABASE_PASSWORD",
+  "STAGING_BUSINESS_DATABASE_NAME",
+  "STAGING_BUSINESS_DATABASE_USER",
+  "STAGING_BUSINESS_DATABASE_PASSWORD",
+  "STAGING_CONTENT_DATABASE_NAME",
+  "STAGING_CONTENT_DATABASE_USER",
+  "STAGING_CONTENT_DATABASE_PASSWORD",
+  "STAGING_DESTINATIONS_DATABASE_NAME",
+  "STAGING_DESTINATIONS_DATABASE_USER",
+  "STAGING_DESTINATIONS_DATABASE_PASSWORD",
+  "STAGING_MYSQL_ROOT_PASSWORD",
 ]) {
   requireDirective(key, "fromService:");
   requireDirective(key, "name: morro-digital-v2-staging-mysql");
@@ -223,7 +239,15 @@ for (const [key, expected] of [
   requireDirective(key, expected);
 }
 
-for (const domain of ["AUTH", "ORDERING", "FINANCIAL", "AFFILIATES"]) {
+for (const domain of [
+  "AUTH",
+  "ORDERING",
+  "FINANCIAL",
+  "AFFILIATES",
+  "BUSINESS",
+  "CONTENT",
+  "DESTINATIONS",
+]) {
   requireText(mysqlInit, `\${${domain}_DATABASE_NAME}`);
   requireText(mysqlInit, `\${${domain}_DATABASE_USER}`);
   requireText(mysqlInit, `\${${domain}_DATABASE_PASSWORD}`);

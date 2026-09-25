@@ -45,6 +45,24 @@ services:
         value: morro_affiliates
       - key: AFFILIATES_DATABASE_PASSWORD
         generateValue: true
+      - key: BUSINESS_DATABASE_NAME
+        value: morro_business_staging
+      - key: BUSINESS_DATABASE_USER
+        value: morro_business
+      - key: BUSINESS_DATABASE_PASSWORD
+        generateValue: true
+      - key: CONTENT_DATABASE_NAME
+        value: morro_content_staging
+      - key: CONTENT_DATABASE_USER
+        value: morro_content
+      - key: CONTENT_DATABASE_PASSWORD
+        generateValue: true
+      - key: DESTINATIONS_DATABASE_NAME
+        value: morro_destinations_staging
+      - key: DESTINATIONS_DATABASE_USER
+        value: morro_destinations
+      - key: DESTINATIONS_DATABASE_PASSWORD
+        generateValue: true
 
   - type: web
     name: morro-digital-v2-staging
@@ -72,6 +90,11 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           property: hostport
+      - key: STAGING_MYSQL_ROOT_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: MYSQL_ROOT_PASSWORD
       - key: STAGING_AUTH_DATABASE_NAME
         fromService:
           type: pserv
@@ -132,6 +155,51 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: AFFILIATES_DATABASE_PASSWORD
+      - key: STAGING_BUSINESS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: BUSINESS_DATABASE_NAME
+      - key: STAGING_BUSINESS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: BUSINESS_DATABASE_USER
+      - key: STAGING_BUSINESS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: BUSINESS_DATABASE_PASSWORD
+      - key: STAGING_CONTENT_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: CONTENT_DATABASE_NAME
+      - key: STAGING_CONTENT_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: CONTENT_DATABASE_USER
+      - key: STAGING_CONTENT_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: CONTENT_DATABASE_PASSWORD
+      - key: STAGING_DESTINATIONS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: DESTINATIONS_DATABASE_NAME
+      - key: STAGING_DESTINATIONS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: DESTINATIONS_DATABASE_USER
+      - key: STAGING_DESTINATIONS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: DESTINATIONS_DATABASE_PASSWORD
       - key: AFFILIATES_DATABASE_POOL_SIZE
         value: "4"
 
