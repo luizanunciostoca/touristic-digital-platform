@@ -115,6 +115,42 @@ export interface MorroProCatalog {
   readonly items: readonly MorroProCatalogMenuItem[];
 }
 
+export interface MorroProMediaAsset {
+  readonly id: string;
+  readonly provider: string;
+  readonly providerReference: string;
+  readonly mimeType: string;
+  readonly width: number;
+  readonly height: number;
+  readonly alt: string;
+  readonly publicationState: "draft" | "published";
+}
+
+export interface MorroProMediaEntry {
+  readonly placeId: string;
+  readonly mediaId: string;
+  readonly role: "cover" | "gallery" | "logo" | "menu" | "product" | "other";
+  readonly sortOrder: number;
+  readonly asset: MorroProMediaAsset | null;
+}
+
+export interface MorroProMedia {
+  readonly count: number;
+  readonly storageAvailable: boolean;
+  readonly assets: readonly MorroProMediaEntry[];
+}
+
+export interface MorroProMediaUploadInput {
+  readonly fileName: string;
+  readonly mimeType: string;
+  readonly width: number;
+  readonly height: number;
+  readonly alt: string;
+  readonly role: MorroProMediaEntry["role"];
+  readonly published: boolean;
+  readonly dataBase64: string;
+}
+
 export interface BusinessDashboardBootstrap {
   readonly session: DashboardSessionResponse;
   readonly businessId: string;
@@ -146,6 +182,27 @@ export interface BusinessDashboardClient {
     businessId: unknown,
     inventoryId: string,
   ) => Promise<MorroProInventoryOffer>;
+  readonly loadMedia: (
+    businessId: unknown,
+    signal?: AbortSignal,
+  ) => Promise<MorroProMedia>;
+  readonly uploadMedia: (
+    businessId: unknown,
+    input: MorroProMediaUploadInput,
+  ) => Promise<unknown>;
+  readonly updateMedia: (
+    businessId: unknown,
+    mediaId: string,
+    input: unknown,
+  ) => Promise<unknown>;
+  readonly reorderMedia: (
+    businessId: unknown,
+    orderedMediaIds: readonly string[],
+  ) => Promise<unknown>;
+  readonly deleteMedia: (
+    businessId: unknown,
+    mediaId: string,
+  ) => Promise<void>;
   readonly loadCatalog: (
     businessId: unknown,
     signal?: AbortSignal,
@@ -173,6 +230,19 @@ function businessInventoryUrl(businessIdInput: unknown): string {
   const businessId = normalizeBusinessId(businessIdInput);
   if (!businessId) throw new Error("INVALID_BUSINESS_ID");
   return `/api/ticketing/v1/operator/businesses/${encodeURIComponent(businessId)}/inventory`;
+}
+
+function businessMediaUrl(
+  businessIdInput: unknown,
+  mediaId?: string,
+  order = false,
+): string {
+  const businessId = normalizeBusinessId(businessIdInput);
+  if (!businessId) throw new Error("INVALID_BUSINESS_ID");
+  let url = `/api/business/${encodeURIComponent(businessId)}/media`;
+  if (order) url += "/order";
+  else if (mediaId) url += `/${encodeURIComponent(mediaId)}`;
+  return url;
 }
 
 function businessCatalogUrl(
@@ -304,6 +374,100 @@ export function createBusinessDashboardClient(
     return data.data;
   }
 
+  async function loadMedia(
+    businessIdInput: unknown,
+    signal?: AbortSignal,
+  ): Promise<MorroProMedia> {
+    const response = await authClient.secureFetch(
+      businessMediaUrl(businessIdInput),
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: signal ?? null,
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as Partial<MorroProMedia>;
+    return Object.freeze({
+      count: Number(data.count ?? 0),
+      storageAvailable: data.storageAvailable === true,
+      assets: Object.freeze(Array.isArray(data.assets) ? data.assets : []),
+    });
+  }
+
+  async function uploadMedia(
+    businessIdInput: unknown,
+    input: MorroProMediaUploadInput,
+  ): Promise<unknown> {
+    const response = await authClient.secureFetch(
+      businessMediaUrl(businessIdInput),
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { data?: unknown };
+    return data.data;
+  }
+
+  async function updateMedia(
+    businessIdInput: unknown,
+    mediaId: string,
+    input: unknown,
+  ): Promise<unknown> {
+    const response = await authClient.secureFetch(
+      businessMediaUrl(businessIdInput, mediaId),
+      {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { data?: unknown };
+    return data.data;
+  }
+
+  async function reorderMedia(
+    businessIdInput: unknown,
+    orderedMediaIds: readonly string[],
+  ): Promise<unknown> {
+    const response = await authClient.secureFetch(
+      businessMediaUrl(businessIdInput, undefined, true),
+      {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orderedMediaIds }),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { data?: unknown };
+    return data.data;
+  }
+
+  async function deleteMedia(
+    businessIdInput: unknown,
+    mediaId: string,
+  ): Promise<void> {
+    const response = await authClient.secureFetch(
+      businessMediaUrl(businessIdInput, mediaId),
+      { method: "DELETE", headers: { Accept: "application/json" } },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+  }
+
   async function loadCatalog(
     businessIdInput: unknown,
     signal?: AbortSignal,
@@ -392,6 +556,11 @@ export function createBusinessDashboardClient(
     listOffers,
     createOffer,
     disableOffer,
+    loadMedia,
+    uploadMedia,
+    updateMedia,
+    reorderMedia,
+    deleteMedia,
     loadCatalog,
     createCatalogEntry,
     updateCatalogEntry,
