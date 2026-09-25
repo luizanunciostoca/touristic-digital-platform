@@ -3,6 +3,7 @@ const databaseSchemas = Object.freeze({
   CONTROL_CENTER_AUDIT_DATABASE_URL: "morro_audit",
   DESTINATIONS_DATABASE_URL: "morro_destinations",
   CONTENT_DATABASE_URL: "morro_content",
+  BUSINESS_DATABASE_URL: "morro_business",
   ORDERING_DATABASE_URL: "morro_ordering",
   FINANCIAL_DATABASE_URL: "morro_financial",
   TICKETING_DATABASE_URL: "morro_ticketing",

@@ -169,6 +169,7 @@ export interface PublicPlaceCommercePort {
 export interface PublicPlaceActionPort {
   resolvePublicActions(input: {
     readonly place: PublicPlaceProfile;
+    readonly businessId: string;
     readonly media: PublicPlaceMediaProjection | null;
     readonly commerce: PublicPlaceCommerceProjection | null;
     readonly locale: string;
@@ -567,6 +568,7 @@ export function createPublicPlaceReadModel(
       const actionsResult = await Promise.resolve(
         options.actions.resolvePublicActions({
           place: profile,
+          businessId: String(record.place.businessId),
           media,
           commerce,
           locale,

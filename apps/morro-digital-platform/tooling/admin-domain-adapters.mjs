@@ -33,6 +33,22 @@ function sendJson(response, statusCode, payload) {
   response.end(JSON.stringify(payload));
 }
 
+async function readJsonBody(request, limit = 128 * 1024) {
+  let size = 0;
+  const chunks = [];
+  for await (const chunk of request) {
+    size += chunk.length;
+    if (size > limit) throw new Error("REQUEST_BODY_TOO_LARGE");
+    chunks.push(chunk);
+  }
+  if (chunks.length === 0) return {};
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } catch {
+    throw new Error("INVALID_JSON");
+  }
+}
+
 function notFound(response, error = "ADMIN_ROUTE_NOT_FOUND") {
   response.statusCode = 404;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -317,19 +333,182 @@ export function createCrmAdminAdapter(crmApi, authApi) {
   });
 }
 
-export function createBusinessAdminAdapter(businessApi, authApi) {
+export function createBusinessAdminAdapter(
+  businessApi,
+  authApi,
+  placePlatformRuntime,
+) {
   if (!businessApi?.handle) {
     throw new Error("BUSINESS_ADMIN_OWNER_BOUNDARY_REQUIRED");
   }
   const delegation = requireDelegationBoundary(authApi);
-  const pattern =
-    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,79})\/profile$/u;
+  const profilePattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/profile$/u;
+  const cmsDetailPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms$/u;
+  const cmsProfilePattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/profile$/u;
+  const cmsLocationPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/location$/u;
+  const cmsPublicationPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/publication$/u;
+
+  async function cmsError(response, error) {
+    const code = error instanceof Error ? error.message : "BUSINESS_CMS_FAILED";
+    const status = code.includes("NOT_FOUND")
+      ? 404
+      : code.includes("STALE_REVISION")
+        ? 409
+        : code.includes("AUTH") ||
+            code.includes("DENIED") ||
+            code.includes("CAPABILITY")
+          ? 403
+          : code.includes("INVALID") ||
+              code.includes("REQUIRED") ||
+              code.includes("NAME_REQUIRED")
+            ? 400
+            : code.includes("UNAVAILABLE") || code.includes("DATABASE")
+              ? 503
+              : 500;
+    sendJson(response, status, { error: code });
+  }
 
   return Object.freeze({
-    state: "available",
-    coverage: Object.freeze(["profile"]),
-    async handle({ request, response, requestUrl, effectiveUser }) {
-      const match = pattern.exec(requestUrl.pathname);
+    state: placePlatformRuntime ? "available" : "partial",
+    coverage: Object.freeze([
+      "profile",
+      ...(placePlatformRuntime
+        ? [
+            "cms-list",
+            "cms-detail",
+            "cms-create",
+            "cms-profile",
+            "cms-location",
+            "cms-publication",
+          ]
+        : []),
+    ]),
+    async handle({ request, response, requestUrl, actor, effectiveUser }) {
+      if (
+        placePlatformRuntime &&
+        requestUrl.pathname === `${adminPrefix}/businesses/cms`
+      ) {
+        try {
+          if (request.method === "GET") {
+            sendJson(
+              response,
+              200,
+              await placePlatformRuntime.listCms(requestUrl),
+            );
+            return { entityType: "business", entityId: "cms-directory" };
+          }
+          if (request.method === "POST") {
+            const body = await readJsonBody(request);
+            const created = await placePlatformRuntime.createDraft(actor, body);
+            sendJson(response, 201, created);
+            return { entityType: "business", entityId: created.businessId };
+          }
+          sendJson(response, 405, { error: "BUSINESS_CMS_METHOD_NOT_ALLOWED" });
+          return;
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsDetail = cmsDetailPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsDetail?.[1] && request.method === "GET") {
+        try {
+          const detail = await placePlatformRuntime.getCmsDetail(cmsDetail[1]);
+          if (!detail) {
+            notFound(response, "BUSINESS_CMS_NOT_FOUND");
+            return;
+          }
+          sendJson(response, 200, detail);
+          return { entityType: "business", entityId: cmsDetail[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsProfile = cmsProfilePattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsProfile?.[1] && request.method === "PUT") {
+        try {
+          const body = await readJsonBody(request);
+          const record = await placePlatformRuntime.updateProfile(
+            actor,
+            cmsProfile[1],
+            body,
+          );
+          sendJson(response, 200, {
+            businessId: cmsProfile[1],
+            publicationState: record.publicationState,
+            editableRevision: record.editableRevision.revision,
+          });
+          return { entityType: "business", entityId: cmsProfile[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsLocation = cmsLocationPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsLocation?.[1] &&
+        request.method === "PUT"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const record = await placePlatformRuntime.updateLocation(
+            actor,
+            cmsLocation[1],
+            body,
+          );
+          sendJson(response, 200, {
+            businessId: cmsLocation[1],
+            publicationState: record.publicationState,
+            editableRevision: record.editableRevision.revision,
+          });
+          return { entityType: "business", entityId: cmsLocation[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsPublication = cmsPublicationPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsPublication?.[1] &&
+        request.method === "POST"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          if (body.action !== "publish") {
+            sendJson(response, 400, {
+              error: "BUSINESS_CMS_PUBLICATION_ACTION_INVALID",
+            });
+            return;
+          }
+          const record = await placePlatformRuntime.publish(
+            actor,
+            cmsPublication[1],
+          );
+          sendJson(response, 200, {
+            businessId: cmsPublication[1],
+            publicationState: record.publicationState,
+            publishedRevision: record.publishedRevision?.revision ?? null,
+          });
+          return { entityType: "business", entityId: cmsPublication[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const match = profilePattern.exec(requestUrl.pathname);
       if (!match?.[1]) {
         notFound(response, "BUSINESS_ADMIN_ROUTE_NOT_ALLOWED");
         return;
@@ -1033,6 +1212,7 @@ export function createAdminDomainAdapters({
   affiliateAdminRuntime,
   contentRuntime,
   destinationRuntime,
+  placePlatformRuntime,
 } = {}) {
   return Object.freeze({
     ...(affiliateAdminRuntime
@@ -1042,7 +1222,13 @@ export function createAdminDomainAdapters({
       ? { destinations: createDestinationAdminAdapter(destinationRuntime) }
       : {}),
     ...(businessApi
-      ? { businesses: createBusinessAdminAdapter(businessApi, authApi) }
+      ? {
+          businesses: createBusinessAdminAdapter(
+            businessApi,
+            authApi,
+            placePlatformRuntime,
+          ),
+        }
       : {}),
     ...(crmApi ? { crm: createCrmAdminAdapter(crmApi, authApi) } : {}),
     ...(ticketingApi

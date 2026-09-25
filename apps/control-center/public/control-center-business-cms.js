@@ -8,6 +8,8 @@ export const businessCmsContract = Object.freeze({
     `/businesses/${encodeURIComponent(businessId)}/cms/publication`,
 });
 
+let businessCmsRuntimeUnavailable = false;
+
 const lifecycleLabels = Object.freeze({
   draft: "Draft",
   review: "Ready",
@@ -33,6 +35,7 @@ function isCmsContractUnavailable(error) {
       "BUSINESS_ADMIN_ROUTE_NOT_AVAILABLE",
       "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
       "BUSINESS_ADMIN_CONTRACT_REQUIRED",
+      "PLACE_PLATFORM_UNAVAILABLE",
     ].includes(error?.body?.error)
   );
 }
@@ -571,17 +574,26 @@ export async function renderBusinessCms(
 ) {
   const canMutate = ctx.actorHasCapability("business.update");
 
+  if (businessCmsRuntimeUnavailable && legacyRender) {
+    await legacyRender(businessId);
+    return false;
+  }
+
   if (!businessId) {
     const hashQuery = globalThis.location.hash.split("?", 2)[1] ?? "";
     const query = hashQuery ? `?${hashQuery}` : "";
 
     try {
       const model = await ctx.api(`${businessCmsContract.list}${query}`);
+      businessCmsRuntimeUnavailable = false;
       ctx.content.innerHTML = listMarkup(model, ctx.escapeHtml, canMutate);
       bindList(ctx.content, ctx, model);
       return true;
     } catch (error) {
       if (isCmsContractUnavailable(error) && legacyRender) {
+        if (error?.body?.error === "PLACE_PLATFORM_UNAVAILABLE") {
+          businessCmsRuntimeUnavailable = true;
+        }
         await legacyRender();
         const callout = document.createElement("div");
         callout.className = "callout";
@@ -596,6 +608,7 @@ export async function renderBusinessCms(
 
   try {
     const detail = await ctx.api(businessCmsContract.detail(businessId));
+    businessCmsRuntimeUnavailable = false;
     ctx.content.innerHTML =
       (ctx.supportEntityContext?.() ?? "") +
       detailTabs(detail, ctx.escapeHtml, canMutate);
@@ -603,6 +616,9 @@ export async function renderBusinessCms(
     return true;
   } catch (error) {
     if (isCmsContractUnavailable(error) && legacyRender) {
+      if (error?.body?.error === "PLACE_PLATFORM_UNAVAILABLE") {
+        businessCmsRuntimeUnavailable = true;
+      }
       await legacyRender(businessId);
       const callout = document.createElement("div");
       callout.className = "callout";
