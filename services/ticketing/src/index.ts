@@ -4,6 +4,7 @@ import {
   MySqlTicketingBusinessInventoryRepository,
   type MorroProInventoryOffer,
   type TicketingBusinessInventoryRepositoryPort,
+  type TicketingCatalogOfferBinding,
 } from "./business-inventory-repository.js";
 import {
   TicketingCommerceHttpTransport,
@@ -166,6 +167,7 @@ export type {
   TicketingApplicationService,
   TicketingApplicationServiceDependencies,
   TicketingBusinessInventoryRepositoryPort,
+  TicketingCatalogOfferBinding,
   TicketingCheckInResult,
   TicketingCommerceHttpTransportDependencies,
   TicketingHttpActor,
