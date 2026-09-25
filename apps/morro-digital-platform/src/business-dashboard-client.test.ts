@@ -114,6 +114,60 @@ describe("M51 Business dashboard browser client", () => {
     );
   });
 
+  it("reads canonical Catalog only through the authenticated Business namespace", async () => {
+    const fixture = authFixture(session(), [
+      new Response(
+        JSON.stringify({
+          catalog: {
+            products: [{ id: "product-a", status: "draft" }],
+            offers: [],
+            menus: [],
+            categories: [],
+            items: [],
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    ]);
+    const client = createBusinessDashboardClient(fixture.authClient);
+
+    const catalog = await client.loadCatalog("toca-do-morcego");
+
+    expect(catalog.products).toHaveLength(1);
+    expect(fixture.secureFetch).toHaveBeenCalledWith(
+      "/api/business/toca-do-morcego/catalog",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+  });
+
+  it("creates canonical Catalog drafts without legacy productReference identity", async () => {
+    const fixture = authFixture(session(), [
+      new Response(JSON.stringify({ data: { id: "product-a", status: "draft" } }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ]);
+    const client = createBusinessDashboardClient(fixture.authClient);
+
+    await client.createCatalogDraft("toca-do-morcego", "product", {
+      name: "Sunset",
+      description: "Experiência",
+    });
+
+    expect(fixture.secureFetch).toHaveBeenCalledWith(
+      "/api/business/toca-do-morcego/catalog/product",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          name: "Sunset",
+          description: "Experiência",
+        }),
+      }),
+    );
+    const request = fixture.secureFetch.mock.calls[0]?.[1];
+    expect(String(request?.body ?? "")).not.toContain("productReference");
+  });
+
   it("fails closed when no authenticated Business scope can be selected", async () => {
     const fixture = authFixture(session("owner", []), []);
     const client = createBusinessDashboardClient(fixture.authClient);
