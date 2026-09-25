@@ -104,6 +104,12 @@ describe("Place + Search/Explore V2 contract", () => {
       'readonly source: "canonical" | "local" | "mapbox"',
     );
     expect(control).toContain("createPublicPlaceMapClient");
+    expect(control).toContain("loadHybridGlobalMarkers");
+    expect(control).toContain("CANONICAL_MAP_DESTINATION_ID");
+    expect(control).toContain('source: "canonical" as const');
+    expect(control).toContain("placeId: String(item.id)");
+    expect(control).toContain("canonicalPlaceId ||");
+    expect(control).toContain("legacyFallback");
     expect(control).toContain("canonicalPlaceId");
     expect(control).toContain("detail.actions.secondaryActions");
     expect(control).toContain("detail.actions.primaryAction");

@@ -307,6 +307,17 @@ try {
     });
   });
 
+  await waitFor(
+    page,
+    () =>
+      page.evaluate(() =>
+        globalThis.__canonicalProof.markers.some(
+          (marker) => marker.id === "place-toca",
+        ),
+      ),
+    "canonical global marker projection",
+  );
+
   await page.locator("#assistantInput").waitFor({
     state: "visible",
     timeout: 10_000,
