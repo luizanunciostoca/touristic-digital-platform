@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { normalizeBusinessProfile } from "@touristic/business";
 import {
   businessDashboardViews,
-  createMorroProOfferReference,
   patchBusinessProfile,
   requestedBusinessId,
 } from "./business-dashboard-surface.js";
@@ -34,14 +33,10 @@ describe("business dashboard surface", () => {
     expect(requestedBusinessId("?foo=bar")).toBeUndefined();
   });
 
-  it("creates a stable place-bound Morro Pro product reference", () => {
-    expect(
-      createMorroProOfferReference(
-        "business-a",
-        "Toca do Morcego",
-        "The Party",
-      ),
-    ).toBe("morro-pro:business-a:place-toca-do-morcego:the-party");
+  it("exposes Products, Offers and Menu as distinct canonical modules", () => {
+    expect(businessDashboardViews).toEqual(
+      expect.arrayContaining(["products", "offers", "menu", "ticketing"]),
+    );
   });
 
   it("patches editable fields without dropping protected profile state", () => {
