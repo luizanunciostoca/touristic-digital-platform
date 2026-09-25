@@ -4,10 +4,7 @@ import { createPublicPlaceMapClient } from "../map/public-place-map-client-v2.js
 
 const DESTINATION_ID = "morro-de-sao-paulo";
 const DESTINATION_BBOX = Object.freeze([
-  -39.05,
-  -13.5,
-  -38.89,
-  -13.35,
+  -39.05, -13.5, -38.89, -13.35,
 ] as const);
 const DESTINATION_ZOOM = 13;
 
@@ -78,7 +75,8 @@ export async function resolveAssistantCanonicalPhotos(
       )
       .sort(
         (left, right) =>
-          left.score - right.score || left.item.name.localeCompare(right.item.name),
+          left.score - right.score ||
+          left.item.name.localeCompare(right.item.name),
       )[0];
 
     if (!candidate) return null;
@@ -89,10 +87,7 @@ export async function resolveAssistantCanonicalPhotos(
     if (!detail || detail.profile.id !== candidate.item.id) return null;
     if (detail.media?.placeId !== candidate.item.id) return null;
 
-    const ordered = [
-      detail.media.coverImage,
-      ...detail.media.gallery,
-    ];
+    const ordered = [detail.media.coverImage, ...detail.media.gallery];
     const images = ordered
       .map((image) => publicImageSource(image?.providerReference ?? ""))
       .filter((value): value is string => value !== null);
