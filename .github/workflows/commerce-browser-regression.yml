@@ -679,6 +679,10 @@ jobs:
               let createdProduct = false;
               let createCalls = 0;
               let catalogReads = 0;
+              let createdResolve;
+              let refetchResolve;
+              const createdRequest = new Promise(resolve => { createdResolve = resolve; });
+              const refetchRequest = new Promise(resolve => { refetchResolve = resolve; });
               let catalog = { products: [], offers: [], menus: [], categories: [], items: [] };
               await authPage.route('**/api/dashboard/auth/session', route => fulfill(route, {
                 authenticated: true, csrfToken: 'dashboard_csrf_0001',
@@ -692,6 +696,7 @@ jobs:
               await authPage.route('**/api/business/business-a/catalog', route => {
                 if (route.request().method() !== 'GET') return route.fallback();
                 catalogReads += 1;
+                if (createdProduct) refetchResolve?.(catalogReads);
                 return fulfill(route, catalog);
               });
               await authPage.route('**/api/business/business-a/catalog/product', route => {
@@ -713,6 +718,7 @@ jobs:
                 };
                 catalog = { ...catalog, products: [product] };
                 createdProduct = true;
+                createdResolve?.(product.id);
                 return fulfill(route, { data: product }, 201);
               });
               await authPage.route('**/api/business/business-b/catalog', route =>
@@ -727,7 +733,10 @@ jobs:
                 if (!(form instanceof HTMLFormElement)) throw new Error('Morro Pro product form missing');
                 form.requestSubmit();
               });
-              await authPage.locator('#morro-pro-product-status').filter({ hasText: 'Alteração salva' }).waitFor({ state: 'visible', timeout: 10000 });
+              const timeout = label => new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), 10000));
+              await Promise.race([createdRequest, timeout('canonical Catalog POST')]);
+              await Promise.race([refetchRequest, timeout('canonical Catalog refetch')]);
               if (!createdProduct || createCalls !== 1 || catalogReads < 2) {
                 throw new Error(`Canonical Morro Pro product create/refetch mismatch: created=${createdProduct} calls=${createCalls} reads=${catalogReads}`);
               }
