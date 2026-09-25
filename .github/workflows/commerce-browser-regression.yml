@@ -674,8 +674,14 @@ jobs:
                 await context.close();
               }
 
+              const markAuthStage = stage =>
+                writeFileSync('/tmp/commerce-browser/auth-stage.txt', stage + '\n');
+              markAuthStage('auth:start');
               const authContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
               const authPage = await authContext.newPage();
+              authPage.setDefaultTimeout(10000);
+              authPage.setDefaultNavigationTimeout(15000);
+              markAuthStage('auth:context-ready');
               let createdProduct = false;
               let createCalls = 0;
               let catalogReads = 0;
@@ -723,9 +729,11 @@ jobs:
               });
               await authPage.route('**/api/business/business-b/catalog', route =>
                 fulfill(route, { error: 'NOT_FOUND' }, 404));
-              await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 15000 });
               await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              markAuthStage('auth:dashboard-ready');
               await authPage.locator('.sidebar-nav [data-dashboard-view="products"]').click();
+              markAuthStage('auth:products-open');
               await authPage.locator('#morro-pro-product-form [name="name"]').fill('Passeio Volta à Ilha');
               await authPage.locator('#morro-pro-product-form [name="description"]').fill('Experiência canônica do Morro Pro');
               await authPage.locator('#morro-pro-product-form [name="status"]').selectOption('draft');
@@ -736,34 +744,56 @@ jobs:
               const timeout = label => new Promise((_, reject) =>
                 setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), 10000));
               await Promise.race([createdRequest, timeout('canonical Catalog POST')]);
+              markAuthStage('auth:catalog-posted');
               await Promise.race([refetchRequest, timeout('canonical Catalog refetch')]);
+              markAuthStage('auth:catalog-refetched');
               if (!createdProduct || createCalls !== 1 || catalogReads < 2) {
                 throw new Error(`Canonical Morro Pro product create/refetch mismatch: created=${createdProduct} calls=${createCalls} reads=${catalogReads}`);
               }
+              markAuthStage('auth:cross-tenant-start');
               const crossTenant = await authPage.evaluate(async () => {
-                const response = await fetch('/api/business/business-b/catalog', { credentials: 'same-origin' });
-                return response.status;
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), 5000);
+                try {
+                  const response = await fetch('/api/business/business-b/catalog', {
+                    credentials: 'same-origin',
+                    signal: controller.signal,
+                  });
+                  return response.status;
+                } finally {
+                  clearTimeout(timer);
+                }
               });
+              markAuthStage('auth:cross-tenant-complete');
               if (crossTenant !== 404) throw new Error(`Cross-tenant Catalog leaked: ${crossTenant}`);
               evidence.push({ authenticatedMorroProCatalog: true, crossTenant, createCalls, catalogReads, productId: catalog.products[0]?.id });
+              await authPage.close({ runBeforeUnload: false });
               await authContext.close();
+              markAuthStage('auth:closed');
 
               const failContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
                 locale: 'pt-BR',
               });
               const failPage = await failContext.newPage();
+              failPage.setDefaultTimeout(10000);
+              failPage.setDefaultNavigationTimeout(15000);
+              markAuthStage('failure-path:start');
               await commerceRoutes(failPage, { inventoryFailure: true });
-              await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded' });
+              await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded', timeout: 15000 });
               await failPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({ state: 'visible', timeout: 10000 });
               const friendlyFailure = await failPage.locator('#reservation-message').textContent();
               if (/TICKETING_|PAYMENTS_|HTTP_/u.test(friendlyFailure || '')) {
                 throw new Error('Technical failure leaked into Ticketing UI: ' + friendlyFailure);
               }
               evidence.push({ predictableFailure: 'friendly-unavailable' });
+              markAuthStage('failure-path:asserted');
+              await failPage.close({ runBeforeUnload: false });
               await failContext.close();
+              markAuthStage('failure-path:closed');
 
               writeFileSync('/tmp/commerce-browser/evidence.json', JSON.stringify(evidence, null, 2));
+              markAuthStage('complete');
             } finally {
               await browser.close();
             }
