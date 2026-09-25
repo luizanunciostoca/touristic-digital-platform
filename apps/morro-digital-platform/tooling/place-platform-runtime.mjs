@@ -621,13 +621,15 @@ function createActionPort() {
   });
 }
 
-function createCatalog(pool) {
+function createCatalog(mediaRepository) {
   return Object.freeze({
     async hasActiveCategory(categoryId) {
       return canonicalPlaceCategories.includes(categoryId);
     },
-    async mediaBelongsToBusiness() {
-      return true;
+    async mediaBelongsToBusiness(businessId, mediaId) {
+      if (!mediaRepository) return false;
+      const asset = await mediaRepository.getAsset(mediaId);
+      return Boolean(asset && asset.businessId === businessId);
     },
     async capabilityIsSupported(_categoryId, capability) {
       return [
@@ -688,17 +690,18 @@ export function createPlacePlatformRuntime({
       pool = poolFactory(databaseUrl);
       await applySchema(pool);
       governanceRepository = createGovernanceRepository(pool);
-      publicationService = createPlacePublicationService(
-        governanceRepository,
-        createCatalog(pool),
-        createAuditPort(platformOperations),
-      );
 
       const contentUrl = String(getEnvironmentValue("CONTENT_DATABASE_URL") || "").trim();
       if (contentUrl) {
         mediaPool = poolFactory(contentUrl);
         mediaRepository = new MySqlPlaceMediaRepository(mediaPool);
       }
+
+      publicationService = createPlacePublicationService(
+        governanceRepository,
+        createCatalog(mediaRepository),
+        createAuditPort(platformOperations),
+      );
 
       readModel = createPublicPlaceReadModel({
         repository: createPublicRepository(pool),
