@@ -26,5 +26,10 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with: {node-version: 22, cache: pnpm}
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @touristic/business build && pnpm --filter @touristic/content-server build
+      - name: Build canonical Place runtime dependencies
+        run: |
+          pnpm --filter @touristic/auth build
+          pnpm --filter @touristic/core build
+          pnpm --filter @touristic/business build
+          pnpm --filter @touristic/content-server build
       - run: node --test apps/morro-digital-platform/tooling/place-platform-runtime.test.mjs
