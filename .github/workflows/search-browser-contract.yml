@@ -51,6 +51,7 @@ jobs:
           printf 'PRETTIER_B64='
           base64 -w0 apps/morro-digital-platform/tooling/search-canonical-place-browser-contract.mjs
           printf '\n'
+          exit 86
       - name: Build workspace
         run: pnpm -w build
       - name: Start browser asset server
