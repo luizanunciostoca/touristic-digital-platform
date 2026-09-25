@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
+import {
+  resolveAssistantCanonicalPhotos,
+} from "./assistant-canonical-photo-adapter.js";
+
+function requestUrl(input: RequestInfo | URL): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+}
 
 function mapResponse() {
   return new Response(
@@ -93,7 +101,7 @@ describe("assistant canonical photo adapter", () => {
   it("discovers a canonical Place then reads published media by placeId", async () => {
     const fetchImplementation = vi.fn<typeof globalThis.fetch>(
       async (input) => {
-        const url = String(input);
+        const url = requestUrl(input);
         if (url.startsWith("/api/places/v1/map?")) return mapResponse();
         if (url.startsWith("/api/places/v1/place-segunda-praia?")) {
           return detailResponse();
@@ -119,7 +127,7 @@ describe("assistant canonical photo adapter", () => {
 
     expect(
       fetchImplementation.mock.calls.some(([input]) =>
-        String(input).startsWith(
+        requestUrl(input).startsWith(
           "/api/places/v1/place-segunda-praia?locale=pt-BR",
         ),
       ),
@@ -131,7 +139,7 @@ describe("assistant canonical photo adapter", () => {
     async () => {
       const fetchImplementation = vi.fn<typeof globalThis.fetch>(
         async (input) =>
-          String(input).startsWith("/api/places/v1/map?")
+          requestUrl(input).startsWith("/api/places/v1/map?")
             ? mapResponse()
             : detailResponse("places/place-segunda-praia/private.webp"),
       );
