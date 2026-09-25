@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "updatedFromMainSha": "2bbf7407035575cac993c7024ec01183a27ec6c4",
+  "claims": [
+    {
+      "changeSet": "MD-AUTO-002",
+      "worker": "Morro Autonomous Control Tower",
+      "domains": [
+        "orchestration",
+        "legacy-pr-reconciliation"
+      ],
+      "files": [
+        ".morro/autonomy/**"
+      ],
+      "branch": "chore/autonomy-control-plane-20260925",
+      "mainShaAtClaim": "2bbf7407035575cac993c7024ec01183a27ec6c4",
+      "dependencies": [],
+      "status": "ACTIVE",
+      "logicalTimestamp": "2026-09-25T00:05:00-03:00"
+    }
+  ]
+}
