@@ -41,6 +41,19 @@ const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 const TOUR_ACTIVATION_TIMEOUT_MS = 20_000;
+const UNREGISTERED_COMMERCIAL_ACTION_IDS = new Set([
+  "restaurant.menu",
+  "restaurant.reserve",
+  "nightlife.tickets",
+  "nightlife.menu",
+  "hotel.accommodations",
+  "hotel.reserve",
+  "tour.reserve",
+  "transport.request",
+  "transport.ticket",
+  "shop.products",
+  "place.whatsapp",
+]);
 
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
@@ -1321,10 +1334,12 @@ export function installExploreLocationsControl({
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
 
-    const safeFallbackActions = getV1ExplorePlaceActionOptions(category, locale)
-      .filter(({ actionId }) =>
-        ["place.info", "place.directions", "place.save"].includes(actionId),
-      );
+    const safeFallbackActions = getV1ExplorePlaceActionOptions(
+      category,
+      locale,
+    ).filter(
+      ({ actionId }) => !UNREGISTERED_COMMERCIAL_ACTION_IDS.has(actionId),
+    );
     const description =
       "description" in presentationLocation &&
       typeof presentationLocation.description === "string"
