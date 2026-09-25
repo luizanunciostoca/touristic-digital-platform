@@ -22,6 +22,7 @@ import {
   priceCopy,
   type AssistantDomainLanguage,
 } from "./assistant-domain-copy.js";
+import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
 import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";
 import {
@@ -127,6 +128,31 @@ async function getPhotos(
   language: AssistantDomainLanguage,
   fetchImplementation: typeof globalThis.fetch,
 ): Promise<AssistantDialogResponse> {
+  const canonical = await resolveAssistantCanonicalPhotos(
+    place,
+    fetchImplementation,
+    language,
+  );
+  if (canonical) {
+    return {
+      text: photosCopy(
+        language,
+        "resolved",
+        canonical.place,
+        canonical.images.length,
+      ),
+      metadata: {
+        domain: "photos",
+        state: "resolved",
+        source: "canonical",
+        place: canonical.place,
+        placeId: canonical.placeId,
+        images: [...canonical.images],
+        presentation: "carousel",
+      },
+    };
+  }
+
   const photoSet = resolveAssistantV1Photos(place);
   if (!photoSet)
     return {
