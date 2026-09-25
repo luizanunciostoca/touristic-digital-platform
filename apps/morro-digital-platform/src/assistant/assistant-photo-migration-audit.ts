@@ -1,12 +1,3 @@
-import type {
-  PublicPlaceDetail,
-  PublicPlaceMapItem,
-} from "@touristic/business";
-import {
-  morroV1SearchCatalog,
-  normalizeSearchText,
-} from "@touristic/search";
-
 import {
   listAssistantV1PhotoCatalogEntries,
   type AssistantV1PhotoCatalogEntry,
@@ -17,6 +8,27 @@ export type AssistantPhotoMigrationStatus =
   | "canonical_no_media"
   | "legacy_only"
   | "not_canonical";
+
+export interface AssistantPhotoMigrationMapItem {
+  readonly id: string;
+  readonly name: string;
+}
+
+export interface AssistantPhotoMigrationMediaImage {
+  readonly providerReference: string;
+}
+
+export interface AssistantPhotoMigrationDetail {
+  readonly profile: {
+    readonly id: string;
+    readonly name: string;
+  };
+  readonly media: {
+    readonly placeId: string;
+    readonly coverImage: AssistantPhotoMigrationMediaImage | null;
+    readonly gallery: readonly AssistantPhotoMigrationMediaImage[];
+  } | null;
+}
 
 export interface AssistantPhotoMigrationRow {
   readonly legacyPlace: string;
@@ -33,16 +45,27 @@ export interface AssistantPhotoMigrationMatrix {
 }
 
 export interface AssistantPhotoMigrationAuditInput {
-  readonly canonicalPlaces: readonly PublicPlaceMapItem[];
+  readonly canonicalPlaces: readonly AssistantPhotoMigrationMapItem[];
+  readonly legacyPlaceNames: readonly string[];
   readonly getDetail: (
     placeId: string,
-  ) => Promise<PublicPlaceDetail | null>;
+  ) => Promise<AssistantPhotoMigrationDetail | null>;
   readonly legacyEntries?: readonly AssistantV1PhotoCatalogEntry[];
 }
 
-function publicImageCount(detail: PublicPlaceDetail): number {
+function normalize(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/[^\w\s]/gu, "")
+    .replace(/\s+/gu, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function publicImageCount(detail: AssistantPhotoMigrationDetail): number {
   const media = detail.media;
-  if (!media) return 0;
+  if (!media || media.placeId !== detail.profile.id) return 0;
   const references = [media.coverImage, ...media.gallery]
     .map((image) => image?.providerReference.trim() ?? "")
     .filter(
@@ -53,8 +76,8 @@ function publicImageCount(detail: PublicPlaceDetail): number {
 }
 
 function canonicalScore(name: string, legacyName: string): number | null {
-  const candidate = normalizeSearchText(name);
-  const legacy = normalizeSearchText(legacyName);
+  const candidate = normalize(name);
+  const legacy = normalize(legacyName);
   if (!candidate || !legacy) return null;
   if (candidate === legacy) return 0;
   if (candidate.startsWith(legacy) || legacy.startsWith(candidate)) return 1;
@@ -62,17 +85,10 @@ function canonicalScore(name: string, legacyName: string): number | null {
   return null;
 }
 
-function isV1Place(name: string): boolean {
-  const normalized = normalizeSearchText(name);
-  return morroV1SearchCatalog.some(
-    (entry) => normalizeSearchText(entry.name) === normalized,
-  );
-}
-
 function bestCanonicalMatch(
-  places: readonly PublicPlaceMapItem[],
+  places: readonly AssistantPhotoMigrationMapItem[],
   legacyName: string,
-): PublicPlaceMapItem | null {
+): AssistantPhotoMigrationMapItem | null {
   return (
     places
       .map((place) => ({
@@ -82,8 +98,10 @@ function bestCanonicalMatch(
       .filter(
         (
           candidate,
-        ): candidate is { place: PublicPlaceMapItem; score: number } =>
-          candidate.score !== null,
+        ): candidate is {
+          place: AssistantPhotoMigrationMapItem;
+          score: number;
+        } => candidate.score !== null,
       )
       .sort(
         (left, right) =>
@@ -98,10 +116,11 @@ export async function auditAssistantPhotoMigrationCoverage(
 ): Promise<AssistantPhotoMigrationMatrix> {
   const legacyEntries =
     input.legacyEntries ?? listAssistantV1PhotoCatalogEntries();
+  const knownLegacyPlaces = new Set(input.legacyPlaceNames.map(normalize));
   const rows: AssistantPhotoMigrationRow[] = [];
 
   for (const legacy of legacyEntries) {
-    if (!isV1Place(legacy.place)) {
+    if (!knownLegacyPlaces.has(normalize(legacy.place))) {
       rows.push(
         Object.freeze({
           legacyPlace: legacy.place,
