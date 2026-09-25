@@ -1,3 +1,4 @@
+// Dedicated Node/MySQL E2E proof; intentionally outside Vitest test discovery.
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
