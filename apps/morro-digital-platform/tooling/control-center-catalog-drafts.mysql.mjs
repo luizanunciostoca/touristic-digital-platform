@@ -65,27 +65,26 @@ test(
         source: "manual",
       });
 
-      const product = await runtime.createCatalogDraft(businessId, "product", {
+      const product = await runtime.createCatalogDraft(actor, businessId, "product", {
         name: "Produto Draft",
         description: "Ainda não publicado",
         tags: "draft,catalog",
       });
-      const offer = await runtime.createCatalogDraft(businessId, "offer", {
+      const offer = await runtime.createCatalogDraft(actor, businessId, "offer", {
         productId: product.id,
         minorUnits: 12500,
         currency: "BRL",
         capacity: 20,
       });
-      const menu = await runtime.createCatalogDraft(businessId, "menu", {
+      const menu = await runtime.createCatalogDraft(actor, businessId, "menu", {
         name: "Menu Draft",
         description: "Ainda não publicado",
       });
-      const category = await runtime.createCatalogDraft(
-        businessId,
+      const category = await runtime.createCatalogDraft(actor, businessId,
         "menu-category",
         { menuId: menu.id, name: "Entradas", sortOrder: 0 },
       );
-      const item = await runtime.createCatalogDraft(businessId, "menu-item", {
+      const item = await runtime.createCatalogDraft(actor, businessId, "menu-item", {
         menuId: menu.id,
         categoryId: category.id,
         name: "Ceviche Draft",
@@ -140,10 +139,131 @@ test(
         ...publicDetail.actions.secondaryActions,
       ].filter(Boolean);
       const ids = new Set(publicActions.map((action) => action.id));
+
       assert.equal(ids.has("products"), false);
       assert.equal(ids.has("offers"), false);
       assert.equal(ids.has("menu"), false);
       assert.equal(ids.has("tickets"), false);
+
+      await runtime.updateCatalogEntry(
+        actor,
+        businessId,
+        "product",
+        product.id,
+        { status: "active" },
+      );
+      await runtime.updateCatalogEntry(
+        actor,
+        businessId,
+        "offer",
+        offer.id,
+        { status: "active" },
+      );
+      await runtime.updateCatalogEntry(
+        actor,
+        businessId,
+        "menu",
+        menu.id,
+        { status: "active" },
+      );
+      await runtime.updateCatalogEntry(
+        actor,
+        businessId,
+        "menu-item",
+        item.id,
+        { available: true },
+      );
+
+      const activationDetail = await runtime.getCmsDetail(businessId);
+      assert.equal(activationDetail.publication.state, "draft");
+      assert.ok(
+        activationDetail.publication.editableRevision >
+          activationDetail.publication.publishedRevision,
+      );
+      const activationReview = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        activationDetail.publication.editableRevision,
+      );
+      await runtime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        activationReview.editableRevision.revision,
+      );
+
+      const activeResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        activeResponse,
+        new URL(
+          `http://localhost/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(activeResponse.statusCode, 200);
+      const activePublic = JSON.parse(activeResponse.body);
+      assert.equal(activePublic.commerce.offers[0].id, offer.id);
+      assert.equal(activePublic.commerce.menu.id, menu.id);
+      assert.equal(
+        activePublic.commerce.menu.categories[0].items[0].id,
+        item.id,
+      );
+
+      await runtime.updateCatalogEntry(
+        actor,
+        businessId,
+        "product",
+        product.id,
+        { name: "Produto Editado sem Publicar" },
+      );
+      const working = await runtime.getCmsDetail(businessId);
+      assert.equal(
+        working.catalog.products.find((entry) => entry.id === product.id).name,
+        "Produto Editado sem Publicar",
+      );
+      assert.equal(working.publication.state, "draft");
+
+      const isolatedResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        isolatedResponse,
+        new URL(
+          `http://localhost/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(isolatedResponse.statusCode, 200);
+      assert.equal(
+        JSON.parse(isolatedResponse.body).commerce.offers[0].name,
+        "Produto Draft",
+        "working Catalog update must not leak before Place publication",
+      );
+
+      const republishReview = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        working.publication.editableRevision,
+      );
+      await runtime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        republishReview.editableRevision.revision,
+      );
+      const republishedResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        republishedResponse,
+        new URL(
+          `http://localhost/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(republishedResponse.statusCode, 200);
+      assert.equal(
+        JSON.parse(republishedResponse.body).commerce.offers[0].name,
+        "Produto Editado sem Publicar",
+      );
     } finally {
       await runtime.stop();
     }
