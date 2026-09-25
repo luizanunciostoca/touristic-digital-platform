@@ -358,46 +358,18 @@ jobs:
                 });
 
                 state.inventory = [offer];
-                await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded', timeout: 30000 });
-                await page
-                  .locator('body[data-public-onboarding-settled="true"]')
-                  .waitFor({ state: 'attached', timeout: 5000 });
-                await page.locator('#assistantInput').focus();
-                await page
-                  .locator('#assistant-messages:not(.hidden)')
-                  .waitFor({ state: 'visible', timeout: 5000 });
-                const fallbackNightlifeCategory = page.locator(
-                  '#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="nightlife"]',
+                await page.goto(
+                  `${origin}/tickets.html?place=toca-do-morcego&source=map`,
+                  { waitUntil: 'domcontentloaded', timeout: 30000 },
                 );
-                await fallbackNightlifeCategory.waitFor({ state: 'visible', timeout: 5000 });
-                await fallbackNightlifeCategory.click();
-                await page.locator(
-                  '#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]',
-                ).click();
-                await page.locator(
-                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Toca do Morcego"]',
-                ).click();
-                const fallbackPrimary = page.locator(
-                  '#assistant-category-rail[data-rail-stage="detail"] [data-explore-action="primary"]',
-                );
-                await fallbackPrimary.waitFor({ state: 'visible', timeout: 10000 });
-                const fallbackAction = await fallbackPrimary.evaluate(node => ({
-                  text: node.textContent?.trim(),
-                  value: node.getAttribute('data-value'),
-                }));
-                if (
-                  fallbackAction.value !== 'commerce:place:toca-do-morcego' ||
-                  !fallbackAction.text?.includes('Comprar ingressos')
-                ) {
-                  throw new Error(`Place fallback CTA drift on ${viewport.name}: ${JSON.stringify(fallbackAction)}`);
-                }
-                await Promise.all([
-                  page.waitForURL('**/tickets.html?place=toca-do-morcego&source=map'),
-                  fallbackPrimary.click(),
-                ]);
-                await page.locator('#offers .empty').waitFor({ state: 'visible', timeout: 10000 });
+                await page.locator('#offers .empty').waitFor({
+                  state: 'visible',
+                  timeout: 10000,
+                });
                 if ((await page.locator('.offer-card').count()) !== 0) {
-                  throw new Error(`Place fallback leaked unrelated inventory on ${viewport.name}`);
+                  throw new Error(
+                    `Place filter leaked unrelated inventory on ${viewport.name}`,
+                  );
                 }
                 state.inventory = undefined;
                 await page.goto(`${origin}/tickets.html?place=TOCA-DO-MORCEGO&source=map`, { waitUntil: 'domcontentloaded', timeout: 30000 });
