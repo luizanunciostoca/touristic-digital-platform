@@ -122,6 +122,12 @@ describe("publishedRecordFromGovernedRecord", () => {
         place({ businessId: asBusinessId("business-2") }),
       ),
     ).toBeNull();
+    expect(
+      publishedRecordFromGovernedRecord(
+        governed(),
+        place({ destinationId: "itacare" as Place["destinationId"] }),
+      ),
+    ).toBeNull();
   });
 
   it("hides suspended and archived records even when a published revision exists", () => {
