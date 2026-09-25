@@ -783,6 +783,12 @@ export function createPlacePlatformRuntime({
     };
   }
 
+  function assertReady() {
+    if (!ready || !pool || !governanceRepository || !publicationService) {
+      throw new Error("PLACE_PLATFORM_UNAVAILABLE");
+    }
+  }
+
   async function handlePublic(request, response, requestUrl) {
     if (!ready || !readModel) {
       sendJson(
@@ -809,7 +815,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function listCms(requestUrl) {
-    if (!ready) throw new Error("PLACE_PLATFORM_UNAVAILABLE");
+    assertReady();
     const query = clean(
       requestUrl.searchParams.get("query"),
       160,
@@ -891,6 +897,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function getCmsDetail(businessId) {
+    assertReady();
     const [rows] = await pool.execute(
       `SELECT b.id AS business_id, b.display_name,
               p.*
@@ -960,6 +967,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function createDraft(actor, input) {
+    assertReady();
     const now = new Date().toISOString();
     const place = initialPlace(input, now);
     const data = Object.freeze({
@@ -1033,6 +1041,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function updateProfile(actor, businessId, input) {
+    assertReady();
     const [rows] = await pool.execute(
       `SELECT * FROM business_places WHERE business_id = ? ORDER BY created_at ASC LIMIT 1`,
       [businessId],
@@ -1059,6 +1068,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function updateLocation(actor, businessId, input) {
+    assertReady();
     const [rows] = await pool.execute(
       `SELECT * FROM business_places WHERE business_id = ? ORDER BY created_at ASC LIMIT 1`,
       [businessId],
@@ -1089,6 +1099,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function publish(actor, businessId) {
+    assertReady();
     const [rows] = await pool.execute(
       `SELECT * FROM business_places WHERE business_id = ? ORDER BY created_at ASC LIMIT 1`,
       [businessId],
