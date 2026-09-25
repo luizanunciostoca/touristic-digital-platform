@@ -135,7 +135,8 @@ export function createBusinessApi({
   }
 
   function mediaError(response, error) {
-    const code = error instanceof Error ? error.message : "MEDIA_REQUEST_FAILED";
+    const code =
+      error instanceof Error ? error.message : "MEDIA_REQUEST_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
       : code.includes("STALE_REVISION") ||
@@ -211,7 +212,9 @@ export function createBusinessApi({
           media.businessId,
           {
             mutation,
-            auditAction: mutation ? "business.media.write" : "business.media.read",
+            auditAction: mutation
+              ? "business.media.write"
+              : "business.media.read",
           },
         );
         if (!access) return;

@@ -201,7 +201,9 @@ interface MediaSurface {
 }
 
 function createMediaSurface(document: Document): MediaSurface {
-  const panel = document.querySelector<HTMLElement>('[data-view-panel="photos"]');
+  const panel = document.querySelector<HTMLElement>(
+    '[data-view-panel="photos"]',
+  );
   if (!panel) throw new Error("MISSING_MEDIA_PANEL");
   panel.innerHTML = `
     <div class="settings-grid">
@@ -317,7 +319,9 @@ async function fileAsBase64(file: File): Promise<string> {
   return btoa(binary);
 }
 
-async function imageDimensions(file: File): Promise<{ width: number; height: number }> {
+async function imageDimensions(
+  file: File,
+): Promise<{ width: number; height: number }> {
   const bitmap = await createImageBitmap(file);
   try {
     return { width: bitmap.width, height: bitmap.height };
@@ -903,12 +907,7 @@ export async function mountBusinessDashboardSurface(
         const dataBase64 = await fileAsBase64(file);
         const alt = formControl(mediaSurface.form, "alt").value;
         const role = formControl(mediaSurface.form, "role").value as
-          | "cover"
-          | "gallery"
-          | "logo"
-          | "menu"
-          | "product"
-          | "other";
+          "cover" | "gallery" | "logo" | "menu" | "product" | "other";
         const published = mediaSurface.form.elements.namedItem("published");
         await dashboardClient.uploadMedia(targetBusinessId, {
           fileName: file.name,
@@ -1215,9 +1214,9 @@ export async function mountBusinessDashboardSurface(
     mediaSurface.form.dataset.mutable = String(photoAccess?.mutable === true);
     if (!photoAccess?.mutable) {
       mediaSurface.form
-        .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(
-          "input, select, button",
-        )
+        .querySelectorAll<
+          HTMLInputElement | HTMLSelectElement | HTMLButtonElement
+        >("input, select, button")
         .forEach((control) => {
           control.disabled = true;
         });
@@ -1268,7 +1267,8 @@ export async function mountBusinessDashboardSurface(
         const request = contextController?.request();
         void reloadMedia(request?.signal).catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (error instanceof DOMException && error.name === "AbortError")
+            return;
           mediaSurface.status.textContent =
             error instanceof Error ? error.message : "Falha ao carregar fotos.";
         });

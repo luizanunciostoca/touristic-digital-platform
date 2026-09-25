@@ -199,10 +199,7 @@ export interface BusinessDashboardClient {
     businessId: unknown,
     orderedMediaIds: readonly string[],
   ) => Promise<unknown>;
-  readonly deleteMedia: (
-    businessId: unknown,
-    mediaId: string,
-  ) => Promise<void>;
+  readonly deleteMedia: (businessId: unknown, mediaId: string) => Promise<void>;
   readonly loadCatalog: (
     businessId: unknown,
     signal?: AbortSignal,

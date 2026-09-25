@@ -80,7 +80,10 @@ test("Morro Pro Media preserves tenant scope and content capabilities", async ()
     businessId: "business-a",
     options: { mutation: false, auditAction: "business.media.read" },
   });
-  assert.deepEqual(owner.calls[0], { operation: "read", businessId: "business-a" });
+  assert.deepEqual(owner.calls[0], {
+    operation: "read",
+    businessId: "business-a",
+  });
 
   const upload = responseCapture();
   await owner.api.handle(
@@ -130,7 +133,11 @@ test("Morro Pro Media fails closed without canonical Place runtime", async () =>
   const authApi = {
     async authorizeBusinessRequest(_request, _response, businessId) {
       return {
-        session: { subject: "owner-a", role: "owner", businessIds: [businessId] },
+        session: {
+          subject: "owner-a",
+          role: "owner",
+          businessIds: [businessId],
+        },
         businessId,
       };
     },
@@ -140,11 +147,7 @@ test("Morro Pro Media fails closed without canonical Place runtime", async () =>
     getPlacePlatformRuntime: () => null,
   });
   const response = responseCapture();
-  await api.handle(
-    request("GET"),
-    response,
-    "/api/business/business-a/media",
-  );
+  await api.handle(request("GET"), response, "/api/business/business-a/media");
   assert.equal(response.statusCode, 503);
   assert.deepEqual(JSON.parse(response.body), {
     error: "PLACE_PLATFORM_UNAVAILABLE",

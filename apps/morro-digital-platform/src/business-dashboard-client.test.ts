@@ -120,7 +120,9 @@ describe("M51 Business dashboard browser client", () => {
         JSON.stringify({
           count: 1,
           storageAvailable: true,
-          assets: [{ mediaId: "media-1", role: "cover", asset: { id: "media-1" } }],
+          assets: [
+            { mediaId: "media-1", role: "cover", asset: { id: "media-1" } },
+          ],
         }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),

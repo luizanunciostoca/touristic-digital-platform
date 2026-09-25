@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";\nimport { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
 import { normalizeBusinessProfile } from "@touristic/business";
 import {
   businessDashboardViews,
