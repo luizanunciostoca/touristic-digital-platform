@@ -104,8 +104,22 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(control).toContain(
       "Canonical Places fail closed: never fall back to inferred commercial",
     );
+    expect(control).toContain("UNREGISTERED_COMMERCIAL_ACTION_IDS");
+    for (const actionId of [
+      "restaurant.menu",
+      "restaurant.reserve",
+      "nightlife.tickets",
+      "hotel.reserve",
+      "tour.reserve",
+      "transport.request",
+      "transport.ticket",
+      "shop.products",
+      "place.whatsapp",
+    ]) {
+      expect(control).toContain(`"${actionId}"`);
+    }
     expect(control).toContain(
-      '["place.info", "place.directions", "place.save"].includes(actionId)',
+      "!UNREGISTERED_COMMERCIAL_ACTION_IDS.has(actionId)",
     );
     expect(control).not.toContain("resolvePlacePrimaryAction({");
   });
