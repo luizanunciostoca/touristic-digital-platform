@@ -62,6 +62,63 @@ try {
   await location.getByRole("button", { name: "Confirmar localização" }).click();
   await page.getByText("Localização salva como revisão editável.").waitFor();
 
+  await page.getByRole("tab", { name: "Produtos" }).click();
+  let product = page.locator("#business-cms-product-form");
+  await product.locator('[name="productId"]').fill(`product-${businessId}`);
+  await product.locator('[name="name"]').fill("Passeio Sunset");
+  await product.locator('[name="description"]').fill("Produto browser canônico");
+  await product.locator('[name="tags"]').fill("sunset, passeio");
+  await product.locator('[name="status"]').selectOption("active");
+  await product.getByRole("button", { name: "Salvar produto" }).click();
+  await page
+    .getByText(/Catálogo salvo como estado editável/u)
+    .waitFor();
+
+  let offer = page.locator("#business-cms-offer-form");
+  await offer.locator('[name="offerId"]').fill(`offer-${businessId}`);
+  await offer.locator('[name="productId"]').selectOption(`product-${businessId}`);
+  await offer.locator('[name="priceMinorUnits"]').fill("12000");
+  await offer.locator('[name="currency"]').fill("BRL");
+  await offer.locator('[name="status"]').selectOption("active");
+  await offer.getByRole("button", { name: "Salvar oferta" }).click();
+  await page
+    .getByText(/Catálogo salvo como estado editável/u)
+    .waitFor();
+
+  let menu = page.locator("#business-cms-menu-form");
+  await menu.locator('[name="menuId"]').fill(`menu-${businessId}`);
+  await menu.locator('[name="name"]').fill("Cardápio Browser");
+  await menu.locator('[name="description"]').fill("Cardápio canônico");
+  await menu.locator('[name="status"]').selectOption("active");
+  await menu.getByRole("button", { name: "Salvar menu" }).click();
+  await page
+    .getByText(/Catálogo salvo como estado editável/u)
+    .waitFor();
+
+  let category = page.locator("#business-cms-category-form");
+  await category.locator('[name="menuId"]').selectOption(`menu-${businessId}`);
+  await category
+    .locator('[name="categoryId"]')
+    .fill(`category-${businessId}`);
+  await category.locator('[name="name"]').fill("Experiências");
+  await category.locator('[name="sortOrder"]').fill("0");
+  await category.getByRole("button", { name: "Salvar categoria" }).click();
+  await page.getByText("Categoria salva no catálogo editável.").waitFor();
+
+  let item = page.locator("#business-cms-item-form");
+  await item.locator('[name="menuId"]').selectOption(`menu-${businessId}`);
+  await item
+    .locator('[name="categoryId"]')
+    .selectOption(`category-${businessId}`);
+  await item.locator('[name="itemId"]').fill(`item-${businessId}`);
+  await item.locator('[name="name"]').fill("Experiência Morro");
+  await item.locator('[name="description"]').fill("Item browser");
+  await item.locator('[name="priceMinorUnits"]').fill("4500");
+  await item.locator('[name="currency"]').fill("BRL");
+  await item.locator('[name="sortOrder"]').fill("0");
+  await item.getByRole("button", { name: "Salvar item" }).click();
+  await page.getByText("Item salvo no catálogo editável.").waitFor();
+
   await page.getByRole("tab", { name: "Publicação" }).click();
   await page.getByRole("button", { name: "Solicitar revisão" }).click();
   await page.getByRole("button", { name: "Publicar revisão" }).waitFor();
@@ -72,7 +129,14 @@ try {
     `${origin}/api/places/v1/place-${businessId}`,
   );
   assert.equal(detail.status(), 200, await detail.text());
-  assert.equal((await detail.json()).profile.name, "Empresa browser");
+  const publicDetail = await detail.json();
+  assert.equal(publicDetail.profile.name, "Empresa browser");
+  assert.equal(publicDetail.commerce.offers[0].productId, `product-${businessId}`);
+  assert.equal(publicDetail.commerce.menu.id, `menu-${businessId}`);
+  assert.equal(
+    publicDetail.commerce.menu.categories[0].items[0].id,
+    `item-${businessId}`,
+  );
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(
