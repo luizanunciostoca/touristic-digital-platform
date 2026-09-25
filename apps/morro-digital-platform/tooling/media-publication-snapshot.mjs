@@ -130,7 +130,7 @@ export function createMediaPublicationSnapshotRuntime({
           AND place_record.published_revision = snapshot.place_revision
         WHERE snapshot.place_id = ?
           AND snapshot.business_id = ?
-          AND place_record.publication_state = 'published'
+          AND place_record.publication_state NOT IN ('suspended', 'archived')
         LIMIT 1`,
       [String(place.id), String(place.businessId)],
     );
@@ -142,7 +142,7 @@ export function createMediaPublicationSnapshotRuntime({
     const [rows] = await pool.execute(
       `SELECT place_id, business_id, published_revision
          FROM business_places
-        WHERE publication_state = 'published'
+        WHERE publication_state NOT IN ('suspended', 'archived')
           AND published_revision IS NOT NULL`,
     );
     for (const row of rows) {
