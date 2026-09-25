@@ -54,11 +54,7 @@ describe("assistant photo migration audit", () => {
 
     const matrix = await auditAssistantPhotoMigrationCoverage({
       canonicalPlaces,
-      legacyPlaceNames: [
-        "Segunda Praia",
-        "Toca do Morcego",
-        "Primeira Praia",
-      ],
+      legacyPlaceNames: ["Segunda Praia", "Toca do Morcego", "Primeira Praia"],
       getDetail,
       legacyEntries: [
         {

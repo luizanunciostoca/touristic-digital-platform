@@ -4,10 +4,7 @@ import {
 } from "./assistant-v1-photo-catalog.js";
 
 export type AssistantPhotoMigrationStatus =
-  | "canonical_media"
-  | "canonical_no_media"
-  | "legacy_only"
-  | "not_canonical";
+  "canonical_media" | "canonical_no_media" | "legacy_only" | "not_canonical";
 
 export interface AssistantPhotoMigrationMapItem {
   readonly id: string;
