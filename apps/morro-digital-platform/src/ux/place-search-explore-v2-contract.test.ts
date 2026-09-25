@@ -124,6 +124,18 @@ describe("Place + Search/Explore V2 contract", () => {
       "!UNREGISTERED_COMMERCIAL_ACTION_IDS.has(actionId)",
     );
     expect(control).not.toContain("resolvePlacePrimaryAction({");
+    expect(control).toContain('"morro:place-authority-resolved"');
+    expect(control).toContain("lastPlaceAuthority");
+    expect(control).toContain("lastPlaceAuthorityStatus");
+    expect(control).toContain("lastPlaceSource");
+    expect(control).toContain("lastCanonicalPlaceId");
+    expect(control).toContain('"canonical-pending"');
+    expect(control).toContain('"canonical-ready"');
+    expect(control).toContain('"canonical-unavailable"');
+    expect(control).toContain('"safe-fallback"');
+    expect(control).toContain(
+      'input.status === "canonical-ready" ? "canonical" : "blocked"',
+    );
   });
 
   it("prevents Place action duplication in the initial Assistant detail turn", async () => {
