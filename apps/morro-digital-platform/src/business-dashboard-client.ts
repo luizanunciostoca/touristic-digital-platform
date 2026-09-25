@@ -39,6 +39,82 @@ export interface MorroProOfferInput {
   readonly endsAt: string;
 }
 
+export type MorroProCatalogKind =
+  "product" | "offer" | "menu" | "menu-category" | "menu-item";
+
+export interface MorroProCatalogPrice {
+  readonly minorUnits: number;
+  readonly currency: string;
+}
+
+export interface MorroProCatalogProduct {
+  readonly id: string;
+  readonly businessId: string;
+  readonly placeId: string | null;
+  readonly destinationId: string | null;
+  readonly name: string;
+  readonly description: string;
+  readonly status: string;
+  readonly tags: readonly string[];
+}
+
+export interface MorroProCatalogOffer {
+  readonly id: string;
+  readonly businessId: string;
+  readonly placeId: string | null;
+  readonly destinationId: string | null;
+  readonly productId: string;
+  readonly price: MorroProCatalogPrice;
+  readonly capacity: number | null;
+  readonly salesStartsAt: string | null;
+  readonly salesEndsAt: string | null;
+  readonly experienceStartsAt: string | null;
+  readonly experienceEndsAt: string | null;
+  readonly status: string;
+}
+
+export interface MorroProCatalogMenu {
+  readonly id: string;
+  readonly businessId: string;
+  readonly placeId: string | null;
+  readonly name: string;
+  readonly description: string;
+  readonly status: string;
+  readonly fallbackMediaId: string | null;
+  readonly fallbackDocumentUrl: string | null;
+}
+
+export interface MorroProCatalogMenuCategory {
+  readonly id: string;
+  readonly businessId: string;
+  readonly menuId: string;
+  readonly name: string;
+  readonly sortOrder: number;
+}
+
+export interface MorroProCatalogMenuItem {
+  readonly id: string;
+  readonly businessId: string;
+  readonly menuId: string;
+  readonly categoryId: string;
+  readonly name: string;
+  readonly description: string;
+  readonly price: MorroProCatalogPrice;
+  readonly mediaId: string | null;
+  readonly available: boolean;
+  readonly tags: readonly string[];
+  readonly allergens: readonly string[];
+  readonly sortOrder: number;
+}
+
+export interface MorroProCatalog {
+  readonly products: readonly MorroProCatalogProduct[];
+  readonly offers: readonly MorroProCatalogOffer[];
+  readonly menus: readonly MorroProCatalogMenu[];
+  readonly categories: readonly MorroProCatalogMenuCategory[];
+  readonly items: readonly MorroProCatalogMenuItem[];
+}
+
 export interface BusinessDashboardBootstrap {
   readonly session: DashboardSessionResponse;
   readonly businessId: string;
@@ -70,6 +146,21 @@ export interface BusinessDashboardClient {
     businessId: unknown,
     inventoryId: string,
   ) => Promise<MorroProInventoryOffer>;
+  readonly loadCatalog: (
+    businessId: unknown,
+    signal?: AbortSignal,
+  ) => Promise<MorroProCatalog>;
+  readonly createCatalogEntry: (
+    businessId: unknown,
+    kind: MorroProCatalogKind,
+    input: unknown,
+  ) => Promise<unknown>;
+  readonly updateCatalogEntry: (
+    businessId: unknown,
+    kind: MorroProCatalogKind,
+    id: string,
+    input: unknown,
+  ) => Promise<unknown>;
 }
 
 function businessProfileUrl(businessIdInput: unknown): string {
@@ -82,6 +173,19 @@ function businessInventoryUrl(businessIdInput: unknown): string {
   const businessId = normalizeBusinessId(businessIdInput);
   if (!businessId) throw new Error("INVALID_BUSINESS_ID");
   return `/api/ticketing/v1/operator/businesses/${encodeURIComponent(businessId)}/inventory`;
+}
+
+function businessCatalogUrl(
+  businessIdInput: unknown,
+  kind?: MorroProCatalogKind,
+  id?: string,
+): string {
+  const businessId = normalizeBusinessId(businessIdInput);
+  if (!businessId) throw new Error("INVALID_BUSINESS_ID");
+  let url = `/api/business/${encodeURIComponent(businessId)}/catalog`;
+  if (kind) url += `/${encodeURIComponent(kind)}`;
+  if (id) url += `/${encodeURIComponent(id)}`;
+  return url;
 }
 
 async function readError(response: Response): Promise<string> {
@@ -200,6 +304,77 @@ export function createBusinessDashboardClient(
     return data.data;
   }
 
+  async function loadCatalog(
+    businessIdInput: unknown,
+    signal?: AbortSignal,
+  ): Promise<MorroProCatalog> {
+    const response = await authClient.secureFetch(
+      businessCatalogUrl(businessIdInput),
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: signal ?? null,
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as Partial<MorroProCatalog>;
+    return Object.freeze({
+      products: Object.freeze(
+        Array.isArray(data.products) ? data.products : [],
+      ),
+      offers: Object.freeze(Array.isArray(data.offers) ? data.offers : []),
+      menus: Object.freeze(Array.isArray(data.menus) ? data.menus : []),
+      categories: Object.freeze(
+        Array.isArray(data.categories) ? data.categories : [],
+      ),
+      items: Object.freeze(Array.isArray(data.items) ? data.items : []),
+    });
+  }
+
+  async function createCatalogEntry(
+    businessIdInput: unknown,
+    kind: MorroProCatalogKind,
+    input: unknown,
+  ): Promise<unknown> {
+    const response = await authClient.secureFetch(
+      businessCatalogUrl(businessIdInput, kind),
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { data?: unknown };
+    return data.data;
+  }
+
+  async function updateCatalogEntry(
+    businessIdInput: unknown,
+    kind: MorroProCatalogKind,
+    id: string,
+    input: unknown,
+  ): Promise<unknown> {
+    const response = await authClient.secureFetch(
+      businessCatalogUrl(businessIdInput, kind, id),
+      {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { data?: unknown };
+    return data.data;
+  }
+
   async function bootstrap(
     requestedBusinessId?: unknown,
   ): Promise<BusinessDashboardBootstrap> {
@@ -217,5 +392,8 @@ export function createBusinessDashboardClient(
     listOffers,
     createOffer,
     disableOffer,
+    loadCatalog,
+    createCatalogEntry,
+    updateCatalogEntry,
   });
 }
