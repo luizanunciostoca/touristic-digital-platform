@@ -1,0 +1,57 @@
+name: Temporary Catalog Publication Formatter
+
+on:
+  push:
+    branches: [fix/control-center-catalog-publication-20260925]
+    paths:
+      - ".github/workflows/tmp-control-center-catalog-publication-format.yml"
+      - "apps/control-center/public/control-center-business-cms.js"
+      - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
+      - "apps/morro-digital-platform/tooling/catalog-platform-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs"
+      - "apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: "!contains(github.event.head_commit.message, 'style(auto)')"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: fix/control-center-catalog-publication-20260925
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Format exact files
+        run: |
+          pnpm exec prettier --write \
+            apps/control-center/public/control-center-business-cms.js \
+            apps/morro-digital-platform/tooling/admin-domain-adapters.mjs \
+            apps/morro-digital-platform/tooling/catalog-platform-runtime.mjs \
+            apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs \
+            apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs \
+            apps/morro-digital-platform/tooling/place-platform-runtime.mjs
+      - name: Commit formatting only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/control-center/public/control-center-business-cms.js \
+            apps/morro-digital-platform/tooling/admin-domain-adapters.mjs \
+            apps/morro-digital-platform/tooling/catalog-platform-runtime.mjs \
+            apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs \
+            apps/morro-digital-platform/tooling/control-center-catalog-drafts.mysql.mjs \
+            apps/morro-digital-platform/tooling/place-platform-runtime.mjs
+          if ! git diff --cached --quiet; then
+            git commit -m "style(auto): format catalog publication CRUD"
+            git push origin HEAD:fix/control-center-catalog-publication-20260925
+          fi
