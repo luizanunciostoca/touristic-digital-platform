@@ -14,6 +14,9 @@ on:
       - "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
       - "apps/morro-digital-platform/src/morro-pro-business-management.ts"
       - "apps/morro-digital-platform/src/morro-pro-business-management.test.ts"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/business-api-media.invariants.mjs"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
       - "packages/auth/**"
       - "packages/auth-browser/**"
       - "packages/business/**"
@@ -30,6 +33,23 @@ concurrency:
 jobs:
   morro-pro-contract:
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: morro-pro-contract
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pmorro-pro-contract"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      BUSINESS_DATABASE_URL: mysql://root:morro-pro-contract@127.0.0.1:3306/morro_pro_contract
+      CONTENT_DATABASE_URL: mysql://root:morro-pro-contract@127.0.0.1:3306/morro_pro_contract
+      MEDIA_STORAGE_BASE_PATH: /tmp/morro-pro-media
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -42,12 +62,34 @@ jobs:
       - name: Build workspace
         run: pnpm -w build
 
+      - name: Create isolated Morro Pro database
+        working-directory: apps/morro-digital-platform
+        run: >-
+          node --input-type=module -e
+          "import('@touristic/content-server').then(async ({createMySqlPool}) => {
+          const pool = createMySqlPool('mysql://root:morro-pro-contract@127.0.0.1:3306/mysql');
+          try { await pool.query('CREATE DATABASE morro_pro_contract CHARACTER SET utf8mb4'); }
+          finally { await pool.end(); }
+          })"
+      - name: Apply canonical Content/Media schema
+        working-directory: apps/morro-digital-platform
+        run: >-
+          node --input-type=module -e
+          "import('@touristic/content-server').then(async ({createMySqlPool,applyContentM156Schema}) => {
+          const pool = createMySqlPool(process.env.CONTENT_DATABASE_URL);
+          try { await applyContentM156Schema(pool); }
+          finally { await pool.end(); }
+          })"
+
       - name: Run exact Morro Pro unit contracts
         run: |
           pnpm --filter @touristic/morro-digital-platform exec vitest run \
             src/morro-pro-business-management.test.ts \
             src/business-dashboard-client.test.ts \
             src/business-dashboard-surface.test.ts
+
+      - name: Prove Morro Pro Media tenant capability boundary
+        run: node --test apps/morro-digital-platform/tooling/business-api-media.invariants.mjs
 
       - name: Install deterministic Chromium
         run: |
@@ -66,7 +108,7 @@ jobs:
             {id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["business-a","business-b"]},
             {id:"manager-1",email:"manager@example.com",passwordHash:process.argv[1],role:"manager",businessIds:["business-a"]},
             {id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["business-a"]},
-            {id:"admin-1",email:"admin@example.com",passwordHash:process.argv[1],role:"admin",businessIds:["business-a"]}
+            {id:"admin-1",email:"admin@example.com",passwordHash:process.argv[1],role:"admin",businessIds:[]}
           ]))' "$HASH")
           DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1" \
             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-pro-contract.log 2>&1 &
@@ -94,6 +136,31 @@ jobs:
             });
             if (response.status() !== 200) throw new Error(`Login failed for ${email}: ${response.status()}`);
             return response.json();
+          }
+
+          async function seedCanonicalPlace(context, csrfToken, businessId, name) {
+            const response = await context.request.post(
+              `${origin}/api/admin/v1/businesses/cms`,
+              {
+                headers: {
+                  Origin: origin,
+                  'Content-Type': 'application/json',
+                  'X-CSRF-Token': csrfToken,
+                },
+                data: {
+                  businessId,
+                  placeId: `place-${businessId}`,
+                  destinationId: 'morro-de-sao-paulo',
+                  categoryId: 'attractions',
+                  name,
+                  shortDescription: `Place canônico ${name}`,
+                  capabilities: ['directions', 'photos'],
+                },
+              },
+            );
+            if (response.status() !== 201) {
+              throw new Error(`Canonical Place seed failed for ${businessId}: ${response.status()} ${await response.text()}`);
+            }
           }
 
           async function seed(context, csrfToken, businessId, name) {
@@ -126,6 +193,12 @@ jobs:
             const browser = await chromium.launch({ headless: true });
             const evidence = { errors: [] };
             try {
+              const adminContextForSeed = await browser.newContext();
+              const adminSeedLogin = await login(adminContextForSeed, 'admin@example.com');
+              await seedCanonicalPlace(adminContextForSeed, adminSeedLogin.csrfToken, 'business-a', 'Business A');
+              await seedCanonicalPlace(adminContextForSeed, adminSeedLogin.csrfToken, 'business-b', 'Business B');
+              await adminContextForSeed.close();
+
               const ownerContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
               const ownerPage = await ownerContext.newPage();
               ownerPage.on('pageerror', error => evidence.errors.push(`owner:${error.message}`));
@@ -137,6 +210,31 @@ jobs:
               await ownerPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
               if ((await ownerPage.locator('#business-name').textContent()) !== 'Business A') {
                 throw new Error('Owner did not open Business A');
+              }
+
+              await ownerPage.locator('.sidebar-nav .nav-item', { hasText: 'Fotos' }).click();
+              const ownerMediaForm = ownerPage.locator('#morro-pro-media-form');
+              await ownerMediaForm.waitFor({ state: 'visible' });
+              if (await ownerMediaForm.locator('input[name="file"]').isDisabled()) {
+                throw new Error('Owner Media upload is unexpectedly read-only');
+              }
+              await ownerMediaForm.locator('input[name="file"]').setInputFiles({
+                name: 'owner-cover.png',
+                mimeType: 'image/png',
+                buffer: Buffer.from(
+                  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==',
+                  'base64',
+                ),
+              });
+              await ownerMediaForm.locator('input[name="alt"]').fill('Capa canônica Morro Pro');
+              await ownerMediaForm.locator('select[name="role"]').selectOption('cover');
+              await ownerMediaForm.getByRole('button', { name: 'Enviar foto' }).click();
+              await ownerPage
+                .locator('#morro-pro-media-status')
+                .filter({ hasText: 'Foto salva.' })
+                .waitFor({ timeout: 15000 });
+              if ((await ownerPage.locator('#morro-pro-media-list img[src^="/media/"]').count()) !== 1) {
+                throw new Error('Owner Media upload did not render canonical stored asset');
               }
 
               const expectedOwnerModules = [
@@ -157,6 +255,11 @@ jobs:
               }
               await selector.selectOption('business-b');
               await ownerPage.locator('#business-name').filter({ hasText: 'Business B' }).waitFor({ timeout: 10000 });
+              await ownerPage.locator('.sidebar-nav .nav-item', { hasText: 'Fotos' }).click();
+              await ownerPage
+                .locator('#morro-pro-media-list')
+                .filter({ hasText: 'Nenhuma foto cadastrada.' })
+                .waitFor({ timeout: 10000 });
 
               await ownerPage.route('**/api/business/business-a/profile', async route => {
                 await new Promise(resolve => setTimeout(resolve, 350));
@@ -207,6 +310,11 @@ jobs:
                 throw new Error('Manager can see owner-only Team module');
               }
               if (await managerPage.locator('#profile-name').isDisabled()) throw new Error('Manager cannot edit authorized profile');
+              await managerPage.locator('.sidebar-nav .nav-item', { hasText: 'Fotos' }).click();
+              await managerPage.locator('#morro-pro-media-form').waitFor({ state: 'visible' });
+              if (!(await managerPage.locator('#morro-pro-media-form input[name="file"]').isDisabled())) {
+                throw new Error('Manager can mutate canonical Media without content.manage');
+              }
               await managerContext.close();
 
               const adminContext = await browser.newContext();
@@ -219,6 +327,8 @@ jobs:
               }
               await adminContext.close();
 
+              evidence.ownerMediaOperational = true;
+              evidence.mediaBusinessIsolation = true;
               evidence.ownerModules = ownerModules;
               evidence.multiBusiness = true;
               evidence.staleRequestSuppressed = true;

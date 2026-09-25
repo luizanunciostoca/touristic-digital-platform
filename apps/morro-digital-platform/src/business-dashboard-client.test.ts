@@ -114,6 +114,80 @@ describe("M51 Business dashboard browser client", () => {
     );
   });
 
+  it("reads and mutates canonical Media through the Business tenant namespace", async () => {
+    const fixture = authFixture(session(), [
+      new Response(
+        JSON.stringify({
+          count: 1,
+          storageAvailable: true,
+          assets: [
+            { mediaId: "media-1", role: "cover", asset: { id: "media-1" } },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+      new Response(JSON.stringify({ data: { mediaId: "media-2" } }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+      new Response(JSON.stringify({ data: { mediaId: "media-1" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+      new Response(JSON.stringify({ data: [] }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+      new Response(JSON.stringify({ data: { deleted: true } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ]);
+    const client = createBusinessDashboardClient(fixture.authClient);
+
+    const media = await client.loadMedia("toca-do-morcego");
+    await client.uploadMedia("toca-do-morcego", {
+      fileName: "cover.png",
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+      alt: "Capa",
+      role: "cover",
+      published: true,
+      dataBase64: "AA==",
+    });
+    await client.updateMedia("toca-do-morcego", "media-1", { role: "gallery" });
+    await client.reorderMedia("toca-do-morcego", ["media-1"]);
+    await client.deleteMedia("toca-do-morcego", "media-1");
+
+    expect(media.count).toBe(1);
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/business/toca-do-morcego/media",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/business/toca-do-morcego/media",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      3,
+      "/api/business/toca-do-morcego/media/media-1",
+      expect.objectContaining({ method: "PUT" }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      4,
+      "/api/business/toca-do-morcego/media/order",
+      expect.objectContaining({ method: "PUT" }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      5,
+      "/api/business/toca-do-morcego/media/media-1",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
   it("reads the canonical Catalog through the Business tenant namespace", async () => {
     const fixture = authFixture(session(), [
       new Response(
