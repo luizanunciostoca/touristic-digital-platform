@@ -1081,6 +1081,14 @@ export function createPlacePlatformRuntime({
     throw new Error("CATALOG_DRAFT_KIND_INVALID");
   }
 
+  async function getBusinessCatalog(businessId) {
+    const place = await catalogPlaceForBusiness(businessId);
+    return catalogRuntime.getAdminCatalog(
+      String(place.businessId),
+      String(place.id),
+    );
+  }
+
   async function getCmsDetail(businessId) {
     assertReady();
     const [rows] = await pool.execute(
@@ -1410,6 +1418,7 @@ export function createPlacePlatformRuntime({
     updateProfile,
     updateLocation,
     createCatalogDraft,
+    getBusinessCatalog,
     transitionPublication,
   });
 }
