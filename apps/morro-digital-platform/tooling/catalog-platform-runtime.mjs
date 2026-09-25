@@ -808,6 +808,9 @@ export function createCatalogRuntime(pool) {
       createMenu(scope, input) {
         return scoped(scope, input, service.createMenu);
       },
+      updateMenu(scope, input) {
+        return scoped(scope, input, service.updateMenu);
+      },
       saveMenuCategory(scope, input) {
         return service.saveMenuCategory(scope, input);
       },
