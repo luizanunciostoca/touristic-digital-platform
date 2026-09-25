@@ -678,6 +678,7 @@ jobs:
               const authPage = await authContext.newPage();
               let createdProduct = false;
               let createCalls = 0;
+              let catalogReads = 0;
               let catalog = { products: [], offers: [], menus: [], categories: [], items: [] };
               await authPage.route('**/api/dashboard/auth/session', route => fulfill(route, {
                 authenticated: true, csrfToken: 'dashboard_csrf_0001',
@@ -690,6 +691,7 @@ jobs:
               } }));
               await authPage.route('**/api/business/business-a/catalog', route => {
                 if (route.request().method() !== 'GET') return route.fallback();
+                catalogReads += 1;
                 return fulfill(route, catalog);
               });
               await authPage.route('**/api/business/business-a/catalog/product', route => {
@@ -725,16 +727,16 @@ jobs:
                 if (!(form instanceof HTMLFormElement)) throw new Error('Morro Pro product form missing');
                 form.requestSubmit();
               });
-              await authPage.locator('#morro-pro-product-list').filter({ hasText: 'Passeio Volta à Ilha' }).waitFor({ state: 'visible', timeout: 5000 });
-              if (!createdProduct || createCalls !== 1) {
-                throw new Error(`Canonical Morro Pro product create mismatch: created=${createdProduct} calls=${createCalls}`);
+              await authPage.locator('#morro-pro-product-status').filter({ hasText: 'Alteração salva' }).waitFor({ state: 'visible', timeout: 10000 });
+              if (!createdProduct || createCalls !== 1 || catalogReads < 2) {
+                throw new Error(`Canonical Morro Pro product create/refetch mismatch: created=${createdProduct} calls=${createCalls} reads=${catalogReads}`);
               }
               const crossTenant = await authPage.evaluate(async () => {
                 const response = await fetch('/api/business/business-b/catalog', { credentials: 'same-origin' });
                 return response.status;
               });
               if (crossTenant !== 404) throw new Error(`Cross-tenant Catalog leaked: ${crossTenant}`);
-              evidence.push({ authenticatedMorroProCatalog: true, crossTenant, createCalls, productId: catalog.products[0]?.id });
+              evidence.push({ authenticatedMorroProCatalog: true, crossTenant, createCalls, catalogReads, productId: catalog.products[0]?.id });
               await authContext.close();
 
               const failContext = await browser.newContext({
