@@ -1033,6 +1033,33 @@ export function createPlacePlatformRuntime({
     );
   }
 
+  async function getMediaDraft(businessId) {
+    assertReady();
+    const place = await catalogPlaceForBusiness(businessId);
+    if (!mediaRepository) {
+      return Object.freeze({
+        count: 0,
+        storageAvailable: false,
+        assets: Object.freeze([]),
+      });
+    }
+    const links = await mediaRepository.listLinks(String(place.id));
+    const assets = await Promise.all(
+      links.map(async (link) => {
+        const asset = await mediaRepository.getAsset(link.mediaId);
+        if (asset && asset.businessId !== String(place.businessId)) {
+          throw new Error("MEDIA_ACCESS_BUSINESS_DENIED");
+        }
+        return Object.freeze({ ...link, asset });
+      }),
+    );
+    return Object.freeze({
+      count: assets.length,
+      storageAvailable: Boolean(mediaService),
+      assets: Object.freeze(assets),
+    });
+  }
+
   function requireMediaService() {
     if (!mediaRepository) throw new Error("MEDIA_DATABASE_UNAVAILABLE");
     if (!mediaService) throw new Error("MEDIA_STORAGE_UNAVAILABLE");
@@ -1847,6 +1874,7 @@ export function createPlacePlatformRuntime({
     updateProfile,
     updateLocation,
     getCatalogDraft,
+    getMediaDraft,
     createCatalogDraft,
     updateCatalogDraft,
     uploadMediaDraft,
