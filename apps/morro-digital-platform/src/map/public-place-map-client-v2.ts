@@ -120,7 +120,7 @@ export function createPublicPlaceMapClient(
         {
           method: "GET",
           headers: { Accept: "application/json", "Accept-Language": locale },
-          signal: input.signal,
+          ...(input.signal ? { signal: input.signal } : {}),
         },
       );
       if (response.status === 404) return null;
