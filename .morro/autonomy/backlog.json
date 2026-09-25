@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "items": [
+    {
+      "id": "MD-AUTO-001",
+      "priority": "P0",
+      "owner": "Proof Worker",
+      "objective": "Certify post-merge main after #364",
+      "dependsOn": [],
+      "status": "QUEUED"
+    },
+    {
+      "id": "MD-AUTO-002",
+      "priority": "P0",
+      "owner": "Control Tower",
+      "objective": "Classify open legacy waves #344/#347/#352/#354 and other pre-integration PRs as residual or superseded",
+      "dependsOn": [],
+      "status": "CLAIMED"
+    },
+    {
+      "id": "MD-AUTO-003",
+      "priority": "P1",
+      "owner": "Experience Worker",
+      "objective": "Cut over Assistant/Map consumers to canonical PublicPlace by PlaceId without inventing backend",
+      "dependsOn": [
+        "MD-AUTO-001"
+      ],
+      "status": "QUEUED"
+    },
+    {
+      "id": "MD-AUTO-004",
+      "priority": "P1",
+      "owner": "Experience Worker",
+      "objective": "Complete Morro Pro non-placeholder surfaces against canonical contracts",
+      "dependsOn": [
+        "MD-AUTO-001"
+      ],
+      "status": "QUEUED"
+    }
+  ]
+}
