@@ -139,9 +139,28 @@ describe("Morro Pro role and module policy", () => {
       visible: true,
       mutable: false,
     });
-    expect(access.find((item) => item.id === "offers")?.visible).toBe(false);
+    expect(access.find((item) => item.id === "offers")).toMatchObject({
+      visible: true,
+      mutable: false,
+    });
     expect(access.find((item) => item.id === "content")?.visible).toBe(false);
     expect(access.find((item) => item.id === "financial")).toMatchObject({
+      visible: true,
+      mutable: false,
+    });
+  });
+
+  it("keeps Catalog Offers on Business authority and Ticketing separate", () => {
+    const access = resolveMorroProModuleAccess(
+      "BUSINESS_OWNER",
+      ["business.read", "business.update", "ticketing.read"],
+      [],
+    );
+    expect(access.find((item) => item.id === "offers")).toMatchObject({
+      visible: true,
+      mutable: true,
+    });
+    expect(access.find((item) => item.id === "ticketing")).toMatchObject({
       visible: true,
       mutable: false,
     });
