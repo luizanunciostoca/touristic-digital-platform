@@ -415,7 +415,7 @@ function renderCatalog(document: Document, surface: CatalogSurface, catalog: Mor
   surface.offerList.replaceChildren();
   for (const offer of catalog.offers) {
     const product = catalog.products.find((entry) => entry.id === offer.productId);
-    surface.offerList.append(entryCard(document, product?.name ?? offer.productId, `${money(offer.price)} û ${offer.status}`, offer.id, () => {
+    surface.offerList.append(entryCard(document, product?.name ?? offer.productId, `${money(offer.price)} · ${offer.status}`, offer.id, () => {
       setFormValue(surface.offerForm, "editId", offer.id);
       setFormValue(surface.offerForm, "productId", offer.productId);
       setFormValue(surface.offerForm, "price", offer.price.minorUnits / 100);
@@ -453,7 +453,7 @@ function renderCatalog(document: Document, surface: CatalogSurface, catalog: Mor
 
   surface.itemList.replaceChildren();
   for (const item of catalog.items) {
-    surface.itemList.append(entryCard(document, item.name, `${money(item.price)} û ${item.available ? "disponível" : "indisponível"}`, item.id, () => {
+    surface.itemList.append(entryCard(document, item.name, `${money(item.price)} · ${item.available ? "disponível" : "indisponível"}`, item.id, () => {
       setFormValue(surface.itemForm, "editId", item.id);
       setFormValue(surface.itemForm, "menuId", item.menuId);
       setFormValue(surface.itemForm, "categoryId", item.categoryId);
