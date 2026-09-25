@@ -575,6 +575,64 @@ export function createCatalogRuntime(pool) {
     });
   }
 
+  async function getAdminCatalog(businessId, placeId = null) {
+    const placeClause = placeId == null ? "" : " AND place_id = ?";
+    const params =
+      placeId == null
+        ? [String(businessId)]
+        : [String(businessId), String(placeId)];
+    const [[productRows], [offerRows], [menuRows]] = await Promise.all([
+      pool.execute(
+        `SELECT * FROM catalog_products
+          WHERE business_id = ?${placeClause}
+          ORDER BY updated_at DESC, product_id ASC`,
+        params,
+      ),
+      pool.execute(
+        `SELECT * FROM catalog_offers
+          WHERE business_id = ?${placeClause}
+          ORDER BY updated_at DESC, offer_id ASC`,
+        params,
+      ),
+      pool.execute(
+        `SELECT * FROM catalog_menus
+          WHERE business_id = ?${placeClause}
+          ORDER BY updated_at DESC, menu_id ASC`,
+        params,
+      ),
+    ]);
+    const menus = menuRows.map(menuFromRow);
+    const menuIds = menus.map(({ id }) => String(id));
+    let categories = [];
+    let items = [];
+    if (menuIds.length > 0) {
+      const placeholders = menuIds.map(() => "?").join(", ");
+      const [categoryResult, itemResult] = await Promise.all([
+        pool.execute(
+          `SELECT * FROM catalog_menu_categories
+            WHERE business_id = ? AND menu_id IN (${placeholders})
+            ORDER BY menu_id ASC, sort_order ASC, category_id ASC`,
+          [String(businessId), ...menuIds],
+        ),
+        pool.execute(
+          `SELECT * FROM catalog_menu_items
+            WHERE business_id = ? AND menu_id IN (${placeholders})
+            ORDER BY menu_id ASC, sort_order ASC, item_id ASC`,
+          [String(businessId), ...menuIds],
+        ),
+      ]);
+      categories = categoryResult[0].map(categoryFromRow);
+      items = itemResult[0].map(itemFromRow);
+    }
+    return Object.freeze({
+      products: Object.freeze(productRows.map(productFromRow)),
+      offers: Object.freeze(offerRows.map(offerFromRow)),
+      menus: Object.freeze(menus),
+      categories: Object.freeze(categories),
+      items: Object.freeze(items),
+    });
+  }
+
   async function getPublicCommerce(place) {
     const context = await listActionContext(place);
     const now = new Date().toISOString();
@@ -689,5 +747,6 @@ export function createCatalogRuntime(pool) {
     listActionContext,
     getPublicCommerce,
     getCounts,
+    getAdminCatalog,
   });
 }

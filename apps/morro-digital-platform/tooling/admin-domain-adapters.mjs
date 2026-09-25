@@ -352,6 +352,8 @@ export function createBusinessAdminAdapter(
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/location$/u;
   const cmsPublicationPattern =
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/publication$/u;
+  const cmsCatalogPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/catalog\/(product|offer|menu|menu-category|menu-item)$/u;
 
   async function cmsError(response, error) {
     const code = error instanceof Error ? error.message : "BUSINESS_CMS_FAILED";
@@ -384,6 +386,7 @@ export function createBusinessAdminAdapter(
             "cms-create",
             "cms-profile",
             "cms-location",
+            "cms-catalog-drafts",
             "cms-publication",
           ]
         : []),
@@ -472,6 +475,32 @@ export function createBusinessAdminAdapter(
             editableRevision: record.editableRevision.revision,
           });
           return { entityType: "business", entityId: cmsLocation[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsCatalog = cmsCatalogPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsCatalog?.[1] &&
+        cmsCatalog?.[2] &&
+        request.method === "POST"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const draft = await placePlatformRuntime.createCatalogDraft(
+            cmsCatalog[1],
+            cmsCatalog[2],
+            body,
+          );
+          sendJson(response, 201, {
+            businessId: cmsCatalog[1],
+            kind: cmsCatalog[2],
+            data: draft,
+          });
+          return { entityType: "business", entityId: cmsCatalog[1] };
         } catch (error) {
           await cmsError(response, error);
           return;

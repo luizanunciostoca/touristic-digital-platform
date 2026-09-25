@@ -35,6 +35,23 @@ describe("Control Center Business CMS contract", () => {
     }
   });
 
+  it("authors Catalog drafts only through the governed Business CMS route", () => {
+    expect(source).toContain("catalogDraft");
+    expect(source).toContain('data-business-catalog-kind="product"');
+    expect(source).toContain('data-business-catalog-kind="offer"');
+    expect(source).toContain('data-business-catalog-kind="menu"');
+    expect(source).toContain('data-business-catalog-kind="menu-category"');
+    expect(source).toContain('data-business-catalog-kind="menu-item"');
+    expect(source).toContain("Draft authoring:");
+    const catalogAuthoring = source.slice(
+      source.indexOf('<div class="business-cms-catalog-forms">'),
+      source.indexOf('<p id="business-cms-catalog-result"'),
+    );
+    expect(catalogAuthoring).not.toContain('name="businessId"');
+    expect(catalogAuthoring).not.toContain('name="placeId"');
+    expect(catalogAuthoring).not.toContain('name="destinationId"');
+  });
+
   it("keeps CTA resolution and money authority outside the browser", () => {
     expect(source).toContain(
       "As ações são projetadas pelo registry do servidor.",

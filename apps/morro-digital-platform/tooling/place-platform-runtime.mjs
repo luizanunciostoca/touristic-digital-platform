@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import {
   canonicalPlaceCategories,
   createPublicPlaceReadModel,
@@ -963,6 +964,123 @@ export function createPlacePlatformRuntime({
     });
   }
 
+  async function catalogPlaceForBusiness(businessId) {
+    assertReady();
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE business_id = ?
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [businessId],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("PLACE_NOT_FOUND");
+    return placeFromRow(row, false);
+  }
+
+  function draftTags(value) {
+    const source = Array.isArray(value)
+      ? value
+      : typeof value === "string"
+        ? value.split(",")
+        : [];
+    return Object.freeze(
+      [
+        ...new Set(
+          source.map((entry) => clean(String(entry), 80)).filter(Boolean),
+        ),
+      ].slice(0, 20),
+    );
+  }
+
+  async function createCatalogDraft(businessId, kind, input) {
+    const place = await catalogPlaceForBusiness(businessId);
+    const now = new Date().toISOString();
+    const scope = { businessId: String(place.businessId) };
+    if (kind === "product") {
+      return catalogRuntime.service.createProduct(scope, {
+        id: `product-${randomUUID()}`,
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        destinationId: String(place.destinationId),
+        name: clean(input.name, 180),
+        description: clean(input.description, 2000),
+        status: "draft",
+        tags: draftTags(input.tags),
+        legacyReference: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    if (kind === "offer") {
+      const minorUnits = Number(input.minorUnits);
+      const currency = clean(input.currency || "BRL", 3).toUpperCase();
+      return catalogRuntime.service.createOffer(scope, {
+        id: `offer-${randomUUID()}`,
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        destinationId: String(place.destinationId),
+        productId: clean(input.productId, 160),
+        price: { minorUnits, currency },
+        salesStartsAt: input.salesStartsAt ? String(input.salesStartsAt) : null,
+        salesEndsAt: input.salesEndsAt ? String(input.salesEndsAt) : null,
+        experienceStartsAt: null,
+        experienceEndsAt: null,
+        capacity:
+          input.capacity === "" || input.capacity == null
+            ? null
+            : Number(input.capacity),
+        status: "draft",
+        legacyLabel: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    if (kind === "menu") {
+      return catalogRuntime.service.createMenu(scope, {
+        id: `menu-${randomUUID()}`,
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        name: clean(input.name, 180),
+        description: clean(input.description, 2000),
+        status: "draft",
+        fallbackMediaId: null,
+        fallbackDocumentUrl: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    if (kind === "menu-category") {
+      return catalogRuntime.service.saveMenuCategory(scope, {
+        id: `menu-category-${randomUUID()}`,
+        businessId: String(place.businessId),
+        menuId: clean(input.menuId, 160),
+        name: clean(input.name, 180),
+        sortOrder: Number(input.sortOrder ?? 0),
+      });
+    }
+    if (kind === "menu-item") {
+      return catalogRuntime.service.saveMenuItem(scope, {
+        id: `menu-item-${randomUUID()}`,
+        businessId: String(place.businessId),
+        menuId: clean(input.menuId, 160),
+        categoryId: clean(input.categoryId, 160),
+        name: clean(input.name, 180),
+        description: clean(input.description, 2000),
+        price: {
+          minorUnits: Number(input.minorUnits),
+          currency: clean(input.currency || "BRL", 3).toUpperCase(),
+        },
+        mediaId: null,
+        available: false,
+        tags: draftTags(input.tags),
+        allergens: draftTags(input.allergens),
+        sortOrder: Number(input.sortOrder ?? 0),
+      });
+    }
+    throw new Error("CATALOG_DRAFT_KIND_INVALID");
+  }
+
   async function getCmsDetail(businessId) {
     assertReady();
     const [rows] = await pool.execute(
@@ -1023,11 +1141,26 @@ export function createPlacePlatformRuntime({
       .filter((user) => user.businessIds?.includes(businessId))
       .map((user) => ({ id: user.id, email: user.email, role: user.role }));
     const catalog = place
-      ? await catalogRuntime.getCounts(
-          String(place.businessId),
-          String(place.id),
-        )
-      : { productCount: 0, offerCount: 0, menuCount: 0 };
+      ? {
+          ...(await catalogRuntime.getCounts(
+            String(place.businessId),
+            String(place.id),
+          )),
+          ...(await catalogRuntime.getAdminCatalog(
+            String(place.businessId),
+            String(place.id),
+          )),
+        }
+      : {
+          productCount: 0,
+          offerCount: 0,
+          menuCount: 0,
+          products: [],
+          offers: [],
+          menus: [],
+          categories: [],
+          items: [],
+        };
     return Object.freeze({
       businessId: row.business_id,
       name: row.display_name,
@@ -1276,6 +1409,7 @@ export function createPlacePlatformRuntime({
     createDraft,
     updateProfile,
     updateLocation,
+    createCatalogDraft,
     transitionPublication,
   });
 }
