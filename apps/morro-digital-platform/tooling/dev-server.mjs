@@ -670,6 +670,14 @@ const server = createServer(async (request, response) => {
       await authApi.handle(request, response, requestUrl.pathname);
       return;
     }
+    if (requestUrl.pathname.startsWith("/media/")) {
+      const handled = await placePlatformRuntime.handleMedia(
+        request,
+        response,
+        requestUrl,
+      );
+      if (handled) return;
+    }
     if (requestUrl.pathname.startsWith("/api/places/v1/")) {
       const handled = await placePlatformRuntime.handlePublic(
         request,
