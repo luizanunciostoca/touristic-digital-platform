@@ -114,6 +114,76 @@ describe("M51 Business dashboard browser client", () => {
     );
   });
 
+  it("reads the canonical Catalog through the Business tenant namespace", async () => {
+    const fixture = authFixture(session(), [
+      new Response(
+        JSON.stringify({
+          products: [{ id: "product-1", name: "Sunset" }],
+          offers: [],
+          menus: [],
+          categories: [],
+          items: [],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    ]);
+    const client = createBusinessDashboardClient(fixture.authClient);
+
+    const catalog = await client.loadCatalog("toca-do-morcego");
+
+    expect(catalog.products[0]?.id).toBe("product-1");
+    expect(fixture.secureFetch).toHaveBeenCalledWith(
+      "/api/business/toca-do-morcego/catalog",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+  });
+
+  it("creates and updates canonical Catalog entries without productReference identity", async () => {
+    const fixture = authFixture(session(), [
+      new Response(JSON.stringify({ data: { id: "product-1" } }), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+      new Response(JSON.stringify({ data: { id: "product-1" } }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ]);
+    const client = createBusinessDashboardClient(fixture.authClient);
+
+    await client.createCatalogEntry("toca-do-morcego", "product", {
+      name: "Sunset",
+      status: "draft",
+    });
+    await client.updateCatalogEntry("toca-do-morcego", "product", "product-1", {
+      status: "active",
+    });
+
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/business/toca-do-morcego/catalog/product",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ name: "Sunset", status: "draft" }),
+      }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/business/toca-do-morcego/catalog/product/product-1",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({ status: "active" }),
+      }),
+    );
+    expect(
+      fixture.secureFetch.mock.calls.some(([, init]) =>
+        typeof init?.body === "string"
+          ? init.body.includes("productReference")
+          : false,
+      ),
+    ).toBe(false);
+  });
+
   it("fails closed when no authenticated Business scope can be selected", async () => {
     const fixture = authFixture(session("owner", []), []);
     const client = createBusinessDashboardClient(fixture.authClient);

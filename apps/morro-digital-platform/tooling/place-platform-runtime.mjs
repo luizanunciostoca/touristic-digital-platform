@@ -1008,7 +1008,7 @@ export function createPlacePlatformRuntime({
     return publicationService.saveRevision(
       {
         session: actor,
-        correlationId: "control-center-catalog",
+        correlationId: "business-catalog",
         now: new Date().toISOString(),
       },
       current.placeId,
@@ -1021,6 +1021,14 @@ export function createPlacePlatformRuntime({
     const result = await operation();
     await touchCatalogRevision(actor, businessId);
     return result;
+  }
+
+  async function getCatalogDraft(businessId) {
+    const place = await catalogPlaceForBusiness(businessId);
+    return catalogRuntime.getAdminCatalog(
+      String(place.businessId),
+      String(place.id),
+    );
   }
 
   async function createCatalogDraft(actor, businessId, kind, input) {
@@ -1667,6 +1675,7 @@ export function createPlacePlatformRuntime({
     createDraft,
     updateProfile,
     updateLocation,
+    getCatalogDraft,
     createCatalogDraft,
     updateCatalogDraft,
     transitionPublication,
