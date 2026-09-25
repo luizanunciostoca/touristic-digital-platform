@@ -69,7 +69,7 @@ test(
         amenities: "wifi",
       });
 
-      await runtime.updateLocation(actor, businessId, {
+      const locationRevision = await runtime.updateLocation(actor, businessId, {
         latitude: -13.3776,
         longitude: -38.9142,
         address: "Morro de São Paulo",
@@ -77,7 +77,18 @@ test(
         source: "manual",
       });
 
-      const published = await runtime.publish(actor, businessId);
+      const reviewed = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        locationRevision.editableRevision.revision,
+      );
+      const published = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        reviewed.editableRevision.revision,
+      );
       assert.equal(published.publicationState, "published");
       assert.ok(published.publishedRevision);
       assert.equal(
