@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "updatedFromMainSha": "2bbf7407035575cac993c7024ec01183a27ec6c4",
+  "status": "ORCHESTRATION_UPDATED",
+  "criticalPath": [
+    "post-merge exact-head validation for #364",
+    "reconcile legacy open waves against current main",
+    "PublicPlace consumer cutover",
+    "Morro Pro completion",
+    "Assistant canonical Place context",
+    "cross-domain E2E",
+    "staging certification"
+  ],
+  "sourceOfTruth": "GitHub LIVE"
+}
