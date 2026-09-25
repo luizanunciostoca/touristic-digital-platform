@@ -1,0 +1,4 @@
+{
+  "schemaVersion": 1,
+  "evidence": [{"id":"EVID-MAIN-20260925-001","sha":"2bbf7407035575cac993c7024ec01183a27ec6c4","tree":"b98b4695597a0429152cf602433d61ef42724434","type":"github-live","fact":"PR #364 merged into main","fresh":true}]
+}
