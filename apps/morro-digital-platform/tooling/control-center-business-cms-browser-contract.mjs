@@ -42,10 +42,11 @@ try {
     .selectOption("morro-de-sao-paulo");
   await wizard.locator('[name="shortDescription"]').fill("Experiência real");
   await wizard.getByRole("button", { name: "Criar draft" }).click();
-  await page.locator("#business-cms-profile-form").waitFor();
+  await page.getByRole("tab", { name: "Perfil" }).waitFor();
   assert.ok(page.url().includes(`#businesses:${businessId}`));
 
   await page.getByRole("tab", { name: "Perfil" }).click();
+  await page.locator("#business-cms-profile-form").waitFor();
   const profile = page.locator("#business-cms-profile-form");
   await profile
     .locator('[name="description"]')
