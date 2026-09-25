@@ -56,7 +56,8 @@
     "fabric:evidence-key": "node tooling/fabric/build-evidence-key.mjs",
     "fabric:merge-ready:check": "node tooling/fabric/check-merge-ready.mjs",
     "fabric:release-attestation": "node tooling/fabric/build-release-attestation.mjs",
-    "release:target-governance:check": "node --test tooling/quality/release-target-governance.test.mjs"
+    "release:target-governance:check": "node --test tooling/quality/release-target-governance.test.mjs",
+    "media:coverage:report": "pnpm --filter @touristic/search build && pnpm --filter @touristic/morro-digital-platform build && node apps/morro-digital-platform/tooling/place-media-coverage-report.mjs"
   },
   "pnpm": {
     "overrides": {
