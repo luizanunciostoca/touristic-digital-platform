@@ -62,6 +62,21 @@ try {
   await location.getByRole("button", { name: "Confirmar localização" }).click();
   await page.getByText("Localização salva como revisão editável.").waitFor();
 
+  const scopeInjection = await context.request.post(
+    `${origin}/api/admin/v1/businesses/${businessId}/cms/catalog/product`,
+    {
+      headers: { "Content-Type": "application/json" },
+      data: {
+        businessId,
+        placeId: `place-${businessId}`,
+        destinationId: "other-destination",
+        name: "Blocked scope injection",
+        description: "must be denied",
+      },
+    },
+  );
+  assert.equal(scopeInjection.status(), 403, await scopeInjection.text());
+
   await page.getByRole("tab", { name: "Produtos" }).click();
 
   let productForm = page.locator('[data-business-catalog-kind="product"]');
@@ -81,6 +96,19 @@ try {
   await productForm.locator('[name="status"]').selectOption("active");
   await productForm.getByRole("button", { name: "Salvar alterações" }).click();
   await page.getByText(/Alteração salva como revisão editável/u).waitFor();
+
+  const invalidOfferRelation = await context.request.post(
+    `${origin}/api/admin/v1/businesses/${businessId}/cms/catalog/offer`,
+    {
+      headers: { "Content-Type": "application/json" },
+      data: {
+        productId: `missing-${businessId}`,
+        minorUnits: 1000,
+        currency: "BRL",
+      },
+    },
+  );
+  assert.equal(invalidOfferRelation.status(), 404, await invalidOfferRelation.text());
 
   let offerForm = page.locator('[data-business-catalog-kind="offer"]');
   await offerForm.locator('[name="productId"]').selectOption(productId);
@@ -178,6 +206,18 @@ try {
     `${origin}/api/admin/v1/businesses/cms`,
   );
   assert.equal(forbidden.status(), 403, await forbidden.text());
+  const forbiddenCatalogMutation = await denied.request.put(
+    `${origin}/api/admin/v1/businesses/${businessId}/cms/catalog/product/${encodeURIComponent(productId)}`,
+    {
+      headers: { "Content-Type": "application/json" },
+      data: { status: "inactive" },
+    },
+  );
+  assert.equal(
+    forbiddenCatalogMutation.status(),
+    403,
+    await forbiddenCatalogMutation.text(),
+  );
   await denied.close();
   await context.close();
   process.stdout.write("Business CMS browser + HTTP acceptance: PASS\n");
