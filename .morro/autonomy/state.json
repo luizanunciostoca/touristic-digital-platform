@@ -1,14 +1,18 @@
 {
   "schemaVersion": 1,
-  "updatedFromMainSha": "fb33db722b0fdc8ba1e1da5ec6120c0b3b61c657",
+  "updatedFromMainSha": "a609f6ffe551764d1977d0f0d916995a5a89a701",
   "status": "ORCHESTRATION_UPDATED",
   "criticalPath": [
+    "PR #372 repair: Commerce browser + Fabric size policy",
+    "PR #372 Proof acceptance",
     "PublicPlace consumer cutover",
-    "Morro Pro completion",
+    "Morro Pro completion integration",
     "Assistant canonical Place context",
     "cross-domain E2E",
     "release candidate certification"
   ],
   "sourceOfTruth": "GitHub LIVE",
-  "stateEnd": "post-366 exact-head Final Release Acceptance and Staging Render Promotion are green"
+  "stateStart": "main a609f6ffe551764d1977d0f0d916995a5a89a701; PR #372 exact HEAD 2b6f5457cdff76a2ad201c2ca64195494f66e369",
+  "stateEnd": "PR #372 remains proof-rejected on exact HEAD: Commerce Browser Regression and Morro Fabric Preflight failed; all other observed required core gates completed green",
+  "nextWorkItem": "Repair #372 with smallest semantic split that fixes Commerce contract and Fabric hard-size gate, then rerun invalidated exact-head evidence before Proof."
 }
