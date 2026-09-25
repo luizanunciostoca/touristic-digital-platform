@@ -124,20 +124,22 @@ async function runCli() {
   );
   const searchDist = path.join(repositoryRoot, "packages/search/dist/index.js");
 
-  const [{ auditAssistantPhotoMigrationCoverage }, { listAssistantV1PhotoCatalogEntries }, search] =
-    await Promise.all([
-      import(
-        pathToFileURL(
-          path.join(assistantDist, "assistant-photo-migration-audit.js"),
-        ).href
-      ),
-      import(
-        pathToFileURL(
-          path.join(assistantDist, "assistant-v1-photo-catalog.js"),
-        ).href
-      ),
-      import(pathToFileURL(searchDist).href),
-    ]);
+  const [
+    { auditAssistantPhotoMigrationCoverage },
+    { listAssistantV1PhotoCatalogEntries },
+    search,
+  ] = await Promise.all([
+    import(
+      pathToFileURL(
+        path.join(assistantDist, "assistant-photo-migration-audit.js"),
+      ).href
+    ),
+    import(
+      pathToFileURL(path.join(assistantDist, "assistant-v1-photo-catalog.js"))
+        .href
+    ),
+    import(pathToFileURL(searchDist).href),
+  ]);
 
   const report = await runPlaceMediaCoverageAudit({
     baseUrl,
