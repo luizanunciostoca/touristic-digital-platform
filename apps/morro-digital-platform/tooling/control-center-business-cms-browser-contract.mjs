@@ -62,6 +62,30 @@ try {
   await location.getByRole("button", { name: "Confirmar localização" }).click();
   await page.getByText("Localização salva como revisão editável.").waitFor();
 
+  await page.getByRole("tab", { name: "Fotos e mídia" }).click();
+  const mediaForm = page.locator("#business-cms-media-form");
+  await mediaForm.waitFor();
+  await mediaForm.locator('[name="file"]').setInputFiles({
+    name: "cover.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4////fwAJ+wP9KobjigAAAABJRU5ErkJggg==",
+      "base64",
+    ),
+  });
+  await mediaForm
+    .locator('[name="alt"]')
+    .fill("Capa canônica da Empresa browser");
+  await mediaForm.locator('[name="role"]').selectOption("cover");
+  await mediaForm.getByRole("button", { name: "Enviar imagem" }).click();
+  await page.getByText("Imagem salva na revisão editável.").waitFor();
+  assert.equal(
+    await page
+      .locator('[data-business-cms-panel="media"] img[src^="/media/"]')
+      .count(),
+    1,
+  );
+
   await page.getByRole("tab", { name: "Produtos" }).click();
 
   let productForm = page.locator('[data-business-catalog-kind="product"]');
@@ -164,6 +188,16 @@ try {
     publicDetail.commerce.menu.categories[0].items[0].name,
     "Experiência Morro",
   );
+  assert.equal(
+    publicDetail.media.coverImage.alt,
+    "Capa canônica da Empresa browser",
+  );
+  assert.match(publicDetail.media.coverImage.providerReference, /^\/media\//u);
+  const mediaResponse = await context.request.get(
+    `${origin}${publicDetail.media.coverImage.providerReference}`,
+  );
+  assert.equal(mediaResponse.status(), 200, await mediaResponse.text());
+  assert.equal(mediaResponse.headers()["content-type"], "image/png");
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(

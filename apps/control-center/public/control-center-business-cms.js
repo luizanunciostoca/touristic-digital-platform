@@ -8,6 +8,12 @@ export const businessCmsContract = Object.freeze({
     `/businesses/${encodeURIComponent(businessId)}/cms/location`,
   publish: (businessId) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/publication`,
+  media: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/media`,
+  mediaEntry: (businessId, mediaId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/media/${encodeURIComponent(mediaId)}`,
+  mediaOrder: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/media/order`,
   catalogDraft: (businessId, kind) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/catalog/${encodeURIComponent(kind)}`,
   catalogEntry: (businessId, kind, entryId) =>
@@ -27,6 +33,42 @@ const lifecycleLabels = Object.freeze({
 
 function safeArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function mediaPreviewSource(value) {
+  const source = String(value ?? "").trim();
+  return source.startsWith("/media/") || source.startsWith("https://")
+    ? source
+    : "";
+}
+
+async function fileAsBase64(file) {
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener(
+      "load",
+      () => resolve(String(reader.result ?? "")),
+      { once: true },
+    );
+    reader.addEventListener(
+      "error",
+      () => reject(reader.error ?? new Error("MEDIA_FILE_READ_FAILED")),
+      { once: true },
+    );
+    reader.readAsDataURL(file);
+  });
+  const separator = dataUrl.indexOf(",");
+  if (separator < 0) throw new Error("MEDIA_FILE_READ_FAILED");
+  return dataUrl.slice(separator + 1);
+}
+
+async function imageDimensions(file) {
+  const bitmap = await createImageBitmap(file);
+  try {
+    return { width: bitmap.width, height: bitmap.height };
+  } finally {
+    bitmap.close();
+  }
 }
 
 function statusLabel(value) {
@@ -363,19 +405,58 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Fotos e mídia",
       `<section class="card section-card">
         <h2>Fotos e mídia</h2>
+        <div class="callout">
+          <strong>Mídia governada:</strong> uploads e alterações entram na revisão editável.
+          A versão pública só muda depois de revisão + publicação do Place.
+        </div>
         <strong>${escapeHtml(media.count ?? safeArray(media.assets).length)} ativo(s)</strong>
         <div class="module-list">
           ${
             safeArray(media.assets)
-              .map(
-                (entry) =>
-                  `<div class="module-row"><span>${escapeHtml(entry.asset?.alt ?? entry.mediaId)}</span><strong>${escapeHtml(entry.role)} · ${escapeHtml(entry.asset?.publicationState ?? "indisponível")}</strong></div>`,
-              )
+              .map((entry, index) => {
+                const asset = entry.asset ?? {};
+                const source = mediaPreviewSource(asset.providerReference);
+                return `<div class="module-row" data-media-row="${escapeHtml(entry.mediaId)}">
+                  <span>
+                    ${source ? `<img src="${escapeHtml(source)}" alt="" loading="lazy" width="72" height="54" style="object-fit:cover;border-radius:8px;margin-right:10px;vertical-align:middle" />` : ""}
+                    ${escapeHtml(asset.alt || entry.mediaId)}
+                    <small>${escapeHtml(entry.mediaId)} · ${escapeHtml(asset.mimeType ?? "")}</small>
+                  </span>
+                  <strong>${escapeHtml(entry.role)} · ${escapeHtml(asset.publicationState ?? "indisponível")}</strong>
+                  ${
+                    canMutate && media.storageAvailable
+                      ? `<div class="business-cms-inline-actions">
+                          <button type="button" class="secondary-button" data-media-alt data-media-current-alt="${escapeHtml(asset.alt ?? "")}" data-media-id="${escapeHtml(entry.mediaId)}">Alt</button>
+                          <button type="button" class="secondary-button" data-media-role="cover" data-media-id="${escapeHtml(entry.mediaId)}">Capa</button>
+                          <button type="button" class="secondary-button" data-media-role="logo" data-media-id="${escapeHtml(entry.mediaId)}">Logo</button>
+                          <button type="button" class="secondary-button" data-media-role="gallery" data-media-id="${escapeHtml(entry.mediaId)}">Galeria</button>
+                          <button type="button" class="secondary-button" data-media-publish="${asset.publicationState === "published" ? "false" : "true"}" data-media-id="${escapeHtml(entry.mediaId)}">${asset.publicationState === "published" ? "Retirar do próximo publish" : "Incluir no próximo publish"}</button>
+                          <button type="button" class="secondary-button" data-media-move="${index > 0 ? "up" : ""}" data-media-id="${escapeHtml(entry.mediaId)}" ${index > 0 ? "" : "disabled"}>↑</button>
+                          <button type="button" class="secondary-button" data-media-move="${index < safeArray(media.assets).length - 1 ? "down" : ""}" data-media-id="${escapeHtml(entry.mediaId)}" ${index < safeArray(media.assets).length - 1 ? "" : "disabled"}>↓</button>
+                          <button type="button" class="secondary-button" data-media-delete data-media-id="${escapeHtml(entry.mediaId)}">Excluir</button>
+                        </div>`
+                      : ""
+                  }
+                </div>`;
+              })
               .join("") ||
             '<div class="empty">Nenhuma mídia associada a este Place.</div>'
           }
         </div>
-        <p>Gerenciamento de arquivos requer o serviço de armazenamento Media.</p>
+        ${
+          canMutate
+            ? media.storageAvailable
+              ? `<form id="business-cms-media-form" class="form-grid">
+                  <label>Imagem<input required type="file" name="file" accept="image/jpeg,image/png,image/webp,image/avif" /></label>
+                  <label>Texto alternativo<input required name="alt" maxlength="300" /></label>
+                  <label>Função<select name="role"><option value="gallery">Galeria</option><option value="cover">Capa</option><option value="logo">Logo</option><option value="menu">Menu</option><option value="product">Produto</option><option value="other">Outro</option></select></label>
+                  <label><input type="checkbox" name="published" value="true" checked /> Incluir no próximo publish</label>
+                  <button class="primary-button" type="submit">Enviar imagem</button>
+                </form>
+                <p id="business-cms-media-result" role="status"></p>`
+              : '<div class="callout"><strong>Upload indisponível:</strong> configure MEDIA_STORAGE_BASE_PATH no runtime para habilitar armazenamento de arquivos.</div>'
+            : ""
+        }
       </section>`,
     ],
     [
@@ -736,6 +817,146 @@ function bindDetail(root, ctx, detail) {
           error.body?.error ?? error.message ?? "Falha ao salvar perfil.";
       }
     });
+
+  const mediaResult = root.querySelector("#business-cms-media-result");
+  const mediaForm = root.querySelector("#business-cms-media-form");
+  mediaForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const file = mediaForm.elements.file?.files?.[0];
+    if (!file) return;
+    try {
+      mediaResult.textContent = "Preparando imagem…";
+      const dimensions = await imageDimensions(file);
+      const dataBase64 = await fileAsBase64(file);
+      const body = {
+        fileName: file.name,
+        mimeType: file.type,
+        width: dimensions.width,
+        height: dimensions.height,
+        alt: mediaForm.elements.alt.value,
+        role: mediaForm.elements.role.value,
+        published: mediaForm.elements.published.checked,
+        dataBase64,
+      };
+      mediaResult.textContent = "Enviando imagem…";
+      await ctx.api(businessCmsContract.media(detail.businessId), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      await renderBusinessCms(ctx, detail.businessId);
+      ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
+      ctx.content.querySelector("#business-cms-media-result").textContent =
+        "Imagem salva na revisão editável.";
+    } catch (error) {
+      mediaResult.textContent =
+        error.body?.error ?? error.message ?? "Falha ao enviar imagem.";
+    }
+  });
+
+  async function updateMedia(mediaId, body, successMessage) {
+    const result = root.querySelector("#business-cms-media-result");
+    try {
+      if (result) result.textContent = "Salvando mídia…";
+      await ctx.api(
+        businessCmsContract.mediaEntry(detail.businessId, mediaId),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      await renderBusinessCms(ctx, detail.businessId);
+      ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
+      const next = ctx.content.querySelector("#business-cms-media-result");
+      if (next) next.textContent = successMessage;
+    } catch (error) {
+      if (result)
+        result.textContent =
+          error.body?.error ?? error.message ?? "Falha ao salvar mídia.";
+    }
+  }
+
+  for (const button of root.querySelectorAll("[data-media-alt]")) {
+    button.addEventListener("click", () => {
+      const current = button.dataset.mediaCurrentAlt ?? "";
+      const next = globalThis.prompt?.("Texto alternativo da imagem", current);
+      if (next == null || next === current) return;
+      void updateMedia(
+        button.dataset.mediaId,
+        { alt: next },
+        "Texto alternativo atualizado.",
+      );
+    });
+  }
+
+  for (const button of root.querySelectorAll("[data-media-role]")) {
+    button.addEventListener("click", () =>
+      updateMedia(
+        button.dataset.mediaId,
+        { role: button.dataset.mediaRole },
+        "Função da mídia atualizada.",
+      ),
+    );
+  }
+  for (const button of root.querySelectorAll("[data-media-publish]")) {
+    button.addEventListener("click", () =>
+      updateMedia(
+        button.dataset.mediaId,
+        { published: button.dataset.mediaPublish === "true" },
+        "Elegibilidade para a próxima publicação atualizada.",
+      ),
+    );
+  }
+  for (const button of root.querySelectorAll("[data-media-delete]")) {
+    button.addEventListener("click", async () => {
+      const result = root.querySelector("#business-cms-media-result");
+      try {
+        if (result) result.textContent = "Excluindo mídia…";
+        await ctx.api(
+          businessCmsContract.mediaEntry(
+            detail.businessId,
+            button.dataset.mediaId,
+          ),
+          { method: "DELETE" },
+        );
+        await renderBusinessCms(ctx, detail.businessId);
+        ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
+      } catch (error) {
+        if (result)
+          result.textContent =
+            error.body?.error ?? error.message ?? "Falha ao excluir mídia.";
+      }
+    });
+  }
+  for (const button of root.querySelectorAll("[data-media-move]")) {
+    button.addEventListener("click", async () => {
+      const direction = button.dataset.mediaMove;
+      if (!direction) return;
+      const ids = safeArray(detail.media?.assets).map((entry) =>
+        String(entry.mediaId),
+      );
+      const index = ids.indexOf(String(button.dataset.mediaId));
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (index < 0 || target < 0 || target >= ids.length) return;
+      [ids[index], ids[target]] = [ids[target], ids[index]];
+      const result = root.querySelector("#business-cms-media-result");
+      try {
+        if (result) result.textContent = "Reordenando mídia…";
+        await ctx.api(businessCmsContract.mediaOrder(detail.businessId), {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderedMediaIds: ids }),
+        });
+        await renderBusinessCms(ctx, detail.businessId);
+        ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
+      } catch (error) {
+        if (result)
+          result.textContent =
+            error.body?.error ?? error.message ?? "Falha ao reordenar mídia.";
+      }
+    });
+  }
 
   const catalogEntries = Object.freeze({
     product: products,

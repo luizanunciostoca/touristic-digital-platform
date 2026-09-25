@@ -352,6 +352,12 @@ export function createBusinessAdminAdapter(
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/location$/u;
   const cmsPublicationPattern =
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/publication$/u;
+  const cmsMediaPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/media$/u;
+  const cmsMediaOrderPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/media\/order$/u;
+  const cmsMediaEntryPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/media\/([A-Za-z0-9][A-Za-z0-9:_-]{1,159})$/u;
   const cmsCatalogPattern =
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/catalog\/(product|offer|menu|menu-category|menu-item)$/u;
   const cmsCatalogEntryPattern =
@@ -361,17 +367,21 @@ export function createBusinessAdminAdapter(
     const code = error instanceof Error ? error.message : "BUSINESS_CMS_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
-      : code.includes("STALE_REVISION") || code.includes("ALREADY_EXISTS")
+      : code.includes("STALE_REVISION") ||
+          code.includes("ALREADY_EXISTS") ||
+          code.includes("DUPLICATE") ||
+          code.includes("CURRENTLY_PUBLISHED")
         ? 409
         : code.includes("AUTH") ||
             code.includes("DENIED") ||
             code.includes("CAPABILITY") ||
-            code.includes("MISMATCH") ||
+            code.includes("OWNER_MISMATCH") ||
             code.includes("CROSS_")
           ? 403
           : code.includes("INVALID") ||
               code.includes("REQUIRED") ||
-              code.includes("NAME_REQUIRED")
+              code.includes("NAME_REQUIRED") ||
+              code.includes("REORDER_SET_MISMATCH")
             ? 400
             : code.includes("UNAVAILABLE") || code.includes("DATABASE")
               ? 503
@@ -390,6 +400,7 @@ export function createBusinessAdminAdapter(
             "cms-create",
             "cms-profile",
             "cms-location",
+            "cms-media",
             "cms-catalog-drafts",
             "cms-publication",
           ]
@@ -479,6 +490,73 @@ export function createBusinessAdminAdapter(
             editableRevision: record.editableRevision.revision,
           });
           return { entityType: "business", entityId: cmsLocation[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMediaOrder = cmsMediaOrderPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsMediaOrder?.[1] &&
+        request.method === "PUT"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const data = await placePlatformRuntime.reorderMediaDraft(
+            actor,
+            cmsMediaOrder[1],
+            body.orderedMediaIds,
+          );
+          sendJson(response, 200, { data });
+          return { entityType: "business", entityId: cmsMediaOrder[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMediaEntry = cmsMediaEntryPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsMediaEntry?.[1] && cmsMediaEntry?.[2]) {
+        try {
+          if (request.method === "PUT") {
+            const body = await readJsonBody(request);
+            const data = await placePlatformRuntime.updateMediaDraft(
+              actor,
+              cmsMediaEntry[1],
+              cmsMediaEntry[2],
+              body,
+            );
+            sendJson(response, 200, { data });
+            return { entityType: "business", entityId: cmsMediaEntry[1] };
+          }
+          if (request.method === "DELETE") {
+            await placePlatformRuntime.deleteMediaDraft(
+              actor,
+              cmsMediaEntry[1],
+              cmsMediaEntry[2],
+            );
+            sendJson(response, 200, { data: { deleted: true } });
+            return { entityType: "business", entityId: cmsMediaEntry[1] };
+          }
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMedia = cmsMediaPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsMedia?.[1] && request.method === "POST") {
+        try {
+          const body = await readJsonBody(request, 18 * 1024 * 1024);
+          const data = await placePlatformRuntime.uploadMediaDraft(
+            actor,
+            cmsMedia[1],
+            body,
+          );
+          sendJson(response, 201, { data });
+          return { entityType: "business", entityId: cmsMedia[1] };
         } catch (error) {
           await cmsError(response, error);
           return;
