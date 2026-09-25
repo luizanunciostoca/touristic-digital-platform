@@ -281,7 +281,10 @@ function readDeterministicExploreCommands(
           !Number.isFinite(item.latitude) ||
           typeof item.longitude !== "number" ||
           !Number.isFinite(item.longitude) ||
-          (item.source !== "local" && item.source !== "mapbox") ||
+          (item.source !== "canonical" &&
+            item.source !== "local" &&
+            item.source !== "mapbox") ||
+          (item.placeId !== undefined && typeof item.placeId !== "string") ||
           (item.area !== undefined && typeof item.area !== "string") ||
           (item.description !== undefined &&
             typeof item.description !== "string")
@@ -294,6 +297,9 @@ function readDeterministicExploreCommands(
             category: item.category,
             latitude: item.latitude,
             longitude: item.longitude,
+            ...(typeof item.placeId === "string"
+              ? { placeId: item.placeId }
+              : {}),
             ...(typeof item.area === "string" ? { area: item.area } : {}),
             ...(typeof item.description === "string"
               ? { description: item.description }
