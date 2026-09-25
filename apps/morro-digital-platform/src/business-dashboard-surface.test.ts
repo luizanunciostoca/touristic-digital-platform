@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";\nimport { describe, expect, it } from "vitest";
 import { normalizeBusinessProfile } from "@touristic/business";
 import {
   businessDashboardViews,
@@ -36,6 +36,22 @@ describe("business dashboard surface", () => {
   it("exposes Products, Offers and Menu as distinct canonical modules", () => {
     expect(businessDashboardViews).toEqual(
       expect.arrayContaining(["products", "offers", "menu", "ticketing"]),
+    );
+  });
+
+  it("renders Fotos as a canonical operational Media surface", () => {
+    const source = readFileSync(
+      new URL("./business-dashboard-surface.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain('id="morro-pro-media-form"');
+    expect(source).toContain('id="morro-pro-media-list"');
+    expect(source).toContain("loadMedia");
+    expect(source).toContain("uploadMedia");
+    expect(source).toContain("reorderMedia");
+    expect(source).toContain("deleteMedia");
+    expect(source).toContain(
+      "A presença pública só muda após publicação governada.",
     );
   });
 
