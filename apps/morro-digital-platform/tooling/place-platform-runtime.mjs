@@ -1147,11 +1147,34 @@ export function createPlacePlatformRuntime({
     );
   }
 
+  async function touchCatalogRevision(actor, businessId) {
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE business_id = ?
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [String(businessId)],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("PLACE_NOT_FOUND");
+    const current = governedRecordFromRow(row);
+    return publicationService.saveRevision(
+      {
+        session: actor,
+        correlationId: "control-center-catalog",
+        now: new Date().toISOString(),
+      },
+      current.placeId,
+      current.editableRevision.data,
+      current.editableRevision.revision,
+    );
+  }
+
   async function createCmsProduct(actor, businessId, input) {
     void actor;
     const place = await getCmsCatalogPlace(businessId);
     const now = new Date().toISOString();
-    return catalogRuntime.service.createProduct(
+    const result = await catalogRuntime.service.createProduct(
       { businessId: String(place.businessId) },
       {
         id: catalogId(input.productId ?? input.id, "INVALID_PRODUCT_ID"),
@@ -1167,6 +1190,8 @@ export function createPlacePlatformRuntime({
         updatedAt: now,
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function updateCmsProduct(actor, businessId, productId, input) {
@@ -1181,7 +1206,7 @@ export function createPlacePlatformRuntime({
     ) {
       throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
     }
-    return catalogRuntime.service.updateProduct(
+    const result = await catalogRuntime.service.updateProduct(
       { businessId: String(place.businessId) },
       {
         ...existing,
@@ -1198,13 +1223,15 @@ export function createPlacePlatformRuntime({
         updatedAt: new Date().toISOString(),
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function createCmsOffer(actor, businessId, input) {
     void actor;
     const place = await getCmsCatalogPlace(businessId);
     const now = new Date().toISOString();
-    return catalogRuntime.service.createOffer(
+    const result = await catalogRuntime.service.createOffer(
       { businessId: String(place.businessId) },
       {
         id: catalogId(input.offerId ?? input.id, "INVALID_OFFER_ID"),
@@ -1230,6 +1257,8 @@ export function createPlacePlatformRuntime({
         updatedAt: now,
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function updateCmsOffer(actor, businessId, offerId, input) {
@@ -1244,7 +1273,7 @@ export function createPlacePlatformRuntime({
     ) {
       throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
     }
-    return catalogRuntime.service.updateOffer(
+    const result = await catalogRuntime.service.updateOffer(
       { businessId: String(place.businessId) },
       {
         ...existing,
@@ -1293,13 +1322,15 @@ export function createPlacePlatformRuntime({
         updatedAt: new Date().toISOString(),
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function createCmsMenu(actor, businessId, input) {
     void actor;
     const place = await getCmsCatalogPlace(businessId);
     const now = new Date().toISOString();
-    return catalogRuntime.service.createMenu(
+    const result = await catalogRuntime.service.createMenu(
       { businessId: String(place.businessId) },
       {
         id: catalogId(input.menuId ?? input.id, "INVALID_MENU_ID"),
@@ -1314,6 +1345,8 @@ export function createPlacePlatformRuntime({
         updatedAt: now,
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function updateCmsMenu(actor, businessId, menuId, input) {
@@ -1328,7 +1361,7 @@ export function createPlacePlatformRuntime({
     ) {
       throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
     }
-    return catalogRuntime.service.updateMenu(
+    const result = await catalogRuntime.service.updateMenu(
       { businessId: String(place.businessId) },
       {
         ...existing,
@@ -1349,6 +1382,8 @@ export function createPlacePlatformRuntime({
         updatedAt: new Date().toISOString(),
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function saveCmsMenuCategory(
@@ -1370,7 +1405,7 @@ export function createPlacePlatformRuntime({
     ) {
       throw new Error("MENU_NOT_FOUND");
     }
-    return catalogRuntime.service.saveMenuCategory(
+    const result = await catalogRuntime.service.saveMenuCategory(
       { businessId: String(place.businessId) },
       {
         id: catalogId(
@@ -1383,6 +1418,8 @@ export function createPlacePlatformRuntime({
         sortOrder: Number(input.sortOrder ?? 0),
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function saveCmsMenuItem(
@@ -1404,7 +1441,7 @@ export function createPlacePlatformRuntime({
     ) {
       throw new Error("MENU_NOT_FOUND");
     }
-    return catalogRuntime.service.saveMenuItem(
+    const result = await catalogRuntime.service.saveMenuItem(
       { businessId: String(place.businessId) },
       {
         id: catalogId(
@@ -1430,6 +1467,8 @@ export function createPlacePlatformRuntime({
         sortOrder: Number(input.sortOrder ?? 0),
       },
     );
+    await touchCatalogRevision(actor, businessId);
+    return result;
   }
 
   async function createDraft(actor, input) {
