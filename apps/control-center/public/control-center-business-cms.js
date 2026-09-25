@@ -10,6 +10,8 @@ export const businessCmsContract = Object.freeze({
     `/businesses/${encodeURIComponent(businessId)}/cms/publication`,
   catalogDraft: (businessId, kind) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/catalog/${encodeURIComponent(kind)}`,
+  catalogEntry: (businessId, kind, id) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/catalog/${encodeURIComponent(kind)}/${encodeURIComponent(id)}`,
 });
 
 let businessCmsRuntimeUnavailable = false;
@@ -392,17 +394,17 @@ function detailTabs(detail, escapeHtml, canMutate) {
         </div>
         <h3>Produtos</h3>
         <div class="module-list">
-          ${products.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.name)}<small>${escapeHtml(entry.id)}</small></span><strong>${escapeHtml(entry.status)}</strong></div>`).join("") || '<div class="empty">Nenhum produto cadastrado.</div>'}
+          ${products.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.name)}<small>${escapeHtml(entry.id)}</small></span><strong>${escapeHtml(entry.status)}</strong>${canMutate ? `<button type="button" class="secondary-button" data-business-catalog-edit="product" data-business-catalog-id="${escapeHtml(entry.id)}">Editar</button>` : ""}</div>`).join("") || '<div class="empty">Nenhum produto cadastrado.</div>'}
         </div>
         <h3>Ofertas</h3>
         <div class="module-list">
-          ${offers.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.id)}<small>Product ${escapeHtml(entry.productId)}</small></span><strong>${escapeHtml(entry.status)} · ${escapeHtml(entry.price?.currency ?? "")} ${escapeHtml(((entry.price?.minorUnits ?? 0) / 100).toFixed(2))}</strong></div>`).join("") || '<div class="empty">Nenhuma oferta cadastrada.</div>'}
+          ${offers.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.id)}<small>Product ${escapeHtml(entry.productId)}</small></span><strong>${escapeHtml(entry.status)} · ${escapeHtml(entry.price?.currency ?? "")} ${escapeHtml(((entry.price?.minorUnits ?? 0) / 100).toFixed(2))}</strong>${canMutate ? `<button type="button" class="secondary-button" data-business-catalog-edit="offer" data-business-catalog-id="${escapeHtml(entry.id)}">Editar</button>` : ""}</div>`).join("") || '<div class="empty">Nenhuma oferta cadastrada.</div>'}
         </div>
         <h3>Cardápios</h3>
         <div class="module-list">
-          ${menus.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.name)}<small>${escapeHtml(entry.id)}</small></span><strong>${escapeHtml(entry.status)}</strong></div>`).join("") || '<div class="empty">Nenhum cardápio cadastrado.</div>'}
-          ${menuCategories.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>categoria</strong></div>`).join("")}
-          ${menuItems.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>item draft</strong></div>`).join("")}
+          ${menus.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.name)}<small>${escapeHtml(entry.id)}</small></span><strong>${escapeHtml(entry.status)}</strong>${canMutate ? `<button type="button" class="secondary-button" data-business-catalog-edit="menu" data-business-catalog-id="${escapeHtml(entry.id)}">Editar</button>` : ""}</div>`).join("") || '<div class="empty">Nenhum cardápio cadastrado.</div>'}
+          ${menuCategories.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>categoria</strong>${canMutate ? `<button type="button" class="secondary-button" data-business-catalog-edit="menu-category" data-business-catalog-id="${escapeHtml(entry.id)}">Editar</button>` : ""}</div>`).join("")
+          ${menuItems.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>${entry.available ? "disponível" : "indisponível"}</strong>${canMutate ? `<button type="button" class="secondary-button" data-business-catalog-edit="menu-item" data-business-catalog-id="${escapeHtml(entry.id)}">Editar</button>` : ""}</div>`).join("")
         </div>
         ${
           canMutate
@@ -413,20 +415,30 @@ function detailTabs(detail, escapeHtml, canMutate) {
               <label>Nome<input required name="name" maxlength="180" /></label>
               <label>Descrição<textarea name="description" rows="3"></textarea></label>
               <label>Tags<input name="tags" placeholder="sunset, experiência" /></label>
+              <label>Status<select name="status"><option value="draft">Draft</option><option value="active">Ativo</option><option value="inactive">Inativo</option><option value="archived">Arquivado</option></select></label>
               <button class="primary-button" type="submit">Criar product draft</button>
+              <button class="secondary-button" type="reset">Novo</button>
             </form>
             <form class="form-grid" data-business-catalog-kind="offer">
               <h3>Nova oferta</h3>
               <label>Produto<select required name="productId"><option value="">Selecione</option>${products.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}</option>`).join("")}</select></label>
               <label>Preço (R$)<input required name="price" inputmode="decimal" placeholder="150,00" /></label>
               <label>Capacidade<input name="capacity" type="number" min="0" step="1" /></label>
+              <label>Início vendas<input name="salesStartsAt" type="datetime-local" /></label>
+              <label>Fim vendas<input name="salesEndsAt" type="datetime-local" /></label>
+              <label>Status<select name="status"><option value="draft">Draft</option><option value="active">Ativa</option><option value="paused">Pausada</option><option value="sold_out">Esgotada</option><option value="expired">Expirada</option><option value="archived">Arquivada</option></select></label>
               <button class="primary-button" type="submit" ${products.length ? "" : "disabled"}>Criar offer draft</button>
+              <button class="secondary-button" type="reset">Nova</button>
             </form>
             <form class="form-grid" data-business-catalog-kind="menu">
               <h3>Novo cardápio</h3>
               <label>Nome<input required name="name" maxlength="180" /></label>
               <label>Descrição<textarea name="description" rows="3"></textarea></label>
+              <label>Status<select name="status"><option value="draft">Draft</option><option value="active">Ativo</option><option value="inactive">Inativo</option><option value="archived">Arquivado</option></select></label>
+              <label>Media ID<input name="fallbackMediaId" maxlength="160" /></label>
+              <label>Documento fallback<input name="fallbackDocumentUrl" maxlength="1000" /></label>
               <button class="primary-button" type="submit">Criar menu draft</button>
+              <button class="secondary-button" type="reset">Novo</button>
             </form>
             <form class="form-grid" data-business-catalog-kind="menu-category">
               <h3>Nova categoria</h3>
@@ -434,6 +446,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
               <label>Nome<input required name="name" maxlength="180" /></label>
               <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" /></label>
               <button class="primary-button" type="submit" ${menus.length ? "" : "disabled"}>Criar categoria</button>
+              <button class="secondary-button" type="reset">Nova</button>
             </form>
             <form class="form-grid" data-business-catalog-kind="menu-item">
               <h3>Novo item</h3>
@@ -445,7 +458,10 @@ function detailTabs(detail, escapeHtml, canMutate) {
               <label>Tags<input name="tags" /></label>
               <label>Alérgenos<input name="allergens" /></label>
               <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" /></label>
+              <label>Media ID<input name="mediaId" maxlength="160" /></label>
+              <label><input type="checkbox" name="available" value="true" /> Disponível</label>
               <button class="primary-button" type="submit" ${menus.length && menuCategories.length ? "" : "disabled"}>Criar item draft</button>
+              <button class="secondary-button" type="reset">Novo</button>
             </form>
           </div>
           <p id="business-cms-catalog-result" role="status"></p>
@@ -717,7 +733,31 @@ function bindDetail(root, ctx, detail) {
       }
     });
 
+  const catalogCollections = Object.freeze({
+    product: safeArray(detail.catalog?.products),
+    offer: safeArray(detail.catalog?.offers),
+    menu: safeArray(detail.catalog?.menus),
+    "menu-category": safeArray(detail.catalog?.categories),
+    "menu-item": safeArray(detail.catalog?.items),
+  });
+
+  function toLocalDateTime(value) {
+    if (!value) return "";
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return "";
+    return date.toISOString().slice(0, 16);
+  }
+
   for (const form of root.querySelectorAll("[data-business-catalog-kind]")) {
+    form.addEventListener("reset", () => {
+      delete form.dataset.businessCatalogEditId;
+      const submit = form.querySelector('button[type="submit"]');
+      if (submit) {
+        submit.textContent =
+          "Criar " + form.dataset.businessCatalogKind + " draft";
+      }
+    });
+
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
       const result = root.querySelector("#business-cms-catalog-result");
@@ -734,12 +774,16 @@ function bindDetail(root, ctx, detail) {
         body.currency = "BRL";
         delete body.price;
       }
+      body.available = body.available === "true";
+      const editId = form.dataset.businessCatalogEditId;
       try {
-        result.textContent = "Salvando draft…";
+        result.textContent = editId ? "Salvando alteração…" : "Salvando draft…";
         await ctx.api(
-          businessCmsContract.catalogDraft(detail.businessId, kind),
+          editId
+            ? businessCmsContract.catalogEntry(detail.businessId, kind, editId)
+            : businessCmsContract.catalogDraft(detail.businessId, kind),
           {
-            method: "POST",
+            method: editId ? "PUT" : "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
           },
@@ -747,11 +791,53 @@ function bindDetail(root, ctx, detail) {
         await renderBusinessCms(ctx, detail.businessId);
         ctx.content.querySelector('[data-business-cms-tab="catalog"]')?.click();
         ctx.content.querySelector("#business-cms-catalog-result").textContent =
-          "Draft salvo no catálogo canônico.";
+          editId
+            ? "Alteração salva como revisão editável; publique para alterar o público."
+            : "Draft salvo no catálogo canônico.";
       } catch (error) {
         result.textContent =
-          error.body?.error ?? error.message ?? "Falha ao salvar draft.";
+          error.body?.error ?? error.message ?? "Falha ao salvar catálogo.";
       }
+    });
+  }
+
+  for (const button of root.querySelectorAll("[data-business-catalog-edit]")) {
+    button.addEventListener("click", () => {
+      const kind = button.dataset.businessCatalogEdit;
+      const id = button.dataset.businessCatalogId;
+      const entry = catalogCollections[kind]?.find(
+        (candidate) => String(candidate.id) === String(id),
+      );
+      const form = root.querySelector(
+        '[data-business-catalog-kind="' + kind + '"]',
+      );
+      if (!entry || !form) return;
+      form.dataset.businessCatalogEditId = id;
+      const set = (name, value) => {
+        if (form.elements[name]) form.elements[name].value = value ?? "";
+      };
+      set("name", entry.name);
+      set("description", entry.description);
+      set("tags", safeArray(entry.tags).join(", "));
+      set("allergens", safeArray(entry.allergens).join(", "));
+      set("status", entry.status);
+      set("productId", entry.productId);
+      set("capacity", entry.capacity);
+      set("price", entry.price ? (entry.price.minorUnits / 100).toFixed(2) : "");
+      set("salesStartsAt", toLocalDateTime(entry.salesStartsAt));
+      set("salesEndsAt", toLocalDateTime(entry.salesEndsAt));
+      set("menuId", entry.menuId);
+      set("categoryId", entry.categoryId);
+      set("sortOrder", entry.sortOrder);
+      set("fallbackMediaId", entry.fallbackMediaId);
+      set("fallbackDocumentUrl", entry.fallbackDocumentUrl);
+      set("mediaId", entry.mediaId);
+      if (form.elements.available) {
+        form.elements.available.checked = Boolean(entry.available);
+      }
+      const submit = form.querySelector('button[type="submit"]');
+      if (submit) submit.textContent = "Salvar alterações";
+      form.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
   }
 
