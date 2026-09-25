@@ -204,6 +204,61 @@ test(
         menuCount: 1,
       });
 
+      await placeRuntime.updateCmsProduct(actor, businessId, productId, {
+        name: "Experiência Sunset Draft",
+      });
+      const cmsAfterDraft = await placeRuntime.getCmsCatalog(businessId);
+      assert.equal(cmsAfterDraft.products[0].name, "Experiência Sunset Draft");
+
+      const beforeRepublish = responseCapture();
+      await placeRuntime.handlePublic(
+        { method: "GET", headers: {} },
+        beforeRepublish,
+        new URL(
+          `http://127.0.0.1/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(beforeRepublish.statusCode, 200);
+      assert.equal(
+        JSON.parse(beforeRepublish.body).commerce.offers[0].name,
+        "Experiência Sunset",
+        "editable Catalog must not leak before Place publication",
+      );
+
+      const cmsDetailAfterDraft = await placeRuntime.getCmsDetail(businessId);
+      assert.equal(cmsDetailAfterDraft.publication.state, "draft");
+      assert.ok(
+        cmsDetailAfterDraft.publication.editableRevision >
+          cmsDetailAfterDraft.publication.publishedRevision,
+      );
+
+      const catalogReview = await placeRuntime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        cmsDetailAfterDraft.publication.editableRevision,
+      );
+      await placeRuntime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        catalogReview.editableRevision.revision,
+      );
+
+      const afterRepublish = responseCapture();
+      await placeRuntime.handlePublic(
+        { method: "GET", headers: {} },
+        afterRepublish,
+        new URL(
+          `http://127.0.0.1/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(afterRepublish.statusCode, 200);
+      assert.equal(
+        JSON.parse(afterRepublish.body).commerce.offers[0].name,
+        "Experiência Sunset Draft",
+      );
+
       await assert.rejects(
         catalog.service.createProduct(
           { businessId },
