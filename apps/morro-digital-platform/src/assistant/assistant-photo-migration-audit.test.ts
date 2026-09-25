@@ -29,21 +29,28 @@ function detail(
   return {
     profile: {
       id: id as PublicPlaceDetail["profile"]["id"],
-      businessId: "business-a",
       destinationId: "morro-de-sao-paulo",
-      categoryId: "beaches" as PublicPlaceDetail["profile"]["categoryId"],
       name,
+      slug: name.toLowerCase().replace(/\s+/gu, "-"),
+      categoryId: "beaches" as PublicPlaceDetail["profile"]["categoryId"],
+      subcategoryIds: [],
       shortDescription: "",
       description: "",
-      tags: [],
       location: {
         latitude: -13.38,
         longitude: -38.91,
         address: "",
         area: "",
       },
-      contact: null,
-      hours: null,
+      contact: {
+        phone: null,
+        whatsapp: null,
+        email: null,
+        website: null,
+      },
+      openingHours: null,
+      amenities: [],
+      tags: [],
       capabilities: [],
     },
     media: {
