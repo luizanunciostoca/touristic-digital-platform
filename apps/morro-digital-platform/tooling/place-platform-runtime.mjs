@@ -1,10 +1,10 @@
 import {
   canonicalPlaceCategories,
-  createPlacePublicationService,
   createPublicPlaceReadModel,
   handlePublicPlaceApiRequest,
   resolvePlacePresentationActions,
-} from "@touristic/business";\nimport { createPlacePublicationService } from "@touristic/business/place-publication-governance";
+} from "@touristic/business";
+import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
 import {
   createContentPool,
   MySqlPlaceMediaRepository,
