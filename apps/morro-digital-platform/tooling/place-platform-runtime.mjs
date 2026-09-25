@@ -10,6 +10,10 @@ import {
   applyCatalogSchema,
   createCatalogRuntime,
 } from "./catalog-platform-runtime.mjs";
+import {
+  applyMediaPublicationSnapshotSchema,
+  createMediaPublicationSnapshotRuntime,
+} from "./media-publication-snapshot.mjs";
 const PLACE_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
 const DEFAULT_DESTINATION = "morro-de-sao-paulo";
 
@@ -578,54 +582,13 @@ function createPublicRepository(pool) {
   });
 }
 
-function createMediaPort(mediaRepository) {
-  if (!mediaRepository) {
-    return Object.freeze({
-      async getPublishedMedia() {
-        return null;
-      },
-    });
-  }
+function createMediaPort(mediaPublicationSnapshots) {
   return Object.freeze({
     async getPublishedMedia(place) {
-      const links = await mediaRepository.listLinks(String(place.id));
-      const entries = [];
-      for (const link of links) {
-        const asset = await mediaRepository.getAsset(link.mediaId);
-        if (
-          asset &&
-          asset.businessId === String(place.businessId) &&
-          asset.publicationState === "published"
-        ) {
-          entries.push({ link, asset });
-        }
-      }
-      const image = ({ asset }) =>
-        Object.freeze({
-          mediaId: asset.id,
-          provider: asset.provider,
-          providerReference: asset.providerReference,
-          mimeType: asset.mimeType,
-          width: asset.width,
-          height: asset.height,
-          alt: asset.alt,
-        });
-      const cover = entries.find(({ link }) => link.role === "cover") ?? null;
-      const logo = entries.find(({ link }) => link.role === "logo") ?? null;
-      const gallery = entries
-        .filter(({ link }) => link.role === "gallery" || link.role === "cover")
-        .sort((a, b) => a.link.sortOrder - b.link.sortOrder)
-        .map(image);
-      return Object.freeze({
-        placeId: String(place.id),
-        coverImage: cover ? image(cover) : null,
-        gallery: Object.freeze(gallery),
-        logo: logo ? image(logo) : null,
-      });
+      return mediaPublicationSnapshots.getPublishedMedia(place);
     },
   });
 }
-
 function createActionPort(catalogRuntime) {
   return Object.freeze({
     async resolvePublicActions({ place, businessId, media, commerce, locale }) {
@@ -736,6 +699,7 @@ export function createPlacePlatformRuntime({
   let pool = null;
   let mediaPool = null;
   let mediaRepository = null;
+  let mediaPublicationSnapshots = null;
   let governanceRepository = null;
   let publicationService = null;
   let catalogRuntime = null;
@@ -768,6 +732,7 @@ export function createPlacePlatformRuntime({
       });
       await applySchema(pool);
       await applyCatalogSchema(pool);
+      await applyMediaPublicationSnapshotSchema(pool);
       governanceRepository = createGovernanceRepository(pool);
       catalogRuntime = createCatalogRuntime(pool);
       await catalogRuntime.backfillPublishedSnapshots();
@@ -789,6 +754,12 @@ export function createPlacePlatformRuntime({
         mediaRepository = new MediaRepository(mediaPool);
       }
 
+      mediaPublicationSnapshots = createMediaPublicationSnapshotRuntime({
+        pool,
+        mediaRepository,
+      });
+      await mediaPublicationSnapshots.backfillPublishedSnapshots();
+
       publicationService = createPlacePublicationService(
         governanceRepository,
         createCatalog(mediaRepository),
@@ -797,7 +768,7 @@ export function createPlacePlatformRuntime({
 
       readModel = createPublicPlaceReadModel({
         repository: createPublicRepository(pool),
-        media: createMediaPort(mediaRepository),
+        media: createMediaPort(mediaPublicationSnapshots),
         commerce: Object.freeze({
           getPublicCommerce(place) {
             return catalogRuntime.getPublicCommerce(place);
@@ -835,7 +806,13 @@ export function createPlacePlatformRuntime({
   }
 
   function assertReady() {
-    if (!ready || !pool || !governanceRepository || !publicationService) {
+    if (
+      !ready ||
+      !pool ||
+      !governanceRepository ||
+      !publicationService ||
+      !mediaPublicationSnapshots
+    ) {
       throw new Error("PLACE_PLATFORM_UNAVAILABLE");
     }
   }
@@ -1652,6 +1629,11 @@ export function createPlacePlatformRuntime({
     }
     if (action === "publish") {
       await catalogRuntime.capturePublicationSnapshot({
+        businessId: String(record.businessId),
+        placeId: String(record.placeId),
+        placeRevision: expectedRevision,
+      });
+      await mediaPublicationSnapshots.capturePublicationSnapshot({
         businessId: String(record.businessId),
         placeId: String(record.placeId),
         placeRevision: expectedRevision,

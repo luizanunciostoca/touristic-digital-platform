@@ -1,6 +1,11 @@
 // Dedicated Node/MySQL E2E proof; intentionally outside Vitest test discovery.
 import assert from "node:assert/strict";
 import test from "node:test";
+import {
+  applyContentM156Schema,
+  createMySqlPool,
+  MySqlPlaceMediaRepository,
+} from "@touristic/content-server";
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 
 const databaseUrl = process.env.BUSINESS_DATABASE_URL || "";
@@ -36,10 +41,16 @@ test(
   "persists draft, publishes an exact revision and serves the public Place API",
   { skip: !databaseUrl },
   async () => {
+    const contentPool = createMySqlPool(databaseUrl, {
+      errorPrefix: "CONTENT_DATABASE",
+    });
+    await applyContentM156Schema(contentPool);
+    const mediaRepository = new MySqlPlaceMediaRepository(contentPool);
+
     const runtime = createPlacePlatformRuntime({
       getEnvironmentValue(key) {
         if (key === "BUSINESS_DATABASE_URL") return databaseUrl;
-        if (key === "CONTENT_DATABASE_URL") return "";
+        if (key === "CONTENT_DATABASE_URL") return databaseUrl;
         return "";
       },
       platformOperations: { emit() {} },
@@ -76,6 +87,37 @@ test(
         area: "Centro",
         source: "manual",
       });
+
+      const mediaId = `media-${unique}`;
+      const mediaCreatedAt = new Date().toISOString();
+      await mediaRepository.saveAsset(
+        Object.freeze({
+          id: mediaId,
+          businessId,
+          type: "image",
+          provider: "acceptance-storage",
+          providerReference: `places/${created.placeId}/cover-v1.webp`,
+          mimeType: "image/webp",
+          width: 1600,
+          height: 900,
+          byteSize: 128000,
+          checksumSha256: "a".repeat(64),
+          alt: "Pôr do sol em Morro de São Paulo",
+          publicationState: "published",
+          createdAt: mediaCreatedAt,
+          updatedAt: mediaCreatedAt,
+        }),
+      );
+      await mediaRepository.saveLink(
+        Object.freeze({
+          placeId: created.placeId,
+          mediaId,
+          role: "cover",
+          sortOrder: 0,
+          createdAt: mediaCreatedAt,
+          updatedAt: mediaCreatedAt,
+        }),
+      );
 
       const reviewed = await runtime.transitionPublication(
         actor,
@@ -134,8 +176,88 @@ test(
         detail.revision.number,
         published.publishedRevision.revision,
       );
+      assert.equal(detail.media.coverImage.mediaId, mediaId);
+      assert.equal(
+        detail.media.coverImage.providerReference,
+        `places/${created.placeId}/cover-v1.webp`,
+      );
+
+      await mediaRepository.saveAsset(
+        Object.freeze({
+          ...(await mediaRepository.getAsset(mediaId)),
+          providerReference: `places/${created.placeId}/cover-v2.webp`,
+          alt: "Pôr do sol atualizado em Morro de São Paulo",
+          updatedAt: new Date(Date.now() + 1000).toISOString(),
+        }),
+      );
+
+      const frozenResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        frozenResponse,
+        new URL(
+          `http://127.0.0.1/api/places/v1/${encodeURIComponent(created.placeId)}?locale=pt-BR`,
+        ),
+      );
+      const frozenDetail = JSON.parse(frozenResponse.body);
+      assert.equal(
+        frozenDetail.media.coverImage.providerReference,
+        `places/${created.placeId}/cover-v1.webp`,
+        "media edits after publication must not leak into the published Place revision",
+      );
+
+      const mediaRevision = await runtime.updateProfile(actor, businessId, {
+        shortDescription: "Descrição republicada com nova mídia",
+      });
+
+      const draftResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        draftResponse,
+        new URL(
+          `http://127.0.0.1/api/places/v1/${encodeURIComponent(created.placeId)}?locale=pt-BR`,
+        ),
+      );
+      const draftDetail = JSON.parse(draftResponse.body);
+      assert.equal(
+        draftDetail.media.coverImage.providerReference,
+        `places/${created.placeId}/cover-v1.webp`,
+        "the previously published media snapshot must remain visible while a new Place revision is draft",
+      );
+
+      const mediaReviewed = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        mediaRevision.editableRevision.revision,
+      );
+      const mediaPublished = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        mediaReviewed.editableRevision.revision,
+      );
+
+      const republishedResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        republishedResponse,
+        new URL(
+          `http://127.0.0.1/api/places/v1/${encodeURIComponent(created.placeId)}?locale=pt-BR`,
+        ),
+      );
+      const republishedDetail = JSON.parse(republishedResponse.body);
+      assert.equal(
+        republishedDetail.revision.number,
+        mediaPublished.publishedRevision.revision,
+      );
+      assert.equal(
+        republishedDetail.media.coverImage.providerReference,
+        `places/${created.placeId}/cover-v2.webp`,
+      );
     } finally {
       await runtime.stop();
+      await contentPool.end();
     }
   },
 );
