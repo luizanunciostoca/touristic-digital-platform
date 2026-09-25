@@ -1,90 +1,33 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { PublicPlaceDetail, PublicPlaceMapItem } from "@touristic/business";
+import {
+  auditAssistantPhotoMigrationCoverage,
+  type AssistantPhotoMigrationDetail,
+  type AssistantPhotoMigrationMapItem,
+} from "./assistant-photo-migration-audit.js";
 
-import { auditAssistantPhotoMigrationCoverage } from "./assistant-photo-migration-audit.js";
-
-function mapPlace(
-  id: string,
-  name: string,
-): PublicPlaceMapItem {
-  return {
-    id: id as PublicPlaceMapItem["id"],
-    name,
-    category: "beaches",
-    lat: -13.38,
-    lng: -38.91,
-    presentation: {
-      markerKey: "beaches",
-      priority: 1,
-    },
-  };
+function mapPlace(id: string, name: string): AssistantPhotoMigrationMapItem {
+  return { id, name };
 }
 
 function detail(
   id: string,
   name: string,
   mediaReference: string | null,
-): PublicPlaceDetail {
+): AssistantPhotoMigrationDetail {
   return {
     profile: {
-      id: id as PublicPlaceDetail["profile"]["id"],
-      destinationId: "morro-de-sao-paulo",
+      id,
       name,
-      slug: name.toLowerCase().replace(/\s+/gu, "-"),
-      categoryId: "beaches" as PublicPlaceDetail["profile"]["categoryId"],
-      subcategoryIds: [],
-      shortDescription: "",
-      description: "",
-      location: {
-        latitude: -13.38,
-        longitude: -38.91,
-        address: "",
-        area: "",
-      },
-      contact: {
-        phone: null,
-        whatsapp: null,
-        email: null,
-        website: null,
-      },
-      openingHours: null,
-      amenities: [],
-      tags: [],
-      capabilities: [],
     },
     media: {
       placeId: id,
       coverImage: mediaReference
         ? {
-            mediaId: "media-a",
-            provider: "filesystem",
             providerReference: mediaReference,
-            mimeType: "image/webp",
-            width: 1200,
-            height: 800,
-            alt: name,
           }
         : null,
       gallery: [],
-      logo: null,
-    },
-    commerce: null,
-    actions: {
-      placeId: id as PublicPlaceDetail["actions"]["placeId"],
-      businessId: "business-a",
-      destinationId: "morro-de-sao-paulo",
-      primaryAction: null,
-      secondaryActions: [],
-    },
-    partial: {
-      media: "ready",
-      commerce: "ready",
-      actions: "ready",
-    },
-    revision: {
-      id: "revision-1",
-      number: 1,
     },
   };
 }
@@ -111,6 +54,11 @@ describe("assistant photo migration audit", () => {
 
     const matrix = await auditAssistantPhotoMigrationCoverage({
       canonicalPlaces,
+      legacyPlaceNames: [
+        "Segunda Praia",
+        "Toca do Morcego",
+        "Primeira Praia",
+      ],
       getDetail,
       legacyEntries: [
         {
@@ -150,6 +98,7 @@ describe("assistant photo migration audit", () => {
   it("ignores opaque provider references when deciding canonical media coverage", async () => {
     const matrix = await auditAssistantPhotoMigrationCoverage({
       canonicalPlaces: [mapPlace("place-segunda", "Segunda Praia")],
+      legacyPlaceNames: ["Segunda Praia"],
       getDetail: async () =>
         detail(
           "place-segunda",
@@ -167,6 +116,37 @@ describe("assistant photo migration audit", () => {
     expect(matrix.rows[0]).toMatchObject({
       status: "canonical_no_media",
       canonicalPlaceId: "place-segunda",
+      canonicalImageCount: 0,
+    });
+  });
+
+  it("fails media coverage closed when the detail media belongs to another place", async () => {
+    const matrix = await auditAssistantPhotoMigrationCoverage({
+      canonicalPlaces: [mapPlace("place-segunda", "Segunda Praia")],
+      legacyPlaceNames: ["Segunda Praia"],
+      getDetail: async () => ({
+        profile: {
+          id: "place-segunda",
+          name: "Segunda Praia",
+        },
+        media: {
+          placeId: "place-outra",
+          coverImage: {
+            providerReference: "/media/business-a/wrong.webp",
+          },
+          gallery: [],
+        },
+      }),
+      legacyEntries: [
+        {
+          place: "Segunda Praia",
+          images: ["/images/fotos/segunda_praia1.jpg"],
+        },
+      ],
+    });
+
+    expect(matrix.rows[0]).toMatchObject({
+      status: "canonical_no_media",
       canonicalImageCount: 0,
     });
   });
