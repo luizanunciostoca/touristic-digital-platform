@@ -197,6 +197,26 @@ test(
 
       await assert.rejects(
         catalog.service.createProduct(
+          { businessId },
+          {
+            id: `wrong-destination-${suffix}`,
+            businessId,
+            placeId: null,
+            destinationId: "other-destination",
+            name: "Wrong Destination Product",
+            description: "Must not bind outside the Business destination scope",
+            status: "active",
+            tags: Object.freeze([]),
+            legacyReference: null,
+            createdAt: now,
+            updatedAt: now,
+          },
+        ),
+        /CATALOG_DESTINATION_OWNER_MISMATCH/u,
+      );
+
+      await assert.rejects(
+        catalog.service.createProduct(
           { businessId: `foreign-${suffix}` },
           {
             id: `foreign-product-${suffix}`,
