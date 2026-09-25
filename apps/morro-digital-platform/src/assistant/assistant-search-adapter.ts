@@ -305,7 +305,9 @@ export function createAssistantSearchHandler(
         domain: "search",
         state: "resolved",
         source:
-          canonicalResults.length > 0 ? "canonical" : (result?.source ?? "none"),
+          canonicalResults.length > 0
+            ? "canonical"
+            : (result?.source ?? "none"),
         query,
         language,
         count: items.length,
