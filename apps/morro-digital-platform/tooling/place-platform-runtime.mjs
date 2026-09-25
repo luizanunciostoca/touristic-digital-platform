@@ -5,6 +5,10 @@ import {
   resolvePlacePresentationActions,
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
+import {
+  applyCatalogSchema,
+  createCatalogRuntime,
+} from "./catalog-platform-runtime.mjs";
 const PLACE_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
 const DEFAULT_DESTINATION = "morro-de-sao-paulo";
 
@@ -139,6 +143,13 @@ function initialPlace(input, now) {
   const name = clean(input.name, 160);
   if (!name) throw new Error("NAME_REQUIRED");
 
+  const requestedCapabilities = Array.isArray(input.capabilities)
+    ? [
+        ...new Set(
+          input.capabilities.map((value) => clean(value, 80)).filter(Boolean),
+        ),
+      ]
+    : ["directions"];
   return Object.freeze({
     id: placeId,
     businessId,
@@ -169,7 +180,9 @@ function initialPlace(input, now) {
     openingHours: null,
     amenities: Object.freeze([]),
     tags: Object.freeze([]),
-    capabilities: Object.freeze({ enabled: Object.freeze(["directions"]) }),
+    capabilities: Object.freeze({
+      enabled: Object.freeze(requestedCapabilities),
+    }),
     visibility: "public",
     publicationState: "draft",
     createdAt: now,
@@ -612,9 +625,16 @@ function createMediaPort(mediaRepository) {
   });
 }
 
-function createActionPort() {
+function createActionPort(catalogRuntime) {
   return Object.freeze({
     async resolvePublicActions({ place, businessId, media, commerce, locale }) {
+      const catalogContext = catalogRuntime
+        ? await catalogRuntime.listActionContext({
+            id: place.id,
+            businessId,
+            destinationId: place.destinationId,
+          })
+        : { products: [], offers: [], menus: [] };
       const localeKey = ["pt", "en", "es", "he"].includes(
         String(locale).slice(0, 2),
       )
@@ -644,9 +664,9 @@ function createActionPort() {
         },
         locale: localeKey,
         now: new Date().toISOString(),
-        products: [],
-        offers: [],
-        menus: [],
+        products: catalogContext.products,
+        offers: catalogContext.offers,
+        menus: catalogContext.menus,
         inventory: [],
         media: { galleryAvailable: Boolean(media?.gallery?.length) },
         providers: {},
@@ -717,6 +737,7 @@ export function createPlacePlatformRuntime({
   let mediaRepository = null;
   let governanceRepository = null;
   let publicationService = null;
+  let catalogRuntime = null;
   let readModel = null;
   let ready = false;
   let reason = "PLACE_PLATFORM_NOT_STARTED";
@@ -745,7 +766,9 @@ export function createPlacePlatformRuntime({
         errorPrefix: "BUSINESS_DATABASE",
       });
       await applySchema(pool);
+      await applyCatalogSchema(pool);
       governanceRepository = createGovernanceRepository(pool);
+      catalogRuntime = createCatalogRuntime(pool);
 
       const contentUrl = String(
         getEnvironmentValue("CONTENT_DATABASE_URL") || "",
@@ -774,11 +797,11 @@ export function createPlacePlatformRuntime({
         repository: createPublicRepository(pool),
         media: createMediaPort(mediaRepository),
         commerce: Object.freeze({
-          async getPublicCommerce() {
-            return null;
+          getPublicCommerce(place) {
+            return catalogRuntime.getPublicCommerce(place);
           },
         }),
-        actions: createActionPort(),
+        actions: createActionPort(catalogRuntime),
       });
       ready = true;
       reason = "place-platform-ready";
@@ -981,7 +1004,7 @@ export function createPlacePlatformRuntime({
         )
       : [[]];
     const projectedActions = place
-      ? await createActionPort().resolvePublicActions({
+      ? await createActionPort(catalogRuntime).resolvePublicActions({
           place: { ...place, capabilities: place.capabilities.enabled },
           businessId: String(place.businessId),
           media: {
@@ -999,6 +1022,12 @@ export function createPlacePlatformRuntime({
     const team = users
       .filter((user) => user.businessIds?.includes(businessId))
       .map((user) => ({ id: user.id, email: user.email, role: user.role }));
+    const catalog = place
+      ? await catalogRuntime.getCounts(
+          String(place.businessId),
+          String(place.id),
+        )
+      : { productCount: 0, offerCount: 0, menuCount: 0 };
     return Object.freeze({
       businessId: row.business_id,
       name: row.display_name,
@@ -1026,7 +1055,7 @@ export function createPlacePlatformRuntime({
           }
         : { status: "missing" },
       media,
-      catalog: { productCount: 0, offerCount: 0, menuCount: 0 },
+      catalog,
       actions: {
         automatic: [],
         available: [
