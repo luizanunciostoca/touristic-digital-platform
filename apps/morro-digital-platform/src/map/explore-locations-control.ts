@@ -28,7 +28,6 @@ import {
   installExploreFlowBottomSheet,
   type ExploreFlowBottomSheetController,
 } from "./explore-flow-bottom-sheet.js";
-import { resolvePlacePrimaryAction } from "./place-commerce-capability.js";
 import { createPublicPlaceMapClient } from "./public-place-map-client-v2.js";
 import {
   filterV1ExploreLocations,
