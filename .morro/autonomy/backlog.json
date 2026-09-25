@@ -1,41 +1,62 @@
 {
   "schemaVersion": 1,
+  "updatedFromMainSha": "a609f6ffe551764d1977d0f0d916995a5a89a701",
   "items": [
     {
       "id": "MD-AUTO-001",
       "priority": "P0",
       "owner": "Proof Worker",
-      "objective": "Certify post-merge main after #364",
+      "objective": "Certify post-merge exact main after Catalog authority merge",
       "dependsOn": [],
-      "status": "QUEUED"
+      "status": "DONE"
     },
     {
       "id": "MD-AUTO-002",
       "priority": "P0",
       "owner": "Control Tower",
-      "objective": "Classify open legacy waves #344/#347/#352/#354 and other pre-integration PRs as residual or superseded",
+      "objective": "Classify legacy/open overlapping waves against current main and prevent duplicate authority",
       "dependsOn": [],
-      "status": "CLAIMED"
+      "status": "ACTIVE"
     },
     {
       "id": "MD-AUTO-003",
       "priority": "P1",
       "owner": "Experience Worker",
-      "objective": "Cut over Assistant/Map consumers to canonical PublicPlace by PlaceId without inventing backend",
+      "objective": "Cut over Assistant/Map consumers to canonical PublicPlace by PlaceId and remove legacy name/slug authority",
       "dependsOn": [
         "MD-AUTO-001"
       ],
-      "status": "QUEUED"
+      "status": "READY"
     },
     {
       "id": "MD-AUTO-004",
-      "priority": "P1",
-      "owner": "Experience Worker",
-      "objective": "Complete Morro Pro non-placeholder surfaces against canonical contracts",
+      "priority": "P0",
+      "owner": "Platform + Experience Workers",
+      "objective": "Repair PR #372 Commerce browser contract and Fabric size gate without creating a second Catalog authority",
       "dependsOn": [
         "MD-AUTO-001"
       ],
-      "status": "QUEUED"
+      "status": "BLOCKED_PROOF"
+    },
+    {
+      "id": "MD-AUTO-005",
+      "priority": "P0",
+      "owner": "Proof Worker",
+      "objective": "Re-prove PR #372 on its next causal source HEAD: Commerce, Fabric, auth/tenancy and artifact identity",
+      "dependsOn": [
+        "MD-AUTO-004"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "id": "MD-AUTO-006",
+      "priority": "P0",
+      "owner": "Integrator",
+      "objective": "Integrate PR #372 only after REMOTE_PROVEN and PROOF_ACCEPTED on exact source HEAD",
+      "dependsOn": [
+        "MD-AUTO-005"
+      ],
+      "status": "BLOCKED"
     }
   ]
 }
