@@ -494,9 +494,16 @@ export async function mountBusinessDashboardSurface(
     "profile-description",
   );
   ensureMorroProPanels(document);
-  const offersSurface = createOfferSurface(document);
+  const catalogSurface = createCatalogSurface(document);
 
   let activeProfile: BusinessProfile | null = null;
+  let activeCatalog: MorroProCatalog = Object.freeze({
+    products: Object.freeze([]),
+    offers: Object.freeze([]),
+    menus: Object.freeze([]),
+    categories: Object.freeze([]),
+    items: Object.freeze([]),
+  });
   let businessId = "";
   let contextController: BusinessContextController | null = null;
 
@@ -535,36 +542,186 @@ export async function mountBusinessDashboardSurface(
     descriptionInput.value = safeProfile.description;
   }
 
-  async function reloadOffers(signal?: AbortSignal): Promise<void> {
+  async function reloadCatalog(signal?: AbortSignal): Promise<void> {
     if (!businessId) return;
-    offersSurface.status.textContent = "Atualizando inventário…";
-    const offers = await dashboardClient.listOffers(businessId, signal);
-    renderOffers(document, offersSurface.list, offers, (offer) => {
-      const request = contextController?.request();
-      const targetBusinessId = request?.businessId ?? businessId;
-      offersSurface.status.textContent = "Desativando oferta…";
-      void dashboardClient
-        .disableOffer(targetBusinessId, offer.id)
-        .then(async () => {
-          if (request && !contextController?.isCurrent(request)) return;
-          await reloadOffers(request?.signal);
-        })
-        .then(() => {
-          if (request && !contextController?.isCurrent(request)) return;
-          offersSurface.status.textContent = "Oferta desativada.";
-        })
-        .catch((error: unknown) => {
-          if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          offersSurface.status.textContent =
-            error instanceof Error
-              ? error.message
-              : "Falha ao desativar oferta.";
-        });
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const catalog = await dashboardClient.loadCatalog(targetBusinessId, signal);
+    if (request && !contextController?.isCurrent(request)) return;
+    activeCatalog = catalog;
+    renderCatalog(document, catalogSurface, catalog);
+  }
+
+  async function submitCatalogMutation(
+    kind: "product" | "offer" | "menu" | "menu-category" | "menu-item",
+    form: HTMLFormElement,
+    statusElement: HTMLElement,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const id = editId(form);
+    form.setAttribute("aria-busy", "true");
+    statusElement.textContent = id ? "Salvando alteração…" : "Criando draft…";
+    try {
+      if (id) {
+        await dashboardClient.updateCatalogEntry(
+          targetBusinessId,
+          kind,
+          id,
+          payload,
+        );
+      } else {
+        await dashboardClient.createCatalogEntry(
+          targetBusinessId,
+          kind,
+          payload,
+        );
+      }
+      if (request && !contextController?.isCurrent(request)) return;
+      await reloadCatalog(request?.signal);
+      if (request && !contextController?.isCurrent(request)) return;
+      resetEdit(form);
+      statusElement.textContent =
+        "Alteração salva. A presença pública só muda após publicação governada.";
+    } catch (error: unknown) {
+      if (request && !contextController?.isCurrent(request)) return;
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      statusElement.textContent =
+        error instanceof Error ? error.message : "Falha ao salvar catálogo.";
+    } finally {
+      form.removeAttribute("aria-busy");
+    }
+  }
+
+  catalogSurface.productForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCatalogMutation(
+      "product",
+      catalogSurface.productForm,
+      catalogSurface.productStatus,
+      {
+        name: formControl(catalogSurface.productForm, "name").value,
+        description: formControl(
+          catalogSurface.productForm,
+          "description",
+        ).value,
+        tags: commaList(formControl(catalogSurface.productForm, "tags").value),
+        status: formControl(catalogSurface.productForm, "status").value,
+      },
+    );
+  });
+
+  catalogSurface.offerForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const starts = (name: string) => {
+      const value = formControl(catalogSurface.offerForm, name).value;
+      return value ? new Date(value).toISOString() : null;
+    };
+    void submitCatalogMutation(
+      "offer",
+      catalogSurface.offerForm,
+      catalogSurface.offerStatus,
+      {
+        productId: formControl(catalogSurface.offerForm, "productId").value,
+        minorUnits: minorUnits(
+          formControl(catalogSurface.offerForm, "price").value,
+        ),
+        currency: formControl(catalogSurface.offerForm, "currency").value
+          .trim()
+          .toUpperCase(),
+        capacity: formControl(catalogSurface.offerForm, "capacity").value
+          ? Number(formControl(catalogSurface.offerForm, "capacity").value)
+          : null,
+        salesStartsAt: starts("salesStartsAt"),
+        salesEndsAt: starts("salesEndsAt"),
+        experienceStartsAt: starts("experienceStartsAt"),
+        experienceEndsAt: starts("experienceEndsAt"),
+        status: formControl(catalogSurface.offerForm, "status").value,
+      },
+    );
+  });
+
+  catalogSurface.menuForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCatalogMutation(
+      "menu",
+      catalogSurface.menuForm,
+      catalogSurface.menuStatus,
+      {
+        name: formControl(catalogSurface.menuForm, "name").value,
+        description: formControl(catalogSurface.menuForm, "description").value,
+        status: formControl(catalogSurface.menuForm, "status").value,
+        fallbackMediaId:
+          formControl(catalogSurface.menuForm, "fallbackMediaId").value || null,
+        fallbackDocumentUrl:
+          formControl(catalogSurface.menuForm, "fallbackDocumentUrl").value ||
+          null,
+      },
+    );
+  });
+
+  catalogSurface.categoryForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCatalogMutation(
+      "menu-category",
+      catalogSurface.categoryForm,
+      catalogSurface.menuStatus,
+      {
+        menuId: formControl(catalogSurface.categoryForm, "menuId").value,
+        name: formControl(catalogSurface.categoryForm, "name").value,
+        sortOrder: Number(
+          formControl(catalogSurface.categoryForm, "sortOrder").value,
+        ),
+      },
+    );
+  });
+
+  catalogSurface.itemForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const available = catalogSurface.itemForm.elements.namedItem("available");
+    void submitCatalogMutation(
+      "menu-item",
+      catalogSurface.itemForm,
+      catalogSurface.menuStatus,
+      {
+        menuId: formControl(catalogSurface.itemForm, "menuId").value,
+        categoryId: formControl(catalogSurface.itemForm, "categoryId").value,
+        name: formControl(catalogSurface.itemForm, "name").value,
+        description: formControl(
+          catalogSurface.itemForm,
+          "description",
+        ).value,
+        minorUnits: minorUnits(
+          formControl(catalogSurface.itemForm, "price").value,
+        ),
+        currency: formControl(catalogSurface.itemForm, "currency").value
+          .trim()
+          .toUpperCase(),
+        sortOrder: Number(
+          formControl(catalogSurface.itemForm, "sortOrder").value,
+        ),
+        mediaId: formControl(catalogSurface.itemForm, "mediaId").value || null,
+        available:
+          available instanceof HTMLInputElement ? available.checked : false,
+        tags: commaList(formControl(catalogSurface.itemForm, "tags").value),
+        allergens: commaList(
+          formControl(catalogSurface.itemForm, "allergens").value,
+        ),
+      },
+    );
+  });
+
+  for (const form of [
+    catalogSurface.productForm,
+    catalogSurface.offerForm,
+    catalogSurface.menuForm,
+    catalogSurface.categoryForm,
+    catalogSurface.itemForm,
+  ]) {
+    form.addEventListener("reset", () => {
+      queueMicrotask(() => resetEdit(form));
     });
-    offersSurface.status.textContent = "";
   }
 
   const profileSummary = requiredElement<HTMLElement>(
@@ -643,54 +800,6 @@ export async function mountBusinessDashboardSurface(
       });
   });
 
-  let offerSubmissionPending = false;
-  offersSurface.form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (offerSubmissionPending) return;
-    offersSurface.status.textContent = "Publicando oferta…";
-    try {
-      const input = offerInput(
-        offersSurface,
-        businessId,
-        activeProfile?.name ?? nameInput.value,
-      );
-      const key = requestKey(document);
-      const request = contextController?.request();
-      const targetBusinessId = request?.businessId ?? businessId;
-      offerSubmissionPending = true;
-      offersSurface.form.setAttribute("aria-busy", "true");
-      void dashboardClient
-        .createOffer(targetBusinessId, input, key)
-        .then(async () => {
-          if (request && !contextController?.isCurrent(request)) return;
-          await reloadOffers(request?.signal);
-        })
-        .then(() => {
-          if (request && !contextController?.isCurrent(request)) return;
-          offersSurface.form.reset();
-          offersSurface.capacity.value = "20";
-          offersSurface.maxPerReservation.value = "4";
-          offersSurface.status.textContent = "Oferta publicada no inventário.";
-        })
-        .catch((error: unknown) => {
-          if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          offersSurface.status.textContent =
-            error instanceof Error
-              ? error.message
-              : "Falha ao publicar oferta.";
-        })
-        .finally(() => {
-          offerSubmissionPending = false;
-          offersSurface.form.removeAttribute("aria-busy");
-        });
-    } catch (error: unknown) {
-      offersSurface.status.textContent =
-        error instanceof Error ? error.message : "Oferta inválida.";
-    }
-  });
 
   try {
     const bootstrap = await dashboardClient.bootstrap(
