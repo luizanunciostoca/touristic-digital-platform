@@ -29,14 +29,14 @@ They must never resolve a new Place by name, slug, alias or display label.
 
 ### Legacy Place commerce capability
 
-`place-commerce-capability.ts` remains compatibility-only for existing V1
-callers. New public presentation receives server-resolved Place Actions.
+The browser-local `place-commerce-capability.ts` resolver has been removed.
+Canonical public presentation now consumes server-resolved Place Actions from
+the Place Action Registry instead of inferring commercial CTAs from category,
+name, slug, alias, label or local inventory guesses.
 
-Removal gate:
-
-1. canonical Action Registry is bound to all public Place projections;
-2. public map/detail callers consume projected actions;
-3. existing V1 regression coverage passes without local category CTA inference.
+The legacy `commerce:place:` value parser remains available only for backward
+compatibility with historical action values; it is not Place authority and must
+not be used to derive new canonical relationships.
 
 ### Existing Business 360 surfaces
 
@@ -60,7 +60,7 @@ is adopted. Mutations must use owner-backed Business / Place contracts.
 - name-based photo lookup: TEMPORARY
 - product/reference compatibility: TEMPORARY
 - offer/label compatibility: TEMPORARY
-- V1 local CTA capability helper: TEMPORARY
+- V1 local CTA capability helper: REMOVED
 - canonical ID authority: PERMANENT
 - published-only public read model: PERMANENT
 - owner-backed tenant isolation: PERMANENT
