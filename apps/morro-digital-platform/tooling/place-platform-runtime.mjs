@@ -140,6 +140,9 @@ function initialPlace(input, now) {
   const name = clean(input.name, 160);
   if (!name) throw new Error("NAME_REQUIRED");
 
+  const requestedCapabilities = Array.isArray(input.capabilities)
+    ? [...new Set(input.capabilities.map((value) => clean(value, 80)).filter(Boolean))]
+    : ["directions"];
   return Object.freeze({
     id: placeId,
     businessId,
@@ -170,7 +173,9 @@ function initialPlace(input, now) {
     openingHours: null,
     amenities: Object.freeze([]),
     tags: Object.freeze([]),
-    capabilities: Object.freeze({ enabled: Object.freeze(["directions"]) }),
+    capabilities: Object.freeze({
+      enabled: Object.freeze(requestedCapabilities),
+    }),
     visibility: "public",
     publicationState: "draft",
     createdAt: now,
