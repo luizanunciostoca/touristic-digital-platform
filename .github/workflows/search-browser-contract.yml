@@ -12,7 +12,7 @@ on:
       - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
       - apps/morro-digital-platform/src/map/public-place-map-client-v2.ts
-      - apps/morro-digital-platform/tooling/search-canonical-place-browser-contract.mjs
+      - tests/browser/search-canonical-place-browser-contract.mjs
       - apps/morro-digital-platform/src/layouts/app-shell.ts
       - apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts
       - packages/assistant/src/intent-engine.ts
@@ -242,7 +242,7 @@ jobs:
           })().catch(error => { console.error(error); process.exit(1); });
           NODE
       - name: Validate canonical Place identity and hybrid fail-closed behavior
-        run: node apps/morro-digital-platform/tooling/search-canonical-place-browser-contract.mjs
+        run: node tests/browser/search-canonical-place-browser-contract.mjs
       - name: Show diagnostics
         if: failure()
         run: cat /tmp/search-browser-contract.log || true
