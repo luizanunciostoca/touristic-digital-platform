@@ -292,17 +292,17 @@ export function photosCopy(
     pt: {
       unavailable: `Não encontrei fotos disponíveis de ${place}.`,
       asset_source_pending: `As fotos de ${place} estão catalogadas, mas os arquivos ainda não estão disponíveis nesta versão.`,
-      resolved: `Encontrei ${count} fotos de ${place}.`,
+      resolved:\n        count === 1\n          ? `Encontrei 1 foto de ${place}.`\n          : `Encontrei ${count} fotos de ${place}.`,
     },
     en: {
       unavailable: `I couldn't find available photos of ${place}.`,
       asset_source_pending: `Photos of ${place} are cataloged, but the files are not available in this version yet.`,
-      resolved: `I found ${count} photos of ${place}.`,
+      resolved:\n        count === 1\n          ? `I found 1 photo of ${place}.`\n          : `I found ${count} photos of ${place}.`,
     },
     es: {
       unavailable: `No encontré fotos disponibles de ${place}.`,
       asset_source_pending: `Las fotos de ${place} están catalogadas, pero los archivos todavía no están disponibles en esta versión.`,
-      resolved: `Encontré ${count} fotos de ${place}.`,
+      resolved:\n        count === 1\n          ? `Encontré 1 foto de ${place}.`\n          : `Encontré ${count} fotos de ${place}.`,
     },
     he: {
       unavailable: `לא מצאתי תמונות זמינות של ${place}.`,
