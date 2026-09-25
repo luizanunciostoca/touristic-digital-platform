@@ -251,12 +251,8 @@ try {
       { installBrowserAssistantRuntime },
     ] = await Promise.all([
       import("/apps/morro-digital-platform/dist/main.js"),
-      import(
-        "/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js"
-      ),
-      import(
-        "/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js"
-      ),
+      import("/apps/morro-digital-platform/dist/assistant/assistant-shell-ui.js"),
+      import("/apps/morro-digital-platform/dist/assistant/browser-assistant-runtime.js"),
     ]);
 
     const application = bootstrapMorroDigitalApplication(document);
