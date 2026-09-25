@@ -1,8 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import {
-  resolveAssistantCanonicalPhotos,
-} from "./assistant-canonical-photo-adapter.js";
+import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
 
 function requestUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
@@ -111,11 +109,7 @@ describe("assistant canonical photo adapter", () => {
     );
 
     await expect(
-      resolveAssistantCanonicalPhotos(
-        "segunda",
-        fetchImplementation,
-        "pt",
-      ),
+      resolveAssistantCanonicalPhotos("segunda", fetchImplementation, "pt"),
     ).resolves.toEqual({
       placeId: "place-segunda-praia",
       place: "Segunda Praia",
@@ -134,27 +128,23 @@ describe("assistant canonical photo adapter", () => {
     ).toBe(true);
   });
 
-  it(
-    "does not expose opaque provider references as public image URLs",
-    async () => {
-      const fetchImplementation = vi.fn<typeof globalThis.fetch>(
-        async (input) =>
-          requestUrl(input).startsWith("/api/places/v1/map?")
-            ? mapResponse()
-            : detailResponse("places/place-segunda-praia/private.webp"),
-      );
+  it("does not expose opaque provider references as public image URLs", async () => {
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(async (input) =>
+      requestUrl(input).startsWith("/api/places/v1/map?")
+        ? mapResponse()
+        : detailResponse("places/place-segunda-praia/private.webp"),
+    );
 
-      await expect(
-        resolveAssistantCanonicalPhotos(
-          "Segunda Praia",
-          fetchImplementation,
-          "pt",
-        ),
-      ).resolves.toEqual({
-        placeId: "place-segunda-praia",
-        place: "Segunda Praia",
-        images: ["https://cdn.example.com/segunda-2.webp"],
-      });
-    },
-  );
+    await expect(
+      resolveAssistantCanonicalPhotos(
+        "Segunda Praia",
+        fetchImplementation,
+        "pt",
+      ),
+    ).resolves.toEqual({
+      placeId: "place-segunda-praia",
+      place: "Segunda Praia",
+      images: ["https://cdn.example.com/segunda-2.webp"],
+    });
+  });
 });
