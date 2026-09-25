@@ -1,3 +1,4 @@
+import { authorizeCapability } from "@touristic/auth";
 import { randomUUID } from "node:crypto";
 import {
   canonicalPlaceCategories,
@@ -994,6 +995,16 @@ export function createPlacePlatformRuntime({
     );
   }
 
+  function assertCatalogMutationActor(actor, businessId) {
+    const decision = authorizeCapability(actor, "business.update", {
+      businessId: String(businessId),
+      mutation: true,
+    });
+    if (!decision.allowed) {
+      throw new Error("CATALOG_MUTATION_AUTH_DENIED");
+    }
+  }
+
   function assertCatalogScopeFields(place, input) {
     if (
       input?.businessId != null &&
@@ -1039,6 +1050,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function createCatalogDraft(actor, businessId, kind, input) {
+    assertCatalogMutationActor(actor, businessId);
     const place = await catalogPlaceForBusiness(businessId);
     assertCatalogScopeFields(place, input);
     const now = new Date().toISOString();
@@ -1141,6 +1153,7 @@ export function createPlacePlatformRuntime({
   }
 
   async function updateCatalogEntry(actor, businessId, kind, id, input) {
+    assertCatalogMutationActor(actor, businessId);
     const place = await catalogPlaceForBusiness(businessId);
     assertCatalogScopeFields(place, input);
     const scope = { businessId: String(place.businessId) };
