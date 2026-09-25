@@ -1,5 +1,3 @@
-import mysql from "mysql2/promise";
-
 const STAGING_SERVICE = "morro-digital-v2-staging";
 
 export const stagingDatabaseDomains = Object.freeze([
@@ -40,7 +38,7 @@ function parseHostPort(environment) {
 
 export async function reconcileStagingMysqlDomains(
   environment = process.env,
-  mysqlClient = mysql,
+  mysqlClient,
 ) {
   if (
     String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
@@ -64,7 +62,9 @@ export async function reconcileStagingMysqlDomains(
     throw new Error("STAGING_DATABASE_OWNERSHIP_COLLISION");
   }
 
-  const admin = await mysqlClient.createConnection({
+  const client =
+    mysqlClient ?? (await import("mysql2/promise")).default;
+  const admin = await client.createConnection({
     host: hostPort.host,
     port: hostPort.port,
     user: "root",
