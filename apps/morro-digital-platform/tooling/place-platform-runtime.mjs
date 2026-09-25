@@ -6,6 +6,7 @@ import {
   resolvePlacePresentationActions,
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
+import { createPlaceMediaService } from "@touristic/content/place-media";
 import {
   applyCatalogSchema,
   createCatalogRuntime,
@@ -14,6 +15,7 @@ import {
   applyMediaPublicationSnapshotSchema,
   createMediaPublicationSnapshotRuntime,
 } from "./media-publication-snapshot.mjs";
+import { createFilesystemMediaStorage } from "./media-storage-runtime.mjs";
 const PLACE_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
 const DEFAULT_DESTINATION = "morro-de-sao-paulo";
 
@@ -699,6 +701,8 @@ export function createPlacePlatformRuntime({
   let pool = null;
   let mediaPool = null;
   let mediaRepository = null;
+  let mediaStorage = null;
+  let mediaService = null;
   let mediaPublicationSnapshots = null;
   let governanceRepository = null;
   let publicationService = null;
@@ -752,6 +756,21 @@ export function createPlacePlatformRuntime({
           errorPrefix: "CONTENT_DATABASE",
         });
         mediaRepository = new MediaRepository(mediaPool);
+        const mediaStorageBasePath = String(
+          getEnvironmentValue("MEDIA_STORAGE_BASE_PATH") || "",
+        ).trim();
+        if (mediaStorageBasePath) {
+          mediaStorage = createFilesystemMediaStorage({
+            basePath: mediaStorageBasePath,
+            publicPrefix: "/media",
+          });
+          mediaService = createPlaceMediaService({
+            repository: mediaRepository,
+            storage: mediaStorage,
+            now: () => new Date().toISOString(),
+            createMediaId: () => `media-${randomUUID()}`,
+          });
+        }
       }
 
       mediaPublicationSnapshots = createMediaPublicationSnapshotRuntime({
@@ -815,6 +834,11 @@ export function createPlacePlatformRuntime({
     ) {
       throw new Error("PLACE_PLATFORM_UNAVAILABLE");
     }
+  }
+
+  async function handleMedia(request, response, requestUrl) {
+    if (!mediaStorage) return false;
+    return mediaStorage.handlePublic(request, response, requestUrl);
   }
 
   async function handlePublic(request, response, requestUrl) {
@@ -1005,6 +1029,150 @@ export function createPlacePlatformRuntime({
     return catalogRuntime.getAdminCatalog(
       String(place.businessId),
       String(place.id),
+    );
+  }
+
+  function requireMediaService() {
+    if (!mediaRepository) throw new Error("MEDIA_DATABASE_UNAVAILABLE");
+    if (!mediaService) throw new Error("MEDIA_STORAGE_UNAVAILABLE");
+    return mediaService;
+  }
+
+  function mediaScope(place) {
+    return Object.freeze({
+      businessIds: Object.freeze([String(place.businessId)]),
+      canMutate: true,
+    });
+  }
+
+  function mediaOwner(place) {
+    return Object.freeze({
+      businessId: String(place.businessId),
+      placeId: String(place.id),
+    });
+  }
+
+  async function touchMediaRevision(actor, businessId) {
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE business_id = ?
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [String(businessId)],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("PLACE_NOT_FOUND");
+    const current = governedRecordFromRow(row);
+    return publicationService.saveRevision(
+      {
+        session: actor,
+        correlationId: "business-media",
+        now: new Date().toISOString(),
+      },
+      current.placeId,
+      current.editableRevision.data,
+      current.editableRevision.revision,
+    );
+  }
+
+  async function finalizeMediaMutation(actor, businessId, operation) {
+    const result = await operation();
+    await touchMediaRevision(actor, businessId);
+    return result;
+  }
+
+  function decodeMediaBytes(input) {
+    const encoded = typeof input === "string" ? input.trim() : "";
+    if (
+      !encoded ||
+      encoded.length > 18 * 1024 * 1024 ||
+      !/^[A-Za-z0-9+/]+={0,2}$/u.test(encoded)
+    ) {
+      throw new Error("MEDIA_INVALID_BASE64");
+    }
+    const bytes = Buffer.from(encoded, "base64");
+    if (!bytes.length || bytes.toString("base64").replace(/=+$/u, "") !== encoded.replace(/=+$/u, "")) {
+      throw new Error("MEDIA_INVALID_BASE64");
+    }
+    return bytes;
+  }
+
+  async function uploadMediaDraft(actor, businessId, input) {
+    const service = requireMediaService();
+    const place = await catalogPlaceForBusiness(businessId);
+    const bytes = decodeMediaBytes(input.dataBase64);
+    return finalizeMediaMutation(actor, businessId, () =>
+      service.upload(mediaScope(place), {
+        owner: mediaOwner(place),
+        file: {
+          fileName: clean(input.fileName, 240),
+          mimeType: clean(input.mimeType, 80),
+          byteSize: bytes.length,
+          width: Number(input.width),
+          height: Number(input.height),
+          bytes,
+        },
+        role: clean(input.role || "gallery", 40),
+        alt: clean(input.alt, 300),
+        publish: input.published === true || input.published === "true",
+      }),
+    );
+  }
+
+  async function updateMediaDraft(actor, businessId, mediaId, input) {
+    const service = requireMediaService();
+    const place = await catalogPlaceForBusiness(businessId);
+    const scope = mediaScope(place);
+    const owner = mediaOwner(place);
+    const id = clean(mediaId, 160);
+    if (!id) throw new Error("INVALID_MEDIA_ID");
+    let changed = false;
+    let result = null;
+    return finalizeMediaMutation(actor, businessId, async () => {
+      if (input.alt !== undefined) {
+        result = await service.updateAlt(scope, owner, id, input.alt);
+        changed = true;
+      }
+      if (input.role !== undefined) {
+        result = await service.setRole(scope, owner, id, clean(input.role, 40));
+        changed = true;
+      }
+      if (input.published !== undefined) {
+        result = await service.setPublished(
+          scope,
+          owner,
+          id,
+          input.published === true || input.published === "true",
+        );
+        changed = true;
+      }
+      if (!changed) throw new Error("MEDIA_UPDATE_REQUIRED");
+      return result;
+    });
+  }
+
+  async function reorderMediaDraft(actor, businessId, orderedMediaIds) {
+    const service = requireMediaService();
+    const place = await catalogPlaceForBusiness(businessId);
+    if (!Array.isArray(orderedMediaIds)) throw new Error("MEDIA_REORDER_REQUIRED");
+    return finalizeMediaMutation(actor, businessId, () =>
+      service.reorder(
+        mediaScope(place),
+        mediaOwner(place),
+        orderedMediaIds.map((value) => clean(value, 160)),
+      ),
+    );
+  }
+
+  async function deleteMediaDraft(actor, businessId, mediaId) {
+    const service = requireMediaService();
+    const place = await catalogPlaceForBusiness(businessId);
+    return finalizeMediaMutation(actor, businessId, () =>
+      service.delete(
+        mediaScope(place),
+        mediaOwner(place),
+        clean(mediaId, 160),
+      ),
     );
   }
 
@@ -1335,11 +1503,12 @@ export function createPlacePlatformRuntime({
     if (!row) return null;
     const place = row.place_id ? placeFromRow(row, false) : null;
     const governed = row.place_id ? governedRecordFromRow(row) : null;
-    let media = { count: 0, assets: [] };
+    let media = { count: 0, assets: [], storageAvailable: Boolean(mediaService) };
     if (place && mediaRepository) {
       const links = await mediaRepository.listLinks(String(place.id));
       media = {
         count: links.length,
+        storageAvailable: Boolean(mediaService),
         assets: await Promise.all(
           links.map(async (link) => {
             const asset = await mediaRepository.getAsset(link.mediaId);
@@ -1652,6 +1821,7 @@ export function createPlacePlatformRuntime({
     stop,
     readinessCheck,
     handlePublic,
+    handleMedia,
     listCms,
     getCmsDetail,
     createDraft,
@@ -1660,6 +1830,10 @@ export function createPlacePlatformRuntime({
     getCatalogDraft,
     createCatalogDraft,
     updateCatalogDraft,
+    uploadMediaDraft,
+    updateMediaDraft,
+    reorderMediaDraft,
+    deleteMediaDraft,
     transitionPublication,
   });
 }
