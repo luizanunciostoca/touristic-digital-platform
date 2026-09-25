@@ -8,6 +8,8 @@ export const businessCmsContract = Object.freeze({
     `/businesses/${encodeURIComponent(businessId)}/cms/location`,
   publish: (businessId) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/publication`,
+  catalogDraft: (businessId, kind) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/catalog/${encodeURIComponent(kind)}`,
 });
 
 let businessCmsRuntimeUnavailable = false;
@@ -274,6 +276,11 @@ function detailTabs(detail, escapeHtml, canMutate) {
   const location = detail.location ?? {};
   const media = detail.media ?? {};
   const catalog = detail.catalog ?? {};
+  const products = safeArray(catalog.products);
+  const offers = safeArray(catalog.offers);
+  const menus = safeArray(catalog.menus);
+  const menuCategories = safeArray(catalog.categories);
+  const menuItems = safeArray(catalog.items);
   const actions = detail.actions ?? {};
   const publication = detail.publication ?? {};
   const team = safeArray(detail.team);
@@ -374,12 +381,74 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Produtos",
       `<section class="card section-card">
         <h2>Produtos, ofertas e cardápio</h2>
-        <div class="module-list">
-          <div class="module-row"><span>Produtos</span><strong>${escapeHtml(catalog.productCount ?? 0)}</strong></div>
-          <div class="module-row"><span>Ofertas</span><strong>${escapeHtml(catalog.offerCount ?? 0)}</strong></div>
-          <div class="module-row"><span>Menus</span><strong>${escapeHtml(catalog.menuCount ?? 0)}</strong></div>
+        <div class="callout">
+          <strong>Draft authoring:</strong> novos registros permanecem não públicos.
+          Ativação/publicação do catálogo exige governança própria e não é feita por estes formulários.
         </div>
-        <p>Valores e disponibilidade autoritativa permanecem em Commerce / Inventory / Ticketing.</p>
+        <div class="grid stats">
+          <article class="card stat"><span class="stat-label">Produtos</span><strong class="stat-value">${escapeHtml(catalog.productCount ?? products.length)}</strong></article>
+          <article class="card stat"><span class="stat-label">Ofertas</span><strong class="stat-value">${escapeHtml(catalog.offerCount ?? offers.length)}</strong></article>
+          <article class="card stat"><span class="stat-label">Menus</span><strong class="stat-value">${escapeHtml(catalog.menuCount ?? menus.length)}</strong></article>
+        </div>
+        <h3>Produtos</h3>
+        <div class="module-list">
+          ${products.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.name)}<small>${escapeHtml(entry.id)}</small></span><strong>${escapeHtml(entry.status)}</strong></div>`).join("") || '<div class="empty">Nenhum produto cadastrado.</div>'}
+        </div>
+        <h3>Ofertas</h3>
+        <div class="module-list">
+          ${offers.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.id)}<small>Product ${escapeHtml(entry.productId)}</small></span><strong>${escapeHtml(entry.status)} · ${escapeHtml(entry.price?.currency ?? "")} ${escapeHtml(((entry.price?.minorUnits ?? 0) / 100).toFixed(2))}</strong></div>`).join("") || '<div class="empty">Nenhuma oferta cadastrada.</div>'}
+        </div>
+        <h3>Cardápios</h3>
+        <div class="module-list">
+          ${menus.map((entry) => `<div class="module-row"><span>${escapeHtml(entry.name)}<small>${escapeHtml(entry.id)}</small></span><strong>${escapeHtml(entry.status)}</strong></div>`).join("") || '<div class="empty">Nenhum cardápio cadastrado.</div>'}
+          ${menuCategories.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>categoria</strong></div>`).join("")}
+          ${menuItems.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>item draft</strong></div>`).join("")}
+        </div>
+        ${canMutate ? `
+          <div class="business-cms-catalog-forms">
+            <form class="form-grid" data-business-catalog-kind="product">
+              <h3>Novo produto</h3>
+              <label>Nome<input required name="name" maxlength="180" /></label>
+              <label>Descrição<textarea name="description" rows="3"></textarea></label>
+              <label>Tags<input name="tags" placeholder="sunset, experiência" /></label>
+              <button class="primary-button" type="submit">Criar product draft</button>
+            </form>
+            <form class="form-grid" data-business-catalog-kind="offer">
+              <h3>Nova oferta</h3>
+              <label>Produto<select required name="productId"><option value="">Selecione</option>${products.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}</option>`).join("")}</select></label>
+              <label>Preço (R$)<input required name="price" inputmode="decimal" placeholder="150,00" /></label>
+              <label>Capacidade<input name="capacity" type="number" min="0" step="1" /></label>
+              <button class="primary-button" type="submit" ${products.length ? "" : "disabled"}>Criar offer draft</button>
+            </form>
+            <form class="form-grid" data-business-catalog-kind="menu">
+              <h3>Novo cardápio</h3>
+              <label>Nome<input required name="name" maxlength="180" /></label>
+              <label>Descrição<textarea name="description" rows="3"></textarea></label>
+              <button class="primary-button" type="submit">Criar menu draft</button>
+            </form>
+            <form class="form-grid" data-business-catalog-kind="menu-category">
+              <h3>Nova categoria</h3>
+              <label>Menu<select required name="menuId"><option value="">Selecione</option>${menus.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}</option>`).join("")}</select></label>
+              <label>Nome<input required name="name" maxlength="180" /></label>
+              <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" /></label>
+              <button class="primary-button" type="submit" ${menus.length ? "" : "disabled"}>Criar categoria</button>
+            </form>
+            <form class="form-grid" data-business-catalog-kind="menu-item">
+              <h3>Novo item</h3>
+              <label>Menu<select required name="menuId"><option value="">Selecione</option>${menus.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}</option>`).join("")}</select></label>
+              <label>Categoria<select required name="categoryId"><option value="">Selecione</option>${menuCategories.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.name)}</option>`).join("")}</select></label>
+              <label>Nome<input required name="name" maxlength="180" /></label>
+              <label>Descrição<textarea name="description" rows="2"></textarea></label>
+              <label>Preço (R$)<input required name="price" inputmode="decimal" placeholder="45,00" /></label>
+              <label>Tags<input name="tags" /></label>
+              <label>Alérgenos<input name="allergens" /></label>
+              <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" /></label>
+              <button class="primary-button" type="submit" ${menus.length && menuCategories.length ? "" : "disabled"}>Criar item draft</button>
+            </form>
+          </div>
+          <p id="business-cms-catalog-result" role="status"></p>
+        ` : ""}
+        <p>Valores transacionais e disponibilidade autoritativa permanecem em Inventory / Ticketing / Financial.</p>
       </section>`,
     ],
     [
@@ -643,6 +712,44 @@ function bindDetail(root, ctx, detail) {
           error.body?.error ?? error.message ?? "Falha ao salvar perfil.";
       }
     });
+
+  for (const form of root.querySelectorAll("[data-business-catalog-kind]")) {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const result = root.querySelector("#business-cms-catalog-result");
+      const kind = form.dataset.businessCatalogKind;
+      const body = Object.fromEntries(new FormData(form));
+      if ("price" in body) {
+        const normalized = String(body.price).replace(",", ".").trim();
+        const amount = Number(normalized);
+        if (!Number.isFinite(amount) || amount < 0) {
+          result.textContent = "Preço inválido.";
+          return;
+        }
+        body.minorUnits = Math.round(amount * 100);
+        body.currency = "BRL";
+        delete body.price;
+      }
+      try {
+        result.textContent = "Salvando draft…";
+        await ctx.api(
+          businessCmsContract.catalogDraft(detail.businessId, kind),
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
+        await renderBusinessCms(ctx, detail.businessId);
+        ctx.content.querySelector('[data-business-cms-tab="catalog"]')?.click();
+        ctx.content.querySelector("#business-cms-catalog-result").textContent =
+          "Draft salvo no catálogo canônico.";
+      } catch (error) {
+        result.textContent =
+          error.body?.error ?? error.message ?? "Falha ao salvar draft.";
+      }
+    });
+  }
 
   for (const button of root.querySelectorAll("[data-business-publication]")) {
     button.addEventListener("click", async () => {
