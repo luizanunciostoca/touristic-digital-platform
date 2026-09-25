@@ -42,7 +42,9 @@ describe("Control Center Business CMS contract", () => {
     expect(source).toContain("Mídia governada:");
     expect(source).toContain("Incluir no próximo publish");
     expect(source).toContain("data-media-delete");
-    expect(source).not.toContain("Gerenciamento de arquivos requer o serviço de armazenamento Media.");
+    expect(source).not.toContain(
+      "Gerenciamento de arquivos requer o serviço de armazenamento Media.",
+    );
   });
 
   it("authors and edits Catalog only through the governed Business CMS route", () => {

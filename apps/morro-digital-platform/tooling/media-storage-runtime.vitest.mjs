@@ -8,7 +8,9 @@ import { createFilesystemMediaStorage } from "./media-storage-runtime.mjs";
 const roots = [];
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  await Promise.all(
+    roots.splice(0).map((root) => rm(root, { recursive: true, force: true })),
+  );
 });
 
 function responseCapture() {
@@ -63,7 +65,9 @@ describe("Media filesystem storage runtime", () => {
     expect(Buffer.from(response.body).equals(bytes)).toBe(true);
 
     const relative = stored.providerReference.replace(/^\/media\//u, "");
-    expect((await readFile(join(root, ...relative.split("/")))).equals(bytes)).toBe(true);
+    expect(
+      (await readFile(join(root, ...relative.split("/")))).equals(bytes),
+    ).toBe(true);
   });
 
   it("rejects provider mismatches and path traversal references", async () => {

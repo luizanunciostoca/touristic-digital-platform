@@ -73,12 +73,16 @@ try {
       "base64",
     ),
   });
-  await mediaForm.locator('[name="alt"]').fill("Capa canônica da Empresa browser");
+  await mediaForm
+    .locator('[name="alt"]')
+    .fill("Capa canônica da Empresa browser");
   await mediaForm.locator('[name="role"]').selectOption("cover");
   await mediaForm.getByRole("button", { name: "Enviar imagem" }).click();
   await page.getByText("Imagem salva na revisão editável.").waitFor();
   assert.equal(
-    await page.locator('[data-business-cms-panel="media"] img[src^="/media/"]').count(),
+    await page
+      .locator('[data-business-cms-panel="media"] img[src^="/media/"]')
+      .count(),
     1,
   );
 

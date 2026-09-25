@@ -759,9 +759,8 @@ export function createPlacePlatformRuntime({
           getEnvironmentValue("MEDIA_STORAGE_BASE_PATH") || "",
         ).trim();
         if (mediaStorageBasePath) {
-          const { createPlaceMediaService } = await import(
-            "@touristic/content/place-media"
-          );
+          const { createPlaceMediaService } =
+            await import("@touristic/content/place-media");
           mediaStorage = createFilesystemMediaStorage({
             basePath: mediaStorageBasePath,
             publicPrefix: "/media",
@@ -1093,7 +1092,11 @@ export function createPlacePlatformRuntime({
       throw new Error("MEDIA_INVALID_BASE64");
     }
     const bytes = Buffer.from(encoded, "base64");
-    if (!bytes.length || bytes.toString("base64").replace(/=+$/u, "") !== encoded.replace(/=+$/u, "")) {
+    if (
+      !bytes.length ||
+      bytes.toString("base64").replace(/=+$/u, "") !==
+        encoded.replace(/=+$/u, "")
+    ) {
       throw new Error("MEDIA_INVALID_BASE64");
     }
     return bytes;
@@ -1156,7 +1159,8 @@ export function createPlacePlatformRuntime({
   async function reorderMediaDraft(actor, businessId, orderedMediaIds) {
     const service = requireMediaService();
     const place = await catalogPlaceForBusiness(businessId);
-    if (!Array.isArray(orderedMediaIds)) throw new Error("MEDIA_REORDER_REQUIRED");
+    if (!Array.isArray(orderedMediaIds))
+      throw new Error("MEDIA_REORDER_REQUIRED");
     return finalizeMediaMutation(actor, businessId, () =>
       service.reorder(
         mediaScope(place),
@@ -1514,7 +1518,11 @@ export function createPlacePlatformRuntime({
     if (!row) return null;
     const place = row.place_id ? placeFromRow(row, false) : null;
     const governed = row.place_id ? governedRecordFromRow(row) : null;
-    let media = { count: 0, assets: [], storageAvailable: Boolean(mediaService) };
+    let media = {
+      count: 0,
+      assets: [],
+      storageAvailable: Boolean(mediaService),
+    };
     if (place && mediaRepository) {
       const links = await mediaRepository.listLinks(String(place.id));
       media = {

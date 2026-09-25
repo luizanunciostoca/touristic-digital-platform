@@ -1,5 +1,12 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, lstat, readFile, realpath, unlink, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  lstat,
+  readFile,
+  realpath,
+  unlink,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, extname, resolve, sep } from "node:path";
 
 const MIME_EXTENSIONS = Object.freeze({
@@ -18,7 +25,11 @@ const EXTENSION_MIME = Object.freeze({
 const SEGMENT = /^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/u;
 
 function isMissing(error) {
-  return Boolean(error && typeof error === "object" && ["ENOENT", "ENOTDIR"].includes(error.code));
+  return Boolean(
+    error &&
+    typeof error === "object" &&
+    ["ENOENT", "ENOTDIR"].includes(error.code),
+  );
 }
 
 function inside(root, candidate) {
@@ -51,14 +62,20 @@ export function createFilesystemMediaStorage({
     }
     const relative = value.slice(prefix.length + 1);
     const segments = relative.split("/");
-    if (segments.length !== 3) throw new Error("MEDIA_STORAGE_REFERENCE_INVALID");
+    if (segments.length !== 3)
+      throw new Error("MEDIA_STORAGE_REFERENCE_INVALID");
     for (const segment of segments) {
-      if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$/u.test(segment) || segment === "." || segment === "..") {
+      if (
+        !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$/u.test(segment) ||
+        segment === "." ||
+        segment === ".."
+      ) {
         throw new Error("MEDIA_STORAGE_REFERENCE_INVALID");
       }
     }
     const target = resolve(root, ...segments);
-    if (!inside(root, target)) throw new Error("MEDIA_STORAGE_PATH_ESCAPE_REJECTED");
+    if (!inside(root, target))
+      throw new Error("MEDIA_STORAGE_PATH_ESCAPE_REJECTED");
 
     if (ensureParent) await mkdir(dirname(target), { recursive: true });
 
@@ -87,7 +104,8 @@ export function createFilesystemMediaStorage({
 
     try {
       const stat = await lstat(target);
-      if (stat.isSymbolicLink()) throw new Error("MEDIA_STORAGE_PATH_ESCAPE_REJECTED");
+      if (stat.isSymbolicLink())
+        throw new Error("MEDIA_STORAGE_PATH_ESCAPE_REJECTED");
     } catch (error) {
       if (!isMissing(error)) throw error;
     }
@@ -112,7 +130,8 @@ export function createFilesystemMediaStorage({
     },
 
     async delete({ provider, providerReference }) {
-      if (provider !== "filesystem") throw new Error("MEDIA_STORAGE_PROVIDER_MISMATCH");
+      if (provider !== "filesystem")
+        throw new Error("MEDIA_STORAGE_PROVIDER_MISMATCH");
       const target = await resolveObject(providerReference);
       try {
         await unlink(target);
@@ -133,9 +152,16 @@ export function createFilesystemMediaStorage({
         const target = await resolveObject(requestUrl.pathname);
         const bytes = await readFile(target);
         response.statusCode = 200;
-        response.setHeader("Content-Type", EXTENSION_MIME[extname(target).toLowerCase()] || "application/octet-stream");
+        response.setHeader(
+          "Content-Type",
+          EXTENSION_MIME[extname(target).toLowerCase()] ||
+            "application/octet-stream",
+        );
         response.setHeader("Content-Length", String(bytes.length));
-        response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+        response.setHeader(
+          "Cache-Control",
+          "public, max-age=31536000, immutable",
+        );
         response.setHeader("X-Content-Type-Options", "nosniff");
         if (request.method === "HEAD") response.end();
         else response.end(bytes);

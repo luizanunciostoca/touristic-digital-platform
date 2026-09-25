@@ -547,11 +547,7 @@ export function createBusinessAdminAdapter(
       }
 
       const cmsMedia = cmsMediaPattern.exec(requestUrl.pathname);
-      if (
-        placePlatformRuntime &&
-        cmsMedia?.[1] &&
-        request.method === "POST"
-      ) {
+      if (placePlatformRuntime && cmsMedia?.[1] && request.method === "POST") {
         try {
           const body = await readJsonBody(request, 18 * 1024 * 1024);
           const data = await placePlatformRuntime.uploadMediaDraft(

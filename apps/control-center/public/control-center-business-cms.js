@@ -45,8 +45,16 @@ function mediaPreviewSource(value) {
 async function fileAsBase64(file) {
   const dataUrl = await new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.addEventListener("load", () => resolve(String(reader.result ?? "")), { once: true });
-    reader.addEventListener("error", () => reject(reader.error ?? new Error("MEDIA_FILE_READ_FAILED")), { once: true });
+    reader.addEventListener(
+      "load",
+      () => resolve(String(reader.result ?? "")),
+      { once: true },
+    );
+    reader.addEventListener(
+      "error",
+      () => reject(reader.error ?? new Error("MEDIA_FILE_READ_FAILED")),
+      { once: true },
+    );
     reader.readAsDataURL(file);
   });
   const separator = dataUrl.indexOf(",");
@@ -850,18 +858,22 @@ function bindDetail(root, ctx, detail) {
     const result = root.querySelector("#business-cms-media-result");
     try {
       if (result) result.textContent = "Salvando mídia…";
-      await ctx.api(businessCmsContract.mediaEntry(detail.businessId, mediaId), {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      await ctx.api(
+        businessCmsContract.mediaEntry(detail.businessId, mediaId),
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
       await renderBusinessCms(ctx, detail.businessId);
       ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       const next = ctx.content.querySelector("#business-cms-media-result");
       if (next) next.textContent = successMessage;
     } catch (error) {
-      if (result) result.textContent =
-        error.body?.error ?? error.message ?? "Falha ao salvar mídia.";
+      if (result)
+        result.textContent =
+          error.body?.error ?? error.message ?? "Falha ao salvar mídia.";
     }
   }
 
@@ -870,13 +882,21 @@ function bindDetail(root, ctx, detail) {
       const current = button.dataset.mediaCurrentAlt ?? "";
       const next = globalThis.prompt?.("Texto alternativo da imagem", current);
       if (next == null || next === current) return;
-      void updateMedia(button.dataset.mediaId, { alt: next }, "Texto alternativo atualizado.");
+      void updateMedia(
+        button.dataset.mediaId,
+        { alt: next },
+        "Texto alternativo atualizado.",
+      );
     });
   }
 
   for (const button of root.querySelectorAll("[data-media-role]")) {
     button.addEventListener("click", () =>
-      updateMedia(button.dataset.mediaId, { role: button.dataset.mediaRole }, "Função da mídia atualizada."),
+      updateMedia(
+        button.dataset.mediaId,
+        { role: button.dataset.mediaRole },
+        "Função da mídia atualizada.",
+      ),
     );
   }
   for (const button of root.querySelectorAll("[data-media-publish]")) {
@@ -894,14 +914,18 @@ function bindDetail(root, ctx, detail) {
       try {
         if (result) result.textContent = "Excluindo mídia…";
         await ctx.api(
-          businessCmsContract.mediaEntry(detail.businessId, button.dataset.mediaId),
+          businessCmsContract.mediaEntry(
+            detail.businessId,
+            button.dataset.mediaId,
+          ),
           { method: "DELETE" },
         );
         await renderBusinessCms(ctx, detail.businessId);
         ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       } catch (error) {
-        if (result) result.textContent =
-          error.body?.error ?? error.message ?? "Falha ao excluir mídia.";
+        if (result)
+          result.textContent =
+            error.body?.error ?? error.message ?? "Falha ao excluir mídia.";
       }
     });
   }
@@ -909,7 +933,9 @@ function bindDetail(root, ctx, detail) {
     button.addEventListener("click", async () => {
       const direction = button.dataset.mediaMove;
       if (!direction) return;
-      const ids = safeArray(detail.media?.assets).map((entry) => String(entry.mediaId));
+      const ids = safeArray(detail.media?.assets).map((entry) =>
+        String(entry.mediaId),
+      );
       const index = ids.indexOf(String(button.dataset.mediaId));
       const target = direction === "up" ? index - 1 : index + 1;
       if (index < 0 || target < 0 || target >= ids.length) return;
@@ -925,8 +951,9 @@ function bindDetail(root, ctx, detail) {
         await renderBusinessCms(ctx, detail.businessId);
         ctx.content.querySelector('[data-business-cms-tab="media"]')?.click();
       } catch (error) {
-        if (result) result.textContent =
-          error.body?.error ?? error.message ?? "Falha ao reordenar mídia.";
+        if (result)
+          result.textContent =
+            error.body?.error ?? error.message ?? "Falha ao reordenar mídia.";
       }
     });
   }
