@@ -16,7 +16,8 @@ function parseJson(value, fallback) {
 function iso(value) {
   if (value == null) return null;
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("CATALOG_INVALID_TIMESTAMP");
+  if (!Number.isFinite(date.getTime()))
+    throw new Error("CATALOG_INVALID_TIMESTAMP");
   return date.toISOString();
 }
 
@@ -454,7 +455,12 @@ export function createMySqlCatalogRepository(pool) {
   });
 }
 
-async function assertOwnedPlace(pool, businessId, placeId, destinationId = null) {
+async function assertOwnedPlace(
+  pool,
+  businessId,
+  placeId,
+  destinationId = null,
+) {
   if (placeId != null) {
     const [rows] = await pool.execute(
       `SELECT place_id, business_id, destination_id
@@ -541,7 +547,10 @@ export function createCatalogRuntime(pool) {
 
   async function getCounts(businessId, placeId = null) {
     const placeClause = placeId == null ? "" : " AND place_id = ?";
-    const params = placeId == null ? [String(businessId)] : [String(businessId), String(placeId)];
+    const params =
+      placeId == null
+        ? [String(businessId)]
+        : [String(businessId), String(placeId)];
     const [[productRows], [offerRows], [menuRows]] = await Promise.all([
       pool.execute(
         `SELECT COUNT(*) AS count FROM catalog_products

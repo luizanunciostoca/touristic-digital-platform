@@ -5,7 +5,10 @@ import {
   resolvePlacePresentationActions,
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
-import { applyCatalogSchema, createCatalogRuntime } from "./catalog-platform-runtime.mjs";
+import {
+  applyCatalogSchema,
+  createCatalogRuntime,
+} from "./catalog-platform-runtime.mjs";
 const PLACE_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
 const DEFAULT_DESTINATION = "morro-de-sao-paulo";
 
@@ -141,7 +144,11 @@ function initialPlace(input, now) {
   if (!name) throw new Error("NAME_REQUIRED");
 
   const requestedCapabilities = Array.isArray(input.capabilities)
-    ? [...new Set(input.capabilities.map((value) => clean(value, 80)).filter(Boolean))]
+    ? [
+        ...new Set(
+          input.capabilities.map((value) => clean(value, 80)).filter(Boolean),
+        ),
+      ]
     : ["directions"];
   return Object.freeze({
     id: placeId,
@@ -1016,7 +1023,10 @@ export function createPlacePlatformRuntime({
       .filter((user) => user.businessIds?.includes(businessId))
       .map((user) => ({ id: user.id, email: user.email, role: user.role }));
     const catalog = place
-      ? await catalogRuntime.getCounts(String(place.businessId), String(place.id))
+      ? await catalogRuntime.getCounts(
+          String(place.businessId),
+          String(place.id),
+        )
       : { productCount: 0, offerCount: 0, menuCount: 0 };
     return Object.freeze({
       businessId: row.business_id,

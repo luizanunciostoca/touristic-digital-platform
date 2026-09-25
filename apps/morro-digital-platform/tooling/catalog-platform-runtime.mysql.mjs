@@ -77,21 +77,19 @@ test(
         categoryId: "nightlife",
         name: "Catalog Integration Place",
         shortDescription: "Place com catálogo canônico persistido",
-        capabilities: [
-          "directions",
-          "products",
-          "offers",
-          "menu",
-          "tickets",
-        ],
+        capabilities: ["directions", "products", "offers", "menu", "tickets"],
       });
-      const locationRevision = await placeRuntime.updateLocation(actor, businessId, {
-        latitude: -13.3776,
-        longitude: -38.9142,
-        address: "Morro de São Paulo",
-        area: "Centro",
-        source: "manual",
-      });
+      const locationRevision = await placeRuntime.updateLocation(
+        actor,
+        businessId,
+        {
+          latitude: -13.3776,
+          longitude: -38.9142,
+          address: "Morro de São Paulo",
+          area: "Centro",
+          source: "manual",
+        },
+      );
 
       const scope = { businessId };
       await catalog.service.createProduct(scope, {
