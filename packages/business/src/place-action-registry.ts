@@ -480,7 +480,10 @@ function actionFor(
       if (!context.providers?.transportBookingAvailable) return null;
       break;
     case "tickets": {
-      const commerce = commerceAvailability(context, offers);
+      const ticketOffers = offers.filter((offer) =>
+        Boolean(inventoryFor(context, String(offer.id))),
+      );
+      const commerce = commerceAvailability(context, ticketOffers);
       if (!commerce) return null;
       availability = commerce.availability;
       disabled = availability !== "available";
