@@ -153,6 +153,25 @@ export async function applyCatalogSchema(pool) {
       KEY idx_catalog_item_category (category_id, sort_order)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS catalog_public_snapshots (
+      place_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      business_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      place_revision INT UNSIGNED NOT NULL,
+      catalog_json JSON NOT NULL,
+      created_at DATETIME(3) NOT NULL,
+      updated_at DATETIME(3) NOT NULL,
+      PRIMARY KEY (place_id, place_revision),
+      CONSTRAINT fk_catalog_snapshot_place
+        FOREIGN KEY (place_id) REFERENCES business_places(place_id)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+      CONSTRAINT fk_catalog_snapshot_business
+        FOREIGN KEY (business_id) REFERENCES business_entities(id)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+      KEY idx_catalog_snapshot_business (business_id, place_id, place_revision)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
 }
 
 function productFromRow(row) {
@@ -506,42 +525,158 @@ export function createCatalogRuntime(pool) {
     return operation(scope, input);
   }
 
-  async function listActionContext(place) {
-    const [productRows] = await pool.execute(
-      `SELECT * FROM catalog_products
-        WHERE business_id = ? AND place_id = ? AND status = 'active'
-        ORDER BY product_id ASC`,
-      [String(place.businessId), String(place.id)],
+  async function listWorkingCatalog(businessId, placeId) {
+    await assertOwnedPlace(pool, businessId, placeId, null);
+    const [productRows, offerRows, menuRows] = await Promise.all([
+      pool.execute(
+        `SELECT * FROM catalog_products
+          WHERE business_id = ? AND place_id = ?
+          ORDER BY product_id ASC`,
+        [String(businessId), String(placeId)],
+      ),
+      pool.execute(
+        `SELECT * FROM catalog_offers
+          WHERE business_id = ? AND place_id = ?
+          ORDER BY offer_id ASC`,
+        [String(businessId), String(placeId)],
+      ),
+      pool.execute(
+        `SELECT * FROM catalog_menus
+          WHERE business_id = ? AND place_id = ?
+          ORDER BY menu_id ASC`,
+        [String(businessId), String(placeId)],
+      ),
+    ]);
+    const menus = menuRows[0].map(menuFromRow);
+    let categories = [];
+    let items = [];
+    if (menus.length > 0) {
+      const menuIds = menus.map(({ id }) => String(id));
+      const placeholders = menuIds.map(() => "?").join(", ");
+      const [categoryRows, itemRows] = await Promise.all([
+        pool.execute(
+          `SELECT * FROM catalog_menu_categories
+            WHERE business_id = ? AND menu_id IN (${placeholders})
+            ORDER BY menu_id ASC, sort_order ASC, category_id ASC`,
+          [String(businessId), ...menuIds],
+        ),
+        pool.execute(
+          `SELECT * FROM catalog_menu_items
+            WHERE business_id = ? AND menu_id IN (${placeholders})
+            ORDER BY menu_id ASC, sort_order ASC, item_id ASC`,
+          [String(businessId), ...menuIds],
+        ),
+      ]);
+      categories = categoryRows[0].map(categoryFromRow);
+      items = itemRows[0].map(itemFromRow);
+    }
+    return Object.freeze({
+      products: Object.freeze(productRows[0].map(productFromRow)),
+      offers: Object.freeze(offerRows[0].map(offerFromRow)),
+      menus: Object.freeze(menus),
+      categories: Object.freeze(categories),
+      items: Object.freeze(items),
+    });
+  }
+
+  async function capturePublicationSnapshot({
+    businessId,
+    placeId,
+    placeRevision,
+  }) {
+    if (!Number.isSafeInteger(placeRevision) || placeRevision < 1) {
+      throw new Error("CATALOG_INVALID_PLACE_REVISION");
+    }
+    const catalog = await listWorkingCatalog(businessId, placeId);
+    const now = new Date();
+    await pool.execute(
+      `INSERT INTO catalog_public_snapshots
+        (place_id, business_id, place_revision, catalog_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         business_id = VALUES(business_id),
+         catalog_json = VALUES(catalog_json),
+         updated_at = VALUES(updated_at)`,
+      [
+        String(placeId),
+        String(businessId),
+        placeRevision,
+        JSON.stringify(catalog),
+        now,
+        now,
+      ],
     );
-    const products = productRows.map(productFromRow);
-    if (products.length === 0) {
+    return catalog;
+  }
+
+  async function getPublishedSnapshot(place) {
+    const [rows] = await pool.execute(
+      `SELECT snapshot.catalog_json
+         FROM catalog_public_snapshots snapshot
+         INNER JOIN business_places place_record
+           ON place_record.place_id = snapshot.place_id
+          AND place_record.business_id = snapshot.business_id
+          AND place_record.published_revision = snapshot.place_revision
+        WHERE snapshot.place_id = ?
+          AND snapshot.business_id = ?
+          AND place_record.publication_state = 'published'
+        LIMIT 1`,
+      [String(place.id), String(place.businessId)],
+    );
+    return rows[0] ? parseJson(rows[0].catalog_json, null) : null;
+  }
+
+  async function backfillPublishedSnapshots() {
+    const [rows] = await pool.execute(
+      `SELECT place_id, business_id, published_revision
+         FROM business_places
+        WHERE publication_state = 'published'
+          AND published_revision IS NOT NULL`,
+    );
+    for (const row of rows) {
+      const [existing] = await pool.execute(
+        `SELECT 1
+           FROM catalog_public_snapshots
+          WHERE place_id = ? AND place_revision = ?
+          LIMIT 1`,
+        [String(row.place_id), Number(row.published_revision)],
+      );
+      if (existing[0]) continue;
+      await capturePublicationSnapshot({
+        businessId: String(row.business_id),
+        placeId: String(row.place_id),
+        placeRevision: Number(row.published_revision),
+      });
+    }
+  }
+
+  async function listActionContext(place) {
+    const snapshot = await getPublishedSnapshot(place);
+    if (!snapshot) {
       return Object.freeze({
         products: Object.freeze([]),
         offers: Object.freeze([]),
         menus: Object.freeze([]),
+        categories: Object.freeze([]),
+        items: Object.freeze([]),
       });
     }
-    const productIds = products.map(({ id }) => String(id));
-    const placeholders = productIds.map(() => "?").join(", ");
-    const [offerRows, menuRows] = await Promise.all([
-      pool.execute(
-        `SELECT * FROM catalog_offers
-          WHERE business_id = ? AND place_id = ?
-            AND product_id IN (${placeholders})
-          ORDER BY offer_id ASC`,
-        [String(place.businessId), String(place.id), ...productIds],
-      ),
-      pool.execute(
-        `SELECT * FROM catalog_menus
-          WHERE business_id = ? AND place_id = ? AND status = 'active'
-          ORDER BY menu_id ASC`,
-        [String(place.businessId), String(place.id)],
-      ),
-    ]);
+    const products = Object.freeze(
+      (snapshot.products ?? []).filter((product) => product.status === "active"),
+    );
+    const productIds = new Set(products.map(({ id }) => String(id)));
     return Object.freeze({
-      products: Object.freeze(products),
-      offers: Object.freeze(offerRows[0].map(offerFromRow)),
-      menus: Object.freeze(menuRows[0].map(menuFromRow)),
+      products,
+      offers: Object.freeze(
+        (snapshot.offers ?? []).filter((offer) =>
+          productIds.has(String(offer.productId)),
+        ),
+      ),
+      menus: Object.freeze(
+        (snapshot.menus ?? []).filter((menu) => menu.status === "active"),
+      ),
+      categories: Object.freeze(snapshot.categories ?? []),
+      items: Object.freeze(snapshot.items ?? []),
     });
   }
 
@@ -606,22 +741,10 @@ export function createCatalogRuntime(pool) {
       });
     }
 
-    const [categoryRows, itemRows] = await Promise.all([
-      pool.execute(
-        `SELECT * FROM catalog_menu_categories
-          WHERE business_id = ? AND menu_id = ?
-          ORDER BY sort_order ASC, category_id ASC`,
-        [String(place.businessId), String(menu.id)],
-      ),
-      pool.execute(
-        `SELECT * FROM catalog_menu_items
-          WHERE business_id = ? AND menu_id = ?
-          ORDER BY sort_order ASC, item_id ASC`,
-        [String(place.businessId), String(menu.id)],
-      ),
-    ]);
-    const items = itemRows[0].map(itemFromRow);
-    const categories = categoryRows[0].map(categoryFromRow).map((category) =>
+    const items = context.items;
+    const categories = context.categories
+      .filter((category) => String(category.menuId) === String(menu.id))
+      .map((category) =>
       Object.freeze({
         id: String(category.id),
         name: category.name,
@@ -687,6 +810,9 @@ export function createCatalogRuntime(pool) {
       },
     }),
     listActionContext,
+    listWorkingCatalog,
+    capturePublicationSnapshot,
+    backfillPublishedSnapshots,
     getPublicCommerce,
     getCounts,
   });
