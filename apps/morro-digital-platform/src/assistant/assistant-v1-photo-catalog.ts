@@ -152,6 +152,22 @@ const NORMALIZED_PHOTO_CATALOG = V1_PHOTO_ENTRIES.map(([name, stem]) => ({
   images: [1, 2, 3].map((index) => `${V1_PHOTO_BASE_PATH}${stem}${index}.jpg`),
 }));
 
+export interface AssistantV1PhotoCatalogEntry {
+  readonly place: string;
+  readonly images: readonly string[];
+}
+
+export function listAssistantV1PhotoCatalogEntries(): readonly AssistantV1PhotoCatalogEntry[] {
+  return Object.freeze(
+    NORMALIZED_PHOTO_CATALOG.map((entry) =>
+      Object.freeze({
+        place: entry.name,
+        images: Object.freeze([...entry.images]),
+      }),
+    ),
+  );
+}
+
 export interface AssistantPhotoSet {
   readonly place: string;
   readonly images: readonly string[];
