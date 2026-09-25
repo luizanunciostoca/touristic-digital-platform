@@ -38,4 +38,4 @@ jobs:
           pnpm --filter @touristic/core build
           pnpm --filter @touristic/business build
           pnpm --filter @touristic/content-server build
-      - run: node --test apps/morro-digital-platform/tooling/place-platform-runtime.test.mjs
+      - run: node --test apps/morro-digital-platform/tooling/place-platform-runtime.mysql.mjs
