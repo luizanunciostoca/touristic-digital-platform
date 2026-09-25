@@ -96,7 +96,9 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(browser).toContain('item.source !== "canonical"');
     expect(browser).toContain("{ placeId: item.placeId }");
 
-    expect(control).toContain('readonly source: "canonical" | "local" | "mapbox"');
+    expect(control).toContain(
+      'readonly source: "canonical" | "local" | "mapbox"',
+    );
     expect(control).toContain("createPublicPlaceMapClient");
     expect(control).toContain("canonicalPlaceId");
     expect(control).toContain("detail.actions.secondaryActions");
