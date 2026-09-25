@@ -382,6 +382,96 @@ describe("assistant browser domain adapter", () => {
     );
   });
 
+  it("prefers canonical published Place media before the V1 photo catalog", async () => {
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async (input) => {
+        const url = String(input);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: "place-segunda-praia",
+                  name: "Segunda Praia",
+                  category: "beaches",
+                  lat: -13.3801,
+                  lng: -38.9118,
+                  presentation: { markerKey: "beaches", priority: 10 },
+                },
+              ],
+              nextCursor: null,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.startsWith("/api/places/v1/place-segunda-praia?")) {
+          return new Response(
+            JSON.stringify({
+              profile: {
+                id: "place-segunda-praia",
+                name: "Segunda Praia",
+                categoryId: "beaches",
+                location: { latitude: -13.3801, longitude: -38.9118 },
+              },
+              media: {
+                placeId: "place-segunda-praia",
+                coverImage: {
+                  mediaId: "media-cover",
+                  provider: "filesystem",
+                  providerReference: "/media/business-a/segunda.webp",
+                  mimeType: "image/webp",
+                  width: 1200,
+                  height: 800,
+                  alt: "Segunda Praia",
+                },
+                gallery: [],
+                logo: null,
+              },
+              commerce: null,
+              actions: {
+                placeId: "place-segunda-praia",
+                businessId: "business-a",
+                destinationId: "morro-de-sao-paulo",
+                primaryAction: null,
+                secondaryActions: [],
+              },
+              partial: {
+                media: "ready",
+                commerce: "ready",
+                actions: "ready",
+              },
+              revision: { id: "revision-3", number: 3 },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        return new Response(null, { status: 404 });
+      },
+    );
+    const handlers = createAssistantBrowserDomainHandlers({
+      fetch: fetchImplementation,
+    });
+
+    const response = await handlers.photos?.(request("photos", "segunda"));
+
+    expect(response).toEqual({
+      text: "Encontrei 1 foto de Segunda Praia.",
+      metadata: {
+        domain: "photos",
+        state: "resolved",
+        source: "canonical",
+        place: "Segunda Praia",
+        placeId: "place-segunda-praia",
+        images: ["/media/business-a/segunda.webp"],
+        presentation: "carousel",
+      },
+    });
+    expect(fetchImplementation).not.toHaveBeenCalledWith(
+      "/images/fotos/segunda_praia1.jpg",
+      { method: "HEAD" },
+    );
+  });
+
   it("resolves the V1 photo catalog only when its static assets are reachable", async () => {
     const fetchImplementation = vi.fn(
       async () => new Response(null, { status: 200 }),
