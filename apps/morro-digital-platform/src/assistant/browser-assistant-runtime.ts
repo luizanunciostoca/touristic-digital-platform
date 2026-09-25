@@ -32,6 +32,10 @@ import {
   resolveAssistantContextualCopy,
   resolveExploreContextualState,
 } from "./assistant-contextual-state.js";
+import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
+import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
+import { composeConversationVoice } from "./assistant-conversation-voice-composer.js";
+import { evaluateConversationPolicy } from "./assistant-conversation-policy.js";
 import {
   clearAssistantDomOptions,
   readAssistantResponseOptions,
@@ -718,6 +722,7 @@ export function installBrowserAssistantRuntime(
   });
   const profile = createAssistantUserProfileManager(storage ? { storage } : {});
   const messages = createAssistantMessageDom({ document: options.document });
+  const conversation = getAssistantConversationOrchestrator(options.document);
   const navigationHandlers = createAssistantNavigationAppHandlers({
     navigation: options.navigation,
     resolver: createMorroAssistantV1DestinationResolver(),
@@ -879,6 +884,10 @@ export function installBrowserAssistantRuntime(
   const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
   let requestGeneration = 0;
+  const dropStaleResponse = (): AssistantDialogResponse => {
+    conversation.recordStaleResponseDropped();
+    return supersededResponse();
+  };
   let currentPresentation: AssistantPresentationSnapshot | null = null;
   let legacyMenuRouting = false;
   let profiledExploreCategory: string | null = null;
@@ -887,8 +896,42 @@ export function installBrowserAssistantRuntime(
   const appendStandardMessage = (
     sender: "user" | "assistant",
     text: string,
+    userAction?: string,
   ): void => {
-    messages.append({ sender, html: text, messageType: "standard" });
+    if (sender === "user") {
+      messages.append({ sender, html: text, messageType: "standard" });
+      return;
+    }
+
+    const turn = conversation.transition({
+      cause: "assistant_response",
+      messageKey: "assistant_response",
+      renderedText: text,
+      source: "assistant_runtime",
+      ...(userAction ? { userAction } : {}),
+      priority: userAction ? "explicit" : "contextual",
+    });
+    messages.append({
+      sender,
+      html: turn.renderedText,
+      messageType: "standard",
+    });
+    const assistantMessages = Array.from(
+      options.document.querySelectorAll<HTMLElement>(
+        "#assistant-messages .messages-area .message.assistant",
+      ),
+    );
+    const created = assistantMessages.at(-1);
+    if (created) {
+      created.dataset.conversationTurnId = turn.id;
+      if (turn.previousTurnId) {
+        created.dataset.previousConversationTurnId = turn.previousTurnId;
+      } else {
+        delete created.dataset.previousConversationTurnId;
+      }
+      created.dataset.conversationCause = turn.cause;
+      created.dataset.conversationMessageKey = turn.messageKey;
+    }
   };
 
   const voiceLanguage = () =>
@@ -1053,13 +1096,13 @@ export function installBrowserAssistantRuntime(
         navigationActive,
       });
       if (destroyed || generation !== requestGeneration) {
-        return supersededResponse();
+        return dropStaleResponse();
       }
 
       clearAssistantDomOptions(options.document);
       removePhotoPresentation(options.document);
       appendStandardMessage("user", submittedValue);
-      appendStandardMessage("assistant", response.text);
+      appendStandardMessage("assistant", response.text, submittedValue);
       const responseOptions = readAssistantResponseOptions(response);
       if (responseOptions.length > 0) {
         const renderedOptions = renderAssistantDomOptions(
@@ -1101,7 +1144,7 @@ export function installBrowserAssistantRuntime(
 
     if (placeAction) {
       if (destroyed || generation !== requestGeneration) {
-        return supersededResponse();
+        return dropStaleResponse();
       }
 
       clearAssistantDomOptions(options.document);
@@ -1109,7 +1152,7 @@ export function installBrowserAssistantRuntime(
       appendStandardMessage("user", submittedValue);
 
       const response = placeAction.response;
-      appendStandardMessage("assistant", response.text);
+      appendStandardMessage("assistant", response.text, submittedValue);
       const suppressedValues = new Set([
         ...suppressOptionValues.map((item) => item.trim()).filter(Boolean),
         ...readPlaceOwnedActionValues(options.document),
@@ -1222,7 +1265,7 @@ export function installBrowserAssistantRuntime(
     }
 
     if (destroyed || generation !== requestGeneration) {
-      return supersededResponse();
+      return dropStaleResponse();
     }
 
     if (menuRouted) {
@@ -1257,9 +1300,11 @@ export function installBrowserAssistantRuntime(
     removePhotoPresentation(options.document);
     appendStandardMessage("user", submittedValue);
     const response = await controller.processUserInput(value);
-    if (destroyed || generation !== requestGeneration) return response;
+    if (destroyed || generation !== requestGeneration) {
+      return dropStaleResponse();
+    }
 
-    appendStandardMessage("assistant", response.text);
+    appendStandardMessage("assistant", response.text, submittedValue);
     const suppressedValues = new Set([
       ...suppressOptionValues.map((value) => value.trim()).filter(Boolean),
       ...readPlaceOwnedActionValues(options.document),
@@ -1313,7 +1358,7 @@ export function installBrowserAssistantRuntime(
       for (const command of deterministicCommands) {
         const executed = await options.explore.execute(command);
         if (destroyed || generation !== requestGeneration) {
-          return supersededResponse();
+          return dropStaleResponse();
         }
         if (!executed) {
           actionExecuted = false;
@@ -1502,23 +1547,72 @@ export function installBrowserAssistantRuntime(
     const language = normalizeAssistantContextualLanguage(
       options.document.documentElement.lang,
     );
-    const rendered = resolveAssistantContextualCopy(
+    const category = resolveAssistantContextualCategoryLabel(
+      state.category,
+      language,
+    );
+    const place = placeHint ?? state.place;
+    const draft = resolveAssistantContextualCopy(
       contextualState,
       {
-        category: resolveAssistantContextualCategoryLabel(
-          state.category,
-          language,
-        ),
-        place: placeHint ?? state.place,
+        category,
+        place,
         count: state.markerCount,
       },
       language,
     );
+    const previousState = conversation.snapshot();
+    const policy = evaluateConversationPolicy({
+      cause: contextualState,
+      source: "explore",
+      previousState,
+    });
+    if (!policy.present) return;
+
+    const rendered = composeConversationResponse({
+      messageKey: contextualState,
+      language,
+      draft,
+      previousState,
+      ...(category ? { category } : {}),
+      ...(place ? { place } : {}),
+      count: state.markerCount,
+    });
+    const voiceCopy = composeConversationVoice({
+      messageKey: contextualState,
+      language,
+      fallback: rendered.voiceCopy,
+      ...(category ? { category } : {}),
+      ...(place ? { place } : {}),
+      count: state.markerCount,
+    });
+    const turn = conversation.transition({
+      cause: contextualState,
+      messageKey: contextualState,
+      renderedText: rendered.message,
+      voiceText: voiceCopy,
+      source: "explore",
+      ...(category ? { category } : {}),
+      ...(place ? { place } : {}),
+      resultCount: state.markerCount,
+      journey: "explore",
+      journeyStep: state.stage,
+      priority: policy.priority,
+    });
 
     canonicalMessage.dataset.contextualState = contextualState;
+    canonicalMessage.dataset.conversationTurnId = turn.id;
+    if (turn.previousTurnId) {
+      canonicalMessage.dataset.previousConversationTurnId = turn.previousTurnId;
+    } else {
+      delete canonicalMessage.dataset.previousConversationTurnId;
+    }
+    canonicalMessage.dataset.conversationCause = turn.cause;
+    canonicalMessage.dataset.conversationMessageKey = turn.messageKey;
+    canonicalMessage.dataset.conversationPriority = turn.priority;
     if (rendered.cta) canonicalMessage.dataset.contextualCta = rendered.cta;
     else delete canonicalMessage.dataset.contextualCta;
-    canonicalMessage.dataset.contextualVoiceCopy = rendered.voiceCopy;
+    canonicalMessage.dataset.contextualVoiceCopy = voiceCopy;
 
     const isPlainCategoryFlow =
       canonicalMessage.dataset.messageType === "category-flow" &&

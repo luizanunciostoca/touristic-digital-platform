@@ -21,6 +21,11 @@ export interface AssistantMessageDom {
   ): number;
 }
 
+const SHARED_MESSAGE_DOM_BY_DOCUMENT = new WeakMap<
+  Document,
+  AssistantMessageDom
+>();
+
 function getOrCreateArea(
   document: Document,
   area: AssistantMessageArea,
@@ -78,7 +83,7 @@ function renderRecord(
   return message;
 }
 
-export function createAssistantMessageDom(
+function createAssistantMessageDomInstance(
   options: AssistantMessageDomOptions,
 ): AssistantMessageDom {
   const pipeline = createAssistantMessagePipeline({
@@ -135,4 +140,19 @@ export function createAssistantMessageDom(
       return removed;
     },
   });
+}
+
+export function createAssistantMessageDom(
+  options: AssistantMessageDomOptions,
+): AssistantMessageDom {
+  if (options.now) {
+    return createAssistantMessageDomInstance(options);
+  }
+
+  const existing = SHARED_MESSAGE_DOM_BY_DOCUMENT.get(options.document);
+  if (existing) return existing;
+
+  const created = createAssistantMessageDomInstance(options);
+  SHARED_MESSAGE_DOM_BY_DOCUMENT.set(options.document, created);
+  return created;
 }
