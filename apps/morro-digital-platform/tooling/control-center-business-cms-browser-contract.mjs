@@ -62,6 +62,89 @@ try {
   await location.getByRole("button", { name: "Confirmar localização" }).click();
   await page.getByText("Localização salva como revisão editável.").waitFor();
 
+  await page.getByRole("tab", { name: "Produtos" }).click();
+
+  let productForm = page.locator('[data-business-catalog-kind="product"]');
+  await productForm.locator('[name="name"]').fill("Passeio Sunset");
+  await productForm
+    .locator('[name="description"]')
+    .fill("Produto browser canônico");
+  await productForm.locator('[name="tags"]').fill("sunset, passeio");
+  await productForm.getByRole("button", { name: "Salvar produto" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  await page
+    .locator(".module-row")
+    .filter({ hasText: "Passeio Sunset" })
+    .getByRole("button", { name: "Editar" })
+    .click();
+  productForm = page.locator('[data-business-catalog-kind="product"]');
+  await productForm.locator('[name="status"]').selectOption("active");
+  await productForm.getByRole("button", { name: "Salvar produto" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  let offerForm = page.locator('[data-business-catalog-kind="offer"]');
+  await offerForm.locator('[name="productId"]').selectOption({ index: 1 });
+  await offerForm.locator('[name="price"]').fill("120,00");
+  await offerForm.locator('[name="capacity"]').fill("20");
+  await offerForm.getByRole("button", { name: "Salvar oferta" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  const offerRow = page
+    .locator(".module-row")
+    .filter({ hasText: "BRL 120.00" })
+    .first();
+  await offerRow.getByRole("button", { name: "Editar" }).click();
+  offerForm = page.locator('[data-business-catalog-kind="offer"]');
+  await offerForm.locator('[name="status"]').selectOption("active");
+  await offerForm.getByRole("button", { name: "Salvar oferta" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  let menuForm = page.locator('[data-business-catalog-kind="menu"]');
+  await menuForm.locator('[name="name"]').fill("Cardápio Browser");
+  await menuForm.locator('[name="description"]').fill("Cardápio canônico");
+  await menuForm.getByRole("button", { name: "Salvar menu" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  await page
+    .locator(".module-row")
+    .filter({ hasText: "Cardápio Browser" })
+    .getByRole("button", { name: "Editar" })
+    .click();
+  menuForm = page.locator('[data-business-catalog-kind="menu"]');
+  await menuForm.locator('[name="status"]').selectOption("active");
+  await menuForm.getByRole("button", { name: "Salvar menu" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  let categoryForm = page.locator(
+    '[data-business-catalog-kind="menu-category"]',
+  );
+  await categoryForm.locator('[name="menuId"]').selectOption({ index: 1 });
+  await categoryForm.locator('[name="name"]').fill("Experiências");
+  await categoryForm.locator('[name="sortOrder"]').fill("0");
+  await categoryForm.getByRole("button", { name: "Salvar categoria" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  let itemForm = page.locator('[data-business-catalog-kind="menu-item"]');
+  await itemForm.locator('[name="menuId"]').selectOption({ index: 1 });
+  await itemForm.locator('[name="categoryId"]').selectOption({ index: 1 });
+  await itemForm.locator('[name="name"]').fill("Experiência Morro");
+  await itemForm.locator('[name="description"]').fill("Item browser");
+  await itemForm.locator('[name="price"]').fill("45,00");
+  await itemForm.locator('[name="sortOrder"]').fill("0");
+  await itemForm.getByRole("button", { name: "Salvar item" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
+  await page
+    .locator(".module-row")
+    .filter({ hasText: "Experiência Morro" })
+    .getByRole("button", { name: "Editar" })
+    .click();
+  itemForm = page.locator('[data-business-catalog-kind="menu-item"]');
+  await itemForm.locator('[name="available"]').check();
+  await itemForm.getByRole("button", { name: "Salvar item" }).click();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
+
   await page.getByRole("tab", { name: "Publicação" }).click();
   await page.getByRole("button", { name: "Solicitar revisão" }).click();
   await page.getByRole("button", { name: "Publicar revisão" }).waitFor();
@@ -72,7 +155,15 @@ try {
     `${origin}/api/places/v1/place-${businessId}`,
   );
   assert.equal(detail.status(), 200, await detail.text());
-  assert.equal((await detail.json()).profile.name, "Empresa browser");
+  const publicDetail = await detail.json();
+  assert.equal(publicDetail.profile.name, "Empresa browser");
+  assert.equal(publicDetail.commerce.offers.length, 1);
+  assert.equal(publicDetail.commerce.offers[0].name, "Passeio Sunset");
+  assert.equal(publicDetail.commerce.menu.name, "Cardápio Browser");
+  assert.equal(
+    publicDetail.commerce.menu.categories[0].items[0].name,
+    "Experiência Morro",
+  );
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(
@@ -87,6 +178,14 @@ try {
     `${origin}/api/admin/v1/businesses/cms`,
   );
   assert.equal(forbidden.status(), 403, await forbidden.text());
+  const forbiddenCatalog = await denied.request.post(
+    `${origin}/api/admin/v1/businesses/${businessId}/cms/catalog/product`,
+    {
+      headers: { "Content-Type": "application/json" },
+      data: { name: "Forbidden", description: "must be denied" },
+    },
+  );
+  assert.equal(forbiddenCatalog.status(), 403, await forbiddenCatalog.text());
   await denied.close();
   await context.close();
   process.stdout.write("Business CMS browser + HTTP acceptance: PASS\n");

@@ -770,6 +770,7 @@ export function createPlacePlatformRuntime({
       await applyCatalogSchema(pool);
       governanceRepository = createGovernanceRepository(pool);
       catalogRuntime = createCatalogRuntime(pool);
+      await catalogRuntime.backfillPublishedSnapshots();
 
       const contentUrl = String(
         getEnvironmentValue("CONTENT_DATABASE_URL") || "",
@@ -993,91 +994,343 @@ export function createPlacePlatformRuntime({
     );
   }
 
-  async function createCatalogDraft(businessId, kind, input) {
+  async function touchCatalogRevision(actor, businessId) {
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE business_id = ?
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [String(businessId)],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("PLACE_NOT_FOUND");
+    const current = governedRecordFromRow(row);
+    return publicationService.saveRevision(
+      {
+        session: actor,
+        correlationId: "control-center-catalog",
+        now: new Date().toISOString(),
+      },
+      current.placeId,
+      current.editableRevision.data,
+      current.editableRevision.revision,
+    );
+  }
+
+  async function finalizeCatalogMutation(actor, businessId, operation) {
+    const result = await operation();
+    await touchCatalogRevision(actor, businessId);
+    return result;
+  }
+
+  async function createCatalogDraft(actor, businessId, kind, input) {
     const place = await catalogPlaceForBusiness(businessId);
     const now = new Date().toISOString();
     const scope = { businessId: String(place.businessId) };
     if (kind === "product") {
-      return catalogRuntime.service.createProduct(scope, {
-        id: `product-${randomUUID()}`,
-        businessId: String(place.businessId),
-        placeId: String(place.id),
-        destinationId: String(place.destinationId),
-        name: clean(input.name, 180),
-        description: clean(input.description, 2000),
-        status: "draft",
-        tags: draftTags(input.tags),
-        legacyReference: null,
-        createdAt: now,
-        updatedAt: now,
-      });
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.createProduct(scope, {
+          id: `product-${randomUUID()}`,
+          businessId: String(place.businessId),
+          placeId: String(place.id),
+          destinationId: String(place.destinationId),
+          name: clean(input.name, 180),
+          description: clean(input.description, 2000),
+          status: "draft",
+          tags: draftTags(input.tags),
+          legacyReference: null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      );
     }
     if (kind === "offer") {
       const minorUnits = Number(input.minorUnits);
       const currency = clean(input.currency || "BRL", 3).toUpperCase();
-      return catalogRuntime.service.createOffer(scope, {
-        id: `offer-${randomUUID()}`,
-        businessId: String(place.businessId),
-        placeId: String(place.id),
-        destinationId: String(place.destinationId),
-        productId: clean(input.productId, 160),
-        price: { minorUnits, currency },
-        salesStartsAt: input.salesStartsAt ? String(input.salesStartsAt) : null,
-        salesEndsAt: input.salesEndsAt ? String(input.salesEndsAt) : null,
-        experienceStartsAt: null,
-        experienceEndsAt: null,
-        capacity:
-          input.capacity === "" || input.capacity == null
-            ? null
-            : Number(input.capacity),
-        status: "draft",
-        legacyLabel: null,
-        createdAt: now,
-        updatedAt: now,
-      });
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.createOffer(scope, {
+          id: `offer-${randomUUID()}`,
+          businessId: String(place.businessId),
+          placeId: String(place.id),
+          destinationId: String(place.destinationId),
+          productId: clean(input.productId, 160),
+          price: { minorUnits, currency },
+          salesStartsAt: input.salesStartsAt
+            ? String(input.salesStartsAt)
+            : null,
+          salesEndsAt: input.salesEndsAt ? String(input.salesEndsAt) : null,
+          experienceStartsAt: input.experienceStartsAt
+            ? String(input.experienceStartsAt)
+            : null,
+          experienceEndsAt: input.experienceEndsAt
+            ? String(input.experienceEndsAt)
+            : null,
+          capacity:
+            input.capacity === "" || input.capacity == null
+              ? null
+              : Number(input.capacity),
+          status: "draft",
+          legacyLabel: null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      );
     }
     if (kind === "menu") {
-      return catalogRuntime.service.createMenu(scope, {
-        id: `menu-${randomUUID()}`,
-        businessId: String(place.businessId),
-        placeId: String(place.id),
-        name: clean(input.name, 180),
-        description: clean(input.description, 2000),
-        status: "draft",
-        fallbackMediaId: null,
-        fallbackDocumentUrl: null,
-        createdAt: now,
-        updatedAt: now,
-      });
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.createMenu(scope, {
+          id: `menu-${randomUUID()}`,
+          businessId: String(place.businessId),
+          placeId: String(place.id),
+          name: clean(input.name, 180),
+          description: clean(input.description, 2000),
+          status: "draft",
+          fallbackMediaId: input.fallbackMediaId
+            ? clean(input.fallbackMediaId, 160)
+            : null,
+          fallbackDocumentUrl: input.fallbackDocumentUrl
+            ? clean(input.fallbackDocumentUrl, 1000)
+            : null,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      );
     }
     if (kind === "menu-category") {
-      return catalogRuntime.service.saveMenuCategory(scope, {
-        id: `menu-category-${randomUUID()}`,
-        businessId: String(place.businessId),
-        menuId: clean(input.menuId, 160),
-        name: clean(input.name, 180),
-        sortOrder: Number(input.sortOrder ?? 0),
-      });
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.saveMenuCategory(scope, {
+          id: `menu-category-${randomUUID()}`,
+          businessId: String(place.businessId),
+          menuId: clean(input.menuId, 160),
+          name: clean(input.name, 180),
+          sortOrder: Number(input.sortOrder ?? 0),
+        }),
+      );
     }
     if (kind === "menu-item") {
-      return catalogRuntime.service.saveMenuItem(scope, {
-        id: `menu-item-${randomUUID()}`,
-        businessId: String(place.businessId),
-        menuId: clean(input.menuId, 160),
-        categoryId: clean(input.categoryId, 160),
-        name: clean(input.name, 180),
-        description: clean(input.description, 2000),
-        price: {
-          minorUnits: Number(input.minorUnits),
-          currency: clean(input.currency || "BRL", 3).toUpperCase(),
-        },
-        mediaId: null,
-        available: false,
-        tags: draftTags(input.tags),
-        allergens: draftTags(input.allergens),
-        sortOrder: Number(input.sortOrder ?? 0),
-      });
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.saveMenuItem(scope, {
+          id: `menu-item-${randomUUID()}`,
+          businessId: String(place.businessId),
+          menuId: clean(input.menuId, 160),
+          categoryId: clean(input.categoryId, 160),
+          name: clean(input.name, 180),
+          description: clean(input.description, 2000),
+          price: {
+            minorUnits: Number(input.minorUnits),
+            currency: clean(input.currency || "BRL", 3).toUpperCase(),
+          },
+          mediaId: input.mediaId ? clean(input.mediaId, 160) : null,
+          available: false,
+          tags: draftTags(input.tags),
+          allergens: draftTags(input.allergens),
+          sortOrder: Number(input.sortOrder ?? 0),
+        }),
+      );
     }
+    throw new Error("CATALOG_DRAFT_KIND_INVALID");
+  }
+
+  async function updateCatalogDraft(actor, businessId, kind, id, input) {
+    const place = await catalogPlaceForBusiness(businessId);
+    const scope = { businessId: String(place.businessId) };
+    const now = new Date().toISOString();
+    const entryId = clean(id, 160);
+    if (!entryId) throw new Error("CATALOG_ENTRY_ID_INVALID");
+
+    if (kind === "product") {
+      const existing = await catalogRuntime.repository.getProduct(entryId);
+      if (!existing) throw new Error("PRODUCT_NOT_FOUND");
+      if (
+        String(existing.businessId) !== String(place.businessId) ||
+        String(existing.placeId) !== String(place.id) ||
+        String(existing.destinationId) !== String(place.destinationId)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.updateProduct(scope, {
+          ...existing,
+          name: clean(input.name ?? existing.name, 180),
+          description: clean(input.description ?? existing.description, 2000),
+          status: clean(input.status ?? existing.status, 24),
+          tags:
+            input.tags === undefined ? existing.tags : draftTags(input.tags),
+          updatedAt: now,
+        }),
+      );
+    }
+
+    if (kind === "offer") {
+      const existing = await catalogRuntime.repository.getOffer(entryId);
+      if (!existing) throw new Error("OFFER_NOT_FOUND");
+      if (
+        String(existing.businessId) !== String(place.businessId) ||
+        String(existing.placeId) !== String(place.id) ||
+        String(existing.destinationId) !== String(place.destinationId)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.updateOffer(scope, {
+          ...existing,
+          productId: clean(input.productId ?? existing.productId, 160),
+          price: {
+            minorUnits:
+              input.minorUnits === undefined
+                ? existing.price.minorUnits
+                : Number(input.minorUnits),
+            currency:
+              input.currency === undefined
+                ? existing.price.currency
+                : clean(input.currency, 3).toUpperCase(),
+          },
+          salesStartsAt:
+            input.salesStartsAt === undefined
+              ? existing.salesStartsAt
+              : input.salesStartsAt
+                ? String(input.salesStartsAt)
+                : null,
+          salesEndsAt:
+            input.salesEndsAt === undefined
+              ? existing.salesEndsAt
+              : input.salesEndsAt
+                ? String(input.salesEndsAt)
+                : null,
+          experienceStartsAt:
+            input.experienceStartsAt === undefined
+              ? existing.experienceStartsAt
+              : input.experienceStartsAt
+                ? String(input.experienceStartsAt)
+                : null,
+          experienceEndsAt:
+            input.experienceEndsAt === undefined
+              ? existing.experienceEndsAt
+              : input.experienceEndsAt
+                ? String(input.experienceEndsAt)
+                : null,
+          capacity:
+            input.capacity === undefined
+              ? existing.capacity
+              : input.capacity === "" || input.capacity == null
+                ? null
+                : Number(input.capacity),
+          status: clean(input.status ?? existing.status, 24),
+          updatedAt: now,
+        }),
+      );
+    }
+
+    if (kind === "menu") {
+      const existing = await catalogRuntime.repository.getMenu(entryId);
+      if (!existing) throw new Error("MENU_NOT_FOUND");
+      if (
+        String(existing.businessId) !== String(place.businessId) ||
+        String(existing.placeId) !== String(place.id)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.updateMenu(scope, {
+          ...existing,
+          name: clean(input.name ?? existing.name, 180),
+          description: clean(input.description ?? existing.description, 2000),
+          status: clean(input.status ?? existing.status, 24),
+          fallbackMediaId:
+            input.fallbackMediaId === undefined
+              ? existing.fallbackMediaId
+              : input.fallbackMediaId
+                ? clean(input.fallbackMediaId, 160)
+                : null,
+          fallbackDocumentUrl:
+            input.fallbackDocumentUrl === undefined
+              ? existing.fallbackDocumentUrl
+              : input.fallbackDocumentUrl
+                ? clean(input.fallbackDocumentUrl, 1000)
+                : null,
+          updatedAt: now,
+        }),
+      );
+    }
+
+    if (kind === "menu-category") {
+      const existing = await catalogRuntime.repository.getMenuCategory(entryId);
+      if (!existing) throw new Error("MENU_CATEGORY_NOT_FOUND");
+      const menu = await catalogRuntime.repository.getMenu(existing.menuId);
+      if (
+        !menu ||
+        String(existing.businessId) !== String(place.businessId) ||
+        String(menu.businessId) !== String(place.businessId) ||
+        String(menu.placeId) !== String(place.id)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.saveMenuCategory(scope, {
+          ...existing,
+          menuId: clean(input.menuId ?? existing.menuId, 160),
+          name: clean(input.name ?? existing.name, 180),
+          sortOrder:
+            input.sortOrder === undefined
+              ? existing.sortOrder
+              : Number(input.sortOrder),
+        }),
+      );
+    }
+
+    if (kind === "menu-item") {
+      const existing = await catalogRuntime.repository.getMenuItem(entryId);
+      if (!existing) throw new Error("MENU_ITEM_NOT_FOUND");
+      const menu = await catalogRuntime.repository.getMenu(existing.menuId);
+      if (
+        !menu ||
+        String(existing.businessId) !== String(place.businessId) ||
+        String(menu.businessId) !== String(place.businessId) ||
+        String(menu.placeId) !== String(place.id)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      return finalizeCatalogMutation(actor, businessId, () =>
+        catalogRuntime.service.saveMenuItem(scope, {
+          ...existing,
+          menuId: clean(input.menuId ?? existing.menuId, 160),
+          categoryId: clean(input.categoryId ?? existing.categoryId, 160),
+          name: clean(input.name ?? existing.name, 180),
+          description: clean(input.description ?? existing.description, 2000),
+          price: {
+            minorUnits:
+              input.minorUnits === undefined
+                ? existing.price.minorUnits
+                : Number(input.minorUnits),
+            currency:
+              input.currency === undefined
+                ? existing.price.currency
+                : clean(input.currency, 3).toUpperCase(),
+          },
+          mediaId:
+            input.mediaId === undefined
+              ? existing.mediaId
+              : input.mediaId
+                ? clean(input.mediaId, 160)
+                : null,
+          available:
+            input.available === undefined
+              ? existing.available
+              : input.available === true || input.available === "true",
+          tags:
+            input.tags === undefined ? existing.tags : draftTags(input.tags),
+          allergens:
+            input.allergens === undefined
+              ? existing.allergens
+              : draftTags(input.allergens),
+          sortOrder:
+            input.sortOrder === undefined
+              ? existing.sortOrder
+              : Number(input.sortOrder),
+        }),
+      );
+    }
+
     throw new Error("CATALOG_DRAFT_KIND_INVALID");
   }
 
@@ -1390,6 +1643,11 @@ export function createPlacePlatformRuntime({
       );
     }
     if (action === "publish") {
+      await catalogRuntime.capturePublicationSnapshot({
+        businessId: String(record.businessId),
+        placeId: String(record.placeId),
+        placeRevision: expectedRevision,
+      });
       return publicationService.publish(
         context,
         record.placeId,
@@ -1410,6 +1668,7 @@ export function createPlacePlatformRuntime({
     updateProfile,
     updateLocation,
     createCatalogDraft,
+    updateCatalogDraft,
     transitionPublication,
   });
 }
