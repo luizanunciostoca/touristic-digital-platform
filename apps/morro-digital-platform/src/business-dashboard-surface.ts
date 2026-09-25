@@ -409,7 +409,9 @@ function selectOptions(
     option.textContent = entry.name;
     select.append(option);
   }
-  if ([...select.options].some((candidate) => candidate.value === current))
+  if (
+    Array.from(select.options).some((candidate) => candidate.value === current)
+  )
     select.value = current;
 }
 
