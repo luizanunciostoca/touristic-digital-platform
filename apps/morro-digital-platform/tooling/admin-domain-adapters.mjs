@@ -367,17 +367,21 @@ export function createBusinessAdminAdapter(
     const code = error instanceof Error ? error.message : "BUSINESS_CMS_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
-      : code.includes("STALE_REVISION") || code.includes("ALREADY_EXISTS")
+      : code.includes("STALE_REVISION") ||
+          code.includes("ALREADY_EXISTS") ||
+          code.includes("DUPLICATE") ||
+          code.includes("CURRENTLY_PUBLISHED")
         ? 409
         : code.includes("AUTH") ||
             code.includes("DENIED") ||
             code.includes("CAPABILITY") ||
-            code.includes("MISMATCH") ||
+            code.includes("OWNER_MISMATCH") ||
             code.includes("CROSS_")
           ? 403
           : code.includes("INVALID") ||
               code.includes("REQUIRED") ||
-              code.includes("NAME_REQUIRED")
+              code.includes("NAME_REQUIRED") ||
+              code.includes("REORDER_SET_MISMATCH")
             ? 400
             : code.includes("UNAVAILABLE") || code.includes("DATABASE")
               ? 503
