@@ -1306,17 +1306,19 @@ export function installExploreLocationsControl({
     return first;
   };
 
-  const recordPlaceAuthority = (input: Readonly<{
-    authority: "canonical" | "external";
-    status:
-      | "canonical-pending"
-      | "canonical-ready"
-      | "canonical-unavailable"
-      | "safe-fallback";
-    source: "canonical" | "local" | "mapbox" | "legacy-local";
-    place: string;
-    placeId?: string;
-  }>): void => {
+  const recordPlaceAuthority = (
+    input: Readonly<{
+      authority: "canonical" | "external";
+      status:
+        | "canonical-pending"
+        | "canonical-ready"
+        | "canonical-unavailable"
+        | "safe-fallback";
+      source: "canonical" | "local" | "mapbox" | "legacy-local";
+      place: string;
+      placeId?: string;
+    }>,
+  ): void => {
     const mapElement = document.getElementById("map");
     if (mapElement) {
       mapElement.dataset.lastPlaceAuthority = input.authority;
