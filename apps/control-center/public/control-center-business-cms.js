@@ -33,6 +33,7 @@ function isCmsContractUnavailable(error) {
       "BUSINESS_ADMIN_ROUTE_NOT_AVAILABLE",
       "DOMAIN_ADMIN_CONTRACT_NOT_REGISTERED",
       "BUSINESS_ADMIN_CONTRACT_REQUIRED",
+      "PLACE_PLATFORM_UNAVAILABLE",
     ].includes(error?.body?.error)
   );
 }
