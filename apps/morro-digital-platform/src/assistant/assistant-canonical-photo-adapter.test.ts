@@ -126,7 +126,9 @@ describe("assistant canonical photo adapter", () => {
     ).toBe(true);
   });
 
-  it("does not expose opaque provider references as public image URLs", async () => {
+  it(
+    "does not expose opaque provider references as public image URLs",
+    async () => {
     const fetchImplementation = vi.fn<typeof globalThis.fetch>(
       async (input) =>
         String(input).startsWith("/api/places/v1/map?")
@@ -145,5 +147,6 @@ describe("assistant canonical photo adapter", () => {
       place: "Segunda Praia",
       images: ["https://cdn.example.com/segunda-2.webp"],
     });
-  });
+    },
+  );
 });
