@@ -58,18 +58,7 @@
   "sizeException": {
     "kind": "mechanical-composition",
     "reason": "Control Tower composition of ten independently scoped and exact-head-audited Business/Place waves into one release-candidate tree. The exception covers aggregate size only and does not waive any functional, security, quality, regression, or accessibility gate.",
-    "sourcePullRequests": [
-      344,
-      348,
-      345,
-      346,
-      351,
-      352,
-      353,
-      355,
-      354,
-      347
-    ],
+    "sourcePullRequests": [344, 348, 345, 346, 351, 352, 353, 355, 354, 347],
     "maxFiles": 80,
     "maxLines": 15000
   }

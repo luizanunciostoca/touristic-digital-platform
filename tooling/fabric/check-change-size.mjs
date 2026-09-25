@@ -39,9 +39,7 @@ if (hardExceeded) {
   const directory = ".morro/changesets";
   const manifests = readdirSync(directory)
     .filter((name) => name.endsWith(".json") && name !== "schema.example.json")
-    .map((name) =>
-      JSON.parse(readFileSync(join(directory, name), "utf8")),
-    );
+    .map((name) => JSON.parse(readFileSync(join(directory, name), "utf8")));
   const exception = manifests.find(
     (manifest) =>
       manifest?.branch === activeBranch &&
@@ -58,7 +56,9 @@ if (hardExceeded) {
     Boolean(exception) &&
     Array.isArray(sourcePullRequests) &&
     sourcePullRequests.length >= 2 &&
-    sourcePullRequests.every((value) => Number.isSafeInteger(value) && value > 0) &&
+    sourcePullRequests.every(
+      (value) => Number.isSafeInteger(value) && value > 0,
+    ) &&
     Number.isSafeInteger(maxFiles) &&
     Number.isSafeInteger(maxLines) &&
     maxFiles >= files &&
