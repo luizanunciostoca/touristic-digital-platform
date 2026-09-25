@@ -85,7 +85,7 @@ jobs:
           pnpm --filter @touristic/auth-server build
       - name: Validate Content Node runtime exports
         run: |
-          node --input-type=module -e "const m = await import('@touristic/content-server'); if (typeof m.applyContentM156Schema !== 'function' || typeof m.MySqlPlaceMediaRepository !== 'function') process.exit(1)"
+          pnpm --filter @touristic/morro-digital-platform exec node --input-type=module -e "const m = await import('@touristic/content-server'); if (typeof m.applyContentM156Schema !== 'function' || typeof m.MySqlPlaceMediaRepository !== 'function') process.exit(1)"
 
       - name: Validate Control Center orchestration
         run: |
