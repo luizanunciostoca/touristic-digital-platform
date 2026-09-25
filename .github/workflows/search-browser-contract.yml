@@ -45,13 +45,6 @@ jobs:
         run: |
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
-      - name: Emit canonical Prettier output for hybrid proof
-        run: |
-          pnpm exec prettier --write apps/morro-digital-platform/tooling/search-canonical-place-browser-contract.mjs
-          printf 'PRETTIER_B64='
-          base64 -w0 apps/morro-digital-platform/tooling/search-canonical-place-browser-contract.mjs
-          printf '\n'
-          exit 86
       - name: Build workspace
         run: pnpm -w build
       - name: Start browser asset server
