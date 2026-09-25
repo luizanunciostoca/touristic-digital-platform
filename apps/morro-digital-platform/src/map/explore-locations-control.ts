@@ -1317,9 +1317,7 @@ export function installExploreLocationsControl({
         ? location.placeId.trim()
         : "";
     const canonicalLocation =
-      !canonicalPlaceId &&
-      "source" in location &&
-      location.source === "local"
+      !canonicalPlaceId && "source" in location && location.source === "local"
         ? resolveExploreLocationByName(location.name, location.category)
         : !("source" in location)
           ? location
