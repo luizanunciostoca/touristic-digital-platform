@@ -1,9 +1,9 @@
-import { hasAuthCapability } from "@touristic/auth";
 import type {
   DashboardAuthClient,
   DashboardSessionResponse,
 } from "@touristic/auth-browser";
 import { normalizeBusinessId, type BusinessProfile } from "@touristic/business";
+import { resolveBusinessContext } from "./morro-pro-business-management.js";
 
 export interface MorroProInventoryOffer {
   readonly id: string;
@@ -51,6 +51,7 @@ export interface BusinessDashboardClient {
   ) => Promise<BusinessDashboardBootstrap>;
   readonly loadProfile: (
     businessId: unknown,
+    signal?: AbortSignal,
   ) => Promise<BusinessProfile | null>;
   readonly saveProfile: (
     businessId: unknown,
@@ -58,6 +59,7 @@ export interface BusinessDashboardClient {
   ) => Promise<BusinessProfile>;
   readonly listOffers: (
     businessId: unknown,
+    signal?: AbortSignal,
   ) => Promise<readonly MorroProInventoryOffer[]>;
   readonly createOffer: (
     businessId: unknown,
@@ -82,29 +84,6 @@ function businessInventoryUrl(businessIdInput: unknown): string {
   return `/api/ticketing/v1/operator/businesses/${encodeURIComponent(businessId)}/inventory`;
 }
 
-function selectBusinessId(
-  session: DashboardSessionResponse,
-  requestedBusinessId?: unknown,
-): string {
-  const requested = normalizeBusinessId(requestedBusinessId);
-  const allowed = session.user.businessIds
-    .map((businessId) => normalizeBusinessId(businessId))
-    .filter(Boolean);
-
-  if (requested) {
-    const platformScoped =
-      session.user.capabilities?.includes("platform.read") === true ||
-      hasAuthCapability(session.user.role, "platform.read");
-    if (platformScoped || allowed.includes(requested)) {
-      return requested;
-    }
-  }
-
-  const firstAllowed = allowed[0];
-  if (firstAllowed) return firstAllowed;
-  throw new Error("BUSINESS_SCOPE_REQUIRED");
-}
-
 async function readError(response: Response): Promise<string> {
   const body = (await response
     .clone()
@@ -120,6 +99,7 @@ export function createBusinessDashboardClient(
 ): BusinessDashboardClient {
   async function loadProfile(
     businessIdInput: unknown,
+    signal?: AbortSignal,
   ): Promise<BusinessProfile | null> {
     const response = await authClient.secureFetch(
       businessProfileUrl(businessIdInput),
@@ -127,6 +107,7 @@ export function createBusinessDashboardClient(
         method: "GET",
         headers: { Accept: "application/json" },
         cache: "no-store",
+        signal: signal ?? null,
       },
     );
     if (response.status === 404) return null;
@@ -158,6 +139,7 @@ export function createBusinessDashboardClient(
 
   async function listOffers(
     businessIdInput: unknown,
+    signal?: AbortSignal,
   ): Promise<readonly MorroProInventoryOffer[]> {
     const response = await authClient.secureFetch(
       businessInventoryUrl(businessIdInput),
@@ -165,6 +147,7 @@ export function createBusinessDashboardClient(
         method: "GET",
         headers: { Accept: "application/json" },
         cache: "no-store",
+        signal: signal ?? null,
       },
     );
     if (!response.ok) throw new Error(await readError(response));
@@ -222,7 +205,7 @@ export function createBusinessDashboardClient(
   ): Promise<BusinessDashboardBootstrap> {
     const session = await authClient.getSession();
     if (!session) throw new Error("AUTH_REQUIRED");
-    const businessId = selectBusinessId(session, requestedBusinessId);
+    const businessId = resolveBusinessContext(session, requestedBusinessId);
     const profile = await loadProfile(businessId);
     return Object.freeze({ session, businessId, profile });
   }

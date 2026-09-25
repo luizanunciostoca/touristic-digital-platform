@@ -4,8 +4,27 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./public-projection": "./src/public-projection.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "development": "./src/index.ts",
+      "node": "./dist/index.js",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./public-projection": {
+      "types": "./src/public-projection.ts",
+      "development": "./src/public-projection.ts",
+      "node": "./dist/public-projection.js",
+      "import": "./src/public-projection.ts",
+      "default": "./src/public-projection.ts"
+    },
+    "./place-media": {
+      "types": "./src/place-media.ts",
+      "development": "./src/place-media.ts",
+      "node": "./dist/place-media.js",
+      "import": "./src/place-media.ts",
+      "default": "./src/place-media.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

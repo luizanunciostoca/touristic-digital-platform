@@ -113,6 +113,11 @@ button {
 .sidebar-nav {
   display: grid;
   gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 .nav-item,
 .sidebar-action {
@@ -313,7 +318,8 @@ label {
   font-weight: 600;
 }
 input,
-textarea {
+textarea,
+select {
   width: 100%;
   border: 1px solid #cbd5e1;
   border-radius: 12px;
@@ -351,7 +357,8 @@ textarea {
   color: #e2e8f0;
 }
 :root[data-theme="dark"] input,
-:root[data-theme="dark"] textarea {
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
   background: #111827;
   color: #e2e8f0;
   border-color: #334155;
@@ -407,4 +414,21 @@ textarea {
     grid-template-columns: 1fr;
     gap: 4px;
   }
+}
+
+.business-context {
+  margin-top: 10px;
+  gap: 5px;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+.business-context select {
+  min-width: min(280px, 70vw);
+}
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
 }

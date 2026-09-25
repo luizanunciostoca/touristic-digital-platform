@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@touristic/auth": "workspace:*"
+    "@touristic/auth": "workspace:*",
+    "@touristic/core": "workspace:*"
   },
   "exports": {
     ".": {
@@ -51,6 +52,31 @@
       "types": "./src/onboarding-commercial-conversion.ts",
       "node": "./dist/onboarding-commercial-conversion.js",
       "default": "./src/onboarding-commercial-conversion.ts"
+    },
+    "./place-domain": {
+      "types": "./src/place-domain.ts",
+      "node": "./dist/place-domain.js",
+      "default": "./src/place-domain.ts"
+    },
+    "./commerce-domain": {
+      "types": "./src/commerce-domain.ts",
+      "node": "./dist/commerce-domain.js",
+      "default": "./src/commerce-domain.ts"
+    },
+    "./place-action-registry": {
+      "types": "./src/place-action-registry.ts",
+      "node": "./dist/place-action-registry.js",
+      "default": "./src/place-action-registry.ts"
+    },
+    "./public-place-projection": {
+      "types": "./src/public-place-projection.ts",
+      "node": "./dist/public-place-projection.js",
+      "default": "./src/public-place-projection.ts"
+    },
+    "./place-publication-governance": {
+      "types": "./src/place-publication-governance.ts",
+      "node": "./dist/place-publication-governance.js",
+      "default": "./src/place-publication-governance.ts"
     }
   },
   "scripts": {

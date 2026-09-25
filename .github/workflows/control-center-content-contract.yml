@@ -83,6 +83,10 @@ jobs:
           pnpm --filter @touristic/content-server build
           pnpm --filter @touristic/auth build
           pnpm --filter @touristic/auth-server build
+      - name: Validate Content Node runtime exports
+        run: |
+          pnpm --filter @touristic/morro-digital-platform exec node --input-type=module -e "const m = await import('@touristic/content-server'); if (typeof m.applyContentM156Schema !== 'function' || typeof m.MySqlPlaceMediaRepository !== 'function') process.exit(1)"
+
       - name: Validate Control Center orchestration
         run: |
           pnpm --filter @touristic/morro-digital-platform exec vitest run \
@@ -195,11 +199,38 @@ jobs:
                 { timeout: 15000 },
               );
               await page.locator("#app:not([hidden])").waitFor({ state: "visible" });
+              await page
+                .locator("#content[data-rendered-view]")
+                .waitFor({ state: "attached", timeout: 15000 });
+
+              const adminSession = await page.evaluate(async () => {
+                const response = await fetch("/api/admin/v1/session", {
+                  credentials: "same-origin",
+                  headers: { Accept: "application/json" },
+                });
+                return { status: response.status, body: await response.json() };
+              });
+              if (
+                adminSession.status !== 200 ||
+                !adminSession.body?.actor?.capabilities?.includes("content.manage")
+              ) {
+                throw new Error(
+                  `Content admin session missing content.manage: ${JSON.stringify(adminSession)}`,
+                );
+              }
 
               await page.evaluate(() => {
                 window.location.hash = "#content";
               });
-              await page.locator("#content-create-id").fill("content-browser-0001");
+              await page
+                .locator('#content[data-rendered-view="content"]')
+                .waitFor({ state: "attached", timeout: 15000 });
+              const createForm = page.locator("#content-create-id");
+              if ((await createForm.count()) === 0) {
+                const view = await page.locator("#content").innerText();
+                throw new Error(`Content create form missing after render: ${view}`);
+              }
+              await createForm.fill("content-browser-0001");
               await page.locator("#content-create-title").fill("Segunda Praia");
               await page
                 .locator("#content-create-summary")

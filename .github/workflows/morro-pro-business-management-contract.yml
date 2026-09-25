@@ -1,0 +1,256 @@
+name: Morro Pro Business Management Contract
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/morro-pro-business-management-contract.yml"
+      - "apps/morro-digital-platform/public/business-dashboard.html"
+      - "apps/morro-digital-platform/public/business-dashboard.css"
+      - "apps/morro-digital-platform/src/business-dashboard-client.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-client.test.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
+      - "apps/morro-digital-platform/src/morro-pro-business-management.ts"
+      - "apps/morro-digital-platform/src/morro-pro-business-management.test.ts"
+      - "packages/auth/**"
+      - "packages/auth-browser/**"
+      - "packages/business/**"
+      - "services/auth/**"
+      - "services/business/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  morro-pro-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build workspace
+        run: pnpm -w build
+
+      - name: Run exact Morro Pro unit contracts
+        run: |
+          pnpm --filter @touristic/morro-digital-platform exec vitest run \
+            src/morro-pro-business-management.test.ts \
+            src/business-dashboard-client.test.ts \
+            src/business-dashboard-surface.test.ts
+
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Start authenticated Morro Pro runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4177
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="correct horse battery staple"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 7))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"owner-1",email:"owner@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["business-a","business-b"]},
+            {id:"manager-1",email:"manager@example.com",passwordHash:process.argv[1],role:"manager",businessIds:["business-a"]},
+            {id:"viewer-1",email:"viewer@example.com",passwordHash:process.argv[1],role:"viewer",businessIds:["business-a"]},
+            {id:"admin-1",email:"admin@example.com",passwordHash:process.argv[1],role:"admin",businessIds:["business-a"]}
+          ]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1" \
+            node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/morro-pro-contract.log 2>&1 &
+          echo $! >/tmp/morro-pro-contract.pid
+          for _ in $(seq 1 60); do
+            if curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null; then exit 0; fi
+            sleep 0.25
+          done
+          cat /tmp/morro-pro-contract.log
+          exit 1
+
+      - name: Validate tenant isolation, role policy, switching, mobile and stale requests
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const origin = 'http://127.0.0.1:4177';
+          const password = 'correct horse battery staple';
+
+          async function login(context, email) {
+            const response = await context.request.post(`${origin}/api/dashboard/auth/login`, {
+              headers: { Origin: origin, 'Content-Type': 'application/json' },
+              data: { email, password },
+            });
+            if (response.status() !== 200) throw new Error(`Login failed for ${email}: ${response.status()}`);
+            return response.json();
+          }
+
+          async function seed(context, csrfToken, businessId, name) {
+            const response = await context.request.put(`${origin}/api/business/${businessId}/profile`, {
+              headers: {
+                Origin: origin,
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+              },
+              data: {
+                id: businessId,
+                name,
+                categoryLabel: 'Experiência',
+                description: `Perfil ${name}`,
+                cta: 'Ver empresa',
+                locationLabel: 'Morro de São Paulo',
+              },
+            });
+            if (response.status() !== 200) throw new Error(`Seed failed for ${businessId}: ${response.status()}`);
+          }
+
+          async function openDashboard(page, businessId) {
+            await page.goto(
+              `${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=${businessId}`,
+              { waitUntil: 'domcontentloaded', timeout: 30000 },
+            );
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = { errors: [] };
+            try {
+              const ownerContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+              const ownerPage = await ownerContext.newPage();
+              ownerPage.on('pageerror', error => evidence.errors.push(`owner:${error.message}`));
+              const ownerLogin = await login(ownerContext, 'owner@example.com');
+              await seed(ownerContext, ownerLogin.csrfToken, 'business-a', 'Business A');
+              await seed(ownerContext, ownerLogin.csrfToken, 'business-b', 'Business B');
+
+              await openDashboard(ownerPage, 'business-a');
+              await ownerPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              if ((await ownerPage.locator('#business-name').textContent()) !== 'Business A') {
+                throw new Error('Owner did not open Business A');
+              }
+
+              const expectedOwnerModules = [
+                'Dashboard', 'Perfil', 'Localização', 'Fotos', 'Produtos', 'Ofertas',
+                'Cardápio', 'Reservas', 'Ticketing / check-in', 'Financeiro',
+                'Conteúdo', 'Preview', 'Equipe', 'Configurações',
+              ];
+              const ownerModules = (await ownerPage.locator('.sidebar-nav .nav-item').allTextContents())
+                .map(value => value.trim());
+              for (const label of expectedOwnerModules) {
+                if (!ownerModules.includes(label)) throw new Error(`Owner module missing: ${label}`);
+              }
+
+              const selector = ownerPage.locator('#business-context-selector');
+              await selector.waitFor({ state: 'visible' });
+              if ((await selector.locator('option').allTextContents()).join(',') !== 'business-a,business-b') {
+                throw new Error('Business selector leaked or omitted a scope');
+              }
+              await selector.selectOption('business-b');
+              await ownerPage.locator('#business-name').filter({ hasText: 'Business B' }).waitFor({ timeout: 10000 });
+
+              await ownerPage.route('**/api/business/business-a/profile', async route => {
+                await new Promise(resolve => setTimeout(resolve, 350));
+                await route.continue();
+              });
+              await selector.selectOption('business-a');
+              await selector.selectOption('business-b');
+              await ownerPage.waitForTimeout(600);
+              if ((await ownerPage.locator('#business-name').textContent()) !== 'Business B') {
+                throw new Error('Stale Business A response overwrote current Business B context');
+              }
+
+              await ownerPage.setViewportSize({ width: 390, height: 844 });
+              await ownerPage.locator('#mobile-menu').click();
+              if (!(await ownerPage.locator('#dashboard-sidebar').evaluate(node => node.classList.contains('mobile-open')))) {
+                throw new Error('Mobile Morro Pro navigation did not open');
+              }
+
+              const foreignContext = await browser.newContext();
+              await login(foreignContext, 'viewer@example.com');
+              const foreignPage = await foreignContext.newPage();
+              await openDashboard(foreignPage, 'business-b');
+              await foreignPage.locator('#entry-message').filter({ hasText: 'BUSINESS_ACCESS_DENIED' }).waitFor({ timeout: 10000 });
+              if (!(await foreignPage.locator('#main-dashboard').isHidden())) {
+                throw new Error('Viewer gained cross-business access');
+              }
+              await foreignContext.close();
+
+              const viewerContext = await browser.newContext();
+              await login(viewerContext, 'viewer@example.com');
+              const viewerPage = await viewerContext.newPage();
+              await openDashboard(viewerPage, 'business-a');
+              await viewerPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              if (!(await viewerPage.locator('#profile-name').isDisabled())) throw new Error('Viewer profile input is mutable');
+              if (!(await viewerPage.locator('#save-profile').isDisabled())) throw new Error('Viewer profile submit is mutable');
+              if (await viewerPage.locator('.sidebar-nav .nav-item', { hasText: 'Equipe' }).count()) {
+                throw new Error('Viewer can see owner-only Team module');
+              }
+              await viewerPage.locator('.sidebar-nav .nav-item', { hasText: 'Financeiro' }).waitFor({ state: 'visible' });
+              await viewerContext.close();
+
+              const managerContext = await browser.newContext();
+              await login(managerContext, 'manager@example.com');
+              const managerPage = await managerContext.newPage();
+              await openDashboard(managerPage, 'business-a');
+              await managerPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
+              if (await managerPage.locator('.sidebar-nav .nav-item', { hasText: 'Equipe' }).count()) {
+                throw new Error('Manager can see owner-only Team module');
+              }
+              if (await managerPage.locator('#profile-name').isDisabled()) throw new Error('Manager cannot edit authorized profile');
+              await managerContext.close();
+
+              const adminContext = await browser.newContext();
+              await login(adminContext, 'admin@example.com');
+              const adminPage = await adminContext.newPage();
+              await openDashboard(adminPage, 'business-a');
+              await adminPage.locator('#entry-message').filter({ hasText: 'MORRO_PRO_ROLE_DENIED' }).waitFor({ timeout: 10000 });
+              if (!(await adminPage.locator('#main-dashboard').isHidden())) {
+                throw new Error('Platform admin entered Morro Pro tenant portal');
+              }
+              await adminContext.close();
+
+              evidence.ownerModules = ownerModules;
+              evidence.multiBusiness = true;
+              evidence.staleRequestSuppressed = true;
+              evidence.viewerReadOnly = true;
+              evidence.managerScoped = true;
+              evidence.platformRoleDenied = true;
+              evidence.crossBusinessDenied = true;
+              evidence.mobile = true;
+              if (evidence.errors.length) throw new Error(`Browser errors: ${JSON.stringify(evidence.errors)}`);
+              writeFileSync('/tmp/morro-pro-contract-evidence.json', JSON.stringify(evidence, null, 2));
+              await ownerContext.close();
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Show diagnostics
+        if: failure()
+        run: cat /tmp/morro-pro-contract.log || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: morro-pro-business-management-evidence
+          path: /tmp/morro-pro-contract-evidence.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/morro-pro-contract.pid)" 2>/dev/null || true

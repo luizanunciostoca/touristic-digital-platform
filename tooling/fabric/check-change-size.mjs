@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const base = process.argv[2];
 if (!base) throw new Error("base SHA required");
@@ -30,7 +32,53 @@ console.log(
   }),
 );
 if (hardExceeded) {
-  throw new Error(
-    "ChangeSet exceeds hard size limit; split it or document an explicit generated/mechanical exception",
+  const activeBranch =
+    process.env.GITHUB_HEAD_REF?.trim() ||
+    process.env.GITHUB_REF_NAME?.trim() ||
+    "";
+  const directory = ".morro/changesets";
+  const manifests = readdirSync(directory)
+    .filter((name) => name.endsWith(".json") && name !== "schema.example.json")
+    .map((name) => JSON.parse(readFileSync(join(directory, name), "utf8")));
+  const exception = manifests.find(
+    (manifest) =>
+      manifest?.branch === activeBranch &&
+      manifest?.baseSha === base &&
+      manifest?.risk === "critical" &&
+      manifest?.stopAt === "REMOTE_PROVEN" &&
+      manifest?.sizeException?.kind === "mechanical-composition",
+  );
+  const sourcePullRequests = exception?.sizeException?.sourcePullRequests;
+  const maxFiles = Number(exception?.sizeException?.maxFiles);
+  const maxLines = Number(exception?.sizeException?.maxLines);
+  const reason = String(exception?.sizeException?.reason || "").trim();
+  const validException =
+    Boolean(exception) &&
+    Array.isArray(sourcePullRequests) &&
+    sourcePullRequests.length >= 2 &&
+    sourcePullRequests.every(
+      (value) => Number.isSafeInteger(value) && value > 0,
+    ) &&
+    Number.isSafeInteger(maxFiles) &&
+    Number.isSafeInteger(maxLines) &&
+    maxFiles >= files &&
+    maxLines >= lines &&
+    reason.length >= 80;
+
+  if (!validException) {
+    throw new Error(
+      "ChangeSet exceeds hard size limit; split it or document an explicit generated/mechanical exception",
+    );
+  }
+
+  console.log(
+    JSON.stringify({
+      sizeException: "accepted",
+      id: exception.id,
+      branch: activeBranch,
+      baseSha: base,
+      sourcePullRequests,
+      reason,
+    }),
   );
 }

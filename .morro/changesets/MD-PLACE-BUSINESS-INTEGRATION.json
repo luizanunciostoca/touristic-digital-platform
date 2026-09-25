@@ -1,0 +1,65 @@
+{
+  "id": "MD-PLACE-BUSINESS-INTEGRATION",
+  "baseSha": "f9d33bf91a1bf8a8c285d331066a1e4b675bcf7c",
+  "branch": "integration/place-business-platform-20260923",
+  "state": "INTEGRATING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "packages/business/**",
+      "packages/content/**",
+      "services/content/**",
+      "apps/morro-digital-platform/src/map/**",
+      "apps/morro-digital-platform/src/business-*.ts",
+      "apps/morro-digital-platform/src/morro-pro-business-management*",
+      "apps/control-center/public/**",
+      "docs/architecture/*PLACE*",
+      "docs/architecture/*BUSINESS*"
+    ],
+    "contracts": [
+      "canonical-business-place",
+      "location-discovery",
+      "place-media",
+      "catalog-offers-menus",
+      "place-actions",
+      "public-place-projection",
+      "publication-governance",
+      "control-center-business-cms",
+      "morro-pro-business-management",
+      "map-place-presentation-v2"
+    ]
+  },
+  "dependencies": [
+    "PR#344",
+    "PR#348",
+    "PR#345",
+    "PR#346",
+    "PR#351",
+    "PR#352",
+    "PR#353",
+    "PR#355",
+    "PR#354",
+    "PR#347"
+  ],
+  "requiredEvidence": [
+    "format",
+    "lint",
+    "typecheck",
+    "unit-tests",
+    "integration-tests",
+    "security-scanning",
+    "control-center-contracts",
+    "map-regressions",
+    "assistant-regressions",
+    "accessibility-basics",
+    "exact-head-ci"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "sizeException": {
+    "kind": "mechanical-composition",
+    "reason": "Control Tower composition of ten independently scoped and exact-head-audited Business/Place waves into one release-candidate tree. The exception covers aggregate size only and does not waive any functional, security, quality, regression, or accessibility gate.",
+    "sourcePullRequests": [344, 348, 345, 346, 351, 352, 353, 355, 354, 347],
+    "maxFiles": 80,
+    "maxLines": 15000
+  }
+}

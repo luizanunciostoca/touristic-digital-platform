@@ -30,3 +30,5 @@ export function createContentPool(
     timezone: "Z",
   });
 }
+
+export { MySqlPlaceMediaRepository } from "./mysql-place-media-repository.js";
