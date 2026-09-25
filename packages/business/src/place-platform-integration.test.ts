@@ -65,7 +65,7 @@ function place(): Place {
     amenities: Object.freeze([]),
     tags: Object.freeze(["sunset"]),
     capabilities: Object.freeze({
-      enabled: Object.freeze(["tickets", "directions", "photos"]),
+      enabled: Object.freeze(["tickets", "directions", "photos"] as const),
     }),
     visibility: "public" as const,
     publicationState: "published" as const,
