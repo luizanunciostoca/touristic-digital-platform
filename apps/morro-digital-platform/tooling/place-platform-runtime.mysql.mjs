@@ -209,6 +209,22 @@ test(
       const mediaRevision = await runtime.updateProfile(actor, businessId, {
         shortDescription: "Descrição republicada com nova mídia",
       });
+
+      const draftResponse = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        draftResponse,
+        new URL(
+          `http://127.0.0.1/api/places/v1/${encodeURIComponent(created.placeId)}?locale=pt-BR`,
+        ),
+      );
+      const draftDetail = JSON.parse(draftResponse.body);
+      assert.equal(
+        draftDetail.media.coverImage.providerReference,
+        `places/${created.placeId}/cover-v1.webp`,
+        "the previously published media snapshot must remain visible while a new Place revision is draft",
+      );
+
       const mediaReviewed = await runtime.transitionPublication(
         actor,
         businessId,
