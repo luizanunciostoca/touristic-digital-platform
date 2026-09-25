@@ -14,6 +14,9 @@ on:
       - "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
       - "apps/morro-digital-platform/src/morro-pro-business-management.ts"
       - "apps/morro-digital-platform/src/morro-pro-business-management.test.ts"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/business-api-media.invariants.mjs"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
       - "packages/auth/**"
       - "packages/auth-browser/**"
       - "packages/business/**"
@@ -48,6 +51,9 @@ jobs:
             src/morro-pro-business-management.test.ts \
             src/business-dashboard-client.test.ts \
             src/business-dashboard-surface.test.ts
+
+      - name: Prove Morro Pro Media tenant capability boundary
+        run: node --test apps/morro-digital-platform/tooling/business-api-media.invariants.mjs
 
       - name: Install deterministic Chromium
         run: |
@@ -207,6 +213,11 @@ jobs:
                 throw new Error('Manager can see owner-only Team module');
               }
               if (await managerPage.locator('#profile-name').isDisabled()) throw new Error('Manager cannot edit authorized profile');
+              await managerPage.locator('.sidebar-nav .nav-item', { hasText: 'Fotos' }).click();
+              await managerPage.locator('#morro-pro-media-form').waitFor({ state: 'visible' });
+              if (!(await managerPage.locator('#morro-pro-media-form input[name="file"]').isDisabled())) {
+                throw new Error('Manager can mutate canonical Media without content.manage');
+              }
               await managerContext.close();
 
               const adminContext = await browser.newContext();
