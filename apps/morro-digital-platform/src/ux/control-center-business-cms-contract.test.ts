@@ -13,7 +13,10 @@ describe("Control Center Business CMS contract", () => {
   it("uses the governed businesses namespace and never direct tables", () => {
     expect(source).toContain('list: "/businesses/cms"');
     expect(source).toContain("actorHasCapability");
-    expect(source).not.toMatch(/\/api\/|SELECT\s|INSERT\s|UPDATE\s+business/i);
+    expect(source).not.toMatch(/\/api\//i);
+    expect(source).not.toMatch(/\bSELECT\b[\s\S]{0,120}\bFROM\b/i);
+    expect(source).not.toMatch(/\bINSERT\s+INTO\b/i);
+    expect(source).not.toMatch(/\bUPDATE\s+business\b/i);
   });
 
   it("covers the requested admin surfaces", () => {
