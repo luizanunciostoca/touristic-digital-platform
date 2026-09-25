@@ -1358,7 +1358,9 @@ export function installExploreLocationsControl({
     );
     firstPlaceAction?.focus();
 
-    const browserFetch = document.defaultView?.fetch?.bind(document.defaultView);
+    const browserFetch = document.defaultView?.fetch?.bind(
+      document.defaultView,
+    );
     const canonicalDetailPromise =
       canonicalPlaceId && browserFetch
         ? createPublicPlaceMapClient(browserFetch).getDetail(canonicalPlaceId, {

@@ -270,10 +270,9 @@ jobs:
                 await page.locator(
                   '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Toca do Morcego"]',
                 ).click();
-                const placePrimary = page.locator(
-                  '#assistant-category-rail[data-rail-stage="detail"] [data-explore-action="primary"]',
-                );
-                await placePrimary.waitFor({ state: 'visible', timeout: 10000 });
+                await page.locator(
+                  '#assistant-category-rail[data-rail-stage="detail"] [data-value="como chegar"]',
+                ).waitFor({ state: 'visible', timeout: 10000 });
                 const placeActions = await page.evaluate(() => {
                   const rail = document.querySelector(
                     '#assistant-category-rail[data-rail-stage="detail"]',
@@ -307,12 +306,9 @@ jobs:
                   };
                 });
                 const expectedContextualActions = [
-                  `commerce:offer:${placeOffer.id}`,
-                  'ver cardápio',
                   'como chegar',
                   'ver fotos',
                   'programação',
-                  'whatsapp',
                   '__back_to_places__',
                 ];
                 if (
@@ -320,13 +316,13 @@ jobs:
                   JSON.stringify(placeActions.values) !==
                     JSON.stringify(expectedContextualActions) ||
                   placeActions.railStage !== 'detail' ||
-                  placeActions.primaryIndex !== 0 ||
+                  placeActions.primaryIndex !== -1 ||
                   placeActions.detailTitle !== 'Toca do Morcego' ||
                   placeActions.legacySheetExists ||
-                  !placeActions.primaryText?.includes('Comprar ingressos') ||
+                  placeActions.primaryText !== null ||
                   placeActions.targets.some(target => target.width < 44 || target.height < 44)
                 ) {
-                  throw new Error(`Place commerce contextual CTA drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
+                  throw new Error(`External Place fail-closed action drift on ${viewport.name}: ${JSON.stringify(placeActions)}`);
                 }
                 const contextBeforeHandoff = await page.evaluate(() => {
                   const map = globalThis.mapboxPrimaryInstance;

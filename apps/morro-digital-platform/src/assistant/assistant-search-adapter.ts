@@ -59,10 +59,13 @@ function canonicalSearchScore(name: string, query: string): number | null {
   if (normalizedName.startsWith(normalizedQuery)) return 1;
   if (normalizedName.includes(normalizedQuery)) return 2;
   const tokens = normalizedQuery.split(/\s+/u).filter(Boolean);
-  return tokens.length > 0 &&
+  if (
+    tokens.length > 0 &&
     tokens.every((token) => normalizedName.includes(token))
-    ? 3
-    : null;
+  ) {
+    return 3;
+  }
+  return null;
 }
 
 async function searchCanonicalPlaces(
@@ -89,7 +92,10 @@ async function searchCanonicalPlaces(
     return Object.freeze(
       rawItems
         .filter(isCanonicalSearchPlace)
-        .map((item) => ({ item, score: canonicalSearchScore(item.name, query) }))
+        .map((item) => ({
+          item,
+          score: canonicalSearchScore(item.name, query),
+        }))
         .filter(
           (
             candidate,

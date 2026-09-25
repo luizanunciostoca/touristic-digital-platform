@@ -119,8 +119,8 @@ jobs:
 
               const detailActionValues = {
                 beaches: 'saiba mais',
-                restaurants: 'ver cardápio',
-                hotels: 'ver acomodações',
+                restaurants: 'como chegar',
+                hotels: 'como chegar',
                 tours: 'ponto de encontro',
                 transport: 'horários',
               };
@@ -181,6 +181,17 @@ jobs:
                 ).waitFor({ state: 'visible', timeout: 8000 });
               }
 
+              async function expectRailValuesAbsent(values, label) {
+                const observed = await page.locator(
+                  '#assistant-category-rail[data-rail-stage="detail"] [data-context-rail-option="true"]',
+                ).evaluateAll(buttons => buttons.map(button => button.getAttribute('data-value')));
+                for (const value of values) {
+                  if (observed.includes(value)) {
+                    throw new Error(`${label} exposed forbidden inferred commercial action ${value}: ${JSON.stringify(observed)}`);
+                  }
+                }
+              }
+
               async function expectAction(inputText, action, expectedText) {
                 const before = await page.evaluate(() => globalThis.__placeActionRoutes.length);
                 await submit(inputText);
@@ -207,17 +218,15 @@ jobs:
               );
 
               await openPlace('restaurants', 'Morena Bela');
-              await expectAction(
-                'cardápio',
-                'restaurant_menu',
-                'Este restaurante ainda não possui cardápio digital cadastrado.',
+              await expectRailValuesAbsent(
+                ['ver cardápio', 'reservar mesa', 'whatsapp'],
+                'external restaurant',
               );
 
               await openPlace('hotels', 'Pousada Natureza');
-              await expectAction(
-                'ver quartos',
-                'accommodation_rooms',
-                'Esta hospedagem ainda não possui quartos cadastrados.',
+              await expectRailValuesAbsent(
+                ['ver acomodações', 'reservar', 'whatsapp'],
+                'external hotel',
               );
 
               await openPlace('tours', 'Passeio de Barco Volta à Ilha');
@@ -251,8 +260,6 @@ jobs:
               const actions = routes.map(item => item.action);
               for (const action of [
                 'beach_conditions',
-                'restaurant_menu',
-                'accommodation_rooms',
                 'tour_meeting_point',
                 'transport_fares',
                 'transport_location',
