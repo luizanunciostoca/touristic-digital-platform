@@ -301,6 +301,15 @@ try {
     });
   });
 
+  await page.locator("#assistantInput").waitFor({
+    state: "visible",
+    timeout: 10_000,
+  });
+  await page.locator("#assistantInput").focus();
+  await page
+    .locator("#assistant-messages:not(.hidden)")
+    .waitFor({ state: "visible", timeout: 5_000 });
+
   await page.evaluate(() =>
     globalThis.__canonicalProof.runtime.process("Toca do Morcego"),
   );
