@@ -5,8 +5,7 @@ import {
 } from "@touristic/business";
 import type {
   BusinessDashboardClient,
-  MorroProInventoryOffer,
-  MorroProOfferInput,
+  MorroProCatalog,
 } from "./business-dashboard-client.js";
 import {
   openBusinessProfileView,
@@ -162,223 +161,315 @@ function dispatchProfileAction(
   );
 }
 
-function localDateTimeToIso(value: string): string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("Data/hora inválida.");
-  return date.toISOString();
-}
 
-function priceToMinorUnits(value: string): number {
+function minorUnits(value: string): number {
   const normalized = Number(value.replace(",", "."));
   const minor = Math.round(normalized * 100);
-  if (!Number.isSafeInteger(minor) || minor < 1) {
-    throw new Error("Valor da oferta inválido.");
-  }
+  if (!Number.isSafeInteger(minor) || minor < 0) throw new Error("Valor inválido.");
   return minor;
 }
 
-function referenceSlug(value: string, maximumLength = 32): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-+|-+$/gu, "")
-    .slice(0, maximumLength)
-    .replace(/-+$/gu, "");
+function commaList(value: string): readonly string[] {
+  return Object.freeze(value.split(",").map((entry) => entry.trim()).filter(Boolean));
 }
 
-export function createMorroProOfferReference(
-  businessId: string,
-  placeName: string,
-  label: string,
-): string {
-  const businessReference = referenceSlug(businessId, 32);
-  const placeReference = referenceSlug(placeName, 32);
-  const offerReference = referenceSlug(label, 32);
-  if (!businessReference || !placeReference || !offerReference) {
-    throw new Error("Referência da oferta inválida.");
-  }
-  return `morro-pro:${businessReference}:place-${placeReference}:${offerReference}`;
+function toLocalDateTime(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
-function offerMoney(offer: MorroProInventoryOffer): string {
+function money(price: { minorUnits: number; currency: string }): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: offer.currency,
-  }).format(offer.unitAmountMinor / 100);
+    currency: price.currency || "BRL",
+  }).format(price.minorUnits / 100);
 }
 
-interface OfferSurface {
-  readonly form: HTMLFormElement;
-  readonly status: HTMLElement;
-  readonly list: HTMLElement;
-  readonly label: HTMLInputElement;
-  readonly kind: HTMLSelectElement;
-  readonly price: HTMLInputElement;
-  readonly capacity: HTMLInputElement;
-  readonly maxPerReservation: HTMLInputElement;
-  readonly salesStart: HTMLInputElement;
-  readonly salesEnd: HTMLInputElement;
-  readonly startsAt: HTMLInputElement;
-  readonly endsAt: HTMLInputElement;
+interface CatalogSurface {
+  readonly productForm: HTMLFormElement;
+  readonly offerForm: HTMLFormElement;
+  readonly menuForm: HTMLFormElement;
+  readonly categoryForm: HTMLFormElement;
+  readonly itemForm: HTMLFormElement;
+  readonly productList: HTMLElement;
+  readonly offerList: HTMLElement;
+  readonly menuList: HTMLElement;
+  readonly categoryList: HTMLElement;
+  readonly itemList: HTMLElement;
+  readonly productStatus: HTMLElement;
+  readonly offerStatus: HTMLElement;
+  readonly menuStatus: HTMLElement;
 }
 
-function createOfferSurface(document: Document): OfferSurface {
-  const panel = document.querySelector<HTMLElement>(
-    '[data-view-panel="offers"]',
-  );
-  if (!panel) throw new Error("MISSING_OFFERS_PANEL");
+function catalogPanel(document: Document, module: "products" | "offers" | "menu"): HTMLElement {
+  const panel = document.querySelector<HTMLElement>(`[data-view-panel="${module}"]`);
+  if (!panel) throw new Error(`MISSING_CATALOG_PANEL:${module}`);
   panel.replaceChildren();
+  return panel;
+}
 
-  const wrapper = document.createElement("div");
-  wrapper.className = "settings-grid";
-  wrapper.innerHTML = `
-    <article class="panel-card">
-      <span class="eyebrow">Morro Pro Commerce</span>
-      <h2>Nova oferta</h2>
-      <p>Publique uma experiência diretamente no inventário público do Morro Digital.</p>
-      <form id="morro-pro-offer-form">
-        <label>Nome<input id="morro-pro-offer-label" maxlength="160" required /></label>
-        <label>Tipo
-          <select id="morro-pro-offer-kind">
-            <option value="business_experience">Experiência</option>
-            <option value="tour">Passeio</option>
-            <option value="transport">Transporte / passagem</option>
-          </select>
-        </label>
-        <label>Valor (BRL)<input id="morro-pro-offer-price" type="number" min="0.01" step="0.01" required /></label>
-        <label>Capacidade<input id="morro-pro-offer-capacity" type="number" min="1" max="100000" value="20" required /></label>
-        <label>Máximo por reserva<input id="morro-pro-offer-max" type="number" min="1" max="20" value="4" required /></label>
-        <label>Início das vendas<input id="morro-pro-offer-sales-start" type="datetime-local" required /></label>
-        <label>Fim das vendas<input id="morro-pro-offer-sales-end" type="datetime-local" required /></label>
-        <label>Início da experiência<input id="morro-pro-offer-start" type="datetime-local" required /></label>
-        <label>Fim da experiência<input id="morro-pro-offer-end" type="datetime-local" required /></label>
-        <button class="button" type="submit">Publicar oferta</button>
-        <p id="morro-pro-offer-status" class="form-status" role="status"></p>
-      </form>
-    </article>
-    <article class="panel-card">
-      <span class="eyebrow">Inventário do negócio</span>
-      <h2>Suas ofertas</h2>
-      <div id="morro-pro-offer-list" aria-live="polite"></div>
-    </article>
-  `;
-  panel.append(wrapper);
+function createCatalogSurface(document: Document): CatalogSurface {
+  const products = catalogPanel(document, "products");
+  products.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Catálogo canônico</span>
+        <h2>Produtos</h2>
+        <p>Alterações ficam em revisão editável até a publicação governada.</p>
+        <form id="morro-pro-product-form">
+          <input type="hidden" name="editId" />
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Descrição <textarea name="description" rows="3"></textarea></label>
+          <label>Tags<input name="tags" placeholder="sunset, experiência" /></label>
+          <label>Status<select name="status">
+            <option value="draft">Draft</option><option value="active">Ativo</option>
+            <option value="inactive">Inativo</option><option value="archived">Arquivado</option>
+          </select></label>
+          <button class="button" type="submit">Salvar produto</button>
+          <button class="button secondary" type="reset">Novo</button>
+          <p id="morro-pro-product-status" class="form-status" role="status"></p>
+        </form>
+      </article>
+      <article class="panel-card"><h2>Produtos cadastrados</h2><div id="morro-pro-product-list" aria-live="polite"></div></article>
+    </div>`;
+
+  const offers = catalogPanel(document, "offers");
+  offers.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Catálogo canônico</span>
+        <h2>Ofertas</h2>
+        <p>Catálogo define a oferta pública; Ticketing continua autoridade de inventário/check-in.</p>
+        <form id="morro-pro-catalog-offer-form">
+          <input type="hidden" name="editId" />
+          <label>Produto<select name="productId" required></select></label>
+          <label>Preço (R$)<input name="price" inputmode="decimal" required /></label>
+          <label>Moeda<input name="currency" maxlength="3" value="BRL" required /></label>
+          <label>Capacidade<input name="capacity" type="number" min="0" step="1" /></label>
+          <label>Início vendas<input name="salesStartsAt" type="datetime-local" /></label>
+          <label>Fim vendas<input name="salesEndsAt" type="datetime-local" /></label>
+          <label>Início experiência<input name="experienceStartsAt" type="datetime-local" /></label>
+          <label>Fim experiência<input name="experienceEndsAt" type="datetime-local" /></label>
+          <label>Status<select name="status">
+            <option value="draft">Draft</option><option value="active">Ativa</option>
+            <option value="paused">Pausada</option><option value="sold_out">Esgotada</option>
+            <option value="expired">Expirada</option><option value="archived">Arquivada</option>
+          </select></label>
+          <button class="button" type="submit">Salvar oferta</button>
+          <button class="button secondary" type="reset">Nova</button>
+          <p id="morro-pro-catalog-offer-status" class="form-status" role="status"></p>
+        </form>
+      </article>
+      <article class="panel-card"><h2>Ofertas cadastradas</h2><div id="morro-pro-catalog-offer-list" aria-live="polite"></div></article>
+    </div>`;
+
+  const menu = catalogPanel(document, "menu");
+  menu.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Catálogo canônico</span><h2>Cardápio</h2>
+        <form id="morro-pro-menu-form">
+          <input type="hidden" name="editId" />
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Descrição <textarea name="description" rows="3"></textarea></label>
+          <label>Status<select name="status">
+            <option value="draft">Draft</option><option value="active">Ativo</option>
+            <option value="inactive">Inativo</option><option value="archived">Arquivado</option>
+          </select></label>
+          <label>Media ID<input name="fallbackMediaId" maxlength="160" /></label>
+          <label>Documento fallback<input name="fallbackDocumentUrl" maxlength="1000" /></label>
+          <button class="button" type="submit">Salvar cardápio</button>
+          <button class="button secondary" type="reset">Novo</button>
+        </form>
+        <div id="moro-pro-menu-list" aria-live="polite"></div>
+      </article>
+      <article class="panel-card">
+        <h2>Categorias</h2>
+        <form id="morro-pro-menu-category-form">
+          <input type="hidden" name="editId" />
+          <label>Menu<select name="menuId" required></select></label>
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" required /></label>
+          <button class="button" type="submit">Salvar categoria</button>
+          <button class="button secondary" type="reset">Nova</button>
+        </form>
+        <div id="morro-pro-menu-category-list" aria-live="polite"></div>
+      </article>
+      <article class="panel-card">
+        <h2>Itens</h2>
+        <form id="morro-pro-menu-item-form">
+          <input type="hidden" name="editId" />
+          <label>Menu<select name="menuId" required></select></label>
+          <label>Categoria<select name="categoryId" required></select></label>
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Descrição <textarea name="description" rows="2"></textarea></label>
+          <label>Preço (R$)<input name="price" inputmode="decimal" required /></label>
+          <label>Moeda<input name="currency" maxlength="3" value="BRL" required /></label>
+          <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" required /></label>
+          <label>Media ID<input name="mediaId" maxlength="160" /></label>
+          <label>Tags<input name="tags" /></label>
+          <label>Alérjenos<input name="allergens" /></label>
+          <label><input name="available" type="checkbox" /> Disponível</label>
+          <button class="button" type="submit">Salvar item</button>
+          <button class="button secondary" type="reset">Novo</button>
+        </form>
+        <div id="morro-pro-menu-item-list" aria-live="polite"></div>
+        <p id="morro-pro-menu-status" class="form-status" role="status"></p>
+      </article>
+    </div>`;
 
   return Object.freeze({
-    form: requiredElement<HTMLFormElement>(document, "morro-pro-offer-form"),
-    status: requiredElement(document, "morro-pro-offer-status"),
-    list: requiredElement(document, "morro-pro-offer-list"),
-    label: requiredElement<HTMLInputElement>(document, "morro-pro-offer-label"),
-    kind: requiredElement<HTMLSelectElement>(document, "morro-pro-offer-kind"),
-    price: requiredElement<HTMLInputElement>(document, "morro-pro-offer-price"),
-    capacity: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-capacity",
-    ),
-    maxPerReservation: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-max",
-    ),
-    salesStart: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-sales-start",
-    ),
-    salesEnd: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-sales-end",
-    ),
-    startsAt: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-start",
-    ),
-    endsAt: requiredElement<HTMLInputElement>(document, "morro-pro-offer-end"),
+    productForm: requiredElement<HTMLFormElement>(document, "morro-pro-product-form"),
+    offerForm: requiredElement<HTMLFormElement>(document, "morro-pro-catalog-offer-form"),
+    menuForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-form"),
+    categoryForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-category-form"),
+    itemForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-item-form"),
+    productList: requiredElement(document, "morro-pro-product-list"),
+    offerList: requiredElement(document, "morro-pro-catalog-offer-list"),
+    menuList: requiredElement(document, "morro-pro-menu-list"),
+    categoryList: requiredElement(document, "morro-pro-menu-category-list"),
+    itemList: requiredElement(document, "morro-pro-menu-item-list"),
+    productStatus: requiredElement(document, "morro-pro-product-status"),
+    offerStatus: requiredElement(document, "morro-pro-catalog-offer-status"),
+    menuStatus: requiredElement(document, "morro-pro-menu-status"),
   });
 }
 
-function parsePositiveInteger(
-  input: HTMLInputElement,
-  maximum: number,
-): number {
-  const value = Number(input.value);
-  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
-    throw new Error(`Valor inválido em ${input.id}.`);
+function formControl(form: HTMLFormElement, name: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  const field = form.elements.namedItem(name);
+  if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) return field;
+  throw new Error(`MISSING_FORM_FIELD:${name}`);
+}
+
+function setFormValue(form: HTMLFormElement, name: string, value: string | number | null | undefined): void {
+  formControl(form, name).value = value == null ? "" : String(value);
+}
+
+function editId(form: HTMLFormElement): string {
+  return formControl(form, "editId").value;
+}
+
+function resetEdit(form: HTMLFormElement): void {
+  form.reset();
+  setFormValue(form, "editId", "");
+}
+
+function selectOptions(document: Document, select: HTMLSelectElement, entries: readonly { id: string; name: string }[], placeholder: string): void {
+  const current = select.value;
+  select.replaceChildren();
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = placeholder;
+  select.append(first);
+  for (const entry of entries) {
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent = entry.name;
+    select.append(option);
   }
-  return value;
+  if ([...select.options].some((candidate) => candidate.value === current)) select.value = current;
 }
 
-function offerInput(
-  surface: OfferSurface,
-  businessId: string,
-  placeName: string,
-): MorroProOfferInput {
-  const label = surface.label.value.trim();
-  const productKind =
-    surface.kind.value === "tour" || surface.kind.value === "transport"
-      ? surface.kind.value
-      : "business_experience";
-  return Object.freeze({
-    productKind,
-    productReference: createMorroProOfferReference(
-      businessId,
-      placeName,
-      label,
-    ),
-    label,
-    unitAmountMinor: priceToMinorUnits(surface.price.value),
-    currency: "BRL",
-    pricingVersion: "morro-pro-v1",
-    capacity: parsePositiveInteger(surface.capacity, 100_000),
-    maxPerReservation: parsePositiveInteger(surface.maxPerReservation, 20),
-    salesStartAt: localDateTimeToIso(surface.salesStart.value),
-    salesEndAt: localDateTimeToIso(surface.salesEnd.value),
-    startsAt: localDateTimeToIso(surface.startsAt.value),
-    endsAt: localDateTimeToIso(surface.endsAt.value),
-  });
+function entryCard(document: Document, titleText: string, metaText: string, id: string, onEdit: () => void): HTMLElement {
+  const article = document.createElement("article");
+  article.className = "panel-card";
+  const title = document.createElement("h3");
+  title.textContent = titleText;
+  const meta = document.createElement("p");
+  meta.textContent = metaText;
+  const small = document.createElement("small");
+  small.textContent = id;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "button secondary";
+  button.textContent = "Editar";
+  button.addEventListener("click", onEdit);
+  article.append(title, meta, small, button);
+  return article;
 }
 
-function requestKey(document: Document): string {
-  const uuid = document.defaultView?.crypto?.randomUUID?.();
-  if (!uuid) throw new Error("Navegador sem geração segura de identificador.");
-  return `mpro_${uuid.replaceAll("-", "")}`;
-}
+function renderCatalog(document: Document, surface: CatalogSurface, catalog: MorroProCatalog): void {
+  const productSelect = formControl(surface.offerForm, "productId") as HTMLSelectElement;
+  const categoryMenuSelect = formControl(surface.categoryForm, "menuId") as HTMLSelectElement;
+  const itemMenuSelect = formControl(surface.itemForm, "menuId") as HTMLSelectElement;
+  const itemCategorySelect = formControl(surface.itemForm, "categoryId") as HTMLSelectElement;
+  selectOptions(document, productSelect, catalog.products, "Selecione um produto");
+  selectOptions(document, categoryMenuSelect, catalog.menus, "Selecione um menu");
+  selectOptions(document, itemMenuSelect, catalog.menus, "Selecione um menu");
+  selectOptions(document, itemCategorySelect, catalog.categories, "Selecione uma categoria");
 
-function renderOffers(
-  document: Document,
-  container: HTMLElement,
-  offers: readonly MorroProInventoryOffer[],
-  disable: (offer: MorroProInventoryOffer) => void,
-): void {
-  container.replaceChildren();
-  if (offers.length === 0) {
-    const empty = document.createElement("p");
-    empty.textContent = "Nenhuma oferta criada por este negócio.";
-    container.append(empty);
-    return;
+  surface.productList.replaceChildren();
+  for (const product of catalog.products) {
+    surface.productList.append(entryCard(document, product.name, product.status, product.id, () => {
+      setFormValue(surface.productForm, "editId", product.id);
+      setFormValue(surface.productForm, "name", product.name);
+      setFormValue(surface.productForm, "description", product.description);
+      setFormValue(surface.productForm, "tags", product.tags.join(", "));
+      setFormValue(surface.productForm, "status", product.status);
+    }));
   }
-  for (const offer of offers) {
-    const article = document.createElement("article");
-    article.className = "panel-card";
-    const title = document.createElement("h3");
-    title.textContent = offer.label;
-    const meta = document.createElement("p");
-    meta.textContent = `${offerMoney(offer)} · ${offer.capacity} vagas · ${offer.enabled ? "ativa" : "desativada"}`;
-    const id = document.createElement("small");
-    id.textContent = offer.id;
-    article.append(title, meta, id);
-    if (offer.enabled) {
-      const button = document.createElement("button");
-      button.className = "button secondary";
-      button.type = "button";
-      button.textContent = "Desativar";
-      button.addEventListener("click", () => disable(offer));
-      article.append(button);
-    }
-    container.append(article);
+
+  surface.offerList.replaceChildren();
+  for (const offer of catalog.offers) {
+    const product = catalog.products.find((entry) => entry.id === offer.productId);
+    surface.offerList.append(entryCard(document, product?.name ?? offer.productId, `${money(offer.price)} û ${offer.status}`, offer.id, () => {
+      setFormValue(surface.offerForm, "editId", offer.id);
+      setFormValue(surface.offerForm, "productId", offer.productId);
+      setFormValue(surface.offerForm, "price", offer.price.minorUnits / 100);
+      setFormValue(surface.offerForm, "currency", offer.price.currency);
+      setFormValue(surface.offfWrForm, "capacity", offer.capacity);
+      setFormValue(surface.offerForm, "salesStartsAt", toLocalDateTime(offer.salesStartsAt);
+      setFormValue(surface.offerForm, "salesEndsAt", toLocalDateTime(offer.salesEndsAt));
+      setFormValue(surface.offerForm, "experienceStartsAt", toLocalDateTime(offer.experienceStartsAt));
+      setFormValue(surface.offerForm, "experienceEndsAt", toLocalDateTime(offer.experienceEndsAt));
+      setFormValue(surface.offerForm, "status", offer.status);
+    }));
+  }
+
+  surface.menuList.replaceChildren();
+  for (const menu of catalog.menus) {
+    surface.menuList.append(entryCard(document, menu.name, menu.status, menu.id, () => {
+      setFormValue(surface.menuForm, "editId", menu.id);
+      setFormValue(surface.menuForm, "name", menu.name);
+      setFormValue(surface.menuForm, "description", menu.description);
+      setFormValue(surface.menuForm, "status", menu.status);
+      setFormValue(surface.menuForm, "fallbackMediaId", menu.fallbackMediaId);
+      setFormValue(surface.menuForm, "fallbackDocumentUrl", menu.fallbackDocumentUrl);
+    }));
+  }
+
+  surface.categoryList.replaceChildren();
+  for (const category of catalog.categories) {
+    surface.categoryList.append(entryCard(document, category.name, `Ordem ${category.sortOrder}`, category.id, () => {
+      setFormValue(surface.categoryForm, "editId", category.id);
+      setFormValue(surface.categoryForm, "menuId", category.menuId);
+      setFormValue(surface.categoryForm, "name", category.name);
+      setFormValue(surface.categoryForm, "sortOrder", category.sortOrder);
+    }));
+  }
+
+  surface.itemList.replaceChildren();
+  for (const item of catalog.items) {
+    surface.itemList.append(entryCard(document, item.name, `${money(item.price)} û ${item.available ? "disponível" : "indisponível"}`, item.id, () => {
+      setFormValue(surface.itemForm, "editId", item.id);
+      setFormValue(surface.itemForm, "menuId", item.menuId);
+      setFormValue(surface.itemForm, "categoryId", item.categoryId);
+      setFormValue(surface.itemForm, "name", item.name);
+      setFormValue(surface.itemForm, "description", item.description);
+      setFormValue(surface.itemForm, "price", item.price.minorUnits / 100);
+      setFormValue(surface.itemForm, "currency", item.price.currency);
+      setFormValue(surface.itemForm, "sortOrder", item.sortOrder);
+      setFormValue(surface.itemForm, "mediaId", item.mediaId);
+      setFormValue(surface.itemForm, "tags", item.tags.join(", "));
+      setFormValue(surface.itemForm, "allergens", item.allergens.join(", "));
+      const available = surface.itemForm.elements.namedItem("available");
+      if (available instanceof HTMLInputElement) available.checked = item.available;
+    }));
   }
 }
-
 export async function mountBusinessDashboardSurface(
   options: BusinessDashboardSurfaceOptions,
 ): Promise<void> {
