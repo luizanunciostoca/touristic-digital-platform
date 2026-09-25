@@ -420,8 +420,12 @@ function renderCatalog(document: Document, surface: CatalogSurface, catalog: Mor
       setFormValue(surface.offerForm, "productId", offer.productId);
       setFormValue(surface.offerForm, "price", offer.price.minorUnits / 100);
       setFormValue(surface.offerForm, "currency", offer.price.currency);
-      setFormValue(surface.offfWrForm, "capacity", offer.capacity);
-      setFormValue(surface.offerForm, "salesStartsAt", toLocalDateTime(offer.salesStartsAt);
+      setFormValue(surface.offerForm, "capacity", offer.capacity);
+      setFormValue(
+        surface.offerForm,
+        "salesStartsAt",
+        toLocalDateTime(offer.salesStartsAt),
+      );
       setFormValue(surface.offerForm, "salesEndsAt", toLocalDateTime(offer.salesEndsAt));
       setFormValue(surface.offerForm, "experienceStartsAt", toLocalDateTime(offer.experienceStartsAt));
       setFormValue(surface.offerForm, "experienceEndsAt", toLocalDateTime(offer.experienceEndsAt));
