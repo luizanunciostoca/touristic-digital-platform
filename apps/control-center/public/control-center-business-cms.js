@@ -766,11 +766,7 @@ function bindDetail(root, ctx, detail) {
         result.textContent = "Salvando catálogo…";
         await ctx.api(
           entryId
-            ? businessCmsContract.catalogEntry(
-                detail.businessId,
-                kind,
-                entryId,
-              )
+            ? businessCmsContract.catalogEntry(detail.businessId, kind, entryId)
             : businessCmsContract.catalogDraft(detail.businessId, kind),
           {
             method: entryId ? "PUT" : "POST",
@@ -796,9 +792,7 @@ function bindDetail(root, ctx, detail) {
       const entry = safeArray(catalogEntries[kind]).find(
         (candidate) => String(candidate.id) === String(entryId),
       );
-      const form = root.querySelector(
-        `[data-business-catalog-kind="${kind}"]`,
-      );
+      const form = root.querySelector(`[data-business-catalog-kind="${kind}"]`);
       if (!entry || !form) return;
       form.dataset.catalogEntryId = entryId;
       const set = (name, value) => {

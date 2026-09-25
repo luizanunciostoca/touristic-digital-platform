@@ -610,7 +610,9 @@ export function createCatalogRuntime(pool) {
       });
     }
     const products = Object.freeze(
-      (snapshot.products ?? []).filter((product) => product.status === "active"),
+      (snapshot.products ?? []).filter(
+        (product) => product.status === "active",
+      ),
     );
     const productIds = new Set(products.map(({ id }) => String(id)));
     return Object.freeze({
@@ -751,31 +753,31 @@ export function createCatalogRuntime(pool) {
     const categories = context.categories
       .filter((category) => String(category.menuId) === String(menu.id))
       .map((category) =>
-      Object.freeze({
-        id: String(category.id),
-        name: category.name,
-        items: Object.freeze(
-          items
-            .filter(
-              (item) =>
-                String(item.categoryId) === String(category.id) &&
-                item.available,
-            )
-            .map((item) =>
-              Object.freeze({
-                id: String(item.id),
-                name: item.name,
-                description: item.description,
-                price: item.price,
-                mediaId: item.mediaId,
-                available: item.available,
-                tags: item.tags,
-                allergens: item.allergens,
-              }),
-            ),
-        ),
-      }),
-    );
+        Object.freeze({
+          id: String(category.id),
+          name: category.name,
+          items: Object.freeze(
+            items
+              .filter(
+                (item) =>
+                  String(item.categoryId) === String(category.id) &&
+                  item.available,
+              )
+              .map((item) =>
+                Object.freeze({
+                  id: String(item.id),
+                  name: item.name,
+                  description: item.description,
+                  price: item.price,
+                  mediaId: item.mediaId,
+                  available: item.available,
+                  tags: item.tags,
+                  allergens: item.allergens,
+                }),
+              ),
+          ),
+        }),
+      );
 
     return Object.freeze({
       offers: Object.freeze(offers),

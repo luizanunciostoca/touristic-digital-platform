@@ -65,17 +65,27 @@ test(
         source: "manual",
       });
 
-      const product = await runtime.createCatalogDraft(actor, businessId, "product", {
-        name: "Produto Draft",
-        description: "Ainda não publicado",
-        tags: "draft,catalog",
-      });
-      const offer = await runtime.createCatalogDraft(actor, businessId, "offer", {
-        productId: product.id,
-        minorUnits: 12500,
-        currency: "BRL",
-        capacity: 20,
-      });
+      const product = await runtime.createCatalogDraft(
+        actor,
+        businessId,
+        "product",
+        {
+          name: "Produto Draft",
+          description: "Ainda não publicado",
+          tags: "draft,catalog",
+        },
+      );
+      const offer = await runtime.createCatalogDraft(
+        actor,
+        businessId,
+        "offer",
+        {
+          productId: product.id,
+          minorUnits: 12500,
+          currency: "BRL",
+          capacity: 20,
+        },
+      );
       const menu = await runtime.createCatalogDraft(actor, businessId, "menu", {
         name: "Menu Draft",
         description: "Ainda não publicado",
@@ -86,15 +96,20 @@ test(
         "menu-category",
         { menuId: menu.id, name: "Entradas", sortOrder: 0 },
       );
-      const item = await runtime.createCatalogDraft(actor, businessId, "menu-item", {
-        menuId: menu.id,
-        categoryId: category.id,
-        name: "Ceviche Draft",
-        description: "Ainda não público",
-        minorUnits: 4500,
-        currency: "BRL",
-        sortOrder: 0,
-      });
+      const item = await runtime.createCatalogDraft(
+        actor,
+        businessId,
+        "menu-item",
+        {
+          menuId: menu.id,
+          categoryId: category.id,
+          name: "Ceviche Draft",
+          description: "Ainda não público",
+          minorUnits: 4500,
+          currency: "BRL",
+          sortOrder: 0,
+        },
+      );
 
       assert.equal(product.status, "draft");
       assert.equal(offer.status, "draft");
@@ -153,20 +168,14 @@ test(
         product.id,
         { status: "active", name: "Produto Aprovado" },
       );
-      await runtime.updateCatalogDraft(
-        actor,
-        businessId,
-        "offer",
-        offer.id,
-        { status: "active", minorUnits: 13500 },
-      );
-      await runtime.updateCatalogDraft(
-        actor,
-        businessId,
-        "menu",
-        menu.id,
-        { status: "active", name: "Menu Aprovado" },
-      );
+      await runtime.updateCatalogDraft(actor, businessId, "offer", offer.id, {
+        status: "active",
+        minorUnits: 13500,
+      });
+      await runtime.updateCatalogDraft(actor, businessId, "menu", menu.id, {
+        status: "active",
+        name: "Menu Aprovado",
+      });
       await runtime.updateCatalogDraft(
         actor,
         businessId,

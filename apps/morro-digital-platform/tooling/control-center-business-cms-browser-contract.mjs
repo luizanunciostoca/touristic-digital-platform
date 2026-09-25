@@ -71,9 +71,7 @@ try {
     .fill("Produto browser canônico");
   await productForm.locator('[name="tags"]').fill("sunset, passeio");
   await productForm.getByRole("button", { name: "Salvar produto" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   await page
     .locator(".module-row")
@@ -83,18 +81,14 @@ try {
   productForm = page.locator('[data-business-catalog-kind="product"]');
   await productForm.locator('[name="status"]').selectOption("active");
   await productForm.getByRole("button", { name: "Salvar produto" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   let offerForm = page.locator('[data-business-catalog-kind="offer"]');
   await offerForm.locator('[name="productId"]').selectOption({ index: 1 });
   await offerForm.locator('[name="price"]').fill("120,00");
   await offerForm.locator('[name="capacity"]').fill("20");
   await offerForm.getByRole("button", { name: "Salvar oferta" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   const offerRow = page
     .locator(".module-row")
@@ -104,17 +98,13 @@ try {
   offerForm = page.locator('[data-business-catalog-kind="offer"]');
   await offerForm.locator('[name="status"]').selectOption("active");
   await offerForm.getByRole("button", { name: "Salvar oferta" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   let menuForm = page.locator('[data-business-catalog-kind="menu"]');
   await menuForm.locator('[name="name"]').fill("Cardápio Browser");
   await menuForm.locator('[name="description"]').fill("Cardápio canônico");
   await menuForm.getByRole("button", { name: "Salvar menu" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   await page
     .locator(".module-row")
@@ -124,9 +114,7 @@ try {
   menuForm = page.locator('[data-business-catalog-kind="menu"]');
   await menuForm.locator('[name="status"]').selectOption("active");
   await menuForm.getByRole("button", { name: "Salvar menu" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   let categoryForm = page.locator(
     '[data-business-catalog-kind="menu-category"]',
@@ -135,9 +123,7 @@ try {
   await categoryForm.locator('[name="name"]').fill("Experiências");
   await categoryForm.locator('[name="sortOrder"]').fill("0");
   await categoryForm.getByRole("button", { name: "Salvar categoria" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   let itemForm = page.locator('[data-business-catalog-kind="menu-item"]');
   await itemForm.locator('[name="menuId"]').selectOption({ index: 1 });
@@ -147,9 +133,7 @@ try {
   await itemForm.locator('[name="price"]').fill("45,00");
   await itemForm.locator('[name="sortOrder"]').fill("0");
   await itemForm.getByRole("button", { name: "Salvar item" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   await page
     .locator(".module-row")
@@ -159,9 +143,7 @@ try {
   itemForm = page.locator('[data-business-catalog-kind="menu-item"]');
   await itemForm.locator('[name="available"]').check();
   await itemForm.getByRole("button", { name: "Salvar item" }).click();
-  await page
-    .getByText(/Catálogo salvo como revisão editável/u)
-    .waitFor();
+  await page.getByText(/Catálogo salvo como revisão editável/u).waitFor();
 
   await page.getByRole("tab", { name: "Publicação" }).click();
   await page.getByRole("button", { name: "Solicitar revisão" }).click();

@@ -1154,7 +1154,8 @@ export function createPlacePlatformRuntime({
           name: clean(input.name ?? existing.name, 180),
           description: clean(input.description ?? existing.description, 2000),
           status: clean(input.status ?? existing.status, 24),
-          tags: input.tags === undefined ? existing.tags : draftTags(input.tags),
+          tags:
+            input.tags === undefined ? existing.tags : draftTags(input.tags),
           updatedAt: now,
         }),
       );
@@ -1316,7 +1317,8 @@ export function createPlacePlatformRuntime({
             input.available === undefined
               ? existing.available
               : input.available === true || input.available === "true",
-          tags: input.tags === undefined ? existing.tags : draftTags(input.tags),
+          tags:
+            input.tags === undefined ? existing.tags : draftTags(input.tags),
           allergens:
             input.allergens === undefined
               ? existing.allergens

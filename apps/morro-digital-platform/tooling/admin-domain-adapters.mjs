@@ -538,7 +538,6 @@ export function createBusinessAdminAdapter(
         }
       }
 
-
       const cmsPublication = cmsPublicationPattern.exec(requestUrl.pathname);
       if (
         placePlatformRuntime &&
