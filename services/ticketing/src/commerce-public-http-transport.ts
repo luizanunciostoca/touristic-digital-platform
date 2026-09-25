@@ -430,10 +430,18 @@ export class TicketingCommerceHttpTransport {
         error instanceof Error
           ? error.message
           : "MORRO_PRO_INVENTORY_UNAVAILABLE";
-      const invalid = message.includes("INVALID");
+      if (message.includes("INVALID")) {
+        return response(400, { error: message }, correlation);
+      }
+      if (message.includes("CONFLICT")) {
+        return response(409, { error: message }, correlation);
+      }
+      if (message.includes("OWNERSHIP_DENIED")) {
+        return response(404, { error: "NOT_FOUND" }, correlation);
+      }
       return response(
-        invalid ? 400 : 503,
-        { error: invalid ? message : "MORRO_PRO_INVENTORY_UNAVAILABLE" },
+        503,
+        { error: "MORRO_PRO_INVENTORY_UNAVAILABLE" },
         correlation,
       );
     }
