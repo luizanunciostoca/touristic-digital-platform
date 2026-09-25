@@ -19,10 +19,7 @@ import {
   createV1ImmersiveTourController,
   type V1ImmersiveTourController,
 } from "./immersive-tour-v1-controller.js";
-import {
-  getV1ExplorePlaceActionOptions,
-  type V1ExplorePlaceActionOption,
-} from "./explore-location-actions-v1.js";
+import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 import {
   installExploreFlowBottomSheet,
