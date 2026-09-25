@@ -71,6 +71,9 @@ export function createContentAdminRuntime({
         error instanceof Error
           ? error.message.slice(0, 160)
           : "CONTENT_ADMIN_START_FAILED";
+      console.error("[content-admin-runtime] start failed", {
+        error: startError,
+      });
       if (pool) await pool.end().catch(() => undefined);
       pool = null;
       service = null;
