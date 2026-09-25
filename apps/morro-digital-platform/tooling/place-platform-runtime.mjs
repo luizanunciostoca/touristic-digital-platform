@@ -6,7 +6,7 @@ import {
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
 import {
-  createContentPool,
+  createMySqlPool,
   MySqlPlaceMediaRepository,
 } from "@touristic/content-server";
 
@@ -669,7 +669,7 @@ export function createPlacePlatformRuntime({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
   platformOperations,
-  poolFactory = createContentPool,
+  poolFactory = createMySqlPool,
 } = {}) {
   let pool = null;
   let mediaPool = null;
@@ -687,13 +687,23 @@ export function createPlacePlatformRuntime({
       return false;
     }
     try {
-      pool = poolFactory(databaseUrl);
+      pool = poolFactory(databaseUrl, {
+        connectionLimit: Number(
+          getEnvironmentValue("BUSINESS_DATABASE_POOL_SIZE") || 6,
+        ),
+        errorPrefix: "BUSINESS_DATABASE",
+      });
       await applySchema(pool);
       governanceRepository = createGovernanceRepository(pool);
 
       const contentUrl = String(getEnvironmentValue("CONTENT_DATABASE_URL") || "").trim();
       if (contentUrl) {
-        mediaPool = poolFactory(contentUrl);
+        mediaPool = poolFactory(contentUrl, {
+          connectionLimit: Number(
+            getEnvironmentValue("CONTENT_DATABASE_POOL_SIZE") || 6,
+          ),
+          errorPrefix: "CONTENT_DATABASE",
+        });
         mediaRepository = new MySqlPlaceMediaRepository(mediaPool);
       }
 
