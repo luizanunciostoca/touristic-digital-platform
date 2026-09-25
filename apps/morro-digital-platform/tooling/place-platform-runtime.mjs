@@ -769,6 +769,7 @@ export function createPlacePlatformRuntime({
       await applyCatalogSchema(pool);
       governanceRepository = createGovernanceRepository(pool);
       catalogRuntime = createCatalogRuntime(pool);
+      await catalogRuntime.backfillPublishedSnapshots();
 
       const contentUrl = String(
         getEnvironmentValue("CONTENT_DATABASE_URL") || "",
@@ -1095,6 +1096,342 @@ export function createPlacePlatformRuntime({
     });
   }
 
+
+  async function getCmsCatalogPlace(businessId) {
+    assertReady();
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE business_id = ?
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [String(businessId)],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("PLACE_NOT_FOUND");
+    return placeFromRow(row, false);
+  }
+
+  function stringList(value) {
+    if (!Array.isArray(value)) return Object.freeze([]);
+    return Object.freeze(
+      value
+        .map((entry) => clean(entry, 120))
+        .filter(Boolean)
+        .slice(0, 50),
+    );
+  }
+
+  function nullableText(value, max = 500) {
+    const normalized = clean(value, max);
+    return normalized || null;
+  }
+
+  function catalogId(value, code) {
+    const normalized = clean(value, 160);
+    if (!normalized) throw new Error(code);
+    return normalized;
+  }
+
+  function nullableTimestamp(value) {
+    if (value == null || value === "") return null;
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) throw new Error("INVALID_TIMESTAMP");
+    return date.toISOString();
+  }
+
+  async function getCmsCatalog(businessId) {
+    const place = await getCmsCatalogPlace(businessId);
+    return catalogRuntime.listWorkingCatalog(
+      String(place.businessId),
+      String(place.id),
+    );
+  }
+
+  async function createCmsProduct(actor, businessId, input) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const now = new Date().toISOString();
+    return catalogRuntime.service.createProduct(
+      { businessId: String(place.businessId) },
+      {
+        id: catalogId(input.productId ?? input.id, "INVALID_PRODUCT_ID"),
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        destinationId: String(place.destinationId),
+        name: clean(input.name, 180),
+        description: clean(input.description, 5000),
+        status: clean(input.status, 24) || "draft",
+        tags: stringList(input.tags),
+        legacyReference: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
+  }
+
+  async function updateCmsProduct(actor, businessId, productId, input) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const id = catalogId(productId, "INVALID_PRODUCT_ID");
+    const existing = await catalogRuntime.repository.getProduct(id);
+    if (!existing) throw new Error("PRODUCT_NOT_FOUND");
+    if (
+      String(existing.businessId) !== String(place.businessId) ||
+      String(existing.placeId) !== String(place.id)
+    ) {
+      throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+    }
+    return catalogRuntime.service.updateProduct(
+      { businessId: String(place.businessId) },
+      {
+        ...existing,
+        id,
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        destinationId: String(place.destinationId),
+        name: clean(input.name ?? existing.name, 180),
+        description: clean(input.description ?? existing.description, 5000),
+        status: clean(input.status ?? existing.status, 24),
+        tags:
+          input.tags === undefined ? existing.tags : stringList(input.tags),
+        legacyReference: existing.legacyReference ?? null,
+        updatedAt: new Date().toISOString(),
+      },
+    );
+  }
+
+  async function createCmsOffer(actor, businessId, input) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const now = new Date().toISOString();
+    return catalogRuntime.service.createOffer(
+      { businessId: String(place.businessId) },
+      {
+        id: catalogId(input.offerId ?? input.id, "INVALID_OFFER_ID"),
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        destinationId: String(place.destinationId),
+        productId: catalogId(input.productId, "INVALID_PRODUCT_ID"),
+        price: {
+          minorUnits: Number(input.priceMinorUnits),
+          currency: clean(input.currency, 3).toUpperCase(),
+        },
+        salesStartsAt: nullableTimestamp(input.salesStartsAt),
+        salesEndsAt: nullableTimestamp(input.salesEndsAt),
+        experienceStartsAt: nullableTimestamp(input.experienceStartsAt),
+        experienceEndsAt: nullableTimestamp(input.experienceEndsAt),
+        capacity:
+          input.capacity == null || input.capacity === ""
+            ? null
+            : Number(input.capacity),
+        status: clean(input.status, 24) || "draft",
+        legacyLabel: null,
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
+  }
+
+  async function updateCmsOffer(actor, businessId, offerId, input) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const id = catalogId(offerId, "INVALID_OFFER_ID");
+    const existing = await catalogRuntime.repository.getOffer(id);
+    if (!existing) throw new Error("OFFER_NOT_FOUND");
+    if (
+      String(existing.businessId) !== String(place.businessId) ||
+      String(existing.placeId) !== String(place.id)
+    ) {
+      throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+    }
+    return catalogRuntime.service.updateOffer(
+      { businessId: String(place.businessId) },
+      {
+        ...existing,
+        id,
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        destinationId: String(place.destinationId),
+        productId: catalogId(
+          input.productId ?? existing.productId,
+          "INVALID_PRODUCT_ID",
+        ),
+        price: {
+          minorUnits:
+            input.priceMinorUnits === undefined
+              ? existing.price.minorUnits
+              : Number(input.priceMinorUnits),
+          currency:
+            input.currency === undefined
+              ? existing.price.currency
+              : clean(input.currency, 3).toUpperCase(),
+        },
+        salesStartsAt:
+          input.salesStartsAt === undefined
+            ? existing.salesStartsAt
+            : nullableTimestamp(input.salesStartsAt),
+        salesEndsAt:
+          input.salesEndsAt === undefined
+            ? existing.salesEndsAt
+            : nullableTimestamp(input.salesEndsAt),
+        experienceStartsAt:
+          input.experienceStartsAt === undefined
+            ? existing.experienceStartsAt
+            : nullableTimestamp(input.experienceStartsAt),
+        experienceEndsAt:
+          input.experienceEndsAt === undefined
+            ? existing.experienceEndsAt
+            : nullableTimestamp(input.experienceEndsAt),
+        capacity:
+          input.capacity === undefined
+            ? existing.capacity
+            : input.capacity == null || input.capacity === ""
+              ? null
+              : Number(input.capacity),
+        status: clean(input.status ?? existing.status, 24),
+        legacyLabel: existing.legacyLabel ?? null,
+        updatedAt: new Date().toISOString(),
+      },
+    );
+  }
+
+  async function createCmsMenu(actor, businessId, input) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const now = new Date().toISOString();
+    return catalogRuntime.service.createMenu(
+      { businessId: String(place.businessId) },
+      {
+        id: catalogId(input.menuId ?? input.id, "INVALID_MENU_ID"),
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        name: clean(input.name, 180),
+        description: clean(input.description, 5000),
+        status: clean(input.status, 24) || "draft",
+        fallbackMediaId: nullableText(input.fallbackMediaId, 160),
+        fallbackDocumentUrl: nullableText(input.fallbackDocumentUrl, 1000),
+        createdAt: now,
+        updatedAt: now,
+      },
+    );
+  }
+
+  async function updateCmsMenu(actor, businessId, menuId, input) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const id = catalogId(menuId, "INVALID_MENU_ID");
+    const existing = await catalogRuntime.repository.getMenu(id);
+    if (!existing) throw new Error("MENU_NOT_FOUND");
+    if (
+      String(existing.businessId) !== String(place.businessId) ||
+      String(existing.placeId) !== String(place.id)
+    ) {
+      throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+    }
+    return catalogRuntime.service.updateMenu(
+      { businessId: String(place.businessId) },
+      {
+        ...existing,
+        id,
+        businessId: String(place.businessId),
+        placeId: String(place.id),
+        name: clean(input.name ?? existing.name, 180),
+        description: clean(input.description ?? existing.description, 5000),
+        status: clean(input.status ?? existing.status, 24),
+        fallbackMediaId:
+          input.fallbackMediaId === undefined
+            ? existing.fallbackMediaId
+            : nullableText(input.fallbackMediaId, 160),
+        fallbackDocumentUrl:
+          input.fallbackDocumentUrl === undefined
+            ? existing.fallbackDocumentUrl
+            : nullableText(input.fallbackDocumentUrl, 1000),
+        updatedAt: new Date().toISOString(),
+      },
+    );
+  }
+
+  async function saveCmsMenuCategory(
+    actor,
+    businessId,
+    menuId,
+    categoryId,
+    input,
+  ) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const menu = await catalogRuntime.repository.getMenu(
+      catalogId(menuId, "INVALID_MENU_ID"),
+    );
+    if (
+      !menu ||
+      String(menu.businessId) !== String(place.businessId) ||
+      String(menu.placeId) !== String(place.id)
+    ) {
+      throw new Error("MENU_NOT_FOUND");
+    }
+    return catalogRuntime.service.saveMenuCategory(
+      { businessId: String(place.businessId) },
+      {
+        id: catalogId(
+          categoryId ?? input.categoryId ?? input.id,
+          "INVALID_MENU_CATEGORY_ID",
+        ),
+        businessId: String(place.businessId),
+        menuId: String(menu.id),
+        name: clean(input.name, 180),
+        sortOrder: Number(input.sortOrder ?? 0),
+      },
+    );
+  }
+
+  async function saveCmsMenuItem(
+    actor,
+    businessId,
+    menuId,
+    itemId,
+    input,
+  ) {
+    void actor;
+    const place = await getCmsCatalogPlace(businessId);
+    const menu = await catalogRuntime.repository.getMenu(
+      catalogId(menuId, "INVALID_MENU_ID"),
+    );
+    if (
+      !menu ||
+      String(menu.businessId) !== String(place.businessId) ||
+      String(menu.placeId) !== String(place.id)
+    ) {
+      throw new Error("MENU_NOT_FOUND");
+    }
+    return catalogRuntime.service.saveMenuItem(
+      { businessId: String(place.businessId) },
+      {
+        id: catalogId(
+          itemId ?? input.itemId ?? input.id,
+          "INVALID_MENU_ITEM_ID",
+        ),
+        businessId: String(place.businessId),
+        menuId: String(menu.id),
+        categoryId: catalogId(
+          input.categoryId,
+          "INVALID_MENU_CATEGORY_ID",
+        ),
+        name: clean(input.name, 180),
+        description: clean(input.description, 5000),
+        price: {
+          minorUnits: Number(input.priceMinorUnits),
+          currency: clean(input.currency, 3).toUpperCase(),
+        },
+        mediaId: nullableText(input.mediaId, 160),
+        available: input.available === true || input.available === "true",
+        tags: stringList(input.tags),
+        allergens: stringList(input.allergens),
+        sortOrder: Number(input.sortOrder ?? 0),
+      },
+    );
+  }
+
   async function createDraft(actor, input) {
     assertReady();
     const now = new Date().toISOString();
@@ -1257,6 +1594,11 @@ export function createPlacePlatformRuntime({
       );
     }
     if (action === "publish") {
+      await catalogRuntime.capturePublicationSnapshot({
+        businessId: String(record.editableRevision.data.businessId),
+        placeId: String(record.placeId),
+        placeRevision: expectedRevision,
+      });
       return publicationService.publish(
         context,
         record.placeId,
@@ -1273,6 +1615,15 @@ export function createPlacePlatformRuntime({
     handlePublic,
     listCms,
     getCmsDetail,
+    getCmsCatalog,
+    createCmsProduct,
+    updateCmsProduct,
+    createCmsOffer,
+    updateCmsOffer,
+    createCmsMenu,
+    updateCmsMenu,
+    saveCmsMenuCategory,
+    saveCmsMenuItem,
     createDraft,
     updateProfile,
     updateLocation,
