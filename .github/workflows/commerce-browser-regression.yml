@@ -48,7 +48,7 @@ jobs:
   commerce-browser:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -217,6 +217,13 @@ jobs:
           }
 
           (async () => {
+            const bounded = (promise, label, ms = 10000) =>
+              Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), ms),
+                ),
+              ]);
             const browser = await chromium.launch({ headless: true });
             try {
               for (const viewport of viewports) {
@@ -767,8 +774,8 @@ jobs:
               markAuthStage('auth:cross-tenant-complete');
               if (crossTenant !== 404) throw new Error(`Cross-tenant Catalog leaked: ${crossTenant}`);
               evidence.push({ authenticatedMorroProCatalog: true, crossTenant, createCalls, catalogReads, productId: catalog.products[0]?.id });
-              await authPage.close({ runBeforeUnload: false });
-              await authContext.close();
+              await bounded(authPage.close({ runBeforeUnload: false }), 'auth page close', 5000);
+              await bounded(authContext.close(), 'auth context close', 5000);
               markAuthStage('auth:closed');
 
               const failContext = await browser.newContext({
@@ -788,14 +795,14 @@ jobs:
               }
               evidence.push({ predictableFailure: 'friendly-unavailable' });
               markAuthStage('failure-path:asserted');
-              await failPage.close({ runBeforeUnload: false });
-              await failContext.close();
+              await bounded(failPage.close({ runBeforeUnload: false }), 'failure page close', 5000);
+              await bounded(failContext.close(), 'failure context close', 5000);
               markAuthStage('failure-path:closed');
 
               writeFileSync('/tmp/commerce-browser/evidence.json', JSON.stringify(evidence, null, 2));
               markAuthStage('complete');
             } finally {
-              await browser.close();
+              await bounded(browser.close(), 'browser close', 5000);
             }
           })().catch(error => {
             writeFileSync('/tmp/commerce-browser/failure.txt', String(error?.stack || error));
