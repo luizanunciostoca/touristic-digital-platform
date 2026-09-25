@@ -575,7 +575,13 @@ function createMediaPort(mediaRepository) {
 
 function createActionPort() {
   return Object.freeze({
-    async resolvePublicActions({ place, media, commerce, locale }) {
+    async resolvePublicActions({
+      place,
+      businessId,
+      media,
+      commerce,
+      locale,
+    }) {
       const localeKey = ["pt", "en", "es", "he"].includes(String(locale).slice(0, 2))
         ? String(locale).slice(0, 2)
         : "pt";
@@ -585,7 +591,7 @@ function createActionPort() {
       const resolved = resolvePlacePresentationActions({
         place: {
           id: place.id,
-          businessId: place.businessId,
+          businessId,
           destinationId: place.destinationId,
           categoryId: place.categoryId,
           capabilities: { enabled: place.capabilities },
