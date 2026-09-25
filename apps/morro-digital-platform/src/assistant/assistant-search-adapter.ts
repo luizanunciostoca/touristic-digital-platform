@@ -59,7 +59,8 @@ function canonicalSearchScore(name: string, query: string): number | null {
   if (normalizedName.startsWith(normalizedQuery)) return 1;
   if (normalizedName.includes(normalizedQuery)) return 2;
   const tokens = normalizedQuery.split(/\s+/u).filter(Boolean);
-  return tokens.length > 0 && tokens.every((token) => normalizedName.includes(token))
+  return tokens.length > 0 &&
+    tokens.every((token) => normalizedName.includes(token))
     ? 3
     : null;
 }
@@ -90,7 +91,9 @@ async function searchCanonicalPlaces(
         .filter(isCanonicalSearchPlace)
         .map((item) => ({ item, score: canonicalSearchScore(item.name, query) }))
         .filter(
-          (candidate): candidate is { item: CanonicalSearchPlace; score: number } =>
+          (
+            candidate,
+          ): candidate is { item: CanonicalSearchPlace; score: number } =>
             candidate.score !== null,
         )
         .sort(
@@ -105,7 +108,6 @@ async function searchCanonicalPlaces(
     return [];
   }
 }
-
 
 function providerUnavailableCopy(language: AssistantSearchLanguage): string {
   switch (language) {
