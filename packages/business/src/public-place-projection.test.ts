@@ -273,6 +273,8 @@ describe("createPublicPlaceReadModel", () => {
       offers: Object.freeze([]),
       menu: null,
     });
+    const mediaReader = vi.fn(async () => media);
+    const commerceReader = vi.fn(async () => commerce);
     const actionResolver = vi.fn(
       async ({
         place,
@@ -298,8 +300,8 @@ describe("createPublicPlaceReadModel", () => {
         listPublished: vi.fn(async () => ({ items: [], nextCursor: null })),
         getPublished: vi.fn(async () => record()),
       },
-      media: { getPublishedMedia: vi.fn(async () => media) },
-      commerce: { getPublicCommerce: vi.fn(async () => commerce) },
+      media: { getPublishedMedia: mediaReader },
+      commerce: { getPublicCommerce: commerceReader },
       actions: { resolvePublicActions: actionResolver },
     });
 
@@ -309,6 +311,9 @@ describe("createPublicPlaceReadModel", () => {
     expect(result.detail?.media).toBe(media);
     expect(result.detail?.commerce).toBe(commerce);
     expect(result.detail?.actions.primaryAction?.id).toBe("directions");
+    expect(mediaReader.mock.calls[0]?.[1]).toBe(3);
+    expect(commerceReader.mock.calls[0]?.[1]).toBe(3);
+    expect(actionResolver.mock.calls[0]?.[0].publishedRevision).toBe(3);
     expect(actionResolver).toHaveBeenCalledTimes(1);
     expect(result.detail).not.toHaveProperty("businessId");
     expect(result.detail).not.toHaveProperty("publicationState");

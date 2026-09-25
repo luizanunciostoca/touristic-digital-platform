@@ -585,20 +585,33 @@ function createPublicRepository(pool) {
 
 function createMediaPort(mediaPublicationSnapshots) {
   return Object.freeze({
-    async getPublishedMedia(place) {
-      return mediaPublicationSnapshots.getPublishedMedia(place);
+    async getPublishedMedia(place, publishedRevision) {
+      return mediaPublicationSnapshots.getPublishedMedia(
+        place,
+        publishedRevision,
+      );
     },
   });
 }
 function createActionPort(catalogRuntime) {
   return Object.freeze({
-    async resolvePublicActions({ place, businessId, media, commerce, locale }) {
+    async resolvePublicActions({
+      place,
+      businessId,
+      media,
+      commerce,
+      locale,
+      publishedRevision = null,
+    }) {
       const catalogContext = catalogRuntime
-        ? await catalogRuntime.listActionContext({
-            id: place.id,
-            businessId,
-            destinationId: place.destinationId,
-          })
+        ? await catalogRuntime.listActionContext(
+            {
+              id: place.id,
+              businessId,
+              destinationId: place.destinationId,
+            },
+            publishedRevision,
+          )
         : { products: [], offers: [], menus: [] };
       const localeKey = ["pt", "en", "es", "he"].includes(
         String(locale).slice(0, 2),
@@ -790,8 +803,8 @@ export function createPlacePlatformRuntime({
         repository: createPublicRepository(pool),
         media: createMediaPort(mediaPublicationSnapshots),
         commerce: Object.freeze({
-          getPublicCommerce(place) {
-            return catalogRuntime.getPublicCommerce(place);
+          getPublicCommerce(place, publishedRevision) {
+            return catalogRuntime.getPublicCommerce(place, publishedRevision);
           },
         }),
         actions: createActionPort(catalogRuntime),

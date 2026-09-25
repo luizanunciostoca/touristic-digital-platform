@@ -120,19 +120,30 @@ export function createMediaPublicationSnapshotRuntime({
     return media;
   }
 
-  async function getPublishedMedia(place) {
+  async function getPublishedMedia(place, publishedRevision = null) {
+    const explicitRevision =
+      Number.isSafeInteger(publishedRevision) && publishedRevision > 0
+        ? Number(publishedRevision)
+        : null;
+    const revisionClause =
+      explicitRevision === null
+        ? "AND place_record.published_revision = snapshot.place_revision"
+        : "AND snapshot.place_revision = ?";
+    const values = [String(place.id), String(place.businessId)];
+    if (explicitRevision !== null) values.push(explicitRevision);
+
     const [rows] = await pool.execute(
       `SELECT snapshot.media_json
          FROM place_media_public_snapshots snapshot
          INNER JOIN business_places place_record
            ON place_record.place_id = snapshot.place_id
           AND place_record.business_id = snapshot.business_id
-          AND place_record.published_revision = snapshot.place_revision
         WHERE snapshot.place_id = ?
           AND snapshot.business_id = ?
+          ${revisionClause}
           AND place_record.publication_state NOT IN ('suspended', 'archived')
         LIMIT 1`,
-      [String(place.id), String(place.businessId)],
+      values,
     );
     return rows[0] ? parseJson(rows[0].media_json, null) : null;
   }
