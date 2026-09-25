@@ -180,7 +180,9 @@ describe("M51 Business dashboard browser client", () => {
     );
     expect(
       fixture.secureFetch.mock.calls.some(([, init]) =>
-        String(init?.body ?? "").includes("productReference"),
+        typeof init?.body === "string"
+          ? init.body.includes("productReference")
+          : false,
       ),
     ).toBe(false);
   });
