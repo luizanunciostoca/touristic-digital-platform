@@ -138,6 +138,21 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(control).not.toContain("resolvePlacePrimaryAction({");
   });
 
+  it("restores hybrid canonical global markers when returning to the menu", async () => {
+    const control = await readRepository(
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+    );
+    const backStart = control.indexOf("const backToMenu =");
+    const backEnd = control.indexOf("const shareActivePlace =", backStart);
+    const backToMenu = control.slice(backStart, backEnd);
+
+    expect(backStart).toBeGreaterThan(-1);
+    expect(backEnd).toBeGreaterThan(backStart);
+    expect(backToMenu).toContain("visibleLocations = Object.freeze([])");
+    expect(backToMenu).toContain('activeStage = "menu"');
+    expect(backToMenu).toContain("void loadHybridGlobalMarkers()");
+  });
+
   it("prevents Place action duplication in the initial Assistant detail turn", async () => {
     const control = await readRepository(
       "apps/morro-digital-platform/src/map/explore-locations-control.ts",

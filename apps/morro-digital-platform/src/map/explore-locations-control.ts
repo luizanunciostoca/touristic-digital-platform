@@ -1192,6 +1192,7 @@ export function installExploreLocationsControl({
     );
     restoreCategoryRail();
     emitStateChange();
+    void loadHybridGlobalMarkers();
     if (restoreFocus && previousCategoryValue) {
       contextualRailScroll
         ?.querySelector<HTMLButtonElement>(
