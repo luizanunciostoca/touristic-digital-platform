@@ -109,6 +109,7 @@ export type ExploreLocationsCommand =
       place: string;
       category?: string;
     }>
+  | Readonly<{ type: "select_place_id"; placeId: string }>
   | Readonly<{ type: "map_filter_category"; category: string }>
   | Readonly<{ type: "show_all_locations" }>
   | Readonly<{
@@ -246,10 +247,10 @@ function markerForLocation(
       ? location.placeId.trim()
       : "";
   return Object.freeze({
-    id:
-      canonicalPlaceId ||
-      ("id" in location ? location.id?.trim() : undefined) ||
-      `explore:${location.category}:${index}:${location.name}`,
+    id: canonicalPlaceId
+      ? `explore:${location.category}:canonical:${canonicalPlaceId}`
+      : ("id" in location ? location.id?.trim() : undefined) ||
+        `explore:${location.category}:${index}:${location.name}`,
     position: Object.freeze({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -1982,6 +1983,17 @@ export function installExploreLocationsControl({
 
     if (command.type === "show_all_locations") {
       return renderMapOnlyLocations(morroV1SearchCatalog);
+    }
+
+    if (command.type === "select_place_id") {
+      const location = visibleLocations.find(
+        (candidate) =>
+          "placeId" in candidate &&
+          candidate.placeId?.trim() === command.placeId.trim(),
+      );
+      if (!location) return false;
+      await selectLocation(location);
+      return true;
     }
 
     if (command.type === "select_place") {

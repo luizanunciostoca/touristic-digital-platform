@@ -189,15 +189,23 @@ document.addEventListener("click", (event) => {
   if (!(target instanceof Element)) return;
   const marker = target.closest<HTMLElement>(".morro-explore-marker");
   if (!marker) return;
+  const canonicalPlaceId = marker.dataset.canonicalPlaceId?.trim();
   const place = marker.dataset.locationName?.trim();
   const category = marker.dataset.exploreCategory?.trim();
-  if (!place || !category) return;
+  if (!canonicalPlaceId && (!place || !category)) return;
   event.preventDefault();
   event.stopPropagation();
+  if (canonicalPlaceId) {
+    void application.exploreLocations.execute({
+      type: "select_place_id",
+      placeId: canonicalPlaceId,
+    });
+    return;
+  }
   void application.exploreLocations.execute({
     type: "select_place",
-    place,
-    category,
+    place: place ?? "",
+    category: category ?? "",
   });
 });
 

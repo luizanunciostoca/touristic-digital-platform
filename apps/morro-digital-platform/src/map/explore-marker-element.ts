@@ -80,6 +80,8 @@ export function createV1ExploreMarkerElement(
   const visual = getV1ExploreMarkerVisual(category);
   const markerParts = input.id.split(":");
   const isTourCluster = category === "tours" && markerParts[2] === "cluster";
+  const canonicalPlaceId =
+    markerParts[2] === "canonical" ? markerParts.slice(3).join(":").trim() : "";
   const clusterCount = isTourCluster
     ? Number.parseInt(markerParts[3] ?? "", 10)
     : 0;
@@ -89,6 +91,7 @@ export function createV1ExploreMarkerElement(
   root.dataset.morroExploreMarker = "true";
   root.dataset.exploreCategory = category;
   root.dataset.markerId = input.id;
+  if (canonicalPlaceId) root.dataset.canonicalPlaceId = canonicalPlaceId;
   if (isTourCluster && clusterCount > 1) {
     root.dataset.tourCluster = "true";
     root.dataset.clusterCount = String(clusterCount);

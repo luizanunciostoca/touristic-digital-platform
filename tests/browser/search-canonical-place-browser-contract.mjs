@@ -316,7 +316,7 @@ try {
     () =>
       page.evaluate(() =>
         globalThis.__canonicalProof.markers.some(
-          (marker) => marker.id === "place-toca",
+          (marker) => marker.id === "explore:nightlife:canonical:place-toca",
         ),
       ),
     "canonical global marker projection",
