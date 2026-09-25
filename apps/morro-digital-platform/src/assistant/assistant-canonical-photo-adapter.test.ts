@@ -21,7 +21,9 @@ function mapResponse() {
   );
 }
 
-function detailResponse(providerReference: string = "/media/business-a/segunda.webp") {
+function detailResponse(
+  providerReference: string = "/media/business-a/segunda.webp",
+) {
   return new Response(
     JSON.stringify({
       profile: {
@@ -138,6 +140,10 @@ describe("assistant canonical photo adapter", () => {
         fetchImplementation,
         "pt",
       ),
-    ).resolves.toBeNull();
+    ).resolves.toEqual({
+      placeId: "place-segunda-praia",
+      place: "Segunda Praia",
+      images: ["https://cdn.example.com/segunda-2.webp"],
+    });
   });
 });
