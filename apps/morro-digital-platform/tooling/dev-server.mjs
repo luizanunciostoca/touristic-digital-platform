@@ -18,6 +18,7 @@ import { createDatabaseEnvironmentResolver } from "./database-environment.mjs";
 import { resolvePublicDestination } from "./destination-public-projection.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
+import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 import {
   fetchWeatherWithFallback,
   mapOpenMeteoWeatherPayload,
@@ -161,6 +162,7 @@ let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
 let contentAdminRuntime = null;
 let destinationRuntimeReady = false;
+let placePlatformRuntime = null;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -248,6 +250,14 @@ platformOperations = createPlatformOperations({
         detail: "CONTENT_ADMIN_NOT_STARTED",
       }),
     },
+    {
+      name: "place-platform-runtime",
+      ...(placePlatformRuntime?.readinessCheck() ?? {
+        status: "fail",
+        critical: false,
+        detail: "PLACE_PLATFORM_NOT_STARTED",
+      }),
+    },
   ],
 });
 await authApi.start();
@@ -279,6 +289,13 @@ ticketingRuntimeReady = await ticketingApi.start();
 contentAdminRuntime = createContentAdminRuntime({ getEnvironmentValue });
 await contentAdminRuntime.start();
 
+placePlatformRuntime = createPlacePlatformRuntime({
+  authApi,
+  getEnvironmentValue,
+  platformOperations,
+});
+await placePlatformRuntime.start();
+
 const adminApi = createAdminApi({
   authApi,
   platformOperations,
@@ -293,6 +310,7 @@ const adminApi = createAdminApi({
     affiliateAdminRuntime,
     contentRuntime: contentAdminRuntime,
     destinationRuntime,
+    placePlatformRuntime,
   }),
 });
 
@@ -649,6 +667,14 @@ const server = createServer(async (request, response) => {
       await authApi.handle(request, response, requestUrl.pathname);
       return;
     }
+    if (requestUrl.pathname.startsWith("/api/places/v1/")) {
+      const handled = await placePlatformRuntime.handlePublic(
+        request,
+        response,
+        requestUrl,
+      );
+      if (handled) return;
+    }
     if (adminApi.matches(requestUrl.pathname)) {
       await adminApi.handle(request, response, requestUrl);
       return;
@@ -824,6 +850,7 @@ async function shutdown(signal) {
     affiliateAdminRuntime.stop(),
     ticketingApi.stop(),
     contentAdminRuntime ? contentAdminRuntime.stop() : Promise.resolve(),
+    placePlatformRuntime ? placePlatformRuntime.stop() : Promise.resolve(),
     destinationRuntime.stop(),
   ]);
   paymentsRuntimeReady = false;
