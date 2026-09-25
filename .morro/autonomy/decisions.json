@@ -1,0 +1,4 @@
+{
+  "schemaVersion": 1,
+  "decisions": [{"id":"DEC-001","decision":"Treat #353 and #355 as closed/superseded; do not duplicate their ownership without a proven residual delta."},{"id":"DEC-002","decision":"Require post-merge exact-head evidence for main after #364 before downstream cutover certification."}]
+}
