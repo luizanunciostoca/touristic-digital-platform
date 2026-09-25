@@ -4,6 +4,8 @@ export const businessCmsContract = Object.freeze({
   create: "/businesses/cms",
   updateProfile: (businessId) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/profile`,
+  updateLocation: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/location`,
   publish: (businessId) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/publication`,
 });
@@ -112,7 +114,6 @@ function filterMarkup(model, escapeHtml) {
           <select name="locationStatus">
             <option value="">Todas</option>
             ${option("confirmed", "Confirmada", model.filters?.locationStatus)}
-            ${option("pending", "Pendente", model.filters?.locationStatus)}
             ${option(
               "missing",
               "Sem localização",
@@ -327,12 +328,25 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Localização",
       `<section class="card section-card">
         <h2>Localização</h2>
-        <p>Busca interna → provider externo → confirmação explícita.</p>
         <div class="module-list">
           <div class="module-row"><span>Endereço</span><strong>${escapeHtml(location.address ?? "—")}</strong></div>
           <div class="module-row"><span>Coordenadas</span><strong>${escapeHtml(location.latitude ?? "—")}, ${escapeHtml(location.longitude ?? "—")}</strong></div>
           <div class="module-row"><span>Fonte</span><strong>${escapeHtml(location.source ?? "—")}</strong></div>
         </div>
+        ${
+          canMutate
+            ? `<form id="business-cms-location-form" class="form-grid">
+                <label>Endereço<input name="address" value="${escapeHtml(location.address ?? "")}" maxlength="500" /></label>
+                <label>Latitude<input required name="latitude" type="number" step="any" min="-90" max="90" value="${escapeHtml(location.latitude ?? "")}" /></label>
+                <label>Longitude<input required name="longitude" type="number" step="any" min="-180" max="180" value="${escapeHtml(location.longitude ?? "")}" /></label>
+                <div class="business-cms-inline-actions">
+                  <button type="button" class="secondary-button" data-business-cms-position>Usar posição atual</button>
+                  <button type="submit" class="primary-button">Confirmar localização</button>
+                </div>
+              </form>
+              <p id="business-cms-location-result" role="status"></p>`
+            : ""
+        }
       </section>`,
     ],
     [
@@ -340,8 +354,19 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Fotos e mídia",
       `<section class="card section-card">
         <h2>Fotos e mídia</h2>
-        <p>Upload, cover, gallery, logo, reorder e delete são delegados ao contrato de Media.</p>
         <strong>${escapeHtml(media.count ?? safeArray(media.assets).length)} ativo(s)</strong>
+        <div class="module-list">
+          ${
+            safeArray(media.assets)
+              .map(
+                (entry) =>
+                  `<div class="module-row"><span>${escapeHtml(entry.asset?.alt ?? entry.mediaId)}</span><strong>${escapeHtml(entry.role)} · ${escapeHtml(entry.asset?.publicationState ?? "indisponível")}</strong></div>`,
+              )
+              .join("") ||
+            '<div class="empty">Nenhuma mídia associada a este Place.</div>'
+          }
+        </div>
+        <p>Gerenciamento de arquivos requer o serviço de armazenamento Media.</p>
       </section>`,
     ],
     [
@@ -362,22 +387,39 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Ações no mapa",
       `<section class="card section-card">
         <h2>Ações no mapa</h2>
-        <p>Automáticas: ${escapeHtml(safeArray(actions.automatic).length)} · Disponíveis: ${escapeHtml(safeArray(actions.available).length)} · Incompatíveis: ${escapeHtml(safeArray(actions.incompatible).length)}</p>
-        <p>O Control Center não replica o resolver de CTA no browser.</p>
+        <div class="module-list">
+          ${
+            safeArray(actions.available)
+              .map(
+                (action) =>
+                  `<div class="module-row"><span>${escapeHtml(action.label ?? action.id)}</span><strong>${escapeHtml(action.enabled === false ? "Indisponível" : "Disponível")}</strong></div>`,
+              )
+              .join("") ||
+            '<div class="empty">Nenhuma ação disponível para os dados atuais.</div>'
+          }
+        </div>
+        <p>As ações são projetadas pelo registry do servidor.</p>
       </section>`,
     ],
     [
       "preview",
       "Preview",
       `<section class="card section-card">
-        <h2>Preview público</h2>
+        <h2>Prévia da revisão editável</h2>
         <div class="business-cms-preview">
           <div>
             <small>${escapeHtml(detail.preview?.locale ?? "pt-BR")}</small>
             <h3>${escapeHtml(detail.preview?.name ?? profile.name ?? detail.name ?? "Empresa")}</h3>
             <p>${escapeHtml(detail.preview?.description ?? profile.shortDescription ?? "")}</p>
+            <p>${escapeHtml(detail.preview?.categoryId ?? "")} · ${escapeHtml(detail.preview?.location?.address ?? "")}</p>
+            <p>${escapeHtml(
+              safeArray(actions.available)
+                .map((action) => action.label ?? action.id)
+                .join(" · "),
+            )}</p>
           </div>
         </div>
+        <p>A visualização publicada usa a última revisão aprovada; alterações neste draft aguardam publicação.</p>
       </section>`,
     ],
     [
@@ -426,7 +468,14 @@ function detailTabs(detail, escapeHtml, canMutate) {
           <div class="module-row"><span>Published revision</span><strong>${escapeHtml(publication.publishedRevision ?? "—")}</strong></div>
           <div class="module-row"><span>Editable revision</span><strong>${escapeHtml(publication.editableRevision ?? "—")}</strong></div>
         </div>
-        ${canMutate ? '<button class="primary-button" type="button" data-business-publish>Publicar alterações</button>' : ""}
+        ${
+          canMutate && publication.editableRevision
+            ? `<div class="business-cms-inline-actions">
+                <button class="secondary-button" type="button" data-business-publication="review" ${publication.state === "review" ? "disabled" : ""}>Solicitar revisão</button>
+                <button class="primary-button" type="button" data-business-publication="publish" ${publication.state === "review" ? "" : "disabled"}>Publicar revisão</button>
+              </div>`
+            : ""
+        }
         <p id="business-cms-publication-result" role="status"></p>
       </section>`,
     ],
@@ -526,6 +575,51 @@ function bindList(root, ctx, model) {
 function bindDetail(root, ctx, detail) {
   bindTabs(root);
 
+  const locationForm = root.querySelector("#business-cms-location-form");
+  const locationResult = root.querySelector("#business-cms-location-result");
+  root
+    .querySelector("[data-business-cms-position]")
+    ?.addEventListener("click", () => {
+      if (!globalThis.navigator?.geolocation) {
+        locationResult.textContent =
+          "Posição atual indisponível neste dispositivo.";
+        return;
+      }
+      locationResult.textContent = "Obtendo posição atual…";
+      globalThis.navigator.geolocation.getCurrentPosition(
+        ({ coords }) => {
+          locationForm.elements.latitude.value = String(coords.latitude);
+          locationForm.elements.longitude.value = String(coords.longitude);
+          locationResult.textContent =
+            "Posição preenchida. Confirme antes de salvar.";
+        },
+        () => {
+          locationResult.textContent =
+            "Posição indisponível. Informe as coordenadas manualmente.";
+        },
+        { enableHighAccuracy: true, timeout: 10000 },
+      );
+    });
+  locationForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const body = Object.fromEntries(new FormData(locationForm));
+      locationResult.textContent = "Confirmando localização…";
+      await ctx.api(businessCmsContract.updateLocation(detail.businessId), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      await renderBusinessCms(ctx, detail.businessId);
+      ctx.content.querySelector('[data-business-cms-tab="location"]')?.click();
+      ctx.content.querySelector("#business-cms-location-result").textContent =
+        "Localização salva como revisão editável.";
+    } catch (error) {
+      locationResult.textContent =
+        error.body?.error ?? error.message ?? "Falha ao salvar localização.";
+    }
+  });
+
   root
     .querySelector("#business-cms-profile-form")
     ?.addEventListener("submit", async (event) => {
@@ -540,16 +634,18 @@ function bindDetail(root, ctx, detail) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        result.textContent = "Perfil salvo como revisão editável.";
+        await renderBusinessCms(ctx, detail.businessId);
+        ctx.content.querySelector('[data-business-cms-tab="profile"]')?.click();
+        ctx.content.querySelector("#business-cms-profile-result").textContent =
+          "Perfil salvo como revisão editável.";
       } catch (error) {
         result.textContent =
           error.body?.error ?? error.message ?? "Falha ao salvar perfil.";
       }
     });
 
-  root
-    .querySelector("[data-business-publish]")
-    ?.addEventListener("click", async () => {
+  for (const button of root.querySelectorAll("[data-business-publication]")) {
+    button.addEventListener("click", async () => {
       const result = root.querySelector("#business-cms-publication-result");
 
       try {
@@ -557,14 +653,21 @@ function bindDetail(root, ctx, detail) {
         await ctx.api(businessCmsContract.publish(detail.businessId), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "publish" }),
+          body: JSON.stringify({
+            action: button.dataset.businessPublication,
+            expectedRevision: detail.publication.editableRevision,
+          }),
         });
-        result.textContent = "Publicação solicitada ao contrato governado.";
+        await renderBusinessCms(ctx, detail.businessId);
+        ctx.content
+          .querySelector('[data-business-cms-tab="publication"]')
+          ?.click();
       } catch (error) {
         result.textContent =
           error.body?.error ?? error.message ?? "Publicação bloqueada.";
       }
     });
+  }
 }
 
 export async function renderBusinessCms(

@@ -26,7 +26,7 @@ describe("Control Center Business CMS contract", () => {
       "Fotos e mídia",
       "Produtos, ofertas e cardápio",
       "Ações no mapa",
-      "Preview público",
+      "Prévia da revisão editável",
       "Equipe",
       "Auditoria",
       "Publicação",
@@ -36,7 +36,9 @@ describe("Control Center Business CMS contract", () => {
   });
 
   it("keeps CTA resolution and money authority outside the browser", () => {
-    expect(source).toContain("não replica o resolver de CTA no browser");
+    expect(source).toContain(
+      "As ações são projetadas pelo registry do servidor.",
+    );
     expect(source).toContain("Inventory / Ticketing");
   });
 

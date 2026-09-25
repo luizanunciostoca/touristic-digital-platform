@@ -226,8 +226,13 @@ function mergeProfile(place, input, now) {
     slug: slug(nextName) || place.slug,
     categoryId: clean(input.categoryId, 160) || place.categoryId,
     shortDescription:
-      clean(input.shortDescription, 500) || place.shortDescription,
-    description: clean(input.description, 4000) || place.description,
+      input.shortDescription === undefined
+        ? place.shortDescription
+        : clean(input.shortDescription, 500),
+    description:
+      input.description === undefined
+        ? place.description
+        : clean(input.description, 4000),
     tags: Object.freeze(tags),
     amenities: Object.freeze(amenities),
     updatedAt: now,
@@ -235,6 +240,16 @@ function mergeProfile(place, input, now) {
 }
 
 function mergeLocation(place, input, actor, now) {
+  if (
+    input.latitude === null ||
+    input.latitude === undefined ||
+    input.latitude === "" ||
+    input.longitude === null ||
+    input.longitude === undefined ||
+    input.longitude === ""
+  ) {
+    throw new Error("INVALID_PLACE_LOCATION");
+  }
   const latitude = Number(input.latitude);
   const longitude = Number(input.longitude);
   if (
@@ -254,9 +269,9 @@ function mergeLocation(place, input, actor, now) {
       longitude,
       address: clean(input.address, 500),
       area: clean(input.area, 160),
-      source: clean(input.source, 40) || "manual",
-      externalProvider: clean(input.externalProvider, 80) || null,
-      externalPlaceId: clean(input.externalPlaceId, 240) || null,
+      source: "manual",
+      externalProvider: null,
+      externalPlaceId: null,
       verifiedAt: now,
       verifiedBy: actor?.subject ?? "platform",
     }),
@@ -380,8 +395,11 @@ function createGovernanceRepository(pool) {
           updatedAt: record.updatedAt,
         });
 
-      const [result] = await pool.execute(
-        `UPDATE business_places
+      const connection = await pool.getConnection();
+      try {
+        await connection.beginTransaction();
+        const [result] = await connection.execute(
+          `UPDATE business_places
             SET category_id = ?,
                 publication_state = ?,
                 editable_revision = ?,
@@ -391,35 +409,41 @@ function createGovernanceRepository(pool) {
                 updated_by = ?,
                 updated_at = ?
           WHERE place_id = ? AND editable_revision = ?`,
-        [
-          record.editableRevision.data.categoryId,
-          record.publicationState,
-          record.editableRevision.revision,
-          record.editableRevision.id,
-          JSON.stringify(effectivePlace),
-          JSON.stringify(record.editableRevision.data),
-          record.editableRevision.createdBy,
-          new Date(record.updatedAt),
-          record.placeId,
-          expectedRevision,
-        ],
-      );
-      if (result.affectedRows !== 1)
-        throw new Error("PLACE_PUBLICATION_STALE_REVISION");
-      await pool.execute(
-        `INSERT INTO business_place_revision_history
+          [
+            record.editableRevision.data.categoryId,
+            record.publicationState,
+            record.editableRevision.revision,
+            record.editableRevision.id,
+            JSON.stringify(effectivePlace),
+            JSON.stringify(record.editableRevision.data),
+            record.editableRevision.createdBy,
+            new Date(record.updatedAt),
+            record.placeId,
+            expectedRevision,
+          ],
+        );
+        if (result.affectedRows !== 1)
+          throw new Error("PLACE_PUBLICATION_STALE_REVISION");
+        await connection.execute(
+          `INSERT INTO business_place_revision_history
           (place_id, revision, revision_id, revision_json, actor_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE revision_id = VALUES(revision_id)`,
-        [
-          record.placeId,
-          record.editableRevision.revision,
-          record.editableRevision.id,
-          JSON.stringify(record.editableRevision.data),
-          record.editableRevision.createdBy,
-          new Date(record.editableRevision.createdAt),
-        ],
-      );
+         VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            record.placeId,
+            record.editableRevision.revision,
+            record.editableRevision.id,
+            JSON.stringify(record.editableRevision.data),
+            record.editableRevision.createdBy,
+            new Date(record.editableRevision.createdAt),
+          ],
+        );
+        await connection.commit();
+      } catch (error) {
+        await connection.rollback();
+        throw error;
+      } finally {
+        connection.release();
+      }
       const row = await getRow(record.placeId);
       return governedRecordFromRow(row);
     },
@@ -495,7 +519,8 @@ function createPublicRepository(pool) {
         bbox.east,
       ];
       const clauses = [
-        "publication_state = 'published'",
+        "published_revision IS NOT NULL",
+        "publication_state NOT IN ('suspended', 'archived')",
         "published_place_json IS NOT NULL",
         "destination_id = ?",
         "published_latitude BETWEEN ? AND ?",
@@ -529,7 +554,8 @@ function createPublicRepository(pool) {
     async getPublished(placeId) {
       const [rows] = await pool.execute(
         `SELECT * FROM business_places
-          WHERE place_id = ? AND publication_state = 'published'
+          WHERE place_id = ? AND published_revision IS NOT NULL
+            AND publication_state NOT IN ('suspended', 'archived')
           LIMIT 1`,
         [String(placeId)],
       );
@@ -829,6 +855,13 @@ export function createPlacePlatformRuntime({
       requestUrl.searchParams.get("publicationState"),
       40,
     );
+    const locationStatus = clean(
+      requestUrl.searchParams.get("locationStatus"),
+      20,
+    );
+    if (locationStatus && !["confirmed", "missing"].includes(locationStatus)) {
+      throw new Error("INVALID_LOCATION_STATUS");
+    }
     const clauses = ["1=1"];
     const params = [];
     if (destinationId) {
@@ -843,14 +876,24 @@ export function createPlacePlatformRuntime({
       clauses.push("p.publication_state = ?");
       params.push(publicationState === "ready" ? "review" : publicationState);
     }
+    if (locationStatus === "confirmed") {
+      clauses.push(
+        "JSON_EXTRACT(p.editable_place_json, '$.location.latitude') IS NOT NULL",
+      );
+    } else if (locationStatus === "missing") {
+      clauses.push(
+        "JSON_EXTRACT(p.editable_place_json, '$.location.latitude') IS NULL",
+      );
+    }
     if (query) {
       clauses.push(
-        "(LOWER(b.display_name) LIKE ? OR LOWER(b.id) LIKE ? OR LOWER(p.place_id) LIKE ?)",
+        "(LOWER(JSON_UNQUOTE(JSON_EXTRACT(p.editable_place_json, '$.name'))) LIKE ? OR LOWER(b.id) LIKE ? OR LOWER(p.place_id) LIKE ?)",
       );
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
     const [rows] = await pool.execute(
-      `SELECT b.id AS business_id, b.display_name,
+      `SELECT b.id AS business_id,
+              COALESCE(JSON_UNQUOTE(JSON_EXTRACT(p.editable_place_json, '$.name')), b.display_name) AS display_name,
               p.destination_id, p.place_id, p.category_id,
               p.publication_state, p.editable_place_json
          FROM business_entities b
@@ -892,6 +935,7 @@ export function createPlacePlatformRuntime({
         destinationId,
         categoryId,
         publicationState,
+        locationStatus,
       }),
     });
   }
@@ -915,8 +959,46 @@ export function createPlacePlatformRuntime({
     let media = { count: 0, assets: [] };
     if (place && mediaRepository) {
       const links = await mediaRepository.listLinks(String(place.id));
-      media = { count: links.length, assets: links };
+      media = {
+        count: links.length,
+        assets: await Promise.all(
+          links.map(async (link) => {
+            const asset = await mediaRepository.getAsset(link.mediaId);
+            if (asset && asset.businessId !== place.businessId) {
+              throw new Error("MEDIA_ACCESS_BUSINESS_DENIED");
+            }
+            return { ...link, asset };
+          }),
+        ),
+      };
     }
+    const [history] = place
+      ? await pool.execute(
+          `SELECT revision, actor_id, created_at
+             FROM business_place_revision_history
+            WHERE place_id = ? ORDER BY revision DESC LIMIT 30`,
+          [place.id],
+        )
+      : [[]];
+    const projectedActions = place
+      ? await createActionPort().resolvePublicActions({
+          place: { ...place, capabilities: place.capabilities.enabled },
+          businessId: String(place.businessId),
+          media: {
+            gallery: media.assets.filter(
+              (entry) =>
+                ["cover", "gallery"].includes(entry.role) &&
+                entry.asset?.publicationState === "published",
+            ),
+          },
+          commerce: null,
+          locale: "pt-BR",
+        })
+      : null;
+    const users = (await authApi?.listAdminUsers?.()) ?? [];
+    const team = users
+      .filter((user) => user.businessIds?.includes(businessId))
+      .map((user) => ({ id: user.id, email: user.email, role: user.role }));
     return Object.freeze({
       businessId: row.business_id,
       name: row.display_name,
@@ -945,7 +1027,16 @@ export function createPlacePlatformRuntime({
         : { status: "missing" },
       media,
       catalog: { productCount: 0, offerCount: 0, menuCount: 0 },
-      actions: { automatic: [], available: [], incompatible: [] },
+      actions: {
+        automatic: [],
+        available: [
+          ...(projectedActions?.primaryAction
+            ? [projectedActions.primaryAction]
+            : []),
+          ...(projectedActions?.secondaryActions ?? []),
+        ],
+        incompatible: [],
+      },
       publication: governed
         ? {
             state: governed.publicationState,
@@ -954,13 +1045,22 @@ export function createPlacePlatformRuntime({
           }
         : { state: "draft", publishedRevision: null, editableRevision: null },
       publicationState: governed?.publicationState ?? "draft",
-      team: [],
-      audit: [],
+      team,
+      audit: history.map((entry) => ({
+        action: "place.revision.saved",
+        result: `revision ${entry.revision} · ${entry.actor_id}`,
+        timestamp: iso(entry.created_at),
+      })),
       preview: place
         ? {
             locale: "pt-BR",
             name: place.name,
             description: place.shortDescription,
+            categoryId: place.categoryId,
+            location: place.location,
+            actions: projectedActions,
+            media,
+            source: "editable-revision",
           }
         : null,
     });
@@ -981,10 +1081,7 @@ export function createPlacePlatformRuntime({
       await connection.execute(
         `INSERT INTO business_entities
           (id, legal_name, display_name, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE
-           display_name = VALUES(display_name),
-           updated_at = VALUES(updated_at)`,
+         VALUES (?, ?, ?, ?, ?)`,
         [
           place.businessId,
           place.name,
@@ -1098,32 +1195,46 @@ export function createPlacePlatformRuntime({
     );
   }
 
-  async function publish(actor, businessId) {
+  async function transitionPublication(
+    actor,
+    businessId,
+    action,
+    expectedRevision,
+  ) {
     assertReady();
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1) {
+      throw new Error("INVALID_EXPECTED_REVISION");
+    }
     const [rows] = await pool.execute(
       `SELECT * FROM business_places WHERE business_id = ? ORDER BY created_at ASC LIMIT 1`,
       [businessId],
     );
     const row = rows[0];
     if (!row) throw new Error("PLACE_NOT_FOUND");
-    let record = governedRecordFromRow(row);
+    const record = governedRecordFromRow(row);
+    if (record.editableRevision.revision !== expectedRevision) {
+      throw new Error("PLACE_PUBLICATION_STALE_REVISION");
+    }
     const context = {
       session: actor,
       correlationId: "control-center",
       now: new Date().toISOString(),
     };
-    if (record.publicationState !== "review") {
-      record = await publicationService.requestReview(
+    if (action === "review") {
+      return publicationService.requestReview(
         context,
         record.placeId,
-        record.editableRevision.revision,
+        expectedRevision,
       );
     }
-    return publicationService.publish(
-      context,
-      record.placeId,
-      record.editableRevision.revision,
-    );
+    if (action === "publish") {
+      return publicationService.publish(
+        context,
+        record.placeId,
+        expectedRevision,
+      );
+    }
+    throw new Error("INVALID_PUBLICATION_ACTION");
   }
 
   return Object.freeze({
@@ -1136,6 +1247,6 @@ export function createPlacePlatformRuntime({
     createDraft,
     updateProfile,
     updateLocation,
-    publish,
+    transitionPublication,
   });
 }
