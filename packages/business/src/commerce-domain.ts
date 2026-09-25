@@ -123,6 +123,7 @@ export interface CatalogService {
   createOffer(scope: CatalogScope, input: Offer): Promise<Offer>;
   updateOffer(scope: CatalogScope, input: Offer): Promise<Offer>;
   createMenu(scope: CatalogScope, input: Menu): Promise<Menu>;
+  updateMenu(scope: CatalogScope, input: Menu): Promise<Menu>;
   saveMenuCategory(
     scope: CatalogScope,
     input: MenuCategory,
@@ -407,6 +408,21 @@ export function createCatalogService(
       assertBusiness(scope, input.businessId);
       if (await repository.getMenu(input.id)) {
         throw new Error("MENU_ALREADY_EXISTS");
+      }
+      if (!safeText(input.name, 180)) {
+        throw new Error("INVALID_MENU_NAME");
+      }
+      if (input.placeId !== null) asPlaceId(input.placeId);
+      return repository.saveMenu(Object.freeze({ ...input }));
+    },
+
+    async updateMenu(scope: CatalogScope, input: Menu): Promise<Menu> {
+      assertBusiness(scope, input.businessId);
+      const existing = await repository.getMenu(input.id);
+      if (!existing) throw new Error("MENU_NOT_FOUND");
+      assertBusiness(scope, existing.businessId);
+      if (existing.businessId !== input.businessId) {
+        throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
       }
       if (!safeText(input.name, 180)) {
         throw new Error("INVALID_MENU_NAME");
