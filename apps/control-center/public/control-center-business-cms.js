@@ -418,6 +418,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
                   ${
                     canMutate && media.storageAvailable
                       ? `<div class="business-cms-inline-actions">
+                          <button type="button" class="secondary-button" data-media-alt data-media-current-alt="${escapeHtml(asset.alt ?? "")}" data-media-id="${escapeHtml(entry.mediaId)}">Alt</button>
                           <button type="button" class="secondary-button" data-media-role="cover" data-media-id="${escapeHtml(entry.mediaId)}">Capa</button>
                           <button type="button" class="secondary-button" data-media-role="logo" data-media-id="${escapeHtml(entry.mediaId)}">Logo</button>
                           <button type="button" class="secondary-button" data-media-role="gallery" data-media-id="${escapeHtml(entry.mediaId)}">Galeria</button>
@@ -862,6 +863,15 @@ function bindDetail(root, ctx, detail) {
       if (result) result.textContent =
         error.body?.error ?? error.message ?? "Falha ao salvar mídia.";
     }
+  }
+
+  for (const button of root.querySelectorAll("[data-media-alt]")) {
+    button.addEventListener("click", () => {
+      const current = button.dataset.mediaCurrentAlt ?? "";
+      const next = globalThis.prompt?.("Texto alternativo da imagem", current);
+      if (next == null || next === current) return;
+      void updateMedia(button.dataset.mediaId, { alt: next }, "Texto alternativo atualizado.");
+    });
   }
 
   for (const button of root.querySelectorAll("[data-media-role]")) {
