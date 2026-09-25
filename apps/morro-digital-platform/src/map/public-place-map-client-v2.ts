@@ -52,7 +52,7 @@ function parseMapPage(value: unknown): PublicPlaceMapPage {
   }
   return Object.freeze({
     items: Object.freeze([...value.items]),
-    nextCursor: value.nextCursor as string | null,
+    nextCursor: value.nextCursor,
   });
 }
 
@@ -98,7 +98,7 @@ export function createPublicPlaceMapClient(
         {
           method: "GET",
           headers: { Accept: "application/json" },
-          signal: input.signal,
+          ...(input.signal ? { signal: input.signal } : {}),
         },
       );
       if (!response.ok) {
