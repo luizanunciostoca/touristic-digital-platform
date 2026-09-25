@@ -83,7 +83,7 @@ jobs:
             items: [
               {
                 id: 'place-toca',
-                name: 'Toca do Morcego',
+                name: 'Lugar Canônico Teste',
                 category: 'nightlife',
                 lat: -13.3779,
                 lng: -38.9138,
@@ -97,7 +97,7 @@ jobs:
               id: 'place-toca',
               businessId: 'business-toca',
               destinationId: 'morro-de-sao-paulo',
-              name: 'Toca do Morcego',
+              name: 'Lugar Canônico Teste',
               categoryId: 'nightlife',
               location: {
                 latitude: -13.3779,
@@ -314,8 +314,8 @@ jobs:
             try {
               {
                 const { context, page, pageErrors } = await createPage(browser, 'ready');
-                await submit(page, 'Toca do Morcego');
-                await selectPlace(page, 'Toca do Morcego');
+                await submit(page, 'Lugar Canônico Teste');
+                await selectPlace(page, 'Lugar Canônico Teste');
                 await poll(
                   page,
                   () => page.evaluate(
@@ -358,8 +358,8 @@ jobs:
                   browser,
                   'unavailable',
                 );
-                await submit(page, 'Toca do Morcego');
-                await selectPlace(page, 'Toca do Morcego');
+                await submit(page, 'Lugar Canônico Teste');
+                await selectPlace(page, 'Lugar Canônico Teste');
                 await poll(
                   page,
                   () => page.evaluate(
