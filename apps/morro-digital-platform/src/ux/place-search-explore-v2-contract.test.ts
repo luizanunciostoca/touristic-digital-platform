@@ -78,7 +78,7 @@ describe("Place + Search/Explore V2 contract", () => {
   });
 
   it("keeps hybrid discovery while promoting explicit canonical Place identity", async () => {
-    const [control, search, browser] = await Promise.all([
+    const [control, search, browser, marker, entry] = await Promise.all([
       readRepository(
         "apps/morro-digital-platform/src/map/explore-locations-control.ts",
       ),
@@ -88,6 +88,10 @@ describe("Place + Search/Explore V2 contract", () => {
       readRepository(
         "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
       ),
+      readRepository(
+        "apps/morro-digital-platform/src/map/explore-marker-element.ts",
+      ),
+      readRepository("apps/morro-digital-platform/src/browser-entry.ts"),
     ]);
 
     expect(search).toContain('source: "canonical" as const');
@@ -104,6 +108,21 @@ describe("Place + Search/Explore V2 contract", () => {
       'readonly source: "canonical" | "local" | "mapbox"',
     );
     expect(control).toContain("createPublicPlaceMapClient");
+    expect(control).toContain("loadHybridGlobalMarkers");
+    expect(control).toContain("CANONICAL_MAP_DESTINATION_ID");
+    expect(control).toContain("canonicalPlaceRuntimeAvailable");
+    expect(control).toContain("VITE_PLACE_PLATFORM_AVAILABLE");
+    expect(control).toContain('source: "canonical" as const');
+    expect(control).toContain("placeId: String(item.id)");
+    expect(control).toContain(
+      "`explore:${location.category}:canonical:${canonicalPlaceId}`",
+    );
+    expect(control).toContain('"select_place_id"');
+    expect(control).toContain("visibleLocations.find");
+    expect(marker).toContain("root.dataset.canonicalPlaceId");
+    expect(entry).toContain("marker.dataset.canonicalPlaceId");
+    expect(entry).toContain('type: "select_place_id"');
+    expect(control).toContain("legacyFallback");
     expect(control).toContain("canonicalPlaceId");
     expect(control).toContain("detail.actions.secondaryActions");
     expect(control).toContain("detail.actions.primaryAction");
@@ -128,6 +147,21 @@ describe("Place + Search/Explore V2 contract", () => {
       "!UNREGISTERED_COMMERCIAL_ACTION_IDS.has(actionId)",
     );
     expect(control).not.toContain("resolvePlacePrimaryAction({");
+  });
+
+  it("restores hybrid canonical global markers when returning to the menu", async () => {
+    const control = await readRepository(
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+    );
+    const backStart = control.indexOf("const backToMenu =");
+    const backEnd = control.indexOf("const shareActivePlace =", backStart);
+    const backToMenu = control.slice(backStart, backEnd);
+
+    expect(backStart).toBeGreaterThan(-1);
+    expect(backEnd).toBeGreaterThan(backStart);
+    expect(backToMenu).toContain("visibleLocations = Object.freeze([])");
+    expect(backToMenu).toContain('activeStage = "menu"');
+    expect(backToMenu).toContain("void loadHybridGlobalMarkers()");
   });
 
   it("prevents Place action duplication in the initial Assistant detail turn", async () => {

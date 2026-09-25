@@ -55,6 +55,25 @@ const UNREGISTERED_COMMERCIAL_ACTION_IDS = new Set([
   "place.whatsapp",
 ]);
 
+const CANONICAL_MAP_DESTINATION_ID = "morro-de-sao-paulo";
+const CANONICAL_MAP_BBOX = Object.freeze([
+  -39.05, -13.5, -38.89, -13.35,
+] as const);
+const CANONICAL_MAP_ZOOM = 13;
+
+interface PlaceRuntimeEnvironmentGlobal {
+  readonly __MORRO_RUNTIME_ENV__?: Readonly<{
+    VITE_PLACE_PLATFORM_AVAILABLE?: string;
+  }>;
+}
+
+function canonicalPlaceRuntimeAvailable(): boolean {
+  return (
+    (globalThis as typeof globalThis & PlaceRuntimeEnvironmentGlobal)
+      .__MORRO_RUNTIME_ENV__?.VITE_PLACE_PLATFORM_AVAILABLE === "true"
+  );
+}
+
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
 export interface ExploreSearchResult {
@@ -90,6 +109,7 @@ export type ExploreLocationsCommand =
       place: string;
       category?: string;
     }>
+  | Readonly<{ type: "select_place_id"; placeId: string }>
   | Readonly<{ type: "map_filter_category"; category: string }>
   | Readonly<{ type: "show_all_locations" }>
   | Readonly<{
@@ -222,10 +242,15 @@ function markerForLocation(
   index: number,
   openPopup = false,
 ): MapMarker {
+  const canonicalPlaceId =
+    "placeId" in location && typeof location.placeId === "string"
+      ? location.placeId.trim()
+      : "";
   return Object.freeze({
-    id:
-      ("id" in location ? location.id?.trim() : undefined) ||
-      `explore:${location.category}:${index}:${location.name}`,
+    id: canonicalPlaceId
+      ? `explore:${location.category}:canonical:${canonicalPlaceId}`
+      : ("id" in location ? location.id?.trim() : undefined) ||
+        `explore:${location.category}:${index}:${location.name}`,
     position: Object.freeze({
       latitude: location.latitude,
       longitude: location.longitude,
@@ -879,6 +904,82 @@ export function installExploreLocationsControl({
     }
   };
 
+  const loadHybridGlobalMarkers = async (): Promise<void> => {
+    if (
+      !geospatialEngine?.initialized ||
+      !canonicalPlaceRuntimeAvailable() ||
+      activeStage !== "menu" ||
+      visibleLocations.length > 0
+    ) {
+      return;
+    }
+
+    const browserFetch = document.defaultView?.fetch?.bind(
+      document.defaultView,
+    );
+    if (!browserFetch) return;
+
+    const generation = interactionGeneration;
+    try {
+      const client = createPublicPlaceMapClient(browserFetch);
+      const canonicalLocations: ExploreSearchResult[] = [];
+      let cursor: string | null = null;
+      let pageCount = 0;
+
+      do {
+        const page = await client.listMap({
+          destinationId: CANONICAL_MAP_DESTINATION_ID,
+          bbox: CANONICAL_MAP_BBOX,
+          zoom: CANONICAL_MAP_ZOOM,
+          ...(cursor ? { cursor } : {}),
+        });
+        canonicalLocations.push(
+          ...page.items.map((item) =>
+            Object.freeze({
+              name: item.name,
+              category: String(item.category),
+              latitude: item.lat,
+              longitude: item.lng,
+              source: "canonical" as const,
+              placeId: String(item.id),
+            }),
+          ),
+        );
+        cursor = page.nextCursor;
+        pageCount += 1;
+      } while (cursor && pageCount < 20);
+
+      if (
+        generation !== interactionGeneration ||
+        activeStage !== "menu" ||
+        visibleLocations.length > 0
+      ) {
+        return;
+      }
+
+      const canonicalKeys = new Set(
+        canonicalLocations.map(
+          (location) =>
+            `${normalizeSearchText(location.category)}:${normalizeSearchText(location.name)}`,
+        ),
+      );
+      const legacyFallback = morroV1SearchCatalog.filter(
+        (location) =>
+          !canonicalKeys.has(
+            `${normalizeSearchText(location.category)}:${normalizeSearchText(location.name)}`,
+          ),
+      );
+
+      await renderLocationsOnMap(
+        Object.freeze([...canonicalLocations, ...legacyFallback]),
+        "places",
+      );
+    } catch {
+      // Hybrid fail-open for discovery only: preserve the provider/legacy map
+      // when the canonical public projection is temporarily unavailable.
+    }
+  };
+
   const hideMainMenu = (): void => {
     if (!mainMenuContainer) return;
     mainMenuContainer.classList.add("hidden");
@@ -1092,6 +1193,7 @@ export function installExploreLocationsControl({
     );
     restoreCategoryRail();
     emitStateChange();
+    void loadHybridGlobalMarkers();
     if (restoreFocus && previousCategoryValue) {
       contextualRailScroll
         ?.querySelector<HTMLButtonElement>(
@@ -1883,6 +1985,17 @@ export function installExploreLocationsControl({
       return renderMapOnlyLocations(morroV1SearchCatalog);
     }
 
+    if (command.type === "select_place_id") {
+      const location = visibleLocations.find(
+        (candidate) =>
+          "placeId" in candidate &&
+          candidate.placeId?.trim() === command.placeId.trim(),
+      );
+      if (!location) return false;
+      await selectLocation(location);
+      return true;
+    }
+
     if (command.type === "select_place") {
       const location = resolveExploreLocationByName(
         command.place,
@@ -2269,7 +2382,9 @@ export function installExploreLocationsControl({
           activeCategory?.value ?? (activeSearchQuery ? "search" : "places"),
           activeStage === "detail" && visibleLocations.length === 1,
         );
+        return;
       }
+      void loadHybridGlobalMarkers();
     },
     destroy() {
       interactionGeneration += 1;
