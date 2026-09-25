@@ -661,6 +661,13 @@ function bindList(root, ctx, model) {
 function bindDetail(root, ctx, detail) {
   bindTabs(root);
 
+  const catalog = detail.catalog ?? {};
+  const products = safeArray(catalog.products);
+  const offers = safeArray(catalog.offers);
+  const menus = safeArray(catalog.menus);
+  const menuCategories = safeArray(catalog.categories);
+  const menuItems = safeArray(catalog.items);
+
   const locationForm = root.querySelector("#business-cms-location-form");
   const locationResult = root.querySelector("#business-cms-location-result");
   root
