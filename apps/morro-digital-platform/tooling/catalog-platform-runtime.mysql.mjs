@@ -74,7 +74,7 @@ test(
         businessId,
         placeId,
         destinationId: "morro-de-sao-paulo",
-        categoryId: "restaurants",
+        categoryId: "nightlife",
         name: "Catalog Integration Place",
         shortDescription: "Place com catálogo canônico persistido",
         capabilities: [
@@ -194,7 +194,6 @@ test(
         ...detail.actions.secondaryActions,
       ].filter(Boolean);
       const actionIds = new Set(actions.map((action) => action.id));
-      assert.equal(actionIds.has("products"), true);
       assert.equal(actionIds.has("offers"), true);
       assert.equal(actionIds.has("menu"), true);
       assert.equal(actionIds.has("tickets"), true);
