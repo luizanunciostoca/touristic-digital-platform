@@ -62,7 +62,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec turbo run build --filter=@touristic/morro-digital-platform^...
       - name: Verify focused CMS runtime invariants
-        run: pnpm --filter @touristic/morro-digital-platform exec vitest run tooling/place-platform-runtime.vitest.mjs
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run --config tooling/place-platform-runtime.vitest.config.mjs
       - name: Create isolated Business database
         working-directory: apps/morro-digital-platform
         run: >-
