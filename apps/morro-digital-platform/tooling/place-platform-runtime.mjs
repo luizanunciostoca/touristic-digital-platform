@@ -985,10 +985,11 @@ export function createPlacePlatformRuntime({
         ? value.split(",")
         : [];
     return Object.freeze(
-      [...new Set(source.map((entry) => clean(String(entry), 80)).filter(Boolean))].slice(
-        0,
-        20,
-      ),
+      [
+        ...new Set(
+          source.map((entry) => clean(String(entry), 80)).filter(Boolean),
+        ),
+      ].slice(0, 20),
     );
   }
 

@@ -404,7 +404,9 @@ function detailTabs(detail, escapeHtml, canMutate) {
           ${menuCategories.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>categoria</strong></div>`).join("")}
           ${menuItems.map((entry) => `<div class="module-row"><span>↳ ${escapeHtml(entry.name)}</span><strong>item draft</strong></div>`).join("")}
         </div>
-        ${canMutate ? `
+        ${
+          canMutate
+            ? `
           <div class="business-cms-catalog-forms">
             <form class="form-grid" data-business-catalog-kind="product">
               <h3>Novo produto</h3>
@@ -447,7 +449,9 @@ function detailTabs(detail, escapeHtml, canMutate) {
             </form>
           </div>
           <p id="business-cms-catalog-result" role="status"></p>
-        ` : ""}
+        `
+            : ""
+        }
         <p>Valores transacionais e disponibilidade autoritativa permanecem em Inventory / Ticketing / Financial.</p>
       </section>`,
     ],
