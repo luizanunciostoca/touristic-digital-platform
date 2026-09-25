@@ -455,6 +455,18 @@ export function createMySqlCatalogRepository(pool) {
 }
 
 async function assertOwnedPlace(pool, businessId, placeId, destinationId = null) {
+  if (destinationId != null) {
+    const [destinationRows] = await pool.execute(
+      `SELECT business_id
+         FROM business_destinations
+        WHERE business_id = ? AND destination_id = ?
+        LIMIT 1`,
+      [String(businessId), String(destinationId)],
+    );
+    if (!destinationRows[0]) {
+      throw new Error("CATALOG_DESTINATION_OWNER_MISMATCH");
+    }
+  }
   if (placeId == null) return;
   const [rows] = await pool.execute(
     `SELECT place_id, business_id, destination_id
