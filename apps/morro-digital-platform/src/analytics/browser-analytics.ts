@@ -46,6 +46,7 @@ interface ExploreTourSnapshot {
 interface ExploreStateSnapshot {
   readonly category?: unknown;
   readonly place?: unknown;
+  readonly source?: unknown;
   readonly stage?: unknown;
   readonly markerCount?: unknown;
   readonly tour?: ExploreTourSnapshot | null;
@@ -312,6 +313,14 @@ export function installBrowserAnalyticsInstrumentation(
     const category = safeText(detail.category);
     const stage = safeText(detail.stage);
     const place = safeText(detail.place);
+    const sourceCandidate = safeText(detail.source, 40);
+    const discoverySource =
+      sourceCandidate === "canonical" ||
+      sourceCandidate === "local" ||
+      sourceCandidate === "mapbox" ||
+      sourceCandidate === "legacy"
+        ? sourceCandidate
+        : undefined;
     const markerCount = safeCount(detail.markerCount);
 
     if (category && stage !== "menu" && category !== lastCategory) {
@@ -329,6 +338,7 @@ export function installBrowserAnalyticsInstrumentation(
         track("place_viewed", {
           placeId,
           ...(category ? { categoryId: category } : {}),
+          ...(discoverySource ? { discoverySource } : {}),
         });
       }
     } else if (stage !== "detail") {
