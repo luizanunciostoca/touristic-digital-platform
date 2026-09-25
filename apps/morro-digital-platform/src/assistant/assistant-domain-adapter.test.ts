@@ -7,6 +7,12 @@ import {
 } from "@touristic/assistant";
 import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
 
+function fetchInputUrl(input: RequestInfo | URL): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+}
+
 function request(
   intent: AssistantDialogIntentHandlerContext["intent"]["intent"],
   place?: string,
@@ -385,7 +391,7 @@ describe("assistant browser domain adapter", () => {
   it("prefers canonical published Place media before the V1 photo catalog", async () => {
     const fetchImplementation = vi.fn<typeof globalThis.fetch>(
       async (input) => {
-        const url = String(input);
+        const url = fetchInputUrl(input);
         if (url.startsWith("/api/places/v1/map?")) {
           return new Response(
             JSON.stringify({
