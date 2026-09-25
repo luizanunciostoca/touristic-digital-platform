@@ -296,6 +296,8 @@ function detailTabs(detail, escapeHtml, canMutate) {
   const location = detail.location ?? {};
   const media = detail.media ?? {};
   const catalog = detail.catalog ?? {};
+  const catalogDraft = catalog;
+  void catalogDraft;
   const actions = detail.actions ?? {};
   const publication = detail.publication ?? {};
   const team = safeArray(detail.team);
@@ -396,9 +398,8 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Produtos",
       `<section class="card section-card">
         <h2>Produtos, ofertas e cardápio</h2>
-        <p>As alterações ficam no catálogo editável. A projeção pública só muda após publicar a revisão do Place.</p>
-        <p id="business-cms-catalog-result" role="status"></p>
-
+        <p><strong>Draft authoring:</strong> alterações ficam no catálogo editável. A projeção pública só muda após publicar a revisão do Place.</p>
+        <div class="business-cms-catalog-forms">
         <h3>Produtos</h3>
         <div class="module-list">
           ${
@@ -412,7 +413,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
         </div>
         ${
           canMutate
-            ? `<form id="business-cms-product-form" class="form-grid">
+            ? `<form id="business-cms-product-form" class="form-grid" data-business-catalog-kind="product">
                 <label>Product ID<input required name="productId" maxlength="160" /></label>
                 <label>Nome<input required name="name" maxlength="180" /></label>
                 <label>Descrição<textarea name="description" rows="3"></textarea></label>
@@ -443,7 +444,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
         </div>
         ${
           canMutate
-            ? `<form id="business-cms-offer-form" class="form-grid">
+            ? `<form id="business-cms-offer-form" class="form-grid" data-business-catalog-kind="offer">
                 <label>Offer ID<input required name="offerId" maxlength="160" /></label>
                 <label>Produto
                   <select required name="productId">
@@ -488,7 +489,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
         </div>
         ${
           canMutate
-            ? `<form id="business-cms-menu-form" class="form-grid">
+            ? `<form id="business-cms-menu-form" class="form-grid" data-business-catalog-kind="menu">
                 <label>Menu ID<input required name="menuId" maxlength="160" /></label>
                 <label>Nome<input required name="name" maxlength="180" /></label>
                 <label>Descrição<textarea name="description" rows="3"></textarea></label>
@@ -506,7 +507,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
               </form>
 
               <h4>Categorias</h4>
-              <form id="business-cms-category-form" class="form-grid">
+              <form id="business-cms-category-form" class="form-grid" data-business-catalog-kind="menu-category">
                 <label>Menu
                   <select required name="menuId">
                     <option value="">Selecione</option>
@@ -523,7 +524,7 @@ function detailTabs(detail, escapeHtml, canMutate) {
               </div>
 
               <h4>Itens</h4>
-              <form id="business-cms-item-form" class="form-grid">
+              <form id="business-cms-item-form" class="form-grid" data-business-catalog-kind="menu-item">
                 <label>Menu
                   <select required name="menuId">
                     <option value="">Selecione</option>
@@ -553,6 +554,9 @@ function detailTabs(detail, escapeHtml, canMutate) {
               </div>`
             : ""
         }
+        </div>
+        <p>Valores exibidos no catálogo não substituem a autoridade de Inventory / Ticketing para disponibilidade transacional.</p>
+        <p id="business-cms-catalog-result" role="status"></p>
       </section>`,
     ],
     [
