@@ -1227,6 +1227,11 @@ export function installBrowserAssistantRuntime(
       : (visiblePresentation ?? currentPresentation);
     const awaitingType = context.getContext().awaiting?.type;
     const menuCommand = resolveAssistantMenuCommand(options.document, value);
+    const exploreStateBeforeMenuRouting = options.explore?.getState();
+    const deferGlobalPlaceSelectionToSearch =
+      menuCommand?.type === "select_place" &&
+      exploreStateBeforeMenuRouting?.stage === "menu" &&
+      source !== "option";
     const explicitCategoryInterrupt =
       (awaitingType === "awaiting_place" ||
         awaitingType === "awaiting_destination") &&
@@ -1235,7 +1240,8 @@ export function installBrowserAssistantRuntime(
       (typeof awaitingType === "string" &&
         CONTROLLER_OWNED_AWAITING_TYPES.has(awaitingType) &&
         !explicitCategoryInterrupt) ||
-      (source === "option" && optionOverride !== undefined);
+      (source === "option" && optionOverride !== undefined) ||
+      deferGlobalPlaceSelectionToSearch;
 
     let menuRouted = false;
     if (!controllerOwnsTurn) {

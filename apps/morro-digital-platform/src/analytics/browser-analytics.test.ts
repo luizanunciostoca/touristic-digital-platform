@@ -155,6 +155,7 @@ describe("browser analytics instrumentation", () => {
 
     const base = {
       category: "beaches",
+      source: "canonical",
       markerCount: 4,
       tour: null,
     };
@@ -210,6 +211,7 @@ describe("browser analytics instrumentation", () => {
         attributes: {
           placeId: "segunda-praia",
           categoryId: "beaches",
+          discoverySource: "canonical",
         },
       }),
     ]);

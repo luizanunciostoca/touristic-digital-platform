@@ -113,6 +113,7 @@ export interface ExploreActiveTourSnapshot {
 export interface ExploreLocationsStateSnapshot {
   readonly category: string | null;
   readonly place: string | null;
+  readonly source: "canonical" | "local" | "mapbox" | "legacy" | null;
   readonly stage: ExploreStage;
   readonly markerCount: number;
   readonly sheetState: "peek" | "half" | "full" | null;
@@ -739,6 +740,12 @@ export function installExploreLocationsControl({
           ? (activePlaceLocation?.category ?? null)
           : null),
       place: activeStage === "detail" ? (activePlace ?? null) : null,
+      source:
+        activeStage === "detail" && activePlaceLocation
+          ? "source" in activePlaceLocation
+            ? activePlaceLocation.source
+            : "legacy"
+          : null,
       stage: activeStage,
       markerCount: Number(
         document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
