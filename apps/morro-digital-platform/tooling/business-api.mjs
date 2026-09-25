@@ -96,7 +96,8 @@ export function createBusinessApi({
   }
 
   function catalogError(response, error) {
-    const code = error instanceof Error ? error.message : "CATALOG_REQUEST_FAILED";
+    const code =
+      error instanceof Error ? error.message : "CATALOG_REQUEST_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
       : code.includes("ALREADY_EXISTS") || code.includes("STALE_REVISION")
@@ -127,7 +128,11 @@ export function createBusinessApi({
       const catalog = catalogRoute(pathname);
       if (catalog) {
         const runtime = getPlacePlatformRuntime();
-        if (!runtime?.getCatalogDraft || !runtime?.createCatalogDraft || !runtime?.updateCatalogDraft) {
+        if (
+          !runtime?.getCatalogDraft ||
+          !runtime?.createCatalogDraft ||
+          !runtime?.updateCatalogDraft
+        ) {
           json(response, 503, { error: "PLACE_PLATFORM_UNAVAILABLE" });
           return;
         }

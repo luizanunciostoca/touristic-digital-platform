@@ -39,13 +39,8 @@ export interface MorroProOfferInput {
   readonly endsAt: string;
 }
 
-
 export type MorroProCatalogKind =
-  | "product"
-  | "offer"
-  | "menu"
-  | "menu-category"
-  | "menu-item";
+  "product" | "offer" | "menu" | "menu-category" | "menu-item";
 
 export interface MorroProCatalogPrice {
   readonly minorUnits: number;
@@ -179,7 +174,6 @@ function businessInventoryUrl(businessIdInput: unknown): string {
   if (!businessId) throw new Error("INVALID_BUSINESS_ID");
   return `/api/ticketing/v1/operator/businesses/${encodeURIComponent(businessId)}/inventory`;
 }
-
 
 function businessCatalogUrl(
   businessIdInput: unknown,
@@ -326,7 +320,9 @@ export function createBusinessDashboardClient(
     if (!response.ok) throw new Error(await readError(response));
     const data = (await response.json()) as Partial<MorroProCatalog>;
     return Object.freeze({
-      products: Object.freeze(Array.isArray(data.products) ? data.products : []),
+      products: Object.freeze(
+        Array.isArray(data.products) ? data.products : [],
+      ),
       offers: Object.freeze(Array.isArray(data.offers) ? data.offers : []),
       menus: Object.freeze(Array.isArray(data.menus) ? data.menus : []),
       categories: Object.freeze(

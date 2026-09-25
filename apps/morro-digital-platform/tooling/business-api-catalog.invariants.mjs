@@ -55,7 +55,13 @@ test("Business Catalog routes preserve tenant and mutation authority", async () 
       };
     },
     async createCatalogDraft(actor, businessId, kind, input) {
-      catalogCalls.push({ operation: "create", actor, businessId, kind, input });
+      catalogCalls.push({
+        operation: "create",
+        actor,
+        businessId,
+        kind,
+        input,
+      });
       return { id: "product-a", status: "draft" };
     },
     async updateCatalogDraft(actor, businessId, kind, id, input) {

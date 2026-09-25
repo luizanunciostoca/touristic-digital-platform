@@ -155,12 +155,9 @@ describe("M51 Business dashboard browser client", () => {
       name: "Sunset",
       status: "draft",
     });
-    await client.updateCatalogEntry(
-      "toca-do-morcego",
-      "product",
-      "product-1",
-      { status: "active" },
-    );
+    await client.updateCatalogEntry("toca-do-morcego", "product", "product-1", {
+      status: "active",
+    });
 
     expect(fixture.secureFetch).toHaveBeenNthCalledWith(
       1,

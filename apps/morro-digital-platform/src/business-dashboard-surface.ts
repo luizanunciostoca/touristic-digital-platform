@@ -161,16 +161,21 @@ function dispatchProfileAction(
   );
 }
 
-
 function minorUnits(value: string): number {
   const normalized = Number(value.replace(",", "."));
   const minor = Math.round(normalized * 100);
-  if (!Number.isSafeInteger(minor) || minor < 0) throw new Error("Valor inválido.");
+  if (!Number.isSafeInteger(minor) || minor < 0)
+    throw new Error("Valor inválido.");
   return minor;
 }
 
 function commaList(value: string): readonly string[] {
-  return Object.freeze(value.split(",").map((entry) => entry.trim()).filter(Boolean));
+  return Object.freeze(
+    value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+  );
 }
 
 function toLocalDateTime(value: string | null): string {
@@ -204,8 +209,13 @@ interface CatalogSurface {
   readonly menuStatus: HTMLElement;
 }
 
-function catalogPanel(document: Document, module: "products" | "offers" | "menu"): HTMLElement {
-  const panel = document.querySelector<HTMLElement>(`[data-view-panel="${module}"]`);
+function catalogPanel(
+  document: Document,
+  module: "products" | "offers" | "menu",
+): HTMLElement {
+  const panel = document.querySelector<HTMLElement>(
+    `[data-view-panel="${module}"]`,
+  );
   if (!panel) throw new Error(`MISSING_CATALOG_PANEL:${module}`);
   panel.replaceChildren();
   return panel;
@@ -322,11 +332,23 @@ function createCatalogSurface(document: Document): CatalogSurface {
     </div>`;
 
   return Object.freeze({
-    productForm: requiredElement<HTMLFormElement>(document, "morro-pro-product-form"),
-    offerForm: requiredElement<HTMLFormElement>(document, "morro-pro-catalog-offer-form"),
+    productForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-product-form",
+    ),
+    offerForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-catalog-offer-form",
+    ),
     menuForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-form"),
-    categoryForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-category-form"),
-    itemForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-item-form"),
+    categoryForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-menu-category-form",
+    ),
+    itemForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-menu-item-form",
+    ),
     productList: requiredElement(document, "morro-pro-product-list"),
     offerList: requiredElement(document, "morro-pro-catalog-offer-list"),
     menuList: requiredElement(document, "morro-pro-menu-list"),
@@ -338,13 +360,25 @@ function createCatalogSurface(document: Document): CatalogSurface {
   });
 }
 
-function formControl(form: HTMLFormElement, name: string): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+function formControl(
+  form: HTMLFormElement,
+  name: string,
+): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
   const field = form.elements.namedItem(name);
-  if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) return field;
+  if (
+    field instanceof HTMLInputElement ||
+    field instanceof HTMLTextAreaElement ||
+    field instanceof HTMLSelectElement
+  )
+    return field;
   throw new Error(`MISSING_FORM_FIELD:${name}`);
 }
 
-function setFormValue(form: HTMLFormElement, name: string, value: string | number | null | undefined): void {
+function setFormValue(
+  form: HTMLFormElement,
+  name: string,
+  value: string | number | null | undefined,
+): void {
   formControl(form, name).value = value == null ? "" : String(value);
 }
 
@@ -357,7 +391,12 @@ function resetEdit(form: HTMLFormElement): void {
   setFormValue(form, "editId", "");
 }
 
-function selectOptions(document: Document, select: HTMLSelectElement, entries: readonly { id: string; name: string }[], placeholder: string): void {
+function selectOptions(
+  document: Document,
+  select: HTMLSelectElement,
+  entries: readonly { id: string; name: string }[],
+  placeholder: string,
+): void {
   const current = select.value;
   select.replaceChildren();
   const first = document.createElement("option");
@@ -370,10 +409,17 @@ function selectOptions(document: Document, select: HTMLSelectElement, entries: r
     option.textContent = entry.name;
     select.append(option);
   }
-  if ([...select.options].some((candidate) => candidate.value === current)) select.value = current;
+  if ([...select.options].some((candidate) => candidate.value === current))
+    select.value = current;
 }
 
-function entryCard(document: Document, titleText: string, metaText: string, id: string, onEdit: () => void): HTMLElement {
+function entryCard(
+  document: Document,
+  titleText: string,
+  metaText: string,
+  id: string,
+  onEdit: () => void,
+): HTMLElement {
   const article = document.createElement("article");
   article.className = "panel-card";
   const title = document.createElement("h3");
@@ -391,87 +437,173 @@ function entryCard(document: Document, titleText: string, metaText: string, id: 
   return article;
 }
 
-function renderCatalog(document: Document, surface: CatalogSurface, catalog: MorroProCatalog): void {
-  const productSelect = formControl(surface.offerForm, "productId") as HTMLSelectElement;
-  const categoryMenuSelect = formControl(surface.categoryForm, "menuId") as HTMLSelectElement;
-  const itemMenuSelect = formControl(surface.itemForm, "menuId") as HTMLSelectElement;
-  const itemCategorySelect = formControl(surface.itemForm, "categoryId") as HTMLSelectElement;
-  selectOptions(document, productSelect, catalog.products, "Selecione um produto");
-  selectOptions(document, categoryMenuSelect, catalog.menus, "Selecione um menu");
+function renderCatalog(
+  document: Document,
+  surface: CatalogSurface,
+  catalog: MorroProCatalog,
+): void {
+  const productSelect = formControl(
+    surface.offerForm,
+    "productId",
+  ) as HTMLSelectElement;
+  const categoryMenuSelect = formControl(
+    surface.categoryForm,
+    "menuId",
+  ) as HTMLSelectElement;
+  const itemMenuSelect = formControl(
+    surface.itemForm,
+    "menuId",
+  ) as HTMLSelectElement;
+  const itemCategorySelect = formControl(
+    surface.itemForm,
+    "categoryId",
+  ) as HTMLSelectElement;
+  selectOptions(
+    document,
+    productSelect,
+    catalog.products,
+    "Selecione um produto",
+  );
+  selectOptions(
+    document,
+    categoryMenuSelect,
+    catalog.menus,
+    "Selecione um menu",
+  );
   selectOptions(document, itemMenuSelect, catalog.menus, "Selecione um menu");
-  selectOptions(document, itemCategorySelect, catalog.categories, "Selecione uma categoria");
+  selectOptions(
+    document,
+    itemCategorySelect,
+    catalog.categories,
+    "Selecione uma categoria",
+  );
 
   surface.productList.replaceChildren();
   for (const product of catalog.products) {
-    surface.productList.append(entryCard(document, product.name, product.status, product.id, () => {
-      setFormValue(surface.productForm, "editId", product.id);
-      setFormValue(surface.productForm, "name", product.name);
-      setFormValue(surface.productForm, "description", product.description);
-      setFormValue(surface.productForm, "tags", product.tags.join(", "));
-      setFormValue(surface.productForm, "status", product.status);
-    }));
+    surface.productList.append(
+      entryCard(document, product.name, product.status, product.id, () => {
+        setFormValue(surface.productForm, "editId", product.id);
+        setFormValue(surface.productForm, "name", product.name);
+        setFormValue(surface.productForm, "description", product.description);
+        setFormValue(surface.productForm, "tags", product.tags.join(", "));
+        setFormValue(surface.productForm, "status", product.status);
+      }),
+    );
   }
 
   surface.offerList.replaceChildren();
   for (const offer of catalog.offers) {
-    const product = catalog.products.find((entry) => entry.id === offer.productId);
-    surface.offerList.append(entryCard(document, product?.name ?? offer.productId, `${money(offer.price)} · ${offer.status}`, offer.id, () => {
-      setFormValue(surface.offerForm, "editId", offer.id);
-      setFormValue(surface.offerForm, "productId", offer.productId);
-      setFormValue(surface.offerForm, "price", offer.price.minorUnits / 100);
-      setFormValue(surface.offerForm, "currency", offer.price.currency);
-      setFormValue(surface.offerForm, "capacity", offer.capacity);
-      setFormValue(
-        surface.offerForm,
-        "salesStartsAt",
-        toLocalDateTime(offer.salesStartsAt),
-      );
-      setFormValue(surface.offerForm, "salesEndsAt", toLocalDateTime(offer.salesEndsAt));
-      setFormValue(surface.offerForm, "experienceStartsAt", toLocalDateTime(offer.experienceStartsAt));
-      setFormValue(surface.offerForm, "experienceEndsAt", toLocalDateTime(offer.experienceEndsAt));
-      setFormValue(surface.offerForm, "status", offer.status);
-    }));
+    const product = catalog.products.find(
+      (entry) => entry.id === offer.productId,
+    );
+    surface.offerList.append(
+      entryCard(
+        document,
+        product?.name ?? offer.productId,
+        `${money(offer.price)} · ${offer.status}`,
+        offer.id,
+        () => {
+          setFormValue(surface.offerForm, "editId", offer.id);
+          setFormValue(surface.offerForm, "productId", offer.productId);
+          setFormValue(
+            surface.offerForm,
+            "price",
+            offer.price.minorUnits / 100,
+          );
+          setFormValue(surface.offerForm, "currency", offer.price.currency);
+          setFormValue(surface.offerForm, "capacity", offer.capacity);
+          setFormValue(
+            surface.offerForm,
+            "salesStartsAt",
+            toLocalDateTime(offer.salesStartsAt),
+          );
+          setFormValue(
+            surface.offerForm,
+            "salesEndsAt",
+            toLocalDateTime(offer.salesEndsAt),
+          );
+          setFormValue(
+            surface.offerForm,
+            "experienceStartsAt",
+            toLocalDateTime(offer.experienceStartsAt),
+          );
+          setFormValue(
+            surface.offerForm,
+            "experienceEndsAt",
+            toLocalDateTime(offer.experienceEndsAt),
+          );
+          setFormValue(surface.offerForm, "status", offer.status);
+        },
+      ),
+    );
   }
 
   surface.menuList.replaceChildren();
   for (const menu of catalog.menus) {
-    surface.menuList.append(entryCard(document, menu.name, menu.status, menu.id, () => {
-      setFormValue(surface.menuForm, "editId", menu.id);
-      setFormValue(surface.menuForm, "name", menu.name);
-      setFormValue(surface.menuForm, "description", menu.description);
-      setFormValue(surface.menuForm, "status", menu.status);
-      setFormValue(surface.menuForm, "fallbackMediaId", menu.fallbackMediaId);
-      setFormValue(surface.menuForm, "fallbackDocumentUrl", menu.fallbackDocumentUrl);
-    }));
+    surface.menuList.append(
+      entryCard(document, menu.name, menu.status, menu.id, () => {
+        setFormValue(surface.menuForm, "editId", menu.id);
+        setFormValue(surface.menuForm, "name", menu.name);
+        setFormValue(surface.menuForm, "description", menu.description);
+        setFormValue(surface.menuForm, "status", menu.status);
+        setFormValue(surface.menuForm, "fallbackMediaId", menu.fallbackMediaId);
+        setFormValue(
+          surface.menuForm,
+          "fallbackDocumentUrl",
+          menu.fallbackDocumentUrl,
+        );
+      }),
+    );
   }
 
   surface.categoryList.replaceChildren();
   for (const category of catalog.categories) {
-    surface.categoryList.append(entryCard(document, category.name, `Ordem ${category.sortOrder}`, category.id, () => {
-      setFormValue(surface.categoryForm, "editId", category.id);
-      setFormValue(surface.categoryForm, "menuId", category.menuId);
-      setFormValue(surface.categoryForm, "name", category.name);
-      setFormValue(surface.categoryForm, "sortOrder", category.sortOrder);
-    }));
+    surface.categoryList.append(
+      entryCard(
+        document,
+        category.name,
+        `Ordem ${category.sortOrder}`,
+        category.id,
+        () => {
+          setFormValue(surface.categoryForm, "editId", category.id);
+          setFormValue(surface.categoryForm, "menuId", category.menuId);
+          setFormValue(surface.categoryForm, "name", category.name);
+          setFormValue(surface.categoryForm, "sortOrder", category.sortOrder);
+        },
+      ),
+    );
   }
 
   surface.itemList.replaceChildren();
   for (const item of catalog.items) {
-    surface.itemList.append(entryCard(document, item.name, `${money(item.price)} · ${item.available ? "disponível" : "indisponível"}`, item.id, () => {
-      setFormValue(surface.itemForm, "editId", item.id);
-      setFormValue(surface.itemForm, "menuId", item.menuId);
-      setFormValue(surface.itemForm, "categoryId", item.categoryId);
-      setFormValue(surface.itemForm, "name", item.name);
-      setFormValue(surface.itemForm, "description", item.description);
-      setFormValue(surface.itemForm, "price", item.price.minorUnits / 100);
-      setFormValue(surface.itemForm, "currency", item.price.currency);
-      setFormValue(surface.itemForm, "sortOrder", item.sortOrder);
-      setFormValue(surface.itemForm, "mediaId", item.mediaId);
-      setFormValue(surface.itemForm, "tags", item.tags.join(", "));
-      setFormValue(surface.itemForm, "allergens", item.allergens.join(", "));
-      const available = surface.itemForm.elements.namedItem("available");
-      if (available instanceof HTMLInputElement) available.checked = item.available;
-    }));
+    surface.itemList.append(
+      entryCard(
+        document,
+        item.name,
+        `${money(item.price)} · ${item.available ? "disponível" : "indisponível"}`,
+        item.id,
+        () => {
+          setFormValue(surface.itemForm, "editId", item.id);
+          setFormValue(surface.itemForm, "menuId", item.menuId);
+          setFormValue(surface.itemForm, "categoryId", item.categoryId);
+          setFormValue(surface.itemForm, "name", item.name);
+          setFormValue(surface.itemForm, "description", item.description);
+          setFormValue(surface.itemForm, "price", item.price.minorUnits / 100);
+          setFormValue(surface.itemForm, "currency", item.price.currency);
+          setFormValue(surface.itemForm, "sortOrder", item.sortOrder);
+          setFormValue(surface.itemForm, "mediaId", item.mediaId);
+          setFormValue(surface.itemForm, "tags", item.tags.join(", "));
+          setFormValue(
+            surface.itemForm,
+            "allergens",
+            item.allergens.join(", "),
+          );
+          const available = surface.itemForm.elements.namedItem("available");
+          if (available instanceof HTMLInputElement)
+            available.checked = item.available;
+        },
+      ),
+    );
   }
 }
 export async function mountBusinessDashboardSurface(
@@ -606,10 +738,8 @@ export async function mountBusinessDashboardSurface(
       catalogSurface.productStatus,
       {
         name: formControl(catalogSurface.productForm, "name").value,
-        description: formControl(
-          catalogSurface.productForm,
-          "description",
-        ).value,
+        description: formControl(catalogSurface.productForm, "description")
+          .value,
         tags: commaList(formControl(catalogSurface.productForm, "tags").value),
         status: formControl(catalogSurface.productForm, "status").value,
       },
@@ -631,8 +761,8 @@ export async function mountBusinessDashboardSurface(
         minorUnits: minorUnits(
           formControl(catalogSurface.offerForm, "price").value,
         ),
-        currency: formControl(catalogSurface.offerForm, "currency").value
-          .trim()
+        currency: formControl(catalogSurface.offerForm, "currency")
+          .value.trim()
           .toUpperCase(),
         capacity: formControl(catalogSurface.offerForm, "capacity").value
           ? Number(formControl(catalogSurface.offerForm, "capacity").value)
@@ -692,15 +822,12 @@ export async function mountBusinessDashboardSurface(
         menuId: formControl(catalogSurface.itemForm, "menuId").value,
         categoryId: formControl(catalogSurface.itemForm, "categoryId").value,
         name: formControl(catalogSurface.itemForm, "name").value,
-        description: formControl(
-          catalogSurface.itemForm,
-          "description",
-        ).value,
+        description: formControl(catalogSurface.itemForm, "description").value,
         minorUnits: minorUnits(
           formControl(catalogSurface.itemForm, "price").value,
         ),
-        currency: formControl(catalogSurface.itemForm, "currency").value
-          .trim()
+        currency: formControl(catalogSurface.itemForm, "currency")
+          .value.trim()
           .toUpperCase(),
         sortOrder: Number(
           formControl(catalogSurface.itemForm, "sortOrder").value,
@@ -804,7 +931,6 @@ export async function mountBusinessDashboardSurface(
       });
   });
 
-
   try {
     const bootstrap = await dashboardClient.bootstrap(
       requestedBusinessId(search),
@@ -836,11 +962,7 @@ export async function mountBusinessDashboardSurface(
       status.textContent = "Seu acesso ao perfil é somente leitura.";
     }
     for (const [moduleId, forms, statusElement] of [
-      [
-        "products",
-        [catalogSurface.productForm],
-        catalogSurface.productStatus,
-      ],
+      ["products", [catalogSurface.productForm], catalogSurface.productStatus],
       ["offers", [catalogSurface.offerForm], catalogSurface.offerStatus],
       [
         "menu",
