@@ -352,16 +352,40 @@ export function createBusinessAdminAdapter(
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/location$/u;
   const cmsPublicationPattern =
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/publication$/u;
+  const cmsCatalogPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/catalog$/u;
+  const cmsProductsPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/products$/u;
+  const cmsProductPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/products\/([a-z0-9][a-z0-9_-]{0,159})$/u;
+  const cmsOffersPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/offers$/u;
+  const cmsOfferPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/offers\/([a-z0-9][a-z0-9_-]{0,159})$/u;
+  const cmsMenusPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/menus$/u;
+  const cmsMenuPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/menus\/([a-z0-9][a-z0-9_-]{0,159})$/u;
+  const cmsMenuCategoriesPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/menus\/([a-z0-9][a-z0-9_-]{0,159})\/categories$/u;
+  const cmsMenuCategoryPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/menus\/([a-z0-9][a-z0-9_-]{0,159})\/categories\/([a-z0-9][a-z0-9_-]{0,159})$/u;
+  const cmsMenuItemsPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/menus\/([a-z0-9][a-z0-9_-]{0,159})\/items$/u;
+  const cmsMenuItemPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/menus\/([a-z0-9][a-z0-9_-]{0,159})\/items\/([a-z0-9][a-z0-9_-]{0,159})$/u;
 
   async function cmsError(response, error) {
     const code = error instanceof Error ? error.message : "BUSINESS_CMS_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
-      : code.includes("STALE_REVISION")
+      : code.includes("STALE_REVISION") || code.includes("ALREADY_EXISTS")
         ? 409
         : code.includes("AUTH") ||
             code.includes("DENIED") ||
-            code.includes("CAPABILITY")
+            code.includes("CAPABILITY") ||
+            code.includes("MISMATCH") ||
+            code.includes("CROSS_")
           ? 403
           : code.includes("INVALID") ||
               code.includes("REQUIRED") ||
@@ -385,6 +409,10 @@ export function createBusinessAdminAdapter(
             "cms-profile",
             "cms-location",
             "cms-publication",
+            "cms-catalog",
+            "cms-products",
+            "cms-offers",
+            "cms-menus",
           ]
         : []),
     ]),
@@ -504,6 +532,223 @@ export function createBusinessAdminAdapter(
             publishedRevision: record.publishedRevision?.revision ?? null,
           });
           return { entityType: "business", entityId: cmsPublication[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+
+      const cmsCatalog = cmsCatalogPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsCatalog?.[1] && request.method === "GET") {
+        try {
+          sendJson(
+            response,
+            200,
+            await placePlatformRuntime.getCmsCatalog(cmsCatalog[1]),
+          );
+          return { entityType: "business", entityId: cmsCatalog[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsProducts = cmsProductsPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsProducts?.[1] && request.method === "POST") {
+        try {
+          const body = await readJsonBody(request);
+          const product = await placePlatformRuntime.createCmsProduct(
+            actor,
+            cmsProducts[1],
+            body,
+          );
+          sendJson(response, 201, { data: product });
+          return { entityType: "business", entityId: cmsProducts[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsProduct = cmsProductPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsProduct?.[1] && request.method === "PUT") {
+        try {
+          const body = await readJsonBody(request);
+          const product = await placePlatformRuntime.updateCmsProduct(
+            actor,
+            cmsProduct[1],
+            cmsProduct[2],
+            body,
+          );
+          sendJson(response, 200, { data: product });
+          return { entityType: "business", entityId: cmsProduct[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsOffers = cmsOffersPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsOffers?.[1] && request.method === "POST") {
+        try {
+          const body = await readJsonBody(request);
+          const offer = await placePlatformRuntime.createCmsOffer(
+            actor,
+            cmsOffers[1],
+            body,
+          );
+          sendJson(response, 201, { data: offer });
+          return { entityType: "business", entityId: cmsOffers[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsOffer = cmsOfferPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsOffer?.[1] && request.method === "PUT") {
+        try {
+          const body = await readJsonBody(request);
+          const offer = await placePlatformRuntime.updateCmsOffer(
+            actor,
+            cmsOffer[1],
+            cmsOffer[2],
+            body,
+          );
+          sendJson(response, 200, { data: offer });
+          return { entityType: "business", entityId: cmsOffer[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMenus = cmsMenusPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsMenus?.[1] && request.method === "POST") {
+        try {
+          const body = await readJsonBody(request);
+          const menu = await placePlatformRuntime.createCmsMenu(
+            actor,
+            cmsMenus[1],
+            body,
+          );
+          sendJson(response, 201, { data: menu });
+          return { entityType: "business", entityId: cmsMenus[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMenu = cmsMenuPattern.exec(requestUrl.pathname);
+      if (placePlatformRuntime && cmsMenu?.[1] && request.method === "PUT") {
+        try {
+          const body = await readJsonBody(request);
+          const menu = await placePlatformRuntime.updateCmsMenu(
+            actor,
+            cmsMenu[1],
+            cmsMenu[2],
+            body,
+          );
+          sendJson(response, 200, { data: menu });
+          return { entityType: "business", entityId: cmsMenu[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMenuCategories =
+        cmsMenuCategoriesPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsMenuCategories?.[1] &&
+        request.method === "POST"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const category = await placePlatformRuntime.saveCmsMenuCategory(
+            actor,
+            cmsMenuCategories[1],
+            cmsMenuCategories[2],
+            null,
+            body,
+          );
+          sendJson(response, 201, { data: category });
+          return {
+            entityType: "business",
+            entityId: cmsMenuCategories[1],
+          };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMenuCategory = cmsMenuCategoryPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsMenuCategory?.[1] &&
+        request.method === "PUT"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const category = await placePlatformRuntime.saveCmsMenuCategory(
+            actor,
+            cmsMenuCategory[1],
+            cmsMenuCategory[2],
+            cmsMenuCategory[3],
+            body,
+          );
+          sendJson(response, 200, { data: category });
+          return { entityType: "business", entityId: cmsMenuCategory[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMenuItems = cmsMenuItemsPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsMenuItems?.[1] &&
+        request.method === "POST"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const item = await placePlatformRuntime.saveCmsMenuItem(
+            actor,
+            cmsMenuItems[1],
+            cmsMenuItems[2],
+            null,
+            body,
+          );
+          sendJson(response, 201, { data: item });
+          return { entityType: "business", entityId: cmsMenuItems[1] };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
+      const cmsMenuItem = cmsMenuItemPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsMenuItem?.[1] &&
+        request.method === "PUT"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const item = await placePlatformRuntime.saveCmsMenuItem(
+            actor,
+            cmsMenuItem[1],
+            cmsMenuItem[2],
+            cmsMenuItem[3],
+            body,
+          );
+          sendJson(response, 200, { data: item });
+          return { entityType: "business", entityId: cmsMenuItem[1] };
         } catch (error) {
           await cmsError(response, error);
           return;
