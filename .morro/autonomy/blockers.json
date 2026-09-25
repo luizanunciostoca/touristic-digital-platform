@@ -1,0 +1,4 @@
+{
+  "schemaVersion": 1,
+  "blockers": [{"id":"BLK-001","scope":"release","description":"Post-merge exact-head evidence for current main remains required.","owner":"Proof Worker","status":"OPEN"},{"id":"BLK-002","scope":"orchestration","description":"Legacy open waves may duplicate authorities already composed into main.","owner":"Control Tower","status":"OPEN"}]
+}
