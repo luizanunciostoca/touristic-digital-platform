@@ -77,6 +77,55 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(browser).toContain("results: Object.freeze(results)");
   });
 
+  it("keeps hybrid discovery while promoting explicit canonical Place identity", async () => {
+    const [control, search, browser] = await Promise.all([
+      readRepository(
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts",
+      ),
+      readRepository(
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      ),
+    ]);
+
+    expect(search).toContain('source: "canonical" as const');
+    expect(search).toContain("placeId: item.id");
+    expect(search).toContain("/api/places/v1/map?");
+    expect(browser).toContain('item.source !== "canonical"');
+    expect(browser).toContain("{ placeId: item.placeId }");
+
+    expect(control).toContain(
+      'readonly source: "canonical" | "local" | "mapbox"',
+    );
+    expect(control).toContain("createPublicPlaceMapClient");
+    expect(control).toContain("canonicalPlaceId");
+    expect(control).toContain("detail.actions.secondaryActions");
+    expect(control).toContain("detail.actions.primaryAction");
+    expect(control).toContain(
+      "Canonical Places fail closed: never fall back to inferred commercial",
+    );
+    expect(control).toContain("UNREGISTERED_COMMERCIAL_ACTION_IDS");
+    for (const actionId of [
+      "restaurant.menu",
+      "restaurant.reserve",
+      "nightlife.tickets",
+      "hotel.reserve",
+      "tour.reserve",
+      "transport.request",
+      "transport.ticket",
+      "shop.products",
+      "place.whatsapp",
+    ]) {
+      expect(control).toContain(`"${actionId}"`);
+    }
+    expect(control).toContain(
+      "!UNREGISTERED_COMMERCIAL_ACTION_IDS.has(actionId)",
+    );
+    expect(control).not.toContain("resolvePlacePrimaryAction({");
+  });
+
   it("prevents Place action duplication in the initial Assistant detail turn", async () => {
     const control = await readRepository(
       "apps/morro-digital-platform/src/map/explore-locations-control.ts",

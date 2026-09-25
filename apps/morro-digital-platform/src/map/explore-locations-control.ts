@@ -19,19 +19,13 @@ import {
   createV1ImmersiveTourController,
   type V1ImmersiveTourController,
 } from "./immersive-tour-v1-controller.js";
-import {
-  getV1ExplorePlaceActionOptions,
-  type V1ExplorePlaceActionOption,
-} from "./explore-location-actions-v1.js";
+import { getV1ExplorePlaceActionOptions } from "./explore-location-actions-v1.js";
 import { getV1ExploreLabel, getV1ExploreUiCopy } from "./explore-v1-i18n.js";
 import {
   installExploreFlowBottomSheet,
   type ExploreFlowBottomSheetController,
 } from "./explore-flow-bottom-sheet.js";
-import {
-  resolvePlacePrimaryAction,
-  type PlacePrimaryAction,
-} from "./place-commerce-capability.js";
+import { createPublicPlaceMapClient } from "./public-place-map-client-v2.js";
 import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
@@ -47,6 +41,19 @@ const TOUR_ROUTE_SOURCE = "tour-route-source";
 const TOUR_ROUTE_LAYER = "tour-route-layer";
 const TOUR_ROUTE_OUTLINE = "tour-route-outline";
 const TOUR_ACTIVATION_TIMEOUT_MS = 20_000;
+const UNREGISTERED_COMMERCIAL_ACTION_IDS = new Set([
+  "restaurant.menu",
+  "restaurant.reserve",
+  "nightlife.tickets",
+  "nightlife.menu",
+  "hotel.accommodations",
+  "hotel.reserve",
+  "tour.reserve",
+  "transport.request",
+  "transport.ticket",
+  "shop.products",
+  "place.whatsapp",
+]);
 
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
@@ -57,7 +64,8 @@ export interface ExploreSearchResult {
   readonly longitude: number;
   readonly area?: string;
   readonly description?: string;
-  readonly source: "local" | "mapbox";
+  readonly source: "canonical" | "local" | "mapbox";
+  readonly placeId?: string;
 }
 
 type ExploreMapLocation = MorroV1SearchCatalogItem | ExploreSearchResult;
@@ -1205,8 +1213,19 @@ export function installExploreLocationsControl({
   };
 
   const renderPlaceActionsRail = (
-    placeActions: readonly V1ExplorePlaceActionOption[],
-    primaryAction: PlacePrimaryAction | null,
+    placeActions: readonly Readonly<{
+      actionId: string;
+      label: string;
+      value: string;
+      action: "command" | "back-places";
+      disabled?: boolean;
+    }>[],
+    primaryAction: Readonly<{
+      actionId: string;
+      label: string;
+      value: string;
+      disabled?: boolean;
+    }> | null,
     placeName: string,
     locale: AssistantLocale,
   ): HTMLButtonElement | null => {
@@ -1232,6 +1251,7 @@ export function installExploreLocationsControl({
         label: action.label,
         value: action.value,
         action: action.action,
+        ...(action.disabled === true ? { disabled: true } : {}),
       });
     }
     if (primaryAction && !primaryReplaced) {
@@ -1292,8 +1312,12 @@ export function installExploreLocationsControl({
     const generation = ++interactionGeneration;
     const category = location.category;
     const locale = currentLocale();
+    const canonicalPlaceId =
+      "placeId" in location && typeof location.placeId === "string"
+        ? location.placeId.trim()
+        : "";
     const canonicalLocation =
-      "source" in location && location.source === "local"
+      !canonicalPlaceId && "source" in location && location.source === "local"
         ? resolveExploreLocationByName(location.name, location.category)
         : !("source" in location)
           ? location
@@ -1308,19 +1332,24 @@ export function installExploreLocationsControl({
     removeAssistantFlowResults(document);
     exploreFlowBottomSheet?.hide();
 
-    const placeActions = getV1ExplorePlaceActionOptions(category, locale);
+    const safeFallbackActions = getV1ExplorePlaceActionOptions(
+      category,
+      locale,
+    ).filter(
+      ({ actionId }) => !UNREGISTERED_COMMERCIAL_ACTION_IDS.has(actionId),
+    );
     const description =
       "description" in presentationLocation &&
       typeof presentationLocation.description === "string"
         ? presentationLocation.description.trim()
         : "";
     activePlaceActionValues = Object.freeze(
-      Array.from(new Set(placeActions.map(({ value }) => value))),
+      Array.from(new Set(safeFallbackActions.map(({ value }) => value))),
     );
 
     renderPlaceDetailMessage(presentationLocation, categoryLabel, description);
     const firstPlaceAction = renderPlaceActionsRail(
-      placeActions,
+      safeFallbackActions,
       null,
       presentationLocation.name,
       locale,
@@ -1330,22 +1359,64 @@ export function installExploreLocationsControl({
     const browserFetch = document.defaultView?.fetch?.bind(
       document.defaultView,
     );
-    const commerceLocation: MorroV1SearchCatalogItem =
-      canonicalLocation ??
-      Object.freeze({
-        name: presentationLocation.name,
-        latitude: presentationLocation.latitude,
-        longitude: presentationLocation.longitude,
-        category: presentationLocation.category,
-      });
-    const primaryActionPromise = resolvePlacePrimaryAction({
-      location: commerceLocation,
-      locale,
-      ...(browserFetch ? { fetch: browserFetch } : {}),
-    });
+    const canonicalDetailPromise =
+      canonicalPlaceId && browserFetch
+        ? createPublicPlaceMapClient(browserFetch).getDetail(canonicalPlaceId, {
+            locale: document.documentElement.lang || "pt-BR",
+          })
+        : Promise.resolve(null);
 
     await renderLocationsOnMap([location], category, true);
-    const primaryAction = await primaryActionPromise;
+
+    if (canonicalPlaceId) {
+      try {
+        const detail = await canonicalDetailPromise;
+        if (
+          generation !== interactionGeneration ||
+          activePlace !== presentationLocation.name
+        ) {
+          return;
+        }
+        if (detail) {
+          const canonicalActions = detail.actions.secondaryActions.map(
+            (action) =>
+              Object.freeze({
+                actionId: action.id,
+                label: action.label,
+                value: action.value,
+                action: "command" as const,
+                disabled: action.disabled,
+              }),
+          );
+          const canonicalPrimary = detail.actions.primaryAction
+            ? Object.freeze({
+                actionId: detail.actions.primaryAction.id,
+                label: detail.actions.primaryAction.label,
+                value: detail.actions.primaryAction.value,
+                disabled: detail.actions.primaryAction.disabled,
+              })
+            : null;
+          activePlaceActionValues = Object.freeze(
+            Array.from(
+              new Set([
+                ...canonicalActions.map(({ value }) => value),
+                ...(canonicalPrimary ? [canonicalPrimary.value] : []),
+              ]),
+            ),
+          );
+          renderPlaceActionsRail(
+            canonicalActions,
+            canonicalPrimary,
+            detail.profile.name,
+            locale,
+          );
+        }
+      } catch {
+        // Canonical Places fail closed: never fall back to inferred commercial
+        // actions when the authoritative detail projection is unavailable.
+      }
+    }
+
     if (
       generation !== interactionGeneration ||
       activePlace !== presentationLocation.name
@@ -1355,12 +1426,6 @@ export function installExploreLocationsControl({
 
     const mapFailed =
       document.getElementById("map")?.dataset.exploreState === "error";
-    renderPlaceActionsRail(
-      placeActions,
-      primaryAction,
-      presentationLocation.name,
-      locale,
-    );
     if (mapFailed) {
       setExploreRuntimeStatus({
         kind: "map-error",
@@ -1498,7 +1563,9 @@ export function installExploreLocationsControl({
         placeReturnLocations.filter(
           (location): location is ExploreSearchResult =>
             "source" in location &&
-            (location.source === "local" || location.source === "mapbox"),
+            (location.source === "canonical" ||
+              location.source === "local" ||
+              location.source === "mapbox"),
         ),
         placeReturnMessage ||
           getV1ExploreUiCopy(currentLocale()).searchResults(

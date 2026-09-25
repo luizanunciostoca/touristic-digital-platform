@@ -116,13 +116,7 @@ const beachDetailHebrew = [
   "📸 צפה תמונות",
   "❤️ שמירה",
 ];
-const restaurantPrimaryEnglish = [
-  "🍽️ View menu",
-  "📅 Reserve a table",
-  "📍 Directions",
-  "📸 View photos",
-  "💬 WhatsApp",
-];
+const restaurantExternalEnglish = ["📍 Directions", "📸 View photos"];
 
 function equal(actual, expected, label) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -524,19 +518,19 @@ try {
     .click();
   await page
     .locator(
-      '#assistant-category-rail[data-rail-stage="detail"] [data-value="ver cardápio"]',
+      '#assistant-category-rail[data-rail-stage="detail"] [data-value="como chegar"]',
     )
     .waitFor({ state: "visible" });
   dynamic = await waitDynamic(
     page,
-    restaurantPrimaryEnglish,
+    restaurantExternalEnglish,
     undefined,
-    "en restaurant primary",
+    "en external restaurant actions",
   );
   equal(
     dynamic.labels,
-    restaurantPrimaryEnglish,
-    "en restaurant primary labels",
+    restaurantExternalEnglish,
+    "en external restaurant action labels",
   );
 
   // Leave the active Explore detail before asserting the generic runtime status.
