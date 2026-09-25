@@ -1,15 +1,14 @@
 {
   "schemaVersion": 1,
-  "updatedFromMainSha": "2bbf7407035575cac993c7024ec01183a27ec6c4",
+  "updatedFromMainSha": "fb33db722b0fdc8ba1e1da5ec6120c0b3b61c657",
   "status": "ORCHESTRATION_UPDATED",
   "criticalPath": [
-    "post-merge exact-head validation for #364",
-    "reconcile legacy open waves against current main",
     "PublicPlace consumer cutover",
     "Morro Pro completion",
     "Assistant canonical Place context",
     "cross-domain E2E",
-    "staging certification"
+    "release candidate certification"
   ],
-  "sourceOfTruth": "GitHub LIVE"
+  "sourceOfTruth": "GitHub LIVE",
+  "stateEnd": "post-366 exact-head Final Release Acceptance and Staging Render Promotion are green"
 }
