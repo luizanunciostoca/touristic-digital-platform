@@ -486,15 +486,17 @@ export function createBusinessAdminAdapter(
       ) {
         try {
           const body = await readJsonBody(request);
-          if (body.action !== "publish") {
+          if (!["review", "publish"].includes(body.action)) {
             sendJson(response, 400, {
               error: "BUSINESS_CMS_PUBLICATION_ACTION_INVALID",
             });
             return;
           }
-          const record = await placePlatformRuntime.publish(
+          const record = await placePlatformRuntime.transitionPublication(
             actor,
             cmsPublication[1],
+            body.action,
+            body.expectedRevision,
           );
           sendJson(response, 200, {
             businessId: cmsPublication[1],
