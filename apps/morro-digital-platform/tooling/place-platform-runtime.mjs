@@ -269,13 +269,24 @@ async function applySchema(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS business_entities (
       id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
-      destination_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
       legal_name VARCHAR(240) NOT NULL,
       display_name VARCHAR(240) NOT NULL,
       created_at DATETIME(3) NOT NULL,
       updated_at DATETIME(3) NOT NULL,
-      PRIMARY KEY (id),
-      KEY idx_business_destination (destination_id)
+      PRIMARY KEY (id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_destinations (
+      business_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      destination_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      created_at DATETIME(3) NOT NULL,
+      PRIMARY KEY (business_id, destination_id),
+      CONSTRAINT fk_business_destinations_business
+        FOREIGN KEY (business_id) REFERENCES business_entities(id)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+      KEY idx_business_destination (destination_id, business_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
@@ -800,13 +811,13 @@ export function createPlacePlatformRuntime({
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
     const [rows] = await pool.execute(
-      `SELECT b.id AS business_id, b.display_name, b.destination_id,
-              p.place_id, p.category_id, p.publication_state,
-              p.editable_place_json
+      `SELECT b.id AS business_id, b.display_name,
+              p.destination_id, p.place_id, p.category_id,
+              p.publication_state, p.editable_place_json
          FROM business_entities b
          LEFT JOIN business_places p ON p.business_id = b.id
         WHERE ${clauses.join(" AND ")}
-        ORDER BY b.display_name ASC
+        ORDER BY b.display_name ASC, p.place_id ASC
         LIMIT 250`,
       params,
     );
@@ -840,7 +851,7 @@ export function createPlacePlatformRuntime({
 
   async function getCmsDetail(businessId) {
     const [rows] = await pool.execute(
-      `SELECT b.id AS business_id, b.display_name, b.destination_id,
+      `SELECT b.id AS business_id, b.display_name,
               p.*
          FROM business_entities b
          LEFT JOIN business_places p ON p.business_id = b.id
@@ -920,16 +931,24 @@ export function createPlacePlatformRuntime({
       await connection.beginTransaction();
       await connection.execute(
         `INSERT INTO business_entities
-          (id, destination_id, legal_name, display_name, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+          (id, legal_name, display_name, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           display_name = VALUES(display_name),
+           updated_at = VALUES(updated_at)`,
         [
           place.businessId,
-          place.destinationId,
           place.name,
           place.name,
           new Date(now),
           new Date(now),
         ],
+      );
+      await connection.execute(
+        `INSERT IGNORE INTO business_destinations
+          (business_id, destination_id, created_at)
+         VALUES (?, ?, ?)`,
+        [place.businessId, place.destinationId, new Date(now)],
       );
       await connection.execute(
         `INSERT INTO business_places
