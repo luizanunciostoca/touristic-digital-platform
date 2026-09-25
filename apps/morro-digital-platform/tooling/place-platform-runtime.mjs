@@ -1139,6 +1139,27 @@ export function createPlacePlatformRuntime({
     return date.toISOString();
   }
 
+  function assertCatalogScopeInput(place, input) {
+    if (
+      input?.businessId != null &&
+      String(input.businessId) !== String(place.businessId)
+    ) {
+      throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
+    }
+    if (
+      input?.placeId != null &&
+      String(input.placeId) !== String(place.id)
+    ) {
+      throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+    }
+    if (
+      input?.destinationId != null &&
+      String(input.destinationId) !== String(place.destinationId)
+    ) {
+      throw new Error("CATALOG_PLACE_DESTINATION_MISMATCH");
+    }
+  }
+
   async function getCmsCatalog(businessId) {
     const place = await getCmsCatalogPlace(businessId);
     return catalogRuntime.listWorkingCatalog(
@@ -1171,8 +1192,8 @@ export function createPlacePlatformRuntime({
   }
 
   async function createCmsProduct(actor, businessId, input) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const now = new Date().toISOString();
     const result = await catalogRuntime.service.createProduct(
       { businessId: String(place.businessId) },
@@ -1195,8 +1216,8 @@ export function createPlacePlatformRuntime({
   }
 
   async function updateCmsProduct(actor, businessId, productId, input) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const id = catalogId(productId, "INVALID_PRODUCT_ID");
     const existing = await catalogRuntime.repository.getProduct(id);
     if (!existing) throw new Error("PRODUCT_NOT_FOUND");
@@ -1228,8 +1249,8 @@ export function createPlacePlatformRuntime({
   }
 
   async function createCmsOffer(actor, businessId, input) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const now = new Date().toISOString();
     const result = await catalogRuntime.service.createOffer(
       { businessId: String(place.businessId) },
@@ -1262,8 +1283,8 @@ export function createPlacePlatformRuntime({
   }
 
   async function updateCmsOffer(actor, businessId, offerId, input) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const id = catalogId(offerId, "INVALID_OFFER_ID");
     const existing = await catalogRuntime.repository.getOffer(id);
     if (!existing) throw new Error("OFFER_NOT_FOUND");
@@ -1327,8 +1348,8 @@ export function createPlacePlatformRuntime({
   }
 
   async function createCmsMenu(actor, businessId, input) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const now = new Date().toISOString();
     const result = await catalogRuntime.service.createMenu(
       { businessId: String(place.businessId) },
@@ -1350,8 +1371,8 @@ export function createPlacePlatformRuntime({
   }
 
   async function updateCmsMenu(actor, businessId, menuId, input) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const id = catalogId(menuId, "INVALID_MENU_ID");
     const existing = await catalogRuntime.repository.getMenu(id);
     if (!existing) throw new Error("MENU_NOT_FOUND");
@@ -1393,8 +1414,8 @@ export function createPlacePlatformRuntime({
     categoryId,
     input,
   ) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const menu = await catalogRuntime.repository.getMenu(
       catalogId(menuId, "INVALID_MENU_ID"),
     );
@@ -1429,8 +1450,8 @@ export function createPlacePlatformRuntime({
     itemId,
     input,
   ) {
-    void actor;
     const place = await getCmsCatalogPlace(businessId);
+    assertCatalogScopeInput(place, input);
     const menu = await catalogRuntime.repository.getMenu(
       catalogId(menuId, "INVALID_MENU_ID"),
     );
@@ -1634,7 +1655,7 @@ export function createPlacePlatformRuntime({
     }
     if (action === "publish") {
       await catalogRuntime.capturePublicationSnapshot({
-        businessId: String(record.editableRevision.data.businessId),
+        businessId: String(row.business_id),
         placeId: String(record.placeId),
         placeRevision: expectedRevision,
       });
