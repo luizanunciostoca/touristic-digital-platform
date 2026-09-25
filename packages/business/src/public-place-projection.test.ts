@@ -350,6 +350,48 @@ describe("createPublicPlaceReadModel", () => {
     });
   });
 
+  it("fails Media closed when an adapter returns a different Place projection", async () => {
+    const service = createPublicPlaceReadModel({
+      repository: {
+        listPublished: vi.fn(async () => ({ items: [], nextCursor: null })),
+        getPublished: vi.fn(async () => record()),
+      },
+      media: {
+        getPublishedMedia: vi.fn(async () =>
+          Object.freeze({
+            placeId: "place-foreign",
+            coverImage: null,
+            gallery: Object.freeze([]),
+            logo: null,
+          }),
+        ),
+      },
+      commerce: { getPublicCommerce: vi.fn(async () => null) },
+      actions: {
+        resolvePublicActions: vi.fn(
+          async ({
+            place,
+          }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+            Object.freeze({
+              placeId: place.id,
+              businessId: "business-1",
+              destinationId: place.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            }),
+        ),
+      },
+    });
+
+    const result = await service.getDetail(asPlaceId("place-1"));
+
+    expect(result.detail?.profile.id).toBe(asPlaceId("place-1"));
+    expect(result.detail?.media).toBeNull();
+    expect(result.detail?.partial.media).toBe("unavailable");
+    expect(result.detail?.partial.commerce).toBe("ready");
+    expect(result.detail?.partial.actions).toBe("ready");
+  });
+
   it("returns null for private/unlisted data even if an adapter accidentally supplies it", async () => {
     const service = createPublicPlaceReadModel({
       repository: {

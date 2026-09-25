@@ -560,8 +560,11 @@ export function createPublicPlaceReadModel(
         options.media.getPublishedMedia(record.place),
         options.commerce.getPublicCommerce(record.place),
       ]);
-      const media =
-        mediaResult.status === "fulfilled" ? mediaResult.value : null;
+      const mediaInScope =
+        mediaResult.status === "fulfilled" &&
+        (mediaResult.value === null ||
+          mediaResult.value.placeId === String(profile.id));
+      const media = mediaInScope ? mediaResult.value : null;
       const commerce =
         commerceResult.status === "fulfilled" ? commerceResult.value : null;
 
@@ -602,7 +605,7 @@ export function createPublicPlaceReadModel(
         commerce,
         actions,
         partial: Object.freeze({
-          media: mediaResult.status === "fulfilled" ? "ready" : "unavailable",
+          media: mediaInScope ? "ready" : "unavailable",
           commerce:
             commerceResult.status === "fulfilled" ? "ready" : "unavailable",
           actions:
