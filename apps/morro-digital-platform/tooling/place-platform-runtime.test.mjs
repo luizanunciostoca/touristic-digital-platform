@@ -114,7 +114,8 @@ test(
       assert.equal(detailResponse.statusCode, 200);
       const detail = JSON.parse(detailResponse.body);
       assert.equal(detail.profile.id, created.placeId);
-      assert.equal(detail.profile.businessId, businessId);
+      assert.equal(Object.hasOwn(detail.profile, "businessId"), false);
+      assert.equal(detail.actions.businessId, businessId);
       assert.equal(detail.profile.location.latitude, -13.3776);
       assert.equal(detail.profile.description.includes("persistida"), true);
       assert.equal(detail.revision.number, published.publishedRevision.revision);
