@@ -455,33 +455,34 @@ export function createMySqlCatalogRepository(pool) {
 }
 
 async function assertOwnedPlace(pool, businessId, placeId, destinationId = null) {
-  if (destinationId != null) {
-    const [destinationRows] = await pool.execute(
-      `SELECT business_id
-         FROM business_destinations
-        WHERE business_id = ? AND destination_id = ?
+  if (placeId != null) {
+    const [rows] = await pool.execute(
+      `SELECT place_id, business_id, destination_id
+         FROM business_places
+        WHERE place_id = ? AND business_id = ?
         LIMIT 1`,
-      [String(businessId), String(destinationId)],
+      [String(placeId), String(businessId)],
     );
-    if (!destinationRows[0]) {
-      throw new Error("CATALOG_DESTINATION_OWNER_MISMATCH");
+    const row = rows[0];
+    if (!row) throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+    if (
+      destinationId != null &&
+      String(row.destination_id) !== String(destinationId)
+    ) {
+      throw new Error("CATALOG_PLACE_DESTINATION_MISMATCH");
     }
+    return;
   }
-  if (placeId == null) return;
-  const [rows] = await pool.execute(
-    `SELECT place_id, business_id, destination_id
-       FROM business_places
-      WHERE place_id = ? AND business_id = ?
+  if (destinationId == null) return;
+  const [destinationRows] = await pool.execute(
+    `SELECT business_id
+       FROM business_destinations
+      WHERE business_id = ? AND destination_id = ?
       LIMIT 1`,
-    [String(placeId), String(businessId)],
+    [String(businessId), String(destinationId)],
   );
-  const row = rows[0];
-  if (!row) throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
-  if (
-    destinationId != null &&
-    String(row.destination_id) !== String(destinationId)
-  ) {
-    throw new Error("CATALOG_PLACE_DESTINATION_MISMATCH");
+  if (!destinationRows[0]) {
+    throw new Error("CATALOG_DESTINATION_OWNER_MISMATCH");
   }
 }
 
