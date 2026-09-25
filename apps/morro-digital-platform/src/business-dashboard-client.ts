@@ -5,6 +5,57 @@ import type {
 import { normalizeBusinessId, type BusinessProfile } from "@touristic/business";
 import { resolveBusinessContext } from "./morro-pro-business-management.js";
 
+export interface MorroProCatalogProduct {
+  readonly id: string;
+  readonly businessId: string;
+  readonly placeId: string | null;
+  readonly destinationId: string | null;
+  readonly name: string;
+  readonly description: string;
+  readonly status: "draft" | "active" | "inactive" | "archived";
+  readonly tags: readonly string[];
+}
+
+export interface MorroProCatalogOffer {
+  readonly id: string;
+  readonly businessId: string;
+  readonly placeId: string | null;
+  readonly destinationId: string | null;
+  readonly productId: string;
+  readonly price: Readonly<{ minorUnits: number; currency: string }>;
+  readonly status:
+    | "draft"
+    | "active"
+    | "paused"
+    | "sold_out"
+    | "expired"
+    | "archived";
+}
+
+export interface MorroProCatalogMenu {
+  readonly id: string;
+  readonly businessId: string;
+  readonly placeId: string | null;
+  readonly name: string;
+  readonly description: string;
+  readonly status: "draft" | "active" | "inactive" | "archived";
+}
+
+export interface MorroProCatalog {
+  readonly products: readonly MorroProCatalogProduct[];
+  readonly offers: readonly MorroProCatalogOffer[];
+  readonly menus: readonly MorroProCatalogMenu[];
+  readonly categories: readonly unknown[];
+  readonly items: readonly unknown[];
+}
+
+export type MorroProCatalogDraftKind =
+  | "product"
+  | "offer"
+  | "menu"
+  | "menu-category"
+  | "menu-item";
+
 export interface MorroProInventoryOffer {
   readonly id: string;
   readonly businessId: string;
@@ -57,6 +108,15 @@ export interface BusinessDashboardClient {
     businessId: unknown,
     profile: unknown,
   ) => Promise<BusinessProfile>;
+  readonly loadCatalog: (
+    businessId: unknown,
+    signal?: AbortSignal,
+  ) => Promise<MorroProCatalog>;
+  readonly createCatalogDraft: (
+    businessId: unknown,
+    kind: MorroProCatalogDraftKind,
+    input: unknown,
+  ) => Promise<unknown>;
   readonly listOffers: (
     businessId: unknown,
     signal?: AbortSignal,
@@ -76,6 +136,16 @@ function businessProfileUrl(businessIdInput: unknown): string {
   const businessId = normalizeBusinessId(businessIdInput);
   if (!businessId) throw new Error("INVALID_BUSINESS_ID");
   return `/api/business/${encodeURIComponent(businessId)}/profile`;
+}
+
+function businessCatalogUrl(
+  businessIdInput: unknown,
+  kind?: MorroProCatalogDraftKind,
+): string {
+  const businessId = normalizeBusinessId(businessIdInput);
+  if (!businessId) throw new Error("INVALID_BUSINESS_ID");
+  const base = `/api/business/${encodeURIComponent(businessId)}/catalog`;
+  return kind ? `${base}/${encodeURIComponent(kind)}` : base;
 }
 
 function businessInventoryUrl(businessIdInput: unknown): string {
@@ -135,6 +205,53 @@ export function createBusinessDashboardClient(
     const data = (await response.json()) as { profile?: BusinessProfile };
     if (!data.profile) throw new Error("INVALID_BUSINESS_PROFILE_RESPONSE");
     return data.profile;
+  }
+
+  async function loadCatalog(
+    businessIdInput: unknown,
+    signal?: AbortSignal,
+  ): Promise<MorroProCatalog> {
+    const response = await authClient.secureFetch(
+      businessCatalogUrl(businessIdInput),
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: signal ?? null,
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { catalog?: MorroProCatalog };
+    if (!data.catalog) throw new Error("INVALID_MORRO_PRO_CATALOG_RESPONSE");
+    return Object.freeze({
+      products: Object.freeze(data.catalog.products ?? []),
+      offers: Object.freeze(data.catalog.offers ?? []),
+      menus: Object.freeze(data.catalog.menus ?? []),
+      categories: Object.freeze(data.catalog.categories ?? []),
+      items: Object.freeze(data.catalog.items ?? []),
+    });
+  }
+
+  async function createCatalogDraft(
+    businessIdInput: unknown,
+    kind: MorroProCatalogDraftKind,
+    input: unknown,
+  ): Promise<unknown> {
+    const response = await authClient.secureFetch(
+      businessCatalogUrl(businessIdInput, kind),
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const data = (await response.json()) as { data?: unknown };
+    if (!data.data) throw new Error("INVALID_MORRO_PRO_CATALOG_RESPONSE");
+    return data.data;
   }
 
   async function listOffers(
@@ -214,6 +331,8 @@ export function createBusinessDashboardClient(
     bootstrap,
     loadProfile,
     saveProfile,
+    loadCatalog,
+    createCatalogDraft,
     listOffers,
     createOffer,
     disableOffer,
