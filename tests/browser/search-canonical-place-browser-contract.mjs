@@ -244,6 +244,10 @@ try {
     localStorage.setItem("morro-digital-language", "pt-BR");
     localStorage.setItem("voice-enabled", "false");
     document.documentElement.lang = "pt-BR";
+    globalThis.__MORRO_RUNTIME_ENV__ = Object.freeze({
+      ...(globalThis.__MORRO_RUNTIME_ENV__ ?? {}),
+      VITE_PLACE_PLATFORM_AVAILABLE: "true",
+    });
 
     const [
       { bootstrapMorroDigitalApplication },

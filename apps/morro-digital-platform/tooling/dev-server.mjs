@@ -318,11 +318,15 @@ const adminApi = createAdminApi({
 });
 
 function createRuntimeEnvironment() {
-  return Object.freeze(
-    Object.fromEntries(
+  return Object.freeze({
+    ...Object.fromEntries(
       runtimeEnvironmentKeys.map((key) => [key, getEnvironmentValue(key)]),
     ),
-  );
+    VITE_PLACE_PLATFORM_AVAILABLE:
+      placePlatformRuntime?.readinessCheck().status === "pass"
+        ? "true"
+        : "false",
+  });
 }
 
 function isWithinStaticRoot(candidate, root) {

@@ -106,6 +106,8 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(control).toContain("createPublicPlaceMapClient");
     expect(control).toContain("loadHybridGlobalMarkers");
     expect(control).toContain("CANONICAL_MAP_DESTINATION_ID");
+    expect(control).toContain("canonicalPlaceRuntimeAvailable");
+    expect(control).toContain("VITE_PLACE_PLATFORM_AVAILABLE");
     expect(control).toContain('source: "canonical" as const');
     expect(control).toContain("placeId: String(item.id)");
     expect(control).toContain("canonicalPlaceId ||");

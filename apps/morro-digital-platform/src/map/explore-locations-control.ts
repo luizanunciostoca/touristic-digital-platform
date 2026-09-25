@@ -61,6 +61,19 @@ const CANONICAL_MAP_BBOX = Object.freeze([
 ] as const);
 const CANONICAL_MAP_ZOOM = 13;
 
+interface PlaceRuntimeEnvironmentGlobal {
+  readonly __MORRO_RUNTIME_ENV__?: Readonly<{
+    VITE_PLACE_PLATFORM_AVAILABLE?: string;
+  }>;
+}
+
+function canonicalPlaceRuntimeAvailable(): boolean {
+  return (
+    (globalThis as typeof globalThis & PlaceRuntimeEnvironmentGlobal)
+      .__MORRO_RUNTIME_ENV__?.VITE_PLACE_PLATFORM_AVAILABLE === "true"
+  );
+}
+
 type ExploreStage = "menu" | "filters" | "places" | "detail" | "tour";
 
 export interface ExploreSearchResult {
@@ -893,6 +906,7 @@ export function installExploreLocationsControl({
   const loadHybridGlobalMarkers = async (): Promise<void> => {
     if (
       !geospatialEngine?.initialized ||
+      !canonicalPlaceRuntimeAvailable() ||
       activeStage !== "menu" ||
       visibleLocations.length > 0
     ) {
