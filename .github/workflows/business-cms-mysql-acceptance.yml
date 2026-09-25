@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/control-center/public/control-center-business-cms.js"
       - "apps/morro-digital-platform/tooling/place-platform-*.mjs"
+      - "apps/morro-digital-platform/tooling/media-storage-runtime*.mjs"
       - "apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs"
       - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
       - "packages/business/**"
@@ -17,6 +18,7 @@ on:
     paths:
       - "apps/control-center/public/control-center-business-cms.js"
       - "apps/morro-digital-platform/tooling/place-platform-*.mjs"
+      - "apps/morro-digital-platform/tooling/media-storage-runtime*.mjs"
       - "apps/morro-digital-platform/tooling/control-center-business-cms-browser-contract.mjs"
       - "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs"
       - "packages/business/**"
@@ -50,6 +52,8 @@ jobs:
           --health-retries=20
     env:
       BUSINESS_DATABASE_URL: mysql://root:cms-acceptance@127.0.0.1:3306/cms_acceptance
+      CONTENT_DATABASE_URL: mysql://root:cms-acceptance@127.0.0.1:3306/cms_acceptance
+      MEDIA_STORAGE_BASE_PATH: /tmp/morro-media
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -70,6 +74,14 @@ jobs:
           "import('@touristic/content-server').then(async ({createMySqlPool}) => {
           const pool = createMySqlPool('mysql://root:cms-acceptance@127.0.0.1:3306/mysql');
           try { await pool.query('CREATE DATABASE cms_acceptance CHARACTER SET utf8mb4'); }
+          finally { await pool.end(); }
+          })"
+      - name: Apply Content/Media schema
+        run: >-
+          node --input-type=module -e
+          "import('@touristic/content-server').then(async ({createMySqlPool,applyContentM156Schema}) => {
+          const pool = createMySqlPool(process.env.CONTENT_DATABASE_URL);
+          try { await applyContentM156Schema(pool); }
           finally { await pool.end(); }
           })"
       - name: Verify persistence, revisions, publication and tenant denial
