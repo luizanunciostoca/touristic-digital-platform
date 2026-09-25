@@ -1,0 +1,472 @@
+name: Map Place Authority Browser Proof
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - .github/workflows/map-place-authority-browser-proof.yml
+      - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
+      - apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts
+      - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/public-place-map-client-v2.ts
+      - apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts
+      - packages/search/src/**
+      - packages/business/src/**
+      - package.json
+      - pnpm-lock.yaml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  map-place-authority:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install deterministic Chromium
+        run: |
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+          mkdir -p /tmp/map-place-authority
+      - name: Build workspace
+        run: pnpm -w build
+      - name: Start authenticated Mapbox runtime
+        env:
+          MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
+        run: |
+          test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
+          VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
+          VITE_MAPBOX_CONTAINER_ID=map \
+          VITE_MAPBOX_INITIAL_ZOOM=13.5 \
+          node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/map-place-authority/server.log 2>&1 &
+          echo $! >/tmp/map-place-authority/server.pid
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:4173/runtime-config.js >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/map-place-authority/server.log
+          exit 1
+      - name: Prove canonical, fail-closed and external authority
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const origin = 'http://127.0.0.1:4173';
+          const weather = {
+            temperatureCelsius: 28,
+            temperatureMaxCelsius: 31,
+            temperatureMinCelsius: 24,
+            humidityPercent: 78,
+            windSpeedKph: 18,
+            rainChancePercent: 20,
+            weatherCode: 1,
+            isDay: true,
+            forecast: [],
+          };
+          const canonicalMap = {
+            items: [
+              {
+                id: 'place-toca',
+                name: 'Toca do Morcego',
+                category: 'nightlife',
+                lat: -13.3779,
+                lng: -38.9138,
+                presentation: { markerKey: 'place-toca', priority: 100 },
+              },
+            ],
+            nextCursor: null,
+          };
+          const canonicalDetail = {
+            profile: {
+              id: 'place-toca',
+              businessId: 'business-toca',
+              destinationId: 'morro-de-sao-paulo',
+              name: 'Toca do Morcego',
+              categoryId: 'nightlife',
+              location: {
+                latitude: -13.3779,
+                longitude: -38.9138,
+              },
+              tags: ['sunset', 'nightlife'],
+            },
+            revision: {
+              id: 'revision-toca-1',
+              number: 1,
+              publishedAt: '2026-09-25T12:00:00.000Z',
+            },
+            commerce: {
+              products: [],
+              offers: [],
+              menus: [],
+            },
+            actions: {
+              placeId: 'place-toca',
+              primaryAction: {
+                id: 'nightlife.tickets',
+                label: '🎟️ Comprar ingressos',
+                value: 'commerce:offer:offer-toca',
+                disabled: false,
+              },
+              secondaryActions: [
+                {
+                  id: 'place.directions',
+                  label: '📍 Como chegar',
+                  value: 'como chegar',
+                  disabled: false,
+                },
+                {
+                  id: 'place.photos',
+                  label: '📸 Ver fotos',
+                  value: 'ver fotos',
+                  disabled: false,
+                },
+              ],
+            },
+            partial: {
+              media: false,
+              commerce: false,
+              actions: false,
+            },
+          };
+          const externalFeature = {
+            properties: {
+              name: 'Clube Externo',
+              full_address: 'Rua Externa, Morro de São Paulo',
+              place_formatted: 'Morro de São Paulo, Cairu, Bahia',
+              feature_type: 'poi',
+              poi_category: ['nightclub'],
+              maki: 'bar',
+              mapbox_id: 'mapbox.external.club',
+            },
+            geometry: {
+              coordinates: [-38.9152, -13.3791],
+            },
+          };
+
+          async function poll(page, probe, label, timeout = 15000) {
+            const deadline = Date.now() + timeout;
+            while (Date.now() < deadline) {
+              if (await probe()) return;
+              await page.waitForTimeout(100);
+            }
+            throw new Error(label + ' did not become ready');
+          }
+
+          async function createPage(browser, detailMode) {
+            const context = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              geolocation: { latitude: -13.3776181, longitude: -38.9142193 },
+              permissions: ['geolocation'],
+            });
+            await context.addInitScript(() => {
+              localStorage.setItem('morro-digital-onboarded', '1');
+              localStorage.setItem('morro-digital-language', 'pt-BR');
+              localStorage.setItem('voice-enabled', 'false');
+            });
+            const page = await context.newPage();
+            const pageErrors = [];
+            page.on('pageerror', error => pageErrors.push(error.message));
+
+            await page.route('**/api/weather', route =>
+              route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(weather),
+              }),
+            );
+            await page.route('**/api/ticketing/v1/inventory', route =>
+              route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ data: [] }),
+              }),
+            );
+            await page.route('**/api/places/v1/map**', route =>
+              route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(canonicalMap),
+              }),
+            );
+            await page.route('**/api/places/v1/place-toca**', route => {
+              if (detailMode === 'unavailable') {
+                return route.fulfill({
+                  status: 503,
+                  contentType: 'application/json',
+                  body: JSON.stringify({ error: 'provider_unavailable' }),
+                });
+              }
+              return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify(canonicalDetail),
+              });
+            });
+            await page.route('**/search/searchbox/v1/forward**', route => {
+              const requestUrl = new URL(route.request().url());
+              const query = requestUrl.searchParams.get('q') || '';
+              const features = query.toLocaleLowerCase('pt-BR').includes('clube externo')
+                ? [externalFeature]
+                : [];
+              return route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ features }),
+              });
+            });
+
+            await page.goto(origin + '/', {
+              waitUntil: 'domcontentloaded',
+              timeout: 30000,
+            });
+            await page.locator(
+              '#map[data-map-state="ready"][data-map-mode="real"]',
+            ).waitFor({ state: 'attached', timeout: 30000 });
+            await page.locator('body[data-public-onboarding-settled="true"]').waitFor({
+              state: 'attached',
+              timeout: 5000,
+            });
+            await page.evaluate(() => {
+              globalThis.__placeAuthorityEvents = [];
+              document.addEventListener('morro:place-authority-resolved', event => {
+                if (event instanceof CustomEvent) {
+                  globalThis.__placeAuthorityEvents.push(event.detail);
+                }
+              });
+            });
+            return { context, page, pageErrors };
+          }
+
+          async function submit(page, text) {
+            const input = page.locator('#assistantInput');
+            await input.waitFor({ state: 'visible', timeout: 8000 });
+            if (!(await page.locator('#assistant-messages').isVisible())) {
+              await input.focus();
+            }
+            await page.locator('#assistant-messages:not(.hidden)').waitFor({
+              state: 'visible',
+              timeout: 5000,
+            });
+            await input.fill(text);
+            await page.locator('#sendButton').evaluate(button => button.click());
+            await poll(
+              page,
+              async () => (await input.inputValue()) === '',
+              'composer reset for ' + text,
+              8000,
+            );
+          }
+
+          async function selectPlace(page, name) {
+            const place = page.locator(
+              '#assistant-category-rail[data-rail-stage="places"] ' +
+                '[data-location-name="' + name + '"]',
+            );
+            await place.waitFor({ state: 'visible', timeout: 10000 });
+            await place.click();
+            await page.locator(
+              '#assistant-category-rail[data-rail-stage="detail"]',
+            ).waitFor({ state: 'visible', timeout: 10000 });
+          }
+
+          async function authoritySnapshot(page) {
+            return page.evaluate(() => {
+              const map = document.getElementById('map');
+              const rail = document.querySelector(
+                '#assistant-category-rail[data-rail-stage="detail"]',
+              );
+              const buttons = Array.from(
+                rail?.querySelectorAll('[data-context-rail-option="true"]') ?? [],
+              );
+              return {
+                authority: map?.dataset.lastPlaceAuthority ?? null,
+                status: map?.dataset.lastPlaceAuthorityStatus ?? null,
+                source: map?.dataset.lastPlaceSource ?? null,
+                placeId: map?.dataset.lastCanonicalPlaceId ?? null,
+                values: buttons.map(button => button.getAttribute('data-value')),
+                primaryValues: buttons
+                  .filter(button => button.getAttribute('data-explore-action') === 'primary')
+                  .map(button => button.getAttribute('data-value')),
+                events: globalThis.__placeAuthorityEvents ?? [],
+              };
+            });
+          }
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {};
+            try {
+              {
+                const { context, page, pageErrors } = await createPage(browser, 'ready');
+                await submit(page, 'Toca do Morcego');
+                await selectPlace(page, 'Toca do Morcego');
+                await poll(
+                  page,
+                  () => page.evaluate(
+                    () => document.getElementById('map')?.dataset.lastPlaceAuthorityStatus ===
+                      'canonical-ready',
+                  ),
+                  'canonical authority',
+                );
+                const snapshot = await authoritySnapshot(page);
+                if (
+                  snapshot.authority !== 'canonical' ||
+                  snapshot.status !== 'canonical-ready' ||
+                  snapshot.source !== 'canonical' ||
+                  snapshot.placeId !== 'place-toca' ||
+                  !snapshot.values.includes('como chegar') ||
+                  !snapshot.values.includes('ver fotos') ||
+                  !snapshot.primaryValues.includes('commerce:offer:offer-toca') ||
+                  !snapshot.events.some(event =>
+                    event?.status === 'canonical-pending' &&
+                    event?.commercialAuthority === 'blocked'
+                  ) ||
+                  !snapshot.events.some(event =>
+                    event?.status === 'canonical-ready' &&
+                    event?.commercialAuthority === 'canonical'
+                  )
+                ) {
+                  throw new Error(
+                    'Canonical Place authority drift: ' + JSON.stringify(snapshot),
+                  );
+                }
+                if (pageErrors.length) {
+                  throw new Error('Canonical browser errors: ' + JSON.stringify(pageErrors));
+                }
+                evidence.canonical = snapshot;
+                await context.close();
+              }
+
+              {
+                const { context, page, pageErrors } = await createPage(
+                  browser,
+                  'unavailable',
+                );
+                await submit(page, 'Toca do Morcego');
+                await selectPlace(page, 'Toca do Morcego');
+                await poll(
+                  page,
+                  () => page.evaluate(
+                    () => document.getElementById('map')?.dataset.lastPlaceAuthorityStatus ===
+                      'canonical-unavailable',
+                  ),
+                  'canonical fail-closed authority',
+                );
+                const snapshot = await authoritySnapshot(page);
+                const leakedCommercial = snapshot.values.some(value =>
+                  typeof value === 'string' &&
+                  (value.startsWith('commerce:') ||
+                    ['ver cardápio', 'reservar mesa', 'comprar ingressos'].includes(value))
+                );
+                if (
+                  snapshot.authority !== 'canonical' ||
+                  snapshot.status !== 'canonical-unavailable' ||
+                  snapshot.placeId !== 'place-toca' ||
+                  snapshot.primaryValues.length !== 0 ||
+                  leakedCommercial ||
+                  !snapshot.events.some(event =>
+                    event?.status === 'canonical-unavailable' &&
+                    event?.commercialAuthority === 'blocked'
+                  )
+                ) {
+                  throw new Error(
+                    'Canonical fail-closed drift: ' + JSON.stringify(snapshot),
+                  );
+                }
+                if (pageErrors.length) {
+                  throw new Error(
+                    'Fail-closed browser errors: ' + JSON.stringify(pageErrors),
+                  );
+                }
+                evidence.canonicalUnavailable = snapshot;
+                await context.close();
+              }
+
+              {
+                const { context, page, pageErrors } = await createPage(browser, 'ready');
+                await submit(page, 'Clube Externo');
+                await selectPlace(page, 'Clube Externo');
+                await poll(
+                  page,
+                  () => page.evaluate(
+                    () => document.getElementById('map')?.dataset.lastPlaceAuthorityStatus ===
+                      'safe-fallback',
+                  ),
+                  'Mapbox external safe fallback',
+                );
+                const snapshot = await authoritySnapshot(page);
+                const leakedCommercial = snapshot.values.some(value =>
+                  typeof value === 'string' &&
+                  (value.startsWith('commerce:') ||
+                    ['ver cardápio', 'reservar mesa', 'comprar ingressos'].includes(value))
+                );
+                if (
+                  snapshot.authority !== 'external' ||
+                  snapshot.status !== 'safe-fallback' ||
+                  snapshot.source !== 'mapbox' ||
+                  snapshot.placeId !== null ||
+                  snapshot.primaryValues.length !== 0 ||
+                  leakedCommercial ||
+                  !snapshot.values.includes('como chegar') ||
+                  !snapshot.values.includes('ver fotos') ||
+                  !snapshot.events.some(event =>
+                    event?.status === 'safe-fallback' &&
+                    event?.source === 'mapbox' &&
+                    event?.commercialAuthority === 'blocked'
+                  )
+                ) {
+                  throw new Error(
+                    'Mapbox external authority drift: ' + JSON.stringify(snapshot),
+                  );
+                }
+                if (pageErrors.length) {
+                  throw new Error('Mapbox browser errors: ' + JSON.stringify(pageErrors));
+                }
+                evidence.mapboxExternal = snapshot;
+                await context.close();
+              }
+
+              writeFileSync(
+                '/tmp/map-place-authority/evidence.json',
+                JSON.stringify(evidence, null, 2),
+              );
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            writeFileSync(
+              '/tmp/map-place-authority/failure.txt',
+              String(error?.stack || error),
+            );
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/map-place-authority/failure.txt || true
+          cat /tmp/map-place-authority/server.log || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: map-place-authority-browser-evidence
+          path: /tmp/map-place-authority
+          retention-days: 7
+          if-no-files-found: error
