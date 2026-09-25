@@ -509,12 +509,12 @@ function createPublicRepository(pool) {
         clauses.push("place_id > ?");
         params.push(cursor);
       }
-      params.push(limit + 1);
+      const boundedLimit = Math.max(1, Math.min(1001, Number(limit) + 1));
       const [rows] = await pool.execute(
         `SELECT * FROM business_places
           WHERE ${clauses.join(" AND ")}
           ORDER BY place_id ASC
-          LIMIT ?`,
+          LIMIT ${boundedLimit}`,
         params,
       );
       const sliced = rows.slice(0, limit);
