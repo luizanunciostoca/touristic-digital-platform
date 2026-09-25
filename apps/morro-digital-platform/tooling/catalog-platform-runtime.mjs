@@ -526,6 +526,33 @@ export function createCatalogRuntime(pool) {
     });
   }
 
+  async function getCounts(businessId, placeId = null) {
+    const placeClause = placeId == null ? "" : " AND place_id = ?";
+    const params = placeId == null ? [String(businessId)] : [String(businessId), String(placeId)];
+    const [[productRows], [offerRows], [menuRows]] = await Promise.all([
+      pool.execute(
+        `SELECT COUNT(*) AS count FROM catalog_products
+          WHERE business_id = ?${placeClause}`,
+        params,
+      ),
+      pool.execute(
+        `SELECT COUNT(*) AS count FROM catalog_offers
+          WHERE business_id = ?${placeClause}`,
+        params,
+      ),
+      pool.execute(
+        `SELECT COUNT(*) AS count FROM catalog_menus
+          WHERE business_id = ?${placeClause}`,
+        params,
+      ),
+    ]);
+    return Object.freeze({
+      productCount: Number(productRows[0]?.count ?? 0),
+      offerCount: Number(offerRows[0]?.count ?? 0),
+      menuCount: Number(menuRows[0]?.count ?? 0),
+    });
+  }
+
   async function getPublicCommerce(place) {
     const context = await listActionContext(place);
     const now = new Date().toISOString();
@@ -639,5 +666,6 @@ export function createCatalogRuntime(pool) {
     }),
     listActionContext,
     getPublicCommerce,
+    getCounts,
   });
 }
