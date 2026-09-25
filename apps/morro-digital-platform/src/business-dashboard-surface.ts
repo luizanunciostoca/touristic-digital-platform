@@ -6,6 +6,7 @@ import {
 import type {
   BusinessDashboardClient,
   MorroProCatalog,
+  MorroProMedia,
 } from "./business-dashboard-client.js";
 import {
   openBusinessProfileView,
@@ -191,6 +192,137 @@ function money(price: { minorUnits: number; currency: string }): string {
     style: "currency",
     currency: price.currency || "BRL",
   }).format(price.minorUnits / 100);
+}
+
+interface MediaSurface {
+  readonly form: HTMLFormElement;
+  readonly list: HTMLElement;
+  readonly status: HTMLElement;
+}
+
+function createMediaSurface(document: Document): MediaSurface {
+  const panel = document.querySelector<HTMLElement>('[data-view-panel="photos"]');
+  if (!panel) throw new Error("MISSING_MEDIA_PANEL");
+  panel.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Mídia canônica</span>
+        <h2>Fotos</h2>
+        <p>Alterações ficam na revisão editável e só chegam ao público após publicação governada.</p>
+        <form id="morro-pro-media-form">
+          <label>Imagem<input name="file" type="file" accept="image/jpeg,image/png,image/webp,image/avif" required /></label>
+          <label>Texto alternativo<input name="alt" maxlength="300" required /></label>
+          <label>Função<select name="role">
+            <option value="gallery">Galeria</option>
+            <option value="cover">Capa</option>
+            <option value="logo">Logo</option>
+            <option value="menu">Menu</option>
+            <option value="product">Produto</option>
+            <option value="other">Outro</option>
+          </select></label>
+          <label><input name="published" type="checkbox" checked /> Incluir no próximo publish</label>
+          <button class="button" type="submit">Enviar foto</button>
+        </form>
+        <p id="morro-pro-media-status" class="form-status" role="status"></p>
+      </article>
+      <article class="panel-card">
+        <h2>Fotos cadastradas</h2>
+        <div id="morro-pro-media-list" aria-live="polite"></div>
+      </article>
+    </div>`;
+  return Object.freeze({
+    form: requiredElement<HTMLFormElement>(document, "morro-pro-media-form"),
+    list: requiredElement<HTMLElement>(document, "morro-pro-media-list"),
+    status: requiredElement<HTMLElement>(document, "morro-pro-media-status"),
+  });
+}
+
+function safeMediaSource(value: string | undefined): string {
+  const source = String(value ?? "").trim();
+  return source.startsWith("/media/") || source.startsWith("https://")
+    ? source
+    : "";
+}
+
+function renderMedia(
+  surface: MediaSurface,
+  media: MorroProMedia,
+  mutable: boolean,
+): void {
+  surface.list.replaceChildren();
+  if (!media.assets.length) {
+    surface.list.textContent = "Nenhuma foto cadastrada.";
+    return;
+  }
+  for (const [index, entry] of media.assets.entries()) {
+    const row = document.createElement("div");
+    row.className = "catalog-row";
+    const source = safeMediaSource(entry.asset?.providerReference);
+    const summary = document.createElement("span");
+    if (source) {
+      const image = document.createElement("img");
+      image.src = source;
+      image.alt = "";
+      image.width = 72;
+      image.height = 54;
+      image.loading = "lazy";
+      summary.append(image);
+    }
+    summary.append(
+      document.createTextNode(
+        `${entry.asset?.alt || entry.mediaId} · ${entry.role} · ${entry.asset?.publicationState || "indisponível"}`,
+      ),
+    );
+    row.append(summary);
+    if (mutable) {
+      for (const [label, action, value] of [
+        ["Capa", "role", "cover"],
+        ["Logo", "role", "logo"],
+        ["Galeria", "role", "gallery"],
+        [
+          entry.asset?.publicationState === "published"
+            ? "Retirar do próximo publish"
+            : "Incluir no próximo publish",
+          "published",
+          entry.asset?.publicationState === "published" ? "false" : "true",
+        ],
+        ["↑", "move", "up"],
+        ["↓", "move", "down"],
+        ["Excluir", "delete", "true"],
+      ] as const) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "button secondary";
+        button.textContent = label;
+        button.dataset.mediaAction = action;
+        button.dataset.mediaValue = value;
+        button.dataset.mediaId = entry.mediaId;
+        if (action === "move") {
+          button.disabled =
+            (value === "up" && index === 0) ||
+            (value === "down" && index === media.assets.length - 1);
+        }
+        row.append(button);
+      }
+    }
+    surface.list.append(row);
+  }
+}
+
+async function fileAsBase64(file: File): Promise<string> {
+  const buffer = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (const byte of buffer) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function imageDimensions(file: File): Promise<{ width: number; height: number }> {
+  const bitmap = await createImageBitmap(file);
+  try {
+    return { width: bitmap.width, height: bitmap.height };
+  } finally {
+    bitmap.close();
+  }
 }
 
 interface CatalogSurface {
@@ -633,8 +765,14 @@ export async function mountBusinessDashboardSurface(
   );
   ensureMorroProPanels(document);
   const catalogSurface = createCatalogSurface(document);
+  const mediaSurface = createMediaSurface(document);
 
   let activeProfile: BusinessProfile | null = null;
+  let activeMedia: MorroProMedia = Object.freeze({
+    count: 0,
+    storageAvailable: false,
+    assets: Object.freeze([]),
+  });
   let activeCatalog: MorroProCatalog = Object.freeze({
     products: Object.freeze([]),
     offers: Object.freeze([]),
@@ -678,6 +816,22 @@ export async function mountBusinessDashboardSurface(
     nameInput.value = safeProfile.name;
     categoryInput.value = safeProfile.categoryLabel;
     descriptionInput.value = safeProfile.description;
+  }
+
+  async function reloadMedia(signal?: AbortSignal): Promise<void> {
+    if (!businessId) return;
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const media = await dashboardClient.loadMedia(targetBusinessId, signal);
+    if (request && !contextController?.isCurrent(request)) return;
+    activeMedia = media;
+    const mutable =
+      mediaSurface.form.dataset.mutable === "true" && media.storageAvailable;
+    renderMedia(mediaSurface, media, mutable);
+    if (!media.storageAvailable) {
+      mediaSurface.status.textContent =
+        "Upload indisponível: armazenamento Media não configurado.";
+    }
   }
 
   async function reloadCatalog(signal?: AbortSignal): Promise<void> {
@@ -731,6 +885,99 @@ export async function mountBusinessDashboardSurface(
       form.removeAttribute("aria-busy");
     }
   }
+
+  mediaSurface.form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const fileControl = mediaSurface.form.elements.namedItem("file");
+    const file =
+      fileControl instanceof HTMLInputElement ? fileControl.files?.[0] : null;
+    if (!file) return;
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    mediaSurface.form.setAttribute("aria-busy", "true");
+    mediaSurface.status.textContent = "Preparando foto…";
+    void (async () => {
+      try {
+        const dimensions = await imageDimensions(file);
+        const dataBase64 = await fileAsBase64(file);
+        const alt = formControl(mediaSurface.form, "alt").value;
+        const role = formControl(mediaSurface.form, "role").value as
+          | "cover"
+          | "gallery"
+          | "logo"
+          | "menu"
+          | "product"
+          | "other";
+        const published = mediaSurface.form.elements.namedItem("published");
+        await dashboardClient.uploadMedia(targetBusinessId, {
+          fileName: file.name,
+          mimeType: file.type,
+          width: dimensions.width,
+          height: dimensions.height,
+          alt,
+          role,
+          published:
+            published instanceof HTMLInputElement ? published.checked : false,
+          dataBase64,
+        });
+        if (request && !contextController?.isCurrent(request)) return;
+        mediaSurface.form.reset();
+        await reloadMedia(request?.signal);
+        mediaSurface.status.textContent =
+          "Foto salva. A presença pública só muda após publicação governada.";
+      } catch (error: unknown) {
+        if (request && !contextController?.isCurrent(request)) return;
+        mediaSurface.status.textContent =
+          error instanceof Error ? error.message : "Falha ao salvar foto.";
+      } finally {
+        mediaSurface.form.removeAttribute("aria-busy");
+      }
+    })();
+  });
+
+  mediaSurface.list.addEventListener("click", (event) => {
+    const button =
+      event.target instanceof Element
+        ? event.target.closest<HTMLButtonElement>("[data-media-action]")
+        : null;
+    if (!button?.dataset.mediaId || !button.dataset.mediaAction) return;
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const mediaId = button.dataset.mediaId;
+    const action = button.dataset.mediaAction;
+    const value = button.dataset.mediaValue;
+    mediaSurface.status.textContent = "Salvando foto…";
+    void (async () => {
+      try {
+        if (action === "delete") {
+          await dashboardClient.deleteMedia(targetBusinessId, mediaId);
+        } else if (action === "move") {
+          const ids = activeMedia.assets.map((entry) => entry.mediaId);
+          const index = ids.indexOf(mediaId);
+          const target = value === "up" ? index - 1 : index + 1;
+          if (index < 0 || target < 0 || target >= ids.length) return;
+          [ids[index], ids[target]] = [ids[target]!, ids[index]!];
+          await dashboardClient.reorderMedia(targetBusinessId, ids);
+        } else if (action === "role") {
+          await dashboardClient.updateMedia(targetBusinessId, mediaId, {
+            role: value,
+          });
+        } else if (action === "published") {
+          await dashboardClient.updateMedia(targetBusinessId, mediaId, {
+            published: value === "true",
+          });
+        }
+        if (request && !contextController?.isCurrent(request)) return;
+        await reloadMedia(request?.signal);
+        mediaSurface.status.textContent =
+          "Foto atualizada na revisão editável.";
+      } catch (error: unknown) {
+        if (request && !contextController?.isCurrent(request)) return;
+        mediaSurface.status.textContent =
+          error instanceof Error ? error.message : "Falha ao atualizar foto.";
+      }
+    })();
+  });
 
   catalogSurface.productForm.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -963,6 +1210,22 @@ export async function mountBusinessDashboardSurface(
         });
       status.textContent = "Seu acesso ao perfil é somente leitura.";
     }
+    const photoAccess = accessByModule.get("photos");
+    mediaSurface.form.dataset.mutable = String(photoAccess?.mutable === true);
+    if (!photoAccess?.mutable) {
+      mediaSurface.form
+        .querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLButtonElement>(
+          "input, select, button",
+        )
+        .forEach((control) => {
+          control.disabled = true;
+        });
+      mediaSurface.status.textContent =
+        photoAccess?.visible === true
+          ? "Seu acesso a Fotos é somente leitura."
+          : "";
+    }
+
     for (const [moduleId, forms, statusElement] of [
       ["products", [catalogSurface.productForm], catalogSurface.productStatus],
       ["offers", [catalogSurface.offerForm], catalogSurface.offerStatus],
@@ -1000,6 +1263,15 @@ export async function mountBusinessDashboardSurface(
       const moduleAccess = accessByModule.get(view);
       if (!moduleAccess?.visible) return;
       activateView(view);
+      if (view === "photos") {
+        const request = contextController?.request();
+        void reloadMedia(request?.signal).catch((error: unknown) => {
+          if (request && !contextController?.isCurrent(request)) return;
+          if (error instanceof DOMException && error.name === "AbortError") return;
+          mediaSurface.status.textContent =
+            error instanceof Error ? error.message : "Falha ao carregar fotos.";
+        });
+      }
       if (view === "products" || view === "offers" || view === "menu") {
         const request = contextController?.request();
         void reloadCatalog(request?.signal).catch((error: unknown) => {
@@ -1065,6 +1337,13 @@ export async function mountBusinessDashboardSurface(
           if (!request) return;
           businessId = request.businessId;
           status.textContent = "Trocando contexto do negócio…";
+          activeMedia = Object.freeze({
+            count: 0,
+            storageAvailable: false,
+            assets: Object.freeze([]),
+          });
+          renderMedia(mediaSurface, activeMedia, false);
+          mediaSurface.status.textContent = "";
           activeCatalog = Object.freeze({
             products: Object.freeze([]),
             offers: Object.freeze([]),
@@ -1082,6 +1361,13 @@ export async function mountBusinessDashboardSurface(
             .then(async (profile) => {
               if (!contextController?.isCurrent(request)) return;
               renderProfile(profile);
+              const activeMediaPanel = document.querySelector<HTMLElement>(
+                '[data-view-panel="photos"].active',
+              );
+              if (activeMediaPanel) {
+                await reloadMedia(request.signal);
+                if (!contextController?.isCurrent(request)) return;
+              }
               const activeCatalogPanel = document.querySelector<HTMLElement>(
                 '[data-view-panel="products"].active, [data-view-panel="offers"].active, [data-view-panel="menu"].active',
               );
