@@ -65,27 +65,28 @@ test(
         source: "manual",
       });
 
-      const product = await runtime.createCatalogDraft(businessId, "product", {
+      const product = await runtime.createCatalogDraft(actor, businessId, "product", {
         name: "Produto Draft",
         description: "Ainda não publicado",
         tags: "draft,catalog",
       });
-      const offer = await runtime.createCatalogDraft(businessId, "offer", {
+      const offer = await runtime.createCatalogDraft(actor, businessId, "offer", {
         productId: product.id,
         minorUnits: 12500,
         currency: "BRL",
         capacity: 20,
       });
-      const menu = await runtime.createCatalogDraft(businessId, "menu", {
+      const menu = await runtime.createCatalogDraft(actor, businessId, "menu", {
         name: "Menu Draft",
         description: "Ainda não publicado",
       });
       const category = await runtime.createCatalogDraft(
+        actor,
         businessId,
         "menu-category",
         { menuId: menu.id, name: "Entradas", sortOrder: 0 },
       );
-      const item = await runtime.createCatalogDraft(businessId, "menu-item", {
+      const item = await runtime.createCatalogDraft(actor, businessId, "menu-item", {
         menuId: menu.id,
         categoryId: category.id,
         name: "Ceviche Draft",
@@ -144,6 +145,89 @@ test(
       assert.equal(ids.has("offers"), false);
       assert.equal(ids.has("menu"), false);
       assert.equal(ids.has("tickets"), false);
+
+      await runtime.updateCatalogDraft(
+        actor,
+        businessId,
+        "product",
+        product.id,
+        { status: "active", name: "Produto Aprovado" },
+      );
+      await runtime.updateCatalogDraft(
+        actor,
+        businessId,
+        "offer",
+        offer.id,
+        { status: "active", minorUnits: 13500 },
+      );
+      await runtime.updateCatalogDraft(
+        actor,
+        businessId,
+        "menu",
+        menu.id,
+        { status: "active", name: "Menu Aprovado" },
+      );
+      await runtime.updateCatalogDraft(
+        actor,
+        businessId,
+        "menu-item",
+        item.id,
+        { available: true, name: "Ceviche Aprovado" },
+      );
+
+      const stillPublished = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        stillPublished,
+        new URL(
+          `http://localhost/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(stillPublished.statusCode, 200);
+      const beforeRepublish = JSON.parse(stillPublished.body);
+      assert.deepEqual(beforeRepublish.commerce.offers, []);
+      assert.equal(beforeRepublish.commerce.menu, null);
+
+      const edited = await runtime.getCmsDetail(businessId);
+      assert.equal(edited.publication.state, "draft");
+      assert.ok(
+        edited.publication.editableRevision >
+          edited.publication.publishedRevision,
+      );
+
+      const secondReview = await runtime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        edited.publication.editableRevision,
+      );
+      await runtime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        secondReview.editableRevision.revision,
+      );
+
+      const republished = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        republished,
+        new URL(
+          `http://localhost/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(republished.statusCode, 200);
+      const approved = JSON.parse(republished.body);
+      assert.equal(approved.commerce.offers.length, 1);
+      assert.equal(approved.commerce.offers[0].id, offer.id);
+      assert.equal(approved.commerce.offers[0].name, "Produto Aprovado");
+      assert.equal(approved.commerce.offers[0].price.minorUnits, 13500);
+      assert.equal(approved.commerce.menu.id, menu.id);
+      assert.equal(approved.commerce.menu.name, "Menu Aprovado");
+      assert.equal(
+        approved.commerce.menu.categories[0].items[0].name,
+        "Ceviche Aprovado",
+      );
     } finally {
       await runtime.stop();
     }
