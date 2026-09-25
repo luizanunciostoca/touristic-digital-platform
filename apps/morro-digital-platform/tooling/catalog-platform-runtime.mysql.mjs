@@ -85,7 +85,7 @@ test(
           "tickets",
         ],
       });
-      await placeRuntime.updateLocation(actor, businessId, {
+      const locationRevision = await placeRuntime.updateLocation(actor, businessId, {
         latitude: -13.3776,
         longitude: -38.9142,
         address: "Morro de São Paulo",
@@ -158,7 +158,18 @@ test(
         sortOrder: 0,
       });
 
-      await placeRuntime.publish(actor, businessId);
+      const review = await placeRuntime.transitionPublication(
+        actor,
+        businessId,
+        "review",
+        locationRevision.editableRevision.revision,
+      );
+      await placeRuntime.transitionPublication(
+        actor,
+        businessId,
+        "publish",
+        review.editableRevision.revision,
+      );
 
       const response = responseCapture();
       const handled = await placeRuntime.handlePublic(
