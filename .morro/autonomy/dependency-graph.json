@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "updatedFromMainSha": "2bbf7407035575cac993c7024ec01183a27ec6c4",
+  "nodes": [
+    {
+      "id": "MD-AUTO-001",
+      "owner": "Proof Worker",
+      "status": "QUEUED",
+      "dependsOn": [],
+      "unlocks": [
+        "MD-AUTO-003",
+        "MD-AUTO-004"
+      ]
+    },
+    {
+      "id": "MD-AUTO-002",
+      "owner": "Control Tower",
+      "status": "CLAIMED",
+      "dependsOn": [],
+      "unlocks": [
+        "legacy-pr-cleanup"
+      ]
+    },
+    {
+      "id": "MD-AUTO-003",
+      "owner": "Experience Worker",
+      "status": "QUEUED",
+      "dependsOn": [
+        "MD-AUTO-001"
+      ],
+      "unlocks": [
+        "assistant-canonical-place-context"
+      ]
+    },
+    {
+      "id": "MD-AUTO-004",
+      "owner": "Experience Worker",
+      "status": "QUEUED",
+      "dependsOn": [
+        "MD-AUTO-001"
+      ],
+      "unlocks": [
+        "cross-domain-e2e"
+      ]
+    }
+  ],
+  "criticalPath": [
+    "MD-AUTO-001",
+    "MD-AUTO-003",
+    "assistant-canonical-place-context",
+    "cross-domain-e2e",
+    "staging-certification"
+  ]
+}
