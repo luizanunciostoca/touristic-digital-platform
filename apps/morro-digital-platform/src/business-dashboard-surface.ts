@@ -5,8 +5,7 @@ import {
 } from "@touristic/business";
 import type {
   BusinessDashboardClient,
-  MorroProInventoryOffer,
-  MorroProOfferInput,
+  MorroProCatalog,
 } from "./business-dashboard-client.js";
 import {
   openBusinessProfileView,
@@ -162,223 +161,453 @@ function dispatchProfileAction(
   );
 }
 
-function localDateTimeToIso(value: string): string {
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("Data/hora inválida.");
-  return date.toISOString();
-}
-
-function priceToMinorUnits(value: string): number {
+function minorUnits(value: string): number {
   const normalized = Number(value.replace(",", "."));
   const minor = Math.round(normalized * 100);
-  if (!Number.isSafeInteger(minor) || minor < 1) {
-    throw new Error("Valor da oferta inválido.");
-  }
+  if (!Number.isSafeInteger(minor) || minor < 0)
+    throw new Error("Valor inválido.");
   return minor;
 }
 
-function referenceSlug(value: string, maximumLength = 32): string {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/gu, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/gu, "-")
-    .replace(/^-+|-+$/gu, "")
-    .slice(0, maximumLength)
-    .replace(/-+$/gu, "");
+function commaList(value: string): readonly string[] {
+  return Object.freeze(
+    value
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean),
+  );
 }
 
-export function createMorroProOfferReference(
-  businessId: string,
-  placeName: string,
-  label: string,
-): string {
-  const businessReference = referenceSlug(businessId, 32);
-  const placeReference = referenceSlug(placeName, 32);
-  const offerReference = referenceSlug(label, 32);
-  if (!businessReference || !placeReference || !offerReference) {
-    throw new Error("Referência da oferta inválida.");
-  }
-  return `morro-pro:${businessReference}:place-${placeReference}:${offerReference}`;
+function toLocalDateTime(value: string | null): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
 }
 
-function offerMoney(offer: MorroProInventoryOffer): string {
+function money(price: { minorUnits: number; currency: string }): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
-    currency: offer.currency,
-  }).format(offer.unitAmountMinor / 100);
+    currency: price.currency || "BRL",
+  }).format(price.minorUnits / 100);
 }
 
-interface OfferSurface {
-  readonly form: HTMLFormElement;
-  readonly status: HTMLElement;
-  readonly list: HTMLElement;
-  readonly label: HTMLInputElement;
-  readonly kind: HTMLSelectElement;
-  readonly price: HTMLInputElement;
-  readonly capacity: HTMLInputElement;
-  readonly maxPerReservation: HTMLInputElement;
-  readonly salesStart: HTMLInputElement;
-  readonly salesEnd: HTMLInputElement;
-  readonly startsAt: HTMLInputElement;
-  readonly endsAt: HTMLInputElement;
+interface CatalogSurface {
+  readonly productForm: HTMLFormElement;
+  readonly offerForm: HTMLFormElement;
+  readonly menuForm: HTMLFormElement;
+  readonly categoryForm: HTMLFormElement;
+  readonly itemForm: HTMLFormElement;
+  readonly productList: HTMLElement;
+  readonly offerList: HTMLElement;
+  readonly menuList: HTMLElement;
+  readonly categoryList: HTMLElement;
+  readonly itemList: HTMLElement;
+  readonly productStatus: HTMLElement;
+  readonly offerStatus: HTMLElement;
+  readonly menuStatus: HTMLElement;
 }
 
-function createOfferSurface(document: Document): OfferSurface {
-  const panel = document.querySelector<HTMLElement>(
-    '[data-view-panel="offers"]',
-  );
-  if (!panel) throw new Error("MISSING_OFFERS_PANEL");
-  panel.replaceChildren();
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "settings-grid";
-  wrapper.innerHTML = `
-    <article class="panel-card">
-      <span class="eyebrow">Morro Pro Commerce</span>
-      <h2>Nova oferta</h2>
-      <p>Publique uma experiência diretamente no inventário público do Morro Digital.</p>
-      <form id="morro-pro-offer-form">
-        <label>Nome<input id="morro-pro-offer-label" maxlength="160" required /></label>
-        <label>Tipo
-          <select id="morro-pro-offer-kind">
-            <option value="business_experience">Experiência</option>
-            <option value="tour">Passeio</option>
-            <option value="transport">Transporte / passagem</option>
-          </select>
-        </label>
-        <label>Valor (BRL)<input id="morro-pro-offer-price" type="number" min="0.01" step="0.01" required /></label>
-        <label>Capacidade<input id="morro-pro-offer-capacity" type="number" min="1" max="100000" value="20" required /></label>
-        <label>Máximo por reserva<input id="morro-pro-offer-max" type="number" min="1" max="20" value="4" required /></label>
-        <label>Início das vendas<input id="morro-pro-offer-sales-start" type="datetime-local" required /></label>
-        <label>Fim das vendas<input id="morro-pro-offer-sales-end" type="datetime-local" required /></label>
-        <label>Início da experiência<input id="morro-pro-offer-start" type="datetime-local" required /></label>
-        <label>Fim da experiência<input id="morro-pro-offer-end" type="datetime-local" required /></label>
-        <button class="button" type="submit">Publicar oferta</button>
-        <p id="morro-pro-offer-status" class="form-status" role="status"></p>
-      </form>
-    </article>
-    <article class="panel-card">
-      <span class="eyebrow">Inventário do negócio</span>
-      <h2>Suas ofertas</h2>
-      <div id="morro-pro-offer-list" aria-live="polite"></div>
-    </article>
-  `;
-  panel.append(wrapper);
-
-  return Object.freeze({
-    form: requiredElement<HTMLFormElement>(document, "morro-pro-offer-form"),
-    status: requiredElement(document, "morro-pro-offer-status"),
-    list: requiredElement(document, "morro-pro-offer-list"),
-    label: requiredElement<HTMLInputElement>(document, "morro-pro-offer-label"),
-    kind: requiredElement<HTMLSelectElement>(document, "morro-pro-offer-kind"),
-    price: requiredElement<HTMLInputElement>(document, "morro-pro-offer-price"),
-    capacity: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-capacity",
-    ),
-    maxPerReservation: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-max",
-    ),
-    salesStart: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-sales-start",
-    ),
-    salesEnd: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-sales-end",
-    ),
-    startsAt: requiredElement<HTMLInputElement>(
-      document,
-      "morro-pro-offer-start",
-    ),
-    endsAt: requiredElement<HTMLInputElement>(document, "morro-pro-offer-end"),
-  });
-}
-
-function parsePositiveInteger(
-  input: HTMLInputElement,
-  maximum: number,
-): number {
-  const value = Number(input.value);
-  if (!Number.isSafeInteger(value) || value < 1 || value > maximum) {
-    throw new Error(`Valor inválido em ${input.id}.`);
-  }
-  return value;
-}
-
-function offerInput(
-  surface: OfferSurface,
-  businessId: string,
-  placeName: string,
-): MorroProOfferInput {
-  const label = surface.label.value.trim();
-  const productKind =
-    surface.kind.value === "tour" || surface.kind.value === "transport"
-      ? surface.kind.value
-      : "business_experience";
-  return Object.freeze({
-    productKind,
-    productReference: createMorroProOfferReference(
-      businessId,
-      placeName,
-      label,
-    ),
-    label,
-    unitAmountMinor: priceToMinorUnits(surface.price.value),
-    currency: "BRL",
-    pricingVersion: "morro-pro-v1",
-    capacity: parsePositiveInteger(surface.capacity, 100_000),
-    maxPerReservation: parsePositiveInteger(surface.maxPerReservation, 20),
-    salesStartAt: localDateTimeToIso(surface.salesStart.value),
-    salesEndAt: localDateTimeToIso(surface.salesEnd.value),
-    startsAt: localDateTimeToIso(surface.startsAt.value),
-    endsAt: localDateTimeToIso(surface.endsAt.value),
-  });
-}
-
-function requestKey(document: Document): string {
-  const uuid = document.defaultView?.crypto?.randomUUID?.();
-  if (!uuid) throw new Error("Navegador sem geração segura de identificador.");
-  return `mpro_${uuid.replaceAll("-", "")}`;
-}
-
-function renderOffers(
+function catalogPanel(
   document: Document,
-  container: HTMLElement,
-  offers: readonly MorroProInventoryOffer[],
-  disable: (offer: MorroProInventoryOffer) => void,
-): void {
-  container.replaceChildren();
-  if (offers.length === 0) {
-    const empty = document.createElement("p");
-    empty.textContent = "Nenhuma oferta criada por este negócio.";
-    container.append(empty);
-    return;
-  }
-  for (const offer of offers) {
-    const article = document.createElement("article");
-    article.className = "panel-card";
-    const title = document.createElement("h3");
-    title.textContent = offer.label;
-    const meta = document.createElement("p");
-    meta.textContent = `${offerMoney(offer)} · ${offer.capacity} vagas · ${offer.enabled ? "ativa" : "desativada"}`;
-    const id = document.createElement("small");
-    id.textContent = offer.id;
-    article.append(title, meta, id);
-    if (offer.enabled) {
-      const button = document.createElement("button");
-      button.className = "button secondary";
-      button.type = "button";
-      button.textContent = "Desativar";
-      button.addEventListener("click", () => disable(offer));
-      article.append(button);
-    }
-    container.append(article);
-  }
+  module: "products" | "offers" | "menu",
+): HTMLElement {
+  const panel = document.querySelector<HTMLElement>(
+    `[data-view-panel="${module}"]`,
+  );
+  if (!panel) throw new Error(`MISSING_CATALOG_PANEL:${module}`);
+  panel.replaceChildren();
+  return panel;
 }
 
+function createCatalogSurface(document: Document): CatalogSurface {
+  const products = catalogPanel(document, "products");
+  products.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Catálogo canônico</span>
+        <h2>Produtos</h2>
+        <p>Alterações ficam em revisão editável até a publicação governada.</p>
+        <form id="morro-pro-product-form">
+          <input type="hidden" name="editId" />
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Descrição <textarea name="description" rows="3"></textarea></label>
+          <label>Tags<input name="tags" placeholder="sunset, experiência" /></label>
+          <label>Status<select name="status">
+            <option value="draft">Draft</option><option value="active">Ativo</option>
+            <option value="inactive">Inativo</option><option value="archived">Arquivado</option>
+          </select></label>
+          <button class="button" type="submit">Salvar produto</button>
+          <button class="button secondary" type="reset">Novo</button>
+          <p id="morro-pro-product-status" class="form-status" role="status"></p>
+        </form>
+      </article>
+      <article class="panel-card"><h2>Produtos cadastrados</h2><div id="morro-pro-product-list" aria-live="polite"></div></article>
+    </div>`;
+
+  const offers = catalogPanel(document, "offers");
+  offers.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Catálogo canônico</span>
+        <h2>Ofertas</h2>
+        <p>Catálogo define a oferta pública; Ticketing continua autoridade de inventário/check-in.</p>
+        <form id="morro-pro-catalog-offer-form">
+          <input type="hidden" name="editId" />
+          <label>Produto<select name="productId" required></select></label>
+          <label>Preço (R$)<input name="price" inputmode="decimal" required /></label>
+          <label>Moeda<input name="currency" maxlength="3" value="BRL" required /></label>
+          <label>Capacidade<input name="capacity" type="number" min="0" step="1" /></label>
+          <label>Início vendas<input name="salesStartsAt" type="datetime-local" /></label>
+          <label>Fim vendas<input name="salesEndsAt" type="datetime-local" /></label>
+          <label>Início experiência<input name="experienceStartsAt" type="datetime-local" /></label>
+          <label>Fim experiência<input name="experienceEndsAt" type="datetime-local" /></label>
+          <label>Status<select name="status">
+            <option value="draft">Draft</option><option value="active">Ativa</option>
+            <option value="paused">Pausada</option><option value="sold_out">Esgotada</option>
+            <option value="expired">Expirada</option><option value="archived">Arquivada</option>
+          </select></label>
+          <button class="button" type="submit">Salvar oferta</button>
+          <button class="button secondary" type="reset">Nova</button>
+          <p id="morro-pro-catalog-offer-status" class="form-status" role="status"></p>
+        </form>
+      </article>
+      <article class="panel-card"><h2>Ofertas cadastradas</h2><div id="morro-pro-catalog-offer-list" aria-live="polite"></div></article>
+    </div>`;
+
+  const menu = catalogPanel(document, "menu");
+  menu.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Catálogo canônico</span><h2>Cardápio</h2>
+        <form id="morro-pro-menu-form">
+          <input type="hidden" name="editId" />
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Descrição <textarea name="description" rows="3"></textarea></label>
+          <label>Status<select name="status">
+            <option value="draft">Draft</option><option value="active">Ativo</option>
+            <option value="inactive">Inativo</option><option value="archived">Arquivado</option>
+          </select></label>
+          <label>Media ID<input name="fallbackMediaId" maxlength="160" /></label>
+          <label>Documento fallback<input name="fallbackDocumentUrl" maxlength="1000" /></label>
+          <button class="button" type="submit">Salvar cardápio</button>
+          <button class="button secondary" type="reset">Novo</button>
+        </form>
+        <div id="morro-pro-menu-list" aria-live="polite"></div>
+      </article>
+      <article class="panel-card">
+        <h2>Categorias</h2>
+        <form id="morro-pro-menu-category-form">
+          <input type="hidden" name="editId" />
+          <label>Menu<select name="menuId" required></select></label>
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" required /></label>
+          <button class="button" type="submit">Salvar categoria</button>
+          <button class="button secondary" type="reset">Nova</button>
+        </form>
+        <div id="morro-pro-menu-category-list" aria-live="polite"></div>
+      </article>
+      <article class="panel-card">
+        <h2>Itens</h2>
+        <form id="morro-pro-menu-item-form">
+          <input type="hidden" name="editId" />
+          <label>Menu<select name="menuId" required></select></label>
+          <label>Categoria<select name="categoryId" required></select></label>
+          <label>Nome<input name="name" maxlength="180" required /></label>
+          <label>Descrição <textarea name="description" rows="2"></textarea></label>
+          <label>Preço (R$)<input name="price" inputmode="decimal" required /></label>
+          <label>Moeda<input name="currency" maxlength="3" value="BRL" required /></label>
+          <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" required /></label>
+          <label>Media ID<input name="mediaId" maxlength="160" /></label>
+          <label>Tags<input name="tags" /></label>
+          <label>Alérgenos<input name="allergens" /></label>
+          <label><input name="available" type="checkbox" /> Disponível</label>
+          <button class="button" type="submit">Salvar item</button>
+          <button class="button secondary" type="reset">Novo</button>
+        </form>
+        <div id="morro-pro-menu-item-list" aria-live="polite"></div>
+        <p id="morro-pro-menu-status" class="form-status" role="status"></p>
+      </article>
+    </div>`;
+
+  return Object.freeze({
+    productForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-product-form",
+    ),
+    offerForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-catalog-offer-form",
+    ),
+    menuForm: requiredElement<HTMLFormElement>(document, "morro-pro-menu-form"),
+    categoryForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-menu-category-form",
+    ),
+    itemForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-menu-item-form",
+    ),
+    productList: requiredElement(document, "morro-pro-product-list"),
+    offerList: requiredElement(document, "morro-pro-catalog-offer-list"),
+    menuList: requiredElement(document, "morro-pro-menu-list"),
+    categoryList: requiredElement(document, "morro-pro-menu-category-list"),
+    itemList: requiredElement(document, "morro-pro-menu-item-list"),
+    productStatus: requiredElement(document, "morro-pro-product-status"),
+    offerStatus: requiredElement(document, "morro-pro-catalog-offer-status"),
+    menuStatus: requiredElement(document, "morro-pro-menu-status"),
+  });
+}
+
+function formControl(
+  form: HTMLFormElement,
+  name: string,
+): HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  const field = form.elements.namedItem(name);
+  if (
+    field instanceof HTMLInputElement ||
+    field instanceof HTMLTextAreaElement ||
+    field instanceof HTMLSelectElement
+  )
+    return field;
+  throw new Error(`MISSING_FORM_FIELD:${name}`);
+}
+
+function setFormValue(
+  form: HTMLFormElement,
+  name: string,
+  value: string | number | null | undefined,
+): void {
+  formControl(form, name).value = value == null ? "" : String(value);
+}
+
+function editId(form: HTMLFormElement): string {
+  return formControl(form, "editId").value;
+}
+
+function resetEdit(form: HTMLFormElement): void {
+  form.reset();
+  setFormValue(form, "editId", "");
+}
+
+function selectOptions(
+  document: Document,
+  select: HTMLSelectElement,
+  entries: readonly { id: string; name: string }[],
+  placeholder: string,
+): void {
+  const current = select.value;
+  select.replaceChildren();
+  const first = document.createElement("option");
+  first.value = "";
+  first.textContent = placeholder;
+  select.append(first);
+  for (const entry of entries) {
+    const option = document.createElement("option");
+    option.value = entry.id;
+    option.textContent = entry.name;
+    select.append(option);
+  }
+  if (
+    Array.from(select.options).some((candidate) => candidate.value === current)
+  )
+    select.value = current;
+}
+
+function entryCard(
+  document: Document,
+  titleText: string,
+  metaText: string,
+  id: string,
+  onEdit: () => void,
+): HTMLElement {
+  const article = document.createElement("article");
+  article.className = "panel-card";
+  const title = document.createElement("h3");
+  title.textContent = titleText;
+  const meta = document.createElement("p");
+  meta.textContent = metaText;
+  const small = document.createElement("small");
+  small.textContent = id;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "button secondary";
+  button.textContent = "Editar";
+  button.addEventListener("click", onEdit);
+  article.append(title, meta, small, button);
+  return article;
+}
+
+function renderCatalog(
+  document: Document,
+  surface: CatalogSurface,
+  catalog: MorroProCatalog,
+): void {
+  const productSelect = formControl(
+    surface.offerForm,
+    "productId",
+  ) as HTMLSelectElement;
+  const categoryMenuSelect = formControl(
+    surface.categoryForm,
+    "menuId",
+  ) as HTMLSelectElement;
+  const itemMenuSelect = formControl(
+    surface.itemForm,
+    "menuId",
+  ) as HTMLSelectElement;
+  const itemCategorySelect = formControl(
+    surface.itemForm,
+    "categoryId",
+  ) as HTMLSelectElement;
+  selectOptions(
+    document,
+    productSelect,
+    catalog.products,
+    "Selecione um produto",
+  );
+  selectOptions(
+    document,
+    categoryMenuSelect,
+    catalog.menus,
+    "Selecione um menu",
+  );
+  selectOptions(document, itemMenuSelect, catalog.menus, "Selecione um menu");
+  selectOptions(
+    document,
+    itemCategorySelect,
+    catalog.categories,
+    "Selecione uma categoria",
+  );
+
+  surface.productList.replaceChildren();
+  for (const product of catalog.products) {
+    surface.productList.append(
+      entryCard(document, product.name, product.status, product.id, () => {
+        setFormValue(surface.productForm, "editId", product.id);
+        setFormValue(surface.productForm, "name", product.name);
+        setFormValue(surface.productForm, "description", product.description);
+        setFormValue(surface.productForm, "tags", product.tags.join(", "));
+        setFormValue(surface.productForm, "status", product.status);
+      }),
+    );
+  }
+
+  surface.offerList.replaceChildren();
+  for (const offer of catalog.offers) {
+    const product = catalog.products.find(
+      (entry) => entry.id === offer.productId,
+    );
+    surface.offerList.append(
+      entryCard(
+        document,
+        product?.name ?? offer.productId,
+        `${money(offer.price)} · ${offer.status}`,
+        offer.id,
+        () => {
+          setFormValue(surface.offerForm, "editId", offer.id);
+          setFormValue(surface.offerForm, "productId", offer.productId);
+          setFormValue(
+            surface.offerForm,
+            "price",
+            offer.price.minorUnits / 100,
+          );
+          setFormValue(surface.offerForm, "currency", offer.price.currency);
+          setFormValue(surface.offerForm, "capacity", offer.capacity);
+          setFormValue(
+            surface.offerForm,
+            "salesStartsAt",
+            toLocalDateTime(offer.salesStartsAt),
+          );
+          setFormValue(
+            surface.offerForm,
+            "salesEndsAt",
+            toLocalDateTime(offer.salesEndsAt),
+          );
+          setFormValue(
+            surface.offerForm,
+            "experienceStartsAt",
+            toLocalDateTime(offer.experienceStartsAt),
+          );
+          setFormValue(
+            surface.offerForm,
+            "experienceEndsAt",
+            toLocalDateTime(offer.experienceEndsAt),
+          );
+          setFormValue(surface.offerForm, "status", offer.status);
+        },
+      ),
+    );
+  }
+
+  surface.menuList.replaceChildren();
+  for (const menu of catalog.menus) {
+    surface.menuList.append(
+      entryCard(document, menu.name, menu.status, menu.id, () => {
+        setFormValue(surface.menuForm, "editId", menu.id);
+        setFormValue(surface.menuForm, "name", menu.name);
+        setFormValue(surface.menuForm, "description", menu.description);
+        setFormValue(surface.menuForm, "status", menu.status);
+        setFormValue(surface.menuForm, "fallbackMediaId", menu.fallbackMediaId);
+        setFormValue(
+          surface.menuForm,
+          "fallbackDocumentUrl",
+          menu.fallbackDocumentUrl,
+        );
+      }),
+    );
+  }
+
+  surface.categoryList.replaceChildren();
+  for (const category of catalog.categories) {
+    surface.categoryList.append(
+      entryCard(
+        document,
+        category.name,
+        `Ordem ${category.sortOrder}`,
+        category.id,
+        () => {
+          setFormValue(surface.categoryForm, "editId", category.id);
+          setFormValue(surface.categoryForm, "menuId", category.menuId);
+          setFormValue(surface.categoryForm, "name", category.name);
+          setFormValue(surface.categoryForm, "sortOrder", category.sortOrder);
+        },
+      ),
+    );
+  }
+
+  surface.itemList.replaceChildren();
+  for (const item of catalog.items) {
+    surface.itemList.append(
+      entryCard(
+        document,
+        item.name,
+        `${money(item.price)} · ${item.available ? "disponível" : "indisponível"}`,
+        item.id,
+        () => {
+          setFormValue(surface.itemForm, "editId", item.id);
+          setFormValue(surface.itemForm, "menuId", item.menuId);
+          setFormValue(surface.itemForm, "categoryId", item.categoryId);
+          setFormValue(surface.itemForm, "name", item.name);
+          setFormValue(surface.itemForm, "description", item.description);
+          setFormValue(surface.itemForm, "price", item.price.minorUnits / 100);
+          setFormValue(surface.itemForm, "currency", item.price.currency);
+          setFormValue(surface.itemForm, "sortOrder", item.sortOrder);
+          setFormValue(surface.itemForm, "mediaId", item.mediaId);
+          setFormValue(surface.itemForm, "tags", item.tags.join(", "));
+          setFormValue(
+            surface.itemForm,
+            "allergens",
+            item.allergens.join(", "),
+          );
+          const available = surface.itemForm.elements.namedItem("available");
+          if (available instanceof HTMLInputElement)
+            available.checked = item.available;
+        },
+      ),
+    );
+  }
+}
 export async function mountBusinessDashboardSurface(
   options: BusinessDashboardSurfaceOptions,
 ): Promise<void> {
@@ -403,9 +632,16 @@ export async function mountBusinessDashboardSurface(
     "profile-description",
   );
   ensureMorroProPanels(document);
-  const offersSurface = createOfferSurface(document);
+  const catalogSurface = createCatalogSurface(document);
 
   let activeProfile: BusinessProfile | null = null;
+  let activeCatalog: MorroProCatalog = Object.freeze({
+    products: Object.freeze([]),
+    offers: Object.freeze([]),
+    menus: Object.freeze([]),
+    categories: Object.freeze([]),
+    items: Object.freeze([]),
+  });
   let businessId = "";
   let contextController: BusinessContextController | null = null;
 
@@ -444,36 +680,181 @@ export async function mountBusinessDashboardSurface(
     descriptionInput.value = safeProfile.description;
   }
 
-  async function reloadOffers(signal?: AbortSignal): Promise<void> {
+  async function reloadCatalog(signal?: AbortSignal): Promise<void> {
     if (!businessId) return;
-    offersSurface.status.textContent = "Atualizando inventário…";
-    const offers = await dashboardClient.listOffers(businessId, signal);
-    renderOffers(document, offersSurface.list, offers, (offer) => {
-      const request = contextController?.request();
-      const targetBusinessId = request?.businessId ?? businessId;
-      offersSurface.status.textContent = "Desativando oferta…";
-      void dashboardClient
-        .disableOffer(targetBusinessId, offer.id)
-        .then(async () => {
-          if (request && !contextController?.isCurrent(request)) return;
-          await reloadOffers(request?.signal);
-        })
-        .then(() => {
-          if (request && !contextController?.isCurrent(request)) return;
-          offersSurface.status.textContent = "Oferta desativada.";
-        })
-        .catch((error: unknown) => {
-          if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          offersSurface.status.textContent =
-            error instanceof Error
-              ? error.message
-              : "Falha ao desativar oferta.";
-        });
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const catalog = await dashboardClient.loadCatalog(targetBusinessId, signal);
+    if (request && !contextController?.isCurrent(request)) return;
+    activeCatalog = catalog;
+    renderCatalog(document, catalogSurface, catalog);
+  }
+
+  async function submitCatalogMutation(
+    kind: "product" | "offer" | "menu" | "menu-category" | "menu-item",
+    form: HTMLFormElement,
+    statusElement: HTMLElement,
+    payload: Record<string, unknown>,
+  ): Promise<void> {
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const id = editId(form);
+    form.setAttribute("aria-busy", "true");
+    statusElement.textContent = id ? "Salvando alteração…" : "Criando draft…";
+    try {
+      if (id) {
+        await dashboardClient.updateCatalogEntry(
+          targetBusinessId,
+          kind,
+          id,
+          payload,
+        );
+      } else {
+        await dashboardClient.createCatalogEntry(
+          targetBusinessId,
+          kind,
+          payload,
+        );
+      }
+      if (request && !contextController?.isCurrent(request)) return;
+      await reloadCatalog(request?.signal);
+      if (request && !contextController?.isCurrent(request)) return;
+      resetEdit(form);
+      statusElement.textContent =
+        "Alteração salva. A presença pública só muda após publicação governada.";
+    } catch (error: unknown) {
+      if (request && !contextController?.isCurrent(request)) return;
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      statusElement.textContent =
+        error instanceof Error ? error.message : "Falha ao salvar catálogo.";
+    } finally {
+      form.removeAttribute("aria-busy");
+    }
+  }
+
+  catalogSurface.productForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCatalogMutation(
+      "product",
+      catalogSurface.productForm,
+      catalogSurface.productStatus,
+      {
+        name: formControl(catalogSurface.productForm, "name").value,
+        description: formControl(catalogSurface.productForm, "description")
+          .value,
+        tags: commaList(formControl(catalogSurface.productForm, "tags").value),
+        status: formControl(catalogSurface.productForm, "status").value,
+      },
+    );
+  });
+
+  catalogSurface.offerForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const starts = (name: string) => {
+      const value = formControl(catalogSurface.offerForm, name).value;
+      return value ? new Date(value).toISOString() : null;
+    };
+    void submitCatalogMutation(
+      "offer",
+      catalogSurface.offerForm,
+      catalogSurface.offerStatus,
+      {
+        productId: formControl(catalogSurface.offerForm, "productId").value,
+        minorUnits: minorUnits(
+          formControl(catalogSurface.offerForm, "price").value,
+        ),
+        currency: formControl(catalogSurface.offerForm, "currency")
+          .value.trim()
+          .toUpperCase(),
+        capacity: formControl(catalogSurface.offerForm, "capacity").value
+          ? Number(formControl(catalogSurface.offerForm, "capacity").value)
+          : null,
+        salesStartsAt: starts("salesStartsAt"),
+        salesEndsAt: starts("salesEndsAt"),
+        experienceStartsAt: starts("experienceStartsAt"),
+        experienceEndsAt: starts("experienceEndsAt"),
+        status: formControl(catalogSurface.offerForm, "status").value,
+      },
+    );
+  });
+
+  catalogSurface.menuForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCatalogMutation(
+      "menu",
+      catalogSurface.menuForm,
+      catalogSurface.menuStatus,
+      {
+        name: formControl(catalogSurface.menuForm, "name").value,
+        description: formControl(catalogSurface.menuForm, "description").value,
+        status: formControl(catalogSurface.menuForm, "status").value,
+        fallbackMediaId:
+          formControl(catalogSurface.menuForm, "fallbackMediaId").value || null,
+        fallbackDocumentUrl:
+          formControl(catalogSurface.menuForm, "fallbackDocumentUrl").value ||
+          null,
+      },
+    );
+  });
+
+  catalogSurface.categoryForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    void submitCatalogMutation(
+      "menu-category",
+      catalogSurface.categoryForm,
+      catalogSurface.menuStatus,
+      {
+        menuId: formControl(catalogSurface.categoryForm, "menuId").value,
+        name: formControl(catalogSurface.categoryForm, "name").value,
+        sortOrder: Number(
+          formControl(catalogSurface.categoryForm, "sortOrder").value,
+        ),
+      },
+    );
+  });
+
+  catalogSurface.itemForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const available = catalogSurface.itemForm.elements.namedItem("available");
+    void submitCatalogMutation(
+      "menu-item",
+      catalogSurface.itemForm,
+      catalogSurface.menuStatus,
+      {
+        menuId: formControl(catalogSurface.itemForm, "menuId").value,
+        categoryId: formControl(catalogSurface.itemForm, "categoryId").value,
+        name: formControl(catalogSurface.itemForm, "name").value,
+        description: formControl(catalogSurface.itemForm, "description").value,
+        minorUnits: minorUnits(
+          formControl(catalogSurface.itemForm, "price").value,
+        ),
+        currency: formControl(catalogSurface.itemForm, "currency")
+          .value.trim()
+          .toUpperCase(),
+        sortOrder: Number(
+          formControl(catalogSurface.itemForm, "sortOrder").value,
+        ),
+        mediaId: formControl(catalogSurface.itemForm, "mediaId").value || null,
+        available:
+          available instanceof HTMLInputElement ? available.checked : false,
+        tags: commaList(formControl(catalogSurface.itemForm, "tags").value),
+        allergens: commaList(
+          formControl(catalogSurface.itemForm, "allergens").value,
+        ),
+      },
+    );
+  });
+
+  for (const form of [
+    catalogSurface.productForm,
+    catalogSurface.offerForm,
+    catalogSurface.menuForm,
+    catalogSurface.categoryForm,
+    catalogSurface.itemForm,
+  ]) {
+    form.addEventListener("reset", () => {
+      queueMicrotask(() => resetEdit(form));
     });
-    offersSurface.status.textContent = "";
   }
 
   const profileSummary = requiredElement<HTMLElement>(
@@ -552,55 +933,6 @@ export async function mountBusinessDashboardSurface(
       });
   });
 
-  let offerSubmissionPending = false;
-  offersSurface.form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    if (offerSubmissionPending) return;
-    offersSurface.status.textContent = "Publicando oferta…";
-    try {
-      const input = offerInput(
-        offersSurface,
-        businessId,
-        activeProfile?.name ?? nameInput.value,
-      );
-      const key = requestKey(document);
-      const request = contextController?.request();
-      const targetBusinessId = request?.businessId ?? businessId;
-      offerSubmissionPending = true;
-      offersSurface.form.setAttribute("aria-busy", "true");
-      void dashboardClient
-        .createOffer(targetBusinessId, input, key)
-        .then(async () => {
-          if (request && !contextController?.isCurrent(request)) return;
-          await reloadOffers(request?.signal);
-        })
-        .then(() => {
-          if (request && !contextController?.isCurrent(request)) return;
-          offersSurface.form.reset();
-          offersSurface.capacity.value = "20";
-          offersSurface.maxPerReservation.value = "4";
-          offersSurface.status.textContent = "Oferta publicada no inventário.";
-        })
-        .catch((error: unknown) => {
-          if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") {
-            return;
-          }
-          offersSurface.status.textContent =
-            error instanceof Error
-              ? error.message
-              : "Falha ao publicar oferta.";
-        })
-        .finally(() => {
-          offerSubmissionPending = false;
-          offersSurface.form.removeAttribute("aria-busy");
-        });
-    } catch (error: unknown) {
-      offersSurface.status.textContent =
-        error instanceof Error ? error.message : "Oferta inválida.";
-    }
-  });
-
   try {
     const bootstrap = await dashboardClient.bootstrap(
       requestedBusinessId(search),
@@ -631,18 +963,36 @@ export async function mountBusinessDashboardSurface(
         });
       status.textContent = "Seu acesso ao perfil é somente leitura.";
     }
-    const offersAccess = accessByModule.get("offers");
-    if (!offersAccess?.mutable) {
-      offersSurface.form
-        .querySelectorAll<
-          HTMLInputElement | HTMLSelectElement | HTMLButtonElement
-        >("input, select, button[type=submit]")
-        .forEach((control) => {
-          control.disabled = true;
-        });
-      offersSurface.status.textContent =
-        offersAccess?.visible === true
-          ? "Seu acesso a ofertas é somente leitura."
+    for (const [moduleId, forms, statusElement] of [
+      ["products", [catalogSurface.productForm], catalogSurface.productStatus],
+      ["offers", [catalogSurface.offerForm], catalogSurface.offerStatus],
+      [
+        "menu",
+        [
+          catalogSurface.menuForm,
+          catalogSurface.categoryForm,
+          catalogSurface.itemForm,
+        ],
+        catalogSurface.menuStatus,
+      ],
+    ] as const) {
+      const moduleAccess = accessByModule.get(moduleId);
+      if (moduleAccess?.mutable) continue;
+      for (const catalogForm of forms) {
+        catalogForm
+          .querySelectorAll<
+            | HTMLInputElement
+            | HTMLTextAreaElement
+            | HTMLSelectElement
+            | HTMLButtonElement
+          >("input, textarea, select, button")
+          .forEach((control) => {
+            control.disabled = true;
+          });
+      }
+      statusElement.textContent =
+        moduleAccess?.visible === true
+          ? "Seu acesso a este módulo é somente leitura."
           : "";
     }
 
@@ -650,17 +1000,23 @@ export async function mountBusinessDashboardSurface(
       const moduleAccess = accessByModule.get(view);
       if (!moduleAccess?.visible) return;
       activateView(view);
-      if (view === "offers") {
+      if (view === "products" || view === "offers" || view === "menu") {
         const request = contextController?.request();
-        void reloadOffers(request?.signal).catch((error: unknown) => {
+        void reloadCatalog(request?.signal).catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
-          offersSurface.status.textContent =
+          const statusElement =
+            view === "products"
+              ? catalogSurface.productStatus
+              : view === "offers"
+                ? catalogSurface.offerStatus
+                : catalogSurface.menuStatus;
+          statusElement.textContent =
             error instanceof Error
               ? error.message
-              : "Falha ao carregar ofertas.";
+              : "Falha ao carregar catálogo.";
         });
       }
     };
@@ -677,10 +1033,6 @@ export async function mountBusinessDashboardSurface(
         if (!view || !businessDashboardViews.includes(view)) return;
         const moduleAccess = accessByModule.get(view);
         if (!moduleAccess?.visible) {
-          button.hidden = true;
-          return;
-        }
-        if (!moduleAccess.mutable && view === "offers") {
           button.hidden = true;
           return;
         }
@@ -713,19 +1065,28 @@ export async function mountBusinessDashboardSurface(
           if (!request) return;
           businessId = request.businessId;
           status.textContent = "Trocando contexto do negócio…";
-          offersSurface.status.textContent = "";
-          offersSurface.list.replaceChildren();
+          activeCatalog = Object.freeze({
+            products: Object.freeze([]),
+            offers: Object.freeze([]),
+            menus: Object.freeze([]),
+            categories: Object.freeze([]),
+            items: Object.freeze([]),
+          });
+          renderCatalog(document, catalogSurface, activeCatalog);
+          catalogSurface.productStatus.textContent = "";
+          catalogSurface.offerStatus.textContent = "";
+          catalogSurface.menuStatus.textContent = "";
           renderProfile(null);
           void dashboardClient
             .loadProfile(request.businessId, request.signal)
             .then(async (profile) => {
               if (!contextController?.isCurrent(request)) return;
               renderProfile(profile);
-              const offersPanel = document.querySelector<HTMLElement>(
-                '[data-view-panel="offers"]',
+              const activeCatalogPanel = document.querySelector<HTMLElement>(
+                '[data-view-panel="products"].active, [data-view-panel="offers"].active, [data-view-panel="menu"].active',
               );
-              if (offersPanel?.classList.contains("active")) {
-                await reloadOffers(request.signal);
+              if (activeCatalogPanel) {
+                await reloadCatalog(request.signal);
                 if (!contextController?.isCurrent(request)) return;
               }
               status.textContent = "";

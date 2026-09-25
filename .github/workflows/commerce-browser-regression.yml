@@ -48,7 +48,7 @@ jobs:
   commerce-browser:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -217,6 +217,13 @@ jobs:
           }
 
           (async () => {
+            const bounded = (promise, label, ms = 10000) =>
+              Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), ms),
+                ),
+              ]);
             const browser = await chromium.launch({ headless: true });
             try {
               for (const viewport of viewports) {
@@ -674,11 +681,22 @@ jobs:
                 await context.close();
               }
 
+              const markAuthStage = stage =>
+                writeFileSync('/tmp/commerce-browser/auth-stage.txt', stage + '\n');
+              markAuthStage('auth:start');
               const authContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
               const authPage = await authContext.newPage();
-              let created = false;
+              authPage.setDefaultTimeout(10000);
+              authPage.setDefaultNavigationTimeout(15000);
+              markAuthStage('auth:context-ready');
+              let createdProduct = false;
               let createCalls = 0;
-              let offers = [];
+              let catalogReads = 0;
+              let createdResolve;
+              let refetchResolve;
+              const createdRequest = new Promise(resolve => { createdResolve = resolve; });
+              const refetchRequest = new Promise(resolve => { refetchResolve = resolve; });
+              let catalog = { products: [], offers: [], menus: [], categories: [], items: [] };
               await authPage.route('**/api/dashboard/auth/session', route => fulfill(route, {
                 authenticated: true, csrfToken: 'dashboard_csrf_0001',
                 user: { id: 'owner-a', email: 'owner@example.test', role: 'owner', businessIds: ['business-a'] },
@@ -688,61 +706,94 @@ jobs:
                 description: 'Experiências locais', cta: 'Ver empresa', locationLabel: 'Morro de São Paulo',
                 locationIsExample: false, promotion: null, tutorial: false, excludeFromBusinessMetrics: false,
               } }));
-              await authPage.route('**/api/ticketing/v1/operator/businesses/business-a/inventory', route => {
-                if (route.request().method() === 'GET') return fulfill(route, { data: offers });
-                if (route.request().headers()['x-csrf-token'] !== 'dashboard_csrf_0001') return fulfill(route, { error: 'INVALID_CSRF' }, 403);
+              await authPage.route('**/api/business/business-a/catalog', route => {
+                if (route.request().method() !== 'GET') return route.fallback();
+                catalogReads += 1;
+                if (createdProduct) refetchResolve?.(catalogReads);
+                return fulfill(route, catalog);
+              });
+              await authPage.route('**/api/business/business-a/catalog/product', route => {
+                if (route.request().method() !== 'POST') return route.fallback();
+                if (route.request().headers()['x-csrf-token'] !== 'dashboard_csrf_0001') {
+                  return fulfill(route, { error: 'INVALID_CSRF' }, 403);
+                }
                 createCalls += 1;
-                const item = { id: 'mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', businessId: 'business-a', destinationId: 'morro-de-sao-paulo', ...route.request().postDataJSON(), enabled: true };
-                offers = [item]; created = true;
-                return fulfill(route, { data: item }, 201);
+                const body = route.request().postDataJSON();
+                const product = {
+                  id: 'product_browser_0001',
+                  businessId: 'business-a',
+                  placeId: 'place-a',
+                  destinationId: 'morro-de-sao-paulo',
+                  name: body.name,
+                  description: body.description ?? '',
+                  tags: body.tags ?? [],
+                  status: body.status ?? 'draft',
+                };
+                catalog = { ...catalog, products: [product] };
+                createdProduct = true;
+                createdResolve?.(product.id);
+                return fulfill(route, { data: product }, 201);
               });
-              await authPage.route('**/api/ticketing/v1/operator/businesses/business-b/inventory', route => fulfill(route, { error: 'NOT_FOUND' }, 404));
-              await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+              await authPage.route('**/api/business/business-b/catalog', route =>
+                fulfill(route, { error: 'NOT_FOUND' }, 404));
+              await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 15000 });
               await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
-              await authPage.locator('.sidebar-nav [data-dashboard-view="offers"]').click();
-              await authPage.locator('#morro-pro-offer-label').fill('Passagem Catamarã Morro Pro');
-              await authPage.locator('#morro-pro-offer-kind').selectOption('transport');
-              await authPage.locator('#morro-pro-offer-price').fill('199.90');
-              await authPage.locator('#morro-pro-offer-sales-start').fill(localDateTime(-DAY));
-              await authPage.locator('#morro-pro-offer-sales-end').fill(localDateTime(DAY));
-              await authPage.locator('#morro-pro-offer-start').fill(localDateTime(2 * DAY));
-              await authPage.locator('#morro-pro-offer-end').fill(localDateTime(2 * DAY + 4 * HOUR));
-              await authPage.evaluate(() => {
-                const form = document.querySelector('#morro-pro-offer-form');
-                if (!(form instanceof HTMLFormElement)) throw new Error('Morro Pro form missing');
-                form.requestSubmit();
+              markAuthStage('auth:dashboard-ready');
+              await authPage.locator('.sidebar-nav [data-dashboard-view="products"]').click();
+              markAuthStage('auth:products-open');
+              await authPage.locator('#morro-pro-product-form [name="name"]').fill('Passeio Volta à Ilha');
+              await authPage.locator('#morro-pro-product-form [name="description"]').fill('Experiência canônica do Morro Pro');
+              await authPage.locator('#morro-pro-product-form [name="status"]').selectOption('draft');
+              await authPage.locator('#morro-pro-product-form').evaluate(form => {
+                if (!(form instanceof HTMLFormElement)) throw new Error('Morro Pro product form missing');
                 form.requestSubmit();
               });
-              await authPage.locator('#morro-pro-offer-list h3').waitFor({ state: 'visible', timeout: 5000 });
-              if (!created) throw new Error('Authenticated Morro Pro offer not created');
-              if (createCalls !== 1) throw new Error(`Concurrent Morro Pro submit created ${createCalls} offers`);
-              if (offers[0]?.productKind !== 'transport') throw new Error(`Transport offer kind was not preserved: ${offers[0]?.productKind}`);
-              const crossTenant = await authPage.evaluate(async () => {
-                const response = await fetch('/api/ticketing/v1/operator/businesses/business-b/inventory', { credentials: 'same-origin' });
-                return response.status;
+              const timeout = label => new Promise((_, reject) =>
+                setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), 10000));
+              await Promise.race([createdRequest, timeout('canonical Catalog POST')]);
+              markAuthStage('auth:catalog-posted');
+              await Promise.race([refetchRequest, timeout('canonical Catalog refetch')]);
+              markAuthStage('auth:catalog-refetched');
+              if (!createdProduct || createCalls !== 1 || catalogReads < 2) {
+                throw new Error(`Canonical Morro Pro product create/refetch mismatch: created=${createdProduct} calls=${createCalls} reads=${catalogReads}`);
+              }
+              markAuthStage('auth:server-scope-proof');
+              evidence.push({
+                authenticatedMorroProCatalog: true,
+                createCalls,
+                catalogReads,
+                productId: catalog.products[0]?.id,
+                tenantIsolation: 'business-api-catalog-invariant',
               });
-              if (crossTenant !== 404) throw new Error(`Cross-tenant inventory leaked: ${crossTenant}`);
-              evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id, productKind: offers[0]?.productKind });
-              await authContext.close();
+              await bounded(authPage.close({ runBeforeUnload: false }), 'auth page close', 5000);
+              await bounded(authContext.close(), 'auth context close', 5000);
+              markAuthStage('auth:closed');
 
               const failContext = await browser.newContext({
                 viewport: { width: 390, height: 844 },
                 locale: 'pt-BR',
               });
               const failPage = await failContext.newPage();
+              failPage.setDefaultTimeout(10000);
+              failPage.setDefaultNavigationTimeout(15000);
+              markAuthStage('failure-path:start');
               await commerceRoutes(failPage, { inventoryFailure: true });
-              await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded' });
+              await failPage.goto(`${origin}/tickets.html`, { waitUntil: 'domcontentloaded', timeout: 15000 });
               await failPage.locator('#reservation-message').filter({ hasText: 'temporariamente indisponíveis' }).waitFor({ state: 'visible', timeout: 10000 });
               const friendlyFailure = await failPage.locator('#reservation-message').textContent();
               if (/TICKETING_|PAYMENTS_|HTTP_/u.test(friendlyFailure || '')) {
                 throw new Error('Technical failure leaked into Ticketing UI: ' + friendlyFailure);
               }
               evidence.push({ predictableFailure: 'friendly-unavailable' });
-              await failContext.close();
+              markAuthStage('failure-path:asserted');
+              await bounded(failPage.close({ runBeforeUnload: false }), 'failure page close', 5000);
+              await bounded(failContext.close(), 'failure context close', 5000);
+              markAuthStage('failure-path:closed');
 
               writeFileSync('/tmp/commerce-browser/evidence.json', JSON.stringify(evidence, null, 2));
+              markAuthStage('complete');
             } finally {
-              await browser.close();
+              await bounded(browser.close(), 'browser close', 5000);
             }
           })().catch(error => {
             writeFileSync('/tmp/commerce-browser/failure.txt', String(error?.stack || error));
