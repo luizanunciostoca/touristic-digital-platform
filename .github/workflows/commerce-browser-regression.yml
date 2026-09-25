@@ -676,9 +676,9 @@ jobs:
 
               const authContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
               const authPage = await authContext.newPage();
-              let created = false;
+              let createdProduct = false;
               let createCalls = 0;
-              let offers = [];
+              let catalog = { products: [], offers: [], menus: [], categories: [], items: [] };
               await authPage.route('**/api/dashboard/auth/session', route => fulfill(route, {
                 authenticated: true, csrfToken: 'dashboard_csrf_0001',
                 user: { id: 'owner-a', email: 'owner@example.test', role: 'owner', businessIds: ['business-a'] },
@@ -688,41 +688,53 @@ jobs:
                 description: 'Experiências locais', cta: 'Ver empresa', locationLabel: 'Morro de São Paulo',
                 locationIsExample: false, promotion: null, tutorial: false, excludeFromBusinessMetrics: false,
               } }));
-              await authPage.route('**/api/ticketing/v1/operator/businesses/business-a/inventory', route => {
-                if (route.request().method() === 'GET') return fulfill(route, { data: offers });
-                if (route.request().headers()['x-csrf-token'] !== 'dashboard_csrf_0001') return fulfill(route, { error: 'INVALID_CSRF' }, 403);
-                createCalls += 1;
-                const item = { id: 'mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', businessId: 'business-a', destinationId: 'morro-de-sao-paulo', ...route.request().postDataJSON(), enabled: true };
-                offers = [item]; created = true;
-                return fulfill(route, { data: item }, 201);
+              await authPage.route('**/api/business/business-a/catalog', route => {
+                if (route.request().method() !== 'GET') return route.fallback();
+                return fulfill(route, catalog);
               });
-              await authPage.route('**/api/ticketing/v1/operator/businesses/business-b/inventory', route => fulfill(route, { error: 'NOT_FOUND' }, 404));
+              await authPage.route('**/api/business/business-a/catalog/product', route => {
+                if (route.request().method() !== 'POST') return route.fallback();
+                if (route.request().headers()['x-csrf-token'] !== 'dashboard_csrf_0001') {
+                  return fulfill(route, { error: 'INVALID_CSRF' }, 403);
+                }
+                createCalls += 1;
+                const body = route.request().postDataJSON();
+                const product = {
+                  id: 'product_browser_0001',
+                  businessId: 'business-a',
+                  placeId: 'place-a',
+                  destinationId: 'morro-de-sao-paulo',
+                  name: body.name,
+                  description: body.description ?? '',
+                  tags: body.tags ?? [],
+                  status: body.status ?? 'draft',
+                };
+                catalog = { ...catalog, products: [product] };
+                createdProduct = true;
+                return fulfill(route, { data: product }, 201);
+              });
+              await authPage.route('**/api/business/business-b/catalog', route =>
+                fulfill(route, { error: 'NOT_FOUND' }, 404));
               await authPage.goto(`${origin}/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a`, { waitUntil: 'domcontentloaded', timeout: 30000 });
               await authPage.locator('#main-dashboard:not([hidden])').waitFor({ state: 'visible', timeout: 10000 });
-              await authPage.locator('.sidebar-nav [data-dashboard-view="offers"]').click();
-              await authPage.locator('#morro-pro-offer-label').fill('Passagem Catamarã Morro Pro');
-              await authPage.locator('#morro-pro-offer-kind').selectOption('transport');
-              await authPage.locator('#morro-pro-offer-price').fill('199.90');
-              await authPage.locator('#morro-pro-offer-sales-start').fill(localDateTime(-DAY));
-              await authPage.locator('#morro-pro-offer-sales-end').fill(localDateTime(DAY));
-              await authPage.locator('#morro-pro-offer-start').fill(localDateTime(2 * DAY));
-              await authPage.locator('#morro-pro-offer-end').fill(localDateTime(2 * DAY + 4 * HOUR));
-              await authPage.evaluate(() => {
-                const form = document.querySelector('#morro-pro-offer-form');
-                if (!(form instanceof HTMLFormElement)) throw new Error('Morro Pro form missing');
-                form.requestSubmit();
+              await authPage.locator('.sidebar-nav [data-dashboard-view="products"]').click();
+              await authPage.locator('#morro-pro-product-form [name="name"]').fill('Passeio Volta à Ilha');
+              await authPage.locator('#morro-pro-product-form [name="description"]').fill('Experiência canônica do Morro Pro');
+              await authPage.locator('#morro-pro-product-form [name="status"]').selectOption('draft');
+              await authPage.locator('#morro-pro-product-form').evaluate(form => {
+                if (!(form instanceof HTMLFormElement)) throw new Error('Morro Pro product form missing');
                 form.requestSubmit();
               });
-              await authPage.locator('#morro-pro-offer-list h3').waitFor({ state: 'visible', timeout: 5000 });
-              if (!created) throw new Error('Authenticated Morro Pro offer not created');
-              if (createCalls !== 1) throw new Error(`Concurrent Morro Pro submit created ${createCalls} offers`);
-              if (offers[0]?.productKind !== 'transport') throw new Error(`Transport offer kind was not preserved: ${offers[0]?.productKind}`);
+              await authPage.locator('#morro-pro-product-list').filter({ hasText: 'Passeio Volta à Ilha' }).waitFor({ state: 'visible', timeout: 5000 });
+              if (!createdProduct || createCalls !== 1) {
+                throw new Error(`Canonical Morro Pro product create mismatch: created=${createdProduct} calls=${createCalls}`);
+              }
               const crossTenant = await authPage.evaluate(async () => {
-                const response = await fetch('/api/ticketing/v1/operator/businesses/business-b/inventory', { credentials: 'same-origin' });
+                const response = await fetch('/api/business/business-b/catalog', { credentials: 'same-origin' });
                 return response.status;
               });
-              if (crossTenant !== 404) throw new Error(`Cross-tenant inventory leaked: ${crossTenant}`);
-              evidence.push({ authenticatedMorroPro: true, crossTenant, createCalls, offerId: offers[0]?.id, productKind: offers[0]?.productKind });
+              if (crossTenant !== 404) throw new Error(`Cross-tenant Catalog leaked: ${crossTenant}`);
+              evidence.push({ authenticatedMorroProCatalog: true, crossTenant, createCalls, productId: catalog.products[0]?.id });
               await authContext.close();
 
               const failContext = await browser.newContext({
