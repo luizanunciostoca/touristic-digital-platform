@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedFromMainSha": "2bbf7407035575cac993c7024ec01183a27ec6c4",
+  "updatedFromMainSha": "a609f6ffe551764d1977d0f0d916995a5a89a701",
   "claims": [
     {
       "changeSet": "MD-AUTO-002",
@@ -13,10 +13,10 @@
         ".morro/autonomy/**"
       ],
       "branch": "chore/autonomy-control-plane-20260925",
-      "mainShaAtClaim": "2bbf7407035575cac993c7024ec01183a27ec6c4",
-      "dependencies": [],
       "status": "ACTIVE",
-      "logicalTimestamp": "2026-09-25T00:05:00-03:00"
+      "mainShaAtClaim": "a609f6ffe551764d1977d0f0d916995a5a89a701",
+      "dependencies": [],
+      "logicalTimestamp": "2026-09-25T07:00:00-03:00"
     }
   ]
 }
