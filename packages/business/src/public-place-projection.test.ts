@@ -122,6 +122,12 @@ describe("publishedRecordFromGovernedRecord", () => {
         place({ businessId: asBusinessId("business-2") }),
       ),
     ).toBeNull();
+    expect(
+      publishedRecordFromGovernedRecord(
+        governed(),
+        place({ destinationId: "itacare" as Place["destinationId"] }),
+      ),
+    ).toBeNull();
   });
 
   it("hides suspended and archived records even when a published revision exists", () => {
@@ -267,6 +273,26 @@ describe("createPublicPlaceReadModel", () => {
       offers: Object.freeze([]),
       menu: null,
     });
+    let mediaRevision: number | null = null;
+    let commerceRevision: number | null = null;
+    const mediaReader = vi.fn(
+      async (
+        _place: Pick<Place, "id" | "businessId">,
+        publishedRevision: number,
+      ) => {
+        mediaRevision = publishedRevision;
+        return media;
+      },
+    );
+    const commerceReader = vi.fn(
+      async (
+        _place: Pick<Place, "id" | "businessId" | "destinationId">,
+        publishedRevision: number,
+      ) => {
+        commerceRevision = publishedRevision;
+        return commerce;
+      },
+    );
     const actionResolver = vi.fn(
       async ({
         place,
@@ -292,8 +318,8 @@ describe("createPublicPlaceReadModel", () => {
         listPublished: vi.fn(async () => ({ items: [], nextCursor: null })),
         getPublished: vi.fn(async () => record()),
       },
-      media: { getPublishedMedia: vi.fn(async () => media) },
-      commerce: { getPublicCommerce: vi.fn(async () => commerce) },
+      media: { getPublishedMedia: mediaReader },
+      commerce: { getPublicCommerce: commerceReader },
       actions: { resolvePublicActions: actionResolver },
     });
 
@@ -303,6 +329,9 @@ describe("createPublicPlaceReadModel", () => {
     expect(result.detail?.media).toBe(media);
     expect(result.detail?.commerce).toBe(commerce);
     expect(result.detail?.actions.primaryAction?.id).toBe("directions");
+    expect(mediaRevision).toBe(3);
+    expect(commerceRevision).toBe(3);
+    expect(actionResolver.mock.calls[0]?.[0].publishedRevision).toBe(3);
     expect(actionResolver).toHaveBeenCalledTimes(1);
     expect(result.detail).not.toHaveProperty("businessId");
     expect(result.detail).not.toHaveProperty("publicationState");
@@ -348,6 +377,48 @@ describe("createPublicPlaceReadModel", () => {
       commerce: "ready",
       actions: "ready",
     });
+  });
+
+  it("fails Media closed when an adapter returns a different Place projection", async () => {
+    const service = createPublicPlaceReadModel({
+      repository: {
+        listPublished: vi.fn(async () => ({ items: [], nextCursor: null })),
+        getPublished: vi.fn(async () => record()),
+      },
+      media: {
+        getPublishedMedia: vi.fn(async () =>
+          Object.freeze({
+            placeId: "place-foreign",
+            coverImage: null,
+            gallery: Object.freeze([]),
+            logo: null,
+          }),
+        ),
+      },
+      commerce: { getPublicCommerce: vi.fn(async () => null) },
+      actions: {
+        resolvePublicActions: vi.fn(
+          async ({
+            place,
+          }: Parameters<PublicPlaceActionPort["resolvePublicActions"]>[0]) =>
+            Object.freeze({
+              placeId: place.id,
+              businessId: "business-1",
+              destinationId: place.destinationId,
+              primaryAction: null,
+              secondaryActions: Object.freeze([]),
+            }),
+        ),
+      },
+    });
+
+    const result = await service.getDetail(asPlaceId("place-1"));
+
+    expect(result.detail?.profile.id).toBe(asPlaceId("place-1"));
+    expect(result.detail?.media).toBeNull();
+    expect(result.detail?.partial.media).toBe("unavailable");
+    expect(result.detail?.partial.commerce).toBe("ready");
+    expect(result.detail?.partial.actions).toBe("ready");
   });
 
   it("returns null for private/unlisted data even if an adapter accidentally supplies it", async () => {

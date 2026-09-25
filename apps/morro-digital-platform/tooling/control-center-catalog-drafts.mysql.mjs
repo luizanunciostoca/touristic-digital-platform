@@ -237,6 +237,31 @@ test(
         approved.commerce.menu.categories[0].items[0].name,
         "Ceviche Aprovado",
       );
+
+      await runtime.updateCatalogDraft(
+        actor,
+        businessId,
+        "product",
+        product.id,
+        { name: "Produto Draft Posterior" },
+      );
+
+      const frozenPublishedCatalog = responseCapture();
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        frozenPublishedCatalog,
+        new URL(
+          `http://localhost/api/places/v1/${encodeURIComponent(placeId)}?locale=pt-BR`,
+        ),
+      );
+      assert.equal(frozenPublishedCatalog.statusCode, 200);
+      const frozenCatalogDetail = JSON.parse(frozenPublishedCatalog.body);
+      assert.equal(
+        frozenCatalogDetail.commerce.offers[0].name,
+        "Produto Aprovado",
+        "the prior published Catalog snapshot must remain visible while a newer Place revision is draft",
+      );
+      assert.equal(frozenCatalogDetail.commerce.menu.name, "Menu Aprovado");
     } finally {
       await runtime.stop();
     }

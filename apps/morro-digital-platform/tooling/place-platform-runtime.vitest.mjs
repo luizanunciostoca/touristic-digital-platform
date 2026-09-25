@@ -8,7 +8,7 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
   const execute = vi.fn(async (sql, params = []) => {
     if (
       sql.includes("SELECT place_id, business_id, published_revision") &&
-      sql.includes("publication_state = 'published'")
+      sql.includes("publication_state NOT IN ('suspended', 'archived')")
     ) {
       return [[]];
     }

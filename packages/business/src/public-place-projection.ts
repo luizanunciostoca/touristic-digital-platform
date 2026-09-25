@@ -157,12 +157,14 @@ export interface PublicPlaceRepository {
 export interface PublicPlaceMediaPort {
   getPublishedMedia(
     place: Pick<Place, "id" | "businessId">,
+    publishedRevision: number,
   ): Promise<PublicPlaceMediaProjection | null>;
 }
 
 export interface PublicPlaceCommercePort {
   getPublicCommerce(
     place: Pick<Place, "id" | "businessId" | "destinationId">,
+    publishedRevision: number,
   ): Promise<PublicPlaceCommerceProjection | null>;
 }
 
@@ -173,6 +175,7 @@ export interface PublicPlaceActionPort {
     readonly media: PublicPlaceMediaProjection | null;
     readonly commerce: PublicPlaceCommerceProjection | null;
     readonly locale: string;
+    readonly publishedRevision: number;
   }): Promise<PublicPlacePresentationActions>;
 }
 
@@ -557,11 +560,17 @@ export function createPublicPlaceReadModel(
       if (!profile) return Object.freeze({ detail: null, cache: null });
 
       const [mediaResult, commerceResult] = await Promise.allSettled([
-        options.media.getPublishedMedia(record.place),
-        options.commerce.getPublicCommerce(record.place),
+        options.media.getPublishedMedia(record.place, record.publishedRevision),
+        options.commerce.getPublicCommerce(
+          record.place,
+          record.publishedRevision,
+        ),
       ]);
-      const media =
-        mediaResult.status === "fulfilled" ? mediaResult.value : null;
+      const mediaInScope =
+        mediaResult.status === "fulfilled" &&
+        (mediaResult.value === null ||
+          mediaResult.value.placeId === String(profile.id));
+      const media = mediaInScope ? mediaResult.value : null;
       const commerce =
         commerceResult.status === "fulfilled" ? commerceResult.value : null;
 
@@ -572,6 +581,7 @@ export function createPublicPlaceReadModel(
           media,
           commerce,
           locale,
+          publishedRevision: record.publishedRevision,
         }),
       ).then(
         (value) => ({ status: "fulfilled" as const, value }),
@@ -602,7 +612,7 @@ export function createPublicPlaceReadModel(
         commerce,
         actions,
         partial: Object.freeze({
-          media: mediaResult.status === "fulfilled" ? "ready" : "unavailable",
+          media: mediaInScope ? "ready" : "unavailable",
           commerce:
             commerceResult.status === "fulfilled" ? "ready" : "unavailable",
           actions:
