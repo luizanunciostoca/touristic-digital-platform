@@ -129,24 +129,24 @@ describe("assistant canonical photo adapter", () => {
   it(
     "does not expose opaque provider references as public image URLs",
     async () => {
-    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
-      async (input) =>
-        String(input).startsWith("/api/places/v1/map?")
-          ? mapResponse()
-          : detailResponse("places/place-segunda-praia/private.webp"),
-    );
+      const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+        async (input) =>
+          String(input).startsWith("/api/places/v1/map?")
+            ? mapResponse()
+            : detailResponse("places/place-segunda-praia/private.webp"),
+      );
 
-    await expect(
-      resolveAssistantCanonicalPhotos(
-        "Segunda Praia",
-        fetchImplementation,
-        "pt",
-      ),
-    ).resolves.toEqual({
-      placeId: "place-segunda-praia",
-      place: "Segunda Praia",
-      images: ["https://cdn.example.com/segunda-2.webp"],
-    });
+      await expect(
+        resolveAssistantCanonicalPhotos(
+          "Segunda Praia",
+          fetchImplementation,
+          "pt",
+        ),
+      ).resolves.toEqual({
+        placeId: "place-segunda-praia",
+        place: "Segunda Praia",
+        images: ["https://cdn.example.com/segunda-2.webp"],
+      });
     },
   );
 });
