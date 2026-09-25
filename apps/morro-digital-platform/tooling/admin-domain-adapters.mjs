@@ -354,16 +354,20 @@ export function createBusinessAdminAdapter(
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/publication$/u;
   const cmsCatalogPattern =
     /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/catalog\/(product|offer|menu|menu-category|menu-item)$/u;
+  const cmsCatalogEntryPattern =
+    /^\/api\/admin\/v1\/businesses\/([a-z0-9][a-z0-9_-]{1,159})\/cms\/catalog\/(product|offer|menu|menu-category|menu-item)\/([a-z0-9][a-z0-9_-]{0,159})$/u;
 
   async function cmsError(response, error) {
     const code = error instanceof Error ? error.message : "BUSINESS_CMS_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
-      : code.includes("STALE_REVISION")
+      : code.includes("STALE_REVISION") || code.includes("ALREADY_EXISTS")
         ? 409
         : code.includes("AUTH") ||
             code.includes("DENIED") ||
-            code.includes("CAPABILITY")
+            code.includes("CAPABILITY") ||
+            code.includes("MISMATCH") ||
+            code.includes("CROSS_")
           ? 403
           : code.includes("INVALID") ||
               code.includes("REQUIRED") ||
@@ -491,6 +495,7 @@ export function createBusinessAdminAdapter(
         try {
           const body = await readJsonBody(request);
           const draft = await placePlatformRuntime.createCatalogDraft(
+            actor,
             cmsCatalog[1],
             cmsCatalog[2],
             body,
@@ -506,6 +511,33 @@ export function createBusinessAdminAdapter(
           return;
         }
       }
+
+      const cmsCatalogEntry = cmsCatalogEntryPattern.exec(requestUrl.pathname);
+      if (
+        placePlatformRuntime &&
+        cmsCatalogEntry?.[1] &&
+        request.method === "PUT"
+      ) {
+        try {
+          const body = await readJsonBody(request);
+          const updated = await placePlatformRuntime.updateCatalogDraft(
+            actor,
+            cmsCatalogEntry[1],
+            cmsCatalogEntry[2],
+            cmsCatalogEntry[3],
+            body,
+          );
+          sendJson(response, 200, { data: updated });
+          return {
+            entityType: "business",
+            entityId: cmsCatalogEntry[1],
+          };
+        } catch (error) {
+          await cmsError(response, error);
+          return;
+        }
+      }
+
 
       const cmsPublication = cmsPublicationPattern.exec(requestUrl.pathname);
       if (
