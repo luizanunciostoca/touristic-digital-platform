@@ -10,9 +10,9 @@ The resolver is server/projection-safe and produces `PlacePresentationActions`. 
 frontends must render this projection instead of rebuilding commercial rules from the
 category.
 
-The old `apps/morro-digital-platform/src/map/place-commerce-capability.ts` remains only
-as a deprecated V1 compatibility adapter until the public projection and map presentation
-waves migrate.
+The deprecated browser-local
+`apps/morro-digital-platform/src/map/place-commerce-capability.ts` adapter has
+been removed. Public map/detail callers consume canonical projected actions.
 
 ## Resolution formula
 
@@ -115,8 +115,8 @@ Chat 8 should:
 4. dispatch the supplied `value`;
 5. avoid deriving actions from category, name, alias, slug, label or local inventory guesses.
 
-Chat 8 may temporarily fall back to V1 helpers only when a canonical action projection is
-absent. That fallback should be telemetry-visible and removable.
+The browser must not restore a local CTA inference fallback when the canonical
+projection is absent. Missing canonical commercial authority fails closed.
 
 ## Test matrix
 
