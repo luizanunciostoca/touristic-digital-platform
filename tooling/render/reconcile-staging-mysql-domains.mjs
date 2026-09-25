@@ -62,8 +62,7 @@ export async function reconcileStagingMysqlDomains(
     throw new Error("STAGING_DATABASE_OWNERSHIP_COLLISION");
   }
 
-  const client =
-    mysqlClient ?? (await import("mysql2/promise")).default;
+  const client = mysqlClient ?? (await import("mysql2/promise")).default;
   const admin = await client.createConnection({
     host: hostPort.host,
     port: hostPort.port,
