@@ -35,6 +35,16 @@ describe("Control Center Business CMS contract", () => {
     }
   });
 
+  it("manages Media only through the governed Business CMS contract", () => {
+    expect(source).toContain("mediaEntry");
+    expect(source).toContain("mediaOrder");
+    expect(source).toContain('id="business-cms-media-form"');
+    expect(source).toContain("Mídia governada:");
+    expect(source).toContain("Incluir no próximo publish");
+    expect(source).toContain("data-media-delete");
+    expect(source).not.toContain("Gerenciamento de arquivos requer o serviço de armazenamento Media.");
+  });
+
   it("authors and edits Catalog only through the governed Business CMS route", () => {
     expect(source).toContain("catalogDraft");
     expect(source).toContain('data-business-catalog-kind="product"');
