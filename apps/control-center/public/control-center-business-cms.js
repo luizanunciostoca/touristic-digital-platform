@@ -8,6 +8,28 @@ export const businessCmsContract = Object.freeze({
     `/businesses/${encodeURIComponent(businessId)}/cms/location`,
   publish: (businessId) =>
     `/businesses/${encodeURIComponent(businessId)}/cms/publication`,
+  catalog: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/catalog`,
+  products: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/products`,
+  product: (businessId, productId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/products/${encodeURIComponent(productId)}`,
+  offers: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/offers`,
+  offer: (businessId, offerId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/offers/${encodeURIComponent(offerId)}`,
+  menus: (businessId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/menus`,
+  menu: (businessId, menuId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/menus/${encodeURIComponent(menuId)}`,
+  categories: (businessId, menuId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/menus/${encodeURIComponent(menuId)}/categories`,
+  category: (businessId, menuId, categoryId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/menus/${encodeURIComponent(menuId)}/categories/${encodeURIComponent(categoryId)}`,
+  items: (businessId, menuId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/menus/${encodeURIComponent(menuId)}/items`,
+  item: (businessId, menuId, itemId) =>
+    `/businesses/${encodeURIComponent(businessId)}/cms/menus/${encodeURIComponent(menuId)}/items/${encodeURIComponent(itemId)}`,
 });
 
 let businessCmsRuntimeUnavailable = false;
@@ -374,12 +396,163 @@ function detailTabs(detail, escapeHtml, canMutate) {
       "Produtos",
       `<section class="card section-card">
         <h2>Produtos, ofertas e cardápio</h2>
+        <p>As alterações ficam no catálogo editável. A projeção pública só muda após publicar a revisão do Place.</p>
+        <p id="business-cms-catalog-result" role="status"></p>
+
+        <h3>Produtos</h3>
         <div class="module-list">
-          <div class="module-row"><span>Produtos</span><strong>${escapeHtml(catalog.productCount ?? 0)}</strong></div>
-          <div class="module-row"><span>Ofertas</span><strong>${escapeHtml(catalog.offerCount ?? 0)}</strong></div>
-          <div class="module-row"><span>Menus</span><strong>${escapeHtml(catalog.menuCount ?? 0)}</strong></div>
+          ${
+            safeArray(catalog.products)
+              .map(
+                (product) =>
+                  `<div class="module-row"><span>${escapeHtml(product.name)} <small>${escapeHtml(product.id)}</small></span><strong>${escapeHtml(product.status)}</strong>${canMutate ? `<button type="button" class="secondary-button" data-catalog-edit-product="${escapeHtml(product.id)}">Editar</button>` : ""}</div>`,
+              )
+              .join("") || '<div class="empty">Nenhum produto.</div>'
+          }
         </div>
-        <p>Valores e disponibilidade autoritativa permanecem em Commerce / Inventory / Ticketing.</p>
+        ${
+          canMutate
+            ? `<form id="business-cms-product-form" class="form-grid">
+                <label>Product ID<input required name="productId" maxlength="160" /></label>
+                <label>Nome<input required name="name" maxlength="180" /></label>
+                <label>Descrição<textarea name="description" rows="3"></textarea></label>
+                <label>Tags<input name="tags" placeholder="tag1, tag2" /></label>
+                <label>Status
+                  <select name="status">
+                    <option value="draft">Draft</option>
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                    <option value="archived">Arquivado</option>
+                  </select>
+                </label>
+                <div><button class="primary-button" type="submit">Salvar produto</button> <button class="secondary-button" type="reset">Novo</button></div>
+              </form>`
+            : ""
+        }
+
+        <h3>Ofertas</h3>
+        <div class="module-list">
+          ${
+            safeArray(catalog.offers)
+              .map(
+                (offer) =>
+                  `<div class="module-row"><span>${escapeHtml(offer.id)} · ${escapeHtml(offer.productId)}</span><strong>${escapeHtml(offer.price?.currency ?? "")} ${escapeHtml(((offer.price?.minorUnits ?? 0) / 100).toFixed(2))} · ${escapeHtml(offer.status)}</strong>${canMutate ? `<button type="button" class="secondary-button" data-catalog-edit-offer="${escapeHtml(offer.id)}">Editar</button>` : ""}</div>`,
+              )
+              .join("") || '<div class="empty">Nenhuma oferta.</div>'
+          }
+        </div>
+        ${
+          canMutate
+            ? `<form id="business-cms-offer-form" class="form-grid">
+                <label>Offer ID<input required name="offerId" maxlength="160" /></label>
+                <label>Produto
+                  <select required name="productId">
+                    <option value="">Selecione</option>
+                    ${safeArray(catalog.products)
+                      .map((product) => `<option value="${escapeHtml(product.id)}">${escapeHtml(product.name)} · ${escapeHtml(product.id)}</option>`)
+                      .join("")}
+                  </select>
+                </label>
+                <label>Preço (centavos)<input required type="number" min="0" step="1" name="priceMinorUnits" /></label>
+                <label>Moeda<input required name="currency" value="BRL" maxlength="3" /></label>
+                <label>Início vendas<input type="datetime-local" name="salesStartsAt" /></label>
+                <label>Fim vendas<input type="datetime-local" name="salesEndsAt" /></label>
+                <label>Início experiência<input type="datetime-local" name="experienceStartsAt" /></label>
+                <label>Fim experiência<input type="datetime-local" name="experienceEndsAt" /></label>
+                <label>Capacidade<input type="number" min="0" step="1" name="capacity" /></label>
+                <label>Status
+                  <select name="status">
+                    <option value="draft">Draft</option>
+                    <option value="active">Ativa</option>
+                    <option value="paused">Pausada</option>
+                    <option value="sold_out">Esgotada</option>
+                    <option value="expired">Expirada</option>
+                    <option value="archived">Arquivada</option>
+                  </select>
+                </label>
+                <div><button class="primary-button" type="submit">Salvar oferta</button> <button class="secondary-button" type="reset">Nova</button></div>
+              </form>`
+            : ""
+        }
+
+        <h3>Cardápios</h3>
+        <div class="module-list">
+          ${
+            safeArray(catalog.menus)
+              .map(
+                (menu) =>
+                  `<div class="module-row"><span>${escapeHtml(menu.name)} <small>${escapeHtml(menu.id)}</small></span><strong>${escapeHtml(menu.status)}</strong>${canMutate ? `<button type="button" class="secondary-button" data-catalog-edit-menu="${escapeHtml(menu.id)}">Editar</button>` : ""}</div>`,
+              )
+              .join("") || '<div class="empty">Nenhum cardápio.</div>'
+          }
+        </div>
+        ${
+          canMutate
+            ? `<form id="business-cms-menu-form" class="form-grid">
+                <label>Menu ID<input required name="menuId" maxlength="160" /></label>
+                <label>Nome<input required name="name" maxlength="180" /></label>
+                <label>Descrição<textarea name="description" rows="3"></textarea></label>
+                <label>Status
+                  <select name="status">
+                    <option value="draft">Draft</option>
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                    <option value="archived">Arquivado</option>
+                  </select>
+                </label>
+                <label>Media ID<input name="fallbackMediaId" maxlength="160" /></label>
+                <label>Documento fallback<input name="fallbackDocumentUrl" maxlength="1000" /></label>
+                <div><button class="primary-button" type="submit">Salvar menu</button> <button class="secondary-button" type="reset">Novo</button></div>
+              </form>
+
+              <h4>Categorias</h4>
+              <form id="business-cms-category-form" class="form-grid">
+                <label>Menu
+                  <select required name="menuId">
+                    <option value="">Selecione</option>
+                    ${safeArray(catalog.menus).map((menu) => `<option value="${escapeHtml(menu.id)}">${escapeHtml(menu.name)}</option>`).join("")}
+                  </select>
+                </label>
+                <label>Category ID<input required name="categoryId" maxlength="160" /></label>
+                <label>Nome<input required name="name" maxlength="180" /></label>
+                <label>Ordem<input required type="number" min="0" step="1" name="sortOrder" value="0" /></label>
+                <div><button class="primary-button" type="submit">Salvar categoria</button> <button class="secondary-button" type="reset">Nova</button></div>
+              </form>
+              <div class="module-list">
+                ${safeArray(catalog.categories).map((category) => `<div class="module-row"><span>${escapeHtml(category.name)} · ${escapeHtml(category.menuId)}</span><strong>#${escapeHtml(category.sortOrder)}</strong><button type="button" class="secondary-button" data-catalog-edit-category="${escapeHtml(category.id)}">Editar</button></div>`).join("") || '<div class="empty">Nenhuma categoria.</div>'}
+              </div>
+
+              <h4>Itens</h4>
+              <form id="business-cms-item-form" class="form-grid">
+                <label>Menu
+                  <select required name="menuId">
+                    <option value="">Selecione</option>
+                    ${safeArray(catalog.menus).map((menu) => `<option value="${escapeHtml(menu.id)}">${escapeHtml(menu.name)}</option>`).join("")}
+                  </select>
+                </label>
+                <label>Categoria
+                  <select required name="categoryId">
+                    <option value="">Selecione</option>
+                    ${safeArray(catalog.categories).map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.name)}</option>`).join("")}
+                  </select>
+                </label>
+                <label>Item ID<input required name="itemId" maxlength="160" /></label>
+                <label>Nome<input required name="name" maxlength="180" /></label>
+                <label>Descrição<textarea name="description" rows="3"></textarea></label>
+                <label>Preço (centavos)<input required type="number" min="0" step="1" name="priceMinorUnits" /></label>
+                <label>Moeda<input required name="currency" value="BRL" maxlength="3" /></label>
+                <label>Ordem<input required type="number" min="0" step="1" name="sortOrder" value="0" /></label>
+                <label>Media ID<input name="mediaId" maxlength="160" /></label>
+                <label>Tags<input name="tags" placeholder="tag1, tag2" /></label>
+                <label>Alérgenos<input name="allergens" placeholder="glúten, lactose" /></label>
+                <label><input type="checkbox" name="available" value="true" checked /> Disponível</label>
+                <div><button class="primary-button" type="submit">Salvar item</button> <button class="secondary-button" type="reset">Novo</button></div>
+              </form>
+              <div class="module-list">
+                ${safeArray(catalog.items).map((item) => `<div class="module-row"><span>${escapeHtml(item.name)} · ${escapeHtml(item.categoryId)}</span><strong>${escapeHtml(item.price?.currency ?? "")} ${escapeHtml(((item.price?.minorUnits ?? 0) / 100).toFixed(2))}</strong><button type="button" class="secondary-button" data-catalog-edit-item="${escapeHtml(item.id)}">Editar</button></div>`).join("") || '<div class="empty">Nenhum item.</div>'}
+              </div>`
+            : ""
+        }
       </section>`,
     ],
     [
@@ -644,6 +817,235 @@ function bindDetail(root, ctx, detail) {
       }
     });
 
+
+  const catalog = detail.catalog ?? {};
+  const catalogResult = root.querySelector("#business-cms-catalog-result");
+  const asList = (value) =>
+    String(value ?? "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter(Boolean);
+
+  async function refreshCatalog(message) {
+    await renderBusinessCms(ctx, detail.businessId);
+    ctx.content.querySelector('[data-business-cms-tab="catalog"]')?.click();
+    const result = ctx.content.querySelector("#business-cms-catalog-result");
+    if (result) result.textContent = message;
+  }
+
+  function bindCatalogForm(selector, createUrl, updateUrl, idField, transform) {
+    const form = root.querySelector(selector);
+    form?.addEventListener("reset", () => {
+      delete form.dataset.editId;
+      form.elements[idField].disabled = false;
+    });
+    form?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const raw = Object.fromEntries(new FormData(form));
+        const body = transform(raw, form);
+        const editId = form.dataset.editId;
+        catalogResult.textContent = "Salvando catálogo…";
+        await ctx.api(
+          editId ? updateUrl(editId, body) : createUrl(body),
+          {
+            method: editId ? "PUT" : "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          },
+        );
+        await refreshCatalog("Catálogo salvo como estado editável; publique a revisão para alterar o público.");
+      } catch (error) {
+        catalogResult.textContent =
+          error.body?.error ?? error.message ?? "Falha ao salvar catálogo.";
+      }
+    });
+  }
+
+  bindCatalogForm(
+    "#business-cms-product-form",
+    () => businessCmsContract.products(detail.businessId),
+    (id) => businessCmsContract.product(detail.businessId, id),
+    "productId",
+    (raw) => ({ ...raw, tags: asList(raw.tags) }),
+  );
+  bindCatalogForm(
+    "#business-cms-offer-form",
+    () => businessCmsContract.offers(detail.businessId),
+    (id) => businessCmsContract.offer(detail.businessId, id),
+    "offerId",
+    (raw) => ({
+      ...raw,
+      priceMinorUnits: Number(raw.priceMinorUnits),
+      capacity: raw.capacity === "" ? null : Number(raw.capacity),
+    }),
+  );
+  bindCatalogForm(
+    "#business-cms-menu-form",
+    () => businessCmsContract.menus(detail.businessId),
+    (id) => businessCmsContract.menu(detail.businessId, id),
+    "menuId",
+    (raw) => raw,
+  );
+
+  const categoryForm = root.querySelector("#business-cms-category-form");
+  categoryForm?.addEventListener("reset", () => {
+    delete categoryForm.dataset.editId;
+    categoryForm.elements.categoryId.disabled = false;
+  });
+  categoryForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const raw = Object.fromEntries(new FormData(categoryForm));
+      const editId = categoryForm.dataset.editId;
+      catalogResult.textContent = "Salvando categoria…";
+      await ctx.api(
+        editId
+          ? businessCmsContract.category(
+              detail.businessId,
+              raw.menuId,
+              editId,
+            )
+          : businessCmsContract.categories(detail.businessId, raw.menuId),
+        {
+          method: editId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...raw,
+            sortOrder: Number(raw.sortOrder),
+          }),
+        },
+      );
+      await refreshCatalog("Categoria salva no catálogo editável.");
+    } catch (error) {
+      catalogResult.textContent =
+        error.body?.error ?? error.message ?? "Falha ao salvar categoria.";
+    }
+  });
+
+  const itemForm = root.querySelector("#business-cms-item-form");
+  itemForm?.addEventListener("reset", () => {
+    delete itemForm.dataset.editId;
+    itemForm.elements.itemId.disabled = false;
+  });
+  itemForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const raw = Object.fromEntries(new FormData(itemForm));
+      const editId = itemForm.dataset.editId;
+      catalogResult.textContent = "Salvando item…";
+      await ctx.api(
+        editId
+          ? businessCmsContract.item(detail.businessId, raw.menuId, editId)
+          : businessCmsContract.items(detail.businessId, raw.menuId),
+        {
+          method: editId ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...raw,
+            priceMinorUnits: Number(raw.priceMinorUnits),
+            sortOrder: Number(raw.sortOrder),
+            available: raw.available === "true",
+            tags: asList(raw.tags),
+            allergens: asList(raw.allergens),
+          }),
+        },
+      );
+      await refreshCatalog("Item salvo no catálogo editável.");
+    } catch (error) {
+      catalogResult.textContent =
+        error.body?.error ?? error.message ?? "Falha ao salvar item.";
+    }
+  });
+
+  function bindEditor(attribute, entries, formSelector, idField, fill) {
+    for (const button of root.querySelectorAll(`[${attribute}]`)) {
+      button.addEventListener("click", () => {
+        const id = button.getAttribute(attribute);
+        const entry = safeArray(entries).find(
+          (candidate) => String(candidate.id) === String(id),
+        );
+        const form = root.querySelector(formSelector);
+        if (!entry || !form) return;
+        form.dataset.editId = id;
+        form.elements[idField].value = id;
+        form.elements[idField].disabled = true;
+        fill(form, entry);
+        form.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      });
+    }
+  }
+
+  bindEditor(
+    "data-catalog-edit-product",
+    catalog.products,
+    "#business-cms-product-form",
+    "productId",
+    (form, product) => {
+      form.elements.name.value = product.name ?? "";
+      form.elements.description.value = product.description ?? "";
+      form.elements.tags.value = safeArray(product.tags).join(", ");
+      form.elements.status.value = product.status ?? "draft";
+    },
+  );
+  bindEditor(
+    "data-catalog-edit-offer",
+    catalog.offers,
+    "#business-cms-offer-form",
+    "offerId",
+    (form, offer) => {
+      form.elements.productId.value = offer.productId ?? "";
+      form.elements.priceMinorUnits.value = offer.price?.minorUnits ?? 0;
+      form.elements.currency.value = offer.price?.currency ?? "BRL";
+      form.elements.capacity.value = offer.capacity ?? "";
+      form.elements.status.value = offer.status ?? "draft";
+    },
+  );
+  bindEditor(
+    "data-catalog-edit-menu",
+    catalog.menus,
+    "#business-cms-menu-form",
+    "menuId",
+    (form, menu) => {
+      form.elements.name.value = menu.name ?? "";
+      form.elements.description.value = menu.description ?? "";
+      form.elements.status.value = menu.status ?? "draft";
+      form.elements.fallbackMediaId.value = menu.fallbackMediaId ?? "";
+      form.elements.fallbackDocumentUrl.value =
+        menu.fallbackDocumentUrl ?? "";
+    },
+  );
+  bindEditor(
+    "data-catalog-edit-category",
+    catalog.categories,
+    "#business-cms-category-form",
+    "categoryId",
+    (form, category) => {
+      form.elements.menuId.value = category.menuId ?? "";
+      form.elements.name.value = category.name ?? "";
+      form.elements.sortOrder.value = category.sortOrder ?? 0;
+    },
+  );
+  bindEditor(
+    "data-catalog-edit-item",
+    catalog.items,
+    "#business-cms-item-form",
+    "itemId",
+    (form, item) => {
+      form.elements.menuId.value = item.menuId ?? "";
+      form.elements.categoryId.value = item.categoryId ?? "";
+      form.elements.name.value = item.name ?? "";
+      form.elements.description.value = item.description ?? "";
+      form.elements.priceMinorUnits.value = item.price?.minorUnits ?? 0;
+      form.elements.currency.value = item.price?.currency ?? "BRL";
+      form.elements.sortOrder.value = item.sortOrder ?? 0;
+      form.elements.mediaId.value = item.mediaId ?? "";
+      form.elements.tags.value = safeArray(item.tags).join(", ");
+      form.elements.allergens.value = safeArray(item.allergens).join(", ");
+      form.elements.available.checked = Boolean(item.available);
+    },
+  );
+
   for (const button of root.querySelectorAll("[data-business-publication]")) {
     button.addEventListener("click", async () => {
       const result = root.querySelector("#business-cms-publication-result");
@@ -711,11 +1113,19 @@ export async function renderBusinessCms(
 
   try {
     const detail = await ctx.api(businessCmsContract.detail(businessId));
+    const catalog = await ctx.api(businessCmsContract.catalog(businessId));
+    const model = {
+      ...detail,
+      catalog: {
+        ...(detail.catalog ?? {}),
+        ...(catalog ?? {}),
+      },
+    };
     businessCmsRuntimeUnavailable = false;
     ctx.content.innerHTML =
       (ctx.supportEntityContext?.() ?? "") +
-      detailTabs(detail, ctx.escapeHtml, canMutate);
-    bindDetail(ctx.content, ctx, detail);
+      detailTabs(model, ctx.escapeHtml, canMutate);
+    bindDetail(ctx.content, ctx, model);
     return true;
   } catch (error) {
     if (isCmsContractUnavailable(error) && legacyRender) {
