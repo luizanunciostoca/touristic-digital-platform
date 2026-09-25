@@ -6,6 +6,12 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
   const executed = [];
   const transaction = { committed: false, rolledBack: false };
   const execute = vi.fn(async (sql, params = []) => {
+    if (
+      sql.includes("SELECT place_id, business_id, published_revision") &&
+      sql.includes("FROM business_places")
+    ) {
+      return [[]];
+    }
     executed.push({ sql, params });
     if (sql.includes("INSERT INTO business_entities") && duplicate) {
       throw new Error("ER_DUP_ENTRY");
