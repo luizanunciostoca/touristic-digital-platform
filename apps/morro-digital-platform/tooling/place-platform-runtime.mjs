@@ -1134,7 +1134,7 @@ export function createPlacePlatformRuntime({
     }
     const record = await advanceCatalogRevision(actor, businessId);
     return Object.freeze({
-      data: result,
+      ...result,
       editableRevision: record.editableRevision.revision,
       publicationState: record.publicationState,
     });
@@ -1325,7 +1325,7 @@ export function createPlacePlatformRuntime({
     }
     const record = await advanceCatalogRevision(actor, businessId);
     return Object.freeze({
-      data: result,
+      ...result,
       editableRevision: record.editableRevision.revision,
       publicationState: record.publicationState,
     });
