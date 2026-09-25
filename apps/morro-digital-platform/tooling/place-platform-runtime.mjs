@@ -770,6 +770,7 @@ export function createPlacePlatformRuntime({
       await applyCatalogSchema(pool);
       governanceRepository = createGovernanceRepository(pool);
       catalogRuntime = createCatalogRuntime(pool);
+      await catalogRuntime.backfillPublishedSnapshots();
 
       const contentUrl = String(
         getEnvironmentValue("CONTENT_DATABASE_URL") || "",
@@ -993,12 +994,58 @@ export function createPlacePlatformRuntime({
     );
   }
 
-  async function createCatalogDraft(businessId, kind, input) {
+  function assertCatalogScopeFields(place, input) {
+    if (
+      input?.businessId != null &&
+      String(input.businessId) !== String(place.businessId)
+    ) {
+      throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
+    }
+    if (
+      input?.placeId != null &&
+      String(input.placeId) !== String(place.id)
+    ) {
+      throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+    }
+    if (
+      input?.destinationId != null &&
+      String(input.destinationId) !== String(place.destinationId)
+    ) {
+      throw new Error("CATALOG_PLACE_DESTINATION_MISMATCH");
+    }
+  }
+
+  async function advanceCatalogRevision(actor, businessId) {
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE business_id = ?
+        ORDER BY created_at ASC
+        LIMIT 1`,
+      [String(businessId)],
+    );
+    const row = rows[0];
+    if (!row) throw new Error("PLACE_NOT_FOUND");
+    const current = governedRecordFromRow(row);
+    return publicationService.saveRevision(
+      {
+        session: actor,
+        correlationId: "control-center-catalog",
+        now: new Date().toISOString(),
+      },
+      current.placeId,
+      current.editableRevision.data,
+      current.editableRevision.revision,
+    );
+  }
+
+  async function createCatalogDraft(actor, businessId, kind, input) {
     const place = await catalogPlaceForBusiness(businessId);
+    assertCatalogScopeFields(place, input);
     const now = new Date().toISOString();
     const scope = { businessId: String(place.businessId) };
+    let result;
     if (kind === "product") {
-      return catalogRuntime.service.createProduct(scope, {
+      result = await catalogRuntime.service.createProduct(scope, {
         id: `product-${randomUUID()}`,
         businessId: String(place.businessId),
         placeId: String(place.id),
@@ -1011,21 +1058,25 @@ export function createPlacePlatformRuntime({
         createdAt: now,
         updatedAt: now,
       });
-    }
-    if (kind === "offer") {
-      const minorUnits = Number(input.minorUnits);
-      const currency = clean(input.currency || "BRL", 3).toUpperCase();
-      return catalogRuntime.service.createOffer(scope, {
+    } else if (kind === "offer") {
+      result = await catalogRuntime.service.createOffer(scope, {
         id: `offer-${randomUUID()}`,
         businessId: String(place.businessId),
         placeId: String(place.id),
         destinationId: String(place.destinationId),
         productId: clean(input.productId, 160),
-        price: { minorUnits, currency },
+        price: {
+          minorUnits: Number(input.minorUnits),
+          currency: clean(input.currency || "BRL", 3).toUpperCase(),
+        },
         salesStartsAt: input.salesStartsAt ? String(input.salesStartsAt) : null,
         salesEndsAt: input.salesEndsAt ? String(input.salesEndsAt) : null,
-        experienceStartsAt: null,
-        experienceEndsAt: null,
+        experienceStartsAt: input.experienceStartsAt
+          ? String(input.experienceStartsAt)
+          : null,
+        experienceEndsAt: input.experienceEndsAt
+          ? String(input.experienceEndsAt)
+          : null,
         capacity:
           input.capacity === "" || input.capacity == null
             ? null
@@ -1035,32 +1086,33 @@ export function createPlacePlatformRuntime({
         createdAt: now,
         updatedAt: now,
       });
-    }
-    if (kind === "menu") {
-      return catalogRuntime.service.createMenu(scope, {
+    } else if (kind === "menu") {
+      result = await catalogRuntime.service.createMenu(scope, {
         id: `menu-${randomUUID()}`,
         businessId: String(place.businessId),
         placeId: String(place.id),
         name: clean(input.name, 180),
         description: clean(input.description, 2000),
         status: "draft",
-        fallbackMediaId: null,
-        fallbackDocumentUrl: null,
+        fallbackMediaId: input.fallbackMediaId
+          ? clean(input.fallbackMediaId, 160)
+          : null,
+        fallbackDocumentUrl: input.fallbackDocumentUrl
+          ? clean(input.fallbackDocumentUrl, 1000)
+          : null,
         createdAt: now,
         updatedAt: now,
       });
-    }
-    if (kind === "menu-category") {
-      return catalogRuntime.service.saveMenuCategory(scope, {
+    } else if (kind === "menu-category") {
+      result = await catalogRuntime.service.saveMenuCategory(scope, {
         id: `menu-category-${randomUUID()}`,
         businessId: String(place.businessId),
         menuId: clean(input.menuId, 160),
         name: clean(input.name, 180),
         sortOrder: Number(input.sortOrder ?? 0),
       });
-    }
-    if (kind === "menu-item") {
-      return catalogRuntime.service.saveMenuItem(scope, {
+    } else if (kind === "menu-item") {
+      result = await catalogRuntime.service.saveMenuItem(scope, {
         id: `menu-item-${randomUUID()}`,
         businessId: String(place.businessId),
         menuId: clean(input.menuId, 160),
@@ -1071,14 +1123,212 @@ export function createPlacePlatformRuntime({
           minorUnits: Number(input.minorUnits),
           currency: clean(input.currency || "BRL", 3).toUpperCase(),
         },
-        mediaId: null,
+        mediaId: input.mediaId ? clean(input.mediaId, 160) : null,
         available: false,
         tags: draftTags(input.tags),
         allergens: draftTags(input.allergens),
         sortOrder: Number(input.sortOrder ?? 0),
       });
+    } else {
+      throw new Error("CATALOG_DRAFT_KIND_INVALID");
     }
-    throw new Error("CATALOG_DRAFT_KIND_INVALID");
+    const record = await advanceCatalogRevision(actor, businessId);
+    return Object.freeze({
+      data: result,
+      editableRevision: record.editableRevision.revision,
+      publicationState: record.publicationState,
+    });
+  }
+
+  async function updateCatalogEntry(actor, businessId, kind, id, input) {
+    const place = await catalogPlaceForBusiness(businessId);
+    assertCatalogScopeFields(place, input);
+    const scope = { businessId: String(place.businessId) };
+    const entryId = clean(id, 160);
+    if (!entryId) throw new Error("CATALOG_ID_REQUIRED");
+    let result;
+    if (kind === "product") {
+      const existing = await catalogRuntime.repository.getProduct(entryId);
+      if (!existing) throw new Error("PRODUCT_NOT_FOUND");
+      if (
+        String(existing.businessId) !== String(place.businessId) ||
+        String(existing.placeId) !== String(place.id)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      result = await catalogRuntime.service.updateProduct(scope, {
+        ...existing,
+        name: input.name === undefined ? existing.name : clean(input.name, 180),
+        description:
+          input.description === undefined
+            ? existing.description
+            : clean(input.description, 2000),
+        status:
+          input.status === undefined ? existing.status : clean(input.status, 24),
+        tags: input.tags === undefined ? existing.tags : draftTags(input.tags),
+        updatedAt: new Date().toISOString(),
+      });
+    } else if (kind === "offer") {
+      const existing = await catalogRuntime.repository.getOffer(entryId);
+      if (!existing) throw new Error("OFFER_NOT_FOUND");
+      if (
+        String(existing.businessId) !== String(place.businessId) ||
+        String(existing.placeId) !== String(place.id)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      result = await catalogRuntime.service.updateOffer(scope, {
+        ...existing,
+        productId:
+          input.productId === undefined
+            ? existing.productId
+            : clean(input.productId, 160),
+        price: {
+          minorUnits:
+            input.minorUnits === undefined
+              ? existing.price.minorUnits
+              : Number(input.minorUnits),
+          currency:
+            input.currency === undefined
+              ? existing.price.currency
+              : clean(input.currency, 3).toUpperCase(),
+        },
+        salesStartsAt:
+          input.salesStartsAt === undefined
+            ? existing.salesStartsAt
+            : input.salesStartsAt
+              ? String(input.salesStartsAt)
+              : null,
+        salesEndsAt:
+          input.salesEndsAt === undefined
+            ? existing.salesEndsAt
+            : input.salesEndsAt
+              ? String(input.salesEndsAt)
+              : null,
+        experienceStartsAt:
+          input.experienceStartsAt === undefined
+            ? existing.experienceStartsAt
+            : input.experienceStartsAt
+              ? String(input.experienceStartsAt)
+              : null,
+        experienceEndsAt:
+          input.experienceEndsAt === undefined
+            ? existing.experienceEndsAt
+            : input.experienceEndsAt
+              ? String(input.experienceEndsAt)
+              : null,
+        capacity:
+          input.capacity === undefined
+            ? existing.capacity
+            : input.capacity === "" || input.capacity == null
+              ? null
+              : Number(input.capacity),
+        status:
+          input.status === undefined ? existing.status : clean(input.status, 24),
+        updatedAt: new Date().toISOString(),
+      });
+    } else if (kind === "menu") {
+      const existing = await catalogRuntime.repository.getMenu(entryId);
+      if (!existing) throw new Error("MENU_NOT_FOUND");
+      if (
+        String(existing.businessId) !== String(place.businessId) ||
+        String(existing.placeId) !== String(place.id)
+      ) {
+        throw new Error("CATALOG_PLACE_OWNER_MISMATCH");
+      }
+      result = await catalogRuntime.service.updateMenu(scope, {
+        ...existing,
+        name: input.name === undefined ? existing.name : clean(input.name, 180),
+        description:
+          input.description === undefined
+            ? existing.description
+            : clean(input.description, 2000),
+        status:
+          input.status === undefined ? existing.status : clean(input.status, 24),
+        fallbackMediaId:
+          input.fallbackMediaId === undefined
+            ? existing.fallbackMediaId
+            : input.fallbackMediaId
+              ? clean(input.fallbackMediaId, 160)
+              : null,
+        fallbackDocumentUrl:
+          input.fallbackDocumentUrl === undefined
+            ? existing.fallbackDocumentUrl
+            : input.fallbackDocumentUrl
+              ? clean(input.fallbackDocumentUrl, 1000)
+              : null,
+        updatedAt: new Date().toISOString(),
+      });
+    } else if (kind === "menu-category") {
+      const existing = await catalogRuntime.repository.getMenuCategory(entryId);
+      if (!existing) throw new Error("MENU_CATEGORY_NOT_FOUND");
+      if (String(existing.businessId) !== String(place.businessId)) {
+        throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
+      }
+      result = await catalogRuntime.service.saveMenuCategory(scope, {
+        ...existing,
+        name: input.name === undefined ? existing.name : clean(input.name, 180),
+        sortOrder:
+          input.sortOrder === undefined
+            ? existing.sortOrder
+            : Number(input.sortOrder),
+      });
+    } else if (kind === "menu-item") {
+      const existing = await catalogRuntime.repository.getMenuItem(entryId);
+      if (!existing) throw new Error("MENU_ITEM_NOT_FOUND");
+      if (String(existing.businessId) !== String(place.businessId)) {
+        throw new Error("CATALOG_CROSS_BUSINESS_DENIED");
+      }
+      result = await catalogRuntime.service.saveMenuItem(scope, {
+        ...existing,
+        categoryId:
+          input.categoryId === undefined
+            ? existing.categoryId
+            : clean(input.categoryId, 160),
+        name: input.name === undefined ? existing.name : clean(input.name, 180),
+        description:
+          input.description === undefined
+            ? existing.description
+            : clean(input.description, 2000),
+        price: {
+          minorUnits:
+            input.minorUnits === undefined
+              ? existing.price.minorUnits
+              : Number(input.minorUnits),
+          currency:
+            input.currency === undefined
+              ? existing.price.currency
+              : clean(input.currency, 3).toUpperCase(),
+        },
+        mediaId:
+          input.mediaId === undefined
+            ? existing.mediaId
+            : input.mediaId
+              ? clean(input.mediaId, 160)
+              : null,
+        available:
+          input.available === undefined
+            ? existing.available
+            : input.available === true || input.available === "true",
+        tags: input.tags === undefined ? existing.tags : draftTags(input.tags),
+        allergens:
+          input.allergens === undefined
+            ? existing.allergens
+            : draftTags(input.allergens),
+        sortOrder:
+          input.sortOrder === undefined
+            ? existing.sortOrder
+            : Number(input.sortOrder),
+      });
+    } else {
+      throw new Error("CATALOG_DRAFT_KIND_INVALID");
+    }
+    const record = await advanceCatalogRevision(actor, businessId);
+    return Object.freeze({
+      data: result,
+      editableRevision: record.editableRevision.revision,
+      publicationState: record.publicationState,
+    });
   }
 
   async function getCmsDetail(businessId) {
@@ -1390,6 +1640,11 @@ export function createPlacePlatformRuntime({
       );
     }
     if (action === "publish") {
+      await catalogRuntime.capturePublicationSnapshot({
+        businessId: String(row.business_id),
+        placeId: String(record.placeId),
+        placeRevision: expectedRevision,
+      });
       return publicationService.publish(
         context,
         record.placeId,
@@ -1410,6 +1665,7 @@ export function createPlacePlatformRuntime({
     updateProfile,
     updateLocation,
     createCatalogDraft,
+    updateCatalogEntry,
     transitionPublication,
   });
 }
