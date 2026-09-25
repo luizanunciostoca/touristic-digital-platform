@@ -77,6 +77,7 @@ jobs:
           finally { await pool.end(); }
           })"
       - name: Apply Content/Media schema
+        working-directory: apps/morro-digital-platform
         run: >-
           node --input-type=module -e
           "import('@touristic/content-server').then(async ({createMySqlPool,applyContentM156Schema}) => {
