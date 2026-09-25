@@ -156,10 +156,8 @@ const invokedDirectly =
   import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
 
 if (invokedDirectly) {
-  runCli().catch((error) => {
-    process.stderr.write(
-      `${error instanceof Error ? error.message : String(error)}\n`,
-    );
+  runCli().catch(() => {
+    process.stderr.write("PLACE_MEDIA_COVERAGE_REPORT_FAILED\n");
     process.exitCode = 1;
   });
 }
