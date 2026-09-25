@@ -73,8 +73,8 @@ export const morroProModulePolicies: readonly MorroProModulePolicy[] =
     {
       id: "offers",
       label: "Ofertas",
-      readCapability: "ticketing.read",
-      mutationCapability: "ticketing.manage",
+      readCapability: "business.read",
+      mutationCapability: "business.update",
       placeCapability: "offers",
     },
     {
