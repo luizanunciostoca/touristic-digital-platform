@@ -1167,12 +1167,21 @@ export function createPlacePlatformRuntime({
   async function deleteMediaDraft(actor, businessId, mediaId) {
     const service = requireMediaService();
     const place = await catalogPlaceForBusiness(businessId);
+    const id = clean(mediaId, 160);
+    if (!id) throw new Error("INVALID_MEDIA_ID");
+    const published = await mediaPublicationSnapshots.getPublishedMedia(place);
+    const publishedIds = new Set(
+      [
+        published?.coverImage?.mediaId,
+        published?.logo?.mediaId,
+        ...(published?.gallery ?? []).map((image) => image.mediaId),
+      ].filter(Boolean),
+    );
+    if (publishedIds.has(id)) {
+      throw new Error("MEDIA_ASSET_CURRENTLY_PUBLISHED");
+    }
     return finalizeMediaMutation(actor, businessId, () =>
-      service.delete(
-        mediaScope(place),
-        mediaOwner(place),
-        clean(mediaId, 160),
-      ),
+      service.delete(mediaScope(place), mediaOwner(place), id),
     );
   }
 
