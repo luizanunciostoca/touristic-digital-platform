@@ -95,6 +95,10 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(search).toContain("/api/places/v1/map?");
     expect(browser).toContain('item.source !== "canonical"');
     expect(browser).toContain("{ placeId: item.placeId }");
+    expect(browser).toContain("deferGlobalPlaceSelectionToSearch");
+    expect(browser).toContain(
+      'exploreStateBeforeMenuRouting?.stage === "menu"',
+    );
 
     expect(control).toContain(
       'readonly source: "canonical" | "local" | "mapbox"',
