@@ -1,3 +1,4 @@
+// Dedicated Catalog/MySQL E2E proof; intentionally outside Vitest discovery.
 import assert from "node:assert/strict";
 import test from "node:test";
 
