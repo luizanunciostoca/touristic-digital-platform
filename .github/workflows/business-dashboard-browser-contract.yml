@@ -140,15 +140,16 @@ jobs:
                 throw new Error(`Dashboard invented analytics state: ${JSON.stringify(unavailable)}`);
               }
 
-              await page.locator('[data-dashboard-view="performance"]').click();
-              await page.locator('[data-view-panel="performance"].active').waitFor({ state: 'visible' });
-              await page.locator('[data-dashboard-view="settings"]').click();
-              await page.locator('[data-view-panel="settings"].active').waitFor({ state: 'visible' });
+              await page.locator('[data-dashboard-view="profile"]').click();
+              await page.locator('[data-view-panel="profile"].active').waitFor({ state: 'visible' });
 
               await page.locator('#profile-name').fill('Toca do Morcego M52');
               await page.locator('#profile-description').fill('Perfil salvo pela superfície M52');
               await page.locator('#save-profile').click();
               await page.locator('#profile-status').filter({ hasText: 'Perfil salvo com segurança.' }).waitFor({ state: 'visible', timeout: 10000 });
+
+              await page.locator('[data-dashboard-view="settings"]').click();
+              await page.locator('[data-view-panel="settings"].active').waitFor({ state: 'visible' });
 
               const saved = await context.request.get(`${origin}/api/business/toca-do-morcego/profile`);
               const savedBody = await saved.json();
@@ -172,7 +173,7 @@ jobs:
               if (sessionAfterLogout.status() !== 401) throw new Error(`Logout did not revoke session: ${sessionAfterLogout.status()}`);
 
               evidence.businessName = 'Toca do Morcego M52';
-              evidence.views = ['dashboard', 'performance', 'settings'];
+              evidence.views = ['dashboard', 'profile', 'settings'];
               evidence.theme = 'dark';
               evidence.mobileSidebar = true;
               evidence.logoutRevoked = true;
