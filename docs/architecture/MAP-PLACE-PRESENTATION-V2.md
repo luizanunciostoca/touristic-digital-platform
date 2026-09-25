@@ -32,8 +32,8 @@ Legacy `resolveAssistantV1Photos(location.name)` remains only as a fallback
 when no canonical hero image is supplied. New canonical callers should always
 pass the Wave G media projection.
 
-Legacy `place-commerce-capability.ts` remains outside this presentation
-adapter. Canonical callers render the supplied
+The retired browser-local `place-commerce-capability.ts` resolver has been
+removed. Canonical callers render the supplied
 `PublicPlacePresentationActions` and do not resolve CTA rules locally.
 
 ## Integration handoff
