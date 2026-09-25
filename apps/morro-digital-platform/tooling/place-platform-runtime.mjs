@@ -5,11 +5,6 @@ import {
   resolvePlacePresentationActions,
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
-import {
-  createMySqlPool,
-  MySqlPlaceMediaRepository,
-} from "@touristic/content-server";
-
 const PLACE_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
 const DEFAULT_DESTINATION = "morro-de-sao-paulo";
 
@@ -689,7 +684,7 @@ export function createPlacePlatformRuntime({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
   platformOperations,
-  poolFactory = createMySqlPool,
+  poolFactory = null,
 } = {}) {
   let pool = null;
   let mediaPool = null;
@@ -709,7 +704,15 @@ export function createPlacePlatformRuntime({
       return false;
     }
     try {
-      pool = poolFactory(databaseUrl, {
+      let effectivePoolFactory = poolFactory;
+      let MediaRepository = null;
+      if (!effectivePoolFactory) {
+        const contentServer = await import("@touristic/content-server");
+        effectivePoolFactory = contentServer.createMySqlPool;
+        MediaRepository = contentServer.MySqlPlaceMediaRepository;
+      }
+
+      pool = effectivePoolFactory(databaseUrl, {
         connectionLimit: Number(
           getEnvironmentValue("BUSINESS_DATABASE_POOL_SIZE") || 6,
         ),
@@ -722,13 +725,17 @@ export function createPlacePlatformRuntime({
         getEnvironmentValue("CONTENT_DATABASE_URL") || "",
       ).trim();
       if (contentUrl) {
-        mediaPool = poolFactory(contentUrl, {
+        if (!MediaRepository) {
+          const contentServer = await import("@touristic/content-server");
+          MediaRepository = contentServer.MySqlPlaceMediaRepository;
+        }
+        mediaPool = effectivePoolFactory(contentUrl, {
           connectionLimit: Number(
             getEnvironmentValue("CONTENT_DATABASE_POOL_SIZE") || 6,
           ),
           errorPrefix: "CONTENT_DATABASE",
         });
-        mediaRepository = new MySqlPlaceMediaRepository(mediaPool);
+        mediaRepository = new MediaRepository(mediaPool);
       }
 
       publicationService = createPlacePublicationService(
