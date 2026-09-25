@@ -378,7 +378,14 @@ export function createBusinessAdminAdapter(
     coverage: Object.freeze([
       "profile",
       ...(placePlatformRuntime
-        ? ["cms-list", "cms-detail", "cms-create", "cms-profile", "cms-location", "cms-publication"]
+        ? [
+            "cms-list",
+            "cms-detail",
+            "cms-create",
+            "cms-profile",
+            "cms-location",
+            "cms-publication",
+          ]
         : []),
     ]),
     async handle({ request, response, requestUrl, actor, effectiveUser }) {
@@ -388,7 +395,11 @@ export function createBusinessAdminAdapter(
       ) {
         try {
           if (request.method === "GET") {
-            sendJson(response, 200, await placePlatformRuntime.listCms(requestUrl));
+            sendJson(
+              response,
+              200,
+              await placePlatformRuntime.listCms(requestUrl),
+            );
             return { entityType: "business", entityId: "cms-directory" };
           }
           if (request.method === "POST") {
@@ -443,7 +454,11 @@ export function createBusinessAdminAdapter(
       }
 
       const cmsLocation = cmsLocationPattern.exec(requestUrl.pathname);
-      if (placePlatformRuntime && cmsLocation?.[1] && request.method === "PUT") {
+      if (
+        placePlatformRuntime &&
+        cmsLocation?.[1] &&
+        request.method === "PUT"
+      ) {
         try {
           const body = await readJsonBody(request);
           const record = await placePlatformRuntime.updateLocation(
@@ -472,7 +487,9 @@ export function createBusinessAdminAdapter(
         try {
           const body = await readJsonBody(request);
           if (body.action !== "publish") {
-            sendJson(response, 400, { error: "BUSINESS_CMS_PUBLICATION_ACTION_INVALID" });
+            sendJson(response, 400, {
+              error: "BUSINESS_CMS_PUBLICATION_ACTION_INVALID",
+            });
             return;
           }
           const record = await placePlatformRuntime.publish(

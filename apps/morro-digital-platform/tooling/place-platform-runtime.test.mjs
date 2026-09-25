@@ -118,7 +118,10 @@ test(
       assert.equal(detail.actions.businessId, businessId);
       assert.equal(detail.profile.location.latitude, -13.3776);
       assert.equal(detail.profile.description.includes("persistida"), true);
-      assert.equal(detail.revision.number, published.publishedRevision.revision);
+      assert.equal(
+        detail.revision.number,
+        published.publishedRevision.revision,
+      );
     } finally {
       await runtime.stop();
     }

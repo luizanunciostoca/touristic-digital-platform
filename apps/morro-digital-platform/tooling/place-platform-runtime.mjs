@@ -41,7 +41,8 @@ function parseJson(value, fallback = null) {
 
 function iso(value) {
   const date = value instanceof Date ? value : new Date(value);
-  if (!Number.isFinite(date.getTime())) throw new Error("PLACE_INVALID_TIMESTAMP");
+  if (!Number.isFinite(date.getTime()))
+    throw new Error("PLACE_INVALID_TIMESTAMP");
   return date.toISOString();
 }
 
@@ -200,9 +201,9 @@ function governedDataFromPlace(place) {
     openingHoursPresent: Boolean(place.openingHours),
     contactPresent: Boolean(
       place.contact.phone ||
-        place.contact.whatsapp ||
-        place.contact.email ||
-        place.contact.website,
+      place.contact.whatsapp ||
+      place.contact.email ||
+      place.contact.website,
     ),
     menuPresent: false,
   });
@@ -212,7 +213,10 @@ function mergeProfile(place, input, now) {
   const nextName = clean(input.name, 160) || place.name;
   const tags =
     typeof input.tags === "string"
-      ? input.tags.split(",").map((value) => clean(value, 80)).filter(Boolean)
+      ? input.tags
+          .split(",")
+          .map((value) => clean(value, 80))
+          .filter(Boolean)
       : place.tags;
   const amenities =
     typeof input.amenities === "string"
@@ -405,7 +409,8 @@ function createGovernanceRepository(pool) {
           expectedRevision,
         ],
       );
-      if (result.affectedRows !== 1) throw new Error("PLACE_PUBLICATION_STALE_REVISION");
+      if (result.affectedRows !== 1)
+        throw new Error("PLACE_PUBLICATION_STALE_REVISION");
       await pool.execute(
         `INSERT INTO business_place_revision_history
           (place_id, revision, revision_id, revision_json, actor_id, created_at)
@@ -477,7 +482,8 @@ function createGovernanceRepository(pool) {
           WHERE place_id = ? AND editable_revision = ?`,
         [state, placeId, expectedRevision],
       );
-      if (result.affectedRows !== 1) throw new Error("PLACE_PUBLICATION_STALE_REVISION");
+      if (result.affectedRows !== 1)
+        throw new Error("PLACE_PUBLICATION_STALE_REVISION");
       return governedRecordFromRow(await getRow(placeId));
     },
   });
@@ -520,7 +526,8 @@ function createPublicRepository(pool) {
       const items = sliced.map(publicRecordFromRow).filter(Boolean);
       return Object.freeze({
         items: Object.freeze(items),
-        nextCursor: rows.length > limit ? String(sliced.at(-1)?.place_id ?? "") : null,
+        nextCursor:
+          rows.length > limit ? String(sliced.at(-1)?.place_id ?? "") : null,
       });
     },
 
@@ -586,14 +593,10 @@ function createMediaPort(mediaRepository) {
 
 function createActionPort() {
   return Object.freeze({
-    async resolvePublicActions({
-      place,
-      businessId,
-      media,
-      commerce,
-      locale,
-    }) {
-      const localeKey = ["pt", "en", "es", "he"].includes(String(locale).slice(0, 2))
+    async resolvePublicActions({ place, businessId, media, commerce, locale }) {
+      const localeKey = ["pt", "en", "es", "he"].includes(
+        String(locale).slice(0, 2),
+      )
         ? String(locale).slice(0, 2)
         : "pt";
       const categoryKey = canonicalPlaceCategories.includes(place.categoryId)
@@ -698,7 +701,9 @@ export function createPlacePlatformRuntime({
   let reason = "PLACE_PLATFORM_NOT_STARTED";
 
   async function start() {
-    const databaseUrl = String(getEnvironmentValue("BUSINESS_DATABASE_URL") || "").trim();
+    const databaseUrl = String(
+      getEnvironmentValue("BUSINESS_DATABASE_URL") || "",
+    ).trim();
     if (!databaseUrl) {
       reason = "BUSINESS_DATABASE_URL_REQUIRED";
       return false;
@@ -713,7 +718,9 @@ export function createPlacePlatformRuntime({
       await applySchema(pool);
       governanceRepository = createGovernanceRepository(pool);
 
-      const contentUrl = String(getEnvironmentValue("CONTENT_DATABASE_URL") || "").trim();
+      const contentUrl = String(
+        getEnvironmentValue("CONTENT_DATABASE_URL") || "",
+      ).trim();
       if (contentUrl) {
         mediaPool = poolFactory(contentUrl, {
           connectionLimit: Number(
@@ -745,7 +752,10 @@ export function createPlacePlatformRuntime({
       return true;
     } catch (error) {
       ready = false;
-      reason = clean(error instanceof Error ? error.message : "PLACE_PLATFORM_START_FAILED", 160);
+      reason = clean(
+        error instanceof Error ? error.message : "PLACE_PLATFORM_START_FAILED",
+        160,
+      );
       return false;
     }
   }
@@ -768,7 +778,12 @@ export function createPlacePlatformRuntime({
 
   async function handlePublic(request, response, requestUrl) {
     if (!ready || !readModel) {
-      sendJson(response, 503, { error: "PLACE_PLATFORM_UNAVAILABLE" }, { "Cache-Control": "no-store" });
+      sendJson(
+        response,
+        503,
+        { error: "PLACE_PLATFORM_UNAVAILABLE" },
+        { "Cache-Control": "no-store" },
+      );
       return true;
     }
     const query = Object.fromEntries(requestUrl.searchParams.entries());
@@ -788,10 +803,19 @@ export function createPlacePlatformRuntime({
 
   async function listCms(requestUrl) {
     if (!ready) throw new Error("PLACE_PLATFORM_UNAVAILABLE");
-    const query = clean(requestUrl.searchParams.get("query"), 160).toLowerCase();
-    const destinationId = clean(requestUrl.searchParams.get("destinationId"), 160);
+    const query = clean(
+      requestUrl.searchParams.get("query"),
+      160,
+    ).toLowerCase();
+    const destinationId = clean(
+      requestUrl.searchParams.get("destinationId"),
+      160,
+    );
     const categoryId = clean(requestUrl.searchParams.get("categoryId"), 160);
-    const publicationState = clean(requestUrl.searchParams.get("publicationState"), 40);
+    const publicationState = clean(
+      requestUrl.searchParams.get("publicationState"),
+      40,
+    );
     const clauses = ["1=1"];
     const params = [];
     if (destinationId) {
@@ -807,7 +831,9 @@ export function createPlacePlatformRuntime({
       params.push(publicationState === "ready" ? "review" : publicationState);
     }
     if (query) {
-      clauses.push("(LOWER(b.display_name) LIKE ? OR LOWER(b.id) LIKE ? OR LOWER(p.place_id) LIKE ?)");
+      clauses.push(
+        "(LOWER(b.display_name) LIKE ? OR LOWER(b.id) LIKE ? OR LOWER(p.place_id) LIKE ?)",
+      );
       params.push(`%${query}%`, `%${query}%`, `%${query}%`);
     }
     const [rows] = await pool.execute(
@@ -828,15 +854,23 @@ export function createPlacePlatformRuntime({
       categoryId: row.category_id,
       publicationState: row.publication_state ?? "draft",
       placeId: row.place_id,
-      locationStatus: placeFromRow(row, false)?.location?.latitude != null ? "confirmed" : "missing",
+      locationStatus:
+        placeFromRow(row, false)?.location?.latitude != null
+          ? "confirmed"
+          : "missing",
       productCount: 0,
       offerCount: 0,
     }));
     return Object.freeze({
       businesses: Object.freeze(businesses),
-      destinations: Object.freeze(
-        [...new Map(rows.map((row) => [row.destination_id, { id: row.destination_id, name: row.destination_id }])).values()],
-      ),
+      destinations: Object.freeze([
+        ...new Map(
+          rows.map((row) => [
+            row.destination_id,
+            { id: row.destination_id, name: row.destination_id },
+          ]),
+        ).values(),
+      ]),
       categories: Object.freeze(
         canonicalPlaceCategories.map((id) => ({ id, key: id, name: id })),
       ),
