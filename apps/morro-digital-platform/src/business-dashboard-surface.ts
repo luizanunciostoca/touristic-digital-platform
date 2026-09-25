@@ -294,7 +294,7 @@ function createCatalogSurface(document: Document): CatalogSurface {
           <button class="button" type="submit">Salvar cardápio</button>
           <button class="button secondary" type="reset">Novo</button>
         </form>
-        <div id="moro-pro-menu-list" aria-live="polite"></div>
+        <div id="morro-pro-menu-list" aria-live="polite"></div>
       </article>
       <article class="panel-card">
         <h2>Categorias</h2>
@@ -321,7 +321,7 @@ function createCatalogSurface(document: Document): CatalogSurface {
           <label>Ordem<input name="sortOrder" type="number" min="0" step="1" value="0" required /></label>
           <label>Media ID<input name="mediaId" maxlength="160" /></label>
           <label>Tags<input name="tags" /></label>
-          <label>Alérjenos<input name="allergens" /></label>
+          <label>Alérgenos<input name="allergens" /></label>
           <label><input name="available" type="checkbox" /> Disponível</label>
           <button class="button" type="submit">Salvar item</button>
           <button class="button secondary" type="reset">Novo</button>
