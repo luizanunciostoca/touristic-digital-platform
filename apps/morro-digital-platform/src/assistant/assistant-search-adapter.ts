@@ -27,6 +27,7 @@ type AssistantSearchLanguage = "pt" | "en" | "es" | "he";
 const CANONICAL_SEARCH_DESTINATION_ID = "morro-de-sao-paulo";
 const CANONICAL_SEARCH_BBOX = "-39.05,-13.50,-38.89,-13.35";
 const CANONICAL_SEARCH_ZOOM = "13";
+const CANONICAL_SEARCH_LIMIT = "1000";
 
 interface CanonicalSearchPlace {
   readonly id: string;
@@ -67,11 +68,13 @@ async function searchCanonicalPlaces(
   fetchImplementation: typeof globalThis.fetch,
   query: string,
 ): Promise<readonly CanonicalSearchPlace[]> {
+  if (!isLikelyV1PlaceQuery(query)) return [];
   try {
     const params = new URLSearchParams({
       destinationId: CANONICAL_SEARCH_DESTINATION_ID,
       bbox: CANONICAL_SEARCH_BBOX,
       zoom: CANONICAL_SEARCH_ZOOM,
+      limit: CANONICAL_SEARCH_LIMIT,
     });
     const response = await fetchImplementation(
       `/api/places/v1/map?${params.toString()}`,
