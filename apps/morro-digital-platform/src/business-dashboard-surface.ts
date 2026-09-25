@@ -254,6 +254,7 @@ function renderMedia(
     surface.list.textContent = "Nenhuma foto cadastrada.";
     return;
   }
+  const document = surface.list.ownerDocument;
   for (const [index, entry] of media.assets.entries()) {
     const row = document.createElement("div");
     row.className = "catalog-row";
