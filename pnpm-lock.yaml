@@ -10,6 +10,10 @@ overrides:
 
 importers:
   .:
+    dependencies:
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
     devDependencies:
       "@eslint/js":
         specifier: ^9.32.0
@@ -71,9 +75,6 @@ importers:
       "@touristic/content-server":
         specifier: workspace:*
         version: link:../../services/content
-      "@touristic/destinations-server":
-        specifier: workspace:*
-        version: link:../../services/destinations
       "@touristic/core":
         specifier: workspace:*
         version: link:../../packages/core
@@ -83,6 +84,9 @@ importers:
       "@touristic/crm-server":
         specifier: workspace:*
         version: link:../../services/crm
+      "@touristic/destinations-server":
+        specifier: workspace:*
+        version: link:../../services/destinations
       "@touristic/financial":
         specifier: workspace:*
         version: link:../../packages/financial
@@ -134,9 +138,17 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/content: {}
+
   packages/core: {}
 
-  packages/content: {}
+  packages/crm:
+    dependencies:
+      "@touristic/auth":
+        specifier: workspace:*
+        version: link:../auth
+
+  packages/design-system: {}
 
   packages/destination:
     dependencies:
@@ -155,14 +167,6 @@ importers:
       vitest:
         specifier: 4.1.11
         version: 4.1.11(@types/node@24.13.3)(vite@7.3.6(@types/node@24.13.3))
-
-  packages/crm:
-    dependencies:
-      "@touristic/auth":
-        specifier: workspace:*
-        version: link:../auth
-
-  packages/design-system: {}
 
   packages/financial: {}
 
@@ -207,25 +211,6 @@ importers:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)
 
-  services/destinations:
-    dependencies:
-      "@touristic/destinations":
-        specifier: workspace:*
-        version: link:../../packages/destinations
-      mysql2:
-        specifier: ^3.14.5
-        version: 3.23.3(@types/node@24.13.3)
-    devDependencies:
-      "@types/node":
-        specifier: ^24.3.0
-        version: 24.13.3
-      typescript:
-        specifier: ^5.9.2
-        version: 5.9.3
-      vitest:
-        specifier: 4.1.11
-        version: 4.1.11(@types/node@24.13.3)(vite@7.3.6(@types/node@24.13.3))
-
   services/analytics:
     dependencies:
       "@touristic/analytics":
@@ -261,6 +246,25 @@ importers:
       mysql2:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)
+
+  services/destinations:
+    dependencies:
+      "@touristic/destinations":
+        specifier: workspace:*
+        version: link:../../packages/destinations
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+    devDependencies:
+      "@types/node":
+        specifier: ^24.3.0
+        version: 24.13.3
+      typescript:
+        specifier: ^5.9.2
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@24.13.3)(vite@7.3.6(@types/node@24.13.3))
 
   services/financial:
     dependencies:

@@ -29,9 +29,7 @@ function identifier(environment, name) {
 function parseHostPort(environment) {
   const value = required(environment, "STAGING_MYSQL_HOSTPORT");
   const match =
-    /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(
-      value,
-    );
+    /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(value);
   if (!match) throw new Error("STAGING_MYSQL_HOSTPORT_INVALID");
   const port = Number(match.groups.port);
   if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
@@ -44,7 +42,9 @@ export async function reconcileStagingMysqlDomains(
   environment = process.env,
   mysqlClient = mysql,
 ) {
-  if (String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE) {
+  if (
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
+  ) {
     throw new Error("STAGING_MYSQL_RECONCILE_SERVICE_DENIED");
   }
 

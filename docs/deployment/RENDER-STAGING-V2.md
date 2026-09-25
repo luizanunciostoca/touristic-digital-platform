@@ -33,10 +33,13 @@ morro-digital-v2-staging (web, Node 22+, Ohio)
         | private network / generated credentials
         v
 morro-digital-v2-staging-mysql (private service, MySQL 8.4, Ohio)
-        |-- morro_auth_staging       / user morro_auth
-        |-- morro_ordering_staging   / user morro_ordering
-        |-- morro_financial_staging  / user morro_financial
-        `-- morro_affiliates_staging / user morro_affiliates
+        |-- morro_auth_staging         / user morro_auth
+        |-- morro_ordering_staging     / user morro_ordering
+        |-- morro_financial_staging    / user morro_financial
+        |-- morro_affiliates_staging   / user morro_affiliates
+        |-- morro_business_staging     / user morro_business
+        |-- morro_content_staging      / user morro_content
+        `-- morro_destinations_staging / user morro_destinations
 ```
 
 Cada domínio possui schema e usuário próprios. O compartilhamento do engine MySQL é aceito **somente em staging de acceptance** para reduzir custo operacional; ele não constitui evidência de isolamento físico/failure-domain para produção.
@@ -47,7 +50,7 @@ O MySQL usa private service e disco persistente em `/var/lib/mysql`. Não há po
 
 O Blueprint gera `MYSQL_ROOT_PASSWORD` e as quatro senhas de domínio no private service. O web service recebe as credenciais por `fromService`, além do `hostport` privado.
 
-`tooling/render/with-staging-mysql-env.mjs` monta `AUTH_DATABASE_URL`, `ORDERING_DATABASE_URL`, `FINANCIAL_DATABASE_URL` e `AFFILIATES_DATABASE_URL` somente em memória ao iniciar o processo filho. As URLs e senhas não são gravadas no GitHub nem impressas em logs.
+`tooling/render/with-staging-mysql-env.mjs` monta `AUTH_DATABASE_URL`, `ORDERING_DATABASE_URL`, `FINANCIAL_DATABASE_URL`, `AFFILIATES_DATABASE_URL`, `BUSINESS_DATABASE_URL`, `CONTENT_DATABASE_URL` e `DESTINATIONS_DATABASE_URL` somente em memória ao iniciar o processo filho. Antes disso, `reconcile-staging-mysql-domains.mjs` garante idempotentemente os sete schemas e usuários no MySQL persistente de staging, usando a credencial root somente em memória e somente no serviço V2 staging. As URLs e senhas não são gravadas no GitHub nem impressas em logs.
 
 ## Pré-condições antes de criar o Blueprint
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { scryptSync } from "node:crypto";
 import test from "node:test";
+import { reconcileStagingMysqlDomains } from "./reconcile-staging-mysql-domains.mjs";
 import {
   buildStagingControlCenterOwnerAuthEnvironment,
   buildStagingDatabaseEnvironment,
@@ -27,6 +28,15 @@ function fixture(overrides = {}) {
     STAGING_AFFILIATES_DATABASE_NAME: "morro_affiliates_staging",
     STAGING_AFFILIATES_DATABASE_USER: "morro_affiliates",
     STAGING_AFFILIATES_DATABASE_PASSWORD: "affiliates+/=safe-password",
+    STAGING_BUSINESS_DATABASE_NAME: "morro_business_staging",
+    STAGING_BUSINESS_DATABASE_USER: "morro_business",
+    STAGING_BUSINESS_DATABASE_PASSWORD: "business+/=safe-password",
+    STAGING_CONTENT_DATABASE_NAME: "morro_content_staging",
+    STAGING_CONTENT_DATABASE_USER: "morro_content",
+    STAGING_CONTENT_DATABASE_PASSWORD: "content+/=safe-password",
+    STAGING_DESTINATIONS_DATABASE_NAME: "morro_destinations_staging",
+    STAGING_DESTINATIONS_DATABASE_USER: "morro_destinations",
+    STAGING_DESTINATIONS_DATABASE_PASSWORD: "destinations+/=safe-password",
     ...overrides,
   };
 }
@@ -57,7 +67,10 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   assert.deepEqual(Object.keys(derived).sort(), [
     "AFFILIATES_DATABASE_URL",
     "AUTH_DATABASE_URL",
+    "BUSINESS_DATABASE_URL",
+    "CONTENT_DATABASE_URL",
     "CONTROL_CENTER_AUDIT_DATABASE_URL",
+    "DESTINATIONS_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
     "ORDERING_DATABASE_URL",
   ]);
@@ -77,7 +90,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   const names = Object.values(derived).map((value) =>
     new URL(value).pathname.slice(1),
   );
-  assert.equal(new Set(names).size, 4);
+  assert.equal(new Set(names).size, 7);
 });
 
 test("rejects non-private-host hostport shapes", () => {
@@ -479,5 +492,85 @@ test("starts provider acceptance only for the V2 staging runtime command", () =>
       ["apps/morro-digital-platform/tooling/dev-server.mjs"],
     ),
     false,
+  );
+});
+
+test("reconciles all staging schemas without exposing credentials", async () => {
+  const queries = [];
+  let ended = false;
+  const mysqlClient = {
+    async createConnection(options) {
+      assert.equal(options.host, "morro-digital-v2-staging-mysql");
+      assert.equal(options.port, 3306);
+      assert.equal(options.user, "root");
+      assert.equal(options.password, "root-secret");
+      return {
+        async query(sql, params = []) {
+          queries.push([sql, params]);
+        },
+        async end() {
+          ended = true;
+        },
+      };
+    },
+  };
+
+  const result = await reconcileStagingMysqlDomains(
+    {
+      RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+      STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
+      STAGING_MYSQL_ROOT_PASSWORD: "root-secret",
+      ...fixture(),
+    },
+    mysqlClient,
+  );
+
+  assert.equal(result.status, "pass");
+  assert.deepEqual(result.domains, [
+    "auth",
+    "ordering",
+    "financial",
+    "affiliates",
+    "business",
+    "content",
+    "destinations",
+  ]);
+  assert.equal(ended, true);
+  assert.equal(
+    queries.filter(([sql]) => sql.startsWith("CREATE DATABASE")).length,
+    7,
+  );
+  assert.equal(
+    queries.filter(([sql]) => sql.startsWith("CREATE USER")).length,
+    7,
+  );
+  assert.equal(
+    queries.filter(([sql]) => sql.startsWith("ALTER USER")).length,
+    7,
+  );
+  assert.equal(
+    queries.filter(([sql]) => sql.startsWith("GRANT ALL PRIVILEGES")).length,
+    7,
+  );
+  assert.equal(queries.at(-1)?.[0], "FLUSH PRIVILEGES");
+  assert.equal(JSON.stringify(queries).includes("root-secret"), false);
+});
+
+test("denies database reconciliation outside canonical staging service", async () => {
+  await assert.rejects(
+    reconcileStagingMysqlDomains(
+      {
+        RENDER_SERVICE_NAME: "morro-digital-v2",
+        STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
+        STAGING_MYSQL_ROOT_PASSWORD: "root-secret",
+        ...fixture(),
+      },
+      {
+        createConnection: async () => {
+          throw new Error("must not connect");
+        },
+      },
+    ),
+    /STAGING_MYSQL_RECONCILE_SERVICE_DENIED/u,
   );
 });
