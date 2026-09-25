@@ -831,18 +831,40 @@ export async function mountBusinessDashboardSurface(
         });
       status.textContent = "Seu acesso ao perfil é somente leitura.";
     }
-    const offersAccess = accessByModule.get("offers");
-    if (!offersAccess?.mutable) {
-      offersSurface.form
-        .querySelectorAll<
-          HTMLInputElement | HTMLSelectElement | HTMLButtonElement
-        >("input, select, button[type=submit]")
-        .forEach((control) => {
-          control.disabled = true;
-        });
-      offersSurface.status.textContent =
-        offersAccess?.visible === true
-          ? "Seu acesso a ofertas é somente leitura."
+    for (const [moduleId, forms, statusElement] of [
+      [
+        "products",
+        [catalogSurface.productForm],
+        catalogSurface.productStatus,
+      ],
+      ["offers", [catalogSurface.offerForm], catalogSurface.offerStatus],
+      [
+        "menu",
+        [
+          catalogSurface.menuForm,
+          catalogSurface.categoryForm,
+          catalogSurface.itemForm,
+        ],
+        catalogSurface.menuStatus,
+      ],
+    ] as const) {
+      const moduleAccess = accessByModule.get(moduleId);
+      if (moduleAccess?.mutable) continue;
+      for (const catalogForm of forms) {
+        catalogForm
+          .querySelectorAll<
+            | HTMLInputElement
+            | HTMLTextAreaElement
+            | HTMLSelectElement
+            | HTMLButtonElement
+          >("input, textarea, select, button")
+          .forEach((control) => {
+            control.disabled = true;
+          });
+      }
+      statusElement.textContent =
+        moduleAccess?.visible === true
+          ? "Seu acesso a este módulo é somente leitura."
           : "";
     }
 
@@ -850,17 +872,23 @@ export async function mountBusinessDashboardSurface(
       const moduleAccess = accessByModule.get(view);
       if (!moduleAccess?.visible) return;
       activateView(view);
-      if (view === "offers") {
+      if (view === "products" || view === "offers" || view === "menu") {
         const request = contextController?.request();
-        void reloadOffers(request?.signal).catch((error: unknown) => {
+        void reloadCatalog(request?.signal).catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
           if (error instanceof DOMException && error.name === "AbortError") {
             return;
           }
-          offersSurface.status.textContent =
+          const statusElement =
+            view === "products"
+              ? catalogSurface.productStatus
+              : view === "offers"
+                ? catalogSurface.offerStatus
+                : catalogSurface.menuStatus;
+          statusElement.textContent =
             error instanceof Error
               ? error.message
-              : "Falha ao carregar ofertas.";
+              : "Falha ao carregar catálogo.";
         });
       }
     };
@@ -877,10 +905,6 @@ export async function mountBusinessDashboardSurface(
         if (!view || !businessDashboardViews.includes(view)) return;
         const moduleAccess = accessByModule.get(view);
         if (!moduleAccess?.visible) {
-          button.hidden = true;
-          return;
-        }
-        if (!moduleAccess.mutable && view === "offers") {
           button.hidden = true;
           return;
         }
@@ -913,19 +937,28 @@ export async function mountBusinessDashboardSurface(
           if (!request) return;
           businessId = request.businessId;
           status.textContent = "Trocando contexto do negócio…";
-          offersSurface.status.textContent = "";
-          offersSurface.list.replaceChildren();
+          activeCatalog = Object.freeze({
+            products: Object.freeze([]),
+            offers: Object.freeze([]),
+            menus: Object.freeze([]),
+            categories: Object.freeze([]),
+            items: Object.freeze([]),
+          });
+          renderCatalog(document, catalogSurface, activeCatalog);
+          catalogSurface.productStatus.textContent = "";
+          catalogSurface.offerStatus.textContent = "";
+          catalogSurface.menuStatus.textContent = "";
           renderProfile(null);
           void dashboardClient
             .loadProfile(request.businessId, request.signal)
             .then(async (profile) => {
               if (!contextController?.isCurrent(request)) return;
               renderProfile(profile);
-              const offersPanel = document.querySelector<HTMLElement>(
-                '[data-view-panel="offers"]',
+              const activeCatalogPanel = document.querySelector<HTMLElement>(
+                '[data-view-panel="products"].active, [data-view-panel="offers"].active, [data-view-panel="menu"].active',
               );
-              if (offersPanel?.classList.contains("active")) {
-                await reloadOffers(request.signal);
+              if (activeCatalogPanel) {
+                await reloadCatalog(request.signal);
                 if (!contextController?.isCurrent(request)) return;
               }
               status.textContent = "";
