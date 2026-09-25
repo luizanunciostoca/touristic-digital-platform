@@ -612,8 +612,10 @@ export function createCatalogRuntime(pool) {
     return Object.freeze({
       products,
       offers: Object.freeze(
-        (snapshot.offers ?? []).filter((offer) =>
-          productIds.has(String(offer.productId)),
+        (snapshot.offers ?? []).filter(
+          (offer) =>
+            offer.status === "active" &&
+            productIds.has(String(offer.productId)),
         ),
       ),
       menus: Object.freeze(
