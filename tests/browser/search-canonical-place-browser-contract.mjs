@@ -316,15 +316,65 @@ try {
     .locator("#assistant-messages:not(.hidden)")
     .waitFor({ state: "visible", timeout: 5_000 });
 
-  await page.evaluate(() =>
-    globalThis.__canonicalProof.runtime.process("Toca do Morcego"),
-  );
+  const searchResponse = await page.evaluate(async () => {
+    const response =
+      await globalThis.__canonicalProof.runtime.process("Toca do Morcego");
+    return JSON.parse(JSON.stringify(response));
+  });
 
-  await page
-    .locator(
-      '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Toca do Morcego"]',
-    )
-    .waitFor({ state: "visible", timeout: 10_000 });
+  const canonicalResult = page.locator(
+    '#assistant-category-rail[data-rail-stage="places"] [data-location-name="Toca do Morcego"]',
+  );
+  try {
+    await canonicalResult.waitFor({ state: "visible", timeout: 10_000 });
+  } catch (error) {
+    const diagnostics = await page.evaluate(() => {
+      const rail = document.getElementById("assistant-category-rail");
+      const assistant = document.getElementById("assistant-messages");
+      return {
+        response: globalThis.__canonicalProof?.searchResponse ?? null,
+        actions: globalThis.__canonicalProof?.actions ?? [],
+        states: globalThis.__canonicalProof?.states ?? [],
+        markers: globalThis.__canonicalProof?.markers ?? [],
+        rail: {
+          exists: Boolean(rail),
+          stage: rail?.getAttribute("data-rail-stage") ?? null,
+          hidden: rail?.classList.contains("hidden") ?? null,
+          ariaHidden: rail?.getAttribute("aria-hidden") ?? null,
+          html: rail?.outerHTML ?? null,
+        },
+        assistant: {
+          exists: Boolean(assistant),
+          hidden: assistant?.classList.contains("hidden") ?? null,
+          ariaHidden: assistant?.getAttribute("aria-hidden") ?? null,
+        },
+        messages: Array.from(
+          document.querySelectorAll("#assistant-messages .message"),
+        ).map((node) => node.textContent?.trim() ?? ""),
+      };
+    });
+    diagnostics.response = searchResponse;
+    writeFileSync(
+      "/tmp/search-canonical-place-browser-evidence.json",
+      JSON.stringify(
+        {
+          result: "failure",
+          phase: "canonical-search-to-explore",
+          diagnostics,
+          canonicalRequests,
+          pageErrors,
+        },
+        null,
+        2,
+      ),
+    );
+    throw new Error(
+      `Canonical search result did not render in Explore: ${JSON.stringify(
+        diagnostics,
+      )}`,
+      { cause: error },
+    );
+  }
 
   const commandEvidence = await page.evaluate(
     () => globalThis.__canonicalProof.actions.at(-1) ?? null,
