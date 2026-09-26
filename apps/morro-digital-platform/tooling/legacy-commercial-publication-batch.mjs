@@ -12,7 +12,8 @@ async function loadMysqlClient() {
 }
 
 async function loadPlacePlatformRuntime() {
-  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url).href;
+  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url)
+    .href;
   const module = await import(/* @vite-ignore */ moduleUrl);
   return module.createPlacePlatformRuntime;
 }
