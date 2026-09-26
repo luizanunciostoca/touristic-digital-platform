@@ -228,6 +228,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/auth
 
+  services/commerce:
+    dependencies:
+      "@touristic/commerce":
+        specifier: workspace:*
+        version: link:../../packages/commerce
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
   services/content:
     dependencies:
       "@touristic/content":
