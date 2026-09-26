@@ -161,4 +161,77 @@ describe("assistant conversation orchestrator", () => {
     orchestrator.recordStaleResponseDropped();
     expect(orchestrator.observability().staleResponsesDropped).toBe(2);
   });
+  it("carries destination, business, commerce and map context across turns", () => {
+    const orchestrator = createAssistantConversationOrchestrator({
+      sessionId: "continuous-context",
+      now: () => 100,
+    });
+
+    orchestrator.transition({
+      cause: "destination_loaded",
+      messageKey: "destination_loaded",
+      renderedText: "Estamos em Morro de São Paulo.",
+      activeDestination: "morro-de-sao-paulo",
+      mapContext: {
+        mode: "discover",
+        activeCategory: "restaurants",
+        selectedPlaceId: "place-42",
+      },
+    });
+    const next = orchestrator.transition({
+      cause: "commerce_interest",
+      messageKey: "commerce_interest",
+      renderedText: "Posso continuar com essa opção.",
+      currentBusiness: "business-9",
+      commerceIntent: "restaurant_order",
+    });
+
+    expect(next.nextState).toMatchObject({
+      activeDestination: "morro-de-sao-paulo",
+      currentBusiness: "business-9",
+      commerceIntent: "restaurant_order",
+      mapContext: {
+        mode: "discover",
+        activeCategory: "restaurants",
+        selectedPlaceId: "place-42",
+      },
+    });
+  });
+
+  it("restores bounded conversation context only for the same session", () => {
+    const original = createAssistantConversationOrchestrator({
+      sessionId: "resume-session",
+      now: () => 200,
+    });
+
+    for (let index = 0; index < 14; index += 1) {
+      original.transition({
+        cause: "navigation_progress",
+        messageKey: "navigation_progress",
+        renderedText: `Etapa ${index}`,
+        navigationHistoryEntry: {
+          destination: `place-${index}`,
+          phase: "active",
+          timestamp: index,
+        },
+      });
+    }
+
+    const persisted = original.snapshot();
+    const restored = createAssistantConversationOrchestrator({
+      sessionId: "resume-session",
+      initialState: persisted,
+      now: () => 300,
+    });
+    const rejected = createAssistantConversationOrchestrator({
+      sessionId: "different-session",
+      initialState: persisted,
+      now: () => 300,
+    });
+
+    expect(restored.snapshot().navigationHistory).toHaveLength(12);
+    expect(restored.snapshot().navigationHistory[0]?.destination).toBe("place-2");
+    expect(rejected.snapshot().activeDestination).toBeNull();
+    expect(rejected.snapshot().navigationHistory).toEqual([]);
+  });
 });
