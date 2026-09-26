@@ -17,9 +17,7 @@ describe("affiliate commercial portal runtime wiring", () => {
     expect(source).toContain(
       "affiliatesRuntimeReady = await affiliatesApi.start();",
     );
-    expect(source).toContain(
-      'name: "affiliates-commercial-runtime"',
-    );
+    expect(source).toContain('name: "affiliates-commercial-runtime"');
     expect(source).toContain(
       "if (affiliatesApi.matches(requestUrl.pathname))",
     );
