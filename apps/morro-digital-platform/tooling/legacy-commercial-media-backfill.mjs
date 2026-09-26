@@ -17,15 +17,18 @@ async function loadContentSchemaApplier() {
 }
 
 async function loadManifest() {
-  return JSON.parse(
-    await readFile(
-      new URL(
-        "../src/migration/legacy-commercial-media-mappings.json",
-        import.meta.url,
-      ),
-      "utf8",
+  const content = await readFile(
+    new URL(
+      "../src/migration/legacy-commercial-media-mappings.ndjson",
+      import.meta.url,
     ),
+    "utf8",
   );
+  return content
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
 }
 
 export async function runLegacyCommercialMediaBackfill({
