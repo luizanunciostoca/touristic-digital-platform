@@ -482,9 +482,7 @@ export class TicketingCommerceHttpTransport {
     if (businessMatch?.[1] && BUSINESS_ID.test(businessMatch[1])) {
       const inventoryId = businessMatch[2];
       const inventoryAction = businessMatch[3] as
-        | "disable"
-        | "catalog-offer"
-        | undefined;
+        "disable" | "catalog-offer" | undefined;
       if (inventoryId && !INVENTORY_ID.test(inventoryId)) {
         return response(404, { error: "NOT_FOUND" }, correlation);
       }
