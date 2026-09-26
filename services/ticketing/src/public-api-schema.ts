@@ -41,6 +41,22 @@ CREATE TABLE IF NOT EXISTS ticketing_inventory_ownership (
   INDEX idx_ticketing_inventory_ownership_business (business_id, updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS ticketing_inventory_catalog_bindings (
+  inventory_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
+  business_id VARCHAR(120) COLLATE utf8mb4_bin NOT NULL,
+  offer_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+  created_by VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+  created_at DATETIME(3) NOT NULL,
+  updated_at DATETIME(3) NOT NULL,
+  CONSTRAINT fk_ticketing_catalog_binding_inventory
+    FOREIGN KEY (inventory_id)
+    REFERENCES ticketing_inventory(inventory_id)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT,
+  UNIQUE KEY uq_ticketing_catalog_binding_offer (business_id, offer_id),
+  INDEX idx_ticketing_catalog_binding_business (business_id, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS ticketing_commerce_crm_outbox (
   event_id VARCHAR(120) COLLATE utf8mb4_bin PRIMARY KEY,
   event_type VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -70,6 +86,7 @@ CREATE TABLE IF NOT EXISTS ticketing_commerce_crm_outbox (
 `;
 
 export const ticketingPublicApiRollbackSql = `DROP TABLE IF EXISTS ticketing_commerce_crm_outbox;
+DROP TABLE IF EXISTS ticketing_inventory_catalog_bindings;
 DROP TABLE IF EXISTS ticketing_inventory_ownership;
 DROP TABLE IF EXISTS ticketing_offline_devices;
 DROP TABLE IF EXISTS ticketing_holder_profiles;
