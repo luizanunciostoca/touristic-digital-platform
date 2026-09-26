@@ -6,11 +6,6 @@ import {
   isReadOnlyAuthRole,
 } from "@touristic/auth";
 import {
-  MySqlRestaurantReservationRepository,
-  applyCommerceRestaurantReservationSchema,
-  createCommerceMySqlPoolFromEnvironment,
-} from "@touristic/commerce-server";
-import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
@@ -1068,8 +1063,11 @@ export function createPaymentsApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
-      const commercePool = environment.COMMERCE_DATABASE_URL
-        ? createCommerceMySqlPoolFromEnvironment({
+      const commerceRuntime = environment.COMMERCE_DATABASE_URL
+        ? await import("@touristic/commerce-server")
+        : null;
+      const commercePool = commerceRuntime
+        ? commerceRuntime.createCommerceMySqlPoolFromEnvironment({
             COMMERCE_DATABASE_URL: environment.COMMERCE_DATABASE_URL,
           })
         : null;
@@ -1082,8 +1080,12 @@ export function createPaymentsApi({
           await applyOrderingRestaurantReservationSchema(orderingPool);
         })(),
         applyFinancialM145Schema(financialPool),
-        ...(commercePool
-          ? [applyCommerceRestaurantReservationSchema(commercePool)]
+        ...(commercePool && commerceRuntime
+          ? [
+              commerceRuntime.applyCommerceRestaurantReservationSchema(
+                commercePool,
+              ),
+            ]
           : []),
       ]);
 
@@ -1097,9 +1099,12 @@ export function createPaymentsApi({
       const checkoutAccess = new MySqlCheckoutAccessRepository(orderingPool);
       const restaurantBindings =
         new MySqlRestaurantReservationOrderBindingRepository(orderingPool);
-      const restaurantReservations = commercePool
-        ? new MySqlRestaurantReservationRepository(commercePool)
-        : null;
+      const restaurantReservations =
+        commercePool && commerceRuntime
+          ? new commerceRuntime.MySqlRestaurantReservationRepository(
+              commercePool,
+            )
+          : null;
       const paymentIdempotency = new MySqlPaymentIdempotencyPort(financialPool);
       const identities = createNodeCheckoutIdentityPort();
       const rateLimits = createInMemoryCheckoutRateLimitPort();
