@@ -27,11 +27,7 @@ function text(value) {
 function finiteCoordinate(value, minimum, maximum) {
   if (value == null || value === "") return false;
   const numeric = Number(value);
-  return (
-    Number.isFinite(numeric) &&
-    numeric >= minimum &&
-    numeric <= maximum
-  );
+  return Number.isFinite(numeric) && numeric >= minimum && numeric <= maximum;
 }
 
 function snapshotCatalogValid(value) {
