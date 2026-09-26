@@ -191,6 +191,7 @@ export async function runLegacyCommercialPublicationCanary({
 
     if (apply) await applyMarkerSchema(pool);
     let marker = await loadMarker(pool);
+    let markerInserted = false;
 
     if (marker) {
       validateMarker(marker, row);
@@ -200,6 +201,7 @@ export async function runLegacyCommercialPublicationCanary({
       throw new Error("LEGACY_PUBLICATION_CANARY_UNOWNED_PUBLISHED_STATE");
     } else {
       await insertMarker(pool, row);
+      markerInserted = true;
       marker = {
         source_system: SOURCE_SYSTEM,
         source_key: SOURCE_KEY,
@@ -210,7 +212,7 @@ export async function runLegacyCommercialPublicationCanary({
     }
 
     let published = 0;
-    let markersInserted = marker && state.state === "review" && apply ? 1 : 0;
+    const markersInserted = markerInserted ? 1 : 0;
 
     if (apply && state.state === "review") {
       const createRuntime = runtimeFactory ?? (await runtimeLoader());
