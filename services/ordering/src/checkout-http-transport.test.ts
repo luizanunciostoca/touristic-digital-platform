@@ -25,6 +25,7 @@ import {
   type OrderRequestKey,
   type ProviderNeutralCheckoutApplicationService,
 } from "@touristic/ordering";
+import type { RestaurantCheckoutApplicationRequest } from "@touristic/ordering/restaurant-checkout";
 import {
   type TicketingCheckoutApplicationRequest,
   type TicketingCheckoutApplicationService,
@@ -93,6 +94,20 @@ function ticketingHandoff(): TicketingCheckoutApplicationRequest {
       document: "987.654.321-00",
     },
     returnUrl: "https://morro.digital/tickets.html",
+    requiresPaymentsCapability: true,
+  };
+}
+
+function restaurantHandoff(): RestaurantCheckoutApplicationRequest {
+  return {
+    reservationReference: "rrv_http_guest_12345678",
+    customer: {
+      name: "Visitante Restaurante",
+      email: "restaurante@example.com",
+      phone: "+55 75 97777-0000",
+      document: null,
+    },
+    returnUrl: "https://morro.digital/restaurants/reservation",
     requiresPaymentsCapability: true,
   };
 }
@@ -212,6 +227,13 @@ function harness(
     readonly rateLimits?: CheckoutHttpRateLimitPort;
     readonly application?: ProviderNeutralCheckoutApplicationService;
     readonly ticketingApplication?: TicketingCheckoutApplicationService;
+    readonly restaurantApplication?: Readonly<{
+      startCheckout(
+        input: RestaurantCheckoutApplicationRequest,
+      ): Promise<
+        Readonly<{ order: Order; payment: Payment; replayed: boolean }>
+      >;
+    }>;
     readonly provider?: FinancialCheckoutProviderPort;
     readonly payment?: Payment;
     readonly paymentResults?: VerifiedPaymentResultRepositoryPort;
@@ -238,6 +260,9 @@ function harness(
     application,
     ...(options.ticketingApplication
       ? { ticketingApplication: options.ticketingApplication }
+      : {}),
+    ...(options.restaurantApplication
+      ? { restaurantApplication: options.restaurantApplication }
       : {}),
     orders: new MemoryOrders(order),
     payments: new MemoryPayments(payment),
@@ -415,6 +440,82 @@ describe("M139 checkout HTTP/Auth/security transport", () => {
       actorSubject: "guest:0123456789abcdef0123456789abcdef",
       destinationId: "morro",
       tenantId: null,
+    });
+  });
+
+  it("routes a Restaurant checkout through Restaurant authority and application", async () => {
+    const fixture = fixtures();
+    const restaurantContext = normalizeCheckoutRequestContext({
+      requesterKind: "guest_capability",
+      actorSubject: "guest:restaurant-0123456789abcdef",
+      destinationId: "morro",
+      tenantId: "business-restaurant",
+    });
+    if (!restaurantContext) {
+      throw new Error("RESTAURANT_CONTEXT_FIXTURE_INVALID");
+    }
+
+    let businessAuthorizationCalls = 0;
+    let restaurantAuthorizationCalls = 0;
+    let restaurantApplicationCalls = 0;
+    const authorization: CheckoutHttpAuthorizationPort = {
+      authorizeCreate: () => {
+        businessAuthorizationCalls += 1;
+        return Promise.resolve({
+          allowed: false,
+          reason: "authentication_required",
+        });
+      },
+      authorizeRestaurantCreate: (_request, input) => {
+        restaurantAuthorizationCalls += 1;
+        expect(input).toEqual(restaurantHandoff());
+        return Promise.resolve({ allowed: true, context: restaurantContext });
+      },
+    };
+    const restaurantApplication = {
+      startCheckout: (input: RestaurantCheckoutApplicationRequest) => {
+        restaurantApplicationCalls += 1;
+        expect(input).toEqual(restaurantHandoff());
+        return Promise.resolve({
+          order: fixture.order,
+          payment: fixture.payment,
+          replayed: false,
+        });
+      },
+    };
+    const { transport, providerRequests, audits } = harness({
+      authorization,
+      restaurantApplication,
+    });
+
+    const result = await transport.handle(
+      createRequest({
+        body: restaurantHandoff(),
+        headers: {
+          "Idempotency-Key": "restaurant:rrv_http_guest_12345678",
+          "X-Checkout-Handoff-Token": "signed-restaurant-capability",
+          Origin: "https://morro.digital",
+        },
+      }),
+    );
+
+    expect(result.status).toBe(201);
+    expect(businessAuthorizationCalls).toBe(0);
+    expect(restaurantAuthorizationCalls).toBe(1);
+    expect(restaurantApplicationCalls).toBe(1);
+    expect(providerRequests).toHaveLength(1);
+    expect(providerRequests[0]?.metadata).toEqual({
+      destinationId: "morro",
+      orderId: fixture.order.id,
+      paymentId: fixture.payment.id,
+      sessionId: "rrv_http_guest_12345678",
+      tenantId: "business-restaurant",
+    });
+    expect(audits.at(-1)).toMatchObject({
+      action: "checkout.create",
+      result: "success",
+      reason: "restaurant:created",
+      tenantId: "business-restaurant",
     });
   });
 
