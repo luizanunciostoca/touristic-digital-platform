@@ -130,5 +130,8 @@ test("Ticketing action facts never correlate unbound inventory by legacy referen
     }),
     [],
   );
-  assert.equal(calls.filter(({ operation }) => operation === "inventory").length, 0);
+  assert.equal(
+    calls.filter(({ operation }) => operation === "inventory").length,
+    0,
+  );
 });
