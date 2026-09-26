@@ -272,7 +272,8 @@ export async function verifyLegacyCommercialDraftBackfill({ pool }) {
   }
 
   if (
-    summary.publicationMarkerPublishedCount !== summary.publishedRevisionCount ||
+    summary.publicationMarkerPublishedCount !==
+      summary.publishedRevisionCount ||
     summary.publicationMarkerPublishedCount +
       summary.publicationMarkerPendingCount !==
       summary.publicationMarkerCount ||
