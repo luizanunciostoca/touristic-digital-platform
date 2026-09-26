@@ -1,5 +1,9 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 import { morroV1SearchCatalog } from "@touristic/search";
+
+import type { LegacyCommercialPlaceMapping } from "./legacy-commercial-place-mapping.js";
 
 import { listAssistantV1PhotoCatalogEntries } from "../assistant/assistant-v1-photo-catalog.js";
 import {
@@ -7,7 +11,12 @@ import {
   proposedLegacyCommercialMapping,
   validateLegacyCommercialMappings,
 } from "./legacy-commercial-place-mapping.js";
-import { legacyCommercialPlaceMappings } from "./legacy-commercial-place-mappings.js";
+const legacyCommercialPlaceMappings = JSON.parse(
+  readFileSync(
+    new URL("./legacy-commercial-place-mappings.json", import.meta.url),
+    "utf8",
+  ),
+) as readonly LegacyCommercialPlaceMapping[];
 
 const COMMERCIAL = new Set(["restaurants", "hotels", "shops", "nightlife"]);
 

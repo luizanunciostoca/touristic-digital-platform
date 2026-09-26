@@ -298,7 +298,7 @@ function mergeLocation(place, input, actor, now) {
   });
 }
 
-async function applySchema(pool) {
+export async function applyPlacePlatformSchema(pool) {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS business_entities (
       id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
@@ -355,6 +355,28 @@ async function applySchema(pool) {
         published_latitude,
         published_longitude
       )
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS business_place_legacy_mappings (
+      source_system VARCHAR(80) COLLATE utf8mb4_bin NOT NULL,
+      source_key VARCHAR(320) COLLATE utf8mb4_bin NOT NULL,
+      business_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      place_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      destination_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      category_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+      created_at DATETIME(3) NOT NULL,
+      PRIMARY KEY (source_system, source_key),
+      UNIQUE KEY uq_business_place_legacy_mapping_place (place_id),
+      CONSTRAINT fk_business_place_legacy_mapping_business
+        FOREIGN KEY (business_id) REFERENCES business_entities(id)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+      CONSTRAINT fk_business_place_legacy_mapping_place
+        FOREIGN KEY (place_id) REFERENCES business_places(place_id)
+        ON UPDATE RESTRICT ON DELETE RESTRICT,
+      KEY idx_business_place_legacy_mapping_business (business_id),
+      KEY idx_business_place_legacy_mapping_destination (destination_id, category_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
 
@@ -746,7 +768,7 @@ export function createPlacePlatformRuntime({
         ),
         errorPrefix: "BUSINESS_DATABASE",
       });
-      await applySchema(pool);
+      await applyPlacePlatformSchema(pool);
       await applyCatalogSchema(pool);
       await applyMediaPublicationSnapshotSchema(pool);
       governanceRepository = createGovernanceRepository(pool);
