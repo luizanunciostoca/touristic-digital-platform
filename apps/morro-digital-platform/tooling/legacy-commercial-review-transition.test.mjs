@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { runLegacyCommercialReviewTransition } from
-  "./legacy-commercial-review-transition.mjs";
+import { runLegacyCommercialReviewTransition } from "./legacy-commercial-review-transition.mjs";
 
 function rows(state = "draft", revision = 3) {
   return Array.from({ length: 72 }, (_, index) => ({
@@ -71,13 +70,17 @@ describe("legacy commercial review transition", () => {
 
   it("applies review with exact revisions and verifies markers", async () => {
     const database = fakeDatabase(rows());
-    const transitionPublication = vi.fn(async (_actor, businessId, action, expectedRevision) => {
-      expect(action).toBe("review");
-      const row = database.state.rows.find((candidate) => candidate.business_id === businessId);
-      expect(expectedRevision).toBe(row.editable_revision);
-      row.publication_state = "review";
-      return { ok: true };
-    });
+    const transitionPublication = vi.fn(
+      async (_actor, businessId, action, expectedRevision) => {
+        expect(action).toBe("review");
+        const row = database.state.rows.find(
+          (candidate) => candidate.business_id === businessId,
+        );
+        expect(expectedRevision).toBe(row.editable_revision);
+        row.publication_state = "review";
+        return { ok: true };
+      },
+    );
     const runtime = {
       start: vi.fn(async () => true),
       stop: vi.fn(async () => {}),
