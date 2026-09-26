@@ -43,6 +43,8 @@ function dependencies(
 ): TicketingCommerceHttpTransportDependencies {
   const businessInventory = {
     listByBusiness: vi.fn().mockResolvedValue([]),
+    listCatalogBindings: vi.fn().mockResolvedValue([]),
+    bindCatalogOffer: vi.fn(),
     createForBusiness: vi.fn(),
     disableForBusiness: vi.fn(),
     ...businessInventoryOverrides,
@@ -270,5 +272,75 @@ describe("TicketingCommerceHttpTransport security boundary", () => {
     );
     expect(result.status).toBe(200);
     expect(listByBusiness).toHaveBeenCalledWith("business-a");
+  });
+
+  it("binds Ticketing inventory to a canonical Catalog Offer under tenant authority", async () => {
+    const bindCatalogOffer = vi.fn().mockResolvedValue({
+      inventoryId: "mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      businessId: "business-a",
+      offerId: "offer-a",
+    });
+    const transport = new TicketingCommerceHttpTransport(
+      dependencies(
+        {
+          authorize: vi.fn().mockResolvedValue({
+            allowed: true,
+            actor: {
+              subject: "user:business-a",
+              role: "editor",
+              businessIds: ["business-a"],
+            },
+          }),
+        },
+        { bindCatalogOffer },
+      ),
+    );
+    const result = await transport.handle(
+      request(
+        "/api/ticketing/v1/operator/businesses/business-a/inventory/mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/catalog-offer",
+        "POST",
+        {},
+        { offerId: "offer-a", productReference: "legacy:not-authority" },
+      ),
+    );
+
+    expect(result.status).toBe(200);
+    expect(bindCatalogOffer).toHaveBeenCalledWith({
+      businessId: "business-a",
+      inventoryId: "mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      offerId: "offer-a",
+      actorSubject: "user:business-a",
+      recordedAt: now,
+    });
+  });
+
+  it("does not execute a Catalog binding for a cross-tenant inventory route", async () => {
+    const bindCatalogOffer = vi.fn();
+    const transport = new TicketingCommerceHttpTransport(
+      dependencies(
+        {
+          authorize: vi.fn().mockResolvedValue({
+            allowed: true,
+            actor: {
+              subject: "user:business-a",
+              role: "editor",
+              businessIds: ["business-a"],
+            },
+          }),
+        },
+        { bindCatalogOffer },
+      ),
+    );
+    const result = await transport.handle(
+      request(
+        "/api/ticketing/v1/operator/businesses/business-b/inventory/mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/catalog-offer",
+        "POST",
+        {},
+        { offerId: "offer-a" },
+      ),
+    );
+
+    expect(result.status).toBe(404);
+    expect(bindCatalogOffer).not.toHaveBeenCalled();
   });
 });
