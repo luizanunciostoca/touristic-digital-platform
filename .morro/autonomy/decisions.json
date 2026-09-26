@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "decisions": [
+    {
+      "id": "DEC-20260926-001",
+      "decision": "Treat PR #357 as the canonical historical A-J composition baseline, but still require semantic file/test/runtime comparison before closing constituent stale PRs."
+    },
+    {
+      "id": "DEC-20260926-002",
+      "decision": "PR #347 publication governance is PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION because implementation, tests and architecture contract are byte-identical in current main."
+    },
+    {
+      "id": "DEC-20260926-003",
+      "decision": "PR #402 is superseded by broader #403 lifecycle behavior and #410 published-lifecycle verification."
+    },
+    {
+      "id": "DEC-20260926-004",
+      "decision": "PR #407 publication design is superseded by #408 canary -> #409 batch -> #410 lifecycle verifier. Its unrelated libxml2 Dockerfile delta must be classified separately before declaring that collateral change obsolete."
+    },
+    {
+      "id": "DEC-20260926-005",
+      "decision": "Never merge stale legacy heads directly. Port only proven residual semantics onto a fresh branch from current main."
+    },
+    {
+      "id": "DEC-20260926-006",
+      "decision": "Production remains prohibited until explicit operator authorization after final staging acceptance."
+    }
+  ]
+}
