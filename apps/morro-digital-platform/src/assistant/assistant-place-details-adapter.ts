@@ -203,9 +203,7 @@ function canonicalOpenNow(
     }
 
     const current = hour * 60 + minute;
-    const dayIndex = openingHours.days.findIndex(
-      (day) => day.day === weekday,
-    );
+    const dayIndex = openingHours.days.findIndex((day) => day.day === weekday);
     if (dayIndex < 0) return null;
 
     const currentDay = openingHours.days[dayIndex];
