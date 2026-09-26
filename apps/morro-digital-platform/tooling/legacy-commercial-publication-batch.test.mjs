@@ -39,7 +39,10 @@ function publicationMarker(row) {
   };
 }
 
-function fixture({ extraPendingMarker = false, unownedPublished = false } = {}) {
+function fixture({
+  extraPendingMarker = false,
+  unownedPublished = false,
+} = {}) {
   const stateRows = rows();
   if (unownedPublished) {
     stateRows[1].publication_state = "published";
@@ -101,13 +104,17 @@ describe("legacy commercial publication batch", () => {
 
   it("publishes all remaining review Places with durable markers", async () => {
     const { stateRows, pool } = fixture();
-    const transitionPublication = vi.fn(async (_actor, businessId, action, revision) => {
-      const row = stateRows.find((candidate) => candidate.business_id === businessId);
-      expect(action).toBe("publish");
-      expect(revision).toBe(3);
-      row.publication_state = "published";
-      row.published_revision = 3;
-    });
+    const transitionPublication = vi.fn(
+      async (_actor, businessId, action, revision) => {
+        const row = stateRows.find(
+          (candidate) => candidate.business_id === businessId,
+        );
+        expect(action).toBe("publish");
+        expect(revision).toBe(3);
+        row.publication_state = "published";
+        row.published_revision = 3;
+      },
+    );
     const runtime = {
       start: vi.fn(async () => true),
       stop: vi.fn(async () => {}),
@@ -135,7 +142,9 @@ describe("legacy commercial publication batch", () => {
   it("recovers from a marker-present pending review Place", async () => {
     const { stateRows, pool } = fixture({ extraPendingMarker: true });
     const transitionPublication = vi.fn(async (_actor, businessId) => {
-      const row = stateRows.find((candidate) => candidate.business_id === businessId);
+      const row = stateRows.find(
+        (candidate) => candidate.business_id === businessId,
+      );
       row.publication_state = "published";
       row.published_revision = 3;
     });
