@@ -77,6 +77,13 @@ const STEPS = Object.freeze([
       "--verify",
     ]),
   }),
+  Object.freeze({
+    name: "legacy-commercial-cutover-audit",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
+    ]),
+  }),
 ]);
 
 function runStep(step, spawnImpl = spawn) {
