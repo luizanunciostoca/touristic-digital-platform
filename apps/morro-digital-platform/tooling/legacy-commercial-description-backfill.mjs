@@ -214,6 +214,13 @@ export async function runLegacyCommercialDescriptionBackfill({
         throw new Error("LEGACY_DESCRIPTION_MIGRATION_MARKER_MISSING");
       }
 
+      if (
+        String(row.publication_state) !== "draft" ||
+        row.published_revision != null
+      ) {
+        throw new Error("LEGACY_DESCRIPTION_LATE_MIGRATION_DENIED");
+      }
+
       if (current && current !== target) continue;
 
       if (!current) {
