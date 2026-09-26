@@ -230,7 +230,9 @@ describe("assistant conversation orchestrator", () => {
     });
 
     expect(restored.snapshot().navigationHistory).toHaveLength(12);
-    expect(restored.snapshot().navigationHistory[0]?.destination).toBe("place-2");
+    expect(restored.snapshot().navigationHistory[0]?.destination).toBe(
+      "place-2",
+    );
     expect(rejected.snapshot().activeDestination).toBeNull();
     expect(rejected.snapshot().navigationHistory).toEqual([]);
   });
