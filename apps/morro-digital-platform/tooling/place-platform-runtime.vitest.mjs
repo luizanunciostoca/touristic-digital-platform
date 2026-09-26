@@ -19,11 +19,15 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
     if (sql.includes("FROM business_places WHERE business_id")) {
       return [row ? [row] : []];
     }
-    if (sql.includes("SELECT * FROM business_places WHERE place_id = ? LIMIT 1")) {
+    if (
+      sql.includes("SELECT * FROM business_places WHERE place_id = ? LIMIT 1")
+    ) {
       return [row ? [row] : []];
     }
     if (
-      sql.includes("SET publication_state = ?, updated_at = CURRENT_TIMESTAMP(3)") &&
+      sql.includes(
+        "SET publication_state = ?, updated_at = CURRENT_TIMESTAMP(3)",
+      ) &&
       row
     ) {
       row.publication_state = params[0];
