@@ -49,6 +49,7 @@ const [
   stagingDrillRunbook,
   stagingMysqlWait,
   stagingMysqlWrapper,
+  stagingPredeploy,
 ] = await Promise.all([
   text("render.yaml"),
   text("render.staging.yaml"),
@@ -61,6 +62,7 @@ const [
   text("docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md"),
   text("tooling/render/wait-for-staging-mysql.mjs"),
   text("tooling/render/with-staging-mysql-env.mjs"),
+  text("apps/morro-digital-platform/tooling/staging-predeploy.mjs"),
 ]);
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
@@ -187,13 +189,24 @@ requireText(staging, "staging blueprint", "branch: main");
 requireText(
   staging,
   "staging blueprint",
-  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/staging-predeploy.mjs",
 );
 requireText(
   staging,
   "staging blueprint",
   "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
 );
+for (const marker of [
+  '"MORRO-STAGING-PREDEPLOY"',
+  '"payments-migrate"',
+  '"legacy-commercial-draft-backfill"',
+  "legacy-commercial-place-backfill.mjs",
+  "--apply",
+  '"STAGING_PREDEPLOY_SERVICE_DENIED"',
+]) {
+  requireText(stagingPredeploy, "staging predeploy orchestrator", marker);
+}
+
 for (const marker of [
   "MORRO-STAGING-MYSQL-WAIT",
   "STAGING_MYSQL_WAIT_SERVICE_DENIED",

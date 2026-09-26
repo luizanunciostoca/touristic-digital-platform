@@ -146,12 +146,14 @@ O Card Payment Brick recebe somente `VITE_MERCADO_PAGO_PUBLIC_KEY`. O adapter de
 3. confirme que o web service está ligado ao repositório e ao ref aprovados para a campanha;
 4. dispare o deploy manual do web service;
 5. o build deve concluir;
-6. o pre-deploy executa `payments-migrate.mjs` através do wrapper de MySQL;
-7. só prossiga se aparecer `PAYMENTS-PREDEPLOY` v3 com `status: pass`;
-8. o runtime de subscriptions aplica M146 antes de marcar Payments ready e deve falhar fechado se schema/configuração estiver indisponível;
-9. aguarde `/readyz` ficar ready antes de executar acceptance.
+6. o pre-deploy executa `staging-predeploy.mjs` através do wrapper de MySQL;
+7. o orquestrador executa primeiro `payments-migrate.mjs` e aborta imediatamente se a migração falhar;
+8. em seguida executa `legacy-commercial-place-backfill.mjs --apply`, que cria ou reconcilia somente Business/Place drafts comerciais e a mapping table; nenhuma publicação é realizada;
+9. só prossiga se aparecerem `PAYMENTS-PREDEPLOY` v3 com `status: pass` e `MORRO-STAGING-PREDEPLOY` com `status: pass`;
+10. o runtime de subscriptions aplica M146 antes de marcar Payments ready e deve falhar fechado se schema/configuração estiver indisponível;
+11. aguarde `/readyz` ficar ready antes de executar acceptance.
 
-O pre-deploy aplica Ordering M151 + ticketing reservation e Financial M145. A evolução aditiva M146 do provider-subscription binding é aplicada pelo runtime de subscriptions antes de readiness. Qualquer falha aborta a promoção do novo deploy e mantém o último deploy saudável recebendo tráfego.
+O pre-deploy aplica Ordering M151 + ticketing reservation e Financial M145. Depois disso, o backfill comercial é idempotente e staging-only: cria Business/Place em `draft`, preserva os IDs explícitos do manifesto, registra `business_place_legacy_mappings` e nunca chama transição de publicação. Praias e atrações permanecem fora desse backfill. A evolução aditiva M146 do provider-subscription binding é aplicada pelo runtime de subscriptions antes de readiness. Qualquer falha aborta a promoção do novo deploy e mantém o último deploy saudável recebendo tráfego.
 
 ## Release identity e smoke
 
