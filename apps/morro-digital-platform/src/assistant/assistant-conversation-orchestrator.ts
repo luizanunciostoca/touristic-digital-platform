@@ -119,7 +119,7 @@ export interface AssistantConversationOrchestrator {
   observability(): ConversationObservabilitySnapshot;
 }
 
-function initialState(sessionId: string, now: number): ConversationStateSnapshot {
+function initialState(\n  sessionId: string,\n  now: number,\n): ConversationStateSnapshot {
   return Object.freeze({
     sessionId,
     previousAssistantMessage: null,
@@ -203,7 +203,10 @@ function nextState(
       : previous.mapContext,
     navigationHistory: input.navigationHistoryEntry
       ? Object.freeze(
-          [...previous.navigationHistory, input.navigationHistoryEntry].slice(-12),
+          [
+            ...previous.navigationHistory,
+            input.navigationHistoryEntry,
+          ].slice(-12),
         )
       : previous.navigationHistory,
     currentFilters: has("filters")
