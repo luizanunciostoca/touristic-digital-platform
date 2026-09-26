@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { assessLegacyCommercialCutover } from "./legacy-commercial-cutover-audit-core.mjs";
-import { runLegacyCommercialCutoverAudit } from "./legacy-commercial-cutover-audit.mjs";
+import {
+  legacyCommercialCutoverAuditErrorCode,
+  runLegacyCommercialCutoverAudit,
+} from "./legacy-commercial-cutover-audit.mjs";
 
 function fixtures() {
   const rows = Array.from({ length: 72 }, (_, index) => ({
@@ -87,6 +90,19 @@ function publish(row, mediaRow, state = "published") {
 }
 
 describe("legacy commercial cutover auditor", () => {
+  it("surfaces only safe deterministic failure codes", () => {
+    expect(
+      legacyCommercialCutoverAuditErrorCode(
+        new Error("LEGACY_CUTOVER_MEDIA_SNAPSHOT_INVALID"),
+      ),
+    ).toBe("LEGACY_CUTOVER_MEDIA_SNAPSHOT_INVALID");
+    expect(
+      legacyCommercialCutoverAuditErrorCode(
+        new Error("mysql://secret-user:secret-pass@example.invalid"),
+      ),
+    ).toBe("LEGACY_CUTOVER_AUDIT_FAILURE");
+  });
+
   it("accepts all 72 review candidates before publication", () => {
     const { rows, mediaRows } = fixtures();
     expect(assessLegacyCommercialCutover(rows, mediaRows)).toEqual({
