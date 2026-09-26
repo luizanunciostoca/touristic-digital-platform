@@ -91,13 +91,19 @@ function contentPool({ apply = false, existing = false } = {}) {
         return [[], []];
       }
       if (sql.includes("COUNT(*) AS total FROM place_media")) {
-        const entry = manifest.find((candidate) => candidate.placeId === params[0]);
-        return [[{ total: existing ? entry?.assets.length ?? 0 : 0 }], []];
+        const entry = manifest.find(
+          (candidate) => candidate.placeId === params[0],
+        );
+        return [[{ total: existing ? (entry?.assets.length ?? 0) : 0 }], []];
       }
       if (sql.includes("INNER JOIN media_assets")) {
         if (!existing) return [[], []];
-        const entry = manifest.find((candidate) => candidate.placeId === params[0]);
-        const asset = entry?.assets.find((candidate) => candidate.mediaId === params[1]);
+        const entry = manifest.find(
+          (candidate) => candidate.placeId === params[0],
+        );
+        const asset = entry?.assets.find(
+          (candidate) => candidate.mediaId === params[1],
+        );
         if (!entry || !asset) return [[], []];
         return [
           [
