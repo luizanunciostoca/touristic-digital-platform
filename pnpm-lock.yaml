@@ -140,6 +140,8 @@ importers:
 
   packages/content: {}
 
+  packages/commerce: {}
+
   packages/core: {}
 
   packages/crm:
