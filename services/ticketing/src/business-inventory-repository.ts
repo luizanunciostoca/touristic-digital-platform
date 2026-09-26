@@ -2,11 +2,18 @@ import { createHash } from "node:crypto";
 
 import type { Pool, PoolConnection, RowDataPacket } from "mysql2/promise";
 
+import {
+  normalizeTicketAdmissionProfile,
+  type TicketAdmissionProfile,
+} from "@touristic/ticketing/reservations";
+
 const BUSINESS_ID = /^[a-z0-9][a-z0-9_-]{0,119}$/u;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_-]{8,120}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const PRODUCT_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u;
 const CATALOG_OFFER_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
+
+export type MorroProAdmissionProfile = TicketAdmissionProfile;
 
 export interface MorroProInventoryOffer {
   readonly id: string;
@@ -25,6 +32,7 @@ export interface MorroProInventoryOffer {
   readonly startsAt: string;
   readonly endsAt: string;
   readonly enabled: boolean;
+  readonly admission?: MorroProAdmissionProfile;
 }
 
 export interface TicketingCatalogOfferBinding {
@@ -90,6 +98,11 @@ interface BusinessInventoryRow extends RowDataPacket {
   starts_at: Date | string;
   ends_at: Date | string;
   enabled: number | boolean;
+  admission_place_id: string | null;
+  admission_subtype: "sunset" | "event" | "party" | null;
+  admission_ticket_type: string | null;
+  admission_tier_label: string | null;
+  admission_display_order: number | null;
 }
 
 function iso(value: Date | string): string {
@@ -114,6 +127,19 @@ function record(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function normalizeAdmissionProfile(
+  value: unknown,
+  productKind: "tour" | "business_experience" | "transport",
+): MorroProAdmissionProfile | null {
+  if (value === undefined || value === null) return null;
+  if (productKind !== "business_experience") {
+    throw new Error("MORRO_PRO_ADMISSION_PRODUCT_KIND_INVALID");
+  }
+  const admission = normalizeTicketAdmissionProfile(value);
+  if (!admission) throw new Error("MORRO_PRO_ADMISSION_INVALID");
+  return admission;
 }
 
 function canonicalBusinessId(value: unknown): string {
@@ -155,6 +181,9 @@ function normalizeOffer(
     typeof value.pricingVersion === "string" && value.pricingVersion.trim()
       ? value.pricingVersion.trim().slice(0, 80)
       : "morro-pro-v1";
+  const admission = productKind
+    ? normalizeAdmissionProfile(value.admission, productKind)
+    : null;
   const unitAmountMinor = asSafeInteger(
     value.unitAmountMinor,
     1,
@@ -207,10 +236,34 @@ function normalizeOffer(
     salesEndAt,
     startsAt,
     endsAt,
+    ...(admission ? { admission } : {}),
   });
 }
 
 function fromRow(row: BusinessInventoryRow): MorroProInventoryOffer {
+  const admission =
+    row.admission_place_id &&
+    row.admission_subtype &&
+    row.admission_ticket_type &&
+    row.admission_display_order !== null
+      ? normalizeTicketAdmissionProfile({
+          placeId: row.admission_place_id,
+          subtype: row.admission_subtype,
+          ticketType: row.admission_ticket_type,
+          tierLabel: row.admission_tier_label,
+          displayOrder: row.admission_display_order,
+        })
+      : null;
+  if (
+    (row.admission_place_id ||
+      row.admission_subtype ||
+      row.admission_ticket_type ||
+      row.admission_tier_label ||
+      row.admission_display_order !== null) &&
+    !admission
+  ) {
+    throw new Error("MORRO_PRO_ADMISSION_PERSISTED_INVALID");
+  }
   return Object.freeze({
     id: row.inventory_id,
     businessId: row.business_id,
@@ -228,12 +281,23 @@ function fromRow(row: BusinessInventoryRow): MorroProInventoryOffer {
     startsAt: iso(row.starts_at),
     endsAt: iso(row.ends_at),
     enabled: Boolean(row.enabled),
+    ...(admission ? { admission } : {}),
   });
 }
 
-const SELECT_OWNED = `SELECT i.*, o.business_id
+const SELECT_OWNED = `SELECT
+    i.*,
+    o.business_id,
+    p.place_id AS admission_place_id,
+    p.admission_subtype AS admission_subtype,
+    p.ticket_type AS admission_ticket_type,
+    p.tier_label AS admission_tier_label,
+    p.display_order AS admission_display_order
   FROM ticketing_inventory AS i
-  INNER JOIN ticketing_inventory_ownership AS o ON o.inventory_id = i.inventory_id`;
+  INNER JOIN ticketing_inventory_ownership AS o
+    ON o.inventory_id = i.inventory_id
+  LEFT JOIN ticketing_admission_profiles AS p
+    ON p.inventory_id = i.inventory_id`;
 
 async function ownedById(
   connection: PoolConnection,
@@ -310,8 +374,8 @@ async function bindCatalogOfferWithConnection(
       businessId,
       offerId,
       input.actorSubject.trim(),
-      recordedAt,
-      recordedAt,
+      new Date(recordedAt),
+      new Date(recordedAt),
     ],
   );
   return Object.freeze({
@@ -440,20 +504,44 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
           offer.pricingVersion,
           offer.capacity,
           offer.maxPerReservation,
-          offer.salesStartAt,
-          offer.salesEndAt,
-          offer.startsAt,
-          offer.endsAt,
-          recordedAt,
-          recordedAt,
+          new Date(offer.salesStartAt),
+          new Date(offer.salesEndAt),
+          new Date(offer.startsAt),
+          new Date(offer.endsAt),
+          new Date(recordedAt),
+          new Date(recordedAt),
         ],
       );
       await connection.execute(
         `INSERT INTO ticketing_inventory_ownership (
           inventory_id, business_id, created_by, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?)`,
-        [inventoryId, businessId, input.actorSubject, recordedAt, recordedAt],
+        [
+          inventoryId,
+          businessId,
+          input.actorSubject,
+          new Date(recordedAt),
+          new Date(recordedAt),
+        ],
       );
+      if (offer.admission) {
+        await connection.execute(
+          `INSERT INTO ticketing_admission_profiles (
+            inventory_id, place_id, admission_subtype, ticket_type,
+            tier_label, display_order, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            inventoryId,
+            offer.admission.placeId,
+            offer.admission.subtype,
+            offer.admission.ticketType,
+            offer.admission.tierLabel,
+            offer.admission.displayOrder,
+            new Date(recordedAt),
+            new Date(recordedAt),
+          ],
+        );
+      }
       const offerRecord = record(input.offer);
       const boundOfferId = canonicalOfferId(offerRecord?.canonicalOfferId);
       if (offerRecord?.canonicalOfferId !== undefined && !boundOfferId) {
@@ -502,7 +590,7 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
       }
       await connection.execute(
         "UPDATE ticketing_inventory SET enabled = FALSE, updated_at = ? WHERE inventory_id = ?",
-        [recordedAt, input.inventoryId],
+        [new Date(recordedAt), input.inventoryId],
       );
       const disabled = await ownedById(connection, input.inventoryId);
       await connection.commit();

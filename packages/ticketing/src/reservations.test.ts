@@ -58,6 +58,36 @@ function heldReservation() {
 }
 
 describe("ticket reservation contracts", () => {
+  it("normalizes Admission presentation metadata only for business experiences", () => {
+    const profile = {
+      placeId: "place_toca_do_morcego",
+      subtype: "party",
+      ticketType: "Pista",
+      tierLabel: "1º lote",
+      displayOrder: 10,
+    } as const;
+    const admission = createTicketInventoryOffer({
+      ...inventory(),
+      admission: profile,
+    });
+    expect(admission?.admission).toEqual(profile);
+
+    expect(
+      createTicketInventoryOffer({
+        ...inventory(),
+        product: { kind: "transport", reference: "catamaran-transfer" },
+        admission: profile,
+      }),
+    ).toBeNull();
+
+    expect(
+      createTicketInventoryOffer({
+        ...inventory(),
+        admission: { ...profile, displayOrder: 1000 },
+      }),
+    ).toBeNull();
+  });
+
   it("accepts transport as a first-class inventory product kind", () => {
     const offer = createTicketInventoryOffer({
       id: "tin_transport_20260919",
@@ -106,6 +136,25 @@ describe("ticket reservation contracts", () => {
       sellable: true,
       observedAt: "2026-08-16T18:00:00.000Z",
     });
+  });
+
+  it("accepts Morro Pro mpi inventory IDs without rewriting canonical identity", () => {
+    const inventoryId = "mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const key = createTicketReservationRequestKey(
+      inventoryId,
+      "browser_attempt_mpi_0001",
+    );
+
+    expect(key).toBe(
+      "ticketing:mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:browser_attempt_mpi_0001",
+    );
+    expect(reservationRequestKeyMatchesInventory(key, inventoryId)).toBe(true);
+    expect(
+      createTicketInventoryOffer({
+        ...inventory(),
+        id: inventoryId,
+      })?.id,
+    ).toBe(inventoryId);
   });
 
   it("binds idempotency keys to one inventory pool", () => {
