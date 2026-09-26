@@ -12,6 +12,7 @@ const databaseDomains = Object.freeze([
   ["AFFILIATES", "AFFILIATES_DATABASE_URL"],
   ["BUSINESS", "BUSINESS_DATABASE_URL"],
   ["CONTENT", "CONTENT_DATABASE_URL"],
+  ["COMMERCE", "COMMERCE_DATABASE_URL"],
   ["DESTINATIONS", "DESTINATIONS_DATABASE_URL"],
 ]);
 const providerAcceptanceRunner = fileURLToPath(

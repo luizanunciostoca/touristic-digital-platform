@@ -34,6 +34,9 @@ function fixture(overrides = {}) {
     STAGING_CONTENT_DATABASE_NAME: "morro_content_staging",
     STAGING_CONTENT_DATABASE_USER: "morro_content",
     STAGING_CONTENT_DATABASE_PASSWORD: "content+/=safe-password",
+    STAGING_COMMERCE_DATABASE_NAME: "morro_commerce_staging",
+    STAGING_COMMERCE_DATABASE_USER: "morro_commerce",
+    STAGING_COMMERCE_DATABASE_PASSWORD: "commerce+/=safe-password",
     STAGING_DESTINATIONS_DATABASE_NAME: "morro_destinations_staging",
     STAGING_DESTINATIONS_DATABASE_USER: "morro_destinations",
     STAGING_DESTINATIONS_DATABASE_PASSWORD: "destinations+/=safe-password",
@@ -68,6 +71,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
     "AFFILIATES_DATABASE_URL",
     "AUTH_DATABASE_URL",
     "BUSINESS_DATABASE_URL",
+    "COMMERCE_DATABASE_URL",
     "CONTENT_DATABASE_URL",
     "CONTROL_CENTER_AUDIT_DATABASE_URL",
     "DESTINATIONS_DATABASE_URL",
@@ -90,7 +94,15 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   const names = Object.values(derived).map((value) =>
     new URL(value).pathname.slice(1),
   );
-  assert.equal(new Set(names).size, 7);
+  assert.equal(new Set(names).size, 8);
+
+  const commerce = new URL(derived.COMMERCE_DATABASE_URL);
+  assert.equal(decodeURIComponent(commerce.username), "morro_commerce");
+  assert.equal(
+    decodeURIComponent(commerce.password),
+    "commerce+/=safe-password",
+  );
+  assert.equal(commerce.pathname, "/morro_commerce_staging");
 });
 
 test("rejects non-private-host hostport shapes", () => {
@@ -533,24 +545,25 @@ test("reconciles all staging schemas without exposing credentials", async () => 
     "affiliates",
     "business",
     "content",
+    "commerce",
     "destinations",
   ]);
   assert.equal(ended, true);
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE DATABASE")).length,
-    7,
+    8,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE USER")).length,
-    7,
+    8,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("ALTER USER")).length,
-    7,
+    8,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("GRANT ALL PRIVILEGES")).length,
-    7,
+    8,
   );
   assert.equal(queries.at(-1)?.[0], "FLUSH PRIVILEGES");
   assert.equal(JSON.stringify(queries).includes("root-secret"), false);

@@ -7,6 +7,7 @@ export const stagingDatabaseDomains = Object.freeze([
   "AFFILIATES",
   "BUSINESS",
   "CONTENT",
+  "COMMERCE",
   "DESTINATIONS",
 ]);
 
