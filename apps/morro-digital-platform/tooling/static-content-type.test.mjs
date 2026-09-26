@@ -1,9 +1,10 @@
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { resolveStaticContentType } from "./static-content-type.mjs";
 
-const root = resolve(process.cwd());
+const root = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 
 describe("static content type", () => {
   it("detects WebP bytes even when the frozen V1 filename ends in .jpg", async () => {

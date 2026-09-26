@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-const root = resolve(process.cwd());
+const root = resolve(fileURLToPath(new URL("../../../", import.meta.url)));
 const mappings = JSON.parse(
   await readFile(
     resolve(
