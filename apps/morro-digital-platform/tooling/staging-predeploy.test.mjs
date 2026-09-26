@@ -50,6 +50,7 @@ describe("staging predeploy", () => {
     ]);
     expect(calls[6]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+      "--verify",
     ]);
     expect(calls[7]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",

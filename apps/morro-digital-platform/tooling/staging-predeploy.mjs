@@ -51,6 +51,7 @@ const STEPS = Object.freeze([
     command: process.execPath,
     args: Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+      "--verify",
     ]),
   }),
   Object.freeze({

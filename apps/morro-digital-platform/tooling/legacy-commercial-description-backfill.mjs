@@ -17,7 +17,8 @@ async function loadMysqlClient() {
 }
 
 async function loadPlacePlatformRuntime() {
-  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url).href;
+  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url)
+    .href;
   const module = await import(/* @vite-ignore */ moduleUrl);
   return module.createPlacePlatformRuntime;
 }
@@ -129,7 +130,9 @@ export async function runLegacyCommercialDescriptionBackfill({
   runtimeFactory,
   runtimeLoader = loadPlacePlatformRuntime,
 } = {}) {
-  if (String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE) {
+  if (
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
+  ) {
     throw new Error("LEGACY_DESCRIPTION_BACKFILL_SERVICE_DENIED");
   }
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
