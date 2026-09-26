@@ -1063,8 +1063,9 @@ export function createPaymentsApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
+      const commerceServerSpecifier = "@touristic/commerce-server";
       const commerceRuntime = environment.COMMERCE_DATABASE_URL
-        ? await import("@touristic/commerce-server")
+        ? await import(commerceServerSpecifier)
         : null;
       const commercePool = commerceRuntime
         ? commerceRuntime.createCommerceMySqlPoolFromEnvironment({
