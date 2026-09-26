@@ -14,15 +14,19 @@ const mappings = JSON.parse(
     "utf8",
   ),
 );
-const mediaMappings = JSON.parse(
+const mediaMappings = (
   await readFile(
     resolve(
       root,
-      "apps/morro-digital-platform/src/migration/legacy-commercial-media-mappings.json",
+      "apps/morro-digital-platform/src/migration/legacy-commercial-media-mappings.ndjson",
     ),
     "utf8",
-  ),
-);
+  )
+)
+  .split(/\r?\n/u)
+  .map((line) => line.trim())
+  .filter(Boolean)
+  .map((line) => JSON.parse(line));
 
 function imageMetadata(bytes) {
   if (
