@@ -21,7 +21,11 @@ const manifest = (
   .map((line) => JSON.parse(line));
 const byKey = new Map(manifest.map((entry) => [entry.sourceKey, entry]));
 
-function businessPool({ publicationState = "draft", missing = false } = {}) {
+function businessPool({
+  publicationState = "draft",
+  publishedRevision = null,
+  missing = false,
+} = {}) {
   return {
     execute: vi.fn(async (_sql, params) => {
       const entry = byKey.get(params[1]);
@@ -34,7 +38,7 @@ function businessPool({ publicationState = "draft", missing = false } = {}) {
             destination_id: entry.destinationId,
             category_id: "unused",
             publication_state: publicationState,
-            published_revision: null,
+            published_revision: publishedRevision,
           },
         ],
         [],
@@ -190,14 +194,98 @@ describe("legacy commercial media backfill", () => {
     ).rejects.toThrow(/LEGACY_MEDIA_MIGRATION_MATERIAL_DRIFT/u);
   });
 
-  it("fails closed when any canonical Place is not draft-only", async () => {
+  it("allows review state while an unmigrated Place is still unpublished", async () => {
+    const result = await executeLegacyCommercialMediaBackfill({
+      businessPool: businessPool({ publicationState: "review" }),
+      contentPool: contentPool(),
+      manifest,
+    });
+
+    expect(result.wouldCreateAssets).toBe(18);
+    expect(result.wouldRecordNoImage).toBe(66);
+  });
+
+  it("fails closed when a new media migration is attempted after publication", async () => {
     await expect(
       executeLegacyCommercialMediaBackfill({
-        businessPool: businessPool({ publicationState: "published" }),
+        businessPool: businessPool({
+          publicationState: "published",
+          publishedRevision: 1,
+        }),
         contentPool: contentPool(),
         manifest,
       }),
-    ).rejects.toThrow(/LEGACY_MEDIA_PLACE_NOT_DRAFT/u);
+    ).rejects.toThrow(/LEGACY_MEDIA_PLACE_NOT_BACKFILL_ELIGIBLE/u);
+  });
+
+  it("keeps all existing media migrations verifiable after publication", async () => {
+    const byPlace = new Map(manifest.map((entry) => [entry.placeId, entry]));
+    const content = {
+      execute: vi.fn(async (sql, params) => {
+        if (sql.includes("FROM legacy_place_media_migrations")) {
+          const entry = byKey.get(params[1]);
+          if (!entry) return [[], []];
+          return [
+            [
+              {
+                business_id: entry.businessId,
+                place_id: entry.placeId,
+                disposition: entry.disposition,
+                asset_count: entry.assets.length,
+                manifest_digest: createHash("sha256")
+                  .update(JSON.stringify(entry))
+                  .digest("hex"),
+              },
+            ],
+            [],
+          ];
+        }
+        if (sql.includes("COUNT(*) AS total FROM place_media")) {
+          const entry = byPlace.get(params[0]);
+          return [[{ total: entry?.assets.length ?? 0 }], []];
+        }
+        if (sql.includes("INNER JOIN media_assets")) {
+          const entry = byPlace.get(params[0]);
+          const asset = entry?.assets.find(
+            (candidate) => candidate.mediaId === params[1],
+          );
+          if (!entry || !asset) return [[], []];
+          return [
+            [
+              {
+                role: asset.role,
+                sort_order: asset.sortOrder,
+                business_id: entry.businessId,
+                provider: asset.provider,
+                provider_reference: asset.providerReference,
+                mime_type: asset.mimeType,
+                width: asset.width,
+                height: asset.height,
+                byte_size: asset.byteSize,
+                checksum_sha256: asset.checksumSha256,
+                alt_text: asset.alt,
+                publication_state: asset.publicationState,
+              },
+            ],
+            [],
+          ];
+        }
+        return [[], []];
+      }),
+    };
+
+    const result = await executeLegacyCommercialMediaBackfill({
+      businessPool: businessPool({
+        publicationState: "published",
+        publishedRevision: 1,
+      }),
+      contentPool: content,
+      manifest,
+    });
+
+    expect(result.existingMigrations).toBe(72);
+    expect(result.wouldCreateAssets).toBe(0);
+    expect(result.wouldRecordNoImage).toBe(0);
   });
 
   it("denies CLI execution outside canonical staging", async () => {
