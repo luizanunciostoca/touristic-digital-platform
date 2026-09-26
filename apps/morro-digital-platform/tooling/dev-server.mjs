@@ -24,6 +24,7 @@ import {
   mapOpenMeteoWeatherPayload,
   mapVisualCrossingWeatherPayload,
 } from "./weather-provider-mappers.mjs";
+import { resolveStaticContentType } from "./static-content-type.mjs";
 import { rewriteWorkspaceModuleSpecifiers } from "./workspace-browser-modules.mjs";
 
 const repositoryRoot = resolve(
@@ -79,20 +80,6 @@ const runtimeEnvironmentKeys = Object.freeze([
 
 let weatherCache = null;
 let weatherRequestInFlight = null;
-
-const contentTypes = Object.freeze({
-  ".css": "text/css; charset=utf-8",
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".map": "application/json; charset=utf-8",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".svg": "image/svg+xml",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-});
 
 const publicCrmDocuments = Object.freeze([
   {
@@ -739,7 +726,7 @@ const server = createServer(async (request, response) => {
     response.statusCode = 200;
     response.setHeader(
       "Content-Type",
-      contentTypes[extname(filePath)] || "application/octet-stream",
+      await resolveStaticContentType(filePath),
     );
     if (requestUrl.pathname === "/service-worker.js") {
       response.setHeader("Cache-Control", "no-cache");
