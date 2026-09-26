@@ -6,10 +6,16 @@ import {
   isReadOnlyAuthRole,
 } from "@touristic/auth";
 import {
+  MySqlRestaurantReservationRepository,
+  applyCommerceRestaurantReservationSchema,
+  createCommerceMySqlPoolFromEnvironment,
+} from "@touristic/commerce-server";
+import {
   createProviderNeutralCheckoutApplicationService,
   normalizeBusinessCheckoutHandoff,
   normalizeOrderId,
 } from "@touristic/ordering";
+import { createRestaurantCheckoutApplicationService } from "@touristic/ordering/restaurant-checkout";
 import { createTicketingCheckoutApplicationService } from "@touristic/ordering/ticketing-checkout";
 import {
   normalizePaymentId,
@@ -44,8 +50,10 @@ import {
   CheckoutHttpTransport,
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlRestaurantReservationOrderBindingRepository,
   MySqlTicketingOrderBindingRepository,
   applyOrderingM151Schema,
+  applyOrderingRestaurantReservationSchema,
   applyOrderingTicketingReservationSchema,
   createCheckoutHandoffCapability,
   createCheckoutReturnUrlPolicyFromEnvironment,
@@ -58,6 +66,7 @@ import {
   normalizeCheckoutRequestContext,
   systemCheckoutClock,
   verifyCheckoutHandoffCapability,
+  verifyRestaurantCheckoutHandoffCapability,
   verifyTicketingCheckoutHandoffCapability,
 } from "@touristic/ordering-server";
 
@@ -154,6 +163,7 @@ function collectEnvironment(getEnvironmentValue) {
     "NODE_ENV",
     "ORDERING_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
+    "COMMERCE_DATABASE_URL",
     "ORDERING_PRICING_CATALOG_JSON",
     "PAYMENTS_STATUS_TOKEN_SECRET",
     "PAYMENTS_HANDOFF_SECRET",
@@ -645,6 +655,88 @@ export function createPaymentsCheckoutAuthorizationPort({
       }
       return Object.freeze({ allowed: true, context });
     },
+    async authorizeRestaurantCreate(request, handoff) {
+      const token = header(request, "x-checkout-handoff-token");
+      const context = token
+        ? verifyRestaurantCheckoutHandoffCapability(
+            token,
+            handoff,
+            handoffSecret,
+          )
+        : null;
+
+      if (
+        context?.requesterKind === "guest_capability" &&
+        context.destinationId === destinationId &&
+        context.tenantId
+      ) {
+        if (!browserOriginAllowed(request, origins, production)) {
+          return Object.freeze({
+            allowed: false,
+            reason: "cross_origin_request",
+          });
+        }
+        return Object.freeze({ allowed: true, context });
+      }
+
+      const active = await authApi.resolveSession(request);
+      if (!active) {
+        return Object.freeze({
+          allowed: false,
+          reason: token
+            ? "invalid_guest_capability"
+            : "authentication_required",
+        });
+      }
+      if (isReadOnlyAuthRole(active.role)) {
+        return Object.freeze({ allowed: false, reason: "read_only_role" });
+      }
+      const mutation = authApi.authorizeMutation(
+        request,
+        active,
+        "checkout.create",
+      );
+      if (!mutation.allowed) {
+        return Object.freeze({
+          allowed: false,
+          reason:
+            mutation.reason === "invalid_csrf"
+              ? "invalid_csrf"
+              : "cross_origin_request",
+        });
+      }
+      if (
+        !context ||
+        context.requesterKind !== "authenticated" ||
+        context.actorSubject !== active.subject ||
+        context.destinationId !== destinationId ||
+        !context.tenantId
+      ) {
+        return Object.freeze({
+          allowed: false,
+          reason: "invalid_guest_capability",
+        });
+      }
+      const businessAccess = authorizeBusinessAccess(active, context.tenantId, {
+        mutation: true,
+      });
+      if (!businessAccess.allowed || !businessAccess.businessId) {
+        return Object.freeze({
+          allowed: false,
+          reason:
+            businessAccess.reason === "read_only_role"
+              ? "read_only_role"
+              : "business_access_denied",
+        });
+      }
+      if (!browserOriginAllowed(request, origins, production)) {
+        return Object.freeze({
+          allowed: false,
+          reason: "cross_origin_request",
+        });
+      }
+      return Object.freeze({ allowed: true, context });
+    },
   });
 }
 
@@ -784,6 +876,7 @@ const safeCheckoutProviderFailureReasons = Object.freeze({
 export function createOrderConfirmingVerifiedPaymentOutcomeService({
   outcomes,
   orders,
+  restaurantFulfillment = null,
   clock = systemCheckoutClock,
 }) {
   if (!outcomes || typeof outcomes.apply !== "function") {
@@ -829,40 +922,51 @@ export function createOrderConfirmingVerifiedPaymentOutcomeService({
       if (!order) {
         throw new Error("PAYMENTS_VERIFIED_ORDER_NOT_FOUND");
       }
-      if (order.status === "payment_confirmed") {
-        return outcome;
-      }
-      if (order.status !== "pending_payment") {
-        throw new Error("PAYMENTS_VERIFIED_ORDER_STATUS_CONFLICT");
-      }
-
-      const currentMs = Date.parse(order.updatedAt);
-      const recordedMs = Date.parse(result.recordedAt);
-      const clockMs = Date.parse(clock.now());
-      if (
-        !Number.isFinite(currentMs) ||
-        !Number.isFinite(recordedMs) ||
-        !Number.isFinite(clockMs)
-      ) {
-        throw new Error("PAYMENTS_VERIFIED_ORDER_CLOCK_INVALID");
-      }
-      const updatedAt = new Date(
-        Math.max(currentMs + 1, recordedMs, clockMs),
-      ).toISOString();
-      const confirmedOrder = Object.freeze({
-        ...order,
-        status: "payment_confirmed",
-        updatedAt,
-      });
-
-      try {
-        await orders.save(confirmedOrder);
-      } catch (error) {
-        const latest = await orders.findById(orderId);
-        if (latest?.status === "payment_confirmed") {
-          return outcome;
+      let confirmedOrder = order;
+      if (order.status !== "payment_confirmed") {
+        if (order.status !== "pending_payment") {
+          throw new Error("PAYMENTS_VERIFIED_ORDER_STATUS_CONFLICT");
         }
-        throw error;
+
+        const currentMs = Date.parse(order.updatedAt);
+        const recordedMs = Date.parse(result.recordedAt);
+        const clockMs = Date.parse(clock.now());
+        if (
+          !Number.isFinite(currentMs) ||
+          !Number.isFinite(recordedMs) ||
+          !Number.isFinite(clockMs)
+        ) {
+          throw new Error("PAYMENTS_VERIFIED_ORDER_CLOCK_INVALID");
+        }
+        const updatedAt = new Date(
+          Math.max(currentMs + 1, recordedMs, clockMs),
+        ).toISOString();
+        const proposed = Object.freeze({
+          ...order,
+          status: "payment_confirmed",
+          updatedAt,
+        });
+
+        try {
+          confirmedOrder = await orders.save(proposed);
+        } catch (error) {
+          const latest = await orders.findById(orderId);
+          if (latest?.status !== "payment_confirmed") {
+            throw error;
+          }
+          confirmedOrder = latest;
+        }
+      }
+
+      if (
+        confirmedOrder.source.kind === "restaurant_reservation" &&
+        restaurantFulfillment?.handle
+      ) {
+        await restaurantFulfillment.handle({
+          order: confirmedOrder,
+          payment,
+          result,
+        });
       }
       return outcome;
     },
@@ -964,13 +1068,23 @@ export function createPaymentsApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
+      const commercePool = environment.COMMERCE_DATABASE_URL
+        ? createCommerceMySqlPoolFromEnvironment({
+            COMMERCE_DATABASE_URL: environment.COMMERCE_DATABASE_URL,
+          })
+        : null;
+      if (commercePool) pools.push(commercePool);
       startupStage = "DATABASE_SCHEMA";
       await Promise.all([
         (async () => {
           await applyOrderingM151Schema(orderingPool);
           await applyOrderingTicketingReservationSchema(orderingPool);
+          await applyOrderingRestaurantReservationSchema(orderingPool);
         })(),
         applyFinancialM145Schema(financialPool),
+        ...(commercePool
+          ? [applyCommerceRestaurantReservationSchema(commercePool)]
+          : []),
       ]);
 
       startupStage = "APPLICATION";
@@ -981,6 +1095,11 @@ export function createPaymentsApi({
       );
       const ledger = new MySqlLedgerTransactionRepository(financialPool);
       const checkoutAccess = new MySqlCheckoutAccessRepository(orderingPool);
+      const restaurantBindings =
+        new MySqlRestaurantReservationOrderBindingRepository(orderingPool);
+      const restaurantReservations = commercePool
+        ? new MySqlRestaurantReservationRepository(commercePool)
+        : null;
       const paymentIdempotency = new MySqlPaymentIdempotencyPort(financialPool);
       const identities = createNodeCheckoutIdentityPort();
       const rateLimits = createInMemoryCheckoutRateLimitPort();
@@ -992,6 +1111,33 @@ export function createPaymentsApi({
       const outcomes = createOrderConfirmingVerifiedPaymentOutcomeService({
         outcomes: financialOutcomes,
         orders,
+        restaurantFulfillment: restaurantReservations
+          ? {
+              async handle({ order, payment, result }) {
+                const binding = await restaurantBindings.findByOrderId(
+                  order.id,
+                );
+                if (
+                  !binding ||
+                  binding.reservationReference !== order.source.reference ||
+                  result.orderReference !== order.id ||
+                  result.paymentId !== payment.id
+                ) {
+                  throw new Error(
+                    "PAYMENTS_RESTAURANT_VERIFIED_BINDING_CONFLICT",
+                  );
+                }
+                await restaurantReservations.confirmFromVerifiedPayment({
+                  reservationId: binding.reservationReference,
+                  businessId: binding.businessId,
+                  orderId: order.id,
+                  paymentId: payment.id,
+                  confirmedAt: result.recordedAt,
+                  actorReference: "financial_verified_outcome",
+                });
+              },
+            }
+          : null,
         clock: systemCheckoutClock,
       });
       const accounting = createVerifiedPaymentAccountingService({
@@ -1013,6 +1159,15 @@ export function createPaymentsApi({
         paymentIdempotency,
         identities,
       });
+      const restaurantApplication = restaurantReservations
+        ? createRestaurantCheckoutApplicationService({
+            orders,
+            bindings: restaurantBindings,
+            payments,
+            paymentIdempotency,
+            identities,
+          })
+        : null;
       const origins = allowedOrigins(environment.PAYMENTS_RETURN_URL_ORIGINS);
       const authorityBootstrapTransport =
         createPaymentsCheckoutAuthorityBootstrap({
@@ -1027,6 +1182,7 @@ export function createPaymentsApi({
       const transport = new CheckoutHttpTransport({
         application,
         ticketingApplication,
+        ...(restaurantApplication ? { restaurantApplication } : {}),
         orders,
         payments,
         paymentResults,
