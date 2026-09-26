@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { runLegacyCommercialPublicationCanary } from "./legacy-commercial-publication-canary.mjs";
 
-function fixture({ state = "review", publishedRevision = null, marker = null } = {}) {
+function fixture({
+  state = "review",
+  publishedRevision = null,
+  marker = null,
+} = {}) {
   const row = {
     source_system: "morro-v1-search-catalog",
     source_key: "nightlife:toca-do-morcego:-13.3766787:-38.9172057",
