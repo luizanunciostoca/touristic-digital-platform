@@ -53,7 +53,11 @@ function timestamp(value: Date | string): string {
 }
 
 function normalizeSourceKind(value: string): OrderSourceKind {
-  if (value === "business_onboarding" || value === "ticketing_reservation") {
+  if (
+    value === "business_onboarding" ||
+    value === "ticketing_reservation" ||
+    value === "restaurant_reservation"
+  ) {
     return value;
   }
   throw new Error("ORDERING_INVALID_PERSISTED_ORDER");
