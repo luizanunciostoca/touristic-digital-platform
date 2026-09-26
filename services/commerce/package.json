@@ -1,0 +1,24 @@
+{
+  "name": "@touristic/commerce-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@touristic/commerce": "workspace:*",
+    "mysql2": "^3.14.5"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "node": "./dist/index.js",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "pnpm --filter @touristic/commerce build && tsc -p tsconfig.json",
+    "lint": "eslint src",
+    "test": "pnpm --filter @touristic/commerce build && vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:integration": "pnpm --filter @touristic/commerce build && vitest run src/restaurant-reservation-mysql-integration.test.ts"
+  }
+}
