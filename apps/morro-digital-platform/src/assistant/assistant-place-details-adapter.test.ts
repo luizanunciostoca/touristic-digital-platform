@@ -2,38 +2,253 @@ import { describe, expect, it, vi } from "vitest";
 
 import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 
-describe("assistant Mapbox place details adapter", () => {
-  it("uses the curated V1 destination as query and proximity", async () => {
+function fetchInputUrl(input: RequestInfo | URL): string {
+  if (typeof input === "string") return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+}
+
+function mapboxResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      features: [
+        {
+          geometry: { coordinates: [-38.91, -13.38] },
+          properties: {
+            mapbox_id: "poi.far",
+            full_address: "Resultado distante",
+            poi_category: ["bar"],
+          },
+        },
+        {
+          geometry: { coordinates: [-38.9118443, -13.3800508] },
+          properties: {
+            mapbox_id: "poi.segunda-praia",
+            full_address: "Segunda Praia, Morro de São Paulo",
+            poi_category: ["beach"],
+            metadata: {
+              open_hours: { open_now: true },
+              phone: "+55 75 99999-0000",
+              website: "https://example.com/segunda-praia",
+            },
+          },
+        },
+      ],
+    }),
+    { status: 200, headers: { "Content-Type": "application/json" } },
+  );
+}
+
+describe("assistant place details adapter", () => {
+  it("prefers canonical published Place details and never calls Mapbox", async () => {
     const fetchImplementation = vi.fn<typeof globalThis.fetch>(
-      async () =>
-        new Response(
-          JSON.stringify({
-            features: [
-              {
-                geometry: { coordinates: [-38.91, -13.38] },
-                properties: {
-                  mapbox_id: "poi.far",
-                  full_address: "Resultado distante",
-                  poi_category: ["bar"],
+      async (input) => {
+        const url = fetchInputUrl(input);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: "place-toca-do-morcego",
+                  name: "Toca do Morcego",
+                  category: "nightlife",
+                  lat: -13.377,
+                  lng: -38.917,
+                  presentation: { markerKey: "nightlife", priority: 10 },
                 },
-              },
-              {
-                geometry: { coordinates: [-38.9118443, -13.3800508] },
-                properties: {
-                  mapbox_id: "poi.segunda-praia",
-                  full_address: "Segunda Praia, Morro de São Paulo",
-                  poi_category: ["beach"],
-                  metadata: {
-                    open_hours: { open_now: true },
-                    phone: "+55 75 99999-0000",
-                    website: "https://example.com/segunda-praia",
-                  },
+              ],
+              nextCursor: null,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.startsWith("/api/places/v1/place-toca-do-morcego?")) {
+          return new Response(
+            JSON.stringify({
+              profile: {
+                id: "place-toca-do-morcego",
+                destinationId: "morro-de-sao-paulo",
+                name: "Toca do Morcego",
+                slug: "toca-do-morcego",
+                categoryId: "nightlife",
+                subcategoryIds: [],
+                shortDescription: "Vida noturna em Morro de São Paulo.",
+                description: "Vida noturna em Morro de São Paulo.",
+                location: {
+                  latitude: -13.377,
+                  longitude: -38.917,
+                  address: "Morro de São Paulo",
+                  area: "Centro",
                 },
+                contact: {
+                  phone: "+55 75 99999-1111",
+                  whatsapp: null,
+                  email: null,
+                  website: "https://example.com/toca",
+                },
+                openingHours: null,
+                amenities: [],
+                tags: [],
+                capabilities: ["directions", "photos"],
               },
-            ],
-          }),
-          { status: 200, headers: { "Content-Type": "application/json" } },
-        ),
+              media: null,
+              commerce: null,
+              actions: {
+                placeId: "place-toca-do-morcego",
+                businessId: "toca-do-morcego",
+                destinationId: "morro-de-sao-paulo",
+                primaryAction: null,
+                secondaryActions: [],
+              },
+              partial: {
+                media: "unavailable",
+                commerce: "ready",
+                actions: "ready",
+              },
+              revision: { id: "place-toca-do-morcego:r3", number: 3 },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        throw new Error(`unexpected external request: ${url}`);
+      },
+    );
+
+    await expect(
+      fetchAssistantPlaceDetails("Toca do Morcego", {
+        accessToken: "pk.test",
+        fetch: fetchImplementation,
+      }),
+    ).resolves.toEqual({
+      name: "Toca do Morcego",
+      address: "Morro de São Paulo",
+      category: "Vida Noturna",
+      openNow: null,
+      phone: "+55 75 99999-1111",
+      website: "https://example.com/toca",
+      mapboxId: null,
+      source: "canonical",
+      placeId: "place-toca-do-morcego",
+    });
+
+    expect(
+      fetchImplementation.mock.calls.some(([input]) =>
+        fetchInputUrl(input).startsWith("https://api.mapbox.com/"),
+      ),
+    ).toBe(false);
+  });
+
+  it("computes canonical opening state from the published Place timezone", async () => {
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async (input) => {
+        const url = fetchInputUrl(input);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: "place-nightlife",
+                  name: "Nightlife Test",
+                  category: "nightlife",
+                  lat: -13.377,
+                  lng: -38.917,
+                  presentation: { markerKey: "nightlife", priority: 10 },
+                },
+              ],
+              nextCursor: null,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.startsWith("/api/places/v1/place-nightlife?")) {
+          return new Response(
+            JSON.stringify({
+              profile: {
+                id: "place-nightlife",
+                destinationId: "morro-de-sao-paulo",
+                name: "Nightlife Test",
+                slug: "nightlife-test",
+                categoryId: "nightlife",
+                subcategoryIds: [],
+                shortDescription: "",
+                description: "Vida noturna.",
+                location: {
+                  latitude: -13.377,
+                  longitude: -38.917,
+                  address: "",
+                  area: "Centro",
+                },
+                contact: {
+                  phone: null,
+                  whatsapp: null,
+                  email: null,
+                  website: null,
+                },
+                openingHours: {
+                  timezone: "UTC",
+                  days: [
+                    { day: "monday", closed: true, periods: [] },
+                    { day: "tuesday", closed: true, periods: [] },
+                    { day: "wednesday", closed: true, periods: [] },
+                    { day: "thursday", closed: true, periods: [] },
+                    { day: "friday", closed: true, periods: [] },
+                    {
+                      day: "saturday",
+                      closed: false,
+                      periods: [{ opensAt: "16:00", closesAt: "23:59" }],
+                    },
+                    { day: "sunday", closed: true, periods: [] },
+                  ],
+                  note: null,
+                },
+                amenities: [],
+                tags: [],
+                capabilities: ["directions"],
+              },
+              media: null,
+              commerce: null,
+              actions: {
+                placeId: "place-nightlife",
+                businessId: "business-nightlife",
+                destinationId: "morro-de-sao-paulo",
+                primaryAction: null,
+                secondaryActions: [],
+              },
+              partial: {
+                media: "unavailable",
+                commerce: "ready",
+                actions: "ready",
+              },
+              revision: { id: "place-nightlife:r1", number: 1 },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        throw new Error(`unexpected request: ${url}`);
+      },
+    );
+
+    const details = await fetchAssistantPlaceDetails("Nightlife Test", {
+      fetch: fetchImplementation,
+      now: new Date("2026-09-26T20:00:00.000Z"),
+    });
+
+    expect(details?.openNow).toBe(true);
+    expect(details?.source).toBe("canonical");
+  });
+
+  it("uses the curated V1 destination as Mapbox fallback query and proximity", async () => {
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async (input) => {
+        const url = fetchInputUrl(input);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return new Response(JSON.stringify({ items: [], nextCursor: null }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return mapboxResponse();
+      },
     );
 
     const details = await fetchAssistantPlaceDetails("praia 2", {
@@ -50,28 +265,45 @@ describe("assistant Mapbox place details adapter", () => {
       website: "https://example.com/segunda-praia",
       mapboxId: "poi.segunda-praia",
     });
-    expect(fetchImplementation).toHaveBeenCalledTimes(1);
-    const requestInput = fetchImplementation.mock.calls[0]?.[0];
-    expect(typeof requestInput).toBe("string");
-    const requestUrl = typeof requestInput === "string" ? requestInput : "";
+    const mapboxCall = fetchImplementation.mock.calls.find(([input]) =>
+      fetchInputUrl(input).startsWith("https://api.mapbox.com/"),
+    );
+    expect(mapboxCall).toBeDefined();
+    const requestUrl = mapboxCall ? fetchInputUrl(mapboxCall[0]) : "";
     expect(requestUrl).toContain("q=Segunda+Praia");
     expect(requestUrl).toContain("access_token=pk.test");
     expect(requestUrl).toContain("proximity=-38.9118443%2C-13.3800508");
   });
 
   it("does not call Mapbox without a public access token", async () => {
-    const fetchImplementation = vi.fn<typeof globalThis.fetch>();
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify({ items: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
 
     await expect(
       fetchAssistantPlaceDetails("Segunda Praia", {
         fetch: fetchImplementation,
       }),
     ).resolves.toBeNull();
-    expect(fetchImplementation).not.toHaveBeenCalled();
+    expect(
+      fetchImplementation.mock.calls.some(([input]) =>
+        fetchInputUrl(input).startsWith("https://api.mapbox.com/"),
+      ),
+    ).toBe(false);
   });
 
   it("returns null instead of inventing details for an unknown place", async () => {
-    const fetchImplementation = vi.fn<typeof globalThis.fetch>();
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async () =>
+        new Response(JSON.stringify({ items: [], nextCursor: null }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }),
+    );
 
     await expect(
       fetchAssistantPlaceDetails("Lugar inexistente XYZ", {
@@ -79,6 +311,10 @@ describe("assistant Mapbox place details adapter", () => {
         fetch: fetchImplementation,
       }),
     ).resolves.toBeNull();
-    expect(fetchImplementation).not.toHaveBeenCalled();
+    expect(
+      fetchImplementation.mock.calls.some(([input]) =>
+        fetchInputUrl(input).startsWith("https://api.mapbox.com/"),
+      ),
+    ).toBe(false);
   });
 });
