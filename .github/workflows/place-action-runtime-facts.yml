@@ -50,6 +50,7 @@ jobs:
           pnpm --filter @touristic/ordering build
           pnpm --filter @touristic/ticketing build
           pnpm --filter @touristic/ticketing-server build
+          pnpm --filter @touristic/crm build
           pnpm --filter @touristic/crm-server build
           pnpm --filter @touristic/ordering-server build
           pnpm --filter @touristic/financial-server build
