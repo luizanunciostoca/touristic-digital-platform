@@ -28,11 +28,14 @@ function header(request, name) {
   return "";
 }
 
-function json(response, status, body, correlationId) {
+function json(response, status, body, correlationId, extraHeaders = {}) {
   response.statusCode = status;
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
   response.setHeader("X-Correlation-ID", correlationId);
+  for (const [name, value] of Object.entries(extraHeaders)) {
+    response.setHeader(name, value);
+  }
   response.end(JSON.stringify(body));
 }
 
@@ -159,6 +162,39 @@ function commerceRequest(request) {
     pathname: String(request.url || "/").split("?", 1)[0],
     headers: request.headers ?? {},
   });
+}
+
+function requestOrigin(request) {
+  const value = header(request, "origin");
+  if (!value) return null;
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function forwardedProtocol(request) {
+  return (
+    header(request, "x-forwarded-proto")
+      .split(",", 1)[0]
+      ?.trim()
+      .toLowerCase() ?? ""
+  );
+}
+
+function sameOrigin(request) {
+  const origin = requestOrigin(request);
+  const host = header(request, "host").toLowerCase();
+  if (!origin || !host || origin.host.toLowerCase() !== host) return false;
+  const forwardedProto = forwardedProtocol(request);
+  return !forwardedProto || `${forwardedProto}:` === origin.protocol;
+}
+
+function secureRequest(request) {
+  const forwardedProto = forwardedProtocol(request);
+  if (forwardedProto) return forwardedProto === "https";
+  return requestOrigin(request)?.protocol === "https:";
 }
 
 function collectEnvironment(getEnvironmentValue) {
@@ -357,6 +393,33 @@ export function createCommerceApi({
       return;
     }
     json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
+  }
+
+  function handleConsumerSession(request, response) {
+    const correlation = correlationId(request);
+    if (!sameOrigin(request)) {
+      json(response, 403, { error: "ORIGIN_DENIED" }, correlation);
+      return;
+    }
+    const requestView = commerceRequest(request);
+    const current = runtime.sessions.fromRequest(requestView);
+    const session = current ?? runtime.sessions.issue();
+    json(
+      response,
+      current ? 200 : 201,
+      {
+        data: {
+          subject: session.claims.subject,
+          csrfToken: session.csrfToken,
+          expiresAt: new Date(session.claims.expiresAt * 1_000).toISOString(),
+        },
+      },
+      correlation,
+      {
+        "Set-Cookie": runtime.sessions.cookie(session, secureRequest(request)),
+        Vary: "Cookie, Origin",
+      },
+    );
   }
 
   async function handleAvailability(request, response, requestUrl, businessId) {
@@ -636,6 +699,14 @@ export function createCommerceApi({
       }
       const method = String(request.method || "GET").toUpperCase();
       try {
+        if (
+          requestUrl.pathname === "/api/commerce/v1/consumer-session" &&
+          method === "POST"
+        ) {
+          handleConsumerSession(request, response);
+          return;
+        }
+
         const availabilityMatch =
           /^\/api\/commerce\/v1\/restaurants\/([a-z0-9][a-z0-9_-]{0,119})\/availability$/u.exec(
             requestUrl.pathname,

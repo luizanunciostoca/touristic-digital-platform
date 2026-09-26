@@ -40,6 +40,20 @@ function makeRuntime(overrides = {}) {
     sessions: {
       fromRequest: vi.fn(() => null),
       authorizeMutation: vi.fn(() => ({ allowed: true })),
+      issue: vi.fn(() => ({
+        claims: {
+          subject: "guest:0123456789abcdef0123456789abcdef",
+          issuedAt: 1_798_000_000,
+          expiresAt: 1_800_592_000,
+        },
+        token: "shared-commerce-session-token",
+        csrfToken: "shared-commerce-csrf",
+      })),
+      cookie: vi.fn(
+        (_session, secure) =>
+          "morro_commerce_session=shared-commerce-session-token; Path=/; Max-Age=2592000; HttpOnly; SameSite=Strict" +
+          (secure ? "; Secure" : ""),
+      ),
     },
     createSlot: vi.fn((value) => value),
     createReservationRequestKey: vi.fn(
@@ -87,15 +101,22 @@ async function invoke(api, method, url, body, headers = {}) {
   request.url = url;
   request.headers = headers;
   let responseBody = null;
+  const responseHeaders = {};
   const response = {
     statusCode: 0,
-    setHeader() {},
+    setHeader(name, value) {
+      responseHeaders[String(name).toLowerCase()] = String(value);
+    },
     end(value) {
       responseBody = JSON.parse(String(value));
     },
   };
   await api.handle(request, response, new URL(url, "http://localhost"));
-  return { status: response.statusCode, body: responseBody };
+  return {
+    status: response.statusCode,
+    body: responseBody,
+    headers: responseHeaders,
+  };
 }
 
 describe("Restaurant Commerce API", () => {
@@ -159,6 +180,52 @@ describe("Restaurant Commerce API", () => {
       serviceDate: "2026-10-10",
       observedAt: "2026-10-10T20:00:00.000Z",
     });
+  });
+
+  it("issues the shared Commerce guest session without depending on Ticketing runtime availability", async () => {
+    const active = makeRuntime();
+    const api = createCommerceApi({
+      authApi: makeAuth({ resolveSession: vi.fn(async () => null) }),
+      getEnvironmentValue: env,
+      runtimeFactory: vi.fn(async () => active),
+    });
+    await api.start();
+
+    const result = await invoke(
+      api,
+      "POST",
+      "/api/commerce/v1/consumer-session",
+      undefined,
+      {
+        host: "morro.digital",
+        origin: "https://morro.digital",
+        "x-forwarded-proto": "https",
+      },
+    );
+
+    expect(result).toMatchObject({
+      status: 201,
+      body: {
+        data: {
+          subject: "guest:0123456789abcdef0123456789abcdef",
+          csrfToken: "shared-commerce-csrf",
+        },
+      },
+      headers: {
+        vary: "Cookie, Origin",
+      },
+    });
+    expect(result.headers["set-cookie"]).toContain(
+      "morro_commerce_session=shared-commerce-session-token",
+    );
+    expect(result.headers["set-cookie"]).toContain("Secure");
+    expect(active.sessions.issue).toHaveBeenCalledTimes(1);
+    expect(active.sessions.cookie).toHaveBeenCalledWith(
+      expect.objectContaining({
+        token: "shared-commerce-session-token",
+      }),
+      true,
+    );
   });
 
   it("uses shared guest-session mutation authority for no-deposit reservations", async () => {
