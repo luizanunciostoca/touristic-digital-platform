@@ -13,6 +13,7 @@ import { createAffiliatesApi } from "./affiliates-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createContentAdminRuntime } from "./content-admin-runtime.mjs";
+import { createCommerceApi } from "./commerce-api.mjs";
 import { createCrmApi } from "./crm-api.mjs";
 import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
 import { createDatabaseEnvironmentResolver } from "./database-environment.mjs";
@@ -150,6 +151,7 @@ let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
 let affiliatesRuntimeReady = false;
 let contentAdminRuntime = null;
+let commerceApi = null;
 let destinationRuntimeReady = false;
 let placePlatformRuntime = null;
 
@@ -241,6 +243,14 @@ platformOperations = createPlatformOperations({
         : "TICKETING_RUNTIME_UNAVAILABLE",
     },
     {
+      name: "commerce-runtime",
+      ...(commerceApi?.readinessCheck() ?? {
+        status: "fail",
+        critical: false,
+        detail: "COMMERCE_RUNTIME_NOT_STARTED",
+      }),
+    },
+    {
       name: "content-admin-runtime",
       ...(contentAdminRuntime?.readinessCheck() ?? {
         status: "fail",
@@ -287,6 +297,9 @@ paymentsRuntimeReady = await paymentsApi.start();
 const { createTicketingApi } = await import("./ticketing-api.mjs");
 const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
 ticketingRuntimeReady = await ticketingApi.start();
+
+commerceApi = createCommerceApi({ authApi, getEnvironmentValue });
+await commerceApi.start();
 
 contentAdminRuntime = createContentAdminRuntime({ getEnvironmentValue });
 await contentAdminRuntime.start();
@@ -721,6 +734,10 @@ const server = createServer(async (request, response) => {
       await ticketingApi.handle(request, response, requestUrl);
       return;
     }
+    if (commerceApi?.matches(requestUrl.pathname)) {
+      await commerceApi.handle(request, response, requestUrl);
+      return;
+    }
     if (assistantApi.matches(requestUrl.pathname)) {
       await assistantApi.handle(request, response);
       return;
@@ -868,6 +885,7 @@ async function shutdown(signal) {
     paymentsApi.stop(),
     affiliateAdminRuntime.stop(),
     ticketingApi.stop(),
+    commerceApi ? commerceApi.stop() : Promise.resolve(),
     contentAdminRuntime ? contentAdminRuntime.stop() : Promise.resolve(),
     placePlatformRuntime ? placePlatformRuntime.stop() : Promise.resolve(),
     destinationRuntime.stop(),

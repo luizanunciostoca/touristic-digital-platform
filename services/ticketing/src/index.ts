@@ -7,6 +7,7 @@ import {
   type TicketingCatalogOfferBinding,
 } from "./business-inventory-repository.js";
 import {
+  CommerceSessionAuthority,
   TicketingCommerceHttpTransport,
   commerceSessionCookieName,
   commerceSessionTtlSeconds,
@@ -126,6 +127,7 @@ export {
   MySqlTicketingTransactionalCommand,
   TicketReservationApplicationError,
   TicketingApplicationError,
+  CommerceSessionAuthority,
   TicketingCommerceHttpTransport,
   TicketingPublicHttpTransport,
   commerceSessionCookieName,

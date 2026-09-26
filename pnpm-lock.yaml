@@ -69,6 +69,9 @@ importers:
       "@touristic/business":
         specifier: workspace:*
         version: link:../../packages/business
+      "@touristic/commerce":
+        specifier: workspace:*
+        version: link:../../packages/commerce
       "@touristic/commerce-server":
         specifier: workspace:*
         version: link:../../services/commerce
