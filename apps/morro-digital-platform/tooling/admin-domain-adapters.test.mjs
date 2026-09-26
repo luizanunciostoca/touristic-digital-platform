@@ -163,6 +163,55 @@ describe("Control Center domain support delegation", () => {
     expect(handle).toHaveBeenCalledTimes(1);
   });
 
+  it("routes governed Place suspension through the CMS publication owner", async () => {
+    const response = supportResponseRecorder();
+    const { authApi } = supportDelegationBoundary();
+    const transitionPublication = vi.fn(async () => ({
+      publicationState: "suspended",
+      publishedRevision: { revision: 2 },
+    }));
+    const adapter = createBusinessAdminAdapter(
+      { handle: vi.fn(async () => undefined) },
+      authApi,
+      { transitionPublication },
+    );
+    const body = Buffer.from(
+      JSON.stringify({ action: "suspend", expectedRevision: 2 }),
+      "utf8",
+    );
+    const req = {
+      method: "POST",
+      headers: {},
+      async *[Symbol.asyncIterator]() {
+        yield body;
+      },
+    };
+    const actor = { subject: "platform-admin", role: "PLATFORM_ADMIN" };
+
+    await adapter.handle({
+      request: req,
+      response,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/businesses/business-a/cms/publication",
+      ),
+      actor,
+      effectiveUser: null,
+    });
+
+    expect(transitionPublication).toHaveBeenCalledWith(
+      actor,
+      "business-a",
+      "suspend",
+      2,
+    );
+    expect(response.statusCode).toBe(200);
+    expect(JSON.parse(response.body)).toEqual({
+      businessId: "business-a",
+      publicationState: "suspended",
+      publishedRevision: 2,
+    });
+  });
+
   it("delegates CRM and Ticketing through the same Auth boundary", async () => {
     const req = { method: "GET" };
     const response = supportResponseRecorder();
