@@ -154,6 +154,41 @@ function assertExistingMigration(row, entry) {
   }
 }
 
+async function assertExistingMediaMaterialized(contentPool, entry) {
+  if (entry.disposition !== "migrate") return;
+  for (const asset of entry.assets) {
+    const [rows] = await contentPool.execute(
+      `SELECT pm.role, pm.sort_order,
+              ma.business_id, ma.provider, ma.provider_reference,
+              ma.mime_type, ma.width, ma.height, ma.byte_size,
+              ma.checksum_sha256, ma.alt_text, ma.publication_state
+         FROM place_media pm
+         INNER JOIN media_assets ma ON ma.id = pm.media_id
+        WHERE pm.place_id = ? AND pm.media_id = ?
+        LIMIT 1`,
+      [entry.placeId, asset.mediaId],
+    );
+    const row = rows[0];
+    if (
+      !row ||
+      String(row.business_id) !== entry.businessId ||
+      String(row.role) !== asset.role ||
+      Number(row.sort_order) !== asset.sortOrder ||
+      String(row.provider) !== asset.provider ||
+      String(row.provider_reference) !== asset.providerReference ||
+      String(row.mime_type) !== asset.mimeType ||
+      Number(row.width) !== asset.width ||
+      Number(row.height) !== asset.height ||
+      Number(row.byte_size) !== asset.byteSize ||
+      String(row.checksum_sha256) !== asset.checksumSha256 ||
+      String(row.alt_text) !== asset.alt ||
+      String(row.publication_state) !== asset.publicationState
+    ) {
+      throw new Error("LEGACY_MEDIA_MIGRATION_MATERIAL_DRIFT");
+    }
+  }
+}
+
 export async function applyLegacyMediaMigrationSchema(contentPool) {
   await contentPool.query(`
     CREATE TABLE IF NOT EXISTS legacy_place_media_migrations (
@@ -263,6 +298,7 @@ export async function executeLegacyCommercialMediaBackfill({
     const existing = await existingMigration(contentPool, entry);
     if (existing) {
       assertExistingMigration(existing, entry);
+      await assertExistingMediaMaterialized(contentPool, entry);
       summary.existingMigrations += 1;
       continue;
     }

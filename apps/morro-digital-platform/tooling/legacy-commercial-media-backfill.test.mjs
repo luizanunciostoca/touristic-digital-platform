@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import { describe, expect, it, vi } from "vitest";
@@ -138,6 +139,51 @@ describe("legacy commercial media backfill", () => {
     expect(content.state.transactions).toBe(72);
     expect(content.state.commits).toBe(72);
     expect(content.state.rollbacks).toBe(0);
+  });
+
+  it("fails closed when an existing migrate marker has missing materialized assets", async () => {
+    const migrated = manifest.find((entry) => entry.disposition === "migrate");
+    const markerDigest = createHash("sha256")
+      .update(JSON.stringify(migrated))
+      .digest("hex");
+    const content = {
+      execute: vi.fn(async (sql, params) => {
+        if (
+          sql.includes("FROM legacy_place_media_migrations") &&
+          params[1] === migrated.sourceKey
+        ) {
+          return [
+            [
+              {
+                business_id: migrated.businessId,
+                place_id: migrated.placeId,
+                disposition: migrated.disposition,
+                asset_count: migrated.assets.length,
+                manifest_digest: markerDigest,
+              },
+            ],
+            [],
+          ];
+        }
+        if (sql.includes("FROM legacy_place_media_migrations")) {
+          return [[], []];
+        }
+        if (sql.includes("COUNT(*) AS total FROM place_media")) {
+          return [[{ total: 0 }], []];
+        }
+        if (sql.includes("FROM media_assets")) return [[], []];
+        if (sql.includes("INNER JOIN media_assets")) return [[], []];
+        return [[], []];
+      }),
+    };
+
+    await expect(
+      executeLegacyCommercialMediaBackfill({
+        businessPool: businessPool(),
+        contentPool: content,
+        manifest,
+      }),
+    ).rejects.toThrow(/LEGACY_MEDIA_MIGRATION_MATERIAL_DRIFT/u);
   });
 
   it("fails closed when any canonical Place is not draft-only", async () => {
