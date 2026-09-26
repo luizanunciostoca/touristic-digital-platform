@@ -61,6 +61,13 @@ const STEPS = Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
     ]),
   }),
+  Object.freeze({
+    name: "legacy-commercial-review-transition-dry-run",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
+    ]),
+  }),
 ]);
 
 function runStep(step, spawnImpl = spawn) {
