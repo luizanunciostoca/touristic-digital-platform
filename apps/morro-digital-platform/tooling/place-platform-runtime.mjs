@@ -1617,7 +1617,10 @@ export function createPlacePlatformRuntime({
         )
       : [[]];
     const projectedActions = place
-      ? await createActionPort(catalogRuntime, actionFactsProvider).resolvePublicActions({
+      ? await createActionPort(
+          catalogRuntime,
+          actionFactsProvider,
+        ).resolvePublicActions({
           place: { ...place, capabilities: place.capabilities.enabled },
           businessId: String(place.businessId),
           media: {
