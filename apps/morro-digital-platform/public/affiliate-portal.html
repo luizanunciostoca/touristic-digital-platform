@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <title>Portal de Afiliados · Morro Digital</title>
+    <link rel="stylesheet" href="/affiliate-portal.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@touristic/auth": "/packages/auth/dist/index.js",
+          "@touristic/auth-browser": "/packages/auth-browser/dist/index.js"
+        }
+      }
+    </script>
+    <script
+      type="module"
+      src="/apps/morro-digital-platform/dist/affiliate-portal-entry.js"
+    ></script>
+  </head>
+  <body>
+    <header class="portal-header">
+      <a class="brand" href="/" aria-label="Morro Digital">Morro Digital</a>
+      <div class="account">
+        <span id="affiliate-user">Carregando conta…</span>
+        <button id="affiliate-logout" class="ghost-button" type="button">
+          Sair
+        </button>
+      </div>
+    </header>
+
+    <main class="portal-shell">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Programa de Afiliados</p>
+          <h1>Seu desempenho, com rastreio verificável.</h1>
+          <p class="hero-copy">
+            Acompanhe atribuições, vendas e comissões reconhecidas pelo
+            servidor. Repasse e liquidação continuam sob autoridade exclusiva do
+            Financeiro.
+          </p>
+        </div>
+        <div class="identity-card">
+          <span>ID do afiliado</span>
+          <strong id="affiliate-id">—</strong>
+          <span id="affiliate-status" class="status-chip">—</span>
+          <small id="affiliate-verification">—</small>
+        </div>
+      </section>
+
+      <p id="affiliate-loading" class="system-message" role="status">
+        Carregando seu portal…
+      </p>
+      <p id="affiliate-alert" class="alert" role="alert" hidden></p>
+
+      <div id="affiliate-content" hidden>
+        <section class="metrics" aria-label="Resumo">
+          <article>
+            <span>Atribuições</span>
+            <strong id="metric-attributions">0</strong>
+          </article>
+          <article>
+            <span>Conversões recentes</span>
+            <strong id="metric-conversions">0</strong>
+          </article>
+          <article>
+            <span>Comissão disponível</span>
+            <strong id="metric-earned">R$ 0,00</strong>
+          </article>
+          <article>
+            <span>Comissão pendente</span>
+            <strong id="metric-pending">R$ 0,00</strong>
+          </article>
+        </section>
+
+        <section class="panel referral-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Indicação</p>
+              <h2>Gerar link rastreável</h2>
+            </div>
+            <p>
+              O link recebe uma credencial assinada pelo servidor. Nenhum valor
+              de comissão é definido pelo navegador.
+            </p>
+          </div>
+          <div class="referral-form">
+            <label>
+              Programa
+              <select id="affiliate-program"></select>
+            </label>
+            <label>
+              Página de destino
+              <input
+                id="affiliate-link-path"
+                value="/"
+                inputmode="url"
+                autocomplete="off"
+              />
+            </label>
+            <button id="generate-referral" class="primary-button" type="button">
+              Gerar link
+            </button>
+          </div>
+          <div class="referral-result">
+            <input
+              id="affiliate-referral-url"
+              readonly
+              aria-label="Link de indicação"
+              placeholder="Seu link aparecerá aqui"
+            />
+            <button
+              id="copy-referral"
+              class="ghost-button"
+              type="button"
+              disabled
+            >
+              Copiar
+            </button>
+          </div>
+          <small id="affiliate-referral-expiry"></small>
+        </section>
+
+        <section class="grid-two">
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Programas</p>
+                <h2>Elegibilidade</h2>
+              </div>
+            </div>
+            <div id="affiliate-memberships" class="membership-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">Financeiro</p>
+                <h2>Repasse</h2>
+              </div>
+            </div>
+            <p id="payout-authority-note"></p>
+            <div class="authority-note">
+              O portal não oferece “saque” manual: payable, wallet, settlement e
+              payout são estados autoritativos do domínio Financial e só podem
+              avançar após validação financeira.
+            </div>
+          </article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Atividade comercial</p>
+              <h2>Conversões e comissões</h2>
+            </div>
+            <p>Até 50 registros mais recentes.</p>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Pagamento</th>
+                  <th>Pedido</th>
+                  <th>Receita elegível</th>
+                  <th>Comissão</th>
+                  <th>Status</th>
+                  <th>Financeiro</th>
+                </tr>
+              </thead>
+              <tbody id="affiliate-conversions"></tbody>
+            </table>
+          </div>
+          <p id="conversion-empty" class="empty">
+            Ainda não existem conversões atribuídas a esta conta.
+          </p>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>
