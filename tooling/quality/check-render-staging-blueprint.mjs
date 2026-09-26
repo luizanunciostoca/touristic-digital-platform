@@ -31,7 +31,7 @@ const stagingMysqlWrapper = fs.readFileSync(
   new URL("../render/with-staging-mysql-env.mjs", import.meta.url),
   "utf8",
 );
-const runbook = fs.readFileSync(
+const stagingPredeploy = fs.readFileSync(\n  new URL(\n    "../../apps/morro-digital-platform/tooling/staging-predeploy.mjs",\n    import.meta.url,\n  ),\n  "utf8",\n);\nconst runbook = fs.readFileSync(
   new URL("../../docs/deployment/RENDER-STAGING-V2.md", import.meta.url),
   "utf8",
 );
@@ -96,7 +96,7 @@ for (const required of [
   "name: morro-digital-v2-staging",
   "runtime: node",
   "buildCommand: corepack pnpm install --frozen-lockfile && corepack pnpm build",
-  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  "preDeployCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/staging-predeploy.mjs",
   "startCommand: node tooling/render/with-staging-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
   "healthCheckPath: /readyz",
   "value: https://api.mercadopago.com",
