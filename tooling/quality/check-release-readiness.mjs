@@ -199,9 +199,15 @@ requireText(
 for (const marker of [
   '"MORRO-STAGING-PREDEPLOY"',
   '"payments-migrate"',
-  '"legacy-commercial-draft-backfill"',
-  "legacy-commercial-place-backfill.mjs",
+  '"legacy-commercial-media-backfill-apply"',
+  '"legacy-commercial-description-backfill-verify"',
+  '"legacy-commercial-cutover-audit-before-publication"',
+  '"legacy-commercial-publication-transition-apply"',
+  '"legacy-commercial-publication-transition-verify"',
+  '"legacy-commercial-cutover-audit-after-publication"',
+  "legacy-commercial-publication-transition.mjs",
   "--apply",
+  "--verify",
   '"STAGING_PREDEPLOY_SERVICE_DENIED"',
 ]) {
   requireText(stagingPredeploy, "staging predeploy orchestrator", marker);
