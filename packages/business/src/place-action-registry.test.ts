@@ -240,6 +240,19 @@ describe("Place Action Registry", () => {
     });
   });
 
+  it("does not expose tickets without an authoritative inventory fact", () => {
+    const resolved = resolvePlacePresentationActions({
+      place: place(["tickets"]),
+      category: category("nightlife"),
+      locale: "pt",
+      now: NOW,
+      products: [product],
+      offers: [offer()],
+      inventory: [],
+    });
+    expect(resolved.primaryAction).toBeNull();
+  });
+
   it("never exposes a fake purchase CTA when no canonical offer exists", () => {
     const resolved = resolvePlacePresentationActions({
       place: place(["tickets"]),
