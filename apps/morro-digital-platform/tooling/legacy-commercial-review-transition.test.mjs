@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { runLegacyCommercialReviewTransition } from "./legacy-commercial-review-transition.mjs";
+import { runLegacyCommercialReviewTransition } from\n  "./legacy-commercial-review-transition.mjs";
 
 function rows(state = "draft", revision = 3) {
   return Array.from({ length: 72 }, (_, index) => ({
@@ -21,8 +21,8 @@ function fakeDatabase(initialRows) {
   const pool = {
     query: vi.fn(async () => [[], []]),
     execute: vi.fn(async (sql, params = []) => {
-      if (sql.includes("FROM business_place_legacy_mappings")) return [state.rows, []];
-      if (sql.includes("FROM legacy_place_review_migrations")) return [state.markers, []];
+      if (sql.includes("FROM business_place_legacy_mappings"))\n        return [state.rows, []];
+      if (sql.includes("FROM legacy_place_review_migrations"))\n        return [state.markers, []];
       if (sql.includes("INSERT INTO legacy_place_review_migrations")) {
         state.markers.push({
           source_system: params[0],
