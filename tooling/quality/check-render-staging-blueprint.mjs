@@ -31,7 +31,14 @@ const stagingMysqlWrapper = fs.readFileSync(
   new URL("../render/with-staging-mysql-env.mjs", import.meta.url),
   "utf8",
 );
-const stagingPredeploy = fs.readFileSync(\n  new URL(\n    "../../apps/morro-digital-platform/tooling/staging-predeploy.mjs",\n    import.meta.url,\n  ),\n  "utf8",\n);\nconst runbook = fs.readFileSync(
+const stagingPredeploy = fs.readFileSync(
+  new URL(
+    "../../apps/morro-digital-platform/tooling/staging-predeploy.mjs",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const runbook = fs.readFileSync(
   new URL("../../docs/deployment/RENDER-STAGING-V2.md", import.meta.url),
   "utf8",
 );
