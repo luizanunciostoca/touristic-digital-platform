@@ -38,6 +38,13 @@ const STEPS = Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
     ]),
   }),
+  Object.freeze({
+    name: "legacy-commercial-publication-readiness-audit",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
+    ]),
+  }),
 ]);
 
 function runStep(step, spawnImpl = spawn) {
