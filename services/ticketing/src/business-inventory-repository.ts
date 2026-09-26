@@ -374,8 +374,8 @@ async function bindCatalogOfferWithConnection(
       businessId,
       offerId,
       input.actorSubject.trim(),
-      recordedAt,
-      recordedAt,
+      new Date(recordedAt),
+      new Date(recordedAt),
     ],
   );
   return Object.freeze({
@@ -504,19 +504,25 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
           offer.pricingVersion,
           offer.capacity,
           offer.maxPerReservation,
-          offer.salesStartAt,
-          offer.salesEndAt,
-          offer.startsAt,
-          offer.endsAt,
-          recordedAt,
-          recordedAt,
+          new Date(offer.salesStartAt),
+          new Date(offer.salesEndAt),
+          new Date(offer.startsAt),
+          new Date(offer.endsAt),
+          new Date(recordedAt),
+          new Date(recordedAt),
         ],
       );
       await connection.execute(
         `INSERT INTO ticketing_inventory_ownership (
           inventory_id, business_id, created_by, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?)`,
-        [inventoryId, businessId, input.actorSubject, recordedAt, recordedAt],
+        [
+          inventoryId,
+          businessId,
+          input.actorSubject,
+          new Date(recordedAt),
+          new Date(recordedAt),
+        ],
       );
       if (offer.admission) {
         await connection.execute(
@@ -531,8 +537,8 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
             offer.admission.ticketType,
             offer.admission.tierLabel,
             offer.admission.displayOrder,
-            recordedAt,
-            recordedAt,
+            new Date(recordedAt),
+            new Date(recordedAt),
           ],
         );
       }
@@ -584,7 +590,7 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
       }
       await connection.execute(
         "UPDATE ticketing_inventory SET enabled = FALSE, updated_at = ? WHERE inventory_id = ?",
-        [recordedAt, input.inventoryId],
+        [new Date(recordedAt), input.inventoryId],
       );
       const disabled = await ownedById(connection, input.inventoryId);
       await connection.commit();
