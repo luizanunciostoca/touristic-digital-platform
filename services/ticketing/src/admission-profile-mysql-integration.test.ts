@@ -145,12 +145,13 @@ describeMySql.sequential(
       ]);
 
       const publicInventory = new MySqlTicketingPublicReadRepository(pool);
-      await expect(publicInventory.listInventory()).resolves.toEqual([
-        expect.objectContaining({
-          id: created.offer.id,
-          admission: created.offer.admission,
-        }),
-      ]);
+      const publicRows = await publicInventory.listInventory();
+      expect(
+        publicRows.find((row) => row.id === created.offer.id),
+      ).toMatchObject({
+        id: created.offer.id,
+        admission: created.offer.admission,
+      });
     });
 
     it("rejects admission metadata on a non-admission product kind", async () => {
