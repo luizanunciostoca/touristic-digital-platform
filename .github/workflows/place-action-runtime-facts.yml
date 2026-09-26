@@ -56,8 +56,6 @@ jobs:
           pnpm --filter @touristic/financial-server build
       - name: Verify Ticketing action facts adapter
         run: node --test apps/morro-digital-platform/tooling/ticketing-action-facts.node-test.mjs
-      - name: Print canonical formatted Ticketing transport
-        run: pnpm exec prettier services/ticketing/src/commerce-public-http-transport.ts
       - name: Verify affected typechecks
         run: |
           pnpm --filter @touristic/business typecheck
