@@ -207,6 +207,7 @@ function canonicalOpenNow(
     if (dayIndex < 0) return null;
 
     const currentDay = openingHours.days[dayIndex];
+    if (!currentDay) return null;
     if (!currentDay.closed) {
       for (const period of currentDay.periods) {
         const opens = parseMinutes(period.opensAt);
@@ -221,7 +222,7 @@ function canonicalOpenNow(
       openingHours.days[
         (dayIndex - 1 + openingHours.days.length) % openingHours.days.length
       ];
-    if (!previous.closed) {
+    if (previous && !previous.closed) {
       for (const period of previous.periods) {
         const opens = parseMinutes(period.opensAt);
         const closes = parseMinutes(period.closesAt);
