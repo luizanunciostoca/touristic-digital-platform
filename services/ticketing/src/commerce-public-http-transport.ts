@@ -234,6 +234,30 @@ class CommerceSessionAuthority {
     return token ? this.resolve(token) : null;
   }
 
+  authorizeMutation(
+    request: TicketingHttpRequest,
+    session: CommerceSession,
+  ):
+    | Readonly<{ allowed: true }>
+    | Readonly<{
+        allowed: false;
+        reason: "cross_origin_request" | "invalid_csrf";
+      }> {
+    if (!sameOrigin(request)) {
+      return Object.freeze({
+        allowed: false,
+        reason: "cross_origin_request" as const,
+      });
+    }
+    if (!safeEqual(header(request, "x-csrf-token"), session.csrfToken)) {
+      return Object.freeze({
+        allowed: false,
+        reason: "invalid_csrf" as const,
+      });
+    }
+    return Object.freeze({ allowed: true as const });
+  }
+
   cookie(session: CommerceSession, secure: boolean): string {
     return [
       `${SESSION_COOKIE}=${session.token}`,
@@ -283,18 +307,8 @@ class CommerceAwareAuthorization implements TicketingHttpAuthorizationPort {
     const session = this.sessions.fromRequest(request);
     if (!session) return authenticated;
     if (input.mutation) {
-      if (!sameOrigin(request)) {
-        return Object.freeze({
-          allowed: false,
-          reason: "cross_origin_request" as const,
-        });
-      }
-      if (!safeEqual(header(request, "x-csrf-token"), session.csrfToken)) {
-        return Object.freeze({
-          allowed: false,
-          reason: "invalid_csrf" as const,
-        });
-      }
+      const mutation = this.sessions.authorizeMutation(request, session);
+      if (!mutation.allowed) return mutation;
     }
     return Object.freeze({
       allowed: true,
@@ -499,6 +513,7 @@ export class TicketingCommerceHttpTransport {
 }
 
 export {
+  CommerceSessionAuthority,
   SESSION_COOKIE as commerceSessionCookieName,
   SESSION_TTL_SECONDS as commerceSessionTtlSeconds,
 };
