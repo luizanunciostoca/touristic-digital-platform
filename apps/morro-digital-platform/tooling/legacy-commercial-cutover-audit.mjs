@@ -100,6 +100,18 @@ export async function runLegacyCommercialCutoverAudit({
   }
 }
 
+export function legacyCommercialCutoverAuditErrorCode(error) {
+  const raw =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "";
+  return /^[A-Z0-9_:-]{3,160}$/u.test(raw)
+    ? raw
+    : "LEGACY_CUTOVER_AUDIT_FAILURE";
+}
+
 async function runCli() {
   const summary = await runLegacyCommercialCutoverAudit();
   process.stdout.write(
@@ -116,8 +128,11 @@ const invokedDirectly =
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href;
 
 if (invokedDirectly) {
-  runCli().catch(() => {
-    process.stderr.write("LEGACY_COMMERCIAL_CUTOVER_AUDIT_FAILED\\n");
+  runCli().catch((error) => {
+    process.stderr.write(
+      `LEGACY_COMMERCIAL_CUTOVER_AUDIT_FAILED:${legacyCommercialCutoverAuditErrorCode(error)}
+`,
+    );
     process.exitCode = 1;
   });
 }
