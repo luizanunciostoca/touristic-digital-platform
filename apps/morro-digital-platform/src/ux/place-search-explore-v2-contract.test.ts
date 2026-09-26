@@ -149,6 +149,26 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(control).not.toContain("resolvePlacePrimaryAction({");
   });
 
+  it("exposes canonical and external authority transitions for browser proof", async () => {
+    const control = await readRepository(
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+    );
+    for (const token of [
+      "morro:place-authority-resolved",
+      "canonical-pending",
+      "canonical-ready",
+      "canonical-unavailable",
+      "safe-fallback",
+      "commercialAuthority",
+      "lastCanonicalPlaceId",
+    ]) {
+      expect(control).toContain(token);
+    }
+    expect(control).toContain(
+      'input.status === "canonical-ready" ? "canonical" : "blocked"',
+    );
+  });
+
   it("restores hybrid canonical global markers when returning to the menu", async () => {
     const control = await readRepository(
       "apps/morro-digital-platform/src/map/explore-locations-control.ts",
