@@ -171,6 +171,73 @@ describe("legacy commercial description backfill", () => {
     });
   });
 
+  it("verifies existing description markers after all 72 Places move to review", async () => {
+    const database = fakeDatabase(rows());
+    const updateProfile = vi.fn(async (_actor, businessId, input) => {
+      const row = database.state.rows.find(
+        (candidate) => candidate.business_id === businessId,
+      );
+      const place = JSON.parse(row.editable_place_json);
+      row.editable_place_json = JSON.stringify({
+        ...place,
+        shortDescription: input.shortDescription,
+        description: input.description,
+      });
+      return { ok: true };
+    });
+    const runtime = {
+      start: vi.fn(async () => true),
+      stop: vi.fn(async () => {}),
+      updateProfile,
+    };
+    const mysqlClient = { createPool: vi.fn(() => database.pool) };
+
+    await runLegacyCommercialDescriptionBackfill({
+      environment: stagingEnvironment(),
+      argv: ["--apply"],
+      mysqlClient,
+      runtimeFactory: () => runtime,
+    });
+    for (const row of database.state.rows) {
+      row.publication_state = "review";
+    }
+
+    await expect(
+      runLegacyCommercialDescriptionBackfill({
+        environment: stagingEnvironment(),
+        argv: ["--verify"],
+        mysqlClient,
+      }),
+    ).resolves.toMatchObject({
+      total: 72,
+      wouldUpdate: 0,
+      existingBootstrap: 72,
+      existingMigrations: 72,
+      updated: 0,
+      markersInserted: 0,
+    });
+  });
+
+  it("denies late description migration after a Place leaves draft", async () => {
+    const input = rows((index, categoryId) =>
+      bootstrapLegacyCommercialDescription({
+        name: `Place ${index}`,
+        categoryId,
+        destinationId: "morro-de-sao-paulo",
+      }),
+    );
+    for (const row of input) row.publication_state = "review";
+    const database = fakeDatabase(input);
+
+    await expect(
+      runLegacyCommercialDescriptionBackfill({
+        environment: stagingEnvironment(),
+        argv: ["--apply"],
+        mysqlClient: { createPool: vi.fn(() => database.pool) },
+      }),
+    ).rejects.toThrow(/LEGACY_DESCRIPTION_LATE_MIGRATION_DENIED/u);
+  });
+
   it("records markers without starting runtime when bootstrap copy already exists", async () => {
     const database = fakeDatabase(
       rows((index, categoryId) =>

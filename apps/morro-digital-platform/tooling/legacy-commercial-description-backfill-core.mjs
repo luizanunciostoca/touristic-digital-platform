@@ -61,8 +61,9 @@ export function assessLegacyCommercialDescriptionBackfill(rows) {
     if (
       text(row.source_system) !== SOURCE_SYSTEM ||
       text(row.destination_id) !== DESTINATION_ID ||
-      text(row.publication_state) !== "draft" ||
-      row.published_revision != null
+      !["draft", "review", "published", "suspended", "archived"].includes(
+        text(row.publication_state),
+      )
     ) {
       throw new Error("LEGACY_DESCRIPTION_SCOPE_DRIFT");
     }

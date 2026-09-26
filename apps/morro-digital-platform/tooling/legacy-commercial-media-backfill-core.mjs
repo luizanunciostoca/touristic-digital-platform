@@ -79,12 +79,19 @@ async function canonicalIdentity(businessPool, entry) {
   ) {
     throw new Error("LEGACY_MEDIA_CANONICAL_IDENTITY_CONFLICT");
   }
+  const publicationState = String(row.publication_state ?? "");
   if (
-    String(row.publication_state) !== "draft" ||
-    row.published_revision != null
+    !["draft", "review", "published", "suspended", "archived"].includes(
+      publicationState,
+    )
   ) {
-    throw new Error("LEGACY_MEDIA_PLACE_NOT_DRAFT");
+    throw new Error("LEGACY_MEDIA_PLACE_STATE_INVALID");
   }
+  return Object.freeze({
+    publicationState,
+    publishedRevision:
+      row.published_revision == null ? null : Number(row.published_revision),
+  });
 }
 
 function missingTable(error) {
@@ -295,7 +302,7 @@ export async function executeLegacyCommercialMediaBackfill({
   if (apply) await applyLegacyMediaMigrationSchema(contentPool);
 
   for (const entry of manifest) {
-    await canonicalIdentity(businessPool, entry);
+    const identity = await canonicalIdentity(businessPool, entry);
     if (entry.disposition === "migrate") summary.migrate += 1;
     else summary.intentionalNoImage += 1;
 
@@ -305,6 +312,13 @@ export async function executeLegacyCommercialMediaBackfill({
       await assertExistingMediaMaterialized(contentPool, entry);
       summary.existingMigrations += 1;
       continue;
+    }
+
+    if (
+      identity.publicationState !== "draft" ||
+      identity.publishedRevision != null
+    ) {
+      throw new Error("LEGACY_MEDIA_LATE_MIGRATION_DENIED");
     }
 
     if (entry.disposition === "migrate") {
