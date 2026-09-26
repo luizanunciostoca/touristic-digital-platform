@@ -382,7 +382,9 @@ export async function runLegacyCommercialPublicationTransition({
 async function runCli() {
   const args = process.argv.slice(2);
   const mode = args.includes("--apply") ? "apply" : "verify";
-  const summary = await runLegacyCommercialPublicationTransition({ argv: args });
+  const summary = await runLegacyCommercialPublicationTransition({
+    argv: args,
+  });
   process.stdout.write(
     `${JSON.stringify({
       contract: "MORRO-STAGING-LEGACY-COMMERCIAL-PUBLICATION-TRANSITION",
