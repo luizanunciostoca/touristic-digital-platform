@@ -283,6 +283,7 @@ placePlatformRuntime = createPlacePlatformRuntime({
   authApi,
   getEnvironmentValue,
   platformOperations,
+  actionFactsProvider: ticketingApi,
 });
 await placePlatformRuntime.start();
 
