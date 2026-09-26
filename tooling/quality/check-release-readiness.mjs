@@ -200,8 +200,8 @@ for (const marker of [
   '"MORRO-STAGING-PREDEPLOY"',
   '"payments-migrate"',
   '"legacy-commercial-draft-backfill"',
-  '"legacy-commercial-place-backfill.mjs"',
-  '"--apply"',
+  "legacy-commercial-place-backfill.mjs",
+  "--apply",
   '"STAGING_PREDEPLOY_SERVICE_DENIED"',
 ]) {
   requireText(stagingPredeploy, "staging predeploy orchestrator", marker);
