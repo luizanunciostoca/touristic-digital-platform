@@ -12,7 +12,7 @@ on:
       - "services/ticketing/src/commerce-public-http-transport.test.ts"
       - "services/ticketing/src/index.ts"
       - "apps/morro-digital-platform/tooling/ticketing-api.mjs"
-      - "apps/morro-digital-platform/tooling/ticketing-action-facts.test.mjs"
+      - "apps/morro-digital-platform/tooling/ticketing-action-facts.node-test.mjs"
       - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
 
@@ -55,7 +55,7 @@ jobs:
           pnpm --filter @touristic/ordering-server build
           pnpm --filter @touristic/financial-server build
       - name: Verify Ticketing action facts adapter
-        run: node --test apps/morro-digital-platform/tooling/ticketing-action-facts.test.mjs
+        run: node --test apps/morro-digital-platform/tooling/ticketing-action-facts.node-test.mjs
       - name: Verify affected typechecks
         run: |
           pnpm --filter @touristic/business typecheck
