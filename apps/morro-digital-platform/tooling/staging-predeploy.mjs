@@ -24,7 +24,15 @@ const STEPS = Object.freeze([
     ]),
   }),
   Object.freeze({
-    name: "legacy-commercial-media-backfill-dry-run",
+    name: "legacy-commercial-media-backfill-apply",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
+      "--apply",
+    ]),
+  }),
+  Object.freeze({
+    name: "legacy-commercial-media-backfill-verify",
     command: process.execPath,
     args: Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
