@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "items": [
+    {
+      "id": "MD-CLOSURE-001",
+      "priority": "P0",
+      "owner": "Control Tower",
+      "objective": "Complete semantic Waves/PR closure matrix and discover all residual historical branches",
+      "dependsOn": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "MD-CLOSURE-002",
+      "priority": "P0",
+      "owner": "Platform + Experience + Proof",
+      "objective": "Prove or port every residual MISSING/PARTIALLY_MISSING/CONFLICTING semantic requirement",
+      "dependsOn": [
+        "MD-CLOSURE-001"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "MD-CLOSURE-003",
+      "priority": "P0",
+      "owner": "Integrator",
+      "objective": "Close stale/superseded PRs only after semantic proof",
+      "dependsOn": [
+        "MD-CLOSURE-001",
+        "MD-CLOSURE-002"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "MD-P0-PLACES-001",
+      "priority": "P0",
+      "owner": "Proof Worker",
+      "objective": "Certify same-SHA publication idempotency and 72 publication invariants",
+      "dependsOn": [],
+      "status": "DONE"
+    },
+    {
+      "id": "MD-P0-PLACES-002",
+      "priority": "P0",
+      "owner": "Proof + Experience",
+      "objective": "Certify Map/Search/Assistant/Navigation public runtime for all 72 canonical Places, duplicates, precedence and fallback",
+      "dependsOn": [
+        "MD-P0-PLACES-001"
+      ],
+      "status": "READY"
+    },
+    {
+      "id": "MD-P0-XDOMAIN-001",
+      "priority": "P0",
+      "owner": "Platform + Experience + Proof",
+      "objective": "Cross-domain E2E Search/Place/Map/Assistant/Commerce/Reservation/Payment/Ordering/Financial/Business Portal/Control Center with tenant isolation",
+      "dependsOn": [
+        "MD-P0-PLACES-002"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "id": "MD-P1-ASSISTANT-001",
+      "priority": "P1",
+      "owner": "Experience Worker",
+      "objective": "Continuous contextual humanized Assistant across actions, failures, navigation and long sessions",
+      "dependsOn": [
+        "MD-CLOSURE-002"
+      ],
+      "status": "READY"
+    },
+    {
+      "id": "MD-P1-MAP-001",
+      "priority": "P1",
+      "owner": "Experience Worker",
+      "objective": "Map/Navigation mobile visual QA and regression repair",
+      "dependsOn": [
+        "MD-CLOSURE-002"
+      ],
+      "status": "READY"
+    },
+    {
+      "id": "MD-P1-BUSINESS-001",
+      "priority": "P1",
+      "owner": "Platform + Experience + Proof",
+      "objective": "Business Portal/Morro Pro and Control Center real E2E",
+      "dependsOn": [
+        "MD-CLOSURE-002"
+      ],
+      "status": "READY"
+    },
+    {
+      "id": "MD-P1-COMMERCE-001",
+      "priority": "P1",
+      "owner": "Platform + Proof",
+      "objective": "Commerce/Booking/Payments staging E2E and reconciliation",
+      "dependsOn": [
+        "MD-CLOSURE-002"
+      ],
+      "status": "READY"
+    },
+    {
+      "id": "MD-P1-SECURITY-001",
+      "priority": "P1",
+      "owner": "Proof Worker",
+      "objective": "Adversarial auth/tenant/revision/session/leakage/payment/admin boundaries",
+      "dependsOn": [
+        "MD-P1-BUSINESS-001",
+        "MD-P1-COMMERCE-001"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "id": "MD-P2-001",
+      "priority": "P2",
+      "owner": "Control Tower",
+      "objective": "Coordinate analytics, notifications, PWA/offline, accessibility, design debt, observability and CI/CD final",
+      "dependsOn": [
+        "MD-P0-XDOMAIN-001",
+        "MD-P1-SECURITY-001"
+      ],
+      "status": "BLOCKED"
+    },
+    {
+      "id": "MD-RELEASE-001",
+      "priority": "P0",
+      "owner": "Integrator + Proof",
+      "objective": "Final integrated release acceptance on one exact SHA and produce Production Go-Live Checklist without production action",
+      "dependsOn": [
+        "MD-P2-001"
+      ],
+      "status": "BLOCKED"
+    }
+  ]
+}
