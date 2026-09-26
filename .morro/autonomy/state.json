@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "updatedAt": "2026-09-26T04:30:00-03:00",
+  "status": "LEGACY_WAVE_CLOSURE_ACTIVE",
+  "sourceOfTruth": "GitHub LIVE",
+  "productionProhibited": true,
+  "staging": {
+    "workspaceId": "tea-d9p09oks728c7381s990",
+    "serviceId": "srv-da4hb6c9v7es7386ttt0",
+    "serviceName": "morro-digital-v2-staging",
+    "autoDeploy": false,
+    "liveSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+    "readinessPath": "/readyz"
+  },
+  "provenFacts": {
+    "integratedWavesPr": 357,
+    "integratedWavesHead": "d5db6f6776a54ac32ca5c0b913072a96978b72b2",
+    "integratedHeadIsAncestorOfMain": true,
+    "commitsAfterIntegratedHead": 355,
+    "publicPlaces": 72,
+    "businesses": 72,
+    "destinationLinks": 72,
+    "publishedRevisions": 72,
+    "catalogSnapshots": 72,
+    "mediaSnapshots": 72,
+    "media": {
+      "migrate": 6,
+      "intentionalNoImage": 66,
+      "assets": 18,
+      "materializedAssets": 18
+    },
+    "secondSameShaDeploy": {
+      "existingPublished": 72,
+      "published": 0,
+      "markersInserted": 0,
+      "cutoverAudit": "PASS"
+    },
+    "exactHeadFinalReleaseAcceptance": "SUCCESS"
+  },
+  "criticalPath": [
+    "finish semantic closure of residual historical/open PRs",
+    "certify public Map/Search/Assistant/Navigation runtime against 72 Places",
+    "cross-domain E2E",
+    "Assistant continuous/humanized E2E",
+    "Map/Navigation visual QA",
+    "Business Portal/Control Center E2E",
+    "Commerce/Booking/Payments staging E2E",
+    "adversarial security",
+    "P2 completion",
+    "final integrated release acceptance"
+  ],
+  "nextWorkItem": "Complete residual closure matrix for #344/#352/#375/#377 and classify #407 collateral libxml2 delta independently from publication supersession."
+}
