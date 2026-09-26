@@ -13,7 +13,7 @@ import {
 
 const ID_BODY = /^[A-Za-z0-9_-]+$/u;
 const REQUEST_KEY =
-  /^(?:business:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+|ticketing:[A-Za-z0-9_-]+)$/u;
+  /^(?:business:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+|ticketing:[A-Za-z0-9_-]+|restaurant:[A-Za-z0-9_-]+)$/u;
 
 const orderIdBrand: unique symbol = Symbol("OrderId");
 const orderRequestKeyBrand: unique symbol = Symbol("OrderRequestKey");
@@ -31,7 +31,8 @@ export const orderStatuses = Object.freeze([
 ] as const);
 
 export type OrderStatus = (typeof orderStatuses)[number];
-export type OrderSourceKind = "business_onboarding" | "ticketing_reservation";
+export type OrderSourceKind =
+  "business_onboarding" | "ticketing_reservation" | "restaurant_reservation";
 
 export interface OrderSourceReference {
   readonly kind: OrderSourceKind;
@@ -100,7 +101,11 @@ function isOrderStatus(value: unknown): value is OrderStatus {
 }
 
 function isOrderSourceKind(value: unknown): value is OrderSourceKind {
-  return value === "business_onboarding" || value === "ticketing_reservation";
+  return (
+    value === "business_onboarding" ||
+    value === "ticketing_reservation" ||
+    value === "restaurant_reservation"
+  );
 }
 
 export function normalizeOrderId(value: unknown): OrderId | null {
@@ -127,6 +132,14 @@ export function createTicketingOrderRequestKey(
   const reservation = normalizeSafeReference(reservationReference, 120);
   if (!reservation) return null;
   return `ticketing:${reservation}` as OrderRequestKey;
+}
+
+export function createRestaurantOrderRequestKey(
+  reservationReference: unknown,
+): OrderRequestKey | null {
+  const reservation = normalizeSafeReference(reservationReference, 120);
+  if (!reservation) return null;
+  return `restaurant:${reservation}` as OrderRequestKey;
 }
 
 export function normalizeOrderRequestKey(
