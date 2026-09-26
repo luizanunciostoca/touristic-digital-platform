@@ -624,7 +624,7 @@ export function createBusinessAdminAdapter(
       ) {
         try {
           const body = await readJsonBody(request);
-          if (!["review", "publish"].includes(body.action)) {
+          if (!["review", "publish", "suspend"].includes(body.action)) {
             sendJson(response, 400, {
               error: "BUSINESS_CMS_PUBLICATION_ACTION_INVALID",
             });
