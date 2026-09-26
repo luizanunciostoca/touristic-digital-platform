@@ -79,11 +79,15 @@ async function canonicalIdentity(businessPool, entry) {
   ) {
     throw new Error("LEGACY_MEDIA_CANONICAL_IDENTITY_CONFLICT");
   }
+  return row;
+}
+
+function assertBackfillEligible(row) {
   if (
-    String(row.publication_state) !== "draft" ||
+    !["draft", "review"].includes(String(row.publication_state)) ||
     row.published_revision != null
   ) {
-    throw new Error("LEGACY_MEDIA_PLACE_NOT_DRAFT");
+    throw new Error("LEGACY_MEDIA_PLACE_NOT_BACKFILL_ELIGIBLE");
   }
 }
 
@@ -295,7 +299,7 @@ export async function executeLegacyCommercialMediaBackfill({
   if (apply) await applyLegacyMediaMigrationSchema(contentPool);
 
   for (const entry of manifest) {
-    await canonicalIdentity(businessPool, entry);
+    const canonical = await canonicalIdentity(businessPool, entry);
     if (entry.disposition === "migrate") summary.migrate += 1;
     else summary.intentionalNoImage += 1;
 
@@ -306,6 +310,8 @@ export async function executeLegacyCommercialMediaBackfill({
       summary.existingMigrations += 1;
       continue;
     }
+
+    assertBackfillEligible(canonical);
 
     if (entry.disposition === "migrate") {
       if ((await placeLinkCount(contentPool, entry.placeId)) !== 0) {
