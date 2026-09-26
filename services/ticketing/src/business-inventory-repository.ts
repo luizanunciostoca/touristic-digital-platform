@@ -6,6 +6,7 @@ const BUSINESS_ID = /^[a-z0-9][a-z0-9_-]{0,119}$/u;
 const IDEMPOTENCY_KEY = /^[A-Za-z0-9_-]{8,120}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const PRODUCT_REFERENCE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/u;
+const CATALOG_OFFER_ID = /^[a-z0-9][a-z0-9_-]{0,159}$/u;
 
 export interface MorroProInventoryOffer {
   readonly id: string;
@@ -26,10 +27,27 @@ export interface MorroProInventoryOffer {
   readonly enabled: boolean;
 }
 
+export interface TicketingCatalogOfferBinding {
+  readonly inventoryId: string;
+  readonly businessId: string;
+  readonly offerId: string;
+}
+
 export interface TicketingBusinessInventoryRepositoryPort {
   listByBusiness(
     businessId: string,
   ): Promise<readonly MorroProInventoryOffer[]>;
+  listCatalogBindings(
+    businessId: string,
+    offerIds: readonly string[],
+  ): Promise<readonly TicketingCatalogOfferBinding[]>;
+  bindCatalogOffer(input: {
+    readonly businessId: string;
+    readonly inventoryId: string;
+    readonly offerId: string;
+    readonly actorSubject: string;
+    readonly recordedAt: string;
+  }): Promise<TicketingCatalogOfferBinding>;
   createForBusiness(input: {
     readonly businessId: string;
     readonly destinationId: string;
@@ -47,6 +65,12 @@ export interface TicketingBusinessInventoryRepositoryPort {
     readonly actorSubject: string;
     readonly recordedAt: string;
   }): Promise<MorroProInventoryOffer | null>;
+}
+
+interface CatalogBindingRow extends RowDataPacket {
+  inventory_id: string;
+  business_id: string;
+  offer_id: string;
 }
 
 interface BusinessInventoryRow extends RowDataPacket {
@@ -222,6 +246,81 @@ async function ownedById(
   return rows[0] ? fromRow(rows[0]) : null;
 }
 
+function canonicalOfferId(value: unknown): string | null {
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return CATALOG_OFFER_ID.test(candidate) ? candidate : null;
+}
+
+function bindingFromRow(row: CatalogBindingRow): TicketingCatalogOfferBinding {
+  return Object.freeze({
+    inventoryId: row.inventory_id,
+    businessId: row.business_id,
+    offerId: row.offer_id,
+  });
+}
+
+async function bindCatalogOfferWithConnection(
+  connection: PoolConnection,
+  input: {
+    readonly businessId: string;
+    readonly inventoryId: string;
+    readonly offerId: string;
+    readonly actorSubject: string;
+    readonly recordedAt: string;
+  },
+): Promise<TicketingCatalogOfferBinding> {
+  const businessId = canonicalBusinessId(input.businessId);
+  const offerId = canonicalOfferId(input.offerId);
+  if (!offerId) throw new Error("TICKETING_CATALOG_OFFER_ID_INVALID");
+  if (!input.actorSubject.trim()) throw new Error("MORRO_PRO_ACTOR_INVALID");
+  const recordedAt = canonicalTimestamp(
+    input.recordedAt,
+    "MORRO_PRO_RECORDED_AT_INVALID",
+  );
+  const inventory = await ownedById(connection, input.inventoryId);
+  if (!inventory || inventory.businessId !== businessId) {
+    throw new Error("TICKETING_CATALOG_BINDING_OWNERSHIP_DENIED");
+  }
+
+  const [rows] = await connection.execute<CatalogBindingRow[]>(
+    `SELECT inventory_id, business_id, offer_id
+       FROM ticketing_inventory_catalog_bindings
+      WHERE inventory_id = ? OR (business_id = ? AND offer_id = ?)
+      FOR UPDATE`,
+    [input.inventoryId, businessId, offerId],
+  );
+  const existing = rows[0];
+  if (existing) {
+    if (
+      existing.inventory_id !== input.inventoryId ||
+      existing.business_id !== businessId ||
+      existing.offer_id !== offerId
+    ) {
+      throw new Error("TICKETING_CATALOG_BINDING_CONFLICT");
+    }
+    return bindingFromRow(existing);
+  }
+
+  await connection.execute(
+    `INSERT INTO ticketing_inventory_catalog_bindings
+      (inventory_id, business_id, offer_id, created_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      input.inventoryId,
+      businessId,
+      offerId,
+      input.actorSubject.trim(),
+      recordedAt,
+      recordedAt,
+    ],
+  );
+  return Object.freeze({
+    inventoryId: input.inventoryId,
+    businessId,
+    offerId,
+  });
+}
+
 export class MySqlTicketingBusinessInventoryRepository implements TicketingBusinessInventoryRepositoryPort {
   constructor(private readonly pool: Pool) {}
 
@@ -234,6 +333,53 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
       [businessId],
     );
     return Object.freeze(rows.map(fromRow));
+  }
+
+  async listCatalogBindings(
+    businessIdInput: string,
+    offerIdsInput: readonly string[],
+  ): Promise<readonly TicketingCatalogOfferBinding[]> {
+    const businessId = canonicalBusinessId(businessIdInput);
+    const offerIds = Object.freeze(
+      Array.from(
+        new Set(
+          offerIdsInput
+            .map((value) => canonicalOfferId(value))
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).slice(0, 100),
+    );
+    if (offerIds.length === 0) return Object.freeze([]);
+    const placeholders = offerIds.map(() => "?").join(",");
+    const [rows] = await this.pool.execute<CatalogBindingRow[]>(
+      `SELECT inventory_id, business_id, offer_id
+         FROM ticketing_inventory_catalog_bindings
+        WHERE business_id = ? AND offer_id IN (${placeholders})
+        ORDER BY offer_id ASC`,
+      [businessId, ...offerIds],
+    );
+    return Object.freeze(rows.map(bindingFromRow));
+  }
+
+  async bindCatalogOffer(input: {
+    readonly businessId: string;
+    readonly inventoryId: string;
+    readonly offerId: string;
+    readonly actorSubject: string;
+    readonly recordedAt: string;
+  }): Promise<TicketingCatalogOfferBinding> {
+    const connection = await this.pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const binding = await bindCatalogOfferWithConnection(connection, input);
+      await connection.commit();
+      return binding;
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
   }
 
   async createForBusiness(input: {
@@ -308,6 +454,20 @@ export class MySqlTicketingBusinessInventoryRepository implements TicketingBusin
         ) VALUES (?, ?, ?, ?, ?)`,
         [inventoryId, businessId, input.actorSubject, recordedAt, recordedAt],
       );
+      const offerRecord = record(input.offer);
+      const boundOfferId = canonicalOfferId(offerRecord?.canonicalOfferId);
+      if (offerRecord?.canonicalOfferId !== undefined && !boundOfferId) {
+        throw new Error("TICKETING_CATALOG_OFFER_ID_INVALID");
+      }
+      if (boundOfferId) {
+        await bindCatalogOfferWithConnection(connection, {
+          businessId,
+          inventoryId,
+          offerId: boundOfferId,
+          actorSubject: input.actorSubject,
+          recordedAt,
+        });
+      }
       const created = await ownedById(connection, inventoryId);
       if (!created) throw new Error("MORRO_PRO_CREATE_FAILED");
       await connection.commit();
