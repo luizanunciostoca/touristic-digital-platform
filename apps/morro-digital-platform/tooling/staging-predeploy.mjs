@@ -39,17 +39,25 @@ const STEPS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    name: "legacy-commercial-description-backfill-apply",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+      "--apply",
+    ]),
+  }),
+  Object.freeze({
+    name: "legacy-commercial-description-backfill-verify",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+    ]),
+  }),
+  Object.freeze({
     name: "legacy-commercial-publication-readiness-audit",
     command: process.execPath,
     args: Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
-    ]),
-  }),
-  Object.freeze({
-    name: "legacy-commercial-description-backfill-dry-run",
-    command: process.execPath,
-    args: Object.freeze([
-      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
     ]),
   }),
 ]);

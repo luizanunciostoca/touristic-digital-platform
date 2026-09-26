@@ -26,7 +26,7 @@ describe("staging predeploy", () => {
       spawnImpl: successfulSpawn(calls),
     });
 
-    expect(calls).toHaveLength(7);
+    expect(calls).toHaveLength(8);
     expect(calls[0]?.args).toEqual([
       "apps/morro-digital-platform/tooling/payments-migrate.mjs",
     ]);
@@ -45,10 +45,14 @@ describe("staging predeploy", () => {
       "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
     ]);
     expect(calls[5]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+      "--apply",
     ]);
     expect(calls[6]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+    ]);
+    expect(calls[7]?.args).toEqual([
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
     ]);
     expect(result).toEqual({
       contract: "MORRO-STAGING-PREDEPLOY",
@@ -59,8 +63,9 @@ describe("staging predeploy", () => {
         "legacy-commercial-draft-verify",
         "legacy-commercial-media-backfill-apply",
         "legacy-commercial-media-backfill-verify",
+        "legacy-commercial-description-backfill-apply",
+        "legacy-commercial-description-backfill-verify",
         "legacy-commercial-publication-readiness-audit",
-        "legacy-commercial-description-backfill-dry-run",
       ],
     });
   });
