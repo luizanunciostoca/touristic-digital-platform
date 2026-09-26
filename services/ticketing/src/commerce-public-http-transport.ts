@@ -399,14 +399,15 @@ export class TicketingCommerceHttpTransport {
             correlation,
           );
         }
-        const binding =
-          await this.dependencies.businessInventory.bindCatalogOffer({
+        const binding = await this.dependencies.businessInventory.bindCatalogOffer(
+          {
             businessId,
             inventoryId,
             offerId,
             actorSubject: actor.subject,
             recordedAt: this.dependencies.clock.now(),
-          });
+          },
+        );
         return response(200, { data: binding }, correlation);
       }
       if (
