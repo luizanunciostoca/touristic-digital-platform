@@ -155,6 +155,10 @@ function assertExistingMigration(row, entry) {
 }
 
 async function assertExistingMediaMaterialized(contentPool, entry) {
+  const linkCount = await placeLinkCount(contentPool, entry.placeId);
+  if (linkCount !== entry.assets.length) {
+    throw new Error("LEGACY_MEDIA_MIGRATION_MATERIAL_DRIFT");
+  }
   if (entry.disposition !== "migrate") return;
   for (const asset of entry.assets) {
     const [rows] = await contentPool.execute(
