@@ -13,7 +13,8 @@ async function loadMysqlClient() {
 }
 
 async function loadPlacePlatformRuntime() {
-  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url).href;
+  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url)
+    .href;
   const module = await import(/* @vite-ignore */ moduleUrl);
   return module.createPlacePlatformRuntime;
 }
@@ -76,10 +77,7 @@ function validateRow(row) {
   if (state === "review" && publishedRevision == null) {
     return { state, editableRevision, publishedRevision };
   }
-  if (
-    state === "published" &&
-    publishedRevision === editableRevision
-  ) {
+  if (state === "published" && publishedRevision === editableRevision) {
     return { state, editableRevision, publishedRevision };
   }
   throw new Error("LEGACY_PUBLICATION_CANARY_STATE_INVALID");
@@ -170,7 +168,8 @@ export async function runLegacyCommercialPublicationCanary({
 
   const apply = argv.includes("--apply");
   const verify = argv.includes("--verify");
-  if (apply && verify) throw new Error("LEGACY_PUBLICATION_CANARY_MODE_INVALID");
+  if (apply && verify)
+    throw new Error("LEGACY_PUBLICATION_CANARY_MODE_INVALID");
 
   const resolvedMysqlClient = mysqlClient ?? (await mysqlClientLoader());
   const pool = resolvedMysqlClient.createPool(businessDatabaseUrl);
