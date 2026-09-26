@@ -1,8 +1,6 @@
 import { readFileSync } from "node:fs";
 
 import mysql from "mysql2/promise";
-import { morroV1SearchCatalog } from "@touristic/search";
-
 import { executeLegacyCommercialPlaceBackfill } from "./legacy-commercial-place-backfill-core.mjs";
 
 const STAGING_SERVICE = "morro-digital-v2-staging";
@@ -29,12 +27,25 @@ async function loadPlaceRuntimeModule() {
   return import(/* @vite-ignore */ moduleUrl);
 }
 
+async function loadSearchCatalog() {
+  const moduleUrl = new URL(
+    "../../../packages/search/dist/index.js",
+    import.meta.url,
+  ).href;
+  const search = await import(/* @vite-ignore */ moduleUrl);
+  if (!Array.isArray(search.morroV1SearchCatalog)) {
+    throw new Error("LEGACY_COMMERCIAL_SEARCH_CATALOG_UNAVAILABLE");
+  }
+  return search.morroV1SearchCatalog;
+}
+
 export async function runLegacyCommercialPlaceBackfill({
   environment = process.env,
   apply = false,
   mysqlClient = mysql,
   mappings = loadMappings(),
-  catalog = morroV1SearchCatalog,
+  catalog,
+  searchCatalogLoader = loadSearchCatalog,
   runtimeModuleLoader = loadPlaceRuntimeModule,
 } = {}) {
   if (
@@ -49,6 +60,7 @@ export async function runLegacyCommercialPlaceBackfill({
   if (!databaseUrl) throw new Error("BUSINESS_DATABASE_URL_REQUIRED");
   if (!contentDatabaseUrl) throw new Error("CONTENT_DATABASE_URL_REQUIRED");
 
+  const resolvedCatalog = catalog ?? (await searchCatalogLoader());
   const pool = mysqlClient.createPool(databaseUrl);
   let runtime = null;
   try {
@@ -74,7 +86,7 @@ export async function runLegacyCommercialPlaceBackfill({
       runtime,
       apply,
       mappings,
-      catalog,
+      catalog: resolvedCatalog,
     });
   } finally {
     if (runtime) await runtime.stop().catch(() => {});
