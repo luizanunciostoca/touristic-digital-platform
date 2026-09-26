@@ -26,7 +26,7 @@ describe("staging predeploy", () => {
       spawnImpl: successfulSpawn(calls),
     });
 
-    expect(calls).toHaveLength(12);
+    expect(calls).toHaveLength(11);
     expect(calls[0]?.args).toEqual([
       "apps/morro-digital-platform/tooling/payments-migrate.mjs",
     ]);
@@ -53,21 +53,18 @@ describe("staging predeploy", () => {
       "--verify",
     ]);
     expect(calls[7]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
     ]);
     expect(calls[8]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-canary.mjs",
       "--apply",
     ]);
     expect(calls[9]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-canary.mjs",
       "--verify",
     ]);
     expect(calls[10]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
-    ]);
-    expect(calls[11]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-dry-run.mjs",
     ]);
     expect(result).toEqual({
       contract: "MORRO-STAGING-PREDEPLOY",
@@ -80,11 +77,10 @@ describe("staging predeploy", () => {
         "legacy-commercial-media-backfill-verify",
         "legacy-commercial-description-backfill-apply",
         "legacy-commercial-description-backfill-verify",
-        "legacy-commercial-publication-readiness-audit",
-        "legacy-commercial-review-transition-apply",
-        "legacy-commercial-review-transition-verify",
-        "legacy-commercial-cutover-audit",
-        "legacy-commercial-publication-dry-run",
+        "legacy-commercial-cutover-audit-pre-canary",
+        "legacy-commercial-publication-canary-apply",
+        "legacy-commercial-publication-canary-verify",
+        "legacy-commercial-cutover-audit-post-canary",
       ],
     });
   });

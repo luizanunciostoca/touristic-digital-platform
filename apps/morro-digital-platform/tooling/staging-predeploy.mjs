@@ -55,40 +55,33 @@ const STEPS = Object.freeze([
     ]),
   }),
   Object.freeze({
-    name: "legacy-commercial-publication-readiness-audit",
-    command: process.execPath,
-    args: Object.freeze([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
-    ]),
-  }),
-  Object.freeze({
-    name: "legacy-commercial-review-transition-apply",
-    command: process.execPath,
-    args: Object.freeze([
-      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
-      "--apply",
-    ]),
-  }),
-  Object.freeze({
-    name: "legacy-commercial-review-transition-verify",
-    command: process.execPath,
-    args: Object.freeze([
-      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
-      "--verify",
-    ]),
-  }),
-  Object.freeze({
-    name: "legacy-commercial-cutover-audit",
+    name: "legacy-commercial-cutover-audit-pre-canary",
     command: process.execPath,
     args: Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
     ]),
   }),
   Object.freeze({
-    name: "legacy-commercial-publication-dry-run",
+    name: "legacy-commercial-publication-canary-apply",
     command: process.execPath,
     args: Object.freeze([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-dry-run.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-canary.mjs",
+      "--apply",
+    ]),
+  }),
+  Object.freeze({
+    name: "legacy-commercial-publication-canary-verify",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-canary.mjs",
+      "--verify",
+    ]),
+  }),
+  Object.freeze({
+    name: "legacy-commercial-cutover-audit-post-canary",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
     ]),
   }),
 ]);
