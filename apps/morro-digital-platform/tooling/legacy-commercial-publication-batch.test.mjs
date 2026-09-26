@@ -166,6 +166,48 @@ describe("legacy commercial publication batch", () => {
     });
   });
 
+  it.each(["draft", "review"])(
+    "preserves a marker-owned post-publication %s edit without republishing it",
+    async (state) => {
+      const fixtureState = fixture();
+      const { stateRows, pool } = fixtureState;
+      const durableMarkers = fixtureState.markers();
+
+      for (let index = 1; index < stateRows.length; index += 1) {
+        stateRows[index].publication_state = "published";
+        stateRows[index].published_revision = 3;
+        durableMarkers.push(publicationMarker(stateRows[index]));
+      }
+
+      const edited = stateRows[10];
+      edited.publication_state = state;
+      edited.editable_revision = 4;
+      edited.published_revision = 3;
+      edited.review_marker_revision = 3;
+
+      const runtimeFactory = vi.fn(() => {
+        throw new Error("POST_PUBLISH_EDIT_MUST_NOT_START_RUNTIME");
+      });
+
+      await expect(
+        runLegacyCommercialPublicationBatch({
+          environment: environment(),
+          argv: ["--apply"],
+          mysqlClient: { createPool: vi.fn(() => pool) },
+          runtimeFactory,
+        }),
+      ).resolves.toMatchObject({
+        total: 72,
+        wouldPublish: 0,
+        existingPublished: 72,
+        existingMigrations: 72,
+        published: 0,
+        markersInserted: 0,
+      });
+      expect(runtimeFactory).not.toHaveBeenCalled();
+    },
+  );
+
   it("fails closed on an unowned published Place", async () => {
     const { pool } = fixture({ unownedPublished: true });
     await expect(
