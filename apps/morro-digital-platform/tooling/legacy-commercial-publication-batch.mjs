@@ -92,20 +92,31 @@ function validateRows(rows) {
     ) {
       throw new Error("LEGACY_PUBLICATION_BATCH_REVIEW_MARKER_DRIFT");
     }
+    const provenanceRevision = publishedRevision ?? editableRevision;
     if (
       !Number.isSafeInteger(editableRevision) ||
       editableRevision < 1 ||
-      reviewRevision !== editableRevision
+      !Number.isSafeInteger(reviewRevision) ||
+      reviewRevision < 1 ||
+      reviewRevision !== provenanceRevision
     ) {
       throw new Error("LEGACY_PUBLICATION_BATCH_REVIEW_REVISION_DRIFT");
     }
     if (state === "review" && publishedRevision == null) {
-      // eligible
+      // eligible for the original governed publication wave
     } else if (
       state === "published" &&
       publishedRevision === editableRevision
     ) {
       // already published by this governed wave or canary
+    } else if (
+      (state === "draft" || state === "review") &&
+      Number.isSafeInteger(publishedRevision) &&
+      publishedRevision >= 1 &&
+      publishedRevision < editableRevision
+    ) {
+      // post-publication editorial revision: preserve the published snapshot
+      // and never auto-republish the newer editable revision.
     } else {
       throw new Error("LEGACY_PUBLICATION_BATCH_STATE_INVALID");
     }
@@ -148,12 +159,16 @@ async function loadMarkers(pool) {
 }
 
 function validateMarker(marker, row) {
+  const markerRevision =
+    row.published_revision == null
+      ? Number(row.editable_revision)
+      : Number(row.published_revision);
   if (
     String(marker.source_system) !== SOURCE_SYSTEM ||
     String(marker.source_key) !== String(row.source_key) ||
     String(marker.business_id) !== String(row.business_id) ||
     String(marker.place_id) !== String(row.place_id) ||
-    Number(marker.editable_revision) !== Number(row.editable_revision)
+    Number(marker.editable_revision) !== markerRevision
   ) {
     throw new Error("LEGACY_PUBLICATION_BATCH_MARKER_DRIFT");
   }
@@ -184,7 +199,10 @@ function summarize(rows, markers) {
   for (const row of rows) {
     const marker = markerByKey.get(String(row.source_key));
     if (marker) validateMarker(marker, row);
-    if (String(row.publication_state) === "review") {
+    if (
+      String(row.publication_state) === "review" &&
+      row.published_revision == null
+    ) {
       wouldPublish += 1;
     } else {
       if (!marker) {
@@ -255,7 +273,11 @@ export async function runLegacyCommercialPublicationBatch({
 
     if (
       apply &&
-      rows.some((row) => String(row.publication_state) === "review")
+      rows.some(
+        (row) =>
+          String(row.publication_state) === "review" &&
+          row.published_revision == null,
+      )
     ) {
       const createRuntime = runtimeFactory ?? (await runtimeLoader());
       runtime = createRuntime({
@@ -284,7 +306,7 @@ export async function runLegacyCommercialPublicationBatch({
         validateMarker(marker, row);
       } else if (verify) {
         throw new Error("LEGACY_PUBLICATION_BATCH_MARKER_MISSING");
-      } else if (state === "published") {
+      } else if (row.published_revision != null) {
         throw new Error("LEGACY_PUBLICATION_BATCH_UNOWNED_PUBLISHED_STATE");
       } else {
         await insertMarker(pool, row);
@@ -299,7 +321,7 @@ export async function runLegacyCommercialPublicationBatch({
         markerByKey.set(key, marker);
       }
 
-      if (apply && state === "review") {
+      if (apply && state === "review" && row.published_revision == null) {
         if (!runtime) {
           throw new Error("LEGACY_PUBLICATION_BATCH_RUNTIME_UNAVAILABLE");
         }
