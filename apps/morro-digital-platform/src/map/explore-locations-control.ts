@@ -1418,7 +1418,11 @@ export function installExploreLocationsControl({
   const recordPlaceAuthority = (
     input: Readonly<{
       authority: "canonical" | "external";
-      status:\n        | "canonical-pending"\n        | "canonical-ready"\n        | "canonical-unavailable"\n        | "safe-fallback";
+      status:
+        | "canonical-pending"
+        | "canonical-ready"
+        | "canonical-unavailable"
+        | "safe-fallback";
       source: "canonical" | "local" | "mapbox" | "legacy-local";
       place: string;
       placeId?: string;
@@ -1454,7 +1458,8 @@ export function installExploreLocationsControl({
           ? location
           : undefined;
     const presentationLocation = canonicalLocation ?? location;
-    const placeSource =\n      "source" in location ? location.source : ("legacy-local" as const);
+    const placeSource =
+      "source" in location ? location.source : ("legacy-local" as const);
     const categoryLabel =
       currentCategories().find((candidate) => candidate.value === category)
         ?.label ?? category;
@@ -1546,14 +1551,32 @@ export function installExploreLocationsControl({
             detail.profile.name,
             locale,
           );
-          recordPlaceAuthority({\n            authority: "canonical",\n            status: "canonical-ready",\n            source: "canonical",\n            place: detail.profile.name,\n            placeId: canonicalPlaceId,\n          });
+          recordPlaceAuthority({
+            authority: "canonical",
+            status: "canonical-ready",
+            source: "canonical",
+            place: detail.profile.name,
+            placeId: canonicalPlaceId,
+          });
         } else {
-          recordPlaceAuthority({\n            authority: "canonical",\n            status: "canonical-unavailable",\n            source: "canonical",\n            place: presentationLocation.name,\n            placeId: canonicalPlaceId,\n          });
+          recordPlaceAuthority({
+            authority: "canonical",
+            status: "canonical-unavailable",
+            source: "canonical",
+            place: presentationLocation.name,
+            placeId: canonicalPlaceId,
+          });
         }
       } catch {
         // Canonical Places fail closed: never fall back to inferred commercial
         // actions when the authoritative detail projection is unavailable.
-        recordPlaceAuthority({\n            authority: "canonical",\n            status: "canonical-unavailable",\n            source: "canonical",\n            place: presentationLocation.name,\n            placeId: canonicalPlaceId,\n          });
+        recordPlaceAuthority({
+            authority: "canonical",
+            status: "canonical-unavailable",
+            source: "canonical",
+            place: presentationLocation.name,
+            placeId: canonicalPlaceId,
+          });
       }
     }
 
