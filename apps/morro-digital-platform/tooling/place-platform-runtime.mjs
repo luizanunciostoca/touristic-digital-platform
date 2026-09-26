@@ -1894,6 +1894,13 @@ export function createPlacePlatformRuntime({
         expectedRevision,
       );
     }
+    if (action === "suspend") {
+      return publicationService.suspend(
+        context,
+        record.placeId,
+        expectedRevision,
+      );
+    }
     throw new Error("INVALID_PUBLICATION_ACTION");
   }
 
