@@ -11,7 +11,7 @@ async function loadMysqlClient() {
 }
 
 async function loadPlacePlatformRuntime() {
-  const moduleUrl = new URL("./place-platform-runtime.mjs", import.meta.url).href;
+  const moduleUrl = new URL(\n    "./place-platform-runtime.mjs",\n    import.meta.url,\n  ).href;
   const module = await import(/* @vite-ignore */ moduleUrl);
   return module.createPlacePlatformRuntime;
 }
@@ -145,7 +145,7 @@ async function insertMarker(pool, row) {
 }
 
 function summarize(rows, markers) {
-  const markerByKey = new Map(markers.map((marker) => [String(marker.source_key), marker]));
+  const markerByKey = new Map(\n    markers.map((marker) => [String(marker.source_key), marker]),\n  );
   let wouldReview = 0;
   let existingReview = 0;
   for (const row of rows) {
@@ -154,7 +154,7 @@ function summarize(rows, markers) {
     if (String(row.publication_state) === "draft") wouldReview += 1;
     else existingReview += 1;
   }
-  return { total: rows.length, wouldReview, existingReview, existingMigrations: markers.length };
+  return {\n    total: rows.length,\n    wouldReview,\n    existingReview,\n    existingMigrations: markers.length,\n  };
 }
 
 export async function runLegacyCommercialReviewTransition({
@@ -169,13 +169,13 @@ export async function runLegacyCommercialReviewTransition({
     throw new Error("LEGACY_REVIEW_TRANSITION_SERVICE_DENIED");
   }
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
-  const contentDatabaseUrl = String(environment.CONTENT_DATABASE_URL ?? "").trim();
+  const contentDatabaseUrl = String(\n    environment.CONTENT_DATABASE_URL ?? "",\n  ).trim();
   if (!databaseUrl) throw new Error("BUSINESS_DATABASE_URL_REQUIRED");
   if (!contentDatabaseUrl) throw new Error("CONTENT_DATABASE_URL_REQUIRED");
 
   const apply = argv.includes("--apply");
   const verify = argv.includes("--verify");
-  if (apply && verify) throw new Error("LEGACY_REVIEW_TRANSITION_MODE_INVALID");
+  if (apply && verify)\n    throw new Error("LEGACY_REVIEW_TRANSITION_MODE_INVALID");
 
   const resolvedMysqlClient = mysqlClient ?? (await mysqlClientLoader());
   const pool = resolvedMysqlClient.createPool(databaseUrl);
@@ -185,7 +185,7 @@ export async function runLegacyCommercialReviewTransition({
     validateScope(rows);
 
     if (!apply && !verify) {
-      return Object.freeze({ ...summarize(rows, []), reviewed: 0, markersInserted: 0 });
+      return Object.freeze({\n        ...summarize(rows, []),\n        reviewed: 0,\n        markersInserted: 0,\n      });
     }
 
     if (apply) await applyMarkerSchema(pool);
@@ -193,9 +193,9 @@ export async function runLegacyCommercialReviewTransition({
     if (verify && markers.length !== EXPECTED_TOTAL) {
       throw new Error("LEGACY_REVIEW_TRANSITION_MARKER_COUNT_INVALID");
     }
-    const markerByKey = new Map(markers.map((marker) => [String(marker.source_key), marker]));
+    const markerByKey = new Map(\n      markers.map((marker) => [String(marker.source_key), marker]),\n    );
 
-    if (apply && rows.some((row) => String(row.publication_state) === "draft")) {
+    if (\n      apply &&\n      rows.some((row) => String(row.publication_state) === "draft")\n    ) {
       const createRuntime = runtimeFactory ?? (await runtimeLoader());
       runtime = createRuntime({
         getEnvironmentValue: (key) => {
@@ -205,7 +205,7 @@ export async function runLegacyCommercialReviewTransition({
         },
         platformOperations: { emit() {} },
       });
-      if (!(await runtime.start())) throw new Error("LEGACY_REVIEW_TRANSITION_RUNTIME_START_FAILED");
+      if (!(await runtime.start()))\n        throw new Error("LEGACY_REVIEW_TRANSITION_RUNTIME_START_FAILED");
     }
 
     let reviewed = 0;
@@ -237,7 +237,7 @@ export async function runLegacyCommercialReviewTransition({
       }
 
       if (state === "draft") {
-        if (!runtime) throw new Error("LEGACY_REVIEW_TRANSITION_RUNTIME_UNAVAILABLE");
+        if (!runtime)\n          throw new Error("LEGACY_REVIEW_TRANSITION_RUNTIME_UNAVAILABLE");
         await runtime.transitionPublication(
           session,
           String(row.business_id),
@@ -256,19 +256,19 @@ export async function runLegacyCommercialReviewTransition({
     if (apply && final.wouldReview !== 0) {
       throw new Error("LEGACY_REVIEW_TRANSITION_APPLY_INCOMPLETE");
     }
-    if (verify && (final.wouldReview !== 0 || final.existingReview !== EXPECTED_TOTAL)) {
+    if (\n      verify &&\n      (final.wouldReview !== 0 || final.existingReview !== EXPECTED_TOTAL)\n    ) {
       throw new Error("LEGACY_REVIEW_TRANSITION_VERIFY_INCOMPLETE");
     }
 
     return Object.freeze({ ...final, reviewed, markersInserted });
   } finally {
-    await Promise.allSettled([runtime?.stop?.() ?? Promise.resolve(), pool.end()]);
+    await Promise.allSettled([\n      runtime?.stop?.() ?? Promise.resolve(),\n      pool.end(),\n    ]);
   }
 }
 
 async function runCli() {
   const args = process.argv.slice(2);
-  const mode = args.includes("--apply") ? "apply" : args.includes("--verify") ? "verify" : "dry-run";
+  const mode = args.includes("--apply")\n    ? "apply"\n    : args.includes("--verify")\n      ? "verify"\n      : "dry-run";
   const summary = await runLegacyCommercialReviewTransition({ argv: args });
   process.stdout.write(`${JSON.stringify({
     contract: "MORRO-STAGING-LEGACY-COMMERCIAL-REVIEW-TRANSITION",
