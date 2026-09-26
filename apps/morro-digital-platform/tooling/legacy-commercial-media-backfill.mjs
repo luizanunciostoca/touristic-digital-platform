@@ -12,7 +12,8 @@ async function loadMysqlClient() {
 }
 
 async function loadContentSchemaApplier() {
-  const module = await import("@touristic/content-server");
+  const packageName = ["@touristic", "content-server"].join("/");
+  const module = await import(packageName);
   return module.applyContentM156Schema;
 }
 
