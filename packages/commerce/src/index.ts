@@ -203,3 +203,6 @@ export function offeringMatchesCanonicalPlace(
   }
   return false;
 }
+
+export * from "./restaurant-reservations.js";
+export * from "./restaurant-availability.js";
