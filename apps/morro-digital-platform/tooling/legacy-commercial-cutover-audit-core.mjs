@@ -25,11 +25,12 @@ function text(value) {
 }
 
 function finiteCoordinate(value, minimum, maximum) {
+  if (value == null || value === "") return false;
+  const numeric = Number(value);
   return (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
-    value >= minimum &&
-    value <= maximum
+    Number.isFinite(numeric) &&
+    numeric >= minimum &&
+    numeric <= maximum
   );
 }
 
@@ -223,8 +224,8 @@ export function assessLegacyCommercialCutover(rows, mediaRows) {
       text(publishedPlace.id) !== placeId ||
       text(publishedPlace.businessId) !== businessId ||
       text(publishedPlace.destinationId) !== DESTINATION_ID ||
-      !finiteCoordinate(Number(row.published_latitude), -90, 90) ||
-      !finiteCoordinate(Number(row.published_longitude), -180, 180)
+      !finiteCoordinate(row.published_latitude, -90, 90) ||
+      !finiteCoordinate(row.published_longitude, -180, 180)
     ) {
       throw new Error("LEGACY_CUTOVER_PUBLIC_PLACE_SNAPSHOT_INVALID");
     }
