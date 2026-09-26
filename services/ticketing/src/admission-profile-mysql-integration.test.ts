@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import mysql, { type Pool, type RowDataPacket } from "mysql2/promise";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -11,6 +13,18 @@ import {
 const databaseUrl = process.env.TICKETING_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
 const describeMySql = databaseUrl && adminUrl ? describe : describe.skip;
+
+function inventoryIdFor(requestKey: string): string {
+  return `mpi_${createHash("sha256")
+    .update(`morro-pro:v1:business-a:${requestKey}`)
+    .digest("hex")
+    .slice(0, 32)}`;
+}
+
+const testInventoryIds = Object.freeze([
+  inventoryIdFor("party_20260926_001"),
+  inventoryIdFor("tour_20260926_001"),
+]);
 
 function offer(overrides: Record<string, unknown> = {}) {
   return {
@@ -62,10 +76,23 @@ describeMySql.sequential(
     });
 
     beforeEach(async () => {
-      await pool.query("DELETE FROM ticketing_admission_profiles");
-      await pool.query("DELETE FROM ticketing_inventory_catalog_bindings");
-      await pool.query("DELETE FROM ticketing_inventory_ownership");
-      await pool.query("DELETE FROM ticketing_inventory");
+      const placeholders = testInventoryIds.map(() => "?").join(",");
+      await pool.query(
+        `DELETE FROM ticketing_admission_profiles WHERE inventory_id IN (${placeholders})`,
+        [...testInventoryIds],
+      );
+      await pool.query(
+        `DELETE FROM ticketing_inventory_catalog_bindings WHERE inventory_id IN (${placeholders})`,
+        [...testInventoryIds],
+      );
+      await pool.query(
+        `DELETE FROM ticketing_inventory_ownership WHERE inventory_id IN (${placeholders})`,
+        [...testInventoryIds],
+      );
+      await pool.query(
+        `DELETE FROM ticketing_inventory WHERE inventory_id IN (${placeholders})`,
+        [...testInventoryIds],
+      );
     });
 
     afterAll(async () => {
