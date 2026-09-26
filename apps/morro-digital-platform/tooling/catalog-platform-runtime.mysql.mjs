@@ -50,6 +50,15 @@ test(
         return "";
       },
       platformOperations: { emit() {} },
+      actionFactsProvider: {
+        async actionFactsForOffers({ offerIds }) {
+          return offerIds.map((offerId) => ({
+            offerId,
+            availableQuantity: 10,
+            providerAvailable: true,
+          }));
+        },
+      },
     });
     assert.equal(await placeRuntime.start(), true);
 

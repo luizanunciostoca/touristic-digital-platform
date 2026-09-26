@@ -333,6 +333,7 @@ export class TicketingCommerceHttpTransport {
     request: TicketingHttpRequest,
     businessId: string,
     inventoryId?: string,
+    inventoryAction?: "disable" | "catalog-offer",
   ): Promise<TicketingHttpResponse> {
     const correlation = correlationId(request);
     const method = request.method.toUpperCase();
@@ -378,7 +379,41 @@ export class TicketingCommerceHttpTransport {
           correlation,
         );
       }
-      if (inventoryId && method === "POST") {
+      if (
+        inventoryId &&
+        inventoryAction === "catalog-offer" &&
+        method === "POST"
+      ) {
+        const body =
+          request.body !== null &&
+          typeof request.body === "object" &&
+          !Array.isArray(request.body)
+            ? (request.body as Record<string, unknown>)
+            : null;
+        const offerId =
+          typeof body?.offerId === "string" ? body.offerId.trim() : "";
+        if (!offerId) {
+          return response(
+            400,
+            { error: "TICKETING_CATALOG_OFFER_ID_INVALID" },
+            correlation,
+          );
+        }
+        const binding =
+          await this.dependencies.businessInventory.bindCatalogOffer({
+            businessId,
+            inventoryId,
+            offerId,
+            actorSubject: actor.subject,
+            recordedAt: this.dependencies.clock.now(),
+          });
+        return response(200, { data: binding }, correlation);
+      }
+      if (
+        inventoryId &&
+        (inventoryAction === "disable" || !inventoryAction) &&
+        method === "POST"
+      ) {
         const disabled =
           await this.dependencies.businessInventory.disableForBusiness({
             businessId,
@@ -396,10 +431,18 @@ export class TicketingCommerceHttpTransport {
         error instanceof Error
           ? error.message
           : "MORRO_PRO_INVENTORY_UNAVAILABLE";
-      const invalid = message.includes("INVALID");
+      if (message.includes("INVALID")) {
+        return response(400, { error: message }, correlation);
+      }
+      if (message.includes("CONFLICT")) {
+        return response(409, { error: message }, correlation);
+      }
+      if (message.includes("OWNERSHIP_DENIED")) {
+        return response(404, { error: "NOT_FOUND" }, correlation);
+      }
       return response(
-        invalid ? 400 : 503,
-        { error: invalid ? message : "MORRO_PRO_INVENTORY_UNAVAILABLE" },
+        503,
+        { error: "MORRO_PRO_INVENTORY_UNAVAILABLE" },
         correlation,
       );
     }
@@ -433,11 +476,13 @@ export class TicketingCommerceHttpTransport {
     }
 
     const businessMatch =
-      /^\/operator\/businesses\/([a-z0-9][a-z0-9_-]{0,119})\/inventory(?:\/(mpi_[a-f0-9]{32})\/disable)?$/u.exec(
+      /^\/operator\/businesses\/([a-z0-9][a-z0-9_-]{0,119})\/inventory(?:\/(mpi_[a-f0-9]{32})\/(disable|catalog-offer))?$/u.exec(
         relative,
       );
     if (businessMatch?.[1] && BUSINESS_ID.test(businessMatch[1])) {
       const inventoryId = businessMatch[2];
+      const inventoryAction = businessMatch[3] as
+        "disable" | "catalog-offer" | undefined;
       if (inventoryId && !INVENTORY_ID.test(inventoryId)) {
         return response(404, { error: "NOT_FOUND" }, correlation);
       }
@@ -445,6 +490,7 @@ export class TicketingCommerceHttpTransport {
         request,
         businessMatch[1],
         inventoryId,
+        inventoryAction,
       );
     }
 

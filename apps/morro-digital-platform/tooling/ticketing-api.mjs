@@ -262,12 +262,14 @@ export function createTicketingApi({
   audit = (event) => console.warn(`[ticketing-audit] ${JSON.stringify(event)}`),
   publicTransport: injectedPublicTransport,
   adminService: injectedAdminService,
+  businessInventory: injectedBusinessInventory,
 } = {}) {
   const injected = Boolean(injectedPublicTransport);
   let runtime = injected
     ? Object.freeze({
         publicTransport: injectedPublicTransport,
         adminService: injectedAdminService ?? null,
+        businessInventory: injectedBusinessInventory ?? null,
         pools: [],
         processorTimer: null,
         processing: null,
@@ -298,6 +300,7 @@ export function createTicketingApi({
             },
           }),
           adminService: null,
+          businessInventory: null,
           pools,
           processorTimer: null,
           processing: null,
@@ -645,6 +648,7 @@ export function createTicketingApi({
       runtime = {
         publicTransport,
         adminService,
+        businessInventory,
         pools,
         processorTimer,
         get processing() {
@@ -677,6 +681,64 @@ export function createTicketingApi({
     runtime = null;
     started = false;
     await Promise.allSettled(pools.map((pool) => pool.end()));
+  }
+
+  async function actionFactsForOffers({ businessId, offerIds } = {}) {
+    if (!runtime?.publicTransport || !runtime?.businessInventory) {
+      return Object.freeze([]);
+    }
+    try {
+      const bindings = await runtime.businessInventory.listCatalogBindings(
+        String(businessId ?? ""),
+        Array.isArray(offerIds) ? offerIds.map(String) : [],
+      );
+      if (bindings.length === 0) return Object.freeze([]);
+
+      const inventoryResponse = await runtime.publicTransport.handle({
+        method: "GET",
+        pathname: `${ticketingHttpPrefix}/inventory`,
+        headers: Object.freeze({}),
+        correlationId: `action-facts_${randomUUID()}`,
+      });
+      const inventory =
+        inventoryResponse.status >= 200 &&
+        inventoryResponse.status < 300 &&
+        Array.isArray(inventoryResponse.body?.data)
+          ? inventoryResponse.body.data
+          : [];
+      const byId = new Map(
+        inventory
+          .filter(
+            (entry) =>
+              entry &&
+              typeof entry === "object" &&
+              typeof entry.id === "string",
+          )
+          .map((entry) => [entry.id, entry]),
+      );
+
+      return Object.freeze(
+        bindings.map((binding) => {
+          const entry = byId.get(binding.inventoryId);
+          const quantity =
+            entry && Number.isSafeInteger(entry.availableQuantity)
+              ? entry.availableQuantity
+              : null;
+          return Object.freeze({
+            offerId: binding.offerId,
+            availableQuantity: quantity,
+            providerAvailable: Boolean(entry),
+          });
+        }),
+      );
+    } catch (error) {
+      auditSafely(audit, {
+        action: "ticketing.action_facts",
+        result: "failure",
+        reason: syncErrorCode(error),
+      });
+      return Object.freeze([]);
+    }
   }
 
   async function adminTransportMutation(
@@ -778,6 +840,7 @@ export function createTicketingApi({
     },
     start,
     stop,
+    actionFactsForOffers,
     adminListInventory(input) {
       return adminResult((service) => service.listInventory(input));
     },

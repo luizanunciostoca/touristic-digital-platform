@@ -615,7 +615,7 @@ function createMediaPort(mediaPublicationSnapshots) {
     },
   });
 }
-function createActionPort(catalogRuntime) {
+function createActionPort(catalogRuntime, actionFactsProvider) {
   return Object.freeze({
     async resolvePublicActions({
       place,
@@ -635,6 +635,12 @@ function createActionPort(catalogRuntime) {
             publishedRevision,
           )
         : { products: [], offers: [], menus: [] };
+      const inventory = actionFactsProvider?.actionFactsForOffers
+        ? await actionFactsProvider.actionFactsForOffers({
+            businessId,
+            offerIds: catalogContext.offers.map((offer) => String(offer.id)),
+          })
+        : [];
       const localeKey = ["pt", "en", "es", "he"].includes(
         String(locale).slice(0, 2),
       )
@@ -667,7 +673,7 @@ function createActionPort(catalogRuntime) {
         products: catalogContext.products,
         offers: catalogContext.offers,
         menus: catalogContext.menus,
-        inventory: [],
+        inventory,
         media: { galleryAvailable: Boolean(media?.gallery?.length) },
         providers: {},
       });
@@ -731,6 +737,7 @@ export function createPlacePlatformRuntime({
   getEnvironmentValue = (key) => process.env[key] ?? "",
   platformOperations,
   poolFactory = null,
+  actionFactsProvider = null,
 } = {}) {
   let pool = null;
   let mediaPool = null;
@@ -829,7 +836,7 @@ export function createPlacePlatformRuntime({
             return catalogRuntime.getPublicCommerce(place, publishedRevision);
           },
         }),
-        actions: createActionPort(catalogRuntime),
+        actions: createActionPort(catalogRuntime, actionFactsProvider),
       });
       ready = true;
       reason = "place-platform-ready";
@@ -1610,7 +1617,10 @@ export function createPlacePlatformRuntime({
         )
       : [[]];
     const projectedActions = place
-      ? await createActionPort(catalogRuntime).resolvePublicActions({
+      ? await createActionPort(
+          catalogRuntime,
+          actionFactsProvider,
+        ).resolvePublicActions({
           place: { ...place, capabilities: place.capabilities.enabled },
           businessId: String(place.businessId),
           media: {
