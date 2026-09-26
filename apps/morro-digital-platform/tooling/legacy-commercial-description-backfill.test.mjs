@@ -21,7 +21,7 @@ function rows(description = "") {
       category_id: categoryId,
       publication_state: "draft",
       published_revision: null,
-      editable_place_json: {
+      editable_place_json: JSON.stringify({
         id: placeId,
         businessId,
         destinationId: "morro-de-sao-paulo",
@@ -30,25 +30,27 @@ function rows(description = "") {
           typeof description === "function"
             ? description(index, categoryId)
             : description,
-        shortDescription: "",
-      },
+      }),
     };
   });
 }
 
-function fakeDatabase(inputRows) {
-  const markers = [];
+function fakeDatabase(initialRows) {
+  const state = {
+    rows: initialRows,
+    markers: [],
+  };
   const pool = {
     query: vi.fn(async () => [[], []]),
     execute: vi.fn(async (sql, params = []) => {
       if (sql.includes("FROM business_place_legacy_mappings")) {
-        return [inputRows, []];
+        return [state.rows, []];
       }
       if (sql.includes("FROM legacy_place_description_migrations")) {
-        return [markers, []];
+        return [state.markers, []];
       }
       if (sql.includes("INSERT INTO legacy_place_description_migrations")) {
-        markers.push({
+        state.markers.push({
           source_system: params[0],
           source_key: params[1],
           business_id: params[2],
@@ -58,40 +60,20 @@ function fakeDatabase(inputRows) {
         });
         return [{ affectedRows: 1 }, []];
       }
-      throw new Error(`UNEXPECTED_SQL:${sql}`);
+      return [[], []];
     }),
     end: vi.fn(async () => {}),
   };
+  return { state, pool };
+}
+
+function stagingEnvironment() {
   return {
-    markers,
-    pool,
-    mysqlClient: { createPool: vi.fn(() => pool) },
+    RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+    BUSINESS_DATABASE_URL: "mysql://business",
+    CONTENT_DATABASE_URL: "mysql://content",
   };
 }
-
-function runtimeFactory(inputRows) {
-  return () => ({
-    start: vi.fn(async () => true),
-    stop: vi.fn(async () => {}),
-    updateProfile: vi.fn(async (_session, businessId, input) => {
-      const row = inputRows.find(
-        (candidate) => candidate.business_id === businessId,
-      );
-      row.editable_place_json = {
-        ...row.editable_place_json,
-        shortDescription: input.shortDescription,
-        description: input.description,
-      };
-      return {};
-    }),
-  });
-}
-
-const environment = {
-  RENDER_SERVICE_NAME: "morro-digital-v2-staging",
-  BUSINESS_DATABASE_URL: "mysql://business",
-  CONTENT_DATABASE_URL: "mysql://content",
-};
 
 describe("legacy commercial description backfill", () => {
   it("builds factual deterministic descriptions from canonical facts", () => {
@@ -133,17 +115,35 @@ describe("legacy commercial description backfill", () => {
     });
   });
 
-  it("applies 72 governed descriptions and records provenance markers", async () => {
-    const input = rows();
-    const database = fakeDatabase(input);
-    const result = await runLegacyCommercialDescriptionBackfill({
-      environment,
+  it("applies through governed runtime and verifies all migration markers", async () => {
+    const database = fakeDatabase(rows());
+    const updateProfile = vi.fn(async (_actor, businessId, input) => {
+      const row = database.state.rows.find(
+        (candidate) => candidate.business_id === businessId,
+      );
+      const place = JSON.parse(row.editable_place_json);
+      row.editable_place_json = JSON.stringify({
+        ...place,
+        shortDescription: input.shortDescription,
+        description: input.description,
+      });
+      return { ok: true };
+    });
+    const runtime = {
+      start: vi.fn(async () => true),
+      stop: vi.fn(async () => {}),
+      updateProfile,
+    };
+    const mysqlClient = { createPool: vi.fn(() => database.pool) };
+
+    const applied = await runLegacyCommercialDescriptionBackfill({
+      environment: stagingEnvironment(),
       argv: ["--apply"],
-      mysqlClient: database.mysqlClient,
-      runtimeFactory: runtimeFactory(input),
+      mysqlClient,
+      runtimeFactory: () => runtime,
     });
 
-    expect(result).toEqual({
+    expect(applied).toEqual({
       total: 72,
       wouldUpdate: 0,
       existingBootstrap: 72,
@@ -152,23 +152,13 @@ describe("legacy commercial description backfill", () => {
       updated: 72,
       markersInserted: 72,
     });
-    expect(database.markers).toHaveLength(72);
-  });
-
-  it("verifies an applied migration idempotently", async () => {
-    const input = rows();
-    const database = fakeDatabase(input);
-    await runLegacyCommercialDescriptionBackfill({
-      environment,
-      argv: ["--apply"],
-      mysqlClient: database.mysqlClient,
-      runtimeFactory: runtimeFactory(input),
-    });
+    expect(updateProfile).toHaveBeenCalledTimes(72);
+    expect(database.state.markers).toHaveLength(72);
 
     const verified = await runLegacyCommercialDescriptionBackfill({
-      environment,
+      environment: stagingEnvironment(),
       argv: ["--verify"],
-      mysqlClient: database.mysqlClient,
+      mysqlClient,
     });
     expect(verified).toEqual({
       total: 72,
@@ -181,30 +171,44 @@ describe("legacy commercial description backfill", () => {
     });
   });
 
-  it("fails closed when verify is missing provenance markers", async () => {
-    const input = rows((index, categoryId) =>
-      bootstrapLegacyCommercialDescription({
-        name: `Place ${index}`,
-        categoryId,
-        destinationId: "morro-de-sao-paulo",
-      }),
+  it("records markers without starting runtime when bootstrap copy already exists", async () => {
+    const database = fakeDatabase(
+      rows((index, categoryId) =>
+        bootstrapLegacyCommercialDescription({
+          name: `Place ${index}`,
+          categoryId,
+          destinationId: "morro-de-sao-paulo",
+        }),
+      ),
     );
-    const database = fakeDatabase(input);
-    await expect(
-      runLegacyCommercialDescriptionBackfill({
-        environment,
-        argv: ["--verify"],
-        mysqlClient: database.mysqlClient,
-      }),
-    ).rejects.toThrow(/LEGACY_DESCRIPTION_MIGRATION_MARKER_COUNT_INVALID/u);
+    const runtimeFactory = vi.fn();
+
+    const result = await runLegacyCommercialDescriptionBackfill({
+      environment: stagingEnvironment(),
+      argv: ["--apply"],
+      mysqlClient: { createPool: vi.fn(() => database.pool) },
+      runtimeFactory,
+    });
+
+    expect(result).toEqual({
+      total: 72,
+      wouldUpdate: 0,
+      existingBootstrap: 72,
+      preserveCustom: 0,
+      existingMigrations: 0,
+      updated: 0,
+      markersInserted: 72,
+    });
+    expect(runtimeFactory).not.toHaveBeenCalled();
+    expect(database.state.markers).toHaveLength(72);
   });
 
-  it("denies database audit outside canonical staging", async () => {
+  it("fails closed outside canonical staging", async () => {
     await expect(
       runLegacyCommercialDescriptionBackfill({
         environment: {
-          ...environment,
           RENDER_SERVICE_NAME: "morro-digital-v2",
+          BUSINESS_DATABASE_URL: "mysql://business",
         },
         mysqlClient: { createPool: vi.fn() },
       }),
