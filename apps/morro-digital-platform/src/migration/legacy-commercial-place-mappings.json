@@ -1,0 +1,722 @@
+[
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:amendoeira-hotel:-13.3778281:-38.9172358",
+    "legacyName": "Amendoeira Hotel",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-amendoeira-hotel",
+    "placeId": "place-amendoeira-hotel",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:bahia-bacana-pousada:-13.3780883:-38.9146208",
+    "legacyName": "Bahia Bacana Pousada",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-bahia-bacana-pousada",
+    "placeId": "place-bahia-bacana-pousada",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:bangalo-dos-sonhos:-13.3813335:-38.9230751",
+    "legacyName": "Bangalô dos sonhos",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-bangalo-dos-sonhos",
+    "placeId": "place-bangalo-dos-sonhos",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:cantinho-da-josete:-13.3805442:-38.9176643",
+    "legacyName": "Cantinho da Josete",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-cantinho-da-josete",
+    "placeId": "place-cantinho-da-josete",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:casa-celestino-residence:-13.3785577:-38.9154647",
+    "legacyName": "Casa Celestino Residence",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-casa-celestino-residence",
+    "placeId": "place-casa-celestino-residence",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:casa-rossa:-13.3839687:-38.9192849",
+    "legacyName": "Casa Rossa",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-casa-rossa",
+    "placeId": "place-casa-rossa",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:hotel-anima:-13.4362563:-38.9015526",
+    "legacyName": "Hotel Anima",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-hotel-anima",
+    "placeId": "place-hotel-anima",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:hotel-karapitangui:-13.4331980:-38.9028129",
+    "legacyName": "Hotel Karapitangui",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-hotel-karapitangui",
+    "placeId": "place-hotel-karapitangui",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:hotel-morro-da-saudade:-13.3815967:-38.9115716",
+    "legacyName": "Hotel Morro da Saudade",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-hotel-morro-da-saudade",
+    "placeId": "place-hotel-morro-da-saudade",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:hotel-morro-de-sao-paulo:-13.3791591:-38.9166547",
+    "legacyName": "Hotel Morro de São Paulo",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-hotel-morro-de-sao-paulo",
+    "placeId": "place-hotel-morro-de-sao-paulo",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:ilha-da-saudade:-13.3783634:-38.9141991",
+    "legacyName": "Ilha da Saudade",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-ilha-da-saudade",
+    "placeId": "place-ilha-da-saudade",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:passarte:-13.3784605:-38.9167964",
+    "legacyName": "Passarte",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-passarte",
+    "placeId": "place-passarte",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:perola-do-morro:-13.3781645:-38.9149192",
+    "legacyName": "Pérola do Morro",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-perola-do-morro",
+    "placeId": "place-perola-do-morro",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:portalo:-13.3775523:-38.9175756",
+    "legacyName": "Portaló",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-portalo",
+    "placeId": "place-portalo",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:porto-dos-milagres:-13.3785587:-38.9139954",
+    "legacyName": "Porto dos Milagres",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-porto-dos-milagres",
+    "placeId": "place-porto-dos-milagres",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-colibri:-13.3810625:-38.9194670",
+    "legacyName": "Pousada Colibri",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-colibri",
+    "placeId": "place-pousada-colibri",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-da-praca:-13.3784618:-38.9167360",
+    "legacyName": "Pousada da Praça",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-da-praca",
+    "placeId": "place-pousada-da-praca",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-dos-passaros:-13.3795141:-38.9172535",
+    "legacyName": "Pousada dos Pássaros",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-dos-passaros",
+    "placeId": "place-pousada-dos-passaros",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-fazenda-caeiras:-13.3883252:-38.9061135",
+    "legacyName": "Pousada Fazenda Caeiras",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-fazenda-caeiras",
+    "placeId": "place-pousada-fazenda-caeiras",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-natureza:-13.3775104:-38.9171534",
+    "legacyName": "Pousada Natureza",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-natureza",
+    "placeId": "place-pousada-natureza",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-porto-de-cima:-13.3798535:-38.9191331",
+    "legacyName": "Pousada Porto de Cima",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-porto-de-cima",
+    "placeId": "place-pousada-porto-de-cima",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:pousada-timbalada:-13.3812838:-38.9108804",
+    "legacyName": "Pousada Timbalada",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pousada-timbalada",
+    "placeId": "place-pousada-timbalada",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:safira-do-morro:-13.3785061:-38.9156415",
+    "legacyName": "Safira do Morro",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-safira-do-morro",
+    "placeId": "place-safira-do-morro",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:uma-janela-para-o-sol:-13.3795410:-38.9170652",
+    "legacyName": "Uma Janela para o Sol",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-uma-janela-para-o-sol",
+    "placeId": "place-uma-janela-para-o-sol",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:vila-dos-orixas-boutique-hotel-e-spa:-13.4369703:-38.9014342",
+    "legacyName": "Vila dos Orixás Boutique Hotel & Spa",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-vila-dos-orixas-boutique-hotel-e-spa",
+    "placeId": "place-vila-dos-orixas-boutique-hotel-e-spa",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:vila-guaiamu:-13.3844636:-38.9095831",
+    "legacyName": "Vila Guaiamu",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-vila-guaiamu",
+    "placeId": "place-vila-guaiamu",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:vila-morro-do-sao-paulo:-13.3771876:-38.9172992",
+    "legacyName": "Vila Morro do Sao Paulo",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-vila-morro-do-sao-paulo",
+    "placeId": "place-vila-morro-do-sao-paulo",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:villa-dos-corais-pousada:-13.3866345:-38.9059675",
+    "legacyName": "Villa dos Corais pousada",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-villa-dos-corais-pousada",
+    "placeId": "place-villa-dos-corais-pousada",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:village-paraiso-tropical:-13.3829153:-38.9092912",
+    "legacyName": "Village Paraíso Tropical",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-village-paraiso-tropical",
+    "placeId": "place-village-paraiso-tropical",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "hotels:xerife-hotel:-13.3777890:-38.9172378",
+    "legacyName": "Xerife Hotel",
+    "legacyCategory": "hotels",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-xerife-hotel",
+    "placeId": "place-xerife-hotel",
+    "categoryId": "hotels"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "nightlife:mama-iate:-13.3804000:-38.9115000",
+    "legacyName": "Mama Iate",
+    "legacyCategory": "nightlife",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-mama-iate",
+    "placeId": "place-mama-iate",
+    "categoryId": "nightlife"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "nightlife:toca-do-morcego:-13.3766787:-38.9172057",
+    "legacyName": "Toca do Morcego",
+    "legacyCategory": "nightlife",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "toca-do-morcego",
+    "placeId": "place-toca-do-morcego",
+    "categoryId": "nightlife"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:andina-cozinha-latina:-13.3792418:-38.9183595",
+    "legacyName": "Andina Cozinha Latina",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-andina-cozinha-latina",
+    "placeId": "place-andina-cozinha-latina",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:bar-e-restaurante-da-morena:-13.3783060:-38.9153863",
+    "legacyName": "Bar e Restaurante da Morena",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-bar-e-restaurante-da-morena",
+    "placeId": "place-bar-e-restaurante-da-morena",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:barraca-da-miriam:-13.3994793:-38.9077185",
+    "legacyName": "Barraca da Miriam",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-barraca-da-miriam",
+    "placeId": "place-barraca-da-miriam",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:basilico:-13.3784237:-38.9168768",
+    "legacyName": "Basílico",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-basilico",
+    "placeId": "place-basilico",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:bizu:-13.3786053:-38.9140910",
+    "legacyName": "Bizu",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-bizu",
+    "placeId": "place-bizu",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:branco-e-negro:-13.3780582:-38.9165422",
+    "legacyName": "Branco&Negro",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-branco-e-negro",
+    "placeId": "place-branco-e-negro",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:cafe-das-artes:-13.3780708:-38.9168545",
+    "legacyName": "Café das Artes",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-cafe-das-artes",
+    "placeId": "place-cafe-das-artes",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:canoa:-13.3834070:-38.9089515",
+    "legacyName": "Canoa",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-canoa",
+    "placeId": "place-canoa",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:chez-max:-13.3821402:-38.9098947",
+    "legacyName": "Chez Max",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-chez-max",
+    "placeId": "place-chez-max",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:dizi-10:-13.3798625:-38.9176810",
+    "legacyName": "dizi 10",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-dizi-10",
+    "placeId": "place-dizi-10",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:forno-a-lenha-de-mercedes:-13.3782428:-38.9167199",
+    "legacyName": "Forno a Lenha de Mercedes",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-forno-a-lenha-de-mercedes",
+    "placeId": "place-forno-a-lenha-de-mercedes",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:ki-massa:-13.3776254:-38.9149403",
+    "legacyName": "Ki Massa",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-ki-massa",
+    "placeId": "place-ki-massa",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:la-tabla:-13.3778440:-38.9153651",
+    "legacyName": "La Tabla",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-la-tabla",
+    "placeId": "place-la-tabla",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:minha-louca-paixao:-13.3811575:-38.9104565",
+    "legacyName": "Minha Louca Paixão",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-minha-louca-paixao",
+    "placeId": "place-minha-louca-paixao",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:morena-bela:-13.3787233:-38.9171560",
+    "legacyName": "Morena Bela",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-morena-bela",
+    "placeId": "place-morena-bela",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:o-casarao-restaurante:-13.3783360:-38.9170869",
+    "legacyName": "O Casarão restaurante",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-o-casarao-restaurante",
+    "placeId": "place-o-casarao-restaurante",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:papoula:-13.3800138:-38.9176327",
+    "legacyName": "Papoula",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-papoula",
+    "placeId": "place-papoula",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:papoula-culinaria-artesanal:-13.3806731:-38.9176579",
+    "legacyName": "Papoula Culinária Artesanal",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-papoula-culinaria-artesanal",
+    "placeId": "place-papoula-culinaria-artesanal",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:patricia:-13.3796798:-38.9185071",
+    "legacyName": "Patricia",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-patricia",
+    "placeId": "place-patricia",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:pedra-sobre-pedra:-13.3791779:-38.9126813",
+    "legacyName": "Pedra Sobre Pedra",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-pedra-sobre-pedra",
+    "placeId": "place-pedra-sobre-pedra",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:ponto-9-99:-13.3776986:-38.9152394",
+    "legacyName": "Ponto 9,99",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-ponto-9-99",
+    "placeId": "place-ponto-9-99",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:ponto-g:-13.3779031:-38.9159823",
+    "legacyName": "Ponto G",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-ponto-g",
+    "placeId": "place-ponto-g",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:recanto-do-aviador:-13.3855501:-38.9074130",
+    "legacyName": "Recanto do Aviador",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-recanto-do-aviador",
+    "placeId": "place-recanto-do-aviador",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:restaurante-alecrim:-13.3779464:-38.9160303",
+    "legacyName": "Restaurante Alecrim",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-restaurante-alecrim",
+    "placeId": "place-restaurante-alecrim",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:restaurante-do-francisco:-13.3903382:-38.9346791",
+    "legacyName": "Restaurante do Francisco",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-restaurante-do-francisco",
+    "placeId": "place-restaurante-do-francisco",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:sabor-da-terra:-13.3779873:-38.9162855",
+    "legacyName": "Sabor da terra",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-sabor-da-terra",
+    "placeId": "place-sabor-da-terra",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:sambass:-13.3803168:-38.9120116",
+    "legacyName": "Sambass",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-sambass",
+    "placeId": "place-sambass",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:santa-luzia:-13.3827694:-38.9094546",
+    "legacyName": "Santa Luzia",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-santa-luzia",
+    "placeId": "place-santa-luzia",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:santa-villa:-13.3803643:-38.9123260",
+    "legacyName": "Santa Villa",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-santa-villa",
+    "placeId": "place-santa-villa",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:six-club:-13.3807296:-38.9111405",
+    "legacyName": "Six Club",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-six-club",
+    "placeId": "place-six-club",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "restaurants:tempeiro-caseiro:-13.3785007:-38.9165185",
+    "legacyName": "Tempeiro Caseiro",
+    "legacyCategory": "restaurants",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-tempeiro-caseiro",
+    "placeId": "place-tempeiro-caseiro",
+    "categoryId": "restaurants"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:absolute:-13.3785049:-38.9142015",
+    "legacyName": "Absolute",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-absolute",
+    "placeId": "place-absolute",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:coruja:-13.3781062:-38.9166445",
+    "legacyName": "Coruja",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-coruja",
+    "placeId": "place-coruja",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:havaianas:-13.3782977:-38.9166961",
+    "legacyName": "Havaianas",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-havaianas",
+    "placeId": "place-havaianas",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:imoveis-brasil-bahia:-13.3789313:-38.9137477",
+    "legacyName": "Imóveis Brasil Bahia",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-imoveis-brasil-bahia",
+    "placeId": "place-imoveis-brasil-bahia",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:local-brasil:-13.3784357:-38.9141403",
+    "legacyName": "Local Brasil",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-local-brasil",
+    "placeId": "place-local-brasil",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:mateus-esquadrais:-13.4046577:-38.9159330",
+    "legacyName": "Mateus Esquadrais",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-mateus-esquadrais",
+    "placeId": "place-mateus-esquadrais",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:sao-pedro-imobiliaria:-13.3825579:-38.9106646",
+    "legacyName": "São Pedro Imobiliária",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-sao-pedro-imobiliaria",
+    "placeId": "place-sao-pedro-imobiliaria",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:super-zimbo:-13.4044608:-38.9160512",
+    "legacyName": "Super Zimbo",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-super-zimbo",
+    "placeId": "place-super-zimbo",
+    "categoryId": "shops"
+  },
+  {
+    "sourceSystem": "morro-v1-search-catalog",
+    "sourceKey": "shops:zimbo-dive:-13.3831358:-38.9091292",
+    "legacyName": "Zimbo Dive",
+    "legacyCategory": "shops",
+    "destinationId": "morro-de-sao-paulo",
+    "businessId": "business-zimbo-dive",
+    "placeId": "place-zimbo-dive",
+    "categoryId": "shops"
+  }
+]
