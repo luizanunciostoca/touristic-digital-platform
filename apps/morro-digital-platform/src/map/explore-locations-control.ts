@@ -1415,6 +1415,28 @@ export function installExploreLocationsControl({
     return first;
   };
 
+  const recordPlaceAuthority = (
+    input: Readonly<{
+      authority: "canonical" | "external";
+      status: "canonical-pending" | "canonical-ready" | "canonical-unavailable" | "safe-fallback";
+      source: "canonical" | "local" | "mapbox" | "legacy-local";
+      place: string;
+      placeId?: string;
+    }>,
+  ): void => {
+    const mapElement = document.getElementById("map");
+    if (mapElement) {
+      mapElement.dataset.lastPlaceAuthority = input.authority;
+      mapElement.dataset.lastPlaceAuthorityStatus = input.status;
+      mapElement.dataset.lastPlaceSource = input.source;
+      if (input.placeId) mapElement.dataset.lastCanonicalPlaceId = input.placeId;
+      else delete mapElement.dataset.lastCanonicalPlaceId;
+    }
+    document.dispatchEvent(new CustomEvent("morro:place-authority-resolved", {
+      detail: Object.freeze({ ...input, commercialAuthority: input.status === "canonical-ready" ? "canonical" : "blocked" }),
+    }));
+  };
+
   const selectLocation = async (
     location: ExploreMapLocation,
   ): Promise<void> => {
@@ -1432,6 +1454,7 @@ export function installExploreLocationsControl({
           ? location
           : undefined;
     const presentationLocation = canonicalLocation ?? location;
+    const placeSource = "source" in location ? location.source : ("legacy-local" as const);
     const categoryLabel =
       currentCategories().find((candidate) => candidate.value === category)
         ?.label ?? category;
@@ -1474,6 +1497,10 @@ export function installExploreLocationsControl({
             locale: document.documentElement.lang || "pt-BR",
           })
         : Promise.resolve(null);
+
+    recordPlaceAuthority(canonicalPlaceId
+      ? { authority: "canonical", status: "canonical-pending", source: "canonical", place: presentationLocation.name, placeId: canonicalPlaceId }
+      : { authority: "external", status: "safe-fallback", source: placeSource, place: presentationLocation.name });
 
     await renderLocationsOnMap([location], category, true);
 
@@ -1519,10 +1546,14 @@ export function installExploreLocationsControl({
             detail.profile.name,
             locale,
           );
+          recordPlaceAuthority({ authority: "canonical", status: "canonical-ready", source: "canonical", place: detail.profile.name, placeId: canonicalPlaceId });
+        } else {
+          recordPlaceAuthority({ authority: "canonical", status: "canonical-unavailable", source: "canonical", place: presentationLocation.name, placeId: canonicalPlaceId });
         }
       } catch {
         // Canonical Places fail closed: never fall back to inferred commercial
         // actions when the authoritative detail projection is unavailable.
+        recordPlaceAuthority({ authority: "canonical", status: "canonical-unavailable", source: "canonical", place: presentationLocation.name, placeId: canonicalPlaceId });
       }
     }
 
