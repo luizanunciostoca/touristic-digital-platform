@@ -126,6 +126,7 @@ describeMySql.sequential("M138 checkout application MySQL integration", () => {
       "ordering_subscription_renewal_intents",
       "ordering_subscriptions",
       "ordering_ticketing_reservation_bindings",
+      "ordering_restaurant_reservation_bindings",
     ]) {
       try {
         await orderingPool.query(`DELETE FROM ${table}`);
