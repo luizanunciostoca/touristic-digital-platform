@@ -21,7 +21,11 @@ const manifest = (
   .map((line) => JSON.parse(line));
 const byKey = new Map(manifest.map((entry) => [entry.sourceKey, entry]));
 
-function businessPool({ publicationState = "draft", missing = false } = {}) {
+function businessPool({
+  publicationState = "draft",
+  publishedRevision = null,
+  missing = false,
+} = {}) {
   return {
     execute: vi.fn(async (_sql, params) => {
       const entry = byKey.get(params[1]);
@@ -34,7 +38,7 @@ function businessPool({ publicationState = "draft", missing = false } = {}) {
             destination_id: entry.destinationId,
             category_id: "unused",
             publication_state: publicationState,
-            published_revision: null,
+            published_revision: publishedRevision,
           },
         ],
         [],
@@ -43,7 +47,7 @@ function businessPool({ publicationState = "draft", missing = false } = {}) {
   };
 }
 
-function contentPool({ apply = false } = {}) {
+function contentPool({ apply = false, existing = false } = {}) {
   const state = {
     queryCount: 0,
     assetInserts: 0,
@@ -59,8 +63,26 @@ function contentPool({ apply = false } = {}) {
       state.queryCount += 1;
       return [[], []];
     }),
-    execute: vi.fn(async (sql) => {
-      if (sql.includes("legacy_place_media_migrations")) {
+    execute: vi.fn(async (sql, params = []) => {
+      if (sql.includes("FROM legacy_place_media_migrations")) {
+        if (existing) {
+          const entry = byKey.get(params[1]);
+          if (!entry) return [[], []];
+          return [
+            [
+              {
+                business_id: entry.businessId,
+                place_id: entry.placeId,
+                disposition: entry.disposition,
+                asset_count: entry.assets.length,
+                manifest_digest: createHash("sha256")
+                  .update(JSON.stringify(entry))
+                  .digest("hex"),
+              },
+            ],
+            [],
+          ];
+        }
         if (!apply) {
           const error = new Error("missing");
           error.code = "ER_NO_SUCH_TABLE";
@@ -69,7 +91,33 @@ function contentPool({ apply = false } = {}) {
         return [[], []];
       }
       if (sql.includes("COUNT(*) AS total FROM place_media")) {
-        return [[{ total: 0 }], []];
+        const entry = manifest.find((candidate) => candidate.placeId === params[0]);
+        return [[{ total: existing ? entry?.assets.length ?? 0 : 0 }], []];
+      }
+      if (sql.includes("INNER JOIN media_assets")) {
+        if (!existing) return [[], []];
+        const entry = manifest.find((candidate) => candidate.placeId === params[0]);
+        const asset = entry?.assets.find((candidate) => candidate.mediaId === params[1]);
+        if (!entry || !asset) return [[], []];
+        return [
+          [
+            {
+              role: asset.role,
+              sort_order: asset.sortOrder,
+              business_id: entry.businessId,
+              provider: asset.provider,
+              provider_reference: asset.providerReference,
+              mime_type: asset.mimeType,
+              width: asset.width,
+              height: asset.height,
+              byte_size: asset.byteSize,
+              checksum_sha256: asset.checksumSha256,
+              alt_text: asset.alt,
+              publication_state: asset.publicationState,
+            },
+          ],
+          [],
+        ];
       }
       if (sql.includes("FROM media_assets")) return [[], []];
       return [[], []];
@@ -190,14 +238,34 @@ describe("legacy commercial media backfill", () => {
     ).rejects.toThrow(/LEGACY_MEDIA_MIGRATION_MATERIAL_DRIFT/u);
   });
 
-  it("fails closed when any canonical Place is not draft-only", async () => {
+  it("verifies all existing media migrations after the Places move to review", async () => {
+    const result = await executeLegacyCommercialMediaBackfill({
+      businessPool: businessPool({ publicationState: "review" }),
+      contentPool: contentPool({ existing: true }),
+      manifest,
+    });
+
+    expect(result).toEqual({
+      total: 72,
+      migrate: 6,
+      intentionalNoImage: 66,
+      existingMigrations: 72,
+      wouldCreateAssets: 0,
+      wouldRecordNoImage: 0,
+      createdAssets: 0,
+      migrationsInserted: 0,
+    });
+  });
+
+  it("denies a late media migration after a Place leaves pristine draft", async () => {
     await expect(
       executeLegacyCommercialMediaBackfill({
-        businessPool: businessPool({ publicationState: "published" }),
-        contentPool: contentPool(),
+        businessPool: businessPool({ publicationState: "review" }),
+        contentPool: contentPool({ apply: true }),
         manifest,
+        apply: true,
       }),
-    ).rejects.toThrow(/LEGACY_MEDIA_PLACE_NOT_DRAFT/u);
+    ).rejects.toThrow(/LEGACY_MEDIA_LATE_MIGRATION_DENIED/u);
   });
 
   it("denies CLI execution outside canonical staging", async () => {
