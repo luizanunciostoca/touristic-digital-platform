@@ -45,6 +45,13 @@ const STEPS = Object.freeze([
       "apps/morro-digital-platform/tooling/legacy-commercial-publication-readiness.mjs",
     ]),
   }),
+  Object.freeze({
+    name: "legacy-commercial-description-backfill-dry-run",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+    ]),
+  }),
 ]);
 
 function runStep(step, spawnImpl = spawn) {
