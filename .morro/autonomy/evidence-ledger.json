@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "evidence": [
+    {
+      "id": "EVID-MAIN-20260926-001",
+      "type": "github-live",
+      "sha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+      "fact": "Current main exact SHA revalidated.",
+      "fresh": true
+    },
+    {
+      "id": "EVID-WAVES-357",
+      "type": "git-ancestry",
+      "sha": "d5db6f6776a54ac32ca5c0b913072a96978b72b2",
+      "fact": "PR #357 composed Waves A-J; compare to current main reports 355 ahead, 0 behind, merge base equals #357 head.",
+      "fresh": true
+    },
+    {
+      "id": "EVID-347",
+      "type": "semantic-file-equivalence",
+      "sha": "66269d5f8c494c807a02d94fd5678b33b5fa00e3",
+      "fact": "Wave J governance implementation, tests and architecture doc are byte-identical in current main; PR closed as present via later integration.",
+      "fresh": true
+    },
+    {
+      "id": "EVID-402",
+      "type": "semantic-supersession",
+      "sha": "9d4a6bea6ec571cac62e9757043be8c99117f8d4",
+      "fact": "#403 lifecycle hardening equals current media backfill core/tests and is stricter than #402 for late migration while preserving verification across lifecycle.",
+      "fresh": true
+    },
+    {
+      "id": "EVID-DEPLOY-IDEMPOTENT",
+      "type": "render-staging-runtime",
+      "sha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+      "fact": "Second same-SHA deploy: existingPublished=72, published=0, markersInserted=0; 72 catalog/media snapshots; cutover PASS; media 6/66 and 18/18 materialized.",
+      "fresh": true
+    },
+    {
+      "id": "EVID-RUNTIME-START",
+      "type": "render-staging-runtime",
+      "sha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+      "fact": "platform.runtime.started emitted releaseSha exact main with listening=true after deploy.",
+      "fresh": true
+    },
+    {
+      "id": "EVID-FINAL-ACCEPTANCE",
+      "type": "github-status",
+      "sha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+      "fact": "Combined status Final Release Acceptance=success.",
+      "fresh": true
+    }
+  ]
+}

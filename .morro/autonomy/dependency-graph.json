@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "nodes": [
+    {
+      "id": "MD-CLOSURE-001",
+      "owner": "Control Tower",
+      "status": "ACTIVE",
+      "dependsOn": [],
+      "unlocks": [
+        "MD-CLOSURE-002",
+        "MD-CLOSURE-003"
+      ]
+    },
+    {
+      "id": "MD-CLOSURE-002",
+      "owner": "Platform/Experience/Proof",
+      "status": "ACTIVE",
+      "dependsOn": [
+        "MD-CLOSURE-001"
+      ],
+      "unlocks": [
+        "MD-P0-PLACES-002",
+        "MD-P1-ASSISTANT-001",
+        "MD-P1-MAP-001",
+        "MD-P1-BUSINESS-001",
+        "MD-P1-COMMERCE-001"
+      ]
+    },
+    {
+      "id": "MD-P0-PLACES-001",
+      "owner": "Proof Worker",
+      "status": "DONE",
+      "dependsOn": [],
+      "unlocks": [
+        "MD-P0-PLACES-002"
+      ]
+    },
+    {
+      "id": "MD-P0-PLACES-002",
+      "owner": "Proof/Experience",
+      "status": "READY",
+      "dependsOn": [
+        "MD-P0-PLACES-001"
+      ],
+      "unlocks": [
+        "MD-P0-XDOMAIN-001"
+      ]
+    },
+    {
+      "id": "MD-P0-XDOMAIN-001",
+      "owner": "Platform/Experience/Proof",
+      "status": "BLOCKED",
+      "dependsOn": [
+        "MD-P0-PLACES-002"
+      ],
+      "unlocks": [
+        "MD-RELEASE-001"
+      ]
+    },
+    {
+      "id": "MD-P1-SECURITY-001",
+      "owner": "Proof Worker",
+      "status": "BLOCKED",
+      "dependsOn": [
+        "MD-P1-BUSINESS-001",
+        "MD-P1-COMMERCE-001"
+      ],
+      "unlocks": [
+        "MD-P2-001"
+      ]
+    },
+    {
+      "id": "MD-P2-001",
+      "owner": "Control Tower",
+      "status": "BLOCKED",
+      "dependsOn": [
+        "MD-P0-XDOMAIN-001",
+        "MD-P1-SECURITY-001"
+      ],
+      "unlocks": [
+        "MD-RELEASE-001"
+      ]
+    },
+    {
+      "id": "MD-RELEASE-001",
+      "owner": "Integrator/Proof",
+      "status": "BLOCKED",
+      "dependsOn": [
+        "MD-P0-XDOMAIN-001",
+        "MD-P2-001"
+      ],
+      "unlocks": [
+        "PRODUCTION_GO_LIVE_CHECKLIST_ONLY"
+      ]
+    }
+  ],
+  "criticalPath": [
+    "MD-CLOSURE-001",
+    "MD-CLOSURE-002",
+    "MD-P0-PLACES-002",
+    "MD-P0-XDOMAIN-001",
+    "MD-P1-SECURITY-001",
+    "MD-P2-001",
+    "MD-RELEASE-001"
+  ]
+}

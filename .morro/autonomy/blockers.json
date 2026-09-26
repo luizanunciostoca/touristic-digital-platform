@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "blockers": [
+    {
+      "id": "BLK-CLOSURE-344-352",
+      "scope": "legacy-wave-closure",
+      "description": "PRs #344 and #352 remain open and require final semantic representative-file/test comparison against current main before closure.",
+      "owner": "Control Tower + Proof Worker",
+      "status": "OPEN"
+    },
+    {
+      "id": "BLK-CLOSURE-375-377",
+      "scope": "post-wave-open-prs",
+      "description": "PRs #375 and #377 remain open; audit current Action Registry/Ticketing facts and Map authority proofs before closure or port.",
+      "owner": "Platform + Experience + Proof",
+      "status": "OPEN"
+    },
+    {
+      "id": "BLK-407-LIBXML2",
+      "scope": "security-collateral",
+      "description": "Closed PR #407 contained an incidental MySQL staging Dockerfile libxml2 update not present in current main. Determine whether it is still required by current container security evidence; do not reopen/port blindly.",
+      "owner": "Proof Worker",
+      "status": "OPEN"
+    },
+    {
+      "id": "BLK-TERMUX-PROCESS",
+      "scope": "local-execution",
+      "description": "Remote Desktop Commander device is visible, but start_process failed in this session. GitHub/Render remain usable; local Termux execution requires bridge/process recovery if needed.",
+      "owner": "Control Tower",
+      "status": "OPEN"
+    }
+  ]
+}

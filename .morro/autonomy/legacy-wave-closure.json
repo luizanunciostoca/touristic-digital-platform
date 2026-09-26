@@ -1,0 +1,415 @@
+{
+  "schemaVersion": 1,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "integrationBaseline": {
+    "pr": 357,
+    "title": "integrate: compose Business / Place platform waves A–J",
+    "headSha": "d5db6f6776a54ac32ca5c0b913072a96978b72b2",
+    "merged": true,
+    "mainAncestryProof": {
+      "aheadBy": 355,
+      "behindBy": 0,
+      "mergeBase": "d5db6f6776a54ac32ca5c0b913072a96978b72b2"
+    }
+  },
+  "entries": [
+    {
+      "pr": 344,
+      "wave": "A",
+      "objective": "Canonical Business + Place domain model",
+      "headSha": "5aaea6c0650deb1cc7bdf29c9cc1b05239f2fe01",
+      "mergeStatus": "OPEN_UNMERGED",
+      "classification": "NEEDS_MANUAL_REVIEW",
+      "evidence": [
+        "Included in #357 composition"
+      ],
+      "next": "Compare domain model/tests/docs against current main, then close if equivalent."
+    },
+    {
+      "pr": 345,
+      "wave": "C",
+      "objective": "Canonical Business/Place media management",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "Included in #357; current main contains content package, durable content repository, media snapshot/backfill runtime."
+      ]
+    },
+    {
+      "pr": 346,
+      "wave": "D",
+      "objective": "Canonical products/offers/menus",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "Included in #357 and expanded by #366/#367/#370/#372 catalog runtime/UI."
+      ]
+    },
+    {
+      "pr": 347,
+      "wave": "J",
+      "objective": "Secure Place publication governance",
+      "headSha": "66269d5f8c494c807a02d94fd5678b33b5fa00e3",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "governance TS exact-equal main",
+        "governance tests exact-equal main",
+        "architecture doc exact-equal main",
+        "#357 integrated the files"
+      ],
+      "next": "None; closure complete."
+    },
+    {
+      "pr": 348,
+      "wave": "B",
+      "objective": "Governed Business/Place location discovery",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "Included in #357 composition; current main retained business-location discovery adapter and canonical Place location contract."
+      ]
+    },
+    {
+      "pr": 351,
+      "wave": "E",
+      "objective": "Canonical Place Action Registry",
+      "headSha": "01dd13020d9264ae01fdf946695435d287d677fc",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "registry TS exact-equal main",
+        "registry tests exact-equal main",
+        "included in #357"
+      ],
+      "note": "Legacy place-commerce-capability consumer was later removed; audit successor facts via #375 before declaring all downstream action plumbing closed."
+    },
+    {
+      "pr": 352,
+      "wave": "F",
+      "objective": "Control Center Business / Place admin CMS",
+      "headSha": "be6948309695557576b23d4513703949f191af4e",
+      "mergeStatus": "OPEN_UNMERGED",
+      "classification": "NEEDS_MANUAL_REVIEW",
+      "evidence": [
+        "Included in #357 composition",
+        "later #364/#367/#370 add persistent/revisioned CMS behavior"
+      ],
+      "next": "Representative file/test equivalence and runtime E2E before closure."
+    },
+    {
+      "pr": 353,
+      "wave": "G",
+      "objective": "Canonical Public Place projection",
+      "headSha": "e04022856ee698dc8bdd218e9b00e4d6a6aa3b08",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "#357 integrated projection",
+        "689/694 nonblank implementation lines retained",
+        "448/450 test lines retained",
+        "#382 later enforces composite published revision integrity"
+      ]
+    },
+    {
+      "pr": 354,
+      "wave": "I",
+      "objective": "Tenant-safe Morro Pro self-service management",
+      "headSha": "3347651ff78a38c832590cdbea57f42ffefc7130",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "explicit integrate(morro-pro) commits in #357",
+        "client/management contracts retained and expanded",
+        "canonical Catalog successor #372 semantics are a superset in current main"
+      ],
+      "next": "None; closure complete."
+    },
+    {
+      "pr": 355,
+      "wave": "H",
+      "objective": "Canonical public Place presentation V2",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "Included in #357; later #383 establishes canonical Map V2 authority."
+      ]
+    },
+    {
+      "pr": 359,
+      "objective": "Persistent Business/Place runtime",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current place runtime descends and is exercised by current staging publication flow"
+      ]
+    },
+    {
+      "pr": 363,
+      "objective": "Persistent Business/Place runtime proof",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "runtime MySQL integration workflow merged; later runtime publication proof passes"
+      ]
+    },
+    {
+      "pr": 364,
+      "objective": "Control Center revision protection and persistent flow",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "later CMS/catalog flows build on these adapters and tests"
+      ]
+    },
+    {
+      "pr": 366,
+      "objective": "Persist canonical Products Offers and Menus",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "catalog runtime remains in current main and snapshots are 72/72"
+      ]
+    },
+    {
+      "pr": 367,
+      "objective": "Governed Catalog draft authoring",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current Control Center/catalog runtime includes draft authoring"
+      ]
+    },
+    {
+      "pr": 370,
+      "objective": "Revisioned Catalog CRUD publication",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current publication snapshots and Morro Pro catalog build on it"
+      ]
+    },
+    {
+      "pr": 372,
+      "objective": "Morro Pro canonical Catalog",
+      "headSha": "2b6f5457cdff76a2ad201c2ca64195494f66e369",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "all nonblank lines from core client/surface/tests retained in current main",
+        "management TS/test exact-equal current main"
+      ],
+      "next": "Map exact successor PR during residual audit."
+    },
+    {
+      "pr": 382,
+      "objective": "PublicPlace composite published revision integrity",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current projection is evolved from this change and staging has 72 current catalog/media snapshots"
+      ]
+    },
+    {
+      "pr": 383,
+      "objective": "Map V2 canonical global Place markers",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current Map authority files descend from this PR; public runtime proof still pending"
+      ]
+    },
+    {
+      "pr": 385,
+      "objective": "Assistant canonical Place media",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "assistant canonical photo adapter remains in current main"
+      ]
+    },
+    {
+      "pr": 386,
+      "objective": "Legacy-to-canonical photo coverage audit",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "coverage audit files remain; staging media counts match 6/66"
+      ]
+    },
+    {
+      "pr": 387,
+      "objective": "Canonical Place media coverage report runner",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "runner remains in current main"
+      ]
+    },
+    {
+      "pr": 388,
+      "objective": "Staging Business/Content/Destinations MySQL",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current staging predeploy uses canonical MySQL domains and is PASS"
+      ]
+    },
+    {
+      "pr": 397,
+      "objective": "Apply legacy commercial descriptions",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "second deploy description apply is a no-op with 72 existing migrations"
+      ]
+    },
+    {
+      "pr": 398,
+      "objective": "Prepare governed commercial review transition",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "historical transition absorbed into published lifecycle"
+      ]
+    },
+    {
+      "pr": 399,
+      "objective": "Apply governed commercial review transition",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current 72 Places have completed review-to-published lifecycle"
+      ]
+    },
+    {
+      "pr": 400,
+      "objective": "Assistant canonical public Place details",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "assistant Place details adapter in current main"
+      ]
+    },
+    {
+      "pr": 401,
+      "objective": "Governed publication suspension path",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "suspend runtime remains; destructive suspend/restore E2E still pending"
+      ]
+    },
+    {
+      "pr": 402,
+      "objective": "Lifecycle-aware legacy media verification",
+      "headSha": "5bd046f172d67830631b3ce8b92ff7525c876838",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "SUPERSEDED",
+      "evidence": [
+        "#403 current files exact-equal main",
+        "broader lifecycle verification allows existing migrations and denies late new migration",
+        "#410 adds published lifecycle verification"
+      ],
+      "next": "None; closure complete."
+    },
+    {
+      "pr": 403,
+      "objective": "Lifecycle-aware legacy backfills",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "media backfill core/tests exact-equal current main",
+        "second deploy media apply/dry-run no-op"
+      ]
+    },
+    {
+      "pr": 404,
+      "objective": "Permanent commercial cutover auditor",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current second deploy cutover audit PASS with 72 published"
+      ]
+    },
+    {
+      "pr": 405,
+      "objective": "Governed commercial publication dry run",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "later canary/batch rollout supersedes transition stage but retains safety semantics"
+      ]
+    },
+    {
+      "pr": 406,
+      "objective": "Publication dry run in predeploy",
+      "mergeStatus": "MERGED",
+      "classification": "PRESENT_IN_MAIN_VIA_LATER_IMPLEMENTATION",
+      "evidence": [
+        "predeploy evolved to permanent canary/batch lifecycle"
+      ]
+    },
+    {
+      "pr": 407,
+      "objective": "All-at-once governed commercial publication cutover",
+      "headSha": "c0a567e1a014933e5db80317531d0778e7eb8eaf",
+      "mergeStatus": "CLOSED_UNMERGED",
+      "classification": "SUPERSEDED",
+      "evidence": [
+        "#408 canary",
+        "#409 remaining batch",
+        "#410 lifecycle verifier",
+        "second same-SHA deploy proves idempotent permanent lifecycle"
+      ],
+      "note": "Publication goal superseded. Incidental libxml2 Dockerfile delta is tracked separately as BLK-407-LIBXML2."
+    },
+    {
+      "pr": 408,
+      "objective": "Publish one governed commercial canary",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "first later deploy state shows 1 published before remaining batch"
+      ]
+    },
+    {
+      "pr": 409,
+      "objective": "Publish remaining governed commercial Places",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "first #410 predeploy completed remaining 71; final state 72 published"
+      ]
+    },
+    {
+      "pr": 410,
+      "objective": "Allow published commercial lifecycle verification",
+      "mergeStatus": "MERGED",
+      "classification": "MERGED_AND_PRESENT",
+      "evidence": [
+        "current main is merge of #410; second same-SHA predeploy passes with 72 published and no mutations"
+      ]
+    },
+    {
+      "pr": 375,
+      "objective": "Bind canonical Ticketing facts to Place actions",
+      "mergeStatus": "OPEN_UNMERGED",
+      "classification": "NEEDS_MANUAL_REVIEW",
+      "evidence": [
+        "discovered as open post-wave action integration"
+      ],
+      "next": "Compare binding schema/runtime/tests to current main before port/closure."
+    },
+    {
+      "pr": 377,
+      "objective": "Prove canonical Place authority and external fail-closed",
+      "mergeStatus": "OPEN_UNMERGED",
+      "classification": "NEEDS_MANUAL_REVIEW",
+      "evidence": [
+        "discovered as open post-wave Map proof"
+      ],
+      "next": "Compare telemetry/browser proof to current main and current #383+ changes."
+    }
+  ]
+}

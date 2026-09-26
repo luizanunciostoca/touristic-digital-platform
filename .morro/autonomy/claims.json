@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 2,
+  "updatedFromMainSha": "44f438b70f5400fa9717d25da6d2b41eb3f4d6f7",
+  "claimProtocol": {
+    "sourceOfTruth": "GitHub LIVE",
+    "exclusivePaths": true,
+    "staleClaimRule": "A claim is stale when its branch/PR no longer exists or the worker has explicitly released it.",
+    "collisionRule": "Do not edit overlapping owned paths; select a disjoint ChangeSet."
+  },
+  "claims": []
+}
