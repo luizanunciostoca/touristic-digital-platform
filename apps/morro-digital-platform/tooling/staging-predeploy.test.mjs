@@ -17,7 +17,7 @@ function successfulSpawn(calls) {
 }
 
 describe("staging predeploy", () => {
-  it("runs payments migration before the draft-only commercial backfill", async () => {
+  it("runs payments, commercial draft backfill and invariant verification in order", async () => {
     const calls = [];
     const result = await runStagingPredeploy({
       environment: {
@@ -26,7 +26,7 @@ describe("staging predeploy", () => {
       spawnImpl: successfulSpawn(calls),
     });
 
-    expect(calls).toHaveLength(2);
+    expect(calls).toHaveLength(3);
     expect(calls[0]?.args).toEqual([
       "apps/morro-digital-platform/tooling/payments-migrate.mjs",
     ]);
@@ -34,10 +34,17 @@ describe("staging predeploy", () => {
       "apps/morro-digital-platform/tooling/legacy-commercial-place-backfill.mjs",
       "--apply",
     ]);
+    expect(calls[2]?.args).toEqual([
+      "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify.mjs",
+    ]);
     expect(result).toEqual({
       contract: "MORRO-STAGING-PREDEPLOY",
       status: "pass",
-      steps: ["payments-migrate", "legacy-commercial-draft-backfill"],
+      steps: [
+        "payments-migrate",
+        "legacy-commercial-draft-backfill",
+        "legacy-commercial-draft-verify",
+      ],
     });
   });
 
@@ -52,7 +59,7 @@ describe("staging predeploy", () => {
     ).rejects.toThrow(/STAGING_PREDEPLOY_SERVICE_DENIED/u);
   });
 
-  it("does not start the second step when payments migration fails", async () => {
+  it("does not start later steps when an earlier step fails", async () => {
     const calls = [];
     const spawnImpl = (command, args, options) => {
       calls.push({ command, args, options });

@@ -16,6 +16,13 @@ const STEPS = Object.freeze([
       "--apply",
     ]),
   }),
+  Object.freeze({
+    name: "legacy-commercial-draft-verify",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify.mjs",
+    ]),
+  }),
 ]);
 
 function runStep(step, spawnImpl = spawn) {
