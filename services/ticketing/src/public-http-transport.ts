@@ -234,6 +234,7 @@ function publicInventory(
     availableQuantity: availability.remainingQuantity,
     sellable: availability.sellable,
     observedAt: availability.observedAt,
+    ...(inventory.admission ? { admission: inventory.admission } : {}),
   });
 }
 

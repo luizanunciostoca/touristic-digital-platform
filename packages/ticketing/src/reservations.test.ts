@@ -58,6 +58,36 @@ function heldReservation() {
 }
 
 describe("ticket reservation contracts", () => {
+  it("normalizes Admission presentation metadata only for business experiences", () => {
+    const profile = {
+      placeId: "place_toca_do_morcego",
+      subtype: "party",
+      ticketType: "Pista",
+      tierLabel: "1º lote",
+      displayOrder: 10,
+    } as const;
+    const admission = createTicketInventoryOffer({
+      ...inventory(),
+      admission: profile,
+    });
+    expect(admission?.admission).toEqual(profile);
+
+    expect(
+      createTicketInventoryOffer({
+        ...inventory(),
+        product: { kind: "transport", reference: "catamaran-transfer" },
+        admission: profile,
+      }),
+    ).toBeNull();
+
+    expect(
+      createTicketInventoryOffer({
+        ...inventory(),
+        admission: { ...profile, displayOrder: 1000 },
+      }),
+    ).toBeNull();
+  });
+
   it("accepts transport as a first-class inventory product kind", () => {
     const offer = createTicketInventoryOffer({
       id: "tin_transport_20260919",

@@ -16,6 +16,7 @@ const ID_BODY = /^[A-Za-z0-9_-]+$/u;
 const DESTINATION_REFERENCE = /^[A-Za-z0-9:_-]{2,120}$/u;
 const PRICING_VERSION = /^[A-Za-z0-9._:-]{1,80}$/u;
 const REQUEST_REFERENCE = /^[A-Za-z0-9_-]{8,120}$/u;
+const ADMISSION_ID = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,119}$/u;
 
 const ticketInventoryIdBrand: unique symbol = Symbol("TicketInventoryId");
 const ticketReservationIdBrand: unique symbol = Symbol("TicketReservationId");
@@ -42,6 +43,21 @@ export const ticketReservationStatuses = Object.freeze([
 export type TicketReservationStatus =
   (typeof ticketReservationStatuses)[number];
 
+export const ticketAdmissionSubtypes = Object.freeze([
+  "sunset",
+  "event",
+  "party",
+] as const);
+export type TicketAdmissionSubtype = (typeof ticketAdmissionSubtypes)[number];
+
+export interface TicketAdmissionProfile {
+  readonly placeId: string;
+  readonly subtype: TicketAdmissionSubtype;
+  readonly ticketType: string;
+  readonly tierLabel: string | null;
+  readonly displayOrder: number;
+}
+
 export interface TicketInventoryOffer {
   readonly id: TicketInventoryId;
   readonly destinationId: string;
@@ -58,6 +74,7 @@ export interface TicketInventoryOffer {
   readonly enabled: boolean;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly admission?: TicketAdmissionProfile;
 }
 
 export interface TicketReservation {
@@ -99,6 +116,17 @@ function normalizeString(value: unknown, maxLength: number): string {
     : "";
 }
 
+function normalizeAdmissionLabel(value: unknown): string {
+  const normalized = normalizeString(value, 80);
+  if (!normalized) return "";
+  return [...normalized].some((character) => {
+    const code = character.codePointAt(0) ?? 0;
+    return code <= 31 || code === 127;
+  })
+    ? ""
+    : normalized;
+}
+
 function normalizePrefixedId(
   value: unknown,
   prefix: string,
@@ -137,6 +165,47 @@ function normalizePositiveMoney(value: unknown): Money | null {
 function normalizePricingVersion(value: unknown): string | null {
   const normalized = normalizeString(value, 80);
   return PRICING_VERSION.test(normalized) ? normalized : null;
+}
+
+export function normalizeTicketAdmissionProfile(
+  value: unknown,
+): TicketAdmissionProfile | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const input = value as Record<string, unknown>;
+  const placeId = normalizeString(input.placeId, 120);
+  const subtype = ticketAdmissionSubtypes.includes(
+    input.subtype as TicketAdmissionSubtype,
+  )
+    ? (input.subtype as TicketAdmissionSubtype)
+    : null;
+  const ticketType = normalizeAdmissionLabel(input.ticketType);
+  const tierLabel =
+    input.tierLabel === null || input.tierLabel === undefined
+      ? null
+      : normalizeAdmissionLabel(input.tierLabel);
+  const displayOrder =
+    typeof input.displayOrder === "number" &&
+    Number.isSafeInteger(input.displayOrder) &&
+    input.displayOrder >= 0 &&
+    input.displayOrder <= 999
+      ? input.displayOrder
+      : null;
+  if (
+    !ADMISSION_ID.test(placeId) ||
+    !subtype ||
+    !ticketType ||
+    (tierLabel !== null && !tierLabel) ||
+    displayOrder === null
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    placeId,
+    subtype,
+    ticketType,
+    tierLabel,
+    displayOrder,
+  });
 }
 
 export function normalizeTicketInventoryId(
@@ -205,6 +274,7 @@ export function createTicketInventoryOffer(input: {
   readonly enabled?: unknown;
   readonly createdAt: unknown;
   readonly updatedAt?: unknown;
+  readonly admission?: unknown;
 }): TicketInventoryOffer | null {
   const id = normalizeTicketInventoryId(input.id);
   const destinationId = normalizeString(input.destinationId, 120);
@@ -224,6 +294,10 @@ export function createTicketInventoryOffer(input: {
   const createdAt = normalizedTimestamp(input.createdAt);
   const updatedAt = normalizedTimestamp(input.updatedAt ?? input.createdAt);
   const enabled = input.enabled === undefined ? true : input.enabled === true;
+  const admission =
+    input.admission === undefined
+      ? null
+      : normalizeTicketAdmissionProfile(input.admission);
 
   if (
     !id ||
@@ -245,7 +319,9 @@ export function createTicketInventoryOffer(input: {
     Date.parse(salesEndAt) > Date.parse(startsAt) ||
     Date.parse(startsAt) >= Date.parse(endsAt) ||
     Date.parse(updatedAt) < Date.parse(createdAt) ||
-    (input.enabled !== undefined && typeof input.enabled !== "boolean")
+    (input.enabled !== undefined && typeof input.enabled !== "boolean") ||
+    (input.admission !== undefined &&
+      (!admission || product.kind !== "business_experience"))
   ) {
     return null;
   }
@@ -266,6 +342,7 @@ export function createTicketInventoryOffer(input: {
     enabled,
     createdAt,
     updatedAt,
+    ...(admission ? { admission } : {}),
   });
 }
 

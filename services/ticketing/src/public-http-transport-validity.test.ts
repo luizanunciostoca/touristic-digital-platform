@@ -65,6 +65,73 @@ function transportWithQuote(
   return new TicketingPublicHttpTransport(dependencies);
 }
 
+describe("Ticketing Admission public projection", () => {
+  it("projects presentation metadata without projecting catalog-binding authority", async () => {
+    const inventory = {
+      id: "tin_admission_public_0001",
+      destinationId: "morro-de-sao-paulo",
+      product: { kind: "business_experience", reference: "the-party" },
+      label: "The Party · Pista",
+      unitAmount: { minorUnits: 8000, currency: "BRL" },
+      pricingVersion: "party-v1",
+      capacity: 200,
+      maxPerReservation: 8,
+      salesStartAt: "2026-09-20T00:00:00.000Z",
+      salesEndAt: "2026-09-26T23:00:00.000Z",
+      startsAt: "2026-09-27T02:59:00.000Z",
+      endsAt: "2026-09-27T09:00:00.000Z",
+      enabled: true,
+      createdAt: "2026-09-20T00:00:00.000Z",
+      updatedAt: "2026-09-20T00:00:00.000Z",
+      admission: {
+        placeId: "place_toca_do_morcego",
+        subtype: "party",
+        ticketType: "Pista",
+        tierLabel: "1º lote",
+        displayOrder: 10,
+      },
+    };
+    const dependencies = {
+      enabled: true,
+      authorization: {
+        authorize: vi.fn().mockResolvedValue({
+          allowed: true,
+          actor: { subject: "guest:admission", role: "viewer" },
+        }),
+      },
+      reads: {
+        listInventory: vi.fn().mockResolvedValue([inventory]),
+      },
+      reservations: {
+        availability: vi.fn().mockResolvedValue({
+          inventoryId: inventory.id,
+          capacity: 200,
+          committedQuantity: 20,
+          remainingQuantity: 180,
+          sellable: true,
+          observedAt: "2026-09-26T20:00:00.000Z",
+        }),
+      },
+      clock: { now: () => "2026-09-26T20:00:00.000Z" },
+    } as unknown as TicketingPublicHttpTransportDependencies;
+
+    const result = await new TicketingPublicHttpTransport(dependencies).handle({
+      method: "GET",
+      pathname: "/api/ticketing/v1/inventory",
+      correlationId: "ticketing:test:admission:public",
+    });
+
+    expect(result.status).toBe(200);
+    expect(result.body.data).toEqual([
+      expect.objectContaining({
+        id: inventory.id,
+        admission: inventory.admission,
+      }),
+    ]);
+    expect(JSON.stringify(result.body)).not.toContain("offerId");
+  });
+});
+
 describe("Ticketing presentation quote authority", () => {
   it("computes total, currency, limits, and expiry on the server", async () => {
     const transport = transportWithQuote();
