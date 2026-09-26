@@ -6,15 +6,19 @@ import { describe, expect, it, vi } from "vitest";
 import { executeLegacyCommercialMediaBackfill } from "./legacy-commercial-media-backfill-core.mjs";
 import { runLegacyCommercialMediaBackfill } from "./legacy-commercial-media-backfill.mjs";
 
-const manifest = JSON.parse(
+const manifest = (
   await readFile(
     new URL(
-      "../src/migration/legacy-commercial-media-mappings.json",
+      "../src/migration/legacy-commercial-media-mappings.ndjson",
       import.meta.url,
     ),
     "utf8",
-  ),
-);
+  )
+)
+  .split(/\r?\n/u)
+  .map((line) => line.trim())
+  .filter(Boolean)
+  .map((line) => JSON.parse(line));
 const byKey = new Map(manifest.map((entry) => [entry.sourceKey, entry]));
 
 function businessPool({ publicationState = "draft", missing = false } = {}) {
