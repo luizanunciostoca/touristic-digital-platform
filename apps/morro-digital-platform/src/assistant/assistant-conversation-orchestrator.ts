@@ -7,6 +7,18 @@ export type ConversationPriority =
   | "proactive"
   | "passive";
 
+export interface ConversationMapContext {
+  readonly mode: string | null;
+  readonly activeCategory: string | null;
+  readonly selectedPlaceId: string | null;
+}
+
+export interface ConversationNavigationHistoryEntry {
+  readonly destination: string;
+  readonly phase: string | null;
+  readonly timestamp: number;
+}
+
 export interface ConversationStateSnapshot {
   readonly sessionId: string;
   readonly previousAssistantMessage: string | null;
@@ -17,6 +29,11 @@ export interface ConversationStateSnapshot {
   readonly previousCategory: string | null;
   readonly currentPlace: string | null;
   readonly previousPlace: string | null;
+  readonly activeDestination: string | null;
+  readonly currentBusiness: string | null;
+  readonly commerceIntent: string | null;
+  readonly mapContext: ConversationMapContext;
+  readonly navigationHistory: readonly ConversationNavigationHistoryEntry[];
   readonly currentFilters: readonly string[];
   readonly currentSearch: string | null;
   readonly resultCount: number | null;
@@ -64,6 +81,11 @@ export interface ConversationTransitionInput {
   readonly source?: string;
   readonly category?: string | null;
   readonly place?: string | null;
+  readonly activeDestination?: string | null;
+  readonly currentBusiness?: string | null;
+  readonly commerceIntent?: string | null;
+  readonly mapContext?: Partial<ConversationMapContext> | null;
+  readonly navigationHistoryEntry?: ConversationNavigationHistoryEntry | null;
   readonly filters?: readonly string[];
   readonly search?: string | null;
   readonly resultCount?: number | null;
@@ -97,10 +119,7 @@ export interface AssistantConversationOrchestrator {
   observability(): ConversationObservabilitySnapshot;
 }
 
-function initialState(
-  sessionId: string,
-  now: number,
-): ConversationStateSnapshot {
+function initialState(sessionId: string, now: number): ConversationStateSnapshot {
   return Object.freeze({
     sessionId,
     previousAssistantMessage: null,
@@ -111,6 +130,15 @@ function initialState(
     previousCategory: null,
     currentPlace: null,
     previousPlace: null,
+    activeDestination: null,
+    currentBusiness: null,
+    commerceIntent: null,
+    mapContext: Object.freeze({
+      mode: null,
+      activeCategory: null,
+      selectedPlaceId: null,
+    }),
+    navigationHistory: Object.freeze([]),
     currentFilters: Object.freeze([]),
     currentSearch: null,
     resultCount: null,
@@ -154,6 +182,30 @@ function nextState(
         ? previous.currentPlace
         : previous.previousPlace,
     currentPlace: has("place") ? (input.place ?? null) : previous.currentPlace,
+    activeDestination: has("activeDestination")
+      ? (input.activeDestination ?? null)
+      : previous.activeDestination,
+    currentBusiness: has("currentBusiness")
+      ? (input.currentBusiness ?? null)
+      : previous.currentBusiness,
+    commerceIntent: has("commerceIntent")
+      ? (input.commerceIntent ?? null)
+      : previous.commerceIntent,
+    mapContext: has("mapContext")
+      ? Object.freeze({
+          ...previous.mapContext,
+          ...(input.mapContext ?? {
+            mode: null,
+            activeCategory: null,
+            selectedPlaceId: null,
+          }),
+        })
+      : previous.mapContext,
+    navigationHistory: input.navigationHistoryEntry
+      ? Object.freeze(
+          [...previous.navigationHistory, input.navigationHistoryEntry].slice(-12),
+        )
+      : previous.navigationHistory,
     currentFilters: has("filters")
       ? Object.freeze([...(input.filters ?? [])])
       : previous.currentFilters,
@@ -202,6 +254,11 @@ function transitionFingerprint(input: ConversationTransitionInput): string {
     source: input.source ?? null,
     category: input.category ?? null,
     place: input.place ?? null,
+    activeDestination: input.activeDestination ?? null,
+    currentBusiness: input.currentBusiness ?? null,
+    commerceIntent: input.commerceIntent ?? null,
+    mapContext: input.mapContext ?? null,
+    navigationHistoryEntry: input.navigationHistoryEntry ?? null,
     filters: input.filters ?? [],
     search: input.search ?? null,
     resultCount: input.resultCount ?? null,
@@ -237,6 +294,7 @@ export function createAssistantConversationOrchestrator(options?: {
   readonly sessionId?: string;
   readonly maxRecentTurns?: number;
   readonly now?: () => number;
+  readonly initialState?: ConversationStateSnapshot | null;
 }): AssistantConversationOrchestrator {
   const now = options?.now ?? (() => Date.now());
   const sessionId = options?.sessionId ?? `assistant-${now().toString(36)}`;
@@ -244,7 +302,20 @@ export function createAssistantConversationOrchestrator(options?: {
     4,
     Math.min(50, options?.maxRecentTurns ?? 16),
   );
-  let state = initialState(sessionId, now());
+  const freshState = initialState(sessionId, now());
+  const restoredState = options?.initialState;
+  let state =
+    restoredState && restoredState.sessionId === sessionId
+      ? Object.freeze({
+          ...freshState,
+          ...restoredState,
+          currentFilters: Object.freeze([...restoredState.currentFilters]),
+          mapContext: Object.freeze({ ...restoredState.mapContext }),
+          navigationHistory: Object.freeze([
+            ...restoredState.navigationHistory.slice(-12),
+          ]),
+        })
+      : freshState;
   let turns: ConversationTurn[] = [];
   let turnSequence = 0;
   let asyncSequence = 0;
