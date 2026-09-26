@@ -19,6 +19,16 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
     if (sql.includes("FROM business_places WHERE business_id")) {
       return [row ? [row] : []];
     }
+    if (sql.includes("SELECT * FROM business_places WHERE place_id = ? LIMIT 1")) {
+      return [row ? [row] : []];
+    }
+    if (
+      sql.includes("SET publication_state = ?, updated_at = CURRENT_TIMESTAMP(3)") &&
+      row
+    ) {
+      row.publication_state = params[0];
+      return [{ affectedRows: 1 }];
+    }
     if (sql.includes("WHERE place_id = ? AND published_revision IS NOT NULL")) {
       return [publishedRow ? [publishedRow] : []];
     }
@@ -136,6 +146,72 @@ describe("Business CMS persisted runtime invariants", () => {
       runtime.transitionPublication(actor, "business-a", "publish", 2),
     ).rejects.toThrow("PLACE_PUBLICATION_STALE_REVISION");
     expect(executed).toHaveLength(1);
+    await runtime.stop();
+  });
+
+  it("suspends an exact published revision through the persisted runtime", async () => {
+    const place = {
+      id: "place-business-a",
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+      categoryId: "attractions",
+      name: "Empresa A",
+      description: "Publicado",
+      location: { latitude: -13.38, longitude: -38.91 },
+      capabilities: { enabled: ["directions"] },
+      visibility: "public",
+    };
+    const row = {
+      place_id: place.id,
+      business_id: place.businessId,
+      destination_id: place.destinationId,
+      publication_state: "published",
+      editable_place_json: JSON.stringify(place),
+      editable_revision: 2,
+      editable_revision_id: `${place.id}:r2`,
+      editable_revision_json: JSON.stringify({
+        placeId: place.id,
+        businessId: place.businessId,
+        destinationId: place.destinationId,
+        name: place.name,
+        categoryId: place.categoryId,
+        description: place.description,
+        location: place.location,
+        capabilities: place.capabilities,
+        visibility: place.visibility,
+      }),
+      published_place_json: JSON.stringify(place),
+      published_revision: 2,
+      published_revision_id: `${place.id}:r2`,
+      published_revision_json: JSON.stringify({
+        placeId: place.id,
+        businessId: place.businessId,
+        destinationId: place.destinationId,
+      }),
+      updated_at: new Date(),
+      updated_by: "platform-admin",
+    };
+    const { runtime, executed } = fixture({ row });
+    expect(await runtime.start()).toBe(true);
+
+    await expect(
+      runtime.transitionPublication(actor, "business-a", "suspend", 2),
+    ).resolves.toMatchObject({
+      publicationState: "suspended",
+      publishedRevision: { revision: 2 },
+    });
+
+    expect(
+      executed.some(
+        ({ sql, params }) =>
+          sql.includes(
+            "SET publication_state = ?, updated_at = CURRENT_TIMESTAMP(3)",
+          ) &&
+          params[0] === "suspended" &&
+          params[1] === "place-business-a" &&
+          params[2] === 2,
+      ),
+    ).toBe(true);
     await runtime.stop();
   });
 
