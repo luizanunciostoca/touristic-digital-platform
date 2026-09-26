@@ -9,6 +9,7 @@ import { createAdminApi } from "./admin-api.mjs";
 import { createAdminAuditRuntime } from "./admin-audit-runtime.mjs";
 import { createAdminDomainAdapters } from "./admin-domain-adapters.mjs";
 import { createAffiliateAdminRuntime } from "./affiliate-admin-runtime.mjs";
+import { createAffiliatesApi } from "./affiliates-api.mjs";
 import { createAuthApi } from "./auth-api.mjs";
 import { createBusinessApi } from "./business-api.mjs";
 import { createContentAdminRuntime } from "./content-admin-runtime.mjs";
@@ -147,6 +148,7 @@ const getEnvironmentValue = createDatabaseEnvironmentResolver({
 let platformOperations = null;
 let paymentsRuntimeReady = false;
 let ticketingRuntimeReady = false;
+let affiliatesRuntimeReady = false;
 let contentAdminRuntime = null;
 let destinationRuntimeReady = false;
 let placePlatformRuntime = null;
@@ -190,12 +192,21 @@ const authApi = createAuthApi({
   getEnvironmentValue,
   audit: auditSecurityEvent,
 });
+const affiliatesApi = createAffiliatesApi({ authApi, getEnvironmentValue });
 
 platformOperations = createPlatformOperations({
   getEnvironmentValue,
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
     { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
+    {
+      name: "affiliates-commercial-runtime",
+      status: affiliatesRuntimeReady ? "pass" : "fail",
+      critical: false,
+      detail: affiliatesRuntimeReady
+        ? "affiliates-runtime-ready"
+        : "AFFILIATES_RUNTIME_UNAVAILABLE",
+    },
     {
       name: "control-center-audit",
       ...adminAuditRuntime.readinessCheck(),
@@ -248,6 +259,7 @@ platformOperations = createPlatformOperations({
   ],
 });
 await authApi.start();
+affiliatesRuntimeReady = await affiliatesApi.start();
 await analyticsApi.start();
 await adminAuditRuntime.start();
 await affiliateAdminRuntime.start();
@@ -660,6 +672,10 @@ const server = createServer(async (request, response) => {
     }
     if (authApi.matches(requestUrl.pathname)) {
       await authApi.handle(request, response, requestUrl.pathname);
+      return;
+    }
+    if (affiliatesApi.matches(requestUrl.pathname)) {
+      await affiliatesApi.handle(request, response, requestUrl);
       return;
     }
     if (requestUrl.pathname.startsWith("/media/")) {
