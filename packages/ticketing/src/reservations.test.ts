@@ -138,6 +138,25 @@ describe("ticket reservation contracts", () => {
     });
   });
 
+  it("accepts Morro Pro mpi inventory IDs without rewriting canonical identity", () => {
+    const inventoryId = "mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const key = createTicketReservationRequestKey(
+      inventoryId,
+      "browser_attempt_mpi_0001",
+    );
+
+    expect(key).toBe(
+      "ticketing:mpi_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:browser_attempt_mpi_0001",
+    );
+    expect(reservationRequestKeyMatchesInventory(key, inventoryId)).toBe(true);
+    expect(
+      createTicketInventoryOffer({
+        ...inventory(),
+        id: inventoryId,
+      })?.id,
+    ).toBe(inventoryId);
+  });
+
   it("binds idempotency keys to one inventory pool", () => {
     const key = createTicketReservationRequestKey(
       "tin_sunset_20260816",

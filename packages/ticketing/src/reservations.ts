@@ -211,7 +211,8 @@ export function normalizeTicketAdmissionProfile(
 export function normalizeTicketInventoryId(
   value: unknown,
 ): TicketInventoryId | null {
-  const normalized = normalizePrefixedId(value, "tin_");
+  const normalized =
+    normalizePrefixedId(value, "tin_") || normalizePrefixedId(value, "mpi_");
   return normalized ? (normalized as TicketInventoryId) : null;
 }
 
@@ -236,9 +237,10 @@ export function normalizeTicketReservationRequestKey(
   value: unknown,
 ): TicketReservationRequestKey | null {
   const normalized = normalizeString(value, 260);
-  const match = /^ticketing:(tin_[A-Za-z0-9_-]+):([A-Za-z0-9_-]+)$/u.exec(
-    normalized,
-  );
+  const match =
+    /^ticketing:((?:tin|mpi)_[A-Za-z0-9_-]+):([A-Za-z0-9_-]+)$/u.exec(
+      normalized,
+    );
   if (!match) return null;
   const inventoryId = normalizeTicketInventoryId(match[1]);
   if (!inventoryId || !REQUEST_REFERENCE.test(match[2] ?? "")) return null;
