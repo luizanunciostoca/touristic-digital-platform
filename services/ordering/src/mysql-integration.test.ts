@@ -135,8 +135,25 @@ describeMySql.sequential("M151 Ordering MySQL integration", () => {
   });
 
   beforeEach(async () => {
-    await pool.query("DELETE FROM ordering_subscription_renewal_intents");
-    await pool.query("DELETE FROM ordering_subscriptions");
+    for (const table of [
+      "ordering_subscription_renewal_intents",
+      "ordering_subscriptions",
+      "ordering_ticketing_reservation_bindings",
+      "ordering_restaurant_reservation_bindings",
+    ]) {
+      try {
+        await pool.query(`DELETE FROM ${table}`);
+      } catch (error) {
+        if (
+          !error ||
+          typeof error !== "object" ||
+          !("code" in error) ||
+          error.code !== "ER_NO_SUCH_TABLE"
+        ) {
+          throw error;
+        }
+      }
+    }
     await pool.query("DELETE FROM ordering_checkout_access");
     await pool.query("DELETE FROM ordering_orders");
   });

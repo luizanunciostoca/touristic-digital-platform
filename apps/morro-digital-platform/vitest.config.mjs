@@ -148,6 +148,14 @@ export default defineConfig({
         replacement: source("ordering", "subscription-application.ts"),
       },
       {
+        find: "@touristic/ordering/restaurant-reservation",
+        replacement: source("ordering", "restaurant-reservation.ts"),
+      },
+      {
+        find: "@touristic/ordering/restaurant-checkout",
+        replacement: source("ordering", "restaurant-checkout.ts"),
+      },
+      {
         find: "@touristic/ordering/ticketing-reservation",
         replacement: source("ordering", "ticketing-reservation.ts"),
       },

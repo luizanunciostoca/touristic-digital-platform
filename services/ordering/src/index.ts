@@ -2,6 +2,7 @@ import mysql, { type Pool, type PoolOptions } from "mysql2/promise";
 
 import { MySqlCheckoutAccessRepository } from "./mysql-checkout-access-repository.js";
 import { MySqlOrderRepository } from "./mysql-order-repository.js";
+import { MySqlRestaurantReservationOrderBindingRepository } from "./mysql-restaurant-reservation-order-binding-repository.js";
 import {
   MySqlSubscriptionRenewalIntentRepository,
   MySqlSubscriptionRepository,
@@ -17,10 +18,12 @@ import {
   orderingTicketingBridgeSchemaSql,
 } from "./ticketing-bridge-schema.js";
 import { orderingTicketingReservationSchemaSql } from "./ticketing-reservation-schema.js";
+import { orderingRestaurantReservationSchemaSql } from "./restaurant-reservation-schema.js";
 
 export {
   MySqlCheckoutAccessRepository,
   MySqlOrderRepository,
+  MySqlRestaurantReservationOrderBindingRepository,
   MySqlSubscriptionRenewalIntentRepository,
   MySqlSubscriptionRepository,
   MySqlTicketingOrderBindingRepository,
@@ -30,6 +33,7 @@ export {
   orderingTicketingBridgeRollbackSql,
   orderingTicketingBridgeSchemaSql,
   orderingTicketingReservationSchemaSql,
+  orderingRestaurantReservationSchemaSql,
 };
 export * from "./card-payment-http-transport.js";
 export * from "./checkout-access.js";
@@ -37,6 +41,7 @@ export * from "./checkout-http-transport.js";
 export * from "./checkout-rate-limit.js";
 export * from "./checkout-security.js";
 export * from "./provider-subscription-http-transport.js";
+export * from "./restaurant-checkout-handoff.js";
 export * from "./ticketing-checkout-handoff.js";
 export {
   createNodeCheckoutIdentityPort,
@@ -95,4 +100,11 @@ export async function applyOrderingTicketingReservationSchema(
   await applyOrderingM137Schema(pool);
   await applySqlStatements(pool, orderingTicketingBridgeSchemaSql);
   await applySqlStatements(pool, orderingTicketingReservationSchemaSql);
+}
+
+export async function applyOrderingRestaurantReservationSchema(
+  pool: Pool,
+): Promise<void> {
+  await applyOrderingM137Schema(pool);
+  await applySqlStatements(pool, orderingRestaurantReservationSchemaSql);
 }
