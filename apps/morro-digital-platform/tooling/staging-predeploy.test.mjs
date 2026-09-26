@@ -56,11 +56,11 @@ describe("staging predeploy", () => {
       "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
     ]);
     expect(calls[8]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-canary.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
       "--apply",
     ]);
     expect(calls[9]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-canary.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
       "--verify",
     ]);
     expect(calls[10]?.args).toEqual([
@@ -77,10 +77,10 @@ describe("staging predeploy", () => {
         "legacy-commercial-media-backfill-verify",
         "legacy-commercial-description-backfill-apply",
         "legacy-commercial-description-backfill-verify",
-        "legacy-commercial-cutover-audit-pre-canary",
-        "legacy-commercial-publication-canary-apply",
-        "legacy-commercial-publication-canary-verify",
-        "legacy-commercial-cutover-audit-post-canary",
+        "legacy-commercial-cutover-audit-pre-batch",
+        "legacy-commercial-publication-batch-apply",
+        "legacy-commercial-publication-batch-verify",
+        "legacy-commercial-cutover-audit-post-batch",
       ],
     });
   });
