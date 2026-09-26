@@ -138,6 +138,105 @@ describe("assistant place details adapter", () => {
     ).toBe(false);
   });
 
+  it("computes canonical opening state from the published Place timezone", async () => {
+    const fetchImplementation = vi.fn<typeof globalThis.fetch>(
+      async (input) => {
+        const url = fetchInputUrl(input);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: "place-nightlife",
+                  name: "Nightlife Test",
+                  category: "nightlife",
+                  lat: -13.377,
+                  lng: -38.917,
+                  presentation: { markerKey: "nightlife", priority: 10 },
+                },
+              ],
+              nextCursor: null,
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (url.startsWith("/api/places/v1/place-nightlife?")) {
+          return new Response(
+            JSON.stringify({
+              profile: {
+                id: "place-nightlife",
+                destinationId: "morro-de-sao-paulo",
+                name: "Nightlife Test",
+                slug: "nightlife-test",
+                categoryId: "nightlife",
+                subcategoryIds: [],
+                shortDescription: "",
+                description: "Vida noturna.",
+                location: {
+                  latitude: -13.377,
+                  longitude: -38.917,
+                  address: "",
+                  area: "Centro",
+                },
+                contact: {
+                  phone: null,
+                  whatsapp: null,
+                  email: null,
+                  website: null,
+                },
+                openingHours: {
+                  timezone: "UTC",
+                  days: [
+                    { day: "monday", closed: true, periods: [] },
+                    { day: "tuesday", closed: true, periods: [] },
+                    { day: "wednesday", closed: true, periods: [] },
+                    { day: "thursday", closed: true, periods: [] },
+                    { day: "friday", closed: true, periods: [] },
+                    {
+                      day: "saturday",
+                      closed: false,
+                      periods: [{ opensAt: "16:00", closesAt: "23:59" }],
+                    },
+                    { day: "sunday", closed: true, periods: [] },
+                  ],
+                  note: null,
+                },
+                amenities: [],
+                tags: [],
+                capabilities: ["directions"],
+              },
+              media: null,
+              commerce: null,
+              actions: {
+                placeId: "place-nightlife",
+                businessId: "business-nightlife",
+                destinationId: "morro-de-sao-paulo",
+                primaryAction: null,
+                secondaryActions: [],
+              },
+              partial: {
+                media: "unavailable",
+                commerce: "ready",
+                actions: "ready",
+              },
+              revision: { id: "place-nightlife:r1", number: 1 },
+            }),
+            { status: 200, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        throw new Error(`unexpected request: ${url}`);
+      },
+    );
+
+    const details = await fetchAssistantPlaceDetails("Nightlife Test", {
+      fetch: fetchImplementation,
+      now: new Date("2026-09-26T20:00:00.000Z"),
+    });
+
+    expect(details?.openNow).toBe(true);
+    expect(details?.source).toBe("canonical");
+  });
+
   it("uses the curated V1 destination as Mapbox fallback query and proximity", async () => {
     const fetchImplementation = vi.fn<typeof globalThis.fetch>(
       async (input) => {
