@@ -197,9 +197,19 @@ describe("Business CMS persisted runtime invariants", () => {
     };
     const { runtime, executed } = fixture({ row });
     expect(await runtime.start()).toBe(true);
+    const now = Math.floor(Date.now() / 1000);
+    const activeActor = {
+      subject: "platform-admin",
+      email: "platform-admin@example.invalid",
+      role: "PLATFORM_ADMIN",
+      businessIds: [],
+      issuedAt: now - 60,
+      expiresAt: now + 3600,
+      sessionId: "place-suspend-test",
+    };
 
     await expect(
-      runtime.transitionPublication(actor, "business-a", "suspend", 2),
+      runtime.transitionPublication(activeActor, "business-a", "suspend", 2),
     ).resolves.toMatchObject({
       publicationState: "suspended",
       publishedRevision: { revision: 2 },
