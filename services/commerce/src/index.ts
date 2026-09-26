@@ -9,6 +9,7 @@ export {
   commerceRestaurantReservationRollbackSql,
   commerceRestaurantReservationSchemaSql,
 };
+export { MySqlRestaurantReservationRepository } from "./mysql-restaurant-reservation-repository.js";
 
 export interface CommerceMySqlEnvironment {
   readonly COMMERCE_DATABASE_URL?: string;
