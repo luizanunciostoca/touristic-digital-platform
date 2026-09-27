@@ -1,3 +1,5 @@
+import type { Pool, RowDataPacket } from "mysql2/promise";
+
 export const analyticsSchemaSql = `
 CREATE TABLE IF NOT EXISTS analytics_events (
   event_id VARCHAR(160) COLLATE utf8mb4_bin PRIMARY KEY,
@@ -30,10 +32,10 @@ interface AnalyticsColumnRow {
 }
 
 export async function applyAnalyticsTenantScopeSchema(
-  pool: import("mysql2/promise").Pool,
+  pool: Pool,
 ): Promise<void> {
   const [rows] = await pool.query<
-    (AnalyticsColumnRow & import("mysql2/promise").RowDataPacket)[]
+    (AnalyticsColumnRow & RowDataPacket)[]
   >(
     "SELECT COLUMN_NAME AS column_name FROM information_schema.COLUMNS " +
       "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'analytics_events' " +
@@ -46,7 +48,7 @@ export async function applyAnalyticsTenantScopeSchema(
     );
   }
 
-  const [indexes] = await pool.query<import("mysql2/promise").RowDataPacket[]>(
+  const [indexes] = await pool.query<RowDataPacket[]>(
     "SELECT INDEX_NAME AS index_name FROM information_schema.STATISTICS " +
       "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'analytics_events'",
   );
