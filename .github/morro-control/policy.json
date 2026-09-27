@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "controlPlaneVersion": "3.2",
+  "canonicalSource": "github-current-main",
+  "principles": [
+    "PROOF-GRAPH",
+    "EXACT-HEAD",
+    "ZERO-ASSUMPTION",
+    "CAPABILITY-AWARE",
+    "SEMANTIC-INTEGRATION",
+    "EVIDENCE-DRIVEN",
+    "MICRO-RELEASE",
+    "CLAIM-BEFORE-WRITE",
+    "BUILD-ONCE/PROMOTE-SAME-ARTIFACT"
+  ],
+  "validStates": [
+    "QUEUED",
+    "BLOCKED",
+    "READY",
+    "CLAIMED",
+    "IMPLEMENTING",
+    "LOCAL_PROVEN",
+    "REMOTE_PROVEN",
+    "PROOF_ACCEPTED",
+    "INTEGRATION_READY",
+    "MERGED",
+    "STAGING_VERIFIED",
+    "PRODUCTION_READY",
+    "PRODUCTION_VERIFIED",
+    "SUPERSEDED"
+  ],
+  "ownerApprovalRequired": [
+    "REAL_MONEY",
+    "MERCADO_PAGO_PRODUCTION_ACTIVATION",
+    "EXTERNAL_PAID_PROVIDER",
+    "PRODUCTION_SECRET",
+    "DESTRUCTIVE_MIGRATION",
+    "IRREVERSIBLE_DATABASE_ACTION",
+    "MAJOR_AUTHORITY_OR_SECURITY_MODEL_CHANGE"
+  ],
+  "automaticallyPermitted": [
+    "CODE_IMPLEMENTATION",
+    "TESTS",
+    "NON_DESTRUCTIVE_DEV_MIGRATIONS",
+    "PR_CREATION",
+    "REVIEW",
+    "CI_RERUN",
+    "STAGING_DEPLOY_AFTER_GATES",
+    "SAFE_RELEASE_AFTER_GATES"
+  ],
+  "release": {
+    "buildOnce": true,
+    "promoteSameArtifact": true,
+    "requireExactHead": true,
+    "requireIndependentProof": true,
+    "requireStagingBeforeProduction": true,
+    "requireRuntimeProofForCriticalFlows": true
+  },
+  "aiAuthority": "COMPLEMENTARY_NOT_FINAL"
+}
