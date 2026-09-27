@@ -170,7 +170,7 @@ export function createNotificationJobFromEvent(
 
   const request = createNotificationRequest({
     id: `notification:${event.eventId}`,
-    idempotencyKey: `notify.${template}.${event.eventId}.${event.recipientReference}`,
+    idempotencyKey: `notify.${event.destinationId}.${template}.${event.eventId}.${event.recipientReference}`,
     destinationId: event.destinationId,
     recipientReference: event.recipientReference,
     locale: event.locale,

@@ -9,6 +9,7 @@ export const stagingDatabaseDomains = Object.freeze([
   "CONTENT",
   "COMMERCE",
   "DESTINATIONS",
+  "NOTIFICATIONS",
 ]);
 
 function required(environment, name) {

@@ -40,6 +40,17 @@ services:
       - key: PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS
         value: "15000"
 
+      # Provider-neutral Notifications runtime. Delivery providers remain
+      # unconfigured until separately authorized; persistence is server-only.
+      - key: NOTIFICATIONS_FEATURE_ENABLED
+        value: "false"
+      - key: NOTIFICATIONS_DATABASE_URL
+        sync: false
+      - key: NOTIFICATIONS_SCHEDULER_INTERVAL_MS
+        value: "5000"
+      - key: NOTIFICATIONS_SCHEDULER_BATCH_SIZE
+        value: "25"
+
       # Durable domain databases. Keep Ordering and Financial isolated.
       - key: ORDERING_DATABASE_URL
         sync: false

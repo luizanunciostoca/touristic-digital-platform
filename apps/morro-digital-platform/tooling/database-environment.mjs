@@ -7,6 +7,7 @@ const databaseSchemas = Object.freeze({
   ORDERING_DATABASE_URL: "morro_ordering",
   FINANCIAL_DATABASE_URL: "morro_financial",
   TICKETING_DATABASE_URL: "morro_ticketing",
+  NOTIFICATIONS_DATABASE_URL: "morro_notifications",
 });
 
 function text(value) {

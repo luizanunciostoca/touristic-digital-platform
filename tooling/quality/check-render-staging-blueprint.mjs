@@ -218,6 +218,9 @@ for (const key of [
   "STAGING_DESTINATIONS_DATABASE_NAME",
   "STAGING_DESTINATIONS_DATABASE_USER",
   "STAGING_DESTINATIONS_DATABASE_PASSWORD",
+  "STAGING_NOTIFICATIONS_DATABASE_NAME",
+  "STAGING_NOTIFICATIONS_DATABASE_USER",
+  "STAGING_NOTIFICATIONS_DATABASE_PASSWORD",
   "STAGING_MYSQL_ROOT_PASSWORD",
 ]) {
   requireDirective(key, "fromService:");
@@ -241,6 +244,7 @@ for (const [key, expected] of [
   ["PAYMENTS_RUNTIME_REPLICA_COUNT", 'value: "1"'],
   ["PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED", 'value: "false"'],
   ["DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED", 'value: "false"'],
+  ["NOTIFICATIONS_FEATURE_ENABLED", 'value: "true"'],
   ["OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED", 'value: "false"'],
 ]) {
   requireDirective(key, expected);
@@ -254,6 +258,7 @@ for (const domain of [
   "BUSINESS",
   "CONTENT",
   "DESTINATIONS",
+  "NOTIFICATIONS",
 ]) {
   requireText(mysqlInit, `\${${domain}_DATABASE_NAME}`);
   requireText(mysqlInit, `\${${domain}_DATABASE_USER}`);

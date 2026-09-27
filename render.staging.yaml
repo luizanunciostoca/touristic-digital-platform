@@ -63,6 +63,12 @@ services:
         value: morro_destinations
       - key: DESTINATIONS_DATABASE_PASSWORD
         generateValue: true
+      - key: NOTIFICATIONS_DATABASE_NAME
+        value: morro_notifications_staging
+      - key: NOTIFICATIONS_DATABASE_USER
+        value: morro_notifications
+      - key: NOTIFICATIONS_DATABASE_PASSWORD
+        generateValue: true
 
   - type: web
     name: morro-digital-v2-staging
@@ -82,6 +88,12 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
+      - key: NOTIFICATIONS_FEATURE_ENABLED
+        value: "true"
+      - key: NOTIFICATIONS_SCHEDULER_INTERVAL_MS
+        value: "5000"
+      - key: NOTIFICATIONS_SCHEDULER_BATCH_SIZE
+        value: "25"
 
       # Private MySQL topology. Passwords remain generated on the private service;
       # the wrapper constructs mysql:// URLs only in process memory.
@@ -202,6 +214,21 @@ services:
           envVarKey: DESTINATIONS_DATABASE_PASSWORD
       - key: AFFILIATES_DATABASE_POOL_SIZE
         value: "4"
+      - key: STAGING_NOTIFICATIONS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: NOTIFICATIONS_DATABASE_NAME
+      - key: STAGING_NOTIFICATIONS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: NOTIFICATIONS_DATABASE_USER
+      - key: STAGING_NOTIFICATIONS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: NOTIFICATIONS_DATABASE_PASSWORD
 
       # Auth stays fail-closed until the operator provides the accepted staging
       # identity set and exact HTTPS origin.

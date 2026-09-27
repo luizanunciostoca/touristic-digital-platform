@@ -12,6 +12,7 @@ import {
 } from "./outbox-scheduler.js";
 import { notificationsSchemaSql } from "./schema.js";
 
+export * from "./durable-dispatch-state.js";
 export * from "./mysql-notification-outbox.js";
 export * from "./outbox-scheduler.js";
 export * from "./schema.js";

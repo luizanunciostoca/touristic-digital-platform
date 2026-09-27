@@ -105,6 +105,12 @@ importers:
       "@touristic/navigation":
         specifier: workspace:*
         version: link:../../packages/navigation
+      "@touristic/notifications":
+        specifier: workspace:*
+        version: link:../../packages/notifications
+      "@touristic/notifications-server":
+        specifier: workspace:*
+        version: link:../../services/notifications
       "@touristic/ordering":
         specifier: workspace:*
         version: link:../../packages/ordering

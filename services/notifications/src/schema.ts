@@ -33,4 +33,26 @@ CREATE TABLE IF NOT EXISTS notification_outbox (
     updated_at
   )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  destination_id VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+  recipient_reference VARCHAR(160) COLLATE utf8mb4_bin NOT NULL,
+  topic VARCHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  channel VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  allowed TINYINT(1) NOT NULL DEFAULT 0,
+  updated_at DATETIME(3) NOT NULL,
+  PRIMARY KEY (destination_id, recipient_reference, topic, channel),
+  INDEX idx_notification_preferences_recipient (
+    destination_id,
+    recipient_reference,
+    updated_at
+  )
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS notification_dispatch_claims (
+  idempotency_key VARCHAR(200) COLLATE utf8mb4_bin NOT NULL,
+  claimed_at DATETIME(3) NOT NULL,
+  PRIMARY KEY (idempotency_key),
+  INDEX idx_notification_dispatch_claims_claimed_at (claimed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 `;
