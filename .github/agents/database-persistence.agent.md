@@ -2,6 +2,9 @@
 name: Morro Database Persistence
 description: Implement and validate durable MySQL persistence and safe schema evolution with rollback and restore awareness.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
