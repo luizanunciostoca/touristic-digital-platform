@@ -2,6 +2,9 @@
 name: Morro Business Control Center CRM
 description: Implement Business Portal, Control Center and CRM while preserving canonical owners, tenant scope, auditability and replay safety.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
