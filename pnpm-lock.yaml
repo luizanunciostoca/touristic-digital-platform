@@ -307,6 +307,15 @@ importers:
         specifier: ^3.14.5
         version: 3.23.3(@types/node@24.13.3)
 
+  services/notifications:
+    dependencies:
+      "@touristic/notifications":
+        specifier: workspace:*
+        version: link:../../packages/notifications
+      mysql2:
+        specifier: ^3.14.5
+        version: 3.23.3(@types/node@24.13.3)
+
   services/ticketing:
     dependencies:
       "@touristic/financial":
