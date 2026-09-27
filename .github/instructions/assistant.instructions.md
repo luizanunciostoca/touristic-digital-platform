@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/assistant/**,apps/morro-digital-platform/public/**/*assistant*,apps/morro-digital-platform/tooling/**/*assistant*"
+applyTo: "packages/assistant/**,apps/morro-digital-platform/src/assistant/**,apps/morro-digital-platform/public/**/*assistant*,apps/morro-digital-platform/tooling/**/*assistant*"
 ---
 
 # assistant
