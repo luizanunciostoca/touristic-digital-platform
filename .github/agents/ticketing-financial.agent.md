@@ -2,6 +2,9 @@
 name: Morro Ticketing Financial
 description: Implement ticket issuance and financial fulfillment integration with verified authority, replay safety and durable evidence.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
