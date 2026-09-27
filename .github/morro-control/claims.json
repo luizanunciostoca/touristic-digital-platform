@@ -17,9 +17,7 @@
         ".github/morro-control/evidence/README.md",
         ".github/pull_request_template.md"
       ],
-      "domains": [
-        "control-plane"
-      ],
+      "domains": ["control-plane"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T23:59:59Z"
