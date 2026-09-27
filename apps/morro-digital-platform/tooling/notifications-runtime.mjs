@@ -111,6 +111,7 @@ export function createNotificationsRuntime({
           intervalMs: schedulerIntervalMs,
           runImmediately: true,
           onRun(result) {
+            ready = true;
             emit("notifications.scheduler.completed", "info", result);
           },
           onError(error) {
