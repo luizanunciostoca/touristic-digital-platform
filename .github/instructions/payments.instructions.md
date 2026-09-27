@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/payments/**,services/payments/**,packages/financial/**,services/financial/**,apps/morro-digital-platform/tooling/payments-*"
+applyTo: "packages/payments/**,services/payments/**,packages/financial/**,services/financial/**,apps/morro-digital-platform/src/*payment*,apps/morro-digital-platform/tooling/payments-*"
 ---
 
 # payments
