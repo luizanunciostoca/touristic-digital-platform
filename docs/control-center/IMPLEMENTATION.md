@@ -1,88 +1,96 @@
 # Morro Digital Control Center — Implementation Ledger
 
-## Baseline
+## Canonical snapshot
 
-- Admission main: `05f7df04eaee94de9bf894f75f6842ba6f0c3731`
-- Canonical main reconciled: `e673ce7d844e96bfecb870c8a427c796dd518b6e`
-- Branch: `wave/platform-control-center-super-admin-20260920`
 - Master issue: #152
-- Production deployment: **not authorized**
-- Real-money actions: **not authorized**
+- Reconciliation date: 2026-09-27
+- Exact main audited: `df18e8d2ee329ed9d01f37389e52b95e7e96fc0d`
+- Current staging release at audit: same exact SHA, LIVE
+- Current production release at audit: same exact SHA, LIVE
+- Real-money/provider effects remain separately governed and are not authorized by this ledger.
+
+This document is a semantic reconciliation of the original #152 plan against current main. Historical branch-local GAP/PARTIAL labels must not be treated as current truth when current-main owner contracts and acceptance evidence supersede them.
 
 ## Architectural invariants
 
-- No direct cross-domain table mutation from Control Center.
-- No hidden fallback to SQL when an admin contract is absent.
-- PLATFORM_OWNER is not an authorization bypass.
+- Control Center never mutates another domain through direct table access.
+- Domain owners retain persistence and mutation authority.
+- PLATFORM_OWNER is maximum functional authority, never a security bypass.
+- Authorization remains role + capability + scope.
+- Support Mode preserves actor and effective-user identities.
 - Financial remains monetary source of truth.
-- actor and effectiveUser are separate in Support Mode.
-- Secrets never appear in admin projections.
-- Missing integration is represented as PARTIAL/GAP, not as success.
+- Administrative audit is append-only from the UI/API perspective.
+- Missing integration fails closed; no hidden SQL fallback is allowed.
 
-## Current implementation state
+## PRESENT_IN_MAIN
 
-| Area                         | State                      | Evidence                                                                                                                                                                                                                          |
-| ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Canonical roles              | PASS                       | `packages/auth/src/index.ts`; Quality/Auth contracts green                                                                                                                                                                        |
-| Capability model             | PASS                       | `authorizeCapability`; explicit capability vocabulary; negative admin-surface tests                                                                                                                                               |
-| Legacy role compatibility    | PASS                       | legacy roles preserved through centralized capability mapping                                                                                                                                                                     |
-| Admin API v1 shell           | PASS                       | `tooling/admin-api.mjs`; fail-closed domain adapter orchestration                                                                                                                                                                 |
-| Dedicated Control Center app | PASS                       | `apps/control-center/public/`; Chromium contract green                                                                                                                                                                            |
-| Dashboard                    | PARTIAL                    | Auth/health projections live; remaining domain metrics need owner adapters                                                                                                                                                        |
-| Universal Search             | PARTIAL                    | Identity search live; domain adapters pending                                                                                                                                                                                     |
-| Users                        | PARTIAL                    | Read projection + Auth-owned hash-only session registry/revoke live; block/reactivate pending                                                                                                                                     |
-| Businesses                   | PARTIAL                    | Membership directory + Business profile owner adapter live; wider business admin contracts pending                                                                                                                                |
-| Support Mode                 | PARTIAL                    | Signed support session + request-scoped effective-user propagation proven for Business/CRM/Ticketing; Financial keeps actor authority and binds support context to the owner-resolved resource tenant                             |
-| Audit                        | PASS                       | Append-only MySQL-backed admin audit with browser persistence proof and fail-closed mutation behavior                                                                                                                             |
-| System Health                | PASS                       | Existing platformOperations reused; secret redaction proven in browser                                                                                                                                                            |
-| Affiliates                   | GAP                        | Existing equivalent backend + PR #151 runtime retained; Control Center admin adapter pending                                                                                                                                      |
-| CRM                          | PARTIAL                    | Existing CRM reused through Admin API adapter; full surface orchestration still incomplete                                                                                                                                        |
-| Ticketing                    | PARTIAL                    | Capability-aware runtime + Admin API adapter for current operator contracts                                                                                                                                                       |
-| Orders                       | PASS                       | Ordering-owner read adapter; Chromium financial contract proves Order lookup without Control Center table access                                                                                                                  |
-| Financial                    | PASS                       | Financial-owner Payment/Ledger/Reconciliation reads plus step-up refund/reconciliation/acknowledge actions; owner-resolved tenant scope; production effects remain code-blocked                                                   |
-| Content                      | GAP                        | Admin adapter pending                                                                                                                                                                                                             |
-| Destinations                 | GAP                        | Admin adapter pending                                                                                                                                                                                                             |
-| Step-up auth                 | PASS                       | Re-auth step-up enforced for session revocation and Financial critical actions with reason + textual confirmation                                                                                                                 |
-| Browser E2E                  | PASS for implemented slice | General Chromium contract plus dedicated Financial Chromium contract prove login, dashboard, search, Business 360, CRM, support, Orders, Payment, Ledger, governed refund denial, audit, system, sessions and responsive behavior |
-| Staging                      | GAP                        | No dedicated Control Center staging certification yet                                                                                                                                                                             |
+The following #152 requirements are already present in current main:
 
-## Security posture of current slice
+- canonical platform roles and legacy compatibility;
+- centralized capability authorization;
+- durable Auth role/status policy backed by MySQL when `AUTH_DATABASE_URL` is configured;
+- governed account block/reactivate and role changes with session revocation;
+- Admin API v1 orchestration shell;
+- dedicated `apps/control-center` application;
+- signed Support Mode with actor/effective-user separation;
+- append-only MySQL administrative audit;
+- System Health projection with secret redaction;
+- Affiliates owner/admin integration and governed membership critical actions;
+- CRM owner orchestration including lead detail/create/edit/stage transitions;
+- governed Business/Place CMS and Commerce/Catalog administration;
+- Ticketing, Reservations, Ordering and Financial owner-backed administration;
+- durable Content owner/admin integration;
+- durable Destinations owner/admin integration;
+- step-up protection for current critical-action families;
+- dedicated Control Center responsive/accessibility/browser contracts.
 
-Implemented:
+Historical GAP claims for account block/reactivate, Affiliates, Content, Destinations, durable role policy and the original CRM partial adapter are therefore obsolete or superseded.
 
-- capability-based platform authorization;
-- tenant-aware capability decision;
-- read-only SUPPORT/AUDITOR semantics;
-- signed short-lived support-session cookie;
-- actor session binding;
-- denial of impersonating platform-wide identities;
-- same-origin/CSRF reuse for support mutations;
-- secrets omitted from user/system projections;
-- fail-closed missing-domain behavior;
-- existing CSP/security headers inherited from platform runtime;
-- Financial resource scope resolved by owner contracts (`Payment → Order → CheckoutAccess` and `Finding → Payment`) before critical actions;
-- Support Mode financial actions fail closed on resource-tenant mismatch;
-- production Financial effects are blocked by code even after successful step-up.
+## VALID_MISSING
 
-Still required before completion:
+FEATURE-0012 remains `partial` because these residuals still require executable evidence:
 
-- durable platform role/capability persistence and administrative privilege changes;
-- account block/reactivate contracts;
-- remaining high-risk actions outside the proven session-revoke and Financial step-up flows;
-- broader replay/rate-limit coverage for Admin API;
-- remaining domain adapters (Affiliates, Content, Destinations and wider Business/Ticketing coverage);
-- full accessibility certification beyond current keyboard/responsive browser proof;
-- staging proof.
+1. Complete and prove Dashboard owner-backed aggregate breadth for the planned cross-domain overview.
+2. Complete and prove Universal Search cross-domain breadth on one exact head.
+3. Reconcile any genuine residual Business admin breadth against current owner contracts instead of restoring V1 wholesale.
+4. Add broader Admin API mutation replay/rate-limit protection without bypassing domain-owned idempotency.
+5. Run the dedicated Control Center final qualification on one current exact head.
+6. Run dedicated Control Center staging acceptance against the same release identity.
 
-## Financial slice evidence
+Generic platform staging/production convergence does not substitute for Control Center-specific acceptance.
 
-- `Control Center Financial Contract`: PASS on `2220a7ebf685a48de4916e01cb01bc92a029c17b`.
-- `Control Center Financial Browser Contract`: PASS on the same SHA using MySQL real repositories and sandbox-only runtime.
-- `Payments Persistence Integration`, `Payments Operational Ledger Contract`, `Payments Refund Command Contract`, `Payments Reconciliation Contract`: PASS.
-- `Quality Gate`, `Security Scanning`, `Control Center Browser Contract`, `Dependency Security Audit`: PASS.
-- Browser fixture creation uses Ordering/Financial owner repositories; no Control Center SQL path is introduced.
-- The governed refund browser test uses a non-eligible pending payment and proves `REFUND_NOT_ALLOWED` before any provider effect.
+## Current semantic classification
+
+- Canonical roles: `PRESENT_IN_MAIN`
+- Capability model: `PRESENT_IN_MAIN`
+- Durable role/status policy: `PRESENT_IN_MAIN`
+- Admin API v1 shell: `PRESENT_IN_MAIN`
+- Dedicated Control Center app: `PRESENT_IN_MAIN`
+- Dashboard breadth: `VALID_MISSING`
+- Universal Search breadth: `VALID_MISSING`
+- Users administration: `PRESENT_IN_MAIN`
+- Businesses: `PRESENT_IN_MAIN` for current profile/CMS/catalog owner contracts, with residual breadth requiring reconciliation
+- Support Mode: `PRESENT_IN_MAIN`
+- Audit: `PRESENT_IN_MAIN`
+- System Health: `PRESENT_IN_MAIN`
+- Affiliates: `PRESENT_IN_MAIN`
+- CRM: `PRESENT_IN_MAIN`
+- Products / Offers / Catalog: `PRESENT_IN_MAIN`
+- Reservations: `PRESENT_IN_MAIN`
+- Ticketing: `PRESENT_IN_MAIN`
+- Orders: `PRESENT_IN_MAIN`
+- Financial: `PRESENT_IN_MAIN`
+- Content: `PRESENT_IN_MAIN`
+- Destinations: `PRESENT_IN_MAIN`
+- Step-up auth: `PRESENT_IN_MAIN`
+- Responsive contracts: `PRESENT_IN_MAIN`
+- Accessibility contracts: `PRESENT_IN_MAIN`
+- Security negative tests: `PRESENT_IN_MAIN`
+- Browser E2E contracts: `PRESENT_IN_MAIN`
+- Generic staging deployment: `PRESENT_IN_MAIN`
+- Dedicated Control Center staging acceptance: `VALID_MISSING`
+- Dedicated final exact-head Control Center qualification: `VALID_MISSING`
 
 ## Completion rule
 
-No row marked PARTIAL or GAP may be reported as complete. FEATURE-0012 stays `partial` until the full acceptance matrix is proven.
+#152 may be closed only after the remaining `VALID_MISSING` items have executable evidence and the dedicated Control Center exact-head + staging acceptance are green. No historical branch should be merged wholesale to satisfy these items. Production convergence by itself does not replace Control Center-specific proof.
