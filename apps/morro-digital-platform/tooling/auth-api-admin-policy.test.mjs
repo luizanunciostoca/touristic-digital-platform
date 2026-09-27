@@ -156,7 +156,11 @@ describe("Auth durable administrative principal policy", () => {
     ).resolves.toBe(true);
 
     await expect(
-      api.consumeAdminMutationAttempt("platform-owner", "INVALID/NAMESPACE", policy),
+      api.consumeAdminMutationAttempt(
+        "platform-owner",
+        "INVALID/NAMESPACE",
+        policy,
+      ),
     ).rejects.toThrow("AUTH_ADMIN_RATE_LIMIT_POLICY_INVALID");
 
     await api.stop();
