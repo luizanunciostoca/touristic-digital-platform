@@ -401,6 +401,7 @@ jobs:
                     Origin: origin,
                     "Content-Type": "application/json",
                     "X-CSRF-Token": csrfToken,
+                    "Idempotency-Key": "cc:e2e:financial-support-session:1",
                   },
                   data: {
                     effectiveUserId: "business-owner-financial",
