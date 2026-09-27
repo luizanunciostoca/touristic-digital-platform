@@ -1965,7 +1965,9 @@ async function renderCrm(leadId) {
               <div>
                 <h2>${escapeHtml(selected.companyName ?? "Lead CRM")}</h2>
                 <small>#${escapeHtml(selected.id)} · ${escapeHtml(
-                  crmLeadDetailStageLabels[selected.stage] ?? selected.stage ?? "—",
+                  crmLeadDetailStageLabels[selected.stage] ??
+                    selected.stage ??
+                    "—",
                 )}</small>
               </div>
               ${statusBadge(selected.status ?? "active")}
@@ -2068,7 +2070,9 @@ async function renderCrm(leadId) {
         });
         result.textContent = "Lead criado.";
         const id = created?.data?.id;
-        globalThis.location.hash = id ? `#crm:${encodeURIComponent(id)}` : "#crm";
+        globalThis.location.hash = id
+          ? `#crm:${encodeURIComponent(id)}`
+          : "#crm";
         if (!id) await renderCrm();
       } catch (error) {
         submit.disabled = false;
