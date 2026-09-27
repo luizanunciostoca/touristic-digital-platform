@@ -148,6 +148,18 @@ test("directory rejects missing, extra, duplicate and linked files", () => {
     const missing = resolve(root, profile.skills[0]);
     rmSync(missing);
     assert.throws(() => validateDirectory(root));
+    writeFileSync(missing, "Fixture skill\n");
+
+    const skillDirectory = dirname(missing);
+    const redirectedSkillDirectory = resolve(root, "redirected-skill");
+    mkdirSync(redirectedSkillDirectory, { recursive: true });
+    writeFileSync(
+      resolve(redirectedSkillDirectory, "SKILL.md"),
+      "Redirected fixture skill\n",
+    );
+    rmSync(skillDirectory, { recursive: true, force: true });
+    symlinkSync(redirectedSkillDirectory, skillDirectory, "dir");
+    assert.throws(() => validateDirectory(root));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
