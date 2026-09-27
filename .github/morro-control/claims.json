@@ -1,5 +1,6 @@
 {
   "schemaVersion": 1,
+  "registryAuthority": "ORCHESTRATOR",
   "claims": {
     "MD-CP-001": {
       "owner": "CHATGPT-PRO-CONTROL",
@@ -10,14 +11,16 @@
         "AGENTS.md",
         ".github/morro-control/backlog.json",
         ".github/morro-control/dependency-graph.json",
-        ".github/morro-control/claims.json",
         ".github/morro-control/claim-schema.json",
         ".github/morro-control/release-state.json",
         ".github/morro-control/policy.json",
         ".github/morro-control/evidence/README.md",
-        ".github/pull_request_template.md"
+        ".github/pull_request_template.md",
+        ".morro/changesets/MD-CP-001.json",
+        ".morro/ownership.json",
+        ".morro/risk-policy.json"
       ],
-      "domains": ["control-plane"],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T23:59:59Z"
