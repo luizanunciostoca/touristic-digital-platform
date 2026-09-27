@@ -4,7 +4,10 @@ import { createAnalyticsIngestionService } from "@touristic/analytics/ingestion"
 
 import { AnalyticsHttpTransport } from "./http-transport.js";
 import { MySqlAnalyticsEventRepository } from "./mysql-analytics-repository.js";
-import { analyticsSchemaSql } from "./schema.js";
+import {
+  analyticsSchemaSql,
+  applyAnalyticsTenantScopeSchema,
+} from "./schema.js";
 
 export * from "./control-center-audit.js";
 export * from "./http-transport.js";
@@ -25,17 +28,30 @@ export function createAnalyticsMySqlPool(
 
 export async function applyAnalyticsSchema(pool: Pool): Promise<void> {
   await pool.query(analyticsSchemaSql);
+  await applyAnalyticsTenantScopeSchema(pool);
 }
 
 export function createAnalyticsHttpTransport(input: {
   readonly pool: Pool;
   readonly retentionDays: number;
   readonly now?: () => Date;
+  readonly tenantScope?: import(
+    "@touristic/analytics/ingestion"
+  ).AnalyticsTenantScopeResolver;
+  readonly requireTenantScope?: boolean;
+  readonly observer?: import(
+    "@touristic/analytics/ingestion"
+  ).AnalyticsIngestionObserver;
 }): AnalyticsHttpTransport {
   const ingestion = createAnalyticsIngestionService({
     repository: new MySqlAnalyticsEventRepository(input.pool),
     retentionDays: input.retentionDays,
     ...(input.now ? { now: input.now } : {}),
+    ...(input.tenantScope ? { tenantScope: input.tenantScope } : {}),
+    ...(input.requireTenantScope !== undefined
+      ? { requireTenantScope: input.requireTenantScope }
+      : {}),
+    ...(input.observer ? { observer: input.observer } : {}),
   });
   return new AnalyticsHttpTransport(ingestion);
 }
