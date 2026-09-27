@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   canonicalPlaceCategories,
   createPublicPlaceReadModel,
+  normalizeBusinessProfile,
   handlePublicPlaceApiRequest,
   resolvePlacePresentationActions,
 } from "@touristic/business";
@@ -309,6 +310,21 @@ export async function applyPlacePlatformSchema(pool) {
       PRIMARY KEY (id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
   `);
+
+  const [businessProfileColumns] = await pool.query(
+    "SELECT COLUMN_NAME AS column_name FROM information_schema.COLUMNS " +
+      "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'business_entities' " +
+      "AND COLUMN_NAME = 'profile_json' LIMIT 1",
+  );
+  if (!businessProfileColumns[0]?.column_name) {
+    try {
+      await pool.query(
+        "ALTER TABLE business_entities ADD COLUMN profile_json JSON NULL AFTER display_name",
+      );
+    } catch (error) {
+      if (error?.code !== "ER_DUP_FIELDNAME") throw error;
+    }
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS business_destinations (
@@ -1571,6 +1587,85 @@ export function createPlacePlatformRuntime({
     throw new Error("CATALOG_DRAFT_KIND_INVALID");
   }
 
+
+function legacyBusinessProfileFromRow(row) {
+  if (!row) return null;
+  const businessId = String(row.business_id ?? row.id ?? "");
+  const stored = parseJson(row.profile_json, {});
+  const place = row.place_id ? placeFromRow(row, false) : null;
+  return normalizeBusinessProfile(
+    {
+      ...(stored && typeof stored === "object" ? stored : {}),
+      id: businessId,
+      name: String(row.display_name || stored?.name || place?.name || ""),
+      categoryLabel:
+        stored?.categoryLabel ?? (place?.categoryId ? String(place.categoryId) : undefined),
+      specialty: stored?.specialty ?? place?.shortDescription,
+      description: stored?.description ?? place?.description,
+      locationLabel: stored?.locationLabel ?? place?.location?.address,
+    },
+    businessId,
+  );
+}
+
+  async function getLegacyBusinessProfile(businessId) {
+    assertReady();
+    const normalizedBusinessId = clean(businessId, 160);
+    if (!PLACE_ID.test(normalizedBusinessId)) {
+      throw new Error("INVALID_BUSINESS_ID");
+    }
+    const [rows] = await pool.execute(
+      `SELECT b.id AS business_id, b.display_name, b.profile_json, p.*
+         FROM business_entities b
+         LEFT JOIN business_places p ON p.business_id = b.id
+        WHERE b.id = ?
+        ORDER BY p.created_at ASC
+        LIMIT 1`,
+      [normalizedBusinessId],
+    );
+    return legacyBusinessProfileFromRow(rows[0] ?? null);
+  }
+
+  async function updateLegacyBusinessProfile(actor, businessId, input) {
+    assertReady();
+    const normalizedBusinessId = clean(businessId, 160);
+    if (!PLACE_ID.test(normalizedBusinessId)) {
+      throw new Error("INVALID_BUSINESS_ID");
+    }
+    const profile = normalizeBusinessProfile(
+      {
+        ...(input && typeof input === "object" ? input : {}),
+        id: normalizedBusinessId,
+      },
+      normalizedBusinessId,
+    );
+    const updatedAt = new Date();
+    const [result] = await pool.execute(
+      `UPDATE business_entities
+          SET display_name = ?, profile_json = ?, updated_at = ?
+        WHERE id = ?`,
+      [
+        profile.name,
+        JSON.stringify(profile),
+        updatedAt,
+        normalizedBusinessId,
+      ],
+    );
+    if (result.affectedRows !== 1) {
+      throw new Error("BUSINESS_PROFILE_NOT_FOUND");
+    }
+    platformOperations?.emit?.({
+      kind: "audit",
+      name: "business.profile.persisted",
+      severity: "info",
+      attributes: {
+        businessId: normalizedBusinessId,
+        actorSubject: actor?.subject ?? "unknown",
+      },
+    });
+    return profile;
+  }
+
   async function getCmsDetail(businessId) {
     assertReady();
     const [rows] = await pool.execute(
@@ -1921,6 +2016,8 @@ export function createPlacePlatformRuntime({
     handlePublic,
     handleMedia,
     listCms,
+    getLegacyBusinessProfile,
+    updateLegacyBusinessProfile,
     getCmsDetail,
     createDraft,
     updateProfile,
