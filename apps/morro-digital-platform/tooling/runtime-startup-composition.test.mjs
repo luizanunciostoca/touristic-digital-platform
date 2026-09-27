@@ -15,9 +15,7 @@ describe("runtime startup composition", () => {
     expect(source).toContain(
       "ticketingRuntimeReady = await ticketingApi.start();",
     );
-    expect(source).toContain(
-      "createTicketingNotificationsBridge({",
-    );
+    expect(source).toContain("createTicketingNotificationsBridge({");
     expect(source).toContain(
       "notificationBridge: ticketingNotificationsBridge",
     );
