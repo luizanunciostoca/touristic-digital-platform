@@ -324,7 +324,35 @@ jobs:
               if (!(await page.locator('#content').textContent()).includes('Control Center Browser Lead')) {
                 throw new Error('CRM lead did not render through Control Center adapter');
               }
+              const createdLeadBody = await createLead.json();
+              const createdLeadId = createdLeadBody?.data?.id;
+              if (createdLeadId === undefined || createdLeadId === null) {
+                throw new Error(`CRM create response did not expose lead id: ${JSON.stringify(createdLeadBody)}`);
+              }
+              await page.locator(`a[href="#crm:${createdLeadId}"]`).click();
+              await page.locator('[data-crm-lead-editor]').waitFor();
+              await page.locator('#crm-edit-form input[name="contactName"]').fill('Lead E2E Updated');
+              await page.locator('#crm-edit-form button[type="submit"]').click();
+              await page.getByText('Lead atualizado.', { exact: true }).waitFor();
+              await page.locator('#crm-stage-form select[name="stage"]').selectOption('first_contact');
+              await page.locator('#crm-stage-form button[type="submit"]').click();
+              await page.getByText('Etapa atualizada.', { exact: true }).waitFor();
+
+              const crmReadback = await ownerContext.request.get(
+                `${origin}/api/admin/v1/crm/leads/${createdLeadId}`,
+              );
+              const crmReadbackBody = await crmReadback.json();
+              if (
+                crmReadback.status() !== 200 ||
+                crmReadbackBody?.data?.contactName !== 'Lead E2E Updated' ||
+                crmReadbackBody?.data?.stage !== 'first_contact'
+              ) {
+                throw new Error(
+                  `CRM Control Center editor readback mismatch: ${crmReadback.status()} ${JSON.stringify(crmReadbackBody)}`,
+                );
+              }
               evidence.crm = true;
+              evidence.crmEditor = true;
 
               await page.locator('[data-view="support"]').click();
               await page.locator('#support-user').selectOption('business-owner-1');
