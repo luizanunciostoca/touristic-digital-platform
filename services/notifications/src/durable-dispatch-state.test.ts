@@ -69,7 +69,9 @@ describe("durable notification dispatch state", () => {
 
     await expect(store.claim("notify.ticket.event.user")).resolves.toBe(true);
     await expect(store.claim("notify.ticket.event.user")).resolves.toBe(false);
-    await expect(store.release("notify.ticket.event.user")).resolves.toBeUndefined();
+    await expect(
+      store.release("notify.ticket.event.user"),
+    ).resolves.toBeUndefined();
 
     expect(execute).toHaveBeenCalledTimes(3);
     expect(String(execute.mock.calls[0]?.[0])).toContain("INSERT IGNORE");

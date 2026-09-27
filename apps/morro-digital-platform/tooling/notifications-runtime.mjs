@@ -1,5 +1,7 @@
 function booleanFlag(value, fallback = false) {
-  const normalized = String(value ?? "").trim().toLowerCase();
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (!normalized) return fallback;
   if (normalized === "true") return true;
   if (normalized === "false") return false;
@@ -81,8 +83,9 @@ export function createNotificationsRuntime({
       await runtime.server.applyNotificationsSchema(pool);
       repository = new runtime.server.MySqlNotificationOutboxRepository(pool);
       preferences = new runtime.server.MySqlNotificationPreferenceStore(pool);
-      const idempotency =
-        new runtime.server.MySqlNotificationIdempotencyStore(pool);
+      const idempotency = new runtime.server.MySqlNotificationIdempotencyStore(
+        pool,
+      );
       const dispatcher = runtime.domain.createNotificationDispatcher({
         preferences,
         idempotency,

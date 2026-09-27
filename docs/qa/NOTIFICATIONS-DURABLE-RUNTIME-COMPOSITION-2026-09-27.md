@@ -23,6 +23,7 @@ This ChangeSet composes the existing provider-neutral Notifications foundation i
 The runtime dispatcher is intentionally created with no delivery providers.
 
 This ChangeSet does not activate or configure:
+
 - email provider credentials;
 - SMS provider credentials;
 - Web Push / VAPID;

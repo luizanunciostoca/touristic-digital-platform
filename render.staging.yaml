@@ -230,7 +230,6 @@ services:
           name: morro-digital-v2-staging-mysql
           envVarKey: NOTIFICATIONS_DATABASE_PASSWORD
 
-
       # Auth stays fail-closed until the operator provides the accepted staging
       # identity set and exact HTTPS origin.
       - key: DASHBOARD_AUTH_SECRET
