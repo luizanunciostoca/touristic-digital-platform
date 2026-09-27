@@ -21,7 +21,7 @@ At activation, record the exact loaded profile revision and actual client toolse
 Run from the repository root:
 
 ```sh
-node --test .github/agents/profile-contract.test.mjs
+node --test .github/agents/*.test.mjs
 node .github/agents/profile-contract.mjs
 ```
 
