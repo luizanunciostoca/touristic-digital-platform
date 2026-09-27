@@ -5,7 +5,7 @@
 - Reconciliação: 2026-09-27
 - Issue: #152
 - Baseline original de admissão: `05f7df04eaee94de9bf894f75f6842ba6f0c3731`
-- Exact main reconciliado: `df18e8d2ee329ed9d01f37389e52b95e7e96fc0d`
+- Exact main de conclusão funcional: `9e6ccf15076838b18a2c90db788b1d26e970d577`
 
 ## 1. Contexto e problema
 
@@ -91,7 +91,7 @@ Ações críticas implementadas incluem, conforme o domínio:
 
 Essas ações permanecem sujeitas a capability, CSRF/origin, step-up, motivo/confirmation quando definido pelo contrato e auditoria. Financial/provider authority continua pertencendo ao domínio owner e nenhuma autorização real-money é criada por esta ADR.
 
-O hardening residual de #152 inclui proteção mais ampla de replay/rate-limit na Admin API sem duplicar ou substituir idempotência já pertencente aos domínios.
+O hardening residual de #152 foi concluído: a Admin API aplica rate-limit durável por actor + namespace e replay/idempotency durável por actor + chave, com fingerprint canônico da mutation. Replay exato e reutilização divergente são bloqueados antes da execução do owner. A proteção externa não duplica nem substitui a idempotência pertencente aos domínios.
 
 ## 7. Alternativas consideradas
 
@@ -118,16 +118,21 @@ Rejeitada. Mantém verificações dispersas e aumenta risco de privilege escalat
 - evolução incremental dos adapters;
 - estado administrativo durável sem transformar o Control Center em owner de outros domínios.
 
-### Resíduos operacionais
+### Estado de conclusão
 
-A aceitação da arquitetura não significa que FEATURE-0012 esteja concluída. O ledger atual mantém como `VALID_MISSING` somente:
+FEATURE-0012 foi reconciliada como concluída em 2026-09-27.
 
-- breadth final de Dashboard;
-- breadth final de Universal Search;
-- eventual residual real de Business admin após reconciliação;
-- hardening amplo de Admin API replay/rate-limit;
-- final qualification dedicada em um exact head;
-- aceitação dedicada de Control Center em staging.
+A prova final confirmou:
+
+- Dashboard multi-domínio owner-authoritative, com estados explícitos de cobertura parcial/indisponível em vez de totais fabricados;
+- Universal Search compondo Users/Businesses e adapters owners pesquisáveis de Affiliates, CRM, Products, Reservations, Content, Financial e Destinations;
+- Business Admin/CMS cobrindo criação, perfil, localização, mídia, catálogo e publicação;
+- Admin API com rate-limit e replay/idempotency duráveis;
+- final qualification dedicada no exact head;
+- aceitação dedicada e health/readiness em staging;
+- convergência posterior do mesmo release funcional em produção.
+
+A conclusão não concede autoridade de provider ou real-money além dos contratos já governados.
 
 ## 9. Preservação e evolução
 
