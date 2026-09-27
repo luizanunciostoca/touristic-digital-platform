@@ -8,7 +8,6 @@
     "paths": [
       ".github/skills/**",
       ".github/morro-control/backlog.json",
-      ".github/morro-control/claims.json",
       ".morro/changesets/MD-CP-002.json",
       ".morro/changesets/MD-CP-002B.json"
     ],
@@ -35,7 +34,12 @@
     "typecheck",
     "affected-tests",
     "build",
-    "integration"
+    "integration",
+    "exact-head-identity",
+    "tree-sha",
+    "candidate-artifact-digest",
+    "lockfile-digest",
+    "provenance-attestation"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
