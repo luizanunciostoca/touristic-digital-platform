@@ -52,7 +52,14 @@
     "tooling/quality/",
     "tooling/fabric/",
     ".morro/",
-    "packages/platform/"
+    "packages/platform/",
+    ".github/morro-control/",
+    ".github/instructions/",
+    ".github/skills/",
+    ".github/agents/",
+    ".github/hooks/",
+    ".github/pull_request_template.md",
+    "AGENTS.md"
   ],
   "semanticRiskFloor": {
     "commerce-offering-identity": "high",

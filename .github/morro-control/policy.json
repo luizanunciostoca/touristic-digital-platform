@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "controlPlaneVersion": "3.2",
+  "canonicalSource": "github-current-main",
+  "authorityModel": {
+    "executableGovernance": ".morro/fabric.json",
+    "ownership": ".morro/ownership.json",
+    "riskPolicy": ".morro/risk-policy.json",
+    "changeSets": ".morro/changesets/*.json",
+    "orchestrationProjection": ".github/morro-control",
+    "rule": "The V3.2 projection may coordinate Fabric state but may not override executable Fabric governance."
+  },
+  "principles": [
+    "PROOF-GRAPH",
+    "EXACT-HEAD",
+    "ZERO-ASSUMPTION",
+    "CAPABILITY-AWARE",
+    "SEMANTIC-INTEGRATION",
+    "EVIDENCE-DRIVEN",
+    "MICRO-RELEASE",
+    "CLAIM-BEFORE-WRITE",
+    "BUILD-ONCE/PROMOTE-SAME-ARTIFACT"
+  ],
+  "orchestrationStates": [
+    "QUEUED",
+    "BLOCKED",
+    "READY",
+    "CLAIMED",
+    "IMPLEMENTING",
+    "LOCAL_PROVEN",
+    "REMOTE_PROVEN",
+    "PROOF_ACCEPTED",
+    "INTEGRATION_READY",
+    "MERGED",
+    "STAGING_VERIFIED",
+    "PRODUCTION_READY",
+    "PRODUCTION_VERIFIED",
+    "SUPERSEDED"
+  ],
+  "canonicalFabricStates": [
+    "IMPLEMENTING",
+    "LOCAL_PROVEN",
+    "REMOTE_PROVEN",
+    "COMPOSITION_PROVEN",
+    "POLICY_SATISFIED",
+    "MERGE_READY",
+    "MERGED",
+    "POST_MERGE_PROVEN",
+    "RELEASE_CANDIDATE",
+    "STAGING_PROVEN",
+    "CERTIFIED",
+    "RELEASED",
+    "PRODUCTION_VERIFIED"
+  ],
+  "minimumFabricState": {
+    "QUEUED": null,
+    "BLOCKED": null,
+    "READY": null,
+    "CLAIMED": "IMPLEMENTING",
+    "IMPLEMENTING": "IMPLEMENTING",
+    "LOCAL_PROVEN": "LOCAL_PROVEN",
+    "REMOTE_PROVEN": "REMOTE_PROVEN",
+    "PROOF_ACCEPTED": "COMPOSITION_PROVEN",
+    "INTEGRATION_READY": "MERGE_READY",
+    "MERGED": "MERGED",
+    "STAGING_VERIFIED": "STAGING_PROVEN",
+    "PRODUCTION_READY": "CERTIFIED",
+    "PRODUCTION_VERIFIED": "PRODUCTION_VERIFIED",
+    "SUPERSEDED": null
+  },
+  "claimRegistry": {
+    "authority": "ORCHESTRATOR",
+    "exclusiveWorkerClaim": false,
+    "rule": "Registry maintenance is serialized by the Fabric orchestrator and is never itself exclusively claimed by a worker."
+  },
+  "ownerApprovalRequired": [
+    "REAL_MONEY",
+    "MERCADO_PAGO_PRODUCTION_ACTIVATION",
+    "EXTERNAL_PAID_PROVIDER",
+    "PRODUCTION_SECRET",
+    "DESTRUCTIVE_MIGRATION",
+    "IRREVERSIBLE_DATABASE_ACTION",
+    "MAJOR_AUTHORITY_OR_SECURITY_MODEL_CHANGE"
+  ],
+  "automaticallyPermitted": [
+    "CODE_IMPLEMENTATION",
+    "TESTS",
+    "NON_DESTRUCTIVE_DEV_MIGRATIONS",
+    "PR_CREATION",
+    "REVIEW",
+    "CI_RERUN",
+    "STAGING_DEPLOY_AFTER_GATES",
+    "SAFE_RELEASE_AFTER_GATES"
+  ],
+  "release": {
+    "buildOnce": true,
+    "promoteSameArtifact": true,
+    "requireExactHead": true,
+    "requireIndependentProof": true,
+    "requireStagingBeforeProduction": true,
+    "requireRuntimeProofForCriticalFlows": true
+  },
+  "aiAuthority": "COMPLEMENTARY_NOT_FINAL"
+}

@@ -53,7 +53,14 @@
         ".github/workflows/",
         "tooling/quality/",
         "tooling/fabric/",
-        ".morro/"
+        ".morro/",
+        ".github/morro-control/",
+        ".github/instructions/",
+        ".github/skills/",
+        ".github/agents/",
+        ".github/hooks/",
+        ".github/pull_request_template.md",
+        "AGENTS.md"
       ],
       "contracts": []
     }
