@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+
 import { describe, expect, it, vi } from "vitest";
 
 import { createNotificationsRuntime } from "./notifications-runtime.mjs";
@@ -7,16 +9,31 @@ function platform() {
 }
 
 describe("notifications runtime composition", () => {
-  it("resolves notification workspace modules from built Node artifacts", async () => {
-    const [domain, events, server] = await Promise.all([
-      import("@touristic/notifications"),
-      import("@touristic/notifications/event-integration"),
-      import("@touristic/notifications-server"),
-    ]);
+  it("maps production Node exports to emitted JavaScript artifacts", async () => {
+    const domainManifest = JSON.parse(
+      await readFile(
+        new URL("../../../packages/notifications/package.json", import.meta.url),
+        "utf8",
+      ),
+    );
+    const serverManifest = JSON.parse(
+      await readFile(
+        new URL("../../../services/notifications/package.json", import.meta.url),
+        "utf8",
+      ),
+    );
 
-    expect(typeof domain.createNotificationDispatcher).toBe("function");
-    expect(typeof events.createNotificationJobFromEvent).toBe("function");
-    expect(typeof server.createNotificationsMySqlPool).toBe("function");
+    expect(domainManifest.exports["."].node).toBe("./dist/index.js");
+    expect(domainManifest.exports["./event-integration"].node).toBe(
+      "./dist/event-integration.js",
+    );
+    expect(domainManifest.exports["./browser-permission"].node).toBe(
+      "./dist/browser-permission.js",
+    );
+    expect(serverManifest.exports["."].node).toBe("./dist/index.js");
+    expect(Object.keys(serverManifest.exports["."]).indexOf("node")).toBeLessThan(
+      Object.keys(serverManifest.exports["."]).indexOf("default"),
+    );
   });
 
   it("stays safely disabled without touching persistence", async () => {
