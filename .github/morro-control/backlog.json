@@ -8,7 +8,7 @@
       "title": "Etapa A — constitution and machine-readable control state",
       "priority": "P1",
       "domain": "control-plane",
-      "state": "INTEGRATION_READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
@@ -17,14 +17,38 @@
     },
     {
       "id": "MD-CP-002",
-      "title": "Etapa B — domain instructions, agent skills and custom agents",
+      "title": "Etapa B1 — domain instructions",
       "priority": "P1",
-      "domain": "control-plane",
+      "domain": "ci-release",
+      "state": "IMPLEMENTING",
+      "implementation": "PARTIAL",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": ["MD-CP-001"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-002B",
+      "title": "Etapa B2 — agent skills",
+      "priority": "P1",
+      "domain": "ci-release",
       "state": "BLOCKED",
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-001"],
+      "dependencies": ["MD-CP-002"],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-002C",
+      "title": "Etapa B3 — Copilot custom agents",
+      "priority": "P1",
+      "domain": "ci-release",
+      "state": "BLOCKED",
+      "implementation": "MISSING",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": ["MD-CP-002B"],
       "risk": "HIGH"
     },
     {
@@ -36,7 +60,7 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-002"],
+      "dependencies": ["MD-CP-002C"],
       "risk": "HIGH"
     },
     {
