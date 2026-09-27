@@ -70,10 +70,7 @@ export interface SetAuthPrincipalAdminStateInput {
   readonly updatedBy: string;
 }
 
-export type AuthAdminMutationReplayDecision =
-  | "claimed"
-  | "replay"
-  | "conflict";
+export type AuthAdminMutationReplayDecision = "claimed" | "replay" | "conflict";
 
 export interface ClaimAuthAdminMutationReplayInput {
   readonly actorSubject: string;
