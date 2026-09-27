@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "controlPlaneVersion": "3.2",
+  "state": "DECLARED_NOT_COMPILED",
+  "engine": "copilot",
+  "safeOutputsMode": "STAGED",
+  "compiler": "gh aw",
+  "activationGate": "Compile each source to .lock.yml in an authenticated repository checkout, review generated files, then pass first-run acceptance before removing staged mode.",
+  "sources": [
+    ".github/workflows/ci-failure-investigator.md",
+    ".github/workflows/pr-proof-precheck.md",
+    ".github/workflows/stale-branch-reconciler.md",
+    ".github/workflows/dependency-dag-updater.md",
+    ".github/workflows/release-readiness-monitor.md"
+  ]
+}
