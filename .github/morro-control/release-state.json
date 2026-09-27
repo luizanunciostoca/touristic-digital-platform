@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "currentMain": "20453f829477c74d9111e17292da628aa5149c52",
+  "candidateSha": null,
+  "candidateTree": null,
+  "artifactDigest": null,
+  "ociDigest": null,
+  "stagingSha": null,
+  "productionSha": null,
+  "stagingState": "UNVERIFIED",
+  "productionState": "UNVERIFIED",
+  "edgeState": "UNVERIFIED",
+  "attestationState": "UNVERIFIED"
+}
