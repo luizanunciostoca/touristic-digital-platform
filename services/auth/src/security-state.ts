@@ -70,6 +70,19 @@ export interface SetAuthPrincipalAdminStateInput {
   readonly updatedBy: string;
 }
 
+export type AuthAdminMutationReplayDecision =
+  | "claimed"
+  | "replay"
+  | "conflict";
+
+export interface ClaimAuthAdminMutationReplayInput {
+  readonly actorSubject: string;
+  readonly idempotencyKey: string;
+  readonly requestFingerprint: string;
+  readonly ttlMs: number;
+  readonly nowMs?: number;
+}
+
 export interface AuthSecurityState {
   readonly initialize: () => Promise<void>;
   readonly consumeLoginAttempt: (
@@ -97,6 +110,9 @@ export interface AuthSecurityState {
   readonly setPrincipalAdminState: (
     input: SetAuthPrincipalAdminStateInput,
   ) => Promise<AuthPrincipalAdminState>;
+  readonly claimAdminMutationReplay: (
+    input: ClaimAuthAdminMutationReplayInput,
+  ) => Promise<AuthAdminMutationReplayDecision>;
   readonly revoke: (session: RevocableAuthSession) => Promise<void>;
   readonly close: () => Promise<void>;
 }
@@ -124,6 +140,12 @@ interface PrincipalAdminStateRow {
   readonly role_override: string | null;
   readonly updated_at: string | number;
   readonly updated_by: string;
+}
+
+interface AdminMutationReplayRow {
+  readonly actor_subject: string;
+  readonly request_fingerprint: string;
+  readonly expires_at: string | number;
 }
 
 export const authSecuritySchemaStatements = Object.freeze([
@@ -156,6 +178,14 @@ export const authSecuritySchemaStatements = Object.freeze([
     updated_at BIGINT UNSIGNED NOT NULL,
     updated_by VARCHAR(191) NOT NULL,
     INDEX idx_auth_principal_admin_state_status (status, updated_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
+  `CREATE TABLE IF NOT EXISTS auth_admin_mutation_replay_guard (
+    replay_key CHAR(64) NOT NULL PRIMARY KEY,
+    actor_subject VARCHAR(191) NOT NULL,
+    request_fingerprint CHAR(64) NOT NULL,
+    created_at BIGINT UNSIGNED NOT NULL,
+    expires_at BIGINT UNSIGNED NOT NULL,
+    INDEX idx_auth_admin_mutation_replay_guard_expires_at (expires_at)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ]);
 
@@ -250,6 +280,37 @@ function normalizedRoleOverride(value: string | null): string | null {
   return role;
 }
 
+function normalizedIdempotencyKey(value: string): string {
+  const key = value.trim();
+  if (
+    key.length < 8 ||
+    key.length > 160 ||
+    !/^[A-Za-z0-9._:-]+$/u.test(key)
+  ) {
+    throw new Error("AUTH_ADMIN_IDEMPOTENCY_KEY_INVALID");
+  }
+  return key;
+}
+
+function normalizedRequestFingerprint(value: string): string {
+  const fingerprint = value.trim().toLowerCase();
+  if (!/^[a-f0-9]{64}$/u.test(fingerprint)) {
+    throw new Error("AUTH_ADMIN_REQUEST_FINGERPRINT_INVALID");
+  }
+  return fingerprint;
+}
+
+function normalizedReplayTtlMs(value: number): number {
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 60_000 ||
+    value > 7 * 24 * 60 * 60 * 1000
+  ) {
+    throw new Error("AUTH_ADMIN_REPLAY_TTL_INVALID");
+  }
+  return value;
+}
+
 function positiveInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new Error(`${field} must be a positive safe integer.`);
@@ -292,6 +353,14 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
   >();
   const revoked = new Map<string, number>();
   const principalStates = new Map<string, AuthPrincipalAdminState>();
+  const adminMutationReplay = new Map<
+    string,
+    {
+      actorSubject: string;
+      requestFingerprint: string;
+      expiresAt: number;
+    }
+  >();
   const sessions = new Map<
     string,
     {
@@ -429,6 +498,38 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     return Promise.resolve(state);
   }
 
+  function claimAdminMutationReplay(
+    input: ClaimAuthAdminMutationReplayInput,
+  ): Promise<AuthAdminMutationReplayDecision> {
+    const actorSubject = normalizedSubject(input.actorSubject);
+    const idempotencyKey = normalizedIdempotencyKey(input.idempotencyKey);
+    const requestFingerprint = normalizedRequestFingerprint(
+      input.requestFingerprint,
+    );
+    const ttlMs = normalizedReplayTtlMs(input.ttlMs);
+    const now = normalizedNowMs(input.nowMs);
+    const replayKey = hashedKey(
+      "admin-mutation-replay",
+      `${actorSubject}:${idempotencyKey}`,
+    );
+    const current = adminMutationReplay.get(replayKey);
+    if (!current || current.expiresAt <= now) {
+      adminMutationReplay.set(replayKey, {
+        actorSubject,
+        requestFingerprint,
+        expiresAt: now + ttlMs,
+      });
+      return Promise.resolve("claimed");
+    }
+    if (
+      current.actorSubject === actorSubject &&
+      current.requestFingerprint === requestFingerprint
+    ) {
+      return Promise.resolve("replay");
+    }
+    return Promise.resolve("conflict");
+  }
+
   function revoke(session: RevocableAuthSession): Promise<void> {
     const now = normalizedEpochSeconds(undefined);
     const handle = hashedKey("session", session.sessionId);
@@ -447,6 +548,7 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     attempts.clear();
     revoked.clear();
     principalStates.clear();
+    adminMutationReplay.clear();
     sessions.clear();
     return Promise.resolve();
   }
@@ -460,6 +562,7 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
     revokeSessionHandle,
     getPrincipalAdminState,
     setPrincipalAdminState,
+    claimAdminMutationReplay,
     revoke,
     close,
   });
@@ -498,6 +601,10 @@ export function createSqlAuthSecurityState(
       pool.execute(
         "DELETE FROM auth_login_rate_limits WHERE updated_at < ? LIMIT 1000",
         [rateLimitCutoff],
+      ),
+      pool.execute(
+        "DELETE FROM auth_admin_mutation_replay_guard WHERE expires_at <= ? LIMIT 1000",
+        [nowMs],
       ),
     ]);
   }
@@ -732,6 +839,86 @@ export function createSqlAuthSecurityState(
     return state;
   }
 
+  async function claimAdminMutationReplay(
+    input: ClaimAuthAdminMutationReplayInput,
+  ): Promise<AuthAdminMutationReplayDecision> {
+    await initialize();
+    const actorSubject = normalizedSubject(input.actorSubject);
+    const idempotencyKey = normalizedIdempotencyKey(input.idempotencyKey);
+    const requestFingerprint = normalizedRequestFingerprint(
+      input.requestFingerprint,
+    );
+    const ttlMs = normalizedReplayTtlMs(input.ttlMs);
+    const now = normalizedNowMs(input.nowMs);
+    const replayKey = hashedKey(
+      "admin-mutation-replay",
+      `${actorSubject}:${idempotencyKey}`,
+    );
+    const expiresAt = now + ttlMs;
+    const connection = await pool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+      const [insertResult] = await connection.execute(
+        `INSERT IGNORE INTO auth_admin_mutation_replay_guard
+          (replay_key, actor_subject, request_fingerprint, created_at, expires_at)
+         VALUES (?, ?, ?, ?, ?)`,
+        [replayKey, actorSubject, requestFingerprint, now, expiresAt],
+      );
+      const affectedRows =
+        insertResult &&
+        typeof insertResult === "object" &&
+        "affectedRows" in insertResult
+          ? Number((insertResult as { affectedRows?: unknown }).affectedRows)
+          : 0;
+      if (affectedRows === 1) {
+        await connection.commit();
+        void cleanupExpired(now, ttlMs).catch(() => undefined);
+        return "claimed";
+      }
+
+      const [result] = await connection.execute(
+        `SELECT actor_subject, request_fingerprint, expires_at
+           FROM auth_admin_mutation_replay_guard
+          WHERE replay_key = ?
+          FOR UPDATE`,
+        [replayKey],
+      );
+      const current = rowsFromResult<AdminMutationReplayRow>(result)[0];
+      if (!current) {
+        throw new Error("AUTH_ADMIN_REPLAY_STATE_MISSING");
+      }
+
+      const currentExpiresAt = Number(current.expires_at);
+      if (currentExpiresAt <= now) {
+        await connection.execute(
+          `UPDATE auth_admin_mutation_replay_guard
+              SET actor_subject = ?, request_fingerprint = ?,
+                  created_at = ?, expires_at = ?
+            WHERE replay_key = ?`,
+          [actorSubject, requestFingerprint, now, expiresAt, replayKey],
+        );
+        await connection.commit();
+        void cleanupExpired(now, ttlMs).catch(() => undefined);
+        return "claimed";
+      }
+
+      const decision =
+        current.actor_subject === actorSubject &&
+        current.request_fingerprint === requestFingerprint
+          ? "replay"
+          : "conflict";
+      await connection.commit();
+      void cleanupExpired(now, ttlMs).catch(() => undefined);
+      return decision;
+    } catch (error) {
+      await rollbackQuietly(connection);
+      throw error;
+    } finally {
+      connection.release();
+    }
+  }
+
   async function revoke(session: RevocableAuthSession): Promise<void> {
     await initialize();
     const now = normalizedEpochSeconds(undefined);
@@ -766,6 +953,7 @@ export function createSqlAuthSecurityState(
     revokeSessionHandle,
     getPrincipalAdminState,
     setPrincipalAdminState,
+    claimAdminMutationReplay,
     revoke,
     close,
   });
