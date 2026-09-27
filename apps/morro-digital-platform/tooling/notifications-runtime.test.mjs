@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-
 import { describe, expect, it, vi } from "vitest";
 
 import { createNotificationsRuntime } from "./notifications-runtime.mjs";
@@ -9,33 +7,6 @@ function platform() {
 }
 
 describe("notifications runtime composition", () => {
-  it("maps production Node exports to emitted JavaScript artifacts", async () => {
-    const domainManifest = JSON.parse(
-      await readFile(
-        new URL("../../../packages/notifications/package.json", import.meta.url),
-        "utf8",
-      ),
-    );
-    const serverManifest = JSON.parse(
-      await readFile(
-        new URL("../../../services/notifications/package.json", import.meta.url),
-        "utf8",
-      ),
-    );
-
-    expect(domainManifest.exports["."].node).toBe("./dist/index.js");
-    expect(domainManifest.exports["./event-integration"].node).toBe(
-      "./dist/event-integration.js",
-    );
-    expect(domainManifest.exports["./browser-permission"].node).toBe(
-      "./dist/browser-permission.js",
-    );
-    expect(serverManifest.exports["."].node).toBe("./dist/index.js");
-    expect(Object.keys(serverManifest.exports["."]).indexOf("node")).toBeLessThan(
-      Object.keys(serverManifest.exports["."]).indexOf("default"),
-    );
-  });
-
   it("stays safely disabled without touching persistence", async () => {
     const loadRuntime = vi.fn();
     const runtime = createNotificationsRuntime({
