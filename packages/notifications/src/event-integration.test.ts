@@ -99,6 +99,9 @@ describe("notification event integration", () => {
     const replay = createNotificationJobFromEvent(event);
 
     expect(first?.request.idempotencyKey).toBe(replay?.request.idempotencyKey);
+    expect(first?.request.idempotencyKey).toContain(
+      "morro-de-sao-paulo.ticket_confirmation",
+    );
     expect(first?.sourceEventId).toBe("evt-ticket-001");
   });
 
