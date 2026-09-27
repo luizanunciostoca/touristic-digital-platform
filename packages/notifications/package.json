@@ -4,9 +4,21 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./event-integration": "./src/event-integration.ts",
-    "./browser-permission": "./src/browser-permission.ts"
+    ".": {
+      "types": "./src/index.ts",
+      "node": "./dist/index.js",
+      "default": "./src/index.ts"
+    },
+    "./event-integration": {
+      "types": "./src/event-integration.ts",
+      "node": "./dist/event-integration.js",
+      "default": "./src/event-integration.ts"
+    },
+    "./browser-permission": {
+      "types": "./src/browser-permission.ts",
+      "node": "./dist/browser-permission.js",
+      "default": "./src/browser-permission.ts"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
