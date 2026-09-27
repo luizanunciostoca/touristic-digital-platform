@@ -2,7 +2,7 @@
   "id": "MD-CP-002",
   "baseSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
   "branch": "infra/control-plane-v3.2-stage-b1-instructions-20260927",
-  "state": "MERGE_READY",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [

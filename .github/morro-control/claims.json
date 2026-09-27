@@ -2,17 +2,16 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CP-002": {
+    "MD-CP-002B": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "INDEPENDENT-PROOF",
-      "branch": "infra/control-plane-v3.2-stage-b1-instructions-20260927",
-      "baseSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
+      "branch": "infra/control-plane-v3.2-stage-b2-skills-20260927",
+      "baseSha": "bb39f80c558493393a1d635ceb07bbfb380b5c10",
       "paths": [
-        ".github/instructions/**",
+        ".github/skills/**",
         ".github/morro-control/backlog.json",
-        ".github/morro-control/dependency-graph.json",
-        ".github/morro-control/claims.json",
-        ".morro/changesets/MD-CP-002.json"
+        ".morro/changesets/MD-CP-002.json",
+        ".morro/changesets/MD-CP-002B.json"
       ],
       "domains": ["ci-release"],
       "risk": "P1",

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
+  "updatedFromMainSha": "bb39f80c558493393a1d635ceb07bbfb380b5c10",
   "items": [
     {
       "id": "MD-CP-001",
@@ -20,7 +20,7 @@
       "title": "Etapa B1 — domain instructions",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "INTEGRATION_READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
@@ -32,10 +32,10 @@
       "title": "Etapa B2 — agent skills",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "BLOCKED",
-      "implementation": "MISSING",
-      "integration": "MISSING",
-      "proof": "MISSING",
+      "state": "INTEGRATION_READY",
+      "implementation": "COMPLETE",
+      "integration": "COMPLETE",
+      "proof": "PROOF_ACCEPTED",
       "dependencies": ["MD-CP-002"],
       "risk": "HIGH"
     },
