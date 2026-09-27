@@ -28,6 +28,7 @@ describe("MySqlAnalyticsEventRepository privacy", () => {
           sessionId: rawSessionId,
           attributes: {},
         },
+        tenantId: "tenant-morro",
         receivedAt: "2026-09-20T10:00:01.000Z",
         retentionUntil: "2026-12-19T10:00:01.000Z",
       }),
@@ -41,6 +42,7 @@ describe("MySqlAnalyticsEventRepository privacy", () => {
       .digest("hex");
 
     expect(parameters[4]).toBe(expectedHash);
+    expect(parameters[6]).toBe("tenant-morro");
     expect(JSON.stringify(parameters)).not.toContain(rawSessionId);
   });
 });

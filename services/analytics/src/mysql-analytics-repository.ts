@@ -15,6 +15,7 @@ interface AnalyticsEventRow extends RowDataPacket {
   occurred_at: Date | string;
   session_hash: string;
   destination_id: string | null;
+  tenant_id: string | null;
   locale: string | null;
   source: string | null;
   attributes_json: unknown;
@@ -56,7 +57,11 @@ function rowAttributes(value: unknown): Readonly<Record<string, unknown>> {
   throw new Error("ANALYTICS_INVALID_PERSISTED_EVENT");
 }
 
-function sameEvent(row: AnalyticsEventRow, event: AnalyticsEvent): boolean {
+function sameEvent(
+  row: AnalyticsEventRow,
+  event: AnalyticsEvent,
+  tenantId: string | undefined,
+): boolean {
   return (
     row.event_id === event.eventId &&
     row.schema_version === event.schemaVersion &&
@@ -64,6 +69,7 @@ function sameEvent(row: AnalyticsEventRow, event: AnalyticsEvent): boolean {
     timestamp(row.occurred_at) === event.occurredAt &&
     row.session_hash === hashSessionId(event.sessionId) &&
     row.destination_id === (event.destinationId ?? null) &&
+    row.tenant_id === (tenantId ?? null) &&
     row.locale === (event.locale ?? null) &&
     row.source === (event.source ?? null) &&
     stableJson(rowAttributes(row.attributes_json)) ===
@@ -78,7 +84,7 @@ export class MySqlAnalyticsEventRepository implements AnalyticsIngestionReposito
     const [rows] = await this.pool.execute<AnalyticsEventRow[]>(
       `SELECT
         event_id, schema_version, event_name, occurred_at, session_hash,
-        destination_id, locale, source, attributes_json
+        destination_id, tenant_id, locale, source, attributes_json
        FROM analytics_events
        WHERE event_id = ?
        LIMIT 1`,
@@ -94,9 +100,9 @@ export class MySqlAnalyticsEventRepository implements AnalyticsIngestionReposito
     const [result] = await this.pool.execute<ResultSetHeader>(
       `INSERT IGNORE INTO analytics_events (
         event_id, schema_version, event_name, occurred_at, session_hash,
-        destination_id, locale, source, attributes_json, received_at,
+        destination_id, tenant_id, locale, source, attributes_json, received_at,
         retention_until
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         event.eventId,
         event.schemaVersion,
@@ -104,6 +110,7 @@ export class MySqlAnalyticsEventRepository implements AnalyticsIngestionReposito
         new Date(event.occurredAt),
         hashSessionId(event.sessionId),
         event.destinationId ?? null,
+        record.tenantId ?? null,
         event.locale ?? null,
         event.source ?? null,
         JSON.stringify(event.attributes),
@@ -115,7 +122,7 @@ export class MySqlAnalyticsEventRepository implements AnalyticsIngestionReposito
     if (result.affectedRows === 1) return "stored";
 
     const persisted = await this.findRow(event.eventId);
-    if (!persisted || !sameEvent(persisted, event)) {
+    if (!persisted || !sameEvent(persisted, event, record.tenantId)) {
       throw new Error("ANALYTICS_EVENT_ID_CONFLICT");
     }
     return "replayed";
