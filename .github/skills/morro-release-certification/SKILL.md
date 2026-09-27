@@ -34,6 +34,7 @@ Protect BUILD-ONCE / PROMOTE-SAME-ARTIFACT across staging and production.
 
 - Exact main certified
 - Artifact/digest immutable
+- Lockfile digest recorded and bound to the certified candidate
 - Provenance matches source
 - Staging precedes production
 
