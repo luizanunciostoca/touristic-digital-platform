@@ -151,7 +151,11 @@ jobs:
               await tourist.close();
 
               const denied = await owner.request.patch(origin + '/api/admin/v1/destinations/morro-de-sao-paulo', {
-                headers, data: { status: 'suspended', reason: 'Destination E2E denied before step-up' },
+                headers: {
+                  ...headers,
+                  'Idempotency-Key': 'cc:e2e:destination-step-up-denied:1',
+                },
+                data: { status: 'suspended', reason: 'Destination E2E denied before step-up' },
               });
               if (denied.status() !== 403 || (await denied.json()).error !== 'STEP_UP_REQUIRED') throw new Error('STEP_UP_NOT_ENFORCED');
 

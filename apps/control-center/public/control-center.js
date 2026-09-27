@@ -170,12 +170,26 @@ function escapeHtml(value) {
 }
 
 async function api(path, init = {}) {
+  const method = String(init.method ?? "GET").toUpperCase();
+  const headers = {
+    Accept: "application/json",
+    ...(init.headers ?? {}),
+  };
+  const mutation = !["GET", "HEAD", "OPTIONS"].includes(method);
+  const hasIdempotencyKey = Object.keys(headers).some(
+    (key) => key.toLowerCase() === "idempotency-key",
+  );
+  if (mutation && !hasIdempotencyKey) {
+    const nonce =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+    headers["Idempotency-Key"] = `cc:${method.toLowerCase()}:${nonce}`;
+  }
+
   const response = await auth.secureFetch(`/api/admin/v1${path}`, {
     ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init.headers ?? {}),
-    },
+    method,
+    headers,
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {

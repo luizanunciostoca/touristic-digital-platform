@@ -389,6 +389,48 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     }
   }
 
+  async function claimAdminMutationReplay(
+    actorSubjectInput,
+    idempotencyKeyInput,
+    requestFingerprintInput,
+    policy = {},
+  ) {
+    const actorSubject = String(actorSubjectInput ?? "").trim();
+    const idempotencyKey = String(idempotencyKeyInput ?? "").trim();
+    const requestFingerprint = String(requestFingerprintInput ?? "")
+      .trim()
+      .toLowerCase();
+    const ttlMs = Number(policy.ttlMs);
+
+    if (
+      !actorSubject ||
+      actorSubject.length > 160 ||
+      idempotencyKey.length < 8 ||
+      idempotencyKey.length > 160 ||
+      !/^[A-Za-z0-9._:-]+$/u.test(idempotencyKey) ||
+      !/^[a-f0-9]{64}$/u.test(requestFingerprint) ||
+      !Number.isSafeInteger(ttlMs) ||
+      ttlMs < 60_000 ||
+      ttlMs > 7 * 24 * 60 * 60 * 1000
+    ) {
+      throw new Error("AUTH_ADMIN_REPLAY_POLICY_INVALID");
+    }
+
+    try {
+      const decision = await securityState.claimAdminMutationReplay({
+        actorSubject,
+        idempotencyKey,
+        requestFingerprint,
+        ttlMs,
+      });
+      markSecurityHealthy();
+      return decision;
+    } catch (error) {
+      markSecurityFailure(error);
+      throw error;
+    }
+  }
+
   async function currentSession(request) {
     if (!configured()) return null;
     const delegated = delegatedSessions.get(request);
@@ -825,6 +867,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     authorizeBusinessRequest,
     authorizeMutation,
     consumeAdminMutationAttempt,
+    claimAdminMutationReplay,
     listAdminUsers,
     findAdminUser,
     updateUserStatus,

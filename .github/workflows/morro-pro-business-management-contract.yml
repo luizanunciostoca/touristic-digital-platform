@@ -146,6 +146,7 @@ jobs:
                   Origin: origin,
                   'Content-Type': 'application/json',
                   'X-CSRF-Token': csrfToken,
+                  'Idempotency-Key': `cc:e2e:morro-pro-place:${businessId}`,
                 },
                 data: {
                   businessId,
