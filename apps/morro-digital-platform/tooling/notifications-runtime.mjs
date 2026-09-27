@@ -18,10 +18,22 @@ function boundedInteger(value, fallback, min, max) {
 }
 
 async function defaultLoadRuntime() {
+  const domainUrl = new URL(
+    "../../../packages/notifications/dist/index.js",
+    import.meta.url,
+  ).href;
+  const eventsUrl = new URL(
+    "../../../packages/notifications/dist/event-integration.js",
+    import.meta.url,
+  ).href;
+  const serverUrl = new URL(
+    "../../../services/notifications/dist/index.js",
+    import.meta.url,
+  ).href;
   const [domain, events, server] = await Promise.all([
-    import("@touristic/notifications"),
-    import("@touristic/notifications/event-integration"),
-    import("@touristic/notifications-server"),
+    import(domainUrl),
+    import(eventsUrl),
+    import(serverUrl),
   ]);
   return Object.freeze({ domain, events, server });
 }
