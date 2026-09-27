@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/ticketing/**,services/ticketing/**,apps/morro-digital-platform/tooling/ticketing-*"
+applyTo: "packages/ticketing/**,services/ticketing/**,apps/morro-digital-platform/src/**/*ticket*,apps/morro-digital-platform/public/**/*ticket*,apps/morro-digital-platform/tooling/ticketing-*"
 ---
 
 # ticketing
