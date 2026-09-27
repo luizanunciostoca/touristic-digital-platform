@@ -383,11 +383,7 @@ export function createAdminApi({
     return true;
   }
 
-  async function enforceAdminMutationRateLimit(
-    request,
-    response,
-    requestUrl,
-  ) {
+  async function enforceAdminMutationRateLimit(request, response, requestUrl) {
     if (safeAdminMethods.has(request.method)) return true;
 
     const actor = await authApi.resolveSession(request);
