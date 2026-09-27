@@ -110,7 +110,9 @@ describe("notification event integration", () => {
       channel: "push",
     });
     expect(push?.request.id).not.toBe(first?.request.id);
-    expect(push?.request.idempotencyKey).not.toBe(first?.request.idempotencyKey);
+    expect(push?.request.idempotencyKey).not.toBe(
+      first?.request.idempotencyKey,
+    );
   });
 
   it("rejects reminder delivery before the authoritative event time", () => {
