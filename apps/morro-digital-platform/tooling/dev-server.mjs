@@ -19,6 +19,7 @@ import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
 import { createDatabaseEnvironmentResolver } from "./database-environment.mjs";
 import { resolvePublicDestination } from "./destination-public-projection.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
+import { createNotificationsRuntime } from "./notifications-runtime.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 import {
@@ -154,6 +155,7 @@ let contentAdminRuntime = null;
 let commerceApi = null;
 let destinationRuntimeReady = false;
 let placePlatformRuntime = null;
+let notificationsRuntime = null;
 
 function auditSecurityEvent(request, event) {
   const pathname = (() => {
@@ -201,6 +203,14 @@ platformOperations = createPlatformOperations({
   additionalReadinessChecks: () => [
     { name: "auth-security-state", ...authApi.readinessCheck() },
     { name: "analytics-runtime", ...analyticsApi.readinessCheck() },
+    {
+      name: "notifications-runtime",
+      ...(notificationsRuntime?.readinessCheck() ?? {
+        status: "fail",
+        critical: false,
+        detail: "NOTIFICATIONS_RUNTIME_NOT_STARTED",
+      }),
+    },
     {
       name: "affiliates-commercial-runtime",
       status: affiliatesRuntimeReady ? "pass" : "fail",
@@ -271,6 +281,11 @@ platformOperations = createPlatformOperations({
 await authApi.start();
 affiliatesRuntimeReady = await affiliatesApi.start();
 await analyticsApi.start();
+notificationsRuntime = createNotificationsRuntime({
+  getEnvironmentValue,
+  platformOperations,
+});
+await notificationsRuntime.start();
 await adminAuditRuntime.start();
 await affiliateAdminRuntime.start();
 
@@ -879,6 +894,7 @@ async function shutdown(signal) {
 
   const stops = await Promise.allSettled([
     analyticsApi.stop(),
+    notificationsRuntime ? notificationsRuntime.stop() : Promise.resolve(),
     adminApi.stop(),
     adminAuditRuntime.stop(),
     authApi.stop(),
