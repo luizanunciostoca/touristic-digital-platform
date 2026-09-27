@@ -79,6 +79,36 @@ describe("MySqlNotificationOutboxRepository", () => {
     expect(call.parameters[0]).toBe("tenant-morro");
   });
 
+
+  it("uses MySQL text protocol for the bounded lease claim", async () => {
+    const calls: Array<{ sql: string; parameters?: readonly unknown[] }> = [];
+    const query = vi.fn(
+      async (sql: string, parameters?: readonly unknown[]) => {
+        calls.push({ sql, ...(parameters ? { parameters } : {}) });
+        return [{ affectedRows: 0 }, undefined];
+      },
+    );
+    const execute = vi.fn();
+    const repository = new MySqlNotificationOutboxRepository({
+      query,
+      execute,
+    } as unknown as Pool);
+
+    await expect(
+      repository.claimDue({
+        now: "2026-09-27T03:05:00.000Z",
+        leaseMs: 30_000,
+        limit: 25,
+      }),
+    ).resolves.toEqual([]);
+
+    expect(query).toHaveBeenCalledTimes(1);
+    expect(execute).not.toHaveBeenCalled();
+    expect(calls[0]?.sql).toContain("ORDER BY available_at ASC, created_at ASC");
+    expect(calls[0]?.sql).toContain("LIMIT ?");
+    expect(calls[0]?.parameters?.at(-1)).toBe(25);
+  });
+
   it("fails closed when a worker loses its lease", async () => {
     const execute = vi.fn(async () => [{ affectedRows: 0 }, undefined]);
     const repository = new MySqlNotificationOutboxRepository({
