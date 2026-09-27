@@ -82,6 +82,60 @@ describe("analytics ingestion service", () => {
     });
   });
 
+  it("resolves tenant scope server-side and emits non-authoritative observations", async () => {
+    const records: AnalyticsIngestionRecord[] = [];
+    const observations: unknown[] = [];
+    const service = createAnalyticsIngestionService({
+      repository: {
+        record: vi.fn(async (record: AnalyticsIngestionRecord) => {
+          records.push(record);
+          return "stored" as const;
+        }),
+        purgeExpired: vi.fn(async () => 0),
+      },
+      retentionDays: 30,
+      requireTenantScope: true,
+      tenantScope: {
+        resolveTenantId: vi.fn(async () => "tenant-morro"),
+      },
+      observer: {
+        observe: vi.fn(
+          async (observation) => void observations.push(observation),
+        ),
+      },
+    });
+
+    await expect(service.ingest(validWireEvent)).resolves.toMatchObject({
+      status: "stored",
+    });
+    expect(records[0]?.tenantId).toBe("tenant-morro");
+    expect(observations).toContainEqual(
+      expect.objectContaining({
+        outcome: "stored",
+        eventId: "event-001",
+        tenantId: "tenant-morro",
+      }),
+    );
+  });
+
+  it("fails closed when tenant scope is required but cannot be resolved", async () => {
+    const repository: AnalyticsIngestionRepositoryPort = {
+      record: vi.fn(async () => "stored" as const),
+      purgeExpired: vi.fn(async () => 0),
+    };
+    const service = createAnalyticsIngestionService({
+      repository,
+      retentionDays: 30,
+      requireTenantScope: true,
+      tenantScope: { resolveTenantId: vi.fn(async () => null) },
+    });
+
+    await expect(service.ingest(validWireEvent)).rejects.toThrow(
+      "ANALYTICS_TENANT_SCOPE_REQUIRED",
+    );
+    expect(repository.record).not.toHaveBeenCalled();
+  });
+
   it("purges only through the repository cutoff owned by the server clock", async () => {
     const purgeExpired = vi.fn(async () => 7);
     const repository: AnalyticsIngestionRepositoryPort = {
