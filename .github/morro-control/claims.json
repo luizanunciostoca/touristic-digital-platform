@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "claims": {
+    "MD-CP-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "COPILOT-CODE-REVIEW",
+      "branch": "control/control-plane-v3.2-bootstrap-20260927",
+      "baseSha": "20453f829477c74d9111e17292da628aa5149c52",
+      "paths": [
+        "AGENTS.md",
+        ".github/morro-control/**",
+        ".github/instructions/**",
+        ".github/skills/**",
+        ".github/agents/**",
+        ".github/hooks/**",
+        ".github/scripts/morro-*",
+        ".github/scripts/validate-morro-claim.mjs",
+        ".github/workflows/morro-claim-guard.yml",
+        ".github/pull_request_template.md"
+      ],
+      "domains": [
+        "control-plane",
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-04T23:59:59Z"
+    }
+  }
+}
