@@ -16,7 +16,7 @@
       ],
       "domains": ["ci-release"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "INTEGRATION_READY",
       "expiresAt": "2026-10-05T23:59:59Z"
     }
   }
