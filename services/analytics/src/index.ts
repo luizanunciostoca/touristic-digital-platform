@@ -35,13 +35,9 @@ export function createAnalyticsHttpTransport(input: {
   readonly pool: Pool;
   readonly retentionDays: number;
   readonly now?: () => Date;
-  readonly tenantScope?: import(
-    "@touristic/analytics/ingestion"
-  ).AnalyticsTenantScopeResolver;
+  readonly tenantScope?: import("@touristic/analytics/ingestion").AnalyticsTenantScopeResolver;
   readonly requireTenantScope?: boolean;
-  readonly observer?: import(
-    "@touristic/analytics/ingestion"
-  ).AnalyticsIngestionObserver;
+  readonly observer?: import("@touristic/analytics/ingestion").AnalyticsIngestionObserver;
 }): AnalyticsHttpTransport {
   const ingestion = createAnalyticsIngestionService({
     repository: new MySqlAnalyticsEventRepository(input.pool),
