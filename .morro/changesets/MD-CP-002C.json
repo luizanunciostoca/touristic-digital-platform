@@ -10,7 +10,9 @@
       ".github/workflows/morro-agent-profiles.yml",
       ".github/morro-control/backlog.json",
       ".morro/changesets/MD-CP-002B.json",
-      ".morro/changesets/MD-CP-002C.json"
+      ".morro/changesets/MD-CP-002C.json",
+      ".github/skills/morro-database-migration/SKILL.md",
+      ".github/skills/morro-release-certification/SKILL.md"
     ],
     "contracts": []
   },
@@ -27,7 +29,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-002B"],
+  "dependencies": [
+    "MD-CP-002B"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -38,7 +42,9 @@
     "integration",
     "agent-profile-contract",
     "exact-head-identity",
-    "tree-sha"
+    "tree-sha",
+    "copilot-review",
+    "independent-proof"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
