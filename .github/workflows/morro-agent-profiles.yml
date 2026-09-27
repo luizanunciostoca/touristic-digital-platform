@@ -1,0 +1,127 @@
+name: Agent Profile Contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/agents/**"
+      - ".github/skills/**"
+      - ".github/workflows/morro-agent-profiles.yml"
+      - ".morro/changesets/MD-CP-002C.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-profile-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: agent-profile-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Validate custom-agent authority contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+
+          root = pathlib.Path(".")
+          agents_dir = root / ".github" / "agents"
+          files = sorted(agents_dir.glob("*.agent.md"))
+          expected = {
+              "analytics-notifications-pwa",
+              "assistant-search-map",
+              "auth-tenant-security",
+              "business-control-center-crm",
+              "commerce-payments",
+              "database-persistence",
+              "frontend-ux-accessibility",
+              "platform-backend",
+              "release-engineer",
+              "security-auditor",
+              "test-engineer",
+              "ticketing-financial",
+          }
+          actual = {p.name.removesuffix(".agent.md") for p in files}
+          errors = []
+
+          if actual != expected:
+              errors.append(
+                  f"agent set mismatch: missing={sorted(expected-actual)} extra={sorted(actual-expected)}"
+              )
+
+          readonly = {"release-engineer", "security-auditor"}
+          implementation_tools = {"read", "search", "edit", "execute"}
+          readonly_tools = {"read", "search"}
+          skill_pattern = re.compile(r"\.github/skills/[^\x60\s]+/SKILL\.md")
+
+          for path in files:
+              name = path.name.removesuffix(".agent.md")
+              text = path.read_text(encoding="utf-8")
+              if not text.startswith("---\n"):
+                  errors.append(f"{path}: missing YAML frontmatter")
+                  continue
+              try:
+                  _, frontmatter, body = text.split("---", 2)
+              except ValueError:
+                  errors.append(f"{path}: malformed YAML frontmatter")
+                  continue
+
+              values = {}
+              for raw in frontmatter.splitlines():
+                  line = raw.strip()
+                  if not line or ":" not in line:
+                      continue
+                  key, value = line.split(":", 1)
+                  values[key.strip()] = value.strip()
+
+              if values.get("target") != "github-copilot":
+                  errors.append(f"{path}: target must be github-copilot")
+              if values.get("disable-model-invocation") != "true":
+                  errors.append(f"{path}: disable-model-invocation must be true")
+              if values.get("user-invocable") != "true":
+                  errors.append(f"{path}: user-invocable must be true")
+              if "tools" not in values:
+                  errors.append(f"{path}: tools must be explicit; omission grants all tools")
+                  continue
+
+              try:
+                  tools = set(json.loads(values["tools"]))
+              except Exception as exc:
+                  errors.append(f"{path}: tools must be a JSON-compatible YAML list: {exc}")
+                  continue
+
+              expected_tools = readonly_tools if name in readonly else implementation_tools
+              if tools != expected_tools:
+                  errors.append(
+                      f"{path}: tools={sorted(tools)} expected={sorted(expected_tools)}"
+                  )
+              if "*" in tools or "agent" in tools:
+                  errors.append(f"{path}: wildcard/delegation tools are forbidden")
+              if "mcp-servers" in values:
+                  errors.append(f"{path}: profile-local MCP servers are not allowed in B3")
+
+              for skill in sorted(set(skill_pattern.findall(body))):
+                  if not (root / skill).is_file():
+                      errors.append(f"{path}: referenced skill does not exist: {skill}")
+
+          if errors:
+              print("Agent profile contract FAILED", file=sys.stderr)
+              for error in errors:
+                  print(f"- {error}", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"Agent profile contract PASS: {len(files)} guarded profiles validated")
+          PY
