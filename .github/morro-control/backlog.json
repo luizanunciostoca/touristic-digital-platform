@@ -24,9 +24,7 @@
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
-      "dependencies": [
-        "MD-CP-001"
-      ],
+      "dependencies": ["MD-CP-001"],
       "risk": "HIGH"
     },
     {
@@ -38,9 +36,7 @@
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
-      "dependencies": [
-        "MD-CP-002"
-      ],
+      "dependencies": ["MD-CP-002"],
       "risk": "HIGH"
     },
     {
@@ -52,9 +48,7 @@
       "implementation": "COMPLETE",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-002B"
-      ],
+      "dependencies": ["MD-CP-002B"],
       "risk": "HIGH"
     },
     {
@@ -66,9 +60,7 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-002C"
-      ],
+      "dependencies": ["MD-CP-002C"],
       "risk": "HIGH"
     },
     {
@@ -80,9 +72,7 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-003"
-      ],
+      "dependencies": ["MD-CP-003"],
       "risk": "HIGH"
     },
     {
@@ -94,9 +84,7 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-003"
-      ],
+      "dependencies": ["MD-CP-003"],
       "risk": "HIGH"
     },
     {
@@ -108,9 +96,7 @@
       "implementation": "PARTIAL",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-003"
-      ],
+      "dependencies": ["MD-CP-003"],
       "risk": "HIGH"
     },
     {
@@ -122,9 +108,7 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-003"
-      ],
+      "dependencies": ["MD-CP-003"],
       "risk": "HIGH"
     },
     {
@@ -136,12 +120,7 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-004",
-        "MD-CP-005",
-        "MD-CP-006",
-        "MD-CP-007"
-      ],
+      "dependencies": ["MD-CP-004", "MD-CP-005", "MD-CP-006", "MD-CP-007"],
       "risk": "LOW"
     },
     {
@@ -153,9 +132,7 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-FR-001"
-      ],
+      "dependencies": ["MD-FR-001"],
       "risk": "CRITICAL"
     },
     {
@@ -167,9 +144,7 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-FR-001"
-      ],
+      "dependencies": ["MD-FR-001"],
       "risk": "CRITICAL"
     },
     {
@@ -181,10 +156,7 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-001",
-        "MD-003"
-      ],
+      "dependencies": ["MD-001", "MD-003"],
       "risk": "CRITICAL"
     },
     {
@@ -196,11 +168,7 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-001",
-        "MD-002",
-        "MD-003"
-      ],
+      "dependencies": ["MD-001", "MD-002", "MD-003"],
       "risk": "CRITICAL"
     },
     {
@@ -212,9 +180,7 @@
       "implementation": "COMPLETE",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-024"
-      ],
+      "dependencies": ["MD-024"],
       "risk": "HIGH"
     },
     {
@@ -226,9 +192,7 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-130"
-      ],
+      "dependencies": ["MD-130"],
       "risk": "CRITICAL"
     }
   ]
