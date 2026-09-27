@@ -10,7 +10,7 @@ import {
   type NotificationOutboxSchedulerHostOptions,
   type NotificationOutboxSchedulerOptions,
 } from "./outbox-scheduler.js";
-import { notificationsSchemaSql } from "./schema.js";
+import { notificationsSchemaStatements } from "./schema.js";
 
 export * from "./durable-dispatch-state.js";
 export * from "./mysql-notification-outbox.js";
@@ -30,7 +30,9 @@ export function createNotificationsMySqlPool(
 }
 
 export async function applyNotificationsSchema(pool: Pool): Promise<void> {
-  await pool.query(notificationsSchemaSql);
+  for (const statement of notificationsSchemaStatements) {
+    await pool.query(statement);
+  }
 }
 
 export function createNotificationOutboxRuntime(input: {
