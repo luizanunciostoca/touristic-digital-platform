@@ -413,7 +413,9 @@ describe("Control Center Admin API", () => {
     });
   });
 
-  it("requires an idempotency key before an authenticated admin mutation", async () => {
+  it(
+    "requires an idempotency key before an authenticated admin mutation",
+    async () => {
     let ownerCalls = 0;
     const content = {
       async handle({ response }) {
@@ -442,10 +444,13 @@ describe("Control Center Admin API", () => {
     expect(JSON.parse(response.body)).toEqual({
       error: "IDEMPOTENCY_KEY_REQUIRED",
     });
-    expect(ownerCalls).toBe(0);
-  });
+      expect(ownerCalls).toBe(0);
+    },
+  );
 
-  it("blocks exact replay and divergent idempotency reuse before domain owner execution", async () => {
+  it(
+    "blocks exact replay and divergent idempotency reuse before domain owner execution",
+    async () => {
     let ownerCalls = 0;
     let claims = 0;
     const observed = [];
@@ -525,10 +530,11 @@ describe("Control Center Admin API", () => {
     expect(observed[1].requestFingerprint).toBe(
       observed[0].requestFingerprint,
     );
-    expect(observed[2].requestFingerprint).not.toBe(
-      observed[0].requestFingerprint,
-    );
-  });
+      expect(observed[2].requestFingerprint).not.toBe(
+        observed[0].requestFingerprint,
+      );
+    },
+  );
 
   it("rate limits authenticated admin mutations before domain owner execution", async () => {
     let limiterCalls = 0;
