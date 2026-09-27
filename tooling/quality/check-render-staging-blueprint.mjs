@@ -257,6 +257,7 @@ for (const domain of [
   "BUSINESS",
   "CONTENT",
   "DESTINATIONS",
+  "NOTIFICATIONS",
 ]) {
   requireText(mysqlInit, `\${${domain}_DATABASE_NAME}`);
   requireText(mysqlInit, `\${${domain}_DATABASE_USER}`);
