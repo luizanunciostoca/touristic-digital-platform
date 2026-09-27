@@ -166,7 +166,9 @@ describe("Auth durable administrative principal policy", () => {
     await api.stop();
   });
 
-  it("exposes admin mutation replay claims through the shared security authority", async () => {
+  it(
+    "exposes admin mutation replay claims through the shared security authority",
+    async () => {
     const api = createAuthApi({ getEnvironmentValue: environment() });
     await api.start();
 
@@ -199,8 +201,9 @@ describe("Auth durable administrative principal policy", () => {
       ),
     ).resolves.toBe("conflict");
 
-    await api.stop();
-  });
+      await api.stop();
+    },
+  );
 
   it("projects configured and effective authority separately", async () => {
     const api = createAuthApi({ getEnvironmentValue: environment() });
