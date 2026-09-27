@@ -1,6 +1,8 @@
 {
   "schemaVersion": 1,
-  "currentMain": "20453f829477c74d9111e17292da628aa5149c52",
+  "currentMain": null,
+  "currentMainAuthority": "RESOLVE_GITHUB_LIVE",
+  "capturedBaselineSha": "20453f829477c74d9111e17292da628aa5149c52",
   "candidateSha": null,
   "candidateTree": null,
   "artifactDigest": null,
