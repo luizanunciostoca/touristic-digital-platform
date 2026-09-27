@@ -289,6 +289,7 @@ await crmApi.start();
 const businessApi = createBusinessApi({
   authApi,
   getPlacePlatformRuntime: () => placePlatformRuntime,
+  getEnvironmentValue,
 });
 
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
