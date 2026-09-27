@@ -39,9 +39,12 @@ Prevent stale, cross-SHA, or ambiguous evidence from authorizing integration.
 ## Evidence format
 
 - ChangeSet ID.
-- Exact base/head/source SHA as applicable.
-- Command, workflow run, or runtime target.
-- Timestamp, result, and residual blockers.
+- Current-main commit SHA and tree SHA.
+- PR-head commit SHA and tree SHA.
+- Required check/workflow run IDs bound to the PR head.
+- Evidence generation timestamp and freshness window.
+- Command or runtime target when applicable.
+- Result and residual blockers.
 
 ## Failure states
 
