@@ -393,12 +393,11 @@ export function createAdminApi({
     const actor = await authApi.resolveSession(request);
     if (!actor) return true;
 
-    const rawNamespace =
-      requestUrl.pathname
-        .slice(adminPrefix.length)
-        .replace(/^\/+/, "")
-        .split("/", 1)[0]
-        ?.toLowerCase() || "root";
+    const [namespaceSegment = "root"] = requestUrl.pathname
+      .slice(adminPrefix.length)
+      .replace(/^\/+/, "")
+      .split("/", 1);
+    const rawNamespace = namespaceSegment.toLowerCase();
     const namespace = /^[a-z0-9][a-z0-9_-]{0,79}$/u.test(rawNamespace)
       ? rawNamespace
       : "other";
