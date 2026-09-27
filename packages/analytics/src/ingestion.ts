@@ -8,8 +8,31 @@ import {
 
 export interface AnalyticsIngestionRecord {
   readonly event: AnalyticsEvent;
+  readonly tenantId?: string;
   readonly receivedAt: string;
   readonly retentionUntil: string;
+}
+
+export interface AnalyticsTenantScopeResolver {
+  resolveTenantId(event: AnalyticsEvent): Promise<string | null | undefined>;
+}
+
+export type AnalyticsIngestionOutcome =
+  | "stored"
+  | "replayed"
+  | "rejected"
+  | "failed";
+
+export interface AnalyticsIngestionObservation {
+  readonly outcome: AnalyticsIngestionOutcome;
+  readonly eventId?: string;
+  readonly eventName?: AnalyticsEventName;
+  readonly tenantId?: string;
+  readonly code?: string;
+}
+
+export interface AnalyticsIngestionObserver {
+  observe(observation: AnalyticsIngestionObservation): void | Promise<void>;
 }
 
 export interface AnalyticsIngestionRepositoryPort {
@@ -31,6 +54,9 @@ export interface CreateAnalyticsIngestionServiceOptions {
   readonly repository: AnalyticsIngestionRepositoryPort;
   readonly now?: () => Date;
   readonly retentionDays: number;
+  readonly tenantScope?: AnalyticsTenantScopeResolver;
+  readonly requireTenantScope?: boolean;
+  readonly observer?: AnalyticsIngestionObserver;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -101,6 +127,27 @@ export function parseAnalyticsWireEvent(value: unknown): AnalyticsEvent | null {
   return createAnalyticsEvent(input, { eventId, occurredAt });
 }
 
+function normalizeTenantId(value: string | null | undefined): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const normalized = value.trim();
+  if (!normalized || normalized.length > 160) {
+    throw new Error("ANALYTICS_TENANT_SCOPE_INVALID");
+  }
+  return normalized;
+}
+
+async function observe(
+  observer: AnalyticsIngestionObserver | undefined,
+  observation: AnalyticsIngestionObservation,
+): Promise<void> {
+  if (!observer) return;
+  try {
+    await observer.observe(Object.freeze({ ...observation }));
+  } catch {
+    // Observability must never become analytics delivery authority.
+  }
+}
+
 function retentionUntil(now: Date, retentionDays: number): string {
   return new Date(
     now.getTime() + retentionDays * 24 * 60 * 60 * 1_000,
@@ -123,18 +170,58 @@ export function createAnalyticsIngestionService(
   return Object.freeze({
     async ingest(value: unknown) {
       const event = parseAnalyticsWireEvent(value);
-      if (!event) throw new Error("ANALYTICS_EVENT_INVALID");
+      if (!event) {
+        await observe(options.observer, {
+          outcome: "rejected",
+          code: "ANALYTICS_EVENT_INVALID",
+        });
+        throw new Error("ANALYTICS_EVENT_INVALID");
+      }
 
-      const receivedAt = now().toISOString();
-      const status = await options.repository.record({
-        event,
-        receivedAt,
-        retentionUntil: retentionUntil(
-          new Date(receivedAt),
-          options.retentionDays,
-        ),
-      });
-      return Object.freeze({ status, event });
+      try {
+        const tenantId = normalizeTenantId(
+          options.tenantScope
+            ? await options.tenantScope.resolveTenantId(event)
+            : undefined,
+        );
+        if (options.requireTenantScope && !tenantId) {
+          throw new Error("ANALYTICS_TENANT_SCOPE_REQUIRED");
+        }
+
+        const receivedAt = now().toISOString();
+        const status = await options.repository.record({
+          event,
+          ...(tenantId ? { tenantId } : {}),
+          receivedAt,
+          retentionUntil: retentionUntil(
+            new Date(receivedAt),
+            options.retentionDays,
+          ),
+        });
+        await observe(options.observer, {
+          outcome: status,
+          eventId: event.eventId,
+          eventName: event.name,
+          ...(tenantId ? { tenantId } : {}),
+        });
+        return Object.freeze({ status, event });
+      } catch (error) {
+        const code =
+          error instanceof Error
+            ? error.message
+            : "ANALYTICS_INGESTION_FAILED";
+        await observe(options.observer, {
+          outcome:
+            code === "ANALYTICS_TENANT_SCOPE_REQUIRED" ||
+            code === "ANALYTICS_TENANT_SCOPE_INVALID"
+              ? "rejected"
+              : "failed",
+          eventId: event.eventId,
+          eventName: event.name,
+          code,
+        });
+        throw error;
+      }
     },
 
     async purgeExpired(): Promise<number> {
