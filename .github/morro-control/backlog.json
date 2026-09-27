@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
+  "updatedFromMainSha": "bb39f80c558493393a1d635ceb07bbfb380b5c10",
   "items": [
     {
       "id": "MD-CP-001",
@@ -20,7 +20,7 @@
       "title": "Etapa B1 — domain instructions",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "INTEGRATION_READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
@@ -32,8 +32,8 @@
       "title": "Etapa B2 — agent skills",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "BLOCKED",
-      "implementation": "MISSING",
+      "state": "IMPLEMENTING",
+      "implementation": "PARTIAL",
       "integration": "MISSING",
       "proof": "MISSING",
       "dependencies": ["MD-CP-002"],
@@ -120,7 +120,12 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-004", "MD-CP-005", "MD-CP-006", "MD-CP-007"],
+      "dependencies": [
+        "MD-CP-004",
+        "MD-CP-005",
+        "MD-CP-006",
+        "MD-CP-007"
+      ],
       "risk": "LOW"
     },
     {
@@ -156,7 +161,10 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": ["MD-001", "MD-003"],
+      "dependencies": [
+        "MD-001",
+        "MD-003"
+      ],
       "risk": "CRITICAL"
     },
     {
@@ -168,7 +176,11 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": ["MD-001", "MD-002", "MD-003"],
+      "dependencies": [
+        "MD-001",
+        "MD-002",
+        "MD-003"
+      ],
       "risk": "CRITICAL"
     },
     {
