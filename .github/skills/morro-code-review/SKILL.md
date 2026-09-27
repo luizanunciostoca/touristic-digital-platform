@@ -1,3 +1,8 @@
+---
+name: morro-code-review
+description: Review Morro Digital changes for conversation authority, platform security, CI impact, and exact-head release integrity.
+---
+
 # Morro Code Review Skill
 
 Use this review checklist for every Morro Digital change.
