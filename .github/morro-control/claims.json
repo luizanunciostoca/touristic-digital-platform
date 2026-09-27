@@ -10,7 +10,6 @@
       "paths": [
         ".github/skills/**",
         ".github/morro-control/backlog.json",
-        ".github/morro-control/claims.json",
         ".morro/changesets/MD-CP-002.json",
         ".morro/changesets/MD-CP-002B.json"
       ],
