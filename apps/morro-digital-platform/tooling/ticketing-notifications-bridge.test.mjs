@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createTicketingNotificationsBridge } from "./ticketing-notifications-bridge.mjs";
 
-function destinationService(result = {
-  status: "found",
-  data: { locale: "pt-BR" },
-}) {
+function destinationService(
+  result = {
+    status: "found",
+    data: { locale: "pt-BR" },
+  },
+) {
   return { read: vi.fn(async () => result) };
 }
 
