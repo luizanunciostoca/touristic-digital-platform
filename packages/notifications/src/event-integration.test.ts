@@ -100,9 +100,19 @@ describe("notification event integration", () => {
 
     expect(first?.request.idempotencyKey).toBe(replay?.request.idempotencyKey);
     expect(first?.request.idempotencyKey).toContain(
-      "morro-de-sao-paulo.ticket_confirmation",
+      "morro-de-sao-paulo.ticket_confirmation.email",
     );
+    expect(first?.request.id).toBe("notification:email:evt-ticket-001");
     expect(first?.sourceEventId).toBe("evt-ticket-001");
+
+    const push = createNotificationJobFromEvent({
+      ...event,
+      channel: "push",
+    });
+    expect(push?.request.id).not.toBe(first?.request.id);
+    expect(push?.request.idempotencyKey).not.toBe(
+      first?.request.idempotencyKey,
+    );
   });
 
   it("rejects reminder delivery before the authoritative event time", () => {

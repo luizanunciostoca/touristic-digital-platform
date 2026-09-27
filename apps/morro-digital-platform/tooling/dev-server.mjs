@@ -20,6 +20,7 @@ import { createDatabaseEnvironmentResolver } from "./database-environment.mjs";
 import { resolvePublicDestination } from "./destination-public-projection.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createNotificationsRuntime } from "./notifications-runtime.mjs";
+import { createTicketingNotificationsBridge } from "./ticketing-notifications-bridge.mjs";
 import { createPlatformOperations } from "./platform-operations.mjs";
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 import {
@@ -310,8 +311,16 @@ const businessApi = createBusinessApi({
 const paymentsApi = createPaymentsApi({ authApi, getEnvironmentValue });
 paymentsRuntimeReady = await paymentsApi.start();
 
+const ticketingNotificationsBridge = createTicketingNotificationsBridge({
+  notificationsRuntime,
+  destinationService: destinationRuntime.service,
+});
 const { createTicketingApi } = await import("./ticketing-api.mjs");
-const ticketingApi = createTicketingApi({ authApi, getEnvironmentValue });
+const ticketingApi = createTicketingApi({
+  authApi,
+  getEnvironmentValue,
+  notificationBridge: ticketingNotificationsBridge,
+});
 ticketingRuntimeReady = await ticketingApi.start();
 
 commerceApi = createCommerceApi({ authApi, getEnvironmentValue });

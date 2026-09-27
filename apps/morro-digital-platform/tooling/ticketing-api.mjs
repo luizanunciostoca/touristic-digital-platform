@@ -263,6 +263,7 @@ export function createTicketingApi({
   publicTransport: injectedPublicTransport,
   adminService: injectedAdminService,
   businessInventory: injectedBusinessInventory,
+  notificationBridge: injectedNotificationBridge,
 } = {}) {
   const injected = Boolean(injectedPublicTransport);
   let runtime = injected
@@ -491,6 +492,46 @@ export function createTicketingApi({
               result: "failure",
               reason: syncErrorCode(error),
             });
+          }
+
+          if (typeof injectedNotificationBridge?.ticketIssued === "function") {
+            try {
+              const inventory = await adminService.readInventory(
+                fulfilled.reservation.inventoryId,
+              );
+              if (!inventory?.businessId || !inventory?.offer?.label) {
+                auditSafely(audit, {
+                  action: "ticketing.notification_ticket_issued",
+                  result: "suppressed",
+                  reason: "notification_source_metadata_unavailable",
+                });
+              } else {
+                const notificationResult =
+                  await injectedNotificationBridge.ticketIssued({
+                    tenantId: inventory.businessId,
+                    destinationId: fulfilled.reservation.destinationId,
+                    recipientReference: fulfilled.reservation.holderReference,
+                    occurredAt: fulfilled.reservation.confirmedAt,
+                    ticketReference: fulfilled.ticket.id,
+                    experienceName: inventory.offer.label,
+                  });
+                auditSafely(audit, {
+                  action: "ticketing.notification_ticket_issued",
+                  result:
+                    notificationResult === "enqueued" ||
+                    notificationResult === "duplicate"
+                      ? "success"
+                      : "suppressed",
+                  reason: notificationResult,
+                });
+              }
+            } catch (error) {
+              auditSafely(audit, {
+                action: "ticketing.notification_ticket_issued",
+                result: "failure",
+                reason: syncErrorCode(error),
+              });
+            }
           }
           return fulfilled;
         },

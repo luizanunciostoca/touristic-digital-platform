@@ -169,8 +169,8 @@ export function createNotificationJobFromEvent(
   if (!deliverAt) return null;
 
   const request = createNotificationRequest({
-    id: `notification:${event.eventId}`,
-    idempotencyKey: `notify.${event.destinationId}.${template}.${event.eventId}.${event.recipientReference}`,
+    id: `notification:${event.channel}:${event.eventId}`,
+    idempotencyKey: `notify.${event.destinationId}.${template}.${event.channel}.${event.eventId}.${event.recipientReference}`,
     destinationId: event.destinationId,
     recipientReference: event.recipientReference,
     locale: event.locale,
