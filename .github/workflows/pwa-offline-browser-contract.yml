@@ -139,6 +139,25 @@ jobs:
               );
             }
 
+            const mutationOffline = await page.evaluate(async () => {
+              try {
+                const response = await fetch('/api/pwa-offline-authority-probe', {
+                  method: 'POST',
+                  headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify({ probe: true }),
+                  cache: 'no-store',
+                });
+                return { resolved: true, status: response.status };
+              } catch (error) {
+                return { resolved: false, error: String(error) };
+              }
+            });
+            if (mutationOffline.resolved) {
+              throw new Error(
+                `Non-GET server mutation unexpectedly resolved offline: ${JSON.stringify(mutationOffline)}`,
+              );
+            }
+
             const cssOffline = await page.evaluate(async () => {
               try {
                 const response = await fetch('/apps/morro-digital-platform/public/styles.css');
@@ -189,6 +208,50 @@ jobs:
               throw new Error('Offline fallback did not preserve authority warning.');
             }
 
+            await context.setOffline(false);
+            await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+            await page.waitForFunction(
+              () =>
+                navigator.onLine === true &&
+                document.documentElement.dataset.networkState === 'online',
+              undefined,
+              { timeout: 5000 },
+            );
+
+            const onlineRecovery = await page.evaluate(async () => {
+              const [health, css] = await Promise.all([
+                fetch('/healthz', { cache: 'no-store' }),
+                fetch('/apps/morro-digital-platform/public/styles.css', {
+                  cache: 'no-store',
+                }),
+              ]);
+              return {
+                navigatorOnline: navigator.onLine,
+                networkState:
+                  document.documentElement.dataset.networkState ?? null,
+                health: {
+                  ok: health.ok,
+                  status: health.status,
+                },
+                css: {
+                  ok: css.ok,
+                  status: css.status,
+                  text: await css.text(),
+                },
+              };
+            });
+            if (
+              !onlineRecovery.navigatorOnline ||
+              onlineRecovery.networkState !== 'online' ||
+              !onlineRecovery.health.ok ||
+              !onlineRecovery.css.ok ||
+              !onlineRecovery.css.text.includes(':root')
+            ) {
+              throw new Error(
+                `Offline recovery did not restore network authority: ${JSON.stringify(onlineRecovery)}`,
+              );
+            }
+
             const evidence = {
               manifest: {
                 start_url: manifest.body.start_url,
@@ -198,6 +261,7 @@ jobs:
               },
               registration,
               apiOffline,
+              mutationOffline,
               cssOffline: {
                 resolved: cssOffline.resolved,
                 ok: cssOffline.ok,
@@ -208,6 +272,15 @@ jobs:
                 authorityWarning: offlineFallback.text.includes(
                   'operações que exigem autoridade do servidor',
                 ),
+              },
+              onlineRecovery: {
+                navigatorOnline: onlineRecovery.navigatorOnline,
+                networkState: onlineRecovery.networkState,
+                health: onlineRecovery.health,
+                css: {
+                  ok: onlineRecovery.css.ok,
+                  status: onlineRecovery.css.status,
+                },
               },
               pageErrors,
             };
