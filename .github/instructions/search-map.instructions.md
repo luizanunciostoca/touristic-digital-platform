@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/geospatial/**,apps/morro-digital-platform/public/**/*map*,apps/morro-digital-platform/public/**/*search*,apps/morro-digital-platform/tooling/**/*map*,apps/morro-digital-platform/tooling/**/*search*"
+applyTo: "packages/geospatial/**,apps/morro-digital-platform/src/map/**,apps/morro-digital-platform/src/navigation/**,apps/morro-digital-platform/public/**/*map*,apps/morro-digital-platform/public/**/*search*,apps/morro-digital-platform/tooling/**/*map*,apps/morro-digital-platform/tooling/**/*search*"
 ---
 
 # search-map
