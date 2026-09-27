@@ -2,28 +2,21 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CP-001": {
+    "MD-CP-002": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "INDEPENDENT-PROOF",
-      "branch": "control/control-plane-v3.2-bootstrap-20260927",
-      "baseSha": "20453f829477c74d9111e17292da628aa5149c52",
+      "branch": "control/control-plane-v3.2-stage-b1-instructions-20260927",
+      "baseSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
       "paths": [
-        "AGENTS.md",
+        ".github/instructions/**",
         ".github/morro-control/backlog.json",
         ".github/morro-control/dependency-graph.json",
-        ".github/morro-control/claim-schema.json",
-        ".github/morro-control/release-state.json",
-        ".github/morro-control/policy.json",
-        ".github/morro-control/evidence/README.md",
-        ".github/pull_request_template.md",
-        ".morro/changesets/MD-CP-001.json",
-        ".morro/ownership.json",
-        ".morro/risk-policy.json"
+        ".morro/changesets/MD-CP-002.json"
       ],
       "domains": ["ci-release"],
       "risk": "P1",
-      "status": "INTEGRATION_READY",
-      "expiresAt": "2026-10-04T23:59:59Z"
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:59:59Z"
     }
   }
 }
