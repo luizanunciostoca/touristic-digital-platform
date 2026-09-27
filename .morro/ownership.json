@@ -3,7 +3,10 @@
   "domains": [
     {
       "id": "map",
-      "pathPrefixes": ["apps/morro-digital-platform/src/map/", "apps/morro-digital-platform/public/"],
+      "pathPrefixes": [
+        "apps/morro-digital-platform/src/map/",
+        "apps/morro-digital-platform/public/"
+      ],
       "contracts": []
     },
     {
@@ -18,16 +21,12 @@
         "services/ticketing/",
         "tooling/ticketing/"
       ],
-      "contracts": [
-        "ticket-fulfillment"
-      ]
+      "contracts": ["ticket-fulfillment"]
     },
     {
       "id": "ordering",
       "pathPrefixes": ["packages/ordering/", "services/ordering/"],
-      "contracts": [
-        "verified-payment-outcome"
-      ]
+      "contracts": ["verified-payment-outcome"]
     },
     {
       "id": "payments",
@@ -36,16 +35,12 @@
         "services/financial/",
         "tooling/payments/"
       ],
-      "contracts": [
-        "verified-payment-outcome"
-      ]
+      "contracts": ["verified-payment-outcome"]
     },
     {
       "id": "auth",
       "pathPrefixes": ["packages/auth/", "services/auth/"],
-      "contracts": [
-        "platform-authz"
-      ]
+      "contracts": ["platform-authz"]
     },
     {
       "id": "business",
