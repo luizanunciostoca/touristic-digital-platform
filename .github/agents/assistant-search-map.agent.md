@@ -2,6 +2,9 @@
 name: Morro Assistant Search Map
 description: Implement Assistant, Search, Map and Navigation with single conversation authority, canonical place identity and causal UI state.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
