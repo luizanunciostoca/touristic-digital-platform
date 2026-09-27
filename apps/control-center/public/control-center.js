@@ -1,4 +1,8 @@
 import { createDashboardAuthClient } from "@touristic/auth-browser";
+import {
+  crmLeadDetailStageLabels,
+  crmLeadDetailStages,
+} from "@touristic/crm/lead-detail-contract";
 import { renderHomeOverviewV1 } from "./control-center-home-overview-v1.js";
 import { renderBusinessCms } from "./control-center-business-cms.js";
 
@@ -1875,25 +1879,150 @@ async function renderAffiliates(affiliateId) {
     });
 }
 
-async function renderCrm() {
-  const data = await api("/crm/leads?limit=100");
-  const leads = Array.isArray(data.data) ? data.data : [];
+async function renderCrm(leadId) {
+  const canManage =
+    actorHasCapability("crm.manage") && !Boolean(state.adminSession?.support);
+  const [list, selectedPayload] = await Promise.all([
+    api("/crm/leads?limit=100"),
+    leadId
+      ? api(`/crm/leads/${encodeURIComponent(leadId)}`).catch((error) =>
+          error.status === 404 ? { data: null } : Promise.reject(error),
+        )
+      : Promise.resolve({ data: null }),
+  ]);
+  const leads = Array.isArray(list.data) ? list.data : [];
+  const selected = selectedPayload?.data ?? null;
+
+  const fields = [
+    ["companyName", "Empresa", "text", true],
+    ["segment", "Segmento", "text", false],
+    ["contactName", "Contato", "text", false],
+    ["whatsapp", "WhatsApp", "text", false],
+    ["phone", "Telefone", "text", false],
+    ["email", "E-mail", "email", false],
+    ["monthlyValue", "Valor mensal", "number", false],
+    ["address", "Endereço", "text", false],
+    ["website", "Website", "url", false],
+    ["source", "Origem", "text", false],
+  ];
+
+  const fieldMarkup = (lead = {}) =>
+    fields
+      .map(
+        ([name, label, type, required]) => `
+          <label>${escapeHtml(label)}
+            <input
+              name="${escapeHtml(name)}"
+              type="${escapeHtml(type)}"
+              value="${escapeHtml(lead[name] ?? "")}"
+              ${required ? "required" : ""}
+              ${name === "monthlyValue" ? 'step="0.01" min="0"' : ""}
+            />
+          </label>`,
+      )
+      .join("");
+
+  const stageOptions = (current) =>
+    crmLeadDetailStages
+      .map(
+        ({ stage, label }) =>
+          `<option value="${escapeHtml(stage)}" ${current === stage ? "selected" : ""}>${escapeHtml(label)}</option>`,
+      )
+      .join("");
+
   content.innerHTML = `
     <div class="callout">
-      CRM é reutilizado por adapter sobre o domínio existente; nenhuma tabela foi movida para o Control Center.
+      <strong>CRM owner orchestration:</strong>
+      o Control Center usa apenas os contratos canônicos do CRM; nenhuma tabela,
+      regra de pipeline ou autoridade de persistência foi duplicada.
     </div>
+
+    ${
+      canManage && !selected
+        ? `
+          <section class="card section-card" style="margin-bottom:16px">
+            <div class="section-title">
+              <h2>Novo lead</h2>
+              <span class="badge">crm.manage</span>
+            </div>
+            <form id="crm-create-form" class="form-grid">
+              ${fieldMarkup()}
+              <label>Observações
+                <textarea name="notes" maxlength="2000"></textarea>
+              </label>
+              <button class="primary-button" type="submit">Criar lead</button>
+              <p id="crm-create-result" role="status" aria-live="polite"></p>
+            </form>
+          </section>`
+        : ""
+    }
+
+    ${
+      selected
+        ? `
+          <section class="card section-card" data-crm-lead-editor>
+            <div class="section-title">
+              <div>
+                <h2>${escapeHtml(selected.companyName ?? "Lead CRM")}</h2>
+                <small>#${escapeHtml(selected.id)} · ${escapeHtml(
+                  crmLeadDetailStageLabels[selected.stage] ?? selected.stage ?? "—",
+                )}</small>
+              </div>
+              ${statusBadge(selected.status ?? "active")}
+            </div>
+
+            ${
+              canManage
+                ? `
+                  <form id="crm-edit-form" class="form-grid">
+                    ${fieldMarkup(selected)}
+                    <label>Observações
+                      <textarea name="notes" maxlength="2000">${escapeHtml(selected.notes ?? "")}</textarea>
+                    </label>
+                    <button class="primary-button" type="submit">Salvar alterações</button>
+                    <p id="crm-edit-result" role="status" aria-live="polite"></p>
+                  </form>
+
+                  <form id="crm-stage-form" class="form-grid" style="margin-top:16px">
+                    <label>Etapa do pipeline
+                      <select name="stage" required>
+                        ${stageOptions(selected.stage)}
+                      </select>
+                    </label>
+                    <button class="secondary-button" type="submit">Atualizar etapa</button>
+                    <p id="crm-stage-result" role="status" aria-live="polite"></p>
+                  </form>`
+                : `
+                  <div class="callout">
+                    Edição exige <strong>crm.manage</strong> e fica bloqueada durante Support Mode.
+                  </div>`
+            }
+          </section>`
+        : ""
+    }
+
     <div class="table-wrap" tabindex="0">
       <table>
-        <thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Empresa</th><th>Contato</th><th>Etapa</th><th>Status</th><th>Valor mensal</th>
+          </tr>
+        </thead>
         <tbody>
           ${
             leads
               .map(
-                (lead) =>
-                  `<tr>
-                  <td><strong>${escapeHtml(lead.companyName ?? "—")}</strong><br><small>#${escapeHtml(lead.id)}</small></td>
+                (lead) => `<tr>
+                  <td>
+                    <a href="#crm:${encodeURIComponent(lead.id)}"><strong>${escapeHtml(
+                      lead.companyName ?? "—",
+                    )}</strong></a>
+                    <br><small>#${escapeHtml(lead.id)}</small>
+                  </td>
                   <td>${escapeHtml(lead.contactName ?? lead.email ?? "—")}</td>
-                  <td><span class="badge">${escapeHtml(lead.stage ?? "—")}</span></td>
+                  <td><span class="badge">${escapeHtml(
+                    crmLeadDetailStageLabels[lead.stage] ?? lead.stage ?? "—",
+                  )}</span></td>
                   <td>${escapeHtml(lead.status ?? "—")}</td>
                   <td>${escapeHtml(lead.monthlyValue ?? "—")}</td>
                 </tr>`,
@@ -1904,6 +2033,96 @@ async function renderCrm() {
         </tbody>
       </table>
     </div>`;
+
+  const payloadFrom = (form) => {
+    const data = new FormData(form);
+    return {
+      companyName: String(data.get("companyName") ?? "").trim(),
+      segment: String(data.get("segment") ?? "").trim(),
+      contactName: String(data.get("contactName") ?? "").trim(),
+      whatsapp: String(data.get("whatsapp") ?? "").trim(),
+      phone: String(data.get("phone") ?? "").trim(),
+      email: String(data.get("email") ?? "").trim(),
+      monthlyValue: String(data.get("monthlyValue") ?? "").trim(),
+      address: String(data.get("address") ?? "").trim(),
+      website: String(data.get("website") ?? "").trim(),
+      source: String(data.get("source") ?? "").trim(),
+      notes: String(data.get("notes") ?? "").trim(),
+    };
+  };
+
+  document
+    .querySelector("#crm-create-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#crm-create-result");
+      const submit = form.querySelector('button[type="submit"]');
+      try {
+        submit.disabled = true;
+        result.textContent = "Criando lead no CRM…";
+        const created = await api("/crm/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payloadFrom(form)),
+        });
+        result.textContent = "Lead criado.";
+        const id = created?.data?.id;
+        globalThis.location.hash = id ? `#crm:${encodeURIComponent(id)}` : "#crm";
+        if (!id) await renderCrm();
+      } catch (error) {
+        submit.disabled = false;
+        result.textContent = error.body?.error || error.message;
+      }
+    });
+
+  document
+    .querySelector("#crm-edit-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#crm-edit-result");
+      const submit = form.querySelector('button[type="submit"]');
+      try {
+        submit.disabled = true;
+        result.textContent = "Salvando no CRM…";
+        await api(`/crm/leads/${encodeURIComponent(selected.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payloadFrom(form)),
+        });
+        result.textContent = "Lead atualizado.";
+        await renderCrm(String(selected.id));
+      } catch (error) {
+        submit.disabled = false;
+        result.textContent = error.body?.error || error.message;
+      }
+    });
+
+  document
+    .querySelector("#crm-stage-form")
+    ?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const result = form.querySelector("#crm-stage-result");
+      const submit = form.querySelector('button[type="submit"]');
+      try {
+        submit.disabled = true;
+        result.textContent = "Atualizando etapa…";
+        await api(`/crm/leads/${encodeURIComponent(selected.id)}/stage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stage: String(new FormData(form).get("stage") ?? ""),
+          }),
+        });
+        result.textContent = "Etapa atualizada.";
+        await renderCrm(String(selected.id));
+      } catch (error) {
+        submit.disabled = false;
+        result.textContent = error.body?.error || error.message;
+      }
+    });
 }
 
 async function renderProducts(productId) {
@@ -3512,7 +3731,7 @@ async function render(view, detail) {
     else if (view === "businesses") await renderBusinesses(detail);
     else if (view === "affiliates") await renderAffiliates(detail);
     else if (view === "destinations") await renderDestinations(detail);
-    else if (view === "crm") await renderCrm();
+    else if (view === "crm") await renderCrm(detail);
     else if (view === "products") await renderProducts(detail);
     else if (view === "reservations") await renderReservations(detail);
     else if (view === "ticketing") await renderTicketing();
