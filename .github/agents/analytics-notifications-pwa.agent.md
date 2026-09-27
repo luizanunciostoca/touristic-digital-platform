@@ -2,6 +2,9 @@
 name: Morro Analytics Notifications PWA
 description: Implement analytics, durable notifications and PWA/offline behavior with consent, idempotency and strict Service Worker authority boundaries.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
