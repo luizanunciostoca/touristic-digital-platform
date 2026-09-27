@@ -1,6 +1,10 @@
 import mysql, { type Pool } from "mysql2/promise";
 
-import { createAnalyticsIngestionService } from "@touristic/analytics/ingestion";
+import {
+  createAnalyticsIngestionService,
+  type AnalyticsIngestionObserver,
+  type AnalyticsTenantScopeResolver,
+} from "@touristic/analytics/ingestion";
 
 import { AnalyticsHttpTransport } from "./http-transport.js";
 import { MySqlAnalyticsEventRepository } from "./mysql-analytics-repository.js";
@@ -35,9 +39,9 @@ export function createAnalyticsHttpTransport(input: {
   readonly pool: Pool;
   readonly retentionDays: number;
   readonly now?: () => Date;
-  readonly tenantScope?: import("@touristic/analytics/ingestion").AnalyticsTenantScopeResolver;
+  readonly tenantScope?: AnalyticsTenantScopeResolver;
   readonly requireTenantScope?: boolean;
-  readonly observer?: import("@touristic/analytics/ingestion").AnalyticsIngestionObserver;
+  readonly observer?: AnalyticsIngestionObserver;
 }): AnalyticsHttpTransport {
   const ingestion = createAnalyticsIngestionService({
     repository: new MySqlAnalyticsEventRepository(input.pool),
