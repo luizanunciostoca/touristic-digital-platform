@@ -7,6 +7,18 @@ function platform() {
 }
 
 describe("notifications runtime composition", () => {
+  it("resolves notification workspace modules from built Node artifacts", async () => {
+    const [domain, events, server] = await Promise.all([
+      import("@touristic/notifications"),
+      import("@touristic/notifications/event-integration"),
+      import("@touristic/notifications-server"),
+    ]);
+
+    expect(typeof domain.createNotificationDispatcher).toBe("function");
+    expect(typeof events.createNotificationJobFromEvent).toBe("function");
+    expect(typeof server.createNotificationsMySqlPool).toBe("function");
+  });
+
   it("stays safely disabled without touching persistence", async () => {
     const loadRuntime = vi.fn();
     const runtime = createNotificationsRuntime({
