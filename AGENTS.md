@@ -16,6 +16,17 @@ Every material write requires a ChangeSet and one exclusive write owner. A worke
 
 Canonical domain owners remain authoritative. Do not bypass release governance, exact-head proof, immutable artifact identity, tenant boundaries, authorization or runtime acceptance.
 
+### Executable governance
+
+During the V3.2 migration, the existing Fabric remains the executable governance authority:
+
+- `.morro/fabric.json` defines canonical lifecycle states and authority roles;
+- `.morro/ownership.json` defines enforced semantic/path ownership;
+- `.morro/risk-policy.json` defines deterministic risk floors and required evidence;
+- `.morro/changesets/*.json` are the executable ChangeSet manifests consumed by current CI.
+
+`.github/morro-control/**` is the V3.2 orchestration projection. It may coordinate backlog, claims, release state and scheduling, but it must not contradict or bypass the executable Fabric. A later migration may move enforcement only through an explicitly proven compatibility transition.
+
 ## Multi-tenancy
 
 Tenant and destination boundaries must be explicit and server-enforced. Never rely on UI filtering as an authorization boundary. Cross-tenant reads or writes are release blockers.
