@@ -46,9 +46,7 @@ export async function applyAnalyticsTenantScopeSchema(
     );
   }
 
-  const [indexes] = await pool.query<
-    import("mysql2/promise").RowDataPacket[]
-  >(
+  const [indexes] = await pool.query<import("mysql2/promise").RowDataPacket[]>(
     "SELECT INDEX_NAME AS index_name FROM information_schema.STATISTICS " +
       "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'analytics_events'",
   );
