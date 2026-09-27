@@ -7,7 +7,7 @@ engine: copilot
 max-turns: 12
 tools:
   github:
-    toolsets: [repos, pull_requests, actions, checks]
+    toolsets: [repos, pull_requests, actions]
 permissions:
   contents: read
   actions: read
