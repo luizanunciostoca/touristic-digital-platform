@@ -953,10 +953,10 @@ export function createOrderConfirmingVerifiedPaymentOutcomeService({
         }
       }
 
-      if (
-        confirmedOrder.source.kind === "restaurant_reservation" &&
-        restaurantFulfillment?.handle
-      ) {
+      if (confirmedOrder.source.kind === "restaurant_reservation") {
+        if (!restaurantFulfillment?.handle) {
+          throw new Error("PAYMENTS_RESTAURANT_FULFILLMENT_REQUIRED");
+        }
         await restaurantFulfillment.handle({
           order: confirmedOrder,
           payment,
