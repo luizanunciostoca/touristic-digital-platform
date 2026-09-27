@@ -34,9 +34,7 @@ interface AnalyticsColumnRow {
 export async function applyAnalyticsTenantScopeSchema(
   pool: Pool,
 ): Promise<void> {
-  const [rows] = await pool.query<
-    (AnalyticsColumnRow & RowDataPacket)[]
-  >(
+  const [rows] = await pool.query<(AnalyticsColumnRow & RowDataPacket)[]>(
     "SELECT COLUMN_NAME AS column_name FROM information_schema.COLUMNS " +
       "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'analytics_events' " +
       "AND COLUMN_NAME = 'tenant_id' LIMIT 1",
