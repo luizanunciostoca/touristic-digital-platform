@@ -364,9 +364,7 @@ export class MySqlNotificationOutboxRepository
       [leaseToken],
     );
     return Object.freeze(
-      rows.map((row) =>
-        Object.freeze({ ...rowToEntry(row), leaseToken }),
-      ),
+      rows.map((row) => Object.freeze({ ...rowToEntry(row), leaseToken })),
     );
   }
 
@@ -467,10 +465,7 @@ export class MySqlNotificationOutboxRepository
     ) {
       throw new Error("NOTIFICATION_INVALID_LIST_LIMIT");
     }
-    if (
-      input.status !== undefined &&
-      !OUTBOX_STATUSES.has(input.status)
-    ) {
+    if (input.status !== undefined && !OUTBOX_STATUSES.has(input.status)) {
       throw new Error("NOTIFICATION_INVALID_LIST_STATUS");
     }
 
