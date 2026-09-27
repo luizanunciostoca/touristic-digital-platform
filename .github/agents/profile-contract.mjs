@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { lstatSync, readFileSync, readdirSync } from "node:fs";
+import { lstatSync, readFileSync, readdirSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -84,9 +84,18 @@ export function validateProfile(text, filename) {
   return { id, name: header.name, skills };
 }
 
+function assertRepositoryRegularFile(root, relativePath, failureCode) {
+  const rootReal = realpathSync(root);
+  const expectedPath = resolve(rootReal, relativePath);
+  const lexicalPath = resolve(root, relativePath);
+  assert.ok(lstatSync(lexicalPath).isFile(), failureCode);
+  assert.equal(realpathSync(lexicalPath), expectedPath, `${failureCode}_SYMLINK`);
+}
+
 export function validateDirectory(root) {
-  const directory = resolve(root, ".github/agents");
-  assert.ok(!lstatSync(directory).isSymbolicLink(), "AGENT_DIR_SYMLINK");
+  const rootReal = realpathSync(root);
+  const directory = resolve(rootReal, ".github/agents");
+  assert.equal(realpathSync(directory), directory, "AGENT_DIR_SYMLINK");
   const files = readdirSync(directory)
     .filter((name) => name.endsWith(".agent.md"))
     .sort();
@@ -103,7 +112,7 @@ export function validateDirectory(root) {
     assert.ok(!names.has(profile.name), "DUPLICATE_PROFILE_NAME");
     names.add(profile.name);
     for (const skill of profile.skills) {
-      assert.ok(lstatSync(resolve(root, skill)).isFile(), "SKILL_MISSING");
+      assertRepositoryRegularFile(rootReal, skill, "SKILL_MISSING");
     }
   }
   assert.ok(lstatSync(resolve(directory, "README.md")).isFile());
