@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "graph": {
+    "MD-CP-001": {
+      "dependsOn": []
+    },
+    "MD-FR-001": {
+      "dependsOn": [
+        "MD-CP-001"
+      ]
+    },
+    "MD-001": {
+      "dependsOn": [
+        "MD-FR-001"
+      ]
+    },
+    "MD-003": {
+      "dependsOn": [
+        "MD-FR-001"
+      ]
+    },
+    "MD-002": {
+      "dependsOn": [
+        "MD-001",
+        "MD-003"
+      ]
+    },
+    "MD-024": {
+      "dependsOn": [
+        "MD-001",
+        "MD-002",
+        "MD-003"
+      ]
+    },
+    "MD-130": {
+      "dependsOn": [
+        "MD-024"
+      ]
+    },
+    "MD-131": {
+      "dependsOn": [
+        "MD-130"
+      ]
+    }
+  }
+}
