@@ -2,7 +2,7 @@
   "id": "MD-CP-001",
   "baseSha": "20453f829477c74d9111e17292da628aa5149c52",
   "branch": "control/control-plane-v3.2-bootstrap-20260927",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
