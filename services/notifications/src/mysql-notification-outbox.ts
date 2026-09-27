@@ -356,8 +356,8 @@ export class MySqlNotificationOutboxRepository implements NotificationOutboxRepo
        )
          AND available_at <= ?
        ORDER BY available_at ASC, created_at ASC
-       LIMIT ?`,
-      [leaseToken, leaseUntil, now, now, now, input.limit],
+       LIMIT ${input.limit}`,
+      [leaseToken, leaseUntil, now, now, now],
     );
     if (update.affectedRows === 0) return Object.freeze([]);
 
@@ -480,13 +480,11 @@ export class MySqlNotificationOutboxRepository implements NotificationOutboxRepo
       where += " AND status = ?";
       parameters.push(input.status);
     }
-    parameters.push(input.limit);
-
     const [rows] = await this.pool.execute<NotificationOutboxRow[]>(
       `SELECT * FROM notification_outbox
        WHERE ${where}
        ORDER BY created_at DESC
-       LIMIT ?`,
+       LIMIT ${input.limit}`,
       parameters,
     );
     return Object.freeze(rows.map(rowToEntry));
