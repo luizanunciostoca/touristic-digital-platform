@@ -81,6 +81,16 @@ function fixture(session = platformOwner, options = {}) {
     authorizeMutation() {
       return { allowed: true };
     },
+    async consumeAdminMutationAttempt(actorSubject, namespace, policy) {
+      if (typeof options.consumeAdminMutationAttempt === "function") {
+        return options.consumeAdminMutationAttempt({
+          actorSubject,
+          namespace,
+          policy,
+        });
+      }
+      return true;
+    },
     reauthenticate(userId, credential) {
       return (
         userId === platformOwner.subject && credential === "fixture-secret"
@@ -370,6 +380,65 @@ describe("Control Center Admin API", () => {
       error: "ADMIN_SURFACE_DENIED",
       capability: "business.update",
     });
+  });
+
+  it("rate limits authenticated admin mutations before domain owner execution", async () => {
+    let limiterCalls = 0;
+    let ownerCalls = 0;
+    const observed = [];
+    const content = {
+      async handle({ response }) {
+        ownerCalls += 1;
+        response.statusCode = 200;
+        response.setHeader("Content-Type", "application/json");
+        response.end(JSON.stringify({ success: true }));
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { content },
+      consumeAdminMutationAttempt(input) {
+        limiterCalls += 1;
+        observed.push(input);
+        return limiterCalls === 1;
+      },
+    });
+    const path = "/api/admin/v1/content/entries/article-1";
+
+    const first = responseRecorder();
+    await api.handle(
+      request(path, { method: "POST" }),
+      first,
+      new URL("http://localhost" + path),
+    );
+    expect(first.statusCode).toBe(200);
+    expect(ownerCalls).toBe(1);
+
+    const limited = responseRecorder();
+    await api.handle(
+      request(path, { method: "POST" }),
+      limited,
+      new URL("http://localhost" + path),
+    );
+    expect(limited.statusCode).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("60");
+    expect(JSON.parse(limited.body)).toEqual({
+      error: "ADMIN_RATE_LIMITED",
+      namespace: "content",
+      retryAfterSeconds: 60,
+    });
+    expect(ownerCalls).toBe(1);
+    expect(observed).toEqual([
+      {
+        actorSubject: "platform-owner",
+        namespace: "content",
+        policy: { windowMs: 60_000, limit: 30 },
+      },
+      {
+        actorSubject: "platform-owner",
+        namespace: "content",
+        policy: { windowMs: 60_000, limit: 30 },
+      },
+    ]);
   });
 
   it("lists identity projections without password or secret material", async () => {
