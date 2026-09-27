@@ -146,10 +146,14 @@ jobs:
               exit 1
               ;;
           esac
-          deploy_id="$(jq -r '.deploy.id // .id // empty' /tmp/render-staging-deploy-response.json 2>/dev/null || true)"
-          test -n "$deploy_id"
+          deploy_id="$(jq -r '.deploy.id // .id // .deployId // .deploy_id // empty' /tmp/render-staging-deploy-response.json 2>/dev/null || true)"
           echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
-          echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA as $deploy_id"
+          echo "hook_accepted=true" >> "$GITHUB_OUTPUT"
+          if [ -n "$deploy_id" ]; then
+            echo "Render staging deploy accepted for exact SHA $EXPECTED_SHA as $deploy_id"
+          else
+            echo "Render staging deploy hook accepted for exact SHA $EXPECTED_SHA; response omitted a deployment id"
+          fi
 
       - name: Wait for exact-SHA staging health and identity
         id: live-staging
@@ -185,6 +189,7 @@ jobs:
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           DEPLOY_ID: ${{ steps.render-deploy.outputs.deploy_id }}
+          HOOK_ACCEPTED: ${{ steps.render-deploy.outputs.hook_accepted }}
           LIVE_SHA: ${{ steps.live-staging.outputs.live_sha }}
           PROVED_SERVICE_ID: ${{ steps.staging-target.outputs.service_id }}
         shell: bash
@@ -193,12 +198,13 @@ jobs:
           test "$EXPECTED_SHA" = "$LIVE_SHA"
           test "$PROVED_SERVICE_ID" = "$EXPECTED_STAGING_SERVICE_ID"
           test "$STAGING_URL" = "$EXPECTED_STAGING_CANONICAL_URL"
-          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$PROVED_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --arg canonicalUrl "$STAGING_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$PROVED_SERVICE_ID"             --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME"             --arg environment "$EXPECTED_STAGING_ENVIRONMENT"             --arg deploymentId "$DEPLOY_ID"             --argjson hookAccepted "$HOOK_ACCEPTED"             --arg canonicalUrl "$STAGING_URL"             --arg liveSha "$LIVE_SHA"             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg workflowRun "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"             '{
               expectedSha: $expectedSha,
               serviceId: $serviceId,
               serviceName: $serviceName,
               environment: $environment,
               deploymentId: $deploymentId,
+              hookAccepted: $hookAccepted,
               canonicalUrl: $canonicalUrl,
               liveSha: $liveSha,
               verifiedAt: $verifiedAt,
@@ -210,7 +216,8 @@ jobs:
             .serviceName == "morro-digital-v2-staging" and
             .serviceId == "srv-da4hb6c9v7es7386ttt0" and
             .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
-            (.deploymentId | length > 0)
+            .hookAccepted == true and
+            (.deploymentId | type) == "string"
           ' staging-deployment-evidence.json >/dev/null
           cat staging-deployment-evidence.json
 
