@@ -5,7 +5,7 @@
     "MD-CP-002": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "INDEPENDENT-PROOF",
-      "branch": "control/control-plane-v3.2-stage-b1-instructions-20260927",
+      "branch": "infra/control-plane-v3.2-stage-b1-instructions-20260927",
       "baseSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
       "paths": [
         ".github/instructions/**",
@@ -13,7 +13,9 @@
         ".github/morro-control/dependency-graph.json",
         ".morro/changesets/MD-CP-002.json"
       ],
-      "domains": ["ci-release"],
+      "domains": [
+        "ci-release"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
