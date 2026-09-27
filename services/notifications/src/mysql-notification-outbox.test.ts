@@ -5,19 +5,21 @@ import { createNotificationRequest } from "@touristic/notifications";
 
 import { MySqlNotificationOutboxRepository } from "./mysql-notification-outbox.js";
 
-const request = createNotificationRequest({
-  id: "notification-001",
-  idempotencyKey: "notify.ticket.evt-001.user-001",
-  destinationId: "morro-de-sao-paulo",
-  recipientReference: "user:user-001",
-  locale: "pt-BR",
-  template: "ticket_confirmation",
-  channel: "email",
-  variables: { ticketReference: "ticket-001" },
-  requestedAt: "2026-09-27T03:00:00.000Z",
-});
-
-if (!request) throw new Error("Notification test request must be valid.");
+const request = (() => {
+  const value = createNotificationRequest({
+    id: "notification-001",
+    idempotencyKey: "notify.ticket.evt-001.user-001",
+    destinationId: "morro-de-sao-paulo",
+    recipientReference: "user:user-001",
+    locale: "pt-BR",
+    template: "ticket_confirmation",
+    channel: "email",
+    variables: { ticketReference: "ticket-001" },
+    requestedAt: "2026-09-27T03:00:00.000Z",
+  });
+  if (!value) throw new Error("Notification test request must be valid.");
+  return value;
+})();
 
 const job = {
   request,
@@ -27,7 +29,13 @@ const job = {
 
 describe("MySqlNotificationOutboxRepository", () => {
   it("persists an outbox row with tenant scope and scheduled delivery", async () => {
-    const execute = vi.fn(async () => [{ affectedRows: 1 }, undefined]);
+    const calls: Array<{ sql: string; parameters?: readonly unknown[] }> = [];
+    const execute = vi.fn(
+      async (sql: string, parameters?: readonly unknown[]) => {
+        calls.push({ sql, ...(parameters ? { parameters } : {}) });
+        return [{ affectedRows: 1 }, undefined];
+      },
+    );
     const repository = new MySqlNotificationOutboxRepository({
       execute,
     } as unknown as Pool);
@@ -40,7 +48,8 @@ describe("MySqlNotificationOutboxRepository", () => {
       }),
     ).resolves.toBe("enqueued");
 
-    const parameters = execute.mock.calls[0]?.[1] as unknown[];
+    const parameters = calls[0]?.parameters;
+    if (!parameters) throw new Error("Expected SQL parameters.");
     expect(parameters[0]).toBe("tenant-morro");
     expect(parameters[1]).toBe("notification-001");
     expect(parameters[2]).toBe("notify.ticket.evt-001.user-001");
@@ -49,7 +58,13 @@ describe("MySqlNotificationOutboxRepository", () => {
   });
 
   it("requires tenant scope for admin readback", async () => {
-    const execute = vi.fn(async () => [[], undefined]);
+    const calls: Array<{ sql: string; parameters?: readonly unknown[] }> = [];
+    const execute = vi.fn(
+      async (sql: string, parameters?: readonly unknown[]) => {
+        calls.push({ sql, ...(parameters ? { parameters } : {}) });
+        return [[], undefined];
+      },
+    );
     const repository = new MySqlNotificationOutboxRepository({
       execute,
     } as unknown as Pool);
@@ -58,10 +73,10 @@ describe("MySqlNotificationOutboxRepository", () => {
       repository.listTenant({ tenantId: "tenant-morro", limit: 25 }),
     ).resolves.toEqual([]);
 
-    const sql = String(execute.mock.calls[0]?.[0]);
-    const parameters = execute.mock.calls[0]?.[1] as unknown[];
-    expect(sql).toContain("WHERE tenant_id = ?");
-    expect(parameters[0]).toBe("tenant-morro");
+    const call = calls[0];
+    if (!call?.parameters) throw new Error("Expected SQL call.");
+    expect(call.sql).toContain("WHERE tenant_id = ?");
+    expect(call.parameters[0]).toBe("tenant-morro");
   });
 
   it("fails closed when a worker loses its lease", async () => {
