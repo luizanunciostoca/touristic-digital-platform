@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createNotificationRequest,
   type NotificationDispatcher,
+  type NotificationDispatchResult,
 } from "@touristic/notifications";
 
 import type {
@@ -11,19 +12,21 @@ import type {
 } from "./mysql-notification-outbox.js";
 import { NotificationOutboxScheduler } from "./outbox-scheduler.js";
 
-const request = createNotificationRequest({
-  id: "notification-001",
-  idempotencyKey: "notify.ticket.evt-001.user-001",
-  destinationId: "morro-de-sao-paulo",
-  recipientReference: "user:user-001",
-  locale: "pt-BR",
-  template: "ticket_confirmation",
-  channel: "email",
-  variables: { ticketReference: "ticket-001" },
-  requestedAt: "2026-09-27T03:00:00.000Z",
-});
-
-if (!request) throw new Error("Notification test request must be valid.");
+const request = (() => {
+  const value = createNotificationRequest({
+    id: "notification-001",
+    idempotencyKey: "notify.ticket.evt-001.user-001",
+    destinationId: "morro-de-sao-paulo",
+    recipientReference: "user:user-001",
+    locale: "pt-BR",
+    template: "ticket_confirmation",
+    channel: "email",
+    variables: { ticketReference: "ticket-001" },
+    requestedAt: "2026-09-27T03:00:00.000Z",
+  });
+  if (!value) throw new Error("Notification test request must be valid.");
+  return value;
+})();
 
 function lease(attempts: number): NotificationOutboxLease {
   return {
@@ -80,11 +83,13 @@ describe("NotificationOutboxScheduler", () => {
     const store = repository(lease(1));
     const observe = vi.fn();
     const dispatcher: NotificationDispatcher = {
-      dispatch: vi.fn(async () => ({
-        status: "sent",
-        provider: "test-provider",
-        providerMessageId: "message-001",
-      })),
+      dispatch: vi.fn(
+        async (): Promise<NotificationDispatchResult> => ({
+          status: "sent",
+          provider: "test-provider",
+          providerMessageId: "message-001",
+        }),
+      ),
     };
     const scheduler = new NotificationOutboxScheduler(store, dispatcher, {
       ...options(),
@@ -113,11 +118,13 @@ describe("NotificationOutboxScheduler", () => {
   it("schedules exponential retry before the maximum attempt", async () => {
     const store = repository(lease(2));
     const dispatcher: NotificationDispatcher = {
-      dispatch: vi.fn(async () => ({
-        status: "failed",
-        reason: "providers_failed",
-        attemptedProviders: ["test-provider"],
-      })),
+      dispatch: vi.fn(
+        async (): Promise<NotificationDispatchResult> => ({
+          status: "failed",
+          reason: "providers_failed",
+          attemptedProviders: ["test-provider"],
+        }),
+      ),
     };
     const scheduler = new NotificationOutboxScheduler(
       store,
