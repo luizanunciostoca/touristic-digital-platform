@@ -52,7 +52,15 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
     release: vi.fn(),
   };
   const pool = {
-    query: vi.fn(async () => {}),
+    query: vi.fn(async (sql) => {
+      if (
+        String(sql).includes("information_schema.COLUMNS") &&
+        String(sql).includes("profile_json")
+      ) {
+        return [[{ column_name: "profile_json" }]];
+      }
+      return [{ affectedRows: 1 }];
+    }),
     execute,
     getConnection: vi.fn(async () => connection),
     end: vi.fn(async () => {}),

@@ -9,6 +9,8 @@ on:
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/business-profile-view.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/auth/**"
       - "packages/business/**"
@@ -23,6 +25,8 @@ on:
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/business-profile-view.ts"
       - "apps/morro-digital-platform/src/business-dashboard-surface.ts"
+      - "apps/morro-digital-platform/tooling/business-api.mjs"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
       - "packages/auth/**"
       - "packages/business/**"
@@ -42,6 +46,21 @@ jobs:
   production-profile-browser:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     runs-on: ubuntu-24.04
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: business-profile-ci
+          MYSQL_DATABASE: business_profile_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pbusiness-profile-ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      BUSINESS_DATABASE_URL: mysql://root:business-profile-ci@127.0.0.1:3306/business_profile_ci
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
@@ -68,6 +87,22 @@ jobs:
           echo $! >/tmp/m63-profile-server.pid
           for _ in $(seq 1 60); do curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null && exit 0; sleep .25; done
           cat /tmp/m63-profile-server.log; exit 1
+      - name: Seed canonical Business owner for durable profile
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import mysql from "mysql2/promise";
+          const pool = mysql.createPool(process.env.BUSINESS_DATABASE_URL);
+          const now = new Date();
+          await pool.execute(
+            `INSERT INTO business_entities
+               (id, legal_name, display_name, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE updated_at = VALUES(updated_at)`,
+            ["toca-do-morcego", "Toca do Morcego", "Toca do Morcego", now, now],
+          );
+          await pool.end();
+          NODE
       - name: Validate protected production profile view
         run: |
           node <<'NODE'
