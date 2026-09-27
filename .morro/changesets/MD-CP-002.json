@@ -9,6 +9,7 @@
       ".github/instructions/**",
       ".github/morro-control/backlog.json",
       ".github/morro-control/dependency-graph.json",
+      ".github/morro-control/claims.json",
       ".morro/changesets/MD-CP-002.json"
     ],
     "contracts": []
@@ -26,7 +27,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-001"],
+  "dependencies": [
+    "MD-CP-001"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
