@@ -119,7 +119,10 @@ export interface AssistantConversationOrchestrator {
   observability(): ConversationObservabilitySnapshot;
 }
 
-function initialState(\n  sessionId: string,\n  now: number,\n): ConversationStateSnapshot {
+function initialState(
+  sessionId: string,
+  now: number,
+): ConversationStateSnapshot {
   return Object.freeze({
     sessionId,
     previousAssistantMessage: null,
