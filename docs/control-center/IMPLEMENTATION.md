@@ -42,6 +42,7 @@ The following #152 requirements are already present in current main:
 - durable Content owner/admin integration;
 - durable Destinations owner/admin integration;
 - step-up protection for current critical-action families;
+- durable outer rate-limit for authenticated Admin API mutations, bucketed by actor and admin namespace through the Auth security state;
 - dedicated Control Center responsive/accessibility/browser contracts.
 
 Historical GAP claims for account block/reactivate, Affiliates, Content, Destinations, durable role policy and the original CRM partial adapter are therefore obsolete or superseded.
@@ -53,7 +54,7 @@ FEATURE-0012 remains `partial` because these residuals still require executable 
 1. Complete and prove Dashboard owner-backed aggregate breadth for the planned cross-domain overview.
 2. Complete and prove Universal Search cross-domain breadth on one exact head.
 3. Reconcile any genuine residual Business admin breadth against current owner contracts instead of restoring V1 wholesale.
-4. Add broader Admin API mutation replay/rate-limit protection without bypassing domain-owned idempotency.
+4. Add broader Admin API mutation replay protection without bypassing domain-owned idempotency. Durable cross-namespace rate limiting is present; replay/idempotency remains.
 5. Run the dedicated Control Center final qualification on one current exact head.
 6. Run dedicated Control Center staging acceptance against the same release identity.
 
@@ -86,6 +87,8 @@ Generic platform staging/production convergence does not substitute for Control 
 - Responsive contracts: `PRESENT_IN_MAIN`
 - Accessibility contracts: `PRESENT_IN_MAIN`
 - Security negative tests: `PRESENT_IN_MAIN`
+- Durable Admin API mutation rate-limit: `PRESENT_IN_MAIN`
+- Admin API replay/idempotency breadth: `VALID_MISSING`
 - Browser E2E contracts: `PRESENT_IN_MAIN`
 - Generic staging deployment: `PRESENT_IN_MAIN`
 - Dedicated Control Center staging acceptance: `VALID_MISSING`
