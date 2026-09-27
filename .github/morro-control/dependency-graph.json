@@ -7,8 +7,14 @@
     "MD-CP-002": {
       "dependsOn": ["MD-CP-001"]
     },
-    "MD-CP-003": {
+    "MD-CP-002B": {
       "dependsOn": ["MD-CP-002"]
+    },
+    "MD-CP-002C": {
+      "dependsOn": ["MD-CP-002B"]
+    },
+    "MD-CP-003": {
+      "dependsOn": ["MD-CP-002C"]
     },
     "MD-CP-004": {
       "dependsOn": ["MD-CP-003"]
