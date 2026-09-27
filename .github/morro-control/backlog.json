@@ -5,7 +5,7 @@
   "items": [
     {
       "id": "MD-CP-001",
-      "title": "Bootstrap Autonomous Engineering Control Plane V3.2",
+      "title": "Etapa A — constitution and machine-readable control state",
       "priority": "P1",
       "domain": "control-plane",
       "state": "IMPLEMENTING",
@@ -13,6 +13,90 @@
       "integration": "MISSING",
       "proof": "MISSING",
       "dependencies": [],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-002",
+      "title": "Etapa B — domain instructions, agent skills and custom agents",
+      "priority": "P1",
+      "domain": "control-plane",
+      "state": "BLOCKED",
+      "implementation": "MISSING",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-001"
+      ],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-003",
+      "title": "Etapa C — safety hooks, claim guard and Copilot review hardening",
+      "priority": "P1",
+      "domain": "ci-governance",
+      "state": "BLOCKED",
+      "implementation": "MISSING",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-002"
+      ],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-004",
+      "title": "Etapa D — staged GitHub Agentic Workflows and compiled lock files",
+      "priority": "P1",
+      "domain": "automation",
+      "state": "BLOCKED",
+      "implementation": "MISSING",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-003"
+      ],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-005",
+      "title": "Validate Copilot review, deterministic Actions and five scheduled supervisors",
+      "priority": "P1",
+      "domain": "automation",
+      "state": "BLOCKED",
+      "implementation": "PARTIAL",
+      "integration": "PARTIAL",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-003"
+      ],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-006",
+      "title": "Stabilize Termux Edge remote shell, runit agent and runtime validation",
+      "priority": "P1",
+      "domain": "edge",
+      "state": "BLOCKED",
+      "implementation": "PARTIAL",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-003"
+      ],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-CP-007",
+      "title": "Activate Codex multi-agent factory with isolated worktrees and WIP control",
+      "priority": "P1",
+      "domain": "automation",
+      "state": "BLOCKED",
+      "implementation": "MISSING",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-003"
+      ],
       "risk": "HIGH"
     },
     {
@@ -25,7 +109,10 @@
       "integration": "MISSING",
       "proof": "MISSING",
       "dependencies": [
-        "MD-CP-001"
+        "MD-CP-004",
+        "MD-CP-005",
+        "MD-CP-006",
+        "MD-CP-007"
       ],
       "risk": "LOW"
     },
