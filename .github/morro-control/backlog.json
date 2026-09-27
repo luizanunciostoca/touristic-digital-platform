@@ -120,12 +120,7 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-CP-004",
-        "MD-CP-005",
-        "MD-CP-006",
-        "MD-CP-007"
-      ],
+      "dependencies": ["MD-CP-004", "MD-CP-005", "MD-CP-006", "MD-CP-007"],
       "risk": "LOW"
     },
     {
@@ -161,10 +156,7 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-001",
-        "MD-003"
-      ],
+      "dependencies": ["MD-001", "MD-003"],
       "risk": "CRITICAL"
     },
     {
@@ -176,11 +168,7 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": [
-        "MD-001",
-        "MD-002",
-        "MD-003"
-      ],
+      "dependencies": ["MD-001", "MD-002", "MD-003"],
       "risk": "CRITICAL"
     },
     {
