@@ -1,3 +1,11 @@
+## Control Plane Metadata
+
+ChangeSet:
+Owner:
+Base-SHA:
+Risk:
+Affected-Domains:
+
 ## Objetivo
 
 Descreva o problema e o resultado esperado.
@@ -9,10 +17,12 @@ Descreva o problema e o resultado esperado.
 - [ ] Infraestrutura ou tooling
 - [ ] Documentação ou ADR
 - [ ] Migração da V1
+- [ ] Control Plane / CI
 
-## Preservação da V1
+## Preservação e autoridade
 
 - Baseline/fluxo relacionado:
+- Owner canônico afetado:
 - Evidência visual ou comportamental:
 - Divergências intencionais:
 - Plano de rollback:
@@ -21,28 +31,31 @@ Descreva o problema e o resultado esperado.
 
 - Dependências adicionadas ou alteradas:
 - Contratos/APIs/eventos afetados:
-- Destinos afetados:
+- Tenant/destination boundaries afetados:
 - ADR necessário: [ ] Não [ ] Sim — link:
 
 ## Validação
 
+- [ ] Claim ativo e sem overlap
+- [ ] Base-SHA é o current main no momento da prova
 - [ ] Formatação
 - [ ] Lint
 - [ ] Typecheck
-- [ ] Testes
-- [ ] Build
+- [ ] Testes afetados
+- [ ] Build quando aplicável
 - [ ] Regras de dependência
 - [ ] Segurança revisada
+- [ ] Evidência independente
 - [ ] Documentação atualizada
 
 ## Riscos
 
-Liste riscos técnicos, operacionais, financeiros, de segurança, LGPD, Mapbox ou regressão.
+Liste riscos técnicos, operacionais, financeiros, segurança, LGPD, providers e regressão.
 
 ## Definition of Done
 
 - [ ] Mudança pequena, rastreável e reversível
-- [ ] Sem remoção não autorizada da V1
-- [ ] CI verde
-- [ ] Evidências anexadas
+- [ ] Sem fonte de verdade concorrente
+- [ ] CI requerida verde no exact head
+- [ ] Evidências vinculadas ao exact head
 - [ ] CODEOWNERS revisado quando aplicável
