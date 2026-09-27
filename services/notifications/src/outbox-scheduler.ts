@@ -49,11 +49,7 @@ function assertPositiveInteger(value: number, label: string): void {
   }
 }
 
-function retryDelayMs(
-  attempt: number,
-  baseMs: number,
-  maxMs: number,
-): number {
+function retryDelayMs(attempt: number, baseMs: number, maxMs: number): number {
   const exponent = Math.max(0, attempt - 1);
   return Math.min(maxMs, baseMs * 2 ** exponent);
 }
@@ -134,8 +130,7 @@ export class NotificationOutboxScheduler {
           result,
           completedAt,
         });
-        const outcome =
-          result.status === "sent" ? "delivered" : result.status;
+        const outcome = result.status === "sent" ? "delivered" : result.status;
         counts[outcome === "delivered" ? "delivered" : outcome] += 1;
         await this.options.observe?.({
           tenantId: lease.tenantId,
@@ -217,7 +212,10 @@ export class NotificationOutboxSchedulerHost {
     private readonly scheduler: NotificationOutboxScheduler,
     private readonly options: NotificationOutboxSchedulerHostOptions,
   ) {
-    if (!Number.isSafeInteger(options.intervalMs) || options.intervalMs < 1_000) {
+    if (
+      !Number.isSafeInteger(options.intervalMs) ||
+      options.intervalMs < 1_000
+    ) {
       throw new Error("Notification scheduler interval must be at least 1000ms");
     }
   }
