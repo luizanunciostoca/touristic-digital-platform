@@ -1,5 +1,7 @@
 ## Control Plane Metadata
 
+> Bootstrap note: until MD-CP-003 merges the deterministic Claim Guard, the executable ChangeSet authority is the matching `.morro/changesets/*.json` manifest. These fields are coordination metadata and must agree with that manifest.
+
 ChangeSet:
 Owner:
 Base-SHA:
