@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/auth/**,services/auth/**,apps/morro-digital-platform/tooling/auth-*.mjs"
+applyTo: "packages/auth/**,packages/auth-browser/**,services/auth/**,apps/morro-digital-platform/tooling/auth-*.mjs"
 ---
 
 # auth
