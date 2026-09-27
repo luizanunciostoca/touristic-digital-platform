@@ -51,7 +51,7 @@ describe("current Ticketing inventory contract compatibility", () => {
 
   it("does not copy monetary, order, payment, ticket, QR or wallet authority into Commerce Core", () => {
     const commerceSource = readFileSync(
-      new URL("./index.ts", import.meta.url),
+      new URL("../src/index.ts", import.meta.url),
       "utf8",
     );
     for (const forbidden of [
