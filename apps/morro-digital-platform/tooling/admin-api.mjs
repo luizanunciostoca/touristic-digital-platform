@@ -15,6 +15,9 @@ const stepUpCookieName = "md_control_step_up";
 const stepUpTtlSeconds = 10 * 60;
 const stepUpWindowMs = 15 * 60 * 1000;
 const stepUpAttemptLimit = 5;
+const adminMutationRateWindowMs = 60 * 1000;
+const adminMutationRateLimit = 30;
+const safeAdminMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const maxBodyBytes = 32 * 1024;
 
 function json(response, statusCode, payload) {
@@ -300,6 +303,7 @@ export function createAdminApi({
     !authApi?.findAdminUser ||
     !authApi?.updateUserStatus ||
     !authApi?.updateUserRole ||
+    !authApi?.consumeAdminMutationAttempt ||
     !authApi?.listUserSessions ||
     !authApi?.revokeUserSession
   ) {
@@ -377,6 +381,70 @@ export function createAdminApi({
       },
     });
     return true;
+  }
+
+  async function enforceAdminMutationRateLimit(
+    request,
+    response,
+    requestUrl,
+  ) {
+    if (safeAdminMethods.has(request.method)) return true;
+
+    const actor = await authApi.resolveSession(request);
+    if (!actor) return true;
+
+    const rawNamespace =
+      requestUrl.pathname
+        .slice(adminPrefix.length)
+        .replace(/^\/+/, "")
+        .split("/", 1)[0]
+        ?.toLowerCase() || "root";
+    const namespace = /^[a-z0-9][a-z0-9_-]{0,79}$/u.test(rawNamespace)
+      ? rawNamespace
+      : "other";
+
+    let allowed;
+    try {
+      allowed = await authApi.consumeAdminMutationAttempt(
+        actor.subject,
+        namespace,
+        {
+          windowMs: adminMutationRateWindowMs,
+          limit: adminMutationRateLimit,
+        },
+      );
+    } catch (error) {
+      await audit(request, actor, {
+        action: "control-center.mutation.rate_limit",
+        result: "unavailable",
+        reason:
+          error instanceof Error
+            ? bounded(error.message, 120)
+            : "rate_limit_unavailable",
+        entityType: "admin_namespace",
+        entityId: namespace,
+      });
+      json(response, 503, { error: "ADMIN_RATE_LIMIT_UNAVAILABLE" });
+      return false;
+    }
+
+    if (allowed) return true;
+
+    const retryAfterSeconds = Math.ceil(adminMutationRateWindowMs / 1000);
+    response.setHeader("Retry-After", String(retryAfterSeconds));
+    await audit(request, actor, {
+      action: "control-center.mutation.rate_limit",
+      result: "denied",
+      reason: "rate_limited",
+      entityType: "admin_namespace",
+      entityId: namespace,
+    });
+    json(response, 429, {
+      error: "ADMIN_RATE_LIMITED",
+      namespace,
+      retryAfterSeconds,
+    });
+    return false;
   }
 
   async function requireCapability(
@@ -2057,6 +2125,10 @@ export function createAdminApi({
 
     async handle(request, response, requestUrl) {
       const pathname = requestUrl.pathname;
+
+      if (!(await enforceAdminMutationRateLimit(request, response, requestUrl))) {
+        return;
+      }
 
       if (pathname === `${adminPrefix}/session`) {
         const actor = await requireCapability(
