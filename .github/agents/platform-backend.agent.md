@@ -2,6 +2,9 @@
 name: Morro Platform Backend
 description: Implement claimed backend APIs, services and platform contracts with durable server authority and deterministic tests.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
