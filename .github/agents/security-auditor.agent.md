@@ -2,7 +2,7 @@
 name: Morro Security Auditor
 description: Perform independent adversarial review for authorization, tenant isolation, secrets, replay, supply-chain and release-governance failures.
 target: github-copilot
-tools: ["read","search"]
+tools: ["read", "search"]
 disable-model-invocation: true
 user-invocable: true
 ---
