@@ -133,6 +133,39 @@ describe("Auth durable administrative principal policy", () => {
     await api.stop();
   });
 
+  it("shares administrative mutation rate limits by actor and namespace", async () => {
+    const api = createAuthApi({ getEnvironmentValue: environment() });
+    await api.start();
+
+    const policy = { windowMs: 60_000, limit: 2 };
+    await expect(
+      api.consumeAdminMutationAttempt("platform-owner", "content", policy),
+    ).resolves.toBe(true);
+    await expect(
+      api.consumeAdminMutationAttempt("platform-owner", "content", policy),
+    ).resolves.toBe(true);
+    await expect(
+      api.consumeAdminMutationAttempt("platform-owner", "content", policy),
+    ).resolves.toBe(false);
+
+    await expect(
+      api.consumeAdminMutationAttempt("platform-owner", "destinations", policy),
+    ).resolves.toBe(true);
+    await expect(
+      api.consumeAdminMutationAttempt("business-owner", "content", policy),
+    ).resolves.toBe(true);
+
+    await expect(
+      api.consumeAdminMutationAttempt(
+        "platform-owner",
+        "INVALID/NAMESPACE",
+        policy,
+      ),
+    ).rejects.toThrow("AUTH_ADMIN_RATE_LIMIT_POLICY_INVALID");
+
+    await api.stop();
+  });
+
   it("projects configured and effective authority separately", async () => {
     const api = createAuthApi({ getEnvironmentValue: environment() });
     await api.start();
