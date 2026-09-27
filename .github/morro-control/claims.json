@@ -11,9 +11,12 @@
         ".github/instructions/**",
         ".github/morro-control/backlog.json",
         ".github/morro-control/dependency-graph.json",
+        ".github/morro-control/claims.json",
         ".morro/changesets/MD-CP-002.json"
       ],
-      "domains": ["ci-release"],
+      "domains": [
+        "ci-release"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
