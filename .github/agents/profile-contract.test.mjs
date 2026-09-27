@@ -68,15 +68,25 @@ for (const [name, from, to] of [
   });
 }
 
+test("reject object-valued tools", () => {
+  const objectTools = sample.replace(
+    /^tools:.*\r?\n/mu,
+    'tools: {"read": false, "search": false}\n',
+  );
+  assert.throws(() =>
+    validateProfile(objectTools, "security-auditor.agent.md"),
+  );
+});
+
 test("reject block-scalar shadowing of top-level tools", () => {
   const widened = sample
     .replace(
-      /^tools:.*\\r?\\n/mu,
-      'tools: ["read", "search", "edit", "execute"]\\n',
+      /^tools:.*\r?\n/mu,
+      'tools: ["read", "search", "edit", "execute"]\n',
     )
     .replace(
-      /^description:.*\\r?\\n/mu,
-      'description: |\\n  tools: ["read", "search"]\\n',
+      /^description:.*\r?\n/mu,
+      'description: |\n  tools: ["read", "search"]\n',
     );
   assert.throws(() => validateProfile(widened, "security-auditor.agent.md"));
 });
