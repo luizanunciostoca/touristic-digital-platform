@@ -270,9 +270,7 @@ function safeError(value: string): string {
   return normalized.slice(0, 200);
 }
 
-export class MySqlNotificationOutboxRepository
-  implements NotificationOutboxRepository
-{
+export class MySqlNotificationOutboxRepository implements NotificationOutboxRepository {
   constructor(private readonly pool: Pool) {}
 
   async enqueue(input: {
@@ -315,8 +313,7 @@ export class MySqlNotificationOutboxRepository
     if (
       !persisted ||
       persisted.outbox_id !== input.job.request.id ||
-      stableJson(persistedJob(persisted.request_json)) !==
-        stableJson(input.job)
+      stableJson(persistedJob(persisted.request_json)) !== stableJson(input.job)
     ) {
       throw new Error("NOTIFICATION_IDEMPOTENCY_CONFLICT");
     }

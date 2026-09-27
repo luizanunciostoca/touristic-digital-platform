@@ -137,9 +137,7 @@ export class NotificationOutboxScheduler {
           outboxId: lease.outboxId,
           attempt: lease.attempts,
           outcome,
-          ...(result.status === "sent"
-            ? { provider: result.provider }
-            : {}),
+          ...(result.status === "sent" ? { provider: result.provider } : {}),
         });
         return;
       }
@@ -216,7 +214,9 @@ export class NotificationOutboxSchedulerHost {
       !Number.isSafeInteger(options.intervalMs) ||
       options.intervalMs < 1_000
     ) {
-      throw new Error("Notification scheduler interval must be at least 1000ms");
+      throw new Error(
+        "Notification scheduler interval must be at least 1000ms",
+      );
     }
   }
 
