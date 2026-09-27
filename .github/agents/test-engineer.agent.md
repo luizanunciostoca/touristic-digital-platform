@@ -2,7 +2,7 @@
 name: Morro Test Engineer
 description: Produce independent deterministic, integration, browser and runtime proof for claimed changes and attack false-green evidence.
 target: github-copilot
-tools: ["read","search","edit","execute"]
+tools: ["read", "search", "edit", "execute"]
 disable-model-invocation: true
 user-invocable: true
 ---
