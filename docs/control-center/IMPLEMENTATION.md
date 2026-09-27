@@ -7,7 +7,7 @@
 - Exact main audited: `df18e8d2ee329ed9d01f37389e52b95e7e96fc0d`
 - Current staging release at audit: same exact SHA, LIVE
 - Current production release at audit: same exact SHA, LIVE
-- Real-money/provider effects: remain separately governed and are not authorized by this ledger.
+- Real-money/provider effects remain separately governed and are not authorized by this ledger.
 
 This document is a semantic reconciliation of the original #152 plan against current main. Historical branch-local GAP/PARTIAL labels must not be treated as current truth when current-main owner contracts and acceptance evidence supersede them.
 
@@ -22,66 +22,75 @@ This document is a semantic reconciliation of the original #152 plan against cur
 - Administrative audit is append-only from the UI/API perspective.
 - Missing integration fails closed; no hidden SQL fallback is allowed.
 
-## Semantic reconciliation matrix
+## PRESENT_IN_MAIN
 
-| Area | Classification | Current-main evidence / interpretation | Residual |
-| --- | --- | --- | --- |
-| Canonical roles | PRESENT_IN_MAIN | PLATFORM_OWNER / PLATFORM_ADMIN / SUPPORT / AUDITOR plus legacy compatibility in Auth | none in #152 |
-| Capability model | PRESENT_IN_MAIN | centralized capability authorization and negative authorization coverage | none in #152 |
-| Durable role/status policy | PRESENT_IN_MAIN | Auth security state persists principal status/role overrides in MySQL when `AUTH_DATABASE_URL` is configured; production fails closed without durable state | none in #152 |
-| Admin API v1 | PRESENT_IN_MAIN | `/api/admin/v1` orchestration shell, owner adapters and fail-closed missing-contract behavior | broad Admin API replay/rate-limit hardening remains |
-| Dedicated Control Center app | PRESENT_IN_MAIN | `apps/control-center` shell and browser surfaces | none in #152 |
-| Dashboard | VALID_MISSING | auth/system-health projections and several domain metrics exist | prove/complete owner-backed aggregate breadth for the full planned dashboard |
-| Universal Search | VALID_MISSING | universal-search adapter mechanism exists and current domains such as CRM participate | prove/complete the planned cross-domain search breadth on one exact head |
-| Users | PRESENT_IN_MAIN | list/detail, durable block/reactivate, durable role changes, session registry and governed revoke | none in #152 |
-| Businesses | VALID_MISSING | profile, governed CMS/Place administration and catalog lifecycle exist | reconcile any remaining Business admin breadth against the original matrix instead of restoring V1 wholesale |
-| Support Mode | PRESENT_IN_MAIN | signed support session, actor/effective-user separation, domain-scoped delegation and critical-action denials | none in core architecture |
-| Audit | PRESENT_IN_MAIN | durable MySQL append-only administrative audit with fail-closed mutation behavior | none in #152 |
-| System Health | PRESENT_IN_MAIN | platform operations/readiness projection with secret redaction | none in #152 |
-| Affiliates | PRESENT_IN_MAIN | owner runtime, Admin API adapter, governed membership critical actions and dedicated browser/contract workflows | historical GAP is obsolete |
-| CRM | PRESENT_IN_MAIN | owner orchestration, lead detail/create/edit/stage transitions and Support Mode constraints | historical PARTIAL is superseded by later integration |
-| Products / Offers / Catalog | PRESENT_IN_MAIN | governed Business/Commerce catalog lifecycle and publication authority | none in #152 |
-| Reservations | PRESENT_IN_MAIN | Ticketing reservation owner contracts and transaction binding | none in #152 |
-| Ticketing | PRESENT_IN_MAIN | capability-aware Admin adapter and dedicated Control Center browser contract | none in #152 |
-| Orders | PRESENT_IN_MAIN | Ordering-owner projections | none in #152 |
-| Financial | PRESENT_IN_MAIN | owner-backed Order/Payment/Ledger/Reconciliation reads and governed critical actions; provider authority remains separate | no new real-money authority granted |
-| Content | PRESENT_IN_MAIN | durable Content owner persistence, Admin adapter, mutation audit and dedicated contract | historical GAP is obsolete |
-| Destinations | PRESENT_IN_MAIN | durable Destination owner boundary and Admin adapter | historical GAP is obsolete |
-| Step-up auth | PRESENT_IN_MAIN | session revoke, user role/status, Affiliate membership and Financial critical actions use governed step-up flows | none in core #152 scope |
-| Responsive | PRESENT_IN_MAIN | dedicated responsive/accessibility Control Center contracts | exact-head final qualification still required for closure |
-| Accessibility | PRESENT_IN_MAIN | keyboard/reflow/accessibility browser contract exists in current main | exact-head final qualification still required for closure |
-| Security negative tests | PRESENT_IN_MAIN | forged delegation/cross-tenant/critical-action denials plus security workflows | exact-head final qualification still required for closure |
-| Browser E2E | PRESENT_IN_MAIN | general and domain-specific Control Center browser contracts exist | run final qualification on current exact head |
-| Generic staging deployment | PRESENT_IN_MAIN | current exact main is LIVE in staging | does not replace Control Center-specific staging acceptance |
-| Control Center staging acceptance | VALID_MISSING | staging infrastructure and owner bootstrap contract exist | execute dedicated Control Center staging verification and record evidence |
-| Final exact-head qualification | VALID_MISSING | current main has broad release certification | run the dedicated Control Center final matrix on one current exact head |
+The following #152 requirements are already present in current main:
 
-## Obsolete historical gaps
+- canonical platform roles and legacy compatibility;
+- centralized capability authorization;
+- durable Auth role/status policy backed by MySQL when `AUTH_DATABASE_URL` is configured;
+- governed account block/reactivate and role changes with session revocation;
+- Admin API v1 orchestration shell;
+- dedicated `apps/control-center` application;
+- signed Support Mode with actor/effective-user separation;
+- append-only MySQL administrative audit;
+- System Health projection with secret redaction;
+- Affiliates owner/admin integration and governed membership critical actions;
+- CRM owner orchestration including lead detail/create/edit/stage transitions;
+- governed Business/Place CMS and Commerce/Catalog administration;
+- Ticketing, Reservations, Ordering and Financial owner-backed administration;
+- durable Content owner/admin integration;
+- durable Destinations owner/admin integration;
+- step-up protection for current critical-action families;
+- dedicated Control Center responsive/accessibility/browser contracts.
 
-The following old statements must no longer drive new implementation:
+Historical GAP claims for account block/reactivate, Affiliates, Content, Destinations, durable role policy and the original CRM partial adapter are therefore obsolete or superseded.
 
-- “account block/reactivate pending”;
-- “Affiliates admin adapter pending”;
-- “Content admin adapter pending”;
-- “Destinations admin adapter pending”;
-- “durable platform role/capability persistence pending”;
-- “CRM surface is only the original partial adapter”.
+## VALID_MISSING
 
-They are superseded by current-main implementations and tests.
+FEATURE-0012 remains `partial` because these residuals still require executable evidence:
 
-## Remaining VALID_MISSING scope
+1. Complete and prove Dashboard owner-backed aggregate breadth for the planned cross-domain overview.
+2. Complete and prove Universal Search cross-domain breadth on one exact head.
+3. Reconcile any genuine residual Business admin breadth against current owner contracts instead of restoring V1 wholesale.
+4. Add broader Admin API mutation replay/rate-limit protection without bypassing domain-owned idempotency.
+5. Run the dedicated Control Center final qualification on one current exact head.
+6. Run dedicated Control Center staging acceptance against the same release identity.
 
-FEATURE-0012 remains `partial` until these residuals are closed with evidence:
+Generic platform staging/production convergence does not substitute for Control Center-specific acceptance.
 
-1. complete/prove Dashboard owner-backed aggregate breadth;
-2. complete/prove Universal Search cross-domain breadth;
-3. reconcile any genuine residual Business admin breadth against current owner contracts;
-4. add broader Admin API mutation replay/rate-limit protection without bypassing domain-owned idempotency;
-5. execute the dedicated Control Center final qualification on one exact current head;
-6. execute dedicated Control Center staging acceptance against the same release identity.
+## Current semantic classification
 
-No historical branch should be merged wholesale to satisfy these items.
+- Canonical roles: `PRESENT_IN_MAIN`
+- Capability model: `PRESENT_IN_MAIN`
+- Durable role/status policy: `PRESENT_IN_MAIN`
+- Admin API v1 shell: `PRESENT_IN_MAIN`
+- Dedicated Control Center app: `PRESENT_IN_MAIN`
+- Dashboard breadth: `VALID_MISSING`
+- Universal Search breadth: `VALID_MISSING`
+- Users administration: `PRESENT_IN_MAIN`
+- Businesses: `PRESENT_IN_MAIN` for current profile/CMS/catalog owner contracts, with residual breadth requiring reconciliation
+- Support Mode: `PRESENT_IN_MAIN`
+- Audit: `PRESENT_IN_MAIN`
+- System Health: `PRESENT_IN_MAIN`
+- Affiliates: `PRESENT_IN_MAIN`
+- CRM: `PRESENT_IN_MAIN`
+- Products / Offers / Catalog: `PRESENT_IN_MAIN`
+- Reservations: `PRESENT_IN_MAIN`
+- Ticketing: `PRESENT_IN_MAIN`
+- Orders: `PRESENT_IN_MAIN`
+- Financial: `PRESENT_IN_MAIN`
+- Content: `PRESENT_IN_MAIN`
+- Destinations: `PRESENT_IN_MAIN`
+- Step-up auth: `PRESENT_IN_MAIN`
+- Responsive contracts: `PRESENT_IN_MAIN`
+- Accessibility contracts: `PRESENT_IN_MAIN`
+- Security negative tests: `PRESENT_IN_MAIN`
+- Browser E2E contracts: `PRESENT_IN_MAIN`
+- Generic staging deployment: `PRESENT_IN_MAIN`
+- Dedicated Control Center staging acceptance: `VALID_MISSING`
+- Dedicated final exact-head Control Center qualification: `VALID_MISSING`
 
 ## Completion rule
 
-#152 may be closed only after the remaining `VALID_MISSING` rows above have executable evidence and the dedicated Control Center exact-head + staging acceptance are green. Production convergence by itself does not substitute for that Control Center-specific proof.
+#152 may be closed only after the remaining `VALID_MISSING` items have executable evidence and the dedicated Control Center exact-head + staging acceptance are green. No historical branch should be merged wholesale to satisfy these items. Production convergence by itself does not replace Control Center-specific proof.
