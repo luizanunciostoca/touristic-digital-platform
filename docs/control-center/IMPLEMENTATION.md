@@ -1,15 +1,17 @@
 # Morro Digital Control Center — Implementation Ledger
 
-## Canonical snapshot
+## Canonical completion snapshot
 
 - Master issue: #152
-- Reconciliation date: 2026-09-27
-- Exact main audited: `df18e8d2ee329ed9d01f37389e52b95e7e96fc0d`
-- Current staging release at audit: same exact SHA, LIVE
-- Current production release at audit: same exact SHA, LIVE
+- Final reconciliation date: 2026-09-27
+- Exact functional main certified: `9e6ccf15076838b18a2c90db788b1d26e970d577`
+- Dedicated Control Center final qualification: PASS
+- Final Release Acceptance: PASS
+- Exact-SHA staging deployment: LIVE
+- Exact-SHA production deployment: LIVE
 - Real-money/provider effects remain separately governed and are not authorized by this ledger.
 
-This document is a semantic reconciliation of the original #152 plan against current main. Historical branch-local GAP/PARTIAL labels must not be treated as current truth when current-main owner contracts and acceptance evidence supersede them.
+The historical GAP/PARTIAL labels from the original #152 plan were reconciled semantically against current main. The completion claim below means that the planned Control Center capability is implemented and verified; it does not authorize external providers, arbitrary financial effects, or direct-table bypasses.
 
 ## Architectural invariants
 
@@ -21,79 +23,101 @@ This document is a semantic reconciliation of the original #152 plan against cur
 - Financial remains monetary source of truth.
 - Administrative audit is append-only from the UI/API perspective.
 - Missing integration fails closed; no hidden SQL fallback is allowed.
+- Unsafe Admin API methods are protected by durable outer rate limiting and durable replay/idempotency claims before owner execution.
 
-## PRESENT_IN_MAIN
+## Final semantic classification
 
-The following #152 requirements are already present in current main:
+All #152 completion-matrix areas are `PRESENT_IN_MAIN` on the certified release identity:
 
-- canonical platform roles and legacy compatibility;
-- centralized capability authorization;
-- durable Auth role/status policy backed by MySQL when `AUTH_DATABASE_URL` is configured;
-- governed account block/reactivate and role changes with session revocation;
-- Admin API v1 orchestration shell;
-- dedicated `apps/control-center` application;
-- signed Support Mode with actor/effective-user separation;
-- append-only MySQL administrative audit;
-- System Health projection with secret redaction;
-- Affiliates owner/admin integration and governed membership critical actions;
-- CRM owner orchestration including lead detail/create/edit/stage transitions;
-- governed Business/Place CMS and Commerce/Catalog administration;
-- Ticketing, Reservations, Ordering and Financial owner-backed administration;
-- durable Content owner/admin integration;
-- durable Destinations owner/admin integration;
-- step-up protection for current critical-action families;
-- durable outer rate-limit for authenticated Admin API mutations, bucketed by actor and admin namespace through the Auth security state;
-- dedicated Control Center responsive/accessibility/browser contracts.
+- Dashboard;
+- Universal Search;
+- Businesses;
+- Users;
+- Affiliates;
+- CRM;
+- Products / Offers / Catalog;
+- Reservations;
+- Ticketing;
+- Orders;
+- Financial;
+- Content;
+- Destinations;
+- Support Mode;
+- Permissions;
+- Audit;
+- System Health;
+- Responsive;
+- Accessibility;
+- Security;
+- Browser E2E;
+- dedicated staging acceptance.
 
-Historical GAP claims for account block/reactivate, Affiliates, Content, Destinations, durable role policy and the original CRM partial adapter are therefore obsolete or superseded.
+## Dashboard breadth
 
-## VALID_MISSING
+The Home / Overview V1 is complete as an owner-authoritative cross-domain overview.
 
-FEATURE-0012 remains `partial` because these residuals still require executable evidence:
+It renders the planned Empresas, Afiliados, Reservas Hoje, Receita Hoje and Alertas surfaces, destination summary, attention and recent activity. The model has executable coverage for global and destination scope, exact destination IDs, authorization filtering, large-number formatting, responsive behavior and prevention of cross-destination leakage.
 
-1. Complete and prove Dashboard owner-backed aggregate breadth for the planned cross-domain overview.
-2. Complete and prove Universal Search cross-domain breadth on one exact head.
-3. Reconcile any genuine residual Business admin breadth against current owner contracts instead of restoring V1 wholesale.
-4. Add broader Admin API mutation replay protection without bypassing domain-owned idempotency. Durable cross-namespace rate limiting is present; replay/idempotency remains.
-5. Run the dedicated Control Center final qualification on one current exact head.
-6. Run dedicated Control Center staging acceptance against the same release identity.
+A metric is only shown as an authoritative value when the relevant owner provides an authoritative aggregate. Paginated slices are never promoted to totals, global totals are not reused for destination scope and missing owner aggregates render as `partial` or `unavailable` rather than fabricated zeroes. That fail-closed behavior is the completed Dashboard contract, not a functional gap.
 
-Generic platform staging/production convergence does not substitute for Control Center-specific acceptance.
+## Universal Search breadth
 
-## Current semantic classification
+`/api/admin/v1/search` is a capability-gated orchestration endpoint. It searches configured Users and identity-backed Businesses and composes every registered owner adapter that exposes a search contract.
 
-- Canonical roles: `PRESENT_IN_MAIN`
-- Capability model: `PRESENT_IN_MAIN`
-- Durable role/status policy: `PRESENT_IN_MAIN`
-- Admin API v1 shell: `PRESENT_IN_MAIN`
-- Dedicated Control Center app: `PRESENT_IN_MAIN`
-- Dashboard breadth: `VALID_MISSING`
-- Universal Search breadth: `VALID_MISSING`
-- Users administration: `PRESENT_IN_MAIN`
-- Businesses: `PRESENT_IN_MAIN` for current profile/CMS/catalog owner contracts, with residual breadth requiring reconciliation
-- Support Mode: `PRESENT_IN_MAIN`
-- Audit: `PRESENT_IN_MAIN`
-- System Health: `PRESENT_IN_MAIN`
-- Affiliates: `PRESENT_IN_MAIN`
-- CRM: `PRESENT_IN_MAIN`
-- Products / Offers / Catalog: `PRESENT_IN_MAIN`
-- Reservations: `PRESENT_IN_MAIN`
-- Ticketing: `PRESENT_IN_MAIN`
-- Orders: `PRESENT_IN_MAIN`
-- Financial: `PRESENT_IN_MAIN`
-- Content: `PRESENT_IN_MAIN`
-- Destinations: `PRESENT_IN_MAIN`
-- Step-up auth: `PRESENT_IN_MAIN`
-- Responsive contracts: `PRESENT_IN_MAIN`
-- Accessibility contracts: `PRESENT_IN_MAIN`
-- Security negative tests: `PRESENT_IN_MAIN`
-- Durable Admin API mutation rate-limit: `PRESENT_IN_MAIN`
-- Admin API replay/idempotency breadth: `VALID_MISSING`
-- Browser E2E contracts: `PRESENT_IN_MAIN`
-- Generic staging deployment: `PRESENT_IN_MAIN`
-- Dedicated Control Center staging acceptance: `VALID_MISSING`
-- Dedicated final exact-head Control Center qualification: `VALID_MISSING`
+Current owner-backed search coverage includes:
+
+- Affiliates;
+- CRM leads;
+- Products / offers;
+- Reservations;
+- Content;
+- Financial Orders / Payments;
+- Destinations.
+
+The Control Center UI consumes this endpoint through the global search surface and preserves owner boundaries; no cross-domain table query was introduced. The exact-head search browser contract passed on the certified release.
+
+## Business Admin breadth
+
+The Business owner boundary and Control Center CMS cover the required administrative lifecycle without restoring historical V1 architecture:
+
+- directory/list and detail;
+- business/profile editing;
+- governed creation;
+- location;
+- media upload/edit/delete/reorder;
+- Product, Offer, Menu, Menu Category and Menu Item drafts;
+- publication review/publish/suspend lifecycle;
+- public read-model convergence;
+- tenant denial;
+- responsive browser flow;
+- MySQL persistence and revision/publication semantics.
+
+Money, inventory and Ticketing authority remain outside the browser and remain owned by their canonical domains.
+
+## Admin mutation hardening
+
+The Admin API has two outer, durable protections backed by Auth security state:
+
+1. per-actor + admin-namespace mutation rate limiting;
+2. per-actor idempotency/replay claims with canonical request fingerprints.
+
+Exact replay and divergent reuse are rejected before the owner mutation executes. Raw idempotency keys are not persisted. Domain-owned idempotency remains authoritative and is not replaced.
+
+## Qualification and release evidence
+
+The final functional release `9e6ccf15076838b18a2c90db788b1d26e970d577` completed the dedicated Control Center exact-head qualification and Final Release Acceptance.
+
+The same SHA was proven LIVE in staging and then production:
+
+- staging deploy: `dep-daskvkd9fdbs73dtvso0`;
+- production deploy: `dep-dasl0vvpn0mc738sme2g`;
+- production build: 33/33 tasks successful;
+- production runtime emitted `platform.runtime.started` with the exact release SHA and `listening=true`;
+- production root request returned HTTP 200;
+- no error-level logs were observed in the post-startup validation window.
 
 ## Completion rule
 
-#152 may be closed only after the remaining `VALID_MISSING` items have executable evidence and the dedicated Control Center exact-head + staging acceptance are green. No historical branch should be merged wholesale to satisfy these items. Production convergence by itself does not replace Control Center-specific proof.
+The #152 completion rule is satisfied: there are no remaining semantic `VALID_MISSING` items in the Control Center completion matrix, dedicated exact-head qualification is green, dedicated staging acceptance is green, and the certified runtime is converged in production.
+
+Future Control Center work is ordinary product evolution and does not keep #152 open.

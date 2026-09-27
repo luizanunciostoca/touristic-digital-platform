@@ -197,7 +197,7 @@
       "name": "Morro Digital Control Center",
       "domain": "platform-admin",
       "wave": 12,
-      "status": "partial",
+      "status": "equivalent",
       "legacySources": [],
       "targetPackages": [
         "apps/control-center",
@@ -206,15 +206,15 @@
         "@touristic/auth-browser"
       ],
       "equivalence": {
-        "behavior": false,
-        "visual": false,
-        "api": false
+        "behavior": true,
+        "visual": true,
+        "api": true
       },
       "verification": {
-        "local": "INTEGRATION_VERIFIED_PARTIAL",
+        "local": "LOCAL_VERIFIED",
         "mysql": "CONTAINER_VERIFIED",
         "provider": "NOT_APPLICABLE",
-        "note": "Reconciled on 2026-09-27 against exact main df18e8d2ee329ed9d01f37389e52b95e7e96fc0d. Current main contains canonical platform roles/capabilities, durable MySQL Auth security state for session/status/role overrides, governed account block/reactivate and role changes, Admin API v1, dedicated Control Center UI, append-only MySQL administrative audit, signed Support Mode, owner-backed Business/Place, CRM, Affiliates, Commerce/Catalog, Ticketing, Ordering/Financial, Content and Destinations administration, plus dedicated Control Center browser/accessibility contracts. Historical GAP claims for account block/reactivate, Affiliates, Content, Destinations and durable role policy are obsolete. FEATURE-0012 remains partial only for the reconciled VALID_MISSING residuals: complete/prove Dashboard aggregate breadth, complete/prove Universal Search cross-domain breadth, reconcile any real residual Business admin breadth, broader Admin API replay/rate-limit hardening, dedicated Control Center final exact-head qualification, and dedicated Control Center staging acceptance. Generic staging/production convergence of df18e8d is evidence of release identity, not a substitute for Control Center-specific acceptance. No additional real-money/provider authority is granted by this status."
+        "note": "Completed on 2026-09-27. Final functional release 9e6ccf15076838b18a2c90db788b1d26e970d577 passed dedicated Control Center exact-head qualification and Final Release Acceptance, then was proven LIVE in staging and production. The completion matrix contains canonical roles/capabilities, durable Auth role/status/session policy, governed Users, Business/Place CMS, Affiliates, CRM, Products/Offers, Reservations, Ticketing, Ordering/Financial, Content, Destinations, Support Mode, append-only audit, System Health, responsive/accessibility/browser contracts, Dashboard V1 and Universal Search. Dashboard owner authority is fail-closed: unavailable or partial aggregates remain explicitly unavailable rather than being fabricated from paginated slices or cross-scope totals. Universal Search composes Users/Businesses plus owner-backed search adapters for Affiliates, CRM, Products, Reservations, Content, Financial and Destinations. Admin mutations are protected by durable actor/namespace rate limiting and durable actor/idempotency-key replay claims before owner execution. Business CMS covers governed creation, profile, location, media, catalog and publication with MySQL/browser evidence. Staging deploy dep-daskvkd9fdbs73dtvso0 and production deploy dep-dasl0vvpn0mc738sme2g ran the exact functional release. No provider activation or real-money authority is granted by FEATURE-0012 completion."
       }
     }
   ]
