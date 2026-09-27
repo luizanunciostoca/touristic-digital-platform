@@ -1,5 +1,5 @@
 ---
-applyTo: ".github/**,services/**,apps/**/tooling/**,packages/auth/**,packages/payments/**,packages/financial/**"
+applyTo: ".github/**,services/**,apps/**,packages/auth/**,packages/payments/**,packages/financial/**"
 ---
 
 # security
