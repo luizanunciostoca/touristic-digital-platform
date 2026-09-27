@@ -346,7 +346,11 @@ export class MySqlNotificationOutboxRepository implements NotificationOutboxRepo
 
     const leaseToken = randomUUID();
     const leaseUntil = new Date(now.getTime() + input.leaseMs);
-    const [update] = await this.pool.execute<ResultSetHeader>(
+    // MySQL text protocol is intentional for this UPDATE. Some MySQL 8.x
+    // servers reject a parameter marker in UPDATE ... ORDER BY ... LIMIT when
+    // executed through the binary prepared-statement protocol. mysql2 query()
+    // still escapes every bound value while avoiding that server limitation.
+    const [update] = await this.pool.query<ResultSetHeader>(
       `UPDATE notification_outbox
        SET status = 'leased', lease_token = ?, lease_until = ?,
            attempts = attempts + 1, updated_at = ?
