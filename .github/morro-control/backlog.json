@@ -8,10 +8,10 @@
       "title": "Etapa A — constitution and machine-readable control state",
       "priority": "P1",
       "domain": "control-plane",
-      "state": "REMOTE_PROVEN",
+      "state": "INTEGRATION_READY",
       "implementation": "COMPLETE",
-      "integration": "PARTIAL",
-      "proof": "REMOTE_PROVEN",
+      "integration": "COMPLETE",
+      "proof": "PROOF_ACCEPTED",
       "dependencies": [],
       "risk": "HIGH"
     },
