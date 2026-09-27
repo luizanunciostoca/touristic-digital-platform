@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "controlPlaneVersion": "3.2",
+  "updatedFromMainSha": "20453f829477c74d9111e17292da628aa5149c52",
+  "items": [
+    {
+      "id": "MD-CP-001",
+      "title": "Bootstrap Autonomous Engineering Control Plane V3.2",
+      "priority": "P1",
+      "domain": "control-plane",
+      "state": "IMPLEMENTING",
+      "implementation": "PARTIAL",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-FR-001",
+      "title": "First-run acceptance with a small docs/test-only ChangeSet",
+      "priority": "P2",
+      "domain": "control-plane",
+      "state": "BLOCKED",
+      "implementation": "MISSING",
+      "integration": "MISSING",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-CP-001"
+      ],
+      "risk": "LOW"
+    },
+    {
+      "id": "MD-001",
+      "title": "Reconcile production Render drift for morro-digital-v2",
+      "priority": "P0",
+      "domain": "release",
+      "state": "BLOCKED",
+      "implementation": "PARTIAL",
+      "integration": "PARTIAL",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-FR-001"
+      ],
+      "risk": "CRITICAL"
+    },
+    {
+      "id": "MD-003",
+      "title": "Prevent disabled critical capability from reporting ready",
+      "priority": "P0",
+      "domain": "release-readiness",
+      "state": "BLOCKED",
+      "implementation": "PARTIAL",
+      "integration": "PARTIAL",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-FR-001"
+      ],
+      "risk": "CRITICAL"
+    },
+    {
+      "id": "MD-002",
+      "title": "Prove production database topology",
+      "priority": "P0",
+      "domain": "database",
+      "state": "BLOCKED",
+      "implementation": "UNKNOWN",
+      "integration": "UNKNOWN",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-001",
+        "MD-003"
+      ],
+      "risk": "CRITICAL"
+    },
+    {
+      "id": "MD-024",
+      "title": "Prove durable production persistence: admin action -> DB -> restart -> query",
+      "priority": "P0",
+      "domain": "persistence",
+      "state": "BLOCKED",
+      "implementation": "UNKNOWN",
+      "integration": "UNKNOWN",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-001",
+        "MD-002",
+        "MD-003"
+      ],
+      "risk": "CRITICAL"
+    },
+    {
+      "id": "MD-130",
+      "title": "Run clean-checkout pnpm check on the exact release SHA",
+      "priority": "P0",
+      "domain": "ci",
+      "state": "BLOCKED",
+      "implementation": "COMPLETE",
+      "integration": "PARTIAL",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-024"
+      ],
+      "risk": "HIGH"
+    },
+    {
+      "id": "MD-131",
+      "title": "Enumerate required exact-head checks and prove all protected checks green",
+      "priority": "P0",
+      "domain": "ci",
+      "state": "BLOCKED",
+      "implementation": "PARTIAL",
+      "integration": "PARTIAL",
+      "proof": "MISSING",
+      "dependencies": [
+        "MD-130"
+      ],
+      "risk": "CRITICAL"
+    }
+  ]
+}
