@@ -178,7 +178,6 @@ export function createBusinessApi({
     json(response, status, { error: code });
   }
 
-
   function durableProfileRuntime() {
     const configured = String(
       getEnvironmentValue("BUSINESS_DATABASE_URL") ?? "",
@@ -197,7 +196,9 @@ export function createBusinessApi({
 
   function profileError(response, error) {
     const code =
-      error instanceof Error ? error.message : "BUSINESS_PROFILE_REQUEST_FAILED";
+      error instanceof Error
+        ? error.message
+        : "BUSINESS_PROFILE_REQUEST_FAILED";
     const status = code.includes("NOT_FOUND")
       ? 404
       : code.includes("STALE") || code.includes("CONFLICT")
