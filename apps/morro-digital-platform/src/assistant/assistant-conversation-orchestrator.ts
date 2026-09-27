@@ -206,10 +206,9 @@ function nextState(
       : previous.mapContext,
     navigationHistory: input.navigationHistoryEntry
       ? Object.freeze(
-          [
-            ...previous.navigationHistory,
-            input.navigationHistoryEntry,
-          ].slice(-12),
+          [...previous.navigationHistory, input.navigationHistoryEntry].slice(
+            -12,
+          ),
         )
       : previous.navigationHistory,
     currentFilters: has("filters")
