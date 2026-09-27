@@ -32,7 +32,7 @@
       "title": "Etapa B2 — agent skills",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "MERGED",
+      "state": "INTEGRATION_READY",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
