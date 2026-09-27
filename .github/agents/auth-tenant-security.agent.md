@@ -2,6 +2,9 @@
 name: Morro Auth Tenant Security
 description: Implement and audit authentication, authorization, session security, tenant isolation and destination boundaries.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
