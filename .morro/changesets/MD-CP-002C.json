@@ -7,6 +7,7 @@
   "owns": {
     "paths": [
       ".github/agents/**",
+      ".github/workflows/morro-agent-profiles.yml",
       ".github/morro-control/backlog.json",
       ".morro/changesets/MD-CP-002B.json",
       ".morro/changesets/MD-CP-002C.json"
@@ -35,6 +36,7 @@
     "affected-tests",
     "build",
     "integration",
+    "agent-profile-contract",
     "exact-head-identity",
     "tree-sha"
   ],

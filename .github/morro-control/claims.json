@@ -9,6 +9,7 @@
       "baseSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
       "paths": [
         ".github/agents/**",
+        ".github/workflows/morro-agent-profiles.yml",
         ".github/morro-control/backlog.json",
         ".morro/changesets/MD-CP-002B.json",
         ".morro/changesets/MD-CP-002C.json"
