@@ -12,9 +12,13 @@
         ".github/workflows/morro-agent-profiles.yml",
         ".github/morro-control/backlog.json",
         ".morro/changesets/MD-CP-002B.json",
-        ".morro/changesets/MD-CP-002C.json"
+        ".morro/changesets/MD-CP-002C.json",
+        ".github/skills/morro-database-migration/SKILL.md",
+        ".github/skills/morro-release-certification/SKILL.md"
       ],
-      "domains": ["ci-release"],
+      "domains": [
+        "ci-release"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
