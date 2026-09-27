@@ -350,6 +350,45 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
     });
   }
 
+  async function consumeAdminMutationAttempt(
+    actorSubjectInput,
+    namespaceInput,
+    policy = {},
+  ) {
+    const actorSubject = String(actorSubjectInput ?? "").trim();
+    const namespace = String(namespaceInput ?? "")
+      .trim()
+      .toLowerCase();
+    const windowMs = Number(policy.windowMs);
+    const limit = Number(policy.limit);
+
+    if (
+      !actorSubject ||
+      actorSubject.length > 160 ||
+      !/^[a-z0-9][a-z0-9_-]{0,79}$/u.test(namespace) ||
+      !Number.isSafeInteger(windowMs) ||
+      windowMs < 1_000 ||
+      windowMs > 60 * 60 * 1000 ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 10_000
+    ) {
+      throw new Error("AUTH_ADMIN_RATE_LIMIT_POLICY_INVALID");
+    }
+
+    try {
+      const allowed = await securityState.consumeLoginAttempt(
+        `admin-mutation:${actorSubject}:${namespace}`,
+        { windowMs, limit },
+      );
+      markSecurityHealthy();
+      return allowed;
+    } catch (error) {
+      markSecurityFailure(error);
+      throw error;
+    }
+  }
+
   async function currentSession(request) {
     if (!configured()) return null;
     const delegated = delegatedSessions.get(request);
@@ -785,6 +824,7 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
   return Object.freeze({
     authorizeBusinessRequest,
     authorizeMutation,
+    consumeAdminMutationAttempt,
     listAdminUsers,
     findAdminUser,
     updateUserStatus,
