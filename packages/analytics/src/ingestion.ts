@@ -18,10 +18,7 @@ export interface AnalyticsTenantScopeResolver {
 }
 
 export type AnalyticsIngestionOutcome =
-  | "stored"
-  | "replayed"
-  | "rejected"
-  | "failed";
+  "stored" | "replayed" | "rejected" | "failed";
 
 export interface AnalyticsIngestionObservation {
   readonly outcome: AnalyticsIngestionOutcome;
@@ -209,9 +206,7 @@ export function createAnalyticsIngestionService(
         return Object.freeze({ status, event });
       } catch (error) {
         const code =
-          error instanceof Error
-            ? error.message
-            : "ANALYTICS_INGESTION_FAILED";
+          error instanceof Error ? error.message : "ANALYTICS_INGESTION_FAILED";
         await observe(options.observer, {
           outcome:
             code === "ANALYTICS_TENANT_SCOPE_REQUIRED" ||
