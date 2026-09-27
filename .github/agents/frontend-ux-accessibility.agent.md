@@ -2,6 +2,9 @@
 name: Morro Frontend UX Accessibility
 description: Implement responsive frontend UX, accessibility and visual conformance without moving backend or financial authority into the client.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
