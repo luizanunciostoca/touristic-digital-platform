@@ -1,0 +1,40 @@
+{
+  "id": "MD-CP-002",
+  "baseSha": "e02ac0f37a0c0ba9de1a9fc0a104203697686932",
+  "branch": "control/control-plane-v3.2-stage-b1-instructions-20260927",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/instructions/**",
+      ".github/morro-control/backlog.json",
+      ".github/morro-control/dependency-graph.json",
+      ".morro/changesets/MD-CP-002.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-001"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
