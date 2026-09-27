@@ -1587,7 +1587,6 @@ export function createPlacePlatformRuntime({
     throw new Error("CATALOG_DRAFT_KIND_INVALID");
   }
 
-
   function legacyBusinessProfileFromRow(row) {
     if (!row) return null;
     const businessId = String(row.business_id ?? row.id ?? "");
