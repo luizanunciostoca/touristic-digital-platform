@@ -54,7 +54,7 @@ export async function applyAnalyticsTenantScopeSchema(
   if (!names.has("idx_analytics_tenant_time")) {
     await pool.query(
       "ALTER TABLE analytics_events ADD INDEX idx_analytics_tenant_time " +
-      "(tenant_id, occurred_at)",
+        "(tenant_id, occurred_at)",
     );
   }
   if (!names.has("idx_analytics_tenant_destination_time")) {
