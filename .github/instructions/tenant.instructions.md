@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*tenant*,packages/business/**,packages/crm/**,packages/affiliates/**"
+applyTo: "services/**,**/*tenant*,packages/business/**,packages/crm/**,packages/affiliates/**"
 ---
 
 # tenant
