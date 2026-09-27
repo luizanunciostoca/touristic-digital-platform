@@ -50,6 +50,7 @@ export function createBusinessApi({
   authApi,
   repository = createMemoryBusinessProfileRepository(),
   getPlacePlatformRuntime = () => null,
+  getEnvironmentValue = () => "",
 }) {
   if (!authApi?.authorizeBusinessRequest) {
     throw new Error("BUSINESS_AUTH_BOUNDARY_REQUIRED");
@@ -172,6 +173,42 @@ export function createBusinessApi({
           : code.includes("INVALID") || code.includes("REQUIRED")
             ? 400
             : code.includes("UNAVAILABLE") || code.includes("DATABASE")
+              ? 503
+              : 500;
+    json(response, status, { error: code });
+  }
+
+
+  function durableProfileRuntime() {
+    const configured = String(
+      getEnvironmentValue("BUSINESS_DATABASE_URL") ?? "",
+    ).trim();
+    if (!configured) return null;
+    const runtime = getPlacePlatformRuntime();
+    if (
+      runtime?.readinessCheck?.().status !== "pass" ||
+      typeof runtime?.getLegacyBusinessProfile !== "function" ||
+      typeof runtime?.updateLegacyBusinessProfile !== "function"
+    ) {
+      throw new Error("BUSINESS_PROFILE_PERSISTENCE_UNAVAILABLE");
+    }
+    return runtime;
+  }
+
+  function profileError(response, error) {
+    const code =
+      error instanceof Error ? error.message : "BUSINESS_PROFILE_REQUEST_FAILED";
+    const status = code.includes("NOT_FOUND")
+      ? 404
+      : code.includes("STALE") || code.includes("CONFLICT")
+        ? 409
+        : code.includes("DENIED")
+          ? 403
+          : code.includes("INVALID")
+            ? 400
+            : code.includes("UNAVAILABLE") ||
+                code.includes("DATABASE") ||
+                code.includes("REQUIRED")
               ? 503
               : 500;
     json(response, status, { error: code });
@@ -373,16 +410,20 @@ export function createBusinessApi({
           { mutation: false, auditAction: "business.profile.read" },
         );
         if (!access) return;
-        const profile = await profiles.getProfile(
-          access.session,
-          access.businessId,
-        );
-        response.setHeader("Vary", "Cookie");
-        if (!profile) {
-          json(response, 404, { error: "BUSINESS_PROFILE_NOT_FOUND" });
-          return;
+        try {
+          const runtime = durableProfileRuntime();
+          const profile = runtime
+            ? await runtime.getLegacyBusinessProfile(access.businessId)
+            : await profiles.getProfile(access.session, access.businessId);
+          response.setHeader("Vary", "Cookie");
+          if (!profile) {
+            json(response, 404, { error: "BUSINESS_PROFILE_NOT_FOUND" });
+            return;
+          }
+          json(response, 200, { profile });
+        } catch (error) {
+          profileError(response, error);
         }
-        json(response, 200, { profile });
         return;
       }
 
@@ -403,13 +444,24 @@ export function createBusinessApi({
           return;
         }
 
-        const profile = await profiles.saveProfile(
-          access.session,
-          access.businessId,
-          body,
-        );
-        response.setHeader("Vary", "Cookie");
-        json(response, 200, { success: true, profile });
+        try {
+          const runtime = durableProfileRuntime();
+          const profile = runtime
+            ? await runtime.updateLegacyBusinessProfile(
+                access.session,
+                access.businessId,
+                body,
+              )
+            : await profiles.saveProfile(
+                access.session,
+                access.businessId,
+                body,
+              );
+          response.setHeader("Vary", "Cookie");
+          json(response, 200, { success: true, profile });
+        } catch (error) {
+          profileError(response, error);
+        }
         return;
       }
 
