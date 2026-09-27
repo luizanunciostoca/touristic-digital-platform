@@ -89,7 +89,11 @@ function assertRepositoryRegularFile(root, relativePath, failureCode) {
   const expectedPath = resolve(rootReal, relativePath);
   const lexicalPath = resolve(root, relativePath);
   assert.ok(lstatSync(lexicalPath).isFile(), failureCode);
-  assert.equal(realpathSync(lexicalPath), expectedPath, `${failureCode}_SYMLINK`);
+  assert.equal(
+    realpathSync(lexicalPath),
+    expectedPath,
+    `${failureCode}_SYMLINK`,
+  );
 }
 
 export function validateDirectory(root) {
