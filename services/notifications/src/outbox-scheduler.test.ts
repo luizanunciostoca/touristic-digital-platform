@@ -83,13 +83,11 @@ describe("NotificationOutboxScheduler", () => {
     const store = repository(lease(1));
     const observe = vi.fn();
     const dispatcher: NotificationDispatcher = {
-      dispatch: vi.fn(
-        async (): Promise<NotificationDispatchResult> => ({
-          status: "sent",
-          provider: "test-provider",
-          providerMessageId: "message-001",
-        }),
-      ),
+      dispatch: vi.fn(async (): Promise<NotificationDispatchResult> => ({
+        status: "sent",
+        provider: "test-provider",
+        providerMessageId: "message-001",
+      })),
     };
     const scheduler = new NotificationOutboxScheduler(store, dispatcher, {
       ...options(),
@@ -118,13 +116,11 @@ describe("NotificationOutboxScheduler", () => {
   it("schedules exponential retry before the maximum attempt", async () => {
     const store = repository(lease(2));
     const dispatcher: NotificationDispatcher = {
-      dispatch: vi.fn(
-        async (): Promise<NotificationDispatchResult> => ({
-          status: "failed",
-          reason: "providers_failed",
-          attemptedProviders: ["test-provider"],
-        }),
-      ),
+      dispatch: vi.fn(async (): Promise<NotificationDispatchResult> => ({
+        status: "failed",
+        reason: "providers_failed",
+        attemptedProviders: ["test-provider"],
+      })),
     };
     const scheduler = new NotificationOutboxScheduler(
       store,
