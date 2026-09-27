@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/business/**,services/business/**,apps/morro-digital-platform/tooling/business-*"
+applyTo: "packages/business/**,services/business/**,apps/morro-digital-platform/src/business-*.ts,apps/morro-digital-platform/tooling/business-*"
 ---
 
 # business
