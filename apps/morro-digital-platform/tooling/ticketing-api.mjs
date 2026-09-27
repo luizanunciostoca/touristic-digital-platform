@@ -494,7 +494,9 @@ export function createTicketingApi({
             });
           }
 
-          if (typeof injectedNotificationBridge?.ticketIssued === "function") {
+          if (
+            typeof injectedNotificationBridge?.ticketIssued === "function"
+          ) {
             try {
               const inventory = await adminService.readInventory(
                 fulfilled.reservation.inventoryId,
