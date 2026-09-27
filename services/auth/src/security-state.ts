@@ -279,11 +279,7 @@ function normalizedRoleOverride(value: string | null): string | null {
 
 function normalizedIdempotencyKey(value: string): string {
   const key = value.trim();
-  if (
-    key.length < 8 ||
-    key.length > 160 ||
-    !/^[A-Za-z0-9._:-]+$/u.test(key)
-  ) {
+  if (key.length < 8 || key.length > 160 || !/^[A-Za-z0-9._:-]+$/u.test(key)) {
     throw new Error("AUTH_ADMIN_IDEMPOTENCY_KEY_INVALID");
   }
   return key;
