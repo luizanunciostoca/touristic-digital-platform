@@ -70,6 +70,54 @@ test(
       });
       assert.equal(created.businessId, businessId);
 
+      const durableBusinessProfile = {
+        id: businessId,
+        name: "Runtime Business Profile",
+        categoryLabel: "Experiência",
+        specialty: "Sunset",
+        description: "Perfil persistido no owner canônico de Business.",
+        cta: "Ver empresa",
+        locationLabel: "Morro de São Paulo",
+        locationIsExample: false,
+        promotion: {
+          id: "sunset-runtime",
+          title: "Sunset persistido",
+          description: "Promoção persistida em MySQL",
+          cta: "Ver oferta",
+          validUntil: "2026-12-31",
+        },
+        tutorial: true,
+        excludeFromBusinessMetrics: false,
+      };
+      await runtime.updateLegacyBusinessProfile(
+        actor,
+        businessId,
+        durableBusinessProfile,
+      );
+      assert.deepEqual(
+        await runtime.getLegacyBusinessProfile(businessId),
+        durableBusinessProfile,
+      );
+
+      const restartedRuntime = createPlacePlatformRuntime({
+        getEnvironmentValue(key) {
+          if (key === "BUSINESS_DATABASE_URL") return databaseUrl;
+          if (key === "CONTENT_DATABASE_URL") return databaseUrl;
+          return "";
+        },
+        platformOperations: { emit() {} },
+      });
+      assert.equal(await restartedRuntime.start(), true);
+      try {
+        assert.deepEqual(
+          await restartedRuntime.getLegacyBusinessProfile(businessId),
+          durableBusinessProfile,
+          "Business profile must survive an independent runtime restart",
+        );
+      } finally {
+        await restartedRuntime.stop();
+      }
+
       await runtime.updateProfile(actor, businessId, {
         name: "Runtime Integration Place",
         categoryId: "nightlife",
