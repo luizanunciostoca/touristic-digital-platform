@@ -1,5 +1,5 @@
 ---
-applyTo: "**/*service-worker*,**/*sw.*,apps/morro-digital-platform/public/manifest*,apps/morro-digital-platform/public/**/*offline*"
+applyTo: "**/*service-worker*,**/*sw.*,apps/morro-digital-platform/public/pwa-register.js,apps/morro-digital-platform/public/manifest*,apps/morro-digital-platform/public/**/*offline*"
 ---
 
 # pwa
