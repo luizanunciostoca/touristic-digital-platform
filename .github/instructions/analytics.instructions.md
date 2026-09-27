@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/analytics/**,services/analytics/**,apps/morro-digital-platform/tooling/analytics-*"
+applyTo: "packages/analytics/**,services/analytics/**,apps/morro-digital-platform/src/analytics/**,apps/morro-digital-platform/tooling/analytics-*"
 ---
 
 # analytics
