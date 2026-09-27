@@ -116,3 +116,45 @@ test("restaurant fulfillment is not called for an unconfirmed outcome", async ()
   await service.apply({ provider: "sandbox" });
   assert.equal(fulfilled.length, 0);
 });
+
+test("restaurant verified outcome fails closed when fulfillment is unavailable", async () => {
+  const confirmed = order("payment_confirmed");
+  const service = createOrderConfirmingVerifiedPaymentOutcomeService({
+    outcomes: {
+      async apply() {
+        return {
+          payment: {
+            id: "pay_restaurant_12345678",
+            subject: { kind: "order", reference: confirmed.id },
+            status: "confirmed",
+          },
+          result: {
+            kind: "approved",
+            paymentId: "pay_restaurant_12345678",
+            orderReference: confirmed.id,
+            paymentStatus: "confirmed",
+            recordedAt: "2026-09-24T01:01:00.000Z",
+          },
+        };
+      },
+    },
+    orders: {
+      async findById() {
+        return confirmed;
+      },
+      async save(value) {
+        return value;
+      },
+    },
+    clock: {
+      now() {
+        return "2026-09-24T01:01:01.000Z";
+      },
+    },
+  });
+
+  await assert.rejects(
+    service.apply({ provider: "sandbox" }),
+    /PAYMENTS_RESTAURANT_FULFILLMENT_REQUIRED/,
+  );
+});
