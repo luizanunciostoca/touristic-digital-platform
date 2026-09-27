@@ -16,13 +16,28 @@ function responseRecorder() {
   };
 }
 
-function request(url, { method = "GET", headers = {}, body } = {}) {
+let requestSequence = 0;
+
+function request(
+  url,
+  { method = "GET", headers = {}, body, idempotencyKey } = {},
+) {
   const chunks =
     body === undefined ? [] : [Buffer.from(JSON.stringify(body), "utf8")];
+  const requestHeaders = { ...headers };
+  const mutation = !["GET", "HEAD", "OPTIONS"].includes(method);
+  const hasIdempotencyKey = Object.keys(requestHeaders).some(
+    (key) => key.toLowerCase() === "idempotency-key",
+  );
+  if (mutation && idempotencyKey !== null && !hasIdempotencyKey) {
+    requestSequence += 1;
+    requestHeaders["idempotency-key"] =
+      idempotencyKey ?? `test:mutation:${requestSequence}`;
+  }
   return {
     url,
     method,
-    headers,
+    headers: requestHeaders,
     morroCorrelationId: "corr_test",
     async *[Symbol.asyncIterator]() {
       for (const chunk of chunks) yield chunk;
@@ -90,6 +105,22 @@ function fixture(session = platformOwner, options = {}) {
         });
       }
       return true;
+    },
+    async claimAdminMutationReplay(
+      actorSubject,
+      idempotencyKey,
+      requestFingerprint,
+      policy,
+    ) {
+      if (typeof options.claimAdminMutationReplay === "function") {
+        return options.claimAdminMutationReplay({
+          actorSubject,
+          idempotencyKey,
+          requestFingerprint,
+          policy,
+        });
+      }
+      return "claimed";
     },
     reauthenticate(userId, credential) {
       return (
@@ -380,6 +411,123 @@ describe("Control Center Admin API", () => {
       error: "ADMIN_SURFACE_DENIED",
       capability: "business.update",
     });
+  });
+
+  it("requires an idempotency key before an authenticated admin mutation", async () => {
+    let ownerCalls = 0;
+    const content = {
+      async handle({ response }) {
+        ownerCalls += 1;
+        response.statusCode = 200;
+        response.end(JSON.stringify({ success: true }));
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { content },
+    });
+    const path = "/api/admin/v1/content/entries/article-1";
+    const response = responseRecorder();
+
+    await api.handle(
+      request(path, {
+        method: "POST",
+        idempotencyKey: null,
+        body: { title: "Morro Digital" },
+      }),
+      response,
+      new URL("http://localhost" + path),
+    );
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body)).toEqual({
+      error: "IDEMPOTENCY_KEY_REQUIRED",
+    });
+    expect(ownerCalls).toBe(0);
+  });
+
+  it("blocks exact replay and divergent idempotency reuse before domain owner execution", async () => {
+    let ownerCalls = 0;
+    let claims = 0;
+    const observed = [];
+    const content = {
+      async handle({ response }) {
+        ownerCalls += 1;
+        response.statusCode = 200;
+        response.end(JSON.stringify({ success: true }));
+      },
+    };
+    const { api } = fixture(platformOwner, {
+      domainAdapters: { content },
+      claimAdminMutationReplay(input) {
+        claims += 1;
+        observed.push(input);
+        if (claims === 1) return "claimed";
+        if (claims === 2) return "replay";
+        return "conflict";
+      },
+    });
+    const path = "/api/admin/v1/content/entries/article-1";
+    const key = "cc:test:stable-key";
+
+    const first = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        idempotencyKey: key,
+        body: { title: "A", nested: { b: 2, a: 1 } },
+      }),
+      first,
+      new URL("http://localhost" + path),
+    );
+    expect(first.statusCode).toBe(200);
+    expect(ownerCalls).toBe(1);
+
+    const replayed = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        idempotencyKey: key,
+        body: { nested: { a: 1, b: 2 }, title: "A" },
+      }),
+      replayed,
+      new URL("http://localhost" + path),
+    );
+    expect(replayed.statusCode).toBe(409);
+    expect(JSON.parse(replayed.body)).toEqual({
+      error: "ADMIN_MUTATION_REPLAYED",
+      replayed: true,
+    });
+    expect(ownerCalls).toBe(1);
+
+    const conflict = responseRecorder();
+    await api.handle(
+      request(path, {
+        method: "POST",
+        idempotencyKey: key,
+        body: { title: "B" },
+      }),
+      conflict,
+      new URL("http://localhost" + path),
+    );
+    expect(conflict.statusCode).toBe(409);
+    expect(JSON.parse(conflict.body)).toEqual({
+      error: "ADMIN_IDEMPOTENCY_CONFLICT",
+      replayed: false,
+    });
+    expect(ownerCalls).toBe(1);
+    expect(observed).toHaveLength(3);
+    expect(observed[0]).toMatchObject({
+      actorSubject: "platform-owner",
+      idempotencyKey: key,
+      policy: { ttlMs: 86_400_000 },
+    });
+    expect(observed[0].requestFingerprint).toMatch(/^[a-f0-9]{64}$/u);
+    expect(observed[1].requestFingerprint).toBe(
+      observed[0].requestFingerprint,
+    );
+    expect(observed[2].requestFingerprint).not.toBe(
+      observed[0].requestFingerprint,
+    );
   });
 
   it("rate limits authenticated admin mutations before domain owner execution", async () => {
