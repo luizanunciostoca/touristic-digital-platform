@@ -16,6 +16,8 @@ It intentionally separates offline presentation from server authority.
 - root navigation network-first behavior;
 - explicit Service Worker update lifecycle;
 - online/offline browser state events;
+- real browser recovery proof from offline back to online;
+- browser proof that non-GET server mutations remain unavailable offline;
 - old-cache cleanup on activation;
 - automated contract coverage.
 
@@ -54,7 +56,7 @@ When a new controller takes ownership, the page reloads once so runtime assets r
 
 The registration layer updates `data-network-state` and dispatches `morro:network-state-changed` with `online` or `offline`.
 
-This is foundation behavior only; a later UX integration may surface a Banner/Toast using Design System V2.
+The Assistant already consumes this event and presents contextual `offline` and `online_restored` states. The browser contract now proves the real transition from offline mode back to online network authority rather than only dispatching synthetic lifecycle events.
 
 ## Not claimed by this PR
 
@@ -63,10 +65,9 @@ This is foundation behavior only; a later UX integration may surface a Banner/To
 - offline Ticketing authority beyond the separate Ticketing domain contracts;
 - full destination/place/tour data persistence;
 - background sync of mutations;
-- push notifications;
-- production installability certification across the final device matrix.
+- push notifications.
 
-Those remain separate acceptance items.
+Those remain separate product capabilities and are not required for the conservative PWA shell authority implemented here. Physical-device certification is not a completion requirement for this PWA acceptance.
 
 ## Status
 
@@ -74,7 +75,7 @@ PWA install/offline shell foundation: IMPLEMENTED.
 
 Full offline content product: PARTIAL.
 
-Production PWA certification: OPEN until exact-head browser/device evidence is green.
+Production PWA certification: governed by exact-head automated browser evidence. The acceptance requires installability, offline shell availability, API/non-GET authority boundaries and offline-to-online recovery; it does not require a physical-device matrix.
 
 ## Install icon assets
 
