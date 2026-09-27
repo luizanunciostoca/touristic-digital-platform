@@ -25,6 +25,8 @@
     "@touristic/financial-server": "workspace:*",
     "@touristic/geospatial": "workspace:*",
     "@touristic/navigation": "workspace:*",
+    "@touristic/notifications": "workspace:*",
+    "@touristic/notifications-server": "workspace:*",
     "@touristic/ordering": "workspace:*",
     "@touristic/ordering-server": "workspace:*",
     "@touristic/search": "workspace:*",
