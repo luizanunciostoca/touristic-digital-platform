@@ -173,6 +173,13 @@ function isChannel(value: unknown): value is NotificationChannel {
   );
 }
 
+function persistedString(value: unknown): string {
+  if (typeof value !== "string") {
+    throw new Error("NOTIFICATION_INVALID_PERSISTED_JOB");
+  }
+  return value;
+}
+
 function persistedJob(value: unknown): NotificationJob {
   const root = jsonObject(value);
   const requestValue = jsonObject(root.request);
@@ -183,21 +190,21 @@ function persistedJob(value: unknown): NotificationJob {
   }
 
   const request = createNotificationRequest({
-    id: String(requestValue.id ?? ""),
-    idempotencyKey: String(requestValue.idempotencyKey ?? ""),
-    destinationId: String(requestValue.destinationId ?? ""),
-    recipientReference: String(requestValue.recipientReference ?? ""),
-    locale: String(requestValue.locale ?? ""),
+    id: persistedString(requestValue.id),
+    idempotencyKey: persistedString(requestValue.idempotencyKey),
+    destinationId: persistedString(requestValue.destinationId),
+    recipientReference: persistedString(requestValue.recipientReference),
+    locale: persistedString(requestValue.locale),
     template,
     channel,
     variables: jsonObject(requestValue.variables ?? {}),
-    requestedAt: String(requestValue.requestedAt ?? ""),
+    requestedAt: persistedString(requestValue.requestedAt),
   });
   if (!request) throw new Error("NOTIFICATION_INVALID_PERSISTED_JOB");
 
-  const deliverAt = String(root.deliverAt ?? "");
+  const deliverAt = persistedString(root.deliverAt);
   const sourceEventId = assertIdentifier(
-    String(root.sourceEventId ?? ""),
+    persistedString(root.sourceEventId),
     "SOURCE_EVENT_ID",
   );
   date(deliverAt, "DELIVER_AT");
