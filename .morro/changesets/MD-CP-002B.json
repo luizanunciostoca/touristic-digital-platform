@@ -2,7 +2,7 @@
   "id": "MD-CP-002B",
   "baseSha": "bb39f80c558493393a1d635ceb07bbfb380b5c10",
   "branch": "infra/control-plane-v3.2-stage-b2-skills-20260927",
-  "state": "MERGED",
+  "state": "MERGE_READY",
   "risk": "high",
   "owns": {
     "paths": [
