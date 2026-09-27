@@ -43,6 +43,37 @@ describe("Auth security state", () => {
     );
   });
 
+  it("claims admin mutation replay keys with exact-replay and conflict semantics", async () => {
+    const state = createInMemoryAuthSecurityState();
+    const base = {
+      actorSubject: "platform-owner",
+      idempotencyKey: "cc:test:stable-key",
+      requestFingerprint: "a".repeat(64),
+      ttlMs: 60_000,
+    };
+
+    await expect(
+      state.claimAdminMutationReplay({ ...base, nowMs: 100 }),
+    ).resolves.toBe("claimed");
+    await expect(
+      state.claimAdminMutationReplay({ ...base, nowMs: 200 }),
+    ).resolves.toBe("replay");
+    await expect(
+      state.claimAdminMutationReplay({
+        ...base,
+        requestFingerprint: "b".repeat(64),
+        nowMs: 300,
+      }),
+    ).resolves.toBe("conflict");
+    await expect(
+      state.claimAdminMutationReplay({
+        ...base,
+        requestFingerprint: "b".repeat(64),
+        nowMs: 60_101,
+      }),
+    ).resolves.toBe("claimed");
+  });
+
   it("revokes a session until its expiry boundary", async () => {
     const state = createInMemoryAuthSecurityState();
     await state.revoke({ sessionId: "session-1", expiresAt: 20 });
@@ -160,6 +191,53 @@ describe("Auth security state", () => {
       200,
       expect.any(String),
     ]);
+    expect(commit).toHaveBeenCalledTimes(1);
+    expect(rollback).not.toHaveBeenCalled();
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
+  it("persists the first durable admin replay claim without storing the raw key", async () => {
+    const beginTransaction = vi.fn().mockResolvedValue(undefined);
+    const commit = vi.fn().mockResolvedValue(undefined);
+    const rollback = vi.fn().mockResolvedValue(undefined);
+    const release = vi.fn();
+    const connectionExecute = vi
+      .fn()
+      .mockResolvedValueOnce([{ affectedRows: 1 }, []]);
+    const connection = {
+      beginTransaction,
+      execute: connectionExecute,
+      commit,
+      rollback,
+      release,
+    } as unknown as AuthSqlConnection;
+    const pool = {
+      query: vi.fn().mockResolvedValue([[], []]),
+      execute: vi.fn().mockResolvedValue([[], []]),
+      getConnection: vi.fn().mockResolvedValue(connection),
+      end: vi.fn().mockResolvedValue(undefined),
+    } as unknown as AuthSqlPool;
+    const state = createSqlAuthSecurityState(pool, { closePool: false });
+
+    await expect(
+      state.claimAdminMutationReplay({
+        actorSubject: "platform-owner",
+        idempotencyKey: "cc:test:secret-key",
+        requestFingerprint: "c".repeat(64),
+        ttlMs: 60_000,
+        nowMs: 1_000,
+      }),
+    ).resolves.toBe("claimed");
+
+    expect(connectionExecute.mock.calls[0]?.[0]).toContain(
+      "INSERT IGNORE INTO auth_admin_mutation_replay_guard",
+    );
+    expect(connectionExecute.mock.calls[0]?.[1]?.[0]).toMatch(
+      /^[a-f0-9]{64}$/u,
+    );
+    expect(JSON.stringify(connectionExecute.mock.calls)).not.toContain(
+      "cc:test:secret-key",
+    );
     expect(commit).toHaveBeenCalledTimes(1);
     expect(rollback).not.toHaveBeenCalled();
     expect(release).toHaveBeenCalledTimes(1);
