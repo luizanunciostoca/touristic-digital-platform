@@ -73,6 +73,7 @@ test("reject object-valued tools", () => {
     /^tools:.*\r?\n/mu,
     'tools: {"read": false, "search": false}\n',
   );
+  assert.notEqual(objectTools, sample);
   assert.throws(() =>
     validateProfile(objectTools, "security-auditor.agent.md"),
   );
@@ -88,6 +89,7 @@ test("reject block-scalar shadowing of top-level tools", () => {
       /^description:.*\r?\n/mu,
       'description: |\n  tools: ["read", "search"]\n',
     );
+  assert.notEqual(widened, sample);
   assert.throws(() => validateProfile(widened, "security-auditor.agent.md"));
 });
 
