@@ -1,5 +1,5 @@
 ---
-applyTo: "packages/crm/**,services/crm/**,apps/morro-digital-platform/tooling/crm-*"
+applyTo: "packages/crm/**,services/crm/**,apps/morro-digital-platform/src/crm-*.ts,apps/morro-digital-platform/tooling/crm-*"
 ---
 
 # crm
