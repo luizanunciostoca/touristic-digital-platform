@@ -20,9 +20,11 @@
         ".morro/ownership.json",
         ".morro/risk-policy.json"
       ],
-      "domains": ["ci-release"],
+      "domains": [
+        "ci-release"
+      ],
       "risk": "P1",
-      "status": "INTEGRATION_READY",
+      "status": "REMOTE_PROVEN",
       "expiresAt": "2026-10-04T23:59:59Z"
     }
   }
