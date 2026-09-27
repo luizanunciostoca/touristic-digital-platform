@@ -76,7 +76,35 @@ describe("MySqlNotificationOutboxRepository", () => {
     const call = calls[0];
     if (!call?.parameters) throw new Error("Expected SQL call.");
     expect(call.sql).toContain("WHERE tenant_id = ?");
-    expect(call.parameters[0]).toBe("tenant-morro");
+    expect(call.sql).toContain("LIMIT 25");
+    expect(call.parameters).toEqual(["tenant-morro"]);
+  });
+
+  it("inlines the validated claim limit instead of binding LIMIT", async () => {
+    const calls: Array<{ sql: string; parameters?: readonly unknown[] }> = [];
+    const execute = vi.fn(
+      async (sql: string, parameters?: readonly unknown[]) => {
+        calls.push({ sql, ...(parameters ? { parameters } : {}) });
+        return [{ affectedRows: 0 }, undefined];
+      },
+    );
+    const repository = new MySqlNotificationOutboxRepository({
+      execute,
+    } as unknown as Pool);
+
+    await expect(
+      repository.claimDue({
+        now: "2026-09-27T03:05:00.000Z",
+        leaseMs: 30_000,
+        limit: 25,
+      }),
+    ).resolves.toEqual([]);
+
+    const call = calls[0];
+    if (!call?.parameters) throw new Error("Expected SQL call.");
+    expect(call.sql).toContain("LIMIT 25");
+    expect(call.sql).not.toContain("LIMIT ?");
+    expect(call.parameters).toHaveLength(5);
   });
 
   it("fails closed when a worker loses its lease", async () => {
