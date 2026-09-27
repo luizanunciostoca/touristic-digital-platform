@@ -166,6 +166,42 @@ describe("Auth durable administrative principal policy", () => {
     await api.stop();
   });
 
+  it("exposes admin mutation replay claims through the shared security authority", async () => {
+    const api = createAuthApi({ getEnvironmentValue: environment() });
+    await api.start();
+
+    const key = "cc:test:stable-key";
+    const fingerprint = "d".repeat(64);
+    const policy = { ttlMs: 60_000 };
+
+    await expect(
+      api.claimAdminMutationReplay(
+        "platform-owner",
+        key,
+        fingerprint,
+        policy,
+      ),
+    ).resolves.toBe("claimed");
+    await expect(
+      api.claimAdminMutationReplay(
+        "platform-owner",
+        key,
+        fingerprint,
+        policy,
+      ),
+    ).resolves.toBe("replay");
+    await expect(
+      api.claimAdminMutationReplay(
+        "platform-owner",
+        key,
+        "e".repeat(64),
+        policy,
+      ),
+    ).resolves.toBe("conflict");
+
+    await api.stop();
+  });
+
   it("projects configured and effective authority separately", async () => {
     const api = createAuthApi({ getEnvironmentValue: environment() });
     await api.start();
