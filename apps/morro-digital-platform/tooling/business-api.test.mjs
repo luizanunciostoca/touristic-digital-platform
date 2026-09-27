@@ -44,10 +44,12 @@ function responseCapture() {
 
 function authApi() {
   return {
-    authorizeBusinessRequest: vi.fn(async (_request, _response, businessId) => ({
-      session,
-      businessId,
-    })),
+    authorizeBusinessRequest: vi.fn(
+      async (_request, _response, businessId) => ({
+        session,
+        businessId,
+      }),
+    ),
   };
 }
 
