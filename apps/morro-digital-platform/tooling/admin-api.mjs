@@ -1,4 +1,9 @@
-import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
+import {
+  createHash,
+  createHmac,
+  randomUUID,
+  timingSafeEqual,
+} from "node:crypto";
 
 import {
   authorizeCapability,
@@ -17,6 +22,7 @@ const stepUpWindowMs = 15 * 60 * 1000;
 const stepUpAttemptLimit = 5;
 const adminMutationRateWindowMs = 60 * 1000;
 const adminMutationRateLimit = 30;
+const adminMutationReplayTtlMs = 24 * 60 * 60 * 1000;
 const safeAdminMethods = new Set(["GET", "HEAD", "OPTIONS"]);
 const maxBodyBytes = 32 * 1024;
 
@@ -74,6 +80,42 @@ function replayJsonRequest(request, body) {
       yield payload;
     },
   });
+}
+
+function canonicalJsonValue(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => canonicalJsonValue(item));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonicalJsonValue(value[key])]),
+    );
+  }
+  return value;
+}
+
+function canonicalMutationTarget(requestUrl) {
+  const entries = [...requestUrl.searchParams.entries()].sort(
+    ([leftKey, leftValue], [rightKey, rightValue]) =>
+      leftKey.localeCompare(rightKey) || leftValue.localeCompare(rightValue),
+  );
+  if (entries.length === 0) return requestUrl.pathname;
+  const params = new URLSearchParams();
+  for (const [key, value] of entries) params.append(key, value);
+  return `${requestUrl.pathname}?${params.toString()}`;
+}
+
+function adminMutationFingerprint(request, requestUrl, body) {
+  const semanticRequest = {
+    method: String(request.method || "").toUpperCase(),
+    target: canonicalMutationTarget(requestUrl),
+    body: canonicalJsonValue(body ?? {}),
+  };
+  return createHash("sha256")
+    .update(JSON.stringify(semanticRequest))
+    .digest("hex");
 }
 
 function encodePayload(payload) {
@@ -304,6 +346,7 @@ export function createAdminApi({
     !authApi?.updateUserStatus ||
     !authApi?.updateUserRole ||
     !authApi?.consumeAdminMutationAttempt ||
+    !authApi?.claimAdminMutationReplay ||
     !authApi?.listUserSessions ||
     !authApi?.revokeUserSession
   ) {
@@ -440,6 +483,108 @@ export function createAdminApi({
       retryAfterSeconds,
     });
     return false;
+  }
+
+  async function enforceAdminMutationReplayGuard(
+    request,
+    response,
+    requestUrl,
+  ) {
+    if (safeAdminMethods.has(request.method)) {
+      return Object.freeze({ allowed: true, request });
+    }
+
+    const actor = await authApi.resolveSession(request);
+    if (!actor) {
+      return Object.freeze({ allowed: true, request });
+    }
+
+    const requestSecurity = authApi.authorizeMutation(
+      request,
+      actor,
+      "control-center.mutation.replay-guard",
+    );
+    if (!requestSecurity.allowed) {
+      return Object.freeze({ allowed: true, request });
+    }
+
+    const idempotencyKey = firstHeader(request.headers?.["idempotency-key"]);
+    if (
+      idempotencyKey.length < 8 ||
+      idempotencyKey.length > 160 ||
+      !/^[A-Za-z0-9._:-]+$/u.test(idempotencyKey)
+    ) {
+      await audit(request, actor, {
+        action: "control-center.mutation.replay_guard",
+        result: "denied",
+        reason: idempotencyKey
+          ? "invalid_idempotency_key"
+          : "idempotency_key_required",
+        entityType: "admin_request",
+        entityId: bounded(requestUrl.pathname, 160),
+      });
+      json(response, 400, {
+        error: idempotencyKey
+          ? "INVALID_IDEMPOTENCY_KEY"
+          : "IDEMPOTENCY_KEY_REQUIRED",
+      });
+      return Object.freeze({ allowed: false, request });
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(request);
+    } catch {
+      json(response, 400, { error: "INVALID_REQUEST" });
+      return Object.freeze({ allowed: false, request });
+    }
+
+    const fingerprint = adminMutationFingerprint(request, requestUrl, body);
+    let decision;
+    try {
+      decision = await authApi.claimAdminMutationReplay(
+        actor.subject,
+        idempotencyKey,
+        fingerprint,
+        { ttlMs: adminMutationReplayTtlMs },
+      );
+    } catch (error) {
+      await audit(request, actor, {
+        action: "control-center.mutation.replay_guard",
+        result: "unavailable",
+        reason:
+          error instanceof Error
+            ? bounded(error.message, 120)
+            : "replay_guard_unavailable",
+        entityType: "admin_request",
+        entityId: bounded(requestUrl.pathname, 160),
+      });
+      json(response, 503, { error: "ADMIN_REPLAY_GUARD_UNAVAILABLE" });
+      return Object.freeze({ allowed: false, request });
+    }
+
+    if (decision === "claimed") {
+      return Object.freeze({
+        allowed: true,
+        request: replayJsonRequest(request, body),
+      });
+    }
+
+    await audit(request, actor, {
+      action: "control-center.mutation.replay_guard",
+      result: "denied",
+      reason: decision === "replay" ? "exact_replay" : "semantic_conflict",
+      entityType: "admin_request",
+      entityId: bounded(requestUrl.pathname, 160),
+    });
+    json(response, 409, {
+      error:
+        decision === "replay"
+          ? "ADMIN_MUTATION_REPLAYED"
+          : "ADMIN_IDEMPOTENCY_CONFLICT",
+      replayed: decision === "replay",
+    });
+    return Object.freeze({ allowed: false, request });
   }
 
   async function requireCapability(
@@ -2126,6 +2271,14 @@ export function createAdminApi({
       ) {
         return;
       }
+
+      const replayGuard = await enforceAdminMutationReplayGuard(
+        request,
+        response,
+        requestUrl,
+      );
+      if (!replayGuard.allowed) return;
+      request = replayGuard.request;
 
       if (pathname === `${adminPrefix}/session`) {
         const actor = await requireCapability(
