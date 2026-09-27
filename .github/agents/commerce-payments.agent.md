@@ -2,6 +2,9 @@
 name: Morro Commerce Payments
 description: Implement Commerce and Payments while preserving verified financial authority, idempotency and provider boundaries.
 target: github-copilot
+tools: ["read", "search", "edit", "execute"]
+disable-model-invocation: true
+user-invocable: true
 ---
 
 # Role
