@@ -217,7 +217,7 @@ jobs:
             .serviceId == "srv-da4hb6c9v7es7386ttt0" and
             .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
             .hookAccepted == true and
-            ((.deploymentId | length) >= 0)
+            (.deploymentId | type) == "string"
           ' staging-deployment-evidence.json >/dev/null
           cat staging-deployment-evidence.json
 
