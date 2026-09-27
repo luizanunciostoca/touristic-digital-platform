@@ -8,13 +8,17 @@ on:
       - "packages/auth/**"
       - "packages/financial/**"
       - "packages/ordering/**"
+      - "packages/commerce/**"
       - "services/financial/**"
       - "services/ordering/**"
+      - "services/commerce/**"
       - "apps/morro-digital-platform/tooling/payments-api.mjs"
       - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - "apps/morro-digital-platform/tooling/payments-restaurant-outcome.test.mjs"
       - "apps/morro-digital-platform/tooling/payments-runtime-api.mjs"
       - "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs"
       - ".github/workflows/payments-verified-webhook-contract.yml"
+      - "apps/morro-digital-platform/package.json"
       - "package.json"
       - "pnpm-lock.yaml"
   pull_request:
@@ -22,13 +26,17 @@ on:
       - "packages/auth/**"
       - "packages/financial/**"
       - "packages/ordering/**"
+      - "packages/commerce/**"
       - "services/financial/**"
       - "services/ordering/**"
+      - "services/commerce/**"
       - "apps/morro-digital-platform/tooling/payments-api.mjs"
       - "apps/morro-digital-platform/tooling/payments-api.test.mjs"
+      - "apps/morro-digital-platform/tooling/payments-restaurant-outcome.test.mjs"
       - "apps/morro-digital-platform/tooling/payments-runtime-api.mjs"
       - "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs"
       - ".github/workflows/payments-verified-webhook-contract.yml"
+      - "apps/morro-digital-platform/package.json"
       - "package.json"
       - "pnpm-lock.yaml"
   workflow_dispatch:
@@ -78,10 +86,12 @@ jobs:
           pnpm --filter @touristic/auth build
           pnpm --filter @touristic/financial build
           pnpm --filter @touristic/ordering build
+          pnpm --filter @touristic/commerce-server build
           pnpm --filter @touristic/financial-server build
           pnpm --filter @touristic/ordering-server build
       - name: Node runtime raw-body and provider-query preservation
         run: >-
           pnpm exec vitest run
           apps/morro-digital-platform/tooling/payments-api.test.mjs
+          apps/morro-digital-platform/tooling/payments-restaurant-outcome.test.mjs
           apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs
