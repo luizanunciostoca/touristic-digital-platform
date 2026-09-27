@@ -244,6 +244,7 @@ for (const [key, expected] of [
   ["PAYMENTS_RUNTIME_REPLICA_COUNT", 'value: "1"'],
   ["PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED", 'value: "false"'],
   ["DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED", 'value: "false"'],
+  ["NOTIFICATIONS_FEATURE_ENABLED", 'value: "true"'],
   ["OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED", 'value: "false"'],
 ]) {
   requireDirective(key, expected);
