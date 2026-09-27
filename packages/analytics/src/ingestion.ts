@@ -127,7 +127,9 @@ export function parseAnalyticsWireEvent(value: unknown): AnalyticsEvent | null {
   return createAnalyticsEvent(input, { eventId, occurredAt });
 }
 
-function normalizeTenantId(value: string | null | undefined): string | undefined {
+function normalizeTenantId(
+  value: string | null | undefined,
+): string | undefined {
   if (value === null || value === undefined) return undefined;
   const normalized = value.trim();
   if (!normalized || normalized.length > 160) {
