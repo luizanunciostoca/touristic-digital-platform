@@ -1588,25 +1588,26 @@ export function createPlacePlatformRuntime({
   }
 
 
-function legacyBusinessProfileFromRow(row) {
-  if (!row) return null;
-  const businessId = String(row.business_id ?? row.id ?? "");
-  const stored = parseJson(row.profile_json, {});
-  const place = row.place_id ? placeFromRow(row, false) : null;
-  return normalizeBusinessProfile(
-    {
-      ...(stored && typeof stored === "object" ? stored : {}),
-      id: businessId,
-      name: String(row.display_name || stored?.name || place?.name || ""),
-      categoryLabel:
-        stored?.categoryLabel ?? (place?.categoryId ? String(place.categoryId) : undefined),
-      specialty: stored?.specialty ?? place?.shortDescription,
-      description: stored?.description ?? place?.description,
-      locationLabel: stored?.locationLabel ?? place?.location?.address,
-    },
-    businessId,
-  );
-}
+  function legacyBusinessProfileFromRow(row) {
+    if (!row) return null;
+    const businessId = String(row.business_id ?? row.id ?? "");
+    const stored = parseJson(row.profile_json, {});
+    const place = row.place_id ? placeFromRow(row, false) : null;
+    return normalizeBusinessProfile(
+      {
+        ...(stored && typeof stored === "object" ? stored : {}),
+        id: businessId,
+        name: String(row.display_name || stored?.name || place?.name || ""),
+        categoryLabel:
+          stored?.categoryLabel ??
+          (place?.categoryId ? String(place.categoryId) : undefined),
+        specialty: stored?.specialty ?? place?.shortDescription,
+        description: stored?.description ?? place?.description,
+        locationLabel: stored?.locationLabel ?? place?.location?.address,
+      },
+      businessId,
+    );
+  }
 
   async function getLegacyBusinessProfile(businessId) {
     assertReady();
@@ -1644,12 +1645,7 @@ function legacyBusinessProfileFromRow(row) {
       `UPDATE business_entities
           SET display_name = ?, profile_json = ?, updated_at = ?
         WHERE id = ?`,
-      [
-        profile.name,
-        JSON.stringify(profile),
-        updatedAt,
-        normalizedBusinessId,
-      ],
+      [profile.name, JSON.stringify(profile), updatedAt, normalizedBusinessId],
     );
     if (result.affectedRows !== 1) {
       throw new Error("BUSINESS_PROFILE_NOT_FOUND");
