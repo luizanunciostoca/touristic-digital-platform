@@ -16,7 +16,12 @@
         ".github/scripts/morro-*",
         ".github/scripts/validate-morro-claim.mjs",
         ".github/workflows/morro-claim-guard.yml",
-        ".github/pull_request_template.md"
+        ".github/pull_request_template.md",
+        ".github/workflows/ci-failure-investigator.md",
+        ".github/workflows/pr-proof-precheck.md",
+        ".github/workflows/stale-branch-reconciler.md",
+        ".github/workflows/dependency-dag-updater.md",
+        ".github/workflows/release-readiness-monitor.md"
       ],
       "domains": [
         "control-plane",
