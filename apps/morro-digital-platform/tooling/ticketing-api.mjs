@@ -494,9 +494,7 @@ export function createTicketingApi({
             });
           }
 
-          if (
-            typeof injectedNotificationBridge?.ticketIssued === "function"
-          ) {
+          if (typeof injectedNotificationBridge?.ticketIssued === "function") {
             try {
               const inventory = await adminService.readInventory(
                 fulfilled.reservation.inventoryId,
@@ -512,8 +510,7 @@ export function createTicketingApi({
                   await injectedNotificationBridge.ticketIssued({
                     tenantId: inventory.businessId,
                     destinationId: fulfilled.reservation.destinationId,
-                    recipientReference:
-                      fulfilled.reservation.holderReference,
+                    recipientReference: fulfilled.reservation.holderReference,
                     occurredAt: fulfilled.reservation.confirmedAt,
                     ticketReference: fulfilled.ticket.id,
                     experienceName: inventory.offer.label,
