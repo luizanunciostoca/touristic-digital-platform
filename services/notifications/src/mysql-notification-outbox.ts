@@ -101,7 +101,9 @@ interface NotificationOutboxRow extends RowDataPacket {
 }
 
 const IDENTIFIER = /^[A-Za-z0-9][A-Za-z0-9:_-]{1,159}$/u;
-const TERMINAL_STATUSES = new Set<NotificationOutboxStatus>([
+const OUTBOX_STATUSES = new Set<string>([
+  "pending",
+  "leased",
   "delivered",
   "suppressed",
   "duplicate",
@@ -465,14 +467,15 @@ export class MySqlNotificationOutboxRepository
     ) {
       throw new Error("NOTIFICATION_INVALID_LIST_LIMIT");
     }
-    if (input.status === "leased" || TERMINAL_STATUSES.has(input.status ?? "pending") || input.status === "pending") {
-      // Valid status; the branch intentionally keeps the query below tenant-scoped.
-    } else if (input.status !== undefined) {
+    if (
+      input.status !== undefined &&
+      !OUTBOX_STATUSES.has(input.status)
+    ) {
       throw new Error("NOTIFICATION_INVALID_LIST_STATUS");
     }
 
     const tenantId = assertIdentifier(input.tenantId, "TENANT_ID");
-    const parameters: unknown[] = [tenantId];
+    const parameters: Array<string | number> = [tenantId];
     let where = "tenant_id = ?";
     if (input.status) {
       where += " AND status = ?";
