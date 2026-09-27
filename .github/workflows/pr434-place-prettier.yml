@@ -1,0 +1,35 @@
+name: PR434 Place Prettier
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/pr434-place-prettier.yml"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr434-place-prettier-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  prettier:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Emit exact diff
+        run: |
+          pnpm exec prettier --write apps/morro-digital-platform/tooling/place-platform-runtime.mjs
+          git diff -- apps/morro-digital-platform/tooling/place-platform-runtime.mjs
