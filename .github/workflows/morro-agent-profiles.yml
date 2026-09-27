@@ -40,6 +40,6 @@ jobs:
           node-version: "22"
           package-manager-cache: false
       - name: Test rejected profile configurations
-        run: node --test .github/agents/profile-contract.test.mjs
+        run: node --test .github/agents/*.test.mjs
       - name: Validate profiles and exact source identity
         run: node .github/agents/profile-contract.mjs
