@@ -2091,8 +2091,9 @@ async function renderCrm(leadId) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payloadFrom(form)),
         });
-        result.textContent = "Lead atualizado.";
         await renderCrm(String(selected.id));
+        const refreshedResult = document.querySelector("#crm-edit-result");
+        if (refreshedResult) refreshedResult.textContent = "Lead atualizado.";
       } catch (error) {
         submit.disabled = false;
         result.textContent = error.body?.error || error.message;
@@ -2116,8 +2117,9 @@ async function renderCrm(leadId) {
             stage: String(new FormData(form).get("stage") ?? ""),
           }),
         });
-        result.textContent = "Etapa atualizada.";
         await renderCrm(String(selected.id));
+        const refreshedResult = document.querySelector("#crm-stage-result");
+        if (refreshedResult) refreshedResult.textContent = "Etapa atualizada.";
       } catch (error) {
         submit.disabled = false;
         result.textContent = error.body?.error || error.message;
