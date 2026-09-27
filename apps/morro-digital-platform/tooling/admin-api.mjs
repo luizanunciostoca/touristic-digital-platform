@@ -397,8 +397,7 @@ export function createAdminApi({
       requestUrl.pathname
         .slice(adminPrefix.length)
         .replace(/^\/+/, "")
-        .split("/", 1)[0]
-        ?.toLowerCase() || "root";
+        .split("/", 1)[0]?.toLowerCase() || "root";
     const namespace = /^[a-z0-9][a-z0-9_-]{0,79}$/u.test(rawNamespace)
       ? rawNamespace
       : "other";
@@ -2126,7 +2125,9 @@ export function createAdminApi({
     async handle(request, response, requestUrl) {
       const pathname = requestUrl.pathname;
 
-      if (!(await enforceAdminMutationRateLimit(request, response, requestUrl))) {
+      if (
+        !(await enforceAdminMutationRateLimit(request, response, requestUrl))
+      ) {
         return;
       }
 
