@@ -1,0 +1,163 @@
+name: Production MySQL Render Readback
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA already deployed by the production MySQL service
+        required: true
+        type: string
+      confirm_readback:
+        description: Type READBACK to authorize the non-destructive least-privilege probe
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-mysql-render-readback
+  cancel-in-progress: false
+
+env:
+  RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990
+  SERVICE_ID: srv-datbsavlot8c73evbhj0
+  SERVICE_NAME: morro-digital-v2-production-mysql
+  EXPECTED_DISK_ID: dsk-datbtpk9v7es7384alk0
+  EXPECTED_DISK_MOUNT: /var/lib/mysql
+  EXPECTED_DISK_SIZE_GB: "10"
+
+jobs:
+  readback:
+    name: production mysql / readback
+    if: github.ref == 'refs/heads/main' && inputs.confirm_readback == 'READBACK'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove exact main source identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$main_sha"
+          test "$main_sha" = "$EXPECTED_SHA"
+
+      - name: Require protected Render credential
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        run: test -n "$RENDER_PRODUCTION_API_KEY"
+
+      - name: Prove live service and disk identity
+        id: service
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          cleanup() { rm -f /tmp/render-mysql-service.json /tmp/render-mysql-deploys.json; }
+          trap cleanup EXIT
+
+          curl --fail-with-body --silent --show-error             --header "$auth"             --header "Accept: application/json"             "$api/services/$SERVICE_ID" > /tmp/render-mysql-service.json
+
+          jq -e             --arg service "$SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == env.SERVICE_ID and
+             .name == $service and
+             .type == "private_service" and
+             .branch == "main" and
+             .autoDeploy == "no" and
+             .serviceDetails.runtime == "docker" and
+             .serviceDetails.region == "virginia" and
+             .serviceDetails.disk.id == $disk and
+             .serviceDetails.disk.mountPath == $mount and
+             .serviceDetails.disk.sizeGB == $size and
+             any(.serviceDetails.openPorts[]?; .port == 3306 and .protocol == "TCP")'             /tmp/render-mysql-service.json >/dev/null
+
+          curl --fail-with-body --silent --show-error             --header "$auth"             --header "Accept: application/json"             "$api/services/$SERVICE_ID/deploys?limit=20" > /tmp/render-mysql-deploys.json
+
+          live_deploy_id="$(jq -r --arg sha "$EXPECTED_SHA"             '[.[] | (.deploy // .) | select(.status == "live" and .commit.id == $sha)][0].id // empty'             /tmp/render-mysql-deploys.json)"
+          test -n "$live_deploy_id"
+          echo "live_deploy_id=$live_deploy_id" >> "$GITHUB_OUTPUT"
+          echo "Exact-SHA production MySQL service and persistent disk identity PASS."
+
+      - name: Run least-privilege one-off readback
+        id: readback
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          LIVE_DEPLOY_ID: ${{ steps.service.outputs.live_deploy_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          cleanup() { rm -f /tmp/render-mysql-job-create.json /tmp/render-mysql-job.json; }
+          trap cleanup EXIT
+
+          http_status="$(curl --silent --show-error             --output /tmp/render-mysql-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data '{"startCommand":"/usr/local/bin/morro-mysql-readback"}'             "$api/services/$SERVICE_ID/jobs")"
+          test "$http_status" = "201"
+
+          job_id="$(jq -r '.id // empty' /tmp/render-mysql-job-create.json)"
+          test -n "$job_id"
+
+          status=""
+          for _ in $(seq 1 120); do
+            curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$api/services/$SERVICE_ID/jobs/$job_id" > /tmp/render-mysql-job.json
+            status="$(jq -r '.status // empty' /tmp/render-mysql-job.json)"
+            case "$status" in
+              succeeded)
+                break
+                ;;
+              failed|canceled)
+                jq '{id,status,serviceId,createdAt,startedAt,finishedAt}'                   /tmp/render-mysql-job.json >&2
+                exit 1
+                ;;
+              pending|running)
+                sleep 5
+                ;;
+              *)
+                echo "Unexpected Render one-off job status: $status" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          test "$status" = "succeeded"
+
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$SERVICE_ID"             --arg serviceName "$SERVICE_NAME"             --arg diskId "$EXPECTED_DISK_ID"             --arg liveDeployId "$LIVE_DEPLOY_ID"             --arg jobId "$job_id"             '{
+              contract:"MORRO-PRODUCTION-MYSQL-READBACK-JOB",
+              status:"pass",
+              expectedSha:$expectedSha,
+              serviceId:$serviceId,
+              serviceName:$serviceName,
+              diskId:$diskId,
+              liveDeployId:$liveDeployId,
+              jobId:$jobId,
+              jobStatus:"succeeded"
+            }' > production-mysql-render-readback-evidence.json
+
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+          cat production-mysql-render-readback-evidence.json
+
+      - name: Upload readback evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-mysql-render-readback-${{ github.run_id }}
+          path: production-mysql-render-readback-evidence.json
+          if-no-files-found: error
+          retention-days: 30
