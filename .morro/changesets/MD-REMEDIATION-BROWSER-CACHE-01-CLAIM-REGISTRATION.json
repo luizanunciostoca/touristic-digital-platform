@@ -24,9 +24,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-REMEDIATION-CI-SCHEDULER"
-  ],
+  "dependencies": ["MD-REMEDIATION-CI-SCHEDULER"],
   "requiredEvidence": [
     "format",
     "secrets",
