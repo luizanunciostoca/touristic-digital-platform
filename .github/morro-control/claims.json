@@ -17,9 +17,7 @@
         "tooling/fabric/control-plane-governance.mjs",
         "tooling/fabric/control-plane-governance.test.mjs"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -37,9 +35,7 @@
         ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
         ".morro/changesets/MD-REMEDIATION-PROOF-INPUT.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -49,12 +45,8 @@
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/remediation-claim-gc-20260928",
       "baseSha": "5169db0fddd568e80b337a702b71279b51237e45",
-      "paths": [
-        ".morro/changesets/MD-REMEDIATION-CLAIM-GC.json"
-      ],
-      "domains": [
-        "ci-governance"
-      ],
+      "paths": [".morro/changesets/MD-REMEDIATION-CLAIM-GC.json"],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
@@ -67,9 +59,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5-CLAIM-REGISTRATION.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -90,9 +80,7 @@
         ".github/workflows/morro-runtime-startup-performance.yml",
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -105,9 +93,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH6-CLAIM-REGISTRATION.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T23:59:59Z"
@@ -128,9 +114,7 @@
         ".github/workflows/pwa-offline-browser-contract.yml",
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH6.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T23:59:59Z"
