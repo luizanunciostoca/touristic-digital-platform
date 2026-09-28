@@ -1,4 +1,6 @@
 import { spawn } from "node:child_process";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const productionDatabaseDomains = Object.freeze([
   Object.freeze(["AUTH", "AUTH_DATABASE_URL"]),
@@ -110,11 +112,12 @@ export function runWithProductionMysqlEnv({
   });
 }
 
-const invokedDirectly =
-  process.argv[1] &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+function isDirectInvocation() {
+  if (!process.argv[1]) return false;
+  return resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+}
 
-if (invokedDirectly) {
+if (isDirectInvocation()) {
   runWithProductionMysqlEnv()
     .then((code) => {
       process.exitCode = code;
