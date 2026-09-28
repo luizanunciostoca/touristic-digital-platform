@@ -4,6 +4,7 @@ set -eu
 CONTRACT="MORRO-PRODUCTION-MYSQL-READBACK"
 HOST="${MORRO_MYSQL_READBACK_HOST:-morro-digital-v2-production-mysql}"
 PORT="${MORRO_MYSQL_READBACK_PORT:-3306}"
+MODE="${MORRO_READBACK_MODE:-full}"
 DOMAINS="AUTH AUDIT DESTINATIONS CONTENT BUSINESS ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE"
 
 fail() {
@@ -34,6 +35,11 @@ validate_sha() {
   esac
 }
 
+phase_pass() {
+  printf 'readback-phase:%s=pass\n' "$1"
+  exit 0
+}
+
 query() {
   user="$1"
   password="$2"
@@ -51,12 +57,30 @@ query() {
     -e "$sql"
 }
 
+case "$MODE" in
+  full|sha|env|own|matrix) ;;
+  *) fail "INVALID_MODE" ;;
+esac
+
 expected_sha="$(required_env EXPECTED_SHA)"
 render_git_commit="$(required_env RENDER_GIT_COMMIT)"
 validate_sha EXPECTED_SHA "$expected_sha"
 validate_sha RENDER_GIT_COMMIT "$render_git_commit"
 [ "$render_git_commit" = "$expected_sha" ] ||
   fail "RENDER_GIT_COMMIT_MISMATCH"
+
+[ "$MODE" = "sha" ] && phase_pass sha
+
+for domain in $DOMAINS; do
+  database="$(required_env "${domain}_DATABASE_NAME")"
+  user="$(required_env "${domain}_DATABASE_USER")"
+  required_env "${domain}_DATABASE_PASSWORD" >/dev/null
+
+  validate_identifier "${domain}_DATABASE_NAME" "$database"
+  validate_identifier "${domain}_DATABASE_USER" "$user"
+done
+
+[ "$MODE" = "env" ] && phase_pass env
 
 total_tables=0
 owner_count=0
@@ -68,9 +92,6 @@ for domain in $DOMAINS; do
   user="$(required_env "${domain}_DATABASE_USER")"
   password="$(required_env "${domain}_DATABASE_PASSWORD")"
 
-  validate_identifier "${domain}_DATABASE_NAME" "$database"
-  validate_identifier "${domain}_DATABASE_USER" "$user"
-
   observed="$(query "$user" "$password" "$database" "SELECT DATABASE();" 2>/dev/null)" ||
     fail "OWN_SCHEMA_CONNECT_FAILED_$domain"
   [ "$observed" = "$database" ] || fail "OWN_SCHEMA_MISMATCH_$domain"
@@ -81,7 +102,29 @@ for domain in $DOMAINS; do
     ''|*[!0-9]*) fail "TABLE_COUNT_INVALID_$domain" ;;
   esac
 
+  owner_count=$((owner_count + 1))
+  total_tables=$((total_tables + table_count))
+
+  domain_key="$(printf '%s' "$domain" | tr '[:upper:]' '[:lower:]')"
+  if [ -n "$table_counts_json" ]; then
+    table_counts_json="$table_counts_json,"
+  fi
+  table_counts_json="$table_counts_json\"$domain_key\":$table_count"
+
+  if [ "$MODE" = "full" ]; then
+    printf 'readback:%s:database=%s:tables=%s\n' \
+      "$domain" "$database" "$table_count"
+  fi
+done
+
+[ "$owner_count" -eq 13 ] || fail "OWNER_COUNT_INVALID"
+[ "$MODE" = "own" ] && phase_pass own
+
+for domain in $DOMAINS; do
+  user="$(required_env "${domain}_DATABASE_USER")"
+  password="$(required_env "${domain}_DATABASE_PASSWORD")"
   domain_denials=0
+
   for target_domain in $DOMAINS; do
     [ "$target_domain" = "$domain" ] && continue
 
@@ -98,21 +141,13 @@ for domain in $DOMAINS; do
 
   [ "$domain_denials" -eq 12 ] || fail "DOMAIN_DENIAL_COUNT_INVALID_$domain"
 
-  owner_count=$((owner_count + 1))
-  total_tables=$((total_tables + table_count))
-
-  domain_key="$(printf '%s' "$domain" | tr '[:upper:]' '[:lower:]')"
-  if [ -n "$table_counts_json" ]; then
-    table_counts_json="$table_counts_json,"
+  if [ "$MODE" = "full" ]; then
+    printf 'readback:%s:cross_domain_denied=%s\n' "$domain" "$domain_denials"
   fi
-  table_counts_json="$table_counts_json\"$domain_key\":$table_count"
-
-  printf 'readback:%s:database=%s:tables=%s:cross_domain_denied=%s\n' \
-    "$domain" "$database" "$table_count" "$domain_denials"
 done
 
-[ "$owner_count" -eq 13 ] || fail "OWNER_COUNT_INVALID"
 [ "$denied_count" -eq 156 ] || fail "DENIAL_COUNT_INVALID"
+[ "$MODE" = "matrix" ] && phase_pass matrix
 
 printf '{"contract":"%s","status":"pass","expectedSha":"%s","renderGitCommit":"%s","schemaOwners":%s,"crossDomainDenied":%s,"totalTables":%s,"tableCounts":{%s}}\n' \
   "$CONTRACT" \
