@@ -60,7 +60,25 @@ test("canonical bootstrap polling tolerates Render visibility lag", () => {
   assert.match(source, /deploys\?limit=20/u);
   assert.match(source, /if ! api_get/u);
   assert.doesNotMatch(source, /deploys\/\$deploy_id/u);
-  assert.match(source, /if ! curl --fail-with-body --silent --show-error/u);
+
+  const guardedCurlReads = [
+    ...source.matchAll(/if ! curl --fail-with-body --silent --show-error/gu),
+  ].map((match) => source.slice(match.index, match.index + 1_200));
+  assert.equal(guardedCurlReads.length, 2);
+  assert.ok(
+    guardedCurlReads.some((block) =>
+      block.includes(
+        "$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id",
+      ),
+    ),
+  );
+  assert.ok(
+    guardedCurlReads.some(
+      (block) =>
+        block.includes('--data-urlencode "resource=$job_id"') &&
+        block.includes("$api/logs"),
+    ),
+  );
 });
 
 test("production MySQL must remain in Virginia", (t) => {
