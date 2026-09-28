@@ -76,7 +76,9 @@ function envBlock(key) {
 
 function requireDirective(key, directive) {
   const block = envBlock(key);
-  requireText(block, directive, `${key} -> ${directive}`);
+  if (!block.split(/\r?\n/u).some((line) => line.trim() === directive)) {
+    throw new Error(`Missing staging contract: ${key} -> ${directive}`);
+  }
 }
 
 for (const forbidden of [

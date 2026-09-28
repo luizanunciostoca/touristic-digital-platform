@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - render.staging.yaml
+      - tooling/render/reconcile-staging-mysql-domains.mjs
       - docs/deployment/RENDER-STAGING-V2.md
       - docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md
       - tooling/render/mysql-staging/**
@@ -15,6 +16,7 @@ on:
       - tooling/render/payments-provider-acceptance-runner.mjs
       - tooling/render/payments-provider-acceptance-runner.test.mjs
       - tooling/quality/check-render-staging-blueprint.mjs
+      - tooling/quality/render-staging-blueprint.test.mjs
       - package.json
       - .github/workflows/render-staging-blueprint-contract.yml
 
@@ -36,6 +38,8 @@ jobs:
           node-version: 22
       - name: Validate staging Blueprint invariants
         run: node tooling/quality/check-render-staging-blueprint.mjs
+      - name: Reject missing or misbound staging database domains
+        run: node --test tooling/quality/render-staging-blueprint.test.mjs
       - name: Validate staging MySQL URL derivation
         run: node --test tooling/render/with-staging-mysql-env.test.mjs
       - name: Validate bounded staging MySQL readiness wait

@@ -11,7 +11,8 @@
       "tooling/quality/check-render-staging-blueprint.mjs",
       "tooling/quality/render-staging-blueprint.test.mjs",
       ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
-      ".github/morro-control/claims.json"
+      ".github/morro-control/claims.json",
+      ".github/workflows/render-staging-blueprint-contract.yml"
     ],
     "contracts": []
   },
