@@ -10,6 +10,7 @@
       "paths": [
         ".github/morro-control/claims.json",
         ".morro/changesets/MD-PRODUCTION-MYSQL-RENDER.json",
+        ".trivyignore.yaml",
         "render.yaml",
         "package.json",
         "tooling/render/mysql-production/Dockerfile",
