@@ -254,13 +254,10 @@ for (const required of [
   requireText(bootstrapService, required, "bootstrap worker " + required);
 }
 
-for (const directive of [
-  "type: pserv",
-  "name: morro-digital-v2-production-mysql",
-  "property: hostport",
-]) {
-  requireBootstrapDirective("PRODUCTION_MYSQL_HOSTPORT", directive);
-}
+requireBootstrapDirective(
+  "PRODUCTION_MYSQL_HOSTPORT",
+  "value: morro-digital-v2-production-mysql:3306",
+);
 for (const [domain] of domains) {
   for (const suffix of ["NAME", "USER", "PASSWORD"]) {
     const key = "PRODUCTION_" + domain + "_DATABASE_" + suffix;
