@@ -2,6 +2,9 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+export const productionBootstrapServiceName = "morro-digital-v2-production-db-bootstrap";
+export const productionMysqlPrivateHost = "morro-digital-v2-production-mysql";
+
 export const productionDatabaseDomains = Object.freeze([
   Object.freeze(["AUTH", "AUTH_DATABASE_URL"]),
   Object.freeze(["AUDIT", "CONTROL_CENTER_AUDIT_DATABASE_URL"]),
@@ -39,8 +42,12 @@ export function parseProductionMysqlHostPort(environment = process.env) {
     );
   if (!match) throw new Error("PRODUCTION_MYSQL_HOSTPORT_INVALID");
   const port = Number(match.groups.port);
-  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
-    throw new Error("PRODUCTION_MYSQL_HOSTPORT_INVALID");
+  if (
+    match.groups.host !== productionMysqlPrivateHost ||
+    !Number.isSafeInteger(port) ||
+    port !== 3306
+  ) {
+    throw new Error("PRODUCTION_MYSQL_HOSTPORT_UNTRUSTED");
   }
   return Object.freeze({ host: match.groups.host, port });
 }
@@ -70,7 +77,8 @@ function databaseUrl(environment, domain, hostPort) {
 
 export function buildProductionMysqlEnvironment(environment = process.env) {
   if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== "morro-digital-v2"
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
+    productionBootstrapServiceName
   ) {
     throw new Error("PRODUCTION_MYSQL_WRAPPER_SERVICE_DENIED");
   }
