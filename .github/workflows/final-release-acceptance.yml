@@ -139,11 +139,22 @@ jobs:
           }
 
           while IFS=$'\t' read -r workflow reuse_tree_equivalent; do
-            run_id=""
+            run_id="$(gh run list \
+              --workflow "$workflow" \
+              --event workflow_dispatch \
+              --branch "$CANDIDATE_REF" \
+              --commit "$GITHUB_SHA" \
+              --status success \
+              --limit 1 \
+              --json databaseId --jq '.[0].databaseId // empty')"
             mode="dispatch"
             expected_sha="$GITHUB_SHA"
+            if [ -n "$run_id" ]; then
+              mode="reuse"
+              echo "REUSE: $workflow -> exact candidate run $run_id @ $GITHUB_SHA"
+            fi
 
-            if [ "$reuse_tree_equivalent" = "true" ]; then
+            if [ -z "$run_id" ] && [ "$reuse_tree_equivalent" = "true" ]; then
               while IFS=$'\t' read -r candidate_run candidate_sha candidate_event; do
                 [ -n "$candidate_run" ] || continue
                 [ "$candidate_sha" != "$GITHUB_SHA" ] || continue
@@ -395,7 +406,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: final-release-acceptance-evidence-${{ github.run_id }}
+          name: final-release-acceptance-evidence-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             final-release-acceptance-evidence.txt
             final-release-acceptance-runs.tsv

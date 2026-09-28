@@ -71,6 +71,9 @@ impact, even when the latest source change is documentation.
 
 This changes full-suite frequency and removes duplicate orchestration, not the
 coverage of an intentional release. Individual affected PR workflows remain.
+Retries reuse successful suites bound to the same immutable candidate; only
+missing or failed suites are dispatched again. Acceptance evidence includes the
+attempt number, preserving failed-attempt evidence without upload collisions.
 
 ## Impact enforcement, first stage
 
