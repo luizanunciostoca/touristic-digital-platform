@@ -214,6 +214,38 @@ test("human or complementary reviewer cannot replace automated proof authority",
   );
 });
 
+test("worker cannot claim integrator lifecycle authority", () => {
+  const { manifest } = fixture();
+  manifest.state = "MERGE_READY";
+
+  assert.throws(
+    () => validate({ manifest }),
+    /CHANGESET_STATE_AUTHORITY_VIOLATION/u,
+  );
+});
+
+test("integrator may validate merge-ready state but not implementation state", () => {
+  const { manifest } = fixture();
+  manifest.state = "MERGE_READY";
+  assert.equal(validate({ manifest, authority: "INTEGRATOR" }).authority, "INTEGRATOR");
+
+  manifest.state = "IMPLEMENTING";
+  assert.throws(
+    () => validate({ manifest, authority: "INTEGRATOR" }),
+    /CHANGESET_STATE_AUTHORITY_VIOLATION/u,
+  );
+});
+
+test("release lifecycle states are outside Claim Guard write authority", () => {
+  const { manifest } = fixture();
+  manifest.state = "RELEASE_CANDIDATE";
+
+  assert.throws(
+    () => validate({ manifest, authority: "ORCHESTRATOR" }),
+    /CHANGESET_NOT_WRITE_ACTIVE/u,
+  );
+});
+
 test("overlapping live claims are rejected", () => {
   const { registry } = fixture();
   registry.claims["MD-CP-999"] = {
