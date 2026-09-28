@@ -22,18 +22,19 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
     },
-    "MD-REMEDIATION-RELEASE-FOUNDATION": {
-      "owner": "CHATGPT-WORK-RELEASE",
+    "MD-REMEDIATION-DB-BLUEPRINT": {
+      "owner": "CHATGPT-WORK-DATABASE",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/remediation-release-foundation-20260928",
-      "baseSha": "63ba532ae94e9aea73e9a3e1090fe7957972fa5d",
+      "branch": "infra/remediation-db-blueprint-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
       "paths": [
-        "tooling/release/oci-proof.mjs",
-        "tooling/release/oci-proof.test.mjs",
-        "tooling/release/oci-operations.mjs",
-        "tooling/release/oci-operations.test.mjs",
-        "tooling/ci/oci-release-proof.test.mjs",
-        ".morro/changesets/MD-REMEDIATION-RELEASE-FOUNDATION.json"
+        "render.staging.yaml",
+        "tooling/render/mysql-staging/01-init-databases.sh",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
+        ".github/workflows/render-staging-blueprint-contract.yml",
+        "render.yaml"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
@@ -50,6 +51,70 @@
         ".github/workflows/staging-render-promotion.yml",
         "tooling/quality/release-target-governance.test.mjs",
         ".morro/changesets/MD-REMEDIATION-STAGING-RUN-BINDING.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-OBSERVED": {
+      "owner": "CHATGPT-WORK-CONTROL-STATE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-observed-state-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        "tooling/control-state/**",
+        "docs/operations/observed-state.md",
+        ".morro/changesets/MD-REMEDIATION-OBSERVED.json",
+        "tooling/ci/control-state-status.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-SCHEDULER": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-scheduler-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        ".github/actions/ci-bootstrap/**",
+        ".github/workflows/quality.yml",
+        ".github/workflows/ci-impact.yml",
+        "tooling/ci/impact-analyzer.mjs",
+        "tooling/ci/local-fast-gate.mjs",
+        "tooling/ci/local-fast-gate.test.mjs",
+        "tooling/ci/scheduled-suites.json",
+        "tooling/ci/suite-scheduler.mjs",
+        "tooling/ci/suite-scheduler.test.mjs",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/quality/check-ci-governance.mjs",
+        "tooling/quality/ci-scheduler-governance.test.mjs",
+        ".github/workflows/payments-operational-ledger-contract.yml",
+        ".github/workflows/payments-persistence-integration.yml",
+        ".github/workflows/payments-sandbox-provider-contract.yml",
+        ".github/workflows/payments-settlement-contract.yml",
+        ".github/workflows/payments-subscription-recurrence-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-SCHEDULER.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-RELEASE-FOUNDATION": {
+      "owner": "CHATGPT-WORK-RELEASE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-release-foundation-20260928",
+      "baseSha": "63ba532ae94e9aea73e9a3e1090fe7957972fa5d",
+      "paths": [
+        "tooling/release/oci-proof.mjs",
+        "tooling/release/oci-proof.test.mjs",
+        "tooling/release/oci-operations.mjs",
+        "tooling/release/oci-operations.test.mjs",
+        "tooling/ci/oci-release-proof.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-RELEASE-FOUNDATION.json"
       ],
       "domains": ["ci-release"],
       "risk": "P0",

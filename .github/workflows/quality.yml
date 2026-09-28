@@ -2,7 +2,7 @@ name: Quality Gate
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    types: [opened, synchronize, reopened]
   push:
     branches: [main]
   merge_group:
@@ -25,10 +25,10 @@ jobs:
   impact:
     uses: ./.github/workflows/ci-impact.yml
 
-  quality:
+  core-quality:
     needs: impact
     if: always()
-    name: quality
+    name: Core Quality
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -94,7 +94,16 @@ jobs:
       - name: Enforce workflow supply chain
         run: pnpm ci:supply-chain:strict
       - name: Validate CI selection and candidate identity
-        run: node --test tooling/ci/*.test.mjs
+        run: node --test tooling/ci/*.test.mjs tooling/quality/ci-scheduler-governance.test.mjs
+      - name: Validate operational tooling contracts
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from 'node:child_process';
+          const files = execFileSync('git', ['ls-files', '-z', '--', 'tooling/workspace/*.test.mjs', 'tooling/control-state/*.test.mjs'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+          if (files.length) execFileSync(process.execPath, ['--test', ...files], { stdio: 'inherit' });
+          else console.log('No operational tooling contracts are tracked in this candidate.');
+          NODE
       - name: Validate governance contracts
         if: needs.impact.outputs.non_runtime == 'true'
         run: >-
@@ -184,3 +193,63 @@ jobs:
 
           console.log(`Canonical MySQL matrix: ${passed}/${total} PASS`);
           NODE
+
+  suite-payments-operational-ledger-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-operational-ledger-contract.yml')
+    uses: ./.github/workflows/payments-operational-ledger-contract.yml
+
+  suite-payments-persistence-integration:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-persistence-integration.yml')
+    uses: ./.github/workflows/payments-persistence-integration.yml
+
+  suite-payments-sandbox-provider-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-sandbox-provider-contract.yml')
+    uses: ./.github/workflows/payments-sandbox-provider-contract.yml
+
+  suite-payments-settlement-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-settlement-contract.yml')
+    uses: ./.github/workflows/payments-settlement-contract.yml
+
+  suite-payments-subscription-recurrence-contract:
+    needs: impact
+    if: needs.impact.result == 'success' && contains(fromJSON(needs.impact.outputs.scheduled_suites || '[]'), 'payments-subscription-recurrence-contract.yml')
+    uses: ./.github/workflows/payments-subscription-recurrence-contract.yml
+
+  quality:
+    name: quality
+    if: always()
+    needs:
+      - impact
+      - core-quality
+      - suite-payments-operational-ledger-contract
+      - suite-payments-persistence-integration
+      - suite-payments-sandbox-provider-contract
+      - suite-payments-settlement-contract
+      - suite-payments-subscription-recurrence-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          package-manager-cache: false
+      - name: Require every selected suite and core gate to succeed
+        env:
+          CI_SELECTED_SUITES: ${{ needs.impact.outputs.scheduled_suites }}
+          CI_JOB_RESULTS: ${{ toJSON(needs) }}
+        run: node tooling/ci/suite-scheduler.mjs --verify
+
+      - name: Upload exact-source Quality child proof
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ci-quality-${{ github.run_id }}
+          path: ci-quality-proof.json
+          if-no-files-found: error
+          retention-days: 30
