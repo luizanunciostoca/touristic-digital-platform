@@ -45,7 +45,7 @@ registry remains unchanged, so completed merges need no reconciliation PR.
 
 Runtime observation requires matching valid x-release-sha headers from /healthz
 and /readyz, successful HTTP responses, live liveness, ready readiness, a healthy
-overall status and explicit passing checks. HTTP 200 with degraded status is
+overall status and explicit passing checks, including commerce-runtime. HTTP 200 with degraded status is
 unhealthy. Disabled, missing or non-passing checks do not become a green result.
 Observed health is still not release acceptance, artifact provenance, tenant
 isolation proof, or permission to promote.

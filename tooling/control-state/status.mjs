@@ -88,7 +88,7 @@ export function summarizeRuntime(health, ready) {
     ready.httpStatus === 200 &&
     ready.body?.readiness === "ready" &&
     ready.body?.status === "healthy" &&
-    checks.length > 0 &&
+    checks.some((check) => check.name === "commerce-runtime") &&
     checks.length <= 50 &&
     new Set(checks.map((check) => check.name)).size === checks.length &&
     checks.every((check) => check.status === "pass") &&

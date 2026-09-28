@@ -265,7 +265,7 @@ function healthy() {
       body: {
         readiness: "ready",
         status: "healthy",
-        checks: [{ name: "commerce-runtime", status: "pass", critical: true }],
+        checks: [{ name: "commerce-runtime", status: "pass", critical: false }],
       },
       releaseSha: MAIN,
       deploymentId: "dep-safe",
@@ -285,7 +285,7 @@ test("HTTP200 readiness ready plus degraded commerce is not healthy", () => {
   assert.equal(JSON.stringify(result).includes("secret"), false);
 });
 
-test("healthy runtime requires valid matching identities and explicit passing checks", () => {
+test("healthy runtime requires matching identities and explicit commerce checks", () => {
   assert.equal(summarizeRuntime(...healthy()).state, "HEALTHY");
   for (const mutate of [
     (h, r) => {
@@ -293,6 +293,9 @@ test("healthy runtime requires valid matching identities and explicit passing ch
     },
     (h, r) => {
       r.body.checks = [];
+    },
+    (h, r) => {
+      r.body.checks[0].name = "unrelated";
     },
     (h, r) => {
       r.body.checks[0].status = "disabled";

@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-OBSERVED",
   "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-observed-state-20260928",
-  "state": "LOCAL_PROVEN",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
