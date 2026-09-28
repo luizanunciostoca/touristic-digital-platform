@@ -23,6 +23,9 @@ const sha = (value) => (SHA.test(value ?? "") ? value : null);
 export function validateRepository(value) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(value ?? ""))
     throw new Error("REPOSITORY_INVALID");
+  const [owner, name] = value.split("/");
+  if (owner === "." || owner === ".." || name === "." || name === "..")
+    throw new Error("REPOSITORY_INVALID");
   return value;
 }
 
