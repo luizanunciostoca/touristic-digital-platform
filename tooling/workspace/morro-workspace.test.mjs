@@ -235,10 +235,7 @@ test("bootstrap advances local bare main whenever verified remote main advances"
   const next = git(["-C", f.remote, "rev-parse", "HEAD"]);
   const state = bootstrap(next, f);
   assert.equal(state.mainSha, next);
-  assert.equal(
-    git(["--git-dir", bare, "rev-parse", "refs/heads/main"]),
-    next,
-  );
+  assert.equal(git(["--git-dir", bare, "rev-parse", "refs/heads/main"]), next);
   assert.equal(git(["--git-dir", bare, "rev-parse", "HEAD"]), next);
 });
 

@@ -87,8 +87,7 @@ function safeWorktreePath(path, root) {
     !stat ||
     stat.isSymbolicLink() ||
     !stat.isDirectory() ||
-    (absolute !== canonicalRoot &&
-      !absolute.startsWith(canonicalRoot + sep))
+    (absolute !== canonicalRoot && !absolute.startsWith(canonicalRoot + sep))
   )
     return null;
   try {
@@ -127,7 +126,9 @@ function validateBare(config) {
   }
   for (const name of ["alternates", "http-alternates"]) {
     if (pathExists(join(config.bare, "objects", "info", name)))
-      throw new Error("Canonical bare repository must not use object alternates");
+      throw new Error(
+        "Canonical bare repository must not use object alternates",
+      );
   }
 }
 
