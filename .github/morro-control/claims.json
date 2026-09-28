@@ -2,13 +2,227 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
+    "MD-CP-003-GOV": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/control-plane-v3.2-stage-c-governance-20260928",
+      "baseSha": "edc7380c11774d475af2e80ddf75b7b1e53e9046",
+      "paths": [
+        ".github/morro-control/policy.json",
+        ".github/morro-control/claim-schema.json",
+        ".github/pull_request_template.md",
+        "AGENTS.md",
+        ".morro/changesets/MD-CP-003-GOV.json",
+        ".github/workflows/morro-control-plane-governance.yml",
+        "tooling/fabric/control-plane-governance.mjs",
+        "tooling/fabric/control-plane-governance.test.mjs"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:59:59Z"
+    },
+    "MD-REMEDIATION-PROOF-INPUT": {
+      "owner": "CHATGPT-WORK-PROOF-INPUT",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-proof-input-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        "tooling/quality/independent-proof-trusted.mjs",
+        "tooling/quality/independent-proof-trusted.test.mjs",
+        ".github/workflows/morro-agent-profiles-trusted.yml",
+        ".github/workflows/morro-agent-profiles.yml",
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        ".morro/changesets/MD-REMEDIATION-PROOF-INPUT.json"
+      ],
+      "domains": [
+        "ci-release"
+      ],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-CLAIM-GC": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-claim-gc-20260928",
+      "baseSha": "5169db0fddd568e80b337a702b71279b51237e45",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CLAIM-GC.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-29T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH5-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch5-claim-registration-20260928",
+      "baseSha": "7baffe769212b247f776b2df871944e324ef37cf",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5-CLAIM-REGISTRATION.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH5": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch5-20260928",
+      "baseSha": "7baffe769212b247f776b2df871944e324ef37cf",
+      "paths": [
+        ".github/workflows/home-discover-manual-conformance.yml",
+        ".github/workflows/home-first-run-browser-regression.yml",
+        ".github/workflows/map-provider-regression.yml",
+        ".github/workflows/map-tour-browser-regression.yml",
+        ".github/workflows/mapbox-visual-contract-regression.yml",
+        ".github/workflows/morro-performance-budget.yml",
+        ".github/workflows/morro-pro-business-management-contract.yml",
+        ".github/workflows/morro-runtime-startup-performance.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5.json"
+      ],
+      "domains": [
+        "ci-release"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH6-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch6-claim-registration-20260928",
+      "baseSha": "da6ecb04ca446e462af5cf42b110e6cbf6eb02d0",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH6-CLAIM-REGISTRATION.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH6": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch6-20260928",
+      "baseSha": "da6ecb04ca446e462af5cf42b110e6cbf6eb02d0",
+      "paths": [
+        ".github/workflows/navigation-accessibility-baseline.yml",
+        ".github/workflows/navigation-end-main-menu-v1-parity.yml",
+        ".github/workflows/navigation-turn-by-turn-parity.yml",
+        ".github/workflows/navigation-visual-baseline.yml",
+        ".github/workflows/payments-browser-checkout-contract.yml",
+        ".github/workflows/place-explore-v2-visual-regression.yml",
+        ".github/workflows/profile-v2-visual-regression.yml",
+        ".github/workflows/pwa-offline-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH6.json"
+      ],
+      "domains": [
+        "ci-release"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH7-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch7-claim-registration-20260928",
+      "baseSha": "ccaac32255ad1b007a14fd2ef91f12559b818172",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH7-CLAIM-REGISTRATION.json",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH7.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH7": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch7-20260928",
+      "baseSha": "ccaac32255ad1b007a14fd2ef91f12559b818172",
+      "paths": [
+        ".github/workflows/search-browser-contract.yml",
+        ".github/workflows/shell-v1-i18n-browser-parity.yml",
+        ".github/workflows/ticketing-v2-visual-regression.yml",
+        ".github/workflows/tour-booking-browser-regression.yml",
+        ".github/workflows/ux-v2-component-state-visual-regression.yml",
+        ".github/workflows/ux-v2-wave-g-design-system-regression.yml",
+        ".github/workflows/v1-assistant-single-message-poi-markers.yml",
+        ".github/workflows/v1-explore-locations-browser-regression.yml"
+      ],
+      "domains": [
+        "ci-release"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH8-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch8-claim-registration-20260928",
+      "baseSha": "eb4cb9d3ab6cca719f555a40f02c08373dfbec86",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH8-CLAIM-REGISTRATION.json",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH8.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-08T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH8": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch8-20260928",
+      "baseSha": "eb4cb9d3ab6cca719f555a40f02c08373dfbec86",
+      "paths": [
+        ".github/workflows/control-center-content-contract.yml",
+        ".github/workflows/v1-home-parity-browser-regression.yml",
+        ".github/workflows/v1-home-responsive-browser-regression.yml",
+        ".github/workflows/v1-tour-assistant-visibility-browser-regression.yml",
+        ".github/workflows/v1-tour-responsive-browser-regression.yml",
+        ".github/workflows/weather-v1-i18n-browser-parity.yml"
+      ],
+      "domains": [
+        "ci-release"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-08T23:59:59Z"
+    },
     "MD-REMEDIATION-FINAL-CLAIM-GC": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/remediation-final-claim-gc-20260928",
       "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
-      "paths": [".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"],
-      "domains": ["ci-governance"],
+      "paths": [
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
