@@ -377,7 +377,7 @@ export async function runOperation(
       ctx.identity.digest,
       "OCI_SMOKE_DIGEST_MISMATCH",
     );
-    proveBuild(ctx);
+    (dependencies.proveBuild ?? proveBuild)(ctx);
     const workflowRunId = normalizeRunId(
       env.GITHUB_RUN_ID,
       "PROMOTION_RUN_ID_INVALID",
