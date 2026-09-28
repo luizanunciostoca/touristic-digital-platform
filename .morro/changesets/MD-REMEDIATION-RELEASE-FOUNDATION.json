@@ -8,9 +8,6 @@
     "paths": [
       "tooling/release/oci-proof.mjs",
       "tooling/release/oci-proof.test.mjs",
-      "tooling/release/oci-operations.mjs",
-      "tooling/release/oci-operations.test.mjs",
-      "tooling/ci/oci-release-proof.test.mjs",
       ".morro/changesets/MD-REMEDIATION-RELEASE-FOUNDATION.json",
       ".github/morro-control/claims.json"
     ],
@@ -29,7 +26,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-REMEDIATION-GUARD"],
+  "dependencies": [
+    "MD-REMEDIATION-GUARD"
+  ],
   "requiredEvidence": [
     "full-quality",
     "domain-invariants",
