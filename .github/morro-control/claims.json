@@ -38,6 +38,23 @@
       "risk": "P0",
       "status": "REMOTE_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-OBSERVED": {
+      "owner": "CHATGPT-WORK-CONTROL-STATE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-observed-state-20260928",
+      "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+      "paths": [
+        "tooling/control-state/**",
+        "docs/operations/observed-state.md",
+        "tooling/fabric/claim-guard.mjs",
+        "tooling/fabric/claim-guard.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-OBSERVED.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }
