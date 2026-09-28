@@ -6,9 +6,14 @@ on:
     paths:
       - ".github/hooks/**"
       - ".github/workflows/morro-claim-guard.yml"
+      - ".github/workflows/morro-claim-guard-trusted.yml"
+      - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       - ".github/morro-control/claims.json"
       - ".morro/changesets/MD-CP-003-HOOKS.json"
       - ".morro/changesets/MD-CP-003-TRUST.json"
+      - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
+      - "tooling/fabric/claim-guard.mjs"
+      - "tooling/fabric/claim-guard.test.mjs"
   merge_group:
 
 permissions:

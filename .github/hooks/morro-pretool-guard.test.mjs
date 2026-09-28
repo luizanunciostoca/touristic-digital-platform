@@ -73,6 +73,11 @@ test("normalize repository-relative path and reject traversal or symlink escape"
   mkdirSync(outside, { recursive: true });
   writeFileSync(owned, "fixture\n");
   symlinkSync(outside, resolve(root, "escape"), "dir");
+  symlinkSync(
+    resolve(outside, "missing-dir"),
+    resolve(root, "dangling"),
+    "dir",
+  );
 
   try {
     assert.equal(
@@ -85,7 +90,11 @@ test("normalize repository-relative path and reject traversal or symlink escape"
     );
     assert.throws(
       () => normalizeRepoPath(root, root, "escape/new-file.txt"),
-      /HOOK_PATH_OUTSIDE_REPOSITORY/u,
+      /HOOK_PATH_SYMLINK_COMPONENT_FORBIDDEN/u,
+    );
+    assert.throws(
+      () => normalizeRepoPath(root, root, "dangling/new-file.txt"),
+      /HOOK_PATH_SYMLINK_COMPONENT_FORBIDDEN/u,
     );
   } finally {
     rmSync(parent, { recursive: true, force: true });
@@ -119,6 +128,22 @@ test("force push and direct-main push fail closed", () => {
     ),
     "FORCE_PUSH_FORBIDDEN",
   );
+});
+
+test("unsupported shell composition fails closed", () => {
+  for (const command of [
+    "git status | git push origin main",
+    "echo $(git push origin main)",
+    "echo `git push origin main`",
+    "cat <(git status)",
+    "(git push origin main)",
+    "git status & git push origin main",
+  ]) {
+    assert.equal(
+      classifyBashCommand(command, "feature"),
+      "UNSUPPORTED_SHELL_COMPOSITION_FORBIDDEN",
+    );
+  }
 });
 
 test("merge and destructive shell write bypasses are denied", () => {

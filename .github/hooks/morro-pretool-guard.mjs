@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, realpathSync, readdirSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  readFileSync,
+  realpathSync,
+  readdirSync,
+} from "node:fs";
 import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateClaimContext } from "../../tooling/fabric/claim-guard.mjs";
@@ -84,8 +90,26 @@ export function extractToolPaths(toolArgs) {
 
 function assertRealPathContained(root, absolutePath) {
   const rootReal = realpathSync(root);
-  let existing = absolutePath;
+  const lexicalRelative = relative(rootReal, absolutePath);
+  const segments = lexicalRelative.split(sep).filter(Boolean);
+  let cursor = rootReal;
 
+  for (const segment of segments) {
+    cursor = resolve(cursor, segment);
+    try {
+      const stat = lstatSync(cursor);
+      assert.equal(
+        stat.isSymbolicLink(),
+        false,
+        "HOOK_PATH_SYMLINK_COMPONENT_FORBIDDEN",
+      );
+    } catch (cause) {
+      if (cause && typeof cause === "object" && cause.code === "ENOENT") break;
+      throw cause;
+    }
+  }
+
+  let existing = absolutePath;
   while (!existsSync(existing)) {
     const parent = dirname(existing);
     assert.notEqual(
@@ -211,9 +235,24 @@ function targetsMain(args) {
   );
 }
 
+function hasUnsupportedShellComposition(command) {
+  return (
+    /(^|[^|])\|(?!\|)/u.test(command) ||
+    /(^|[^&])&(?!&)/u.test(command) ||
+    /\$\(/u.test(command) ||
+    /`/u.test(command) ||
+    /[<>]\(/u.test(command) ||
+    /(^|[\s;])\(\s*git\b/iu.test(command)
+  );
+}
+
 export function classifyBashCommand(command, branch) {
   if (typeof command !== "string" || !command.trim()) {
     return "BASH_COMMAND_MISSING";
+  }
+
+  if (hasUnsupportedShellComposition(command)) {
+    return "UNSUPPORTED_SHELL_COMPOSITION_FORBIDDEN";
   }
 
   const gitInvocations = parseGitInvocations(command);
