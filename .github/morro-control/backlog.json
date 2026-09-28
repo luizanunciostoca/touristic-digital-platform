@@ -44,10 +44,10 @@
       "title": "Etapa B3 — Copilot custom agents",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "REMOTE_PROVEN",
+      "state": "INTEGRATION_READY",
       "implementation": "COMPLETE",
-      "integration": "PARTIAL",
-      "proof": "MISSING",
+      "integration": "COMPLETE",
+      "proof": "PROOF_ACCEPTED",
       "dependencies": ["MD-CP-002B"],
       "risk": "HIGH"
     },
