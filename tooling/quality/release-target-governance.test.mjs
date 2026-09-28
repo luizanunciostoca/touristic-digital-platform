@@ -261,6 +261,90 @@ test("Final Release Acceptance binds staging evidence to the exact dispatch requ
   assert.ok(staging.includes("default: manual"));
 });
 
+test("Final Release Acceptance ignores a stale same-SHA staging run until the correlated dispatch is indexed", async () => {
+  const source = await readFile(
+    resolve(workflowsDir, "final-release-acceptance.yml"),
+    "utf8",
+  );
+  const script = source
+    .split("- name: Dispatch exact-SHA staging promotion")[1]
+    .split("run: |\n")[1]
+    .split("\n      - name: Wait for exact-SHA staging promotion")[0]
+    .replace(/^          /gm, "");
+  const fixture = await mkdtemp(join(tmpdir(), "morro-staging-run-binding-"));
+  const output = join(fixture, "github-output");
+  const calls = join(fixture, "run-list-calls");
+  const dispatchArgs = join(fixture, "dispatch-args");
+  const sha = "1234567890abcdef1234567890abcdef12345678";
+
+  try {
+    await writeFile(output, "");
+    execFileSync(
+      "bash",
+      [
+        "-euo",
+        "pipefail",
+        "-c",
+        `
+gh() {
+  if [ "$1 $2" = "workflow run" ]; then
+    printf "%s\\n" "$*" > "$DISPATCH_ARGS"
+    return 0
+  fi
+
+  if [ "$1 $2" = "run list" ]; then
+    count=0
+    if [ -f "$RUN_LIST_CALLS" ]; then
+      count="$(cat "$RUN_LIST_CALLS")"
+    fi
+    count=$((count + 1))
+    printf "%s" "$count" > "$RUN_LIST_CALLS"
+
+    stale_title="staging-render-promotion:final-acceptance-old-1:$GITHUB_SHA"
+    current_title="staging-render-promotion:final-acceptance-900-2:$GITHUB_SHA"
+    if [ "$count" -lt 3 ]; then
+      printf '%s\\n' "[{\\\"databaseId\\\":111,\\\"headSha\\\":\\\"$GITHUB_SHA\\\",\\\"displayTitle\\\":\\\"$stale_title\\\",\\\"createdAt\\\":\\\"2026-09-28T08:00:00Z\\\"}]"
+    else
+      printf '%s\\n' "[{\\\"databaseId\\\":222,\\\"headSha\\\":\\\"$GITHUB_SHA\\\",\\\"displayTitle\\\":\\\"$current_title\\\",\\\"createdAt\\\":\\\"2026-09-28T09:00:00Z\\\"},{\\\"databaseId\\\":111,\\\"headSha\\\":\\\"$GITHUB_SHA\\\",\\\"displayTitle\\\":\\\"$stale_title\\\",\\\"createdAt\\\":\\\"2026-09-28T08:00:00Z\\\"}]"
+    fi
+    return 0
+  fi
+
+  command gh "$@"
+}
+sleep() { :; }
+${script}
+        `,
+      ],
+      {
+        env: {
+          ...process.env,
+          CANDIDATE_REF: `rc/${sha}`,
+          DISPATCH_ARGS: dispatchArgs,
+          GITHUB_OUTPUT: output,
+          GITHUB_RUN_ATTEMPT: "2",
+          GITHUB_RUN_ID: "900",
+          GITHUB_SHA: sha,
+          RUN_LIST_CALLS: calls,
+        },
+        stdio: "pipe",
+      },
+    );
+
+    const result = await readFile(output, "utf8");
+    assert.match(result, /^request_id=final-acceptance-900-2$/m);
+    assert.match(result, /^run_id=222$/m);
+    assert.equal(await readFile(calls, "utf8"), "3");
+    assert.match(
+      await readFile(dispatchArgs, "utf8"),
+      /-f request_id=final-acceptance-900-2/,
+    );
+    assert.doesNotMatch(result, /^run_id=111$/m);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
+
 test("active workflows cannot resurrect legacy staging targets or generic Render deploy secrets", async () => {
   const workflows = await workflowSources();
   const legacyOnly = [
