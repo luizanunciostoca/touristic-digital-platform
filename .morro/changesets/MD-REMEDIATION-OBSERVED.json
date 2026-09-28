@@ -1,6 +1,6 @@
 {
   "id": "MD-REMEDIATION-OBSERVED",
-  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-observed-state-20260928",
   "state": "LOCAL_PROVEN",
   "risk": "high",
@@ -27,7 +27,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-REMEDIATION-GUARD"],
+  "dependencies": ["MD-REMEDIATION-GUARD", "MD-REMEDIATION-GUARD-HARDENING"],
   "requiredEvidence": [
     "format",
     "secrets",

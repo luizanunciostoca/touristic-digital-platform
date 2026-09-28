@@ -61,19 +61,12 @@ into a concrete next investigation. Claimed owners are not represented as runnin
 processes. Use API observations to select the next investigation, then apply
 existing ownership, proof and deployment gates.
 
-Registry maintenance is serialized by the orchestrator. A combined implementation
-PR may include an explicit registry path in its ChangeSet manifest without
-assigning that shared registry to a worker claim. Claim Guard allows this exact
-path only with ORCHESTRATOR authority and explicit manifest ownership; all
-remaining worker paths, live collisions, lifecycle, expiry and exact-head checks
-still apply. WORKER and INTEGRATOR cannot use this exception.
-
-The prerequisite guard change preserves the hardening from PR #464
-(head 73a2ae0d893fd7b91edaf2cbbf31c02d384045de): source expiry,
-reconciliation identity and path ownership checks. Trusted workflow handoff supplies EXPECTED_BRANCH and MANIFEST_PATH to bind
-that recovery to the reconciliation manifest. The existing Quality CI selection
-contract step runs the observed-state tests on Node 22.
+Registry maintenance remains serialized by the orchestrator under the existing
+Claim Guard. This command never changes claims or supplies write authorization.
+The Claim Guard prerequisite is already merged; this CLI does not modify its
+implementation or trusted workflows. The existing Quality CI selection contract
+step includes the observed-state tests on Node 22.
 
 ```bash
-node --test tooling/ci/control-state-status.test.mjs tooling/fabric/claim-guard.test.mjs
+node --test tooling/ci/control-state-status.test.mjs
 ```
