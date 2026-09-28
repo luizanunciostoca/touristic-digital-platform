@@ -25,25 +25,18 @@
     "MD-REMEDIATION-CI": {
       "owner": "CHATGPT-WORK-REMEDIATION",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/engineering-remediation-candidate-bootstrap-20260928",
-      "baseSha": "2f5c1fcf42b9b300aecc650a12ba57fada007f0f",
+      "branch": "fix/remediation-pages-repository-context-20260928",
+      "baseSha": "e12d997edabe308297c3b6083a609af1710aa99b",
       "paths": [
         ".github/morro-control/claims.json",
         ".morro/changesets/MD-REMEDIATION-CI.json",
-        ".github/workflows/final-release-acceptance.yml",
-        "tooling/ci/release-candidate.mjs",
-        "tooling/ci/release-candidate.test.mjs",
-        "docs/operations/engineering-remediation.md",
-        ".github/workflows/control-center-final-qualification.yml",
-        ".github/workflows/merge-queue-full-regression.yml",
-        ".github/workflows/ci-impact.yml",
-        "tooling/ci/release-acceptance-manifest.json",
-        "tooling/quality/check-ci-governance.mjs",
-        "tooling/quality/release-target-governance.test.mjs"
+        ".github/workflows/pages-after-final-acceptance.yml",
+        "tooling/quality/release-target-governance.test.mjs",
+        "docs/operations/engineering-remediation.md"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
-      "status": "REMOTE_PROVEN",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
     }
   }

@@ -90,7 +90,7 @@ jobs:
           test "$candidate_sha" = "$CERTIFIED_SHA"
           ancestry="$(gh api "repos/$GITHUB_REPOSITORY/compare/$CERTIFIED_SHA...main" --jq '.status')"
           [[ "$ancestry" == identical || "$ancestry" == ahead ]]
-          latest_accepted_sha="$(gh run list --workflow final-release-acceptance.yml \
+          latest_accepted_sha="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow final-release-acceptance.yml \
             --branch main --event workflow_dispatch --status success --limit 1 \
             --json headSha --jq '.[0].headSha')"
           test "$latest_accepted_sha" = "$CERTIFIED_SHA"

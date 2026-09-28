@@ -95,6 +95,27 @@ financial changes, nested migrations and an explicit full release override.
 
 ## Rollback and remaining boundaries
 
+### First consolidated candidate proof and Pages correction
+
+PR #467 merged as `e12d997edabe308297c3b6083a609af1710aa99b`.
+Acceptance run `36383480413` passed all 60 unique suites on that exact candidate;
+staging promotion `36384777261` passed and Render deployment
+`dep-dat081ojo6nc73dnoqg0` became live on the same SHA. Acceptance took 21m33s,
+including queue contention from 93 workflows triggered by Dependabot PR #220.
+This is an observed duration, not a controlled before/after speed comparison.
+
+The following Pages run `36385081934` built its certified artifact but failed
+before deployment: its checkout-free deploy job used `gh run list` without an
+explicit repository. The command now binds `--repo` to `GITHUB_REPOSITORY`.
+A regression test executes the actual promotion shell outside a Git checkout
+and also rejects a newer accepted candidate or a moved candidate tag.
+
+Passing acceptance does not mean every product domain is healthy. Direct probes
+still found unavailable Commerce in staging and denied Business database access
+in production. The earlier staging pre-deploy failure coincided with a MySQL
+restart at 99.2% of its 512 MiB memory limit; the new pre-deploy passed all 11
+steps. Memory pressure remains a capacity risk, not a proven permanent fix.
+
 Revert the remediation merge through a reviewed PR to restore the previous CI
 contract. Keep candidate tags and their evidence; do not retag published sources.
 The tag ruleset can be disabled separately by a repository administrator if the
