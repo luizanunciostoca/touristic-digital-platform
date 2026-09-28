@@ -10,7 +10,13 @@
       ".github/workflows/morro-agent-profile-trust-bootstrap.yml",
       "tooling/quality/agent-profile-contract-trusted.mjs",
       "tooling/quality/agent-profile-contract-trusted.test.mjs",
-      ".morro/changesets/MD-CP-002C-TRUST.json"
+      ".morro/changesets/MD-CP-002C-TRUST.json",
+      ".github/workflows/morro-independent-proof-trusted.yml",
+      "tooling/quality/independent-proof-trusted.mjs",
+      "tooling/quality/independent-proof-trusted.test.mjs",
+      ".github/morro-control/policy.json",
+      ".github/pull_request_template.md",
+      "AGENTS.md"
     ],
     "contracts": []
   },
@@ -27,7 +33,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-002B"],
+  "dependencies": [
+    "MD-CP-002B"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -38,7 +46,9 @@
     "integration",
     "exact-head-identity",
     "tree-sha",
-    "copilot-review"
+    "trusted-validator-bootstrap",
+    "automated-independent-proof-bootstrap",
+    "owner-authorized-governance-change"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
