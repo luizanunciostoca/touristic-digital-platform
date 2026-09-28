@@ -8,10 +8,6 @@ const SHA = /^[0-9a-f]{40}$/u;
 const CLAIM_ID = /^MD-[A-Z0-9-]+$/u;
 const RETIREMENT_REASONS = new Set(["MERGED_PR", "EXPIRED", "ORPHANED"]);
 
-function stable(value) {
-  return JSON.stringify(value, Object.keys(value ?? {}).sort());
-}
-
 function assertRegistry(registry, code) {
   assert.equal(registry?.registryAuthority, "ORCHESTRATOR", code);
   assert.ok(
