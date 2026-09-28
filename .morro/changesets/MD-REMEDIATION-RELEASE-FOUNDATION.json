@@ -1,6 +1,6 @@
 {
   "id": "MD-REMEDIATION-RELEASE-FOUNDATION",
-  "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+  "baseSha": "63ba532ae94e9aea73e9a3e1090fe7957972fa5d",
   "branch": "infra/remediation-release-foundation-20260928",
   "state": "IMPLEMENTING",
   "risk": "critical",
