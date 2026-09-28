@@ -270,8 +270,12 @@ async function observe(ctx, env, wait = true) {
   throw new Error("RENDER_DEPLOY_TIMEOUT");
 }
 
-async function main(command, env = process.env) {
-  const ctx = context(env);
+export async function runOperation(
+  command,
+  env = process.env,
+  dependencies = {},
+) {
+  const ctx = (dependencies.context ?? context)(env);
   if (command === "build-proof") return proveBuild(ctx);
   if (command === "preflight") {
     assert.equal(
@@ -280,15 +284,18 @@ async function main(command, env = process.env) {
       "DEPLOY_CONTROLLER_REF_INVALID",
     );
     assert.equal(env.CONFIRM_DEPLOY, "DEPLOY", "DEPLOY_CONFIRMATION_REQUIRED");
-    const target = await proveImageTarget({
+    const target = await (dependencies.proveImageTarget ?? proveImageTarget)({
       environment: env.DEPLOY_ENVIRONMENT,
       image: ctx.identity.image,
       apiKey: env.RENDER_API_KEY,
       hook: env.DEPLOY_HOOK,
     });
-    proveBuild(ctx);
+    await (dependencies.proveBuild ?? proveBuild)(ctx);
     if (env.DEPLOY_ENVIRONMENT === "production")
-      await proveProductionPrerequisites(ctx, env);
+      await (
+        dependencies.proveProductionPrerequisites ??
+        proveProductionPrerequisites
+      )(ctx, env);
     return { ...target, ...ctx.identity, result: "PASS" };
   }
   if (command === "trigger") {
@@ -299,7 +306,10 @@ async function main(command, env = process.env) {
     );
     assert.equal(env.CONFIRM_DEPLOY, "DEPLOY", "DEPLOY_CONFIRMATION_REQUIRED");
     assert.ok(env.GITHUB_OUTPUT, "GITHUB_OUTPUT_REQUIRED");
-    const deployId = await triggerImageDeploy({
+    await runOperation("preflight", env, dependencies);
+    const deployId = await (
+      dependencies.triggerImageDeploy ?? triggerImageDeploy
+    )({
       environment: env.DEPLOY_ENVIRONMENT,
       identity: ctx.identity,
       apiKey: env.RENDER_API_KEY,
@@ -351,7 +361,7 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  main(process.argv[2])
+  runOperation(process.argv[2])
     .then((result) => console.log(JSON.stringify(result)))
     .catch((error) => {
       // Never expose raw HTTP bodies, deploy hook URLs, credentials or exec stderr.

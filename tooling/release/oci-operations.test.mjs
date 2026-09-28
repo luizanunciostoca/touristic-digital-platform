@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { targets, verifyImageService } from "./oci-proof.mjs";
 import {
   proveImageTarget,
   renderRequest,
+  runOperation,
   triggerImageDeploy,
 } from "./oci-operations.mjs";
 
@@ -143,4 +147,63 @@ test("wrong service hook cannot invoke the provider", async () => {
     /TARGET_MISMATCH/,
   );
   assert.equal(calls, 0);
+});
+
+test("direct trigger enforces the entire proof chain before the deployment effect", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "oci-boundary-"));
+  try {
+    for (const failure of [
+      ["build", "BUILD_RUN_ID_INVALID"],
+      ["build", "WORKFLOW_NOT_SUCCESSFUL"],
+      ["production", "PROMOTION_RUN_ID_INVALID"],
+      ["production", "PROMOTION_digest_MISMATCH"],
+      ["production", "WORKFLOW_NOT_SUCCESSFUL"],
+      null,
+    ]) {
+      const calls = [];
+      const check = (stage) => {
+        calls.push(stage);
+        if (failure?.[0] === stage) throw new Error(failure[1]);
+      };
+      const dependencies = {
+        context: () => ({ identity, buildRunId: "10" }),
+        proveImageTarget: async () => {
+          check("target");
+          return targets.production;
+        },
+        proveBuild: () => check("build"),
+        proveProductionPrerequisites: async () => check("production"),
+        triggerImageDeploy: async () => {
+          check("POST");
+          return "dep-test";
+        },
+      };
+      const env = {
+        GITHUB_REF: "refs/heads/main",
+        CONFIRM_DEPLOY: "DEPLOY",
+        GITHUB_OUTPUT: join(directory, "output"),
+        DEPLOY_ENVIRONMENT: "production",
+      };
+      if (failure) {
+        await assert.rejects(
+          runOperation("trigger", env, dependencies),
+          new RegExp(failure[1]),
+        );
+        assert.ok(!calls.includes("POST"));
+        assert.deepEqual(
+          calls,
+          failure[0] === "build"
+            ? ["target", "build"]
+            : ["target", "build", "production"],
+        );
+      } else {
+        assert.deepEqual(await runOperation("trigger", env, dependencies), {
+          deployId: "dep-test",
+        });
+        assert.deepEqual(calls, ["target", "build", "production", "POST"]);
+      }
+    }
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
