@@ -265,9 +265,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          expected_title="staging-render-promotion:$request_id:$GITHUB_SHA"
+
           gh workflow run staging-render-promotion.yml \
             --ref "$CANDIDATE_REF" \
             -f expected_sha="$GITHUB_SHA" \
+            -f request_id="$request_id" \
             -f confirm_staging=DEPLOY
 
           run_id=""
@@ -278,8 +282,9 @@ jobs:
                 --event workflow_dispatch \
                 --branch "$CANDIDATE_REF" \
                 --limit 20 \
-                --json databaseId,headSha,createdAt \
-              | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+                --json databaseId,headSha,displayTitle,createdAt \
+              | jq -r --arg sha "$GITHUB_SHA" --arg title "$expected_title" \
+                  '[.[] | select(.headSha == $sha and .displayTitle == $title)][0].databaseId // empty'
             )"
             if [ -n "$run_id" ]; then
               break
@@ -293,7 +298,8 @@ jobs:
           fi
 
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-          echo "Staging promotion dispatched: run $run_id for $GITHUB_SHA"
+          echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
+          echo "Staging promotion dispatched: run $run_id request $request_id for $GITHUB_SHA"
 
       - name: Wait for exact-SHA staging promotion
         shell: bash

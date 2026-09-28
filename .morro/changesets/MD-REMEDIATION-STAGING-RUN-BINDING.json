@@ -1,0 +1,39 @@
+{
+  "id": "MD-REMEDIATION-STAGING-RUN-BINDING",
+  "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+  "branch": "infra/remediation-staging-run-binding-20260928",
+  "state": "REMOTE_PROVEN",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/workflows/final-release-acceptance.yml",
+      ".github/workflows/staging-render-promotion.yml",
+      "tooling/quality/release-target-governance.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-STAGING-RUN-BINDING.json",
+      ".github/morro-control/claims.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-REMEDIATION-CI"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
