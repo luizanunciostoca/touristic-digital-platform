@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "changeSetId": "MD-REMEDIATION-FINAL-CLAIM-GC",
+  "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
+  "retirements": [
+    {
+      "id": "MD-REMEDIATION-CLAIM-GC",
+      "reason": "MERGED_PR",
+      "prNumber": 492,
+      "mergeSha": "6ba7c8d5d84e9cb7ee1ed889fc95f82b7cb86570"
+    },
+    {
+      "id": "MD-REMEDIATION-PROOF-INPUT",
+      "reason": "MERGED_PR",
+      "prNumber": 494,
+      "mergeSha": "7baffe769212b247f776b2df871944e324ef37cf"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH5-CLAIM-REGISTRATION",
+      "reason": "MERGED_PR",
+      "prNumber": 495,
+      "mergeSha": "c313d392539416956eab06cd14f66b4bba0f7914"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH5",
+      "reason": "MERGED_PR",
+      "prNumber": 496,
+      "mergeSha": "da6ecb04ca446e462af5cf42b110e6cbf6eb02d0"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH6-CLAIM-REGISTRATION",
+      "reason": "MERGED_PR",
+      "prNumber": 497,
+      "mergeSha": "ce073b8ae9a7b0ae0964590ec25c150562f5c877"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH6",
+      "reason": "MERGED_PR",
+      "prNumber": 498,
+      "mergeSha": "ccaac32255ad1b007a14fd2ef91f12559b818172"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH7-CLAIM-REGISTRATION",
+      "reason": "MERGED_PR",
+      "prNumber": 499,
+      "mergeSha": "dbe501ab8d36f5a080f1713473e890fd45f830e8"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH7",
+      "reason": "MERGED_PR",
+      "prNumber": 500,
+      "mergeSha": "eb4cb9d3ab6cca719f555a40f02c08373dfbec86"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH8-CLAIM-REGISTRATION",
+      "reason": "MERGED_PR",
+      "prNumber": 501,
+      "mergeSha": "864dfce7a216620d3e85070280ded60f66aba2c2"
+    },
+    {
+      "id": "MD-REMEDIATION-CI-BROWSER-BATCH8",
+      "reason": "MERGED_PR",
+      "prNumber": 502,
+      "mergeSha": "aff8dd42d28c358b598ec49449f678d9ed62582c"
+    }
+  ]
+}
