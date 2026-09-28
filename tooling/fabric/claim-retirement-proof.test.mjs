@@ -137,6 +137,8 @@ test("merged claim retirement requires canonical ancestor proof", () => {
     prNumber: 123,
     mergeSha: MERGE,
     mergeShaAncestorOfBase: true,
+    claimBaseAncestorOfMerge: true,
+    historicalManifestMatches: true,
   };
   assert.equal(
     validateClaimRetirements({
