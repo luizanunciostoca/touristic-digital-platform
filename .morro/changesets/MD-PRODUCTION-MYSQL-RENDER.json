@@ -25,6 +25,7 @@
       "apps/morro-digital-platform/tooling/production-database-predeploy.mjs",
       "apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs",
       "apps/morro-digital-platform/vitest.config.mjs",
+      "turbo.json",
       ".github/workflows/production-mysql-canonical-bootstrap.yml",
       "tooling/quality/check-release-readiness.mjs"
     ],
