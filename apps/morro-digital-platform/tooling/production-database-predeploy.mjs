@@ -672,9 +672,14 @@ export async function runProductionDatabasePredeploy({
   const identity = sourceIdentity(environment);
   const dependencies = injectedDependencies ?? (await loadDependencies());
   const evidence = [];
+  const validatedDomains = canonicalProductionDomains.map((domain) =>
+    Object.freeze({
+      domain,
+      databaseUrl: validateDatabaseUrl(environment[domain.envKey], domain),
+    }),
+  );
 
-  for (const domain of canonicalProductionDomains) {
-    const databaseUrl = validateDatabaseUrl(environment[domain.envKey], domain);
+  for (const { domain, databaseUrl } of validatedDomains) {
     const pool = poolFactory(databaseUrl, domain);
     try {
       await applyDomainSchema(domain, pool, dependencies);

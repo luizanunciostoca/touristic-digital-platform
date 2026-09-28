@@ -40,7 +40,10 @@ test("builds all thirteen least-privilege database URLs in memory", () => {
     assert.equal(url.port, "3306");
     assert.equal(url.username, `morro_${domain.toLowerCase()}`);
     assert.equal(url.pathname, `/morro_${domain.toLowerCase()}`);
-    assert.equal(url.password, `${domain.toLowerCase()}+/= safe password`);
+    assert.equal(
+      decodeURIComponent(url.password),
+      `${domain.toLowerCase()}+/= safe password`,
+    );
   }
 });
 
