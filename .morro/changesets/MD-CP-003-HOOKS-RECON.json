@@ -11,7 +11,8 @@
       ".morro/changesets/MD-CP-003-HOOKS.json",
       ".morro/changesets/MD-CP-003-HOOKS-RECON.json",
       ".morro/changesets/MD-CP-003-GOV.json",
-      ".morro/changesets/MD-CP-003-TRUST-RECON.json"
+      ".morro/changesets/MD-CP-003-TRUST-RECON.json",
+      ".github/workflows/morro-claim-guard.yml"
     ],
     "contracts": []
   },
@@ -28,7 +29,10 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-003-HOOKS", "MD-CP-003-TRUST-RECON"],
+  "dependencies": [
+    "MD-CP-003-HOOKS",
+    "MD-CP-003-TRUST-RECON"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
