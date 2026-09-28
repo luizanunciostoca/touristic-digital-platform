@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-STAGING-RUN-BINDING",
   "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-staging-run-binding-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [
