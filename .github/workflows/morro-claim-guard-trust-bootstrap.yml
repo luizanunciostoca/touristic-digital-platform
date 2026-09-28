@@ -54,6 +54,54 @@ jobs:
           node --test
           tooling/fabric/claim-guard.test.mjs
 
+  orchestrator-registry-proof:
+    if: ${{ github.event.pull_request.head.ref == 'infra/remediation-workspace-claim-registration-20260928' }}
+    name: base-controlled-orchestrator-registry-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Validate registry mutation with ORCHESTRATOR authority
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
+          MANIFEST_PATH: .morro/changesets/MD-REMEDIATION-WORKSPACE-CLAIM-REGISTRATION.json
+          CLAIM_GUARD_AUTHORITY: ORCHESTRATOR
+        run: >-
+          node
+          trusted/tooling/fabric/claim-guard.mjs
+          candidate
+          | tee orchestrator-claim-guard-proof.json
+
+      - name: Upload orchestrator Claim Guard proof
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: orchestrator-claim-guard-proof-${{ github.event.pull_request.head.sha }}
+          path: orchestrator-claim-guard-proof.json
+          if-no-files-found: error
+          retention-days: 30
+
   independent-proof:
     needs: unit
     name: base-controlled-independent-proof
