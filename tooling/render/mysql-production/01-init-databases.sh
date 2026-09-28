@@ -32,10 +32,10 @@ provision_domain() {
   user="$2"
   password="$(sql_escape "$3")"
   mysql --protocol=socket -uroot -p"$MYSQL_ROOT_PASSWORD" <<SQL
-CREATE DATABASE IF NOT EXISTS `$database` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
+CREATE DATABASE IF NOT EXISTS \`$database\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
 CREATE USER IF NOT EXISTS '$user'@'%' IDENTIFIED BY '$password';
 ALTER USER '$user'@'%' IDENTIFIED BY '$password';
-GRANT ALL PRIVILEGES ON `$database`.* TO '$user'@'%';
+GRANT ALL PRIVILEGES ON \`$database\`.* TO '$user'@'%';
 SQL
   echo "production-mysql-init: owner ready: $database -> $user"
 }
