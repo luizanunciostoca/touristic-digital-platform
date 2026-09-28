@@ -123,7 +123,10 @@ test("implementation handoff must be positive inside Workflow", () => {
   const clause =
     "5. Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.";
   const weakened = text
-    .replace(clause, "5. Continue implementation through integration and merge.")
+    .replace(
+      clause,
+      "5. Continue implementation through integration and merge.",
+    )
     .replace("## Forbidden\n", `## Forbidden\n\n${clause}\n`);
   assert.notEqual(weakened, text);
   assert.throws(() => validateProfile(weakened, filename));
