@@ -1,0 +1,41 @@
+{
+  "id": "MD-REMEDIATION-CLAIM-RETIREMENT-VALIDATOR",
+  "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
+  "branch": "infra/remediation-claim-retirement-validator-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-CLAIM-RETIREMENT-VALIDATOR.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
