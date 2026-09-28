@@ -4,9 +4,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
-      - ".github/hooks/morro-claim-guard.json"
-      - ".github/hooks/morro-pretool-guard.mjs"
-      - ".github/hooks/morro-pretool-guard.test.mjs"
       - ".github/workflows/morro-claim-guard-trusted.yml"
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       - ".morro/changesets/MD-CP-003-TRUST.json"
@@ -37,11 +34,10 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Test Claim Guard and pre-tool safety contracts
+      - name: Test trusted Claim Guard contract
         run: >-
           node --test
           tooling/fabric/claim-guard.test.mjs
-          .github/hooks/morro-pretool-guard.test.mjs
 
   independent-proof:
     name: base-controlled-independent-proof

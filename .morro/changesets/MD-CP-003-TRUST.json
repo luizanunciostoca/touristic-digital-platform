@@ -6,9 +6,6 @@
   "risk": "high",
   "owns": {
     "paths": [
-      ".github/hooks/morro-claim-guard.json",
-      ".github/hooks/morro-pretool-guard.mjs",
-      ".github/hooks/morro-pretool-guard.test.mjs",
       ".github/workflows/morro-claim-guard-trusted.yml",
       ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
       ".morro/changesets/MD-CP-003-TRUST.json",
@@ -31,9 +28,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-CP-002C"
-  ],
+  "dependencies": ["MD-CP-002C"],
   "requiredEvidence": [
     "format",
     "secrets",

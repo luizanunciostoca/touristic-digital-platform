@@ -8,9 +8,6 @@
       "branch": "infra/control-plane-v3.2-stage-c-trust-bootstrap-20260927",
       "baseSha": "4729cbfa5bd0b1ee0796fd0c2840c779fe3476db",
       "paths": [
-        ".github/hooks/morro-claim-guard.json",
-        ".github/hooks/morro-pretool-guard.mjs",
-        ".github/hooks/morro-pretool-guard.test.mjs",
         ".github/workflows/morro-claim-guard-trusted.yml",
         ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
         ".morro/changesets/MD-CP-003-TRUST.json",
@@ -18,9 +15,7 @@
         "tooling/fabric/claim-guard.test.mjs",
         ".github/morro-control/claims.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "INTEGRATION_READY",
       "expiresAt": "2026-10-05T23:59:59Z"
