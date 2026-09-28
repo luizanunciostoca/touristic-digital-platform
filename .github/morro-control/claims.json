@@ -38,6 +38,21 @@
       "risk": "P0",
       "status": "REMOTE_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-RUNTIME-DIAGNOSTICS": {
+      "owner": "CHATGPT-WORK-INFRA",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/remediation-commerce-diagnostics-20260928",
+      "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+      "paths": [
+        "apps/morro-digital-platform/tooling/commerce-api.mjs",
+        "apps/morro-digital-platform/tooling/commerce-api.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-RUNTIME-DIAGNOSTICS.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }

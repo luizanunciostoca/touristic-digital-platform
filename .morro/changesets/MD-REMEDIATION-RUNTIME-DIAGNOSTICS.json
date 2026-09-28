@@ -1,0 +1,41 @@
+{
+  "id": "MD-REMEDIATION-RUNTIME-DIAGNOSTICS",
+  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "branch": "fix/remediation-commerce-diagnostics-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      "apps/morro-digital-platform/tooling/commerce-api.mjs",
+      "apps/morro-digital-platform/tooling/commerce-api.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-RUNTIME-DIAGNOSTICS.json",
+      ".github/morro-control/claims.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
