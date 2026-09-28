@@ -25,22 +25,12 @@ validate_identifier() {
   esac
 }
 
-next_domain() {
-  case "$1" in
-    AUTH) printf '%s' AUDIT ;;
-    AUDIT) printf '%s' DESTINATIONS ;;
-    DESTINATIONS) printf '%s' CONTENT ;;
-    CONTENT) printf '%s' BUSINESS ;;
-    BUSINESS) printf '%s' ORDERING ;;
-    ORDERING) printf '%s' FINANCIAL ;;
-    FINANCIAL) printf '%s' TICKETING ;;
-    TICKETING) printf '%s' NOTIFICATIONS ;;
-    NOTIFICATIONS) printf '%s' AFFILIATES ;;
-    AFFILIATES) printf '%s' ANALYTICS ;;
-    ANALYTICS) printf '%s' CRM ;;
-    CRM) printf '%s' COMMERCE ;;
-    COMMERCE) printf '%s' AUTH ;;
-    *) fail "UNKNOWN_DOMAIN_$1" ;;
+validate_sha() {
+  name="$1"
+  value="$2"
+  [ "${#value}" -eq 40 ] || fail "INVALID_$name"
+  case "$value" in
+    *[!0-9a-f]*) fail "INVALID_$name" ;;
   esac
 }
 
@@ -49,12 +39,29 @@ query() {
   password="$2"
   database="$3"
   sql="$4"
-  MYSQL_PWD="$password" mysql     --protocol=tcp     --connect-timeout=10     --batch     --skip-column-names     -h "$HOST"     -P "$PORT"     -u "$user"     "$database"     -e "$sql"
+  MYSQL_PWD="$password" mysql \
+    --protocol=tcp \
+    --connect-timeout=10 \
+    --batch \
+    --skip-column-names \
+    -h "$HOST" \
+    -P "$PORT" \
+    -u "$user" \
+    "$database" \
+    -e "$sql"
 }
+
+expected_sha="$(required_env EXPECTED_SHA)"
+render_git_commit="$(required_env RENDER_GIT_COMMIT)"
+validate_sha EXPECTED_SHA "$expected_sha"
+validate_sha RENDER_GIT_COMMIT "$render_git_commit"
+[ "$render_git_commit" = "$expected_sha" ] ||
+  fail "RENDER_GIT_COMMIT_MISMATCH"
 
 total_tables=0
 owner_count=0
 denied_count=0
+table_counts_json=""
 
 for domain in $DOMAINS; do
   database="$(required_env "${domain}_DATABASE_NAME")"
@@ -74,21 +81,44 @@ for domain in $DOMAINS; do
     ''|*[!0-9]*) fail "TABLE_COUNT_INVALID_$domain" ;;
   esac
 
-  target_domain="$(next_domain "$domain")"
-  target_database="$(required_env "${target_domain}_DATABASE_NAME")"
-  validate_identifier "${target_domain}_DATABASE_NAME" "$target_database"
+  domain_denials=0
+  for target_domain in $DOMAINS; do
+    [ "$target_domain" = "$domain" ] && continue
 
-  if query "$user" "$password" "$target_database" "SELECT DATABASE();" >/dev/null 2>&1; then
-    fail "CROSS_DOMAIN_ACCESS_ALLOWED_${domain}_TO_${target_domain}"
-  fi
+    target_database="$(required_env "${target_domain}_DATABASE_NAME")"
+    validate_identifier "${target_domain}_DATABASE_NAME" "$target_database"
+
+    if query "$user" "$password" "$target_database" "SELECT DATABASE();" >/dev/null 2>&1; then
+      fail "CROSS_DOMAIN_ACCESS_ALLOWED_${domain}_TO_${target_domain}"
+    fi
+
+    domain_denials=$((domain_denials + 1))
+    denied_count=$((denied_count + 1))
+  done
+
+  [ "$domain_denials" -eq 12 ] || fail "DOMAIN_DENIAL_COUNT_INVALID_$domain"
 
   owner_count=$((owner_count + 1))
-  denied_count=$((denied_count + 1))
   total_tables=$((total_tables + table_count))
-  printf 'readback:%s:database=%s:tables=%s:cross_domain_denied=true\n'     "$domain" "$database" "$table_count"
+
+  domain_key="$(printf '%s' "$domain" | tr '[:upper:]' '[:lower:]')"
+  if [ -n "$table_counts_json" ]; then
+    table_counts_json="$table_counts_json,"
+  fi
+  table_counts_json="$table_counts_json\"$domain_key\":$table_count"
+
+  printf 'readback:%s:database=%s:tables=%s:cross_domain_denied=%s\n' \
+    "$domain" "$database" "$table_count" "$domain_denials"
 done
 
 [ "$owner_count" -eq 13 ] || fail "OWNER_COUNT_INVALID"
-[ "$denied_count" -eq 13 ] || fail "DENIAL_COUNT_INVALID"
+[ "$denied_count" -eq 156 ] || fail "DENIAL_COUNT_INVALID"
 
-printf '{"contract":"%s","status":"pass","schemaOwners":%s,"crossDomainDenied":%s,"totalTables":%s}\n'   "$CONTRACT" "$owner_count" "$denied_count" "$total_tables"
+printf '{"contract":"%s","status":"pass","expectedSha":"%s","renderGitCommit":"%s","schemaOwners":%s,"crossDomainDenied":%s,"totalTables":%s,"tableCounts":{%s}}\n' \
+  "$CONTRACT" \
+  "$expected_sha" \
+  "$render_git_commit" \
+  "$owner_count" \
+  "$denied_count" \
+  "$total_tables" \
+  "$table_counts_json"
