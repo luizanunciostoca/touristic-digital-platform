@@ -26,9 +26,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-REMEDIATION-GUARD"
-  ],
+  "dependencies": ["MD-REMEDIATION-GUARD"],
   "requiredEvidence": [
     "full-quality",
     "domain-invariants",
