@@ -1,0 +1,381 @@
+name: Production MySQL Canonical Bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA authorized for canonical bootstrap
+        required: true
+        type: string
+      image_digest:
+        description: Immutable sha256 digest produced by Release OCI Image
+        required: true
+        type: string
+      confirm_bootstrap:
+        description: Type BOOTSTRAP to authorize the idempotent canonical schema bootstrap
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-mysql-canonical-bootstrap
+  cancel-in-progress: false
+
+env:
+  RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990
+  MYSQL_SERVICE_ID: srv-datbsavlot8c73evbhj0
+  MYSQL_SERVICE_NAME: morro-digital-v2-production-mysql
+  BOOTSTRAP_SERVICE_NAME: morro-digital-v2-production-db-bootstrap
+  SERVICE_REPO: https://github.com/luizanunciostoca/touristic-digital-platform
+  EXPECTED_DISK_ID: dsk-datbtpk9v7es7384alk0
+  EXPECTED_DISK_MOUNT: /var/lib/mysql
+  EXPECTED_DISK_SIZE_GB: "10"
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/morro-digital-v2
+
+jobs:
+  bootstrap:
+    name: production mysql / canonical bootstrap
+    if: github.ref == 'refs/heads/main' && inputs.confirm_bootstrap == 'BOOTSTRAP'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prove exact main source identity
+        id: identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$main_sha" = "$EXPECTED_SHA"
+          tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
+          lockfile_digest="sha256:$(sha256sum pnpm-lock.yaml | awk '{print $1}')"
+          echo "tree_sha=$tree_sha" >> "$GITHUB_OUTPUT"
+          echo "lockfile_digest=$lockfile_digest" >> "$GITHUB_OUTPUT"
+
+      - name: Re-prove immutable candidate and OCI provenance
+        id: provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          TREE_SHA: ${{ steps.identity.outputs.tree_sha }}
+          LOCKFILE_DIGEST: ${{ steps.identity.outputs.lockfile_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/release-candidate /tmp/release-provenance
+          mkdir -p /tmp/release-candidate /tmp/release-provenance
+
+          candidate_run_id="$(gh run list             --workflow release-candidate-certification.yml             --event workflow_dispatch             --commit "$EXPECTED_SHA"             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')"
+          test -n "$candidate_run_id"
+          gh run download "$candidate_run_id"             --name "morro-digital-candidate-$EXPECTED_SHA"             --dir /tmp/release-candidate
+
+          jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$TREE_SHA"             --arg lock "$LOCKFILE_DIGEST"             '.commitSha == $sha and
+             .treeSha == $tree and
+             .lockfileDigest == $lock and
+             (.artifactDigest | test("^sha256:[0-9a-f]{64}$"))'             /tmp/release-candidate/release-candidate-manifest.json >/dev/null
+
+          artifact_digest="$(jq -r '.artifactDigest'             /tmp/release-candidate/release-candidate-manifest.json)"
+
+          oci_run_id="$(gh run list             --workflow release-oci-image.yml             --event workflow_dispatch             --commit "$EXPECTED_SHA"             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')"
+          test -n "$oci_run_id"
+          gh run download "$oci_run_id"             --name "release-provenance-$EXPECTED_SHA"             --dir /tmp/release-provenance
+
+          jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$TREE_SHA"             --arg image "$IMAGE_REPOSITORY"             --arg digest "$IMAGE_DIGEST"             '.source_sha == $sha and
+             .tree_sha == $tree and
+             .image == $image and
+             .digest == $digest'             /tmp/release-provenance/release-provenance.json >/dev/null
+
+          echo "candidate_run_id=$candidate_run_id" >> "$GITHUB_OUTPUT"
+          echo "oci_run_id=$oci_run_id" >> "$GITHUB_OUTPUT"
+          echo "artifact_digest=$artifact_digest" >> "$GITHUB_OUTPUT"
+
+      - name: Require protected Render credential
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+
+      - name: Prove MySQL identity and provision isolated bootstrap worker
+        id: worker
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          cleanup() {
+            rm -f               /tmp/mysql-service.json               /tmp/mysql-deploys.json               /tmp/bootstrap-services.json               /tmp/bootstrap-service.json               /tmp/bootstrap-create.json               /tmp/bootstrap-env.json               /tmp/env-value.json               /tmp/deploy-request.json               /tmp/deploy-state.json
+          }
+          trap cleanup EXIT
+
+          api_get() {
+            curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$1"
+          }
+
+          api_get "$api/services/$MYSQL_SERVICE_ID" > /tmp/mysql-service.json
+          jq -e             --arg id "$MYSQL_SERVICE_ID"             --arg owner "$RENDER_WORKSPACE_ID"             --arg service "$MYSQL_SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == $id and
+             .ownerId == $owner and
+             .name == $service and
+             .type == "private_service" and
+             .branch == "main" and
+             .serviceDetails.runtime == "docker" and
+             .serviceDetails.region == "virginia" and
+             .serviceDetails.disk.id == $disk and
+             .serviceDetails.disk.mountPath == $mount and
+             .serviceDetails.disk.sizeGB == $size'             /tmp/mysql-service.json >/dev/null
+
+          api_get "$api/services/$MYSQL_SERVICE_ID/deploys?limit=20"             > /tmp/mysql-deploys.json
+          jq -e --arg sha "$EXPECTED_SHA"             'any(.[] | (.deploy // .); .status == "live" and .commit.id == $sha)'             /tmp/mysql-deploys.json >/dev/null
+
+          jq -n             '[{"key":"NODE_ENV","value":"production"},
+              {"key":"PRODUCTION_MYSQL_HOSTPORT","value":"morro-digital-v2-production-mysql:3306"}]'             > /tmp/bootstrap-env.json
+
+          for spec in             AUTH:morro_auth             AUDIT:morro_audit             DESTINATIONS:morro_destinations             CONTENT:morro_content             BUSINESS:morro_business             ORDERING:morro_ordering             FINANCIAL:morro_financial             TICKETING:morro_ticketing             NOTIFICATIONS:morro_notifications             AFFILIATES:morro_affiliates             ANALYTICS:morro_analytics             CRM:morro_crm             COMMERCE:morro_commerce
+          do
+            domain="${spec%%:*}"
+            database="${spec#*:}"
+            for suffix in NAME USER PASSWORD; do
+              source_key="${domain}_DATABASE_${suffix}"
+              target_key="PRODUCTION_${source_key}"
+              api_get "$api/services/$MYSQL_SERVICE_ID/env-vars/$source_key"                 > /tmp/env-value.json
+              value="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
+              test -n "$value"
+              if [ "$suffix" = "NAME" ] || [ "$suffix" = "USER" ]; then
+                test "$value" = "$database"
+              fi
+              jq --arg key "$target_key" --arg value "$value"                 '. + [{key:$key,value:$value}]'                 /tmp/bootstrap-env.json > /tmp/bootstrap-env.next.json
+              mv /tmp/bootstrap-env.next.json /tmp/bootstrap-env.json
+            done
+          done
+
+          api_get "$api/services?name=$BOOTSTRAP_SERVICE_NAME&limit=20"             > /tmp/bootstrap-services.json
+          service_count="$(jq             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$BOOTSTRAP_SERVICE_NAME"             '[.[] | (.service // .) |
+              select(.ownerId == $owner and .name == $name)] | length'             /tmp/bootstrap-services.json)"
+          test "$service_count" -le 1
+          bootstrap_service_id="$(jq -r             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$BOOTSTRAP_SERVICE_NAME"             '[.[] | (.service // .) |
+              select(.ownerId == $owner and .name == $name)][0].id // empty'             /tmp/bootstrap-services.json)"
+
+          if [ -z "$bootstrap_service_id" ]; then
+            jq -n               --arg owner "$RENDER_WORKSPACE_ID"               --arg name "$BOOTSTRAP_SERVICE_NAME"               --arg repo "$SERVICE_REPO"               --argjson envVars "$(cat /tmp/bootstrap-env.json)"               '{
+                type:"background_worker",
+                name:$name,
+                ownerId:$owner,
+                repo:$repo,
+                branch:"main",
+                autoDeploy:"no",
+                envVars:$envVars,
+                serviceDetails:{
+                  runtime:"node",
+                  plan:"starter",
+                  region:"virginia",
+                  numInstances:1,
+                  envSpecificDetails:{
+                    buildCommand:"corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build",
+                    startCommand:"node -e \"setInterval(() => {}, 2147483647)\""
+                  }
+                }
+              }' > /tmp/bootstrap-create.json
+
+            http_status="$(curl --silent --show-error               --output /tmp/bootstrap-service.json               --write-out '%{http_code}'               --request POST               --header "$auth"               --header "Accept: application/json"               --header "Content-Type: application/json"               --data-binary @/tmp/bootstrap-create.json               "$api/services")"
+            test "$http_status" = "201"
+            bootstrap_service_id="$(jq -r '.service.id // empty'               /tmp/bootstrap-service.json)"
+            test -n "$bootstrap_service_id"
+          else
+            for encoded in $(jq -r '.[] | @base64' /tmp/bootstrap-env.json); do
+              row="$(printf '%s' "$encoded" | base64 --decode)"
+              key="$(printf '%s' "$row" | jq -r '.key')"
+              value="$(printf '%s' "$row" | jq -r '.value')"
+              curl --fail-with-body --silent --show-error                 --request PUT                 --header "$auth"                 --header "Accept: application/json"                 --header "Content-Type: application/json"                 --data "$(jq -nc --arg value "$value" '{value:$value}')"                 "$api/services/$bootstrap_service_id/env-vars/$key" >/dev/null
+            done
+          fi
+
+          api_get "$api/services/$bootstrap_service_id" > /tmp/bootstrap-service.json
+          jq -e             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$BOOTSTRAP_SERVICE_NAME"             --arg repo "$SERVICE_REPO"             '.ownerId == $owner and
+             .name == $name and
+             .type == "background_worker" and
+             .repo == $repo and
+             .branch == "main" and
+             .autoDeploy == "no" and
+             .serviceDetails.runtime == "node" and
+             .serviceDetails.region == "virginia"'             /tmp/bootstrap-service.json >/dev/null
+
+          jq -n --arg sha "$EXPECTED_SHA"             '{commitId:$sha,clearCache:"do_not_clear"}'             > /tmp/deploy-request.json
+          http_status="$(curl --silent --show-error             --output /tmp/deploy-state.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/deploy-request.json             "$api/services/$bootstrap_service_id/deploys")"
+          test "$http_status" = "201"
+          deploy_id="$(jq -r '.id // empty' /tmp/deploy-state.json)"
+          test -n "$deploy_id"
+
+          status=""
+          for _ in $(seq 1 180); do
+            api_get "$api/services/$bootstrap_service_id/deploys/$deploy_id"               > /tmp/deploy-state.json
+            status="$(jq -r '.status // empty' /tmp/deploy-state.json)"
+            case "$status" in
+              live) break ;;
+              build_failed|update_failed|pre_deploy_failed|canceled)
+                jq '{id,status,commit}' /tmp/deploy-state.json >&2
+                exit 1
+                ;;
+              *) sleep 5 ;;
+            esac
+          done
+          test "$status" = "live"
+          jq -e --arg sha "$EXPECTED_SHA"             '.status == "live" and .commit.id == $sha'             /tmp/deploy-state.json >/dev/null
+
+          echo "bootstrap_service_id=$bootstrap_service_id" >> "$GITHUB_OUTPUT"
+          echo "bootstrap_deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+      - name: Run canonical bootstrap twice through least-privilege owners
+        id: bootstrap
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          BOOTSTRAP_SERVICE_ID: ${{ steps.worker.outputs.bootstrap_service_id }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          cleanup() {
+            rm -f               /tmp/bootstrap-job-request.json               /tmp/bootstrap-job-create.json               /tmp/bootstrap-job.json               /tmp/bootstrap-job-logs.json               /tmp/bootstrap-evidence.json
+          }
+          trap cleanup EXIT
+
+          jq -nc --arg sha "$EXPECTED_SHA"             '{startCommand:(
+              "env EXPECTED_SHA=" + $sha +
+              " node tooling/render/with-production-mysql-env.mjs" +
+              " node apps/morro-digital-platform/tooling/production-database-predeploy.mjs" +
+              " --verify-idempotent"
+            )}' > /tmp/bootstrap-job-request.json
+
+          http_status="$(curl --silent --show-error             --output /tmp/bootstrap-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/bootstrap-job-request.json             "$api/services/$BOOTSTRAP_SERVICE_ID/jobs")"
+          test "$http_status" = "201"
+          job_id="$(jq -r '.id // empty' /tmp/bootstrap-job-create.json)"
+          test -n "$job_id"
+
+          status=""
+          for _ in $(seq 1 180); do
+            curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"               > /tmp/bootstrap-job.json
+            status="$(jq -r '.status // empty' /tmp/bootstrap-job.json)"
+            case "$status" in
+              succeeded) break ;;
+              failed|canceled)
+                jq '{id,status,serviceId,createdAt,startedAt,finishedAt}'                   /tmp/bootstrap-job.json >&2
+                curl --fail-with-body --silent --show-error                   --get                   --header "$auth"                   --header "Accept: application/json"                   --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"                   --data-urlencode "resource=$job_id"                   --data-urlencode "direction=backward"                   --data-urlencode "limit=100"                   "$api/logs" > /tmp/bootstrap-job-logs.json || true
+                jq -r                   '.logs[]?.message | select(
+                    startswith("{\"contract\":\"MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP\"") or
+                    startswith("PRODUCTION_")
+                  )'                   /tmp/bootstrap-job-logs.json >&2 || true
+                exit 1
+                ;;
+              pending|running) sleep 5 ;;
+              *) echo "Unexpected Render job status: $status" >&2; exit 1 ;;
+            esac
+          done
+          test "$status" = "succeeded"
+
+          evidence=""
+          for _ in $(seq 1 30); do
+            curl --fail-with-body --silent --show-error               --get               --header "$auth"               --header "Accept: application/json"               --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"               --data-urlencode "resource=$job_id"               --data-urlencode "direction=backward"               --data-urlencode "limit=100"               "$api/logs" > /tmp/bootstrap-job-logs.json
+            evidence="$(jq -c               '[.logs[]?.message | fromjson? |
+                select(.contract == "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP")][0] // empty'               /tmp/bootstrap-job-logs.json)"
+            [ -n "$evidence" ] && break
+            sleep 2
+          done
+          test -n "$evidence"
+          printf '%s\n' "$evidence" > /tmp/bootstrap-evidence.json
+
+          jq -e --arg sha "$EXPECTED_SHA" '
+            .contract == "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP" and
+            .status == "pass" and
+            .expectedSha == $sha and
+            .renderGitCommit == $sha and
+            .canonicalDestination == "morro-de-sao-paulo" and
+            .idempotent == true and
+            .runs == 2 and
+            .totalTables == 91 and
+            (.domains | length) == 13 and
+            all(.domains[];
+              .tableCount > 0 and
+              (.tables | length) == .tableCount and
+              .scopes == .scopePolicy
+            ) and
+            ([.domains[] | select(.domain == "destinations")][0].canonicalDestinationCount == 1) and
+            ([.domains[] | select(.domain == "business")][0].tableCount == 12) and
+            ([.domains[] | select(.domain == "financial")][0].tableCount == 14)
+          ' /tmp/bootstrap-evidence.json >/dev/null
+
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+          echo "bootstrap_json=$(jq -c . /tmp/bootstrap-evidence.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish provenance-bound bootstrap evidence
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          TREE_SHA: ${{ steps.identity.outputs.tree_sha }}
+          LOCKFILE_DIGEST: ${{ steps.identity.outputs.lockfile_digest }}
+          ARTIFACT_DIGEST: ${{ steps.provenance.outputs.artifact_digest }}
+          CANDIDATE_RUN_ID: ${{ steps.provenance.outputs.candidate_run_id }}
+          OCI_RUN_ID: ${{ steps.provenance.outputs.oci_run_id }}
+          BOOTSTRAP_SERVICE_ID: ${{ steps.worker.outputs.bootstrap_service_id }}
+          BOOTSTRAP_DEPLOY_ID: ${{ steps.worker.outputs.bootstrap_deploy_id }}
+          JOB_ID: ${{ steps.bootstrap.outputs.job_id }}
+          BOOTSTRAP_JSON: ${{ steps.bootstrap.outputs.bootstrap_json }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg treeSha "$TREE_SHA"             --arg lockfileDigest "$LOCKFILE_DIGEST"             --arg artifactDigest "$ARTIFACT_DIGEST"             --arg image "$IMAGE_REPOSITORY"             --arg imageDigest "$IMAGE_DIGEST"             --arg candidateRunId "$CANDIDATE_RUN_ID"             --arg ociRunId "$OCI_RUN_ID"             --arg workspaceId "$RENDER_WORKSPACE_ID"             --arg mysqlServiceId "$MYSQL_SERVICE_ID"             --arg bootstrapServiceId "$BOOTSTRAP_SERVICE_ID"             --arg bootstrapDeployId "$BOOTSTRAP_DEPLOY_ID"             --arg diskId "$EXPECTED_DISK_ID"             --arg jobId "$JOB_ID"             --argjson bootstrap "$BOOTSTRAP_JSON"             '{
+              contract:"MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP-JOB",
+              contractVersion:2,
+              status:"pass",
+              expectedSha:$expectedSha,
+              provenance:{
+                treeSha:$treeSha,
+                lockfileDigest:$lockfileDigest,
+                artifactDigest:$artifactDigest,
+                image:$image,
+                imageDigest:$imageDigest,
+                candidateRunId:$candidateRunId,
+                ociRunId:$ociRunId
+              },
+              render:{
+                workspaceId:$workspaceId,
+                mysqlServiceId:$mysqlServiceId,
+                bootstrapServiceId:$bootstrapServiceId,
+                bootstrapDeployId:$bootstrapDeployId,
+                diskId:$diskId,
+                jobId:$jobId
+              },
+              bootstrap:$bootstrap
+            }' > production-mysql-canonical-bootstrap-evidence.json
+          cat production-mysql-canonical-bootstrap-evidence.json
+
+      - name: Upload canonical bootstrap evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-mysql-canonical-bootstrap-${{ github.run_id }}
+          path: production-mysql-canonical-bootstrap-evidence.json
+          if-no-files-found: error
+          retention-days: 90

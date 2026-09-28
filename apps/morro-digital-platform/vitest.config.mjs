@@ -223,6 +223,10 @@ export default defineConfig({
     ],
   },
   test: {
-    exclude: [...configDefaults.exclude, "dist/**"],
+    exclude: [
+      ...configDefaults.exclude,
+      "dist/**",
+      "tooling/production-database-predeploy.test.mjs",
+    ],
   },
 });

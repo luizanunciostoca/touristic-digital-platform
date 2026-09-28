@@ -1,6 +1,6 @@
 {
   "id": "MD-PRODUCTION-MYSQL-RENDER",
-  "baseSha": "9d69bb27ec134983d05370811051fd7fa4440c02",
+  "baseSha": "eddad7965646ce1bda2b3f5155572d5ed81046e7",
   "branch": "infra/production-mysql-render-provision-fix-20260928",
   "state": "IMPLEMENTING",
   "risk": "critical",
@@ -19,12 +19,23 @@
       ".github/workflows/security-scanning.yml",
       ".github/workflows/production-mysql-render-provision.yml",
       "tooling/render/mysql-production/readback.sh",
-      ".github/workflows/production-mysql-render-readback.yml"
+      ".github/workflows/production-mysql-render-readback.yml",
+      "tooling/render/with-production-mysql-env.mjs",
+      "tooling/render/with-production-mysql-env.test.mjs",
+      "apps/morro-digital-platform/tooling/production-database-predeploy.mjs",
+      "apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs",
+      "apps/morro-digital-platform/vitest.config.mjs",
+      "turbo.json",
+      ".github/workflows/production-mysql-canonical-bootstrap.yml",
+      "tooling/quality/check-release-readiness.mjs"
     ],
-    "contracts": []
+    "contracts": [
+      "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP",
+      "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP-JOB"
+    ]
   },
   "reads": {
-    "contracts": []
+    "contracts": ["MORRO-PRODUCTION-MYSQL-READBACK"]
   },
   "produces": {
     "events": [],
@@ -47,10 +58,20 @@
     "integration",
     "automated-independent-proof",
     "production-mysql-container-scan",
-    "production-mysql-durable-readback",
-    "production-mysql-backup-restore-proof",
     "production-mysql-render-provision",
-    "production-mysql-least-privilege-readback"
+    "production-mysql-least-privilege-readback",
+    "production-mysql-canonical-bootstrap",
+    "production-mysql-bootstrap-idempotence",
+    "production-mysql-canonical-seed",
+    "production-mysql-durable-readback",
+    "production-mysql-backup-restore-proof"
   ],
-  "stopAt": "REMOTE_PROVEN"
+  "stopAt": "REMOTE_PROVEN",
+  "sizeException": {
+    "kind": "mechanical-composition",
+    "reason": "This critical production database front mechanically composes the already exact-head-audited provisioning and least-privilege readback work from PRs #514, #515, and #516 with the canonical bootstrap proof. The exception covers aggregate review size only and does not waive quality, security, tenancy, provenance, runtime, backup, recovery, or exact-head evidence.",
+    "sourcePullRequests": [514, 515, 516],
+    "maxFiles": 20,
+    "maxLines": 4000
+  }
 }

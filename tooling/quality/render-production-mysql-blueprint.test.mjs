@@ -43,7 +43,7 @@ function rejects(result, expected) {
   assert.match(result.stderr, expected);
 }
 
-test("production MySQL Blueprint satisfies the infrastructure-only contract", (t) => {
+test("production MySQL Blueprint satisfies bootstrap wiring without application cutover", (t) => {
   const result = runCheck(t);
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
@@ -95,13 +95,55 @@ test("shared morro_app ownership is forbidden", (t) => {
   );
 });
 
-test("phase 1 cannot cut the application over", (t) => {
+test("bootstrap database credentials require the dedicated background worker", (t) => {
   rejects(
     runCheck(t, (directory) => {
       const file = path.join(directory, "render.yaml");
-      fs.appendFileSync(file, "\n# PRODUCTION_MYSQL_HOSTPORT\n");
+      const source = fs.readFileSync(file, "utf8");
+      const start = source.indexOf(
+        "  - type: worker\n    name: morro-digital-v2-production-db-bootstrap\n",
+      );
+      const end = source.indexOf("  - type: web\n    name: morro-digital-v2\n");
+      assert.ok(start >= 0 && end > start);
+      fs.writeFileSync(file, source.slice(0, start) + source.slice(end));
     }),
-    /premature production cutover wiring/u,
+    /morro-digital-v2-production-db-bootstrap/u,
+  );
+});
+
+test("production web service cannot receive bootstrap database credentials", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "      - key: HOST\n        value: 0.0.0.0\n",
+            "      - key: HOST\n        value: 0.0.0.0\n      - key: PRODUCTION_BUSINESS_DATABASE_PASSWORD\n        value: forbidden\n",
+          ),
+      );
+    }),
+    /bootstrap owner credentials must not be exposed/u,
+  );
+});
+
+test("bootstrap phase cannot cut the production start command over", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs",
+            "startCommand: node tooling/render/with-production-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
+          ),
+      );
+    }),
+    /startCommand/u,
   );
 });
 
