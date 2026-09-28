@@ -2,7 +2,7 @@
 import { spawnSync } from "node:child_process";
 import { lstatSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, parse, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const CANONICAL_REMOTE =
@@ -52,13 +52,51 @@ function pathExists(path) {
   return lstatSync(path, { throwIfNoEntry: false }) !== undefined;
 }
 
-function directoryOnly(path) {
-  if (
-    pathExists(path) &&
-    (!lstatSync(path).isDirectory() || lstatSync(path).isSymbolicLink())
-  ) {
-    throw new Error(`Refusing non-directory or symlink path: ${path}`);
+function validatePathComponents(path) {
+  const absolute = resolve(path);
+  const { root } = parse(absolute);
+  const parts = absolute.slice(root.length).split(sep).filter(Boolean);
+  let current = root;
+
+  for (const part of parts) {
+    current = join(current, part);
+    const stat = lstatSync(current, { throwIfNoEntry: false });
+    if (!stat) break;
+    if (stat.isSymbolicLink())
+      throw new Error(`Refusing non-directory or symlink path: ${current}`);
+    if (current !== absolute && !stat.isDirectory())
+      throw new Error(`Refusing non-directory or symlink path: ${current}`);
   }
+  return absolute;
+}
+
+function directoryOnly(path) {
+  const absolute = validatePathComponents(path);
+  const stat = lstatSync(absolute, { throwIfNoEntry: false });
+  if (stat && (!stat.isDirectory() || stat.isSymbolicLink())) {
+    throw new Error(`Refusing non-directory or symlink path: ${absolute}`);
+  }
+  return absolute;
+}
+
+function safeWorktreePath(path, root) {
+  const absolute = resolve(path);
+  const canonicalRoot = resolve(root);
+  const stat = lstatSync(absolute, { throwIfNoEntry: false });
+  if (
+    !stat ||
+    stat.isSymbolicLink() ||
+    !stat.isDirectory() ||
+    (absolute !== canonicalRoot &&
+      !absolute.startsWith(canonicalRoot + sep))
+  )
+    return null;
+  try {
+    validatePathComponents(absolute);
+  } catch {
+    return null;
+  }
+  return absolute;
 }
 
 function validateBare(config) {
@@ -86,6 +124,10 @@ function validateBare(config) {
     throw new Error(
       "Unsafe fetch refspec; expected origin/main remote-tracking ref only",
     );
+  }
+  for (const name of ["alternates", "http-alternates"]) {
+    if (pathExists(join(config.bare, "objects", "info", name)))
+      throw new Error("Canonical bare repository must not use object alternates");
   }
 }
 
@@ -147,7 +189,7 @@ export function bootstrap(expectedMain, input = {}) {
     ["--git-dir", config.bare, "rev-parse", "--verify", "refs/heads/main"],
     { allowFailure: true },
   );
-  if (localMain.code !== 0)
+  if (localMain.code !== 0 || localMain.stdout !== sha)
     git(["--git-dir", config.bare, "update-ref", "refs/heads/main", sha]);
   git(["--git-dir", config.bare, "symbolic-ref", "HEAD", "refs/heads/main"]);
   mkdirSync(config.root, { recursive: true });
@@ -233,13 +275,14 @@ export function inventory(input = {}) {
     );
     if (record.bare) continue;
     const path = record.worktree;
-    if (!pathExists(path)) {
+    const safePath = safeWorktreePath(path, config.root);
+    if (!safePath) {
       worktrees.push({ path, state: "UNKNOWN", removalAllowed: false });
       continue;
     }
     const status = git([
       "-C",
-      path,
+      safePath,
       "status",
       "--porcelain=v1",
       "--untracked-files=all",
@@ -247,7 +290,7 @@ export function inventory(input = {}) {
     ]).stdout;
     const ignored = git([
       "-C",
-      path,
+      safePath,
       "ls-files",
       "--others",
       "--ignored",
