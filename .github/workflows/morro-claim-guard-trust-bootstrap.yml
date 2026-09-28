@@ -55,7 +55,7 @@ jobs:
           tooling/fabric/claim-guard.test.mjs
 
   orchestrator-registry-proof:
-    if: ${{ github.event.pull_request.head.ref == 'infra/remediation-workspace-claim-registration-20260928' }}
+    needs: unit
     name: base-controlled-orchestrator-registry-proof
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -81,20 +81,34 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Validate registry mutation with ORCHESTRATOR authority
+      - name: Validate registry mutation with ORCHESTRATOR authority when present
+        id: registry-proof
         env:
           EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
-          MANIFEST_PATH: .morro/changesets/MD-REMEDIATION-WORKSPACE-CLAIM-REGISTRATION.json
+          MANIFEST_PATH: ${{ needs.unit.outputs.manifest_path }}
           CLAIM_GUARD_AUTHORITY: ORCHESTRATOR
-        run: >-
-          node
-          trusted/tooling/fabric/claim-guard.mjs
-          candidate
-          | tee orchestrator-claim-guard-proof.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git -C candidate diff --name-only "$EXPECTED_BASE_SHA...$EXPECTED_CANDIDATE_SHA")"
+          if ! grep -Fxq '.github/morro-control/claims.json' <<<"$changed"; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            echo "No claim registry mutation detected."
+            exit 0
+          fi
+
+          manifest_id="$(jq -r '.id // empty' "candidate/$MANIFEST_PATH")"
+          test -n "$manifest_id"
+          owner="$(jq -r --arg id "$manifest_id" '.claims[$id].owner // empty' candidate/.github/morro-control/claims.json)"
+          test "$owner" = "CHATGPT-PRO-CONTROL"
+
+          echo "required=true" >> "$GITHUB_OUTPUT"
+          node trusted/tooling/fabric/claim-guard.mjs candidate             | tee orchestrator-claim-guard-proof.json
 
       - name: Upload orchestrator Claim Guard proof
+        if: steps.registry-proof.outputs.required == 'true'
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: orchestrator-claim-guard-proof-${{ github.event.pull_request.head.sha }}
