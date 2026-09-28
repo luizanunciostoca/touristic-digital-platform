@@ -9,14 +9,6 @@ on:
       - ".github/workflows/morro-agent-profiles.yml"
       - ".morro/changesets/MD-CP-002C.json"
   merge_group:
-  push:
-    branches: [main]
-    paths:
-      - ".github/agents/**"
-      - ".github/skills/**"
-      - ".github/workflows/morro-agent-profiles.yml"
-      - ".morro/changesets/MD-CP-002C.json"
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -28,19 +20,10 @@ concurrency:
 jobs:
   validate:
     name: agent-profile-contract
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: "22"
-          package-manager-cache: false
-      - name: Test rejected profile configurations
-        run: node --test .github/agents/*.test.mjs
-      - name: Validate profiles and exact source identity
-        run: node .github/agents/profile-contract.mjs
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@94f971e640da6368d39d2f555f4ba3eca6563d11
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+      manifest_path: .morro/changesets/MD-CP-002C.json
+    permissions:
+      contents: read
