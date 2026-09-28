@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
-      - ".github/actions/ci-bootstrap/action.yml"
+      - ".github/actions/ci-bootstrap/**"
       - .github/workflows/search-browser-contract.yml
       - apps/morro-digital-platform/public/index.html
       - apps/morro-digital-platform/src/assistant/assistant-search-adapter.ts
