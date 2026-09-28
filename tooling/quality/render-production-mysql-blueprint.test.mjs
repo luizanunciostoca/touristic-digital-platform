@@ -174,3 +174,40 @@ test("production readback cannot use root authority", (t) => {
     /readback must use domain owners only/u,
   );
 });
+
+test("production readback must verify the full 156-denial matrix", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/readback.sh",
+      );
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replace(
+          '[ "$denied_count" -eq 156 ]',
+          '[ "$denied_count" -eq 13 ]',
+        ),
+      );
+    }),
+    /156/u,
+  );
+});
+
+test("production readback must prove the exact Render git commit", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/readback.sh",
+      );
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replaceAll("RENDER_GIT_COMMIT", "OMITTED_RENDER_GIT_COMMIT"),
+      );
+    }),
+    /RENDER_GIT_COMMIT/u,
+  );
+});
