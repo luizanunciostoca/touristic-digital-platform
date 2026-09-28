@@ -11,7 +11,6 @@
       "tooling/quality/agent-profile-contract-trusted.mjs",
       "tooling/quality/agent-profile-contract-trusted.test.mjs",
       ".morro/changesets/MD-CP-002C-TRUST.json",
-      ".github/workflows/morro-independent-proof-trusted.yml",
       "tooling/quality/independent-proof-trusted.mjs",
       "tooling/quality/independent-proof-trusted.test.mjs",
       ".github/morro-control/policy.json",
