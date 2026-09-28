@@ -65,11 +65,7 @@ test("normalize repository-relative path and reject traversal", () => {
 
   assert.throws(
     () =>
-      normalizeRepoPath(
-        "/workspace/repo",
-        "/workspace/repo",
-        "../outside.txt",
-      ),
+      normalizeRepoPath("/workspace/repo", "/workspace/repo", "../outside.txt"),
     /HOOK_PATH_OUTSIDE_REPOSITORY/u,
   );
 });
