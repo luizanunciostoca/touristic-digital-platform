@@ -107,7 +107,7 @@ test("controller SHA may advance while explicit source tree and digest remain fi
         identity,
         { runId: 17, repository },
       ),
-    /RENDER_IMAGE_REF_MISMATCH/,
+    /BUILD_DIGEST_MISMATCH/,
   );
   assert.throws(
     () =>
@@ -285,7 +285,7 @@ test("proof cannot be emitted for requested-only digest or wrong runtime", () =>
           buildRunId: 17,
         },
       ),
-    /DIGEST_MISMATCH/,
+    /RENDER_IMAGE_REF_MISMATCH/,
   );
   assert.throws(
     () =>
