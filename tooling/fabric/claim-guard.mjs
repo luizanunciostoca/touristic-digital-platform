@@ -365,6 +365,10 @@ export function validateClaimHandoff({
     ACTIVE_CLAIM_STATUSES.has(baseClaim.status),
     "HANDOFF_BASE_CLAIM_INACTIVE",
   );
+  assert.ok(
+    parseExpiry(baseClaim.expiresAt) > now,
+    "HANDOFF_BASE_CLAIM_EXPIRED",
+  );
   assert.equal(
     baseClaim.reviewer,
     "AUTOMATED-INDEPENDENT-PROOF",
@@ -452,6 +456,8 @@ export function buildClaimHandoffProof(
   const targetRoot = resolve(candidateRoot);
   const expectedHead = env.EXPECTED_CANDIDATE_SHA ?? "";
   const expectedBase = env.EXPECTED_BASE_SHA ?? "";
+  const expectedBranch = env.EXPECTED_BRANCH ?? "";
+  const reconciliationManifestPath = env.MANIFEST_PATH ?? "";
   const fromManifestPath = env.HANDOFF_FROM_MANIFEST_PATH ?? "";
   const toManifestPath = env.HANDOFF_TO_MANIFEST_PATH ?? "";
   const registryPath =
@@ -459,8 +465,20 @@ export function buildClaimHandoffProof(
 
   assert.match(expectedHead, SHA_PATTERN, "EXPECTED_HEAD_INVALID");
   assert.match(expectedBase, SHA_PATTERN, "EXPECTED_BASE_INVALID");
+  assert.ok(expectedBranch, "EXPECTED_BRANCH_REQUIRED");
+  assert.ok(reconciliationManifestPath, "MANIFEST_PATH_REQUIRED");
   assert.ok(fromManifestPath, "HANDOFF_FROM_MANIFEST_PATH_REQUIRED");
   assert.ok(toManifestPath, "HANDOFF_TO_MANIFEST_PATH_REQUIRED");
+  assert.notEqual(
+    reconciliationManifestPath,
+    fromManifestPath,
+    "HANDOFF_RECONCILIATION_EQUALS_SOURCE_MANIFEST",
+  );
+  assert.notEqual(
+    reconciliationManifestPath,
+    toManifestPath,
+    "HANDOFF_RECONCILIATION_EQUALS_TARGET_MANIFEST",
+  );
 
   const baseHead = git(trustedRoot, ["rev-parse", "HEAD"]);
   const candidateHead = git(targetRoot, ["rev-parse", "HEAD"]);
@@ -490,6 +508,79 @@ export function buildClaimHandoffProof(
   const toManifest = JSON.parse(
     readFileSync(resolveCandidatePath(targetRoot, toManifestPath), "utf8"),
   );
+  const reconciliationManifest = JSON.parse(
+    readFileSync(
+      resolveCandidatePath(targetRoot, reconciliationManifestPath),
+      "utf8",
+    ),
+  );
+
+  const changedRaw = git(targetRoot, [
+    "diff",
+    "--name-only",
+    `${expectedBase}...${candidateHead}`,
+  ]);
+  const changedFiles = changedRaw ? changedRaw.split("\n").filter(Boolean) : [];
+
+  assert.match(
+    reconciliationManifest.id ?? "",
+    /^MD-[A-Z0-9-]+$/u,
+    "HANDOFF_RECONCILIATION_ID_INVALID",
+  );
+  assert.notEqual(
+    reconciliationManifest.id,
+    baseFromManifest.id,
+    "HANDOFF_RECONCILIATION_ID_COLLIDES_WITH_SOURCE",
+  );
+  assert.notEqual(
+    reconciliationManifest.id,
+    toManifest.id,
+    "HANDOFF_RECONCILIATION_ID_COLLIDES_WITH_TARGET",
+  );
+  assert.equal(
+    reconciliationManifest.baseSha,
+    expectedBase,
+    "HANDOFF_RECONCILIATION_BASE_MISMATCH",
+  );
+  assert.equal(
+    reconciliationManifest.branch,
+    expectedBranch,
+    "HANDOFF_RECONCILIATION_BRANCH_MISMATCH",
+  );
+  assert.equal(
+    reconciliationManifest.state,
+    "MERGE_READY",
+    "HANDOFF_RECONCILIATION_NOT_MERGE_READY",
+  );
+  assert.equal(
+    toManifest.baseSha,
+    expectedBase,
+    "HANDOFF_TARGET_BASE_NOT_CURRENT_BASE",
+  );
+
+  for (const requiredPath of [
+    registryPath,
+    fromManifestPath,
+    toManifestPath,
+    reconciliationManifestPath,
+  ]) {
+    assert.ok(
+      reconciliationManifest.owns?.paths?.includes(requiredPath),
+      "HANDOFF_RECONCILIATION_OWNERSHIP_INCOMPLETE",
+    );
+  }
+
+  const unauthorized = changedFiles.filter(
+    (path) =>
+      !reconciliationManifest.owns.paths.some((pattern) =>
+        pathOwned(path, pattern),
+      ),
+  );
+  assert.deepEqual(
+    unauthorized,
+    [],
+    "HANDOFF_RECONCILIATION_CHANGED_PATH_VIOLATION",
+  );
 
   const handoff = validateClaimHandoff({
     baseRegistry,
@@ -506,6 +597,9 @@ export function buildClaimHandoffProof(
     exactHead: candidateHead,
     treeSha,
     currentBaseSha: baseHead,
+    reconciliationChangeSetId: reconciliationManifest.id,
+    reconciliationBranch: reconciliationManifest.branch,
+    changedFiles,
     ...handoff,
   };
 }

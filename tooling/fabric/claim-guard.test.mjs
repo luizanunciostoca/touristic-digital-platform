@@ -13,6 +13,7 @@ import test from "node:test";
 import {
   assertSupportedPattern,
   buildClaimGuardProof,
+  buildClaimHandoffProof,
   findClaimCollisions,
   pathOwned,
   patternsOverlap,
@@ -20,6 +21,7 @@ import {
   validateClaimContext,
   validateClaimHandoff,
 } from "./claim-guard.mjs";
+import { buildIndependentProof } from "../quality/independent-proof-trusted.mjs";
 
 const BASE_SHA = "a".repeat(40);
 const CURRENT_BASE_SHA = "b".repeat(40);
@@ -634,4 +636,199 @@ test("handoff rejects a source ChangeSet that is not reconciled to MERGED", () =
     () => validateClaimHandoff(fixture),
     /HANDOFF_FROM_NOT_MERGED/u,
   );
+});
+
+test("handoff rejects an expired trusted source claim", () => {
+  const fixture = handoffFixture();
+  fixture.baseRegistry.claims["MD-CP-003-TRUST"].expiresAt =
+    "2026-09-27T00:00:00Z";
+
+  assert.throws(
+    () => validateClaimHandoff({ ...fixture, now: NOW }),
+    /HANDOFF_BASE_CLAIM_EXPIRED/u,
+  );
+});
+
+function createHandoffProofRepository() {
+  const parent = mkdtempSync(resolve(tmpdir(), "morro-pair-proof-"));
+  const root = resolve(parent, "candidate");
+  const trusted = resolve(parent, "trusted");
+  mkdirSync(root, { recursive: true });
+
+  const reconcileBranch =
+    "infra/control-plane-v3.2-stage-c-trust-reconcile-20260928";
+  git(root, ["init", "-b", reconcileBranch]);
+  git(root, ["config", "user.email", "proof@example.test"]);
+  git(root, ["config", "user.name", "Morro Proof"]);
+
+  writeFileSync(resolve(root, "README.md"), "genesis\n");
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "genesis"]);
+  const sourceBaseSha = git(root, ["rev-parse", "HEAD"]);
+
+  const fromId = "MD-CP-003-TRUST";
+  const toId = "MD-CP-003-HOOKS";
+  const fromPath = `.morro/changesets/${fromId}.json`;
+  const toPath = `.morro/changesets/${toId}.json`;
+  const reconPath = ".morro/changesets/MD-CP-003-TRUST-RECON.json";
+
+  const fromPaths = [
+    ".github/workflows/morro-claim-guard-trusted.yml",
+    ".github/morro-control/claims.json",
+    fromPath,
+    "tooling/fabric/claim-guard.mjs",
+  ];
+  const baseFromManifest = {
+    id: fromId,
+    baseSha: sourceBaseSha,
+    branch: "infra/control-plane-v3.2-stage-c-trust-bootstrap-20260927",
+    state: "MERGE_READY",
+    owns: { paths: [...fromPaths] },
+    requiredEvidence: ["automated-independent-proof"],
+  };
+  const baseRegistry = {
+    schemaVersion: 1,
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      [fromId]: {
+        owner: "CHATGPT-PRO-CONTROL",
+        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+        branch: baseFromManifest.branch,
+        baseSha: sourceBaseSha,
+        paths: [...fromPaths],
+        domains: ["ci-governance"],
+        risk: "P1",
+        status: "INTEGRATION_READY",
+        expiresAt: "2099-01-01T00:00:00Z",
+      },
+    },
+  };
+
+  writeJson(root, fromPath, baseFromManifest);
+  writeJson(root, ".github/morro-control/claims.json", baseRegistry);
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "trusted base"]);
+  const currentBaseSha = git(root, ["rev-parse", "HEAD"]);
+  git(root, ["worktree", "add", "--detach", trusted, currentBaseSha]);
+
+  const candidateFromManifest = {
+    ...baseFromManifest,
+    owns: { paths: [...fromPaths] },
+    state: "MERGED",
+  };
+  const toPaths = [
+    ".github/hooks/morro-pretool-guard.mjs",
+    ".github/workflows/morro-claim-guard.yml",
+    toPath,
+  ];
+  const toManifest = {
+    id: toId,
+    baseSha: currentBaseSha,
+    branch: "infra/control-plane-v3.2-stage-c-hooks-20260928",
+    state: "IMPLEMENTING",
+    owns: { paths: [...toPaths] },
+    dependencies: [fromId],
+    requiredEvidence: ["trusted-claim-guard"],
+  };
+  const reconciliationManifest = {
+    id: "MD-CP-003-TRUST-RECON",
+    baseSha: currentBaseSha,
+    branch: reconcileBranch,
+    state: "MERGE_READY",
+    owns: {
+      paths: [".github/morro-control/claims.json", fromPath, toPath, reconPath],
+    },
+    dependencies: [fromId],
+    requiredEvidence: [
+      "orchestrator-claim-handoff",
+      "automated-independent-proof",
+    ],
+  };
+  const candidateRegistry = {
+    schemaVersion: 1,
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      [toId]: {
+        owner: "CHATGPT-PRO-CONTROL",
+        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+        branch: toManifest.branch,
+        baseSha: currentBaseSha,
+        paths: [...toPaths],
+        domains: ["ci-governance"],
+        risk: "P1",
+        status: "IMPLEMENTING",
+        expiresAt: "2099-01-01T00:00:00Z",
+      },
+    },
+  };
+
+  writeJson(root, fromPath, candidateFromManifest);
+  writeJson(root, toPath, toManifest);
+  writeJson(root, reconPath, reconciliationManifest);
+  writeJson(root, ".github/morro-control/claims.json", candidateRegistry);
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "handoff"]);
+  const headSha = git(root, ["rev-parse", "HEAD"]);
+
+  return {
+    parent,
+    root,
+    trusted,
+    reconcileBranch,
+    currentBaseSha,
+    headSha,
+    fromPath,
+    toPath,
+    reconPath,
+  };
+}
+
+test("handoff and reconciliation independent proof pass together", () => {
+  const repo = createHandoffProofRepository();
+  try {
+    const env = {
+      EXPECTED_CANDIDATE_SHA: repo.headSha,
+      EXPECTED_BASE_SHA: repo.currentBaseSha,
+      EXPECTED_BRANCH: repo.reconcileBranch,
+      MANIFEST_PATH: repo.reconPath,
+      HANDOFF_FROM_MANIFEST_PATH: repo.fromPath,
+      HANDOFF_TO_MANIFEST_PATH: repo.toPath,
+    };
+    const handoff = buildClaimHandoffProof(repo.trusted, repo.root, env);
+    assert.equal(handoff.contract, "MORRO-DETERMINISTIC-CLAIM-HANDOFF");
+    assert.equal(handoff.reconciliationChangeSetId, "MD-CP-003-TRUST-RECON");
+
+    const independent = buildIndependentProof(repo.root, repo.reconPath, {
+      EXPECTED_CANDIDATE_SHA: repo.headSha,
+      EXPECTED_BASE_SHA: repo.currentBaseSha,
+      TRUSTED_VALIDATOR_SHA: "d".repeat(40),
+      TRUSTED_VALIDATOR_TREE_SHA: "e".repeat(40),
+    });
+    assert.equal(independent.contract, "MORRO-AUTOMATED-INDEPENDENT-PROOF");
+    assert.equal(independent.changeSetId, "MD-CP-003-TRUST-RECON");
+  } finally {
+    git(repo.root, ["worktree", "remove", "--force", repo.trusted]);
+    rmSync(repo.parent, { recursive: true, force: true });
+  }
+});
+
+test("handoff proof rejects source or target used as reconciliation manifest", () => {
+  const repo = createHandoffProofRepository();
+  try {
+    assert.throws(
+      () =>
+        buildClaimHandoffProof(repo.trusted, repo.root, {
+          EXPECTED_CANDIDATE_SHA: repo.headSha,
+          EXPECTED_BASE_SHA: repo.currentBaseSha,
+          EXPECTED_BRANCH: repo.reconcileBranch,
+          MANIFEST_PATH: repo.fromPath,
+          HANDOFF_FROM_MANIFEST_PATH: repo.fromPath,
+          HANDOFF_TO_MANIFEST_PATH: repo.toPath,
+        }),
+      /HANDOFF_RECONCILIATION_EQUALS_SOURCE_MANIFEST/u,
+    );
+  } finally {
+    git(repo.root, ["worktree", "remove", "--force", repo.trusted]);
+    rmSync(repo.parent, { recursive: true, force: true });
+  }
 });
