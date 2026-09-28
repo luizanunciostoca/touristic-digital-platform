@@ -111,10 +111,7 @@ services:
       # Database owner credentials are intentionally scoped to this non-public
       # bootstrap worker and are never injected into the production web service.
       - key: PRODUCTION_MYSQL_HOSTPORT
-        fromService:
-          type: pserv
-          name: morro-digital-v2-production-mysql
-          property: hostport
+        value: morro-digital-v2-production-mysql:3306
       - key: PRODUCTION_AUTH_DATABASE_NAME
         fromService:
           type: pserv
