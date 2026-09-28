@@ -1,0 +1,46 @@
+{
+  "id": "MD-PRODUCTION-MYSQL-RENDER",
+  "baseSha": "c0b48b27c8613d1cef05755ba27c29baa91fdea8",
+  "branch": "infra/production-mysql-render-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-PRODUCTION-MYSQL-RENDER.json",
+      "render.yaml",
+      "package.json",
+      "tooling/render/mysql-production/Dockerfile",
+      "tooling/render/mysql-production/morro-memory.cnf",
+      "tooling/render/mysql-production/01-init-databases.sh",
+      "tooling/quality/check-render-production-mysql-blueprint.mjs",
+      "tooling/quality/render-production-mysql-blueprint.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
