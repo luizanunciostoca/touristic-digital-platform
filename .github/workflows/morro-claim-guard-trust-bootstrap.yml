@@ -50,7 +50,7 @@ jobs:
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928' && '.morro/changesets/MD-CP-003-HOOKS-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
+      manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928' && '.morro/changesets/MD-CP-003-HOOKS-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-governance-20260928' && '.morro/changesets/MD-CP-003-GOV.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
     permissions:
       contents: read
 

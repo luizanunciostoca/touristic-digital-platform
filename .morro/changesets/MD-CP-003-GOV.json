@@ -35,6 +35,8 @@
     "format",
     "secrets",
     "lint",
+    "typecheck",
+    "build",
     "affected-tests",
     "integration",
     "exact-head-identity",
