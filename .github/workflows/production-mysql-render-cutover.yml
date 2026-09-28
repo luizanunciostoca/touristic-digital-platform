@@ -1,0 +1,440 @@
+name: Production MySQL Render Cutover
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA to deploy against the Render private MySQL
+        required: true
+        type: string
+      confirm_cutover:
+        description: Type CUTOVER to authorize the database endpoint transition
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-mysql-render-cutover
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "10.15.0"
+  TURBO_TELEMETRY_DISABLED: "1"
+  RENDER_WEB_SERVICE_ID: srv-daqgk83ncjis739tghig
+  RENDER_MYSQL_SERVICE_ID: srv-datbsavlot8c73evbhj0
+  PRODUCTION_MYSQL_PRIVATE_HOST: morro-digital-v2-production-mysql
+  PRODUCTION_MYSQL_PRIVATE_PORT: "3306"
+  PRODUCTION_URL: https://morro-digital-v2.onrender.com
+
+jobs:
+  cutover:
+    name: production mysql / cutover
+    if: github.ref == 'refs/heads/main' && inputs.confirm_cutover == 'CUTOVER'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    environment:
+      name: production
+      url: ${{ env.PRODUCTION_URL }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prove exact main source identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$main_sha"
+          test "$main_sha" = "$EXPECTED_SHA"
+
+      - name: Require protected Render credential
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+
+      - name: Prepare atomic database environment transition
+        id: prepare
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+
+          curl --fail-with-body --silent --show-error \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            "$api/services/$RENDER_WEB_SERVICE_ID" \
+            > /tmp/render-web-service.json
+          jq -e \
+            --arg id "$RENDER_WEB_SERVICE_ID" \
+            '.id == $id and
+             .type == "web_service" and
+             .branch == "main" and
+             .autoDeploy == "no" and
+             .serviceDetails.region == "virginia"' \
+            /tmp/render-web-service.json >/dev/null
+
+          curl --fail-with-body --silent --show-error \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            "$api/services/$RENDER_MYSQL_SERVICE_ID" \
+            > /tmp/render-mysql-service.json
+          jq -e \
+            --arg id "$RENDER_MYSQL_SERVICE_ID" \
+            '.id == $id and
+             .type == "private_service" and
+             .branch == "main" and
+             .autoDeploy == "no" and
+             .serviceDetails.region == "virginia" and
+             .serviceDetails.runtime == "docker" and
+             .serviceDetails.disk.mountPath == "/var/lib/mysql" and
+             .serviceDetails.disk.sizeGB == 10 and
+             any(.serviceDetails.openPorts[]?; .port == 3306 and .protocol == "TCP")' \
+            /tmp/render-mysql-service.json >/dev/null
+
+          curl --fail-with-body --silent --show-error \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            "$api/services/$RENDER_WEB_SERVICE_ID/deploys?limit=20" \
+            > /tmp/render-web-deploys-before.json
+
+          previous_deploy_id="$(jq -r '[.[] | (.deploy // .) | select(.status == "live")][0].id // empty' /tmp/render-web-deploys-before.json)"
+          previous_release_sha="$(jq -r '[.[] | (.deploy // .) | select(.status == "live")][0].commit.id // empty' /tmp/render-web-deploys-before.json)"
+          test -n "$previous_deploy_id"
+          [[ "$previous_release_sha" =~ ^[0-9a-f]{40}$ ]]
+
+          curl --fail-with-body --silent --show-error \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            "$api/services/$RENDER_MYSQL_SERVICE_ID/env-vars?limit=100" \
+            > /tmp/render-mysql-env.json
+          curl --fail-with-body --silent --show-error \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            "$api/services/$RENDER_WEB_SERVICE_ID/env-vars?limit=100" \
+            > /tmp/render-web-env.json
+
+          PREVIOUS_DEPLOY_ID="$previous_deploy_id" \
+          PREVIOUS_RELEASE_SHA="$previous_release_sha" \
+          node tooling/render/production-mysql-cutover-env.mjs \
+            /tmp/render-mysql-env.json \
+            /tmp/render-web-env.json \
+            /tmp/render-web-env-original.json \
+            /tmp/render-web-env-cutover.json
+
+          http_status="$(curl --silent --show-error \
+            --output /tmp/render-web-env-update.json \
+            --write-out '%{http_code}' \
+            --request PUT \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data-binary @/tmp/render-web-env-cutover.json \
+            "$api/services/$RENDER_WEB_SERVICE_ID/env-vars")"
+          test "$http_status" = "200"
+
+          echo "previous_deploy_id=$previous_deploy_id" >> "$GITHUB_OUTPUT"
+          echo "previous_release_sha=$previous_release_sha" >> "$GITHUB_OUTPUT"
+          echo "env_saved=true" >> "$GITHUB_OUTPUT"
+          echo "Atomic Render database environment update saved without deploying."
+
+      - name: Trigger exact-SHA production deploy
+        id: deploy
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          jq -n \
+            --arg sha "$EXPECTED_SHA" \
+            '{commitId:$sha,clearCache:"do_not_clear",deployMode:"build_and_deploy"}' \
+            > /tmp/render-web-deploy-request.json
+
+          http_status="$(curl --silent --show-error \
+            --output /tmp/render-web-deploy.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data-binary @/tmp/render-web-deploy-request.json \
+            "$api/services/$RENDER_WEB_SERVICE_ID/deploys")"
+          test "$http_status" = "201"
+          deploy_id="$(jq -r '.id // empty' /tmp/render-web-deploy.json)"
+          test -n "$deploy_id"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for exact-SHA Render deploy
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          DEPLOY_ID: ${{ steps.deploy.outputs.deploy_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          status=""
+          for _ in $(seq 1 180); do
+            curl --fail-with-body --silent --show-error \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              "$api/services/$RENDER_WEB_SERVICE_ID/deploys/$DEPLOY_ID" \
+              > /tmp/render-web-deploy-state.json
+            status="$(jq -r '.status // empty' /tmp/render-web-deploy-state.json)"
+            release_sha="$(jq -r '.commit.id // empty' /tmp/render-web-deploy-state.json)"
+            case "$status" in
+              live)
+                test "$release_sha" = "$EXPECTED_SHA"
+                echo "Exact-SHA Render deploy live: $DEPLOY_ID"
+                exit 0
+                ;;
+              build_failed|update_failed|pre_deploy_failed|canceled|deactivated)
+                jq '{id,status,commit:{id:(.commit.id // null),message:(.commit.message // null)}}' \
+                  /tmp/render-web-deploy-state.json >&2
+                exit 1
+                ;;
+              *)
+                sleep 10
+                ;;
+            esac
+          done
+          echo "Render deploy timed out: $DEPLOY_ID status=$status" >&2
+          exit 1
+
+      - name: Require healthy exact-SHA production readiness
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MORRO_V2_BASE_URL: ${{ env.PRODUCTION_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          last_output=""
+          for _ in $(seq 1 90); do
+            if output="$(pnpm --silent payments:render:smoke 2>&1)"; then
+              release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$EXPECTED_SHA" ]; then
+                printf '%s\n' "$output"
+                exit 0
+              fi
+              last_output="$output"
+            else
+              last_output="$output"
+            fi
+            sleep 10
+          done
+          printf '%s\n' "$last_output" >&2
+          echo "Healthy exact-SHA production readiness timed out." >&2
+          exit 1
+
+      - name: Materialize and verify all thirteen database domains
+        id: bootstrap
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+
+          http_status="$(curl --silent --show-error \
+            --output /tmp/render-bootstrap-job.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data '{"startCommand":"node apps/morro-digital-platform/tooling/production-db-bootstrap.mjs"}' \
+            "$api/services/$RENDER_WEB_SERVICE_ID/jobs")"
+          test "$http_status" = "201"
+
+          job_id="$(jq -r '.id // empty' /tmp/render-bootstrap-job.json)"
+          test -n "$job_id"
+          status=""
+          for _ in $(seq 1 120); do
+            curl --fail-with-body --silent --show-error \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              "$api/services/$RENDER_WEB_SERVICE_ID/jobs/$job_id" \
+              > /tmp/render-bootstrap-job-state.json
+            status="$(jq -r '.status // empty' /tmp/render-bootstrap-job-state.json)"
+            case "$status" in
+              succeeded)
+                echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+                echo "Production database bootstrap/readback succeeded: $job_id"
+                exit 0
+                ;;
+              failed|canceled)
+                jq '{id,status,createdAt,startedAt,finishedAt}' \
+                  /tmp/render-bootstrap-job-state.json >&2
+                exit 1
+                ;;
+              pending|running)
+                sleep 5
+                ;;
+              *)
+                echo "Unexpected bootstrap job status: $status" >&2
+                exit 1
+                ;;
+            esac
+          done
+          echo "Production database bootstrap job timed out: $job_id" >&2
+          exit 1
+
+      - name: Re-prove healthy production after database bootstrap
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          MORRO_V2_BASE_URL: ${{ env.PRODUCTION_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(pnpm --silent payments:render:smoke)"
+          release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty')"
+          test "$release_sha" = "$EXPECTED_SHA"
+          printf '%s\n' "$output"
+
+      - name: Write safe cutover evidence
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          PREVIOUS_DEPLOY_ID: ${{ steps.prepare.outputs.previous_deploy_id }}
+          PREVIOUS_RELEASE_SHA: ${{ steps.prepare.outputs.previous_release_sha }}
+          DEPLOY_ID: ${{ steps.deploy.outputs.deploy_id }}
+          BOOTSTRAP_JOB_ID: ${{ steps.bootstrap.outputs.job_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -n \
+            --arg expectedSha "$EXPECTED_SHA" \
+            --arg previousDeployId "$PREVIOUS_DEPLOY_ID" \
+            --arg previousReleaseSha "$PREVIOUS_RELEASE_SHA" \
+            --arg deployId "$DEPLOY_ID" \
+            --arg bootstrapJobId "$BOOTSTRAP_JOB_ID" \
+            '{
+              contract:"MORRO-PRODUCTION-MYSQL-CUTOVER",
+              status:"pass",
+              expectedSha:$expectedSha,
+              productionServiceId:"srv-daqgk83ncjis739tghig",
+              mysqlServiceId:"srv-datbsavlot8c73evbhj0",
+              previousDeployId:$previousDeployId,
+              previousReleaseSha:$previousReleaseSha,
+              deployId:$deployId,
+              bootstrapJobId:$bootstrapJobId,
+              domains:13,
+              topology:"render-private-domain-users",
+              rollbackSource:"railway-retained",
+              readiness:"healthy"
+            }' > production-mysql-render-cutover-evidence.json
+
+      - name: Upload cutover evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-mysql-render-cutover-${{ github.run_id }}
+          path: production-mysql-render-cutover-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Restore previous database environment and deploy on failure
+        if: ${{ failure() && steps.prepare.outputs.env_saved == 'true' }}
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          PREVIOUS_DEPLOY_ID: ${{ steps.prepare.outputs.previous_deploy_id }}
+          PREVIOUS_RELEASE_SHA: ${{ steps.prepare.outputs.previous_release_sha }}
+          MORRO_V2_BASE_URL: ${{ env.PRODUCTION_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+
+          test -s /tmp/render-web-env-original.json
+          http_status="$(curl --silent --show-error \
+            --output /tmp/render-web-env-restore.json \
+            --write-out '%{http_code}' \
+            --request PUT \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data-binary @/tmp/render-web-env-original.json \
+            "$api/services/$RENDER_WEB_SERVICE_ID/env-vars")"
+          test "$http_status" = "200"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data "$(jq -cn --arg deployId "$PREVIOUS_DEPLOY_ID" '{deployId:$deployId}')" \
+            "$api/services/$RENDER_WEB_SERVICE_ID/rollback" \
+            > /tmp/render-web-rollback.json
+
+          last_output=""
+          for _ in $(seq 1 90); do
+            if output="$(pnpm --silent release:identity:smoke 2>&1)"; then
+              release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$PREVIOUS_RELEASE_SHA" ]; then
+                printf '%s\n' "$output"
+                echo "Automatic database cutover rollback PASS."
+                exit 0
+              fi
+              last_output="$output"
+            else
+              last_output="$output"
+            fi
+            sleep 10
+          done
+          printf '%s\n' "$last_output" >&2
+          echo "Automatic database cutover rollback could not prove previous release." >&2
+          exit 1
+
+      - name: Remove transient sensitive files
+        if: always()
+        shell: bash
+        run: |
+          rm -f \
+            /tmp/render-web-service.json \
+            /tmp/render-mysql-service.json \
+            /tmp/render-web-deploys-before.json \
+            /tmp/render-mysql-env.json \
+            /tmp/render-web-env.json \
+            /tmp/render-web-env-original.json \
+            /tmp/render-web-env-cutover.json \
+            /tmp/render-web-env-update.json \
+            /tmp/render-web-deploy-request.json \
+            /tmp/render-web-deploy.json \
+            /tmp/render-web-deploy-state.json \
+            /tmp/render-bootstrap-job.json \
+            /tmp/render-bootstrap-job-state.json \
+            /tmp/render-web-env-restore.json \
+            /tmp/render-web-rollback.json
