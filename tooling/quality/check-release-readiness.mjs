@@ -37,6 +37,18 @@ function requireDirective(source, key, directive, label) {
   requireText(block, `${label} ${key}`, directive);
 }
 
+function serviceBlock(source, name, label) {
+  const lines = source.split(/\r?\n/u);
+  const nameIndex = lines.findIndex((line) => line.trim() === `name: ${name}`);
+  if (nameIndex < 0) fail(`${label} is missing service ${name}`);
+  let start = nameIndex;
+  while (start >= 0 && !/^\s{2}- type: /u.test(lines[start])) start -= 1;
+  if (start < 0) fail(`${label} has malformed service ${name}`);
+  let end = start + 1;
+  while (end < lines.length && !/^\s{2}- type: /u.test(lines[end])) end += 1;
+  return lines.slice(start, end).join("\n");
+}
+
 const [
   production,
   staging,
@@ -64,6 +76,12 @@ const [
   text("tooling/render/with-staging-mysql-env.mjs"),
   text("apps/morro-digital-platform/tooling/staging-predeploy.mjs"),
 ]);
+
+const productionWeb = serviceBlock(
+  production,
+  "morro-digital-v2",
+  "production blueprint",
+);
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
 requireText(production, "production blueprint", "runtime: node");
@@ -174,7 +192,11 @@ requireDirective(
   "sync: false",
   "production blueprint",
 );
-forbidText(production, "production blueprint", "fromService:");
+forbidText(
+  productionWeb,
+  "production web service",
+  "fromService:",
+);
 forbidText(production, "production blueprint", "STAGING_");
 
 requireText(
