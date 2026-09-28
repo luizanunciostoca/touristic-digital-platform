@@ -1,5 +1,5 @@
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { execFileSync } from "node:child_process";\nimport { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";\nimport { validateClaimRetirements } from "./claim-retirement.mjs";
 
 const directory = ".morro/changesets";
 const entries = (await readdir(directory)).filter(
@@ -58,3 +58,21 @@ for (const name of entries) {
 }
 
 console.log(`ChangeSet registry valid: ${entries.length} manifest(s)`);
+
+const shaPattern = /^[0-9a-f]{40}$/u;
+const zeroSha = "0".repeat(40);
+const baseSha = String(process.env.BASE_SHA ?? "").trim();
+const headSha =
+  String(process.env.HEAD_SHA ?? "").trim() ||
+  execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+
+if (
+  shaPattern.test(baseSha) &&
+  baseSha !== zeroSha &&
+  shaPattern.test(headSha)
+) {
+  const proof = validateClaimRetirements(".", { baseSha, headSha });
+  console.log(
+    `Claim retirement proof: ${proof.retired.length} retirement(s) validated.`,
+  );
+}
