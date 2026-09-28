@@ -47,9 +47,7 @@ function forbidText(source, value, label = value) {
 
 function serviceBlock(name) {
   const lines = blueprint.split(/\r?\n/u);
-  const nameIndex = lines.findIndex(
-    (line) => line.trim() === "name: " + name,
-  );
+  const nameIndex = lines.findIndex((line) => line.trim() === "name: " + name);
   if (nameIndex < 0) {
     throw new Error("Missing production MySQL service: " + name);
   }
