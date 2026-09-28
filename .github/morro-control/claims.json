@@ -7,12 +7,8 @@
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/remediation-final-claim-gc-20260928",
       "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
-      "paths": [
-        ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"
-      ],
-      "domains": [
-        "ci-governance"
-      ],
+      "paths": [".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
