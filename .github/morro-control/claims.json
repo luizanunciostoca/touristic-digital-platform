@@ -50,11 +50,12 @@
         ".github/workflows/ci-impact.yml",
         ".github/workflows/quality.yml",
         ".github/workflows/release-candidate-certification.yml",
-        "tooling/quality/check-release-gate-negative-cases.mjs"
+        "tooling/quality/check-release-gate-negative-cases.mjs",
+        ".morro/fabric.json"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
-      "status": "LOCAL_PROVEN",
+      "status": "REMOTE_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
     }
   }

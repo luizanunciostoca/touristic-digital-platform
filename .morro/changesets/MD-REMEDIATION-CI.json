@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CI",
   "baseSha": "aa40cd560a962434b3c1230ab5fe5f0b917a3259",
   "branch": "infra/engineering-remediation-ci-20260928",
-  "state": "LOCAL_PROVEN",
+  "state": "REMOTE_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [
@@ -28,7 +28,8 @@
       ".github/workflows/ci-impact.yml",
       ".github/workflows/quality.yml",
       ".github/workflows/release-candidate-certification.yml",
-      "tooling/quality/check-release-gate-negative-cases.mjs"
+      "tooling/quality/check-release-gate-negative-cases.mjs",
+      ".morro/fabric.json"
     ],
     "contracts": []
   },

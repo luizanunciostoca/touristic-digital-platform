@@ -38,7 +38,7 @@ jobs:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
 
-      - name: Prove exact candidate is current main
+      - name: Prove frozen candidate provenance
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
