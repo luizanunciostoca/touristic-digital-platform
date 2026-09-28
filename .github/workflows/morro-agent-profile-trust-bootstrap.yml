@@ -6,6 +6,11 @@ on:
     paths:
       - "tooling/quality/agent-profile-contract-trusted.mjs"
       - "tooling/quality/agent-profile-contract-trusted.test.mjs"
+      - "tooling/quality/independent-proof-trusted.mjs"
+      - "tooling/quality/independent-proof-trusted.test.mjs"
+      - ".github/morro-control/policy.json"
+      - ".github/pull_request_template.md"
+      - "AGENTS.md"
       - ".github/workflows/morro-agent-profiles-trusted.yml"
       - ".github/workflows/morro-agent-profile-trust-bootstrap.yml"
       - ".morro/changesets/MD-CP-002C-TRUST.json"
@@ -32,5 +37,8 @@ jobs:
         with:
           node-version: "22"
           package-manager-cache: false
-      - name: Test trusted validator
-        run: node --test tooling/quality/agent-profile-contract-trusted.test.mjs
+      - name: Test trusted validators
+        run: >-
+          node --test
+          tooling/quality/agent-profile-contract-trusted.test.mjs
+          tooling/quality/independent-proof-trusted.test.mjs
