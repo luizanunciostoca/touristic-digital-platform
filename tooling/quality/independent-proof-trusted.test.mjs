@@ -20,8 +20,14 @@ const manifest = {
 };
 
 test("exact and recursive ownership patterns match only their scope", () => {
-  assert.equal(pathOwned(".github/agents/a.agent.md", ".github/agents/**"), true);
-  assert.equal(pathOwned(".github/agents2/a.agent.md", ".github/agents/**"), false);
+  assert.equal(
+    pathOwned(".github/agents/a.agent.md", ".github/agents/**"),
+    true,
+  );
+  assert.equal(
+    pathOwned(".github/agents2/a.agent.md", ".github/agents/**"),
+    false,
+  );
   assert.equal(
     pathOwned(".github/workflows/example.yml", ".github/workflows/example.yml"),
     true,
