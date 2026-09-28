@@ -117,7 +117,7 @@
       "owner": "CHATGPT-WORK-RELEASE",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/remediation-release-foundation-20260928",
-      "baseSha": "63ba532ae94e9aea73e9a3e1090fe7957972fa5d",
+      "baseSha": "0bef3856dca967aebc9f6416a5861c71ee2eca28",
       "paths": [
         "tooling/release/oci-proof.mjs",
         "tooling/release/oci-proof.test.mjs",
