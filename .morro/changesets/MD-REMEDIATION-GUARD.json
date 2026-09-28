@@ -1,14 +1,15 @@
 {
-  "id": "MD-REMEDIATION-RUNTIME-DIAGNOSTICS",
-  "baseSha": "7105d020d167d7f6aa89091e7529fb3b7c8dbc5a",
-  "branch": "fix/remediation-commerce-diagnostics-20260928",
+  "id": "MD-REMEDIATION-GUARD",
+  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "branch": "infra/remediation-claim-maintenance-20260928",
   "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
-      "apps/morro-digital-platform/tooling/commerce-api.mjs",
-      "apps/morro-digital-platform/tooling/commerce-api.test.mjs",
-      ".morro/changesets/MD-REMEDIATION-RUNTIME-DIAGNOSTICS.json",
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+      ".github/workflows/morro-claim-guard-trusted.yml",
+      ".morro/changesets/MD-REMEDIATION-GUARD.json",
       ".github/morro-control/claims.json"
     ],
     "contracts": []
