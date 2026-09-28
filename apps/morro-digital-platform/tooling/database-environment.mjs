@@ -8,10 +8,6 @@ const databaseSchemas = Object.freeze({
   FINANCIAL_DATABASE_URL: "morro_financial",
   TICKETING_DATABASE_URL: "morro_ticketing",
   NOTIFICATIONS_DATABASE_URL: "morro_notifications",
-  AFFILIATES_DATABASE_URL: "morro_affiliates",
-  ANALYTICS_DATABASE_URL: "morro_analytics",
-  CRM_DATABASE_URL: "morro_crm",
-  COMMERCE_DATABASE_URL: "morro_commerce",
 });
 
 function text(value) {
