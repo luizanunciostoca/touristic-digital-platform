@@ -15,10 +15,49 @@
         "tooling/quality/check-render-staging-blueprint.mjs",
         "tooling/quality/render-staging-blueprint.test.mjs"
       ],
-      "domains": ["ci-release", "database"],
+      "domains": [
+        "ci-release",
+        "database"
+      ],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
+    },
+    "MD-REMEDIATION-DATABASE-TOPOLOGY": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-database-topology-20260928",
+      "baseSha": "c0b48b27c8613d1cef05755ba27c29baa91fdea8",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-DATABASE-TOPOLOGY.json",
+        ".env.example",
+        "package.json",
+        "render.yaml",
+        "render.staging.yaml",
+        "tooling/database/canonical-database-topology.mjs",
+        "tooling/database/canonical-database-topology.test.mjs",
+        "apps/morro-digital-platform/tooling/database-environment.mjs",
+        "apps/morro-digital-platform/tooling/database-environment.test.mjs",
+        "apps/morro-digital-platform/tooling/platform-database-migrate.mjs",
+        "apps/morro-digital-platform/tooling/platform-database-migrate.test.mjs",
+        "apps/morro-digital-platform/tooling/staging-predeploy.mjs",
+        "apps/morro-digital-platform/tooling/staging-predeploy.test.mjs",
+        "tooling/render/reconcile-staging-mysql-domains.mjs",
+        "tooling/render/with-staging-mysql-env.mjs",
+        "tooling/render/with-staging-mysql-env.test.mjs",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/check-environment-reconciliation.mjs",
+        "tooling/quality/check-release-readiness.mjs",
+        "tooling/quality/check-migration-dry-run.mjs"
+      ],
+      "domains": [
+        "database",
+        "release",
+        "ci-governance"
+      ],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }
