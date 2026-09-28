@@ -75,7 +75,8 @@ jobs:
 
           curl --fail-with-body --silent --show-error             --header "$auth"             --header "Accept: application/json"             "$api/services/$SERVICE_ID" > /tmp/render-mysql-service.json
 
-          jq -e             --arg service "$SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == env.SERVICE_ID and
+          jq -e             --arg id "$SERVICE_ID"             --arg owner "$RENDER_WORKSPACE_ID"             --arg service "$SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == $id and
+             .ownerId == $owner and
              .name == $service and
              .type == "private_service" and
              .branch == "main" and
@@ -106,10 +107,21 @@ jobs:
           umask 077
           api="https://api.render.com/v1"
           auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
-          cleanup() { rm -f /tmp/render-mysql-job-create.json /tmp/render-mysql-job.json; }
+          cleanup() {
+            rm -f \
+              /tmp/render-mysql-job-request.json \
+              /tmp/render-mysql-job-create.json \
+              /tmp/render-mysql-job.json \
+              /tmp/render-mysql-job-logs.json \
+              /tmp/render-mysql-readback.json
+          }
           trap cleanup EXIT
 
-          http_status="$(curl --silent --show-error             --output /tmp/render-mysql-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data '{"startCommand":"/usr/local/bin/morro-mysql-readback"}'             "$api/services/$SERVICE_ID/jobs")"
+          jq -nc --arg sha "$EXPECTED_SHA" \
+            '{startCommand:("EXPECTED_SHA=" + $sha + " /usr/local/bin/morro-mysql-readback")}' \
+            > /tmp/render-mysql-job-request.json
+
+          http_status="$(curl --silent --show-error             --output /tmp/render-mysql-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/render-mysql-job-request.json             "$api/services/$SERVICE_ID/jobs")"
           test "$http_status" = "201"
 
           job_id="$(jq -r '.id // empty' /tmp/render-mysql-job-create.json)"
@@ -139,16 +151,56 @@ jobs:
 
           test "$status" = "succeeded"
 
-          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$SERVICE_ID"             --arg serviceName "$SERVICE_NAME"             --arg diskId "$EXPECTED_DISK_ID"             --arg liveDeployId "$LIVE_DEPLOY_ID"             --arg jobId "$job_id"             '{
+          readback_json=""
+          for _ in $(seq 1 30); do
+            curl --fail-with-body --silent --show-error \
+              --get \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
+              --data-urlencode "resource=$job_id" \
+              --data-urlencode "direction=backward" \
+              --data-urlencode "limit=100" \
+              "$api/logs" > /tmp/render-mysql-job-logs.json
+
+            readback_json="$(jq -c \
+              '[.logs[]?.message | fromjson? | select(.contract == "MORRO-PRODUCTION-MYSQL-READBACK")][0] // empty' \
+              /tmp/render-mysql-job-logs.json)"
+            if [ -n "$readback_json" ]; then
+              break
+            fi
+            sleep 2
+          done
+          test -n "$readback_json"
+          printf '%s\n' "$readback_json" > /tmp/render-mysql-readback.json
+
+          jq -e --arg sha "$EXPECTED_SHA" '
+            .contract == "MORRO-PRODUCTION-MYSQL-READBACK" and
+            .status == "pass" and
+            .expectedSha == $sha and
+            .renderGitCommit == $sha and
+            .schemaOwners == 13 and
+            .crossDomainDenied == 156 and
+            (.totalTables | type == "number") and
+            .totalTables >= 0 and
+            (.tableCounts | type == "object") and
+            (.tableCounts | keys | sort) ==
+              ["affiliates","analytics","audit","auth","business","commerce","content","crm","destinations","financial","notifications","ordering","ticketing"] and
+            all(.tableCounts[]; (type == "number" and . >= 0))
+          ' /tmp/render-mysql-readback.json >/dev/null
+
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$SERVICE_ID"             --arg serviceName "$SERVICE_NAME"             --arg workspaceId "$RENDER_WORKSPACE_ID"             --arg diskId "$EXPECTED_DISK_ID"             --arg liveDeployId "$LIVE_DEPLOY_ID"             --arg jobId "$job_id"             --argjson readback "$readback_json"             '{
               contract:"MORRO-PRODUCTION-MYSQL-READBACK-JOB",
               status:"pass",
               expectedSha:$expectedSha,
+              workspaceId:$workspaceId,
               serviceId:$serviceId,
               serviceName:$serviceName,
               diskId:$diskId,
               liveDeployId:$liveDeployId,
               jobId:$jobId,
-              jobStatus:"succeeded"
+              jobStatus:"succeeded",
+              readback:$readback
             }' > production-mysql-render-readback-evidence.json
 
           echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
