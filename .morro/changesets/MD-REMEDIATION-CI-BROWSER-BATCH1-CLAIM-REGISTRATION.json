@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CI-BROWSER-BATCH1-CLAIM-REGISTRATION",
   "baseSha": "9adbb1eb365c6b6650cb6306f24e6a74aa72bcc8",
   "branch": "infra/remediation-ci-browser-batch1-claim-registration-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
