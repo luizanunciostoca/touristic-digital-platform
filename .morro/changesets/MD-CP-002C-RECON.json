@@ -8,6 +8,7 @@
     "paths": [
       ".morro/changesets/MD-CP-002C.json",
       ".morro/changesets/MD-CP-002C-RECON.json",
+      ".morro/changesets/MD-CP-003.json",
       ".github/morro-control/backlog.json",
       ".github/morro-control/claims.json",
       ".github/workflows/morro-agent-profiles.yml"
