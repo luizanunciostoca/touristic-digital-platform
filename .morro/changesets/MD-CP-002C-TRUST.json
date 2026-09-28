@@ -1,0 +1,51 @@
+{
+  "id": "MD-CP-002C-TRUST",
+  "baseSha": "e315945d6962e942371065574a931081c0ff6408",
+  "branch": "infra/control-plane-b3-trusted-profile-guard-20260928",
+  "state": "MERGE_READY",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/workflows/morro-agent-profiles-trusted.yml",
+      ".github/workflows/morro-agent-profile-trust-bootstrap.yml",
+      "tooling/quality/agent-profile-contract-trusted.mjs",
+      "tooling/quality/agent-profile-contract-trusted.test.mjs",
+      ".morro/changesets/MD-CP-002C-TRUST.json",
+      "tooling/quality/independent-proof-trusted.mjs",
+      "tooling/quality/independent-proof-trusted.test.mjs",
+      ".github/morro-control/policy.json",
+      ".github/pull_request_template.md",
+      "AGENTS.md"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-002B"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "exact-head-identity",
+    "tree-sha",
+    "trusted-validator-bootstrap",
+    "automated-independent-proof-bootstrap",
+    "owner-authorized-governance-change"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
