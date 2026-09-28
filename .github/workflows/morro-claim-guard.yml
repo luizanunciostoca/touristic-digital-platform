@@ -1,0 +1,78 @@
+name: Claim Guard Contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/hooks/**"
+      - ".github/workflows/morro-claim-guard.yml"
+      - ".github/workflows/morro-claim-guard-trusted.yml"
+      - ".github/morro-control/backlog.json"
+      - ".github/morro-control/claim-schema.json"
+      - ".github/morro-control/policy.json"
+      - ".morro/changesets/MD-CP-003.json"
+      - "tooling/fabric/claim-guard.mjs"
+      - "tooling/fabric/claim-guard.test.mjs"
+      - "tooling/fabric/validate-registry.mjs"
+      - "tooling/fabric/validate-changeset.mjs"
+      - "tooling/quality/independent-proof-trusted.mjs"
+      - "tooling/quality/independent-proof-trusted.test.mjs"
+      - ".github/pull_request_template.md"
+      - "AGENTS.md"
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claim-guard-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate-contract:
+    name: candidate-claim-guard-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Run adversarial Claim Guard contract tests
+        run: node --test tooling/fabric/claim-guard.test.mjs
+
+      - name: Build candidate Claim Guard proof
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref || 'infra/control-plane-v3.2-stage-c-safety-20260927' }}
+          MANIFEST_PATH: .morro/changesets/MD-CP-003.json
+          CLAIM_GUARD_AUTHORITY: WORKER
+        run: >-
+          node tooling/fabric/claim-guard.mjs .
+          | tee claim-guard-candidate-proof.json
+
+      - name: Upload candidate Claim Guard proof
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: claim-guard-candidate-proof-${{ github.event.pull_request.head.sha || github.sha }}
+          path: claim-guard-candidate-proof.json
+          if-no-files-found: error
+          retention-days: 30
+
+  bootstrap-independent-proof:
+    name: base-controlled-bootstrap-proof
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@4729cbfa5bd0b1ee0796fd0c2840c779fe3476db
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+      manifest_path: .morro/changesets/MD-CP-003.json
+    permissions:
+      contents: read
