@@ -232,6 +232,40 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH3-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch3-claim-registration-20260928",
+      "baseSha": "6b833f5cc7babd1522f895cea6673ee8a8750eb1",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH3": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch3-20260928",
+      "baseSha": "6b833f5cc7babd1522f895cea6673ee8a8750eb1",
+      "paths": [
+        ".github/workflows/business-onboarding-commercial-browser-contract.yml",
+        ".github/workflows/business-onboarding-lifecycle-browser-contract.yml",
+        ".github/workflows/business-onboarding-profile-browser-contract.yml",
+        ".github/workflows/business-onboarding-route-browser-contract.yml",
+        ".github/workflows/business-onboarding-workspace-browser-contract.yml",
+        ".github/workflows/business-production-profile-browser-contract.yml",
+        ".github/workflows/control-center-affiliates-browser-contract.yml",
+        ".github/workflows/control-center-financial-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T23:59:59Z"
     }
   }
 }
