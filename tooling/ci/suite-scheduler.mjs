@@ -42,28 +42,28 @@ const reportBooleanFields = [
 export function isCompleteImpactReport(report) {
   return Boolean(
     report &&
-      typeof report === "object" &&
-      (report.base === null || typeof report.base === "string") &&
-      typeof report.head === "string" &&
-      report.head.length > 0 &&
-      Array.isArray(report.files) &&
-      Array.isArray(report.suites) &&
-      Array.isArray(report.domains) &&
-      Array.isArray(report.unknownFiles) &&
-      impactManifest.riskOrder.includes(report.risk) &&
-      reportBooleanFields.every((field) => typeof report[field] === "boolean") &&
-      (report.failClosedReason === null ||
-        typeof report.failClosedReason === "string") &&
-      report.domains.every(
-        (domain) =>
-          typeof domain === "string" &&
-          Object.hasOwn(impactManifest.domains, domain),
-      ) &&
-      report.files.every((file) => typeof file === "string") &&
-      report.suites.every(
-        (suite) => typeof suite === "string" && knownReportSuites.has(suite),
-      ) &&
-      report.unknownFiles.every((file) => typeof file === "string"),
+    typeof report === "object" &&
+    (report.base === null || typeof report.base === "string") &&
+    typeof report.head === "string" &&
+    report.head.length > 0 &&
+    Array.isArray(report.files) &&
+    Array.isArray(report.suites) &&
+    Array.isArray(report.domains) &&
+    Array.isArray(report.unknownFiles) &&
+    impactManifest.riskOrder.includes(report.risk) &&
+    reportBooleanFields.every((field) => typeof report[field] === "boolean") &&
+    (report.failClosedReason === null ||
+      typeof report.failClosedReason === "string") &&
+    report.domains.every(
+      (domain) =>
+        typeof domain === "string" &&
+        Object.hasOwn(impactManifest.domains, domain),
+    ) &&
+    report.files.every((file) => typeof file === "string") &&
+    report.suites.every(
+      (suite) => typeof suite === "string" && knownReportSuites.has(suite),
+    ) &&
+    report.unknownFiles.every((file) => typeof file === "string"),
   );
 }
 
@@ -138,8 +138,7 @@ const exactSha = (value) =>
 const sha256Digest = (value) =>
   typeof value === "string" && /^sha256:[0-9a-f]{64}$/u.test(value);
 const digestJson = (value) =>
-  "sha256:" +
-  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  "sha256:" + createHash("sha256").update(JSON.stringify(value)).digest("hex");
 
 export function buildQualityProof(
   selected,
@@ -192,11 +191,9 @@ if (
     const selected = JSON.parse(process.env.CI_SELECTED_SUITES || "null");
     const needs = JSON.parse(process.env.CI_JOB_RESULTS || "null");
     const sourceSha = process.env.GITHUB_SHA;
-    const treeSha = execFileSync(
-      "git",
-      ["rev-parse", `${sourceSha}^{tree}`],
-      { encoding: "utf8" },
-    ).trim();
+    const treeSha = execFileSync("git", ["rev-parse", `${sourceSha}^{tree}`], {
+      encoding: "utf8",
+    }).trim();
     const lockfileDigest =
       "sha256:" +
       createHash("sha256").update(readFileSync("pnpm-lock.yaml")).digest("hex");

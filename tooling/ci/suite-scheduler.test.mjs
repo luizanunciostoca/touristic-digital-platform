@@ -308,7 +308,10 @@ test("release proof binds successful child results to exact source, tree, lockfi
 
   const tampered = structuredClone(proof);
   tampered.selected = [];
-  assert.throws(() => verifyQualityProof(tampered), /artifact digest mismatch|expected skipped/);
+  assert.throws(
+    () => verifyQualityProof(tampered),
+    /artifact digest mismatch|expected skipped/,
+  );
 
   const skipped = results(all);
   skipped[suiteManifest.suites[0].jobId].result = "skipped";
