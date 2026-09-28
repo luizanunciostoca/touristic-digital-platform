@@ -50,7 +50,9 @@ jobs:
           set -euo pipefail
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$(git rev-parse origin/main 2>/dev/null || git rev-parse HEAD)" = "$EXPECTED_SHA"
+          main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test -n "$main_sha"
+          test "$main_sha" = "$EXPECTED_SHA"
           echo "Exact provision candidate SHA: $EXPECTED_SHA"
 
       - name: Require protected Render credential
