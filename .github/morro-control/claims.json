@@ -198,6 +198,40 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH2-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch2-claim-registration-20260928",
+      "baseSha": "b3033673201130c84cf4139e698b84c2fd2c5e12",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH2-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH2": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch2-20260928",
+      "baseSha": "b3033673201130c84cf4139e698b84c2fd2c5e12",
+      "paths": [
+        ".github/workflows/assistant-conversation-continuity-browser-contract.yml",
+        ".github/workflows/assistant-input-v1-parity.yml",
+        ".github/workflows/assistant-modal-reading-order.yml",
+        ".github/workflows/assistant-place-actions-v1-parity.yml",
+        ".github/workflows/assistant-v1-residual-command-parity.yml",
+        ".github/workflows/business-cms-mysql-acceptance.yml",
+        ".github/workflows/business-live-runtime-browser-contract.yml",
+        ".github/workflows/business-onboarding-adapter-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH2.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T23:59:59Z"
     }
   }
 }
