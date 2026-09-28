@@ -65,7 +65,7 @@ jobs:
           elif [ "${{ github.event_name }}" = "push" ]; then
             echo "sha=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
           else
-            echo "sha=HEAD^" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git merge-base refs/remotes/origin/main HEAD)" >> "$GITHUB_OUTPUT"
           fi
       - name: Analyze changed domains and risk
         id: impact
