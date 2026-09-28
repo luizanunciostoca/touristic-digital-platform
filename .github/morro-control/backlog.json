@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
+  "updatedFromMainSha": "94f971e640da6368d39d2f555f4ba3eca6563d11",
   "items": [
     {
       "id": "MD-CP-001",
@@ -24,7 +24,9 @@
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
-      "dependencies": ["MD-CP-001"],
+      "dependencies": [
+        "MD-CP-001"
+      ],
       "risk": "HIGH"
     },
     {
@@ -36,7 +38,9 @@
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
-      "dependencies": ["MD-CP-002"],
+      "dependencies": [
+        "MD-CP-002"
+      ],
       "risk": "HIGH"
     },
     {
@@ -44,11 +48,13 @@
       "title": "Etapa B3 — Copilot custom agents",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "REMOTE_PROVEN",
-      "implementation": "COMPLETE",
-      "integration": "PARTIAL",
+      "state": "IMPLEMENTING",
+      "implementation": "PARTIAL",
+      "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-002B"],
+      "dependencies": [
+        "MD-CP-002B"
+      ],
       "risk": "HIGH"
     },
     {
@@ -60,7 +66,9 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-002C"],
+      "dependencies": [
+        "MD-CP-002C"
+      ],
       "risk": "HIGH"
     },
     {
@@ -72,7 +80,9 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-003"],
+      "dependencies": [
+        "MD-CP-003"
+      ],
       "risk": "HIGH"
     },
     {
@@ -84,7 +94,9 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-003"],
+      "dependencies": [
+        "MD-CP-003"
+      ],
       "risk": "HIGH"
     },
     {
@@ -96,7 +108,9 @@
       "implementation": "PARTIAL",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-003"],
+      "dependencies": [
+        "MD-CP-003"
+      ],
       "risk": "HIGH"
     },
     {
@@ -108,7 +122,9 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-003"],
+      "dependencies": [
+        "MD-CP-003"
+      ],
       "risk": "HIGH"
     },
     {
@@ -120,7 +136,12 @@
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
-      "dependencies": ["MD-CP-004", "MD-CP-005", "MD-CP-006", "MD-CP-007"],
+      "dependencies": [
+        "MD-CP-004",
+        "MD-CP-005",
+        "MD-CP-006",
+        "MD-CP-007"
+      ],
       "risk": "LOW"
     },
     {
@@ -132,7 +153,9 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": ["MD-FR-001"],
+      "dependencies": [
+        "MD-FR-001"
+      ],
       "risk": "CRITICAL"
     },
     {
@@ -144,7 +167,9 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": ["MD-FR-001"],
+      "dependencies": [
+        "MD-FR-001"
+      ],
       "risk": "CRITICAL"
     },
     {
@@ -156,7 +181,10 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": ["MD-001", "MD-003"],
+      "dependencies": [
+        "MD-001",
+        "MD-003"
+      ],
       "risk": "CRITICAL"
     },
     {
@@ -168,7 +196,11 @@
       "implementation": "UNKNOWN",
       "integration": "UNKNOWN",
       "proof": "MISSING",
-      "dependencies": ["MD-001", "MD-002", "MD-003"],
+      "dependencies": [
+        "MD-001",
+        "MD-002",
+        "MD-003"
+      ],
       "risk": "CRITICAL"
     },
     {
@@ -180,7 +212,9 @@
       "implementation": "COMPLETE",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": ["MD-024"],
+      "dependencies": [
+        "MD-024"
+      ],
       "risk": "HIGH"
     },
     {
@@ -192,7 +226,9 @@
       "implementation": "PARTIAL",
       "integration": "PARTIAL",
       "proof": "MISSING",
-      "dependencies": ["MD-130"],
+      "dependencies": [
+        "MD-130"
+      ],
       "risk": "CRITICAL"
     }
   ]
