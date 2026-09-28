@@ -15,7 +15,8 @@
       "tooling/render/mysql-production/morro-memory.cnf",
       "tooling/render/mysql-production/01-init-databases.sh",
       "tooling/quality/check-render-production-mysql-blueprint.mjs",
-      "tooling/quality/render-production-mysql-blueprint.test.mjs"
+      "tooling/quality/render-production-mysql-blueprint.test.mjs",
+      ".github/workflows/security-scanning.yml"
     ],
     "contracts": []
   },
@@ -41,7 +42,10 @@
     "affected-tests",
     "build",
     "integration",
-    "automated-independent-proof"
+    "automated-independent-proof",
+    "production-mysql-container-scan",
+    "production-mysql-durable-readback",
+    "production-mysql-backup-restore-proof"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
