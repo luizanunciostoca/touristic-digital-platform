@@ -2,22 +2,21 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CP-003-TRUST": {
+    "MD-CP-003-HOOKS": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/control-plane-v3.2-stage-c-trust-bootstrap-20260927",
-      "baseSha": "4729cbfa5bd0b1ee0796fd0c2840c779fe3476db",
+      "branch": "infra/control-plane-v3.2-stage-c-hooks-20260928",
+      "baseSha": "3973e2ddab85d6ee3c3865ab9411513e65db85ed",
       "paths": [
-        ".github/workflows/morro-claim-guard-trusted.yml",
-        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-        ".morro/changesets/MD-CP-003-TRUST.json",
-        "tooling/fabric/claim-guard.mjs",
-        "tooling/fabric/claim-guard.test.mjs",
-        ".github/morro-control/claims.json"
+        ".github/hooks/morro-claim-guard.json",
+        ".github/hooks/morro-pretool-guard.mjs",
+        ".github/hooks/morro-pretool-guard.test.mjs",
+        ".github/workflows/morro-claim-guard.yml",
+        ".morro/changesets/MD-CP-003-HOOKS.json"
       ],
       "domains": ["ci-governance"],
       "risk": "P1",
-      "status": "INTEGRATION_READY",
+      "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
     }
   }
