@@ -1,16 +1,11 @@
+import {
+  canonicalDatabaseDomains,
+  stagingDatabaseDomains,
+} from "../database/canonical-database-topology.mjs";
+
 const STAGING_SERVICE = "morro-digital-v2-staging";
 
-export const stagingDatabaseDomains = Object.freeze([
-  "AUTH",
-  "ORDERING",
-  "FINANCIAL",
-  "AFFILIATES",
-  "BUSINESS",
-  "CONTENT",
-  "COMMERCE",
-  "DESTINATIONS",
-  "NOTIFICATIONS",
-]);
+export { stagingDatabaseDomains };
 
 function required(environment, name) {
   const value = String(environment[name] ?? "").trim();
@@ -50,13 +45,29 @@ export async function reconcileStagingMysqlDomains(
 
   const hostPort = parseHostPort(environment);
   const rootPassword = required(environment, "STAGING_MYSQL_ROOT_PASSWORD");
-  const domains = stagingDatabaseDomains.map((domain) =>
-    Object.freeze({
-      domain,
-      database: identifier(environment, `STAGING_${domain}_DATABASE_NAME`),
-      user: identifier(environment, `STAGING_${domain}_DATABASE_USER`),
-      password: required(environment, `STAGING_${domain}_DATABASE_PASSWORD`),
-    }),
+  const domains = canonicalDatabaseDomains.map(
+    ({ domain, stagingSchema, stagingUser }) => {
+      const database = identifier(
+        environment,
+        `STAGING_${domain}_DATABASE_NAME`,
+      );
+      const user = identifier(environment, `STAGING_${domain}_DATABASE_USER`);
+      if (database !== stagingSchema) {
+        throw new Error(`STAGING_${domain}_DATABASE_NAME_DRIFT`);
+      }
+      if (user !== stagingUser) {
+        throw new Error(`STAGING_${domain}_DATABASE_USER_DRIFT`);
+      }
+      return Object.freeze({
+        domain,
+        database,
+        user,
+        password: required(
+          environment,
+          `STAGING_${domain}_DATABASE_PASSWORD`,
+        ),
+      });
+    },
   );
 
   const databaseNames = new Set(domains.map(({ database }) => database));
