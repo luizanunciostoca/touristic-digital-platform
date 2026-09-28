@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: trusted-agent-profile-contract-${{ inputs.candidate_sha }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     name: trusted-agent-profile-contract
