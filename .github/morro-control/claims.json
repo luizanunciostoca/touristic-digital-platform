@@ -102,6 +102,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-RELEASE-FOUNDATION": {
+      "owner": "CHATGPT-WORK-RELEASE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-release-foundation-20260928",
+      "baseSha": "0bef3856dca967aebc9f6416a5861c71ee2eca28",
+      "paths": [
+        "tooling/release/oci-proof.mjs",
+        "tooling/release/oci-proof.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-RELEASE-FOUNDATION.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }
