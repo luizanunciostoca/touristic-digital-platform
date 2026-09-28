@@ -201,6 +201,7 @@ test("agent profile caller resolves PR ChangeSets and preserves merge-group vali
     'node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH"',
     "needs: resolve-pr-changeset",
     "manifest_path: ${{ needs.resolve-pr-changeset.outputs.manifest_path }}",
+    '- ".morro/changesets/**"',
     "validate-merge-group:",
     "if: github.event_name == 'merge_group'",
     "manifest_path: .morro/changesets/MD-CP-002C.json",
