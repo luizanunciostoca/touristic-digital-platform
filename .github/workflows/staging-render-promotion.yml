@@ -1,4 +1,5 @@
 name: Staging Render Promotion
+run-name: "staging-render-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"
 
 on:
   workflow_dispatch:
@@ -6,6 +7,11 @@ on:
       expected_sha:
         description: Exact frozen candidate SHA approved for staging promotion
         required: true
+        type: string
+      request_id:
+        description: Correlation identifier used to bind the caller to this exact workflow run
+        required: false
+        default: manual
         type: string
       confirm_staging:
         description: Type DEPLOY to authorize the staging deploy
