@@ -14,6 +14,7 @@ const fixtures = [
   "render.yaml",
   "tooling/render/reconcile-staging-mysql-domains.mjs",
   "tooling/render/mysql-staging/Dockerfile",
+  "tooling/render/mysql-staging/morro-memory.cnf",
   "tooling/render/mysql-staging/01-init-databases.sh",
   "tooling/render/mysql-staging/backup-restore-drill.sh",
   "docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md",
@@ -55,6 +56,43 @@ test("current Blueprint and init script satisfy the complete database contract",
   const result = check(t);
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("staging MySQL memory profile is mandatory", (t) => {
+  rejects(
+    check(t, (_source, directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-staging/morro-memory.cnf",
+      );
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replace(
+          "innodb_buffer_pool_size=96M",
+          "innodb_buffer_pool_size=512M",
+        ),
+      );
+    }),
+    /Missing staging contract: innodb_buffer_pool_size=96M/u,
+  );
+});
+
+test("staging MySQL cannot re-enable performance schema", (t) => {
+  rejects(
+    check(t, (_source, directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-staging/morro-memory.cnf",
+      );
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replace("performance_schema=OFF", "performance_schema=ON"),
+      );
+    }),
+    /Missing staging contract: performance_schema=OFF/u,
+  );
 });
 
 for (const component of ["NAME", "USER", "PASSWORD"]) {
