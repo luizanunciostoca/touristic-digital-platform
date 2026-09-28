@@ -17,7 +17,9 @@
       "tooling/quality/check-render-production-mysql-blueprint.mjs",
       "tooling/quality/render-production-mysql-blueprint.test.mjs",
       ".github/workflows/security-scanning.yml",
-      ".github/workflows/production-mysql-render-provision.yml"
+      ".github/workflows/production-mysql-render-provision.yml",
+      "tooling/render/mysql-production/readback.sh",
+      ".github/workflows/production-mysql-render-readback.yml"
     ],
     "contracts": []
   },
@@ -47,7 +49,8 @@
     "production-mysql-container-scan",
     "production-mysql-durable-readback",
     "production-mysql-backup-restore-proof",
-    "production-mysql-render-provision"
+    "production-mysql-render-provision",
+    "production-mysql-least-privilege-readback"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
