@@ -210,8 +210,8 @@ if (invokedDirectly) {
         runtimeAcceptance: "NOT_RUN",
       }),
     );
-  } catch (error) {
-    console.error("MORRO_TRUSTED_AGENT_PROFILES_FAILED:", error.message);
+  } catch {
+    console.error("MORRO_TRUSTED_AGENT_PROFILES_FAILED");
     process.exitCode = 1;
   }
 }
