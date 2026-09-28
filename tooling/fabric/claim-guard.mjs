@@ -354,6 +354,23 @@ export function validateClaimHandoff({
     "MERGED",
     "HANDOFF_FROM_NOT_MERGED",
   );
+  assert.deepEqual(
+    {
+      ...candidateFromManifest?.owns,
+      paths: sortedStrings(
+        candidateFromManifest?.owns?.paths,
+        "HANDOFF_FROM_OWNERSHIP_REQUIRED",
+      ),
+    },
+    {
+      ...baseFromManifest?.owns,
+      paths: sortedStrings(
+        baseFromManifest?.owns?.paths,
+        "HANDOFF_BASE_OWNERSHIP_REQUIRED",
+      ),
+    },
+    "HANDOFF_FROM_OWNERSHIP_CHANGED",
+  );
   assert.equal(
     toManifest?.state,
     "IMPLEMENTING",
@@ -491,6 +508,10 @@ export function buildClaimHandoffProof(
   const treeSha = git(targetRoot, ["rev-parse", "HEAD^{tree}"]);
   assert.equal(baseHead, expectedBase, "HANDOFF_BASE_SHA_MISMATCH");
   assert.equal(candidateHead, expectedHead, "CANDIDATE_SHA_MISMATCH");
+  assert.ok(
+    isGitAncestor(targetRoot, expectedBase, candidateHead),
+    "HANDOFF_BASE_NOT_ANCESTOR",
+  );
 
   const dirty = git(targetRoot, [
     "status",
