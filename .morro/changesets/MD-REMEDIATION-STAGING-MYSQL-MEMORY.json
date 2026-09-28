@@ -1,0 +1,43 @@
+{
+  "id": "MD-REMEDIATION-STAGING-MYSQL-MEMORY",
+  "baseSha": "20f56adccdd778f5e30ba38c138908d014dfd0b0",
+  "branch": "infra/remediation-staging-mysql-memory-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-REMEDIATION-STAGING-MYSQL-MEMORY.json",
+      "tooling/render/mysql-staging/Dockerfile",
+      "tooling/render/mysql-staging/morro-memory.cnf",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/render-staging-blueprint.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
