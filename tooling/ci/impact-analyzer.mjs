@@ -35,7 +35,8 @@ function domainMatches(file, config) {
   return (
     (!config.extensions ||
       config.extensions.some((extension) => file.endsWith(extension))) &&
-    config.paths.some((rule) => matches(file, rule))
+    config.paths.some((rule) => matches(file, rule)) &&
+    !(config.excludePaths ?? []).some((rule) => matches(file, rule))
   );
 }
 

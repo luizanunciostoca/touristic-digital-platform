@@ -1,0 +1,53 @@
+{
+  "id": "MD-REMEDIATION-CI-SCHEDULER",
+  "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+  "branch": "infra/remediation-ci-scheduler-20260928",
+  "state": "REMOTE_PROVEN",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/actions/ci-bootstrap/**",
+      ".github/workflows/quality.yml",
+      ".github/workflows/ci-impact.yml",
+      "tooling/ci/impact-analyzer.mjs",
+      "tooling/ci/local-fast-gate.mjs",
+      "tooling/ci/local-fast-gate.test.mjs",
+      "tooling/ci/scheduled-suites.json",
+      "tooling/ci/suite-scheduler.mjs",
+      "tooling/ci/suite-scheduler.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/quality/check-ci-governance.mjs",
+      "tooling/quality/ci-scheduler-governance.test.mjs",
+      ".github/workflows/payments-operational-ledger-contract.yml",
+      ".github/workflows/payments-persistence-integration.yml",
+      ".github/workflows/payments-sandbox-provider-contract.yml",
+      ".github/workflows/payments-settlement-contract.yml",
+      ".github/workflows/payments-subscription-recurrence-contract.yml",
+      ".morro/changesets/MD-REMEDIATION-CI-SCHEDULER.json",
+      ".github/morro-control/claims.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-REMEDIATION-GUARD"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "baselineSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "description": "Managed CI suites. Path coverage preserves the union of original PR/push triggers. Critical, unknown or empty impact selects all managed suites. Remaining workflows retain their own triggers during this compatibility migration.",
+  "suites": [
+    {
+      "workflow": "payments-operational-ledger-contract.yml",
+      "jobId": "suite-payments-operational-ledger-contract",
+      "paths": [
+        ".github/workflows/payments-operational-ledger-contract.yml",
+        "apps/morro-digital-platform/tooling/payments-api.mjs",
+        "package.json",
+        "packages/auth/**",
+        "packages/financial/**",
+        "packages/ordering/**",
+        "pnpm-lock.yaml",
+        "services/financial/**",
+        "services/ordering/**"
+      ]
+    },
+    {
+      "workflow": "payments-persistence-integration.yml",
+      "jobId": "suite-payments-persistence-integration",
+      "paths": [
+        ".github/workflows/payments-persistence-integration.yml",
+        "package.json",
+        "packages/financial/**",
+        "packages/ordering/**",
+        "pnpm-lock.yaml",
+        "services/financial/**",
+        "services/ordering/**",
+        "tooling/payments/**"
+      ]
+    },
+    {
+      "workflow": "payments-sandbox-provider-contract.yml",
+      "jobId": "suite-payments-sandbox-provider-contract",
+      "paths": [
+        ".github/workflows/payments-sandbox-provider-contract.yml",
+        "apps/morro-digital-platform/tooling/payments-api.mjs",
+        "package.json",
+        "packages/financial/**",
+        "packages/ordering/**",
+        "pnpm-lock.yaml",
+        "services/financial/**",
+        "services/ordering/**",
+        "tooling/payments/provider-sandbox-contract.test.ts"
+      ]
+    },
+    {
+      "workflow": "payments-settlement-contract.yml",
+      "jobId": "suite-payments-settlement-contract",
+      "paths": [
+        ".github/workflows/payments-settlement-contract.yml",
+        "docs/migration/PAYMENTS-MIGRATION-MATRIX.md",
+        "docs/qa/PAYMENTS-M146-EVIDENCE.md",
+        "package.json",
+        "packages/financial/**",
+        "pnpm-lock.yaml",
+        "services/financial/**"
+      ]
+    },
+    {
+      "workflow": "payments-subscription-recurrence-contract.yml",
+      "jobId": "suite-payments-subscription-recurrence-contract",
+      "paths": [
+        ".github/workflows/payments-subscription-recurrence-contract.yml",
+        "apps/morro-digital-platform/src/payments-**",
+        "apps/morro-digital-platform/tooling/payments-**",
+        "package.json",
+        "packages/financial/**",
+        "packages/ordering/**",
+        "pnpm-lock.yaml",
+        "services/financial/**",
+        "services/ordering/**"
+      ]
+    }
+  ]
+}
