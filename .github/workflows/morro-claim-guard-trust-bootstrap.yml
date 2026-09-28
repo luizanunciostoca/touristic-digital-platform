@@ -49,3 +49,17 @@ jobs:
       manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
     permissions:
       contents: read
+
+  claim-handoff-proof:
+    if: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' }}
+    name: base-controlled-claim-handoff-proof
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@395db872a76e73193e5507cd044e5943be14b4bc
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      branch: ${{ github.event.pull_request.head.ref }}
+      manifest_path: .morro/changesets/MD-CP-003-TRUST-RECON.json
+      handoff_from_manifest_path: .morro/changesets/MD-CP-003-TRUST.json
+      handoff_to_manifest_path: .morro/changesets/MD-CP-003-HOOKS.json
+    permissions:
+      contents: read
