@@ -200,8 +200,5 @@ test("agent profile caller resolves the branch ChangeSet instead of using a hard
   ]) {
     assert.ok(workflow.includes(marker), marker);
   }
-  assert.equal(
-    workflow.includes("manifest_path: ${{ startsWith("),
-    false,
-  );
+  assert.equal(workflow.includes("manifest_path: ${{ startsWith("), false);
 });
