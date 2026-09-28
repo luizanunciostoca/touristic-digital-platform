@@ -83,6 +83,13 @@ contract. Keep candidate tags and their evidence; do not retag published sources
 The tag ruleset can be disabled separately by a repository administrator if the
 candidate feature is fully rolled back. Do not loosen main protection.
 
+The first explicit run `36380623305` failed safely before dispatching suites:
+GitHub CLI printed a 404 JSON body to stdout, which the bootstrap misread as an
+existing tag. The bootstrap now queries Git refs directly and tests its actual
+shell against an absent and an existing tag. This preserves idempotence without
+swallowing API or Git transport failures. The initial candidate tag was registered
+explicitly at merged SHA `2f5c1fcf42b9b300aecc650a12ba57fada007f0f` before retry.
+
 Source deployments still rebuild on Render; source identity is not image digest
 identity. OCI build-once promotion, broader affected-domain enforcement, runtime degradation,
 branch/worktree lifecycle, and measured before/after delivery metrics remain
