@@ -198,6 +198,108 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH2-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch2-claim-registration-20260928",
+      "baseSha": "b3033673201130c84cf4139e698b84c2fd2c5e12",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH2-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH2": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch2-20260928",
+      "baseSha": "b3033673201130c84cf4139e698b84c2fd2c5e12",
+      "paths": [
+        ".github/workflows/assistant-conversation-continuity-browser-contract.yml",
+        ".github/workflows/assistant-input-v1-parity.yml",
+        ".github/workflows/assistant-modal-reading-order.yml",
+        ".github/workflows/assistant-place-actions-v1-parity.yml",
+        ".github/workflows/assistant-v1-residual-command-parity.yml",
+        ".github/workflows/business-cms-mysql-acceptance.yml",
+        ".github/workflows/business-live-runtime-browser-contract.yml",
+        ".github/workflows/business-onboarding-adapter-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH2.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH3-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch3-claim-registration-20260928",
+      "baseSha": "6b833f5cc7babd1522f895cea6673ee8a8750eb1",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH3": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch3-20260928",
+      "baseSha": "6b833f5cc7babd1522f895cea6673ee8a8750eb1",
+      "paths": [
+        ".github/workflows/business-onboarding-commercial-browser-contract.yml",
+        ".github/workflows/business-onboarding-lifecycle-browser-contract.yml",
+        ".github/workflows/business-onboarding-profile-browser-contract.yml",
+        ".github/workflows/business-onboarding-route-browser-contract.yml",
+        ".github/workflows/business-onboarding-workspace-browser-contract.yml",
+        ".github/workflows/business-production-profile-browser-contract.yml",
+        ".github/workflows/control-center-affiliates-browser-contract.yml",
+        ".github/workflows/control-center-financial-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH4-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch4-claim-registration-20260928",
+      "baseSha": "61dd8615ca7560694987aeecd782044e60da45fa",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-04T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH4": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch4-20260928",
+      "baseSha": "61dd8615ca7560694987aeecd782044e60da45fa",
+      "paths": [
+        ".github/workflows/control-center-destination-contract.yml",
+        ".github/workflows/control-center-home-overview-v1-contract.yml",
+        ".github/workflows/control-center-responsive-accessibility-v1-contract.yml",
+        ".github/workflows/control-center-shell-v1-contract.yml",
+        ".github/workflows/control-center-visual-golden-v1.yml",
+        ".github/workflows/crm-equivalence-browser-contract.yml",
+        ".github/workflows/crm-lead-detail-browser-contract.yml",
+        ".github/workflows/explore-v1-i18n-browser-parity.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-04T23:59:59Z"
     }
   }
 }
