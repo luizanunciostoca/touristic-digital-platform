@@ -1,7 +1,7 @@
 {
   "id": "MD-PRODUCTION-MYSQL-RENDER",
-  "baseSha": "ba961f2da225cf87cd565dcdfa9f0f2e8725f446",
-  "branch": "infra/production-mysql-render-provision-20260928",
+  "baseSha": "9d69bb27ec134983d05370811051fd7fa4440c02",
+  "branch": "infra/production-mysql-render-provision-fix-20260928",
   "state": "IMPLEMENTING",
   "risk": "critical",
   "owns": {
