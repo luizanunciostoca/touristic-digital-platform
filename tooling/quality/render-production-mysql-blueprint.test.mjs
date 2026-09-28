@@ -95,6 +95,22 @@ test("shared morro_app ownership is forbidden", (t) => {
   );
 });
 
+test("bootstrap database credentials require the dedicated background worker", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      const source = fs.readFileSync(file, "utf8");
+      const start = source.indexOf(
+        "  - type: worker\n    name: morro-digital-v2-production-db-bootstrap\n",
+      );
+      const end = source.indexOf("  - type: web\n    name: morro-digital-v2\n");
+      assert.ok(start >= 0 && end > start);
+      fs.writeFileSync(file, source.slice(0, start) + source.slice(end));
+    }),
+    /morro-digital-v2-production-db-bootstrap/u,
+  );
+});
+
 test("production web service cannot receive bootstrap database credentials", (t) => {
   rejects(
     runCheck(t, (directory) => {
