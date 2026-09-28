@@ -63,9 +63,10 @@ still apply. WORKER and INTEGRATOR cannot use this exception.
 
 The accompanying guard recovery preserves the unmerged hardening from PR #464
 (head 73a2ae0d893fd7b91edaf2cbbf31c02d384045de): source expiry,
-reconciliation identity and path ownership checks. Trusted workflow handoff must
-also supply EXPECTED_BRANCH and MANIFEST_PATH before that recovery is integrated.
+reconciliation identity and path ownership checks. Trusted workflow handoff supplies EXPECTED_BRANCH and MANIFEST_PATH to bind
+that recovery to the reconciliation manifest. The existing Quality CI selection
+contract step runs the observed-state tests on Node 22.
 
 ```bash
-node --test tooling/control-state/status.test.mjs tooling/fabric/claim-guard.test.mjs
+node --test tooling/ci/control-state-status.test.mjs tooling/fabric/claim-guard.test.mjs
 ```

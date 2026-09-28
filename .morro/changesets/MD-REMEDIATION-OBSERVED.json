@@ -11,7 +11,9 @@
       "tooling/fabric/claim-guard.mjs",
       "tooling/fabric/claim-guard.test.mjs",
       ".morro/changesets/MD-REMEDIATION-OBSERVED.json",
-      ".github/morro-control/claims.json"
+      ".github/morro-control/claims.json",
+      ".github/workflows/morro-claim-guard-trusted.yml",
+      "tooling/ci/control-state-status.test.mjs"
     ],
     "contracts": []
   },

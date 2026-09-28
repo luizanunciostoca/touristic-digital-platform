@@ -8,7 +8,7 @@ import {
   runtimeOrigin,
   summarizeRuntime,
   validateRepository,
-} from "./status.mjs";
+} from "../control-state/status.mjs";
 
 const MAIN = "a".repeat(40);
 const TREE = "b".repeat(40);

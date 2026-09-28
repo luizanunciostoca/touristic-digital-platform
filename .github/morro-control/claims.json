@@ -49,7 +49,9 @@
         "docs/operations/observed-state.md",
         "tooling/fabric/claim-guard.mjs",
         "tooling/fabric/claim-guard.test.mjs",
-        ".morro/changesets/MD-REMEDIATION-OBSERVED.json"
+        ".morro/changesets/MD-REMEDIATION-OBSERVED.json",
+        ".github/workflows/morro-claim-guard-trusted.yml",
+        "tooling/ci/control-state-status.test.mjs"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
