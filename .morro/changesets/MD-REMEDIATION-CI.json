@@ -1,0 +1,56 @@
+{
+  "id": "MD-REMEDIATION-CI",
+  "baseSha": "aa40cd560a962434b3c1230ab5fe5f0b917a3259",
+  "branch": "infra/engineering-remediation-ci-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-REMEDIATION-CI.json",
+      ".github/workflows/final-release-acceptance.yml",
+      ".github/workflows/staging-render-promotion.yml",
+      ".github/workflows/pages-after-final-acceptance.yml",
+      ".github/workflows/release-promotion-gate.yml",
+      ".github/workflows/production-render-promotion.yml",
+      ".github/workflows/staging-oci-promotion.yml",
+      ".github/workflows/production-oci-promotion.yml",
+      ".github/workflows/oci-release-promotion-gate.yml",
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      "tooling/quality/check-ci-governance.mjs",
+      "tooling/quality/release-target-governance.test.mjs",
+      "tooling/ci/release-candidate.mjs",
+      "tooling/ci/release-candidate.test.mjs",
+      "docs/operations/engineering-remediation.md"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-003-HOOKS-RECON"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

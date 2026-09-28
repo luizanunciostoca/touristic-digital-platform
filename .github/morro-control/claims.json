@@ -21,6 +21,34 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI": {
+      "owner": "CHATGPT-WORK-REMEDIATION",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/engineering-remediation-ci-20260928",
+      "baseSha": "aa40cd560a962434b3c1230ab5fe5f0b917a3259",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".morro/changesets/MD-REMEDIATION-CI.json",
+        ".github/workflows/final-release-acceptance.yml",
+        ".github/workflows/staging-render-promotion.yml",
+        ".github/workflows/pages-after-final-acceptance.yml",
+        ".github/workflows/release-promotion-gate.yml",
+        ".github/workflows/production-render-promotion.yml",
+        ".github/workflows/staging-oci-promotion.yml",
+        ".github/workflows/production-oci-promotion.yml",
+        ".github/workflows/oci-release-promotion-gate.yml",
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        "tooling/quality/check-ci-governance.mjs",
+        "tooling/quality/release-target-governance.test.mjs",
+        "tooling/ci/release-candidate.mjs",
+        "tooling/ci/release-candidate.test.mjs",
+        "docs/operations/engineering-remediation.md"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }

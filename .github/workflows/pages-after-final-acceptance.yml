@@ -22,12 +22,13 @@ jobs:
     name: pages / build certified SHA
     if: >
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.head_branch == 'main'
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.event == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     outputs:
       certified_sha: ${{ steps.certify.outputs.sha }}
     steps:
-      - name: Certify exact accepted SHA is still current main
+      - name: Certify the accepted frozen candidate
         id: certify
         env:
           ACCEPTED_SHA: ${{ github.event.workflow_run.head_sha }}
@@ -38,8 +39,10 @@ jobs:
           pages_build_type="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type // empty')"
           test "$pages_build_type" = "workflow"
 
-          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
-          test "$current_main_sha" = "$ACCEPTED_SHA"
+          candidate_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/rc/$ACCEPTED_SHA" --jq '.object.sha')"
+          test "$candidate_sha" = "$ACCEPTED_SHA"
+          ancestry="$(gh api "repos/$GITHUB_REPOSITORY/compare/$ACCEPTED_SHA...main" --jq '.status')"
+          [[ "$ancestry" == identical || "$ancestry" == ahead ]]
 
           acceptance_state="$(gh api "repos/$GITHUB_REPOSITORY/commits/$ACCEPTED_SHA/status" \
             --jq '.statuses[] | select(.context == "Final Release Acceptance") | .state' \
@@ -73,7 +76,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: Re-prove certified SHA is still current main
+      - name: Re-prove the candidate before Pages promotion
         env:
           CERTIFIED_SHA: ${{ needs.build.outputs.certified_sha }}
           GH_TOKEN: ${{ github.token }}
@@ -83,8 +86,14 @@ jobs:
           pages_build_type="$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq '.build_type // empty')"
           test "$pages_build_type" = "workflow"
 
-          current_main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq '.object.sha')"
-          test "$current_main_sha" = "$CERTIFIED_SHA"
+          candidate_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/rc/$CERTIFIED_SHA" --jq '.object.sha')"
+          test "$candidate_sha" = "$CERTIFIED_SHA"
+          ancestry="$(gh api "repos/$GITHUB_REPOSITORY/compare/$CERTIFIED_SHA...main" --jq '.status')"
+          [[ "$ancestry" == identical || "$ancestry" == ahead ]]
+          latest_accepted_sha="$(gh run list --workflow final-release-acceptance.yml \
+            --branch main --event workflow_dispatch --status success --limit 1 \
+            --json headSha --jq '.[0].headSha')"
+          test "$latest_accepted_sha" = "$CERTIFIED_SHA"
           acceptance_state="$(gh api "repos/$GITHUB_REPOSITORY/commits/$CERTIFIED_SHA/status" \
             --jq '.statuses[] | select(.context == "Final Release Acceptance") | .state' \
             | head -n 1)"

@@ -25,6 +25,8 @@ concurrency:
 jobs:
   unit:
     name: trusted-claim-guard-bootstrap
+    outputs:
+      manifest_path: ${{ steps.changeset.outputs.path }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -39,18 +41,27 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
+      - name: Resolve the registered ChangeSet for this branch
+        id: changeset
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          path="$(node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH")"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
       - name: Test trusted Claim Guard contract
         run: >-
           node --test
           tooling/fabric/claim-guard.test.mjs
 
   independent-proof:
+    needs: unit
     name: base-controlled-independent-proof
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@3973e2ddab85d6ee3c3865ab9411513e65db85ed
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928' && '.morro/changesets/MD-CP-003-HOOKS-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-governance-20260928' && '.morro/changesets/MD-CP-003-GOV.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
+      manifest_path: ${{ needs.unit.outputs.manifest_path }}
     permissions:
       contents: read
 

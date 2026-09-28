@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact main SHA approved for immutable image promotion
+        description: Exact frozen candidate SHA approved for immutable image promotion
         required: true
         type: string
       image_digest:
@@ -44,7 +44,7 @@ jobs:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
 
-      - name: Prove exact SHA is current main
+      - name: Prove frozen candidate provenance
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
@@ -54,8 +54,7 @@ jobs:
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$remote_main_sha" = "$EXPECTED_SHA"
+          node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"
 
       - name: Re-prove immutable image provenance
         env:
@@ -68,7 +67,7 @@ jobs:
           run_id="$(
             gh run list \
               --workflow release-oci-image.yml \
-              --branch main \
+              --event workflow_dispatch \
               --commit "$EXPECTED_SHA" \
               --status success \
               --limit 1 \
