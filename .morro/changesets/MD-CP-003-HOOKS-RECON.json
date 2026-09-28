@@ -1,0 +1,47 @@
+{
+  "id": "MD-CP-003-HOOKS-RECON",
+  "baseSha": "edc7380c11774d475af2e80ddf75b7b1e53e9046",
+  "branch": "infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928",
+  "state": "MERGE_READY",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-CP-003-HOOKS.json",
+      ".morro/changesets/MD-CP-003-HOOKS-RECON.json",
+      ".morro/changesets/MD-CP-003-GOV.json",
+      ".morro/changesets/MD-CP-003-TRUST-RECON.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-CP-003-HOOKS",
+    "MD-CP-003-TRUST-RECON"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "affected-tests",
+    "integration",
+    "exact-head-identity",
+    "tree-sha",
+    "orchestrator-claim-handoff",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
