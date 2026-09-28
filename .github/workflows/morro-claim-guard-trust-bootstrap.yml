@@ -8,8 +8,6 @@ on:
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       - ".morro/changesets/MD-CP-003-TRUST.json"
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
-      - ".morro/changesets/MD-CP-003-HOOKS.json"
-      - ".github/morro-control/claims.json"
       - "tooling/fabric/claim-guard.mjs"
       - "tooling/fabric/claim-guard.test.mjs"
 
