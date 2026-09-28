@@ -10,7 +10,7 @@ import {
 function environment(overrides = {}) {
   const value = {
     RENDER_SERVICE_NAME: "morro-digital-v2-production-db-bootstrap",
-    MORRO_RELEASE_SHA: "a".repeat(40),
+    RENDER_GIT_COMMIT: "a".repeat(40),
     EXPECTED_SHA: "a".repeat(40),
     ...overrides,
   };
@@ -204,7 +204,7 @@ test("runs every canonical applier, validates structure, seeds once, and closes 
 
   assert.equal(result.status, "pass");
   assert.equal(result.expectedSha, "a".repeat(40));
-  assert.equal(result.releaseSha, "a".repeat(40));
+  assert.equal(result.renderGitCommit, "a".repeat(40));
   assert.equal(result.domains.length, 13);
   assert.equal(result.canonicalDestination, "morro-de-sao-paulo");
   assert.equal(
@@ -277,7 +277,7 @@ test("rejects stale exact-head execution", async () => {
   );
 });
 
-test("requires explicit expected SHA and exact immutable release identity", async () => {
+test("requires explicit expected SHA and exact Render source identity", async () => {
   const missingExpected = environment();
   delete missingExpected.EXPECTED_SHA;
   await assert.rejects(
@@ -293,7 +293,7 @@ test("requires explicit expected SHA and exact immutable release identity", asyn
 
   await assert.rejects(
     runProductionDatabasePredeploy({
-      environment: environment({ MORRO_RELEASE_SHA: "b".repeat(40) }),
+      environment: environment({ RENDER_GIT_COMMIT: "b".repeat(40) }),
       dependencies: dependencies([]),
       poolFactory() {
         throw new Error("pool must not be created");
