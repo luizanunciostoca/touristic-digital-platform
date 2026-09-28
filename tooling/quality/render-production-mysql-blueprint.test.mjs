@@ -43,7 +43,7 @@ function rejects(result, expected) {
   assert.match(result.stderr, expected);
 }
 
-test("production MySQL Blueprint satisfies the infrastructure-only contract", (t) => {
+test("production MySQL Blueprint satisfies bootstrap wiring without application cutover", (t) => {
   const result = runCheck(t);
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
@@ -95,13 +95,39 @@ test("shared morro_app ownership is forbidden", (t) => {
   );
 });
 
-test("phase 1 cannot cut the application over", (t) => {
+test("bootstrap wiring must include every least-privilege password reference", (t) => {
   rejects(
     runCheck(t, (directory) => {
       const file = path.join(directory, "render.yaml");
-      fs.appendFileSync(file, "\n# PRODUCTION_MYSQL_HOSTPORT\n");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "- key: PRODUCTION_BUSINESS_DATABASE_PASSWORD",
+            "- key: OMITTED_PRODUCTION_BUSINESS_DATABASE_PASSWORD",
+          ),
+      );
     }),
-    /premature production cutover wiring/u,
+    /PRODUCTION_BUSINESS_DATABASE_PASSWORD/u,
+  );
+});
+
+test("bootstrap phase cannot cut the production start command over", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs",
+            "startCommand: node tooling/render/with-production-mysql-env.mjs node apps/morro-digital-platform/tooling/dev-server.mjs",
+          ),
+      );
+    }),
+    /startCommand/u,
   );
 });
 
