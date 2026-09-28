@@ -1,7 +1,7 @@
 {
   "id": "MD-PRODUCTION-MYSQL-RENDER",
-  "baseSha": "c0b48b27c8613d1cef05755ba27c29baa91fdea8",
-  "branch": "infra/production-mysql-render-20260928",
+  "baseSha": "ba961f2da225cf87cd565dcdfa9f0f2e8725f446",
+  "branch": "infra/production-mysql-render-provision-20260928",
   "state": "IMPLEMENTING",
   "risk": "critical",
   "owns": {
@@ -16,7 +16,8 @@
       "tooling/render/mysql-production/01-init-databases.sh",
       "tooling/quality/check-render-production-mysql-blueprint.mjs",
       "tooling/quality/render-production-mysql-blueprint.test.mjs",
-      ".github/workflows/security-scanning.yml"
+      ".github/workflows/security-scanning.yml",
+      ".github/workflows/production-mysql-render-provision.yml"
     ],
     "contracts": []
   },
@@ -45,7 +46,8 @@
     "automated-independent-proof",
     "production-mysql-container-scan",
     "production-mysql-durable-readback",
-    "production-mysql-backup-restore-proof"
+    "production-mysql-backup-restore-proof",
+    "production-mysql-render-provision"
   ],
   "stopAt": "REMOTE_PROVEN"
 }

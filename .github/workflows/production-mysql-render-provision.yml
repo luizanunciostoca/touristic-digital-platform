@@ -1,0 +1,341 @@
+name: Production MySQL Render Provision
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact main SHA whose production MySQL image/config must be provisioned
+        required: true
+        type: string
+      confirm_provision:
+        description: Type PROVISION to authorize creation or reconciliation of the production MySQL private service
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-mysql-render-provision
+  cancel-in-progress: false
+
+env:
+  RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990
+  SERVICE_NAME: morro-digital-v2-production-mysql
+  SERVICE_REPO: https://github.com/luizanunciostoca/touristic-digital-platform
+  DISK_NAME: mysql-production-data
+  DISK_MOUNT_PATH: /var/lib/mysql
+  DISK_SIZE_GB: "10"
+
+jobs:
+  provision:
+    name: production mysql / provision
+    if: github.ref == 'refs/heads/main' && inputs.confirm_provision == 'PROVISION'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prove exact source identity
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$(git rev-parse origin/main 2>/dev/null || git rev-parse HEAD)" = "$EXPECTED_SHA"
+          echo "Exact provision candidate SHA: $EXPECTED_SHA"
+
+      - name: Require protected Render credential
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+
+      - name: Validate production Blueprint against Render
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cleanup() { rm -f /tmp/render-blueprint-validation.json; }
+          trap cleanup EXIT
+
+          curl --fail-with-body --silent --show-error             --request POST             --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"             --header "Accept: application/json"             --form "ownerId=$RENDER_WORKSPACE_ID"             --form "file=@render.yaml;type=application/x-yaml"             https://api.render.com/v1/blueprints/validate             > /tmp/render-blueprint-validation.json
+
+          if ! jq -e '.valid == true' /tmp/render-blueprint-validation.json >/dev/null; then
+            jq '{valid, errors}' /tmp/render-blueprint-validation.json >&2
+            exit 1
+          fi
+
+          jq -e --arg service "$SERVICE_NAME"             '.plan.services | index($service) != null'             /tmp/render-blueprint-validation.json >/dev/null
+          echo "Render Blueprint validation PASS for $SERVICE_NAME"
+
+      - name: Provision or reconcile private MySQL service
+        id: provision
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          service_id=""
+          disk_id=""
+          created_service=false
+          created_disk=false
+
+          cleanup() {
+            rm -f               /tmp/render-services.json               /tmp/render-create-service.json               /tmp/render-service.json               /tmp/render-env-vars.json               /tmp/render-disk.json               /tmp/render-deploy.json               /tmp/render-deploy-state.json
+          }
+          trap cleanup EXIT
+
+          api_get() {
+            curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$1"
+          }
+
+          wait_deploy() {
+            local target_service="$1"
+            local target_deploy="$2"
+            local label="$3"
+            local status=""
+            for _ in $(seq 1 120); do
+              api_get "$api/services/$target_service/deploys/$target_deploy"                 > /tmp/render-deploy-state.json
+              status="$(jq -r '.status // empty' /tmp/render-deploy-state.json)"
+              case "$status" in
+                live)
+                  echo "$label deploy live: $target_deploy"
+                  return 0
+                  ;;
+                build_failed|update_failed|pre_deploy_failed|canceled)
+                  jq '{id,status,trigger,commit:{id:(.commit.id // null),message:(.commit.message // null)}}'                     /tmp/render-deploy-state.json >&2
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+            echo "$label deploy timed out: $target_deploy status=$status" >&2
+            return 1
+          }
+
+          api_get "$api/services?name=$SERVICE_NAME&limit=20" > /tmp/render-services.json
+          service_count="$(jq --arg owner "$RENDER_WORKSPACE_ID" --arg name "$SERVICE_NAME"             '[.[] | (.service // .) | select(.ownerId == $owner and .name == $name)] | length'             /tmp/render-services.json)"
+          if [ "$service_count" -gt 1 ]; then
+            echo "Duplicate production MySQL services detected: $service_count" >&2
+            exit 1
+          fi
+          service_id="$(jq -r --arg owner "$RENDER_WORKSPACE_ID" --arg name "$SERVICE_NAME"             '[.[] | (.service // .) | select(.ownerId == $owner and .name == $name)][0].id // empty'             /tmp/render-services.json)"
+
+          if [ -z "$service_id" ]; then
+            jq -n               --arg owner "$RENDER_WORKSPACE_ID"               --arg name "$SERVICE_NAME"               --arg repo "$SERVICE_REPO"               '{
+                type:"private_service",
+                name:$name,
+                ownerId:$owner,
+                repo:$repo,
+                autoDeploy:"no",
+                branch:"main",
+                envVars:[
+                  {key:"MYSQL_ROOT_PASSWORD",generateValue:true},
+                  {key:"AUTH_DATABASE_NAME",value:"morro_auth"},
+                  {key:"AUTH_DATABASE_USER",value:"morro_auth"},
+                  {key:"AUTH_DATABASE_PASSWORD",generateValue:true},
+                  {key:"AUDIT_DATABASE_NAME",value:"morro_audit"},
+                  {key:"AUDIT_DATABASE_USER",value:"morro_audit"},
+                  {key:"AUDIT_DATABASE_PASSWORD",generateValue:true},
+                  {key:"DESTINATIONS_DATABASE_NAME",value:"morro_destinations"},
+                  {key:"DESTINATIONS_DATABASE_USER",value:"morro_destinations"},
+                  {key:"DESTINATIONS_DATABASE_PASSWORD",generateValue:true},
+                  {key:"CONTENT_DATABASE_NAME",value:"morro_content"},
+                  {key:"CONTENT_DATABASE_USER",value:"morro_content"},
+                  {key:"CONTENT_DATABASE_PASSWORD",generateValue:true},
+                  {key:"BUSINESS_DATABASE_NAME",value:"morro_business"},
+                  {key:"BUSINESS_DATABASE_USER",value:"morro_business"},
+                  {key:"BUSINESS_DATABASE_PASSWORD",generateValue:true},
+                  {key:"ORDERING_DATABASE_NAME",value:"morro_ordering"},
+                  {key:"ORDERING_DATABASE_USER",value:"morro_ordering"},
+                  {key:"ORDERING_DATABASE_PASSWORD",generateValue:true},
+                  {key:"FINANCIAL_DATABASE_NAME",value:"morro_financial"},
+                  {key:"FINANCIAL_DATABASE_USER",value:"morro_financial"},
+                  {key:"FINANCIAL_DATABASE_PASSWORD",generateValue:true},
+                  {key:"TICKETING_DATABASE_NAME",value:"morro_ticketing"},
+                  {key:"TICKETING_DATABASE_USER",value:"morro_ticketing"},
+                  {key:"TICKETING_DATABASE_PASSWORD",generateValue:true},
+                  {key:"NOTIFICATIONS_DATABASE_NAME",value:"morro_notifications"},
+                  {key:"NOTIFICATIONS_DATABASE_USER",value:"morro_notifications"},
+                  {key:"NOTIFICATIONS_DATABASE_PASSWORD",generateValue:true},
+                  {key:"AFFILIATES_DATABASE_NAME",value:"morro_affiliates"},
+                  {key:"AFFILIATES_DATABASE_USER",value:"morro_affiliates"},
+                  {key:"AFFILIATES_DATABASE_PASSWORD",generateValue:true},
+                  {key:"ANALYTICS_DATABASE_NAME",value:"morro_analytics"},
+                  {key:"ANALYTICS_DATABASE_USER",value:"morro_analytics"},
+                  {key:"ANALYTICS_DATABASE_PASSWORD",generateValue:true},
+                  {key:"CRM_DATABASE_NAME",value:"morro_crm"},
+                  {key:"CRM_DATABASE_USER",value:"morro_crm"},
+                  {key:"CRM_DATABASE_PASSWORD",generateValue:true},
+                  {key:"COMMERCE_DATABASE_NAME",value:"morro_commerce"},
+                  {key:"COMMERCE_DATABASE_USER",value:"morro_commerce"},
+                  {key:"COMMERCE_DATABASE_PASSWORD",generateValue:true}
+                ],
+                serviceDetails:{
+                  runtime:"docker",
+                  plan:"starter",
+                  region:"virginia",
+                  numInstances:1,
+                  envSpecificDetails:{
+                    dockerContext:".",
+                    dockerfilePath:"./tooling/render/mysql-production/Dockerfile"
+                  }
+                }
+              }' > /tmp/render-create-service.json
+
+            http_status="$(curl --silent --show-error               --output /tmp/render-service.json               --write-out '%{http_code}'               --request POST               --header "$auth"               --header "Accept: application/json"               --header "Content-Type: application/json"               --data-binary @/tmp/render-create-service.json               "$api/services")"
+            if [ "$http_status" != "201" ]; then
+              jq '{message:(.message // .error // "service creation failed")}' /tmp/render-service.json >&2 || true
+              echo "Render service creation failed with HTTP $http_status" >&2
+              exit 1
+            fi
+
+            service_id="$(jq -r '.service.id // empty' /tmp/render-service.json)"
+            initial_deploy_id="$(jq -r '.deployId // empty' /tmp/render-service.json)"
+            test -n "$service_id"
+            created_service=true
+            echo "Created private service $SERVICE_NAME ($service_id)"
+
+            if [ -n "$initial_deploy_id" ]; then
+              wait_deploy "$service_id" "$initial_deploy_id" "initial"
+            fi
+          else
+            echo "Reusing existing private service $SERVICE_NAME ($service_id)"
+          fi
+
+          api_get "$api/services/$service_id" > /tmp/render-service.json
+          jq -e             --arg owner "$RENDER_WORKSPACE_ID"             --arg repo "$SERVICE_REPO"             '.type == "private_service" and
+             .ownerId == $owner and
+             .repo == $repo and
+             .branch == "main" and
+             .autoDeploy == "no" and
+             .serviceDetails.runtime == "docker" and
+             .serviceDetails.region == "virginia" and
+             .serviceDetails.envSpecificDetails.dockerContext == "." and
+             .serviceDetails.envSpecificDetails.dockerfilePath == "./tooling/render/mysql-production/Dockerfile"'             /tmp/render-service.json >/dev/null
+
+          api_get "$api/services/$service_id/env-vars?limit=100" > /tmp/render-env-vars.json
+
+          ensure_literal() {
+            local key="$1"
+            local value="$2"
+            if ! jq -e --arg key "$key" 'any(.[]; .envVar.key == $key)'               /tmp/render-env-vars.json >/dev/null; then
+              curl --fail-with-body --silent --show-error                 --request PUT                 --header "$auth"                 --header "Accept: application/json"                 --header "Content-Type: application/json"                 --data "$(jq -nc --arg value "$value" '{value:$value}')"                 "$api/services/$service_id/env-vars/$key" >/dev/null
+            fi
+          }
+
+          ensure_secret() {
+            local key="$1"
+            if ! jq -e --arg key "$key" 'any(.[]; .envVar.key == $key)'               /tmp/render-env-vars.json >/dev/null; then
+              curl --fail-with-body --silent --show-error                 --request PUT                 --header "$auth"                 --header "Accept: application/json"                 --header "Content-Type: application/json"                 --data '{"generateValue":true}'                 "$api/services/$service_id/env-vars/$key" >/dev/null
+            fi
+          }
+
+          ensure_secret MYSQL_ROOT_PASSWORD
+          for spec in             AUTH:morro_auth             AUDIT:morro_audit             DESTINATIONS:morro_destinations             CONTENT:morro_content             BUSINESS:morro_business             ORDERING:morro_ordering             FINANCIAL:morro_financial             TICKETING:morro_ticketing             NOTIFICATIONS:morro_notifications             AFFILIATES:morro_affiliates             ANALYTICS:morro_analytics             CRM:morro_crm             COMMERCE:morro_commerce
+          do
+            domain="$(printf '%s' "$spec" | cut -d: -f1)"
+            database="$(printf '%s' "$spec" | cut -d: -f2)"
+            ensure_literal "$domain"_DATABASE_NAME "$database"
+            ensure_literal "$domain"_DATABASE_USER "$database"
+            ensure_secret "$domain"_DATABASE_PASSWORD
+          done
+          rm -f /tmp/render-env-vars.json
+
+          api_get "$api/services/$service_id" > /tmp/render-service.json
+          disk_id="$(jq -r '.serviceDetails.disk.id // empty' /tmp/render-service.json)"
+          if [ -z "$disk_id" ]; then
+            jq -n               --arg name "$DISK_NAME"               --arg mount "$DISK_MOUNT_PATH"               --arg service "$service_id"               --argjson size "$DISK_SIZE_GB"               '{name:$name,sizeGB:$size,mountPath:$mount,serviceId:$service}'               > /tmp/render-disk.json
+
+            http_status="$(curl --silent --show-error               --output /tmp/render-deploy-state.json               --write-out '%{http_code}'               --request POST               --header "$auth"               --header "Accept: application/json"               --header "Content-Type: application/json"               --data-binary @/tmp/render-disk.json               "$api/disks")"
+            if [ "$http_status" != "201" ]; then
+              jq '{message:(.message // .error // "disk creation failed")}' /tmp/render-deploy-state.json >&2 || true
+              echo "Render disk creation failed with HTTP $http_status" >&2
+              exit 1
+            fi
+            disk_id="$(jq -r '.id // empty' /tmp/render-deploy-state.json)"
+            test -n "$disk_id"
+            created_disk=true
+            echo "Created persistent disk $DISK_NAME ($disk_id)"
+          else
+            echo "Reusing persistent disk $DISK_NAME ($disk_id)"
+          fi
+
+          jq -n             --arg sha "$EXPECTED_SHA"             '{commitId:$sha,clearCache:"do_not_clear",deployMode:"build_and_deploy"}'             > /tmp/render-deploy.json
+
+          http_status="$(curl --silent --show-error             --output /tmp/render-deploy-state.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/render-deploy.json             "$api/services/$service_id/deploys")"
+          case "$http_status" in
+            201)
+              deploy_id="$(jq -r '.id // empty' /tmp/render-deploy-state.json)"
+              ;;
+            202)
+              deploy_id=""
+              ;;
+            *)
+              jq '{message:(.message // .error // "deploy trigger failed")}' /tmp/render-deploy-state.json >&2 || true
+              echo "Render deploy trigger failed with HTTP $http_status" >&2
+              exit 1
+              ;;
+          esac
+
+          if [ -z "$deploy_id" ]; then
+            sleep 5
+            api_get "$api/services/$service_id/deploys?limit=5" > /tmp/render-deploy-state.json
+            deploy_id="$(jq -r --arg sha "$EXPECTED_SHA"               '[.[] | (.deploy // .) | select(.commit.id == $sha)][0].id // empty'               /tmp/render-deploy-state.json)"
+          fi
+          test -n "$deploy_id"
+          wait_deploy "$service_id" "$deploy_id" "exact-sha"
+
+          api_get "$api/services/$service_id" > /tmp/render-service.json
+          api_get "$api/services/$service_id/deploys/$deploy_id" > /tmp/render-deploy-state.json
+
+          jq -e             --arg disk "$disk_id"             --arg mount "$DISK_MOUNT_PATH"             --argjson size "$DISK_SIZE_GB"             '.serviceDetails.disk.id == $disk and
+             .serviceDetails.disk.mountPath == $mount and
+             .serviceDetails.disk.sizeGB == $size and
+             .serviceDetails.runtime == "docker" and
+             .serviceDetails.region == "virginia"'             /tmp/render-service.json >/dev/null
+          jq -e --arg sha "$EXPECTED_SHA"             '.status == "live" and .commit.id == $sha'             /tmp/render-deploy-state.json >/dev/null
+
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg serviceId "$service_id"             --arg serviceName "$SERVICE_NAME"             --arg diskId "$disk_id"             --arg diskName "$DISK_NAME"             --arg mountPath "$DISK_MOUNT_PATH"             --argjson diskSizeGB "$DISK_SIZE_GB"             --arg deployId "$deploy_id"             --argjson createdService "$created_service"             --argjson createdDisk "$created_disk"             '{
+              expectedSha:$expectedSha,
+              serviceId:$serviceId,
+              serviceName:$serviceName,
+              serviceType:"private_service",
+              region:"virginia",
+              runtime:"docker",
+              disk:{id:$diskId,name:$diskName,mountPath:$mountPath,sizeGB:$diskSizeGB},
+              deployId:$deployId,
+              deployStatus:"live",
+              createdService:$createdService,
+              createdDisk:$createdDisk
+            }' > production-mysql-render-provision-evidence.json
+
+          echo "service_id=$service_id" >> "$GITHUB_OUTPUT"
+          echo "disk_id=$disk_id" >> "$GITHUB_OUTPUT"
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+          cat production-mysql-render-provision-evidence.json
+
+      - name: Upload provisioning evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-mysql-render-provision-${{ github.run_id }}
+          path: production-mysql-render-provision-evidence.json
+          if-no-files-found: error
+          retention-days: 30
