@@ -95,6 +95,223 @@ services:
       - key: COMMERCE_DATABASE_PASSWORD
         generateValue: true
 
+  - type: worker
+    name: morro-digital-v2-production-db-bootstrap
+    runtime: node
+    repo: https://github.com/luizanunciostoca/touristic-digital-platform
+    branch: main
+    region: virginia
+    plan: starter
+    autoDeploy: false
+    buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
+    startCommand: node -e "setInterval(() => {}, 2147483647)"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Database owner credentials are intentionally scoped to this non-public
+      # bootstrap worker and are never injected into the production web service.
+      - key: PRODUCTION_MYSQL_HOSTPORT
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          property: hostport
+      - key: PRODUCTION_AUTH_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AUTH_DATABASE_NAME
+      - key: PRODUCTION_AUTH_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AUTH_DATABASE_USER
+      - key: PRODUCTION_AUTH_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AUTH_DATABASE_PASSWORD
+      - key: PRODUCTION_AUDIT_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AUDIT_DATABASE_NAME
+      - key: PRODUCTION_AUDIT_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AUDIT_DATABASE_USER
+      - key: PRODUCTION_AUDIT_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AUDIT_DATABASE_PASSWORD
+      - key: PRODUCTION_DESTINATIONS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: DESTINATIONS_DATABASE_NAME
+      - key: PRODUCTION_DESTINATIONS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: DESTINATIONS_DATABASE_USER
+      - key: PRODUCTION_DESTINATIONS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: DESTINATIONS_DATABASE_PASSWORD
+      - key: PRODUCTION_CONTENT_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: CONTENT_DATABASE_NAME
+      - key: PRODUCTION_CONTENT_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: CONTENT_DATABASE_USER
+      - key: PRODUCTION_CONTENT_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: CONTENT_DATABASE_PASSWORD
+      - key: PRODUCTION_BUSINESS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: BUSINESS_DATABASE_NAME
+      - key: PRODUCTION_BUSINESS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: BUSINESS_DATABASE_USER
+      - key: PRODUCTION_BUSINESS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: BUSINESS_DATABASE_PASSWORD
+      - key: PRODUCTION_ORDERING_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: ORDERING_DATABASE_NAME
+      - key: PRODUCTION_ORDERING_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: ORDERING_DATABASE_USER
+      - key: PRODUCTION_ORDERING_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: ORDERING_DATABASE_PASSWORD
+      - key: PRODUCTION_FINANCIAL_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: FINANCIAL_DATABASE_NAME
+      - key: PRODUCTION_FINANCIAL_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: FINANCIAL_DATABASE_USER
+      - key: PRODUCTION_FINANCIAL_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: FINANCIAL_DATABASE_PASSWORD
+      - key: PRODUCTION_TICKETING_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: TICKETING_DATABASE_NAME
+      - key: PRODUCTION_TICKETING_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: TICKETING_DATABASE_USER
+      - key: PRODUCTION_TICKETING_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: TICKETING_DATABASE_PASSWORD
+      - key: PRODUCTION_NOTIFICATIONS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: NOTIFICATIONS_DATABASE_NAME
+      - key: PRODUCTION_NOTIFICATIONS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: NOTIFICATIONS_DATABASE_USER
+      - key: PRODUCTION_NOTIFICATIONS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: NOTIFICATIONS_DATABASE_PASSWORD
+      - key: PRODUCTION_AFFILIATES_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AFFILIATES_DATABASE_NAME
+      - key: PRODUCTION_AFFILIATES_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AFFILIATES_DATABASE_USER
+      - key: PRODUCTION_AFFILIATES_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: AFFILIATES_DATABASE_PASSWORD
+      - key: PRODUCTION_ANALYTICS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: ANALYTICS_DATABASE_NAME
+      - key: PRODUCTION_ANALYTICS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: ANALYTICS_DATABASE_USER
+      - key: PRODUCTION_ANALYTICS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: ANALYTICS_DATABASE_PASSWORD
+      - key: PRODUCTION_CRM_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: CRM_DATABASE_NAME
+      - key: PRODUCTION_CRM_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: CRM_DATABASE_USER
+      - key: PRODUCTION_CRM_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: CRM_DATABASE_PASSWORD
+      - key: PRODUCTION_COMMERCE_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: COMMERCE_DATABASE_NAME
+      - key: PRODUCTION_COMMERCE_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: COMMERCE_DATABASE_USER
+      - key: PRODUCTION_COMMERCE_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-production-mysql
+          envVarKey: COMMERCE_DATABASE_PASSWORD
+
+
   - type: web
     name: morro-digital-v2
     runtime: node
