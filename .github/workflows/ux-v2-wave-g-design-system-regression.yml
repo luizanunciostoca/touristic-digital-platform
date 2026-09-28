@@ -6,7 +6,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
-      - ".github/actions/ci-bootstrap/action.yml"
+      - ".github/actions/ci-bootstrap/**"
       - .github/workflows/ux-v2-wave-g-design-system-regression.yml
       - apps/morro-digital-platform/public/design-system-v2.css
       - apps/morro-digital-platform/public/tourist-shell-v2.css
