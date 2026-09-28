@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CI",
   "baseSha": "e12d997edabe308297c3b6083a609af1710aa99b",
   "branch": "fix/remediation-pages-repository-context-20260928",
-  "state": "LOCAL_PROVEN",
+  "state": "REMOTE_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [
