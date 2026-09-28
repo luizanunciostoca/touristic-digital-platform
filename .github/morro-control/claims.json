@@ -184,6 +184,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-08T23:59:59Z"
+    },
+    "MD-REMEDIATION-CLAIM-RETIREMENT-VALIDATOR": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-claim-retirement-validator-20260928",
+      "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
+      "paths": [
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-CLAIM-RETIREMENT-VALIDATOR.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-29T23:59:59Z"
     }
   }
 }
