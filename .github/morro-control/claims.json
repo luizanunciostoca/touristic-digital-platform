@@ -19,7 +19,9 @@
         "tooling/quality/check-render-production-mysql-blueprint.mjs",
         "tooling/quality/render-production-mysql-blueprint.test.mjs",
         ".github/workflows/security-scanning.yml",
-        ".github/workflows/production-mysql-render-provision.yml"
+        ".github/workflows/production-mysql-render-provision.yml",
+        "tooling/render/mysql-production/readback.sh",
+        ".github/workflows/production-mysql-render-readback.yml"
       ],
       "domains": ["ci-release", "database", "infrastructure"],
       "risk": "P0",

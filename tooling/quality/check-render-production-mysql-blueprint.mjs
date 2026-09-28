@@ -16,6 +16,10 @@ const init = fs.readFileSync(
   new URL("../render/mysql-production/01-init-databases.sh", import.meta.url),
   "utf8",
 );
+const readback = fs.readFileSync(
+  new URL("../render/mysql-production/readback.sh", import.meta.url),
+  "utf8",
+);
 
 const domains = [
   ["AUTH", "morro_auth"],
@@ -147,6 +151,7 @@ for (const required of [
   "COPY tooling/render/mysql-production/morro-memory.cnf /etc/mysql/conf.d/99-morro-memory.cnf",
   "RUN mysqld --verbose --help >/dev/null",
   "COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh",
+  "COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback",
 ]) {
   requireActiveLine(dockerfile, required);
 }
@@ -174,6 +179,36 @@ for (const required of [
   requireText(init, required);
 }
 requireText(init, "\\`$database\\`", "escaped SQL database identifier");
+
+for (const required of [
+  'CONTRACT="MORRO-PRODUCTION-MYSQL-READBACK"',
+  'HOST="${MORRO_MYSQL_READBACK_HOST:-morro-digital-v2-production-mysql}"',
+  'PORT="${MORRO_MYSQL_READBACK_PORT:-3306}"',
+  'DOMAINS="AUTH AUDIT DESTINATIONS CONTENT BUSINESS ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE"',
+  "schemaOwners",
+  "crossDomainDenied",
+  "tableCounts",
+  "EXPECTED_SHA",
+  'render_git_commit="$(required_env RENDER_GIT_COMMIT)"',
+  '[ "$render_git_commit" = "$expected_sha" ]',
+  "for target_domain in $DOMAINS",
+  '[ "$denied_count" -eq 156 ]',
+  "CROSS_DOMAIN_ACCESS_ALLOWED_",
+  "information_schema.tables",
+]) {
+  requireText(readback, required);
+}
+forbidText(
+  readback,
+  "MYSQL_ROOT_PASSWORD",
+  "readback must use domain owners only",
+);
+forbidText(readback, "morro_app", "readback must not use shared broad user");
+forbidText(
+  readback,
+  "next_domain()",
+  "readback must test the full domain matrix",
+);
 
 forbidText(init, "morro_app", "shared broad production database user");
 
