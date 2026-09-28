@@ -12,6 +12,14 @@ import {
 } from "./suite-scheduler.mjs";
 
 const all = suiteManifest.suites.map((suite) => suite.workflow);
+const BASE = "a".repeat(40);
+const HEAD = "b".repeat(40);
+function completeReport(overrides = {}) {
+  return {
+    ...analyzeFiles(["docs/overview.md"], { base: BASE, head: HEAD }),
+    ...overrides,
+  };
+}
 const expectedManagedSuites = [
   "payments-operational-ledger-contract.yml",
   "payments-persistence-integration.yml",
@@ -48,14 +56,22 @@ test("every migrated trigger path still selects its original suite", () => {
   for (const suite of suiteManifest.suites) {
     for (const path of suite.paths) {
       const file = path.replaceAll("**", "example").replaceAll("*", "example");
-      const report = {
+      const report = completeReport({
         files: [file],
+        risk: "LOW",
         domains: [],
         suites: [],
         unknownFiles: [],
+        needsBrowser: false,
+        needsVisual: false,
+        needsDatabase: false,
+        needsContainer: false,
+        needsDependencyAudit: false,
+        needsFullSecurity: false,
         needsFullRegression: false,
         nonRuntime: false,
-      };
+        failClosedReason: null,
+      });
       assert.ok(
         selectSuites(report).includes(suite.workflow),
         `${suite.workflow}: ${path}`,
@@ -64,14 +80,15 @@ test("every migrated trigger path still selects its original suite", () => {
   }
 });
 test("explicit dependency selection is preserved even without a direct path match", () => {
-  const report = {
+  const report = completeReport({
     files: ["docs/overview.md"],
     domains: ["docs"],
     suites: [all[0]],
     unknownFiles: [],
     needsFullRegression: false,
     nonRuntime: true,
-  };
+    failClosedReason: null,
+  });
   assert.deepEqual(selectSuites(report), [all[0]]);
 });
 function results(selected) {
