@@ -10,11 +10,7 @@
       ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
       "tooling/fabric/claim-retirement-proof.mjs",
       "tooling/fabric/claim-retirement-proof.test.mjs",
-      ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json",
-      ".morro/claim-retirements/MD-REMEDIATION-FINAL-CLAIM-GC.json",
-      "tooling/fabric/claim-retirement.mjs",
-      "tooling/fabric/claim-retirement.test.mjs",
-      "tooling/fabric/validate-registry.mjs"
+      ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"
     ],
     "contracts": []
   },
