@@ -8,6 +8,7 @@ on:
       - ".github/skills/**"
       - ".github/workflows/morro-agent-profiles.yml"
       - ".morro/changesets/MD-CP-002C.json"
+  merge_group:
   push:
     branches: [main]
     paths:
