@@ -1,10 +1,81 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile, readdir } from "node:fs/promises";
-import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
+import {
+  readFile,
+  readdir,
+  mkdtemp,
+  mkdir,
+  writeFile,
+  rm,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve, join } from "node:path";
 
 const root = process.cwd();
 const workflowsDir = resolve(root, ".github/workflows");
+
+test("Pages promotion works without checkout and rejects stale or moved candidates", async () => {
+  const source = await readFile(
+    resolve(workflowsDir, "pages-after-final-acceptance.yml"),
+    "utf8",
+  );
+  const script = source
+    .split("- name: Re-prove the candidate before Pages promotion")[1]
+    .split("run: |\n")[1]
+    .split("\n      - name: Deploy certified Pages artifact")[0]
+    .replace(/^          /gm, "");
+  const fixture = await mkdtemp(join(tmpdir(), "morro-pages-no-checkout-"));
+  const sha = "a".repeat(40);
+  try {
+    await mkdir(join(fixture, "bin"));
+    await writeFile(
+      join(fixture, "bin", "gh"),
+      `#!${process.execPath}
+const args = process.argv.slice(2);
+const env = process.env;
+const endpoint = args[1] || "";
+let result;
+if (args[0] === "api" && endpoint.endsWith("/pages")) result = "workflow";
+else if (args[0] === "api" && endpoint.includes("/git/ref/tags/rc/")) result = env.FIXTURE_TAG_SHA;
+else if (args[0] === "api" && endpoint.includes("/compare/")) result = "ahead";
+else if (args[0] === "api" && endpoint.endsWith("/status")) result = "success";
+else if (args[0] === "run" && args[1] === "list") {
+  const repoIndex = args.indexOf("--repo");
+  if (repoIndex < 0 || args[repoIndex + 1] !== env.GITHUB_REPOSITORY) {
+    process.stderr.write("failed to determine base repo: no git checkout\\n");
+    process.exit(2);
+  }
+  result = env.FIXTURE_LATEST_SHA;
+} else process.exit(64);
+process.stdout.write(result + "\\n");
+`,
+      { mode: 0o755 },
+    );
+    const run = (overrides = {}) =>
+      execFileSync(
+        "bash",
+        ["--noprofile", "--norc", "-euo", "pipefail", "-c", script],
+        {
+          cwd: fixture,
+          env: {
+            PATH: `${join(fixture, "bin")}:${process.env.PATH}`,
+            GITHUB_REPOSITORY: "fixture/morro",
+            CERTIFIED_SHA: sha,
+            FIXTURE_TAG_SHA: sha,
+            FIXTURE_LATEST_SHA: sha,
+            ...overrides,
+          },
+          stdio: "pipe",
+        },
+      );
+    assert.doesNotThrow(() => run());
+    assert.throws(() => run({ FIXTURE_LATEST_SHA: "b".repeat(40) }));
+    assert.throws(() => run({ FIXTURE_TAG_SHA: "b".repeat(40) }));
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
 
 test("one explicit candidate dispatcher preserves the former Control Center matrix", async () => {
   const sources = await workflowSources();
