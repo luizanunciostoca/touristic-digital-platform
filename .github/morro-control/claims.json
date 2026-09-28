@@ -22,17 +22,19 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
     },
-    "MD-REMEDIATION-GUARD-HARDENING": {
-      "owner": "CHATGPT-WORK-CLAIM-GUARD",
+    "MD-REMEDIATION-DB-BLUEPRINT": {
+      "owner": "CHATGPT-WORK-DATABASE",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/remediation-guard-hardening-20260928",
-      "baseSha": "ffbe7576176f1ea80302dd35635b03c81186ca4e",
+      "branch": "infra/remediation-db-blueprint-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
       "paths": [
-        "tooling/fabric/claim-guard.mjs",
-        "tooling/fabric/claim-guard.test.mjs",
-        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-        ".github/workflows/morro-claim-guard.yml",
-        ".morro/changesets/MD-REMEDIATION-GUARD-HARDENING.json"
+        "render.staging.yaml",
+        "tooling/render/mysql-staging/01-init-databases.sh",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
+        ".github/workflows/render-staging-blueprint-contract.yml",
+        "render.yaml"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
