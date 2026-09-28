@@ -227,39 +227,35 @@ function fakeFetch(routes) {
 }
 
 test("canonical collector proves merged PR ancestry through GitHub", async () => {
-  const evidence = await collectClaimRetirementEvidence(
-    "MD-ONE",
-    claim(),
-    {
-      repository: "owner/repo",
-      expectedBaseSha: BASE,
-      token: "test-token",
-      now: Date.parse("2026-09-28T00:00:00Z"),
-      fetchImpl: fakeFetch([
+  const evidence = await collectClaimRetirementEvidence("MD-ONE", claim(), {
+    repository: "owner/repo",
+    expectedBaseSha: BASE,
+    token: "test-token",
+    now: Date.parse("2026-09-28T00:00:00Z"),
+    fetchImpl: fakeFetch([
+      [
+        "/pulls?",
         [
-          "/pulls?",
-          [
-            {
-              number: 123,
-              state: "closed",
-              merged_at: "2026-09-27T00:00:00Z",
-              merge_commit_sha: MERGE,
-              head: { ref: "infra/example" },
-              base: { ref: "main" },
-            },
-          ],
-        ],
-        [
-          `/compare/${MERGE}...${BASE}`,
           {
-            status: "ahead",
-            base_commit: { sha: MERGE },
-            merge_base_commit: { sha: MERGE },
+            number: 123,
+            state: "closed",
+            merged_at: "2026-09-27T00:00:00Z",
+            merge_commit_sha: MERGE,
+            head: { ref: "infra/example" },
+            base: { ref: "main" },
           },
         ],
-      ]),
-    },
-  );
+      ],
+      [
+        `/compare/${MERGE}...${BASE}`,
+        {
+          status: "ahead",
+          base_commit: { sha: MERGE },
+          merge_base_commit: { sha: MERGE },
+        },
+      ],
+    ]),
+  });
   assert.deepEqual(evidence, {
     id: "MD-ONE",
     reason: "MERGED_PR",
@@ -272,20 +268,16 @@ test("canonical collector proves merged PR ancestry through GitHub", async () =>
 });
 
 test("canonical collector proves orphan only with no PR and no branch", async () => {
-  const evidence = await collectClaimRetirementEvidence(
-    "MD-ONE",
-    claim(),
-    {
-      repository: "owner/repo",
-      expectedBaseSha: BASE,
-      token: "test-token",
-      now: Date.parse("2026-09-28T00:00:00Z"),
-      fetchImpl: fakeFetch([
-        ["/pulls?", []],
-        ["/git/matching-refs/heads/", []],
-      ]),
-    },
-  );
+  const evidence = await collectClaimRetirementEvidence("MD-ONE", claim(), {
+    repository: "owner/repo",
+    expectedBaseSha: BASE,
+    token: "test-token",
+    now: Date.parse("2026-09-28T00:00:00Z"),
+    fetchImpl: fakeFetch([
+      ["/pulls?", []],
+      ["/git/matching-refs/heads/", []],
+    ]),
+  });
   assert.deepEqual(evidence, {
     id: "MD-ONE",
     reason: "ORPHANED",

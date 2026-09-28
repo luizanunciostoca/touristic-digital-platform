@@ -34,10 +34,7 @@ export function validateClaimRetirements({
 }) {
   assertRegistry(baseRegistry, "BASE_REGISTRY_INVALID");
   assertRegistry(candidateRegistry, "CANDIDATE_REGISTRY_INVALID");
-  assert.ok(
-    Number.isFinite(now),
-    "CLAIM_RETIREMENT_NOW_INVALID",
-  );
+  assert.ok(Number.isFinite(now), "CLAIM_RETIREMENT_NOW_INVALID");
 
   const removed = removedClaimIds(baseRegistry, candidateRegistry);
 
@@ -247,13 +244,7 @@ async function orphanEvidence(claim, repository, pulls, options) {
 export async function collectClaimRetirementEvidence(
   claimId,
   claim,
-  {
-    repository,
-    expectedBaseSha,
-    now = Date.now(),
-    token,
-    fetchImpl = fetch,
-  },
+  { repository, expectedBaseSha, now = Date.now(), token, fetchImpl = fetch },
 ) {
   assert.match(claimId, CLAIM_ID, "CLAIM_RETIREMENT_ID_INVALID");
   assert.match(expectedBaseSha ?? "", SHA, "EXPECTED_BASE_INVALID");
@@ -282,12 +273,7 @@ export async function collectClaimRetirementEvidence(
   );
   if (merged.evidence) return { ...merged.evidence, id: claimId };
 
-  const orphan = await orphanEvidence(
-    claim,
-    repository,
-    merged.pulls,
-    options,
-  );
+  const orphan = await orphanEvidence(claim, repository, merged.pulls, options);
   if (orphan) return { ...orphan, id: claimId };
 
   throw new Error("CLAIM_RETIREMENT_NO_CANONICAL_EVIDENCE");
@@ -419,9 +405,7 @@ if (invokedDirectly) {
       ),
     );
   } catch (cause) {
-    console.error(
-      `MORRO_CLAIM_RETIREMENT_FAILED:${diagnosticCode(cause)}`,
-    );
+    console.error(`MORRO_CLAIM_RETIREMENT_FAILED:${diagnosticCode(cause)}`);
     process.exitCode = 1;
   }
 }
