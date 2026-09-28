@@ -14,6 +14,7 @@ const fixtures = [
   "tooling/render/mysql-production/Dockerfile",
   "tooling/render/mysql-production/morro-memory.cnf",
   "tooling/render/mysql-production/01-init-databases.sh",
+  "tooling/render/mysql-production/readback.sh",
 ];
 
 function runCheck(t, mutate = () => {}) {
@@ -138,5 +139,38 @@ test("production initializer must escape SQL identifier backticks", (t) => {
       );
     }),
     /escaped SQL database identifier/u,
+  );
+});
+
+test("production readback must cover all thirteen canonical domains", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/readback.sh",
+      );
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replace(
+          "AUTH AUDIT DESTINATIONS CONTENT BUSINESS ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE",
+          "AUTH AUDIT DESTINATIONS CONTENT ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE",
+        ),
+      );
+    }),
+    /MORRO-PRODUCTION-MYSQL-READBACK|DOMAINS/u,
+  );
+});
+
+test("production readback cannot use root authority", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/readback.sh",
+      );
+      fs.appendFileSync(file, "\n# MYSQL_ROOT_PASSWORD\n");
+    }),
+    /readback must use domain owners only/u,
   );
 });
