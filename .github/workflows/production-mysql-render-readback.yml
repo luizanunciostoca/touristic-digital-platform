@@ -118,7 +118,7 @@ jobs:
           trap cleanup EXIT
 
           jq -nc --arg sha "$EXPECTED_SHA" \
-            '{startCommand:("EXPECTED_SHA=" + $sha + " /usr/local/bin/morro-mysql-readback")}' \
+            '{startCommand:("env EXPECTED_SHA=" + $sha + " /usr/local/bin/morro-mysql-readback")}' \
             > /tmp/render-mysql-job-request.json
 
           http_status="$(curl --silent --show-error             --output /tmp/render-mysql-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/render-mysql-job-request.json             "$api/services/$SERVICE_ID/jobs")"
@@ -168,6 +168,74 @@ jobs:
                 else
                   echo "No safe readback diagnostic log was available from Render." >&2
                 fi
+
+                run_probe() {
+                  probe_mode="$1"
+                  probe_request="/tmp/render-mysql-probe-$probe_mode-request.json"
+                  probe_create="/tmp/render-mysql-probe-$probe_mode-create.json"
+                  probe_status_file="/tmp/render-mysql-probe-$probe_mode-status.json"
+
+                  jq -nc \
+                    --arg sha "$EXPECTED_SHA" \
+                    --arg mode "$probe_mode" \
+                    '{startCommand:("env EXPECTED_SHA=" + $sha + " MORRO_READBACK_MODE=" + $mode + " /usr/local/bin/morro-mysql-readback")}' \
+                    > "$probe_request"
+
+                  probe_http_status="$(curl --silent --show-error \
+                    --output "$probe_create" \
+                    --write-out '%{http_code}' \
+                    --request POST \
+                    --header "$auth" \
+                    --header "Accept: application/json" \
+                    --header "Content-Type: application/json" \
+                    --data-binary @"$probe_request" \
+                    "$api/services/$SERVICE_ID/jobs")"
+
+                  if [ "$probe_http_status" != "201" ]; then
+                    echo "readback-probe:$probe_mode=create_failed" >&2
+                    return 1
+                  fi
+
+                  probe_job_id="$(jq -r '.id // empty' "$probe_create")"
+                  if [ -z "$probe_job_id" ]; then
+                    echo "readback-probe:$probe_mode=missing_job_id" >&2
+                    return 1
+                  fi
+
+                  probe_status=""
+                  for _ in $(seq 1 60); do
+                    curl --fail-with-body --silent --show-error \
+                      --header "$auth" \
+                      --header "Accept: application/json" \
+                      "$api/services/$SERVICE_ID/jobs/$probe_job_id" \
+                      > "$probe_status_file"
+
+                    probe_status="$(jq -r '.status // empty' "$probe_status_file")"
+                    case "$probe_status" in
+                      succeeded|failed|canceled)
+                        break
+                        ;;
+                      pending|running)
+                        sleep 2
+                        ;;
+                      *)
+                        echo "readback-probe:$probe_mode=unexpected_status" >&2
+                        return 1
+                        ;;
+                    esac
+                  done
+
+                  echo "readback-probe:$probe_mode=$probe_status" >&2
+                  test "$probe_status" = "succeeded"
+                }
+
+                for probe_mode in sha env own matrix; do
+                  if ! run_probe "$probe_mode"; then
+                    exit 1
+                  fi
+                done
+
+                echo "readback-probe:full=failed_after_all_phase_probes_passed" >&2
                 exit 1
                 ;;
               pending|running)
