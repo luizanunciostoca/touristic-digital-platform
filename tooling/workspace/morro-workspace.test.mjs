@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
@@ -185,6 +186,72 @@ test("dangling symlinks cannot become task paths or canonical directories", (t) 
     () => bootstrap(f.sha, { ...f, bare: linkedBare }),
     /symlink path/,
   );
+});
+
+test("symlinked parent components cannot redirect canonical repository paths", (t) => {
+  const f = fixture(t);
+  const actual = join(f.home, "actual-parent");
+  mkdirSync(actual);
+  const linked = join(f.home, "linked-parent");
+  symlinkSync(actual, linked);
+  assert.throws(
+    () =>
+      bootstrap(f.sha, {
+        ...f,
+        bare: join(linked, "morro-repo.git"),
+        root: join(f.home, "worktrees"),
+      }),
+    /symlink path/,
+  );
+});
+
+test("existing canonical bare repository cannot depend on object alternates", (t) => {
+  const f = fixture(t);
+  const { bare } = bootstrap(f.sha, f);
+  mkdirSync(join(f.home, "external-objects"));
+  writeFileSync(
+    join(bare, "objects", "info", "alternates"),
+    join(f.home, "external-objects") + "\n",
+  );
+  assert.throws(() => inventory(f), /object alternates/);
+});
+
+test("bootstrap advances local bare main whenever verified remote main advances", (t) => {
+  const f = fixture(t);
+  const { bare } = bootstrap(f.sha, f);
+  writeFileSync(join(f.remote, "next.txt"), "next\n");
+  git(["-C", f.remote, "add", "next.txt"]);
+  git([
+    "-C",
+    f.remote,
+    "-c",
+    "user.name=Workspace Test",
+    "-c",
+    "user.email=workspace-test@example.invalid",
+    "commit",
+    "-m",
+    "advance verified main",
+  ]);
+  const next = git(["-C", f.remote, "rev-parse", "HEAD"]);
+  const state = bootstrap(next, f);
+  assert.equal(state.mainSha, next);
+  assert.equal(
+    git(["--git-dir", bare, "rev-parse", "refs/heads/main"]),
+    next,
+  );
+  assert.equal(git(["--git-dir", bare, "rev-parse", "HEAD"]), next);
+});
+
+test("inventory preserves symlinked registered worktrees as unknown without probing them", (t) => {
+  const f = fixture(t);
+  bootstrap(f.sha, f);
+  const task = createTask("legacy-link", "infra/legacy-link", f.sha, f);
+  rmSync(task.path, { recursive: true, force: true });
+  symlinkSync(f.remote, task.path);
+  const state = inventory(f);
+  const entry = state.worktrees.find((worktree) => worktree.path === task.path);
+  assert.equal(entry?.state, "UNKNOWN");
+  assert.equal(entry?.removalAllowed, false);
 });
 
 test("create rejects remote main advancement even when cached main and expected SHA match", (t) => {
