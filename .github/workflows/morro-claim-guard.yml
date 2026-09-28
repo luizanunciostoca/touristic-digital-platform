@@ -46,6 +46,7 @@ jobs:
           .github/hooks/morro-pretool-guard.test.mjs
 
       - name: Build candidate Claim Guard proof
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-20260928' }}
         env:
           EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
@@ -57,6 +58,7 @@ jobs:
           | tee claim-guard-candidate-proof.json
 
       - name: Upload candidate Claim Guard proof
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-20260928' }}
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
           name: claim-guard-candidate-proof-${{ github.event.pull_request.head.sha || github.sha }}
@@ -64,6 +66,7 @@ jobs:
           if-no-files-found: error
           retention-days: 30
   trusted-proof:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-20260928' }}
     name: base-controlled-trusted-proof
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@395db872a76e73193e5507cd044e5943be14b4bc
     with:
