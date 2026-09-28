@@ -42,15 +42,36 @@ export function normalizeDigest(value) {
   assert.match(digest, /^sha256:[0-9a-f]{64}$/u, "IMAGE_DIGEST_INVALID");
   return digest;
 }
-export function candidateIdentity({ sourceSha, treeSha, image, digest }) {
+export function candidateIdentity({
+  repository,
+  sourceSha,
+  treeSha,
+  lockfileDigest,
+  image,
+  digest,
+}) {
+  const verifiedRepository = verifyRepository(repository);
   assert.match(sourceSha ?? "", /^[0-9a-f]{40}$/u, "SOURCE_SHA_INVALID");
   assert.match(treeSha ?? "", /^[0-9a-f]{40}$/u, "TREE_SHA_INVALID");
   assert.match(
-    image ?? "",
-    /^ghcr\.io\/[a-z0-9-]+\/morro-digital-v2$/u,
+    lockfileDigest ?? "",
+    /^sha256:[0-9a-f]{64}$/u,
+    "LOCKFILE_DIGEST_INVALID",
+  );
+  const [owner] = verifiedRepository.split("/");
+  assert.equal(
+    image,
+    `ghcr.io/${owner.toLowerCase()}/morro-digital-v2`,
     "IMAGE_REPOSITORY_INVALID",
   );
-  return { sourceSha, treeSha, image, digest: normalizeDigest(digest) };
+  return {
+    repository: verifiedRepository,
+    sourceSha,
+    treeSha,
+    lockfileDigest,
+    image,
+    digest: normalizeDigest(digest),
+  };
 }
 export function verifyWorkflowRun(
   run,
@@ -111,6 +132,11 @@ export function verifyBuildProvenance(
     "BUILD_SOURCE_MISMATCH",
   );
   assert.equal(provenance.tree_sha, expected.treeSha, "BUILD_TREE_MISMATCH");
+  assert.equal(
+    provenance.lockfile_digest,
+    expected.lockfileDigest,
+    "BUILD_LOCKFILE_MISMATCH",
+  );
   assert.equal(provenance.image, expected.image, "BUILD_IMAGE_MISMATCH");
   assert.equal(provenance.digest, expected.digest, "BUILD_DIGEST_MISMATCH");
   assert.equal(
@@ -202,7 +228,12 @@ export function verifyObservedDeployment(
   );
   return { serviceId, deployId, observedDigest: expected.digest };
 }
-export function verifyRuntimeProof(runtime, sourceSha) {
+export function verifyRuntimeProof(
+  runtime,
+  sourceSha,
+  { environment, deployId },
+) {
+  const target = targetFor(environment);
   assert.equal(
     runtime?.contract,
     "MORRO-DIGITAL-V2-RENDER-SMOKE",
@@ -210,6 +241,13 @@ export function verifyRuntimeProof(runtime, sourceSha) {
   );
   assert.equal(runtime.contractVersion, 2, "RUNTIME_CONTRACT_VERSION_INVALID");
   assert.equal(runtime.releaseSha, sourceSha, "RUNTIME_SOURCE_MISMATCH");
+  assert.equal(runtime.serviceId, target.serviceId, "RUNTIME_SERVICE_MISMATCH");
+  assert.equal(
+    runtime.canonicalUrl,
+    target.canonicalUrl,
+    "RUNTIME_TARGET_URL_MISMATCH",
+  );
+  assert.equal(runtime.deployId, deployId, "RUNTIME_DEPLOY_ID_MISMATCH");
   assert.equal(runtime.status, "pass", "RUNTIME_NOT_PASSED");
   assert.equal(runtime.readiness, "ready", "RUNTIME_NOT_READY");
   assert.ok(
@@ -232,6 +270,9 @@ export function verifyRuntimeProof(runtime, sourceSha) {
     contract: runtime.contract,
     contractVersion: runtime.contractVersion,
     releaseSha: runtime.releaseSha,
+    serviceId: runtime.serviceId,
+    canonicalUrl: runtime.canonicalUrl,
+    deployId: runtime.deployId,
     status: runtime.status,
     readiness: runtime.readiness,
     checks: runtime.checks.map(({ name, status }) => ({ name, status })),
@@ -239,9 +280,10 @@ export function verifyRuntimeProof(runtime, sourceSha) {
 }
 export function createDeploymentProof(
   identity,
-  observed,
+  deployment,
   {
     environment,
+    deployId,
     runtime,
     runId,
     buildRunId,
@@ -250,22 +292,15 @@ export function createDeploymentProof(
 ) {
   const target = targetFor(environment);
   const expected = candidateIdentity(identity);
-  assert.equal(
-    observed.serviceId,
-    target.serviceId,
-    "DEPLOYMENT_SERVICE_MISMATCH",
-  );
-  assert.equal(
-    observed.observedDigest,
-    expected.digest,
-    "DEPLOYMENT_DIGEST_MISMATCH",
-  );
-  assert.match(
-    observed.deployId ?? "",
-    /^dep-[A-Za-z0-9]+$/u,
-    "DEPLOYMENT_ID_INVALID",
-  );
-  const runtimeProof = verifyRuntimeProof(runtime, expected.sourceSha);
+  const observed = verifyObservedDeployment(deployment, expected, {
+    environment,
+    deployId,
+    serviceId: target.serviceId,
+  });
+  const runtimeProof = verifyRuntimeProof(runtime, expected.sourceSha, {
+    environment,
+    deployId: observed.deployId,
+  });
   normalizeRunId(runId, "DEPLOYMENT_RUN_ID_INVALID");
   normalizeRunId(buildRunId, "BUILD_RUN_ID_INVALID");
   assert.equal(typeof verifiedAt, "string", "DEPLOYMENT_TIMESTAMP_INVALID");
@@ -274,7 +309,7 @@ export function createDeploymentProof(
     "DEPLOYMENT_TIMESTAMP_INVALID",
   );
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     result: "PASS",
     environment,
     ...expected,
@@ -302,7 +337,7 @@ export function verifyPromotionProof(
   ]) {
     normalizeRunId(value, "PROMOTION_RUN_ID_INVALID");
   }
-  assert.equal(proof?.schemaVersion, 1, "PROMOTION_PROOF_SCHEMA_INVALID");
+  assert.equal(proof?.schemaVersion, 2, "PROMOTION_PROOF_SCHEMA_INVALID");
   assert.equal(proof.result, "PASS", "PROMOTION_PROOF_NOT_PASSED");
   for (const [key, value] of Object.entries(expected))
     assert.equal(proof[key], value, `PROMOTION_${key}_MISMATCH`);
@@ -330,7 +365,10 @@ export function verifyPromotionProof(
       expected.sourceSha,
       "STAGING_RUNTIME_SHA_MISMATCH",
     );
-    verifyRuntimeProof(proof.runtime, expected.sourceSha);
+    verifyRuntimeProof(proof.runtime, expected.sourceSha, {
+      environment: "staging",
+      deployId: proof.deployId,
+    });
     assert.match(
       proof.deployId ?? "",
       /^dep-[A-Za-z0-9]+$/u,
