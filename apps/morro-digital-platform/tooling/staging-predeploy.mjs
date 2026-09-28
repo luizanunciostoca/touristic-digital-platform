@@ -2,6 +2,13 @@ import { spawn } from "node:child_process";
 
 const STEPS = Object.freeze([
   Object.freeze({
+    name: "platform-database-migrate",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/platform-database-migrate.mjs",
+    ]),
+  }),
+  Object.freeze({
     name: "payments-migrate",
     command: process.execPath,
     args: Object.freeze([
