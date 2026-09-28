@@ -189,7 +189,10 @@ test("trusted bootstrap validates registry writes generically under orchestrator
 
 test("agent profile caller resolves the branch ChangeSet instead of using a hardcoded manifest", () => {
   const workflow = readFileSync(
-    new URL("../../.github/workflows/morro-agent-profiles.yml", import.meta.url),
+    new URL(
+      "../../.github/workflows/morro-agent-profiles.yml",
+      import.meta.url,
+    ),
     "utf8",
   );
   for (const marker of [
