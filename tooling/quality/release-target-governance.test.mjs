@@ -232,6 +232,35 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
   }
 });
 
+test("Final Release Acceptance binds staging evidence to the exact dispatch request", async () => {
+  const workflows = await workflowSources();
+  const acceptance = workflows.get("final-release-acceptance.yml");
+  const staging = workflows.get("staging-render-promotion.yml");
+  assert.ok(acceptance, "final-release-acceptance.yml must exist");
+  assert.ok(staging, "staging-render-promotion.yml must exist");
+
+  for (const marker of [
+    'request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"',
+    '-f request_id="$request_id"',
+    "--json databaseId,headSha,displayTitle,createdAt",
+    ".displayTitle == $title",
+  ]) {
+    assert.ok(
+      acceptance.includes(marker),
+      `Final Release Acceptance missing exact-run binding marker: ${marker}`,
+    );
+  }
+
+  assert.ok(
+    staging.includes(
+      'run-name: "staging-render-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"',
+    ),
+    "staging promotion must expose the request correlation in its immutable run title",
+  );
+  assert.ok(staging.includes("request_id:"));
+  assert.ok(staging.includes("default: manual"));
+});
+
 test("active workflows cannot resurrect legacy staging targets or generic Render deploy secrets", async () => {
   const workflows = await workflowSources();
   const legacyOnly = [
