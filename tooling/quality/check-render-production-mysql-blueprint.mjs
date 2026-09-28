@@ -78,6 +78,7 @@ function serviceBlock(name) {
 }
 
 const mysqlService = serviceBlock("morro-digital-v2-production-mysql");
+const bootstrapService = serviceBlock("morro-digital-v2-production-db-bootstrap");
 const webService = serviceBlock("morro-digital-v2");
 
 function envBlock(key) {
@@ -100,6 +101,33 @@ function requireDirective(key, directive) {
   if (!block.split(/\r?\n/u).some((line) => line.trim() === directive)) {
     throw new Error(
       "Missing production MySQL contract: " + key + " -> " + directive,
+    );
+  }
+}
+
+function bootstrapEnvBlock(key) {
+  const lines = bootstrapService.split(/\r?\n/u);
+  const start = lines.findIndex((line) => line.trim() === "- key: " + key);
+  if (start < 0) {
+    throw new Error("Missing production bootstrap worker environment key: " + key);
+  }
+  const block = [];
+  for (let index = start; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (index > start && /^\s*- key: /u.test(line)) break;
+    block.push(line);
+  }
+  return block.join("\n");
+}
+
+function requireBootstrapDirective(key, directive) {
+  const block = bootstrapEnvBlock(key);
+  if (!block.split(/\r?\n/u).some((line) => line.trim() === directive)) {
+    throw new Error(
+      "Missing production bootstrap worker contract: " +
+        key +
+        " -> " +
+        directive,
     );
   }
 }
@@ -212,6 +240,36 @@ forbidText(
 
 forbidText(init, "morro_app", "shared broad production database user");
 
+for (const required of [
+  "type: worker",
+  "name: morro-digital-v2-production-db-bootstrap",
+  "runtime: node",
+  "repo: https://github.com/luizanunciostoca/touristic-digital-platform",
+  "branch: main",
+  "region: virginia",
+  "plan: starter",
+  "autoDeploy: false",
+  'startCommand: node -e "setInterval(() => {}, 2147483647)"',
+]) {
+  requireText(bootstrapService, required, "bootstrap worker " + required);
+}
+
+for (const directive of [
+  "type: pserv",
+  "name: morro-digital-v2-production-mysql",
+  "property: hostport",
+]) {
+  requireBootstrapDirective("PRODUCTION_MYSQL_HOSTPORT", directive);
+}
+for (const [domain] of domains) {
+  for (const suffix of ["NAME", "USER", "PASSWORD"]) {
+    const key = "PRODUCTION_" + domain + "_DATABASE_" + suffix;
+    requireBootstrapDirective(key, "type: pserv");
+    requireBootstrapDirective(key, "name: morro-digital-v2-production-mysql");
+    requireBootstrapDirective(key, "envVarKey: " + domain + "_DATABASE_" + suffix);
+  }
+}
+
 forbidText(
   webService,
   "PRODUCTION_MYSQL_HOSTPORT",
@@ -237,5 +295,5 @@ requireText(
 );
 
 console.log(
-  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 domain owners, no bootstrap credentials on the web service, no application cutover.",
+  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 domain owners scoped to the bootstrap worker, no application cutover.",
 );
