@@ -12,6 +12,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
+    },
+    "MD-REMEDIATION-RENDER-SMOKE-HEALTH": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-render-smoke-health-20260928",
+      "baseSha": "4443d30db2e000db844db9936b1c8244d9660e03",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".morro/changesets/MD-REMEDIATION-RENDER-SMOKE-HEALTH.json",
+        "tooling/payments/render-v2-smoke.mjs",
+        "tooling/payments/render-v2-smoke-contract.mjs",
+        "tooling/payments/render-v2-smoke-contract.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-29T23:59:59Z"
     }
   }
 }

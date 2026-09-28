@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { assertHealthyReadiness } from "./render-v2-smoke-contract.mjs";
+
 function required(name) {
   const value = String(process.env[name] ?? "").trim();
   if (!value) throw new Error(`${name}_REQUIRED`);
@@ -55,17 +57,7 @@ requireHeader(health.response.headers, "x-correlation-id");
 const healthHsts = requireHsts(health.response.headers);
 
 const ready = await request("/readyz");
-if (ready.response.status !== 200 || ready.body?.readiness !== "ready") {
-  const failedChecks = Array.isArray(ready.body?.checks)
-    ? ready.body.checks
-        .filter((check) => check?.status === "fail")
-        .map((check) => check?.name)
-        .filter(Boolean)
-    : [];
-  throw new Error(
-    `READYZ_FAILED_${ready.response.status}${failedChecks.length ? `_${failedChecks.join(",")}` : ""}`,
-  );
-}
+assertHealthyReadiness(ready.response.status, ready.body);
 const readyRelease = requireHeader(ready.response.headers, "x-release-sha");
 requireHeader(ready.response.headers, "x-release-version");
 requireHeader(ready.response.headers, "x-deployment-id");
