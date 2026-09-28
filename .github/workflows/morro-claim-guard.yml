@@ -1,0 +1,75 @@
+name: Claim Guard Contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/hooks/**"
+      - ".github/workflows/morro-claim-guard.yml"
+      - ".github/workflows/morro-claim-guard-trusted.yml"
+      - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+      - ".github/morro-control/claims.json"
+      - ".morro/changesets/MD-CP-003-HOOKS.json"
+      - ".morro/changesets/MD-CP-003-TRUST.json"
+      - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
+      - "tooling/fabric/claim-guard.mjs"
+      - "tooling/fabric/claim-guard.test.mjs"
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claim-guard-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate-contract:
+    name: candidate-claim-guard-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Run hook and Claim Guard adversarial contracts
+        run: >-
+          node --test
+          tooling/fabric/claim-guard.test.mjs
+          .github/hooks/morro-pretool-guard.test.mjs
+
+      - name: Build candidate Claim Guard proof
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          EXPECTED_BRANCH: infra/control-plane-v3.2-stage-c-hooks-20260928
+          MANIFEST_PATH: .morro/changesets/MD-CP-003-HOOKS.json
+          CLAIM_GUARD_AUTHORITY: WORKER
+        run: >-
+          node tooling/fabric/claim-guard.mjs .
+          | tee claim-guard-candidate-proof.json
+
+      - name: Upload candidate Claim Guard proof
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: claim-guard-candidate-proof-${{ github.event.pull_request.head.sha || github.sha }}
+          path: claim-guard-candidate-proof.json
+          if-no-files-found: error
+          retention-days: 30
+  trusted-proof:
+    name: base-controlled-trusted-proof
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@395db872a76e73193e5507cd044e5943be14b4bc
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+      branch: infra/control-plane-v3.2-stage-c-hooks-20260928
+      manifest_path: .morro/changesets/MD-CP-003-HOOKS.json
+    permissions:
+      contents: read
