@@ -1,0 +1,39 @@
+{
+  "id": "MD-REMEDIATION-ORPHAN-CLAIM-RETIREMENT",
+  "baseSha": "7ef92e02f1a230d6317445ea5a16b0843e805793",
+  "branch": "infra/remediation-orphan-claim-retirement-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-REMEDIATION-ORPHAN-CLAIM-RETIREMENT.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
