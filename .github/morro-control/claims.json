@@ -15,10 +15,7 @@
         "tooling/quality/check-render-staging-blueprint.mjs",
         "tooling/quality/render-staging-blueprint.test.mjs"
       ],
-      "domains": [
-        "ci-release",
-        "database"
-      ],
+      "domains": ["ci-release", "database"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
@@ -42,11 +39,7 @@
         ".github/workflows/security-scanning.yml",
         ".github/workflows/production-mysql-render-provision.yml"
       ],
-      "domains": [
-        "ci-release",
-        "database",
-        "infrastructure"
-      ],
+      "domains": ["ci-release", "database", "infrastructure"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
