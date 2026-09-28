@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
-      - ".github/actions/ci-bootstrap/action.yml"
+      - ".github/actions/ci-bootstrap/**"
       - .github/workflows/v1-explore-locations-browser-regression.yml
       - apps/morro-digital-platform/src/main.ts
       - apps/morro-digital-platform/src/browser-entry.ts
