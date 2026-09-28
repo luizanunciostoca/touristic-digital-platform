@@ -39,6 +39,16 @@ function requireText(source, value, label = value) {
   }
 }
 
+function requireActiveLine(source, value, label = value) {
+  const found = source
+    .split(/\r?\n/u)
+    .map((line) => line.trim())
+    .some((line) => line === value && !line.startsWith("#"));
+  if (!found) {
+    throw new Error("Missing production MySQL active directive: " + label);
+  }
+}
+
 function forbidText(source, value, label = value) {
   if (source.includes(value)) {
     throw new Error("Forbidden production MySQL contract text: " + label);
@@ -118,13 +128,27 @@ for (const [domain, database] of domains) {
   requireText(init, "$" + domain + "_DATABASE_PASSWORD");
 }
 
+requireActiveLine(
+  dockerfile,
+  "FROM golang:1.26.8-bookworm@sha256:a688600ca24f8a4d3ca77f95b0dd40704a9fc787c826660eb7ba0b641b8b175d AS gosu-builder",
+  "pinned Go builder image",
+);
+requireActiveLine(
+  dockerfile,
+  "ARG GOSU_COMMIT=6456aaa0f3c854d199d0f037f068eb97515b7513",
+  "full gosu source commit",
+);
+requireActiveLine(
+  dockerfile,
+  "FROM mysql:8.4@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+  "pinned MySQL 8.4 image",
+);
 for (const required of [
-  "FROM mysql:8.4",
   "COPY tooling/render/mysql-production/morro-memory.cnf /etc/mysql/conf.d/99-morro-memory.cnf",
-  "/docker-entrypoint-initdb.d/01-init-databases.sh",
   "RUN mysqld --verbose --help >/dev/null",
+  "COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh",
 ]) {
-  requireText(dockerfile, required);
+  requireActiveLine(dockerfile, required);
 }
 
 for (const required of [
@@ -149,6 +173,11 @@ for (const required of [
 ]) {
   requireText(init, required);
 }
+requireText(
+  init,
+  "\\`$database\\`",
+  "escaped SQL database identifier",
+);
 
 forbidText(init, "morro_app", "shared broad production database user");
 
