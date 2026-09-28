@@ -1,0 +1,105 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+const root = fileURLToPath(new URL("../../", import.meta.url));
+const checker = "tooling/quality/check-render-production-mysql-blueprint.mjs";
+const fixtures = [
+  checker,
+  "render.yaml",
+  "tooling/render/mysql-production/Dockerfile",
+  "tooling/render/mysql-production/morro-memory.cnf",
+  "tooling/render/mysql-production/01-init-databases.sh",
+];
+
+function runCheck(t, mutate = () => {}) {
+  const directory = fs.mkdtempSync(
+    path.join(os.tmpdir(), "morro-production-mysql-"),
+  );
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+
+  for (const file of fixtures) {
+    fs.mkdirSync(path.dirname(path.join(directory, file)), { recursive: true });
+    fs.copyFileSync(path.join(root, file), path.join(directory, file));
+  }
+
+  mutate(directory);
+
+  return spawnSync(process.execPath, [path.join(directory, checker)], {
+    cwd: directory,
+    encoding: "utf8",
+    timeout: 10_000,
+  });
+}
+
+function rejects(result, expected) {
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, expected);
+}
+
+test("production MySQL Blueprint satisfies the infrastructure-only contract", (t) => {
+  const result = runCheck(t);
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("production MySQL must remain in Virginia", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace("region: virginia", "region: oregon"),
+      );
+    }),
+    /region: virginia/u,
+  );
+});
+
+test("business owner password cannot be omitted", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "- key: BUSINESS_DATABASE_PASSWORD",
+            "- key: OMITTED_BUSINESS_DATABASE_PASSWORD",
+          ),
+      );
+    }),
+    /BUSINESS_DATABASE_PASSWORD/u,
+  );
+});
+
+test("shared morro_app ownership is forbidden", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/01-init-databases.sh",
+      );
+      fs.appendFileSync(file, "\n# morro_app\n");
+    }),
+    /shared broad production database user/u,
+  );
+});
+
+test("phase 1 cannot cut the application over", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.appendFileSync(file, "\n# PRODUCTION_MYSQL_HOSTPORT\n");
+    }),
+    /premature production cutover wiring/u,
+  );
+});
