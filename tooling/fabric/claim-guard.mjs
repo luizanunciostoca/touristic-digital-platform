@@ -302,6 +302,214 @@ export function resolveCandidatePath(root, candidatePath) {
   return real;
 }
 
+function sortedStrings(values, code) {
+  assert.ok(Array.isArray(values) && values.length > 0, code);
+  return [...values].sort();
+}
+
+export function validateClaimHandoff({
+  baseRegistry,
+  candidateRegistry,
+  baseFromManifest,
+  candidateFromManifest,
+  toManifest,
+  now = Date.now(),
+}) {
+  assert.equal(
+    baseRegistry?.registryAuthority,
+    "ORCHESTRATOR",
+    "HANDOFF_BASE_REGISTRY_AUTHORITY_INVALID",
+  );
+  assert.equal(
+    candidateRegistry?.registryAuthority,
+    "ORCHESTRATOR",
+    "HANDOFF_CANDIDATE_REGISTRY_AUTHORITY_INVALID",
+  );
+
+  const fromId = baseFromManifest?.id;
+  const toId = toManifest?.id;
+  assert.match(fromId ?? "", /^MD-[A-Z0-9-]+$/u, "HANDOFF_FROM_ID_INVALID");
+  assert.match(toId ?? "", /^MD-[A-Z0-9-]+$/u, "HANDOFF_TO_ID_INVALID");
+  assert.notEqual(fromId, toId, "HANDOFF_IDS_MUST_DIFFER");
+
+  assert.equal(candidateFromManifest?.id, fromId, "HANDOFF_FROM_ID_CHANGED");
+  assert.equal(
+    candidateFromManifest?.branch,
+    baseFromManifest?.branch,
+    "HANDOFF_FROM_BRANCH_CHANGED",
+  );
+  assert.equal(
+    candidateFromManifest?.baseSha,
+    baseFromManifest?.baseSha,
+    "HANDOFF_FROM_BASE_CHANGED",
+  );
+  assert.equal(
+    candidateFromManifest?.state,
+    "MERGED",
+    "HANDOFF_FROM_NOT_MERGED",
+  );
+  assert.equal(
+    toManifest?.state,
+    "IMPLEMENTING",
+    "HANDOFF_TO_NOT_IMPLEMENTING",
+  );
+  assert.ok(
+    Array.isArray(toManifest?.dependencies) &&
+      toManifest.dependencies.includes(fromId),
+    "HANDOFF_DEPENDENCY_MISSING",
+  );
+
+  const baseClaim = baseRegistry.claims?.[fromId];
+  assert.ok(baseClaim, "HANDOFF_BASE_CLAIM_MISSING");
+  assert.ok(
+    ACTIVE_CLAIM_STATUSES.has(baseClaim.status),
+    "HANDOFF_BASE_CLAIM_INACTIVE",
+  );
+  assert.equal(
+    baseClaim.reviewer,
+    "AUTOMATED-INDEPENDENT-PROOF",
+    "HANDOFF_BASE_REVIEW_AUTHORITY_INVALID",
+  );
+  assert.equal(
+    baseClaim.branch,
+    baseFromManifest.branch,
+    "HANDOFF_BASE_BRANCH_MISMATCH",
+  );
+  assert.equal(
+    baseClaim.baseSha,
+    baseFromManifest.baseSha,
+    "HANDOFF_BASE_SHA_MISMATCH",
+  );
+  assert.deepEqual(
+    sortedStrings(baseClaim.paths, "HANDOFF_BASE_PATHS_REQUIRED"),
+    sortedStrings(
+      baseFromManifest.owns?.paths,
+      "HANDOFF_BASE_OWNERSHIP_REQUIRED",
+    ),
+    "HANDOFF_BASE_PATHS_MISMATCH",
+  );
+
+  assert.equal(
+    candidateRegistry.claims?.[fromId],
+    undefined,
+    "HANDOFF_OLD_CLAIM_STILL_ACTIVE",
+  );
+
+  const toClaim = candidateRegistry.claims?.[toId];
+  assert.ok(toClaim, "HANDOFF_TARGET_CLAIM_MISSING");
+  assert.equal(toClaim.status, "IMPLEMENTING", "HANDOFF_TARGET_STATUS_INVALID");
+  assert.equal(
+    toClaim.reviewer,
+    "AUTOMATED-INDEPENDENT-PROOF",
+    "HANDOFF_TARGET_REVIEW_AUTHORITY_INVALID",
+  );
+  assert.equal(
+    toClaim.branch,
+    toManifest.branch,
+    "HANDOFF_TARGET_BRANCH_MISMATCH",
+  );
+  assert.equal(
+    toClaim.baseSha,
+    toManifest.baseSha,
+    "HANDOFF_TARGET_BASE_MISMATCH",
+  );
+  assert.ok(
+    parseExpiry(toClaim.expiresAt) > now,
+    "HANDOFF_TARGET_CLAIM_EXPIRED",
+  );
+  assert.deepEqual(
+    sortedStrings(toClaim.paths, "HANDOFF_TARGET_PATHS_REQUIRED"),
+    sortedStrings(toManifest.owns?.paths, "HANDOFF_TARGET_OWNERSHIP_REQUIRED"),
+    "HANDOFF_TARGET_PATHS_MISMATCH",
+  );
+
+  for (const pattern of toClaim.paths) assertSupportedPattern(pattern);
+  assert.deepEqual(
+    findClaimCollisions(candidateRegistry, toId, now),
+    [],
+    "HANDOFF_TARGET_OVERLAP_DETECTED",
+  );
+
+  return {
+    fromId,
+    toId,
+    fromState: candidateFromManifest.state,
+    toState: toManifest.state,
+    targetBranch: toManifest.branch,
+    targetBaseSha: toManifest.baseSha,
+    targetStatus: toClaim.status,
+    authority: "ORCHESTRATOR",
+    collisions: 0,
+  };
+}
+
+export function buildClaimHandoffProof(
+  baseRoot,
+  candidateRoot,
+  env = process.env,
+) {
+  const trustedRoot = resolve(baseRoot);
+  const targetRoot = resolve(candidateRoot);
+  const expectedHead = env.EXPECTED_CANDIDATE_SHA ?? "";
+  const expectedBase = env.EXPECTED_BASE_SHA ?? "";
+  const fromManifestPath = env.HANDOFF_FROM_MANIFEST_PATH ?? "";
+  const toManifestPath = env.HANDOFF_TO_MANIFEST_PATH ?? "";
+  const registryPath =
+    env.CLAIM_REGISTRY_PATH ?? ".github/morro-control/claims.json";
+
+  assert.match(expectedHead, SHA_PATTERN, "EXPECTED_HEAD_INVALID");
+  assert.match(expectedBase, SHA_PATTERN, "EXPECTED_BASE_INVALID");
+  assert.ok(fromManifestPath, "HANDOFF_FROM_MANIFEST_PATH_REQUIRED");
+  assert.ok(toManifestPath, "HANDOFF_TO_MANIFEST_PATH_REQUIRED");
+
+  const baseHead = git(trustedRoot, ["rev-parse", "HEAD"]);
+  const candidateHead = git(targetRoot, ["rev-parse", "HEAD"]);
+  const treeSha = git(targetRoot, ["rev-parse", "HEAD^{tree}"]);
+  assert.equal(baseHead, expectedBase, "HANDOFF_BASE_SHA_MISMATCH");
+  assert.equal(candidateHead, expectedHead, "CANDIDATE_SHA_MISMATCH");
+
+  const dirty = git(targetRoot, [
+    "status",
+    "--porcelain",
+    "--untracked-files=all",
+  ]);
+  assert.equal(dirty, "", "DIRTY_CANDIDATE_WORKTREE");
+
+  const baseRegistry = JSON.parse(
+    readFileSync(resolveCandidatePath(trustedRoot, registryPath), "utf8"),
+  );
+  const candidateRegistry = JSON.parse(
+    readFileSync(resolveCandidatePath(targetRoot, registryPath), "utf8"),
+  );
+  const baseFromManifest = JSON.parse(
+    readFileSync(resolveCandidatePath(trustedRoot, fromManifestPath), "utf8"),
+  );
+  const candidateFromManifest = JSON.parse(
+    readFileSync(resolveCandidatePath(targetRoot, fromManifestPath), "utf8"),
+  );
+  const toManifest = JSON.parse(
+    readFileSync(resolveCandidatePath(targetRoot, toManifestPath), "utf8"),
+  );
+
+  const handoff = validateClaimHandoff({
+    baseRegistry,
+    candidateRegistry,
+    baseFromManifest,
+    candidateFromManifest,
+    toManifest,
+  });
+
+  return {
+    contract: "MORRO-DETERMINISTIC-CLAIM-HANDOFF",
+    status: "pass",
+    failClosed: true,
+    exactHead: candidateHead,
+    treeSha,
+    currentBaseSha: baseHead,
+    ...handoff,
+  };
+}
+
 export function buildClaimGuardProof(root, env = process.env) {
   const targetRoot = resolve(root);
   const expectedHead = env.EXPECTED_CANDIDATE_SHA ?? "";
@@ -387,7 +595,18 @@ const invokedDirectly =
 
 if (invokedDirectly) {
   try {
-    console.log(JSON.stringify(buildClaimGuardProof(process.argv[2] ?? ".")));
+    if (process.argv[2] === "--handoff") {
+      console.log(
+        JSON.stringify(
+          buildClaimHandoffProof(
+            process.argv[3] ?? ".",
+            process.argv[4] ?? ".",
+          ),
+        ),
+      );
+    } else {
+      console.log(JSON.stringify(buildClaimGuardProof(process.argv[2] ?? ".")));
+    }
   } catch (cause) {
     console.error(`MORRO_CLAIM_GUARD_FAILED:${diagnosticCode(cause)}`);
     process.exitCode = 1;

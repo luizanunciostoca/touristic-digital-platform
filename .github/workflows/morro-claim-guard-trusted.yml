@@ -15,6 +15,14 @@ on:
       manifest_path:
         required: true
         type: string
+      handoff_from_manifest_path:
+        required: false
+        type: string
+        default: ""
+      handoff_to_manifest_path:
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -92,13 +100,22 @@ jobs:
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
           echo "tree_sha=$tree_sha" >> "$GITHUB_OUTPUT"
 
-      - name: Validate manifest path input
+      - name: Validate manifest path inputs
         shell: bash
         env:
           MANIFEST_PATH: ${{ inputs.manifest_path }}
+          HANDOFF_FROM_MANIFEST_PATH: ${{ inputs.handoff_from_manifest_path }}
+          HANDOFF_TO_MANIFEST_PATH: ${{ inputs.handoff_to_manifest_path }}
         run: |
           set -euo pipefail
-          [[ "$MANIFEST_PATH" =~ ^\.morro/changesets/[A-Za-z0-9._-]+\.json$ ]]
+          manifest_re='^\.morro/changesets/[A-Za-z0-9._-]+\.json$'
+          [[ "$MANIFEST_PATH" =~ $manifest_re ]]
+          if [[ -n "$HANDOFF_FROM_MANIFEST_PATH" || -n "$HANDOFF_TO_MANIFEST_PATH" ]]; then
+            test -n "$HANDOFF_FROM_MANIFEST_PATH"
+            test -n "$HANDOFF_TO_MANIFEST_PATH"
+            [[ "$HANDOFF_FROM_MANIFEST_PATH" =~ $manifest_re ]]
+            [[ "$HANDOFF_TO_MANIFEST_PATH" =~ $manifest_re ]]
+          fi
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -111,6 +128,7 @@ jobs:
           trusted/tooling/fabric/claim-guard.test.mjs
 
       - name: Validate candidate claim as data
+        if: ${{ inputs.handoff_from_manifest_path == '' && inputs.handoff_to_manifest_path == '' }}
         env:
           EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
@@ -120,6 +138,21 @@ jobs:
         run: >-
           node
           trusted/tooling/fabric/claim-guard.mjs
+          candidate
+          | tee claim-guard-proof.json
+
+      - name: Validate deterministic claim handoff
+        if: ${{ inputs.handoff_from_manifest_path != '' && inputs.handoff_to_manifest_path != '' }}
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
+          HANDOFF_FROM_MANIFEST_PATH: ${{ inputs.handoff_from_manifest_path }}
+          HANDOFF_TO_MANIFEST_PATH: ${{ inputs.handoff_to_manifest_path }}
+        run: >-
+          node
+          trusted/tooling/fabric/claim-guard.mjs
+          --handoff
+          trusted
           candidate
           | tee claim-guard-proof.json
 
