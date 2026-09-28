@@ -7,6 +7,9 @@ on:
       - ".github/workflows/morro-claim-guard-trusted.yml"
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       - ".morro/changesets/MD-CP-003-TRUST.json"
+      - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
+      - ".morro/changesets/MD-CP-003-HOOKS.json"
+      - ".github/morro-control/claims.json"
       - "tooling/fabric/claim-guard.mjs"
       - "tooling/fabric/claim-guard.test.mjs"
 
@@ -41,10 +44,10 @@ jobs:
 
   independent-proof:
     name: base-controlled-independent-proof
-    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@4729cbfa5bd0b1ee0796fd0c2840c779fe3476db
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@3973e2ddab85d6ee3c3865ab9411513e65db85ed
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: .morro/changesets/MD-CP-003-TRUST.json
+      manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
     permissions:
       contents: read
