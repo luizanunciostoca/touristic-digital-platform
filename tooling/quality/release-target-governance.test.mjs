@@ -6,6 +6,53 @@ import { resolve } from "node:path";
 const root = process.cwd();
 const workflowsDir = resolve(root, ".github/workflows");
 
+test("one explicit candidate dispatcher preserves the former Control Center matrix", async () => {
+  const sources = await workflowSources();
+  const dispatchers = [...sources].filter(([, source]) =>
+    source.includes("gh workflow run"),
+  );
+  assert.deepEqual(
+    dispatchers.map(([file]) => file),
+    ["final-release-acceptance.yml"],
+  );
+  const manifest = JSON.parse(
+    await readFile(
+      resolve(root, "tooling/ci/release-acceptance-manifest.json"),
+      "utf8",
+    ),
+  );
+  const suites = new Set(manifest.suites.map(({ workflow }) => workflow));
+  for (const required of [
+    "quality.yml",
+    "security-scanning.yml",
+    "dependency-security-audit.yml",
+    "auth-integration-contract.yml",
+    "business-auth-integration-contract.yml",
+    "crm-platform-auth-integration-contract.yml",
+    "ticketing-m147-contract.yml",
+    "ticketing-m148-transaction-contract.yml",
+    "control-center-browser-contract.yml",
+    "control-center-affiliates-contract.yml",
+    "control-center-affiliates-browser-contract.yml",
+    "control-center-financial-contract.yml",
+    "control-center-financial-browser-contract.yml",
+    "control-center-content-contract.yml",
+    "control-center-destination-contract.yml",
+  ])
+    assert.ok(
+      suites.has(required),
+      `lost mandatory release suite: ${required}`,
+    );
+  const quality = await readFile(resolve(workflowsDir, "quality.yml"), "utf8");
+  assert.match(quality, /^  merge_group:/m);
+  const impact = await readFile(resolve(workflowsDir, "ci-impact.yml"), "utf8");
+  assert.ok(
+    impact.includes(
+      "CI_RELEASE_CANDIDATE: ${{ startsWith(github.ref, 'refs/tags/rc/') }}",
+    ),
+  );
+});
+
 const CANONICAL_STAGING = {
   serviceId: "srv-da4hb6c9v7es7386ttt0",
   serviceName: "morro-digital-v2-staging",

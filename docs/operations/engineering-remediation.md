@@ -38,7 +38,7 @@ gh workflow run final-release-acceptance.yml --ref main
 ```
 
 The workflow captures its immutable event SHA, creates the lightweight tag
-`rc/<40-character-sha>`, and dispatches all 47 suites and staging on that tag.
+`rc/<40-character-sha>`, and dispatches the unified 60-suite inventory and staging on that tag.
 Every promotion proves the exact checkout, the remote candidate tag, and that
 the candidate is an ancestor of protected main. Advancing main does not revoke
 candidate evidence. A missing/moved tag, an unmerged source, or a mismatched
@@ -57,6 +57,20 @@ The existing bootstrap proof workflow resolves the registered branch ChangeSet
 instead of accumulating a ternary for every new branch. Its trusted reusable
 proof implementation remains pinned; candidate code does not become the proof
 authority.
+
+## One release dispatcher
+
+Live evidence exposed another automatic fan-out: Control Center Final
+Qualification dispatched 15 workflows after the CI merge. Merge Queue Full
+Regression was a third full-matrix dispatcher. Both orchestration files are
+removed; their tests are preserved in the existing acceptance manifest. The
+union is 60 unique suites (47 original plus 13 unique Control Center/security
+suites), avoiding two duplicated ticketing dispatches. Required Quality still
+handles PRs, main and merge groups. Candidate-tag runs explicitly force full
+impact, even when the latest source change is documentation.
+
+This changes full-suite frequency and removes duplicate orchestration, not the
+coverage of an intentional release. Individual affected PR workflows remain.
 
 ## Impact enforcement, first stage
 

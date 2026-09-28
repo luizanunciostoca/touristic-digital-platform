@@ -33,7 +33,13 @@
         ".github/workflows/final-release-acceptance.yml",
         "tooling/ci/release-candidate.mjs",
         "tooling/ci/release-candidate.test.mjs",
-        "docs/operations/engineering-remediation.md"
+        "docs/operations/engineering-remediation.md",
+        ".github/workflows/control-center-final-qualification.yml",
+        ".github/workflows/merge-queue-full-regression.yml",
+        ".github/workflows/ci-impact.yml",
+        "tooling/ci/release-acceptance-manifest.json",
+        "tooling/quality/check-ci-governance.mjs",
+        "tooling/quality/release-target-governance.test.mjs"
       ],
       "domains": ["ci-release"],
       "risk": "P0",

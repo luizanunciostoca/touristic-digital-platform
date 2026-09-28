@@ -351,19 +351,16 @@ if (/^\s{2}(pull_request|push):/m.test(stagingPromotion)) {
   fail("staging Render promotion must remain explicit workflow_dispatch only");
 }
 
-const mergeQueue = workflowSources.get("merge-queue-full-regression.yml");
-if (!mergeQueue) fail("merge-queue-full-regression.yml is missing");
-requireIncludes(
-  mergeQueue,
-  ".github/workflows/merge-queue-full-regression.yml",
-  [
-    "merge_group:",
-    "merge-queue-full-regression",
-    "release-acceptance-manifest.json",
-    "gh workflow run",
-    "headSha",
-  ],
-);
+// Required Quality validates merge groups. Full fan-out belongs exclusively to
+// the explicit, frozen release candidate acceptance workflow.
+if (
+  workflowSources.has("merge-queue-full-regression.yml") ||
+  workflowSources.has("control-center-final-qualification.yml")
+) {
+  fail(
+    "duplicate full-regression dispatchers must remain consolidated into acceptance",
+  );
+}
 
 const releaseImage = workflowSources.get("release-oci-image.yml");
 if (!releaseImage) fail("release-oci-image.yml is missing");
