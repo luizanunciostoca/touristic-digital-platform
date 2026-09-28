@@ -11,7 +11,12 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
-import { bootstrap, createTask, inventory } from "./morro-workspace.mjs";
+import {
+  bootstrap,
+  createTask,
+  diagnosticCode,
+  inventory,
+} from "./morro-workspace.mjs";
 
 const git = (args) =>
   execFileSync("git", args, {
@@ -217,4 +222,13 @@ test("create rejects remote main advancement even when cached main and expected 
     ]),
     "",
   );
+});
+
+test("CLI diagnostics preserve safe codes and redact raw error detail", () => {
+  assert.equal(diagnosticCode(new Error("REMOTE_MAIN_MOVED")), "REMOTE_MAIN_MOVED");
+  assert.equal(
+    diagnosticCode(new Error("Git command failed: https://user:secret@example.invalid")),
+    "WORKSPACE_OPERATION_FAILED",
+  );
+  assert.equal(diagnosticCode({ message: "unsafe detail with spaces" }), "WORKSPACE_OPERATION_FAILED");
 });
