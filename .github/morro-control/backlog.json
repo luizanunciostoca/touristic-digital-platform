@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
+  "updatedFromMainSha": "e315945d6962e942371065574a931081c0ff6408",
   "items": [
     {
       "id": "MD-CP-001",
@@ -32,7 +32,7 @@
       "title": "Etapa B2 — agent skills",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "INTEGRATION_READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
