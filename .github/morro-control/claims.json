@@ -17,9 +17,7 @@
         "tooling/fabric/control-plane-governance.mjs",
         "tooling/fabric/control-plane-governance.test.mjs"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -35,9 +33,7 @@
         "tooling/fabric/claim-retirement-proof.mjs",
         "tooling/fabric/claim-retirement-proof.test.mjs"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
