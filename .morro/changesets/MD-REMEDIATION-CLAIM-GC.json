@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CLAIM-GC",
   "baseSha": "5169db0fddd568e80b337a702b71279b51237e45",
   "branch": "infra/remediation-claim-gc-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
