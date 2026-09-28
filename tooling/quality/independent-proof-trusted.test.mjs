@@ -187,7 +187,7 @@ test("trusted bootstrap validates registry writes generically under orchestrator
   );
 });
 
-test("agent profile caller resolves the branch ChangeSet instead of using a hardcoded manifest", () => {
+test("agent profile caller resolves PR ChangeSets and preserves merge-group validation", () => {
   const workflow = readFileSync(
     new URL(
       "../../.github/workflows/morro-agent-profiles.yml",
@@ -197,11 +197,30 @@ test("agent profile caller resolves the branch ChangeSet instead of using a hard
   );
   for (const marker of [
     "resolve-agent-profile-changeset",
+    "if: github.event_name == 'pull_request'",
     'node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH"',
-    "needs: resolve-changeset",
-    "manifest_path: ${{ needs.resolve-changeset.outputs.manifest_path }}",
+    "needs: resolve-pr-changeset",
+    "manifest_path: ${{ needs.resolve-pr-changeset.outputs.manifest_path }}",
+    "validate-merge-group:",
+    "if: github.event_name == 'merge_group'",
+    "manifest_path: .morro/changesets/MD-CP-002C.json",
   ]) {
     assert.ok(workflow.includes(marker), marker);
   }
   assert.equal(workflow.includes("manifest_path: ${{ startsWith("), false);
+});
+
+test("trusted profile concurrency is isolated by caller workflow and candidate SHA", () => {
+  const workflow = readFileSync(
+    new URL(
+      "../../.github/workflows/morro-agent-profiles-trusted.yml",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.ok(
+    workflow.includes(
+      "group: trusted-agent-profile-contract-${{ github.workflow }}-${{ inputs.candidate_sha }}",
+    ),
+  );
 });
