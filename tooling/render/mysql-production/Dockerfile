@@ -27,4 +27,5 @@ COPY tooling/render/mysql-production/morro-memory.cnf /etc/mysql/conf.d/99-morro
 RUN mysqld --verbose --help >/dev/null
 
 COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh
-RUN chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh
+COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback
+RUN chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh /usr/local/bin/morro-mysql-readback
