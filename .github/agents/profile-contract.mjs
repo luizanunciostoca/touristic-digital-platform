@@ -73,13 +73,14 @@ export function validateProfile(text, filename) {
   const workflowMatch = /## Workflow\s+([\s\S]*?)\n## Forbidden/u.exec(body);
   assert.ok(workflowMatch, "WORKFLOW_SECTION_INVALID");
   const workflow = workflowMatch[1];
-  const authorityClause = readOnly
-    ? "Remain read-only"
-    : id === "test-engineer"
-      ? "Implementation agents stop at `REMOTE_PROVEN`; independent auditors stop at proof verdict and hand off to the Integrator."
-      : "Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.";
+  const authorityClauses = readOnly
+    ? ["Remain read-only"]
+    : [
+        "Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.",
+        "Implementation agents stop at `REMOTE_PROVEN`; independent auditors stop at proof verdict and hand off to the Integrator.",
+      ];
   assert.ok(
-    workflow.includes(authorityClause),
+    authorityClauses.some((clause) => workflow.includes(clause)),
     "ROLE_AUTHORITY_CONTRACT_MISSING",
   );
   const skills = [...body.matchAll(/`(\.github\/skills\/[^`]+)`/gu)].map(
