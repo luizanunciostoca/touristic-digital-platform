@@ -3,19 +3,71 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const productionDatabaseDomains = Object.freeze([
-  Object.freeze({ key: "AUTH_DATABASE_URL", prefix: "AUTH", schema: "morro_auth" }),
-  Object.freeze({ key: "CONTROL_CENTER_AUDIT_DATABASE_URL", prefix: "AUDIT", schema: "morro_audit" }),
-  Object.freeze({ key: "DESTINATIONS_DATABASE_URL", prefix: "DESTINATIONS", schema: "morro_destinations" }),
-  Object.freeze({ key: "CONTENT_DATABASE_URL", prefix: "CONTENT", schema: "morro_content" }),
-  Object.freeze({ key: "BUSINESS_DATABASE_URL", prefix: "BUSINESS", schema: "morro_business" }),
-  Object.freeze({ key: "ORDERING_DATABASE_URL", prefix: "ORDERING", schema: "morro_ordering" }),
-  Object.freeze({ key: "FINANCIAL_DATABASE_URL", prefix: "FINANCIAL", schema: "morro_financial" }),
-  Object.freeze({ key: "TICKETING_DATABASE_URL", prefix: "TICKETING", schema: "morro_ticketing" }),
-  Object.freeze({ key: "NOTIFICATIONS_DATABASE_URL", prefix: "NOTIFICATIONS", schema: "morro_notifications" }),
-  Object.freeze({ key: "AFFILIATES_DATABASE_URL", prefix: "AFFILIATES", schema: "morro_affiliates" }),
-  Object.freeze({ key: "ANALYTICS_DATABASE_URL", prefix: "ANALYTICS", schema: "morro_analytics" }),
-  Object.freeze({ key: "CRM_DATABASE_URL", prefix: "CRM", schema: "morro_crm" }),
-  Object.freeze({ key: "COMMERCE_DATABASE_URL", prefix: "COMMERCE", schema: "morro_commerce" }),
+  Object.freeze({
+    key: "AUTH_DATABASE_URL",
+    prefix: "AUTH",
+    schema: "morro_auth",
+  }),
+  Object.freeze({
+    key: "CONTROL_CENTER_AUDIT_DATABASE_URL",
+    prefix: "AUDIT",
+    schema: "morro_audit",
+  }),
+  Object.freeze({
+    key: "DESTINATIONS_DATABASE_URL",
+    prefix: "DESTINATIONS",
+    schema: "morro_destinations",
+  }),
+  Object.freeze({
+    key: "CONTENT_DATABASE_URL",
+    prefix: "CONTENT",
+    schema: "morro_content",
+  }),
+  Object.freeze({
+    key: "BUSINESS_DATABASE_URL",
+    prefix: "BUSINESS",
+    schema: "morro_business",
+  }),
+  Object.freeze({
+    key: "ORDERING_DATABASE_URL",
+    prefix: "ORDERING",
+    schema: "morro_ordering",
+  }),
+  Object.freeze({
+    key: "FINANCIAL_DATABASE_URL",
+    prefix: "FINANCIAL",
+    schema: "morro_financial",
+  }),
+  Object.freeze({
+    key: "TICKETING_DATABASE_URL",
+    prefix: "TICKETING",
+    schema: "morro_ticketing",
+  }),
+  Object.freeze({
+    key: "NOTIFICATIONS_DATABASE_URL",
+    prefix: "NOTIFICATIONS",
+    schema: "morro_notifications",
+  }),
+  Object.freeze({
+    key: "AFFILIATES_DATABASE_URL",
+    prefix: "AFFILIATES",
+    schema: "morro_affiliates",
+  }),
+  Object.freeze({
+    key: "ANALYTICS_DATABASE_URL",
+    prefix: "ANALYTICS",
+    schema: "morro_analytics",
+  }),
+  Object.freeze({
+    key: "CRM_DATABASE_URL",
+    prefix: "CRM",
+    schema: "morro_crm",
+  }),
+  Object.freeze({
+    key: "COMMERCE_DATABASE_URL",
+    prefix: "COMMERCE",
+    schema: "morro_commerce",
+  }),
 ]);
 
 const SHA = /^[0-9a-f]{40}$/u;
@@ -176,7 +228,8 @@ async function main() {
     host:
       String(process.env.PRODUCTION_MYSQL_PRIVATE_HOST ?? "").trim() ||
       "morro-digital-v2-production-mysql",
-    port: String(process.env.PRODUCTION_MYSQL_PRIVATE_PORT ?? "").trim() || "3306",
+    port:
+      String(process.env.PRODUCTION_MYSQL_PRIVATE_PORT ?? "").trim() || "3306",
     expectedSha: process.env.EXPECTED_SHA,
     previousDeployId: process.env.PREVIOUS_DEPLOY_ID,
     previousReleaseSha: process.env.PREVIOUS_RELEASE_SHA,
@@ -207,7 +260,9 @@ const invokedDirectly =
 if (invokedDirectly) {
   main().catch((error) => {
     const message =
-      error instanceof Error ? error.message : "PRODUCTION_MYSQL_CUTOVER_ENV_FAILED";
+      error instanceof Error
+        ? error.message
+        : "PRODUCTION_MYSQL_CUTOVER_ENV_FAILED";
     console.error(`MORRO_PRODUCTION_MYSQL_CUTOVER_ENV_FAILED:${message}`);
     process.exitCode = 1;
   });
