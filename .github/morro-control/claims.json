@@ -13,8 +13,7 @@
         ".github/hooks/morro-pretool-guard.test.mjs",
         ".github/workflows/morro-claim-guard.yml",
         ".github/morro-control/claims.json",
-        ".morro/changesets/MD-CP-003-HOOKS.json",
-        ".morro/changesets/MD-CP-003-TRUST.json"
+        ".morro/changesets/MD-CP-003-HOOKS.json"
       ],
       "domains": ["ci-governance"],
       "risk": "P1",
