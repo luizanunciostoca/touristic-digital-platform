@@ -5,6 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
+      - ".github/actions/ci-bootstrap/action.yml"
       - .github/workflows/assistant-photo-browser-contract.yml
       - images/fotos/**
       - docs/qa/ASSISTANT-V1-PHOTO-ASSETS.sha256

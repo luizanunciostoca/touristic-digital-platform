@@ -5,6 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
+      - ".github/actions/ci-bootstrap/action.yml"
       - .github/workflows/assistant-voice-browser-contract.yml
       - apps/morro-digital-platform/src/assistant/assistant-voice-adapter.ts
       - apps/morro-digital-platform/src/assistant/assistant-voice-input-adapter.ts

@@ -5,6 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
+      - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/control-center-browser-contract.yml"
       - "apps/control-center/**"
       - "apps/morro-digital-platform/src/business-login-entry.ts"
@@ -25,6 +26,7 @@ on:
     branches:
       - main
     paths:
+      - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/control-center-browser-contract.yml"
       - "apps/control-center/**"
       - "apps/morro-digital-platform/src/business-login-entry.ts"
