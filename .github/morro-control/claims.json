@@ -2,38 +2,17 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CP-003-GOV": {
+    "MD-REMEDIATION-ORPHAN-CLAIM-GC": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/control-plane-v3.2-stage-c-governance-20260928",
-      "baseSha": "edc7380c11774d475af2e80ddf75b7b1e53e9046",
+      "branch": "infra/remediation-orphan-claim-gc-20260928",
+      "baseSha": "7ef92e02f1a230d6317445ea5a16b0843e805793",
       "paths": [
-        ".github/morro-control/policy.json",
-        ".github/morro-control/claim-schema.json",
-        ".github/pull_request_template.md",
-        "AGENTS.md",
-        ".morro/changesets/MD-CP-003-GOV.json",
-        ".github/workflows/morro-control-plane-governance.yml",
-        "tooling/fabric/control-plane-governance.mjs",
-        "tooling/fabric/control-plane-governance.test.mjs"
+        ".morro/changesets/MD-REMEDIATION-ORPHAN-CLAIM-GC.json"
       ],
-      "domains": ["ci-governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-05T23:59:59Z"
-    },
-    "MD-REMEDIATION-FINAL-CLAIM-GC": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/remediation-final-claim-gc-20260928",
-      "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
-      "paths": [
-        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-        ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json",
-        "tooling/fabric/claim-retirement-proof.mjs",
-        "tooling/fabric/claim-retirement-proof.test.mjs"
+      "domains": [
+        "ci-governance"
       ],
-      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
