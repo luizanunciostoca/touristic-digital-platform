@@ -28,9 +28,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-CP-002C"
-  ],
+  "dependencies": ["MD-CP-002C"],
   "requiredEvidence": [
     "format",
     "secrets",
