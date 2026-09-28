@@ -19,12 +19,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  resolve-changeset:
+    name: resolve-agent-profile-changeset
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      manifest_path: ${{ steps.changeset.outputs.path }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Resolve the registered ChangeSet for this branch
+        id: changeset
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+        run: |
+          path="$(node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH")"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
   validate:
+    needs: resolve-changeset
     name: agent-profile-contract
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@93bfba78e1620c1106c3fbe39766dbc3dff6a888
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-      manifest_path: ${{ startsWith(github.event.pull_request.head.ref, 'infra/control-plane-v3.2-reconcile-') && '.morro/changesets/MD-CP-002C-RECON.json' || '.morro/changesets/MD-CP-002C.json' }}
+      manifest_path: ${{ needs.resolve-changeset.outputs.manifest_path }}
     permissions:
       contents: read
