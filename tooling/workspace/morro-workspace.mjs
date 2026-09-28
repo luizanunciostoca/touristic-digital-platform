@@ -10,6 +10,16 @@ export const CANONICAL_REMOTE =
 const MAIN_REF = "refs/remotes/origin/main";
 const FETCH_REFSPEC = "+refs/heads/main:refs/remotes/origin/main";
 
+export function diagnosticCode(cause) {
+  const message =
+    cause && typeof cause === "object" && "message" in cause
+      ? String(cause.message)
+      : "";
+  return /^[A-Z][A-Z0-9_:.-]{2,160}$/u.test(message)
+    ? message
+    : "WORKSPACE_OPERATION_FAILED";
+}
+
 function git(args, { allowFailure = false } = {}) {
   const result = spawnSync("git", args, {
     encoding: "utf8",
@@ -301,7 +311,7 @@ if (
       `${JSON.stringify(main(process.argv.slice(2)), null, 2)}\n`,
     );
   } catch (error) {
-    process.stderr.write(`${error.message}\n`);
+    process.stderr.write(`${diagnosticCode(error)}\n`);
     process.exitCode = 1;
   }
 }
