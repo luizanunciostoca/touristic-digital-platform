@@ -182,6 +182,122 @@ export const canonicalProductionDomains = Object.freeze([
   }),
 ]);
 
+export const canonicalProductionScopePolicy = Object.freeze({
+  auth: Object.freeze({
+    auth_session_revocations: "global",
+    auth_login_rate_limits: "global",
+    auth_session_registry: "global",
+    auth_principal_admin_state: "global",
+    auth_admin_mutation_replay_guard: "global",
+  }),
+  audit: Object.freeze({
+    control_center_audit_entries: "destination+tenant",
+  }),
+  destinations: Object.freeze({ destinations: "destination" }),
+  content: Object.freeze({
+    content_documents: "destination",
+    media_assets: "business",
+    place_media: "global",
+  }),
+  business: Object.freeze({
+    business_entities: "global",
+    business_destinations: "destination+business",
+    business_places: "destination+business",
+    business_place_legacy_mappings: "destination+business",
+    business_place_revision_history: "global",
+    catalog_products: "destination+business",
+    catalog_offers: "destination+business",
+    catalog_menus: "business",
+    catalog_menu_categories: "business",
+    catalog_menu_items: "business",
+    catalog_public_snapshots: "business",
+    place_media_public_snapshots: "business",
+  }),
+  ordering: Object.freeze({
+    ordering_orders: "global",
+    ordering_checkout_access: "destination+tenant",
+    ordering_subscriptions: "global",
+    ordering_subscription_renewal_intents: "global",
+    ordering_ticketing_reservation_bindings: "global",
+    ordering_restaurant_reservation_bindings: "business",
+  }),
+  financial: Object.freeze({
+    financial_payment_idempotency: "global",
+    financial_payments: "global",
+    financial_ledger_transactions: "global",
+    financial_ledger_postings: "global",
+    financial_provider_events: "global",
+    financial_payment_results: "global",
+    financial_refund_requests: "global",
+    financial_reconciliation_runs: "global",
+    financial_reconciliation_findings: "global",
+    financial_reconciliation_run_findings: "global",
+    financial_provider_subscriptions: "tenant",
+    financial_allocations: "global",
+    financial_payables: "global",
+    financial_settlements: "global",
+  }),
+  ticketing: Object.freeze({
+    ticketing_tickets: "destination",
+    ticketing_checkins: "global",
+    ticketing_offline_envelopes: "global",
+    ticketing_inventory: "destination",
+    ticketing_reservations: "destination",
+    ticketing_reservation_events: "global",
+    ticketing_financial_result_cursor: "global",
+    ticketing_holder_profiles: "global",
+    ticketing_offline_devices: "destination",
+    ticketing_inventory_ownership: "business",
+    ticketing_admission_profiles: "global",
+    ticketing_inventory_catalog_bindings: "business",
+    ticketing_commerce_crm_outbox: "destination",
+  }),
+  notifications: Object.freeze({
+    notification_outbox: "destination+tenant",
+    notification_preferences: "destination",
+    notification_dispatch_claims: "global",
+  }),
+  affiliates: Object.freeze({
+    affiliate_accounts: "global",
+    affiliate_memberships: "global",
+    affiliate_referral_evidence: "global",
+    affiliate_attributions: "global",
+    affiliate_conversions: "global",
+    affiliate_entitlements: "global",
+    affiliate_entitlement_revisions: "global",
+    affiliate_idempotency_claims: "global",
+    affiliate_audit_events: "global",
+    affiliate_materialization_requests: "global",
+    affiliate_outbox_events: "global",
+    affiliate_privacy_requests: "global",
+    affiliate_legal_holds: "global",
+    affiliate_programs: "destination",
+  }),
+  analytics: Object.freeze({ analytics_events: "destination+tenant" }),
+  crm: Object.freeze({
+    crm_leads: "global",
+    crm_checklist_items: "global",
+    crm_meetings: "global",
+    crm_proposals: "global",
+    crm_contracts: "global",
+    crm_follow_up_settings: "global",
+    crm_follow_ups: "global",
+    crm_interactions: "global",
+    crm_audit_events: "global",
+    crm_trials: "global",
+    crm_referrals: "global",
+    crm_settings: "global",
+    crm_storage_objects: "global",
+    crm_commerce_customers: "global",
+    crm_commerce_purchases: "destination",
+  }),
+  commerce: Object.freeze({
+    commerce_restaurant_slots: "destination+business",
+    commerce_restaurant_reservations: "destination+business",
+    commerce_restaurant_reservation_events: "business",
+  }),
+});
+
 function safeFailureCode(error) {
   const message = error instanceof Error ? String(error.message).trim() : "";
   return /^[A-Z][A-Z0-9_:-]{2,160}$/u.test(message)
@@ -197,19 +313,20 @@ function required(environment, key) {
 
 function sourceIdentity(environment) {
   if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== "morro-digital-v2"
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
+    "morro-digital-v2-production-db-bootstrap"
   ) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SERVICE_DENIED");
   }
-  const renderGitCommit = required(environment, "RENDER_GIT_COMMIT");
-  const expectedSha = String(environment.EXPECTED_SHA ?? renderGitCommit).trim();
-  if (!SHA_PATTERN.test(renderGitCommit) || !SHA_PATTERN.test(expectedSha)) {
+  const expectedSha = required(environment, "EXPECTED_SHA");
+  const releaseSha = required(environment, "MORRO_RELEASE_SHA");
+  if (!SHA_PATTERN.test(releaseSha) || !SHA_PATTERN.test(expectedSha)) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_INVALID");
   }
-  if (renderGitCommit !== expectedSha) {
+  if (releaseSha !== expectedSha) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH");
   }
-  return Object.freeze({ expectedSha, renderGitCommit });
+  return Object.freeze({ expectedSha, releaseSha });
 }
 
 function validateDatabaseUrl(raw, domain) {
@@ -224,7 +341,8 @@ function validateDatabaseUrl(raw, domain) {
   const database = url.pathname.replace(/^\//u, "");
   if (
     url.protocol !== "mysql:" ||
-    !url.hostname ||
+    url.hostname !== "morro-digital-v2-production-mysql" ||
+    url.port !== "3306" ||
     !url.password ||
     url.username !== domain.schema ||
     database !== domain.schema
@@ -378,6 +496,12 @@ function scopeForColumns(columns) {
   if (names.has("destination_id") && names.has("business_id")) {
     return "destination+business";
   }
+  if (names.has("destination_id") && names.has("tenant_id")) {
+    return "destination+tenant";
+  }
+  if (names.has("business_id") && names.has("tenant_id")) {
+    return "business+tenant";
+  }
   if (names.has("business_id")) return "business";
   if (names.has("destination_id")) return "destination";
   if (names.has("tenant_id")) return "tenant";
@@ -416,6 +540,14 @@ async function validateDomain(domain, pool) {
   if (missing.length > 0) {
     throw new Error(
       `PRODUCTION_DATABASE_EXPECTED_TABLE_MISSING_${domain.name.toUpperCase()}`,
+    );
+  }
+  const unexpected = tableNames.filter(
+    (table) => !domain.expectedTables.includes(table),
+  );
+  if (unexpected.length > 0) {
+    throw new Error(
+      `PRODUCTION_DATABASE_UNEXPECTED_TABLE_${domain.name.toUpperCase()}`,
     );
   }
   const nonInnoDb = tables
@@ -467,6 +599,27 @@ async function validateDomain(domain, pool) {
     ]),
   );
 
+  const scopePolicy = canonicalProductionScopePolicy[domain.name];
+  if (!scopePolicy) {
+    throw new Error(
+      `PRODUCTION_DATABASE_SCOPE_POLICY_MISSING_${domain.name.toUpperCase()}`,
+    );
+  }
+  const policyTables = Object.keys(scopePolicy).sort();
+  const expectedPolicyTables = [...domain.expectedTables].sort();
+  if (JSON.stringify(policyTables) !== JSON.stringify(expectedPolicyTables)) {
+    throw new Error(
+      `PRODUCTION_DATABASE_SCOPE_POLICY_INCOMPLETE_${domain.name.toUpperCase()}`,
+    );
+  }
+  for (const table of domain.expectedTables) {
+    if (scopes[table] !== scopePolicy[table]) {
+      throw new Error(
+        `PRODUCTION_DATABASE_SCOPE_POLICY_MISMATCH_${domain.name.toUpperCase()}_${table.toUpperCase()}`,
+      );
+    }
+  }
+
   const [[indexCountRow]] = await pool.query(
     "SELECT COUNT(*) AS count FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE()",
   );
@@ -495,6 +648,7 @@ async function validateDomain(domain, pool) {
     tableCount: tableNames.length,
     tables: Object.freeze(tableNames),
     scopes: Object.freeze(scopes),
+    scopePolicy: Object.freeze({ ...scopePolicy }),
     indexEntries: Number(indexCountRow.count),
     foreignKeys: Number(foreignKeyCountRow.count),
     canonicalDestinationCount,
@@ -539,6 +693,7 @@ function structureFingerprint(result) {
       schema: domain.schema,
       tables: domain.tables,
       scopes: domain.scopes,
+      scopePolicy: domain.scopePolicy,
       canonicalDestinationCount: domain.canonicalDestinationCount,
     })),
   );
