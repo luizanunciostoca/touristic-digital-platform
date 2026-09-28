@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "75ad8db4896077a8d180f759b07103525d0d523e",
+  "updatedFromMainSha": "db4cd86c222640db4d3ba2ec5d4963dc0101379b",
   "items": [
     {
       "id": "MD-CP-001",
@@ -44,7 +44,7 @@
       "title": "Etapa B3 — Copilot custom agents",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "INTEGRATION_READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
@@ -56,7 +56,7 @@
       "title": "Etapa C — safety hooks, claim guard and Copilot review hardening",
       "priority": "P1",
       "domain": "ci-governance",
-      "state": "BLOCKED",
+      "state": "READY",
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
