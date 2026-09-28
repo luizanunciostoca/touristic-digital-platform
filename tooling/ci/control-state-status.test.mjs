@@ -372,6 +372,10 @@ test("arguments reject credential URLs, non-HTTPS and shell-like repository valu
   ])
     assert.throws(() => runtimeOrigin(value));
   assert.throws(() => validateRepository("owner/repo;echo secret"));
+  assert.throws(() => validateRepository("../repo"));
+  assert.throws(() => validateRepository("./repo"));
+  assert.throws(() => validateRepository("owner/.."));
+  assert.throws(() => validateRepository("owner/."));
   assert.throws(() => parseArguments(["--unknown"], {}));
   assert.throws(() => parseArguments(["--repo"], {}));
   const parsed = parseArguments(
