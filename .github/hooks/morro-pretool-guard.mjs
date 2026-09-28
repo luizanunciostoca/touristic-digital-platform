@@ -118,7 +118,11 @@ export function classifyBashCommand(command, branch) {
     return "BASH_COMMAND_MISSING";
   }
 
-  if (/\bgit\s+push\b[^\n]*(?:--force(?:-with-lease)?|\s-f(?:\s|$))/iu.test(command)) {
+  if (
+    /\bgit\s+push\b[^\n]*(?:--force(?:-with-lease)?|\s-f(?:\s|$))/iu.test(
+      command,
+    )
+  ) {
     return "FORCE_PUSH_FORBIDDEN";
   }
 
@@ -182,9 +186,7 @@ function loadManifestForBranch(root, branch) {
 
   for (const name of readdirSync(directory)) {
     if (!name.endsWith(".json") || name === "schema.example.json") continue;
-    const manifest = JSON.parse(
-      readFileSync(resolve(directory, name), "utf8"),
-    );
+    const manifest = JSON.parse(readFileSync(resolve(directory, name), "utf8"));
     if (manifest.branch === branch) matches.push(manifest);
   }
 
@@ -248,7 +250,8 @@ export function evaluatePreToolUse(payload, runtime = {}) {
   const toolName = payload.toolName;
   assert.equal(typeof toolName, "string", "HOOK_TOOL_NAME_INVALID");
 
-  const root = runtime.root ?? git(payload.cwd || ".", ["rev-parse", "--show-toplevel"]);
+  const root =
+    runtime.root ?? git(payload.cwd || ".", ["rev-parse", "--show-toplevel"]);
   const branch = runtime.branch ?? git(root, ["branch", "--show-current"]);
   assert.ok(branch, "HOOK_BRANCH_UNAVAILABLE");
 
