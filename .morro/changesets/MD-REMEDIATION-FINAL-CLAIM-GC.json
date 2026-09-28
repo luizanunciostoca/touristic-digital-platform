@@ -8,7 +8,9 @@
     "paths": [
       ".github/morro-control/claims.json",
       ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-      ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"
+      ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs"
     ],
     "contracts": []
   },
