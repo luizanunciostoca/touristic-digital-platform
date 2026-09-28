@@ -1,0 +1,43 @@
+{
+  "id": "MD-REMEDIATION-CI-BROWSER-BATCH8",
+  "baseSha": "eb4cb9d3ab6cca719f555a40f02c08373dfbec86",
+  "branch": "infra/remediation-ci-browser-batch8-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/workflows/control-center-content-contract.yml",
+      ".github/workflows/v1-home-parity-browser-regression.yml",
+      ".github/workflows/v1-home-responsive-browser-regression.yml",
+      ".github/workflows/v1-tour-assistant-visibility-browser-regression.yml",
+      ".github/workflows/v1-tour-responsive-browser-regression.yml",
+      ".github/workflows/weather-v1-i18n-browser-parity.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
