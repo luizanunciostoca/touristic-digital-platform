@@ -14,6 +14,8 @@ import { join } from "node:path";
 import {
   buildIndependentProof,
   pathOwned,
+  resolveProofLifecycle,
+  trustedRemoteProofContext,
   validateManifestAndFiles,
   validateManifestPath,
 } from "./independent-proof-trusted.mjs";
@@ -81,6 +83,63 @@ test("proof rejects pre-proof lifecycle state", () => {
   implementing.state = "IMPLEMENTING";
   assert.throws(
     () => validateManifestAndFiles(implementing, []),
+    /MANIFEST_NOT_PROOF_READY/u,
+  );
+});
+
+test("trusted remote proof promotes pending worker state without mutating the manifest", () => {
+  const implementing = structuredClone(manifest);
+  implementing.state = "IMPLEMENTING";
+  const context = trustedRemoteProofContext({
+    TRUSTED_REMOTE_PROOF: "1",
+    GITHUB_ACTIONS: "true",
+    GITHUB_RUN_ID: "42",
+  });
+  const proof = validateManifestAndFiles(implementing, [], {
+    proofContext: context,
+  });
+  assert.equal(proof.manifestState, "IMPLEMENTING");
+  assert.equal(proof.state, "REMOTE_PROVEN");
+  assert.equal(proof.provenState, "REMOTE_PROVEN");
+  assert.equal(proof.remotePromotionApplied, true);
+  assert.equal(proof.workflowRunId, "42");
+  assert.equal(implementing.state, "IMPLEMENTING");
+});
+
+test("trusted remote proof context fails closed outside a valid Actions run", () => {
+  assert.deepEqual(trustedRemoteProofContext({}), {
+    enabled: false,
+    workflowRunId: null,
+  });
+  assert.throws(
+    () =>
+      trustedRemoteProofContext({
+        TRUSTED_REMOTE_PROOF: "1",
+        GITHUB_ACTIONS: "false",
+        GITHUB_RUN_ID: "42",
+      }),
+    /REMOTE_PROOF_CONTEXT_INVALID/u,
+  );
+  for (const runId of [undefined, "", "0", "042", "run-42"]) {
+    assert.throws(
+      () =>
+        trustedRemoteProofContext({
+          TRUSTED_REMOTE_PROOF: "1",
+          GITHUB_ACTIONS: "true",
+          GITHUB_RUN_ID: runId,
+        }),
+      /REMOTE_PROOF_RUN_ID_INVALID/u,
+    );
+  }
+});
+
+test("proof lifecycle rejects pending state without trusted remote evidence", () => {
+  assert.throws(
+    () =>
+      resolveProofLifecycle("LOCAL_PROVEN", {
+        enabled: false,
+        workflowRunId: null,
+      }),
     /MANIFEST_NOT_PROOF_READY/u,
   );
 });
@@ -209,6 +268,17 @@ test("agent profile caller resolves PR ChangeSets and preserves merge-group vali
     assert.ok(workflow.includes(marker), marker);
   }
   assert.equal(workflow.includes("manifest_path: ${{ startsWith("), false);
+});
+
+test("trusted profile workflow is the only authority that enables remote state promotion", () => {
+  const workflow = readFileSync(
+    new URL(
+      "../../.github/workflows/morro-agent-profiles-trusted.yml",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  assert.ok(workflow.includes('TRUSTED_REMOTE_PROOF: "1"'));
 });
 
 test("trusted profile concurrency is isolated by caller workflow and candidate SHA", () => {
