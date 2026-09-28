@@ -1,14 +1,15 @@
 {
-  "id": "MD-REMEDIATION-FINAL-CLAIM-GC",
+  "id": "MD-REMEDIATION-CLAIM-RETIREMENT-VALIDATOR",
   "baseSha": "aff8dd42d28c358b598ec49449f678d9ed62582c",
-  "branch": "infra/remediation-final-claim-gc-20260928",
+  "branch": "infra/remediation-claim-retirement-validator-20260928",
   "state": "IMPLEMENTING",
   "risk": "high",
   "owns": {
     "paths": [
       ".github/morro-control/claims.json",
-      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-      ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-CLAIM-RETIREMENT-VALIDATOR.json"
     ],
     "contracts": []
   },

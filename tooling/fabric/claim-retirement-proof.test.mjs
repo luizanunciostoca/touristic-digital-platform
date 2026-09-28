@@ -241,14 +241,8 @@ test("canonical collector proves merged PR ancestry through GitHub", async () =>
             state: "closed",
             merged_at: "2026-09-27T00:00:00Z",
             merge_commit_sha: MERGE,
-            head: {
-              ref: "infra/example",
-              repo: { full_name: "owner/repo" },
-            },
-            base: {
-              ref: "main",
-              repo: { full_name: "owner/repo" },
-            },
+            head: { ref: "infra/example" },
+            base: { ref: "main" },
           },
         ],
       ],
