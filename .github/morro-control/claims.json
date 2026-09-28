@@ -38,6 +38,21 @@
       "risk": "P0",
       "status": "REMOTE_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-WORKSPACE": {
+      "owner": "CHATGPT-WORK-TERMUX",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-workspace-tools-20260928",
+      "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+      "paths": [
+        "tooling/workspace/**",
+        "docs/operations/workspace-lifecycle.md",
+        ".morro/changesets/MD-REMEDIATION-WORKSPACE.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }
