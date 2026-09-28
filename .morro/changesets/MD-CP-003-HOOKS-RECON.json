@@ -28,10 +28,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-CP-003-HOOKS",
-    "MD-CP-003-TRUST-RECON"
-  ],
+  "dependencies": ["MD-CP-003-HOOKS", "MD-CP-003-TRUST-RECON"],
   "requiredEvidence": [
     "format",
     "secrets",
