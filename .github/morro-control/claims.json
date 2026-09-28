@@ -18,11 +18,7 @@
         "tooling/quality/check-render-production-mysql-blueprint.mjs",
         "tooling/quality/render-production-mysql-blueprint.test.mjs"
       ],
-      "domains": [
-        "ci-release",
-        "database",
-        "infrastructure"
-      ],
+      "domains": ["ci-release", "database", "infrastructure"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
