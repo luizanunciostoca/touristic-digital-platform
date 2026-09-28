@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CI-SCHEDULER",
   "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-ci-scheduler-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [
