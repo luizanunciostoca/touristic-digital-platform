@@ -187,6 +187,11 @@ for (const required of [
   'DOMAINS="AUTH AUDIT DESTINATIONS CONTENT BUSINESS ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE"',
   "schemaOwners",
   "crossDomainDenied",
+  "tableCounts",
+  "EXPECTED_SHA",
+  "RENDER_GIT_COMMIT",
+  'for target_domain in $DOMAINS',
+  '[ "$denied_count" -eq 156 ]',
   "CROSS_DOMAIN_ACCESS_ALLOWED_",
   "information_schema.tables",
 ]) {
@@ -198,6 +203,7 @@ forbidText(
   "readback must use domain owners only",
 );
 forbidText(readback, "morro_app", "readback must not use shared broad user");
+forbidText(readback, "next_domain()", "readback must test the full domain matrix");
 
 forbidText(init, "morro_app", "shared broad production database user");
 
