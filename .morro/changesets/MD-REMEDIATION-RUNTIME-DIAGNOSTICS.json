@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-RUNTIME-DIAGNOSTICS",
   "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
   "branch": "fix/remediation-commerce-diagnostics-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
