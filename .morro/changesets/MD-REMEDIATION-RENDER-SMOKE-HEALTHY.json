@@ -1,0 +1,41 @@
+{
+  "id": "MD-REMEDIATION-RENDER-SMOKE-HEALTHY",
+  "baseSha": "4443d30db2e000db844db9936b1c8244d9660e03",
+  "branch": "infra/remediation-render-smoke-healthy-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      "tooling/payments/render-v2-smoke.mjs",
+      "tooling/ci/render-v2-smoke-contract.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-RENDER-SMOKE-HEALTHY.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
