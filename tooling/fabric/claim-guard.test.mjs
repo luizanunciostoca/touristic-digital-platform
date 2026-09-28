@@ -1,15 +1,28 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
 import test from "node:test";
 import {
   assertSupportedPattern,
+  buildClaimGuardProof,
   findClaimCollisions,
   pathOwned,
   patternsOverlap,
+  resolveCandidatePath,
   validateClaimContext,
 } from "./claim-guard.mjs";
 
 const BASE_SHA = "a".repeat(40);
 const CURRENT_BASE_SHA = "b".repeat(40);
+const BRANCH_HEAD_SHA = "c".repeat(40);
 const NOW = Date.parse("2026-09-28T02:00:00Z");
 
 function fixture() {
@@ -63,6 +76,7 @@ function validate(overrides = {}) {
     manifest: overrides.manifest ?? manifest,
     branch: overrides.branch ?? manifest.branch,
     currentBaseSha: overrides.currentBaseSha ?? CURRENT_BASE_SHA,
+    branchHeadSha: overrides.branchHeadSha ?? BRANCH_HEAD_SHA,
     changedFiles: overrides.changedFiles ?? [
       "tooling/fabric/claim-guard.mjs",
       "tooling/fabric/claim-guard.test.mjs",
@@ -155,6 +169,17 @@ test("stale claim base that is not ancestor of current base is rejected", () => 
   assert.throws(
     () => validate({ isAncestor: () => false }),
     /CLAIM_BASE_NOT_ANCESTOR_OF_CURRENT_BASE/u,
+  );
+});
+
+test("current main must be an ancestor of the branch head", () => {
+  assert.throws(
+    () =>
+      validate({
+        isAncestor: (ancestor, descendant) =>
+          !(ancestor === CURRENT_BASE_SHA && descendant === BRANCH_HEAD_SHA),
+      }),
+    /CURRENT_BASE_NOT_ANCESTOR_OF_BRANCH_HEAD/u,
   );
 });
 
@@ -294,4 +319,169 @@ test("expired overlapping claim does not block safe parallelism", () => {
 
   assert.deepEqual(findClaimCollisions(registry, "MD-CP-003", NOW), []);
   assert.equal(validate({ registry }).collisions, 0);
+});
+
+function git(root, args) {
+  return execFileSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+  }).trim();
+}
+
+function writeJson(root, relativePath, value) {
+  const target = resolve(root, relativePath);
+  mkdirSync(dirname(target), { recursive: true });
+  writeFileSync(target, JSON.stringify(value, null, 2) + "\n");
+}
+
+function createProofRepository() {
+  const root = mkdtempSync(resolve(tmpdir(), "morro-claim-proof-"));
+  git(root, ["init", "-b", "feature"]);
+  git(root, ["config", "user.email", "proof@example.test"]);
+  git(root, ["config", "user.name", "Morro Proof"]);
+  writeFileSync(resolve(root, "README.md"), "baseline\n");
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "baseline"]);
+  const claimBaseSha = git(root, ["rev-parse", "HEAD"]);
+
+  const manifest = {
+    id: "MD-TEST-001",
+    baseSha: claimBaseSha,
+    branch: "feature",
+    state: "IMPLEMENTING",
+    owns: { paths: ["tooling/fabric/owned.txt"] },
+  };
+  const registry = {
+    schemaVersion: 1,
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      "MD-TEST-001": {
+        owner: "TEST-WORKER",
+        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+        branch: "feature",
+        baseSha: claimBaseSha,
+        paths: ["tooling/fabric/owned.txt"],
+        domains: ["ci-governance"],
+        risk: "P1",
+        status: "CLAIMED",
+        expiresAt: "2099-01-01T00:00:00Z",
+      },
+    },
+  };
+
+  writeJson(root, ".morro/changesets/MD-TEST-001.json", manifest);
+  writeJson(root, ".github/morro-control/claims.json", registry);
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "control plane baseline"]);
+  const currentBaseSha = git(root, ["rev-parse", "HEAD"]);
+
+  mkdirSync(resolve(root, "tooling/fabric"), { recursive: true });
+  writeFileSync(resolve(root, "tooling/fabric/owned.txt"), "candidate\n");
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "candidate"]);
+  const headSha = git(root, ["rev-parse", "HEAD"]);
+
+  git(root, ["switch", "-c", "side", claimBaseSha]);
+  writeFileSync(resolve(root, "side.txt"), "side\n");
+  git(root, ["add", "."]);
+  git(root, ["commit", "-m", "side"]);
+  const sideSha = git(root, ["rev-parse", "HEAD"]);
+  git(root, ["switch", "feature"]);
+
+  return { root, currentBaseSha, headSha, sideSha };
+}
+
+function proofEnv(repo, overrides = {}) {
+  return {
+    EXPECTED_CANDIDATE_SHA: repo.headSha,
+    EXPECTED_BASE_SHA: repo.currentBaseSha,
+    EXPECTED_BRANCH: "feature",
+    MANIFEST_PATH: ".morro/changesets/MD-TEST-001.json",
+    CLAIM_GUARD_AUTHORITY: "WORKER",
+    ...overrides,
+  };
+}
+
+test("candidate paths reject traversal and symlink escape", () => {
+  const parent = mkdtempSync(resolve(tmpdir(), "morro-claim-path-"));
+  const root = resolve(parent, "candidate");
+  const outside = resolve(parent, "outside");
+  mkdirSync(root, { recursive: true });
+  mkdirSync(outside, { recursive: true });
+  writeFileSync(resolve(outside, "manifest.json"), "{}\n");
+  symlinkSync(outside, resolve(root, "escape"), "dir");
+  assert.throws(
+    () => resolveCandidatePath(root, "../outside/manifest.json"),
+    /CANDIDATE_PATH_OUTSIDE_ROOT/u,
+  );
+  assert.throws(
+    () => resolveCandidatePath(root, "escape/manifest.json"),
+    /CANDIDATE_PATH_OUTSIDE_ROOT/u,
+  );
+  rmSync(parent, { recursive: true, force: true });
+});
+
+test("workflow proof validates exact head and changed-file calculation", () => {
+  const repo = createProofRepository();
+  try {
+    const proof = buildClaimGuardProof(repo.root, proofEnv(repo));
+    assert.equal(proof.exactHead, repo.headSha);
+    assert.deepEqual(proof.changedFiles, ["tooling/fabric/owned.txt"]);
+    assert.equal(proof.status, "pass");
+  } finally {
+    rmSync(repo.root, { recursive: true, force: true });
+  }
+});
+
+test("workflow proof rejects dirty worktree and head mismatch", () => {
+  const repo = createProofRepository();
+  try {
+    writeFileSync(resolve(repo.root, "dirty.txt"), "dirty\n");
+    assert.throws(
+      () => buildClaimGuardProof(repo.root, proofEnv(repo)),
+      /DIRTY_CANDIDATE_WORKTREE/u,
+    );
+    rmSync(resolve(repo.root, "dirty.txt"));
+    assert.throws(
+      () =>
+        buildClaimGuardProof(
+          repo.root,
+          proofEnv(repo, { EXPECTED_CANDIDATE_SHA: "f".repeat(40) }),
+        ),
+      /CANDIDATE_SHA_MISMATCH/u,
+    );
+  } finally {
+    rmSync(repo.root, { recursive: true, force: true });
+  }
+});
+
+test("workflow proof rejects a current base outside branch ancestry", () => {
+  const repo = createProofRepository();
+  try {
+    assert.throws(
+      () =>
+        buildClaimGuardProof(
+          repo.root,
+          proofEnv(repo, { EXPECTED_BASE_SHA: repo.sideSha }),
+        ),
+      /CURRENT_BASE_NOT_ANCESTOR/u,
+    );
+  } finally {
+    rmSync(repo.root, { recursive: true, force: true });
+  }
+});
+
+test("workflow proof rejects manifest traversal before loading", () => {
+  const repo = createProofRepository();
+  try {
+    assert.throws(
+      () =>
+        buildClaimGuardProof(
+          repo.root,
+          proofEnv(repo, { MANIFEST_PATH: "../outside.json" }),
+        ),
+      /CANDIDATE_PATH_OUTSIDE_ROOT/u,
+    );
+  } finally {
+    rmSync(repo.root, { recursive: true, force: true });
+  }
 });

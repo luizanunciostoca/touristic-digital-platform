@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { readFileSync, realpathSync } from "node:fs";
+import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ACTIVE_CLAIM_STATUSES = new Set([
@@ -140,6 +140,7 @@ export function validateClaimContext({
   manifest,
   branch,
   currentBaseSha,
+  branchHeadSha,
   changedFiles,
   now = Date.now(),
   authority = "WORKER",
@@ -172,6 +173,7 @@ export function validateClaimContext({
   );
   assert.equal(typeof branch, "string", "BRANCH_REQUIRED");
   assert.match(currentBaseSha ?? "", SHA_PATTERN, "CURRENT_BASE_SHA_INVALID");
+  assert.match(branchHeadSha ?? "", SHA_PATTERN, "BRANCH_HEAD_SHA_INVALID");
   assert.ok(Array.isArray(changedFiles), "CHANGED_FILES_REQUIRED");
 
   const claim = registry.claims[manifest.id];
@@ -203,6 +205,10 @@ export function validateClaimContext({
   assert.ok(
     isAncestor(manifest.baseSha, currentBaseSha),
     "CLAIM_BASE_NOT_ANCESTOR_OF_CURRENT_BASE",
+  );
+  assert.ok(
+    isAncestor(currentBaseSha, branchHeadSha),
+    "CURRENT_BASE_NOT_ANCESTOR_OF_BRANCH_HEAD",
   );
 
   const collisions = findClaimCollisions(registry, manifest.id, now);
@@ -237,6 +243,7 @@ export function validateClaimContext({
     branch,
     claimBaseSha: claim.baseSha,
     currentBaseSha,
+    branchHeadSha,
     changedFiles,
     authority,
     collisions: 0,
@@ -260,6 +267,39 @@ function isGitAncestor(root, ancestor, descendant) {
   } catch {
     return false;
   }
+}
+
+export function resolveCandidatePath(root, candidatePath) {
+  assert.equal(typeof candidatePath, "string", "CANDIDATE_PATH_INVALID");
+  assert.ok(candidatePath.length > 0, "CANDIDATE_PATH_EMPTY");
+  assert.equal(
+    isAbsolute(candidatePath),
+    false,
+    "CANDIDATE_PATH_MUST_BE_RELATIVE",
+  );
+
+  const rootReal = realpathSync(root);
+  const resolved = resolve(rootReal, candidatePath);
+  const lexicalRelative = relative(rootReal, resolved);
+  assert.ok(
+    lexicalRelative &&
+      lexicalRelative !== ".." &&
+      !lexicalRelative.startsWith(`..${sep}`) &&
+      !isAbsolute(lexicalRelative),
+    "CANDIDATE_PATH_OUTSIDE_ROOT",
+  );
+
+  const real = realpathSync(resolved);
+  const realRelative = relative(rootReal, real);
+  assert.ok(
+    realRelative &&
+      realRelative !== ".." &&
+      !realRelative.startsWith(`..${sep}`) &&
+      !isAbsolute(realRelative),
+    "CANDIDATE_PATH_OUTSIDE_ROOT",
+  );
+
+  return real;
 }
 
 export function buildClaimGuardProof(root, env = process.env) {
@@ -292,12 +332,10 @@ export function buildClaimGuardProof(root, env = process.env) {
     "CURRENT_BASE_NOT_ANCESTOR",
   );
 
-  const manifest = JSON.parse(
-    readFileSync(resolve(targetRoot, manifestPath), "utf8"),
-  );
-  const registry = JSON.parse(
-    readFileSync(resolve(targetRoot, registryPath), "utf8"),
-  );
+  const manifestFile = resolveCandidatePath(targetRoot, manifestPath);
+  const registryFile = resolveCandidatePath(targetRoot, registryPath);
+  const manifest = JSON.parse(readFileSync(manifestFile, "utf8"));
+  const registry = JSON.parse(readFileSync(registryFile, "utf8"));
 
   const changedRaw = git(targetRoot, [
     "diff",
@@ -311,6 +349,7 @@ export function buildClaimGuardProof(root, env = process.env) {
     manifest,
     branch: expectedBranch,
     currentBaseSha: expectedBase,
+    branchHeadSha: headSha,
     changedFiles,
     authority,
     isAncestor: (ancestor, descendant) =>

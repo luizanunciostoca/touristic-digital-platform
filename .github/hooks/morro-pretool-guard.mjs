@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+import { existsSync, readFileSync, realpathSync, readdirSync } from "node:fs";
+import { dirname, isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateClaimContext } from "../../tooling/fabric/claim-guard.mjs";
 
@@ -82,6 +82,43 @@ export function extractToolPaths(toolArgs) {
   return [...paths];
 }
 
+function assertRealPathContained(root, absolutePath) {
+  const rootReal = realpathSync(root);
+  let existing = absolutePath;
+
+  while (!existsSync(existing)) {
+    const parent = dirname(existing);
+    assert.notEqual(
+      parent,
+      existing,
+      "HOOK_PATH_EXISTING_ANCESTOR_UNAVAILABLE",
+    );
+    existing = parent;
+  }
+
+  const existingReal = realpathSync(existing);
+  const existingRelative = relative(rootReal, existingReal);
+  assert.ok(
+    existingRelative === "" ||
+      (existingRelative !== ".." &&
+        !existingRelative.startsWith(`..${sep}`) &&
+        !isAbsolute(existingRelative)),
+    "HOOK_PATH_OUTSIDE_REPOSITORY",
+  );
+
+  if (existsSync(absolutePath)) {
+    const targetReal = realpathSync(absolutePath);
+    const targetRelative = relative(rootReal, targetReal);
+    assert.ok(
+      targetRelative === "" ||
+        (targetRelative !== ".." &&
+          !targetRelative.startsWith(`..${sep}`) &&
+          !isAbsolute(targetRelative)),
+      "HOOK_PATH_OUTSIDE_REPOSITORY",
+    );
+  }
+}
+
 export function normalizeRepoPath(root, cwd, rawPath) {
   assert.equal(typeof rawPath, "string", "HOOK_PATH_INVALID");
   assert.ok(rawPath.trim(), "HOOK_PATH_EMPTY");
@@ -101,6 +138,7 @@ export function normalizeRepoPath(root, cwd, rawPath) {
       !isAbsolute(repoRelative),
     "HOOK_PATH_OUTSIDE_REPOSITORY",
   );
+  assertRealPathContained(root, absolutePath);
 
   return repoRelative.split(sep).join("/");
 }
@@ -113,47 +151,126 @@ function commandFromArgs(toolArgs) {
   return "";
 }
 
+function tokenizeShellSegment(segment) {
+  return [
+    ...segment.matchAll(/"((?:\\.|[^"])*)"|'((?:\\.|[^'])*)'|([^\s]+)/gu),
+  ].map((match) => match[1] ?? match[2] ?? match[3]);
+}
+
+const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
+  "-c",
+  "-C",
+  "--exec-path",
+  "--git-dir",
+  "--work-tree",
+  "--namespace",
+  "--config-env",
+]);
+
+export function parseGitInvocations(command) {
+  if (typeof command !== "string") return [];
+
+  const invocations = [];
+  for (const segment of command.split(/(?:&&|\|\||[;\n])/u)) {
+    const tokens = tokenizeShellSegment(segment);
+    const gitIndex = tokens.findIndex(
+      (token) => token === "git" || token.endsWith("/git"),
+    );
+    if (gitIndex < 0) continue;
+
+    let index = gitIndex + 1;
+    while (index < tokens.length && tokens[index].startsWith("-")) {
+      const token = tokens[index];
+      const equals = token.indexOf("=");
+      const option = equals >= 0 ? token.slice(0, equals) : token;
+      if (GIT_GLOBAL_OPTIONS_WITH_VALUE.has(option) && equals < 0) {
+        index += 2;
+      } else {
+        index += 1;
+      }
+    }
+
+    if (index < tokens.length) {
+      invocations.push({
+        subcommand: tokens[index],
+        args: tokens.slice(index + 1),
+      });
+    }
+  }
+
+  return invocations;
+}
+
+function targetsMain(args) {
+  return args.some(
+    (arg) =>
+      arg === "main" ||
+      arg === "refs/heads/main" ||
+      /(?:^|:)refs\/heads\/main(?:$|:)/u.test(arg) ||
+      /(?:^|:)main(?:$|:)/u.test(arg),
+  );
+}
+
 export function classifyBashCommand(command, branch) {
   if (typeof command !== "string" || !command.trim()) {
     return "BASH_COMMAND_MISSING";
   }
 
-  if (
-    /\bgit\s+push\b[^\n]*(?:--force(?:-with-lease)?|\s-f(?:\s|$))/iu.test(
-      command,
-    )
-  ) {
-    return "FORCE_PUSH_FORBIDDEN";
-  }
+  const gitInvocations = parseGitInvocations(command);
+  for (const invocation of gitInvocations) {
+    if (invocation.subcommand === "push") {
+      if (
+        invocation.args.some(
+          (arg) =>
+            arg === "-f" ||
+            arg === "--force" ||
+            arg === "--force-with-lease" ||
+            arg.startsWith("--force-with-lease="),
+        )
+      ) {
+        return "FORCE_PUSH_FORBIDDEN";
+      }
 
-  if (
-    /\bgit\s+push\b/iu.test(command) &&
-    (branch === "main" || /(?:refs\/heads\/main|\bmain\b)/u.test(command))
-  ) {
-    return "DIRECT_MAIN_PUSH_FORBIDDEN";
+      if (branch === "main" || targetsMain(invocation.args)) {
+        return "DIRECT_MAIN_PUSH_FORBIDDEN";
+      }
+    }
+
+    if (invocation.subcommand === "merge") {
+      return "INTEGRATOR_AUTHORITY_REQUIRED";
+    }
+
+    if (
+      (invocation.subcommand === "reset" &&
+        invocation.args.includes("--hard")) ||
+      (invocation.subcommand === "clean" &&
+        invocation.args.some(
+          (arg) => arg === "--force" || /^-[^-]*f/u.test(arg),
+        )) ||
+      (invocation.subcommand === "checkout" &&
+        invocation.args.join(" ") === "-- .") ||
+      invocation.subcommand === "apply"
+    ) {
+      return "DESTRUCTIVE_GIT_COMMAND_FORBIDDEN";
+    }
   }
 
   if (/\bgh\s+pr\s+merge\b/iu.test(command)) {
     return "MERGE_AUTHORITY_REQUIRED";
   }
 
-  if (/\bgit\s+merge\b/iu.test(command)) {
-    return "INTEGRATOR_AUTHORITY_REQUIRED";
-  }
-
   if (
-    /\bgit\s+(?:reset\s+--hard|clean\s+-[^\n]*f|checkout\s+--\s+\.)\b/iu.test(
+    /\b(?:node|python3?|ruby|perl|php|bash|sh|zsh)\b[^\n]*(?:\s(?:-e|-E|-p|-c|-r)\b|\s--(?:eval|print)(?:=|\s))/iu.test(
       command,
     )
   ) {
-    return "DESTRUCTIVE_GIT_COMMAND_FORBIDDEN";
+    return "INLINE_INTERPRETER_FORBIDDEN";
   }
 
   if (
     /(?:^|[;&|]\s*)(?:rm|mv|cp|touch|mkdir|rmdir)\b/iu.test(command) ||
     /\bsed\s+-i\b/iu.test(command) ||
     /\bperl\s+-p?i\b/iu.test(command) ||
-    /\bgit\s+apply\b/iu.test(command) ||
     /(?:^|[;&|]\s*)patch\b/iu.test(command) ||
     /(?:^|[^>])>>?\s*[^&]/u.test(command) ||
     /\btee\s+(?:-[A-Za-z]+\s+)*[^|;&]+/iu.test(command)
@@ -221,25 +338,40 @@ function changedWorktreeFiles(root) {
   return [...paths];
 }
 
+export function authorityForManifestState(state) {
+  if (
+    state === "COMPOSITION_PROVEN" ||
+    state === "POLICY_SATISFIED" ||
+    state === "MERGE_READY"
+  ) {
+    return "INTEGRATOR";
+  }
+  return "WORKER";
+}
+
 function validatePathsAgainstActiveClaim({
   root,
   branch,
   changedFiles,
-  authority = "WORKER",
+  authority,
 }) {
   const manifest = loadManifestForBranch(root, branch);
   const registry = JSON.parse(
     readFileSync(resolve(root, ".github/morro-control/claims.json"), "utf8"),
   );
   const currentBaseSha = resolveCurrentBaseSha(root);
+  const branchHeadSha = git(root, ["rev-parse", "HEAD"]);
+  const effectiveAuthority =
+    authority ?? authorityForManifestState(manifest.state);
 
   return validateClaimContext({
     registry,
     manifest,
     branch,
     currentBaseSha,
+    branchHeadSha,
     changedFiles,
-    authority,
+    authority: effectiveAuthority,
     isAncestor: (ancestor, descendant) =>
       isGitAncestor(root, ancestor, descendant),
   });
@@ -302,7 +434,11 @@ export function evaluatePreToolUse(payload, runtime = {}) {
       };
     }
 
-    if (/\bgit\s+(?:commit|push)\b/iu.test(command)) {
+    if (
+      parseGitInvocations(command).some(
+        ({ subcommand }) => subcommand === "commit" || subcommand === "push",
+      )
+    ) {
       validate(runtime.changedFiles ?? changedWorktreeFiles(root));
     }
 

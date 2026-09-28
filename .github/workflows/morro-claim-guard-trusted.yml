@@ -15,9 +15,6 @@ on:
       manifest_path:
         required: true
         type: string
-      authority:
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -95,6 +92,14 @@ jobs:
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
           echo "tree_sha=$tree_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Validate manifest path input
+        shell: bash
+        env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+        run: |
+          set -euo pipefail
+          [[ "$MANIFEST_PATH" =~ ^\.morro/changesets/[A-Za-z0-9._-]+\.json$ ]]
+
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
@@ -112,7 +117,7 @@ jobs:
           EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
           EXPECTED_BRANCH: ${{ inputs.branch }}
           MANIFEST_PATH: ${{ inputs.manifest_path }}
-          CLAIM_GUARD_AUTHORITY: ${{ inputs.authority }}
+          CLAIM_GUARD_AUTHORITY: WORKER
         run: >-
           node
           trusted/tooling/fabric/claim-guard.mjs
@@ -137,11 +142,12 @@ jobs:
           EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
           TRUSTED_VALIDATOR_SHA: ${{ steps.trusted-identity.outputs.head_sha }}
           TRUSTED_VALIDATOR_TREE_SHA: ${{ steps.trusted-identity.outputs.tree_sha }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
         run: >-
           node
           trusted/tooling/quality/independent-proof-trusted.mjs
           candidate
-          "${{ inputs.manifest_path }}"
+          "$MANIFEST_PATH"
           | tee automated-independent-proof.json
 
       - name: Upload Claim Guard proof
