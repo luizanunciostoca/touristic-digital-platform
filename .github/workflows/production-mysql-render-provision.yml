@@ -63,6 +63,9 @@ jobs:
           set -euo pipefail
           test -n "$RENDER_PRODUCTION_API_KEY"
 
+      - name: Validate repository production MySQL contract
+        run: node tooling/quality/check-render-production-mysql-blueprint.mjs
+
       - name: Validate production Blueprint against Render
         env:
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
@@ -79,7 +82,6 @@ jobs:
             exit 1
           fi
 
-          jq -e --arg service "$SERVICE_NAME"             '.plan.services | index($service) != null'             /tmp/render-blueprint-validation.json >/dev/null
           echo "Render Blueprint validation PASS for $SERVICE_NAME"
 
       - name: Provision or reconcile private MySQL service
