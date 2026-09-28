@@ -27,6 +27,12 @@ services:
         value: morro_auth
       - key: AUTH_DATABASE_PASSWORD
         generateValue: true
+      - key: AUDIT_DATABASE_NAME
+        value: morro_audit_staging
+      - key: AUDIT_DATABASE_USER
+        value: morro_audit
+      - key: AUDIT_DATABASE_PASSWORD
+        generateValue: true
       - key: ORDERING_DATABASE_NAME
         value: morro_ordering_staging
       - key: ORDERING_DATABASE_USER
@@ -38,6 +44,12 @@ services:
       - key: FINANCIAL_DATABASE_USER
         value: morro_financial
       - key: FINANCIAL_DATABASE_PASSWORD
+        generateValue: true
+      - key: TICKETING_DATABASE_NAME
+        value: morro_ticketing_staging
+      - key: TICKETING_DATABASE_USER
+        value: morro_ticketing
+      - key: TICKETING_DATABASE_PASSWORD
         generateValue: true
       - key: AFFILIATES_DATABASE_NAME
         value: morro_affiliates_staging
@@ -57,6 +69,12 @@ services:
         value: morro_content
       - key: CONTENT_DATABASE_PASSWORD
         generateValue: true
+      - key: CRM_DATABASE_NAME
+        value: morro_crm_staging
+      - key: CRM_DATABASE_USER
+        value: morro_crm
+      - key: CRM_DATABASE_PASSWORD
+        generateValue: true
       - key: COMMERCE_DATABASE_NAME
         value: morro_commerce_staging
       - key: COMMERCE_DATABASE_USER
@@ -74,6 +92,12 @@ services:
       - key: NOTIFICATIONS_DATABASE_USER
         value: morro_notifications
       - key: NOTIFICATIONS_DATABASE_PASSWORD
+        generateValue: true
+      - key: ANALYTICS_DATABASE_NAME
+        value: morro_analytics_staging
+      - key: ANALYTICS_DATABASE_USER
+        value: morro_analytics
+      - key: ANALYTICS_DATABASE_PASSWORD
         generateValue: true
 
   - type: web
@@ -128,6 +152,21 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: AUTH_DATABASE_PASSWORD
+      - key: STAGING_AUDIT_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AUDIT_DATABASE_NAME
+      - key: STAGING_AUDIT_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AUDIT_DATABASE_USER
+      - key: STAGING_AUDIT_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: AUDIT_DATABASE_PASSWORD
       - key: STAGING_ORDERING_DATABASE_NAME
         fromService:
           type: pserv
@@ -158,6 +197,21 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: FINANCIAL_DATABASE_PASSWORD
+      - key: STAGING_TICKETING_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: TICKETING_DATABASE_NAME
+      - key: STAGING_TICKETING_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: TICKETING_DATABASE_USER
+      - key: STAGING_TICKETING_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: TICKETING_DATABASE_PASSWORD
       - key: STAGING_AFFILIATES_DATABASE_NAME
         fromService:
           type: pserv
@@ -203,6 +257,21 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: CONTENT_DATABASE_PASSWORD
+      - key: STAGING_CRM_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: CRM_DATABASE_NAME
+      - key: STAGING_CRM_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: CRM_DATABASE_USER
+      - key: STAGING_CRM_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: CRM_DATABASE_PASSWORD
       - key: STAGING_COMMERCE_DATABASE_NAME
         fromService:
           type: pserv
@@ -250,6 +319,21 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: NOTIFICATIONS_DATABASE_PASSWORD
+      - key: STAGING_ANALYTICS_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: ANALYTICS_DATABASE_NAME
+      - key: STAGING_ANALYTICS_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: ANALYTICS_DATABASE_USER
+      - key: STAGING_ANALYTICS_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: ANALYTICS_DATABASE_PASSWORD
 
       # Auth stays fail-closed until the operator provides the accepted staging
       # identity set and exact HTTPS origin.
