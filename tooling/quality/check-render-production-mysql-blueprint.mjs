@@ -185,14 +185,18 @@ for (const required of [
   'HOST="${MORRO_MYSQL_READBACK_HOST:-morro-digital-v2-production-mysql}"',
   'PORT="${MORRO_MYSQL_READBACK_PORT:-3306}"',
   'DOMAINS="AUTH AUDIT DESTINATIONS CONTENT BUSINESS ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE"',
-  'schemaOwners',
-  'crossDomainDenied',
-  'CROSS_DOMAIN_ACCESS_ALLOWED_',
-  'information_schema.tables',
+  "schemaOwners",
+  "crossDomainDenied",
+  "CROSS_DOMAIN_ACCESS_ALLOWED_",
+  "information_schema.tables",
 ]) {
   requireText(readback, required);
 }
-forbidText(readback, "MYSQL_ROOT_PASSWORD", "readback must use domain owners only");
+forbidText(
+  readback,
+  "MYSQL_ROOT_PASSWORD",
+  "readback must use domain owners only",
+);
 forbidText(readback, "morro_app", "readback must not use shared broad user");
 
 forbidText(init, "morro_app", "shared broad production database user");
