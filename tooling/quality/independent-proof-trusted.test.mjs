@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  buildIndependentProof,
   pathOwned,
   validateManifestAndFiles,
   validateManifestPath,
@@ -92,6 +93,21 @@ test("manifest input is a canonical regular file under the candidate", (t) => {
   assert.equal(
     validateManifestPath(root, name),
     join(realpathSync(root), name),
+  );
+});
+
+test("independent proof rejects a manifest whose filename and internal id differ", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "proof-id-path-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, ".morro/changesets"), { recursive: true });
+  const path = ".morro/changesets/MD-TEST-001.json";
+  writeFileSync(
+    join(root, path),
+    JSON.stringify({ ...manifest, id: "MD-DIFFERENT" }),
+  );
+  assert.throws(
+    () => buildIndependentProof(root, path, {}),
+    /MANIFEST_ID_PATH_MISMATCH/u,
   );
 });
 
