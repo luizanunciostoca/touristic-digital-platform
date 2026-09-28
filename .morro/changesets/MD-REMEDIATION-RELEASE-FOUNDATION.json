@@ -1,0 +1,41 @@
+{
+  "id": "MD-REMEDIATION-RELEASE-FOUNDATION",
+  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "branch": "infra/remediation-release-foundation-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "tooling/release/oci-proof.mjs",
+      "tooling/release/oci-proof.test.mjs",
+      "tooling/release/oci-operations.mjs",
+      "tooling/release/oci-operations.test.mjs",
+      "tooling/ci/oci-release-proof.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-RELEASE-FOUNDATION.json",
+      ".github/morro-control/claims.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-REMEDIATION-GUARD"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
