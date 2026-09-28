@@ -2,7 +2,7 @@
   "id": "MD-CP-002C",
   "baseSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
   "branch": "infra/control-plane-v3.2-stage-b3-custom-agents-20260927",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
