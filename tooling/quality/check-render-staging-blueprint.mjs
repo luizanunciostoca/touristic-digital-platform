@@ -286,7 +286,6 @@ for (const marker of [
   requireText(mysqlMemoryConfig, marker);
 }
 
-
 for (const required of [
   'CONTRACT="MYSQL-BACKUP-RESTORE-DRILL"',
   "BACKUP_RESTORE_STAGING_ONLY",
