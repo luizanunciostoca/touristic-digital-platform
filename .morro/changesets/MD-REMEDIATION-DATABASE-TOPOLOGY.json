@@ -27,7 +27,9 @@
       "tooling/quality/check-environment-reconciliation.mjs",
       "tooling/quality/check-release-readiness.mjs",
       "tooling/quality/check-migration-dry-run.mjs",
-      "tooling/render/mysql-staging/01-init-databases.sh"
+      "tooling/render/mysql-staging/01-init-databases.sh",
+      "tooling/database/reconcile-mysql-topology.mjs",
+      "tooling/database/reconcile-mysql-topology.test.mjs"
     ],
     "contracts": []
   },
