@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   appendFileSync,
   mkdtempSync,
@@ -13,6 +14,7 @@ import { fileURLToPath } from "node:url";
 import {
   candidateIdentity,
   createDeploymentProof,
+  normalizeRunId,
   targets,
   targetFor,
   validateDeployHook,
@@ -38,19 +40,48 @@ const gh = (...args) =>
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 
+export function verifyCandidateSource(sourceSha, gitImpl = git) {
+  assert.match(sourceSha ?? "", /^[0-9a-f]{40}$/u, "SOURCE_SHA_INVALID");
+  const candidateRef = `refs/tags/rc/${sourceSha}`;
+  const remoteRef = gitImpl("ls-remote", "--refs", "origin", candidateRef);
+  assert.equal(
+    remoteRef,
+    `${sourceSha}\t${candidateRef}`,
+    "CANDIDATE_REF_MISMATCH",
+  );
+  gitImpl("fetch", "--no-tags", "origin", "main:refs/remotes/origin/main");
+  try {
+    gitImpl(
+      "merge-base",
+      "--is-ancestor",
+      sourceSha,
+      "refs/remotes/origin/main",
+    );
+  } catch {
+    throw new Error("CANDIDATE_NOT_ON_MAIN");
+  }
+  return candidateRef;
+}
+
 function context(env = process.env) {
-  verifyRepository(env.GITHUB_REPOSITORY);
+  const repository = verifyRepository(env.GITHUB_REPOSITORY);
   assert.match(env.EXPECTED_SHA ?? "", /^[0-9a-f]{40}$/u, "SOURCE_SHA_INVALID");
   assert.equal(
     git("rev-parse", "HEAD"),
     env.EXPECTED_SHA,
     "SOURCE_CHECKOUT_MISMATCH",
   );
+  verifyCandidateSource(env.EXPECTED_SHA);
+  const lockfileDigest =
+    "sha256:" +
+    createHash("sha256").update(readFileSync("pnpm-lock.yaml")).digest("hex");
   return {
-    repository: env.GITHUB_REPOSITORY,
+    repository,
     identity: candidateIdentity({
+      repository,
       sourceSha: env.EXPECTED_SHA,
       treeSha: git("rev-parse", `${env.EXPECTED_SHA}^{tree}`),
+      lockfileDigest,
       image: env.IMAGE_REPOSITORY,
       digest: env.IMAGE_DIGEST,
     }),
@@ -236,7 +267,7 @@ export async function triggerImageDeploy({
   return deployId;
 }
 
-async function observe(ctx, env, wait = true) {
+async function observe(ctx, env, wait = true, { raw = false } = {}) {
   const target = targetFor(env.DEPLOY_ENVIRONMENT);
   assert.match(
     env.DEPLOY_ID ?? "",
@@ -248,12 +279,14 @@ async function observe(ctx, env, wait = true) {
       `/services/${target.serviceId}/deploys/${env.DEPLOY_ID}`,
       { apiKey: env.RENDER_API_KEY },
     );
-    if (deployment.status === "live")
-      return verifyObservedDeployment(deployment, ctx.identity, {
+    if (deployment.status === "live") {
+      const verified = verifyObservedDeployment(deployment, ctx.identity, {
         environment: env.DEPLOY_ENVIRONMENT,
         deployId: env.DEPLOY_ID,
         serviceId: target.serviceId,
       });
+      return raw ? { deployment, verified } : verified;
+    }
     assert.ok(
       ![
         "build_failed",
@@ -320,9 +353,10 @@ export async function runOperation(
   }
   if (command === "observe") return observe(ctx, env);
   if (command === "publish") {
-    const observed = await observe(ctx, env, false);
-    const proof = createDeploymentProof(ctx.identity, observed, {
+    const observation = await observe(ctx, env, false, { raw: true });
+    const proof = createDeploymentProof(ctx.identity, observation.deployment, {
       environment: env.DEPLOY_ENVIRONMENT,
+      deployId: env.DEPLOY_ID,
       runtime: readJson("oci-runtime-proof.json"),
       runId: env.GITHUB_RUN_ID,
       buildRunId: ctx.buildRunId,
@@ -344,13 +378,26 @@ export async function runOperation(
       "OCI_SMOKE_DIGEST_MISMATCH",
     );
     proveBuild(ctx);
+    const workflowRunId = normalizeRunId(
+      env.GITHUB_RUN_ID,
+      "PROMOTION_RUN_ID_INVALID",
+    );
+    const buildRunId = normalizeRunId(
+      ctx.buildRunId,
+      "PROMOTION_RUN_ID_INVALID",
+    );
     const proof = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       ...ctx.identity,
-      workflowRunId: String(env.GITHUB_RUN_ID),
-      buildRunId: String(ctx.buildRunId),
+      workflowRunId,
+      buildRunId,
       result: "PASS",
     };
+    verifyPromotionProof(proof, ctx.identity, {
+      kind: "gate",
+      runId: workflowRunId,
+      buildRunId,
+    });
     jsonFile("oci-gate-proof.json", proof);
     return proof;
   }
