@@ -1,0 +1,57 @@
+{
+  "id": "MD-CP-003",
+  "baseSha": "db4cd86c222640db4d3ba2ec5d4963dc0101379b",
+  "branch": "infra/control-plane-v3.2-stage-c-safety-20260927",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/hooks/**",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/workflows/morro-claim-guard-trusted.yml",
+      ".github/workflows/morro-agent-profiles-trusted.yml",
+      ".github/morro-control/backlog.json",
+      ".github/morro-control/claim-schema.json",
+      ".github/morro-control/policy.json",
+      ".morro/changesets/MD-CP-003.json",
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+      "tooling/fabric/validate-registry.mjs",
+      "tooling/fabric/validate-changeset.mjs",
+      "tooling/quality/independent-proof-trusted.mjs",
+      "tooling/quality/independent-proof-trusted.test.mjs",
+      ".github/pull_request_template.md",
+      "AGENTS.md"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-002C"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "exact-head-identity",
+    "tree-sha",
+    "claim-guard-contract",
+    "trusted-automated-independent-proof",
+    "adversarial-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

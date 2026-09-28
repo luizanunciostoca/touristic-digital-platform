@@ -1,17 +1,17 @@
 {
-  "id": "MD-CP-002C",
-  "baseSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
-  "branch": "infra/control-plane-v3.2-stage-b3-custom-agents-20260927",
-  "state": "MERGED",
+  "id": "MD-CP-002C-RECON",
+  "baseSha": "db4cd86c222640db4d3ba2ec5d4963dc0101379b",
+  "branch": "infra/control-plane-v3.2-reconcile-b3-20260927",
+  "state": "MERGE_READY",
   "risk": "high",
   "owns": {
     "paths": [
-      ".github/agents/**",
-      ".github/workflows/morro-agent-profiles.yml",
-      ".github/morro-control/backlog.json",
       ".morro/changesets/MD-CP-002C.json",
-      ".github/skills/morro-database-migration/SKILL.md",
-      ".github/skills/morro-release-certification/SKILL.md"
+      ".morro/changesets/MD-CP-002C-RECON.json",
+      ".morro/changesets/MD-CP-003.json",
+      ".github/morro-control/backlog.json",
+      ".github/morro-control/claims.json",
+      ".github/workflows/morro-agent-profiles.yml"
     ],
     "contracts": []
   },
@@ -28,7 +28,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-002B"],
+  "dependencies": ["MD-CP-002C"],
   "requiredEvidence": [
     "format",
     "secrets",

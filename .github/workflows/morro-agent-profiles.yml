@@ -8,6 +8,7 @@ on:
       - ".github/skills/**"
       - ".github/workflows/morro-agent-profiles.yml"
       - ".morro/changesets/MD-CP-002C.json"
+      - ".morro/changesets/MD-CP-002C-RECON.json"
   merge_group:
 
 permissions:
@@ -24,6 +25,6 @@ jobs:
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-      manifest_path: .morro/changesets/MD-CP-002C.json
+      manifest_path: ${{ startsWith(github.event.pull_request.head.ref, 'infra/control-plane-v3.2-reconcile-') && '.morro/changesets/MD-CP-002C-RECON.json' || '.morro/changesets/MD-CP-002C.json' }}
     permissions:
       contents: read

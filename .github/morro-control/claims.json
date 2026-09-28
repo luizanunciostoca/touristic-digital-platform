@@ -2,20 +2,30 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CP-002C": {
+    "MD-CP-003": {
       "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "INDEPENDENT-PROOF",
-      "branch": "infra/control-plane-v3.2-stage-b3-custom-agents-20260927",
-      "baseSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/control-plane-v3.2-stage-c-safety-20260927",
+      "baseSha": "db4cd86c222640db4d3ba2ec5d4963dc0101379b",
       "paths": [
-        ".github/agents/**",
-        ".github/workflows/morro-agent-profiles.yml",
+        ".github/hooks/**",
+        ".github/workflows/morro-claim-guard.yml",
+        ".github/workflows/morro-claim-guard-trusted.yml",
+        ".github/workflows/morro-agent-profiles-trusted.yml",
         ".github/morro-control/backlog.json",
-        ".morro/changesets/MD-CP-002C.json",
-        ".github/skills/morro-database-migration/SKILL.md",
-        ".github/skills/morro-release-certification/SKILL.md"
+        ".github/morro-control/claim-schema.json",
+        ".github/morro-control/policy.json",
+        ".morro/changesets/MD-CP-003.json",
+        "tooling/fabric/claim-guard.mjs",
+        "tooling/fabric/claim-guard.test.mjs",
+        "tooling/fabric/validate-registry.mjs",
+        "tooling/fabric/validate-changeset.mjs",
+        "tooling/quality/independent-proof-trusted.mjs",
+        "tooling/quality/independent-proof-trusted.test.mjs",
+        ".github/pull_request_template.md",
+        "AGENTS.md"
       ],
-      "domains": ["ci-release"],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "CLAIMED",
       "expiresAt": "2026-10-05T23:59:59Z"
