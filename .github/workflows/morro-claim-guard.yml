@@ -46,7 +46,10 @@ jobs:
           package-manager-cache: false
 
       - name: Run adversarial Claim Guard contract tests
-        run: node --test tooling/fabric/claim-guard.test.mjs
+        run: >-
+          node --test
+          tooling/fabric/claim-guard.test.mjs
+          .github/hooks/morro-pretool-guard.test.mjs
 
       - name: Build candidate Claim Guard proof
         env:
