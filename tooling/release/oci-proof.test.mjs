@@ -107,7 +107,7 @@ test("controller SHA may advance while explicit source tree and digest remain fi
         identity,
         { runId: 17, repository },
       ),
-    /DIGEST_MISMATCH/,
+    /RENDER_IMAGE_REF_MISMATCH/,
   );
   assert.throws(
     () =>
@@ -396,6 +396,7 @@ test("runtime check IDs cannot exfiltrate arbitrary URL or credential text", () 
         verifyRuntimeProof(
           { ...runtime, checks: [...runtime.checks, { name, status: "pass" }] },
           identity.sourceSha,
+          { environment: "staging", deployId: "dep-12345" },
         ),
       /RUNTIME_CHECK_IDENTITY_INVALID/,
     );
