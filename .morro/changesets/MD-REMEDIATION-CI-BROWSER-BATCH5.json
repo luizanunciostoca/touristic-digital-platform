@@ -1,0 +1,46 @@
+{
+  "id": "MD-REMEDIATION-CI-BROWSER-BATCH5",
+  "baseSha": "7baffe769212b247f776b2df871944e324ef37cf",
+  "branch": "infra/remediation-ci-browser-batch5-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/workflows/home-discover-manual-conformance.yml",
+      ".github/workflows/home-first-run-browser-regression.yml",
+      ".github/workflows/map-provider-regression.yml",
+      ".github/workflows/map-tour-browser-regression.yml",
+      ".github/workflows/mapbox-visual-contract-regression.yml",
+      ".github/workflows/morro-performance-budget.yml",
+      ".github/workflows/morro-pro-business-management-contract.yml",
+      ".github/workflows/morro-runtime-startup-performance.yml",
+      ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
