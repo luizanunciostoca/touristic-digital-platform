@@ -10,6 +10,42 @@ const PROOF_STATES = new Set([
   "POLICY_SATISFIED",
   "MERGE_READY",
 ]);
+const REMOTE_PROOF_INPUT_STATES = new Set(["IMPLEMENTING", "LOCAL_PROVEN"]);
+const RUN_ID = /^[1-9][0-9]*$/u;
+
+export function trustedRemoteProofContext(env = process.env) {
+  if (env.TRUSTED_REMOTE_PROOF !== "1") {
+    return { enabled: false, workflowRunId: null };
+  }
+  assert.equal(env.GITHUB_ACTIONS, "true", "REMOTE_PROOF_CONTEXT_INVALID");
+  assert.match(env.GITHUB_RUN_ID ?? "", RUN_ID, "REMOTE_PROOF_RUN_ID_INVALID");
+  return { enabled: true, workflowRunId: env.GITHUB_RUN_ID };
+}
+
+export function resolveProofLifecycle(
+  manifestState,
+  { enabled = false, workflowRunId = null } = {},
+) {
+  if (PROOF_STATES.has(manifestState)) {
+    return {
+      manifestState,
+      provenState: manifestState,
+      remotePromotionApplied: false,
+      workflowRunId: enabled ? workflowRunId : null,
+    };
+  }
+  assert.ok(
+    enabled && REMOTE_PROOF_INPUT_STATES.has(manifestState),
+    "MANIFEST_NOT_PROOF_READY",
+  );
+  assert.match(workflowRunId ?? "", RUN_ID, "REMOTE_PROOF_RUN_ID_INVALID");
+  return {
+    manifestState,
+    provenState: "REMOTE_PROVEN",
+    remotePromotionApplied: true,
+    workflowRunId,
+  };
+}
 
 export function pathOwned(path, pattern) {
   assert.equal(typeof path, "string", "CHANGED_PATH_INVALID");
@@ -21,7 +57,11 @@ export function pathOwned(path, pattern) {
   return path === pattern;
 }
 
-export function validateManifestAndFiles(manifest, changedFiles) {
+export function validateManifestAndFiles(
+  manifest,
+  changedFiles,
+  { proofContext = { enabled: false, workflowRunId: null } } = {},
+) {
   assert.ok(manifest && typeof manifest === "object", "MANIFEST_REQUIRED");
   assert.match(manifest.id ?? "", /^MD-[A-Z0-9-]+$/u, "MANIFEST_ID_INVALID");
   assert.match(
@@ -29,7 +69,7 @@ export function validateManifestAndFiles(manifest, changedFiles) {
     /^[0-9a-f]{40}$/u,
     "MANIFEST_BASE_SHA_INVALID",
   );
-  assert.ok(PROOF_STATES.has(manifest.state), "MANIFEST_NOT_PROOF_READY");
+  const lifecycle = resolveProofLifecycle(manifest.state, proofContext);
   assert.ok(
     Array.isArray(manifest.owns?.paths) && manifest.owns.paths.length > 0,
     "OWNED_PATHS_REQUIRED",
@@ -54,7 +94,11 @@ export function validateManifestAndFiles(manifest, changedFiles) {
 
   return {
     changeSetId: manifest.id,
-    state: manifest.state,
+    state: lifecycle.provenState,
+    manifestState: lifecycle.manifestState,
+    provenState: lifecycle.provenState,
+    remotePromotionApplied: lifecycle.remotePromotionApplied,
+    workflowRunId: lifecycle.workflowRunId,
     changedFiles,
     ownedPatterns: manifest.owns.paths,
   };
@@ -166,7 +210,10 @@ export function buildIndependentProof(root, manifestPath, env = process.env) {
     `${expectedBase}...${headSha}`,
   ]);
   const changedFiles = changedRaw ? changedRaw.split("\n") : [];
-  const manifestProof = validateManifestAndFiles(manifest, changedFiles);
+  const proofContext = trustedRemoteProofContext(env);
+  const manifestProof = validateManifestAndFiles(manifest, changedFiles, {
+    proofContext,
+  });
 
   return {
     contract: "MORRO-AUTOMATED-INDEPENDENT-PROOF",
