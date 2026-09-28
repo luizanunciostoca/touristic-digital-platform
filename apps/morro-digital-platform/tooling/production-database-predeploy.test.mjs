@@ -3,19 +3,20 @@ import test from "node:test";
 
 import {
   canonicalProductionDomains,
+  canonicalProductionScopePolicy,
   runProductionDatabasePredeploy,
 } from "./production-database-predeploy.mjs";
 
 function environment(overrides = {}) {
   const value = {
-    RENDER_SERVICE_NAME: "morro-digital-v2",
-    RENDER_GIT_COMMIT: "a".repeat(40),
+    RENDER_SERVICE_NAME: "morro-digital-v2-production-db-bootstrap",
+    MORRO_RELEASE_SHA: "a".repeat(40),
     EXPECTED_SHA: "a".repeat(40),
     ...overrides,
   };
   for (const domain of canonicalProductionDomains) {
     const url = new URL("mysql://placeholder.invalid/");
-    url.hostname = "mysql.internal";
+    url.hostname = "morro-digital-v2-production-mysql";
     url.port = "3306";
     url.username = domain.schema;
     url.password = `${domain.name}-password`;
@@ -118,7 +119,21 @@ function poolFactory(closed, { missingTableDomain = null } = {}) {
         return [[], []];
       }
       if (source.includes("information_schema.COLUMNS")) {
-        return [[], []];
+        const rows = [];
+        for (const [table, scope] of Object.entries(
+          canonicalProductionScopePolicy[domain.name],
+        )) {
+          if (scope.includes("destination")) {
+            rows.push({ table_name: table, column_name: "destination_id" });
+          }
+          if (scope.includes("business")) {
+            rows.push({ table_name: table, column_name: "business_id" });
+          }
+          if (scope.includes("tenant")) {
+            rows.push({ table_name: table, column_name: "tenant_id" });
+          }
+        }
+        return [rows, []];
       }
       if (source.includes("information_schema.STATISTICS")) {
         return [[{ count: domain.expectedTables.length }], []];
@@ -189,6 +204,7 @@ test("runs every canonical applier, validates structure, seeds once, and closes 
 
   assert.equal(result.status, "pass");
   assert.equal(result.expectedSha, "a".repeat(40));
+  assert.equal(result.releaseSha, "a".repeat(40));
   assert.equal(result.domains.length, 13);
   assert.equal(result.canonicalDestination, "morro-de-sao-paulo");
   assert.equal(
@@ -258,5 +274,65 @@ test("rejects stale exact-head execution", async () => {
       },
     }),
     /PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH/u,
+  );
+});
+
+test("requires explicit expected SHA and exact immutable release identity", async () => {
+  const missingExpected = environment();
+  delete missingExpected.EXPECTED_SHA;
+  await assert.rejects(
+    runProductionDatabasePredeploy({
+      environment: missingExpected,
+      dependencies: dependencies([]),
+      poolFactory() {
+        throw new Error("pool must not be created");
+      },
+    }),
+    /EXPECTED_SHA_REQUIRED/u,
+  );
+
+  await assert.rejects(
+    runProductionDatabasePredeploy({
+      environment: environment({ MORRO_RELEASE_SHA: "b".repeat(40) }),
+      dependencies: dependencies([]),
+      poolFactory() {
+        throw new Error("pool must not be created");
+      },
+    }),
+    /PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH/u,
+  );
+});
+
+test("fails closed when a scoped table loses its canonical tenant column", async () => {
+  const closed = [];
+  const baseFactory = poolFactory(closed);
+  await assert.rejects(
+    runProductionDatabasePredeploy({
+      environment: environment(),
+      dependencies: dependencies([]),
+      poolFactory(databaseUrl, domain) {
+        const pool = baseFactory(databaseUrl, domain);
+        if (domain.name !== "business") return pool;
+        const originalQuery = pool.query.bind(pool);
+        pool.query = async (sql) => {
+          const [rows, metadata] = await originalQuery(sql);
+          if (String(sql).includes("information_schema.COLUMNS")) {
+            return [
+              rows.filter(
+                (row) =>
+                  !(
+                    row.table_name === "business_places" &&
+                    row.column_name === "destination_id"
+                  ),
+              ),
+              metadata,
+            ];
+          }
+          return [rows, metadata];
+        };
+        return pool;
+      },
+    }),
+    /PRODUCTION_DATABASE_SCOPE_POLICY_MISMATCH_BUSINESS_BUSINESS_PLACES/u,
   );
 });
