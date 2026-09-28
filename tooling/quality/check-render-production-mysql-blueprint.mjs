@@ -173,11 +173,7 @@ for (const required of [
 ]) {
   requireText(init, required);
 }
-requireText(
-  init,
-  "\\`$database\\`",
-  "escaped SQL database identifier",
-);
+requireText(init, "\\`$database\\`", "escaped SQL database identifier");
 
 forbidText(init, "morro_app", "shared broad production database user");
 
