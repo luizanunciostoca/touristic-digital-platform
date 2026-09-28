@@ -41,8 +41,7 @@ export function validateManifestAndFiles(manifest, changedFiles) {
   );
 
   const unauthorized = changedFiles.filter(
-    (path) =>
-      !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
+    (path) => !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
   );
   assert.deepEqual(unauthorized, [], "CHANGESET_OWNERSHIP_VIOLATION");
 
@@ -118,7 +117,11 @@ export function buildIndependentProof(root, manifestPath, env = process.env) {
     "TRUSTED_VALIDATOR_TREE_INVALID",
   );
 
-  const dirty = git(targetRoot, ["status", "--porcelain", "--untracked-files=all"]);
+  const dirty = git(targetRoot, [
+    "status",
+    "--porcelain",
+    "--untracked-files=all",
+  ]);
   assert.equal(dirty, "", "DIRTY_CANDIDATE_WORKTREE");
 
   const headSha = git(targetRoot, ["rev-parse", "HEAD"]);
