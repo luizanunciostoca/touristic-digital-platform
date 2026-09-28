@@ -7,9 +7,30 @@
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/remediation-orphan-claim-gc-20260928",
       "baseSha": "7ef92e02f1a230d6317445ea5a16b0843e805793",
-      "paths": [".morro/changesets/MD-REMEDIATION-ORPHAN-CLAIM-GC.json"],
-      "domains": ["ci-governance"],
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-ORPHAN-CLAIM-GC.json"
+      ],
+      "domains": [
+        "ci-governance"
+      ],
       "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-29T23:59:59Z"
+    },
+    "MD-REMEDIATION-RENDER-SMOKE-HEALTHY": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-render-smoke-healthy-20260928",
+      "baseSha": "4443d30db2e000db844db9936b1c8244d9660e03",
+      "paths": [
+        "tooling/payments/render-v2-smoke.mjs",
+        "tooling/ci/render-v2-smoke-contract.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-RENDER-SMOKE-HEALTHY.json"
+      ],
+      "domains": [
+        "ci-release"
+      ],
+      "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
     }
