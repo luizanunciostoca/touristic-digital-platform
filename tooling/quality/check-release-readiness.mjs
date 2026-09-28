@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { canonicalDatabaseDomains } from "../database/canonical-database-topology.mjs";
 
 const root = process.cwd();
 
@@ -67,6 +68,11 @@ const [
 
 requireText(production, "production blueprint", "name: morro-digital-v2");
 requireText(production, "production blueprint", "runtime: node");
+requireText(
+  production,
+  "production blueprint",
+  "preDeployCommand: node apps/morro-digital-platform/tooling/platform-database-migrate.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+);
 requireText(production, "production blueprint", "healthCheckPath: /readyz");
 requireText(
   dockerfile,
@@ -132,6 +138,14 @@ requireDirective(
   "production blueprint",
 );
 
+for (const { environmentKey } of canonicalDatabaseDomains) {
+  requireDirective(
+    production,
+    environmentKey,
+    "sync: false",
+    "production blueprint",
+  );
+}
 for (const [key, directive] of [
   ["DASHBOARD_AUTH_SECRET", "generateValue: true"],
   ["DASHBOARD_USERS_JSON", "sync: false"],
@@ -198,6 +212,8 @@ requireText(
 );
 for (const marker of [
   '"MORRO-STAGING-PREDEPLOY"',
+  '"platform-database-migrate"',
+  "platform-database-migrate.mjs",
   '"payments-migrate"',
   '"legacy-commercial-draft-backfill"',
   "legacy-commercial-place-backfill.mjs",
