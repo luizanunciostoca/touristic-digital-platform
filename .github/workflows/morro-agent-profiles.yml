@@ -19,7 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  resolve-changeset:
+  resolve-pr-changeset:
+    if: github.event_name == 'pull_request'
     name: resolve-agent-profile-changeset
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -28,27 +29,39 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           package-manager-cache: false
-      - name: Resolve the registered ChangeSet for this branch
+      - name: Resolve the registered ChangeSet for this PR branch
         id: changeset
         env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
         run: |
           path="$(node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH")"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
-  validate:
-    needs: resolve-changeset
+  validate-pr:
+    if: github.event_name == 'pull_request'
+    needs: resolve-pr-changeset
     name: agent-profile-contract
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@93bfba78e1620c1106c3fbe39766dbc3dff6a888
     with:
-      candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
-      base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-      manifest_path: ${{ needs.resolve-changeset.outputs.manifest_path }}
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      manifest_path: ${{ needs.resolve-pr-changeset.outputs.manifest_path }}
+    permissions:
+      contents: read
+
+  validate-merge-group:
+    if: github.event_name == 'merge_group'
+    name: agent-profile-contract
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@93bfba78e1620c1106c3fbe39766dbc3dff6a888
+    with:
+      candidate_sha: ${{ github.sha }}
+      base_sha: ${{ github.event.merge_group.base_sha }}
+      manifest_path: .morro/changesets/MD-CP-002C.json
     permissions:
       contents: read
