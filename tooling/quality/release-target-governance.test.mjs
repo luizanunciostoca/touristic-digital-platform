@@ -54,7 +54,7 @@ process.stdout.write(result + "\\n");
     );
     const run = (overrides = {}) =>
       execFileSync(
-        "/bin/bash",
+        "bash",
         ["--noprofile", "--norc", "-euo", "pipefail", "-c", script],
         {
           cwd: fixture,
