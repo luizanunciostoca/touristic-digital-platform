@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-GUARD",
   "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
   "branch": "infra/remediation-claim-maintenance-20260928",
-  "state": "LOCAL_PROVEN",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
