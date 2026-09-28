@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   mkdtempSync,
   mkdirSync,
+  readFileSync,
   writeFileSync,
   symlinkSync,
   rmSync,
@@ -157,5 +158,31 @@ test("manifest input rejects a symlinked changeset directory", (t) => {
   assert.throws(
     () => validateManifestPath(root, ".morro/changesets/MD-TEST.json"),
     /MANIFEST_PATH_ESCAPE/u,
+  );
+});
+
+test("trusted bootstrap validates registry writes generically under orchestrator authority", () => {
+  const workflow = readFileSync(
+    new URL(
+      "../../.github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  for (const marker of [
+    "needs: unit",
+    "MANIFEST_PATH: ${{ needs.unit.outputs.manifest_path }}",
+    "CLAIM_GUARD_AUTHORITY: ORCHESTRATOR",
+    "grep -Fxq '.github/morro-control/claims.json'",
+    'test "$owner" = "CHATGPT-PRO-CONTROL"',
+    "steps.registry-proof.outputs.required == 'true'",
+  ]) {
+    assert.ok(workflow.includes(marker), marker);
+  }
+  assert.equal(
+    workflow.includes(
+      "github.event.pull_request.head.ref == 'infra/remediation-workspace-claim-registration-20260928'",
+    ),
+    false,
   );
 });
