@@ -1,0 +1,35 @@
+{
+  "id": "MD-REMEDIATION-WORKSPACE-CLAIM-REGISTRATION",
+  "baseSha": "1601b1450cc15290891838b4f79e4d1986ffce6f",
+  "branch": "infra/remediation-workspace-claim-registration-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-REMEDIATION-WORKSPACE-CLAIM-REGISTRATION.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
