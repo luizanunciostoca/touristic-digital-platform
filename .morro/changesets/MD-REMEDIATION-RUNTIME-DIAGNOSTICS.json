@@ -1,16 +1,14 @@
 {
-  "id": "MD-REMEDIATION-GUARD-HARDENING",
-  "baseSha": "ffbe7576176f1ea80302dd35635b03c81186ca4e",
-  "branch": "infra/remediation-guard-hardening-20260928",
+  "id": "MD-REMEDIATION-RUNTIME-DIAGNOSTICS",
+  "baseSha": "7105d020d167d7f6aa89091e7529fb3b7c8dbc5a",
+  "branch": "fix/remediation-commerce-diagnostics-20260928",
   "state": "REMOTE_PROVEN",
-  "risk": "critical",
+  "risk": "high",
   "owns": {
     "paths": [
-      "tooling/fabric/claim-guard.mjs",
-      "tooling/fabric/claim-guard.test.mjs",
-      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-      ".github/workflows/morro-claim-guard.yml",
-      ".morro/changesets/MD-REMEDIATION-GUARD-HARDENING.json",
+      "apps/morro-digital-platform/tooling/commerce-api.mjs",
+      "apps/morro-digital-platform/tooling/commerce-api.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-RUNTIME-DIAGNOSTICS.json",
       ".github/morro-control/claims.json"
     ],
     "contracts": []
@@ -28,7 +26,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-REMEDIATION-GUARD"],
+  "dependencies": [],
   "requiredEvidence": [
     "format",
     "secrets",
