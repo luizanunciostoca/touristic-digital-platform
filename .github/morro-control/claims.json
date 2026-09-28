@@ -25,9 +25,7 @@
         ".github/pull_request_template.md",
         "AGENTS.md"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "CLAIMED",
       "expiresAt": "2026-10-05T23:59:59Z"
