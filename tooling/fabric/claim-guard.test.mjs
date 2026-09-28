@@ -926,3 +926,65 @@ test("registry maintenance still rejects overlapping live worker claims", () => 
     /CLAIM_OVERLAP_DETECTED/u,
   );
 });
+
+test("handoff source ownership cannot be removed, narrowed or broadened", () => {
+  for (const mutate of [
+    (source) => {
+      delete source.owns;
+    },
+    (source) => {
+      source.owns.paths.pop();
+    },
+    (source) => {
+      source.owns.paths.push("server/**");
+    },
+    (source) => {
+      delete source.owns.contracts;
+    },
+    (source) => {
+      source.owns.contracts.push("new-contract");
+    },
+  ]) {
+    const data = handoffFixture();
+    data.baseFromManifest.owns.contracts = ["existing-contract"];
+    data.candidateFromManifest.owns.contracts = ["existing-contract"];
+    mutate(data.candidateFromManifest);
+    assert.throws(
+      () => validateClaimHandoff(data),
+      /HANDOFF_FROM_OWNERSHIP_(?:REQUIRED|CHANGED)/u,
+    );
+  }
+});
+
+test("handoff rejects a divergent candidate even with valid manifests and identical tree", () => {
+  const repo = createHandoffProofRepository();
+  try {
+    git(repo.root, ["checkout", "-b", "divergent", repo.currentBaseSha + "^"]);
+    git(repo.root, ["read-tree", "--reset", "-u", repo.headSha]);
+    git(repo.root, [
+      "commit",
+      "-m",
+      "same candidate files on divergent history",
+    ]);
+    const candidateHead = git(repo.root, ["rev-parse", "HEAD"]);
+    assert.equal(
+      git(repo.root, ["rev-parse", candidateHead + "^{tree}"]),
+      git(repo.root, ["rev-parse", repo.headSha + "^{tree}"]),
+    );
+    assert.throws(
+      () =>
+        buildClaimHandoffProof(repo.trusted, repo.root, {
+          EXPECTED_CANDIDATE_SHA: candidateHead,
+          EXPECTED_BASE_SHA: repo.currentBaseSha,
+          EXPECTED_BRANCH: repo.reconcileBranch,
+          MANIFEST_PATH: repo.reconPath,
+          HANDOFF_FROM_MANIFEST_PATH: repo.fromPath,
+          HANDOFF_TO_MANIFEST_PATH: repo.toPath,
+        }),
+      /HANDOFF_BASE_NOT_ANCESTOR/u,
+    );
+  } finally {
+    git(repo.root, ["worktree", "remove", "--force", repo.trusted]);
+    rmSync(repo.parent, { recursive: true, force: true });
+  }
+});

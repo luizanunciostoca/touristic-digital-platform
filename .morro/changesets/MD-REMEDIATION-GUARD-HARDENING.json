@@ -1,0 +1,43 @@
+{
+  "id": "MD-REMEDIATION-GUARD-HARDENING",
+  "baseSha": "7105d020d167d7f6aa89091e7529fb3b7c8dbc5a",
+  "branch": "infra/remediation-guard-hardening-20260928",
+  "state": "LOCAL_PROVEN",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-claim-guard.yml",
+      ".morro/changesets/MD-REMEDIATION-GUARD-HARDENING.json",
+      ".github/morro-control/claims.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-REMEDIATION-GUARD"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
