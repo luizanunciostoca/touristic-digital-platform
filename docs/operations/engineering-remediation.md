@@ -38,7 +38,7 @@ gh workflow run final-release-acceptance.yml --ref main
 ```
 
 The workflow captures its immutable event SHA, creates the lightweight tag
-`rc/<40-character-sha>`, and dispatches all 47 suites and staging on that tag.
+`rc/<40-character-sha>`, and dispatches the unified 60-suite inventory and staging on that tag.
 Every promotion proves the exact checkout, the remote candidate tag, and that
 the candidate is an ancestor of protected main. Advancing main does not revoke
 candidate evidence. A missing/moved tag, an unmerged source, or a mismatched
@@ -57,6 +57,23 @@ The existing bootstrap proof workflow resolves the registered branch ChangeSet
 instead of accumulating a ternary for every new branch. Its trusted reusable
 proof implementation remains pinned; candidate code does not become the proof
 authority.
+
+## One release dispatcher
+
+Live evidence exposed another automatic fan-out: Control Center Final
+Qualification dispatched 15 workflows after the CI merge. Merge Queue Full
+Regression was a third full-matrix dispatcher. Both orchestration files are
+removed; their tests are preserved in the existing acceptance manifest. The
+union is 60 unique suites (47 original plus 13 unique Control Center/security
+suites), avoiding two duplicated ticketing dispatches. Required Quality still
+handles PRs, main and merge groups. Candidate-tag runs explicitly force full
+impact, even when the latest source change is documentation.
+
+This changes full-suite frequency and removes duplicate orchestration, not the
+coverage of an intentional release. Individual affected PR workflows remain.
+Retries reuse successful suites bound to the same immutable candidate; only
+missing or failed suites are dispatched again. Acceptance evidence includes the
+attempt number, preserving failed-attempt evidence without upload collisions.
 
 ## Impact enforcement, first stage
 
@@ -82,6 +99,13 @@ Revert the remediation merge through a reviewed PR to restore the previous CI
 contract. Keep candidate tags and their evidence; do not retag published sources.
 The tag ruleset can be disabled separately by a repository administrator if the
 candidate feature is fully rolled back. Do not loosen main protection.
+
+The first explicit run `36380623305` failed safely before dispatching suites:
+GitHub CLI printed a 404 JSON body to stdout, which the bootstrap misread as an
+existing tag. The bootstrap now queries Git refs directly and tests its actual
+shell against an absent and an existing tag. This preserves idempotence without
+swallowing API or Git transport failures. The initial candidate tag was registered
+explicitly at merged SHA `2f5c1fcf42b9b300aecc650a12ba57fada007f0f` before retry.
 
 Source deployments still rebuild on Render; source identity is not image digest
 identity. OCI build-once promotion, broader affected-domain enforcement, runtime degradation,

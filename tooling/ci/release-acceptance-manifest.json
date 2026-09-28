@@ -189,6 +189,58 @@
     {
       "workflow": "ticketing-m148-transaction-contract.yml",
       "reuse_tree_equivalent": true
+    },
+    {
+      "workflow": "quality.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "security-scanning.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "dependency-security-audit.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "auth-integration-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "business-auth-integration-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "crm-platform-auth-integration-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-browser-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-affiliates-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-affiliates-browser-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-financial-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-financial-browser-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-content-contract.yml",
+      "reuse_tree_equivalent": false
+    },
+    {
+      "workflow": "control-center-destination-contract.yml",
+      "reuse_tree_equivalent": false
     }
   ]
 }

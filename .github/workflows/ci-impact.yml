@@ -65,10 +65,12 @@ jobs:
           elif [ "${{ github.event_name }}" = "push" ]; then
             echo "sha=${{ github.event.before }}" >> "$GITHUB_OUTPUT"
           else
-            echo "sha=HEAD^" >> "$GITHUB_OUTPUT"
+            echo "sha=$(git merge-base refs/remotes/origin/main HEAD)" >> "$GITHUB_OUTPUT"
           fi
       - name: Analyze changed domains and risk
         id: impact
+        env:
+          CI_RELEASE_CANDIDATE: ${{ startsWith(github.ref, 'refs/tags/rc/') }}
         run: node tooling/ci/impact-analyzer.mjs "${{ steps.base.outputs.sha }}" "$GITHUB_SHA" | tee ci-impact-report.json
       - name: Upload impact evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
