@@ -38,6 +38,22 @@
       "risk": "P0",
       "status": "REMOTE_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-GUARD": {
+      "owner": "CHATGPT-WORK-CLAIM-GUARD",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-claim-maintenance-20260928",
+      "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+      "paths": [
+        "tooling/fabric/claim-guard.mjs",
+        "tooling/fabric/claim-guard.test.mjs",
+        ".github/workflows/morro-claim-guard-trusted.yml",
+        ".morro/changesets/MD-REMEDIATION-GUARD.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }
