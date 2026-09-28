@@ -26,6 +26,9 @@ RUN set -eux; \
     microdnf update -y openssl openssl-libs libevent curl libcurl libxml2; \
     microdnf clean all
 
+COPY tooling/render/mysql-staging/morro-memory.cnf /etc/mysql/conf.d/99-morro-memory.cnf
+RUN mysqld --verbose --help >/dev/null
+
 COPY tooling/render/mysql-staging/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh
 COPY tooling/render/mysql-staging/backup-restore-drill.sh /usr/local/bin/morro-mysql-backup-restore-drill
 RUN chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh /usr/local/bin/morro-mysql-backup-restore-drill
