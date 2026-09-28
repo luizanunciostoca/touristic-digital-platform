@@ -25,7 +25,9 @@
       "tooling/render/production-mysql-cutover-env.test.mjs",
       "apps/morro-digital-platform/tooling/production-db-bootstrap.mjs",
       "apps/morro-digital-platform/tooling/database-environment.mjs",
-      "apps/morro-digital-platform/tooling/database-environment.test.mjs"
+      "apps/morro-digital-platform/tooling/database-environment.test.mjs",
+      "tooling/render/with-production-mysql-env.mjs",
+      "tooling/render/with-production-mysql-env.test.mjs"
     ],
     "contracts": []
   },
@@ -59,7 +61,12 @@
     "production-mysql-least-privilege-readback",
     "railway-logical-recovery-snapshot",
     "production-mysql-cutover",
-    "production-domain-bootstrap"
+    "production-domain-bootstrap",
+    "production-mysql-complete-schema-bootstrap",
+    "production-mysql-canonical-destination-seed",
+    "production-mysql-exact-sha-cutover",
+    "production-mysql-healthy-readiness",
+    "production-mysql-rollback-path-preserved"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
