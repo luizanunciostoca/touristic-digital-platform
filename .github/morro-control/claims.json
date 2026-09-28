@@ -19,6 +19,29 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
+    },
+    "MD-PRODUCTION-MYSQL-RENDER": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/production-mysql-render-20260928",
+      "baseSha": "c0b48b27c8613d1cef05755ba27c29baa91fdea8",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".morro/changesets/MD-PRODUCTION-MYSQL-RENDER.json",
+        ".trivyignore.yaml",
+        "render.yaml",
+        "package.json",
+        "tooling/render/mysql-production/Dockerfile",
+        "tooling/render/mysql-production/morro-memory.cnf",
+        "tooling/render/mysql-production/01-init-databases.sh",
+        "tooling/quality/check-render-production-mysql-blueprint.mjs",
+        "tooling/quality/render-production-mysql-blueprint.test.mjs",
+        ".github/workflows/security-scanning.yml"
+      ],
+      "domains": ["ci-release", "database", "infrastructure"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-29T23:59:59Z"
     }
   }
 }

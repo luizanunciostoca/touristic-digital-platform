@@ -221,3 +221,44 @@ jobs:
           path: trivy-mysql-vulnerabilities.json
           if-no-files-found: warn
           retention-days: 30
+
+  production-mysql-container:
+    name: Production MySQL container
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build pinned production MySQL image
+        run: >-
+          docker build
+          --file tooling/render/mysql-production/Dockerfile
+          --tag morro-digital-v2-production-mysql:sec07
+          .
+      - name: Scan production MySQL image for embedded secrets
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-production-mysql:sec07
+          scanners: secret
+          exit-code: 1
+          format: table
+      - name: Scan production MySQL image for HIGH and CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: morro-digital-v2-production-mysql:sec07
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: false
+          trivyignores: .trivyignore.yaml
+          exit-code: 1
+          format: json
+          output: trivy-production-mysql-vulnerabilities.json
+      - name: Upload production MySQL vulnerability evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-mysql-vulnerabilities-${{ github.run_id }}
+          path: trivy-production-mysql-vulnerabilities.json
+          if-no-files-found: warn
+          retention-days: 30
