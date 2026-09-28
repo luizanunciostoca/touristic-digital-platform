@@ -10,7 +10,10 @@
       ".github/morro-control/claim-schema.json",
       ".github/pull_request_template.md",
       "AGENTS.md",
-      ".morro/changesets/MD-CP-003-GOV.json"
+      ".morro/changesets/MD-CP-003-GOV.json",
+      ".github/workflows/morro-control-plane-governance.yml",
+      "tooling/fabric/control-plane-governance.mjs",
+      "tooling/fabric/control-plane-governance.test.mjs"
     ],
     "contracts": []
   },
@@ -27,7 +30,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-003-HOOKS"],
+  "dependencies": [
+    "MD-CP-003-HOOKS"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
