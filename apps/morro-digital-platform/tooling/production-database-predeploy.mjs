@@ -319,14 +319,14 @@ function sourceIdentity(environment) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SERVICE_DENIED");
   }
   const expectedSha = required(environment, "EXPECTED_SHA");
-  const releaseSha = required(environment, "MORRO_RELEASE_SHA");
-  if (!SHA_PATTERN.test(releaseSha) || !SHA_PATTERN.test(expectedSha)) {
+  const renderGitCommit = required(environment, "RENDER_GIT_COMMIT");
+  if (!SHA_PATTERN.test(renderGitCommit) || !SHA_PATTERN.test(expectedSha)) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_INVALID");
   }
-  if (releaseSha !== expectedSha) {
+  if (renderGitCommit !== expectedSha) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH");
   }
-  return Object.freeze({ expectedSha, releaseSha });
+  return Object.freeze({ expectedSha, renderGitCommit });
 }
 
 function validateDatabaseUrl(raw, domain) {
