@@ -51,7 +51,10 @@ test("production MySQL Blueprint satisfies bootstrap wiring without application 
 
 test("canonical bootstrap polling tolerates Render visibility lag", () => {
   const source = fs.readFileSync(
-    path.join(root, ".github/workflows/production-mysql-canonical-bootstrap.yml"),
+    path.join(
+      root,
+      ".github/workflows/production-mysql-canonical-bootstrap.yml",
+    ),
     "utf8",
   );
   assert.match(source, /deploys\?limit=20/u);
