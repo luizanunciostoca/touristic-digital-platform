@@ -1,0 +1,141 @@
+name: Trusted Agent Profile Contract
+
+on:
+  workflow_call:
+    inputs:
+      candidate_sha:
+        required: true
+        type: string
+      base_sha:
+        required: true
+        type: string
+      manifest_path:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-agent-profile-contract-${{ inputs.candidate_sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: trusted-agent-profile-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify caller-bound source identities
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          BASE_SHA: ${{ inputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          MERGE_HEAD_SHA: ${{ github.sha }}
+          MERGE_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_BASE_REF: ${{ github.event.merge_group.base_ref }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request)
+              test "$PR_BASE_REF" = "main"
+              test "$CANDIDATE_SHA" = "$PR_HEAD_SHA"
+              test "$BASE_SHA" = "$PR_BASE_SHA"
+              ;;
+            merge_group)
+              test "$MERGE_BASE_REF" = "refs/heads/main"
+              test "$CANDIDATE_SHA" = "$MERGE_HEAD_SHA"
+              test "$BASE_SHA" = "$MERGE_BASE_SHA"
+              ;;
+            *)
+              echo "Unsupported caller event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.base_sha }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: trusted-identity
+        name: Verify trusted validator checkout identity
+        shell: bash
+        env:
+          EXPECTED_TRUSTED_SHA: ${{ inputs.base_sha }}
+        run: |
+          set -euo pipefail
+          head_sha="$(git -C trusted rev-parse HEAD)"
+          tree_sha="$(git -C trusted rev-parse 'HEAD^{tree}')"
+          test "$head_sha" = "$EXPECTED_TRUSTED_SHA"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "tree_sha=$tree_sha" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Test trusted validator implementation
+        run: >-
+          node --test
+          trusted/tooling/quality/agent-profile-contract-trusted.test.mjs
+
+      - name: Validate candidate profiles as data
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          TRUSTED_VALIDATOR_SHA: ${{ steps.trusted-identity.outputs.head_sha }}
+          TRUSTED_VALIDATOR_TREE_SHA: ${{ steps.trusted-identity.outputs.tree_sha }}
+        run: >-
+          node
+          trusted/tooling/quality/agent-profile-contract-trusted.mjs
+          candidate
+
+      - name: Test trusted independent proof implementation
+        run: >-
+          node --test
+          trusted/tooling/quality/independent-proof-trusted.test.mjs
+
+      - name: Audit candidate workflow supply chain with trusted code
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd candidate
+          node ../trusted/tooling/quality/check-workflow-supply-chain.mjs --strict
+
+      - name: Build automated independent proof
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
+          TRUSTED_VALIDATOR_SHA: ${{ steps.trusted-identity.outputs.head_sha }}
+          TRUSTED_VALIDATOR_TREE_SHA: ${{ steps.trusted-identity.outputs.tree_sha }}
+        shell: bash
+        run: >-
+          node
+          trusted/tooling/quality/independent-proof-trusted.mjs
+          candidate
+          "${{ inputs.manifest_path }}"
+          | tee automated-independent-proof.json
+
+      - name: Upload automated independent proof
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: automated-independent-proof-${{ inputs.candidate_sha }}
+          path: automated-independent-proof.json
+          if-no-files-found: error
+          retention-days: 30

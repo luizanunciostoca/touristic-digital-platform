@@ -1,0 +1,44 @@
+name: Trusted Agent Profile Bootstrap
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "tooling/quality/agent-profile-contract-trusted.mjs"
+      - "tooling/quality/agent-profile-contract-trusted.test.mjs"
+      - "tooling/quality/independent-proof-trusted.mjs"
+      - "tooling/quality/independent-proof-trusted.test.mjs"
+      - ".github/morro-control/policy.json"
+      - ".github/pull_request_template.md"
+      - "AGENTS.md"
+      - ".github/workflows/morro-agent-profiles-trusted.yml"
+      - ".github/workflows/morro-agent-profile-trust-bootstrap.yml"
+      - ".morro/changesets/MD-CP-002C-TRUST.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-agent-profile-bootstrap-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: trusted-agent-profile-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Test trusted validators
+        run: >-
+          node --test
+          tooling/quality/agent-profile-contract-trusted.test.mjs
+          tooling/quality/independent-proof-trusted.test.mjs
