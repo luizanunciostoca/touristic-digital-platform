@@ -186,3 +186,20 @@ test("trusted bootstrap validates registry writes generically under orchestrator
     false,
   );
 });
+
+test("agent profile caller resolves the branch ChangeSet instead of using a hardcoded manifest", () => {
+  const workflow = readFileSync(
+    new URL("../../.github/workflows/morro-agent-profiles.yml", import.meta.url),
+    "utf8",
+  );
+  for (const marker of [
+    "resolve-agent-profile-changeset",
+    'node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH"',
+    "needs: resolve-changeset",
+    "manifest_path: ${{ needs.resolve-changeset.outputs.manifest_path }}",
+  ]) {
+    assert.ok(workflow.includes(marker), marker);
+  }
+  assert.equal(workflow.includes("MD-CP-002C-RECON.json"), false);
+  assert.equal(workflow.includes("MD-CP-002C.json"), false);
+});
