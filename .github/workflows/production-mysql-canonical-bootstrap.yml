@@ -200,7 +200,7 @@ jobs:
 
             http_status="$(curl --silent --show-error               --output /tmp/bootstrap-service.json               --write-out '%{http_code}'               --request POST               --header "$auth"               --header "Accept: application/json"               --header "Content-Type: application/json"               --data-binary @/tmp/bootstrap-create.json               "$api/services")"
             test "$http_status" = "201"
-            bootstrap_service_id="$(jq -r '.service.id // empty'               /tmp/bootstrap-service.json)"
+            bootstrap_service_id="$(jq -r '.service.id // .id // empty'               /tmp/bootstrap-service.json)"
             test -n "$bootstrap_service_id"
           else
             for encoded in $(jq -r '.[] | @base64' /tmp/bootstrap-env.json); do
@@ -229,19 +229,22 @@ jobs:
 
           status=""
           for _ in $(seq 1 180); do
-            api_get "$api/services/$bootstrap_service_id/deploys/$deploy_id"               > /tmp/deploy-state.json
-            status="$(jq -r '.status // empty' /tmp/deploy-state.json)"
+            if ! api_get "$api/services/$bootstrap_service_id/deploys?limit=20"               > /tmp/deploy-state.json; then
+              sleep 5
+              continue
+            fi
+            status="$(jq -r --arg deploy "$deploy_id"               '[.[] | (.deploy // .) | select(.id == $deploy)][0].status // empty'               /tmp/deploy-state.json)"
             case "$status" in
               live) break ;;
               build_failed|update_failed|pre_deploy_failed|canceled)
-                jq '{id,status,commit}' /tmp/deploy-state.json >&2
+                jq -c --arg deploy "$deploy_id"                   '[.[] | (.deploy // .) | select(.id == $deploy)][0] | {id,status,commit}'                   /tmp/deploy-state.json >&2
                 exit 1
                 ;;
               *) sleep 5 ;;
             esac
           done
           test "$status" = "live"
-          jq -e --arg sha "$EXPECTED_SHA"             '.status == "live" and .commit.id == $sha'             /tmp/deploy-state.json >/dev/null
+          jq -e --arg deploy "$deploy_id" --arg sha "$EXPECTED_SHA"             'any(.[] | (.deploy // .); .id == $deploy and .status == "live" and .commit.id == $sha)'             /tmp/deploy-state.json >/dev/null
 
           echo "bootstrap_service_id=$bootstrap_service_id" >> "$GITHUB_OUTPUT"
           echo "bootstrap_deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
@@ -277,7 +280,10 @@ jobs:
 
           status=""
           for _ in $(seq 1 180); do
-            curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"               > /tmp/bootstrap-job.json
+            if ! curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"               > /tmp/bootstrap-job.json; then
+              sleep 5
+              continue
+            fi
             status="$(jq -r '.status // empty' /tmp/bootstrap-job.json)"
             case "$status" in
               succeeded) break ;;
@@ -298,7 +304,10 @@ jobs:
 
           evidence=""
           for _ in $(seq 1 30); do
-            curl --fail-with-body --silent --show-error               --get               --header "$auth"               --header "Accept: application/json"               --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"               --data-urlencode "resource=$job_id"               --data-urlencode "direction=backward"               --data-urlencode "limit=100"               "$api/logs" > /tmp/bootstrap-job-logs.json
+            if ! curl --fail-with-body --silent --show-error               --get               --header "$auth"               --header "Accept: application/json"               --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"               --data-urlencode "resource=$job_id"               --data-urlencode "direction=backward"               --data-urlencode "limit=100"               "$api/logs" > /tmp/bootstrap-job-logs.json; then
+              sleep 2
+              continue
+            fi
             evidence="$(jq -c               '[.logs[]?.message | fromjson? |
                 select(.contract == "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP")][0] // empty'               /tmp/bootstrap-job-logs.json)"
             [ -n "$evidence" ] && break
