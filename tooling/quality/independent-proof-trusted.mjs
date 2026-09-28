@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -93,10 +93,34 @@ function diagnosticCode(cause) {
   );
 }
 
+export function validateManifestPath(root, manifestPath) {
+  assert.equal(typeof manifestPath, "string", "MANIFEST_PATH_INVALID");
+  assert.match(
+    manifestPath,
+    /^\.morro\/changesets\/MD-[A-Z0-9-]+\.json$/u,
+    "MANIFEST_PATH_INVALID",
+  );
+  const canonicalRoot = realpathSync(resolve(root));
+  const expectedPath = resolve(canonicalRoot, manifestPath);
+  assert.ok(lstatSync(expectedPath).isFile(), "MANIFEST_NOT_REGULAR_FILE");
+  assert.equal(
+    realpathSync(expectedPath),
+    expectedPath,
+    "MANIFEST_PATH_ESCAPE",
+  );
+  return expectedPath;
+}
+
 export function buildIndependentProof(root, manifestPath, env = process.env) {
   const targetRoot = resolve(root);
   const manifest = JSON.parse(
-    readFileSync(resolve(targetRoot, manifestPath), "utf8"),
+    readFileSync(validateManifestPath(targetRoot, manifestPath), "utf8"),
+  );
+
+  assert.equal(
+    manifestPath,
+    `.morro/changesets/${manifest.id}.json`,
+    "MANIFEST_ID_PATH_MISMATCH",
   );
 
   const expectedHead = env.EXPECTED_CANDIDATE_SHA ?? "";
