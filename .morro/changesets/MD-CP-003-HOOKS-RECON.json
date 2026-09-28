@@ -1,16 +1,18 @@
 {
-  "id": "MD-CP-003-TRUST-RECON",
-  "baseSha": "3973e2ddab85d6ee3c3865ab9411513e65db85ed",
-  "branch": "infra/control-plane-v3.2-stage-c-trust-reconcile-20260928",
-  "state": "MERGED",
+  "id": "MD-CP-003-HOOKS-RECON",
+  "baseSha": "edc7380c11774d475af2e80ddf75b7b1e53e9046",
+  "branch": "infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928",
+  "state": "MERGE_READY",
   "risk": "high",
   "owns": {
     "paths": [
       ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
       ".github/morro-control/claims.json",
-      ".morro/changesets/MD-CP-003-TRUST.json",
+      ".morro/changesets/MD-CP-003-HOOKS.json",
+      ".morro/changesets/MD-CP-003-HOOKS-RECON.json",
+      ".morro/changesets/MD-CP-003-GOV.json",
       ".morro/changesets/MD-CP-003-TRUST-RECON.json",
-      ".morro/changesets/MD-CP-003-HOOKS.json"
+      ".github/workflows/morro-claim-guard.yml"
     ],
     "contracts": []
   },
@@ -27,11 +29,13 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-003-TRUST"],
+  "dependencies": ["MD-CP-003-HOOKS", "MD-CP-003-TRUST-RECON"],
   "requiredEvidence": [
     "format",
     "secrets",
     "lint",
+    "typecheck",
+    "build",
     "affected-tests",
     "integration",
     "exact-head-identity",

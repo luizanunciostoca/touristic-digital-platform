@@ -8,6 +8,10 @@ on:
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       - ".morro/changesets/MD-CP-003-TRUST.json"
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
+      - ".morro/changesets/MD-CP-003-HOOKS.json"
+      - ".morro/changesets/MD-CP-003-HOOKS-RECON.json"
+      - ".morro/changesets/MD-CP-003-GOV.json"
+      - ".github/morro-control/claims.json"
       - "tooling/fabric/claim-guard.mjs"
       - "tooling/fabric/claim-guard.test.mjs"
 
@@ -46,7 +50,7 @@ jobs:
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
+      manifest_path: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928' && '.morro/changesets/MD-CP-003-HOOKS-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' && '.morro/changesets/MD-CP-003-TRUST-RECON.json' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-governance-20260928' && '.morro/changesets/MD-CP-003-GOV.json' || '.morro/changesets/MD-CP-003-TRUST.json' }}
     permissions:
       contents: read
 
@@ -61,5 +65,19 @@ jobs:
       manifest_path: .morro/changesets/MD-CP-003-TRUST-RECON.json
       handoff_from_manifest_path: .morro/changesets/MD-CP-003-TRUST.json
       handoff_to_manifest_path: .morro/changesets/MD-CP-003-HOOKS.json
+    permissions:
+      contents: read
+
+  hooks-claim-handoff-proof:
+    if: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928' }}
+    name: base-controlled-hooks-claim-handoff-proof
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@edc7380c11774d475af2e80ddf75b7b1e53e9046
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      branch: ${{ github.event.pull_request.head.ref }}
+      manifest_path: .morro/changesets/MD-CP-003-HOOKS-RECON.json
+      handoff_from_manifest_path: .morro/changesets/MD-CP-003-HOOKS.json
+      handoff_to_manifest_path: .morro/changesets/MD-CP-003-GOV.json
     permissions:
       contents: read
