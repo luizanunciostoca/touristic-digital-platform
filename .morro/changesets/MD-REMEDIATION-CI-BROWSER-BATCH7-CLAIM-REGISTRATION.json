@@ -1,0 +1,40 @@
+{
+  "id": "MD-REMEDIATION-CI-BROWSER-BATCH7-CLAIM-REGISTRATION",
+  "baseSha": "ccaac32255ad1b007a14fd2ef91f12559b818172",
+  "branch": "infra/remediation-ci-browser-batch7-claim-registration-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH7-CLAIM-REGISTRATION.json",
+      ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH7.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
