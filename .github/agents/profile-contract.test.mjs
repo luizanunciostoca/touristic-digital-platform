@@ -103,6 +103,17 @@ test("implementation profiles cannot gain delegation tools", () => {
   assert.throws(() => validateProfile(widened, filename));
 });
 
+test("implementation profiles require a positive workflow authority handoff", () => {
+  const filename = "platform-backend.agent.md";
+  const text = readFileSync(resolve(directory, filename), "utf8");
+  const weakened = text.replace(
+    "5. Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.",
+    "5. Do not treat `REMOTE_PROVEN` as a positive authority handoff example.",
+  );
+  assert.notEqual(weakened, text);
+  assert.throws(() => validateProfile(weakened, filename));
+});
+
 test("implementation handoff must be positive inside Workflow", () => {
   const filename = "platform-backend.agent.md";
   const text = readFileSync(resolve(directory, filename), "utf8");
