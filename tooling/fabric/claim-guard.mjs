@@ -23,10 +23,7 @@ const WRITE_LIFECYCLE_STATES = new Set([
 ]);
 
 const AUTHORITY_STATES = new Map([
-  [
-    "WORKER",
-    new Set(["IMPLEMENTING", "LOCAL_PROVEN", "REMOTE_PROVEN"]),
-  ],
+  ["WORKER", new Set(["IMPLEMENTING", "LOCAL_PROVEN", "REMOTE_PROVEN"])],
   [
     "INTEGRATOR",
     new Set(["COMPOSITION_PROVEN", "POLICY_SATISFIED", "MERGE_READY"]),
@@ -50,7 +47,11 @@ export function assertSupportedPattern(pattern) {
     return;
   }
 
-  assert.equal(pattern.includes("*"), false, "CLAIM_PATTERN_WILDCARD_UNSUPPORTED");
+  assert.equal(
+    pattern.includes("*"),
+    false,
+    "CLAIM_PATTERN_WILDCARD_UNSUPPORTED",
+  );
 }
 
 export function pathOwned(path, pattern) {
@@ -95,8 +96,15 @@ function parseExpiry(value) {
 }
 
 export function findClaimCollisions(registry, claimId, now = Date.now()) {
-  assert.equal(registry?.registryAuthority, "ORCHESTRATOR", "REGISTRY_AUTHORITY_INVALID");
-  assert.ok(registry.claims && typeof registry.claims === "object", "CLAIM_REGISTRY_INVALID");
+  assert.equal(
+    registry?.registryAuthority,
+    "ORCHESTRATOR",
+    "REGISTRY_AUTHORITY_INVALID",
+  );
+  assert.ok(
+    registry.claims && typeof registry.claims === "object",
+    "CLAIM_REGISTRY_INVALID",
+  );
 
   const current = registry.claims[claimId];
   assert.ok(current, "ACTIVE_CLAIM_MISSING");
@@ -137,12 +145,26 @@ export function validateClaimContext({
   authority = "WORKER",
   isAncestor = () => true,
 }) {
-  assert.equal(registry?.registryAuthority, "ORCHESTRATOR", "REGISTRY_AUTHORITY_INVALID");
-  assert.ok(registry.claims && typeof registry.claims === "object", "CLAIM_REGISTRY_INVALID");
+  assert.equal(
+    registry?.registryAuthority,
+    "ORCHESTRATOR",
+    "REGISTRY_AUTHORITY_INVALID",
+  );
+  assert.ok(
+    registry.claims && typeof registry.claims === "object",
+    "CLAIM_REGISTRY_INVALID",
+  );
   assert.ok(manifest && typeof manifest === "object", "CHANGESET_REQUIRED");
   assert.match(manifest.id ?? "", /^MD-[A-Z0-9-]+$/u, "CHANGESET_ID_INVALID");
-  assert.match(manifest.baseSha ?? "", SHA_PATTERN, "CHANGESET_BASE_SHA_INVALID");
-  assert.ok(WRITE_LIFECYCLE_STATES.has(manifest.state), "CHANGESET_NOT_WRITE_ACTIVE");
+  assert.match(
+    manifest.baseSha ?? "",
+    SHA_PATTERN,
+    "CHANGESET_BASE_SHA_INVALID",
+  );
+  assert.ok(
+    WRITE_LIFECYCLE_STATES.has(manifest.state),
+    "CHANGESET_NOT_WRITE_ACTIVE",
+  );
   assert.ok(AUTHORITIES.has(authority), "CLAIM_GUARD_AUTHORITY_INVALID");
   assert.ok(
     AUTHORITY_STATES.get(authority).has(manifest.state),
@@ -155,7 +177,11 @@ export function validateClaimContext({
   const claim = registry.claims[manifest.id];
   assert.ok(claim, "ACTIVE_CLAIM_MISSING");
   assert.ok(ACTIVE_CLAIM_STATUSES.has(claim.status), "CLAIM_STATUS_INACTIVE");
-  assert.equal(claim.reviewer, "AUTOMATED-INDEPENDENT-PROOF", "CLAIM_REVIEW_AUTHORITY_INVALID");
+  assert.equal(
+    claim.reviewer,
+    "AUTOMATED-INDEPENDENT-PROOF",
+    "CLAIM_REVIEW_AUTHORITY_INVALID",
+  );
   assert.equal(claim.branch, manifest.branch, "CLAIM_MANIFEST_BRANCH_MISMATCH");
   assert.equal(branch, manifest.branch, "CLAIM_RUNTIME_BRANCH_MISMATCH");
   assert.match(claim.baseSha ?? "", SHA_PATTERN, "CLAIM_BASE_SHA_INVALID");
@@ -190,14 +216,14 @@ export function validateClaimContext({
   const unauthorizedByManifest = changedFiles.filter(
     (path) => !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
   );
-  assert.deepEqual(
-    unauthorizedByManifest,
-    [],
-    "CHANGESET_OWNERSHIP_VIOLATION",
-  );
+  assert.deepEqual(unauthorizedByManifest, [], "CHANGESET_OWNERSHIP_VIOLATION");
 
   if (changedFiles.includes(".github/morro-control/claims.json")) {
-    assert.equal(authority, "ORCHESTRATOR", "WORKER_CLAIM_REGISTRY_MUTATION_FORBIDDEN");
+    assert.equal(
+      authority,
+      "ORCHESTRATOR",
+      "WORKER_CLAIM_REGISTRY_MUTATION_FORBIDDEN",
+    );
     assert.ok(
       manifest.owns.paths.includes(".github/morro-control/claims.json"),
       "ORCHESTRATOR_CLAIM_REGISTRY_OWNERSHIP_REQUIRED",
@@ -251,7 +277,11 @@ export function buildClaimGuardProof(root, env = process.env) {
   assert.ok(expectedBranch, "EXPECTED_BRANCH_REQUIRED");
   assert.ok(manifestPath, "MANIFEST_PATH_REQUIRED");
 
-  const dirty = git(targetRoot, ["status", "--porcelain", "--untracked-files=all"]);
+  const dirty = git(targetRoot, [
+    "status",
+    "--porcelain",
+    "--untracked-files=all",
+  ]);
   assert.equal(dirty, "", "DIRTY_CANDIDATE_WORKTREE");
 
   const headSha = git(targetRoot, ["rev-parse", "HEAD"]);
