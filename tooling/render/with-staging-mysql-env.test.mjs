@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { scryptSync } from "node:crypto";
 import test from "node:test";
+import { canonicalDatabaseDomains } from "../database/canonical-database-topology.mjs";
 import { reconcileStagingMysqlDomains } from "./reconcile-staging-mysql-domains.mjs";
 import {
   buildStagingControlCenterOwnerAuthEnvironment,
@@ -19,12 +20,18 @@ function fixture(overrides = {}) {
     STAGING_AUTH_DATABASE_NAME: "morro_auth_staging",
     STAGING_AUTH_DATABASE_USER: "morro_auth",
     STAGING_AUTH_DATABASE_PASSWORD: "auth+/=safe-password",
+    STAGING_AUDIT_DATABASE_NAME: "morro_audit_staging",
+    STAGING_AUDIT_DATABASE_USER: "morro_audit",
+    STAGING_AUDIT_DATABASE_PASSWORD: "audit+/=safe-password",
     STAGING_ORDERING_DATABASE_NAME: "morro_ordering_staging",
     STAGING_ORDERING_DATABASE_USER: "morro_ordering",
     STAGING_ORDERING_DATABASE_PASSWORD: "ordering+/=safe-password",
     STAGING_FINANCIAL_DATABASE_NAME: "morro_financial_staging",
     STAGING_FINANCIAL_DATABASE_USER: "morro_financial",
     STAGING_FINANCIAL_DATABASE_PASSWORD: "financial+/=safe-password",
+    STAGING_TICKETING_DATABASE_NAME: "morro_ticketing_staging",
+    STAGING_TICKETING_DATABASE_USER: "morro_ticketing",
+    STAGING_TICKETING_DATABASE_PASSWORD: "ticketing+/=safe-password",
     STAGING_AFFILIATES_DATABASE_NAME: "morro_affiliates_staging",
     STAGING_AFFILIATES_DATABASE_USER: "morro_affiliates",
     STAGING_AFFILIATES_DATABASE_PASSWORD: "affiliates+/=safe-password",
@@ -34,6 +41,9 @@ function fixture(overrides = {}) {
     STAGING_CONTENT_DATABASE_NAME: "morro_content_staging",
     STAGING_CONTENT_DATABASE_USER: "morro_content",
     STAGING_CONTENT_DATABASE_PASSWORD: "content+/=safe-password",
+    STAGING_CRM_DATABASE_NAME: "morro_crm_staging",
+    STAGING_CRM_DATABASE_USER: "morro_crm",
+    STAGING_CRM_DATABASE_PASSWORD: "crm+/=safe-password",
     STAGING_COMMERCE_DATABASE_NAME: "morro_commerce_staging",
     STAGING_COMMERCE_DATABASE_USER: "morro_commerce",
     STAGING_COMMERCE_DATABASE_PASSWORD: "commerce+/=safe-password",
@@ -43,6 +53,9 @@ function fixture(overrides = {}) {
     STAGING_NOTIFICATIONS_DATABASE_NAME: "morro_notifications_staging",
     STAGING_NOTIFICATIONS_DATABASE_USER: "morro_notifications",
     STAGING_NOTIFICATIONS_DATABASE_PASSWORD: "notifications+/=safe-password",
+    STAGING_ANALYTICS_DATABASE_NAME: "morro_analytics_staging",
+    STAGING_ANALYTICS_DATABASE_USER: "morro_analytics",
+    STAGING_ANALYTICS_DATABASE_PASSWORD: "analytics+/=safe-password",
     ...overrides,
   };
 }
@@ -70,19 +83,13 @@ function deterministicPasswordHash(password) {
 
 test("derives isolated MySQL owners plus durable Control Center audit storage", () => {
   const derived = buildStagingDatabaseEnvironment(fixture());
-  assert.deepEqual(Object.keys(derived).sort(), [
-    "AFFILIATES_DATABASE_URL",
-    "AUTH_DATABASE_URL",
-    "BUSINESS_DATABASE_URL",
-    "COMMERCE_DATABASE_URL",
-    "CONTENT_DATABASE_URL",
-    "CONTROL_CENTER_AUDIT_DATABASE_URL",
-    "DESTINATIONS_DATABASE_URL",
-    "FINANCIAL_DATABASE_URL",
-    "NOTIFICATIONS_DATABASE_URL",
-    "ORDERING_DATABASE_URL",
-  ]);
-  assert.equal(
+  assert.deepEqual(
+    Object.keys(derived).sort(),
+    canonicalDatabaseDomains
+      .map(({ environmentKey }) => environmentKey)
+      .sort(),
+  );
+  assert.notEqual(
     derived.CONTROL_CENTER_AUDIT_DATABASE_URL,
     derived.AUTH_DATABASE_URL,
   );
@@ -98,7 +105,12 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   const names = Object.values(derived).map((value) =>
     new URL(value).pathname.slice(1),
   );
-  assert.equal(new Set(names).size, 9);
+  assert.equal(new Set(names).size, canonicalDatabaseDomains.length);
+
+  const audit = new URL(derived.CONTROL_CENTER_AUDIT_DATABASE_URL);
+  assert.equal(decodeURIComponent(audit.username), "morro_audit");
+  assert.equal(decodeURIComponent(audit.password), "audit+/=safe-password");
+  assert.equal(audit.pathname, "/morro_audit_staging");
 
   const commerce = new URL(derived.COMMERCE_DATABASE_URL);
   assert.equal(decodeURIComponent(commerce.username), "morro_commerce");
@@ -542,33 +554,26 @@ test("reconciles all staging schemas without exposing credentials", async () => 
   );
 
   assert.equal(result.status, "pass");
-  assert.deepEqual(result.domains, [
-    "auth",
-    "ordering",
-    "financial",
-    "affiliates",
-    "business",
-    "content",
-    "commerce",
-    "destinations",
-    "notifications",
-  ]);
+  assert.deepEqual(
+    result.domains,
+    canonicalDatabaseDomains.map(({ id }) => id),
+  );
   assert.equal(ended, true);
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE DATABASE")).length,
-    9,
+    canonicalDatabaseDomains.length,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE USER")).length,
-    9,
+    canonicalDatabaseDomains.length,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("ALTER USER")).length,
-    9,
+    canonicalDatabaseDomains.length,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("GRANT ALL PRIVILEGES")).length,
-    9,
+    canonicalDatabaseDomains.length,
   );
   assert.equal(queries.at(-1)?.[0], "FLUSH PRIVILEGES");
   assert.equal(JSON.stringify(queries).includes("root-secret"), false);
