@@ -18,6 +18,7 @@ import {
   patternsOverlap,
   resolveCandidatePath,
   validateClaimContext,
+  validateClaimHandoff,
 } from "./claim-guard.mjs";
 
 const BASE_SHA = "a".repeat(40);
@@ -484,4 +485,153 @@ test("workflow proof rejects manifest traversal before loading", () => {
   } finally {
     rmSync(repo.root, { recursive: true, force: true });
   }
+});
+
+function handoffFixture() {
+  const fromPaths = [
+    "tooling/fabric/claim-guard.mjs",
+    ".github/morro-control/claims.json",
+  ];
+  const toPaths = [
+    ".github/hooks/**",
+    ".github/workflows/morro-claim-guard.yml",
+    ".morro/changesets/MD-CP-003-HOOKS.json",
+  ];
+
+  const baseFromManifest = {
+    id: "MD-CP-003-TRUST",
+    baseSha: BASE_SHA,
+    branch: "infra/control-plane-v3.2-stage-c-trust-bootstrap-20260927",
+    state: "MERGE_READY",
+    owns: { paths: [...fromPaths] },
+  };
+
+  const candidateFromManifest = {
+    ...baseFromManifest,
+    owns: { paths: [...fromPaths] },
+    state: "MERGED",
+  };
+  const toManifest = {
+    id: "MD-CP-003-HOOKS",
+    baseSha: CURRENT_BASE_SHA,
+    branch: "infra/control-plane-v3.2-stage-c-hooks-20260928",
+    state: "IMPLEMENTING",
+    owns: { paths: [...toPaths] },
+    dependencies: ["MD-CP-003-TRUST"],
+  };
+
+  const baseRegistry = {
+    schemaVersion: 1,
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      "MD-CP-003-TRUST": {
+        owner: "CHATGPT-PRO-CONTROL",
+        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+        branch: baseFromManifest.branch,
+        baseSha: baseFromManifest.baseSha,
+        paths: [...fromPaths],
+        domains: ["ci-governance"],
+        risk: "P1",
+        status: "INTEGRATION_READY",
+        expiresAt: "2099-01-01T00:00:00Z",
+      },
+    },
+  };
+  const candidateRegistry = {
+    schemaVersion: 1,
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      "MD-CP-003-HOOKS": {
+        owner: "CHATGPT-PRO-CONTROL",
+        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+        branch: toManifest.branch,
+
+        baseSha: toManifest.baseSha,
+        paths: [...toPaths],
+        domains: ["ci-governance"],
+        risk: "P1",
+        status: "IMPLEMENTING",
+        expiresAt: "2099-01-01T00:00:00Z",
+      },
+    },
+  };
+
+  return {
+    baseRegistry,
+    candidateRegistry,
+    baseFromManifest,
+    candidateFromManifest,
+    toManifest,
+  };
+}
+
+test("valid orchestrator claim handoff passes deterministically", () => {
+  const result = validateClaimHandoff(handoffFixture());
+  assert.equal(result.fromId, "MD-CP-003-TRUST");
+  assert.equal(result.toId, "MD-CP-003-HOOKS");
+
+  assert.equal(result.authority, "ORCHESTRATOR");
+  assert.equal(result.collisions, 0);
+});
+
+test("handoff rejects an old claim that remains active", () => {
+  const fixture = handoffFixture();
+  fixture.candidateRegistry.claims["MD-CP-003-TRUST"] =
+    fixture.baseRegistry.claims["MD-CP-003-TRUST"];
+
+  assert.throws(
+    () => validateClaimHandoff(fixture),
+    /HANDOFF_OLD_CLAIM_STILL_ACTIVE/u,
+  );
+});
+
+test("handoff rejects target claim paths that diverge from ChangeSet", () => {
+  const fixture = handoffFixture();
+  fixture.candidateRegistry.claims["MD-CP-003-HOOKS"].paths.pop();
+
+  assert.throws(
+    () => validateClaimHandoff(fixture),
+    /HANDOFF_TARGET_PATHS_MISMATCH/u,
+  );
+});
+
+test("handoff requires the target ChangeSet to depend on the merged source", () => {
+  const fixture = handoffFixture();
+  fixture.toManifest.dependencies = [];
+
+  assert.throws(
+    () => validateClaimHandoff(fixture),
+    /HANDOFF_DEPENDENCY_MISSING/u,
+  );
+});
+
+test("handoff rejects overlapping target claims", () => {
+  const fixture = handoffFixture();
+  fixture.candidateRegistry.claims["MD-CP-999"] = {
+    owner: "OTHER-WORKER",
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    branch: "infra/other",
+    baseSha: CURRENT_BASE_SHA,
+
+    paths: [".github/hooks/pre-write.json"],
+    domains: ["ci-governance"],
+    risk: "P1",
+    status: "CLAIMED",
+    expiresAt: "2099-01-01T00:00:00Z",
+  };
+
+  assert.throws(
+    () => validateClaimHandoff(fixture),
+    /HANDOFF_TARGET_OVERLAP_DETECTED/u,
+  );
+});
+
+test("handoff rejects a source ChangeSet that is not reconciled to MERGED", () => {
+  const fixture = handoffFixture();
+  fixture.candidateFromManifest.state = "MERGE_READY";
+
+  assert.throws(
+    () => validateClaimHandoff(fixture),
+    /HANDOFF_FROM_NOT_MERGED/u,
+  );
 });
