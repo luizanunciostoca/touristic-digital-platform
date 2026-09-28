@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CI-BROWSER-BATCH3",
   "baseSha": "6b833f5cc7babd1522f895cea6673ee8a8750eb1",
   "branch": "infra/remediation-ci-browser-batch3-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
