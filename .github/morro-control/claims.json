@@ -17,9 +17,7 @@
         "tooling/fabric/control-plane-governance.mjs",
         "tooling/fabric/control-plane-governance.test.mjs"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -36,9 +34,7 @@
         ".github/workflows/morro-claim-guard.yml",
         ".morro/changesets/MD-REMEDIATION-GUARD-HARDENING.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -54,9 +50,7 @@
         "tooling/quality/release-target-governance.test.mjs",
         ".morro/changesets/MD-REMEDIATION-STAGING-RUN-BINDING.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
