@@ -13,6 +13,10 @@ const mysqlDockerfile = fs.readFileSync(
   new URL("../render/mysql-staging/Dockerfile", import.meta.url),
   "utf8",
 );
+const mysqlMemoryConfig = fs.readFileSync(
+  new URL("../render/mysql-staging/morro-memory.cnf", import.meta.url),
+  "utf8",
+);
 const mysqlInit = fs.readFileSync(
   new URL("../render/mysql-staging/01-init-databases.sh", import.meta.url),
   "utf8",
@@ -265,6 +269,23 @@ requireText(
   "/docker-entrypoint-initdb.d/01-init-databases.sh",
 );
 requireText(mysqlDockerfile, "/usr/local/bin/morro-mysql-backup-restore-drill");
+requireText(
+  mysqlDockerfile,
+  "COPY tooling/render/mysql-staging/morro-memory.cnf /etc/mysql/conf.d/99-morro-memory.cnf",
+);
+requireText(mysqlDockerfile, "RUN mysqld --verbose --help >/dev/null");
+for (const marker of [
+  "performance_schema=OFF",
+  "mysqlx=OFF",
+  "innodb_buffer_pool_size=96M",
+  "innodb_flush_method=O_DIRECT",
+  "max_connections=40",
+  "tmp_table_size=8M",
+  "max_heap_table_size=8M",
+]) {
+  requireText(mysqlMemoryConfig, marker);
+}
+
 
 for (const required of [
   'CONTRACT="MYSQL-BACKUP-RESTORE-DRILL"',
