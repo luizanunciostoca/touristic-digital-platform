@@ -64,13 +64,17 @@ async function verifyCanonicalTopology() {
     if (parsed.protocol !== "mysql:") {
       throw new Error(`PRODUCTION_DATABASE_PROTOCOL_INVALID:${key}`);
     }
-    if (decodeURIComponent(parsed.pathname.replace(/^\//u, "")) !== expectedSchema) {
+    if (
+      decodeURIComponent(parsed.pathname.replace(/^\//u, "")) !== expectedSchema
+    ) {
       throw new Error(`PRODUCTION_DATABASE_SCHEMA_URL_MISMATCH:${key}`);
     }
 
     const pool = notifications.createNotificationsMySqlPool(url);
     try {
-      const [[databaseRow]] = await pool.query("SELECT DATABASE() AS database_name");
+      const [[databaseRow]] = await pool.query(
+        "SELECT DATABASE() AS database_name",
+      );
       if (databaseRow?.database_name !== expectedSchema) {
         throw new Error(`PRODUCTION_DATABASE_CONNECTED_SCHEMA_MISMATCH:${key}`);
       }
@@ -93,7 +97,9 @@ async function verifyCanonicalTopology() {
         throw new Error(`PRODUCTION_DATABASE_NON_INNODB_TABLE:${key}`);
       }
 
-      summaries.push(Object.freeze({ key, schema: expectedSchema, tableCount }));
+      summaries.push(
+        Object.freeze({ key, schema: expectedSchema, tableCount }),
+      );
     } finally {
       await pool.end();
     }
@@ -136,7 +142,9 @@ async function verifyCanonicalTopology() {
       "business_places.destination_id",
     ]) {
       if (!seen.has(required)) {
-        throw new Error(`PRODUCTION_BUSINESS_TENANCY_COLUMN_MISSING:${required}`);
+        throw new Error(
+          `PRODUCTION_BUSINESS_TENANCY_COLUMN_MISSING:${required}`,
+        );
       }
     }
   } finally {
@@ -162,7 +170,9 @@ async function main() {
 
 main().catch((error) => {
   const message =
-    error instanceof Error ? error.message : "PRODUCTION_DATABASE_BOOTSTRAP_FAILED";
+    error instanceof Error
+      ? error.message
+      : "PRODUCTION_DATABASE_BOOTSTRAP_FAILED";
   console.error(`MORRO_PRODUCTION_DATABASE_BOOTSTRAP_FAILED:${message}`);
   process.exitCode = 1;
 });
