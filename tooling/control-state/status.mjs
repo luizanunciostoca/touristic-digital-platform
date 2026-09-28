@@ -271,7 +271,94 @@ export async function collectObservedState({
     repository: text(pr.head?.repo?.full_name),
     url: "https://github.com/" + repository + "/pull/" + pr.number,
   }));
-  const activeClaims = [];
+  async function mergedClaim(id, claim) {
+    const branch = claim?.branch;
+    if (!mainSha || typeof branch !== "string" || !branch) return null;
+    const closed = await list(
+      root +
+        "/pulls?state=closed&head=" +
+        encodeURIComponent(repository.split("/")[0] + ":" + branch) +
+        "&per_page=100",
+    );
+    const merged = closed
+      .filter(
+        (pr) =>
+          pr.state === "closed" &&
+          Number.isInteger(pr.number) &&
+          pr.head?.ref === branch &&
+          pr.head?.repo?.full_name === repository &&
+          pr.base?.ref === "main" &&
+          pr.base?.repo?.full_name === repository &&
+          Number.isFinite(Date.parse(pr.merged_at)) &&
+          sha(pr.merge_commit_sha),
+      )
+      .sort((a, b) => Date.parse(b.merged_at) - Date.parse(a.merged_at))[0];
+    if (!merged) return null;
+    const ancestor = async (candidate, target = mainSha) => {
+      if (!sha(candidate)) return false;
+      if (candidate === target) return true;
+      const value = await api(root + "/compare/" + candidate + "..." + target);
+      return (
+        ["ahead", "identical"].includes(value?.status) &&
+        value?.base_commit?.sha === candidate &&
+        value?.merge_base_commit?.sha === candidate
+      );
+    };
+    if (
+      !(await ancestor(merged.merge_commit_sha)) ||
+      !(await ancestor(claim.baseSha, merged.merge_commit_sha))
+    )
+      return null;
+    const historical = decodeContent(
+      await api(
+        root +
+          "/contents/.morro/changesets/" +
+          id +
+          ".json?ref=" +
+          merged.merge_commit_sha,
+      ),
+    );
+    if (
+      historical.id !== id ||
+      historical.branch !== branch ||
+      historical.baseSha !== claim.baseSha
+    )
+      return null;
+    const refs = await api(
+      root + "/git/matching-refs/heads/" + encodeURIComponent(branch),
+    );
+    if (
+      !Array.isArray(refs) ||
+      refs.some(
+        (ref) =>
+          typeof ref?.ref !== "string" ||
+          !/^refs\/heads\/\S+$/u.test(ref.ref) ||
+          ref.object?.type !== "commit" ||
+          !sha(ref.object?.sha),
+      )
+    )
+      throw new Error("REF_RESPONSE_INVALID");
+    const exact = refs.filter((ref) => ref.ref === "refs/heads/" + branch);
+    if (exact.length > 1) throw new Error("REF_AMBIGUOUS");
+    const head = exact[0]?.object;
+    if (
+      exact.length &&
+      (head?.type !== "commit" || !sha(head.sha) || !(await ancestor(head.sha)))
+    )
+      return null;
+    return {
+      state: "MERGED",
+      basis: "GITHUB_MERGED_PR_AND_MAIN_ANCESTRY",
+      prNumber: merged.number,
+      mergeSha: merged.merge_commit_sha,
+      mainSha,
+      branchHeadSha: head?.sha ?? null,
+      branchObservation: exact.length ? "ANCESTOR_OF_MAIN" : "ABSENT",
+      source: "https://github.com/" + repository + "/pull/" + merged.number,
+      releaseVerified: false,
+    };
+  }
+  const observedClaims = [];
   for (const [id, value] of Object.entries(registry?.claims ?? {})) {
     if (!/^MD-[A-Z0-9-]+$/u.test(id)) {
       block("CLAIM_ID_INVALID", "registry");
@@ -299,14 +386,27 @@ export async function collectObservedState({
         ? value.paths.map((path) => text(path)).filter(Boolean)
         : [],
     };
-    activeClaims.push(claim);
-    if (!valid) block("CLAIM_INACTIVE_OR_EXPIRED", id);
-    if (valid && pulls !== null && matches.length === 0)
+    const merged =
+      pulls !== null && matches.length === 0
+        ? await capture("claimMerge:" + id, () => mergedClaim(id, value))
+        : null;
+    claim.observedState = merged
+      ? "MERGED"
+      : matches.length
+        ? "OPEN_PR"
+        : "UNVERIFIED";
+    claim.mergeEvidence = merged;
+    observedClaims.push(claim);
+    if (!valid && !merged) block("CLAIM_INACTIVE_OR_EXPIRED", id);
+    if (valid && pulls !== null && matches.length === 0 && !merged)
       block("CLAIM_WITHOUT_OPEN_PR", id);
   }
+  const activeClaims = observedClaims.filter(
+    (claim) => claim.activeByRegistry && claim.observedState !== "MERGED",
+  );
   const changeSets = [];
   // The registry is small; serialize reads rather than creating unbounded API fan-out.
-  for (const claim of activeClaims) {
+  for (const claim of observedClaims) {
     const value = await capture("manifest:" + claim.id, async () =>
       decodeContent(
         await api(atMain(".morro/changesets/" + claim.id + ".json")),
@@ -399,7 +499,7 @@ export async function collectObservedState({
     ).values(),
   ];
   const desiredTasks = (backlog?.items ?? []).map((item) => {
-    const claim = activeClaims.find((candidate) => candidate.id === item.id);
+    const claim = observedClaims.find((candidate) => candidate.id === item.id);
     return {
       id: text(item.id),
       priority: text(item.priority),
@@ -410,11 +510,14 @@ export async function collectObservedState({
       basis: "VERSIONED_DESIRED_STATE_NOT_ACCEPTED_PROOF",
       dispatchAllowed: false,
       requiresFabricProof: true,
-      reason: claim
-        ? "CLAIM_PRESENT_REVIEW_CURRENT_BRANCH_AND_PROOF"
-        : item.state === "READY"
-          ? "DECLARED_READY_DEPENDENCY_PROOF_NOT_COLLECTED"
-          : "DECLARED_STATE_REQUIRES_LIVE_RECONCILIATION",
+      reason:
+        claim?.observedState === "MERGED"
+          ? "MERGE_OBSERVED_RELEASE_PROOF_NOT_INFERRED"
+          : claim
+            ? "CLAIM_PRESENT_REVIEW_CURRENT_BRANCH_AND_PROOF"
+            : item.state === "READY"
+              ? "DECLARED_READY_DEPENDENCY_PROOF_NOT_COLLECTED"
+              : "DECLARED_STATE_REQUIRES_LIVE_RECONCILIATION",
     };
   });
   const actions = {
@@ -456,6 +559,7 @@ export async function collectObservedState({
       ? "PARTIAL"
       : "CAPTURED",
     activePrs,
+    observedClaims,
     activeClaims,
     changeSets,
     runningTasks: activeClaims

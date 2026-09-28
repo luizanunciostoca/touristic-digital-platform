@@ -33,8 +33,15 @@ task owners, active Actions, recent CI/deployment samples, runtime release SHAs,
 readiness, local workspace and blockers. Active PR pagination is complete.
 Recent CI and GitHub deployment histories are explicitly bounded samples.
 A GitHub deployment record never substitutes for runtime identity. All active
-claims stay visible even when expired or missing an open PR; the command does
-not retire them or infer merged state from absence.
+registry entries stay visible in observedClaims. activeClaims excludes expired
+entries and claims with proven MERGED observations. A merged observation requires
+an exact canonical branch PR merged into main, its merge commit ancestral to the
+captured main, the same ChangeSet id/branch/base identity in that merge commit,
+and a branch that is absent or has no commits outside that main.
+Missing access, reused branches with unique work and unproven ancestry retain an
+unverified claim. Merge evidence records the PR, SHAs and branch observation; it
+never implies deployment, accepted release proof or permission to write. The
+registry remains unchanged, so completed merges need no reconciliation PR.
 
 Runtime observation requires matching valid x-release-sha headers from /healthz
 and /readyz, successful HTTP responses, live liveness, ready readiness, a healthy
@@ -61,7 +68,7 @@ path only with ORCHESTRATOR authority and explicit manifest ownership; all
 remaining worker paths, live collisions, lifecycle, expiry and exact-head checks
 still apply. WORKER and INTEGRATOR cannot use this exception.
 
-The accompanying guard recovery preserves the unmerged hardening from PR #464
+The prerequisite guard change preserves the hardening from PR #464
 (head 73a2ae0d893fd7b91edaf2cbbf31c02d384045de): source expiry,
 reconciliation identity and path ownership checks. Trusted workflow handoff supplies EXPECTED_BRANCH and MANIFEST_PATH to bind
 that recovery to the reconciliation manifest. The existing Quality CI selection

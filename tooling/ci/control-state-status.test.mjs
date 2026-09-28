@@ -68,6 +68,18 @@ function harness(overrides = {}) {
         sha: ++mainReads > 1 && overrides.moveMain ? OLD : MAIN,
         commit: { tree: { sha: TREE } },
       };
+    if (path.includes("/pulls?state=closed")) return overrides.closed ?? [[]];
+    if (path.includes("/git/matching-refs/")) return overrides.refs ?? [];
+    if (path.includes("/compare/"))
+      return {
+        status: overrides.diverged ? "diverged" : "ahead",
+        base_commit: { sha: path.split("/compare/")[1].split("...")[0] },
+        merge_base_commit: {
+          sha: overrides.diverged
+            ? TREE
+            : path.split("/compare/")[1].split("...")[0],
+        },
+      };
     if (path.includes("/pulls?")) return overrides.pulls ?? values.pulls;
     if (path.includes("/contents/.github/morro-control/claims.json"))
       return content(overrides.registry ?? values.registry);
@@ -78,7 +90,13 @@ function harness(overrides = {}) {
         ],
       });
     if (path.includes("/contents/.morro/changesets/"))
-      return content(overrides.manifest ?? values.manifest);
+      return content(
+        path.endsWith("ref=" + OLD)
+          ? (overrides.historicalManifest ??
+              overrides.manifest ??
+              values.manifest)
+          : (overrides.manifest ?? values.manifest),
+      );
     if (path.includes("/actions/runs?status="))
       return [
         { workflow_runs: [{ id: 42, status: "in_progress", head_sha: MAIN }] },
@@ -228,7 +246,7 @@ test("expired claims and manifest identity mismatch are blockers", async () => {
   data.manifest.baseSha = OLD;
   const { options } = harness(data);
   const state = await collectObservedState(options);
-  assert.equal(state.activeClaims[0].activeByRegistry, false);
+  assert.equal(state.observedClaims[0].activeByRegistry, false);
   assert.ok(
     state.blockers.some((item) => item.code === "CLAIM_INACTIVE_OR_EXPIRED"),
   );
@@ -474,4 +492,135 @@ test("declared ready with unproven dependencies is only a non-dispatchable candi
     state.readyCandidates[0].reason,
     "DECLARED_READY_DEPENDENCY_PROOF_NOT_COLLECTED",
   );
+});
+
+function mergedFixture() {
+  const data = fixtures();
+  data.registry.claims["MD-TASK"].baseSha = TREE;
+  data.manifest.baseSha = TREE;
+  return {
+    registry: data.registry,
+    manifest: data.manifest,
+    pulls: [[]],
+    closed: [
+      [
+        {
+          number: 9,
+          state: "closed",
+          merged_at: NOW,
+          merge_commit_sha: OLD,
+          head: { ref: "infra/task", repo: { full_name: REPO } },
+          base: { ref: "main", repo: { full_name: REPO } },
+        },
+      ],
+    ],
+  };
+}
+
+test("merged claim derives inactive observation with ancestry and no release inference", async () => {
+  for (const refs of [
+    [],
+    [{ ref: "refs/heads/infra/task", object: { type: "commit", sha: MAIN } }],
+  ]) {
+    const input = mergedFixture();
+    const { options, calls } = harness({ ...input, refs });
+    const state = await collectObservedState(options);
+    assert.deepEqual(state.activeClaims, []);
+    assert.deepEqual(state.runningTasks, []);
+    assert.deepEqual(state.agents.claimedOwners, []);
+    assert.equal(state.observedClaims[0].declaredState, "IMPLEMENTING");
+    assert.equal(state.observedClaims[0].observedState, "MERGED");
+    assert.equal(state.observedClaims[0].mergeEvidence.mergeSha, OLD);
+    assert.equal(state.observedClaims[0].mergeEvidence.mainSha, MAIN);
+    assert.equal(state.observedClaims[0].mergeEvidence.releaseVerified, false);
+    assert.equal(
+      state.desiredTasks[0].reason,
+      "MERGE_OBSERVED_RELEASE_PROOF_NOT_INFERRED",
+    );
+    assert.deepEqual(state.nextReadyTasks, []);
+    assert.ok(
+      calls.find((call) => call.path.includes("/pulls?state=closed")).options
+        .paginate,
+    );
+  }
+});
+
+test("closed PR mismatch, missing ancestry and unreadable evidence never retire claims", async () => {
+  const invalidPrs = [
+    { merged_at: null },
+    { merge_commit_sha: "bad" },
+    { head: { ref: "infra/task", repo: { full_name: "fork/morro" } } },
+    { base: { ref: "other", repo: { full_name: REPO } } },
+  ];
+  const cases = invalidPrs.map((patch) => {
+    const input = mergedFixture();
+    Object.assign(input.closed[0][0], patch);
+    return input;
+  });
+  cases.push({
+    ...mergedFixture(),
+    historicalManifest: { ...fixtures().manifest, id: "MD-OTHER" },
+  });
+  cases.push({
+    ...mergedFixture(),
+    historicalManifest: { ...fixtures().manifest, baseSha: MAIN },
+  });
+  cases.push({
+    ...mergedFixture(),
+    historicalManifest: { ...fixtures().manifest, branch: "infra/other" },
+  });
+  cases.push({ ...mergedFixture(), refs: [{}] });
+  cases.push({
+    ...mergedFixture(),
+    refs: [{ ref: "refs/heads/infra/task", object: {} }],
+  });
+  cases.push({
+    ...mergedFixture(),
+    fail: (path) => path.includes("/compare/" + TREE + "..." + OLD),
+  });
+  cases.push({ ...mergedFixture(), diverged: true });
+  cases.push({
+    ...mergedFixture(),
+    fail: (path) => path.includes("/compare/"),
+  });
+  cases.push({
+    ...mergedFixture(),
+    fail: (path) => path.includes("/matching-refs/"),
+  });
+  cases.push({
+    ...mergedFixture(),
+    refs: [
+      { ref: "refs/heads/infra/task", object: { type: "commit", sha: TREE } },
+    ],
+    fail: (path) => path.includes("/compare/" + TREE),
+  });
+  for (const input of cases) {
+    const state = await collectObservedState(harness(input).options);
+    assert.equal(state.activeClaims.length, 1);
+    assert.equal(state.activeClaims[0].observedState, "UNVERIFIED");
+    assert.equal(state.activeClaims[0].mergeEvidence, null);
+    assert.ok(
+      state.blockers.some((item) => item.code === "CLAIM_WITHOUT_OPEN_PR"),
+    );
+  }
+});
+
+test("active PR and exact branch ref prevent historical merge from hiding new work", async () => {
+  const input = mergedFixture();
+  input.pulls = fixtures().pulls;
+  const state = await collectObservedState(harness(input).options);
+  assert.equal(state.activeClaims[0].observedState, "OPEN_PR");
+  assert.equal(state.activeClaims[0].mergeEvidence, null);
+  const { options } = harness({
+    ...mergedFixture(),
+    refs: [
+      { ref: "refs/heads/infra/task", object: { type: "commit", sha: TREE } },
+    ],
+  });
+  const original = options.api;
+  options.api = (path, opts) =>
+    path.includes("/compare/" + TREE)
+      ? Promise.resolve({ status: "diverged" })
+      : original(path, opts);
+  assert.equal((await collectObservedState(options)).activeClaims.length, 1);
 });
