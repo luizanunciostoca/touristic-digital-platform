@@ -212,7 +212,10 @@ test("runs every canonical applier, validates structure, seeds once, and closes 
       .canonicalDestinationCount,
     1,
   );
-  assert.deepEqual(closed, canonicalProductionDomains.map((domain) => domain.name));
+  assert.deepEqual(
+    closed,
+    canonicalProductionDomains.map((domain) => domain.name),
+  );
   for (const expected of [
     "business-place",
     "business-catalog",

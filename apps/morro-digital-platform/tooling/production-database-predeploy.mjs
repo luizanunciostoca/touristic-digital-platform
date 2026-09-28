@@ -438,7 +438,8 @@ async function applyDomainSchema(domain, pool, dependencies) {
       break;
     case "destinations": {
       await dependencies.destinations.applyDestinationsSchema(pool);
-      const service = dependencies.destinations.createDestinationAdminService(pool);
+      const service =
+        dependencies.destinations.createDestinationAdminService(pool);
       const seed =
         await dependencies.destinations.bootstrapMorroDeSaoPauloDestination(
           service,
@@ -454,12 +455,16 @@ async function applyDomainSchema(domain, pool, dependencies) {
     case "business":
       await dependencies.businessPlaces.applyPlacePlatformSchema(pool);
       await dependencies.businessCatalog.applyCatalogSchema(pool);
-      await dependencies.businessMedia.applyMediaPublicationSnapshotSchema(pool);
+      await dependencies.businessMedia.applyMediaPublicationSnapshotSchema(
+        pool,
+      );
       break;
     case "ordering":
       await dependencies.ordering.applyOrderingM151Schema(pool);
       await dependencies.ordering.applyOrderingTicketingReservationSchema(pool);
-      await dependencies.ordering.applyOrderingRestaurantReservationSchema(pool);
+      await dependencies.ordering.applyOrderingRestaurantReservationSchema(
+        pool,
+      );
       break;
     case "financial":
       await dependencies.financial.applyFinancialM145Schema(pool);
@@ -474,7 +479,9 @@ async function applyDomainSchema(domain, pool, dependencies) {
       break;
     case "affiliates":
       await dependencies.affiliates.applyAffiliatesM154Schema(pool);
-      await dependencies.affiliates.applyAffiliatesIdentityEligibilityM155(pool);
+      await dependencies.affiliates.applyAffiliatesIdentityEligibilityM155(
+        pool,
+      );
       break;
     case "analytics":
       await dependencies.analytics.applyAnalyticsSchema(pool);
@@ -484,7 +491,9 @@ async function applyDomainSchema(domain, pool, dependencies) {
       await dependencies.crm.applyCrmCommerceSchema(pool);
       break;
     case "commerce":
-      await dependencies.commerce.applyCommerceRestaurantReservationSchema(pool);
+      await dependencies.commerce.applyCommerceRestaurantReservationSchema(
+        pool,
+      );
       break;
     default:
       throw new Error("PRODUCTION_DATABASE_DOMAIN_UNKNOWN");

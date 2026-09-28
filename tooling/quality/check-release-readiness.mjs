@@ -192,11 +192,7 @@ requireDirective(
   "sync: false",
   "production blueprint",
 );
-forbidText(
-  productionWeb,
-  "production web service",
-  "fromService:",
-);
+forbidText(productionWeb, "production web service", "fromService:");
 forbidText(production, "production blueprint", "STAGING_");
 
 requireText(

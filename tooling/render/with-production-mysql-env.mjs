@@ -2,7 +2,8 @@ import { spawn } from "node:child_process";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const productionBootstrapServiceName = "morro-digital-v2-production-db-bootstrap";
+export const productionBootstrapServiceName =
+  "morro-digital-v2-production-db-bootstrap";
 export const productionMysqlPrivateHost = "morro-digital-v2-production-mysql";
 
 export const productionDatabaseDomains = Object.freeze([
@@ -37,9 +38,7 @@ function validateIdentifier(value, name) {
 export function parseProductionMysqlHostPort(environment = process.env) {
   const value = required(environment, "PRODUCTION_MYSQL_HOSTPORT");
   const match =
-    /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(
-      value,
-    );
+    /^(?<host>[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?):(?<port>\d{1,5})$/u.exec(value);
   if (!match) throw new Error("PRODUCTION_MYSQL_HOSTPORT_INVALID");
   const port = Number(match.groups.port);
   if (
@@ -97,7 +96,9 @@ export function runWithProductionMysqlEnv({
   spawnImpl = spawn,
 } = {}) {
   if (!Array.isArray(argv) || argv.length === 0) {
-    return Promise.reject(new Error("PRODUCTION_MYSQL_WRAPPER_COMMAND_REQUIRED"));
+    return Promise.reject(
+      new Error("PRODUCTION_MYSQL_WRAPPER_COMMAND_REQUIRED"),
+    );
   }
   const childEnvironment = buildProductionMysqlEnvironment(environment);
   const [command, ...args] = argv;

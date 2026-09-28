@@ -308,7 +308,6 @@ services:
           name: morro-digital-v2-production-mysql
           envVarKey: COMMERCE_DATABASE_PASSWORD
 
-
   - type: web
     name: morro-digital-v2
     runtime: node

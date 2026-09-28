@@ -40,10 +40,7 @@ test("builds all thirteen least-privilege database URLs in memory", () => {
     assert.equal(url.port, "3306");
     assert.equal(url.username, `morro_${domain.toLowerCase()}`);
     assert.equal(url.pathname, `/morro_${domain.toLowerCase()}`);
-    assert.equal(
-      url.password,
-      `${domain.toLowerCase()}+/= safe password`,
-    );
+    assert.equal(url.password, `${domain.toLowerCase()}+/= safe password`);
   }
 });
 
@@ -70,8 +67,7 @@ test("accepts only the exact private MySQL host and port", () => {
     () =>
       parseProductionMysqlHostPort(
         fixture({
-          PRODUCTION_MYSQL_HOSTPORT:
-            "morro-digital-v2-production-mysql:3307",
+          PRODUCTION_MYSQL_HOSTPORT: "morro-digital-v2-production-mysql:3307",
         }),
       ),
     /PRODUCTION_MYSQL_HOSTPORT_UNTRUSTED/u,

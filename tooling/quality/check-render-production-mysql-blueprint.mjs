@@ -78,7 +78,9 @@ function serviceBlock(name) {
 }
 
 const mysqlService = serviceBlock("morro-digital-v2-production-mysql");
-const bootstrapService = serviceBlock("morro-digital-v2-production-db-bootstrap");
+const bootstrapService = serviceBlock(
+  "morro-digital-v2-production-db-bootstrap",
+);
 const webService = serviceBlock("morro-digital-v2");
 
 function envBlock(key) {
@@ -109,7 +111,9 @@ function bootstrapEnvBlock(key) {
   const lines = bootstrapService.split(/\r?\n/u);
   const start = lines.findIndex((line) => line.trim() === "- key: " + key);
   if (start < 0) {
-    throw new Error("Missing production bootstrap worker environment key: " + key);
+    throw new Error(
+      "Missing production bootstrap worker environment key: " + key,
+    );
   }
   const block = [];
   for (let index = start; index < lines.length; index += 1) {
@@ -263,7 +267,10 @@ for (const [domain] of domains) {
     const key = "PRODUCTION_" + domain + "_DATABASE_" + suffix;
     requireBootstrapDirective(key, "type: pserv");
     requireBootstrapDirective(key, "name: morro-digital-v2-production-mysql");
-    requireBootstrapDirective(key, "envVarKey: " + domain + "_DATABASE_" + suffix);
+    requireBootstrapDirective(
+      key,
+      "envVarKey: " + domain + "_DATABASE_" + suffix,
+    );
   }
 }
 
