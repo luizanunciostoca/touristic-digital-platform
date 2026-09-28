@@ -288,6 +288,34 @@ test("canonical collector proves orphan only with no PR and no branch", async ()
   });
 });
 
+test("PR targeting another base branch prevents orphan classification", async () => {
+  await assert.rejects(
+    () =>
+      collectClaimRetirementEvidence("MD-ONE", claim(), {
+        repository: "owner/repo",
+        expectedBaseSha: BASE,
+        token: "test-token",
+        now: Date.parse("2026-09-28T00:00:00Z"),
+        fetchImpl: fakeFetch([
+          [
+            "/pulls?",
+            [
+              {
+                number: 456,
+                state: "closed",
+                merged_at: null,
+                merge_commit_sha: null,
+                head: { ref: "infra/example" },
+                base: { ref: "release-candidate" },
+              },
+            ],
+          ],
+        ]),
+      }),
+    /CLAIM_RETIREMENT_NO_CANONICAL_EVIDENCE/u,
+  );
+});
+
 test("unmerged closed PR is not treated as orphan evidence", async () => {
   await assert.rejects(
     () =>

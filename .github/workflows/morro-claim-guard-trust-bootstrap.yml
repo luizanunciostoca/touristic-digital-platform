@@ -14,9 +14,12 @@ on:
       - ".github/morro-control/claims.json"
       - "tooling/fabric/claim-guard.mjs"
       - "tooling/fabric/claim-guard.test.mjs"
+      - "tooling/fabric/claim-retirement-proof.mjs"
+      - "tooling/fabric/claim-retirement-proof.test.mjs"
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: trusted-claim-guard-bootstrap-${{ github.event.pull_request.number }}
@@ -53,6 +56,7 @@ jobs:
         run: >-
           node --test
           tooling/fabric/claim-guard.test.mjs
+          tooling/fabric/claim-retirement-proof.test.mjs
 
   orchestrator-registry-proof:
     needs: unit
@@ -113,6 +117,41 @@ jobs:
         with:
           name: orchestrator-claim-guard-proof-${{ github.event.pull_request.head.sha }}
           path: orchestrator-claim-guard-proof.json
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prove every removed claim from trusted base evidence
+        id: claim-retirement-proof
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          removed_count="$(
+            jq -n               --slurpfile base trusted/.github/morro-control/claims.json               --slurpfile candidate candidate/.github/morro-control/claims.json               '($base[0].claims | keys) - ($candidate[0].claims | keys) | length'
+          )"
+          if [ "$removed_count" -eq 0 ]; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            echo "No claim retirements detected."
+            exit 0
+          fi
+
+          test -f trusted/tooling/fabric/claim-retirement-proof.mjs || {
+            echo "CLAIM_RETIREMENT_VALIDATOR_NOT_TRUSTED" >&2
+            exit 1
+          }
+
+          echo "required=true" >> "$GITHUB_OUTPUT"
+          node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate             | tee claim-retirement-proof.json
+
+      - name: Upload claim retirement proof
+        if: steps.claim-retirement-proof.outputs.required == 'true'
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: claim-retirement-proof-${{ github.event.pull_request.head.sha }}
+          path: claim-retirement-proof.json
           if-no-files-found: error
           retention-days: 30
 

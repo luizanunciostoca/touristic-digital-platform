@@ -161,7 +161,6 @@ async function allPullRequests(repository, branch, options) {
     const query = new URLSearchParams({
       state: "all",
       head: `${owner}:${branch}`,
-      base: "main",
       per_page: "100",
       page: String(page),
     });
