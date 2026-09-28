@@ -24,6 +24,8 @@ on:
         value: ${{ jobs.impact.outputs.needs_full_regression }}
       non_runtime:
         value: ${{ jobs.impact.outputs.non_runtime }}
+      scheduled_suites:
+        value: ${{ jobs.impact.outputs.scheduled_suites }}
 
 permissions:
   contents: read
@@ -46,6 +48,7 @@ jobs:
       needs_full_security: ${{ steps.impact.outputs.needs_full_security }}
       needs_full_regression: ${{ steps.impact.outputs.needs_full_regression }}
       non_runtime: ${{ steps.impact.outputs.non_runtime }}
+      scheduled_suites: ${{ steps.schedule.outputs.scheduled_suites }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -69,13 +72,20 @@ jobs:
           fi
       - name: Analyze changed domains and risk
         id: impact
+        shell: bash
         env:
           CI_RELEASE_CANDIDATE: ${{ startsWith(github.ref, 'refs/tags/rc/') }}
         run: node tooling/ci/impact-analyzer.mjs "${{ steps.base.outputs.sha }}" "$GITHUB_SHA" | tee ci-impact-report.json
+      - name: Select centrally managed suites
+        id: schedule
+        shell: bash
+        run: node tooling/ci/suite-scheduler.mjs ci-impact-report.json | tee ci-suite-plan.json
       - name: Upload impact evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ci-impact-${{ github.run_id }}
-          path: ci-impact-report.json
+          path: |
+            ci-impact-report.json
+            ci-suite-plan.json
           if-no-files-found: error
           retention-days: 30

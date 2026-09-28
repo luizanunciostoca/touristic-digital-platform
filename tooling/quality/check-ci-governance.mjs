@@ -116,10 +116,13 @@ for (const stage of requiredQualityOrder) {
   }
   previousQualityStage = stageIndex;
 }
+const scheduledSuites = JSON.parse(
+  await text("tooling/ci/scheduled-suites.json"),
+).suites;
 const qualityRunnerCount = (quality.match(/^\s{4}runs-on:/gmu) ?? []).length;
-if (qualityRunnerCount !== 1) {
+if (qualityRunnerCount !== 2) {
   fail(
-    `Quality Gate must use exactly one provisioned job; found ${qualityRunnerCount}`,
+    `Quality Gate requires one core job and one fail-closed aggregator; found ${qualityRunnerCount}`,
   );
 }
 
@@ -164,13 +167,31 @@ const domainContracts = [
 for (const contract of domainContracts) {
   const source = workflowSources.get(contract.file);
   if (!source) fail(`permanent domain contract ${contract.file} is missing`);
-  requireIncludes(source, `.github/workflows/${contract.file}`, [
-    ...contract.markers,
-    "branches:",
-    "main",
-    "permissions:",
-    "contents: read",
-  ]);
+  const scheduled = scheduledSuites.find(
+    (suite) => suite.workflow === contract.file,
+  );
+  if (scheduled) {
+    requireIncludes(source, `.github/workflows/${contract.file}`, [
+      "workflow_call:",
+      "workflow_dispatch:",
+      "permissions:",
+      "contents: read",
+    ]);
+    for (const marker of contract.markers.filter((marker) =>
+      marker.includes("/"),
+    )) {
+      if (!scheduled.paths.includes(marker))
+        fail(`${contract.file} lost trigger coverage: ${marker}`);
+    }
+  } else {
+    requireIncludes(source, `.github/workflows/${contract.file}`, [
+      ...contract.markers,
+      "branches:",
+      "main",
+      "permissions:",
+      "contents: read",
+    ]);
+  }
 }
 
 const platformContracts = await text(
@@ -427,7 +448,7 @@ console.log(
   `CI governance valid: ${workflowFiles.length} versioned workflows inspected.`,
 );
 console.log(
-  "Quality topology valid: one consolidated provisioned job named quality.",
+  "Quality topology valid: consolidated core, impact-selected suites and fail-closed quality aggregator.",
 );
 console.log(
   `Temporary/one-shot cleanup candidates: ${temporaryCandidates.length}.`,
