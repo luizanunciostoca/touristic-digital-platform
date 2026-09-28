@@ -63,11 +63,10 @@ function validate(overrides = {}) {
     manifest: overrides.manifest ?? manifest,
     branch: overrides.branch ?? manifest.branch,
     currentBaseSha: overrides.currentBaseSha ?? CURRENT_BASE_SHA,
-    changedFiles:
-      overrides.changedFiles ?? [
-        "tooling/fabric/claim-guard.mjs",
-        "tooling/fabric/claim-guard.test.mjs",
-      ],
+    changedFiles: overrides.changedFiles ?? [
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+    ],
     now: overrides.now ?? NOW,
     authority: overrides.authority ?? "WORKER",
     isAncestor: overrides.isAncestor ?? (() => true),
@@ -75,8 +74,14 @@ function validate(overrides = {}) {
 }
 
 test("path ownership accepts exact and recursive scopes only", () => {
-  assert.equal(pathOwned(".github/hooks/pre-write.json", ".github/hooks/**"), true);
-  assert.equal(pathOwned(".github/hooks2/pre-write.json", ".github/hooks/**"), false);
+  assert.equal(
+    pathOwned(".github/hooks/pre-write.json", ".github/hooks/**"),
+    true,
+  );
+  assert.equal(
+    pathOwned(".github/hooks2/pre-write.json", ".github/hooks/**"),
+    false,
+  );
   assert.equal(
     pathOwned(
       "tooling/fabric/claim-guard.mjs",
@@ -94,7 +99,10 @@ test("unsupported wildcard patterns fail closed", () => {
 });
 
 test("overlap detection handles exact and recursive patterns", () => {
-  assert.equal(patternsOverlap(".github/hooks/**", ".github/hooks/a.json"), true);
+  assert.equal(
+    patternsOverlap(".github/hooks/**", ".github/hooks/a.json"),
+    true,
+  );
   assert.equal(
     patternsOverlap(".github/hooks/**", ".github/hooks/nested/**"),
     true,
@@ -140,10 +148,7 @@ test("claim and ChangeSet base identity must match", () => {
   const { registry } = fixture();
   registry.claims["MD-CP-003"].baseSha = "c".repeat(40);
 
-  assert.throws(
-    () => validate({ registry }),
-    /CLAIM_MANIFEST_BASE_MISMATCH/u,
-  );
+  assert.throws(() => validate({ registry }), /CLAIM_MANIFEST_BASE_MISMATCH/u);
 });
 
 test("stale claim base that is not ancestor of current base is rejected", () => {
@@ -227,7 +232,10 @@ test("worker cannot claim integrator lifecycle authority", () => {
 test("integrator may validate merge-ready state but not implementation state", () => {
   const { manifest } = fixture();
   manifest.state = "MERGE_READY";
-  assert.equal(validate({ manifest, authority: "INTEGRATOR" }).authority, "INTEGRATOR");
+  assert.equal(
+    validate({ manifest, authority: "INTEGRATOR" }).authority,
+    "INTEGRATOR",
+  );
 
   manifest.state = "IMPLEMENTING";
   assert.throws(
