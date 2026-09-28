@@ -300,6 +300,9 @@ services:
         generateValue: true
       - key: PAYMENTS_HANDOFF_SECRET
         generateValue: true
+      # Server-only signing key; preserve existing values when syncing.
+      - key: TICKETING_OFFLINE_PROVISIONING_SECRET
+        generateValue: true
       - key: PAYMENTS_STATUS_TOKEN_TTL_SECONDS
         value: "86400"
       - key: PAYMENTS_PROVIDER_MODE

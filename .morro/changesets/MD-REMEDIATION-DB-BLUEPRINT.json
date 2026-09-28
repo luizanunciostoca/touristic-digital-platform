@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-DB-BLUEPRINT",
   "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-db-blueprint-20260928",
-  "state": "LOCAL_PROVEN",
+  "state": "REMOTE_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [
@@ -12,7 +12,8 @@
       "tooling/quality/render-staging-blueprint.test.mjs",
       ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
       ".github/morro-control/claims.json",
-      ".github/workflows/render-staging-blueprint-contract.yml"
+      ".github/workflows/render-staging-blueprint-contract.yml",
+      "render.yaml"
     ],
     "contracts": []
   },

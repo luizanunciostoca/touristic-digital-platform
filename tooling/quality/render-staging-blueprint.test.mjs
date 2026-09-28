@@ -11,6 +11,7 @@ const checker = "tooling/quality/check-render-staging-blueprint.mjs";
 const fixtures = [
   checker,
   "render.staging.yaml",
+  "render.yaml",
   "tooling/render/reconcile-staging-mysql-domains.mjs",
   "tooling/render/mysql-staging/Dockerfile",
   "tooling/render/mysql-staging/01-init-databases.sh",
@@ -139,3 +140,31 @@ test("Notifications remains in the domain contract alongside Commerce", (t) => {
     /Missing staging environment key: STAGING_NOTIFICATIONS_DATABASE_USER/u,
   );
 });
+
+for (const blueprint of ["render.staging.yaml", "render.yaml"]) {
+  for (const missing of [true, false]) {
+    test(`${blueprint} rejects ${missing ? "missing" : "literal"} offline provisioning secret`, (t) => {
+      rejects(
+        check(t, (source, directory) => {
+          const file = path.join(directory, blueprint);
+          const original =
+            blueprint === "render.staging.yaml"
+              ? source
+              : fs.readFileSync(file, "utf8");
+          const mutated = original.replace(
+            "      - key: TICKETING_OFFLINE_PROVISIONING_SECRET\n        generateValue: true",
+            missing
+              ? "      - key: REMOVED_OFFLINE_PROVISIONING_SECRET\n        generateValue: true"
+              : "      - key: TICKETING_OFFLINE_PROVISIONING_SECRET\n        value: unsafe-committed-test-value",
+          );
+          assert.notEqual(mutated, original);
+          if (blueprint === "render.staging.yaml") return mutated;
+          fs.writeFileSync(file, mutated);
+        }),
+        missing
+          ? /Missing staging environment key: TICKETING_OFFLINE_PROVISIONING_SECRET/u
+          : /TICKETING_OFFLINE_PROVISIONING_SECRET -> generateValue: true/u,
+      );
+    });
+  }
+}

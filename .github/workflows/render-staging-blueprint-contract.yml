@@ -5,6 +5,7 @@ on:
   pull_request:
     paths:
       - render.staging.yaml
+      - render.yaml
       - tooling/render/reconcile-staging-mysql-domains.mjs
       - docs/deployment/RENDER-STAGING-V2.md
       - docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md

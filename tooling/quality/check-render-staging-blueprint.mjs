@@ -5,6 +5,10 @@ const blueprint = fs.readFileSync(
   new URL("../../render.staging.yaml", import.meta.url),
   "utf8",
 );
+const productionBlueprint = fs.readFileSync(
+  new URL("../../render.yaml", import.meta.url),
+  "utf8",
+);
 const mysqlDockerfile = fs.readFileSync(
   new URL("../render/mysql-staging/Dockerfile", import.meta.url),
   "utf8",
@@ -61,8 +65,8 @@ function forbidText(source, text, label = text) {
     throw new Error(`Forbidden staging contract text: ${label}`);
 }
 
-function envBlock(key) {
-  const lines = blueprint.split(/\r?\n/u);
+function envBlock(key, source = blueprint) {
+  const lines = source.split(/\r?\n/u);
   const start = lines.findIndex((line) => line.trim() === `- key: ${key}`);
   if (start < 0) throw new Error(`Missing staging environment key: ${key}`);
   const block = [];
@@ -74,8 +78,8 @@ function envBlock(key) {
   return block.join("\n");
 }
 
-function requireDirective(key, directive) {
-  const block = envBlock(key);
+function requireDirective(key, directive, source = blueprint) {
+  const block = envBlock(key, source);
   if (!block.split(/\r?\n/u).some((line) => line.trim() === directive)) {
     throw new Error(`Missing staging contract: ${key} -> ${directive}`);
   }
@@ -170,9 +174,16 @@ for (const key of [
   "DASHBOARD_AUTH_SECRET",
   "PAYMENTS_STATUS_TOKEN_SECRET",
   "PAYMENTS_HANDOFF_SECRET",
+  "TICKETING_OFFLINE_PROVISIONING_SECRET",
 ]) {
   requireDirective(key, "generateValue: true");
 }
+
+requireDirective(
+  "TICKETING_OFFLINE_PROVISIONING_SECRET",
+  "generateValue: true",
+  productionBlueprint,
+);
 
 for (const key of [
   "DASHBOARD_USERS_JSON",

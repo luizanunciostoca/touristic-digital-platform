@@ -33,7 +33,8 @@
         "tooling/quality/check-render-staging-blueprint.mjs",
         "tooling/quality/render-staging-blueprint.test.mjs",
         ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
-        ".github/workflows/render-staging-blueprint-contract.yml"
+        ".github/workflows/render-staging-blueprint-contract.yml",
+        "render.yaml"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
