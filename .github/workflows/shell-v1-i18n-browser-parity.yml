@@ -5,7 +5,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
-      - ".github/actions/ci-bootstrap/action.yml"
+      - ".github/actions/ci-bootstrap/**"
       - .github/workflows/shell-v1-i18n-browser-parity.yml
       - apps/morro-digital-platform/tooling/shell-v1-i18n-browser-parity.mjs
       - apps/morro-digital-platform/tooling/browser-locale-v1-parity.mjs
