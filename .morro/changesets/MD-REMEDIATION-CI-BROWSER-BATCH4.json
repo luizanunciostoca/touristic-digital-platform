@@ -1,0 +1,46 @@
+{
+  "id": "MD-REMEDIATION-CI-BROWSER-BATCH4",
+  "baseSha": "61dd8615ca7560694987aeecd782044e60da45fa",
+  "branch": "infra/remediation-ci-browser-batch4-20260928",
+  "state": "REMOTE_PROVEN",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/workflows/control-center-destination-contract.yml",
+      ".github/workflows/control-center-home-overview-v1-contract.yml",
+      ".github/workflows/control-center-responsive-accessibility-v1-contract.yml",
+      ".github/workflows/control-center-shell-v1-contract.yml",
+      ".github/workflows/control-center-visual-golden-v1.yml",
+      ".github/workflows/crm-equivalence-browser-contract.yml",
+      ".github/workflows/crm-lead-detail-browser-contract.yml",
+      ".github/workflows/explore-v1-i18n-browser-parity.yml",
+      ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
