@@ -1,0 +1,39 @@
+{
+  "id": "MD-REMEDIATION-CLAIM-GC",
+  "baseSha": "5169db0fddd568e80b337a702b71279b51237e45",
+  "branch": "infra/remediation-claim-gc-20260928",
+  "state": "REMOTE_PROVEN",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-REMEDIATION-CLAIM-GC.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
