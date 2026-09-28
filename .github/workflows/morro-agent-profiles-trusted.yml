@@ -57,6 +57,14 @@ jobs:
               ;;
           esac
 
+      - name: Validate manifest path input
+        shell: bash
+        env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
+        run: |
+          set -euo pipefail
+          [[ "$MANIFEST_PATH" =~ ^\.morro/changesets/MD-[A-Z0-9-]+\.json$ ]]
+
       - name: Checkout trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -120,6 +128,7 @@ jobs:
 
       - name: Build automated independent proof
         env:
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
           EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
           TRUSTED_VALIDATOR_SHA: ${{ steps.trusted-identity.outputs.head_sha }}
@@ -129,7 +138,7 @@ jobs:
           node
           trusted/tooling/quality/independent-proof-trusted.mjs
           candidate
-          "${{ inputs.manifest_path }}"
+          "$MANIFEST_PATH"
           | tee automated-independent-proof.json
 
       - name: Upload automated independent proof

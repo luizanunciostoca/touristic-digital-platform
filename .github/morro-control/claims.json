@@ -117,6 +117,24 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-PROOF-INPUT": {
+      "owner": "CHATGPT-WORK-PROOF-INPUT",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-proof-input-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        "tooling/quality/independent-proof-trusted.mjs",
+        "tooling/quality/independent-proof-trusted.test.mjs",
+        ".github/workflows/morro-agent-profiles-trusted.yml",
+        ".github/workflows/morro-agent-profiles.yml",
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        ".morro/changesets/MD-REMEDIATION-PROOF-INPUT.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
     }
   }
 }
