@@ -40,18 +40,6 @@ jobs:
         with:
           node-version: "22"
           package-manager-cache: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
-        with:
-          version: 10.15.0
-      - name: Install formatter toolchain
-        run: pnpm install --frozen-lockfile
-      - name: Render canonical Prettier preview
-        run: |
-          pnpm exec prettier --write .github/agents/profile-contract.test.mjs
-          echo "MORRO_FORMATTED_FILE_BEGIN"
-          cat .github/agents/profile-contract.test.mjs
-          echo "MORRO_FORMATTED_FILE_END"
-          git checkout -- .github/agents/profile-contract.test.mjs
       - name: Test rejected profile configurations
         run: node --test .github/agents/*.test.mjs
       - name: Validate profiles and exact source identity
