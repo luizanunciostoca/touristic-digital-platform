@@ -1,0 +1,37 @@
+{
+  "id": "MD-REMEDIATION-CI-BROWSER-BATCH3",
+  "baseSha": "6b833f5cc7babd1522f895cea6673ee8a8750eb1",
+  "branch": "infra/remediation-ci-browser-batch3-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/workflows/business-onboarding-commercial-browser-contract.yml",
+      ".github/workflows/business-onboarding-lifecycle-browser-contract.yml",
+      ".github/workflows/business-onboarding-profile-browser-contract.yml",
+      ".github/workflows/business-onboarding-route-browser-contract.yml",
+      ".github/workflows/business-onboarding-workspace-browser-contract.yml",
+      ".github/workflows/business-production-profile-browser-contract.yml",
+      ".github/workflows/control-center-affiliates-browser-contract.yml",
+      ".github/workflows/control-center-financial-browser-contract.yml",
+      ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3.json"
+    ],
+    "contracts": []
+  },
+  "reads": { "contracts": [] },
+  "produces": { "events": [], "routes": [] },
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
