@@ -68,7 +68,7 @@ jobs:
   claim-handoff-proof:
     if: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' }}
     name: base-controlled-claim-handoff-proof
-    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@395db872a76e73193e5507cd044e5943be14b4bc
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@7105d020d167d7f6aa89091e7529fb3b7c8dbc5a
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
@@ -82,7 +82,7 @@ jobs:
   hooks-claim-handoff-proof:
     if: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-reconcile-20260928' }}
     name: base-controlled-hooks-claim-handoff-proof
-    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@edc7380c11774d475af2e80ddf75b7b1e53e9046
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@7105d020d167d7f6aa89091e7529fb3b7c8dbc5a
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}

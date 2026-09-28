@@ -1,6 +1,6 @@
 {
   "id": "MD-REMEDIATION-CI-SCHEDULER",
-  "baseSha": "ffbe7576176f1ea80302dd35635b03c81186ca4e",
+  "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-ci-scheduler-20260928",
   "state": "IMPLEMENTING",
   "risk": "critical",
