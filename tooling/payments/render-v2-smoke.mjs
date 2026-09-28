@@ -55,13 +55,18 @@ requireHeader(health.response.headers, "x-correlation-id");
 const healthHsts = requireHsts(health.response.headers);
 
 const ready = await request("/readyz");
-if (ready.response.status !== 200 || ready.body?.readiness !== "ready") {
-  const failedChecks = Array.isArray(ready.body?.checks)
-    ? ready.body.checks
-        .filter((check) => check?.status === "fail")
-        .map((check) => check?.name)
-        .filter(Boolean)
-    : [];
+const failedChecks = Array.isArray(ready.body?.checks)
+  ? ready.body.checks
+      .filter((check) => check?.status === "fail")
+      .map((check) => check?.name)
+      .filter(Boolean)
+  : [];
+if (
+  ready.response.status !== 200 ||
+  ready.body?.readiness !== "ready" ||
+  ready.body?.status !== "healthy" ||
+  failedChecks.length !== 0
+) {
   throw new Error(
     `READYZ_FAILED_${ready.response.status}${failedChecks.length ? `_${failedChecks.join(",")}` : ""}`,
   );
@@ -81,6 +86,7 @@ process.stdout.write(
     status: "pass",
     releaseSha: readyRelease,
     readiness: ready.body.readiness,
+    runtimeStatus: ready.body.status,
     securityHeaders: { strictTransportSecurity: readyHsts },
     checks: ready.body.checks,
   })}\n`,
