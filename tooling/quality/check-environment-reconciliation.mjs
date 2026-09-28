@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { runtimeDatabaseEnvironmentKeys } from "../database/canonical-database-topology.mjs";
 
 const envExample = fs.readFileSync(
   new URL("../../.env.example", import.meta.url),
@@ -16,6 +17,7 @@ for (const line of lines) {
 }
 
 const required = [
+  ...runtimeDatabaseEnvironmentKeys,
   "PLATFORM_SHUTDOWN_READINESS_DELAY_MS",
   "PLATFORM_SHUTDOWN_DRAIN_TIMEOUT_MS",
   "DASHBOARD_AUTH_SECRET",
