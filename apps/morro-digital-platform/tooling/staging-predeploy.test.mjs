@@ -17,7 +17,7 @@ function successfulSpawn(calls) {
 }
 
 describe("staging predeploy", () => {
-  it("runs payments, commercial draft backfill and invariant verification in order", async () => {
+  it("runs platform schema migration, payments gate and commercial reconciliation in order", async () => {
     const calls = [];
     const result = await runStagingPredeploy({
       environment: {
@@ -26,50 +26,54 @@ describe("staging predeploy", () => {
       spawnImpl: successfulSpawn(calls),
     });
 
-    expect(calls).toHaveLength(11);
+    expect(calls).toHaveLength(12);
     expect(calls[0]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/payments-migrate.mjs",
+      "apps/morro-digital-platform/tooling/platform-database-migrate.mjs",
     ]);
     expect(calls[1]?.args).toEqual([
+      "apps/morro-digital-platform/tooling/payments-migrate.mjs",
+    ]);
+    expect(calls[3]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-place-backfill.mjs",
       "--apply",
     ]);
-    expect(calls[2]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify.mjs",
-    ]);
     expect(calls[3]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
-      "--apply",
+      "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify.mjs",
     ]);
     expect(calls[4]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
+      "--apply",
     ]);
     expect(calls[5]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
-      "--apply",
+      "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
     ]);
     expect(calls[6]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
-      "--verify",
+      "--apply",
     ]);
     expect(calls[7]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+      "--verify",
     ]);
     expect(calls[8]?.args).toEqual([
-      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
-      "--apply",
+      "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
     ]);
     expect(calls[9]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
-      "--verify",
+      "--apply",
     ]);
     expect(calls[10]?.args).toEqual([
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
+      "--verify",
+    ]);
+    expect(calls[11]?.args).toEqual([
       "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
     ]);
     expect(result).toEqual({
       contract: "MORRO-STAGING-PREDEPLOY",
       status: "pass",
       steps: [
+        "platform-database-migrate",
         "payments-migrate",
         "legacy-commercial-draft-backfill",
         "legacy-commercial-draft-verify",
