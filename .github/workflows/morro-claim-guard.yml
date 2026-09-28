@@ -65,7 +65,7 @@ jobs:
           retention-days: 30
   trusted-proof:
     name: base-controlled-trusted-proof
-    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@3973e2ddab85d6ee3c3865ab9411513e65db85ed
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-claim-guard-trusted.yml@395db872a76e73193e5507cd044e5943be14b4bc
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
       base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}

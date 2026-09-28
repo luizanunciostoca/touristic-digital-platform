@@ -12,12 +12,11 @@
         ".github/hooks/morro-pretool-guard.mjs",
         ".github/hooks/morro-pretool-guard.test.mjs",
         ".github/workflows/morro-claim-guard.yml",
-        ".github/morro-control/claims.json",
         ".morro/changesets/MD-CP-003-HOOKS.json"
       ],
       "domains": ["ci-governance"],
       "risk": "P1",
-      "status": "REMOTE_PROVEN",
+      "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
     }
   }

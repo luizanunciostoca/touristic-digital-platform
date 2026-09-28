@@ -10,7 +10,6 @@
       ".github/hooks/morro-pretool-guard.mjs",
       ".github/hooks/morro-pretool-guard.test.mjs",
       ".github/workflows/morro-claim-guard.yml",
-      ".github/morro-control/claims.json",
       ".morro/changesets/MD-CP-003-HOOKS.json"
     ],
     "contracts": []
