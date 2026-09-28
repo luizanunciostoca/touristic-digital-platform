@@ -49,6 +49,36 @@ test("production MySQL Blueprint satisfies bootstrap wiring without application 
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("canonical bootstrap polling tolerates Render visibility lag", () => {
+  const source = fs.readFileSync(
+    path.join(
+      root,
+      ".github/workflows/production-mysql-canonical-bootstrap.yml",
+    ),
+    "utf8",
+  );
+  assert.match(source, /deploys\?limit=20/u);
+  assert.match(source, /if ! api_get/u);
+  assert.doesNotMatch(source, /deploys\/\$deploy_id/u);
+
+  const guardedCurlReads = [
+    ...source.matchAll(/if ! curl --fail-with-body --silent --show-error/gu),
+  ].map((match) => source.slice(match.index, match.index + 1_200));
+  assert.equal(guardedCurlReads.length, 2);
+  assert.ok(
+    guardedCurlReads.some((block) =>
+      block.includes("$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"),
+    ),
+  );
+  assert.ok(
+    guardedCurlReads.some(
+      (block) =>
+        block.includes('--data-urlencode "resource=$job_id"') &&
+        block.includes("$api/logs"),
+    ),
+  );
+});
+
 test("production MySQL must remain in Virginia", (t) => {
   rejects(
     runCheck(t, (directory) => {
