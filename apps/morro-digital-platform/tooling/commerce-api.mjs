@@ -117,6 +117,45 @@ function safeError(error) {
   return /^[A-Z0-9_:-]{3,160}$/u.test(raw) ? raw : "COMMERCE_UNAVAILABLE";
 }
 
+// Public readiness must never contain driver messages, credentials or URLs.
+const startupConfigurationCodes = new Set([
+  "COMMERCE_AUTH_API_REQUIRED",
+  "COMMERCE_FEATURE_ENABLED_INVALID",
+  "COMMERCE_DATABASE_URL_REQUIRED",
+  "ORDERING_DATABASE_URL_REQUIRED",
+  "PAYMENTS_HANDOFF_SECRET_REQUIRED",
+  "TICKETING_OFFLINE_PROVISIONING_SECRET_REQUIRED",
+  "PAYMENTS_DESTINATION_ID_REQUIRED",
+]);
+
+function classifyStartupFailure(error) {
+  if (error instanceof Error && startupConfigurationCodes.has(error.message)) {
+    return error.message;
+  }
+  switch (error?.code) {
+    case "ER_ACCESS_DENIED_ERROR":
+    case "ER_DBACCESS_DENIED_ERROR":
+      return "COMMERCE_DATABASE_ACCESS_DENIED";
+    case "ER_BAD_DB_ERROR":
+      return "COMMERCE_DATABASE_MISSING";
+    case "ER_NO_SUCH_TABLE":
+    case "ER_BAD_FIELD_ERROR":
+    case "ER_PARSE_ERROR":
+      return "COMMERCE_DATABASE_SCHEMA_UNAVAILABLE";
+    case "ECONNREFUSED":
+    case "ECONNRESET":
+    case "ENOTFOUND":
+    case "ETIMEDOUT":
+    case "EHOSTUNREACH":
+      return "COMMERCE_DATABASE_UNREACHABLE";
+    case "ERR_MODULE_NOT_FOUND":
+    case "ERR_PACKAGE_PATH_NOT_EXPORTED":
+      return "COMMERCE_RUNTIME_DEPENDENCY_UNAVAILABLE";
+    default:
+      return "COMMERCE_RUNTIME_UNAVAILABLE";
+  }
+}
+
 function statusForError(code) {
   if (code.includes("NOT_FOUND")) return 404;
   if (
@@ -311,6 +350,7 @@ export function createCommerceApi({
   let runtime = null;
   let started = false;
   let startAttempted = false;
+  let startupFailure = "COMMERCE_RUNTIME_UNAVAILABLE";
 
   async function start() {
     if (started || startAttempted) return started;
@@ -331,7 +371,8 @@ export function createCommerceApi({
       runtime = Object.freeze({ enabled: true, ...built });
       started = true;
       return true;
-    } catch {
+    } catch (error) {
+      startupFailure = classifyStartupFailure(error);
       runtime = null;
       return false;
     }
@@ -677,7 +718,7 @@ export function createCommerceApi({
           ? runtime?.enabled
             ? "commerce-runtime-ready"
             : "commerce-feature-disabled"
-          : "COMMERCE_RUNTIME_UNAVAILABLE",
+          : startupFailure,
       });
     },
     start,

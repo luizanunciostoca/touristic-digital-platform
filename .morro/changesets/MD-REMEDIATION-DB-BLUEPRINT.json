@@ -1,8 +1,8 @@
 {
   "id": "MD-REMEDIATION-DB-BLUEPRINT",
-  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
   "branch": "infra/remediation-db-blueprint-20260928",
-  "state": "REMOTE_PROVEN",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [

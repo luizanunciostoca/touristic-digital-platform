@@ -115,6 +115,8 @@ jobs:
             test -n "$HANDOFF_TO_MANIFEST_PATH"
             [[ "$HANDOFF_FROM_MANIFEST_PATH" =~ $manifest_re ]]
             [[ "$HANDOFF_TO_MANIFEST_PATH" =~ $manifest_re ]]
+            test "$MANIFEST_PATH" != "$HANDOFF_FROM_MANIFEST_PATH"
+            test "$MANIFEST_PATH" != "$HANDOFF_TO_MANIFEST_PATH"
           fi
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -146,6 +148,8 @@ jobs:
         env:
           EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           EXPECTED_BASE_SHA: ${{ inputs.base_sha }}
+          EXPECTED_BRANCH: ${{ inputs.branch }}
+          MANIFEST_PATH: ${{ inputs.manifest_path }}
           HANDOFF_FROM_MANIFEST_PATH: ${{ inputs.handoff_from_manifest_path }}
           HANDOFF_TO_MANIFEST_PATH: ${{ inputs.handoff_to_manifest_path }}
         run: >-
