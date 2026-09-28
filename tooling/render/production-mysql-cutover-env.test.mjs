@@ -84,9 +84,15 @@ test("cutover replaces exactly thirteen database URLs and preserves all other en
   const next = new Map(result.next.map(({ key, value }) => [key, value]));
   assert.equal(next.get("NODE_ENV"), "production");
   assert.equal(next.get("UNRELATED_SECRET"), "keep-me");
-  assert.equal(next.get("MORRO_DATABASE_TOPOLOGY"), "render-private-domain-users");
+  assert.equal(
+    next.get("MORRO_DATABASE_TOPOLOGY"),
+    "render-private-domain-users",
+  );
   assert.equal(next.get("MORRO_DATABASE_CUTOVER_SHA"), SHA);
-  assert.equal(next.get("MORRO_DATABASE_ROLLBACK_DEPLOY_ID"), "dep-previous123");
+  assert.equal(
+    next.get("MORRO_DATABASE_ROLLBACK_DEPLOY_ID"),
+    "dep-previous123",
+  );
   assert.equal(next.get("MORRO_DATABASE_ROLLBACK_RELEASE_SHA"), PREVIOUS_SHA);
 
   for (const { key, schema } of productionDatabaseDomains) {
@@ -98,9 +104,10 @@ test("cutover replaces exactly thirteen database URLs and preserves all other en
   }
 
   const rollback = JSON.parse(
-    Buffer.from(next.get("MORRO_DATABASE_ROLLBACK_URLS_B64"), "base64").toString(
-      "utf8",
-    ),
+    Buffer.from(
+      next.get("MORRO_DATABASE_ROLLBACK_URLS_B64"),
+      "base64",
+    ).toString("utf8"),
   );
   assert.equal(rollback.version, 1);
   assert.equal(rollback.variables.length, 13);
