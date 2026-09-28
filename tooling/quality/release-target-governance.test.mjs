@@ -243,7 +243,7 @@ test("Final Release Acceptance binds staging evidence to the exact dispatch requ
     'request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"',
     '-f request_id="$request_id"',
     "--json databaseId,headSha,displayTitle,createdAt",
-    ".displayTitle == $title",
+    "select(.headSha == $sha and .displayTitle == $title)",
   ]) {
     assert.ok(
       acceptance.includes(marker),
