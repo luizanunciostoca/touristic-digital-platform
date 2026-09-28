@@ -14,19 +14,24 @@ import {
   verifyWorkflowRun,
 } from "./oci-proof.mjs";
 
+const repository = "owner/repository";
 const identity = {
+  repository,
   sourceSha: "a".repeat(40),
   treeSha: "b".repeat(40),
+  lockfileDigest: `sha256:${"d".repeat(64)}`,
   image: "ghcr.io/owner/morro-digital-v2",
   digest: `sha256:${"c".repeat(64)}`,
 };
-const repository = "owner/repository";
 const runtime = {
   contract: "MORRO-DIGITAL-V2-RENDER-SMOKE",
   contractVersion: 2,
   status: "pass",
   readiness: "ready",
   releaseSha: identity.sourceSha,
+  serviceId: targets.staging.serviceId,
+  canonicalUrl: targets.staging.canonicalUrl,
+  deployId: "dep-12345",
   checks: [{ name: "commerce-runtime", status: "pass" }],
 };
 function runFixture() {
@@ -64,17 +69,20 @@ const observedOptions = {
   serviceId: targets.staging.serviceId,
 };
 function proofFixture() {
-  return createDeploymentProof(
-    identity,
-    verifyObservedDeployment(deploymentFixture(), identity, observedOptions),
-    { environment: "staging", runtime, runId: 42, buildRunId: 17 },
-  );
+  return createDeploymentProof(identity, deploymentFixture(), {
+    environment: "staging",
+    deployId: "dep-12345",
+    runtime,
+    runId: 42,
+    buildRunId: 17,
+  });
 }
 test("controller SHA may advance while explicit source tree and digest remain fixed", () => {
   assert.equal(verifyWorkflowRun(runFixture(), runExpectation), "d".repeat(40));
   const provenance = {
     source_sha: identity.sourceSha,
     tree_sha: identity.treeSha,
+    lockfile_digest: identity.lockfileDigest,
     image: identity.image,
     digest: identity.digest,
     workflow_run: "https://github.com/owner/repository/actions/runs/17",
@@ -239,6 +247,8 @@ test("production requires successful same-digest same-tree same-build staging ev
   for (const [key, value] of [
     ["sourceSha", "e".repeat(40)],
     ["treeSha", "e".repeat(40)],
+    ["lockfileDigest", `sha256:${"e".repeat(64)}`],
+    ["repository", "evil/repository"],
     ["digest", `sha256:${"e".repeat(64)}`],
     ["observedDigest", `sha256:${"e".repeat(64)}`],
     ["serviceId", targets.production.serviceId],
@@ -266,27 +276,26 @@ test("proof cannot be emitted for requested-only digest or wrong runtime", () =>
     () =>
       createDeploymentProof(
         identity,
-        { ...observedOptions, observedDigest: undefined },
-        { environment: "staging", runtime, runId: 42, buildRunId: 17 },
+        { ...deploymentFixture(), image: undefined },
+        {
+          environment: "staging",
+          deployId: "dep-12345",
+          runtime,
+          runId: 42,
+          buildRunId: 17,
+        },
       ),
     /DIGEST_MISMATCH/,
   );
   assert.throws(
     () =>
-      createDeploymentProof(
-        identity,
-        verifyObservedDeployment(
-          deploymentFixture(),
-          identity,
-          observedOptions,
-        ),
-        {
-          environment: "staging",
-          runtime: { ...runtime, releaseSha: "e".repeat(40) },
-          runId: 42,
-          buildRunId: 17,
-        },
-      ),
+      createDeploymentProof(identity, deploymentFixture(), {
+        environment: "staging",
+        deployId: "dep-12345",
+        runtime: { ...runtime, releaseSha: "e".repeat(40) },
+        runId: 42,
+        buildRunId: 17,
+      }),
     /RUNTIME_SOURCE_MISMATCH/,
   );
 });
@@ -297,6 +306,18 @@ test("digest identity accepts only SHA256, never mutable tags or unknown values"
   assert.throws(
     () => candidateIdentity({ ...identity, image: "evil.example/image" }),
     /IMAGE_REPOSITORY_INVALID/,
+  );
+  assert.throws(
+    () =>
+      candidateIdentity({
+        ...identity,
+        image: "ghcr.io/evil-org/morro-digital-v2",
+      }),
+    /IMAGE_REPOSITORY_INVALID/,
+  );
+  assert.throws(
+    () => candidateIdentity({ ...identity, lockfileDigest: "sha256:bad" }),
+    /LOCKFILE_DIGEST_INVALID/,
   );
 });
 
@@ -309,8 +330,16 @@ test("runtime cannot pass with degraded readiness, failed checks or omitted comm
     { ...runtime, checks: [{ name: "commerce-runtime", status: "warn" }] },
     { ...runtime, checks: [{ name: "other-runtime", status: "pass" }] },
     { ...runtime, checks: [...runtime.checks, ...runtime.checks] },
+    { ...runtime, serviceId: targets.production.serviceId },
+    { ...runtime, canonicalUrl: targets.production.canonicalUrl },
+    { ...runtime, deployId: "dep-other" },
   ])
-    assert.throws(() => verifyRuntimeProof(altered, identity.sourceSha));
+    assert.throws(() =>
+      verifyRuntimeProof(altered, identity.sourceSha, {
+        environment: "staging",
+        deployId: "dep-12345",
+      }),
+    );
   assert.throws(
     () =>
       verifyPromotionProof(
@@ -345,11 +374,13 @@ test("prototype names cannot select an environment", () => {
     );
     assert.throws(
       () =>
-        createDeploymentProof(
-          identity,
-          { observedDigest: identity.digest, deployId: "dep-safe" },
-          { environment, runtime, runId: 42, buildRunId: 17 },
-        ),
+        createDeploymentProof(identity, deploymentFixture(), {
+          environment,
+          deployId: "dep-12345",
+          runtime,
+          runId: 42,
+          buildRunId: 17,
+        }),
       /ENVIRONMENT_INVALID/,
     );
   }
@@ -371,7 +402,7 @@ test("runtime check IDs cannot exfiltrate arbitrary URL or credential text", () 
   }
 });
 test("missing proof or expected run IDs never compare as matching undefined", () => {
-  const proof = { schemaVersion: 1, ...identity, result: "PASS" };
+  const proof = { schemaVersion: 2, ...identity, result: "PASS" };
   assert.throws(
     () => verifyPromotionProof(proof, identity, { kind: "gate" }),
     /PROMOTION_RUN_ID_INVALID/,
