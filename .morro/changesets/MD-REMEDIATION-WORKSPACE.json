@@ -1,0 +1,40 @@
+{
+  "id": "MD-REMEDIATION-WORKSPACE",
+  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "branch": "infra/remediation-workspace-tools-20260928",
+  "state": "REMOTE_PROVEN",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      "tooling/workspace/**",
+      "docs/operations/workspace-lifecycle.md",
+      ".morro/changesets/MD-REMEDIATION-WORKSPACE.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
