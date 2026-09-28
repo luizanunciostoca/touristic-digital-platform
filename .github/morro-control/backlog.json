@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "bb39f80c558493393a1d635ceb07bbfb380b5c10",
+  "updatedFromMainSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
   "items": [
     {
       "id": "MD-CP-001",
@@ -32,7 +32,7 @@
       "title": "Etapa B2 — agent skills",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "INTEGRATION_READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
       "integration": "COMPLETE",
       "proof": "PROOF_ACCEPTED",
@@ -44,7 +44,7 @@
       "title": "Etapa B3 — Copilot custom agents",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "BLOCKED",
+      "state": "CLAIMED",
       "implementation": "MISSING",
       "integration": "MISSING",
       "proof": "MISSING",
