@@ -7,6 +7,9 @@
   "owns": {
     "paths": [
       ".github/morro-control/claims.json",
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs",
       ".morro/changesets/MD-REMEDIATION-FINAL-CLAIM-GC.json"
     ],
     "contracts": []
