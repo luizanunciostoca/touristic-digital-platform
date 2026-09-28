@@ -70,8 +70,16 @@ export function validateProfile(text, filename) {
   ]) {
     assert.ok(body.includes(required), `PROFILE_CONTRACT_MISSING:${required}`);
   }
+  const workflowMatch = /## Workflow\s+([\s\S]*?)\n## Forbidden/u.exec(body);
+  assert.ok(workflowMatch, "WORKFLOW_SECTION_INVALID");
+  const workflow = workflowMatch[1];
+  const authorityClause = readOnly
+    ? "Remain read-only"
+    : id === "test-engineer"
+      ? "Implementation agents stop at `REMOTE_PROVEN`; independent auditors stop at proof verdict and hand off to the Integrator."
+      : "Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.";
   assert.ok(
-    body.includes(readOnly ? "Remain read-only" : "REMOTE_PROVEN"),
+    workflow.includes(authorityClause),
     "ROLE_AUTHORITY_CONTRACT_MISSING",
   );
   const skills = [...body.matchAll(/`(\.github\/skills\/[^`]+)`/gu)].map(
@@ -131,17 +139,10 @@ if (invokedDirectly) {
     const result = validateDirectory(process.cwd());
     const dirty = execFileSync(
       "git",
-      [
-        "status",
-        "--porcelain",
-        "--untracked-files=all",
-        "--",
-        ".github/agents",
-        ".github/skills",
-      ],
+      ["status", "--porcelain", "--untracked-files=all"],
       { encoding: "utf8" },
     ).trim();
-    assert.equal(dirty, "", "DIRTY_PROFILE_OR_SKILL_WORKTREE");
+    assert.equal(dirty, "", "DIRTY_REPOSITORY_WORKTREE");
     const headSha = execFileSync("git", ["rev-parse", "HEAD"], {
       encoding: "utf8",
     }).trim();
