@@ -37,6 +37,30 @@ jobs:
         with:
           node-version: "22"
           package-manager-cache: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - name: Install formatter toolchain
+        run: pnpm install --frozen-lockfile
+      - name: Render canonical formatter output
+        run: |
+          pnpm exec prettier --write \
+            .morro/changesets/MD-CP-002C-TRUST.json \
+            tooling/quality/independent-proof-trusted.mjs \
+            tooling/quality/independent-proof-trusted.test.mjs
+          for file in \
+            .morro/changesets/MD-CP-002C-TRUST.json \
+            tooling/quality/independent-proof-trusted.mjs \
+            tooling/quality/independent-proof-trusted.test.mjs
+          do
+            echo "MORRO_FORMAT_FILE_BEGIN:$file"
+            cat "$file"
+            echo "MORRO_FORMAT_FILE_END:$file"
+          done
+          git checkout -- \
+            .morro/changesets/MD-CP-002C-TRUST.json \
+            tooling/quality/independent-proof-trusted.mjs \
+            tooling/quality/independent-proof-trusted.test.mjs
       - name: Test trusted validators
         run: >-
           node --test
