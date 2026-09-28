@@ -48,8 +48,7 @@ jobs:
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
           [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          remote_main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$remote_main_sha" = "$EXPECTED_SHA"
+          node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"
 
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:

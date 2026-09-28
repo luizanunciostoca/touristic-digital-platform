@@ -43,11 +43,18 @@
         "tooling/quality/release-target-governance.test.mjs",
         "tooling/ci/release-candidate.mjs",
         "tooling/ci/release-candidate.test.mjs",
-        "docs/operations/engineering-remediation.md"
+        "docs/operations/engineering-remediation.md",
+        "tooling/ci/impact-analyzer.mjs",
+        "tooling/ci/impact-analyzer.test.mjs",
+        "tooling/ci/test-impact-manifest.json",
+        ".github/workflows/ci-impact.yml",
+        ".github/workflows/quality.yml",
+        ".github/workflows/release-candidate-certification.yml",
+        "tooling/quality/check-release-gate-negative-cases.mjs"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
     }
   }

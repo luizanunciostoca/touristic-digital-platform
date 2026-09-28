@@ -58,6 +58,24 @@ instead of accumulating a ternary for every new branch. Its trusted reusable
 proof implementation remains pinned; candidate code does not become the proof
 authority.
 
+## Impact enforcement, first stage
+
+Quality calls the existing impact workflow once. The duplicate standalone PR
+impact run and selective-core setup are removed. Docs/governance-only changes
+retain formatting, secrets, repository policy, and deterministic governance
+contracts; they do not provision MySQL or run product lint, typecheck, tests,
+build or the MySQL matrix. Any classification job failure makes required
+`quality` fail rather than report a skipped success. Mixed or unknown changes
+cannot take this lane. Product changes retain the full existing quality gate,
+including on draft PRs. Broader domain selection remains conservative until its
+dependency coverage is proven.
+
+The manifest now recognizes financial/ordering/ticketing authority paths and
+nested migrations. Release candidate packaging runs only when called explicitly,
+not on every PR. No product suites were deleted. The impact analyzer's negative
+cases cover executable docs, unknown paths, mixed changes, invalid Git refs,
+financial changes, nested migrations and an explicit full release override.
+
 ## Rollback and remaining boundaries
 
 Revert the remediation merge through a reviewed PR to restore the previous CI
@@ -66,6 +84,6 @@ The tag ruleset can be disabled separately by a repository administrator if the
 candidate feature is fully rolled back. Do not loosen main protection.
 
 Source deployments still rebuild on Render; source identity is not image digest
-identity. OCI build-once promotion, impact enforcement, runtime degradation,
+identity. OCI build-once promotion, broader affected-domain enforcement, runtime degradation,
 branch/worktree lifecycle, and measured before/after delivery metrics remain
 separate uncompleted steps until platform evidence proves them.

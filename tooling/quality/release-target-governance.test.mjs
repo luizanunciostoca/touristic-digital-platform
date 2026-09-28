@@ -177,3 +177,20 @@ test("release acceptance is intentional and every dispatched suite uses the froz
   assert.ok(pages.includes("latest_accepted_sha"));
   assert.ok(!pages.includes('test "$current_main_sha"'));
 });
+
+test("required quality consumes fail-closed impact and release packaging is explicit", async () => {
+  const workflows = await workflowSources();
+  const quality = workflows.get("quality.yml");
+  assert.ok(quality.includes("uses: ./.github/workflows/ci-impact.yml"));
+  assert.ok(quality.includes("if: always()"));
+  assert.ok(quality.includes('test "$IMPACT_RESULT" = success'));
+  assert.ok(quality.includes("needs.impact.outputs.non_runtime != 'true'"));
+  assert.ok(quality.includes("tooling/fabric/*.test.mjs"));
+  assert.ok(!quality.includes("github.event.pull_request.draft == false"));
+  const impact = workflows.get("ci-impact.yml");
+  assert.ok(impact.includes("workflow_call:"));
+  assert.ok(!/^  pull_request:/m.test(impact));
+  assert.ok(!impact.includes("selective-core:"));
+  const certification = workflows.get("release-candidate-certification.yml");
+  assert.ok(!/^  (pull_request|push|merge_group):/m.test(certification));
+});

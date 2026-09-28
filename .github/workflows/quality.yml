@@ -22,13 +22,18 @@ env:
   TURBO_CACHE_DIR: /tmp/turbo-cache
 
 jobs:
+  impact:
+    uses: ./.github/workflows/ci-impact.yml
+
   quality:
+    needs: impact
+    if: always()
     name: quality
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
       mysql:
-        image: mysql:8.4
+        image: ${{ needs.impact.outputs.non_runtime != 'true' && 'mysql:8.4' || '' }}
         env:
           MYSQL_ROOT_PASSWORD: canonical-mysql
           MYSQL_DATABASE: affiliates_m154_test
@@ -40,6 +45,10 @@ jobs:
           --health-timeout=5s
           --health-retries=20
     steps:
+      - name: Require successful impact classification
+        env:
+          IMPACT_RESULT: ${{ needs.impact.result }}
+        run: test "$IMPACT_RESULT" = success
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
@@ -62,6 +71,7 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
       - name: Enforce Stylelint V2 CSS governance
+        if: needs.impact.outputs.non_runtime != 'true'
         run: pnpm css:stylelint
       - name: Enforce humanized public Assistant copy
         run: node tooling/quality/check-assistant-public-copy.mjs
@@ -83,20 +93,31 @@ jobs:
         run: pnpm release:gates:negative-check
       - name: Enforce workflow supply chain
         run: pnpm ci:supply-chain:strict
+      - name: Validate CI selection and candidate identity
+        run: node --test tooling/ci/*.test.mjs
+      - name: Validate governance contracts
+        if: needs.impact.outputs.non_runtime == 'true'
+        run: >-
+          node --test
+          tooling/fabric/*.test.mjs
+          .github/agents/*.test.mjs
+          .github/hooks/*.test.mjs
       - name: Lint
+        if: needs.impact.outputs.non_runtime != 'true'
         run: pnpm lint
       - name: Typecheck
+        if: needs.impact.outputs.non_runtime != 'true'
         run: pnpm typecheck
       - name: Test
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        if: needs.impact.outputs.non_runtime != 'true'
         env:
           CONTENT_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
         run: pnpm test
       - name: Build
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        if: needs.impact.outputs.non_runtime != 'true'
         run: pnpm build
       - name: Validate canonical MySQL matrix
-        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+        if: needs.impact.outputs.non_runtime != 'true'
         env:
           MYSQL_ADMIN_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/mysql
           FINANCIAL_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/financial_m137_test

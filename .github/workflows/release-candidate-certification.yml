@@ -1,9 +1,6 @@
 name: Release Candidate Certification
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
-  merge_group:
   workflow_call:
   workflow_dispatch:
 

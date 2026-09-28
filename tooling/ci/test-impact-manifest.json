@@ -59,7 +59,14 @@
       "paths": [
         "packages/payments/",
         "apps/morro-digital-platform/src/payments/",
-        "apps/morro-digital-platform/src/commerce/"
+        "apps/morro-digital-platform/src/commerce/",
+        "packages/financial/",
+        "services/financial/",
+        "tooling/payments/",
+        "packages/ordering/",
+        "services/ordering/",
+        "packages/ticketing/",
+        "services/ticketing/"
       ],
       "risk": "CRITICAL",
       "dependsOn": ["assistant-conversation", "commerce", "security"],
@@ -97,8 +104,13 @@
     },
     "database": {
       "paths": [
-        "packages/**/migrations/",
-        "tooling/**/mysql",
+        "packages/**/migrations/**",
+        "services/**/migrations/**",
+        "tooling/**/mysql*",
+        "tooling/**/mysql*/**",
+        "apps/morro-digital-platform/tooling/*migrat*",
+        "packages/**/src/*mysql*",
+        "services/**/src/*mysql*",
         "docker-compose",
         "Dockerfile"
       ],
@@ -109,6 +121,33 @@
       "needsVisual": false,
       "needsDatabase": true,
       "needsDependencyAudit": false,
+      "needsFullSecurity": true
+    },
+    "docs": {
+      "paths": ["docs/**.md", "README.md", "CHANGELOG.md"],
+      "risk": "LOW",
+      "dependsOn": [],
+      "suites": [],
+      "nonRuntime": true,
+      "extensions": [".md"]
+    },
+    "governance": {
+      "paths": [
+        "AGENTS.md",
+        ".morro/",
+        ".github/agents/",
+        ".github/instructions/",
+        ".github/skills/",
+        ".github/hooks/",
+        ".github/morro-control/",
+        ".github/copilot-instructions.md",
+        ".github/pull_request_template.md",
+        "tooling/fabric/"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [],
+      "nonRuntime": true,
       "needsFullSecurity": true
     }
   }
