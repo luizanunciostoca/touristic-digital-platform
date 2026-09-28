@@ -17,9 +17,7 @@
         "tooling/fabric/control-plane-governance.mjs",
         "tooling/fabric/control-plane-governance.test.mjs"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -38,9 +36,7 @@
         ".github/workflows/render-staging-blueprint-contract.yml",
         "render.yaml"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -56,9 +52,7 @@
         "tooling/quality/release-target-governance.test.mjs",
         ".morro/changesets/MD-REMEDIATION-STAGING-RUN-BINDING.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -74,9 +68,7 @@
         ".morro/changesets/MD-REMEDIATION-OBSERVED.json",
         "tooling/ci/control-state-status.test.mjs"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -106,9 +98,7 @@
         ".github/workflows/payments-subscription-recurrence-contract.yml",
         ".morro/changesets/MD-REMEDIATION-CI-SCHEDULER.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -123,9 +113,7 @@
         "tooling/release/oci-proof.test.mjs",
         ".morro/changesets/MD-REMEDIATION-RELEASE-FOUNDATION.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -143,9 +131,7 @@
         ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
         ".morro/changesets/MD-REMEDIATION-PROOF-INPUT.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -159,9 +145,7 @@
         ".morro/changesets/MD-REMEDIATION-WORKSPACE-CLAIM-REGISTRATION.json",
         ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -176,9 +160,7 @@
         "docs/operations/workspace-lifecycle.md",
         ".morro/changesets/MD-REMEDIATION-WORKSPACE.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -191,9 +173,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH1-CLAIM-REGISTRATION.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T23:59:59Z"
@@ -214,9 +194,7 @@
         ".github/workflows/control-center-browser-contract.yml",
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH1.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T23:59:59Z"
@@ -229,9 +207,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH2-CLAIM-REGISTRATION.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T23:59:59Z"
@@ -252,9 +228,7 @@
         ".github/workflows/business-onboarding-adapter-browser-contract.yml",
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH2.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T23:59:59Z"
@@ -267,9 +241,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3-CLAIM-REGISTRATION.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-03T23:59:59Z"
@@ -290,9 +262,7 @@
         ".github/workflows/control-center-financial-browser-contract.yml",
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH3.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-03T23:59:59Z"
@@ -305,9 +275,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4-CLAIM-REGISTRATION.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T23:59:59Z"
@@ -328,9 +296,7 @@
         ".github/workflows/explore-v1-i18n-browser-parity.yml",
         ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T23:59:59Z"
