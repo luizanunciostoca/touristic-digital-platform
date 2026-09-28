@@ -22,7 +22,19 @@ const WRITE_LIFECYCLE_STATES = new Set([
   "MERGE_READY",
 ]);
 
-const AUTHORITIES = new Set(["WORKER", "ORCHESTRATOR"]);
+const AUTHORITY_STATES = new Map([
+  [
+    "WORKER",
+    new Set(["IMPLEMENTING", "LOCAL_PROVEN", "REMOTE_PROVEN"]),
+  ],
+  [
+    "INTEGRATOR",
+    new Set(["COMPOSITION_PROVEN", "POLICY_SATISFIED", "MERGE_READY"]),
+  ],
+  ["ORCHESTRATOR", new Set(WRITE_LIFECYCLE_STATES)],
+]);
+
+const AUTHORITIES = new Set(AUTHORITY_STATES.keys());
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 
 export function assertSupportedPattern(pattern) {
@@ -132,6 +144,10 @@ export function validateClaimContext({
   assert.match(manifest.baseSha ?? "", SHA_PATTERN, "CHANGESET_BASE_SHA_INVALID");
   assert.ok(WRITE_LIFECYCLE_STATES.has(manifest.state), "CHANGESET_NOT_WRITE_ACTIVE");
   assert.ok(AUTHORITIES.has(authority), "CLAIM_GUARD_AUTHORITY_INVALID");
+  assert.ok(
+    AUTHORITY_STATES.get(authority).has(manifest.state),
+    "CHANGESET_STATE_AUTHORITY_VIOLATION",
+  );
   assert.equal(typeof branch, "string", "BRANCH_REQUIRED");
   assert.match(currentBaseSha ?? "", SHA_PATTERN, "CURRENT_BASE_SHA_INVALID");
   assert.ok(Array.isArray(changedFiles), "CHANGED_FILES_REQUIRED");
