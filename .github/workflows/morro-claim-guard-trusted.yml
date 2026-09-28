@@ -104,6 +104,7 @@ jobs:
         run: >-
           node --test
           trusted/tooling/fabric/claim-guard.test.mjs
+          trusted/.github/hooks/morro-pretool-guard.test.mjs
 
       - name: Validate candidate claim as data
         env:
