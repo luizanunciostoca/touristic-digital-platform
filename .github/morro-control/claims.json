@@ -22,6 +22,57 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
     },
+    "MD-REMEDIATION-DB-BLUEPRINT": {
+      "owner": "CHATGPT-WORK-DATABASE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-db-blueprint-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        "render.staging.yaml",
+        "tooling/render/mysql-staging/01-init-databases.sh",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
+        ".github/workflows/render-staging-blueprint-contract.yml",
+        "render.yaml"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-STAGING-RUN-BINDING": {
+      "owner": "CHATGPT-PRO-RELEASE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-staging-run-binding-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        ".github/workflows/final-release-acceptance.yml",
+        ".github/workflows/staging-render-promotion.yml",
+        "tooling/quality/release-target-governance.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-STAGING-RUN-BINDING.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-OBSERVED": {
+      "owner": "CHATGPT-WORK-CONTROL-STATE",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-observed-state-20260928",
+      "baseSha": "9233ab758d9e304ebb132c7f2b2c803f39001d4c",
+      "paths": [
+        "tooling/control-state/**",
+        "docs/operations/observed-state.md",
+        ".morro/changesets/MD-REMEDIATION-OBSERVED.json",
+        "tooling/ci/control-state-status.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-09-30T23:59:59Z"
+    },
     "MD-REMEDIATION-CI-SCHEDULER": {
       "owner": "CHATGPT-WORK-CI",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
