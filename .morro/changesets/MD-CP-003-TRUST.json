@@ -2,7 +2,7 @@
   "id": "MD-CP-003-TRUST",
   "baseSha": "4729cbfa5bd0b1ee0796fd0c2840c779fe3476db",
   "branch": "infra/control-plane-v3.2-stage-c-trust-bootstrap-20260927",
-  "state": "MERGE_READY",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
@@ -28,7 +28,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-002C"],
+  "dependencies": [
+    "MD-CP-002C"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
