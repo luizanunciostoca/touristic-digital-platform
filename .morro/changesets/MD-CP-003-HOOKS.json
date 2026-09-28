@@ -1,0 +1,48 @@
+{
+  "id": "MD-CP-003-HOOKS",
+  "baseSha": "3973e2ddab85d6ee3c3865ab9411513e65db85ed",
+  "branch": "infra/control-plane-v3.2-stage-c-hooks-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/hooks/morro-claim-guard.json",
+      ".github/hooks/morro-pretool-guard.mjs",
+      ".github/hooks/morro-pretool-guard.test.mjs",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-CP-003-HOOKS.json",
+      ".morro/changesets/MD-CP-003-TRUST.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-CP-003-TRUST"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "affected-tests",
+    "integration",
+    "exact-head-identity",
+    "tree-sha",
+    "trusted-claim-guard",
+    "pretool-hook-adversarial-proof",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
