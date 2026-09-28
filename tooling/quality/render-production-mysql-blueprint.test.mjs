@@ -67,9 +67,7 @@ test("canonical bootstrap polling tolerates Render visibility lag", () => {
   assert.equal(guardedCurlReads.length, 2);
   assert.ok(
     guardedCurlReads.some((block) =>
-      block.includes(
-        "$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id",
-      ),
+      block.includes("$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"),
     ),
   );
   assert.ok(
