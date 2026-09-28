@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import {
   mkdirSync,
   mkdtempSync,
-  readFileSync,
   renameSync,
   rmSync,
   symlinkSync,
@@ -96,6 +95,26 @@ test("reject negated implementation handoff even if REMOTE_PROVEN is mentioned",
   const text = profileText(id).replace(
     canonical,
     "5. Do not treat `REMOTE_PROVEN` as a positive handoff requirement.",
+  );
+  assert.throws(() => validateProfile(text, `${id}.agent.md`));
+});
+
+test("reject negated read-only authority item", () => {
+  const id = "security-auditor";
+  const text = profileText(id).replace(
+    "2. Remain read-only while inspecting source and evidence.",
+    "2. Do not remain read-only while inspecting source and evidence.",
+  );
+  assert.throws(() => validateProfile(text, `${id}.agent.md`));
+});
+
+test("reject negated proof-capable authority item", () => {
+  const id = "test-engineer";
+  const canonical =
+    "5. Implementation agents stop at `REMOTE_PROVEN`; independent auditors stop at proof verdict and hand off to the Integrator.";
+  const text = profileText(id).replace(
+    canonical,
+    `5. Do not follow: ${canonical.slice(3)}`,
   );
   assert.throws(() => validateProfile(text, `${id}.agent.md`));
 });
