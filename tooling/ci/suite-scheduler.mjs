@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync, appendFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,26 +28,49 @@ export function matchesPath(file, pattern) {
   return new RegExp(`^${glob}$`, "u").test(file);
 }
 
+const reportBooleanFields = [
+  "needsBrowser",
+  "needsVisual",
+  "needsDatabase",
+  "needsContainer",
+  "needsDependencyAudit",
+  "needsFullSecurity",
+  "needsFullRegression",
+  "nonRuntime",
+];
+
+export function isCompleteImpactReport(report) {
+  return Boolean(
+    report &&
+      typeof report === "object" &&
+      (report.base === null || typeof report.base === "string") &&
+      typeof report.head === "string" &&
+      report.head.length > 0 &&
+      Array.isArray(report.files) &&
+      Array.isArray(report.suites) &&
+      Array.isArray(report.domains) &&
+      Array.isArray(report.unknownFiles) &&
+      impactManifest.riskOrder.includes(report.risk) &&
+      reportBooleanFields.every((field) => typeof report[field] === "boolean") &&
+      (report.failClosedReason === null ||
+        typeof report.failClosedReason === "string") &&
+      report.domains.every(
+        (domain) =>
+          typeof domain === "string" &&
+          Object.hasOwn(impactManifest.domains, domain),
+      ) &&
+      report.files.every((file) => typeof file === "string") &&
+      report.suites.every(
+        (suite) => typeof suite === "string" && knownReportSuites.has(suite),
+      ) &&
+      report.unknownFiles.every((file) => typeof file === "string"),
+  );
+}
+
 export function selectSuites(report, manifest = suiteManifest) {
   const all = manifest.suites.map((suite) => suite.workflow);
   if (
-    !report ||
-    !Array.isArray(report.files) ||
-    !Array.isArray(report.suites) ||
-    !Array.isArray(report.domains) ||
-    !report.domains.every(
-      (domain) =>
-        typeof domain === "string" &&
-        Object.hasOwn(impactManifest.domains, domain),
-    ) ||
-    !Array.isArray(report.unknownFiles) ||
-    typeof report.needsFullRegression !== "boolean" ||
-    typeof report.nonRuntime !== "boolean" ||
-    !report.files.every((file) => typeof file === "string") ||
-    !report.suites.every(
-      (suite) => typeof suite === "string" && knownReportSuites.has(suite),
-    ) ||
-    !report.unknownFiles.every((file) => typeof file === "string") ||
+    !isCompleteImpactReport(report) ||
     report.needsFullRegression ||
     report.unknownFiles.length > 0 ||
     report.failClosedReason ||
@@ -108,11 +133,55 @@ export function verifySuiteResults(selected, needs, manifest = suiteManifest) {
   };
 }
 
-export function buildQualityProof(selected, needs, sourceSha) {
-  if (typeof sourceSha !== "string" || !/^[0-9a-f]{40}$/.test(sourceSha))
+const exactSha = (value) =>
+  typeof value === "string" && /^[0-9a-f]{40}$/u.test(value);
+const sha256Digest = (value) =>
+  typeof value === "string" && /^sha256:[0-9a-f]{64}$/u.test(value);
+const digestJson = (value) =>
+  "sha256:" +
+  createHash("sha256").update(JSON.stringify(value)).digest("hex");
+
+export function buildQualityProof(
+  selected,
+  needs,
+  sourceSha,
+  { treeSha, lockfileDigest } = {},
+) {
+  if (!exactSha(sourceSha))
     throw new Error("Quality proof requires an exact source SHA");
+  if (!exactSha(treeSha))
+    throw new Error("Quality proof requires an exact source tree SHA");
+  if (!sha256Digest(lockfileDigest))
+    throw new Error("Quality proof requires a lockfile SHA-256 digest");
   verifySuiteResults(selected, needs);
-  return { schemaVersion: 1, sourceSha, selected, needs, result: "PASS" };
+  const body = {
+    schemaVersion: 2,
+    sourceSha,
+    treeSha,
+    lockfileDigest,
+    selected,
+    needs,
+    result: "PASS",
+  };
+  return { ...body, artifactDigest: digestJson(body) };
+}
+
+export function verifyQualityProof(proof) {
+  if (!proof || typeof proof !== "object")
+    throw new Error("Quality proof is required");
+  if (proof.schemaVersion !== 2)
+    throw new Error("Unsupported Quality proof schema");
+  if (!exactSha(proof.sourceSha) || !exactSha(proof.treeSha))
+    throw new Error("Quality proof source identity is invalid");
+  if (!sha256Digest(proof.lockfileDigest))
+    throw new Error("Quality proof lockfile identity is invalid");
+  if (!sha256Digest(proof.artifactDigest))
+    throw new Error("Quality proof artifact identity is invalid");
+  verifySuiteResults(proof.selected, proof.needs);
+  const { artifactDigest, ...body } = proof;
+  if (digestJson(body) !== artifactDigest)
+    throw new Error("Quality proof artifact digest mismatch");
+  return { sourceSha: proof.sourceSha, result: "PASS" };
 }
 
 if (
@@ -122,7 +191,20 @@ if (
   if (process.argv[2] === "--verify") {
     const selected = JSON.parse(process.env.CI_SELECTED_SUITES || "null");
     const needs = JSON.parse(process.env.CI_JOB_RESULTS || "null");
-    const proof = buildQualityProof(selected, needs, process.env.GITHUB_SHA);
+    const sourceSha = process.env.GITHUB_SHA;
+    const treeSha = execFileSync(
+      "git",
+      ["rev-parse", `${sourceSha}^{tree}`],
+      { encoding: "utf8" },
+    ).trim();
+    const lockfileDigest =
+      "sha256:" +
+      createHash("sha256").update(readFileSync("pnpm-lock.yaml")).digest("hex");
+    const proof = buildQualityProof(selected, needs, sourceSha, {
+      treeSha,
+      lockfileDigest,
+    });
+    verifyQualityProof(proof);
     writeFileSync(
       "ci-quality-proof.json",
       JSON.stringify(proof, null, 2) + "\n",
