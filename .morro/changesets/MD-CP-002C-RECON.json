@@ -1,0 +1,45 @@
+{
+  "id": "MD-CP-002C-RECON",
+  "baseSha": "db4cd86c222640db4d3ba2ec5d4963dc0101379b",
+  "branch": "infra/control-plane-v3.2-reconcile-b3-20260927",
+  "state": "MERGE_READY",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CP-002C.json",
+      ".morro/changesets/MD-CP-002C-RECON.json",
+      ".github/morro-control/backlog.json",
+      ".github/morro-control/claims.json",
+      ".github/workflows/morro-agent-profiles.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-002C"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "exact-head-identity",
+    "tree-sha",
+    "trusted-agent-profile-contract",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
