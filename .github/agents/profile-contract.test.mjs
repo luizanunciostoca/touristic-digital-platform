@@ -103,6 +103,18 @@ test("implementation profiles cannot gain delegation tools", () => {
   assert.throws(() => validateProfile(widened, filename));
 });
 
+test("implementation handoff must be positive inside Workflow", () => {
+  const filename = "platform-backend.agent.md";
+  const text = readFileSync(resolve(directory, filename), "utf8");
+  const clause =
+    "5. Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.";
+  const weakened = text
+    .replace(clause, "5. Continue implementation through integration and merge.")
+    .replace("## Forbidden\n", `## Forbidden\n\n${clause}\n`);
+  assert.notEqual(weakened, text);
+  assert.throws(() => validateProfile(weakened, filename));
+});
+
 test("reviewers cannot lose the read-only role contract", () => {
   const widened = sample.replace("Remain read-only", "Implement directly");
   assert.throws(() => validateProfile(widened, "security-auditor.agent.md"));
