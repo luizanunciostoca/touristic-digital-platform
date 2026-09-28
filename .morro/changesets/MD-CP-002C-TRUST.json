@@ -2,7 +2,7 @@
   "id": "MD-CP-002C-TRUST",
   "baseSha": "e315945d6962e942371065574a931081c0ff6408",
   "branch": "infra/control-plane-b3-trusted-profile-guard-20260928",
-  "state": "IMPLEMENTING",
+  "state": "REMOTE_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
