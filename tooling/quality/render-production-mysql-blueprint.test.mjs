@@ -205,7 +205,7 @@ test("production readback must prove the exact Render git commit", (t) => {
       const source = fs.readFileSync(file, "utf8");
       fs.writeFileSync(
         file,
-        source.replaceAll("RENDER_GIT_COMMIT", "OMITTED_RENDER_GIT_COMMIT"),
+        source.replaceAll("RENDER_GIT_COMMIT", "OMITTED_COMMIT"),
       );
     }),
     /RENDER_GIT_COMMIT/u,
