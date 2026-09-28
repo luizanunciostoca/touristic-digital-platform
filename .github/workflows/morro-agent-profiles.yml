@@ -1,0 +1,29 @@
+name: Agent Profile Contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/agents/**"
+      - ".github/skills/**"
+      - ".github/workflows/morro-agent-profiles.yml"
+      - ".morro/changesets/MD-CP-002C.json"
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-profile-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: agent-profile-contract
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@94f971e640da6368d39d2f555f4ba3eca6563d11
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha || github.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+      manifest_path: .morro/changesets/MD-CP-002C.json
+    permissions:
+      contents: read

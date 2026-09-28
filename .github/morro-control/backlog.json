@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "a194e22a65ae1623d3296908a58157eec4596ceb",
+  "updatedFromMainSha": "75ad8db4896077a8d180f759b07103525d0d523e",
   "items": [
     {
       "id": "MD-CP-001",
@@ -44,10 +44,10 @@
       "title": "Etapa B3 — Copilot custom agents",
       "priority": "P1",
       "domain": "ci-release",
-      "state": "CLAIMED",
-      "implementation": "MISSING",
-      "integration": "MISSING",
-      "proof": "MISSING",
+      "state": "INTEGRATION_READY",
+      "implementation": "COMPLETE",
+      "integration": "COMPLETE",
+      "proof": "PROOF_ACCEPTED",
       "dependencies": ["MD-CP-002B"],
       "risk": "HIGH"
     },
