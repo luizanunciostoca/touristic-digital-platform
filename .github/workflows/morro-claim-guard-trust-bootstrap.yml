@@ -119,7 +119,7 @@ jobs:
   independent-proof:
     needs: unit
     name: base-controlled-independent-proof
-    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@93bfba78e1620c1106c3fbe39766dbc3dff6a888
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@9adbb1eb365c6b6650cb6306f24e6a74aa72bcc8
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
