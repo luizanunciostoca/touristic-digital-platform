@@ -57,6 +57,12 @@ services:
         value: morro_content
       - key: CONTENT_DATABASE_PASSWORD
         generateValue: true
+      - key: COMMERCE_DATABASE_NAME
+        value: morro_commerce_staging
+      - key: COMMERCE_DATABASE_USER
+        value: morro_commerce
+      - key: COMMERCE_DATABASE_PASSWORD
+        generateValue: true
       - key: DESTINATIONS_DATABASE_NAME
         value: morro_destinations_staging
       - key: DESTINATIONS_DATABASE_USER
@@ -197,6 +203,21 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: CONTENT_DATABASE_PASSWORD
+      - key: STAGING_COMMERCE_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: COMMERCE_DATABASE_NAME
+      - key: STAGING_COMMERCE_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: COMMERCE_DATABASE_USER
+      - key: STAGING_COMMERCE_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: COMMERCE_DATABASE_PASSWORD
       - key: STAGING_DESTINATIONS_DATABASE_NAME
         fromService:
           type: pserv
@@ -278,6 +299,9 @@ services:
       - key: PAYMENTS_STATUS_TOKEN_SECRET
         generateValue: true
       - key: PAYMENTS_HANDOFF_SECRET
+        generateValue: true
+      # Server-only signing key; preserve existing values when syncing.
+      - key: TICKETING_OFFLINE_PROVISIONING_SECRET
         generateValue: true
       - key: PAYMENTS_STATUS_TOKEN_TTL_SECONDS
         value: "86400"
