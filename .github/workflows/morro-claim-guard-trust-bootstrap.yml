@@ -1,0 +1,54 @@
+name: Trusted Claim Guard Bootstrap
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - ".github/hooks/morro-claim-guard.json"
+      - ".github/hooks/morro-pretool-guard.mjs"
+      - ".github/hooks/morro-pretool-guard.test.mjs"
+      - ".github/workflows/morro-claim-guard-trusted.yml"
+      - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+      - ".morro/changesets/MD-CP-003-TRUST.json"
+      - "tooling/fabric/claim-guard.mjs"
+      - "tooling/fabric/claim-guard.test.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trusted-claim-guard-bootstrap-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    name: trusted-claim-guard-bootstrap
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Test Claim Guard and pre-tool safety contracts
+        run: >-
+          node --test
+          tooling/fabric/claim-guard.test.mjs
+          .github/hooks/morro-pretool-guard.test.mjs
+
+  independent-proof:
+    name: base-controlled-independent-proof
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@4729cbfa5bd0b1ee0796fd0c2840c779fe3476db
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      manifest_path: .morro/changesets/MD-CP-003-TRUST.json
+    permissions:
+      contents: read
