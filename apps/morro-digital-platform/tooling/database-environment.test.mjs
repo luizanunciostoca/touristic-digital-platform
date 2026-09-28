@@ -5,23 +5,43 @@ import {
   databaseSchemas,
 } from "./database-environment.mjs";
 
+const canonicalSchemas = Object.freeze({
+  AUTH_DATABASE_URL: "morro_auth",
+  CONTROL_CENTER_AUDIT_DATABASE_URL: "morro_audit",
+  DESTINATIONS_DATABASE_URL: "morro_destinations",
+  CONTENT_DATABASE_URL: "morro_content",
+  BUSINESS_DATABASE_URL: "morro_business",
+  ORDERING_DATABASE_URL: "morro_ordering",
+  FINANCIAL_DATABASE_URL: "morro_financial",
+  TICKETING_DATABASE_URL: "morro_ticketing",
+  NOTIFICATIONS_DATABASE_URL: "morro_notifications",
+  AFFILIATES_DATABASE_URL: "morro_affiliates",
+  ANALYTICS_DATABASE_URL: "morro_analytics",
+  CRM_DATABASE_URL: "morro_crm",
+  COMMERCE_DATABASE_URL: "morro_commerce",
+});
+
 describe("database environment resolver", () => {
+  it("covers the complete thirteen-domain production topology", () => {
+    expect(databaseSchemas).toEqual(canonicalSchemas);
+  });
+
   it("preserves an explicit database URL", () => {
     const resolveEnvironment = createDatabaseEnvironmentResolver({
       processEnvironment: {
-        AUTH_DATABASE_URL: "mysql://explicit.example/auth",
+        CRM_DATABASE_URL: "mysql://crm:secret@crm.internal:3306/morro_crm",
         MORRO_DB_HOST: "fallback.example",
         MORRO_DB_USER: "fallback",
         MORRO_DB_PASSWORD: "fallback-secret",
       },
     });
 
-    expect(resolveEnvironment("AUTH_DATABASE_URL")).toBe(
-      "mysql://explicit.example/auth",
+    expect(resolveEnvironment("CRM_DATABASE_URL")).toBe(
+      "mysql://crm:secret@crm.internal:3306/morro_crm",
     );
   });
 
-  it("synthesizes isolated database URLs from component secrets", () => {
+  it("synthesizes isolated schema URLs from shared fallback credentials", () => {
     const resolveEnvironment = createDatabaseEnvironmentResolver({
       processEnvironment: {
         MORRO_DB_HOST: "mysql.example",
@@ -31,7 +51,7 @@ describe("database environment resolver", () => {
       },
     });
 
-    for (const [key, schema] of Object.entries(databaseSchemas)) {
+    for (const [key, schema] of Object.entries(canonicalSchemas)) {
       const url = new URL(resolveEnvironment(key));
       expect(url.protocol).toBe("mysql:");
       expect(url.hostname).toBe("mysql.example");
