@@ -5,13 +5,14 @@ import test from "node:test";
 import {
   buildProductionMysqlEnvironment,
   parseProductionMysqlHostPort,
+  productionBootstrapServiceName,
   productionDatabaseDomains,
   runWithProductionMysqlEnv,
 } from "./with-production-mysql-env.mjs";
 
 function fixture(overrides = {}) {
   const environment = {
-    RENDER_SERVICE_NAME: "morro-digital-v2",
+    RENDER_SERVICE_NAME: productionBootstrapServiceName,
     PRODUCTION_MYSQL_HOSTPORT: "morro-digital-v2-production-mysql:3306",
     ...overrides,
   };
@@ -46,7 +47,7 @@ test("builds all thirteen least-privilege database URLs in memory", () => {
   }
 });
 
-test("parses only a private hostport shape", () => {
+test("accepts only the exact private MySQL host and port", () => {
   assert.deepEqual(parseProductionMysqlHostPort(fixture()), {
     host: "morro-digital-v2-production-mysql",
     port: 3306,
@@ -58,9 +59,26 @@ test("parses only a private hostport shape", () => {
       ),
     /PRODUCTION_MYSQL_HOSTPORT_INVALID/u,
   );
+  assert.throws(
+    () =>
+      parseProductionMysqlHostPort(
+        fixture({ PRODUCTION_MYSQL_HOSTPORT: "attacker.example:3306" }),
+      ),
+    /PRODUCTION_MYSQL_HOSTPORT_UNTRUSTED/u,
+  );
+  assert.throws(
+    () =>
+      parseProductionMysqlHostPort(
+        fixture({
+          PRODUCTION_MYSQL_HOSTPORT:
+            "morro-digital-v2-production-mysql:3307",
+        }),
+      ),
+    /PRODUCTION_MYSQL_HOSTPORT_UNTRUSTED/u,
+  );
 });
 
-test("fails closed outside the production web service", () => {
+test("fails closed outside the dedicated production bootstrap worker", () => {
   assert.throws(
     () =>
       buildProductionMysqlEnvironment(
