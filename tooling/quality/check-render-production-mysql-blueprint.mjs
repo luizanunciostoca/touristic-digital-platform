@@ -45,8 +45,31 @@ function forbidText(source, value, label = value) {
   }
 }
 
-function envBlock(key) {
+function serviceBlock(name) {
   const lines = blueprint.split(/\r?\n/u);
+  const nameIndex = lines.findIndex(
+    (line) => line.trim() === "name: " + name,
+  );
+  if (nameIndex < 0) {
+    throw new Error("Missing production MySQL service: " + name);
+  }
+
+  let start = nameIndex;
+  while (start >= 0 && !/^\s{2}- type: /u.test(lines[start])) start -= 1;
+  if (start < 0) {
+    throw new Error("Malformed production MySQL service: " + name);
+  }
+
+  let end = start + 1;
+  while (end < lines.length && !/^\s{2}- type: /u.test(lines[end])) end += 1;
+  return lines.slice(start, end).join("\n");
+}
+
+const mysqlService = serviceBlock("morro-digital-v2-production-mysql");
+const webService = serviceBlock("morro-digital-v2");
+
+function envBlock(key) {
+  const lines = mysqlService.split(/\r?\n/u);
   const start = lines.findIndex((line) => line.trim() === "- key: " + key);
   if (start < 0) {
     throw new Error("Missing production MySQL environment key: " + key);
@@ -83,7 +106,7 @@ for (const required of [
   "mountPath: /var/lib/mysql",
   "sizeGB: 10",
 ]) {
-  requireText(blueprint, required);
+  requireText(mysqlService, required);
 }
 
 requireDirective("MYSQL_ROOT_PASSWORD", "generateValue: true");
@@ -131,21 +154,19 @@ for (const required of [
 
 forbidText(init, "morro_app", "shared broad production database user");
 
-// Phase 1 is infrastructure-only. Do not cut the production app over until
-// the new private database has been deployed, inspected, backed up and proven.
 for (const forbidden of [
   "PRODUCTION_MYSQL_HOSTPORT",
   "with-production-mysql-env.mjs",
 ]) {
-  forbidText(blueprint, forbidden, "premature production cutover wiring");
+  forbidText(webService, forbidden, "premature production cutover wiring");
 }
 
 requireText(
-  blueprint,
+  webService,
   "preDeployCommand: node apps/morro-digital-platform/tooling/payments-migrate.mjs",
 );
 requireText(
-  blueprint,
+  webService,
   "startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs",
 );
 
