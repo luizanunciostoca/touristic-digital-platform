@@ -1,0 +1,82 @@
+name: Trusted Agent Profile Contract
+
+on:
+  workflow_call:
+    inputs:
+      candidate_sha:
+        required: true
+        type: string
+      base_sha:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: trusted-agent-profile-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify caller-bound source identities
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          BASE_SHA: ${{ inputs.base_sha }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          MERGE_HEAD_SHA: ${{ github.sha }}
+          MERGE_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          case "$EVENT_NAME" in
+            pull_request)
+              test "$CANDIDATE_SHA" = "$PR_HEAD_SHA"
+              test "$BASE_SHA" = "$PR_BASE_SHA"
+              ;;
+            merge_group)
+              test "$CANDIDATE_SHA" = "$MERGE_HEAD_SHA"
+              test "$BASE_SHA" = "$MERGE_BASE_SHA"
+              ;;
+            *)
+              echo "Unsupported caller event: $EVENT_NAME" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.base_sha }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Test trusted validator implementation
+        run: >-
+          node --test
+          trusted/tooling/quality/agent-profile-contract-trusted.test.mjs
+
+      - name: Validate candidate profiles as data
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          TRUSTED_VALIDATOR_SHA: ${{ inputs.base_sha }}
+        run: >-
+          node
+          trusted/tooling/quality/agent-profile-contract-trusted.mjs
+          candidate
