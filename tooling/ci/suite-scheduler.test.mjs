@@ -3,9 +3,11 @@ import test from "node:test";
 import { analyzeFiles } from "./impact-analyzer.mjs";
 import {
   buildQualityProof,
+  isCompleteImpactReport,
   matchesPath,
   selectSuites,
   suiteManifest,
+  verifyQualityProof,
   verifySuiteResults,
 } from "./suite-scheduler.mjs";
 
@@ -131,6 +133,31 @@ test("malformed or unrecognized dependency suite output fails closed", () => {
   }
 });
 
+test("incomplete analyzer reports cannot narrow managed suite selection", () => {
+  const complete = analyzeFiles(["docs/overview.md"], {
+    base: "a".repeat(40),
+    head: "b".repeat(40),
+  });
+  assert.equal(isCompleteImpactReport(complete), true);
+  for (const field of [
+    "risk",
+    "head",
+    "needsBrowser",
+    "needsVisual",
+    "needsDatabase",
+    "needsContainer",
+    "needsDependencyAudit",
+    "needsFullSecurity",
+    "needsFullRegression",
+    "nonRuntime",
+  ]) {
+    const malformed = structuredClone(complete);
+    delete malformed[field];
+    assert.equal(isCompleteImpactReport(malformed), false, field);
+    assert.deepEqual(selectSuites(malformed), all, field);
+  }
+});
+
 test("Business and Control Center keep coverage throughout incremental registration", () => {
   for (const [file, expected] of [
     [
@@ -219,21 +246,63 @@ test("uncovered managed runtime files force full coverage even beside a covered 
     );
   }
 });
-test("release proof binds successful child results to an exact source identity", () => {
+test("release proof binds successful child results to exact source, tree, lockfile and artifact identity", () => {
   const sha = "a".repeat(40);
-  const proof = buildQualityProof(all, results(all), sha);
-  assert.equal(proof.schemaVersion, 1);
+  const treeSha = "b".repeat(40);
+  const lockfileDigest = "sha256:" + "c".repeat(64);
+  const proof = buildQualityProof(all, results(all), sha, {
+    treeSha,
+    lockfileDigest,
+  });
+  assert.equal(proof.schemaVersion, 2);
   assert.equal(proof.sourceSha, sha);
+  assert.equal(proof.treeSha, treeSha);
+  assert.equal(proof.lockfileDigest, lockfileDigest);
+  assert.match(proof.artifactDigest, /^sha256:[0-9a-f]{64}$/u);
   assert.deepEqual(proof.selected, all);
   assert.equal(proof.result, "PASS");
+  assert.equal(verifyQualityProof(proof).result, "PASS");
+
   for (const invalid of [undefined, "", "main", "a".repeat(39)])
     assert.throws(
-      () => buildQualityProof(all, results(all), invalid),
+      () =>
+        buildQualityProof(all, results(all), invalid, {
+          treeSha,
+          lockfileDigest,
+        }),
       /exact source SHA/,
     );
+  assert.throws(
+    () =>
+      buildQualityProof(all, results(all), sha, {
+        treeSha: "main",
+        lockfileDigest,
+      }),
+    /source tree SHA/,
+  );
+  assert.throws(
+    () =>
+      buildQualityProof(all, results(all), sha, {
+        treeSha,
+        lockfileDigest: "sha256:short",
+      }),
+    /lockfile SHA-256/,
+  );
+
+  const tampered = structuredClone(proof);
+  tampered.selected = [];
+  assert.throws(() => verifyQualityProof(tampered), /artifact digest mismatch|expected skipped/);
+
   const skipped = results(all);
   skipped[suiteManifest.suites[0].jobId].result = "skipped";
-  assert.throws(() => buildQualityProof(all, skipped, sha), /expected success/);
+  assert.throws(
+    () =>
+      buildQualityProof(all, skipped, sha, {
+        treeSha,
+        lockfileDigest,
+      }),
+    /expected success/,
+  );
 });
 
 test("inconsistent classification cannot suppress unknown or critical file coverage", () => {
