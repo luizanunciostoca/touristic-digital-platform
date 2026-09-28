@@ -84,6 +84,40 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH6-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch6-claim-registration-20260928",
+      "baseSha": "da6ecb04ca446e462af5cf42b110e6cbf6eb02d0",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH6-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH6": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch6-20260928",
+      "baseSha": "da6ecb04ca446e462af5cf42b110e6cbf6eb02d0",
+      "paths": [
+        ".github/workflows/navigation-accessibility-baseline.yml",
+        ".github/workflows/navigation-end-main-menu-v1-parity.yml",
+        ".github/workflows/navigation-turn-by-turn-parity.yml",
+        ".github/workflows/navigation-visual-baseline.yml",
+        ".github/workflows/payments-browser-checkout-contract.yml",
+        ".github/workflows/place-explore-v2-visual-regression.yml",
+        ".github/workflows/profile-v2-visual-regression.yml",
+        ".github/workflows/pwa-offline-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH6.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T23:59:59Z"
     }
   }
 }
