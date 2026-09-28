@@ -104,30 +104,6 @@ function requireDirective(key, directive) {
   }
 }
 
-function webEnvBlock(key) {
-  const lines = webService.split(/\r?\n/u);
-  const start = lines.findIndex((line) => line.trim() === "- key: " + key);
-  if (start < 0) {
-    throw new Error("Missing production web bootstrap environment key: " + key);
-  }
-  const block = [];
-  for (let index = start; index < lines.length; index += 1) {
-    const line = lines[index];
-    if (index > start && /^\s*- key: /u.test(line)) break;
-    block.push(line);
-  }
-  return block.join("\n");
-}
-
-function requireWebDirective(key, directive) {
-  const block = webEnvBlock(key);
-  if (!block.split(/\r?\n/u).some((line) => line.trim() === directive)) {
-    throw new Error(
-      "Missing production web bootstrap contract: " + key + " -> " + directive,
-    );
-  }
-}
-
 for (const required of [
   "type: pserv",
   "name: morro-digital-v2-production-mysql",
@@ -236,20 +212,18 @@ forbidText(
 
 forbidText(init, "morro_app", "shared broad production database user");
 
-for (const directive of [
-  "type: pserv",
-  "name: morro-digital-v2-production-mysql",
-  "property: hostport",
-]) {
-  requireWebDirective("PRODUCTION_MYSQL_HOSTPORT", directive);
-}
-
+forbidText(
+  webService,
+  "PRODUCTION_MYSQL_HOSTPORT",
+  "bootstrap host must not be exposed to production web service",
+);
 for (const [domain] of domains) {
   for (const suffix of ["NAME", "USER", "PASSWORD"]) {
-    const key = "PRODUCTION_" + domain + "_DATABASE_" + suffix;
-    requireWebDirective(key, "type: pserv");
-    requireWebDirective(key, "name: morro-digital-v2-production-mysql");
-    requireWebDirective(key, "envVarKey: " + domain + "_DATABASE_" + suffix);
+    forbidText(
+      webService,
+      "PRODUCTION_" + domain + "_DATABASE_" + suffix,
+      "bootstrap owner credentials must not be exposed to production web service",
+    );
   }
 }
 
@@ -263,5 +237,5 @@ requireText(
 );
 
 console.log(
-  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 domain owners, bootstrap-only fromService wiring, no application cutover.",
+  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 domain owners, no bootstrap credentials on the web service, no application cutover.",
 );
