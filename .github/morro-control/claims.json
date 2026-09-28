@@ -23,11 +23,7 @@
         "tooling/render/mysql-production/readback.sh",
         ".github/workflows/production-mysql-render-readback.yml"
       ],
-      "domains": [
-        "ci-release",
-        "database",
-        "infrastructure"
-      ],
+      "domains": ["ci-release", "database", "infrastructure"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
