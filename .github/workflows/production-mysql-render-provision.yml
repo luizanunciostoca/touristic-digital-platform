@@ -49,9 +49,9 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$EXPECTED_SHA" =~ ^[0-9a-f]{40}$ ]]
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$(git rev-parse origin/main 2>/dev/null || git rev-parse HEAD)" = "$EXPECTED_SHA"
-          echo "Exact provision candidate SHA: $EXPECTED_SHA"
+          echo "Exact main provision candidate SHA: $EXPECTED_SHA"
 
       - name: Require protected Render credential
         env:
@@ -193,6 +193,11 @@ jobs:
                   plan:"starter",
                   region:"virginia",
                   numInstances:1,
+                  disk:{
+                    name:"mysql-production-data",
+                    mountPath:"/var/lib/mysql",
+                    sizeGB:10
+                  },
                   envSpecificDetails:{
                     dockerContext:".",
                     dockerfilePath:"./tooling/render/mysql-production/Dockerfile"
@@ -211,6 +216,10 @@ jobs:
             initial_deploy_id="$(jq -r '.deployId // empty' /tmp/render-service.json)"
             test -n "$service_id"
             created_service=true
+            disk_id="$(jq -r '.service.serviceDetails.disk.id // empty' /tmp/render-service.json)"
+            if [ -n "$disk_id" ]; then
+              created_disk=true
+            fi
             echo "Created private service $SERVICE_NAME ($service_id)"
 
             if [ -n "$initial_deploy_id" ]; then
