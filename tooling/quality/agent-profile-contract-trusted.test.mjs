@@ -31,7 +31,7 @@ function profileText(id) {
     ? '["read", "search"]'
     : '["read", "search", "edit", "execute"]';
   const authority = readOnly
-    ? "2. Remain read-only while inspecting source and evidence."
+    ? "2. Remain read-only: inspect source and evidence."
     : PROOF_CAPABLE.has(id)
       ? "5. Implementation agents stop at `REMOTE_PROVEN`; independent auditors stop at proof verdict and hand off to the Integrator."
       : "5. Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.";
@@ -99,11 +99,11 @@ test("reject negated implementation handoff even if REMOTE_PROVEN is mentioned",
   assert.throws(() => validateProfile(text, `${id}.agent.md`));
 });
 
-test("reject negated read-only authority item", () => {
+test("reject missing read-only authority item", () => {
   const id = "security-auditor";
   const text = profileText(id).replace(
-    "2. Remain read-only while inspecting source and evidence.",
-    "2. Do not remain read-only while inspecting source and evidence.",
+    "2. Remain read-only: inspect source and evidence.",
+    "2. Inspect source and evidence.",
   );
   assert.throws(() => validateProfile(text, `${id}.agent.md`));
 });
