@@ -1,0 +1,40 @@
+{
+  "id": "MD-REMEDIATION-DB-BLUEPRINT",
+  "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
+  "branch": "infra/remediation-db-blueprint-20260928",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "render.staging.yaml",
+      "tooling/render/mysql-staging/01-init-databases.sh",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/render-staging-blueprint.test.mjs",
+      ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json",
+      ".github/morro-control/claims.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

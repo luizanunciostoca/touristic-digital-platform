@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { stagingDatabaseDomains } from "../render/reconcile-staging-mysql-domains.mjs";
 
 const blueprint = fs.readFileSync(
   new URL("../../render.staging.yaml", import.meta.url),
@@ -163,13 +164,7 @@ if (autoDeployDisabled !== 2) {
 
 for (const key of [
   "MYSQL_ROOT_PASSWORD",
-  "AUTH_DATABASE_PASSWORD",
-  "ORDERING_DATABASE_PASSWORD",
-  "FINANCIAL_DATABASE_PASSWORD",
-  "AFFILIATES_DATABASE_PASSWORD",
-  "BUSINESS_DATABASE_PASSWORD",
-  "CONTENT_DATABASE_PASSWORD",
-  "DESTINATIONS_DATABASE_PASSWORD",
+  ...stagingDatabaseDomains.map((domain) => `${domain}_DATABASE_PASSWORD`),
   "DASHBOARD_AUTH_SECRET",
   "PAYMENTS_STATUS_TOKEN_SECRET",
   "PAYMENTS_HANDOFF_SECRET",
@@ -197,30 +192,11 @@ for (const key of [
 
 for (const key of [
   "STAGING_MYSQL_HOSTPORT",
-  "STAGING_AUTH_DATABASE_NAME",
-  "STAGING_AUTH_DATABASE_USER",
-  "STAGING_AUTH_DATABASE_PASSWORD",
-  "STAGING_ORDERING_DATABASE_NAME",
-  "STAGING_ORDERING_DATABASE_USER",
-  "STAGING_ORDERING_DATABASE_PASSWORD",
-  "STAGING_FINANCIAL_DATABASE_NAME",
-  "STAGING_FINANCIAL_DATABASE_USER",
-  "STAGING_FINANCIAL_DATABASE_PASSWORD",
-  "STAGING_AFFILIATES_DATABASE_NAME",
-  "STAGING_AFFILIATES_DATABASE_USER",
-  "STAGING_AFFILIATES_DATABASE_PASSWORD",
-  "STAGING_BUSINESS_DATABASE_NAME",
-  "STAGING_BUSINESS_DATABASE_USER",
-  "STAGING_BUSINESS_DATABASE_PASSWORD",
-  "STAGING_CONTENT_DATABASE_NAME",
-  "STAGING_CONTENT_DATABASE_USER",
-  "STAGING_CONTENT_DATABASE_PASSWORD",
-  "STAGING_DESTINATIONS_DATABASE_NAME",
-  "STAGING_DESTINATIONS_DATABASE_USER",
-  "STAGING_DESTINATIONS_DATABASE_PASSWORD",
-  "STAGING_NOTIFICATIONS_DATABASE_NAME",
-  "STAGING_NOTIFICATIONS_DATABASE_USER",
-  "STAGING_NOTIFICATIONS_DATABASE_PASSWORD",
+  ...stagingDatabaseDomains.flatMap((domain) =>
+    ["NAME", "USER", "PASSWORD"].map(
+      (component) => `STAGING_${domain}_DATABASE_${component}`,
+    ),
+  ),
   "STAGING_MYSQL_ROOT_PASSWORD",
 ]) {
   requireDirective(key, "fromService:");
@@ -250,16 +226,21 @@ for (const [key, expected] of [
   requireDirective(key, expected);
 }
 
-for (const domain of [
-  "AUTH",
-  "ORDERING",
-  "FINANCIAL",
-  "AFFILIATES",
-  "BUSINESS",
-  "CONTENT",
-  "DESTINATIONS",
-  "NOTIFICATIONS",
-]) {
+for (const domain of stagingDatabaseDomains) {
+  requireDirective(
+    `${domain}_DATABASE_NAME`,
+    `value: morro_${domain.toLowerCase()}_staging`,
+  );
+  requireDirective(
+    `${domain}_DATABASE_USER`,
+    `value: morro_${domain.toLowerCase()}`,
+  );
+  for (const component of ["NAME", "USER", "PASSWORD"]) {
+    requireDirective(
+      `STAGING_${domain}_DATABASE_${component}`,
+      `envVarKey: ${domain}_DATABASE_${component}`,
+    );
+  }
   requireText(mysqlInit, `\${${domain}_DATABASE_NAME}`);
   requireText(mysqlInit, `\${${domain}_DATABASE_USER}`);
   requireText(mysqlInit, `\${${domain}_DATABASE_PASSWORD}`);
