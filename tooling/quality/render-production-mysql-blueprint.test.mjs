@@ -95,7 +95,7 @@ test("shared morro_app ownership is forbidden", (t) => {
   );
 });
 
-test("bootstrap wiring must include every least-privilege password reference", (t) => {
+test("production web service cannot receive bootstrap database credentials", (t) => {
   rejects(
     runCheck(t, (directory) => {
       const file = path.join(directory, "render.yaml");
@@ -104,12 +104,12 @@ test("bootstrap wiring must include every least-privilege password reference", (
         fs
           .readFileSync(file, "utf8")
           .replace(
-            "- key: PRODUCTION_BUSINESS_DATABASE_PASSWORD",
-            "- key: OMITTED_PRODUCTION_BUSINESS_DATABASE_PASSWORD",
+            "      - key: HOST\n        value: 0.0.0.0\n",
+            "      - key: HOST\n        value: 0.0.0.0\n      - key: PRODUCTION_BUSINESS_DATABASE_PASSWORD\n        value: forbidden\n",
           ),
       );
     }),
-    /PRODUCTION_BUSINESS_DATABASE_PASSWORD/u,
+    /bootstrap owner credentials must not be exposed/u,
   );
 });
 
