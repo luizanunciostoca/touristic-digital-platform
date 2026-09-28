@@ -142,6 +142,114 @@ describe("Restaurant Commerce API", () => {
     });
   });
 
+  it.each([
+    ["COMMERCE_DATABASE_URL", "COMMERCE_DATABASE_URL_REQUIRED"],
+    ["ORDERING_DATABASE_URL", "ORDERING_DATABASE_URL_REQUIRED"],
+    ["PAYMENTS_HANDOFF_SECRET", "PAYMENTS_HANDOFF_SECRET_REQUIRED"],
+    [
+      "TICKETING_OFFLINE_PROVISIONING_SECRET",
+      "TICKETING_OFFLINE_PROVISIONING_SECRET_REQUIRED",
+    ],
+    ["PAYMENTS_DESTINATION_ID", "PAYMENTS_DESTINATION_ID_REQUIRED"],
+  ])("reports missing %s without enabling the runtime", async (key, detail) => {
+    const api = createCommerceApi({
+      authApi: makeAuth(),
+      getEnvironmentValue: (name) => (name === key ? "" : env(name)),
+    });
+    await expect(api.start()).resolves.toBe(false);
+    expect(api.readinessCheck()).toEqual({
+      status: "fail",
+      critical: false,
+      detail,
+    });
+    const result = await invoke(
+      api,
+      "GET",
+      "/api/commerce/v1/restaurants/business-restaurant/availability?date=2026-10-10",
+    );
+    expect(result).toMatchObject({
+      status: 503,
+      body: { error: "COMMERCE_UNAVAILABLE" },
+    });
+  });
+
+  it.each([
+    ["ER_ACCESS_DENIED_ERROR", "COMMERCE_DATABASE_ACCESS_DENIED"],
+    ["ER_DBACCESS_DENIED_ERROR", "COMMERCE_DATABASE_ACCESS_DENIED"],
+    ["ER_BAD_DB_ERROR", "COMMERCE_DATABASE_MISSING"],
+    ["ER_NO_SUCH_TABLE", "COMMERCE_DATABASE_SCHEMA_UNAVAILABLE"],
+    ["ER_BAD_FIELD_ERROR", "COMMERCE_DATABASE_SCHEMA_UNAVAILABLE"],
+    ["ER_PARSE_ERROR", "COMMERCE_DATABASE_SCHEMA_UNAVAILABLE"],
+    ["ECONNREFUSED", "COMMERCE_DATABASE_UNREACHABLE"],
+    ["ECONNRESET", "COMMERCE_DATABASE_UNREACHABLE"],
+    ["ENOTFOUND", "COMMERCE_DATABASE_UNREACHABLE"],
+    ["ETIMEDOUT", "COMMERCE_DATABASE_UNREACHABLE"],
+    ["EHOSTUNREACH", "COMMERCE_DATABASE_UNREACHABLE"],
+    ["ERR_MODULE_NOT_FOUND", "COMMERCE_RUNTIME_DEPENDENCY_UNAVAILABLE"],
+    [
+      "ERR_PACKAGE_PATH_NOT_EXPORTED",
+      "COMMERCE_RUNTIME_DEPENDENCY_UNAVAILABLE",
+    ],
+  ])(
+    "classifies startup %s without exposing its message",
+    async (code, detail) => {
+      const api = createCommerceApi({
+        authApi: makeAuth(),
+        getEnvironmentValue: env,
+        runtimeFactory: async () => {
+          throw Object.assign(
+            new Error(
+              "mysql://private-user:private-password@internal-host/private-db",
+            ),
+            { code },
+          );
+        },
+      });
+      await expect(api.start()).resolves.toBe(false);
+      expect(api.readinessCheck()).toEqual({
+        status: "fail",
+        critical: false,
+        detail,
+      });
+    },
+  );
+
+  it.each([
+    new Error("mysql://private-user:private-password@internal-host/private-db"),
+    new Error("SECRET_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ"),
+    Object.assign(new Error("unrecognized driver error"), {
+      code: "PRIVATE_CREDENTIAL_ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    }),
+    "mysql://private-user:private-password@internal-host/private-db",
+    null,
+  ])("keeps unknown startup failures generic", async (failure) => {
+    const api = createCommerceApi({
+      authApi: makeAuth(),
+      getEnvironmentValue: env,
+      runtimeFactory: async () => {
+        throw failure;
+      },
+    });
+    await expect(api.start()).resolves.toBe(false);
+    expect(api.readinessCheck()).toEqual({
+      status: "fail",
+      critical: false,
+      detail: "COMMERCE_RUNTIME_UNAVAILABLE",
+    });
+  });
+
+  it("reports invalid Commerce enablement without exposing the configured value", async () => {
+    const api = createCommerceApi({
+      authApi: makeAuth(),
+      getEnvironmentValue: (key) =>
+        key === "COMMERCE_FEATURE_ENABLED" ? "private-config-value" : env(key),
+    });
+    await expect(api.start()).resolves.toBe(false);
+    expect(api.readinessCheck().detail).toBe(
+      "COMMERCE_FEATURE_ENABLED_INVALID",
+    );
+  });
+
   it("projects public availability from the canonical repository", async () => {
     const active = makeRuntime();
     active.repository.listAvailabilityForDate.mockResolvedValue([
