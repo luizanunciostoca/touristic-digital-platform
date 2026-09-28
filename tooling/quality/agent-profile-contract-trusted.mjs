@@ -55,7 +55,11 @@ export function validateProfile(text, filename) {
     header[key] = value.trim();
   }
 
-  assert.deepEqual(Object.keys(header).sort(), [...KEYS].sort());
+  assert.deepEqual(
+    Object.keys(header).sort(),
+    [...KEYS].sort(),
+    "PROFILE_PROPERTIES_MISMATCH",
+  );
 
   const id = filename.replace(/\.agent\.md$/u, "");
   assert.ok(PROFILE_IDS.includes(id), "UNEXPECTED_PROFILE");
@@ -63,14 +67,18 @@ export function validateProfile(text, filename) {
   assert.ok(header.name.length > 0, "PROFILE_NAME_REQUIRED");
   assert.ok(header.description.length >= 20, "DESCRIPTION_REQUIRED");
   assert.equal(header.target, "github-copilot", "TARGET_INVALID");
-  assert.equal(header["disable-model-invocation"], "true");
-  assert.equal(header["user-invocable"], "true");
+  assert.equal(
+    header["disable-model-invocation"],
+    "true",
+    "MODEL_INVOCATION_MUST_BE_DISABLED",
+  );
+  assert.equal(header["user-invocable"], "true", "USER_INVOCABLE_REQUIRED");
 
   const readOnly = READ_ONLY.has(id);
   const tools = readOnly
     ? ["read", "search"]
     : ["read", "search", "edit", "execute"];
-  assert.deepEqual(JSON.parse(header.tools), tools);
+  assert.deepEqual(JSON.parse(header.tools), tools, "TOOLS_ALLOWLIST_INVALID");
 
   const body = sections[2];
   for (const required of [
@@ -86,22 +94,22 @@ export function validateProfile(text, filename) {
 
   const workflowMatch = /## Workflow\s+([\s\S]*?)\n## Forbidden/u.exec(body);
   assert.ok(workflowMatch, "WORKFLOW_SECTION_INVALID");
-  const workflow = workflowMatch[1];
+  const workflowItems = workflowMatch[1]
+    .split(/\r?\n/u)
+    .map((line) => /^\s*\d+\.\s+(.+?)\s*$/u.exec(line)?.[1] ?? null)
+    .filter(Boolean);
 
-  const authorityClauses = readOnly
-    ? ["Remain read-only"]
+  const hasAuthorityHandoff = readOnly
+    ? workflowItems.some((item) => /^Remain read-only(?:[:.;]|$)/u.test(item))
     : PROOF_CAPABLE.has(id)
-      ? [
+      ? workflowItems.includes(
           "Implementation agents stop at `REMOTE_PROVEN`; independent auditors stop at proof verdict and hand off to the Integrator.",
-        ]
-      : [
+        )
+      : workflowItems.includes(
           "Stop the implementation lane at `REMOTE_PROVEN` and hand off to independent proof/integration.",
-        ];
+        );
 
-  assert.ok(
-    authorityClauses.some((clause) => workflow.includes(clause)),
-    "ROLE_AUTHORITY_CONTRACT_MISSING",
-  );
+  assert.ok(hasAuthorityHandoff, "ROLE_AUTHORITY_CONTRACT_MISSING");
 
   const skills = [...body.matchAll(/`(\.github\/skills\/[^`]+)`/gu)].map(
     (match) => match[1],
@@ -157,8 +165,25 @@ export function validateDirectory(root) {
     }
   }
 
-  assert.ok(lstatSync(resolve(directory, "README.md")).isFile());
+  assert.ok(
+    lstatSync(resolve(directory, "README.md")).isFile(),
+    "AGENT_README_MISSING",
+  );
   return { count: files.length, mode: "MANUAL_SELECTION_ONLY" };
+}
+
+function diagnosticCode(cause) {
+  const message =
+    cause &&
+    typeof cause === "object" &&
+    "message" in cause &&
+    typeof cause.message === "string"
+      ? cause.message
+      : "";
+  return (
+    message.match(/[A-Z][A-Z0-9_:.-]{2,160}/u)?.[0] ??
+    "UNEXPECTED_VALIDATION_ERROR"
+  );
 }
 
 const invokedDirectly =
@@ -210,8 +235,10 @@ if (invokedDirectly) {
         runtimeAcceptance: "NOT_RUN",
       }),
     );
-  } catch {
-    console.error("MORRO_TRUSTED_AGENT_PROFILES_FAILED");
+  } catch (cause) {
+    console.error(
+      `MORRO_TRUSTED_AGENT_PROFILES_FAILED:${diagnosticCode(cause)}`,
+    );
     process.exitCode = 1;
   }
 }
