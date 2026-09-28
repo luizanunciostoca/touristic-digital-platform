@@ -28,7 +28,11 @@
   "requiredEvidence": [
     "format",
     "secrets",
+    "lint",
+    "typecheck",
     "affected-tests",
+    "build",
+    "integration",
     "automated-independent-proof"
   ],
   "stopAt": "REMOTE_PROVEN"
