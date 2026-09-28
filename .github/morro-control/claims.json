@@ -164,6 +164,40 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH1-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch1-claim-registration-20260928",
+      "baseSha": "9adbb1eb365c6b6650cb6306f24e6a74aa72bcc8",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH1-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-01T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH1": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch1-20260928",
+      "baseSha": "9adbb1eb365c6b6650cb6306f24e6a74aa72bcc8",
+      "paths": [
+        ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+        ".github/workflows/assistant-photo-browser-contract.yml",
+        ".github/workflows/assistant-voice-browser-contract.yml",
+        ".github/workflows/auth-login-browser-contract.yml",
+        ".github/workflows/business-dashboard-browser-contract.yml",
+        ".github/workflows/business-onboarding-browser-contract.yml",
+        ".github/workflows/commerce-browser-regression.yml",
+        ".github/workflows/control-center-browser-contract.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH1.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-01T23:59:59Z"
     }
   }
 }
