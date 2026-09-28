@@ -56,6 +56,8 @@ export function selectSuites(report, manifest = suiteManifest) {
   // in the same PR must never mask a second file with unknown suite coverage.
   for (const file of report.files) {
     const fileImpact = analyzeFiles([file]);
+    if (fileImpact.needsFullRegression || fileImpact.unknownFiles.length > 0)
+      return all;
     const requiresCoverage = fileImpact.domains.some(
       (domain) => impactManifest.domains[domain]?.requiresScheduledSuite,
     );

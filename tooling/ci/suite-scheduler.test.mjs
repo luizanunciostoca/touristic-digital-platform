@@ -235,3 +235,16 @@ test("release proof binds successful child results to an exact source identity",
   skipped[suiteManifest.suites[0].jobId].result = "skipped";
   assert.throws(() => buildQualityProof(all, skipped, sha), /expected success/);
 });
+
+test("inconsistent classification cannot suppress unknown or critical file coverage", () => {
+  for (const file of [
+    "unexpected/new-runtime.ts",
+    "packages/auth/src/authorization.ts",
+    "pnpm-lock.yaml",
+    ".github/workflows/quality.yml",
+  ]) {
+    const report = analyzeFiles(["docs/overview.md"]);
+    report.files = [file];
+    assert.deepEqual(selectSuites(report), all, file);
+  }
+});
