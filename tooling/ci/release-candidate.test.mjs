@@ -87,6 +87,13 @@ test("candidate identity survives main advancement and rejects missing, moved or
       readFileSync(join(root, "creation-calls"), "utf8"),
       "created\n",
     );
+    git("remote", "set-url", "origin", join(root, "unreachable.git"));
+    assert.throws(() => freezeInWorkflow(cwd, sha, root));
+    assert.equal(
+      readFileSync(join(root, "creation-calls"), "utf8"),
+      "created\n",
+    );
+    git("remote", "set-url", "origin", remote);
     assert.equal(verifyCandidate(sha, { cwd }).sourceSha, sha);
     writeFileSync(join(cwd, "app.txt"), "later legitimate merge\n");
     git("commit", "-am", "advance main");
