@@ -19,7 +19,13 @@
       ".github/workflows/security-scanning.yml",
       ".github/workflows/production-mysql-render-provision.yml",
       "tooling/render/mysql-production/readback.sh",
-      ".github/workflows/production-mysql-render-readback.yml"
+      ".github/workflows/production-mysql-render-readback.yml",
+      ".github/workflows/production-mysql-render-cutover.yml",
+      "tooling/render/production-mysql-cutover-env.mjs",
+      "tooling/render/production-mysql-cutover-env.test.mjs",
+      "apps/morro-digital-platform/tooling/production-db-bootstrap.mjs",
+      "apps/morro-digital-platform/tooling/database-environment.mjs",
+      "apps/morro-digital-platform/tooling/database-environment.test.mjs"
     ],
     "contracts": []
   },
@@ -50,7 +56,10 @@
     "production-mysql-durable-readback",
     "production-mysql-backup-restore-proof",
     "production-mysql-render-provision",
-    "production-mysql-least-privilege-readback"
+    "production-mysql-least-privilege-readback",
+    "railway-logical-recovery-snapshot",
+    "production-mysql-cutover",
+    "production-domain-bootstrap"
   ],
   "stopAt": "REMOTE_PROVEN"
 }
