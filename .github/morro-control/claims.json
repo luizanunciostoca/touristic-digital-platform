@@ -48,7 +48,8 @@
         "tooling/quality/check-render-staging-blueprint.mjs",
         "tooling/quality/check-environment-reconciliation.mjs",
         "tooling/quality/check-release-readiness.mjs",
-        "tooling/quality/check-migration-dry-run.mjs"
+        "tooling/quality/check-migration-dry-run.mjs",
+        "tooling/render/mysql-staging/01-init-databases.sh"
       ],
       "domains": [
         "database",
