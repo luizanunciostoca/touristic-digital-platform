@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       expected_sha:
-        description: Exact main SHA approved for promotion
+        description: Exact frozen candidate SHA approved for promotion
         required: true
         type: string
 
@@ -31,15 +31,14 @@ jobs:
         with:
           ref: ${{ inputs.expected_sha }}
           fetch-depth: 0
-      - name: Prove exact promotion SHA is current main
+      - name: Prove frozen candidate provenance
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          REMOTE_MAIN_SHA="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$REMOTE_MAIN_SHA" = "$EXPECTED_SHA"
+          node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"
       - name: Re-prove Final Release Acceptance for exact SHA
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}

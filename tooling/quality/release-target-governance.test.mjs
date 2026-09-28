@@ -141,3 +141,56 @@ test("active workflows cannot resurrect legacy staging targets or generic Render
     }
   }
 });
+
+test("release acceptance is intentional and every dispatched suite uses the frozen ref", async () => {
+  const workflows = await workflowSources();
+  const acceptance = workflows.get("final-release-acceptance.yml");
+  assert.ok(!/^  push:/m.test(acceptance));
+  assert.ok(acceptance.includes("github.event_name == 'workflow_dispatch'"));
+  assert.ok(acceptance.includes('candidate_ref="rc/$GITHUB_SHA"'));
+  assert.ok(
+    acceptance.includes('gh workflow run "$workflow" --ref "$CANDIDATE_REF"'),
+  );
+  assert.ok(!acceptance.includes("--ref main"));
+  assert.ok(!acceptance.includes('test "$remote_main_sha" = "$GITHUB_SHA"'));
+  for (const name of [
+    "staging-render-promotion.yml",
+    "production-render-promotion.yml",
+    "release-promotion-gate.yml",
+    "staging-oci-promotion.yml",
+    "production-oci-promotion.yml",
+  ]) {
+    const source = workflows.get(name);
+    assert.ok(
+      source.includes('node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"'),
+      name,
+    );
+    assert.ok(
+      !/test "\$(?:remote_main_sha|REMOTE_MAIN_SHA)" = "\$EXPECTED_SHA"/.test(
+        source,
+      ),
+      name,
+    );
+  }
+  const pages = workflows.get("pages-after-final-acceptance.yml");
+  assert.ok(pages.includes("git/ref/tags/rc/"));
+  assert.ok(pages.includes("latest_accepted_sha"));
+  assert.ok(!pages.includes('test "$current_main_sha"'));
+});
+
+test("required quality consumes fail-closed impact and release packaging is explicit", async () => {
+  const workflows = await workflowSources();
+  const quality = workflows.get("quality.yml");
+  assert.ok(quality.includes("uses: ./.github/workflows/ci-impact.yml"));
+  assert.ok(quality.includes("if: always()"));
+  assert.ok(quality.includes('test "$IMPACT_RESULT" = success'));
+  assert.ok(quality.includes("needs.impact.outputs.non_runtime != 'true'"));
+  assert.ok(quality.includes("tooling/fabric/*.test.mjs"));
+  assert.ok(!quality.includes("github.event.pull_request.draft == false"));
+  const impact = workflows.get("ci-impact.yml");
+  assert.ok(impact.includes("workflow_call:"));
+  assert.ok(!/^  pull_request:/m.test(impact));
+  assert.ok(!impact.includes("selective-core:"));
+  const certification = workflows.get("release-candidate-certification.yml");
+  assert.ok(!/^  (pull_request|push|merge_group):/m.test(certification));
+});

@@ -5,10 +5,16 @@ async function source(path) {
   return readFile(path, "utf8");
 }
 
-function certifyPages({ acceptedSha, currentMainSha, acceptanceState }) {
+function certifyPages({
+  acceptedSha,
+  candidateSha,
+  ancestry,
+  acceptanceState,
+}) {
   return (
     /^[0-9a-f]{40}$/.test(acceptedSha) &&
-    acceptedSha === currentMainSha &&
+    acceptedSha === candidateSha &&
+    ["identical", "ahead"].includes(ancestry) &&
     acceptanceState === "success"
   );
 }
@@ -29,7 +35,8 @@ function certifyProvenance({
 assert.equal(
   certifyPages({
     acceptedSha: "a".repeat(40),
-    currentMainSha: "b".repeat(40),
+    candidateSha: "b".repeat(40),
+    ancestry: "ahead",
     acceptanceState: "success",
   }),
   false,
@@ -38,7 +45,8 @@ assert.equal(
 assert.equal(
   certifyPages({
     acceptedSha: "a".repeat(40),
-    currentMainSha: "a".repeat(40),
+    candidateSha: "a".repeat(40),
+    ancestry: "ahead",
     acceptanceState: "failure",
   }),
   false,
@@ -47,11 +55,32 @@ assert.equal(
 assert.equal(
   certifyPages({
     acceptedSha: "a".repeat(40),
-    currentMainSha: "b".repeat(40),
+    candidateSha: "b".repeat(40),
+    ancestry: "ahead",
     acceptanceState: "success",
   }),
   false,
-  "main drift must fail closed",
+  "candidate ref drift must fail closed",
+);
+assert.equal(
+  certifyPages({
+    acceptedSha: "a".repeat(40),
+    candidateSha: "a".repeat(40),
+    ancestry: "ahead",
+    acceptanceState: "success",
+  }),
+  true,
+  "legitimate main advancement must preserve a frozen candidate",
+);
+assert.equal(
+  certifyPages({
+    acceptedSha: "a".repeat(40),
+    candidateSha: "a".repeat(40),
+    ancestry: "diverged",
+    acceptanceState: "success",
+  }),
+  false,
+  "unmerged source must fail closed",
 );
 assert.equal(
   certifyProvenance({
@@ -72,9 +101,9 @@ const pages = await source(
   ".github/workflows/pages-after-final-acceptance.yml",
 );
 for (const marker of [
-  'test "$current_main_sha" = "$ACCEPTED_SHA"',
+  'test "$candidate_sha" = "$ACCEPTED_SHA"',
   'test "$acceptance_state" = "success"',
-  'test "$current_main_sha" = "$CERTIFIED_SHA"',
+  'test "$candidate_sha" = "$CERTIFIED_SHA"',
 ]) {
   const present = pages.includes(marker);
   assert.ok(present, `Pages fail-closed marker missing: ${marker}`);
@@ -90,7 +119,7 @@ for (const marker of [
   'candidate_tree="$(commit_tree "$candidate_sha")"',
   'if [ "$candidate_tree" = "$CURRENT_TREE" ]; then',
   'if [ "$observed_sha" != "$expected_sha" ]; then',
-  'test "$remote_main_sha" = "$GITHUB_SHA"',
+  'node tooling/ci/release-candidate.mjs "$GITHUB_SHA"',
 ]) {
   assert.ok(
     acceptance.includes(marker),
@@ -112,11 +141,11 @@ for (const path of [
     `${path} must bind provenance to SHA, tree and digest`,
   );
   assert.ok(
-    workflow.includes('test "$remote_main_sha" = "$EXPECTED_SHA"'),
-    `${path} must reject main drift`,
+    workflow.includes('node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"'),
+    `${path} must bind the frozen candidate`,
   );
 }
 
 console.log(
-  "Release gate negative contracts passed: wrong SHA, non-success status, main drift, and artifact mismatch all fail closed.",
+  "Release gate negative contracts passed: wrong SHA, non-success status, candidate drift, and artifact mismatch all fail closed.",
 );

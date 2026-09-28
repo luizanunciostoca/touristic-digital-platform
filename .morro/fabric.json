@@ -37,7 +37,7 @@
   "invariants": [
     "no-direct-main-feature-work",
     "exact-head-before-merge",
-    "exact-main-sha-before-production",
+    "exact-candidate-sha-before-production",
     "payments-financial-authority-must-not-be-bypassed",
     "evidence-must-identify-input-sha",
     "required-skipped-evidence-is-failure",
