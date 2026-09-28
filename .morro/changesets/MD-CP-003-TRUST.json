@@ -13,7 +13,8 @@
       ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
       ".morro/changesets/MD-CP-003-TRUST.json",
       "tooling/fabric/claim-guard.mjs",
-      "tooling/fabric/claim-guard.test.mjs"
+      "tooling/fabric/claim-guard.test.mjs",
+      ".github/morro-control/claims.json"
     ],
     "contracts": []
   },
@@ -30,7 +31,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-002C"],
+  "dependencies": [
+    "MD-CP-002C"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
