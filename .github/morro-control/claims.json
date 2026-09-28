@@ -17,9 +17,7 @@
         "tooling/fabric/control-plane-governance.mjs",
         "tooling/fabric/control-plane-governance.test.mjs"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
@@ -36,9 +34,7 @@
         "tooling/quality/release-target-governance.test.mjs",
         "docs/operations/engineering-remediation.md"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "REMOTE_PROVEN",
       "expiresAt": "2026-09-30T23:59:59Z"
@@ -55,9 +51,7 @@
         "tooling/quality/render-staging-blueprint.test.mjs",
         ".morro/changesets/MD-REMEDIATION-DB-BLUEPRINT.json"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-30T23:59:59Z"
