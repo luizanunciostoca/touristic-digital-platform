@@ -1,8 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  symlinkSync,
+  rmSync,
+  realpathSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  buildIndependentProof,
   pathOwned,
   validateManifestAndFiles,
+  validateManifestPath,
 } from "./independent-proof-trusted.mjs";
 
 const manifest = {
@@ -69,5 +81,81 @@ test("proof rejects pre-proof lifecycle state", () => {
   assert.throws(
     () => validateManifestAndFiles(implementing, []),
     /MANIFEST_NOT_PROOF_READY/u,
+  );
+});
+
+test("manifest input is a canonical regular file under the candidate", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "proof-path-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, ".morro/changesets"), { recursive: true });
+  const name = ".morro/changesets/MD-TEST-001.json";
+  writeFileSync(join(root, name), "{}");
+  assert.equal(
+    validateManifestPath(root, name),
+    join(realpathSync(root), name),
+  );
+});
+
+test("independent proof rejects a manifest whose filename and internal id differ", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "proof-id-path-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, ".morro/changesets"), { recursive: true });
+  const path = ".morro/changesets/MD-TEST-001.json";
+  writeFileSync(
+    join(root, path),
+    JSON.stringify({ ...manifest, id: "MD-DIFFERENT" }),
+  );
+  assert.throws(
+    () => buildIndependentProof(root, path, {}),
+    /MANIFEST_ID_PATH_MISMATCH/u,
+  );
+});
+
+test("manifest input rejects traversal, absolute paths and shell metacharacters", () => {
+  for (const value of [
+    "../MD-TEST.json",
+    "/tmp/MD-TEST.json",
+    ".morro/changesets/../MD-TEST.json",
+    ".morro/changesets/MD-TEST.json\n",
+    '.morro/changesets/MD-TEST.json"; echo injected; #',
+    ".morro/changesets/MD-TEST.json/extra",
+    ".morro/changesets/OTHER.json",
+    null,
+  ]) {
+    assert.throws(
+      () => validateManifestPath(".", value),
+      /MANIFEST_PATH_INVALID/u,
+    );
+  }
+});
+
+test("manifest input rejects symbolic links and directories", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "proof-link-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, ".morro/changesets"), { recursive: true });
+  writeFileSync(join(root, "outside.json"), "{}");
+  symlinkSync(
+    join(root, "outside.json"),
+    join(root, ".morro/changesets/MD-LINK.json"),
+  );
+  mkdirSync(join(root, ".morro/changesets/MD-DIR.json"));
+  for (const name of ["MD-LINK", "MD-DIR"]) {
+    assert.throws(
+      () => validateManifestPath(root, `.morro/changesets/${name}.json`),
+      /MANIFEST_NOT_REGULAR_FILE/u,
+    );
+  }
+});
+
+test("manifest input rejects a symlinked changeset directory", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "proof-parent-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  mkdirSync(join(root, ".morro"));
+  mkdirSync(join(root, "elsewhere"));
+  writeFileSync(join(root, "elsewhere/MD-TEST.json"), "{}");
+  symlinkSync(join(root, "elsewhere"), join(root, ".morro/changesets"));
+  assert.throws(
+    () => validateManifestPath(root, ".morro/changesets/MD-TEST.json"),
+    /MANIFEST_PATH_ESCAPE/u,
   );
 });
