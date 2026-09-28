@@ -2,7 +2,7 @@
   "id": "MD-REMEDIATION-CI",
   "baseSha": "2f5c1fcf42b9b300aecc650a12ba57fada007f0f",
   "branch": "infra/engineering-remediation-candidate-bootstrap-20260928",
-  "state": "LOCAL_PROVEN",
+  "state": "REMOTE_PROVEN",
   "risk": "critical",
   "owns": {
     "paths": [
