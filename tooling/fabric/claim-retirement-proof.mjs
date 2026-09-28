@@ -91,6 +91,16 @@ export function validateClaimRetirements({
         true,
         "CLAIM_RETIREMENT_MERGE_NOT_ANCESTOR",
       );
+      assert.equal(
+        evidence.claimBaseAncestorOfMerge,
+        true,
+        "CLAIM_RETIREMENT_CLAIM_BASE_NOT_ANCESTOR",
+      );
+      assert.equal(
+        evidence.historicalManifestMatches,
+        true,
+        "CLAIM_RETIREMENT_HISTORICAL_MANIFEST_MISMATCH",
+      );
     } else {
       assert.equal(
         evidence.branchExists,
@@ -321,17 +331,47 @@ export async function buildClaimRetirementProof(
   const evidenceById = {};
 
   for (const id of removed) {
-    evidenceById[id] = await collectClaimRetirementEvidence(
-      id,
-      baseRegistry.claims[id],
-      {
-        repository,
-        expectedBaseSha,
-        now,
-        token,
-        fetchImpl,
-      },
-    );
+    const claim = baseRegistry.claims[id];
+    const evidence = await collectClaimRetirementEvidence(id, claim, {
+      repository,
+      expectedBaseSha,
+      now,
+      token,
+      fetchImpl,
+    });
+
+    if (evidence.reason === "MERGED_PR") {
+      assert.equal(
+        isAncestor(targetRoot, claim.baseSha, evidence.mergeSha),
+        true,
+        "CLAIM_RETIREMENT_CLAIM_BASE_NOT_ANCESTOR",
+      );
+      const historical = JSON.parse(
+        git(targetRoot, [
+          "show",
+          `${evidence.mergeSha}:.morro/changesets/${id}.json`,
+        ]),
+      );
+      assert.equal(
+        historical?.id,
+        id,
+        "CLAIM_RETIREMENT_HISTORICAL_MANIFEST_MISMATCH",
+      );
+      assert.equal(
+        historical?.branch,
+        claim.branch,
+        "CLAIM_RETIREMENT_HISTORICAL_MANIFEST_MISMATCH",
+      );
+      assert.equal(
+        historical?.baseSha,
+        claim.baseSha,
+        "CLAIM_RETIREMENT_HISTORICAL_MANIFEST_MISMATCH",
+      );
+      evidence.claimBaseAncestorOfMerge = true;
+      evidence.historicalManifestMatches = true;
+    }
+
+    evidenceById[id] = evidence;
   }
 
   const result = validateClaimRetirements({
