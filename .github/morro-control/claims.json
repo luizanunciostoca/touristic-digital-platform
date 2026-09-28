@@ -2,30 +2,23 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-REMEDIATION-ORPHAN-CLAIM-GC": {
+    "MD-REMEDIATION-STAGING-MYSQL-MEMORY": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/remediation-orphan-claim-gc-20260928",
-      "baseSha": "7ef92e02f1a230d6317445ea5a16b0843e805793",
-      "paths": [".morro/changesets/MD-REMEDIATION-ORPHAN-CLAIM-GC.json"],
-      "domains": ["ci-governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-09-29T23:59:59Z"
-    },
-    "MD-REMEDIATION-RENDER-SMOKE-HEALTH": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/remediation-render-smoke-health-20260928",
-      "baseSha": "4443d30db2e000db844db9936b1c8244d9660e03",
+      "branch": "infra/remediation-staging-mysql-memory-20260928",
+      "baseSha": "20f56adccdd778f5e30ba38c138908d014dfd0b0",
       "paths": [
         ".github/morro-control/claims.json",
-        ".morro/changesets/MD-REMEDIATION-RENDER-SMOKE-HEALTH.json",
-        "tooling/payments/render-v2-smoke.mjs",
-        "tooling/payments/render-v2-smoke-contract.mjs",
-        "tooling/payments/render-v2-smoke-contract.test.mjs"
+        ".morro/changesets/MD-REMEDIATION-STAGING-MYSQL-MEMORY.json",
+        "tooling/render/mysql-staging/Dockerfile",
+        "tooling/render/mysql-staging/morro-memory.cnf",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs"
       ],
-      "domains": ["ci-release"],
+      "domains": [
+        "ci-release",
+        "database"
+      ],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
