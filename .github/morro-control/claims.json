@@ -22,33 +22,15 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:59:59Z"
     },
-    "MD-REMEDIATION-CI": {
-      "owner": "CHATGPT-WORK-REMEDIATION",
+    "MD-REMEDIATION-RUNTIME-DIAGNOSTICS": {
+      "owner": "CHATGPT-WORK-INFRA",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/remediation-pages-repository-context-20260928",
-      "baseSha": "e12d997edabe308297c3b6083a609af1710aa99b",
+      "branch": "fix/remediation-commerce-diagnostics-20260928",
+      "baseSha": "7105d020d167d7f6aa89091e7529fb3b7c8dbc5a",
       "paths": [
-        ".github/morro-control/claims.json",
-        ".morro/changesets/MD-REMEDIATION-CI.json",
-        ".github/workflows/pages-after-final-acceptance.yml",
-        "tooling/quality/release-target-governance.test.mjs",
-        "docs/operations/engineering-remediation.md"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "REMOTE_PROVEN",
-      "expiresAt": "2026-09-30T23:59:59Z"
-    },
-    "MD-REMEDIATION-GUARD": {
-      "owner": "CHATGPT-WORK-CLAIM-GUARD",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/remediation-claim-maintenance-20260928",
-      "baseSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
-      "paths": [
-        "tooling/fabric/claim-guard.mjs",
-        "tooling/fabric/claim-guard.test.mjs",
-        ".github/workflows/morro-claim-guard-trusted.yml",
-        ".morro/changesets/MD-REMEDIATION-GUARD.json"
+        "apps/morro-digital-platform/tooling/commerce-api.mjs",
+        "apps/morro-digital-platform/tooling/commerce-api.test.mjs",
+        ".morro/changesets/MD-REMEDIATION-RUNTIME-DIAGNOSTICS.json"
       ],
       "domains": ["ci-release"],
       "risk": "P0",
