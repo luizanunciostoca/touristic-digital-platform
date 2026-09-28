@@ -50,6 +50,40 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH5-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch5-claim-registration-20260928",
+      "baseSha": "7baffe769212b247f776b2df871944e324ef37cf",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH5": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch5-20260928",
+      "baseSha": "7baffe769212b247f776b2df871944e324ef37cf",
+      "paths": [
+        ".github/workflows/home-discover-manual-conformance.yml",
+        ".github/workflows/home-first-run-browser-regression.yml",
+        ".github/workflows/map-provider-regression.yml",
+        ".github/workflows/map-tour-browser-regression.yml",
+        ".github/workflows/mapbox-visual-contract-regression.yml",
+        ".github/workflows/morro-performance-budget.yml",
+        ".github/workflows/morro-pro-business-management-contract.yml",
+        ".github/workflows/morro-runtime-startup-performance.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH5.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:59:59Z"
     }
   }
 }
