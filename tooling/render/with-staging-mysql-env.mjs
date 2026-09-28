@@ -2,20 +2,15 @@ import { spawn } from "node:child_process";
 import { randomBytes, scryptSync } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { canonicalDatabaseDomains } from "../database/canonical-database-topology.mjs";
 import { reconcileStagingMysqlDomains } from "./reconcile-staging-mysql-domains.mjs";
 import { waitForStagingMysql } from "./wait-for-staging-mysql.mjs";
 
-const databaseDomains = Object.freeze([
-  ["AUTH", "AUTH_DATABASE_URL"],
-  ["ORDERING", "ORDERING_DATABASE_URL"],
-  ["FINANCIAL", "FINANCIAL_DATABASE_URL"],
-  ["AFFILIATES", "AFFILIATES_DATABASE_URL"],
-  ["BUSINESS", "BUSINESS_DATABASE_URL"],
-  ["CONTENT", "CONTENT_DATABASE_URL"],
-  ["COMMERCE", "COMMERCE_DATABASE_URL"],
-  ["DESTINATIONS", "DESTINATIONS_DATABASE_URL"],
-  ["NOTIFICATIONS", "NOTIFICATIONS_DATABASE_URL"],
-]);
+const databaseDomains = Object.freeze(
+  canonicalDatabaseDomains.map(({ domain, environmentKey }) =>
+    Object.freeze([domain, environmentKey]),
+  ),
+);
 const providerAcceptanceRunner = fileURLToPath(
   new URL("./payments-provider-acceptance-runner.mjs", import.meta.url),
 );
@@ -361,12 +356,6 @@ export function buildStagingDatabaseEnvironment(environment = process.env) {
     seenDatabaseNames.add(databaseName);
     derived[target] = url;
   }
-
-  // Staging-only composition: keep the Control Center administrative audit
-  // durable on the existing isolated Auth MySQL schema. Production does not
-  // use this wrapper and therefore keeps CONTROL_CENTER_AUDIT_DATABASE_URL as
-  // an explicit fail-closed requirement.
-  derived.CONTROL_CENTER_AUDIT_DATABASE_URL = derived.AUTH_DATABASE_URL;
 
   return Object.freeze(derived);
 }
