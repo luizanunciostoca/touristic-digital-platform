@@ -266,6 +266,40 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-03T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH4-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch4-claim-registration-20260928",
+      "baseSha": "61dd8615ca7560694987aeecd782044e60da45fa",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4-CLAIM-REGISTRATION.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-04T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH4": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch4-20260928",
+      "baseSha": "61dd8615ca7560694987aeecd782044e60da45fa",
+      "paths": [
+        ".github/workflows/control-center-destination-contract.yml",
+        ".github/workflows/control-center-home-overview-v1-contract.yml",
+        ".github/workflows/control-center-responsive-accessibility-v1-contract.yml",
+        ".github/workflows/control-center-shell-v1-contract.yml",
+        ".github/workflows/control-center-visual-golden-v1.yml",
+        ".github/workflows/crm-equivalence-browser-contract.yml",
+        ".github/workflows/crm-lead-detail-browser-contract.yml",
+        ".github/workflows/explore-v1-i18n-browser-parity.yml",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH4.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-04T23:59:59Z"
     }
   }
 }
