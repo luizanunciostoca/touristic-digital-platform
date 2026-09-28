@@ -152,6 +152,38 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH8-CLAIM-REGISTRATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch8-claim-registration-20260928",
+      "baseSha": "eb4cb9d3ab6cca719f555a40f02c08373dfbec86",
+      "paths": [
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH8-CLAIM-REGISTRATION.json",
+        ".morro/changesets/MD-REMEDIATION-CI-BROWSER-BATCH8.json"
+      ],
+      "domains": ["ci-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-08T23:59:59Z"
+    },
+    "MD-REMEDIATION-CI-BROWSER-BATCH8": {
+      "owner": "CHATGPT-WORK-CI",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/remediation-ci-browser-batch8-20260928",
+      "baseSha": "eb4cb9d3ab6cca719f555a40f02c08373dfbec86",
+      "paths": [
+        ".github/workflows/control-center-content-contract.yml",
+        ".github/workflows/v1-home-parity-browser-regression.yml",
+        ".github/workflows/v1-home-responsive-browser-regression.yml",
+        ".github/workflows/v1-tour-assistant-visibility-browser-regression.yml",
+        ".github/workflows/v1-tour-responsive-browser-regression.yml",
+        ".github/workflows/weather-v1-i18n-browser-parity.yml"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-08T23:59:59Z"
     }
   }
 }
