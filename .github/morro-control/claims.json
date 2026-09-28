@@ -118,7 +118,7 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T23:59:59Z"
-    }    },
+    },
     "MD-REMEDIATION-CI-BROWSER-BATCH7-CLAIM-REGISTRATION": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
@@ -152,6 +152,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T23:59:59Z"
-
+    }
   }
 }
