@@ -1,37 +1,14 @@
 name: Payments Sandbox Provider Contract
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "packages/financial/**"
-      - "packages/ordering/**"
-      - "services/financial/**"
-      - "services/ordering/**"
-      - "tooling/payments/provider-sandbox-contract.test.ts"
-      - "apps/morro-digital-platform/tooling/payments-api.mjs"
-      - ".github/workflows/payments-sandbox-provider-contract.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-  pull_request:
-    paths:
-      - "packages/financial/**"
-      - "packages/ordering/**"
-      - "services/financial/**"
-      - "services/ordering/**"
-      - "tooling/payments/provider-sandbox-contract.test.ts"
-      - "apps/morro-digital-platform/tooling/payments-api.mjs"
-      - ".github/workflows/payments-sandbox-provider-contract.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: payments-sandbox-provider-${{ github.workflow }}-${{ github.ref }}
+  group: suite-payments-sandbox-provider-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,14 +17,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/ci-bootstrap
       - name: Financial provider unit contract
         run: pnpm --filter @touristic/financial-server test
       - name: Ordering provider composition contract

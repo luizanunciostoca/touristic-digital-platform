@@ -81,7 +81,14 @@
       "needsFullSecurity": true
     },
     "dependencies": {
-      "paths": ["pnpm-lock.yaml", "package.json", "pnpm-workspace.yaml"],
+      "paths": [
+        "pnpm-lock.yaml",
+        "package.json",
+        "pnpm-workspace.yaml",
+        "apps/**/package.json",
+        "packages/**/package.json",
+        "services/**/package.json"
+      ],
       "risk": "CRITICAL",
       "dependsOn": ["security"],
       "suites": ["dependency-security-audit.yml", "security-scanning.yml"],
@@ -92,7 +99,12 @@
       "needsFullSecurity": true
     },
     "cicd": {
-      "paths": [".github/workflows/", "tooling/ci/", "tooling/quality/"],
+      "paths": [
+        ".github/workflows/",
+        "tooling/ci/",
+        "tooling/quality/",
+        ".github/actions/"
+      ],
       "risk": "CRITICAL",
       "dependsOn": ["release-governance", "security"],
       "suites": ["security-scanning.yml"],
@@ -114,7 +126,7 @@
         "docker-compose",
         "Dockerfile"
       ],
-      "risk": "HIGH",
+      "risk": "CRITICAL",
       "dependsOn": ["security"],
       "suites": [],
       "needsBrowser": false,
@@ -142,13 +154,76 @@
         ".github/morro-control/",
         ".github/copilot-instructions.md",
         ".github/pull_request_template.md",
-        "tooling/fabric/"
+        "tooling/fabric/",
+        "tooling/workspace/",
+        "tooling/control-state/"
       ],
       "risk": "HIGH",
       "dependsOn": [],
       "suites": [],
       "nonRuntime": true,
       "needsFullSecurity": true
+    },
+    "business": {
+      "paths": [
+        "packages/business/",
+        "services/business/",
+        "apps/morro-digital-platform/src/business-",
+        "apps/morro-digital-platform/public/business-",
+        "apps/morro-digital-platform/tooling/business-",
+        "apps/morro-digital-platform/src/ux/business-"
+      ],
+      "excludePaths": [
+        "**/package.json",
+        "**/migrations/**",
+        "**/schemas/**",
+        "**/schema/**",
+        "**/*schema*",
+        "**/contracts/**",
+        "**/*migrat*",
+        "**/pnpm-lock.yaml",
+        "**/package-lock.json",
+        "**/yarn.lock",
+        "**/tsconfig*.json"
+      ],
+      "risk": "HIGH",
+      "dependsOn": ["auth", "security"],
+      "suites": [],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": true,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true,
+      "requiresScheduledSuite": true
+    },
+    "control-center": {
+      "paths": [
+        "apps/control-center/",
+        "apps/morro-digital-platform/src/ux/control-center-",
+        "apps/morro-digital-platform/tooling/control-center-"
+      ],
+      "excludePaths": [
+        "**/package.json",
+        "**/migrations/**",
+        "**/schemas/**",
+        "**/schema/**",
+        "**/*schema*",
+        "**/contracts/**",
+        "**/*migrat*",
+        "**/pnpm-lock.yaml",
+        "**/package-lock.json",
+        "**/yarn.lock",
+        "**/tsconfig*.json"
+      ],
+      "risk": "HIGH",
+      "dependsOn": ["auth", "business", "security"],
+      "suites": [],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": true,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true,
+      "requiresScheduledSuite": true
     }
   }
 }

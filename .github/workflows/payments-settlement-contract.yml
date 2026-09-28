@@ -1,33 +1,14 @@
 name: Payments Settlement Contract
 
 on:
-  pull_request:
-    paths:
-      - "packages/financial/**"
-      - "services/financial/**"
-      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
-      - "docs/qa/PAYMENTS-M146-EVIDENCE.md"
-      - ".github/workflows/payments-settlement-contract.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-  push:
-    branches:
-      - main
-    paths:
-      - "packages/financial/**"
-      - "services/financial/**"
-      - "docs/migration/PAYMENTS-MIGRATION-MATRIX.md"
-      - "docs/qa/PAYMENTS-M146-EVIDENCE.md"
-      - ".github/workflows/payments-settlement-contract.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: payments-settlement-${{ github.workflow }}-${{ github.ref }}
+  group: suite-payments-settlement-contract-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -51,14 +32,7 @@ jobs:
       FINANCIAL_DATABASE_URL: mysql://root:m146-settlement@127.0.0.1:3306/financial_m146_test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - uses: ./.github/actions/ci-bootstrap
       - name: Validate settlement domain contracts
         run: |
           pnpm --filter @touristic/financial lint
