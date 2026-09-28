@@ -15,7 +15,10 @@
         "tooling/quality/check-render-staging-blueprint.mjs",
         "tooling/quality/render-staging-blueprint.test.mjs"
       ],
-      "domains": ["ci-release", "database"],
+      "domains": [
+        "ci-release",
+        "database"
+      ],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
@@ -23,8 +26,8 @@
     "MD-PRODUCTION-MYSQL-RENDER": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/production-mysql-render-provision-20260928",
-      "baseSha": "ba961f2da225cf87cd565dcdfa9f0f2e8725f446",
+      "branch": "fix/production-mysql-render-provision-identity-20260928",
+      "baseSha": "9d69bb27ec134983d05370811051fd7fa4440c02",
       "paths": [
         ".github/morro-control/claims.json",
         ".morro/changesets/MD-PRODUCTION-MYSQL-RENDER.json",
@@ -39,7 +42,11 @@
         ".github/workflows/security-scanning.yml",
         ".github/workflows/production-mysql-render-provision.yml"
       ],
-      "domains": ["ci-release", "database", "infrastructure"],
+      "domains": [
+        "ci-release",
+        "database",
+        "infrastructure"
+      ],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
