@@ -10,9 +10,7 @@
       "paths": [
         ".morro/changesets/MD-REMEDIATION-ORPHAN-CLAIM-RETIREMENT.json"
       ],
-      "domains": [
-        "ci-governance"
-      ],
+      "domains": ["ci-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
