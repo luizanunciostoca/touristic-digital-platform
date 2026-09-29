@@ -398,15 +398,21 @@ jobs:
             case "$status" in
               succeeded) break ;;
               failed|canceled)
-                echo "Render DR job $job_id ended with status $status" >&2
-                if curl --fail-with-body --silent --show-error                   --get                   --header "$auth"                   --header "Accept: application/json"                   --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"                   --data-urlencode "resource=$job_id"                   --data-urlencode "direction=backward"                   --data-urlencode "limit=100"                   "$api/logs" > /tmp/dr-job-failure-logs.json
-                then
-                  jq -r '
-                    .logs[]?.message |
-                    select(contains("\"contract\":\"MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK\"") | not) |
-                    .[0:2000]
-                  ' /tmp/dr-job-failure-logs.json >&2 || true
+                safe_code=""
+                for _ in $(seq 1 30); do
+                  if curl --fail --silent                     --get                     --header "$auth"                     --header "Accept: application/json"                     --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"                     --data-urlencode "resource=$job_id"                     --data-urlencode "direction=backward"                     --data-urlencode "limit=100"                     "$api/logs" > /tmp/dr-job-failure-logs.json
+                  then
+                    safe_code="$(jq -r                       --arg contract "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF"                       -f tooling/render/mysql-production-dr/safe-failure-code.jq                       /tmp/dr-job-failure-logs.json)"
+                    if [ -n "$safe_code" ]; then
+                      break
+                    fi
+                  fi
+                  sleep 2
+                done
+                if [ -z "$safe_code" ]; then
+                  safe_code="DR_JOB_FAILED_WITHOUT_SAFE_CODE"
                 fi
+                echo "DR_FAIL_CODE=$safe_code" >&2
                 exit 1
                 ;;
               pending|running) sleep 5 ;;
