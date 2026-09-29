@@ -378,6 +378,28 @@ jobs:
           api="https://api.render.com/v1"
           auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
 
+          print_job_diagnostics() {
+            local diagnostic_status="unknown"
+            diagnostic_status="$(jq -r '.status // "unknown"' /tmp/dr-job.json 2>/dev/null || true)"
+            echo "Render DR job terminal status: $diagnostic_status" >&2
+
+            if curl --fail-with-body --silent --show-error \
+              --get \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
+              --data-urlencode "resource=$job_id" \
+              --data-urlencode "direction=backward" \
+              --data-urlencode "limit=100" \
+              "$api/logs" > /tmp/dr-job-failure-logs.json
+            then
+              jq -r '
+                .logs[]?.message |
+                select((contains("MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK") | not))
+              ' /tmp/dr-job-failure-logs.json | head -n 100 >&2 || true
+            fi
+          }
+
           jq -n             '{startCommand:"/usr/local/bin/morro-production-mysql-dr-proof"}'             > /tmp/dr-job-request.json
 
           http_status="$(curl --silent --show-error             --output /tmp/dr-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/dr-job-request.json             "$api/services/$DR_SERVICE_ID/jobs")"
@@ -396,12 +418,22 @@ jobs:
             status="$(jq -r '.status // empty' /tmp/dr-job.json)"
             case "$status" in
               succeeded) break ;;
-              failed|canceled) exit 1 ;;
+              failed|canceled)
+                print_job_diagnostics
+                exit 1
+                ;;
               pending|running) sleep 5 ;;
-              *) exit 1 ;;
+              *)
+                print_job_diagnostics
+                exit 1
+                ;;
             esac
           done
-          test "$status" = "succeeded"
+
+          if [ "$status" != "succeeded" ]; then
+            print_job_diagnostics
+            exit 1
+          fi
 
           found=false
           for _ in $(seq 1 30); do
