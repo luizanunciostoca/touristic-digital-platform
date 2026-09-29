@@ -240,6 +240,8 @@ async function snapshotRuntimeEnv(client, webServiceId) {
     previous[canonicalKey] = await readEnv(client, webServiceId, canonicalKey);
   }
   for (const key of [
+    "MORRO_RELEASE_SHA",
+    "MORRO_RELEASE_VERSION",
     "MORRO_DATABASE_SCHEMA_MODE",
     "MERCADO_PAGO_CHECKOUT_MODE",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
@@ -326,6 +328,20 @@ async function rollbackFromState({ client, state, stateFile }) {
   const restoredService = await client.get(`/services/${state.webServiceId}`);
   if (!sourceMatchesSnapshot(restoredService, state.previousSource)) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
+  }
+
+  const previousDeploy = await client.get(
+    `/services/${state.webServiceId}/deploys/${state.previousDeployId}`,
+  );
+  const previousDeploySha = String(previousDeploy?.commit?.id ?? "");
+  if (
+    String(previousDeploy?.status ?? "") === "live" &&
+    previousDeploySha === state.previousReleaseSha
+  ) {
+    state.status = "rolled_back";
+    state.rollbackDeployId = state.previousDeployId;
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+    return state;
   }
 
   const rollback = await client.post(
@@ -503,6 +519,13 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     for (const [key, value] of Object.entries(runtimeUrls)) {
       await writeEnv(client, webServiceId, key, value);
     }
+    await writeEnv(client, webServiceId, "MORRO_RELEASE_SHA", expectedSha);
+    await writeEnv(
+      client,
+      webServiceId,
+      "MORRO_RELEASE_VERSION",
+      expectedSha,
+    );
     await writeEnv(
       client,
       webServiceId,
