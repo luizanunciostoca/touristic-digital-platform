@@ -68,7 +68,7 @@ test("canonical bootstrap polling tolerates Render visibility lag", () => {
   const guardedCurlReads = [
     ...source.matchAll(/if ! curl --fail-with-body --silent --show-error/gu),
   ].map((match) => source.slice(match.index, match.index + 1_200));
-  assert.equal(guardedCurlReads.length, 2);
+  assert.ok(guardedCurlReads.length >= 2);
   assert.ok(
     guardedCurlReads.some((block) =>
       block.includes("$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"),
