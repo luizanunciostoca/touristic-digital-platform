@@ -32,14 +32,22 @@
         "tooling/quality/check-release-readiness.mjs",
         ".github/workflows/production-mysql-backup-restore-proof.yml",
         ".github/workflows/production-oci-promotion.yml",
-        "tooling/render/production-application-cutover.mjs",
         "tooling/render/mysql-production-dr/Dockerfile",
         "tooling/render/mysql-production-dr/canonical-manifest.tsv",
         "tooling/render/mysql-production-dr/dr-proof.sh",
         "tooling/quality/production-mysql-dr-contract.test.mjs",
-        "docs/operations/PRODUCTION-MYSQL-BACKUP-RESTORE-DR.md"
+        "docs/operations/PRODUCTION-MYSQL-BACKUP-RESTORE-DR.md",
+        "tooling/render/production-canonical-db-cutover.mjs",
+        "tooling/render/production-canonical-db-cutover.test.mjs",
+        ".github/workflows/final-release-acceptance.yml",
+        ".github/workflows/release-oci-image.yml",
+        ".github/workflows/oci-release-promotion-gate.yml"
       ],
-      "domains": ["ci-release", "database", "infrastructure"],
+      "domains": [
+        "ci-release",
+        "database",
+        "infrastructure"
+      ],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
