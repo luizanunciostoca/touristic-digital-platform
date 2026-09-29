@@ -95,10 +95,12 @@ jobs:
             --arg tree "$expected_tree" \
             --arg digest "$IMAGE_DIGEST" \
             --arg run "$IMAGE_RUN_ID" \
+            --arg image "$IMAGE_REPOSITORY" \
             '.source_sha == $sha and
              .tree_sha == $tree and
              .digest == $digest and
-             .image_run_id == $run' \
+             .image_run_id == $run and
+             .image == $image' \
             /tmp/release-provenance/release-provenance.json >/dev/null
           echo "PASS: immutable image $IMAGE_REPOSITORY@$IMAGE_DIGEST from exact run $IMAGE_RUN_ID"
 
@@ -172,6 +174,7 @@ jobs:
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}
+          MORRO_RELEASE_IMAGE_RUN_ID: ${{ inputs.image_run_id }}
           MORRO_V2_BASE_URL: ${{ env.TARGET_URL }}
         shell: bash
         run: |
