@@ -122,10 +122,13 @@ export function createPlatformOperations({
         getEnvironmentValue("RENDER_INSTANCE_ID") ||
         getEnvironmentValue("RENDER_SERVICE_ID"),
     ),
+    imageRunId: releaseField(getEnvironmentValue("MORRO_RELEASE_IMAGE_RUN_ID")),
   });
-  const releaseIdentityConfigured = Object.values(release).every(
-    (value) => value !== "unknown",
-  );
+  const releaseIdentityConfigured = [
+    release.sha,
+    release.version,
+    release.deploymentId,
+  ].every((value) => value !== "unknown");
   const rollbackFromSha = bounded(
     getEnvironmentValue("MORRO_ROLLBACK_FROM_SHA"),
     160,
@@ -167,6 +170,7 @@ export function createPlatformOperations({
     response.setHeader("X-Release-SHA", release.sha);
     response.setHeader("X-Release-Version", release.version);
     response.setHeader("X-Deployment-ID", release.deploymentId);
+    response.setHeader("X-Release-Image-Run-ID", release.imageRunId);
   }
 
   function emit({
