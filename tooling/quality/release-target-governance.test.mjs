@@ -129,7 +129,9 @@ test("only explicit release control planes dispatch nested workflows", async () 
   );
 });
 
-test("production and acceptance staging promotion bind the exact OCI image run", async () => {
+test(
+  "production and acceptance staging promotion bind the exact OCI image run",
+  async () => {
   const workflows = await workflowSources();
   const acceptance = workflows.get("final-release-acceptance.yml");
   const production = workflows.get("production-oci-promotion.yml");
@@ -140,12 +142,17 @@ test("production and acceptance staging promotion bind the exact OCI image run",
   assert.ok(staging.includes("image_run_id:"));
   assert.ok(staging.includes('actions/runs/$IMAGE_RUN_ID'));
   assert.ok(staging.includes('.image_run_id == $run'));
-  assert.ok(staging.includes('EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}'));
-  assert.ok(staging.includes('live_image_run_id=$image_run_id'));
-  assert.ok(
-    staging.includes('.path == ".github/workflows/release-oci-image.yml"'),
-  );
-});
+    assert.ok(
+      staging.includes("EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}"),
+    );
+    assert.ok(staging.includes("MORRO_RELEASE_IMAGE_RUN_ID"));
+    assert.ok(staging.includes("live_image_run_id=$image_run_id"));
+    assert.ok(staging.includes(".image == $image"));
+    assert.ok(
+      staging.includes('.path == ".github/workflows/release-oci-image.yml"'),
+    );
+  },
+);
 
 test("production cutover resolves nested DR evidence artifacts deterministically", async () => {
   const workflows = await workflowSources();
@@ -414,7 +421,9 @@ test("Final Release Acceptance binds staging evidence to the exact dispatch requ
   assert.ok(acceptance.includes("timeout-minutes: 150"));
 });
 
-test("Final Release Acceptance ignores a stale same-SHA staging run until the correlated dispatch is indexed", async () => {
+test(
+  "Final Release Acceptance ignores a stale same-SHA staging run until the correlated dispatch is indexed",
+  async () => {
   const source = await readFile(
     resolve(workflowsDir, "final-release-acceptance.yml"),
     "utf8",
@@ -498,10 +507,11 @@ ${script}
     assert.match(args, /-f image_digest=sha256:/);
     assert.match(args, /-f image_run_id=424242/);
     assert.doesNotMatch(result, /^run_id=111$/m);
-  } finally {
-    await rm(fixture, { recursive: true, force: true });
-  }
-});
+    } finally {
+      await rm(fixture, { recursive: true, force: true });
+    }
+  },
+);
 
 test("active workflows cannot resurrect legacy staging targets or generic Render deploy secrets", async () => {
   const workflows = await workflowSources();
