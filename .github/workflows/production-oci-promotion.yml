@@ -249,6 +249,7 @@ jobs:
             dispatch_wait staging-oci-promotion.yml \
               -f expected_sha="$EXPECTED_SHA" \
               -f image_digest="$image_digest" \
+              -f image_run_id="$image_run_id" \
               -f confirm_deploy=DEPLOY
           )"
           rm -rf /tmp/staging-proof

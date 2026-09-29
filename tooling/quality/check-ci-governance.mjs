@@ -419,6 +419,7 @@ requireIncludes(
     "workflow_dispatch:",
     "expected_sha:",
     "image_digest:",
+    "image_run_id:",
     "confirm_deploy:",
     "imgURL=",
     "payments:render:smoke",

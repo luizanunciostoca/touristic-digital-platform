@@ -58,7 +58,7 @@ jobs:
        github.actor == github.repository_owner &&
        startsWith(github.event.comment.body, '/run-final-release-acceptance '))
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -364,9 +364,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           IMAGE_DIGEST: ${{ steps.release-image.outputs.image_digest }}
+          IMAGE_RUN_ID: ${{ steps.release-image.outputs.run_id }}
         run: |
           set -euo pipefail
           [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$IMAGE_RUN_ID" =~ ^[0-9]+$ ]]
           request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
           expected_title="staging-oci-promotion:$request_id:$GITHUB_SHA:$IMAGE_DIGEST"
 
@@ -374,6 +376,7 @@ jobs:
             --ref "$CANDIDATE_REF" \
             -f expected_sha="$GITHUB_SHA" \
             -f image_digest="$IMAGE_DIGEST" \
+            -f image_run_id="$IMAGE_RUN_ID" \
             -f request_id="$request_id" \
             -f confirm_deploy=DEPLOY
 
