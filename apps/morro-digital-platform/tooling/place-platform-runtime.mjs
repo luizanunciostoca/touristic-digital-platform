@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomUUID } from "node:crypto";
 import {
   canonicalPlaceCategories,
@@ -791,9 +792,11 @@ export function createPlacePlatformRuntime({
         ),
         errorPrefix: "BUSINESS_DATABASE",
       });
-      await applyPlacePlatformSchema(pool);
-      await applyCatalogSchema(pool);
-      await applyMediaPublicationSnapshotSchema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await applyPlacePlatformSchema(pool);
+        await applyCatalogSchema(pool);
+        await applyMediaPublicationSnapshotSchema(pool);
+      }
       governanceRepository = createGovernanceRepository(pool);
       catalogRuntime = createCatalogRuntime(pool);
       await catalogRuntime.backfillPublishedSnapshots();
