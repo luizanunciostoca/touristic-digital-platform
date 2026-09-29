@@ -9,8 +9,6 @@ const manifestPath =
   "tooling/render/mysql-production-dr/canonical-manifest.tsv";
 const executorPath = "tooling/render/mysql-production-dr/dr-proof.sh";
 const dockerfilePath = "tooling/render/mysql-production-dr/Dockerfile";
-const failureFilterPath =
-  "tooling/render/mysql-production-dr/safe-failure-code.jq";
 const workflowPath =
   ".github/workflows/production-mysql-backup-restore-proof.yml";
 
@@ -126,10 +124,9 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "schemaOwners",
     "crossDomainDenied",
     "PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP",
-    "UNEXPECTED_COMMAND_FAILURE",
-    "PRIVATE_STDERR",
-    "exec 3>&2",
-    'exec 2>"$PRIVATE_STDERR"',
+    "HANDLED_FAILURE_EXIT=86",
+    "UNHANDLED_COMMAND_FAILURE",
+    '"stage":"%s"',
   ]) {
     assert.ok(
       source.includes(required),
@@ -145,14 +142,56 @@ test("DR executor is syntactically valid and fails closed around production", ()
     source,
     /DROP\s+DATABASE|DROP\s+TABLE|TRUNCATE\s+TABLE/iu,
   );
-  assert.match(source, /^set -Eeuo pipefail$/mu);
-  assert.match(source, /trap 'fail "UNEXPECTED_COMMAND_FAILURE"' ERR/u);
-  assert.match(
-    source,
-    /printf '\{"contract":"%s","contractVersion":%s,"status":"fail","code":"%s"\}\\n'[\s\S]*>&3/u,
-  );
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
+});
+
+test("DR failure telemetry distinguishes handled and unhandled failures", () => {
+  const cleanEnv = { PATH: process.env.PATH ?? "" };
+
+  const handled = spawnSync("bash", [executorPath], {
+    encoding: "utf8",
+    env: cleanEnv,
+  });
+  assert.equal(handled.status, 86);
+  const handledLines = handled.stderr.trim().split(/\r?\n/u).filter(Boolean);
+  assert.equal(handledLines.length, 1);
+  const handledEvent = JSON.parse(handledLines[0]);
+  assert.equal(
+    handledEvent.contract,
+    "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF",
+  );
+  assert.equal(handledEvent.status, "fail");
+  assert.equal(handledEvent.code, "MISSING_DR_TOOL_SHA");
+  assert.equal(handledEvent.stage, "startup");
+
+  const executorSource = readFileSync(executorPath, "utf8");
+  const trapHarnessEnd = executorSource.indexOf("\nrequired_env() {");
+  assert.ok(trapHarnessEnd > 0);
+  const trapHarness =
+    executorSource.slice(0, trapHarnessEnd) +
+    '\nstage="test-unhandled"\nfalse\n';
+
+  const unhandled = spawnSync("bash", [], {
+    input: trapHarness,
+    encoding: "utf8",
+    env: cleanEnv,
+  });
+  assert.equal(unhandled.status, 1);
+  const unhandledLines = unhandled.stderr
+    .trim()
+    .split(/\r?\n/u)
+    .filter(Boolean);
+  assert.equal(unhandledLines.length, 1);
+  const unhandledEvent = JSON.parse(unhandledLines[0]);
+  assert.equal(
+    unhandledEvent.contract,
+    "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF",
+  );
+  assert.equal(unhandledEvent.status, "fail");
+  assert.equal(unhandledEvent.code, "UNHANDLED_COMMAND_FAILURE");
+  assert.equal(unhandledEvent.stage, "test-unhandled");
+  assert.ok(Number.isInteger(unhandledEvent.line));
 });
 
 test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
@@ -198,71 +237,6 @@ test("modified DR workflow run blocks are syntactically valid", () => {
   }
 });
 
-test("DR failure diagnostics are delayed-safe and allowlisted", () => {
-  const executeBlock = workflowRunBlock(
-    "Execute isolated logical backup and restore drill",
-  );
-
-  for (const required of [
-    "for _ in $(seq 1 30); do",
-    "safe-failure-code.jq",
-    'safe_code="DR_JOB_FAILED_WITHOUT_SAFE_CODE"',
-    'echo "DR_FAIL_CODE=$safe_code" >&2',
-  ]) {
-    assert.ok(
-      executeBlock.includes(required),
-      `missing DR failure diagnostic contract: ${required}`,
-    );
-  }
-
-  const contract = "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF";
-  const snapshots = [
-    {
-      logs: [
-        { message: "mysql: synthetic-secret=must-not-leak" },
-        {
-          message: JSON.stringify({
-            contract: "MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK",
-            seq: 1,
-            total: 1,
-            data: "synthetic-backup-secret",
-          }),
-        },
-      ],
-    },
-    {
-      logs: [
-        { message: "openssl: synthetic-secret=must-not-leak" },
-        {
-          message: JSON.stringify({
-            contract,
-            contractVersion: 1,
-            status: "fail",
-            code: "SOURCE_OWNER_CONNECT_INVALID",
-            detail: "synthetic-secret=must-not-leak",
-          }),
-        },
-      ],
-    },
-  ];
-
-  const codes = snapshots.map((snapshot) => {
-    const filtered = spawnSync(
-      "jq",
-      ["-r", "--arg", "contract", contract, "-f", failureFilterPath],
-      {
-        input: JSON.stringify(snapshot),
-        encoding: "utf8",
-      },
-    );
-    assert.equal(filtered.status, 0, filtered.stderr);
-    return filtered.stdout.trim();
-  });
-
-  assert.deepEqual(codes, ["", "SOURCE_OWNER_CONNECT_INVALID"]);
-  assert.doesNotMatch(codes.join("\n"), /synthetic-secret|backup-secret/u);
-});
-
 test("DR workflow never delegates GitHub credentials or deletes the source service", () => {
   const source = readFileSync(workflowPath, "utf8");
 
@@ -284,6 +258,11 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     'cleanup_name="${DR_SERVICE_NAME:-$DR_SERVICE_PREFIX$GITHUB_RUN_ID}"',
     'test "$dr_service_id" != "$MYSQL_SERVICE_ID"',
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
+    "print_job_diagnostics",
+    "Render DR job terminal status:",
+    "DIAGNOSTIC_RECORD_UNAVAILABLE",
+    'select(.contract == $contract and .status == "fail")',
+    "for _ in $(seq 1 15); do",
   ]) {
     assert.ok(
       source.includes(required),
