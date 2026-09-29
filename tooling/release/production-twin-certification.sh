@@ -314,6 +314,18 @@ start_app
 wait_app
 health_status="$(capture_request GET /healthz "$work_root/healthz.json")"
 [[ "$health_status" == "200" ]] || fail "TWIN_APP_HEALTH_INVALID"
+expected_deployment_id="production-twin-${GITHUB_RUN_ID:-local}"
+jq -e \
+  --arg sha "$expected_sha" \
+  --arg version "$expected_sha" \
+  --arg deployment "$expected_deployment_id" \
+  --arg imageRun "$image_run_id" '
+    .status == "live" and
+    .release.sha == $sha and
+    .release.version == $version and
+    .release.deploymentId == $deployment and
+    .release.imageRunId == $imageRun
+  ' "$work_root/healthz.json" >/dev/null || fail "TWIN_RELEASE_IDENTITY_INVALID"
 frontend_status="$(capture_request GET / "$work_root/frontend.html")"
 [[ "$frontend_status" == "200" ]] || fail "TWIN_FRONTEND_HTTP_FAILED"
 [[ -s "$work_root/frontend.html" ]] || fail "TWIN_FRONTEND_EMPTY"
