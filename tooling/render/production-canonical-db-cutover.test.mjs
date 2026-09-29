@@ -43,10 +43,7 @@ test("builds only the trusted private production MySQL URL", () => {
 test("registry credential selection is deterministic and ambiguity fails closed", () => {
   assert.equal(selectRegistryCredential([], ""), "");
   assert.equal(
-    selectRegistryCredential(
-      [{ id: "reg-one", registry: "GITHUB" }],
-      "",
-    ),
+    selectRegistryCredential([{ id: "reg-one", registry: "GITHUB" }], ""),
     "reg-one",
   );
   assert.throws(
@@ -98,8 +95,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   }
 
   const imageDigest = `sha256:${"b".repeat(64)}`;
-  const imagePath =
-    "ghcr.io/luizanunciostoca/morro-digital-v2@" + imageDigest;
+  const imagePath = "ghcr.io/luizanunciostoca/morro-digital-v2@" + imageDigest;
 
   const fetchImpl = async (url, options = {}) => {
     const parsed = new URL(url);
@@ -107,10 +103,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
     const method = options.method ?? "GET";
     requests.push({ method, route, body: options.body ?? null });
 
-    if (
-      method === "GET" &&
-      route === "/v1/services/srv-web"
-    ) {
+    if (method === "GET" && route === "/v1/services/srv-web") {
       return jsonResponse(200, {
         id: "srv-web",
         ownerId: "tea-owner",
@@ -142,10 +135,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       });
     }
 
-    if (
-      method === "GET" &&
-      route === "/v1/services/srv-web/deploys?limit=20"
-    ) {
+    if (method === "GET" && route === "/v1/services/srv-web/deploys?limit=20") {
       return jsonResponse(200, [
         {
           deploy: {
@@ -174,7 +164,8 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
 
     if (
       method === "GET" &&
-      route === "/v1/registrycredentials?ownerId=tea-owner&type=GITHUB&limit=100"
+      route ===
+        "/v1/registrycredentials?ownerId=tea-owner&type=GITHUB&limit=100"
     ) {
       return jsonResponse(200, [{ id: "reg-ghcr", registry: "GITHUB" }]);
     }
@@ -268,7 +259,11 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
     assert.ok(keys.includes(canonicalKey), canonicalKey);
   }
   assert.ok(keys.includes("MORRO_DATABASE_SCHEMA_MODE"));
-  assert.ok(!keys.some((key) => key.startsWith("VITE_") && key.endsWith("_DATABASE_URL")));
+  assert.ok(
+    !keys.some(
+      (key) => key.startsWith("VITE_") && key.endsWith("_DATABASE_URL"),
+    ),
+  );
 
   const evidence = JSON.parse(await fs.readFile(evidenceFile, "utf8"));
   assert.equal(evidence.newDeployId, "dep-new");

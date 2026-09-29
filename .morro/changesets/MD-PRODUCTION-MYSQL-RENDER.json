@@ -76,9 +76,7 @@
     ]
   },
   "reads": {
-    "contracts": [
-      "MORRO-PRODUCTION-MYSQL-READBACK"
-    ]
+    "contracts": ["MORRO-PRODUCTION-MYSQL-READBACK"]
   },
   "produces": {
     "events": [],
@@ -117,17 +115,7 @@
     "kind": "mechanical-composition",
     "reason": "This P0 cutover composes the already-proven canonical MySQL bootstrap/DR front with one bounded application cutover. The additional files are the mechanical external-schema guards required to keep DDL in the private migration plane and DML-only credentials in the public runtime; the exception does not waive exact-head, CI, review, security, tenancy, provenance, backup, rollback, or runtime evidence.",
     "sourcePullRequests": [
-      514,
-      515,
-      516,
-      517,
-      518,
-      519,
-      520,
-      521,
-      523,
-      525,
-      528
+      514, 515, 516, 517, 518, 519, 520, 521, 523, 525, 528
     ],
     "maxFiles": 50,
     "maxLines": 8000

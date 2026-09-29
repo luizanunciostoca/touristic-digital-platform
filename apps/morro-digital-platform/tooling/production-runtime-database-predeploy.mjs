@@ -65,8 +65,7 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
     );
     if (
       String(identity?.database_name ?? "") !== domain.schema ||
-      String(identity?.current_user_name ?? "") !==
-        `${domain.schema}_runtime`
+      String(identity?.current_user_name ?? "") !== `${domain.schema}_runtime`
     ) {
       throw new Error(
         `PRODUCTION_RUNTIME_DATABASE_CURRENT_USER_INVALID_${domain.name.toUpperCase()}`,

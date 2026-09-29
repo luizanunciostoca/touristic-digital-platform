@@ -571,7 +571,10 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
 
 export function createSqlAuthSecurityState(
   pool: AuthSqlPool,
-  options: { readonly closePool?: boolean; readonly applySchema?: boolean } = {},
+  options: {
+    readonly closePool?: boolean;
+    readonly applySchema?: boolean;
+  } = {},
 ): AuthSecurityState {
   const closePool = options.closePool ?? true;
   const applySchema = options.applySchema ?? true;

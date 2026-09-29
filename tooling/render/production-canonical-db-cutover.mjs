@@ -6,13 +6,21 @@ const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
 export const productionDatabaseDomains = Object.freeze([
   Object.freeze(["AUTH", "AUTH_DATABASE_URL", "morro_auth"]),
   Object.freeze(["AUDIT", "CONTROL_CENTER_AUDIT_DATABASE_URL", "morro_audit"]),
-  Object.freeze(["DESTINATIONS", "DESTINATIONS_DATABASE_URL", "morro_destinations"]),
+  Object.freeze([
+    "DESTINATIONS",
+    "DESTINATIONS_DATABASE_URL",
+    "morro_destinations",
+  ]),
   Object.freeze(["CONTENT", "CONTENT_DATABASE_URL", "morro_content"]),
   Object.freeze(["BUSINESS", "BUSINESS_DATABASE_URL", "morro_business"]),
   Object.freeze(["ORDERING", "ORDERING_DATABASE_URL", "morro_ordering"]),
   Object.freeze(["FINANCIAL", "FINANCIAL_DATABASE_URL", "morro_financial"]),
   Object.freeze(["TICKETING", "TICKETING_DATABASE_URL", "morro_ticketing"]),
-  Object.freeze(["NOTIFICATIONS", "NOTIFICATIONS_DATABASE_URL", "morro_notifications"]),
+  Object.freeze([
+    "NOTIFICATIONS",
+    "NOTIFICATIONS_DATABASE_URL",
+    "morro_notifications",
+  ]),
   Object.freeze(["AFFILIATES", "AFFILIATES_DATABASE_URL", "morro_affiliates"]),
   Object.freeze(["ANALYTICS", "ANALYTICS_DATABASE_URL", "morro_analytics"]),
   Object.freeze(["CRM", "CRM_DATABASE_URL", "morro_crm"]),
@@ -38,7 +46,9 @@ function normalizeDeploys(payload) {
 }
 
 function runtime(service) {
-  return String(service?.serviceDetails?.runtime ?? service?.serviceDetails?.env ?? "");
+  return String(
+    service?.serviceDetails?.runtime ?? service?.serviceDetails?.env ?? "",
+  );
 }
 
 function nativeDetails(service) {
@@ -168,9 +178,12 @@ async function waitForDeploy(client, serviceId, deployId, attempts = 180) {
     const status = String(deploy?.status ?? "");
     if (status === "live") return deploy;
     if (
-      ["build_failed", "update_failed", "pre_deploy_failed", "canceled"].includes(
-        status,
-      )
+      [
+        "build_failed",
+        "update_failed",
+        "pre_deploy_failed",
+        "canceled",
+      ].includes(status)
     ) {
       throw new Error(`RENDER_DEPLOY_${status.toUpperCase()}`);
     }
@@ -285,7 +298,10 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   const token = required(environment, "RENDER_PRODUCTION_API_KEY");
   const workspaceId = required(environment, "RENDER_WORKSPACE_ID");
   const webServiceId = required(environment, "RENDER_PRODUCTION_SERVICE_ID");
-  const mysqlServiceId = required(environment, "RENDER_PRODUCTION_MYSQL_SERVICE_ID");
+  const mysqlServiceId = required(
+    environment,
+    "RENDER_PRODUCTION_MYSQL_SERVICE_ID",
+  );
   const expectedSha = required(environment, "EXPECTED_SHA");
   const imageDigest = required(environment, "IMAGE_DIGEST");
   const imageRepository = required(environment, "IMAGE_REPOSITORY");
@@ -297,7 +313,8 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
 
   if (!SHA_PATTERN.test(expectedSha)) throw new Error("EXPECTED_SHA_INVALID");
-  if (!DIGEST_PATTERN.test(imageDigest)) throw new Error("IMAGE_DIGEST_INVALID");
+  if (!DIGEST_PATTERN.test(imageDigest))
+    throw new Error("IMAGE_DIGEST_INVALID");
   if (!SHA_PATTERN.test(expectedMysqlSourceSha)) {
     throw new Error("EXPECTED_MYSQL_SOURCE_SHA_INVALID");
   }
@@ -306,16 +323,21 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   }
 
   const client = createClient({ token, fetchImpl });
-  const [service, mysqlService, deployPayload, mysqlDeployPayload, credentials] =
-    await Promise.all([
-      client.get(`/services/${webServiceId}`),
-      client.get(`/services/${mysqlServiceId}`),
-      client.get(`/services/${webServiceId}/deploys?limit=20`),
-      client.get(`/services/${mysqlServiceId}/deploys?limit=20`),
-      client.get(
-        `/registrycredentials?ownerId=${encodeURIComponent(workspaceId)}&type=GITHUB&limit=100`,
-      ),
-    ]);
+  const [
+    service,
+    mysqlService,
+    deployPayload,
+    mysqlDeployPayload,
+    credentials,
+  ] = await Promise.all([
+    client.get(`/services/${webServiceId}`),
+    client.get(`/services/${mysqlServiceId}`),
+    client.get(`/services/${webServiceId}/deploys?limit=20`),
+    client.get(`/services/${mysqlServiceId}/deploys?limit=20`),
+    client.get(
+      `/registrycredentials?ownerId=${encodeURIComponent(workspaceId)}&type=GITHUB&limit=100`,
+    ),
+  ]);
 
   if (
     service.id !== webServiceId ||
@@ -388,7 +410,12 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     for (const [key, value] of Object.entries(runtimeUrls)) {
       await writeEnv(client, webServiceId, key, value);
     }
-    await writeEnv(client, webServiceId, "MORRO_DATABASE_SCHEMA_MODE", "external");
+    await writeEnv(
+      client,
+      webServiceId,
+      "MORRO_DATABASE_SCHEMA_MODE",
+      "external",
+    );
     await writeEnv(client, webServiceId, "MERCADO_PAGO_CHECKOUT_MODE", "test");
     await writeEnv(
       client,
@@ -443,7 +470,10 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
 
     state.status = "live";
     await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
-    await fs.writeFile(evidenceFile, JSON.stringify(publicEvidence(state), null, 2));
+    await fs.writeFile(
+      evidenceFile,
+      JSON.stringify(publicEvidence(state), null, 2),
+    );
     return publicEvidence(state);
   } catch (error) {
     if (sourcePatched) {
@@ -491,7 +521,10 @@ async function main() {
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (
+  process.argv[1] &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href
+) {
   main().catch((error) => {
     process.stderr.write(
       `${JSON.stringify({

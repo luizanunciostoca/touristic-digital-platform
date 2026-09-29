@@ -1,12 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  canonicalProductionDomains,
-} from "./production-database-predeploy.mjs";
-import {
-  runProductionRuntimeDatabasePredeploy,
-} from "./production-runtime-database-predeploy.mjs";
+import { canonicalProductionDomains } from "./production-database-predeploy.mjs";
+import { runProductionRuntimeDatabasePredeploy } from "./production-runtime-database-predeploy.mjs";
 
 function environment(overrides = {}) {
   const value = {
@@ -40,10 +36,15 @@ function poolFactory(closed) {
       async query(sql) {
         const source = String(sql);
         if (source.startsWith("SELECT DATABASE()")) {
-          return [[{
-            database_name: schema,
-            current_user_name: `${schema}_runtime`,
-          }], []];
+          return [
+            [
+              {
+                database_name: schema,
+                current_user_name: `${schema}_runtime`,
+              },
+            ],
+            [],
+          ];
         }
         if (source.includes("information_schema.TABLES")) {
           return [
@@ -52,9 +53,14 @@ function poolFactory(closed) {
           ];
         }
         if (source === "SHOW GRANTS FOR CURRENT_USER") {
-          return [[{
-            grant: `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO \`${schema}_runtime\`@\`%\``,
-          }], []];
+          return [
+            [
+              {
+                grant: `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO \`${schema}_runtime\`@\`%\``,
+              },
+            ],
+            [],
+          ];
         }
         throw new Error("unexpected query");
       },
@@ -83,9 +89,7 @@ test("validates all thirteen runtime identities without DDL", async () => {
   assert.equal(result.totalTables, 91);
   assert.equal(closed.length, 13);
   assert.ok(
-    result.domains.every((item) =>
-      item.runtimeUser.endsWith("_runtime"),
-    ),
+    result.domains.every((item) => item.runtimeUser.endsWith("_runtime")),
   );
 });
 
