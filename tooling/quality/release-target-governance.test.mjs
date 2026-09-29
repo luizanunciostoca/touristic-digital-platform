@@ -166,6 +166,17 @@ test("production cutover serializes MySQL source mutation and preserves recovery
     );
   }
 
+  for (const marker of [
+    "find /tmp/dr-proof -type f -name",
+    'test "$dr_evidence_count" -eq 1',
+    "find /tmp/production-dr-evidence -type f -name",
+    'test "$evidence_count" -eq 1',
+  ]) {
+    assert.ok(
+      production.includes(marker),
+      `production DR artifact discovery missing marker: ${marker}`,
+    );
+  }
   const sealIndex = production.indexOf(
     "Seal rollback state before post-cutover verification",
   );
