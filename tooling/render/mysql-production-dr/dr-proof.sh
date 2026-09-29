@@ -3,12 +3,6 @@ set -Eeuo pipefail
 
 umask 077
 
-PRIVATE_STDERR="${DR_PRIVATE_STDERR:-/tmp/morro-production-mysql-dr.stderr}"
-exec 3>&2
-: >"$PRIVATE_STDERR"
-chmod 600 "$PRIVATE_STDERR"
-exec 2>"$PRIVATE_STDERR"
-
 CONTRACT="MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF"
 PAYLOAD_CONTRACT="MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK"
 CONTRACT_VERSION=1
@@ -21,17 +15,28 @@ WORK_ROOT="${DR_WORK_ROOT:-/tmp/morro-production-mysql-dr}"
 RESTORE_PORT=3307
 MAX_ENCRYPTED_BYTES=300000
 PAYLOAD_CHUNK_SIZE=6000
+HANDLED_FAILURE_EXIT=86
 
 fail() {
   local code="$1"
-  trap - ERR
-  [[ "$code" =~ ^[A-Z0-9_]{1,128}$ ]] || code="INTERNAL_FAILURE_CODE_INVALID"
-  printf '{"contract":"%s","contractVersion":%s,"status":"fail","code":"%s"}\n' \
-    "$CONTRACT" "$CONTRACT_VERSION" "$code" >&3
-  exit 1
+  printf '{"contract":"%s","contractVersion":%s,"status":"fail","code":"%s","stage":"%s"}\n' \
+    "$CONTRACT" "$CONTRACT_VERSION" "$code" "$stage" >&2
+  exit "$HANDLED_FAILURE_EXIT"
 }
 
-trap 'fail "UNEXPECTED_COMMAND_FAILURE"' ERR
+stage="startup"
+on_err() {
+  local rc="$?"
+  local line="${BASH_LINENO[0]:-0}"
+  trap - ERR
+  if [[ "$rc" -eq "$HANDLED_FAILURE_EXIT" ]]; then
+    exit "$rc"
+  fi
+  printf '{"contract":"%s","contractVersion":%s,"status":"fail","code":"UNHANDLED_COMMAND_FAILURE","stage":"%s","line":%s}\n' \
+    "$CONTRACT" "$CONTRACT_VERSION" "$stage" "$line" >&2
+  exit "$rc"
+}
+trap on_err ERR
 
 required_env() {
   local key="$1"
@@ -294,7 +299,6 @@ cleanup() {
     wait "$restore_server_pid" >/dev/null 2>&1 || true
   fi
   rm -rf "$WORK_ROOT"
-  rm -f "$PRIVATE_STDERR"
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -307,6 +311,8 @@ invalid_scope_count="$(tail -n +2 "$MANIFEST" | awk -F '\t' '$3 !~ /^(global|des
 [[ "$table_count" -eq "$EXPECTED_TABLES" && "$schema_count" -eq "$EXPECTED_SCHEMAS" && "$duplicate_count" -eq 0 && "$invalid_scope_count" -eq 0 ]] || fail "MANIFEST_INVALID"
 tail -n +2 "$MANIFEST" | cut -f1,2 | LC_ALL=C sort >"$expected_tables"
 manifest_sha256="$(sha256sum "$MANIFEST" | awk '{print $1}')"
+
+stage="source-preflight"
 
 for spec in \
   AUTH:morro_auth AUDIT:morro_audit DESTINATIONS:morro_destinations \
@@ -328,11 +334,14 @@ for spec in \
   [[ "$(source_mysql "$domain" "$database" "SELECT COUNT(*) FROM information_schema.EVENTS WHERE EVENT_SCHEMA='${database}';")" == 0 ]] || fail "SOURCE_EVENTS_REQUIRE_ADMIN_BACKUP"
 done
 
+stage="source-inventory"
 capture_source_tables "$source_tables_before"
 cmp -s "$expected_tables" "$source_tables_before" || fail "SOURCE_TABLE_INVENTORY_MISMATCH"
+stage="source-metadata-before"
 capture_source_metadata before
 capture_source_checksums "$source_checksums_before"
 
+stage="source-backup"
 backup_started_epoch="$(date +%s)"
 backup_started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 : >"$dump_file"
@@ -357,6 +366,7 @@ backup_completed_epoch="$(date +%s)"
 backup_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 [[ -s "$dump_file" ]] || fail "BACKUP_EMPTY"
 
+stage="source-stability"
 capture_source_tables "$source_tables_after"
 capture_source_metadata after
 capture_source_checksums "$source_checksums_after"
@@ -370,6 +380,7 @@ cmp -s "$source_checksums_before" "$source_checksums_after" || fail "SOURCE_DATA
 
 [[ "$(source_mysql DESTINATIONS morro_destinations "SELECT COUNT(*) FROM destinations WHERE destination_id='morro-de-sao-paulo';")" == 1 ]] || fail "SOURCE_CANONICAL_DESTINATION_INVALID"
 
+stage="restore-initialize"
 restore_started_epoch="$(date +%s)"
 restore_started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 mkdir -p "$restore_data"
@@ -392,8 +403,10 @@ for _ in $(seq 1 90); do
 done
 [[ "$ready" == true ]] || fail "RESTORE_MYSQL_NOT_READY"
 
+stage="restore-import"
 mysql --protocol=socket --socket="$restore_socket" --user=root <"$dump_file"
 provision_restore_owners
+stage="restore-readback"
 run_restore_readback
 restore_completed_epoch="$(date +%s)"
 restore_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -403,6 +416,7 @@ LC_ALL=C sort -o "$restore_tables" "$restore_tables"
 cmp -s "$expected_tables" "$restore_tables" || fail "RESTORE_TABLE_INVENTORY_MISMATCH"
 [[ "$(restore_mysql "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME LIKE 'morro\\_%' ESCAPE '\\\\';")" == "$EXPECTED_SCHEMAS" ]] || fail "RESTORE_SCHEMA_COUNT_INVALID"
 
+stage="restore-validation"
 capture_restore_metadata
 capture_restore_checksums_and_counts
 
@@ -422,6 +436,7 @@ validation_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 plain_sha256="$(sha256sum "$dump_file" | awk '{print $1}')"
 plain_bytes="$(stat -c %s "$dump_file")"
 
+stage="encrypt-backup"
 gzip -9 -c "$dump_file" >"$compressed_file"
 openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -md sha256 \
   -pass env:DR_ENCRYPTION_SECRET -in "$compressed_file" -out "$encrypted_file"
@@ -432,6 +447,7 @@ restore_schema_owners="$(printf '%s\n' "$restore_readback_json" | jq -r '.schema
 restore_cross_domain_denied="$(printf '%s\n' "$restore_readback_json" | jq -r '.crossDomainDenied')"
 [[ "$encrypted_bytes" -le "$MAX_ENCRYPTED_BYTES" ]] || fail "ENCRYPTED_BACKUP_TOO_LARGE_FOR_SECURE_LOG_TRANSPORT"
 
+stage="emit-evidence"
 payload="$(base64 -w 0 "$encrypted_file")"
 payload_length="${#payload}"
 payload_total="$(( (payload_length + PAYLOAD_CHUNK_SIZE - 1) / PAYLOAD_CHUNK_SIZE ))"
