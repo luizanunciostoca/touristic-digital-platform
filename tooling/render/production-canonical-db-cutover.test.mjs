@@ -289,7 +289,16 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   for (const [, canonicalKey] of productionDatabaseDomains) {
     assert.ok(keys.includes(canonicalKey), canonicalKey);
   }
+  assert.ok(keys.includes("MORRO_RELEASE_SHA"));
+  assert.ok(keys.includes("MORRO_RELEASE_VERSION"));
   assert.ok(keys.includes("MORRO_DATABASE_SCHEMA_MODE"));
+  for (const key of ["MORRO_RELEASE_SHA", "MORRO_RELEASE_VERSION"]) {
+    const write = envWrites.find((request) =>
+      request.route.endsWith(`/env-vars/${key}`),
+    );
+    assert.ok(write, key);
+    assert.equal(JSON.parse(write.body).value, "c".repeat(40));
+  }
   assert.ok(
     !keys.some(
       (key) => key.startsWith("VITE_") && key.endsWith("_DATABASE_URL"),
@@ -308,6 +317,8 @@ function failureCutoverFixture({
   staleBrowserDatabaseEnv = false,
   mysqlSourceChangesBeforeMutation = false,
   deployStatus = "build_failed",
+  previousReleaseIdentity = null,
+  previousDeployStillLive = false,
 }) {
   const stateFile = path.join(directory, "state.json");
   const evidenceFile = path.join(directory, "evidence.json");
@@ -420,6 +431,12 @@ function failureCutoverFixture({
       method === "GET" &&
       parsed.pathname.startsWith("/v1/services/srv-web/env-vars/")
     ) {
+      const key = decodeURIComponent(parsed.pathname.split("/").at(-1));
+      if (previousReleaseIdentity && key in previousReleaseIdentity) {
+        return jsonResponse(200, {
+          envVar: { key, value: previousReleaseIdentity[key] },
+        });
+      }
       return jsonResponse(404, {});
     }
     if (
@@ -477,6 +494,13 @@ function failureCutoverFixture({
           deployStatus === "live"
             ? { ref: imagePath, sha: imageDigest }
             : undefined,
+      });
+    }
+    if (method === "GET" && route === "/v1/services/srv-web/deploys/dep-old") {
+      return jsonResponse(200, {
+        id: "dep-old",
+        status: previousDeployStillLive ? "live" : "deactivated",
+        commit: { id: previousReleaseSha },
       });
     }
     if (method === "POST" && route === "/v1/services/srv-web/rollback") {
@@ -642,7 +666,13 @@ test("post-patch failure automatically restores source and env then waits for ro
     path.join(os.tmpdir(), "morro-cutover-rollback-"),
   );
   t.after(() => fs.rm(directory, { recursive: true, force: true }));
-  const fixture = failureCutoverFixture({ directory });
+  const fixture = failureCutoverFixture({
+    directory,
+    previousReleaseIdentity: {
+      MORRO_RELEASE_SHA: "a".repeat(40),
+      MORRO_RELEASE_VERSION: "legacy-release",
+    },
+  });
 
   await assert.rejects(
     cutover({
@@ -666,11 +696,66 @@ test("post-patch failure automatically restores source and env then waits for ro
         request.route === "/v1/services/srv-web/deploys/dep-rollback",
     ),
   );
+  const releaseShaWrites = fixture.requests
+    .filter(
+      (request) =>
+        request.method === "PUT" &&
+        request.route.endsWith("/env-vars/MORRO_RELEASE_SHA"),
+    )
+    .map((request) => request.body.value);
+  const releaseVersionWrites = fixture.requests
+    .filter(
+      (request) =>
+        request.method === "PUT" &&
+        request.route.endsWith("/env-vars/MORRO_RELEASE_VERSION"),
+    )
+    .map((request) => request.body.value);
+  assert.deepEqual(releaseShaWrites, [
+    fixture.environment.EXPECTED_SHA,
+    "a".repeat(40),
+  ]);
+  assert.deepEqual(releaseVersionWrites, [
+    fixture.environment.EXPECTED_SHA,
+    "legacy-release",
+  ]);
+
   const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
   assert.equal(evidence.status, "rolled_back");
   assert.equal(evidence.rollbackDeployId, "dep-rollback");
   assert.equal(evidence.previousReleaseSha, fixture.previousReleaseSha);
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
+});
+
+test("rollback accepts the previous exact release when it is already live", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-already-live-rollback-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    previousDeployStillLive: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_DEPLOY_BUILD_FAILED/u,
+  );
+
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+  const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
+  assert.equal(evidence.status, "rolled_back");
+  assert.equal(evidence.rollbackDeployId, "dep-old");
+  assert.equal(evidence.previousReleaseSha, fixture.previousReleaseSha);
 });
 
 test("pre-patch env failure restores the snapshot without changing service source", async (t) => {
