@@ -62,7 +62,10 @@
       "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
       "apps/morro-digital-platform/tooling/ticketing-api.mjs",
       "tooling/render/mysql-production/runtime-users-entrypoint.sh",
-      ".github/workflows/release-candidate-certification.yml"
+      ".github/workflows/release-candidate-certification.yml",
+      "apps/morro-digital-platform/tooling/auth-api.mjs",
+      "services/auth/src/security-state.ts",
+      "services/auth/src/security-state.test.ts"
     ],
     "contracts": [
       "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP",
