@@ -674,4 +674,3 @@ test("explicit rollback waits for the previous release before reporting success"
   assert.equal(result.rollbackDeployId, "dep-rollback");
   assert.ok(!JSON.stringify(result).includes("runtime-secret"));
 });
-
