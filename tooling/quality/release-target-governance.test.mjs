@@ -167,10 +167,14 @@ test("production cutover serializes MySQL source mutation and preserves recovery
   }
 
   for (const marker of [
-    "find /tmp/dr-proof -type f -name",
+    `dr_evidence_count="$(find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print | wc -l | awk '{print $1}')"`,
     'test "$dr_evidence_count" -eq 1',
-    "find /tmp/production-dr-evidence -type f -name",
+    `dr_evidence="$(find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print | head -n 1)"`,
+    'test -s "$dr_evidence"',
+    `evidence_count="$(find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print | wc -l | awk '{print $1}')"`,
     'test "$evidence_count" -eq 1',
+    `evidence="$(find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print | head -n 1)"`,
+    'test -s "$evidence"',
   ]) {
     assert.ok(
       production.includes(marker),
