@@ -89,7 +89,10 @@ test("accepts only the complete exact candidate identity", () => {
     ["lockfileDigest", `sha256:${"4".repeat(64)}`],
   ]) {
     assert.equal(
-      productionTwinCertificateMatches(evidence(), expected({ [field]: mismatched })),
+      productionTwinCertificateMatches(
+        evidence(),
+        expected({ [field]: mismatched }),
+      ),
       false,
       `certificate must reject mismatched ${field}`,
     );
@@ -115,11 +118,17 @@ test("reuses only an exact certificate and dispatches when none matches", () => 
 
   assert.equal(selected?.runId, "202");
   assert.equal(
-    productionTwinDispatchRequired([{ runId: "101", evidence: stale }], expected()),
+    productionTwinDispatchRequired(
+      [{ runId: "101", evidence: stale }],
+      expected(),
+    ),
     true,
   );
   assert.equal(
-    productionTwinDispatchRequired([{ runId: "202", evidence: exact }], expected()),
+    productionTwinDispatchRequired(
+      [{ runId: "202", evidence: exact }],
+      expected(),
+    ),
     false,
   );
 });
@@ -204,7 +213,10 @@ test("production twin workflow requires the candidate and encrypted DR identitie
     "production-twin-certification-evidence.json",
     "retention-days: 90",
   ]) {
-    assert.ok(source.includes(required), `missing twin workflow contract: ${required}`);
+    assert.ok(
+      source.includes(required),
+      `missing twin workflow contract: ${required}`,
+    );
   }
 
   assert.ok(!source.includes("RENDER_PRODUCTION_API_KEY"));
