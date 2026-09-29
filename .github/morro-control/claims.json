@@ -29,9 +29,19 @@
         "apps/morro-digital-platform/vitest.config.mjs",
         "turbo.json",
         ".github/workflows/production-mysql-canonical-bootstrap.yml",
-        "tooling/quality/check-release-readiness.mjs"
+        "tooling/quality/check-release-readiness.mjs",
+        ".github/workflows/production-mysql-backup-restore-proof.yml",
+        "tooling/render/mysql-production-dr/Dockerfile",
+        "tooling/render/mysql-production-dr/canonical-manifest.tsv",
+        "tooling/render/mysql-production-dr/dr-proof.sh",
+        "tooling/quality/production-mysql-dr-contract.test.mjs",
+        "docs/operations/PRODUCTION-MYSQL-BACKUP-RESTORE-DR.md"
       ],
-      "domains": ["ci-release", "database", "infrastructure"],
+      "domains": [
+        "ci-release",
+        "database",
+        "infrastructure"
+      ],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"
