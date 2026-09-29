@@ -400,7 +400,14 @@ function failureCutoverFixture({
       return jsonResponse(
         200,
         staleBrowserDatabaseEnv
-          ? [{ envVar: { key: "VITE_BUSINESS_DATABASE_URL", value: "redacted" } }]
+          ? [
+              {
+                envVar: {
+                  key: "VITE_BUSINESS_DATABASE_URL",
+                  value: "redacted",
+                },
+              },
+            ]
           : [],
       );
     }
