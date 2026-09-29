@@ -90,7 +90,7 @@ jobs:
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
 
       - name: Re-prove canonical scope manifest contract
-        run: node --test tooling/quality/production-mysql-dr-contract.test.mjs
+        run: node --test apps/morro-digital-platform/tooling/production-mysql-dr-contract.test.mjs
 
       - name: Require protected Render credential
         env:
