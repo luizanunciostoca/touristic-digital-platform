@@ -351,7 +351,12 @@ jobs:
             --arg tree "$CURRENT_TREE" \
             --arg image "$image_repository" \
             --arg digest "$image_digest" \
-            '.source_sha == $sha and .tree_sha == $tree and .image == $image and .digest == $digest' \
+            --arg run "$run_id" \
+            '.source_sha == $sha and
+             .tree_sha == $tree and
+             .image == $image and
+             .digest == $digest and
+             .image_run_id == $run' \
             "$provenance" >/dev/null
 
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
