@@ -306,6 +306,7 @@ function failureCutoverFixture({
   failPutKey = null,
   failSourcePatch = false,
   staleBrowserDatabaseEnv = false,
+  mysqlSourceChangesBeforeMutation = false,
   deployStatus = "build_failed",
 }) {
   const stateFile = path.join(directory, "state.json");
@@ -354,6 +355,7 @@ function failureCutoverFixture({
   };
 
   let currentService = structuredClone(originalService);
+  let mysqlDeployReads = 0;
 
   const fetchImpl = async (url, options = {}) => {
     const parsed = new URL(url);
@@ -389,12 +391,17 @@ function failureCutoverFixture({
       method === "GET" &&
       route === "/v1/services/srv-mysql/deploys?limit=20"
     ) {
+      mysqlDeployReads += 1;
+      const observedMysqlSha =
+        mysqlSourceChangesBeforeMutation && mysqlDeployReads > 1
+          ? "e".repeat(40)
+          : mysqlSourceSha;
       return jsonResponse(200, [
         {
           deploy: {
             id: "dep-mysql",
             status: "live",
-            commit: { id: mysqlSourceSha },
+            commit: { id: observedMysqlSha },
           },
         },
       ]);
@@ -511,6 +518,42 @@ function failureCutoverFixture({
     },
   };
 }
+
+test("rejects a MySQL source that changes before the first web mutation", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-mysql-source-drift-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    mysqlSourceChangesBeforeMutation: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /PRODUCTION_MYSQL_DR_SOURCE_STALE/u,
+  );
+
+  assert.ok(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "GET" &&
+        request.route === "/v1/services/srv-mysql/deploys?limit=20",
+    ).length >= 2,
+  );
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "PUT" ||
+        request.method === "PATCH" ||
+        request.method === "POST",
+    ).length,
+    0,
+  );
+});
 
 test("rejects browser-exposed database URLs", async (t) => {
   const directory = await fs.mkdtemp(
