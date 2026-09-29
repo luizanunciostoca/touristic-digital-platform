@@ -210,6 +210,7 @@ describe("Platform production operations", () => {
         MORRO_RELEASE_SHA: "abc123",
         MORRO_RELEASE_VERSION: "2.0.0",
         MORRO_DEPLOYMENT_ID: "deploy-42",
+        MORRO_RELEASE_IMAGE_RUN_ID: "424242",
       }),
       sink: () => undefined,
     });
@@ -227,6 +228,7 @@ describe("Platform production operations", () => {
     expect(response.header("x-release-sha")).toBe("abc123");
     expect(response.header("x-release-version")).toBe("2.0.0");
     expect(response.header("x-deployment-id")).toBe("deploy-42");
+    expect(response.header("x-release-image-run-id")).toBe("424242");
     const csp = response.header("content-security-policy");
     const approvedHashes = csp.match(/'sha256-[^']+'/gu) ?? [];
     expect(approvedHashes).toHaveLength(4);

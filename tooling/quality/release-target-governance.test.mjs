@@ -129,6 +129,29 @@ test("only explicit release control planes dispatch nested workflows", async () 
   );
 });
 
+test("production and acceptance staging promotion bind the exact OCI image run", async () => {
+  const workflows = await workflowSources();
+  const acceptance = workflows.get("final-release-acceptance.yml");
+  const production = workflows.get("production-oci-promotion.yml");
+  const staging = workflows.get("staging-oci-promotion.yml");
+
+  assert.ok(acceptance.includes('-f image_run_id="$IMAGE_RUN_ID"'));
+  assert.ok(acceptance.includes(".image_run_id == $run"));
+  assert.ok(production.includes('-f image_run_id="$image_run_id"'));
+  assert.ok(staging.includes("image_run_id:"));
+  assert.ok(staging.includes("actions/runs/$IMAGE_RUN_ID"));
+  assert.ok(staging.includes(".image_run_id == $run"));
+  assert.ok(
+    staging.includes("EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}"),
+  );
+  assert.ok(staging.includes("MORRO_RELEASE_IMAGE_RUN_ID"));
+  assert.ok(staging.includes("live_image_run_id=$image_run_id"));
+  assert.ok(staging.includes(".image == $image"));
+  assert.ok(
+    staging.includes('.path == ".github/workflows/release-oci-image.yml"'),
+  );
+});
+
 test("production cutover resolves nested DR evidence artifacts deterministically", async () => {
   const workflows = await workflowSources();
   const production = workflows.get("production-oci-promotion.yml");
@@ -307,6 +330,11 @@ test("staging OCI promotion is bound to the same canonical Render service", asyn
     `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
     'url.hostname !== "api.render.com"',
     "url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)",
+    'run-name: "staging-oci-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}:${{ inputs.image_digest }}"',
+    "request_id:",
+    "default: manual",
+    "image_run_id:",
+    "actions/runs/$IMAGE_RUN_ID",
   ]) {
     assert.ok(
       stagingOci.includes(marker),
@@ -320,6 +348,13 @@ test("staging OCI promotion is bound to the same canonical Render service", asyn
       `staging OCI workflow references forbidden target: ${forbidden}`,
     );
   }
+
+  assert.ok(
+    stagingOci.includes(
+      "github.ref == format('refs/tags/rc/{0}', inputs.expected_sha)",
+    ),
+    "staging OCI promotion must allow the immutable release candidate tag",
+  );
 });
 
 test("Final Release Acceptance consumes structured staging target evidence", async () => {
@@ -328,18 +363,24 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
   assert.ok(acceptance, "final-release-acceptance.yml must exist");
 
   for (const marker of [
-    "staging-deployment-evidence.json",
-    `.serviceId == "${CANONICAL_STAGING.serviceId}"`,
-    `.serviceName == "${CANONICAL_STAGING.serviceName}"`,
-    `.canonicalUrl == "${CANONICAL_STAGING.canonicalUrl}"`,
-    '.environment == "staging"',
-    ".expectedSha == $sha",
-    ".liveSha == $sha",
-    ".deploymentId | length > 0",
+    "release-oci-image.yml",
+    "staging-oci-promotion.yml",
+    "release-provenance-$GITHUB_SHA",
+    "staging-oci-deployment-evidence-",
+    "oci-deployment-evidence.txt",
+    `--arg serviceId "${CANONICAL_STAGING.serviceId}"`,
+    `--arg serviceName "${CANONICAL_STAGING.serviceName}"`,
+    '--arg canonicalUrl "$STAGING_URL"',
+    '--arg environment "staging"',
+    'grep -Fxq "expected_sha=$EXPECTED_SHA"',
+    'grep -Fxq "digest=$IMAGE_DIGEST"',
+    'grep -Fxq "live_image_run_id=${{ steps.release-image.outputs.run_id }}"',
+    'test "$deployment_id" != "unknown"',
+    "final-release-staging-target-evidence.json",
   ]) {
     assert.ok(
       acceptance.includes(marker),
-      `Final Release Acceptance missing target evidence marker: ${marker}`,
+      `Final Release Acceptance missing OCI staging evidence marker: ${marker}`,
     );
   }
 });
@@ -347,15 +388,19 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
 test("Final Release Acceptance binds staging evidence to the exact dispatch request", async () => {
   const workflows = await workflowSources();
   const acceptance = workflows.get("final-release-acceptance.yml");
-  const staging = workflows.get("staging-render-promotion.yml");
+  const staging = workflows.get("staging-oci-promotion.yml");
   assert.ok(acceptance, "final-release-acceptance.yml must exist");
-  assert.ok(staging, "staging-render-promotion.yml must exist");
+  assert.ok(staging, "staging-oci-promotion.yml must exist");
 
   for (const marker of [
     'request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"',
     '-f request_id="$request_id"',
+    '-f image_digest="$IMAGE_DIGEST"',
+    '-f image_run_id="$IMAGE_RUN_ID"',
     "--json databaseId,headSha,displayTitle,createdAt",
     "select(.headSha == $sha and .displayTitle == $title)",
+    "release-oci-image.yml",
+    "staging-oci-promotion.yml",
   ]) {
     assert.ok(
       acceptance.includes(marker),
@@ -365,12 +410,13 @@ test("Final Release Acceptance binds staging evidence to the exact dispatch requ
 
   assert.ok(
     staging.includes(
-      'run-name: "staging-render-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"',
+      'run-name: "staging-oci-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}:${{ inputs.image_digest }}"',
     ),
-    "staging promotion must expose the request correlation in its immutable run title",
+    "staging OCI promotion must expose request, SHA and digest in its immutable run title",
   );
   assert.ok(staging.includes("request_id:"));
   assert.ok(staging.includes("default: manual"));
+  assert.ok(acceptance.includes("timeout-minutes: 150"));
 });
 
 test("Final Release Acceptance ignores a stale same-SHA staging run until the correlated dispatch is indexed", async () => {
@@ -388,6 +434,7 @@ test("Final Release Acceptance ignores a stale same-SHA staging run until the co
   const calls = join(fixture, "run-list-calls");
   const dispatchArgs = join(fixture, "dispatch-args");
   const sha = "1234567890abcdef1234567890abcdef12345678";
+  const digest = `sha256:${"d".repeat(64)}`;
 
   try {
     await writeFile(output, "");
@@ -412,8 +459,8 @@ gh() {
     count=$((count + 1))
     printf "%s" "$count" > "$RUN_LIST_CALLS"
 
-    stale_title="staging-render-promotion:final-acceptance-old-1:$GITHUB_SHA"
-    current_title="staging-render-promotion:final-acceptance-900-2:$GITHUB_SHA"
+    stale_title="staging-oci-promotion:final-acceptance-old-1:$GITHUB_SHA:$IMAGE_DIGEST"
+    current_title="staging-oci-promotion:final-acceptance-900-2:$GITHUB_SHA:$IMAGE_DIGEST"
     if [ "$count" -lt 3 ]; then
       printf '%s\\n' "[{\\\"databaseId\\\":111,\\\"headSha\\\":\\\"$GITHUB_SHA\\\",\\\"displayTitle\\\":\\\"$stale_title\\\",\\\"createdAt\\\":\\\"2026-09-28T08:00:00Z\\\"}]"
     else
@@ -426,7 +473,7 @@ gh() {
 }
 sleep() { :; }
 ${script}
-        `,
+          `,
       ],
       {
         env: {
@@ -437,6 +484,8 @@ ${script}
           GITHUB_RUN_ATTEMPT: "2",
           GITHUB_RUN_ID: "900",
           GITHUB_SHA: sha,
+          IMAGE_DIGEST: digest,
+          IMAGE_RUN_ID: "424242",
           RUN_LIST_CALLS: calls,
         },
         stdio: "pipe",
@@ -446,11 +495,13 @@ ${script}
     const result = await readFile(output, "utf8");
     assert.match(result, /^request_id=final-acceptance-900-2$/m);
     assert.match(result, /^run_id=222$/m);
+    assert.match(result, new RegExp(`^image_digest=${digest}$`, "m"));
     assert.equal(await readFile(calls, "utf8"), "3");
-    assert.match(
-      await readFile(dispatchArgs, "utf8"),
-      /-f request_id=final-acceptance-900-2/,
-    );
+    const args = await readFile(dispatchArgs, "utf8");
+    assert.match(args, /staging-oci-promotion\.yml/);
+    assert.match(args, /-f request_id=final-acceptance-900-2/);
+    assert.match(args, /-f image_digest=sha256:/);
+    assert.match(args, /-f image_run_id=424242/);
     assert.doesNotMatch(result, /^run_id=111$/m);
   } finally {
     await rm(fixture, { recursive: true, force: true });

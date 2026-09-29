@@ -53,17 +53,34 @@ if (health.response.status !== 200 || health.body?.status !== "live") {
   throw new Error(`HEALTHZ_FAILED_${health.response.status}`);
 }
 const healthRelease = requireHeader(health.response.headers, "x-release-sha");
+const healthImageRunId =
+  health.response.headers.get("x-release-image-run-id")?.trim() ?? "";
 requireHeader(health.response.headers, "x-correlation-id");
 const healthHsts = requireHsts(health.response.headers);
 
 const ready = await request("/readyz");
 assertHealthyReadiness(ready.response.status, ready.body);
 const readyRelease = requireHeader(ready.response.headers, "x-release-sha");
+const readyImageRunId =
+  ready.response.headers.get("x-release-image-run-id")?.trim() ?? "";
 requireHeader(ready.response.headers, "x-release-version");
 requireHeader(ready.response.headers, "x-deployment-id");
 requireHeader(ready.response.headers, "x-correlation-id");
 const readyHsts = requireHsts(ready.response.headers);
 if (readyRelease !== healthRelease) throw new Error("RELEASE_IDENTITY_DRIFT");
+if (readyImageRunId !== healthImageRunId)
+  throw new Error("RELEASE_IMAGE_RUN_ID_DRIFT");
+const expectedImageRunId = String(
+  process.env.EXPECTED_IMAGE_RUN_ID ?? "",
+).trim();
+if (expectedImageRunId) {
+  if (!/^[0-9]+$/u.test(expectedImageRunId)) {
+    throw new Error("EXPECTED_IMAGE_RUN_ID_INVALID");
+  }
+  if (readyImageRunId !== expectedImageRunId) {
+    throw new Error("RELEASE_IMAGE_RUN_ID_MISMATCH");
+  }
+}
 if (readyHsts !== healthHsts) throw new Error("HSTS_HEADER_DRIFT");
 
 process.stdout.write(
@@ -72,6 +89,7 @@ process.stdout.write(
     contractVersion: 2,
     status: "pass",
     releaseSha: readyRelease,
+    imageRunId: readyImageRunId || null,
     readiness: ready.body.readiness,
     securityHeaders: { strictTransportSecurity: readyHsts },
     checks: ready.body.checks,
