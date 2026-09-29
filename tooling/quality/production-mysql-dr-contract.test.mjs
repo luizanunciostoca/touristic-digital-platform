@@ -175,7 +175,10 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
   );
   assert.ok(serviceOutputIndex >= 0);
   assert.ok(deploySelectionIndex > serviceOutputIndex);
-  assert.match(source, /case "\$http_status" in[\s\S]*201\)[\s\S]*202\)/u);
+  assert.match(
+    source,
+    /case "\$http_status" in[\s\S]*201\)[\s\S]*202\)/u,
+  );
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
