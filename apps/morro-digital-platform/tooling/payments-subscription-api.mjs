@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomUUID } from "node:crypto";
 
 import { authorizeBusinessAccess } from "@touristic/auth";
@@ -339,10 +340,12 @@ export function createPaymentsSubscriptionApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
-      await Promise.all([
-        applyOrderingM151Schema(orderingPool),
-        applyFinancialM146Schema(financialPool),
-      ]);
+      if (shouldApplyRuntimeSchema(environment)) {
+        await Promise.all([
+          applyOrderingM151Schema(orderingPool),
+          applyFinancialM146Schema(financialPool),
+        ]);
+      }
 
       const access = new MySqlCheckoutAccessRepository(orderingPool);
       const subscriptions = new MySqlSubscriptionRepository(orderingPool);
