@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 
 import mysql from "mysql2/promise";
 
-import { validateRuntimePrivilegeBoundaries } from "./production-runtime-database-predeploy.mjs";
+import {
+  validateRuntimePrivilegeBoundaries,
+} from "./production-runtime-database-predeploy.mjs";
 
 const adminDatabaseUrl = String(
   process.env.MYSQL_ADMIN_DATABASE_URL ?? "",
@@ -44,9 +46,7 @@ try {
   await admin.query(`DROP ROLE IF EXISTS \`${role}\`@'%'`);
   await admin.query(`DROP DATABASE IF EXISTS \`${schema}\``);
   await admin.query(`CREATE DATABASE \`${schema}\``);
-  await admin.query(
-    `CREATE USER \`${user}\`@'%' IDENTIFIED BY '${password}'`,
-  );
+  await admin.query(`CREATE USER \`${user}\`@'%' IDENTIFIED BY '${password}'`);
   await admin.query(
     `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO \`${user}\`@'%'`,
   );
