@@ -361,6 +361,24 @@ jobs:
           ref: ${{ needs.preflight.outputs.expected_sha }}
           fetch-depth: 1
 
+      - name: Pin tested production cutover control tool
+        env:
+          EXPECTED_SHA: ${{ needs.preflight.outputs.expected_sha }}
+          CONTROL_TOOL_SHA: 4b37e9c801aad75877a5f1347eafa92e4b7d04bc
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git fetch --no-tags --depth=1 origin "$CONTROL_TOOL_SHA"
+          git show "$CONTROL_TOOL_SHA:tooling/render/production-canonical-db-cutover.mjs"             > /tmp/production-canonical-db-cutover.mjs
+          git show "$CONTROL_TOOL_SHA:tooling/render/production-canonical-db-cutover.test.mjs"             > /tmp/production-canonical-db-cutover.test.mjs
+          test -s /tmp/production-canonical-db-cutover.mjs
+          test -s /tmp/production-canonical-db-cutover.test.mjs
+          mv /tmp/production-canonical-db-cutover.mjs             tooling/render/production-canonical-db-cutover.mjs
+          mv /tmp/production-canonical-db-cutover.test.mjs             tooling/render/production-canonical-db-cutover.test.mjs
+          node --test tooling/render/production-canonical-db-cutover.test.mjs
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
