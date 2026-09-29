@@ -127,6 +127,7 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "HANDLED_FAILURE_EXIT=86",
     "UNHANDLED_COMMAND_FAILURE",
     '"stage":"%s"',
+    "DR_WORKER_SERVICE_NAME",
   ]) {
     assert.ok(
       source.includes(required),
@@ -144,6 +145,17 @@ test("DR executor is syntactically valid and fails closed around production", ()
   );
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
+  assert.doesNotMatch(source, /required_env RENDER_SERVICE_NAME/u);
+  assert.ok(
+    source.includes(
+      'dr_worker_service_name="$(required_env DR_WORKER_SERVICE_NAME)"',
+    ),
+  );
+  assert.ok(
+    source.includes(
+      '[[ "$dr_worker_service_name" == morro-digital-v2-production-mysql-dr-* ]] || fail "DR_WORKER_SERVICE_DENIED"',
+    ),
+  );
 });
 
 test("DR failure telemetry distinguishes handled and unhandled failures", () => {
@@ -249,6 +261,7 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "retention-days: 90",
     "PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1",
     "github-actions-production-mysql-dr-key-v1",
+    "DR_WORKER_SERVICE_NAME",
     ".restore.leastPrivilegeReadback == true",
     ".restore.crossDomainDenied == 156",
     "initial_deploy_id",
