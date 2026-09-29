@@ -105,6 +105,7 @@ async function readJsonBody(request) {
 
 function collectEnvironment(getEnvironmentValue) {
   const keys = [
+    "MORRO_DATABASE_SCHEMA_MODE",
     "TICKETING_FEATURE_ENABLED",
     "TICKETING_DATABASE_URL",
     "TICKETING_SIGNING_SECRET",
