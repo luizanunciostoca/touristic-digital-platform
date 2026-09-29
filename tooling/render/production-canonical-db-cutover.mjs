@@ -240,6 +240,8 @@ async function snapshotRuntimeEnv(client, webServiceId) {
     previous[canonicalKey] = await readEnv(client, webServiceId, canonicalKey);
   }
   for (const key of [
+    "MORRO_RELEASE_SHA",
+    "MORRO_RELEASE_VERSION",
     "MORRO_DATABASE_SCHEMA_MODE",
     "MERCADO_PAGO_CHECKOUT_MODE",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
@@ -503,6 +505,13 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     for (const [key, value] of Object.entries(runtimeUrls)) {
       await writeEnv(client, webServiceId, key, value);
     }
+    await writeEnv(client, webServiceId, "MORRO_RELEASE_SHA", expectedSha);
+    await writeEnv(
+      client,
+      webServiceId,
+      "MORRO_RELEASE_VERSION",
+      expectedSha,
+    );
     await writeEnv(
       client,
       webServiceId,
