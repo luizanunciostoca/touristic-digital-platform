@@ -198,35 +198,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          jq -n \
-            --arg sourceSha "$EXPECTED_SHA" \
-            --arg image "$IMAGE_REPOSITORY" \
-            --arg imageDigest "$IMAGE_DIGEST" \
-            --arg runId "$GITHUB_RUN_ID" \
-            '{
-              contract:"MORRO-OCI-RELEASE-PROMOTION-GATE",
-              contractVersion:1,
-              status:"pass",
-              sourceSha:$sourceSha,
-              image:$image,
-              imageDigest:$imageDigest,
-              runId:$runId
-            }' > oci-promotion-gate-evidence.json
-
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: oci-promotion-gate-evidence-${{ github.run_id }}
-          path: oci-promotion-gate-evidence.json
-          if-no-files-found: error
-          retention-days: 90
-
-      - name: Publish digest-bound OCI gate evidence
-        env:
-          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
-          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
-        shell: bash
-        run: |
-          set -euo pipefail
           tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
           jq -n \
             --arg sourceSha "$EXPECTED_SHA" \
@@ -243,12 +214,11 @@ jobs:
               image:$image,
               imageDigest:$imageDigest,
               runId:$runId
-            }' > oci-release-promotion-evidence.json
+            }' > oci-promotion-gate-evidence.json
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: oci-release-promotion-evidence-${{ github.run_id }}
-          path: oci-release-promotion-evidence.json
+          name: oci-promotion-gate-evidence-${{ github.run_id }}
+          path: oci-promotion-gate-evidence.json
           if-no-files-found: error
           retention-days: 90
-
