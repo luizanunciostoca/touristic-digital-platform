@@ -385,8 +385,8 @@ jobs:
           printf '%s' "$evidence" | jq -e \
             '.status == "pass" and
              .runtimeUsers == 13 and
-             .allowedSchemaPrivilegesPerUser == 8 and
-             .schemaPrivilegeEntries == 104 and
+             .allowedSchemaPrivilegesPerUser == 4 and
+             .schemaPrivilegeEntries == 52 and
              .crossDomainDenied == 156 and
              .globalPrivilegeEntries == 0' >/dev/null
           echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
