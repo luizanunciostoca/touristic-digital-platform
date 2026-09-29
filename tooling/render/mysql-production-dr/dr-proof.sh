@@ -15,12 +15,13 @@ WORK_ROOT="${DR_WORK_ROOT:-/tmp/morro-production-mysql-dr}"
 RESTORE_PORT=3307
 MAX_ENCRYPTED_BYTES=300000
 PAYLOAD_CHUNK_SIZE=6000
+HANDLED_FAILURE_EXIT=86
 
 fail() {
   local code="$1"
   printf '{"contract":"%s","contractVersion":%s,"status":"fail","code":"%s","stage":"%s"}\n' \
     "$CONTRACT" "$CONTRACT_VERSION" "$code" "$stage" >&2
-  exit 1
+  exit "$HANDLED_FAILURE_EXIT"
 }
 
 stage="startup"
@@ -28,6 +29,9 @@ on_err() {
   local rc="$?"
   local line="${BASH_LINENO[0]:-0}"
   trap - ERR
+  if [[ "$rc" -eq "$HANDLED_FAILURE_EXIT" ]]; then
+    exit "$rc"
+  fi
   printf '{"contract":"%s","contractVersion":%s,"status":"fail","code":"UNHANDLED_COMMAND_FAILURE","stage":"%s","line":%s}\n' \
     "$CONTRACT" "$CONTRACT_VERSION" "$stage" "$line" >&2
   exit "$rc"
@@ -220,7 +224,6 @@ capture_source_counts() {
   LC_ALL=C sort -o "$output" "$output"
 }
 
-stage="restore-validation"
 capture_restore_metadata() {
   restore_mysql "SELECT TABLE_SCHEMA,TABLE_NAME,ORDINAL_POSITION,HEX(COLUMN_NAME),HEX(COLUMN_TYPE),IS_NULLABLE,COALESCE(HEX(COLUMN_DEFAULT),'NULL'),HEX(EXTRA),COALESCE(HEX(GENERATION_EXPRESSION),''),COALESCE(HEX(COLLATION_NAME),'') FROM information_schema.COLUMNS WHERE TABLE_SCHEMA LIKE 'morro\\_%' ESCAPE '\\\\' ORDER BY TABLE_SCHEMA,TABLE_NAME,ORDINAL_POSITION;" >"$WORK_ROOT/restore-columns.tsv"
   restore_mysql "SELECT TABLE_SCHEMA,TABLE_NAME,HEX(INDEX_NAME),NON_UNIQUE,SEQ_IN_INDEX,COALESCE(HEX(COLUMN_NAME),''),COALESCE(COLLATION,''),COALESCE(SUB_PART,0),NULLABLE,INDEX_TYPE,COALESCE(HEX(EXPRESSION),'') FROM information_schema.STATISTICS WHERE TABLE_SCHEMA LIKE 'morro\\_%' ESCAPE '\\\\' ORDER BY TABLE_SCHEMA,TABLE_NAME,INDEX_NAME,SEQ_IN_INDEX;" >"$WORK_ROOT/restore-indexes.tsv"
@@ -413,6 +416,7 @@ LC_ALL=C sort -o "$restore_tables" "$restore_tables"
 cmp -s "$expected_tables" "$restore_tables" || fail "RESTORE_TABLE_INVENTORY_MISMATCH"
 [[ "$(restore_mysql "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME LIKE 'morro\\_%' ESCAPE '\\\\';")" == "$EXPECTED_SCHEMAS" ]] || fail "RESTORE_SCHEMA_COUNT_INVALID"
 
+stage="restore-validation"
 capture_restore_metadata
 capture_restore_checksums_and_counts
 
