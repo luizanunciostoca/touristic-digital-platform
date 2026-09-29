@@ -125,6 +125,7 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "crossDomainDenied",
     "PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP",
     "HANDLED_FAILURE_EXIT=86",
+    "DR_EXPECTED_SERVICE_NAME",
     "UNHANDLED_COMMAND_FAILURE",
     '"stage":"%s"',
   ]) {
@@ -142,6 +143,7 @@ test("DR executor is syntactically valid and fails closed around production", ()
     source,
     /DROP\s+DATABASE|DROP\s+TABLE|TRUNCATE\s+TABLE/iu,
   );
+  assert.doesNotMatch(source, /required_env RENDER_SERVICE_NAME/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
 });
