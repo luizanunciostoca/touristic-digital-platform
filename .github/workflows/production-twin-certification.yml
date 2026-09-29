@@ -15,6 +15,10 @@ on:
         description: Release OCI Image workflow run that produced the digest
         required: true
         type: string
+      candidate_run_id:
+        description: Release Candidate Certification run that produced the immutable candidate
+        required: true
+        type: string
       dr_run_id:
         description: Successful production MySQL DR run providing the encrypted sample
         required: true
@@ -66,6 +70,7 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
           IMAGE_RUN_ID: ${{ inputs.image_run_id }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
           DR_RUN_ID: ${{ inputs.dr_run_id }}
           PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1: ${{ secrets.PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1 }}
         shell: bash
