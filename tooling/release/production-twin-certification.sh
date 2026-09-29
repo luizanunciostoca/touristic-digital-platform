@@ -219,13 +219,32 @@ jq -e '
 ' "$work_root/payments-predeploy.json" >/dev/null || fail "TWIN_PAYMENT_BOUNDARY_INVALID"
 
 start_app() {
-  docker run -d     --name "$app_container"     --network "$network"     -p 127.0.0.1:18080:3000     --env-file "$env_file"     "$image_path" >/dev/null
+  docker run -d \
+    --name "$app_container" \
+    --network "$network" \
+    --env-file "$env_file" \
+    "$image_path" >/dev/null
+}
+
+app_get() {
+  local path="$1"
+  local output="$2"
+  docker exec "$app_container" \
+    node --input-type=module -e '
+      const path = process.argv[1];
+      const response = await fetch(`http://127.0.0.1:3000${path}`, {
+        headers: { Connection: "close" },
+      });
+      const body = await response.text();
+      process.stdout.write(body);
+      if (!response.ok) process.exit(22);
+    ' "$path" >"$output"
 }
 
 wait_app() {
   local ready=false
   for _ in $(seq 1 90); do
-    if curl --fail --silent --show-error       http://127.0.0.1:18080/healthz >/dev/null 2>&1
+    if app_get "/healthz" "$work_root/healthz.json" 2>/dev/null
     then
       ready=true
       break
@@ -239,7 +258,7 @@ wait_app() {
 
   ready=false
   for _ in $(seq 1 90); do
-    if curl --fail --silent --show-error       http://127.0.0.1:18080/readyz >"$work_root/readyz.json" 2>/dev/null
+    if app_get "/readyz" "$work_root/readyz.json" 2>/dev/null
     then
       ready=true
       break
@@ -255,13 +274,37 @@ wait_app() {
 
 post_event() {
   local output="$1"
-  curl --silent --show-error     --output "$output"     --write-out '%{http_code}'     --request POST     --header 'Content-Type: application/json'     --header 'Origin: http://127.0.0.1:18080'     --header 'Connection: close'     --data-binary @"$work_root/event.json"     http://127.0.0.1:18080/api/analytics/v1/events
+  docker exec -i "$app_container" \
+    node --input-type=module -e '
+      let input = "";
+      for await (const chunk of process.stdin) input += chunk;
+      const response = await fetch(
+        "http://127.0.0.1:3000/api/analytics/v1/events",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "http://127.0.0.1:3000",
+            Connection: "close",
+          },
+          body: input,
+        },
+      );
+      const raw = await response.text();
+      let body;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        body = { raw: raw.slice(0, 500) };
+      }
+      process.stdout.write(JSON.stringify({ status: response.status, body }));
+    ' <"$work_root/event.json" >"$output"
 }
 
 start_app
 wait_app
-curl --fail --silent --show-error http://127.0.0.1:18080/healthz >"$work_root/healthz.json"
-curl --fail --silent --show-error http://127.0.0.1:18080/ >"$work_root/frontend.html"
+app_get "/healthz" "$work_root/healthz.json"
+app_get "/" "$work_root/frontend.html"
 [[ -s "$work_root/frontend.html" ]] || fail "TWIN_FRONTEND_EMPTY"
 
 event_id="production-twin-${GITHUB_RUN_ID:-local}"
@@ -278,22 +321,26 @@ jq -n   --arg eventId "$event_id"   --arg occurredAt "$event_time"   '{
     attributes:{entryPoint:"production_twin",returningVisitor:false}
   }' >"$work_root/event.json"
 
-write_status="$(post_event "$work_root/write.json")"
-[[ "$write_status" == "201" ]] || fail "TWIN_API_WRITE_FAILED"
-jq -e '.data.status == "stored" and (.data.eventId | length > 0)'   "$work_root/write.json" >/dev/null || fail "TWIN_API_WRITE_EVIDENCE_INVALID"
+post_event "$work_root/write.json"
+[[ "$(jq -r '.status' "$work_root/write.json")" == "201" ]] || fail "TWIN_API_WRITE_FAILED"
+jq -e '.body.data.status == "stored" and (.body.data.eventId | length > 0)' \
+  "$work_root/write.json" >/dev/null || fail "TWIN_API_WRITE_EVIDENCE_INVALID"
 
-readback_status="$(post_event "$work_root/readback.json")"
-[[ "$readback_status" == "200" ]] || fail "TWIN_API_READBACK_FAILED"
-jq -e '.data.status == "replayed"' "$work_root/readback.json" >/dev/null   || fail "TWIN_API_READBACK_EVIDENCE_INVALID"
+post_event "$work_root/readback.json"
+[[ "$(jq -r '.status' "$work_root/readback.json")" == "200" ]] || fail "TWIN_API_READBACK_FAILED"
+jq -e '.body.data.status == "replayed"' "$work_root/readback.json" >/dev/null \
+  || fail "TWIN_API_READBACK_EVIDENCE_INVALID"
 
-curl --fail --silent --show-error --header 'Cache-Control: no-cache'   http://127.0.0.1:18080/ >"$work_root/reload.html"
-reload_status="$(post_event "$work_root/reload-readback.json")"
-[[ "$reload_status" == "200" ]] || fail "TWIN_RELOAD_READBACK_FAILED"
-jq -e '.data.status == "replayed"' "$work_root/reload-readback.json" >/dev/null   || fail "TWIN_RELOAD_EVIDENCE_INVALID"
+app_get "/" "$work_root/reload.html"
+post_event "$work_root/reload-readback.json"
+[[ "$(jq -r '.status' "$work_root/reload-readback.json")" == "200" ]] || fail "TWIN_RELOAD_READBACK_FAILED"
+jq -e '.body.data.status == "replayed"' "$work_root/reload-readback.json" >/dev/null \
+  || fail "TWIN_RELOAD_EVIDENCE_INVALID"
 
-new_session_status="$(post_event "$work_root/new-session-readback.json")"
-[[ "$new_session_status" == "200" ]] || fail "TWIN_NEW_SESSION_READBACK_FAILED"
-jq -e '.data.status == "replayed"' "$work_root/new-session-readback.json" >/dev/null   || fail "TWIN_NEW_SESSION_EVIDENCE_INVALID"
+post_event "$work_root/new-session-readback.json"
+[[ "$(jq -r '.status' "$work_root/new-session-readback.json")" == "200" ]] || fail "TWIN_NEW_SESSION_READBACK_FAILED"
+jq -e '.body.data.status == "replayed"' "$work_root/new-session-readback.json" >/dev/null \
+  || fail "TWIN_NEW_SESSION_EVIDENCE_INVALID"
 
 db_rows="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   morro_analytics   -e "SELECT COUNT(*) FROM analytics_events WHERE event_id='${event_id}';")"
 [[ "$db_rows" == "1" ]] || fail "TWIN_DATABASE_READBACK_INVALID"
@@ -301,14 +348,24 @@ db_rows="$(docker exec "$mysql_container" mysql   --user=root --password="$root_
 docker rm -f "$app_container" >/dev/null
 start_app
 wait_app
-redeploy_status="$(post_event "$work_root/redeploy-readback.json")"
-[[ "$redeploy_status" == "200" ]] || fail "TWIN_REDEPLOY_READBACK_FAILED"
-jq -e '.data.status == "replayed"' "$work_root/redeploy-readback.json" >/dev/null   || fail "TWIN_REDEPLOY_EVIDENCE_INVALID"
+post_event "$work_root/redeploy-readback.json"
+[[ "$(jq -r '.status' "$work_root/redeploy-readback.json")" == "200" ]] || fail "TWIN_REDEPLOY_READBACK_FAILED"
+jq -e '.body.data.status == "replayed"' "$work_root/redeploy-readback.json" >/dev/null \
+  || fail "TWIN_REDEPLOY_EVIDENCE_INVALID"
 
 db_rows_after_redeploy="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   morro_analytics   -e "SELECT COUNT(*) FROM analytics_events WHERE event_id='${event_id}';")"
 [[ "$db_rows_after_redeploy" == "1" ]] || fail "TWIN_REDEPLOY_DATABASE_READBACK_INVALID"
 
-jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg imageRepository "$IMAGE_REPOSITORY"   --arg imageDigest "$image_digest"   --arg imageRunId "$image_run_id"   --arg drRunId "$dr_run_id"   --arg drEncryptedSha "$actual_encrypted_sha"   --arg drPlainSha "$actual_plain_sha"   --arg mysqlImage "$MYSQL_IMAGE"   --arg eventId "$event_id"   --argjson runtimePredeploy "$(cat "$work_root/runtime-predeploy.json")"   --argjson paymentsPredeploy "$(cat "$work_root/payments-predeploy.json")"   '{
+jq -n \
+  --arg expectedSha "$expected_sha" \
+  --arg treeSha "$tree_sha" \
+  --arg candidateRunId "$candidate_run_id" \
+  --arg candidateArtifactDigest "$candidate_artifact_digest" \
+  --arg lockfileDigest "$lockfile_digest" \
+  --arg imageRepository "$IMAGE_REPOSITORY" \
+  --arg imageDigest "$image_digest" \
+  --arg imageRunId "$image_run_id" \
+  --arg drRunId "$dr_run_id"   --arg drEncryptedSha "$actual_encrypted_sha"   --arg drPlainSha "$actual_plain_sha"   --arg mysqlImage "$MYSQL_IMAGE"   --arg eventId "$event_id"   --argjson runtimePredeploy "$(cat "$work_root/runtime-predeploy.json")"   --argjson paymentsPredeploy "$(cat "$work_root/payments-predeploy.json")"   '{
     contract:"MORRO-PRODUCTION-TWIN-CERTIFICATION",
     contractVersion:1,
     status:"pass",
