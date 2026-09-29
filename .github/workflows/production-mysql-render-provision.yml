@@ -11,6 +11,8 @@ on:
         description: Type PROVISION to authorize creation or reconciliation of the production MySQL private service
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -30,7 +32,14 @@ env:
 jobs:
   provision:
     name: production mysql / provision
-    if: github.ref == 'refs/heads/main' && inputs.confirm_provision == 'PROVISION'
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main' &&
+       inputs.confirm_provision == 'PROVISION') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.actor == github.repository_owner &&
+       startsWith(github.event.comment.body, '/run-production-mysql-provision '))
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment:
@@ -38,13 +47,38 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.expected_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha || github.sha }}
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Resolve exact owner-authorized invocation
+        id: invocation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.expected_sha }}
+          INPUT_CONFIRM: ${{ inputs.confirm_provision }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            expected_sha="$INPUT_SHA"
+            confirm="$INPUT_CONFIRM"
+          else
+            read -r command expected_sha confirm extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-production-mysql-provision"
+            test -z "${extra:-}"
+          fi
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$confirm" = "PROVISION"
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$expected_sha"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+
       - name: Prove exact source identity
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -87,7 +121,7 @@ jobs:
       - name: Provision or reconcile private MySQL service
         id: provision
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
         shell: bash
         run: |
