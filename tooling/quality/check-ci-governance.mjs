@@ -421,6 +421,8 @@ requireIncludes(
     "image_digest:",
     "image_run_id:",
     "confirm_deploy:",
+    "MORRO_RELEASE_IMAGE_RUN_ID",
+    "live_image_run_id",
     "imgURL=",
     "payments:render:smoke",
   ]);
