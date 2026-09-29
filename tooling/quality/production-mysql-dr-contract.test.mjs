@@ -160,7 +160,10 @@ test("DR failure telemetry distinguishes handled and unhandled failures", () => 
     .filter(Boolean);
   assert.equal(handledLines.length, 1);
   const handledEvent = JSON.parse(handledLines[0]);
-  assert.equal(handledEvent.contract, "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF");
+  assert.equal(
+    handledEvent.contract,
+    "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF",
+  );
   assert.equal(handledEvent.status, "fail");
   assert.equal(handledEvent.code, "MISSING_DR_TOOL_SHA");
   assert.equal(handledEvent.stage, "startup");
@@ -184,7 +187,10 @@ test("DR failure telemetry distinguishes handled and unhandled failures", () => 
     .filter(Boolean);
   assert.equal(unhandledLines.length, 1);
   const unhandledEvent = JSON.parse(unhandledLines[0]);
-  assert.equal(unhandledEvent.contract, "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF");
+  assert.equal(
+    unhandledEvent.contract,
+    "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF",
+  );
   assert.equal(unhandledEvent.status, "fail");
   assert.equal(unhandledEvent.code, "UNHANDLED_COMMAND_FAILURE");
   assert.equal(unhandledEvent.stage, "test-unhandled");
