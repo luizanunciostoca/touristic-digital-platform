@@ -153,6 +153,11 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "github-actions-production-mysql-dr-key-v1",
     ".restore.leastPrivilegeReadback == true",
     ".restore.crossDomainDenied == 156",
+    "initial_deploy_id",
+    "Render DR deploy trigger failed with HTTP",
+    "dr-existing-services.json",
+    '(.name | startswith($prefix))',
+    'cleanup_name="${DR_SERVICE_NAME:-$DR_SERVICE_PREFIX$GITHUB_RUN_ID}"',
     'test "$dr_service_id" != "$MYSQL_SERVICE_ID"',
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
   ]) {
@@ -161,6 +166,16 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
       `missing DR workflow contract: ${required}`,
     );
   }
+
+  const serviceOutputIndex = source.indexOf(
+    'echo "dr_service_id=$dr_service_id" >> "$GITHUB_OUTPUT"',
+  );
+  const deploySelectionIndex = source.indexOf(
+    'if [ -n "$initial_deploy_id" ]; then',
+  );
+  assert.ok(serviceOutputIndex >= 0);
+  assert.ok(deploySelectionIndex > serviceOutputIndex);
+  assert.match(source, /case "\$http_status" in[\s\S]*201\)[\s\S]*202\)/u);
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
