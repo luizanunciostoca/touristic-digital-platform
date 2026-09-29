@@ -129,31 +129,28 @@ test("only explicit release control planes dispatch nested workflows", async () 
   );
 });
 
-test(
-  "production and acceptance staging promotion bind the exact OCI image run",
-  async () => {
-    const workflows = await workflowSources();
-    const acceptance = workflows.get("final-release-acceptance.yml");
-    const production = workflows.get("production-oci-promotion.yml");
-    const staging = workflows.get("staging-oci-promotion.yml");
+test("production and acceptance staging promotion bind the exact OCI image run", async () => {
+  const workflows = await workflowSources();
+  const acceptance = workflows.get("final-release-acceptance.yml");
+  const production = workflows.get("production-oci-promotion.yml");
+  const staging = workflows.get("staging-oci-promotion.yml");
 
-    assert.ok(acceptance.includes('-f image_run_id="$IMAGE_RUN_ID"'));
-    assert.ok(acceptance.includes(".image_run_id == $run"));
-    assert.ok(production.includes('-f image_run_id="$image_run_id"'));
-    assert.ok(staging.includes("image_run_id:"));
-    assert.ok(staging.includes('actions/runs/$IMAGE_RUN_ID'));
-    assert.ok(staging.includes(".image_run_id == $run"));
-    assert.ok(
-      staging.includes("EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}"),
-    );
-    assert.ok(staging.includes("MORRO_RELEASE_IMAGE_RUN_ID"));
-    assert.ok(staging.includes("live_image_run_id=$image_run_id"));
-    assert.ok(staging.includes(".image == $image"));
-    assert.ok(
-      staging.includes('.path == ".github/workflows/release-oci-image.yml"'),
-    );
-  },
-);
+  assert.ok(acceptance.includes('-f image_run_id="$IMAGE_RUN_ID"'));
+  assert.ok(acceptance.includes(".image_run_id == $run"));
+  assert.ok(production.includes('-f image_run_id="$image_run_id"'));
+  assert.ok(staging.includes("image_run_id:"));
+  assert.ok(staging.includes("actions/runs/$IMAGE_RUN_ID"));
+  assert.ok(staging.includes(".image_run_id == $run"));
+  assert.ok(
+    staging.includes("EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}"),
+  );
+  assert.ok(staging.includes("MORRO_RELEASE_IMAGE_RUN_ID"));
+  assert.ok(staging.includes("live_image_run_id=$image_run_id"));
+  assert.ok(staging.includes(".image == $image"));
+  assert.ok(
+    staging.includes('.path == ".github/workflows/release-oci-image.yml"'),
+  );
+});
 
 test("production cutover resolves nested DR evidence artifacts deterministically", async () => {
   const workflows = await workflowSources();
@@ -337,7 +334,7 @@ test("staging OCI promotion is bound to the same canonical Render service", asyn
     "request_id:",
     "default: manual",
     "image_run_id:",
-    'actions/runs/$IMAGE_RUN_ID',
+    "actions/runs/$IMAGE_RUN_ID",
   ]) {
     assert.ok(
       stagingOci.includes(marker),
@@ -422,34 +419,32 @@ test("Final Release Acceptance binds staging evidence to the exact dispatch requ
   assert.ok(acceptance.includes("timeout-minutes: 150"));
 });
 
-test(
-  "Final Release Acceptance ignores a stale same-SHA staging run until the correlated dispatch is indexed",
-  async () => {
-    const source = await readFile(
-      resolve(workflowsDir, "final-release-acceptance.yml"),
-      "utf8",
-    );
-    const script = source
-      .split("- name: Dispatch exact-SHA staging promotion")[1]
-      .split("run: |\n")[1]
-      .split("\n      - name: Wait for exact-SHA staging promotion")[0]
-      .replace(/^          /gm, "");
-    const fixture = await mkdtemp(join(tmpdir(), "morro-staging-run-binding-"));
-    const output = join(fixture, "github-output");
-    const calls = join(fixture, "run-list-calls");
-    const dispatchArgs = join(fixture, "dispatch-args");
-    const sha = "1234567890abcdef1234567890abcdef12345678";
-    const digest = `sha256:${"d".repeat(64)}`;
+test("Final Release Acceptance ignores a stale same-SHA staging run until the correlated dispatch is indexed", async () => {
+  const source = await readFile(
+    resolve(workflowsDir, "final-release-acceptance.yml"),
+    "utf8",
+  );
+  const script = source
+    .split("- name: Dispatch exact-SHA staging promotion")[1]
+    .split("run: |\n")[1]
+    .split("\n      - name: Wait for exact-SHA staging promotion")[0]
+    .replace(/^          /gm, "");
+  const fixture = await mkdtemp(join(tmpdir(), "morro-staging-run-binding-"));
+  const output = join(fixture, "github-output");
+  const calls = join(fixture, "run-list-calls");
+  const dispatchArgs = join(fixture, "dispatch-args");
+  const sha = "1234567890abcdef1234567890abcdef12345678";
+  const digest = `sha256:${"d".repeat(64)}`;
 
-    try {
-      await writeFile(output, "");
-      execFileSync(
-        "bash",
-        [
-          "-euo",
-          "pipefail",
-          "-c",
-          `
+  try {
+    await writeFile(output, "");
+    execFileSync(
+      "bash",
+      [
+        "-euo",
+        "pipefail",
+        "-c",
+        `
 gh() {
   if [ "$1 $2" = "workflow run" ]; then
     printf "%s\\n" "$*" > "$DISPATCH_ARGS"
@@ -479,40 +474,39 @@ gh() {
 sleep() { :; }
 ${script}
           `,
-        ],
-        {
-          env: {
-            ...process.env,
-            CANDIDATE_REF: `rc/${sha}`,
-            DISPATCH_ARGS: dispatchArgs,
-            GITHUB_OUTPUT: output,
-            GITHUB_RUN_ATTEMPT: "2",
-            GITHUB_RUN_ID: "900",
-            GITHUB_SHA: sha,
-            IMAGE_DIGEST: digest,
-            IMAGE_RUN_ID: "424242",
-            RUN_LIST_CALLS: calls,
-          },
-          stdio: "pipe",
+      ],
+      {
+        env: {
+          ...process.env,
+          CANDIDATE_REF: `rc/${sha}`,
+          DISPATCH_ARGS: dispatchArgs,
+          GITHUB_OUTPUT: output,
+          GITHUB_RUN_ATTEMPT: "2",
+          GITHUB_RUN_ID: "900",
+          GITHUB_SHA: sha,
+          IMAGE_DIGEST: digest,
+          IMAGE_RUN_ID: "424242",
+          RUN_LIST_CALLS: calls,
         },
-      );
+        stdio: "pipe",
+      },
+    );
 
-      const result = await readFile(output, "utf8");
-      assert.match(result, /^request_id=final-acceptance-900-2$/m);
-      assert.match(result, /^run_id=222$/m);
-      assert.match(result, new RegExp(`^image_digest=${digest}$`, "m"));
-      assert.equal(await readFile(calls, "utf8"), "3");
-      const args = await readFile(dispatchArgs, "utf8");
-      assert.match(args, /staging-oci-promotion\.yml/);
-      assert.match(args, /-f request_id=final-acceptance-900-2/);
-      assert.match(args, /-f image_digest=sha256:/);
-      assert.match(args, /-f image_run_id=424242/);
-      assert.doesNotMatch(result, /^run_id=111$/m);
-    } finally {
-      await rm(fixture, { recursive: true, force: true });
-    }
-  },
-);
+    const result = await readFile(output, "utf8");
+    assert.match(result, /^request_id=final-acceptance-900-2$/m);
+    assert.match(result, /^run_id=222$/m);
+    assert.match(result, new RegExp(`^image_digest=${digest}$`, "m"));
+    assert.equal(await readFile(calls, "utf8"), "3");
+    const args = await readFile(dispatchArgs, "utf8");
+    assert.match(args, /staging-oci-promotion\.yml/);
+    assert.match(args, /-f request_id=final-acceptance-900-2/);
+    assert.match(args, /-f image_digest=sha256:/);
+    assert.match(args, /-f image_run_id=424242/);
+    assert.doesNotMatch(result, /^run_id=111$/m);
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
+  }
+});
 
 test("active workflows cannot resurrect legacy staging targets or generic Render deploy secrets", async () => {
   const workflows = await workflowSources();
