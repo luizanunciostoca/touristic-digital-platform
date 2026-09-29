@@ -6,7 +6,7 @@ import test from "node:test";
 import {
   canonicalProductionDomains,
   canonicalProductionScopePolicy,
-} from "./production-database-predeploy.mjs";
+} from "../../apps/morro-digital-platform/tooling/production-database-predeploy.mjs";
 
 const manifestPath =
   "tooling/render/mysql-production-dr/canonical-manifest.tsv";

@@ -32,7 +32,7 @@
       "tooling/render/mysql-production-dr/Dockerfile",
       "tooling/render/mysql-production-dr/canonical-manifest.tsv",
       "tooling/render/mysql-production-dr/dr-proof.sh",
-      "apps/morro-digital-platform/tooling/production-mysql-dr-contract.test.mjs",
+      "tooling/quality/production-mysql-dr-contract.test.mjs",
       "docs/operations/PRODUCTION-MYSQL-BACKUP-RESTORE-DR.md"
     ],
     "contracts": [
