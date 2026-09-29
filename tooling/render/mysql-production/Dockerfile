@@ -29,4 +29,9 @@ RUN mysqld --verbose --help >/dev/null
 COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh
 COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback
 COPY tooling/render/mysql-production/runtime-users.sh /usr/local/bin/morro-mysql-runtime-users
-RUN chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh /usr/local/bin/morro-mysql-readback /usr/local/bin/morro-mysql-runtime-users
+COPY tooling/render/mysql-production/runtime-users-entrypoint.sh /usr/local/bin/morro-mysql-entrypoint
+RUN sh -n /usr/local/bin/morro-mysql-runtime-users && \
+    sh -n /usr/local/bin/morro-mysql-entrypoint && \
+    chmod 0555 /docker-entrypoint-initdb.d/01-init-databases.sh /usr/local/bin/morro-mysql-readback /usr/local/bin/morro-mysql-runtime-users /usr/local/bin/morro-mysql-entrypoint
+
+ENTRYPOINT ["/usr/local/bin/morro-mysql-entrypoint"]
