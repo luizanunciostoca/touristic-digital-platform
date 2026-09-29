@@ -94,7 +94,11 @@ jobs:
             --arg sha "$EXPECTED_SHA" \
             --arg tree "$expected_tree" \
             --arg digest "$IMAGE_DIGEST" \
-            '.source_sha == $sha and .tree_sha == $tree and .digest == $digest' \
+            --arg run "$IMAGE_RUN_ID" \
+            '.source_sha == $sha and
+             .tree_sha == $tree and
+             .digest == $digest and
+             .image_run_id == $run' \
             /tmp/release-provenance/release-provenance.json >/dev/null
           echo "PASS: immutable image $IMAGE_REPOSITORY@$IMAGE_DIGEST from exact run $IMAGE_RUN_ID"
 
@@ -164,8 +168,10 @@ jobs:
           echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
 
       - name: Wait for exact-SHA runtime identity
+        id: runtime
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}
           MORRO_V2_BASE_URL: ${{ env.TARGET_URL }}
         shell: bash
         run: |
@@ -174,8 +180,10 @@ jobs:
           for _ in $(seq 1 120); do
             if output="$(pnpm --silent payments:render:smoke 2>&1)"; then
               release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
-              if [ "$release_sha" = "$EXPECTED_SHA" ]; then
+              image_run_id="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.imageRunId // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$EXPECTED_SHA" ] && [ "$image_run_id" = "$EXPECTED_IMAGE_RUN_ID" ]; then
                 printf '%s\n' "$output"
+                echo "live_image_run_id=$image_run_id" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
               last_output="$output"
@@ -192,6 +200,8 @@ jobs:
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
+          IMAGE_RUN_ID: ${{ inputs.image_run_id }}
+          LIVE_IMAGE_RUN_ID: ${{ steps.runtime.outputs.live_image_run_id }}
           DEPLOY_ID: ${{ steps.render.outputs.deploy_id }}
         shell: bash
         run: |
@@ -200,6 +210,8 @@ jobs:
             echo "expected_sha=$EXPECTED_SHA"
             echo "image=$IMAGE_REPOSITORY"
             echo "digest=$IMAGE_DIGEST"
+            echo "image_run_id=$IMAGE_RUN_ID"
+            echo "live_image_run_id=${LIVE_IMAGE_RUN_ID:-unknown}"
             echo "render_deploy_id=${DEPLOY_ID:-unknown}"
             echo "target_url=$TARGET_URL"
           } > oci-deployment-evidence.txt
