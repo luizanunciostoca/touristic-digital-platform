@@ -20,6 +20,39 @@ function manifestRows() {
   return lines.map((line) => line.split("\t"));
 }
 
+function workflowRunBlock(stepName) {
+  const lines = readFileSync(workflowPath, "utf8").split(/\r?\n/u);
+  const stepMarker = `      - name: ${stepName}`;
+  const stepStart = lines.indexOf(stepMarker);
+  assert.ok(stepStart >= 0, `missing workflow step: ${stepName}`);
+
+  const nextStep = lines.findIndex(
+    (line, index) => index > stepStart && line.startsWith("      - "),
+  );
+  const stepEnd = nextStep >= 0 ? nextStep : lines.length;
+  const runStart = lines.findIndex(
+    (line, index) =>
+      index > stepStart && index < stepEnd && line === "        run: |",
+  );
+  assert.ok(runStart >= 0, `missing run block: ${stepName}`);
+
+  return (
+    lines
+      .slice(runStart + 1, stepEnd)
+      .map((line) => {
+        if (line === "") {
+          return "";
+        }
+        assert.ok(
+          line.startsWith("          "),
+          `unexpected run indentation in ${stepName}: ${line}`,
+        );
+        return line.slice(10);
+      })
+      .join("\n") + "\n"
+  );
+}
+
 test("DR canonical manifest exactly matches production bootstrap authority", () => {
   const actual = manifestRows();
   const authority = readFileSync(authorityPath, "utf8");
@@ -139,6 +172,19 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   assert.match(source, /CMD \["bash", "-lc", "sleep infinity"\]/u);
 });
 
+test("modified DR workflow run blocks are syntactically valid", () => {
+  for (const stepName of [
+    "Prove source identity, no cutover, and provision isolated DR worker",
+    "Cleanup isolated DR resources",
+  ]) {
+    const syntax = spawnSync("bash", ["-n"], {
+      input: workflowRunBlock(stepName),
+      encoding: "utf8",
+    });
+    assert.equal(syntax.status, 0, `${stepName}: ${syntax.stderr}`);
+  }
+});
+
 test("DR workflow never delegates GitHub credentials or deletes the source service", () => {
   const source = readFileSync(workflowPath, "utf8");
 
@@ -153,6 +199,11 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "github-actions-production-mysql-dr-key-v1",
     ".restore.leastPrivilegeReadback == true",
     ".restore.crossDomainDenied == 156",
+    "initial_deploy_id",
+    "Render DR deploy trigger failed with HTTP",
+    "dr-existing-services.json",
+    "(.name | startswith($prefix))",
+    'cleanup_name="${DR_SERVICE_NAME:-$DR_SERVICE_PREFIX$GITHUB_RUN_ID}"',
     'test "$dr_service_id" != "$MYSQL_SERVICE_ID"',
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
   ]) {
@@ -161,6 +212,16 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
       `missing DR workflow contract: ${required}`,
     );
   }
+
+  const serviceOutputIndex = source.indexOf(
+    'echo "dr_service_id=$dr_service_id" >> "$GITHUB_OUTPUT"',
+  );
+  const deploySelectionIndex = source.indexOf(
+    'if [ -n "$initial_deploy_id" ]; then',
+  );
+  assert.ok(serviceOutputIndex >= 0);
+  assert.ok(deploySelectionIndex > serviceOutputIndex);
+  assert.match(source, /case "\$http_status" in[\s\S]*201\)[\s\S]*202\)/u);
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);

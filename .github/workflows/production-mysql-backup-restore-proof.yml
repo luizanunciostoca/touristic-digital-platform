@@ -123,13 +123,74 @@ jobs:
           dr_deploy_id=""
 
           cleanup_files() {
-            rm -f               /tmp/mysql-source.json               /tmp/mysql-deploys.json               /tmp/app-services.json               /tmp/app-service.json               /tmp/env-value.json               /tmp/dr-env.json               /tmp/dr-create.json               /tmp/dr-create-response.json               /tmp/dr-deploy-request.json               /tmp/dr-deploys.json
+            rm -f               /tmp/mysql-source.json               /tmp/mysql-deploys.json               /tmp/app-services.json               /tmp/app-service.json               /tmp/env-value.json               /tmp/dr-env.json               /tmp/dr-create.json               /tmp/dr-create-response.json               /tmp/dr-deploy-request.json               /tmp/dr-deploys.json               /tmp/dr-deploy-state.json               /tmp/dr-existing-services.json               /tmp/dr-stale-services.tsv               /tmp/dr-delete-response.json
           }
           trap cleanup_files EXIT
 
           api_get() {
             curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$1"
           }
+
+          delete_dr_service() {
+            local service_id="$1"
+            local service_name="$2"
+            test -n "$service_id"
+            test "$service_id" != "$MYSQL_SERVICE_ID"
+            case "$service_name" in
+              "$DR_SERVICE_PREFIX"*) ;;
+              *) echo "Refusing DR cleanup for unexpected service $service_name" >&2; exit 1 ;;
+            esac
+            http_status="$(curl --silent --show-error               --output /tmp/dr-delete-response.json               --write-out '%{http_code}'               --request DELETE               --header "$auth"               --header "Accept: application/json"               "$api/services/$service_id")"
+            case "$http_status" in
+              204|404) ;;
+              *)
+                cat /tmp/dr-delete-response.json >&2 || true
+                exit 1
+                ;;
+            esac
+          }
+
+          wait_deploy() {
+            local service_id="$1"
+            local deploy_id="$2"
+            local status=""
+            for _ in $(seq 1 180); do
+              if ! api_get "$api/services/$service_id/deploys/$deploy_id" > /tmp/dr-deploy-state.json; then
+                sleep 5
+                continue
+              fi
+              status="$(jq -r '.status // empty' /tmp/dr-deploy-state.json)"
+              case "$status" in
+                live) break ;;
+                build_failed|update_failed|pre_deploy_failed|canceled)
+                  cat /tmp/dr-deploy-state.json >&2 || true
+                  exit 1
+                  ;;
+                *) sleep 5 ;;
+              esac
+            done
+            test "$status" = "live"
+            jq -e --arg sha "$TOOL_SHA" '.status == "live" and .commit.id == $sha' /tmp/dr-deploy-state.json >/dev/null
+          }
+
+          api_get "$api/services?limit=100" > /tmp/dr-existing-services.json
+          jq -r \
+            --arg owner "$RENDER_WORKSPACE_ID" \
+            --arg prefix "$DR_SERVICE_PREFIX" \
+            '.[] | (.service // .) |
+             select(
+               .ownerId == $owner and
+               .type == "background_worker" and
+               (.name | startswith($prefix)) and
+               ((.serviceDetails.disk // null) == null)
+             ) |
+             [.id,.name] | @tsv' \
+            /tmp/dr-existing-services.json > /tmp/dr-stale-services.tsv
+
+          while IFS=$'\t' read -r stale_id stale_name; do
+            [ -n "$stale_id" ] || continue
+            delete_dr_service "$stale_id" "$stale_name"
+          done < /tmp/dr-stale-services.tsv
 
           api_get "$api/services/$MYSQL_SERVICE_ID" > /tmp/mysql-source.json
           jq -e             --arg id "$MYSQL_SERVICE_ID"             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$MYSQL_SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == $id and
@@ -233,39 +294,74 @@ jobs:
           test "$http_status" = "201"
 
           dr_service_id="$(jq -r '.service.id // .id // empty' /tmp/dr-create-response.json)"
+          initial_deploy_id="$(jq -r '.deployId // empty' /tmp/dr-create-response.json)"
           test -n "$dr_service_id"
           test "$dr_service_id" != "$MYSQL_SERVICE_ID"
           test "$dr_service_name" != "$MYSQL_SERVICE_NAME"
 
-          jq -n --arg sha "$TOOL_SHA"             '{commitId:$sha,clearCache:"do_not_clear"}' > /tmp/dr-deploy-request.json
-          http_status="$(curl --silent --show-error             --output /tmp/dr-deploys.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/dr-deploy-request.json             "$api/services/$dr_service_id/deploys")"
-          test "$http_status" = "201"
-          dr_deploy_id="$(jq -r '.id // empty' /tmp/dr-deploys.json)"
-          test -n "$dr_deploy_id"
-
-          status=""
-          for _ in $(seq 1 180); do
-            if ! api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json; then
-              sleep 5
-              continue
-            fi
-            status="$(jq -r --arg id "$dr_deploy_id"               '[.[] | (.deploy // .) | select(.id == $id)][0].status // empty'               /tmp/dr-deploys.json)"
-            case "$status" in
-              live) break ;;
-              build_failed|update_failed|pre_deploy_failed|canceled)
-                exit 1
-                ;;
-              *) sleep 5 ;;
-            esac
-          done
-          test "$status" = "live"
-          jq -e --arg id "$dr_deploy_id" --arg sha "$TOOL_SHA"             'any(.[] | (.deploy // .);
-              .id == $id and .status == "live" and .commit.id == $sha)'             /tmp/dr-deploys.json >/dev/null
-
           echo "dr_service_id=$dr_service_id" >> "$GITHUB_OUTPUT"
           echo "dr_service_name=$dr_service_name" >> "$GITHUB_OUTPUT"
-          echo "dr_deploy_id=$dr_deploy_id" >> "$GITHUB_OUTPUT"
           echo "app_service_id=$app_service_id" >> "$GITHUB_OUTPUT"
+
+          if [ -n "$initial_deploy_id" ]; then
+            dr_deploy_id="$initial_deploy_id"
+          else
+            for _ in $(seq 1 12); do
+              if api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json; then
+                dr_deploy_id="$(jq -r --arg sha "$TOOL_SHA"                   '[.[] | (.deploy // .) |
+                    select(.commit.id == $sha and
+                      (.status == "created" or
+                       .status == "queued" or
+                       .status == "build_in_progress" or
+                       .status == "update_in_progress" or
+                       .status == "pre_deploy_in_progress" or
+                       .status == "live"))]
+                    | sort_by(.createdAt)
+                    | first
+                    | .id // empty'                   /tmp/dr-deploys.json)"
+              fi
+              [ -n "$dr_deploy_id" ] && break
+              sleep 5
+            done
+
+            if [ -z "$dr_deploy_id" ]; then
+              jq -n --arg sha "$TOOL_SHA"                 '{commitId:$sha,clearCache:"do_not_clear",deployMode:"build_and_deploy"}'                 > /tmp/dr-deploy-request.json
+              http_status="$(curl --silent --show-error                 --output /tmp/dr-deploy-state.json                 --write-out '%{http_code}'                 --request POST                 --header "$auth"                 --header "Accept: application/json"                 --header "Content-Type: application/json"                 --data-binary @/tmp/dr-deploy-request.json                 "$api/services/$dr_service_id/deploys")"
+              case "$http_status" in
+                201)
+                  dr_deploy_id="$(jq -r '.id // .deploy.id // empty' /tmp/dr-deploy-state.json)"
+                  ;;
+                202)
+                  dr_deploy_id=""
+                  ;;
+                *)
+                  cat /tmp/dr-deploy-state.json >&2 || true
+                  echo "Render DR deploy trigger failed with HTTP $http_status" >&2
+                  exit 1
+                  ;;
+              esac
+
+              if [ -z "$dr_deploy_id" ]; then
+                sleep 5
+                api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json
+                dr_deploy_id="$(jq -r --arg sha "$TOOL_SHA"                   '[.[] | (.deploy // .) |
+                    select(.commit.id == $sha and
+                      (.status == "created" or
+                       .status == "queued" or
+                       .status == "build_in_progress" or
+                       .status == "update_in_progress" or
+                       .status == "pre_deploy_in_progress" or
+                       .status == "live"))]
+                    | sort_by(.createdAt)
+                    | last
+                    | .id // empty'                   /tmp/dr-deploys.json)"
+              fi
+            fi
+          fi
+
+          test -n "$dr_deploy_id"
+          echo "dr_deploy_id=$dr_deploy_id" >> "$GITHUB_OUTPUT"
+          wait_deploy "$dr_service_id" "$dr_deploy_id"
 
       - name: Execute isolated logical backup and restore drill
         id: drill
@@ -450,18 +546,28 @@ jobs:
 
           rm -f             /tmp/dr-encryption-secret             /tmp/production-mysql-backup.sql.gz.enc             /tmp/dr-worker-evidence.json             /tmp/dr-chunks.json             /tmp/dr-job*.json
 
-          if [ -z "${DR_SERVICE_ID:-}" ]; then
+          cleanup_name="${DR_SERVICE_NAME:-$DR_SERVICE_PREFIX$GITHUB_RUN_ID}"
+          cleanup_id="${DR_SERVICE_ID:-}"
+
+          if [ -z "$cleanup_id" ]; then
+            http_status="$(curl --silent --show-error               --output /tmp/dr-existing-services.json               --write-out '%{http_code}'               --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"               --header "Accept: application/json"               "https://api.render.com/v1/services?name=$cleanup_name&limit=20")"
+            test "$http_status" = "200"
+            cleanup_id="$(jq -r               --arg owner "$RENDER_WORKSPACE_ID"               --arg name "$cleanup_name"               '[.[] | (.service // .) |
+                 select(.ownerId == $owner and .name == $name and .type == "background_worker")][0].id // empty'               /tmp/dr-existing-services.json)"
+          fi
+
+          if [ -z "$cleanup_id" ]; then
             exit 0
           fi
 
-          test "$DR_SERVICE_ID" != "$MYSQL_SERVICE_ID"
-          test "${DR_SERVICE_NAME:-}" != "$MYSQL_SERVICE_NAME"
-          case "${DR_SERVICE_NAME:-}" in
+          test "$cleanup_id" != "$MYSQL_SERVICE_ID"
+          test "$cleanup_name" != "$MYSQL_SERVICE_NAME"
+          case "$cleanup_name" in
             "$DR_SERVICE_PREFIX"*) ;;
             *) echo "Refusing cleanup for non-DR service" >&2; exit 1 ;;
           esac
 
-          http_status="$(curl --silent --show-error             --output /tmp/dr-delete-response.json             --write-out '%{http_code}'             --request DELETE             --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"             --header "Accept: application/json"             "https://api.render.com/v1/services/$DR_SERVICE_ID")"
+          http_status="$(curl --silent --show-error             --output /tmp/dr-delete-response.json             --write-out '%{http_code}'             --request DELETE             --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"             --header "Accept: application/json"             "https://api.render.com/v1/services/$cleanup_id")"
           case "$http_status" in
             204|404) ;;
             *)
@@ -469,4 +575,4 @@ jobs:
               exit 1
               ;;
           esac
-          rm -f /tmp/dr-delete-response.json
+          rm -f /tmp/dr-delete-response.json /tmp/dr-existing-services.json
