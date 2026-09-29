@@ -368,7 +368,7 @@ services:
     branch: main
     autoDeploy: false
     buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
-    preDeployCommand: env MORRO_DATABASE_SCHEMA_MODE=external node apps/morro-digital-platform/tooling/payments-migrate.mjs
+    preDeployCommand: 'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs'
     startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs
     healthCheckPath: /readyz
     maxShutdownDelaySeconds: 30
@@ -377,6 +377,8 @@ services:
         value: production
       - key: HOST
         value: 0.0.0.0
+      - key: MORRO_DATABASE_SCHEMA_MODE
+        value: external
 
       # Production Auth boundary used by Payments authenticated authority.
       - key: DASHBOARD_AUTH_SECRET
