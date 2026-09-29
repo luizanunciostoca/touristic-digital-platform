@@ -257,7 +257,7 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
     "seq",
     "sleep",
   ];
-  const dockerCommands = /for command_name in ([^;]+); do command -v "\\$command_name"; done;/u.exec(
+  const dockerCommands = /for command_name in ([^;]+); do command -v "\$command_name"; done;/u.exec(
     source,
   );
   assert.ok(dockerCommands);
@@ -268,9 +268,9 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   );
   assert.ok(executorCommands);
 
-  assert.deepEqual(dockerCommands[1].trim().split(/\\s+/u), expectedCommands);
+  assert.deepEqual(dockerCommands[1].trim().split(/\s+/u), expectedCommands);
   assert.deepEqual(
-    executorCommands[1].trim().split(/\\s+/u),
+    executorCommands[1].trim().split(/\s+/u),
     expectedCommands,
   );
   assert.match(
