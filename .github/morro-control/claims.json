@@ -32,6 +32,7 @@
         "tooling/quality/check-release-readiness.mjs",
         ".github/workflows/production-mysql-backup-restore-proof.yml",
         ".github/workflows/production-oci-promotion.yml",
+        "tooling/render/production-application-cutover.mjs",
         "tooling/render/mysql-production-dr/Dockerfile",
         "tooling/render/mysql-production-dr/canonical-manifest.tsv",
         "tooling/render/mysql-production-dr/dr-proof.sh",
