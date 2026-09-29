@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 const analyticsHttpPath = "/api/analytics/v1/events";
 const analyticsRuntimePackage = "@touristic/analytics-server";
 const maxBodyBytes = 16 * 1024;
@@ -191,7 +192,9 @@ export function createAnalyticsApi({
       const days = retentionDays(configuredRetentionDays);
       const runtime = await loadRuntime();
       pool = runtime.createAnalyticsMySqlPool(databaseUrl);
-      await runtime.applyAnalyticsSchema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await runtime.applyAnalyticsSchema(pool);
+      }
       transport = runtime.createAnalyticsHttpTransport({
         pool,
         retentionDays: days,
