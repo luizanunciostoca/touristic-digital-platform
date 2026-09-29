@@ -1,4 +1,5 @@
 name: Staging OCI Promotion
+run-name: "staging-oci-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}:${{ inputs.image_digest }}"
 
 on:
   workflow_dispatch:
@@ -10,6 +11,11 @@ on:
       image_digest:
         description: Immutable sha256 digest produced by Release OCI Image
         required: true
+        type: string
+      request_id:
+        description: Correlation identifier used to bind the caller to this exact workflow run
+        required: false
+        default: manual
         type: string
       confirm_deploy:
         description: Type DEPLOY to authorize this deployment
@@ -91,7 +97,7 @@ jobs:
 
   deploy:
     needs: preflight
-    if: github.ref == 'refs/heads/main' && inputs.confirm_deploy == 'DEPLOY'
+    if: (github.ref == 'refs/heads/main' || github.ref == format('refs/tags/rc/{0}', inputs.expected_sha)) && inputs.confirm_deploy == 'DEPLOY'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment:

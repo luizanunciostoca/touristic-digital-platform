@@ -282,27 +282,106 @@ jobs:
             sleep 10
           done
 
+      - name: Resolve or build exact-SHA OCI image
+        id: release-image
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CURRENT_TREE: ${{ steps.tree-source.outputs.current_tree }}
+        run: |
+          set -euo pipefail
+          image_repository="ghcr.io/$GITHUB_REPOSITORY_OWNER/morro-digital-v2"
+          run_id="$(
+            gh run list \
+              --workflow release-oci-image.yml \
+              --commit "$GITHUB_SHA" \
+              --status success \
+              --limit 30 \
+              --json databaseId,headSha \
+            | jq -r --arg sha "$GITHUB_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+          )"
+
+          if [ -z "$run_id" ]; then
+            before="$(
+              gh run list \
+                --workflow release-oci-image.yml \
+                --limit 30 \
+                --json databaseId \
+              | jq '[.[].databaseId] | max // 0'
+            )"
+
+            gh workflow run release-oci-image.yml \
+              --ref "$CANDIDATE_REF" \
+              -f expected_sha="$GITHUB_SHA"
+
+            for _ in $(seq 1 90); do
+              run_id="$(
+                gh run list \
+                  --workflow release-oci-image.yml \
+                  --event workflow_dispatch \
+                  --branch "$CANDIDATE_REF" \
+                  --commit "$GITHUB_SHA" \
+                  --limit 30 \
+                  --json databaseId,headSha \
+                | jq -r \
+                    --arg sha "$GITHUB_SHA" \
+                    --argjson before "$before" \
+                    '[.[] | select(.headSha == $sha and .databaseId > $before)] | sort_by(.databaseId) | .[0].databaseId // empty'
+              )"
+              [ -n "$run_id" ] && break
+              sleep 2
+            done
+
+            test -n "$run_id"
+            gh run watch "$run_id" --exit-status --interval 10
+          fi
+
+          rm -rf /tmp/final-acceptance-release-provenance
+          mkdir -p /tmp/final-acceptance-release-provenance
+          gh run download "$run_id" \
+            --name "release-provenance-$GITHUB_SHA" \
+            --dir /tmp/final-acceptance-release-provenance
+
+          provenance=/tmp/final-acceptance-release-provenance/release-provenance.json
+          test -s "$provenance"
+          image_digest="$(jq -r '.digest // empty' "$provenance")"
+          [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          jq -e \
+            --arg sha "$GITHUB_SHA" \
+            --arg tree "$CURRENT_TREE" \
+            --arg image "$image_repository" \
+            --arg digest "$image_digest" \
+            '.source_sha == $sha and .tree_sha == $tree and .image == $image and .digest == $digest' \
+            "$provenance" >/dev/null
+
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
+          echo "Exact OCI provenance PASS: run=$run_id digest=$image_digest"
+
       - name: Dispatch exact-SHA staging promotion
         id: staging-promotion
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          IMAGE_DIGEST: ${{ steps.release-image.outputs.image_digest }}
         run: |
           set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
           request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
-          expected_title="staging-render-promotion:$request_id:$GITHUB_SHA"
+          expected_title="staging-oci-promotion:$request_id:$GITHUB_SHA:$IMAGE_DIGEST"
 
-          gh workflow run staging-render-promotion.yml \
+          gh workflow run staging-oci-promotion.yml \
             --ref "$CANDIDATE_REF" \
             -f expected_sha="$GITHUB_SHA" \
+            -f image_digest="$IMAGE_DIGEST" \
             -f request_id="$request_id" \
-            -f confirm_staging=DEPLOY
+            -f confirm_deploy=DEPLOY
 
           run_id=""
           for _ in $(seq 1 45); do
             run_id="$(
               gh run list \
-                --workflow staging-render-promotion.yml \
+                --workflow staging-oci-promotion.yml \
                 --event workflow_dispatch \
                 --branch "$CANDIDATE_REF" \
                 --limit 20 \
@@ -317,14 +396,14 @@ jobs:
           done
 
           if [ -z "$run_id" ]; then
-            echo "Unable to resolve staging promotion run for $GITHUB_SHA" >&2
+            echo "Unable to resolve OCI staging promotion run for $GITHUB_SHA" >&2
             exit 1
           fi
 
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
           echo "request_id=$request_id" >> "$GITHUB_OUTPUT"
-          echo "Staging promotion dispatched: run $run_id request $request_id for $GITHUB_SHA"
-
+          echo "image_digest=$IMAGE_DIGEST" >> "$GITHUB_OUTPUT"
+          echo "OCI staging promotion dispatched: run $run_id request $request_id digest $IMAGE_DIGEST"
       - name: Wait for exact-SHA staging promotion
         shell: bash
         env:
@@ -363,25 +442,52 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           STAGING_PROMOTION_RUN_ID: ${{ steps.staging-promotion.outputs.run_id }}
           EXPECTED_SHA: ${{ github.sha }}
+          IMAGE_DIGEST: ${{ steps.release-image.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
+          image_repository="ghcr.io/$GITHUB_REPOSITORY_OWNER/morro-digital-v2"
           rm -rf /tmp/staging-target-evidence
           mkdir -p /tmp/staging-target-evidence
-          gh run download "$STAGING_PROMOTION_RUN_ID"             --name "staging-deployment-evidence-$STAGING_PROMOTION_RUN_ID"             --dir /tmp/staging-target-evidence
-          evidence=/tmp/staging-target-evidence/staging-deployment-evidence.json
-          test -s "$evidence"
-          jq -e             --arg sha "$EXPECTED_SHA"             '.expectedSha == $sha and
-             .liveSha == $sha and
-             .environment == "staging" and
-             .serviceName == "morro-digital-v2-staging" and
-             .serviceId == "srv-da4hb6c9v7es7386ttt0" and
-             .canonicalUrl == "https://morro-digital-v2-staging.onrender.com" and
-             (.deploymentId | length > 0) and
-             (.verifiedAt | length > 0)' "$evidence" >/dev/null
-          cp "$evidence" final-release-staging-target-evidence.json
-          echo "Structured staging target evidence PASS for $EXPECTED_SHA"
+          gh run download "$STAGING_PROMOTION_RUN_ID" \
+            --name "staging-oci-deployment-evidence-$STAGING_PROMOTION_RUN_ID" \
+            --dir /tmp/staging-target-evidence
 
+          evidence=/tmp/staging-target-evidence/oci-deployment-evidence.txt
+          test -s "$evidence"
+          grep -Fxq "expected_sha=$EXPECTED_SHA" "$evidence"
+          grep -Fxq "image=$image_repository" "$evidence"
+          grep -Fxq "digest=$IMAGE_DIGEST" "$evidence"
+          grep -Fxq "target_url=$STAGING_URL" "$evidence"
+          deployment_id="$(sed -n 's/^render_deploy_id=//p' "$evidence" | head -n1)"
+          test -n "$deployment_id"
+          test "$deployment_id" != "unknown"
+
+          jq -n \
+            --arg expectedSha "$EXPECTED_SHA" \
+            --arg liveSha "$EXPECTED_SHA" \
+            --arg environment "staging" \
+            --arg serviceName "morro-digital-v2-staging" \
+            --arg serviceId "srv-da4hb6c9v7es7386ttt0" \
+            --arg canonicalUrl "$STAGING_URL" \
+            --arg deploymentId "$deployment_id" \
+            --arg image "$image_repository" \
+            --arg imageDigest "$IMAGE_DIGEST" \
+            --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{
+              expectedSha:$expectedSha,
+              liveSha:$liveSha,
+              environment:$environment,
+              serviceName:$serviceName,
+              serviceId:$serviceId,
+              canonicalUrl:$canonicalUrl,
+              deploymentId:$deploymentId,
+              image:$image,
+              imageDigest:$imageDigest,
+              verifiedAt:$verifiedAt
+            }' > final-release-staging-target-evidence.json
+
+          echo "Structured OCI staging target evidence PASS for $EXPECTED_SHA @ $IMAGE_DIGEST"
       - name: Prove exact-SHA live staging health and readiness
         shell: bash
         run: |
