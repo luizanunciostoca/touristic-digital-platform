@@ -124,6 +124,8 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "schemaOwners",
     "crossDomainDenied",
     "PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP",
+    "UNHANDLED_COMMAND_FAILURE",
+    '"stage":"%s"',
   ]) {
     assert.ok(
       source.includes(required),
@@ -175,6 +177,7 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
 test("modified DR workflow run blocks are syntactically valid", () => {
   for (const stepName of [
     "Prove source identity, no cutover, and provision isolated DR worker",
+    "Execute isolated logical backup and restore drill",
     "Cleanup isolated DR resources",
   ]) {
     const syntax = spawnSync("bash", ["-n"], {
@@ -206,6 +209,8 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     'cleanup_name="${DR_SERVICE_NAME:-$DR_SERVICE_PREFIX$GITHUB_RUN_ID}"',
     'test "$dr_service_id" != "$MYSQL_SERVICE_ID"',
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
+    "print_job_diagnostics",
+    "Render DR job terminal status:",
   ]) {
     assert.ok(
       source.includes(required),
