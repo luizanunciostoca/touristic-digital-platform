@@ -1,0 +1,468 @@
+name: Production MySQL Backup Restore Proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA containing the DR tooling
+        required: true
+        type: string
+      source_mysql_sha:
+        description: Exact live production MySQL source SHA being backed up
+        required: true
+        type: string
+      confirm_dr:
+        description: Type BACKUP_RESTORE to authorize the isolated DR proof
+        required: true
+        type: string
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-mysql-backup-restore-proof
+  cancel-in-progress: false
+
+env:
+  RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990
+  MYSQL_SERVICE_ID: srv-datbsavlot8c73evbhj0
+  MYSQL_SERVICE_NAME: morro-digital-v2-production-mysql
+  EXPECTED_DISK_ID: dsk-datbtpk9v7es7384alk0
+  EXPECTED_DISK_MOUNT: /var/lib/mysql
+  EXPECTED_DISK_SIZE_GB: "10"
+  SERVICE_REPO: https://github.com/luizanunciostoca/touristic-digital-platform
+  APPLICATION_SERVICE_NAME: morro-digital-v2
+  DR_SERVICE_PREFIX: morro-digital-v2-production-mysql-dr-
+
+jobs:
+  backup-restore:
+    name: production mysql / backup restore proof
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main' &&
+       inputs.confirm_dr == 'BACKUP_RESTORE') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.actor == github.repository_owner &&
+       startsWith(github.event.comment.body, '/run-production-mysql-dr '))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    environment:
+      name: production
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Resolve exact tool and source identities
+        id: identity
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TOOL_SHA: ${{ inputs.expected_sha }}
+          INPUT_SOURCE_SHA: ${{ inputs.source_mysql_sha }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            tool_sha="$INPUT_TOOL_SHA"
+            source_sha="$INPUT_SOURCE_SHA"
+          else
+            read -r command tool_sha source_sha extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-production-mysql-dr"
+            test -z "${extra:-}"
+          fi
+
+          [[ "$tool_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$tool_sha"
+          main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$main_sha" = "$tool_sha"
+
+          echo "tool_sha=$tool_sha" >> "$GITHUB_OUTPUT"
+          echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Re-prove canonical scope manifest contract
+        run: node --test tooling/quality/production-mysql-dr-contract.test.mjs
+
+      - name: Require protected Render credential
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+
+      - name: Prove source identity, no cutover, and provision isolated DR worker
+        id: provision
+        env:
+          TOOL_SHA: ${{ steps.identity.outputs.tool_sha }}
+          SOURCE_SHA: ${{ steps.identity.outputs.source_sha }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          dr_service_name="$DR_SERVICE_PREFIX$GITHUB_RUN_ID"
+          dr_service_id=""
+          dr_deploy_id=""
+
+          cleanup_files() {
+            rm -f               /tmp/mysql-source.json               /tmp/mysql-deploys.json               /tmp/app-services.json               /tmp/app-service.json               /tmp/env-value.json               /tmp/dr-env.json               /tmp/dr-create.json               /tmp/dr-create-response.json               /tmp/dr-deploy-request.json               /tmp/dr-deploys.json
+          }
+          trap cleanup_files EXIT
+
+          api_get() {
+            curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$1"
+          }
+
+          api_get "$api/services/$MYSQL_SERVICE_ID" > /tmp/mysql-source.json
+          jq -e             --arg id "$MYSQL_SERVICE_ID"             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$MYSQL_SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == $id and
+             .ownerId == $owner and
+             .name == $name and
+             .type == "private_service" and
+             .branch == "main" and
+             .serviceDetails.runtime == "docker" and
+             .serviceDetails.region == "virginia" and
+             .serviceDetails.disk.id == $disk and
+             .serviceDetails.disk.mountPath == $mount and
+             .serviceDetails.disk.sizeGB == $size'             /tmp/mysql-source.json >/dev/null
+
+          api_get "$api/services/$MYSQL_SERVICE_ID/deploys?limit=20" > /tmp/mysql-deploys.json
+          jq -e --arg sha "$SOURCE_SHA"             'any(.[] | (.deploy // .); .status == "live" and .commit.id == $sha)'             /tmp/mysql-deploys.json >/dev/null
+
+          api_get "$api/services?name=$APPLICATION_SERVICE_NAME&limit=20" > /tmp/app-services.json
+          app_service_id="$(jq -r             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$APPLICATION_SERVICE_NAME"             '[.[] | (.service // .) |
+              select(.ownerId == $owner and .name == $name and .type == "web_service")][0].id // empty'             /tmp/app-services.json)"
+          test -n "$app_service_id"
+
+          api_get "$api/services/$app_service_id" > /tmp/app-service.json
+          app_start_command="$(jq -r             '.serviceDetails.envSpecificDetails.startCommand //
+             .serviceDetails.startCommand // empty'             /tmp/app-service.json)"
+          test "$app_start_command" = "node apps/morro-digital-platform/tooling/dev-server.mjs"
+
+          for key in             AUTH_DATABASE_URL             CONTROL_CENTER_AUDIT_DATABASE_URL             DESTINATIONS_DATABASE_URL             CONTENT_DATABASE_URL             BUSINESS_DATABASE_URL             ORDERING_DATABASE_URL             FINANCIAL_DATABASE_URL             TICKETING_DATABASE_URL             NOTIFICATIONS_DATABASE_URL             AFFILIATES_DATABASE_URL             ANALYTICS_DATABASE_URL             CRM_DATABASE_URL             COMMERCE_DATABASE_URL
+          do
+            status="$(curl --silent --show-error               --output /tmp/env-value.json               --write-out '%{http_code}'               --header "$auth"               --header "Accept: application/json"               "$api/services/$app_service_id/env-vars/$key")"
+            case "$status" in
+              200)
+                value="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
+                case "$value" in
+                  *"$MYSQL_SERVICE_NAME"*)
+                    echo "Application cutover detected in $key" >&2
+                    exit 1
+                    ;;
+                esac
+                ;;
+              404) ;;
+              *)
+                echo "Unexpected Render env lookup HTTP $status for $key" >&2
+                exit 1
+                ;;
+            esac
+          done
+
+          jq -n             --arg tool "$TOOL_SHA"             --arg source "$SOURCE_SHA"             --arg host "$MYSQL_SERVICE_NAME"             '[
+              {key:"DR_TOOL_SHA",value:$tool},
+              {key:"DR_SOURCE_SHA",value:$source},
+              {key:"SOURCE_MYSQL_HOST",value:$host},
+              {key:"SOURCE_MYSQL_PORT",value:"3306"}
+            ]' > /tmp/dr-env.json
+
+          for spec in             AUTH:morro_auth             AUDIT:morro_audit             DESTINATIONS:morro_destinations             CONTENT:morro_content             BUSINESS:morro_business             ORDERING:morro_ordering             FINANCIAL:morro_financial             TICKETING:morro_ticketing             NOTIFICATIONS:morro_notifications             AFFILIATES:morro_affiliates             ANALYTICS:morro_analytics             CRM:morro_crm             COMMERCE:morro_commerce
+          do
+            domain="${spec%%:*}"
+            database="${spec#*:}"
+            for suffix in NAME USER PASSWORD; do
+              source_key="${domain}_DATABASE_${suffix}"
+              target_key="SOURCE_${source_key}"
+              api_get "$api/services/$MYSQL_SERVICE_ID/env-vars/$source_key" > /tmp/env-value.json
+              value="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
+              test -n "$value"
+              if [ "$suffix" = "NAME" ] || [ "$suffix" = "USER" ]; then
+                test "$value" = "$database"
+              fi
+              jq --arg key "$target_key" --arg value "$value"                 '. + [{key:$key,value:$value}]'                 /tmp/dr-env.json > /tmp/dr-env.next.json
+              mv /tmp/dr-env.next.json /tmp/dr-env.json
+            done
+          done
+
+          api_get "$api/services/$MYSQL_SERVICE_ID/env-vars/MYSQL_ROOT_PASSWORD" > /tmp/env-value.json
+          root_secret="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
+          test -n "$root_secret"
+          encryption_secret="$(printf '%s:%s' "$root_secret" "$SOURCE_SHA" | sha256sum | awk '{print $1}')"
+          unset root_secret
+          printf '%s' "$encryption_secret" > /tmp/dr-encryption-secret
+          chmod 600 /tmp/dr-encryption-secret
+
+          jq --arg value "$encryption_secret"             '. + [{key:"DR_ENCRYPTION_SECRET",value:$value}]'             /tmp/dr-env.json > /tmp/dr-env.next.json
+          mv /tmp/dr-env.next.json /tmp/dr-env.json
+          unset encryption_secret
+
+          jq -n             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$dr_service_name"             --arg repo "$SERVICE_REPO"             --argjson envVars "$(cat /tmp/dr-env.json)"             '{
+              type:"background_worker",
+              name:$name,
+              ownerId:$owner,
+              repo:$repo,
+              branch:"main",
+              autoDeploy:"no",
+              envVars:$envVars,
+              serviceDetails:{
+                runtime:"docker",
+                plan:"starter",
+                region:"virginia",
+                numInstances:1,
+                envSpecificDetails:{
+                  dockerContext:".",
+                  dockerfilePath:"./tooling/render/mysql-production-dr/Dockerfile"
+                }
+              }
+            }' > /tmp/dr-create.json
+
+          http_status="$(curl --silent --show-error             --output /tmp/dr-create-response.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/dr-create.json             "$api/services")"
+          test "$http_status" = "201"
+
+          dr_service_id="$(jq -r '.service.id // .id // empty' /tmp/dr-create-response.json)"
+          test -n "$dr_service_id"
+          test "$dr_service_id" != "$MYSQL_SERVICE_ID"
+          test "$dr_service_name" != "$MYSQL_SERVICE_NAME"
+
+          jq -n --arg sha "$TOOL_SHA"             '{commitId:$sha,clearCache:"do_not_clear"}' > /tmp/dr-deploy-request.json
+          http_status="$(curl --silent --show-error             --output /tmp/dr-deploys.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/dr-deploy-request.json             "$api/services/$dr_service_id/deploys")"
+          test "$http_status" = "201"
+          dr_deploy_id="$(jq -r '.id // empty' /tmp/dr-deploys.json)"
+          test -n "$dr_deploy_id"
+
+          status=""
+          for _ in $(seq 1 180); do
+            if ! api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json; then
+              sleep 5
+              continue
+            fi
+            status="$(jq -r --arg id "$dr_deploy_id"               '[.[] | (.deploy // .) | select(.id == $id)][0].status // empty'               /tmp/dr-deploys.json)"
+            case "$status" in
+              live) break ;;
+              build_failed|update_failed|pre_deploy_failed|canceled)
+                exit 1
+                ;;
+              *) sleep 5 ;;
+            esac
+          done
+          test "$status" = "live"
+          jq -e --arg id "$dr_deploy_id" --arg sha "$TOOL_SHA"             'any(.[] | (.deploy // .);
+              .id == $id and .status == "live" and .commit.id == $sha)'             /tmp/dr-deploys.json >/dev/null
+
+          echo "dr_service_id=$dr_service_id" >> "$GITHUB_OUTPUT"
+          echo "dr_service_name=$dr_service_name" >> "$GITHUB_OUTPUT"
+          echo "dr_deploy_id=$dr_deploy_id" >> "$GITHUB_OUTPUT"
+          echo "app_service_id=$app_service_id" >> "$GITHUB_OUTPUT"
+
+      - name: Execute isolated logical backup and restore drill
+        id: drill
+        env:
+          TOOL_SHA: ${{ steps.identity.outputs.tool_sha }}
+          SOURCE_SHA: ${{ steps.identity.outputs.source_sha }}
+          DR_SERVICE_ID: ${{ steps.provision.outputs.dr_service_id }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+
+          jq -n             '{startCommand:"/usr/local/bin/morro-production-mysql-dr-proof"}'             > /tmp/dr-job-request.json
+
+          http_status="$(curl --silent --show-error             --output /tmp/dr-job-create.json             --write-out '%{http_code}'             --request POST             --header "$auth"             --header "Accept: application/json"             --header "Content-Type: application/json"             --data-binary @/tmp/dr-job-request.json             "$api/services/$DR_SERVICE_ID/jobs")"
+          test "$http_status" = "201"
+          job_id="$(jq -r '.id // empty' /tmp/dr-job-create.json)"
+          test -n "$job_id"
+
+          status=""
+          for _ in $(seq 1 240); do
+            if ! curl --fail-with-body --silent --show-error               --header "$auth"               --header "Accept: application/json"               "$api/services/$DR_SERVICE_ID/jobs/$job_id"               > /tmp/dr-job.json
+            then
+              sleep 5
+              continue
+            fi
+
+            status="$(jq -r '.status // empty' /tmp/dr-job.json)"
+            case "$status" in
+              succeeded) break ;;
+              failed|canceled) exit 1 ;;
+              pending|running) sleep 5 ;;
+              *) exit 1 ;;
+            esac
+          done
+          test "$status" = "succeeded"
+
+          found=false
+          for _ in $(seq 1 30); do
+            if curl --fail-with-body --silent --show-error               --get               --header "$auth"               --header "Accept: application/json"               --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"               --data-urlencode "resource=$job_id"               --data-urlencode "direction=backward"               --data-urlencode "limit=100"               "$api/logs" > /tmp/dr-job-logs.json
+            then
+              evidence="$(jq -c                 '[.logs[]?.message | fromjson? |
+                  select(.contract == "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF" and .status == "pass")][0] // empty'                 /tmp/dr-job-logs.json)"
+              if [ -n "$evidence" ]; then
+                found=true
+                break
+              fi
+            fi
+            sleep 2
+          done
+          test "$found" = "true"
+
+          printf '%s\n' "$evidence" > /tmp/dr-worker-evidence.json
+          jq -e --arg tool "$TOOL_SHA" --arg source "$SOURCE_SHA" '
+            .contract == "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF" and
+            .status == "pass" and
+            .toolSha == $tool and
+            .sourceSha == $source and
+            .source.schemaCount == 13 and
+            .source.totalTables == 91 and
+            .source.stableDuringBackup == true and
+            .restore.schemaCount == 13 and
+            .restore.totalTables == 91 and
+            .restore.businessTables == 12 and
+            .restore.financialTables == 14 and
+            .restore.canonicalDestinationCount == 1 and
+            .restore.rowCountsMatch == true and
+            .restore.checksumsMatch == true and
+            .restore.columnsMatch == true and
+            .restore.primaryKeysMatch == true and
+            .restore.indexesMatch == true and
+            .restore.foreignKeysMatch == true and
+            .scopePolicy.verified == true and
+            (.backup.plaintextSha256 | test("^sha256:[0-9a-f]{64}$")) and
+            (.backup.encryptedSha256 | test("^sha256:[0-9a-f]{64}$"))
+          ' /tmp/dr-worker-evidence.json >/dev/null
+
+          jq -c             '[.logs[]?.message | fromjson? |
+              select(.contract == "MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK")]'             /tmp/dr-job-logs.json > /tmp/dr-chunks.json
+
+          jq -e '
+            . as $chunks |
+            ($chunks | length) > 0 and
+            ($chunks | map(.total) | unique | length) == 1 and
+            ($chunks | length) == $chunks[0].total and
+            ($chunks | map(.seq) | sort) == [range(1; ($chunks | length) + 1)]
+          ' /tmp/dr-chunks.json >/dev/null
+
+          jq -r 'sort_by(.seq) | map(.data) | join("")' /tmp/dr-chunks.json             | base64 -d > /tmp/production-mysql-backup.sql.gz.enc
+
+          actual_encrypted_sha="sha256:$(sha256sum /tmp/production-mysql-backup.sql.gz.enc | awk '{print $1}')"
+          expected_encrypted_sha="$(jq -r '.backup.encryptedSha256' /tmp/dr-worker-evidence.json)"
+          test "$actual_encrypted_sha" = "$expected_encrypted_sha"
+
+          encrypted_bytes="$(stat -c %s /tmp/production-mysql-backup.sql.gz.enc)"
+          test "$encrypted_bytes" = "$(jq -r '.backup.encryptedBytes' /tmp/dr-worker-evidence.json)"
+
+          actual_plain_sha="sha256:$(
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256               -pass file:/tmp/dr-encryption-secret               -in /tmp/production-mysql-backup.sql.gz.enc               | gzip -dc               | sha256sum               | awk '{print $1}'
+          )"
+          expected_plain_sha="$(jq -r '.backup.plaintextSha256' /tmp/dr-worker-evidence.json)"
+          test "$actual_plain_sha" = "$expected_plain_sha"
+
+          plain_bytes="$(
+            openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -md sha256               -pass file:/tmp/dr-encryption-secret               -in /tmp/production-mysql-backup.sql.gz.enc               | gzip -dc               | wc -c               | awk '{print $1}'
+          )"
+          test "$plain_bytes" = "$(jq -r '.backup.plaintextBytes' /tmp/dr-worker-evidence.json)"
+
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+
+      - name: Publish provenance-bound DR evidence
+        env:
+          TOOL_SHA: ${{ steps.identity.outputs.tool_sha }}
+          SOURCE_SHA: ${{ steps.identity.outputs.source_sha }}
+          DR_SERVICE_ID: ${{ steps.provision.outputs.dr_service_id }}
+          DR_SERVICE_NAME: ${{ steps.provision.outputs.dr_service_name }}
+          DR_DEPLOY_ID: ${{ steps.provision.outputs.dr_deploy_id }}
+          APP_SERVICE_ID: ${{ steps.provision.outputs.app_service_id }}
+          JOB_ID: ${{ steps.drill.outputs.job_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -n             --arg toolSha "$TOOL_SHA"             --arg sourceSha "$SOURCE_SHA"             --arg workspaceId "$RENDER_WORKSPACE_ID"             --arg mysqlServiceId "$MYSQL_SERVICE_ID"             --arg diskId "$EXPECTED_DISK_ID"             --arg applicationServiceId "$APP_SERVICE_ID"             --arg drServiceId "$DR_SERVICE_ID"             --arg drServiceName "$DR_SERVICE_NAME"             --arg drDeployId "$DR_DEPLOY_ID"             --arg jobId "$JOB_ID"             --arg runId "$GITHUB_RUN_ID"             --argjson worker "$(cat /tmp/dr-worker-evidence.json)"             '{
+              contract:"MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-JOB",
+              contractVersion:1,
+              status:"pass",
+              result:"PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS",
+              toolSha:$toolSha,
+              sourceSha:$sourceSha,
+              render:{
+                workspaceId:$workspaceId,
+                mysqlServiceId:$mysqlServiceId,
+                diskId:$diskId,
+                applicationServiceId:$applicationServiceId,
+                temporaryDrServiceId:$drServiceId,
+                temporaryDrServiceName:$drServiceName,
+                temporaryDrDeployId:$drDeployId,
+                jobId:$jobId
+              },
+              backup:($worker.backup + {
+                storage:"github-actions-artifact",
+                artifactName:("production-mysql-backup-restore-proof-" + $runId),
+                encryptedOnly:true,
+                retentionDays:90
+              }),
+              source:$worker.source,
+              restore:$worker.restore,
+              scopePolicy:$worker.scopePolicy,
+              rpo:$worker.rpo
+            }' > production-mysql-backup-restore-evidence.json
+
+          cat production-mysql-backup-restore-evidence.json
+
+      - name: Upload encrypted backup and DR evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-mysql-backup-restore-proof-${{ github.run_id }}
+          path: |
+            /tmp/production-mysql-backup.sql.gz.enc
+            production-mysql-backup-restore-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Cleanup isolated DR resources
+        if: always()
+        env:
+          DR_SERVICE_ID: ${{ steps.provision.outputs.dr_service_id }}
+          DR_SERVICE_NAME: ${{ steps.provision.outputs.dr_service_name }}
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -f             /tmp/dr-encryption-secret             /tmp/production-mysql-backup.sql.gz.enc             /tmp/dr-worker-evidence.json             /tmp/dr-chunks.json             /tmp/dr-job*.json
+
+          if [ -z "${DR_SERVICE_ID:-}" ]; then
+            exit 0
+          fi
+
+          test "$DR_SERVICE_ID" != "$MYSQL_SERVICE_ID"
+          test "${DR_SERVICE_NAME:-}" != "$MYSQL_SERVICE_NAME"
+          case "${DR_SERVICE_NAME:-}" in
+            "$DR_SERVICE_PREFIX"*) ;;
+            *) echo "Refusing cleanup for non-DR service" >&2; exit 1 ;;
+          esac
+
+          http_status="$(curl --silent --show-error             --output /tmp/dr-delete-response.json             --write-out '%{http_code}'             --request DELETE             --header "Authorization: Bearer $RENDER_PRODUCTION_API_KEY"             --header "Accept: application/json"             "https://api.render.com/v1/services/$DR_SERVICE_ID")"
+          case "$http_status" in
+            204|404) ;;
+            *)
+              cat /tmp/dr-delete-response.json >&2 || true
+              exit 1
+              ;;
+          esac
+          rm -f /tmp/dr-delete-response.json
