@@ -291,13 +291,40 @@ for (const [domain] of domains) {
 
 requireText(
   webService,
-  "preDeployCommand: node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  'preDeployCommand: \'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-database-predeploy.mjs --verify-idempotent && node apps/morro-digital-platform/tooling/payments-migrate.mjs\'',
 );
+
+for (const runtimeDatabaseUrl of [
+  "AUTH_DATABASE_URL",
+  "CONTROL_CENTER_AUDIT_DATABASE_URL",
+  "DESTINATIONS_DATABASE_URL",
+  "CONTENT_DATABASE_URL",
+  "BUSINESS_DATABASE_URL",
+  "ORDERING_DATABASE_URL",
+  "FINANCIAL_DATABASE_URL",
+  "TICKETING_DATABASE_URL",
+  "NOTIFICATIONS_DATABASE_URL",
+  "AFFILIATES_DATABASE_URL",
+  "ANALYTICS_DATABASE_URL",
+  "CRM_DATABASE_URL",
+  "COMMERCE_DATABASE_URL",
+]) {
+  requireText(
+    webService,
+    "- key: " + runtimeDatabaseUrl,
+    "server-only canonical runtime database URL " + runtimeDatabaseUrl,
+  );
+  forbidText(
+    webService,
+    "- key: VITE_" + runtimeDatabaseUrl,
+    "database credentials must never enter the browser build",
+  );
+}
 requireText(
   webService,
   "startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs",
 );
 
 console.log(
-  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 domain owners scoped to the bootstrap worker, no application cutover.",
+  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 bounded runtime URLs, fail-closed application predeploy, and bootstrap owners isolated from the public web service.",
 );
