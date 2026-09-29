@@ -262,7 +262,7 @@ required_env DR_ENCRYPTION_SECRET >/dev/null
 [[ "$render_git_commit" == "$tool_sha" ]] || fail "TOOL_SHA_MISMATCH"
 [[ "$dr_worker_service_name" == morro-digital-v2-production-mysql-dr-* ]] || fail "DR_WORKER_SERVICE_DENIED"
 
-for command_name in mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir gzip base64; do
+for command_name in env bash printenv mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir chmod gzip base64 seq sleep; do
   command -v "$command_name" >/dev/null 2>&1 || fail "REQUIRED_COMMAND_MISSING"
 done
 
