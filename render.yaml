@@ -316,7 +316,7 @@ services:
     branch: main
     autoDeploy: false
     buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
-    preDeployCommand: node apps/morro-digital-platform/tooling/payments-migrate.mjs
+    preDeployCommand: 'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-database-predeploy.mjs --verify-idempotent && node apps/morro-digital-platform/tooling/payments-migrate.mjs'
     startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs
     healthCheckPath: /readyz
     maxShutdownDelaySeconds: 30
@@ -336,6 +336,24 @@ services:
       - key: DASHBOARD_SESSION_TTL_SECONDS
         value: "28800"
       - key: AUTH_DATABASE_URL
+        sync: false
+      - key: CONTROL_CENTER_AUDIT_DATABASE_URL
+        sync: false
+      - key: DESTINATIONS_DATABASE_URL
+        sync: false
+      - key: CONTENT_DATABASE_URL
+        sync: false
+      - key: BUSINESS_DATABASE_URL
+        sync: false
+      - key: TICKETING_DATABASE_URL
+        sync: false
+      - key: AFFILIATES_DATABASE_URL
+        sync: false
+      - key: ANALYTICS_DATABASE_URL
+        sync: false
+      - key: CRM_DATABASE_URL
+        sync: false
+      - key: COMMERCE_DATABASE_URL
         sync: false
       # Set true only when the configured production user set intentionally
       # contains a global admin. Leaving it false/unset fails readiness closed.
