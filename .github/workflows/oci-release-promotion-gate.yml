@@ -11,6 +11,8 @@ on:
         description: Immutable sha256 digest produced by Release OCI Image
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -30,18 +32,50 @@ env:
 jobs:
   smoke:
     name: oci-release / smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.actor == github.repository_owner &&
+       startsWith(github.event.comment.body, '/run-oci-promotion-gate '))
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.expected_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha || github.sha }}
           fetch-depth: 0
+
+      - name: Resolve exact owner-authorized invocation
+        id: invocation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.expected_sha }}
+          INPUT_DIGEST: ${{ inputs.image_digest }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            expected_sha="$INPUT_SHA"
+            image_digest="$INPUT_DIGEST"
+          else
+            read -r command expected_sha image_digest extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-oci-promotion-gate"
+            test -z "${extra:-}"
+          fi
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$expected_sha"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+          echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
 
       - name: Prove frozen candidate provenance
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
@@ -72,7 +106,7 @@ jobs:
       - name: Re-prove required upstream gates
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -96,8 +130,8 @@ jobs:
       - name: Re-prove immutable image provenance
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
@@ -127,7 +161,7 @@ jobs:
       - name: Pull exact immutable image
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
@@ -136,8 +170,8 @@ jobs:
 
       - name: Smoke exact immutable image locally
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
