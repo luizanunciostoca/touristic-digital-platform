@@ -197,6 +197,10 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       return jsonResponse(200, [{ id: "reg-ghcr", registry: "GITHUB" }]);
     }
 
+    if (method === "GET" && route === "/v1/services/srv-web/env-vars") {
+      return jsonResponse(200, []);
+    }
+
     if (
       method === "GET" &&
       parsed.pathname.startsWith("/v1/services/srv-web/env-vars/")
@@ -301,6 +305,7 @@ function failureCutoverFixture({
   directory,
   failPutKey = null,
   failSourcePatch = false,
+  staleBrowserDatabaseEnv = false,
   deployStatus = "build_failed",
 }) {
   const stateFile = path.join(directory, "state.json");
@@ -338,6 +343,8 @@ function failureCutoverFixture({
     },
   };
 
+  let currentService = structuredClone(originalService);
+
   const fetchImpl = async (url, options = {}) => {
     const parsed = new URL(url);
     const route = parsed.pathname + parsed.search;
@@ -346,7 +353,7 @@ function failureCutoverFixture({
     requests.push({ method, route, body });
 
     if (method === "GET" && route === "/v1/services/srv-web") {
-      return jsonResponse(200, originalService);
+      return jsonResponse(200, currentService);
     }
     if (method === "GET" && route === "/v1/services/srv-mysql") {
       return jsonResponse(200, {
@@ -389,6 +396,14 @@ function failureCutoverFixture({
     ) {
       return jsonResponse(200, [{ id: "reg-ghcr", registry: "GITHUB" }]);
     }
+    if (method === "GET" && route === "/v1/services/srv-web/env-vars") {
+      return jsonResponse(
+        200,
+        staleBrowserDatabaseEnv
+          ? [{ envVar: { key: "VITE_BUSINESS_DATABASE_URL", value: "redacted" } }]
+          : [],
+      );
+    }
     if (
       method === "GET" &&
       parsed.pathname.startsWith("/v1/services/srv-web/env-vars/")
@@ -417,8 +432,24 @@ function failureCutoverFixture({
       return jsonResponse(204, null);
     }
     if (method === "PATCH" && route === "/v1/services/srv-web") {
-      if (body?.image && failSourcePatch) {
-        return jsonResponse(500, { error: "injected-source-patch-failure" });
+      if (body?.image) {
+        currentService = {
+          ...structuredClone(originalService),
+          repo: "",
+          serviceDetails: {
+            ...structuredClone(originalService.serviceDetails),
+            runtime: "image",
+            healthCheckPath: body.serviceDetails.healthCheckPath,
+            maxShutdownDelaySeconds: body.serviceDetails.maxShutdownDelaySeconds,
+            preDeployCommand: body.serviceDetails.preDeployCommand,
+            envSpecificDetails: {},
+          },
+        };
+        if (failSourcePatch) {
+          return jsonResponse(500, { error: "injected-source-patch-failure" });
+        }
+      } else if (body?.repo) {
+        currentService = structuredClone(originalService);
       }
       return jsonResponse(200, { id: "srv-web" });
     }
@@ -475,7 +506,36 @@ function failureCutoverFixture({
   };
 }
 
-test("source patch failure after env mutation restores every previous env value without rollback deployment", async (t) => {
+test("rejects any browser-exposed database URL already configured on the web service", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-browser-db-env-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    staleBrowserDatabaseEnv: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /PRODUCTION_BROWSER_DATABASE_ENV_EXPOSED/u,
+  );
+
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "PUT" ||
+        request.method === "PATCH" ||
+        request.method === "POST",
+    ).length,
+    0,
+  );
+});
+
+test("ambiguous source patch failure reconciles committed source and restores env without rollback deployment", async (t) => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "morro-cutover-source-patch-failure-"),
   );
@@ -514,11 +574,18 @@ test("source patch failure after env mutation restores every previous env value 
     ).length,
     0,
   );
+  assert.ok(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "PATCH" &&
+        request.route === "/v1/services/srv-web",
+    ).length >= 2,
+  );
 
   const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
   const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
-  assert.equal(state.status, "restored_pre_patch");
-  assert.equal(evidence.status, "restored_pre_patch");
+  assert.equal(state.status, "restored_indeterminate_patch");
+  assert.equal(evidence.status, "restored_indeterminate_patch");
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
 });
 
