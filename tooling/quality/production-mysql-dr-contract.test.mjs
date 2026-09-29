@@ -3,10 +3,8 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import {
-  canonicalProductionDomains,
-  canonicalProductionScopePolicy,
-} from "../../apps/morro-digital-platform/tooling/production-database-predeploy.mjs";
+const authorityPath =
+  "apps/morro-digital-platform/tooling/production-database-predeploy.mjs";
 
 const manifestPath =
   "tooling/render/mysql-production-dr/canonical-manifest.tsv";
@@ -25,6 +23,27 @@ function manifestRows() {
 
 test("DR canonical manifest exactly matches production bootstrap authority", () => {
   const actual = manifestRows();
+  const authority = readFileSync(authorityPath, "utf8");
+  const domainsSection = authority.slice(
+    authority.indexOf("export const canonicalProductionDomains"),
+    authority.indexOf("export const canonicalProductionScopePolicy"),
+  );
+  const scopeSection = authority.slice(
+    authority.indexOf("export const canonicalProductionScopePolicy"),
+    authority.indexOf("function safeFailureCode"),
+  );
+
+  const domainPattern =
+    /Object\.freeze\(\{\s*name:\s*"([^"]+)",[\s\S]*?schema:\s*"([^"]+)",\s*expectedTables:\s*Object\.freeze\(\[([\s\S]*?)\]\),\s*\}\)/gu;
+  const expected = [];
+  for (const match of domainsSection.matchAll(domainPattern)) {
+    const schema = match[2];
+    const tables = [...match[3].matchAll(/"([a-z0-9_]+)"/gu)].map(
+      (tableMatch) => tableMatch[1],
+    );
+    for (const table of tables) {
+      const escapedTable = table.replace(/[.*+?^${}()|[\]\\]/gu, "\\test("DR canonical manifest exactly matches production bootstrap authority", () => {
+  const actual = manifestRows();
   const expected = canonicalProductionDomains.flatMap((domain) =>
     domain.expectedTables.map((table) => [
       domain.schema,
@@ -35,6 +54,19 @@ test("DR canonical manifest exactly matches production bootstrap authority", () 
 
   assert.equal(actual.length, 91);
   assert.equal(new Set(actual.map(([schema]) => schema)).size, 13);
+  assert.deepEqual(actual, expected);
+});");
+      const scopeMatch = new RegExp(
+        "\\b" + escapedTable + "\\s*:\\s*\\\"([^\\\"]+)\\\"",
+        "u",
+      ).exec(scopeSection);
+      assert.ok(scopeMatch, "missing canonical scope for " + table);
+      expected.push([schema, table, scopeMatch[1]]);
+    }
+  }
+
+  assert.equal(expected.length, 91);
+  assert.equal(new Set(expected.map(([schema]) => schema)).size, 13);
   assert.deepEqual(actual, expected);
 });
 
