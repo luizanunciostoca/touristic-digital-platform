@@ -110,13 +110,22 @@ test("DR executor is syntactically valid and fails closed around production", ()
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
 });
 
-test("DR worker image uses the exact pinned MySQL 8.4 base", () => {
+test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   const source = readFileSync(dockerfilePath, "utf8");
+  assert.match(
+    source,
+    /^FROM golang:1\.26\.8-bookworm@sha256:a688600ca24f8a4d3ca77f95b0dd40704a9fc787c826660eb7ba0b641b8b175d AS gosu-builder$/mu,
+  );
+  assert.match(
+    source,
+    /^ARG GOSU_COMMIT=6456aaa0f3c854d199d0f037f068eb97515b7513$/mu,
+  );
   assert.match(
     source,
     /^FROM mysql:8\.4@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d$/mu,
   );
-  assert.match(source, /^USER root$/mu);
+  assert.match(source, /COPY --from=gosu-builder \/out\/gosu \/usr\/local\/bin\/gosu/u);
+  assert.match(source, /microdnf remove -y mysql-shell/u);
   assert.match(source, /microdnf install -y jq gzip/u);
   assert.match(
     source,
