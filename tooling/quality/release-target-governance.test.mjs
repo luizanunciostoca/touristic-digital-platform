@@ -201,6 +201,52 @@ test("production cutover resolves nested DR evidence artifacts deterministically
   );
 });
 
+test("production DR evidence binds its workflow run ID to cutover rehydration", async () => {
+  const workflows = await workflowSources();
+  const dr = workflows.get("production-mysql-backup-restore-proof.yml");
+  const production = workflows.get("production-oci-promotion.yml");
+
+  assert.ok(dr, "production MySQL DR workflow must exist");
+  assert.ok(production, "production OCI promotion workflow must exist");
+
+  const publishSection = dr
+    .split("- name: Publish provenance-bound DR evidence")[1]
+    ?.split("\n      - name: Upload encrypted backup and DR evidence")[0];
+  assert.ok(publishSection, "production DR workflow must publish evidence");
+  assert.ok(publishSection.includes('--arg runId "$GITHUB_RUN_ID"'));
+  assert.ok(
+    publishSection.includes(
+      `              result:"PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS",
+              runId:$runId,
+              toolSha:$toolSha,
+              sourceSha:$sourceSha,
+              render:{`,
+    ),
+    "DR evidence runId must remain a top-level field beside source provenance",
+  );
+  assert.ok(
+    publishSection.includes(
+      'artifactName:("production-mysql-backup-restore-proof-" + $runId)',
+    ),
+    "DR artifact name must be derived from the same workflow run ID",
+  );
+
+  const deploySection = production.split("\n  deploy:\n")[1];
+  assert.ok(deploySection, "production OCI workflow must expose deploy job");
+  const rehydrateSection = deploySection
+    .split("- name: Rehydrate exact DR evidence")[1]
+    ?.split("\n      - name: Reconfirm exact main and fresh DR")[0];
+  assert.ok(rehydrateSection, "production cutover must rehydrate DR evidence");
+  assert.ok(
+    rehydrateSection.includes('--arg run "$DR_RUN_ID"'),
+    "production cutover must bind the jq run variable to DR_RUN_ID",
+  );
+  assert.ok(
+    rehydrateSection.includes(".runId == $run"),
+    "production cutover must reject DR evidence from a different workflow run",
+  );
+});
+
 test("production cutover serializes MySQL source mutation and preserves recovery state", async () => {
   const workflows = await workflowSources();
   const provision = workflows.get("production-mysql-render-provision.yml");

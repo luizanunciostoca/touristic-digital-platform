@@ -558,6 +558,7 @@ jobs:
               contractVersion:1,
               status:"pass",
               result:"PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS",
+              runId:$runId,
               toolSha:$toolSha,
               sourceSha:$sourceSha,
               render:{
