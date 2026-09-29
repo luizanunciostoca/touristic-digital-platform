@@ -287,87 +287,6 @@ jobs:
           echo "bootstrap_service_id=$bootstrap_service_id" >> "$GITHUB_OUTPUT"
           echo "bootstrap_deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
 
-      - name: Verify bounded runtime database users
-        id: runtime_users
-        env:
-          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          api="https://api.render.com/v1"
-          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
-          rm -f /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json
-          trap 'rm -f /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json' EXIT
-
-          jq -nc '{startCommand:"/usr/local/bin/morro-mysql-runtime-users"}' \
-            > /tmp/runtime-job-request.json
-          http_status="$(curl --silent --show-error \
-            --output /tmp/runtime-job-create.json \
-            --write-out '%{http_code}' \
-            --request POST \
-            --header "$auth" \
-            --header "Accept: application/json" \
-            --header "Content-Type: application/json" \
-            --data-binary @/tmp/runtime-job-request.json \
-            "$api/services/$MYSQL_SERVICE_ID/jobs")"
-          test "$http_status" = "201"
-          job_id="$(jq -r '.id // empty' /tmp/runtime-job-create.json)"
-          test -n "$job_id"
-
-          status=""
-          for _ in $(seq 1 180); do
-            if ! curl --fail-with-body --silent --show-error \
-              --header "$auth" \
-              --header "Accept: application/json" \
-              "$api/services/$MYSQL_SERVICE_ID/jobs/$job_id" \
-              > /tmp/runtime-job.json
-            then
-              sleep 5
-              continue
-            fi
-            status="$(jq -r '.status // empty' /tmp/runtime-job.json)"
-            case "$status" in
-              succeeded) break ;;
-              failed|canceled) exit 1 ;;
-              pending|running) sleep 5 ;;
-              *) echo "Unexpected runtime user verification status: $status" >&2; exit 1 ;;
-            esac
-          done
-          test "$status" = "succeeded"
-
-          evidence=""
-          for _ in $(seq 1 30); do
-            if curl --fail-with-body --silent --show-error \
-              --get \
-              --header "$auth" \
-              --header "Accept: application/json" \
-              --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
-              --data-urlencode "resource=$job_id" \
-              --data-urlencode "direction=backward" \
-              --data-urlencode "limit=100" \
-              "$api/logs" > /tmp/runtime-job-logs.json
-            then
-              evidence="$(jq -c \
-                '[.logs[]?.message | fromjson? |
-                  select(.contract == "MORRO-PRODUCTION-MYSQL-RUNTIME-USERS")][0] // empty' \
-                /tmp/runtime-job-logs.json)"
-              [ -n "$evidence" ] && break
-            fi
-            sleep 2
-          done
-
-          test -n "$evidence"
-          printf '%s' "$evidence" | jq -e \
-            '.status == "pass" and
-             .runtimeUsers == 13 and
-             .allowedSchemaPrivilegesPerUser == 4 and
-             .schemaPrivilegeEntries == 52 and
-             .crossDomainDenied == 156 and
-             .globalPrivilegeEntries == 0' >/dev/null
-          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
-          echo "runtime_users_json=$evidence" >> "$GITHUB_OUTPUT"
-          echo "PASS: DML-only runtime users verified with 156 cross-domain denials"
-
       - name: Run canonical bootstrap twice through least-privilege owners
         id: bootstrap
         env:
@@ -457,6 +376,87 @@ jobs:
 
           echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
           echo "bootstrap_json=$(jq -c . /tmp/bootstrap-evidence.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Verify bounded runtime database users
+        id: runtime_users
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          rm -f /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json
+          trap 'rm -f /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json' EXIT
+
+          jq -nc '{startCommand:"/usr/local/bin/morro-mysql-runtime-users"}' \
+            > /tmp/runtime-job-request.json
+          http_status="$(curl --silent --show-error \
+            --output /tmp/runtime-job-create.json \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "$auth" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data-binary @/tmp/runtime-job-request.json \
+            "$api/services/$MYSQL_SERVICE_ID/jobs")"
+          test "$http_status" = "201"
+          job_id="$(jq -r '.id // empty' /tmp/runtime-job-create.json)"
+          test -n "$job_id"
+
+          status=""
+          for _ in $(seq 1 180); do
+            if ! curl --fail-with-body --silent --show-error \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              "$api/services/$MYSQL_SERVICE_ID/jobs/$job_id" \
+              > /tmp/runtime-job.json
+            then
+              sleep 5
+              continue
+            fi
+            status="$(jq -r '.status // empty' /tmp/runtime-job.json)"
+            case "$status" in
+              succeeded) break ;;
+              failed|canceled) exit 1 ;;
+              pending|running) sleep 5 ;;
+              *) echo "Unexpected runtime user verification status: $status" >&2; exit 1 ;;
+            esac
+          done
+          test "$status" = "succeeded"
+
+          evidence=""
+          for _ in $(seq 1 30); do
+            if curl --fail-with-body --silent --show-error \
+              --get \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
+              --data-urlencode "resource=$job_id" \
+              --data-urlencode "direction=backward" \
+              --data-urlencode "limit=100" \
+              "$api/logs" > /tmp/runtime-job-logs.json
+            then
+              evidence="$(jq -c \
+                '[.logs[]?.message | fromjson? |
+                  select(.contract == "MORRO-PRODUCTION-MYSQL-RUNTIME-USERS")][0] // empty' \
+                /tmp/runtime-job-logs.json)"
+              [ -n "$evidence" ] && break
+            fi
+            sleep 2
+          done
+
+          test -n "$evidence"
+          printf '%s' "$evidence" | jq -e \
+            '.status == "pass" and
+             .runtimeUsers == 13 and
+             .allowedSchemaPrivilegesPerUser == 4 and
+             .schemaPrivilegeEntries == 52 and
+             .crossDomainDenied == 156 and
+             .globalPrivilegeEntries == 0' >/dev/null
+          echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+          echo "runtime_users_json=$evidence" >> "$GITHUB_OUTPUT"
+          echo "PASS: DML-only runtime users verified with 156 cross-domain denials"
 
       - name: Publish provenance-bound bootstrap evidence
         env:
