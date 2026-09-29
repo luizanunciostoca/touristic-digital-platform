@@ -120,7 +120,6 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
       ["USER_PRIVILEGES", "GLOBAL"],
       ["TABLE_PRIVILEGES", "TABLE"],
       ["COLUMN_PRIVILEGES", "COLUMN"],
-      ["ROUTINE_PRIVILEGES", "ROUTINE"],
       ["APPLICABLE_ROLES", "ROLE"],
     ]) {
       const [[row]] = await pool.query(
@@ -134,6 +133,18 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
           `PRODUCTION_RUNTIME_DATABASE_${label}_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
         );
       }
+    }
+
+    const [grantRows] = await pool.query("SHOW GRANTS FOR CURRENT_USER");
+    const hasRoutineGrant = grantRows.some((row) =>
+      Object.values(row).some((value) =>
+        /\\bON\\s+(?:PROCEDURE|FUNCTION)\\b/iu.test(String(value)),
+      ),
+    );
+    if (hasRoutineGrant) {
+      throw new Error(
+        `PRODUCTION_RUNTIME_DATABASE_ROUTINE_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+      );
     }
 
     if (domain.name === "destinations") {
