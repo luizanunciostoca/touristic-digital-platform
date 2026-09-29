@@ -312,36 +312,23 @@ function required(environment, key) {
 }
 
 function sourceIdentity(environment) {
-  const serviceName = String(environment.RENDER_SERVICE_NAME ?? "").trim();
-  const expectedSha = required(environment, "EXPECTED_SHA");
-
-  let runtimeSourceSha;
-  if (serviceName === "morro-digital-v2-production-db-bootstrap") {
-    runtimeSourceSha = required(environment, "RENDER_GIT_COMMIT");
-  } else if (serviceName === "morro-digital-v2") {
-    runtimeSourceSha = String(
-      environment.MORRO_RELEASE_SHA ?? environment.RENDER_GIT_COMMIT ?? "",
-    ).trim();
-    if (!runtimeSourceSha) {
-      throw new Error("PRODUCTION_DATABASE_APPLICATION_SHA_REQUIRED");
-    }
-  } else {
-    throw new Error("PRODUCTION_DATABASE_PREDEPLOY_SERVICE_DENIED");
+  if (
+    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
+    "morro-digital-v2-production-db-bootstrap"
+  ) {
+    throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SERVICE_DENIED");
   }
 
-  if (!SHA_PATTERN.test(runtimeSourceSha) || !SHA_PATTERN.test(expectedSha)) {
+  const expectedSha = required(environment, "EXPECTED_SHA");
+  const renderGitCommit = required(environment, "RENDER_GIT_COMMIT");
+  if (!SHA_PATTERN.test(renderGitCommit) || !SHA_PATTERN.test(expectedSha)) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_INVALID");
   }
-  if (runtimeSourceSha !== expectedSha) {
+  if (renderGitCommit !== expectedSha) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH");
   }
 
-  return Object.freeze({
-    expectedSha,
-    renderGitCommit: runtimeSourceSha,
-    runtimeSourceSha,
-    serviceName,
-  });
+  return Object.freeze({ expectedSha, renderGitCommit });
 }
 
 function validateDatabaseUrl(raw, domain) {
@@ -359,11 +346,11 @@ function validateDatabaseUrl(raw, domain) {
     url.hostname !== "morro-digital-v2-production-mysql" ||
     url.port !== "3306" ||
     !url.password ||
-    url.username !== `${domain.schema}_runtime` ||
+    url.username !== domain.schema ||
     database !== domain.schema
   ) {
     throw new Error(
-      `PRODUCTION_DATABASE_RUNTIME_IDENTITY_INVALID_${domain.name.toUpperCase()}`,
+      `PRODUCTION_DATABASE_OWNER_INVALID_${domain.name.toUpperCase()}`,
     );
   }
   return url.toString();
