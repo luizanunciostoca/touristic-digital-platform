@@ -96,9 +96,7 @@ jobs:
             --arg digest "$IMAGE_DIGEST" \
             --arg run "$IMAGE_RUN_ID" \
             --arg image "$IMAGE_REPOSITORY" \
-            '.source_sha == $sha and
-             .tree_sha == $tree and
-             .digest == $digest and
+            '.source_sha == $sha and .tree_sha == $tree and .digest == $digest and
              .image_run_id == $run and
              .image == $image' \
             /tmp/release-provenance/release-provenance.json >/dev/null
