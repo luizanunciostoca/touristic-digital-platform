@@ -513,7 +513,9 @@ function failureCutoverFixture({
   };
 }
 
-test("rejects any browser-exposed database URL already configured on the web service", async (t) => {
+test(
+  "rejects any browser-exposed database URL already configured on the web service",
+  async (t) => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "morro-cutover-browser-db-env-"),
   );
@@ -540,7 +542,8 @@ test("rejects any browser-exposed database URL already configured on the web ser
     ).length,
     0,
   );
-});
+  },
+);
 
 test(
   "ambiguous source patch failure reconciles committed source and restores env without rollback deployment",
