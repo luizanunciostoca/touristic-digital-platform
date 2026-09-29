@@ -306,28 +306,56 @@ jobs:
           if [ -n "$initial_deploy_id" ]; then
             dr_deploy_id="$initial_deploy_id"
           else
-            jq -n --arg sha "$TOOL_SHA"               '{commitId:$sha,clearCache:"do_not_clear",deployMode:"build_and_deploy"}'               > /tmp/dr-deploy-request.json
-            http_status="$(curl --silent --show-error               --output /tmp/dr-deploy-state.json               --write-out '%{http_code}'               --request POST               --header "$auth"               --header "Accept: application/json"               --header "Content-Type: application/json"               --data-binary @/tmp/dr-deploy-request.json               "$api/services/$dr_service_id/deploys")"
-            case "$http_status" in
-              201)
-                dr_deploy_id="$(jq -r '.id // .deploy.id // empty' /tmp/dr-deploy-state.json)"
-                ;;
-              202)
-                dr_deploy_id=""
-                ;;
-              *)
-                cat /tmp/dr-deploy-state.json >&2 || true
-                echo "Render DR deploy trigger failed with HTTP $http_status" >&2
-                exit 1
-                ;;
-            esac
+            for _ in $(seq 1 12); do
+              if api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json; then
+                dr_deploy_id="$(jq -r --arg sha "$TOOL_SHA"                   '[.[] | (.deploy // .) |
+                    select(.commit.id == $sha and
+                      (.status == "created" or
+                       .status == "queued" or
+                       .status == "build_in_progress" or
+                       .status == "update_in_progress" or
+                       .status == "pre_deploy_in_progress" or
+                       .status == "live"))]
+                    | sort_by(.createdAt)
+                    | first
+                    | .id // empty'                   /tmp/dr-deploys.json)"
+              fi
+              [ -n "$dr_deploy_id" ] && break
+              sleep 5
+            done
 
             if [ -z "$dr_deploy_id" ]; then
-              sleep 5
-              api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json
-              dr_deploy_id="$(jq -r --arg sha "$TOOL_SHA"                 '[.[] | (.deploy // .) |
-                  select(.commit.id == $sha and
-                    (.status == "queued" or .status == "build_in_progress" or .status == "live"))][0].id // empty'                 /tmp/dr-deploys.json)"
+              jq -n --arg sha "$TOOL_SHA"                 '{commitId:$sha,clearCache:"do_not_clear",deployMode:"build_and_deploy"}'                 > /tmp/dr-deploy-request.json
+              http_status="$(curl --silent --show-error                 --output /tmp/dr-deploy-state.json                 --write-out '%{http_code}'                 --request POST                 --header "$auth"                 --header "Accept: application/json"                 --header "Content-Type: application/json"                 --data-binary @/tmp/dr-deploy-request.json                 "$api/services/$dr_service_id/deploys")"
+              case "$http_status" in
+                201)
+                  dr_deploy_id="$(jq -r '.id // .deploy.id // empty' /tmp/dr-deploy-state.json)"
+                  ;;
+                202)
+                  dr_deploy_id=""
+                  ;;
+                *)
+                  cat /tmp/dr-deploy-state.json >&2 || true
+                  echo "Render DR deploy trigger failed with HTTP $http_status" >&2
+                  exit 1
+                  ;;
+              esac
+
+              if [ -z "$dr_deploy_id" ]; then
+                sleep 5
+                api_get "$api/services/$dr_service_id/deploys?limit=20" > /tmp/dr-deploys.json
+                dr_deploy_id="$(jq -r --arg sha "$TOOL_SHA"                   '[.[] | (.deploy // .) |
+                    select(.commit.id == $sha and
+                      (.status == "created" or
+                       .status == "queued" or
+                       .status == "build_in_progress" or
+                       .status == "update_in_progress" or
+                       .status == "pre_deploy_in_progress" or
+                       .status == "live"))]
+                    | sort_by(.createdAt)
+                    | last
+                    | .id // empty'                   /tmp/dr-deploys.json)"
+              fi
             fi
           fi
 
