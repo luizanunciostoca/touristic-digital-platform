@@ -227,6 +227,8 @@ export default defineConfig({
       ...configDefaults.exclude,
       "dist/**",
       "tooling/production-database-predeploy.test.mjs",
+      "tooling/database-schema-mode.test.mjs",
+      "tooling/production-runtime-database-predeploy.test.mjs",
     ],
   },
 });
