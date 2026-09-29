@@ -13,6 +13,14 @@ const workflowPath = ".github/workflows/production-twin-certification.yml";
 const executorPath = "tooling/release/production-twin-certification.sh";
 const promotionPath = ".github/workflows/production-oci-promotion.yml";
 
+const runtimeSchemaCompositionPaths = Object.freeze([
+  "apps/morro-digital-platform/tooling/payments-api.mjs",
+  "apps/morro-digital-platform/tooling/payments-card-api.mjs",
+  "apps/morro-digital-platform/tooling/payments-subscription-api.mjs",
+  "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+  "apps/morro-digital-platform/tooling/commerce-api.mjs",
+]);
+
 const sourceSha = "a".repeat(40);
 const treeSha = "b".repeat(40);
 const imageDigest = `sha256:${"c".repeat(64)}`;
@@ -133,6 +141,25 @@ test("reuses only an exact certificate and dispatches when none matches", () => 
   );
 });
 
+test("external schema authority reaches every composed runtime", () => {
+  for (const path of runtimeSchemaCompositionPaths) {
+    const source = readFileSync(path, "utf8");
+    const collectStart = source.indexOf("function collectEnvironment");
+    const collectEnd = source.indexOf("\n}\n\n", collectStart);
+    assert.ok(collectStart >= 0, `missing collectEnvironment in ${path}`);
+    assert.ok(collectEnd > collectStart, `cannot isolate collectEnvironment in ${path}`);
+    const collectEnvironment = source.slice(collectStart, collectEnd + 2);
+    assert.ok(
+      collectEnvironment.includes('"MORRO_DATABASE_SCHEMA_MODE"'),
+      `schema mode dropped by runtime composition in ${path}`,
+    );
+    assert.ok(
+      source.includes("shouldApplyRuntimeSchema(environment)"),
+      `runtime does not consume composed schema mode in ${path}`,
+    );
+  }
+});
+
 test("production twin executor is syntactically valid and no-egress", () => {
   const syntax = spawnSync("bash", ["-n", executorPath], { encoding: "utf8" });
   assert.equal(syntax.status, 0, syntax.stderr);
@@ -154,6 +181,11 @@ test("production twin executor is syntactically valid and no-egress", () => {
     'docker network create --internal "$network"',
     '--network-alias "$MYSQL_ALIAS"',
     'docker run --rm --network none "$image_path"',
+    'docker exec "$app_container"',
+    'http://127.0.0.1:3000',
+    '--arg candidateRunId "$candidate_run_id"',
+    '--arg candidateArtifactDigest "$candidate_artifact_digest"',
+    '--arg lockfileDigest "$lockfile_digest"',
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
     "/healthz",
@@ -186,6 +218,8 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "MERCADO_PAGO_CHECKOUT_MODE=production",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=true",
     "PAYMENTS_SUBSCRIPTIONS_ENABLED=true",
+    "-p 127.0.0.1:18080:3000",
+    "http://127.0.0.1:18080",
   ]) {
     assert.ok(
       !source.includes(forbidden),
