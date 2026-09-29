@@ -583,8 +583,7 @@ test("reconciles source after an ambiguous patch failure", async (t) => {
   assert.ok(
     fixture.requests.filter(
       (request) =>
-        request.method === "PATCH" &&
-        request.route === "/v1/services/srv-web",
+        request.method === "PATCH" && request.route === "/v1/services/srv-web",
     ).length >= 2,
   );
 
