@@ -454,7 +454,9 @@ requireIncludes(
     "payments:render:smoke",
   ]);
   if (source.includes("/run-production-oci-promotion")) {
-    fail(\n      `${file} must expose only the canonical /run-production-cutover command`,\n    );
+    fail(
+      `${file} must expose only the canonical /run-production-cutover command`,
+    );
   }
   if (/^\s{2}(pull_request|push):/m.test(source)) {
     fail(`${file} must remain explicitly operator-triggered`);
