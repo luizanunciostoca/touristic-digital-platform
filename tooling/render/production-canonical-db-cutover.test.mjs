@@ -300,6 +300,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
 function failureCutoverFixture({
   directory,
   failPutKey = null,
+  failSourcePatch = false,
   deployStatus = "build_failed",
 }) {
   const stateFile = path.join(directory, "state.json");
@@ -416,13 +417,23 @@ function failureCutoverFixture({
       return jsonResponse(204, null);
     }
     if (method === "PATCH" && route === "/v1/services/srv-web") {
+      if (body?.image && failSourcePatch) {
+        return jsonResponse(500, { error: "injected-source-patch-failure" });
+      }
       return jsonResponse(200, { id: "srv-web" });
     }
     if (method === "POST" && route === "/v1/services/srv-web/deploys") {
       return jsonResponse(201, { id: "dep-new" });
     }
     if (method === "GET" && route === "/v1/services/srv-web/deploys/dep-new") {
-      return jsonResponse(200, { id: "dep-new", status: deployStatus });
+      return jsonResponse(200, {
+        id: "dep-new",
+        status: deployStatus,
+        image:
+          deployStatus === "live"
+            ? { ref: imagePath, sha: imageDigest }
+            : undefined,
+      });
     }
     if (method === "POST" && route === "/v1/services/srv-web/rollback") {
       assert.equal(body.deployId, "dep-old");
@@ -463,6 +474,53 @@ function failureCutoverFixture({
     },
   };
 }
+
+test("source patch failure after env mutation restores every previous env value without rollback deployment", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-source-patch-failure-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    failSourcePatch: true,
+    deployStatus: "live",
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_API_PATCH_HTTP_500/u,
+  );
+
+  const envWrites = fixture.requests.filter(
+    (request) =>
+      request.method === "PUT" &&
+      request.route.startsWith("/v1/services/srv-web/env-vars/"),
+  );
+  const envDeletes = fixture.requests.filter(
+    (request) =>
+      request.method === "DELETE" &&
+      request.route.startsWith("/v1/services/srv-web/env-vars/"),
+  );
+  assert.ok(envWrites.length >= productionDatabaseDomains.length);
+  assert.equal(envDeletes.length, envWrites.length);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+
+  const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
+  assert.equal(state.status, "restored_pre_patch");
+  assert.equal(evidence.status, "restored_pre_patch");
+  assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
+});
 
 test("post-patch failure automatically restores source and env then waits for rollback", async (t) => {
   const directory = await fs.mkdtemp(
@@ -541,6 +599,38 @@ test("pre-patch env failure restores the snapshot without changing service sourc
   assert.equal(evidence.status, "restored_pre_patch");
   assert.equal(evidence.rollbackDeployId, null);
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
+});
+
+test("a post-deploy verification failure can roll back a live new deploy using the retained state", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-post-smoke-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    deployStatus: "live",
+  });
+
+  const deployed = await cutover({
+    environment: fixture.environment,
+    fetchImpl: fixture.fetchImpl,
+  });
+  assert.equal(deployed.status, "live");
+
+  const rolledBack = await rollback({
+    environment: fixture.environment,
+    fetchImpl: fixture.fetchImpl,
+  });
+  assert.equal(rolledBack.status, "rolled_back");
+  assert.equal(rolledBack.rollbackDeployId, "dep-rollback");
+  assert.ok(
+    fixture.requests.some(
+      (request) =>
+        request.method === "GET" &&
+        request.route === "/v1/services/srv-web/deploys/dep-rollback",
+    ),
+  );
+  assert.ok(!JSON.stringify(rolledBack).includes("runtime-secret"));
 });
 
 test("explicit rollback waits for the previous release before reporting success", async (t) => {
