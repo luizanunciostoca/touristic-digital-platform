@@ -245,6 +245,28 @@ jobs:
                .bootstrap.totalTables == 91'               "$evidence" >/dev/null
           fi
 
+          staging_run_id="$(
+            dispatch_wait staging-oci-promotion.yml \
+              -f expected_sha="$EXPECTED_SHA" \
+              -f image_digest="$image_digest" \
+              -f confirm_deploy=DEPLOY
+          )"
+          rm -rf /tmp/staging-proof
+          mkdir -p /tmp/staging-proof
+          gh run download "$staging_run_id" \
+            --name "staging-oci-deployment-evidence-$staging_run_id" \
+            --dir /tmp/staging-proof
+          staging_evidence="/tmp/staging-proof/oci-deployment-evidence.txt"
+          test -s "$staging_evidence"
+          grep -Fxq "expected_sha=$EXPECTED_SHA" "$staging_evidence"
+          grep -Fxq "digest=$image_digest" "$staging_evidence"
+          grep -Fxq "image=$IMAGE_REPOSITORY" "$staging_evidence"
+          grep -Fxq "target_url=https://morro-digital-v2-staging.onrender.com" "$staging_evidence"
+          staging_deploy_id="$(sed -n 's/^render_deploy_id=//p' "$staging_evidence" | head -n1)"
+          test -n "$staging_deploy_id"
+          test "$staging_deploy_id" != "unknown"
+          echo "PASS: staging promoted exact artifact run=$staging_run_id deploy=$staging_deploy_id" >&2
+
           # DR is deliberately never reused: every cutover invocation creates
           # a fresh encrypted backup/restore proof after MySQL reconciliation.
           dr_requested_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -284,7 +306,7 @@ jobs:
           test "$current_main" = "$EXPECTED_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-          jq -n             --arg sourceSha "$EXPECTED_SHA"             --arg imageDigest "$image_digest"             --arg candidateRunId "$candidate_run_id"             --arg qualityRunId "$quality_run_id"             --arg dependencyRunId "$dependency_run_id"             --arg securityRunId "$security_run_id"             --arg acceptanceRunId "$acceptance_run_id"             --arg imageRunId "$image_run_id"             --arg provisionRunId "$provision_run_id"             --arg bootstrapRunId "$bootstrap_run_id"             --arg drRunId "$dr_run_id"             --arg ociGateRunId "$oci_gate_run_id"             '{
+          jq -n             --arg sourceSha "$EXPECTED_SHA"             --arg imageDigest "$image_digest"             --arg candidateRunId "$candidate_run_id"             --arg qualityRunId "$quality_run_id"             --arg dependencyRunId "$dependency_run_id"             --arg securityRunId "$security_run_id"             --arg acceptanceRunId "$acceptance_run_id"             --arg imageRunId "$image_run_id"             --arg provisionRunId "$provision_run_id"             --arg bootstrapRunId "$bootstrap_run_id"             --arg stagingRunId "$staging_run_id"             --arg drRunId "$dr_run_id"             --arg ociGateRunId "$oci_gate_run_id"             '{
               contract:"MORRO-PRODUCTION-CUTOVER-PREFLIGHT",
               contractVersion:1,
               status:"pass",
@@ -300,6 +322,7 @@ jobs:
                 releaseImage:$imageRunId,
                 mysqlProvision:$provisionRunId,
                 mysqlBootstrap:$bootstrapRunId,
+                stagingPromotion:$stagingRunId,
                 backupRestore:$drRunId,
                 ociGate:$ociGateRunId
               }
