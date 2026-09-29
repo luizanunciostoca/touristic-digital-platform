@@ -232,9 +232,9 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       assert.equal(body.image.registryCredentialId, "reg-ghcr");
       assert.equal(body.serviceDetails.runtime, "image");
       assert.equal(body.serviceDetails.healthCheckPath, "/readyz");
-      assert.match(
+      assert.equal(
         body.serviceDetails.preDeployCommand,
-        /production-runtime-database-predeploy\.mjs && node .*payments-migrate\.mjs/u,
+        "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
       );
       return jsonResponse(200, { id: "srv-web" });
     }
@@ -289,7 +289,15 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   for (const [, canonicalKey] of productionDatabaseDomains) {
     assert.ok(keys.includes(canonicalKey), canonicalKey);
   }
+  assert.ok(keys.includes("EXPECTED_SHA"));
+  assert.ok(keys.includes("MORRO_RELEASE_SHA"));
   assert.ok(keys.includes("MORRO_DATABASE_SCHEMA_MODE"));
+  for (const key of ["EXPECTED_SHA", "MORRO_RELEASE_SHA"]) {
+    const write = envWrites.find((request) =>
+      request.route.endsWith(`/env-vars/${key}`),
+    );
+    assert.deepEqual(JSON.parse(write.body), { value: "c".repeat(40) });
+  }
   assert.ok(
     !keys.some(
       (key) => key.startsWith("VITE_") && key.endsWith("_DATABASE_URL"),
