@@ -124,6 +124,7 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "schemaOwners",
     "crossDomainDenied",
     "PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP",
+    "HANDLED_FAILURE_EXIT=86",
     "UNHANDLED_COMMAND_FAILURE",
     '"stage":"%s"',
   ]) {
@@ -143,6 +144,51 @@ test("DR executor is syntactically valid and fails closed around production", ()
   );
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
+});
+
+test("DR failure telemetry distinguishes handled and unhandled failures", () => {
+  const cleanEnv = { PATH: process.env.PATH ?? "" };
+
+  const handled = spawnSync("bash", [executorPath], {
+    encoding: "utf8",
+    env: cleanEnv,
+  });
+  assert.equal(handled.status, 86);
+  const handledLines = handled.stderr
+    .trim()
+    .split(/\r?\n/u)
+    .filter(Boolean);
+  assert.equal(handledLines.length, 1);
+  const handledEvent = JSON.parse(handledLines[0]);
+  assert.equal(handledEvent.contract, "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF");
+  assert.equal(handledEvent.status, "fail");
+  assert.equal(handledEvent.code, "MISSING_DR_TOOL_SHA");
+  assert.equal(handledEvent.stage, "startup");
+
+  const executorSource = readFileSync(executorPath, "utf8");
+  const trapHarnessEnd = executorSource.indexOf("\nrequired_env() {");
+  assert.ok(trapHarnessEnd > 0);
+  const trapHarness =
+    executorSource.slice(0, trapHarnessEnd) +
+    '\nstage="test-unhandled"\nfalse\n';
+
+  const unhandled = spawnSync("bash", [], {
+    input: trapHarness,
+    encoding: "utf8",
+    env: cleanEnv,
+  });
+  assert.equal(unhandled.status, 1);
+  const unhandledLines = unhandled.stderr
+    .trim()
+    .split(/\r?\n/u)
+    .filter(Boolean);
+  assert.equal(unhandledLines.length, 1);
+  const unhandledEvent = JSON.parse(unhandledLines[0]);
+  assert.equal(unhandledEvent.contract, "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF");
+  assert.equal(unhandledEvent.status, "fail");
+  assert.equal(unhandledEvent.code, "UNHANDLED_COMMAND_FAILURE");
+  assert.equal(unhandledEvent.stage, "test-unhandled");
+  assert.ok(Number.isInteger(unhandledEvent.line));
 });
 
 test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
@@ -211,6 +257,9 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
     "print_job_diagnostics",
     "Render DR job terminal status:",
+    "DIAGNOSTIC_RECORD_UNAVAILABLE",
+    'select(.contract == $contract and .status == "fail")',
+    "for _ in $(seq 1 15); do",
   ]) {
     assert.ok(
       source.includes(required),
