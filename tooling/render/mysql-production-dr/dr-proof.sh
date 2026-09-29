@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 umask 077
+
+PRIVATE_STDERR="${DR_PRIVATE_STDERR:-/tmp/morro-production-mysql-dr.stderr}"
+exec 3>&2
+: >"$PRIVATE_STDERR"
+chmod 600 "$PRIVATE_STDERR"
+exec 2>"$PRIVATE_STDERR"
 
 CONTRACT="MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF"
 PAYLOAD_CONTRACT="MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK"
@@ -18,10 +24,14 @@ PAYLOAD_CHUNK_SIZE=6000
 
 fail() {
   local code="$1"
+  trap - ERR
+  [[ "$code" =~ ^[A-Z0-9_]{1,128}$ ]] || code="INTERNAL_FAILURE_CODE_INVALID"
   printf '{"contract":"%s","contractVersion":%s,"status":"fail","code":"%s"}\n' \
-    "$CONTRACT" "$CONTRACT_VERSION" "$code" >&2
+    "$CONTRACT" "$CONTRACT_VERSION" "$code" >&3
   exit 1
 }
+
+trap 'fail "UNEXPECTED_COMMAND_FAILURE"' ERR
 
 required_env() {
   local key="$1"
@@ -284,6 +294,7 @@ cleanup() {
     wait "$restore_server_pid" >/dev/null 2>&1 || true
   fi
   rm -rf "$WORK_ROOT"
+  rm -f "$PRIVATE_STDERR"
 }
 trap cleanup EXIT HUP INT TERM
 
