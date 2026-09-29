@@ -41,7 +41,7 @@ GRANT ALL PRIVILEGES ON \`$database\`.* TO '$owner_user'@'%';
 CREATE USER IF NOT EXISTS '$runtime_user'@'%' IDENTIFIED BY '$runtime_password';
 ALTER USER '$runtime_user'@'%' IDENTIFIED BY '$runtime_password';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '$runtime_user'@'%';
-GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON \`$database\`.* TO '$runtime_user'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`$database\`.* TO '$runtime_user'@'%';
 SQL
   echo "production-mysql-init: owner and bounded runtime user ready: $database"
 }
