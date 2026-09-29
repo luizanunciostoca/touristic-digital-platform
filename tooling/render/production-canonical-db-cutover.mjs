@@ -45,6 +45,15 @@ function normalizeDeploys(payload) {
   return payload.map((entry) => entry?.deploy ?? entry).filter(Boolean);
 }
 
+function normalizeEnvVars(payload) {
+  const rows = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.envVars)
+      ? payload.envVars
+      : [];
+  return rows.map((entry) => entry?.envVar ?? entry).filter(Boolean);
+}
+
 function runtime(service) {
   return String(
     service?.serviceDetails?.runtime ?? service?.serviceDetails?.env ?? "",
@@ -249,6 +258,26 @@ function previousSource(service, previousReleaseSha) {
   });
 }
 
+function sourceMatchesSnapshot(service, source) {
+  const details = nativeDetails(service);
+  return (
+    String(service?.repo ?? "") === source.repo &&
+    String(service?.branch ?? "main") === source.branch &&
+    runtime(service) === source.runtime &&
+    String(details.buildCommand ?? "") === source.buildCommand &&
+    String(details.startCommand ?? "") === source.startCommand &&
+    String(
+      service?.serviceDetails?.preDeployCommand ??
+        details.preDeployCommand ??
+        "",
+    ) === source.preDeployCommand &&
+    String(service?.serviceDetails?.healthCheckPath ?? "") ===
+      source.healthCheckPath &&
+    Number(service?.serviceDetails?.maxShutdownDelaySeconds ?? 30) ===
+      source.maxShutdownDelaySeconds
+  );
+}
+
 async function restoreSource(client, serviceId, source) {
   if (!source.repo || !source.runtime) {
     throw new Error("ROLLBACK_SOURCE_IDENTITY_INCOMPLETE");
@@ -275,25 +304,7 @@ async function rollbackFromState({ client, state, stateFile }) {
   await restoreSource(client, state.webServiceId, state.previousSource);
 
   const restoredService = await client.get(`/services/${state.webServiceId}`);
-  const restoredDetails = nativeDetails(restoredService);
-  if (
-    String(restoredService?.repo ?? "") !== state.previousSource.repo ||
-    String(restoredService?.branch ?? "main") !== state.previousSource.branch ||
-    runtime(restoredService) !== state.previousSource.runtime ||
-    String(restoredDetails.buildCommand ?? "") !==
-      state.previousSource.buildCommand ||
-    String(restoredDetails.startCommand ?? "") !==
-      state.previousSource.startCommand ||
-    String(
-      restoredService?.serviceDetails?.preDeployCommand ??
-        restoredDetails.preDeployCommand ??
-        "",
-    ) !== state.previousSource.preDeployCommand ||
-    String(restoredService?.serviceDetails?.healthCheckPath ?? "") !==
-      state.previousSource.healthCheckPath ||
-    Number(restoredService?.serviceDetails?.maxShutdownDelaySeconds ?? 30) !==
-      state.previousSource.maxShutdownDelaySeconds
-  ) {
+  if (!sourceMatchesSnapshot(restoredService, state.previousSource)) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
   }
 
@@ -376,6 +387,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     deployPayload,
     mysqlDeployPayload,
     credentials,
+    webEnvPayload,
   ] = await Promise.all([
     client.get(`/services/${webServiceId}`),
     client.get(`/services/${mysqlServiceId}`),
@@ -384,6 +396,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     client.get(
       `/registrycredentials?ownerId=${encodeURIComponent(workspaceId)}&type=GITHUB&limit=100`,
     ),
+    client.get(`/services/${webServiceId}/env-vars`),
   ]);
 
   if (
@@ -404,6 +417,13 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     mysqlService.serviceDetails?.region !== "virginia"
   ) {
     throw new Error("PRODUCTION_MYSQL_SERVICE_IDENTITY_INVALID");
+  }
+
+  const browserDatabaseKeys = normalizeEnvVars(webEnvPayload)
+    .map((entry) => String(entry?.key ?? ""))
+    .filter((key) => /^VITE_.*_DATABASE_URL$/u.test(key));
+  if (browserDatabaseKeys.length !== 0) {
+    throw new Error("PRODUCTION_BROWSER_DATABASE_ENV_EXPOSED");
   }
 
   const liveMysqlDeploy = normalizeDeploys(mysqlDeployPayload).find(
@@ -451,6 +471,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   };
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
 
+  let sourcePatchAttempted = false;
   let sourcePatched = false;
   try {
     const runtimeUrls = await buildRuntimeUrls(client, mysqlServiceId);
@@ -481,6 +502,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     const image = { ownerId: workspaceId, imagePath };
     if (registryCredentialId) image.registryCredentialId = registryCredentialId;
 
+    sourcePatchAttempted = true;
     await client.patch(`/services/${webServiceId}`, {
       autoDeployTrigger: "off",
       image,
@@ -528,6 +550,28 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
         await fs.writeFile(
           evidenceFile,
           JSON.stringify(publicEvidence(rolledBack), null, 2),
+        );
+      } catch {
+        throw new Error("PRODUCTION_CUTOVER_FAILED_ROLLBACK_REQUIRED");
+      }
+    } else if (sourcePatchAttempted) {
+      try {
+        await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+        const observedService = await client.get(`/services/${webServiceId}`);
+        if (!sourceMatchesSnapshot(observedService, state.previousSource)) {
+          await restoreSource(client, webServiceId, state.previousSource);
+          const reconciledService = await client.get(
+            `/services/${webServiceId}`,
+          );
+          if (!sourceMatchesSnapshot(reconciledService, state.previousSource)) {
+            throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
+          }
+        }
+        state.status = "restored_indeterminate_patch";
+        await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+        await fs.writeFile(
+          evidenceFile,
+          JSON.stringify(publicEvidence(state), null, 2),
         );
       } catch {
         throw new Error("PRODUCTION_CUTOVER_FAILED_ROLLBACK_REQUIRED");
