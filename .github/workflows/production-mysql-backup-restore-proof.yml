@@ -380,24 +380,51 @@ jobs:
 
           print_job_diagnostics() {
             local diagnostic_status="unknown"
+            local diagnostic=""
             diagnostic_status="$(jq -r '.status // "unknown"' /tmp/dr-job.json 2>/dev/null || true)"
             echo "Render DR job terminal status: $diagnostic_status" >&2
 
-            if curl --fail-with-body --silent --show-error \
-              --get \
-              --header "$auth" \
-              --header "Accept: application/json" \
-              --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
-              --data-urlencode "resource=$job_id" \
-              --data-urlencode "direction=backward" \
-              --data-urlencode "limit=100" \
-              "$api/logs" > /tmp/dr-job-failure-logs.json
-            then
-              jq -r '
-                .logs[]?.message |
-                select((contains("MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK") | not))
-              ' /tmp/dr-job-failure-logs.json | head -n 100 >&2 || true
-            fi
+            for _ in $(seq 1 15); do
+              if curl --fail-with-body --silent --show-error \
+                --get \
+                --header "$auth" \
+                --header "Accept: application/json" \
+                --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
+                --data-urlencode "resource=$job_id" \
+                --data-urlencode "direction=backward" \
+                --data-urlencode "limit=100" \
+                "$api/logs" > /tmp/dr-job-failure-logs.json
+              then
+                diagnostic="$(jq -c \
+                  --arg contract "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF" '
+                    [.logs[]?.message | fromjson? |
+                      select(.contract == $contract and .status == "fail") |
+                      {
+                        contract,
+                        contractVersion,
+                        status,
+                        code,
+                        stage,
+                        line
+                      }][0] // empty
+                  ' /tmp/dr-job-failure-logs.json)"
+                if [ -n "$diagnostic" ]; then
+                  printf '%s\n' "$diagnostic" >&2
+                  return 0
+                fi
+              fi
+              sleep 2
+            done
+
+            jq -nc \
+              --arg contract "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF" \
+              --arg terminalStatus "$diagnostic_status" \
+              '{
+                contract:$contract,
+                status:"fail",
+                code:"DIAGNOSTIC_RECORD_UNAVAILABLE",
+                terminalStatus:$terminalStatus
+              }' >&2
           }
 
           jq -n             '{startCommand:"/usr/local/bin/morro-production-mysql-dr-proof"}'             > /tmp/dr-job-request.json
