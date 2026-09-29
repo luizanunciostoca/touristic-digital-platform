@@ -13,6 +13,7 @@ HANDLED_FAILURE_EXIT=86
 expected_sha="${EXPECTED_SHA:-}"
 image_digest="${IMAGE_DIGEST:-}"
 image_run_id="${IMAGE_RUN_ID:-}"
+candidate_run_id="${CANDIDATE_RUN_ID:-}"
 dr_run_id="${DR_RUN_ID:-}"
 dr_secret="${PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1:-}"
 
@@ -42,14 +43,49 @@ trap cleanup EXIT HUP INT TERM
 [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]] || fail "EXPECTED_SHA_INVALID"
 [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "IMAGE_DIGEST_INVALID"
 [[ "$image_run_id" =~ ^[0-9]+$ ]] || fail "IMAGE_RUN_ID_INVALID"
+[[ "$candidate_run_id" =~ ^[0-9]+$ ]] || fail "CANDIDATE_RUN_ID_INVALID"
 [[ "$dr_run_id" =~ ^[0-9]+$ ]] || fail "DR_RUN_ID_INVALID"
 [[ "${#dr_secret}" -ge 32 ]] || fail "DR_DECRYPTION_KEY_INVALID"
 [[ "$(git rev-parse HEAD)" == "$expected_sha" ]] || fail "CHECKOUT_SHA_MISMATCH"
 [[ "$(git ls-remote origin refs/heads/main | awk '{print $1}')" == "$expected_sha" ]] || fail "MAIN_SHA_MISMATCH"
 
-mkdir -p "$work_root/release" "$work_root/dr"
+mkdir -p "$work_root/candidate" "$work_root/release" "$work_root/dr"
 printf '%s' "$dr_secret" >"$dr_key_file"
 chmod 600 "$dr_key_file"
+
+tree_sha="$(git rev-parse "$expected_sha^{tree}")"
+lockfile_digest="sha256:$(sha256sum pnpm-lock.yaml | awk '{print $1}')"
+
+candidate_meta="$(gh run view "$candidate_run_id" --json headSha,status,conclusion)"
+jq -e --arg sha "$expected_sha" '
+  .headSha == $sha and
+  .status == "completed" and
+  .conclusion == "success"
+' <<<"$candidate_meta" >/dev/null || fail "CANDIDATE_RUN_IDENTITY_INVALID"
+
+gh run download "$candidate_run_id" \
+  --name "morro-digital-candidate-$expected_sha" \
+  --dir "$work_root/candidate"
+candidate_manifest="$work_root/candidate/release-candidate-manifest.json"
+candidate_archive="$work_root/candidate/morro-digital-candidate.tgz"
+[[ -s "$candidate_manifest" && -s "$candidate_archive" ]] \
+  || fail "CANDIDATE_ARTIFACT_MISSING"
+candidate_artifact_digest="$(jq -r '.artifactDigest // empty' "$candidate_manifest")"
+computed_candidate_digest="sha256:$(sha256sum "$candidate_archive" | awk '{print $1}')"
+[[ "$computed_candidate_digest" == "$candidate_artifact_digest" ]] \
+  || fail "CANDIDATE_ARTIFACT_DIGEST_MISMATCH"
+jq -e \
+  --arg sha "$expected_sha" \
+  --arg tree "$tree_sha" \
+  --arg lock "$lockfile_digest" \
+  --arg artifact "$candidate_artifact_digest" \
+  --arg run "$candidate_run_id" '
+    .commitSha == $sha and
+    .treeSha == $tree and
+    .lockfileDigest == $lock and
+    .artifactDigest == $artifact and
+    (.workflowRun | endswith("/actions/runs/" + $run))
+  ' "$candidate_manifest" >/dev/null || fail "CANDIDATE_MANIFEST_IDENTITY_INVALID"
 
 image_meta="$(gh run view "$image_run_id" --json headSha,event,status,conclusion)"
 jq -e --arg sha "$expected_sha" '
@@ -62,7 +98,6 @@ jq -e --arg sha "$expected_sha" '
 gh run download "$image_run_id"   --name "release-provenance-$expected_sha"   --dir "$work_root/release"
 provenance="$work_root/release/release-provenance.json"
 [[ -s "$provenance" ]] || fail "RELEASE_PROVENANCE_MISSING"
-tree_sha="$(git rev-parse "$expected_sha^{tree}")"
 jq -e   --arg sha "$expected_sha"   --arg tree "$tree_sha"   --arg image "$IMAGE_REPOSITORY"   --arg digest "$image_digest"   --arg run "$image_run_id" '
     .source_sha == $sha and
     .tree_sha == $tree and
@@ -121,7 +156,7 @@ image_path="$IMAGE_REPOSITORY@$image_digest"
 docker pull "$image_path" >/dev/null
 docker image inspect "$image_path" >/dev/null
 
-docker network create "$network" >/dev/null
+docker network create --internal "$network" >/dev/null
 docker run -d   --name "$mysql_container"   --network "$network"   --network-alias "$MYSQL_ALIAS"   -e "MYSQL_ROOT_PASSWORD=$root_password"   -e "MYSQL_ROOT_HOST=%"   "$MYSQL_IMAGE" >/dev/null
 
 mysql_ready=false
@@ -160,7 +195,7 @@ done
 
 docker exec "$mysql_container" mysql --user=root --password="$root_password"   -e "FLUSH PRIVILEGES;" >/dev/null
 
-auth_hash="$(docker run --rm "$image_path" node --input-type=module -e   "import('./services/auth/dist/credentials.js').then(m=>console.log(m.hashPassword('production twin password',Buffer.alloc(16,7))))")"
+auth_hash="$(docker run --rm --network none "$image_path" node --input-type=module -e   "import('./services/auth/dist/credentials.js').then(m=>console.log(m.hashPassword('production twin password',Buffer.alloc(16,7))))")"
 users_json="$(jq -nc --arg hash "$auth_hash" '[{id:"production-twin-owner",email:"production-twin@example.invalid",passwordHash:$hash,role:"BUSINESS_OWNER",businessIds:["production-twin"]}]')"
 printf 'DASHBOARD_USERS_JSON=%s\n' "$users_json" >>"$env_file"
 
@@ -279,6 +314,11 @@ jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg im
     status:"pass",
     expectedSha:$expectedSha,
     treeSha:$treeSha,
+    candidate:{
+      runId:$candidateRunId,
+      artifactDigest:$candidateArtifactDigest,
+      lockfileDigest:$lockfileDigest
+    },
     image:{
       repository:$imageRepository,
       digest:$imageDigest,
@@ -296,6 +336,8 @@ jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg im
     twin:{
       mysqlImage:$mysqlImage,
       isolatedDockerNetwork:true,
+      noEgress:true,
+      authHelperNetwork:"none",
       productionHostnameAlias:true,
       frontendHttp:true,
       backendApi:"/api/analytics/v1/events",
@@ -327,7 +369,11 @@ jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg im
 
 jq -e '
   .status == "pass" and
+  (.candidate.artifactDigest | test("^sha256:[0-9a-f]{64}$")) and
+  (.candidate.lockfileDigest | test("^sha256:[0-9a-f]{64}$")) and
   .image.immutable == true and
+  .twin.noEgress == true and
+  .twin.authHelperNetwork == "none" and
   .twin.runtimePredeploy.status == "pass" and
   .twin.paymentsPredeploy.checkoutMode == "test" and
   .persistence.survivedRedeploy == true and
