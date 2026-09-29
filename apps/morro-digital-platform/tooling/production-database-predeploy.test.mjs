@@ -18,7 +18,7 @@ function environment(overrides = {}) {
     const url = new URL("mysql://placeholder.invalid/");
     url.hostname = "morro-digital-v2-production-mysql";
     url.port = "3306";
-    url.username = domain.schema;
+    url.username = `${domain.schema}_runtime`;
     url.password = `${domain.name}-password`;
     url.pathname = `/${domain.schema}`;
     value[domain.envKey] = url.toString();
@@ -92,7 +92,7 @@ function poolFactory(closed, { missingTableDomain = null } = {}) {
           [
             {
               database_name: domain.schema,
-              current_user_name: domain.schema,
+              current_user_name: `${domain.schema}_runtime`,
             },
           ],
           [],
