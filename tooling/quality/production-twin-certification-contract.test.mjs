@@ -53,6 +53,9 @@ function evidence(overrides = {}) {
     },
     productionSample: { schemaCount: 13, totalTables: 91 },
     twin: {
+      noEgress: true,
+      runtimeProbe: "docker-exec-loopback",
+      syntheticReleaseIdentity: true,
       runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 91 },
       paymentsPredeploy: { status: "pass", checkoutMode: "test" },
     },
@@ -99,10 +102,27 @@ test("accepts only the complete exact candidate identity", () => {
   }
 });
 
-test("rejects a certificate that weakens a safety boundary", () => {
-  const unsafe = evidence();
-  unsafe.safety.railwayTouched = true;
-  assert.equal(productionTwinCertificateMatches(unsafe, expected()), false);
+test("rejects certificates that weaken isolation or safety boundaries", () => {
+  const mutations = [
+    (value) => {
+      value.safety.railwayTouched = true;
+    },
+    (value) => {
+      value.twin.noEgress = false;
+    },
+    (value) => {
+      value.twin.runtimeProbe = "host-port";
+    },
+    (value) => {
+      value.twin.syntheticReleaseIdentity = false;
+    },
+  ];
+
+  for (const mutate of mutations) {
+    const unsafe = evidence();
+    mutate(unsafe);
+    assert.equal(productionTwinCertificateMatches(unsafe, expected()), false);
+  }
 });
 
 test("reuses only an exact certificate and dispatches when none matches", () => {
@@ -154,6 +174,17 @@ test("production twin executor is syntactically valid and no-egress", () => {
     'docker network create --internal "$network"',
     '--network-alias "$MYSQL_ALIAS"',
     'docker run --rm --network none "$image_path"',
+    'docker exec "$app_container"',
+    "MORRO_RELEASE_VERSION=$expected_sha",
+    "MORRO_DEPLOYMENT_ID=production-twin-",
+    "TWIN_RELEASE_IDENTITY_INVALID",
+    ".release.sha == $sha",
+    ".release.version == $version",
+    ".release.deploymentId == $deployment",
+    ".release.imageRunId == $imageRun",
+    'runtimeProbe:"docker-exec-loopback"',
+    "syntheticReleaseIdentity:true",
+    'Origin: "http://127.0.0.1:3000"',
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
     "/healthz",
@@ -186,6 +217,8 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "MERCADO_PAGO_CHECKOUT_MODE=production",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=true",
     "PAYMENTS_SUBSCRIPTIONS_ENABLED=true",
+    "-p 127.0.0.1:18080:3000",
+    "http://127.0.0.1:18080",
   ]) {
     assert.ok(
       !source.includes(forbidden),

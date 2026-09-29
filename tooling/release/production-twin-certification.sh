@@ -177,7 +177,7 @@ table_count="$(docker exec "$mysql_container" mysql   --user=root --password="$r
 [[ "$schema_count" == "13" && "$table_count" == "91" ]] || fail "TWIN_DATABASE_INVENTORY_INVALID"
 
 : >"$env_file"
-printf '%s\n'   "NODE_ENV=production"   "HOST=0.0.0.0"   "PORT=3000"   "RENDER_SERVICE_NAME=morro-digital-v2"   "EXPECTED_SHA=$expected_sha"   "MORRO_RELEASE_SHA=$expected_sha"   "MORRO_RELEASE_IMAGE_RUN_ID=$image_run_id"   "MORRO_DATABASE_SCHEMA_MODE=external"   "DASHBOARD_AUTH_SECRET=twin-dashboard-auth-secret-0123456789abcdef"   "DASHBOARD_AUTH_ORIGIN=https://twin.morro.invalid"   "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=false"   "DASHBOARD_SESSION_TTL_SECONDS=28800"   "CONTROL_CENTER_SUPPORT_SECRET=twin-control-support-secret-0123456789abcdef"   "CONTROL_CENTER_STEP_UP_SECRET=twin-control-step-up-secret-0123456789abcdef"   "ANALYTICS_FEATURE_ENABLED=true"   "ANALYTICS_RETENTION_DAYS=90"   "NOTIFICATIONS_FEATURE_ENABLED=false"   "TICKETING_FEATURE_ENABLED=false"   "TICKETING_OFFLINE_PROVISIONING_SECRET=twin-ticketing-offline-secret-0123456789abcdef"   "ORDERING_PRICING_CATALOG_JSON={\"version\":\"production-twin-v1\",\"plans\":[{\"id\":\"growth\",\"name\":\"Growth\",\"minorUnits\":5000,\"currency\":\"BRL\"}]}"   "PAYMENTS_DESTINATION_ID=morro-de-sao-paulo"   "PAYMENTS_STATUS_TOKEN_SECRET=twin-payment-status-secret-0123456789abcdef"   "PAYMENTS_HANDOFF_SECRET=twin-payment-handoff-secret-0123456789abcdef"   "PAYMENTS_RETURN_URL_ORIGINS=https://twin.morro.invalid"   "PAYMENTS_PROVIDER_MODE=mercado_pago"   "MERCADO_PAGO_CHECKOUT_MODE=test"   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true"   "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false"   "MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com"   "V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com"   "MERCADO_PAGO_ACCESS_TOKEN=TEST-TWIN-ACCESS-TOKEN-0123456789abcdef0123456789"   "MERCADO_PAGO_WEBHOOK_SECRET=twin-webhook-secret-0123456789abcdef"   "VITE_MERCADO_PAGO_PUBLIC_KEY=TEST-TWINPUBLICKEY1234567890"   "PAYMENTS_SUBSCRIPTIONS_ENABLED=false"   "PAYMENTS_WEBHOOK_URL=https://twin.morro.invalid/api/payments/v1/webhooks/sandbox"   "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS=300"   "PAYMENTS_PROVIDER_TIMEOUT_MS=8000"   "PAYMENTS_PROVIDER_MAX_ATTEMPTS=2"   "PAYMENTS_PROVIDER_RETRY_BASE_MS=100"   "PAYMENTS_RUNTIME_REPLICA_COUNT=1"   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED=false"   "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED=false"   >"$env_file"
+printf '%s\n'   "NODE_ENV=production"   "HOST=0.0.0.0"   "PORT=3000"   "RENDER_SERVICE_NAME=morro-digital-v2"   "EXPECTED_SHA=$expected_sha"   "MORRO_RELEASE_SHA=$expected_sha"   "MORRO_RELEASE_VERSION=$expected_sha"   "MORRO_DEPLOYMENT_ID=production-twin-${GITHUB_RUN_ID:-local}"   "MORRO_RELEASE_IMAGE_RUN_ID=$image_run_id"   "MORRO_DATABASE_SCHEMA_MODE=external"   "DASHBOARD_AUTH_SECRET=twin-dashboard-auth-secret-0123456789abcdef"   "DASHBOARD_AUTH_ORIGIN=https://twin.morro.invalid"   "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=false"   "DASHBOARD_SESSION_TTL_SECONDS=28800"   "CONTROL_CENTER_SUPPORT_SECRET=twin-control-support-secret-0123456789abcdef"   "CONTROL_CENTER_STEP_UP_SECRET=twin-control-step-up-secret-0123456789abcdef"   "ANALYTICS_FEATURE_ENABLED=true"   "ANALYTICS_RETENTION_DAYS=90"   "NOTIFICATIONS_FEATURE_ENABLED=false"   "TICKETING_FEATURE_ENABLED=false"   "TICKETING_OFFLINE_PROVISIONING_SECRET=twin-ticketing-offline-secret-0123456789abcdef"   "ORDERING_PRICING_CATALOG_JSON={\"version\":\"production-twin-v1\",\"plans\":[{\"id\":\"growth\",\"name\":\"Growth\",\"minorUnits\":5000,\"currency\":\"BRL\"}]}"   "PAYMENTS_DESTINATION_ID=morro-de-sao-paulo"   "PAYMENTS_STATUS_TOKEN_SECRET=twin-payment-status-secret-0123456789abcdef"   "PAYMENTS_HANDOFF_SECRET=twin-payment-handoff-secret-0123456789abcdef"   "PAYMENTS_RETURN_URL_ORIGINS=https://twin.morro.invalid"   "PAYMENTS_PROVIDER_MODE=mercado_pago"   "MERCADO_PAGO_CHECKOUT_MODE=test"   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true"   "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false"   "MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com"   "V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com"   "MERCADO_PAGO_ACCESS_TOKEN=TEST-TWIN-ACCESS-TOKEN-0123456789abcdef0123456789"   "MERCADO_PAGO_WEBHOOK_SECRET=twin-webhook-secret-0123456789abcdef"   "VITE_MERCADO_PAGO_PUBLIC_KEY=TEST-TWINPUBLICKEY1234567890"   "PAYMENTS_SUBSCRIPTIONS_ENABLED=false"   "PAYMENTS_WEBHOOK_URL=https://twin.morro.invalid/api/payments/v1/webhooks/sandbox"   "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS=300"   "PAYMENTS_PROVIDER_TIMEOUT_MS=8000"   "PAYMENTS_PROVIDER_MAX_ATTEMPTS=2"   "PAYMENTS_PROVIDER_RETRY_BASE_MS=100"   "PAYMENTS_RUNTIME_REPLICA_COUNT=1"   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED=false"   "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED=false"   >"$env_file"
 
 for spec in   AUTH:AUTH_DATABASE_URL:morro_auth   AUDIT:CONTROL_CENTER_AUDIT_DATABASE_URL:morro_audit   DESTINATIONS:DESTINATIONS_DATABASE_URL:morro_destinations   CONTENT:CONTENT_DATABASE_URL:morro_content   BUSINESS:BUSINESS_DATABASE_URL:morro_business   ORDERING:ORDERING_DATABASE_URL:morro_ordering   FINANCIAL:FINANCIAL_DATABASE_URL:morro_financial   TICKETING:TICKETING_DATABASE_URL:morro_ticketing   NOTIFICATIONS:NOTIFICATIONS_DATABASE_URL:morro_notifications   AFFILIATES:AFFILIATES_DATABASE_URL:morro_affiliates   ANALYTICS:ANALYTICS_DATABASE_URL:morro_analytics   CRM:CRM_DATABASE_URL:morro_crm   COMMERCE:COMMERCE_DATABASE_URL:morro_commerce
 do
@@ -219,13 +219,61 @@ jq -e '
 ' "$work_root/payments-predeploy.json" >/dev/null || fail "TWIN_PAYMENT_BOUNDARY_INVALID"
 
 start_app() {
-  docker run -d     --name "$app_container"     --network "$network"     -p 127.0.0.1:18080:3000     --env-file "$env_file"     "$image_path" >/dev/null
+  docker run -d \
+    --name "$app_container" \
+    --network "$network" \
+    --env-file "$env_file" \
+    "$image_path" >/dev/null
+}
+
+container_request() {
+  local method="$1"
+  local path="$2"
+  local payload="${3:-}"
+  docker exec "$app_container" \
+    node --input-type=module -e '
+      const [method, path, payload] = process.argv.slice(1);
+      const options = {
+        method,
+        headers: {
+          Accept: "*/*",
+          Origin: "http://127.0.0.1:3000",
+          "Cache-Control": "no-cache",
+        },
+      };
+      if (method !== "GET") {
+        options.headers["Content-Type"] = "application/json";
+        options.body = payload;
+      }
+      try {
+        const response = await fetch("http://127.0.0.1:3000" + path, options);
+        const body = await response.text();
+        process.stdout.write(JSON.stringify({ status: response.status, body }));
+      } catch {
+        process.exitCode = 2;
+      }
+    ' "$method" "$path" "$payload"
+}
+
+capture_request() {
+  local method="$1"
+  local path="$2"
+  local output="$3"
+  local payload="${4:-}"
+  local response
+  response="$(container_request "$method" "$path" "$payload")" || return 1
+  jq -e '.status >= 200 and .status < 600 and (.body | type == "string")' \
+    <<<"$response" >/dev/null || return 1
+  jq -r '.body' <<<"$response" >"$output"
+  jq -r '.status' <<<"$response"
 }
 
 wait_app() {
   local ready=false
+  local status=""
   for _ in $(seq 1 90); do
-    if curl --fail --silent --show-error       http://127.0.0.1:18080/healthz >/dev/null 2>&1
+    if status="$(capture_request GET /healthz "$work_root/healthz.json" 2>/dev/null)" &&
+      [[ "$status" == "200" ]]
     then
       ready=true
       break
@@ -234,12 +282,14 @@ wait_app() {
   done
   if [[ "$ready" != true ]]; then
     docker logs "$app_container" >&2 || true
+    cat "$work_root/healthz.json" >&2 2>/dev/null || true
     fail "TWIN_APP_HEALTH_TIMEOUT"
   fi
 
   ready=false
   for _ in $(seq 1 90); do
-    if curl --fail --silent --show-error       http://127.0.0.1:18080/readyz >"$work_root/readyz.json" 2>/dev/null
+    if status="$(capture_request GET /readyz "$work_root/readyz.json" 2>/dev/null)" &&
+      [[ "$status" == "200" ]]
     then
       ready=true
       break
@@ -255,13 +305,29 @@ wait_app() {
 
 post_event() {
   local output="$1"
-  curl --silent --show-error     --output "$output"     --write-out '%{http_code}'     --request POST     --header 'Content-Type: application/json'     --header 'Origin: http://127.0.0.1:18080'     --header 'Connection: close'     --data-binary @"$work_root/event.json"     http://127.0.0.1:18080/api/analytics/v1/events
+  local payload
+  payload="$(cat "$work_root/event.json")"
+  capture_request POST /api/analytics/v1/events "$output" "$payload"
 }
 
 start_app
 wait_app
-curl --fail --silent --show-error http://127.0.0.1:18080/healthz >"$work_root/healthz.json"
-curl --fail --silent --show-error http://127.0.0.1:18080/ >"$work_root/frontend.html"
+health_status="$(capture_request GET /healthz "$work_root/healthz.json")"
+[[ "$health_status" == "200" ]] || fail "TWIN_APP_HEALTH_INVALID"
+expected_deployment_id="production-twin-${GITHUB_RUN_ID:-local}"
+jq -e \
+  --arg sha "$expected_sha" \
+  --arg version "$expected_sha" \
+  --arg deployment "$expected_deployment_id" \
+  --arg imageRun "$image_run_id" '
+    .status == "live" and
+    .release.sha == $sha and
+    .release.version == $version and
+    .release.deploymentId == $deployment and
+    .release.imageRunId == $imageRun
+  ' "$work_root/healthz.json" >/dev/null || fail "TWIN_RELEASE_IDENTITY_INVALID"
+frontend_status="$(capture_request GET / "$work_root/frontend.html")"
+[[ "$frontend_status" == "200" ]] || fail "TWIN_FRONTEND_HTTP_FAILED"
 [[ -s "$work_root/frontend.html" ]] || fail "TWIN_FRONTEND_EMPTY"
 
 event_id="production-twin-${GITHUB_RUN_ID:-local}"
@@ -286,7 +352,8 @@ readback_status="$(post_event "$work_root/readback.json")"
 [[ "$readback_status" == "200" ]] || fail "TWIN_API_READBACK_FAILED"
 jq -e '.data.status == "replayed"' "$work_root/readback.json" >/dev/null   || fail "TWIN_API_READBACK_EVIDENCE_INVALID"
 
-curl --fail --silent --show-error --header 'Cache-Control: no-cache'   http://127.0.0.1:18080/ >"$work_root/reload.html"
+reload_http_status="$(capture_request GET / "$work_root/reload.html")"
+[[ "$reload_http_status" == "200" ]] || fail "TWIN_RELOAD_HTTP_FAILED"
 reload_status="$(post_event "$work_root/reload-readback.json")"
 [[ "$reload_status" == "200" ]] || fail "TWIN_RELOAD_READBACK_FAILED"
 jq -e '.data.status == "replayed"' "$work_root/reload-readback.json" >/dev/null   || fail "TWIN_RELOAD_EVIDENCE_INVALID"
@@ -308,7 +375,7 @@ jq -e '.data.status == "replayed"' "$work_root/redeploy-readback.json" >/dev/nul
 db_rows_after_redeploy="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   morro_analytics   -e "SELECT COUNT(*) FROM analytics_events WHERE event_id='${event_id}';")"
 [[ "$db_rows_after_redeploy" == "1" ]] || fail "TWIN_REDEPLOY_DATABASE_READBACK_INVALID"
 
-jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg imageRepository "$IMAGE_REPOSITORY"   --arg imageDigest "$image_digest"   --arg imageRunId "$image_run_id"   --arg drRunId "$dr_run_id"   --arg drEncryptedSha "$actual_encrypted_sha"   --arg drPlainSha "$actual_plain_sha"   --arg mysqlImage "$MYSQL_IMAGE"   --arg eventId "$event_id"   --argjson runtimePredeploy "$(cat "$work_root/runtime-predeploy.json")"   --argjson paymentsPredeploy "$(cat "$work_root/payments-predeploy.json")"   '{
+jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg imageRepository "$IMAGE_REPOSITORY"   --arg imageDigest "$image_digest"   --arg imageRunId "$image_run_id"   --arg candidateRunId "$candidate_run_id"   --arg candidateArtifactDigest "$candidate_artifact_digest"   --arg lockfileDigest "$lockfile_digest"   --arg drRunId "$dr_run_id"   --arg drEncryptedSha "$actual_encrypted_sha"   --arg drPlainSha "$actual_plain_sha"   --arg mysqlImage "$MYSQL_IMAGE"   --arg eventId "$event_id"   --argjson runtimePredeploy "$(cat "$work_root/runtime-predeploy.json")"   --argjson paymentsPredeploy "$(cat "$work_root/payments-predeploy.json")"   '{
     contract:"MORRO-PRODUCTION-TWIN-CERTIFICATION",
     contractVersion:1,
     status:"pass",
@@ -338,6 +405,8 @@ jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg im
       isolatedDockerNetwork:true,
       noEgress:true,
       authHelperNetwork:"none",
+      runtimeProbe:"docker-exec-loopback",
+      syntheticReleaseIdentity:true,
       productionHostnameAlias:true,
       frontendHttp:true,
       backendApi:"/api/analytics/v1/events",
@@ -374,6 +443,8 @@ jq -e '
   .image.immutable == true and
   .twin.noEgress == true and
   .twin.authHelperNetwork == "none" and
+  .twin.runtimeProbe == "docker-exec-loopback" and
+  .twin.syntheticReleaseIdentity == true and
   .twin.runtimePredeploy.status == "pass" and
   .twin.paymentsPredeploy.checkoutMode == "test" and
   .persistence.survivedRedeploy == true and
