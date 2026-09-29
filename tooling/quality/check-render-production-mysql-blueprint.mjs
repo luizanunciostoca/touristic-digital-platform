@@ -24,6 +24,13 @@ const runtimeUsers = fs.readFileSync(
   new URL("../render/mysql-production/runtime-users.sh", import.meta.url),
   "utf8",
 );
+const runtimeUserEntrypoint = fs.readFileSync(
+  new URL(
+    "../render/mysql-production/runtime-users-entrypoint.sh",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 const domains = [
   ["AUTH", "morro_auth"],
@@ -201,6 +208,8 @@ for (const required of [
   "COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh",
   "COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback",
   "COPY tooling/render/mysql-production/runtime-users.sh /usr/local/bin/morro-mysql-runtime-users",
+  "COPY tooling/render/mysql-production/runtime-users-entrypoint.sh /usr/local/bin/morro-mysql-entrypoint",
+  'ENTRYPOINT ["/usr/local/bin/morro-mysql-entrypoint"]',
 ]) {
   requireActiveLine(dockerfile, required);
 }
@@ -233,36 +242,50 @@ requireText(init, "\\`$database\\`", "escaped SQL database identifier");
 
 for (const required of [
   'CONTRACT="MORRO-PRODUCTION-MYSQL-RUNTIME-USERS"',
-  'EXPECTED_PRIVILEGES="SELECT INSERT UPDATE DELETE"',
-  "RUNTIME_USER_PROVISION_CONFIRM",
-  "REVOKE ALL PRIVILEGES, GRANT OPTION",
-  "GRANT SELECT, INSERT, UPDATE, DELETE",
-  "schemaPrivilegeEntries",
+  "schema_privilege_entries",
+  "denied_count",
   "crossDomainDenied",
   "globalPrivilegeEntries",
 ]) {
   requireText(runtimeUsers, required);
 }
-forbidText(
-  runtimeUsers,
-  "GRANT ALL PRIVILEGES",
-  "runtime users must never receive owner privileges",
-);
-
-for (const forbiddenRuntimePrivilege of [
-  "CREATE",
-  "ALTER",
-  "INDEX",
-  "REFERENCES",
-  "DROP",
-  "TRIGGER",
+for (const forbidden of [
+  "MYSQL_ROOT_PASSWORD",
   "CREATE USER",
-  "GRANT OPTION",
+  "ALTER USER",
+  "GRANT ALL PRIVILEGES",
+  "GRANT SELECT",
+  "REVOKE ALL PRIVILEGES",
 ]) {
   forbidText(
     runtimeUsers,
-    "GRANT SELECT, INSERT, UPDATE, DELETE, " + forbiddenRuntimePrivilege,
-    "runtime users must remain DML-only",
+    forbidden,
+    "runtime-user proof must remain read-only: " + forbidden,
+  );
+}
+for (const required of [
+  "CREATE USER IF NOT EXISTS",
+  "ALTER USER",
+  "REVOKE ALL PRIVILEGES, GRANT OPTION",
+  "GRANT SELECT, INSERT, UPDATE, DELETE",
+  "--init-file",
+]) {
+  requireText(
+    runtimeUserEntrypoint,
+    required,
+    "runtime-user startup reconciliation " + required,
+  );
+}
+for (const forbidden of [
+  "CREATE, ALTER",
+  "INDEX",
+  "REFERENCES",
+  "GRANT OPTION ON",
+]) {
+  forbidText(
+    runtimeUserEntrypoint,
+    forbidden,
+    "runtime identities must remain DML-only: " + forbidden,
   );
 }
 
@@ -345,8 +368,9 @@ for (const [domain] of domains) {
 
 requireText(
   webService,
-  "preDeployCommand: env MORRO_DATABASE_SCHEMA_MODE=external node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  'preDeployCommand: \'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs\'',
 );
+requireText(webService, "- key: MORRO_DATABASE_SCHEMA_MODE");
 requireText(webService, "value: external", "external runtime schema mode");
 
 for (const runtimeDatabaseUrl of [
