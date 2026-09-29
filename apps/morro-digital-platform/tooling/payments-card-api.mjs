@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -221,10 +222,12 @@ export function createPaymentsCardApi({
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(financialPool);
-      await Promise.all([
-        applyOrderingM151Schema(orderingPool),
-        applyFinancialM145Schema(financialPool),
-      ]);
+      if (shouldApplyRuntimeSchema(environment)) {
+        await Promise.all([
+          applyOrderingM151Schema(orderingPool),
+          applyFinancialM145Schema(financialPool),
+        ]);
+      }
 
       const statusCapabilities = createCheckoutStatusCapability(
         environment.PAYMENTS_STATUS_TOKEN_SECRET,
