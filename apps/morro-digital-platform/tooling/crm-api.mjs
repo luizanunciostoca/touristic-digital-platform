@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomBytes } from "node:crypto";
 
 import { CrmContractServerBoundary } from "@touristic/crm/contracts-boundary";
@@ -222,8 +223,10 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
 
   async function ensureSchema() {
     schemaReady ??= (async () => {
-      await applyCrmM99Schema(pool);
-      await applyCrmCommerceSchema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await applyCrmM99Schema(pool);
+        await applyCrmCommerceSchema(pool);
+      }
     })();
     await schemaReady;
   }
