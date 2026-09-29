@@ -196,7 +196,7 @@ required_env DR_ENCRYPTION_SECRET >/dev/null
 [[ "$render_git_commit" == "$tool_sha" ]] || fail "TOOL_SHA_MISMATCH"
 [[ "$render_service_name" == morro-digital-v2-production-mysql-dr-* ]] || fail "DR_WORKER_SERVICE_DENIED"
 
-for command_name in mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat chown rm mkdir gzip base64; do
+for command_name in mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir gzip base64; do
   command -v "$command_name" >/dev/null 2>&1 || fail "REQUIRED_COMMAND_MISSING"
 done
 
@@ -311,10 +311,8 @@ cmp -s "$source_checksums_before" "$source_checksums_after" || fail "SOURCE_DATA
 restore_started_epoch="$(date +%s)"
 restore_started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 mkdir -p "$restore_data"
-chown -R mysql:mysql "$restore_root"
-
-mysqld --no-defaults --initialize-insecure --user=mysql --datadir="$restore_data" --log-error="$restore_log"
-mysqld --no-defaults --user=mysql --datadir="$restore_data" --socket="$restore_socket" \
+mysqld --no-defaults --initialize-insecure --datadir="$restore_data" --log-error="$restore_log"
+mysqld --no-defaults --datadir="$restore_data" --socket="$restore_socket" \
   --port="$RESTORE_PORT" --bind-address=127.0.0.1 --pid-file="$restore_pid" \
   --log-error="$restore_log" --skip-log-bin --performance-schema=OFF \
   --innodb-buffer-pool-size=96M --max-connections=20 --tmp-table-size=8M \
