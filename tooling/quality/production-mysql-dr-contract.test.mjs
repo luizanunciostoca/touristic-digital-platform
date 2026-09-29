@@ -20,6 +20,39 @@ function manifestRows() {
   return lines.map((line) => line.split("\t"));
 }
 
+function workflowRunBlock(stepName) {
+  const lines = readFileSync(workflowPath, "utf8").split(/\r?\n/u);
+  const stepMarker = `      - name: ${stepName}`;
+  const stepStart = lines.indexOf(stepMarker);
+  assert.ok(stepStart >= 0, `missing workflow step: ${stepName}`);
+
+  const nextStep = lines.findIndex(
+    (line, index) => index > stepStart && line.startsWith("      - "),
+  );
+  const stepEnd = nextStep >= 0 ? nextStep : lines.length;
+  const runStart = lines.findIndex(
+    (line, index) =>
+      index > stepStart && index < stepEnd && line === "        run: |",
+  );
+  assert.ok(runStart >= 0, `missing run block: ${stepName}`);
+
+  return (
+    lines
+      .slice(runStart + 1, stepEnd)
+      .map((line) => {
+        if (line === "") {
+          return "";
+        }
+        assert.ok(
+          line.startsWith("          "),
+          `unexpected run indentation in ${stepName}: ${line}`,
+        );
+        return line.slice(10);
+      })
+      .join("\n") + "\n"
+  );
+}
+
 test("DR canonical manifest exactly matches production bootstrap authority", () => {
   const actual = manifestRows();
   const authority = readFileSync(authorityPath, "utf8");
@@ -137,6 +170,19 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   assert.match(source, /^USER mysql$/mu);
   assert.ok(source.lastIndexOf("USER mysql") > source.lastIndexOf("USER root"));
   assert.match(source, /CMD \["bash", "-lc", "sleep infinity"\]/u);
+});
+
+test("modified DR workflow run blocks are syntactically valid", () => {
+  for (const stepName of [
+    "Prove source identity, no cutover, and provision isolated DR worker",
+    "Cleanup isolated DR resources",
+  ]) {
+    const syntax = spawnSync("bash", ["-n"], {
+      input: workflowRunBlock(stepName),
+      encoding: "utf8",
+    });
+    assert.equal(syntax.status, 0, `${stepName}: ${syntax.stderr}`);
+  }
 });
 
 test("DR workflow never delegates GitHub credentials or deletes the source service", () => {
