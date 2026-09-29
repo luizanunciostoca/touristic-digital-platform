@@ -330,6 +330,20 @@ async function rollbackFromState({ client, state, stateFile }) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
   }
 
+  const previousDeploy = await client.get(
+    `/services/${state.webServiceId}/deploys/${state.previousDeployId}`,
+  );
+  const previousDeploySha = String(previousDeploy?.commit?.id ?? "");
+  if (
+    String(previousDeploy?.status ?? "") === "live" &&
+    previousDeploySha === state.previousReleaseSha
+  ) {
+    state.status = "rolled_back";
+    state.rollbackDeployId = state.previousDeployId;
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+    return state;
+  }
+
   const rollback = await client.post(
     `/services/${state.webServiceId}/rollback`,
     { deployId: state.previousDeployId },
