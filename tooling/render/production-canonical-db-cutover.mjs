@@ -656,6 +656,10 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
     return evidence;
   }
   if (state.status === "rollback_revalidation_failed") {
+    await fs.writeFile(
+      evidenceFile,
+      JSON.stringify(publicEvidence(state), null, 2),
+    );
     throw new Error("ROLLBACK_REVALIDATION_FAILED_TERMINAL");
   }
 
@@ -665,6 +669,10 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
       state.status = "rollback_revalidation_failed";
       state.rollbackNotRequired = false;
       await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      await fs.writeFile(
+        evidenceFile,
+        JSON.stringify(publicEvidence(state), null, 2),
+      );
       throw new Error("ROLLBACK_PREVIOUS_LIVE_STATE_STALE");
     }
     const evidence = publicEvidence(state);

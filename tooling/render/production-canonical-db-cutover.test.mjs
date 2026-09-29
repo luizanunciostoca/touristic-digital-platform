@@ -727,8 +727,14 @@ test("idempotent restored_previous_live revalidates Render and fails closed on s
   );
 
   const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  const failureEvidence = JSON.parse(
+    await fs.readFile(fixture.evidenceFile, "utf8"),
+  );
   assert.equal(state.status, "rollback_revalidation_failed");
   assert.equal(state.rollbackNotRequired, false);
+  assert.equal(failureEvidence.status, "rollback_revalidation_failed");
+  assert.equal(failureEvidence.rollbackNotRequired, false);
+  assert.notEqual(failureEvidence.status, "restored_previous_live");
   assert.equal(
     fixture.requests.filter(
       (request) =>
@@ -754,6 +760,11 @@ test("idempotent restored_previous_live revalidates Render and fails closed on s
     ["PUT", "PATCH", "POST", "DELETE"].includes(request.method),
   ).length;
   assert.equal(mutationCountAfterRetry, mutationCountBeforeRetry);
+  const retryEvidence = JSON.parse(
+    await fs.readFile(fixture.evidenceFile, "utf8"),
+  );
+  assert.equal(retryEvidence.status, "rollback_revalidation_failed");
+  assert.equal(retryEvidence.rollbackNotRequired, false);
   assert.equal(
     fixture.requests.filter(
       (request) =>
