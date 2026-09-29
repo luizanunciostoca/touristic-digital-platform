@@ -318,7 +318,6 @@ function sourceIdentity(environment) {
   ) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SERVICE_DENIED");
   }
-
   const expectedSha = required(environment, "EXPECTED_SHA");
   const renderGitCommit = required(environment, "RENDER_GIT_COMMIT");
   if (!SHA_PATTERN.test(renderGitCommit) || !SHA_PATTERN.test(expectedSha)) {
@@ -327,7 +326,6 @@ function sourceIdentity(environment) {
   if (renderGitCommit !== expectedSha) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH");
   }
-
   return Object.freeze({ expectedSha, renderGitCommit });
 }
 
@@ -525,7 +523,7 @@ async function validateDomain(domain, pool) {
   );
   if (
     String(identity?.database_name ?? "") !== domain.schema ||
-    String(identity?.current_user_name ?? "") !== `${domain.schema}_runtime`
+    String(identity?.current_user_name ?? "") !== domain.schema
   ) {
     throw new Error(
       `PRODUCTION_DATABASE_IDENTITY_INVALID_${domain.name.toUpperCase()}`,
