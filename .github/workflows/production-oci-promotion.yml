@@ -123,7 +123,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for workflow in             final-release-acceptance.yml             dependency-security-audit.yml             security-scanning.yml
+          for workflow in             final-release-acceptance.yml             dependency-security-audit.yml             security-scanning.yml             production-mysql-render-provision.yml
           do
             run_id="$(
               gh run list                 --workflow "$workflow"                 --commit "$EXPECTED_SHA"                 --status success                 --limit 30                 --json databaseId,headSha                 --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
@@ -131,6 +131,42 @@ jobs:
             test -n "$run_id"
             echo "PASS: $workflow run $run_id @ $EXPECTED_SHA"
           done
+
+          bootstrap_run_id="$(
+            gh run list \
+              --workflow production-mysql-canonical-bootstrap.yml \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 30 \
+              --json databaseId,headSha \
+            | jq -r --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
+          )"
+          test -n "$bootstrap_run_id"
+          rm -rf /tmp/bootstrap-gate
+          mkdir -p /tmp/bootstrap-gate
+          gh run download "$bootstrap_run_id" \
+            --name "production-mysql-canonical-bootstrap-$bootstrap_run_id" \
+            --dir /tmp/bootstrap-gate
+          bootstrap_evidence="/tmp/bootstrap-gate/production-mysql-canonical-bootstrap-evidence.json"
+          test -s "$bootstrap_evidence"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            '.status == "pass" and
+             .expectedSha == $sha and
+             .contractVersion >= 3 and
+             .runtimeUsers.status == "pass" and
+             .runtimeUsers.runtimeUsers == 13 and
+             .runtimeUsers.allowedSchemaPrivilegesPerUser == 4 and
+             .runtimeUsers.schemaPrivilegeEntries == 52 and
+             .runtimeUsers.crossDomainDenied == 156 and
+             .runtimeUsers.globalPrivilegeEntries == 0 and
+             .bootstrap.status == "pass" and
+             .bootstrap.expectedSha == $sha and
+             .bootstrap.idempotent == true and
+             .bootstrap.runs == 2 and
+             .bootstrap.totalTables == 91' \
+            "$bootstrap_evidence" >/dev/null
+          echo "PASS: canonical bootstrap/runtime-user evidence run $bootstrap_run_id @ $EXPECTED_SHA"
 
           gate_run_id=""
           rm -rf /tmp/oci-gate
