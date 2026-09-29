@@ -489,7 +489,6 @@ test("required quality consumes fail-closed impact and release packaging is expl
   assert.ok(!/^  (pull_request|push|merge_group):/m.test(certification));
 });
 
-
 test("production cutover locates nested DR evidence artifacts", async () => {
   const production = await readFile(
     resolve(workflowsDir, "production-oci-promotion.yml"),
