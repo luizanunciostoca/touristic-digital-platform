@@ -225,7 +225,11 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
     /COPY --from=gosu-builder \/out\/gosu \/usr\/local\/bin\/gosu/u,
   );
   assert.match(source, /microdnf remove -y mysql-shell/u);
-  assert.match(source, /microdnf install -y jq gzip/u);
+  assert.match(source, /microdnf install -y jq gzip diffutils/u);
+  assert.match(
+    source,
+    /for command_name in mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir gzip base64; do command -v "\$command_name"; done;/u,
+  );
   assert.match(
     source,
     /COPY tooling\/render\/mysql-production\/readback\.sh \/usr\/local\/bin\/morro-mysql-readback/u,
