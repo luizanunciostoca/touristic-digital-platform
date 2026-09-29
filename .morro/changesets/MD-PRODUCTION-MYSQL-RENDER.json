@@ -42,6 +42,7 @@
       ".github/workflows/release-oci-image.yml",
       ".github/workflows/oci-release-promotion-gate.yml",
       "tooling/quality/check-ci-governance.mjs",
+      "tooling/quality/release-target-governance.test.mjs",
       "apps/morro-digital-platform/tooling/admin-audit-runtime.mjs",
       "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs",
       "apps/morro-digital-platform/tooling/affiliates-api.mjs",
