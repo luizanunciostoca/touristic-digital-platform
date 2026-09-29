@@ -53,6 +53,9 @@ function evidence(overrides = {}) {
     },
     productionSample: { schemaCount: 13, totalTables: 91 },
     twin: {
+      noEgress: true,
+      runtimeProbe: "docker-exec-loopback",
+      syntheticReleaseIdentity: true,
       runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 91 },
       paymentsPredeploy: { status: "pass", checkoutMode: "test" },
     },
@@ -154,6 +157,11 @@ test("production twin executor is syntactically valid and no-egress", () => {
     'docker network create --internal "$network"',
     '--network-alias "$MYSQL_ALIAS"',
     'docker run --rm --network none "$image_path"',
+    'docker exec "$app_container"',
+    "MORRO_RELEASE_VERSION=$expected_sha",
+    "MORRO_DEPLOYMENT_ID=production-twin-",
+    'runtimeProbe:"docker-exec-loopback"',
+    "syntheticReleaseIdentity:true",
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
     "/healthz",
@@ -186,6 +194,8 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "MERCADO_PAGO_CHECKOUT_MODE=production",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=true",
     "PAYMENTS_SUBSCRIPTIONS_ENABLED=true",
+    "-p 127.0.0.1:18080:3000",
+    "http://127.0.0.1:18080",
   ]) {
     assert.ok(
       !source.includes(forbidden),
