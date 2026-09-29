@@ -25,7 +25,10 @@ test("runtime collectors propagate MORRO_DATABASE_SCHEMA_MODE before schema poli
     const collectStart = source.indexOf("function collectEnvironment");
     const policyCall = source.indexOf("shouldApplyRuntimeSchema(environment)");
     assert.ok(collectStart >= 0, `${path} must define collectEnvironment`);
-    assert.ok(policyCall > collectStart, `${path} must evaluate policy after collection`);
+    assert.ok(
+      policyCall > collectStart,
+      `${path} must evaluate policy after collection`,
+    );
 
     const collectedSection = source.slice(collectStart, policyCall);
     assert.ok(
