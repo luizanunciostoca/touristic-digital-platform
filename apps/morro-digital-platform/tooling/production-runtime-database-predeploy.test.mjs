@@ -30,6 +30,9 @@ function poolFactory(
     extraGlobalPrivilege = false,
     crossSchemaPrivilege = false,
     roleGrant = false,
+    routineGrant = false,
+    nativeErrorCode = "",
+    nativeErrorMessage = "database connection failed",
   } = {},
 ) {
   return (databaseUrl) => {
@@ -43,6 +46,11 @@ function poolFactory(
       async query(sql) {
         const source = String(sql);
         if (source.startsWith("SELECT DATABASE()")) {
+          if (nativeErrorCode) {
+            const error = new Error(nativeErrorMessage);
+            error.code = nativeErrorCode;
+            throw error;
+          }
           return [
             [
               {
@@ -82,10 +90,25 @@ function poolFactory(
         }
         if (
           source.includes("information_schema.TABLE_PRIVILEGES") ||
-          source.includes("information_schema.COLUMN_PRIVILEGES") ||
-          source.includes("information_schema.ROUTINE_PRIVILEGES")
+          source.includes("information_schema.COLUMN_PRIVILEGES")
         ) {
           return [[{ count: 0 }], []];
+        }
+        if (source === "SHOW GRANTS FOR CURRENT_USER()") {
+          const column = "Grants for current user";
+          const account = `\`${schema}_runtime\`@\`%\``;
+          const rows = [
+            { [column]: `GRANT USAGE ON *.* TO ${account}` },
+            {
+              [column]: `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO ${account}`,
+            },
+          ];
+          if (routineGrant) {
+            rows.push({
+              [column]: `GRANT EXECUTE ON PROCEDURE \`${schema}\`.\`danger\` TO ${account}`,
+            });
+          }
+          return [rows, []];
         }
         throw new Error(`unexpected query: ${source}`);
       },
@@ -145,6 +168,29 @@ test("rejects roles attached to a runtime database account", async () => {
       poolFactory: poolFactory([], { roleGrant: true }),
     }),
     /PRODUCTION_RUNTIME_DATABASE_ROLE_PRIVILEGE_INVALID_AUTH/u,
+  );
+});
+
+test("rejects routine-level grants on a runtime database account", async () => {
+  await assert.rejects(
+    runProductionRuntimeDatabasePredeploy({
+      environment: environment(),
+      poolFactory: poolFactory([], { routineGrant: true }),
+    }),
+    /PRODUCTION_RUNTIME_DATABASE_ROUTINE_PRIVILEGE_INVALID_AUTH/u,
+  );
+});
+
+test("surfaces sanitized native MySQL errors with domain context", async () => {
+  await assert.rejects(
+    runProductionRuntimeDatabasePredeploy({
+      environment: environment(),
+      poolFactory: poolFactory([], {
+        nativeErrorCode: "ECONNREFUSED",
+        nativeErrorMessage: "ECONNREFUSED",
+      }),
+    }),
+    /PRODUCTION_RUNTIME_DATABASE_AUTH_ECONNREFUSED/u,
   );
 });
 

@@ -139,6 +139,8 @@ jobs:
         run: |
           set -euo pipefail
 
+          node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mysql.mjs
+
           run_suite() {
             local domain="$1"
             local workspace="$2"

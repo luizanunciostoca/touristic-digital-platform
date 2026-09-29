@@ -38,6 +38,20 @@ function validateIdentity(environment) {
   return { expectedSha, releaseSha };
 }
 
+function contextualizeDomainError(error, domain) {
+  const message = error instanceof Error ? String(error.message).trim() : "";
+  if (/^PRODUCTION_RUNTIME_[A-Z0-9_:-]{2,180}$/u.test(message)) return error;
+
+  const code =
+    error && typeof error === "object" ? String(error.code ?? "").trim() : "";
+  if (/^[A-Z][A-Z0-9_]{2,80}$/u.test(code)) {
+    return new Error(
+      `PRODUCTION_RUNTIME_DATABASE_${domain.name.toUpperCase()}_${code}`,
+    );
+  }
+  return error;
+}
+
 function validateUrl(environment, domain) {
   let url;
   try {
@@ -61,6 +75,77 @@ function validateUrl(environment, domain) {
     );
   }
   return url.toString();
+}
+
+export async function validateRuntimePrivilegeBoundaries(domain, pool) {
+  const [schemaPrivileges] = await pool.query(
+    `SELECT TABLE_SCHEMA AS table_schema, PRIVILEGE_TYPE AS privilege_type
+       FROM information_schema.SCHEMA_PRIVILEGES
+      WHERE GRANTEE = ${CURRENT_GRANTEE_SQL}
+      ORDER BY TABLE_SCHEMA, PRIVILEGE_TYPE`,
+  );
+  const observedPrivileges = schemaPrivileges
+    .map(
+      (row) =>
+        `${String(row.table_schema)}:${String(row.privilege_type).toUpperCase()}`,
+    )
+    .sort();
+  const expectedPrivileges = RUNTIME_SCHEMA_PRIVILEGES.map(
+    (privilege) => `${domain.schema}:${privilege}`,
+  ).sort();
+  if (
+    JSON.stringify(observedPrivileges) !== JSON.stringify(expectedPrivileges)
+  ) {
+    throw new Error(
+      `PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_SET_INVALID_${domain.name.toUpperCase()}`,
+    );
+  }
+
+  for (const [table, label] of [
+    ["USER_PRIVILEGES", "GLOBAL"],
+    ["TABLE_PRIVILEGES", "TABLE"],
+    ["COLUMN_PRIVILEGES", "COLUMN"],
+  ]) {
+    const [[row]] = await pool.query(
+      `SELECT COUNT(*) AS count
+         FROM information_schema.${table}
+        WHERE GRANTEE = ${CURRENT_GRANTEE_SQL}` +
+        (table === "USER_PRIVILEGES" ? " AND PRIVILEGE_TYPE <> 'USAGE'" : ""),
+    );
+    if (Number(row?.count ?? 0) !== 0) {
+      throw new Error(
+        `PRODUCTION_RUNTIME_DATABASE_${label}_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+      );
+    }
+  }
+
+  const [[roleRow]] = await pool.query(
+    `SELECT COUNT(*) AS count
+       FROM information_schema.APPLICABLE_ROLES
+      WHERE USER = SUBSTRING_INDEX(CURRENT_USER(), '@', 1)
+        AND HOST = SUBSTRING_INDEX(CURRENT_USER(), '@', -1)`,
+  );
+  if (Number(roleRow?.count ?? 0) !== 0) {
+    throw new Error(
+      `PRODUCTION_RUNTIME_DATABASE_ROLE_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+    );
+  }
+
+  const [grantRows] = await pool.query("SHOW GRANTS FOR CURRENT_USER()");
+  const routineGrant = grantRows.some((row) => {
+    const grant = Object.values(row ?? {})
+      .map((value) => String(value))
+      .join(" ");
+    return (
+      /\b(?:PROCEDURE|FUNCTION)\b/iu.test(grant) ||
+      /^GRANT\s+EXECUTE\b/iu.test(grant)
+    );
+  });
+  if (routineGrant) {
+    throw new Error(
+      `PRODUCTION_RUNTIME_DATABASE_ROUTINE_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+    );
+  }
 }
 
 async function validateDomain(domain, databaseUrl, poolFactory) {
@@ -93,48 +178,7 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
       );
     }
 
-    const [schemaPrivileges] = await pool.query(
-      `SELECT TABLE_SCHEMA AS table_schema, PRIVILEGE_TYPE AS privilege_type
-         FROM information_schema.SCHEMA_PRIVILEGES
-        WHERE GRANTEE = ${CURRENT_GRANTEE_SQL}
-        ORDER BY TABLE_SCHEMA, PRIVILEGE_TYPE`,
-    );
-    const observedPrivileges = schemaPrivileges
-      .map(
-        (row) =>
-          `${String(row.table_schema)}:${String(row.privilege_type).toUpperCase()}`,
-      )
-      .sort();
-    const expectedPrivileges = RUNTIME_SCHEMA_PRIVILEGES.map(
-      (privilege) => `${domain.schema}:${privilege}`,
-    ).sort();
-    if (
-      JSON.stringify(observedPrivileges) !== JSON.stringify(expectedPrivileges)
-    ) {
-      throw new Error(
-        `PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_SET_INVALID_${domain.name.toUpperCase()}`,
-      );
-    }
-
-    for (const [table, label] of [
-      ["USER_PRIVILEGES", "GLOBAL"],
-      ["TABLE_PRIVILEGES", "TABLE"],
-      ["COLUMN_PRIVILEGES", "COLUMN"],
-      ["ROUTINE_PRIVILEGES", "ROUTINE"],
-      ["APPLICABLE_ROLES", "ROLE"],
-    ]) {
-      const [[row]] = await pool.query(
-        `SELECT COUNT(*) AS count
-           FROM information_schema.${table}
-          WHERE GRANTEE = ${CURRENT_GRANTEE_SQL}` +
-          (table === "USER_PRIVILEGES" ? " AND PRIVILEGE_TYPE <> 'USAGE'" : ""),
-      );
-      if (Number(row?.count ?? 0) !== 0) {
-        throw new Error(
-          `PRODUCTION_RUNTIME_DATABASE_${label}_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
-        );
-      }
-    }
+    await validateRuntimePrivilegeBoundaries(domain, pool);
 
     if (domain.name === "destinations") {
       const [[seed]] = await pool.execute(
@@ -174,7 +218,11 @@ export async function runProductionRuntimeDatabasePredeploy({
   }));
   const domains = [];
   for (const { domain, databaseUrl } of validatedDomains) {
-    domains.push(await validateDomain(domain, databaseUrl, poolFactory));
+    try {
+      domains.push(await validateDomain(domain, databaseUrl, poolFactory));
+    } catch (error) {
+      throw contextualizeDomainError(error, domain);
+    }
   }
   return {
     contract: "MORRO-PRODUCTION-RUNTIME-DATABASE-PREDEPLOY",
