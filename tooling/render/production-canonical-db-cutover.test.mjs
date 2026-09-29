@@ -212,7 +212,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       assert.equal(body.serviceDetails.healthCheckPath, "/readyz");
       assert.match(
         body.serviceDetails.preDeployCommand,
-        /production-database-predeploy\.mjs --verify-idempotent && node .*payments-migrate\.mjs/u,
+        /production-runtime-database-predeploy\.mjs && node .*payments-migrate\.mjs/u,
       );
       return jsonResponse(200, { id: "srv-web" });
     }
@@ -267,6 +267,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   for (const [, canonicalKey] of productionDatabaseDomains) {
     assert.ok(keys.includes(canonicalKey), canonicalKey);
   }
+  assert.ok(keys.includes("MORRO_DATABASE_SCHEMA_MODE"));
   assert.ok(!keys.some((key) => key.startsWith("VITE_") && key.endsWith("_DATABASE_URL")));
 
   const evidence = JSON.parse(await fs.readFile(evidenceFile, "utf8"));
