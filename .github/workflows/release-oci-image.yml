@@ -93,6 +93,7 @@ jobs:
           docker build --pull --target production \
             --build-arg "MORRO_RELEASE_SHA=$EXPECTED_SHA" \
             --build-arg "MORRO_RELEASE_VERSION=$EXPECTED_SHA" \
+            --build-arg "MORRO_RELEASE_IMAGE_RUN_ID=$GITHUB_RUN_ID" \
             --label "org.opencontainers.image.revision=$EXPECTED_SHA" \
             --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
             -t "$image" .
@@ -126,12 +127,14 @@ jobs:
             --arg tree_sha "$TREE_SHA" \
             --arg image "$IMAGE_REPOSITORY" \
             --arg digest "$DIGEST" \
+            --arg image_run_id "$GITHUB_RUN_ID" \
             --arg workflow_run "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
             '{
               source_sha: $source_sha,
               tree_sha: $tree_sha,
               image: $image,
               digest: $digest,
+              image_run_id: $image_run_id,
               workflow_run: $workflow_run
             }' > release-provenance.json
           cat release-provenance.json
