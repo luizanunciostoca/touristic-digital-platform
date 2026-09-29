@@ -249,82 +249,19 @@ jobs:
           echo "bootstrap_service_id=$bootstrap_service_id" >> "$GITHUB_OUTPUT"
           echo "bootstrap_deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
 
-      - name: Reconcile bounded runtime database users
+      - name: Verify bounded runtime database users
         id: runtime_users
         env:
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
         shell: bash
         run: |
           set -euo pipefail
-          umask 077
           api="https://api.render.com/v1"
           auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+          rm -f /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json
+          trap 'rm -f /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json' EXIT
 
-          cleanup() {
-            rm -f /tmp/runtime-env.json /tmp/runtime-job-create.json /tmp/runtime-job.json /tmp/runtime-job-logs.json
-          }
-          trap cleanup EXIT
-
-          put_env() {
-            key="$1"
-            value="$2"
-            curl --fail-with-body --silent --show-error \
-              --request PUT \
-              --header "$auth" \
-              --header "Accept: application/json" \
-              --header "Content-Type: application/json" \
-              --data "$(jq -nc --arg value "$value" '{value:$value}')" \
-              "$api/services/$MYSQL_SERVICE_ID/env-vars/$key" >/dev/null
-          }
-
-          ensure_password() {
-            key="$1"
-            status="$(curl --silent --show-error \
-              --output /tmp/runtime-env.json \
-              --write-out '%{http_code}' \
-              --header "$auth" \
-              --header "Accept: application/json" \
-              "$api/services/$MYSQL_SERVICE_ID/env-vars/$key")"
-            case "$status" in
-              200)
-                value="$(jq -r '.value // .envVar.value // empty' /tmp/runtime-env.json)"
-                test "${#value}" -ge 32
-                ;;
-              404)
-                value="$(openssl rand -hex 32)"
-                put_env "$key" "$value"
-                ;;
-              *)
-                echo "Unexpected Render env lookup HTTP $status for $key" >&2
-                exit 1
-                ;;
-            esac
-            unset value
-          }
-
-          for spec in \
-            AUTH:morro_auth \
-            AUDIT:morro_audit \
-            DESTINATIONS:morro_destinations \
-            CONTENT:morro_content \
-            BUSINESS:morro_business \
-            ORDERING:morro_ordering \
-            FINANCIAL:morro_financial \
-            TICKETING:morro_ticketing \
-            NOTIFICATIONS:morro_notifications \
-            AFFILIATES:morro_affiliates \
-            ANALYTICS:morro_analytics \
-            CRM:morro_crm \
-            COMMERCE:morro_commerce
-          do
-            domain="${spec%%:*}"
-            schema="${spec#*:}"
-            put_env "${domain}_RUNTIME_DATABASE_USER" "${schema}_runtime"
-            ensure_password "${domain}_RUNTIME_DATABASE_PASSWORD"
-          done
-
-          jq -nc \
-            '{startCommand:"env RUNTIME_USER_PROVISION_CONFIRM=RUNTIME_USERS /usr/local/bin/morro-mysql-runtime-users"}' \
+          jq -nc '{startCommand:"/usr/local/bin/morro-mysql-runtime-users"}' \
             > /tmp/runtime-job-request.json
           http_status="$(curl --silent --show-error \
             --output /tmp/runtime-job-create.json \
@@ -355,7 +292,7 @@ jobs:
               succeeded) break ;;
               failed|canceled) exit 1 ;;
               pending|running) sleep 5 ;;
-              *) echo "Unexpected runtime user job status: $status" >&2; exit 1 ;;
+              *) echo "Unexpected runtime user verification status: $status" >&2; exit 1 ;;
             esac
           done
           test "$status" = "succeeded"
@@ -390,7 +327,7 @@ jobs:
              .crossDomainDenied == 156 and
              .globalPrivilegeEntries == 0' >/dev/null
           echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
-          echo "PASS: bounded runtime users reconciled without global privileges"
+          echo "PASS: DML-only runtime users verified with 156 cross-domain denials"
 
       - name: Run canonical bootstrap twice through least-privilege owners
         id: bootstrap
