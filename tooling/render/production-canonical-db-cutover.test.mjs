@@ -737,6 +737,31 @@ test("idempotent restored_previous_live revalidates Render and fails closed on s
     ).length,
     0,
   );
+
+  const mutationCountBeforeRetry = fixture.requests.filter((request) =>
+    ["PUT", "PATCH", "POST", "DELETE"].includes(request.method),
+  ).length;
+
+  await assert.rejects(
+    rollback({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /ROLLBACK_REVALIDATION_FAILED_TERMINAL/u,
+  );
+
+  const mutationCountAfterRetry = fixture.requests.filter((request) =>
+    ["PUT", "PATCH", "POST", "DELETE"].includes(request.method),
+  ).length;
+  assert.equal(mutationCountAfterRetry, mutationCountBeforeRetry);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
 });
 
 test("pre-patch env failure restores the snapshot without changing service source", async (t) => {

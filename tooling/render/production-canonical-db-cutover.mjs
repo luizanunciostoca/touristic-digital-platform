@@ -655,6 +655,9 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
     await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
     return evidence;
   }
+  if (state.status === "rollback_revalidation_failed") {
+    throw new Error("ROLLBACK_REVALIDATION_FAILED_TERMINAL");
+  }
 
   const client = createClient({ token, fetchImpl });
   if (state.status === "restored_previous_live") {
