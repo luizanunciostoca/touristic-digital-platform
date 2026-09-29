@@ -138,7 +138,7 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
     const [grantRows] = await pool.query("SHOW GRANTS FOR CURRENT_USER");
     const hasRoutineGrant = grantRows.some((row) =>
       Object.values(row).some((value) =>
-        /\\bON\\s+(?:PROCEDURE|FUNCTION)\\b/iu.test(String(value)),
+        /\bON\s+(?:PROCEDURE|FUNCTION)\b/iu.test(String(value)),
       ),
     );
     if (hasRoutineGrant) {
