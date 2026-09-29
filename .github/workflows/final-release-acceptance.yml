@@ -461,6 +461,8 @@ jobs:
           grep -Fxq "expected_sha=$EXPECTED_SHA" "$evidence"
           grep -Fxq "image=$image_repository" "$evidence"
           grep -Fxq "digest=$IMAGE_DIGEST" "$evidence"
+          grep -Fxq "image_run_id=${{ steps.release-image.outputs.run_id }}" "$evidence"
+          grep -Fxq "live_image_run_id=${{ steps.release-image.outputs.run_id }}" "$evidence"
           grep -Fxq "target_url=$STAGING_URL" "$evidence"
           deployment_id="$(sed -n 's/^render_deploy_id=//p' "$evidence" | head -n1)"
           test -n "$deployment_id"
@@ -476,6 +478,7 @@ jobs:
             --arg deploymentId "$deployment_id" \
             --arg image "$image_repository" \
             --arg imageDigest "$IMAGE_DIGEST" \
+            --arg imageRunId "${{ steps.release-image.outputs.run_id }}" \
             --arg verifiedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{
               expectedSha:$expectedSha,
@@ -487,19 +490,23 @@ jobs:
               deploymentId:$deploymentId,
               image:$image,
               imageDigest:$imageDigest,
+              imageRunId:$imageRunId,
               verifiedAt:$verifiedAt
             }' > final-release-staging-target-evidence.json
 
           echo "Structured OCI staging target evidence PASS for $EXPECTED_SHA @ $IMAGE_DIGEST"
       - name: Prove exact-SHA live staging health and readiness
         shell: bash
+        env:
+          EXPECTED_IMAGE_RUN_ID: ${{ steps.release-image.outputs.run_id }}
         run: |
           set -euo pipefail
           last_output=""
           for _ in $(seq 1 90); do
             if output="$(MORRO_V2_BASE_URL="$STAGING_URL" pnpm --silent payments:render:smoke 2>&1)"; then
               release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
-              if [ "$release_sha" = "$GITHUB_SHA" ]; then
+              image_run_id="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.imageRunId // empty' 2>/dev/null || true)"
+              if [ "$release_sha" = "$GITHUB_SHA" ] && [ "$image_run_id" = "$EXPECTED_IMAGE_RUN_ID" ]; then
                 printf '%s\n' "$output"
                 echo "Exact-SHA staging smoke PASS: $release_sha"
                 exit 0
