@@ -100,6 +100,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
@@ -122,7 +123,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for workflow in             final-release-acceptance.yml             oci-release-promotion-gate.yml             dependency-security-audit.yml             security-scanning.yml
+          for workflow in             final-release-acceptance.yml             dependency-security-audit.yml             security-scanning.yml
           do
             run_id="$(
               gh run list                 --workflow "$workflow"                 --commit "$EXPECTED_SHA"                 --status success                 --limit 30                 --json databaseId,headSha                 --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
@@ -130,6 +131,41 @@ jobs:
             test -n "$run_id"
             echo "PASS: $workflow run $run_id @ $EXPECTED_SHA"
           done
+
+          gate_run_id=""
+          rm -rf /tmp/oci-gate
+          mkdir -p /tmp/oci-gate
+          while read -r candidate_run; do
+            [ -n "$candidate_run" ] || continue
+            rm -rf /tmp/oci-gate/*
+            if gh run download "$candidate_run" \
+              --name "oci-promotion-gate-evidence-$candidate_run" \
+              --dir /tmp/oci-gate >/dev/null 2>&1
+            then
+              evidence="/tmp/oci-gate/oci-promotion-gate-evidence.json"
+              if jq -e \
+                --arg sha "$EXPECTED_SHA" \
+                --arg digest "$IMAGE_DIGEST" \
+                '.status == "pass" and
+                 .sourceSha == $sha and
+                 .imageDigest == $digest' \
+                "$evidence" >/dev/null 2>&1
+              then
+                gate_run_id="$candidate_run"
+                break
+              fi
+            fi
+          done < <(
+            gh run list \
+              --workflow oci-release-promotion-gate.yml \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 30 \
+              --json databaseId,headSha \
+            | jq -r --arg sha "$EXPECTED_SHA" '.[] | select(.headSha == $sha) | .databaseId'
+          )
+          test -n "$gate_run_id"
+          echo "PASS: digest-bound OCI promotion gate run $gate_run_id @ $EXPECTED_SHA / $IMAGE_DIGEST"
 
           dr_run_id="$(
             gh run list               --workflow production-mysql-backup-restore-proof.yml               --commit "$EXPECTED_SHA"               --status success               --limit 30               --json databaseId,headSha               --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
