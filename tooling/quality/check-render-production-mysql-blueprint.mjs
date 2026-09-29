@@ -225,7 +225,7 @@ for (const required of [
   "REVOKE ALL PRIVILEGES, GRANT OPTION",
   "GRANT SELECT, INSERT, UPDATE, DELETE",
   "utf8mb4_0900_ai_ci",
-  "13 canonical schemas and least-privilege owners initialized",
+  "13 canonical schemas, migration owners, and bounded runtime users initialized",
 ]) {
   requireText(init, required);
 }
@@ -248,6 +248,23 @@ forbidText(
   "GRANT ALL PRIVILEGES",
   "runtime users must never receive owner privileges",
 );
+
+for (const forbiddenRuntimePrivilege of [
+  "CREATE",
+  "ALTER",
+  "INDEX",
+  "REFERENCES",
+  "DROP",
+  "TRIGGER",
+  "CREATE USER",
+  "GRANT OPTION",
+]) {
+  forbidText(
+    runtimeUsers,
+    "GRANT SELECT, INSERT, UPDATE, DELETE, " + forbiddenRuntimePrivilege,
+    "runtime users must remain DML-only",
+  );
+}
 
 for (const required of [
   'CONTRACT="MORRO-PRODUCTION-MYSQL-READBACK"',
