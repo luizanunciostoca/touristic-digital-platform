@@ -1,0 +1,45 @@
+{
+  "id": "MD-EGF-W02-ACQUISITION-V2",
+  "baseSha": "5693cf09d037bbc81d02680b1871c4915969870f",
+  "branch": "feat/egf-w02-acquisition-v2-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W02-ACQUISITION-V2.json",
+      "packages/shared/src/experience-growth-fabric/acquisition/**"
+    ],
+    "contracts": ["affiliate-acquisition-policy-v2"]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [
+      "QualifiedAcquisitionEstablished",
+      "AcquisitionCycleOpened",
+      "AcquisitionCycleExpired",
+      "InfluenceTouchpointRecorded",
+      "QualifiedReacquisitionEstablished"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-EGF-W01-CONTRACTS"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
