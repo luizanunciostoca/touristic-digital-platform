@@ -15,7 +15,7 @@
     "architecture:check": "node tooling/architecture/check-dependencies.mjs && pnpm platform:contracts:check",
     "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
     "platform:contracts:check": "node tooling/quality/check-platform-contracts.mjs",
-    "environment:check": "node tooling/quality/check-environment-reconciliation.mjs && node tooling/quality/check-render-production-mysql-blueprint.mjs && node --test tooling/quality/render-production-mysql-blueprint.test.mjs tooling/render/with-production-mysql-env.test.mjs apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs tooling/quality/production-mysql-dr-contract.test.mjs",
+    "environment:check": "node tooling/quality/check-environment-reconciliation.mjs && node tooling/quality/check-render-production-mysql-blueprint.mjs && node --test tooling/quality/render-production-mysql-blueprint.test.mjs tooling/render/with-production-mysql-env.test.mjs apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs apps/morro-digital-platform/tooling/production-mysql-dr-contract.test.mjs",
     "release:readiness:check": "node tooling/quality/check-release-readiness.mjs && node --test apps/morro-digital-platform/tooling/payments-production-cutover-guard.contract.mjs",
     "secret-patterns:check": "node tooling/quality/check-secret-patterns.mjs",
     "ci:governance:check": "node tooling/quality/check-ci-governance.mjs",
