@@ -144,7 +144,7 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
     );
     if (
       grantStatements.some((statement) =>
-        /\\b(?:EXECUTE|ALTER ROUTINE|CREATE ROUTINE)\\b/iu.test(statement),
+        /\b(?:EXECUTE|ALTER ROUTINE|CREATE ROUTINE)\b/iu.test(statement),
       )
     ) {
       throw new Error(
