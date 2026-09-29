@@ -542,7 +542,9 @@ test("rejects any browser-exposed database URL already configured on the web ser
   );
 });
 
-test("ambiguous source patch failure reconciles committed source and restores env without rollback deployment", async (t) => {
+test(
+  "ambiguous source patch failure reconciles committed source and restores env without rollback deployment",
+  async (t) => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "morro-cutover-source-patch-failure-"),
   );
@@ -594,7 +596,8 @@ test("ambiguous source patch failure reconciles committed source and restores en
   assert.equal(state.status, "restored_indeterminate_patch");
   assert.equal(evidence.status, "restored_indeterminate_patch");
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
-});
+  },
+);
 
 test("post-patch failure automatically restores source and env then waits for rollback", async (t) => {
   const directory = await fs.mkdtemp(
