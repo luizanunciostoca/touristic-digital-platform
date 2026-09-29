@@ -12,5 +12,7 @@ COPY tooling/render/mysql-production-dr/dr-proof.sh /usr/local/bin/morro-product
 RUN chmod 0444 /opt/morro-dr/canonical-manifest.tsv && \
     chmod 0555 /usr/local/bin/morro-production-mysql-dr-proof
 
+USER mysql
+
 ENTRYPOINT []
 CMD ["bash", "-lc", "sleep infinity"]
