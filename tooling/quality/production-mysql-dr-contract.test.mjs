@@ -5,7 +5,6 @@ import test from "node:test";
 
 const authorityPath =
   "apps/morro-digital-platform/tooling/production-database-predeploy.mjs";
-
 const manifestPath =
   "tooling/render/mysql-production-dr/canonical-manifest.tsv";
 const executorPath = "tooling/render/mysql-production-dr/dr-proof.sh";
@@ -24,47 +23,46 @@ function manifestRows() {
 test("DR canonical manifest exactly matches production bootstrap authority", () => {
   const actual = manifestRows();
   const authority = readFileSync(authorityPath, "utf8");
-  const domainsSection = authority.slice(
-    authority.indexOf("export const canonicalProductionDomains"),
-    authority.indexOf("export const canonicalProductionScopePolicy"),
+  const domainsStart = authority.indexOf(
+    "export const canonicalProductionDomains",
   );
-  const scopeSection = authority.slice(
-    authority.indexOf("export const canonicalProductionScopePolicy"),
-    authority.indexOf("function safeFailureCode"),
+  const scopeStart = authority.indexOf(
+    "export const canonicalProductionScopePolicy",
   );
+  const scopeEnd = authority.indexOf("function safeFailureCode");
 
+  assert.ok(domainsStart >= 0);
+  assert.ok(scopeStart > domainsStart);
+  assert.ok(scopeEnd > scopeStart);
+
+  const domainsSection = authority.slice(domainsStart, scopeStart);
+  const scopeSection = authority.slice(scopeStart, scopeEnd);
   const domainPattern =
     /Object\.freeze\(\{\s*name:\s*"([^"]+)",[\s\S]*?schema:\s*"([^"]+)",\s*expectedTables:\s*Object\.freeze\(\[([\s\S]*?)\]\),\s*\}\)/gu;
+
   const expected = [];
   for (const match of domainsSection.matchAll(domainPattern)) {
     const schema = match[2];
     const tables = [...match[3].matchAll(/"([a-z0-9_]+)"/gu)].map(
       (tableMatch) => tableMatch[1],
     );
-    for (const table of tables) {
-      const escapedTable = table.replace(/[.*+?^${}()|[\]\\]/gu, "\\test("DR canonical manifest exactly matches production bootstrap authority", () => {
-  const actual = manifestRows();
-  const expected = canonicalProductionDomains.flatMap((domain) =>
-    domain.expectedTables.map((table) => [
-      domain.schema,
-      table,
-      canonicalProductionScopePolicy[domain.name][table],
-    ]),
-  );
 
-  assert.equal(actual.length, 91);
-  assert.equal(new Set(actual.map(([schema]) => schema)).size, 13);
-  assert.deepEqual(actual, expected);
-});");
+    for (const table of tables) {
       const scopeMatch = new RegExp(
-        "\\b" + escapedTable + "\\s*:\\s*\\\"([^\\\"]+)\\\"",
+        "\\b" + table + ': "([^"]+)"',
         "u",
       ).exec(scopeSection);
-      assert.ok(scopeMatch, "missing canonical scope for " + table);
+      assert.ok(scopeMatch, `missing canonical scope for ${table}`);
       expected.push([schema, table, scopeMatch[1]]);
     }
   }
 
+  assert.equal(actual.length, 91);
+  assert.equal(new Set(actual.map(([schema]) => schema)).size, 13);
+  assert.equal(
+    new Set(actual.map(([schema, table]) => `${schema}.${table}`)).size,
+    91,
+  );
   assert.equal(expected.length, 91);
   assert.equal(new Set(expected.map(([schema]) => schema)).size, 13);
   assert.deepEqual(actual, expected);
@@ -95,7 +93,10 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "crossDomainDenied",
     "PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP",
   ]) {
-    assert.ok(source.includes(required), `missing DR executor contract: ${required}`);
+    assert.ok(
+      source.includes(required),
+      `missing DR executor contract: ${required}`,
+    );
   }
 
   assert.match(
@@ -121,10 +122,7 @@ test("DR worker image uses the exact pinned MySQL 8.4 base", () => {
   );
   assert.match(source, /^USER mysql$/mu);
   assert.ok(source.lastIndexOf("USER mysql") > source.lastIndexOf("USER root"));
-  assert.match(
-    source,
-    /CMD \["bash", "-lc", "sleep infinity"\]/u,
-  );
+  assert.match(source, /CMD \["bash", "-lc", "sleep infinity"\]/u);
 });
 
 test("DR workflow never delegates GitHub credentials or deletes the source service", () => {
@@ -144,18 +142,18 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     'test "$dr_service_id" != "$MYSQL_SERVICE_ID"',
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
   ]) {
-    assert.ok(source.includes(required), `missing DR workflow contract: ${required}`);
+    assert.ok(
+      source.includes(required),
+      `missing DR workflow contract: ${required}`,
+    );
   }
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
-  assert.doesNotMatch(
-    source,
-    /DELETE[^\n]+services\/\$MYSQL_SERVICE_ID/iu,
-  );
+  assert.doesNotMatch(source, /DELETE[^\n]+services\/\$MYSQL_SERVICE_ID/iu);
   assert.ok(
     source.includes(
-      "node --test apps/morro-digital-platform/tooling/production-mysql-dr-contract.test.mjs",
+      "node --test tooling/quality/production-mysql-dr-contract.test.mjs",
     ),
   );
 });
