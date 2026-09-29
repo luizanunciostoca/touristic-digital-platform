@@ -260,6 +260,8 @@ jobs:
             ensure_literal "$domain"_DATABASE_NAME "$database"
             ensure_literal "$domain"_DATABASE_USER "$database"
             ensure_secret "$domain"_DATABASE_PASSWORD
+            ensure_literal "$domain"_RUNTIME_DATABASE_USER "${database}_runtime"
+            ensure_secret "$domain"_RUNTIME_DATABASE_PASSWORD
           done
           rm -f /tmp/render-env-vars.json
 
