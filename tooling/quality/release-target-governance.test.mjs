@@ -330,7 +330,9 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
   const acceptance = workflows.get("final-release-acceptance.yml");
   assert.ok(acceptance, "final-release-acceptance.yml must exist");
   assert.ok(acceptance.includes("staging-oci-promotion.yml"));
-  assert.ok(!acceptance.includes("gh workflow run staging-render-promotion.yml"));
+  assert.ok(
+    !acceptance.includes("gh workflow run staging-render-promotion.yml"),
+  );
 
   for (const marker of [
     "staging-deployment-evidence.json",
