@@ -41,7 +41,8 @@
         "tooling/render/production-canonical-db-cutover.test.mjs",
         ".github/workflows/final-release-acceptance.yml",
         ".github/workflows/release-oci-image.yml",
-        ".github/workflows/oci-release-promotion-gate.yml"
+        ".github/workflows/oci-release-promotion-gate.yml",
+        "tooling/quality/check-ci-governance.mjs"
       ],
       "domains": [
         "ci-release",
