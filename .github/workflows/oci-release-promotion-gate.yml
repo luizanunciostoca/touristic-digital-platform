@@ -190,6 +190,8 @@ jobs:
           test -s /tmp/runtime-config.js
           observed="$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' "$id" | sed -n 's/^MORRO_RELEASE_SHA=//p' | head -n1)"
           test "$observed" = "$EXPECTED_SHA"
+          image_run_id="$(docker inspect --format='{{range .Config.Env}}{{println .}}{{end}}' "$id" | sed -n 's/^MORRO_RELEASE_IMAGE_RUN_ID=//p' | head -n1)"
+          [[ "$image_run_id" =~ ^[0-9]+$ ]]
 
       - name: Publish digest-bound promotion evidence
         env:
