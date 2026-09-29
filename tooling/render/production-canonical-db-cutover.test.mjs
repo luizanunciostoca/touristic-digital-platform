@@ -232,9 +232,9 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       assert.equal(body.image.registryCredentialId, "reg-ghcr");
       assert.equal(body.serviceDetails.runtime, "image");
       assert.equal(body.serviceDetails.healthCheckPath, "/readyz");
-      assert.match(
+      assert.equal(
         body.serviceDetails.preDeployCommand,
-        /production-runtime-database-predeploy\.mjs && node .*payments-migrate\.mjs/u,
+        "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
       );
       return jsonResponse(200, { id: "srv-web" });
     }
@@ -277,6 +277,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   assert.equal(result.paymentsMode, "test");
   assert.equal(result.subscriptionsEnabled, false);
   assert.equal(result.railwayRetirement, "KEEP_TEMPORARILY");
+  assert.equal(result.rollbackNotRequired, false);
 
   const envWrites = requests.filter(
     (request) =>
@@ -289,7 +290,15 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   for (const [, canonicalKey] of productionDatabaseDomains) {
     assert.ok(keys.includes(canonicalKey), canonicalKey);
   }
+  assert.ok(keys.includes("EXPECTED_SHA"));
+  assert.ok(keys.includes("MORRO_RELEASE_SHA"));
   assert.ok(keys.includes("MORRO_DATABASE_SCHEMA_MODE"));
+  for (const key of ["EXPECTED_SHA", "MORRO_RELEASE_SHA"]) {
+    const write = envWrites.find((request) =>
+      request.route.endsWith(`/env-vars/${key}`),
+    );
+    assert.deepEqual(JSON.parse(write.body), { value: "c".repeat(40) });
+  }
   assert.ok(
     !keys.some(
       (key) => key.startsWith("VITE_") && key.endsWith("_DATABASE_URL"),
@@ -308,6 +317,8 @@ function failureCutoverFixture({
   staleBrowserDatabaseEnv = false,
   mysqlSourceChangesBeforeMutation = false,
   deployStatus = "build_failed",
+  previousLiveChangesAfterRestore = false,
+  failPreviousLiveRevalidationGet = false,
 }) {
   const stateFile = path.join(directory, "state.json");
   const evidenceFile = path.join(directory, "evidence.json");
@@ -356,6 +367,7 @@ function failureCutoverFixture({
 
   let currentService = structuredClone(originalService);
   let mysqlDeployReads = 0;
+  let webDeployReads = 0;
 
   const fetchImpl = async (url, options = {}) => {
     const parsed = new URL(url);
@@ -377,12 +389,20 @@ function failureCutoverFixture({
       });
     }
     if (method === "GET" && route === "/v1/services/srv-web/deploys?limit=20") {
+      webDeployReads += 1;
+      if (failPreviousLiveRevalidationGet && webDeployReads >= 3) {
+        return jsonResponse(503, { error: "injected-revalidation-outage" });
+      }
+      const observedPreviousSha =
+        previousLiveChangesAfterRestore && webDeployReads >= 3
+          ? "f".repeat(40)
+          : previousReleaseSha;
       return jsonResponse(200, [
         {
           deploy: {
             id: "dep-old",
             status: "live",
-            commit: { id: previousReleaseSha },
+            commit: { id: observedPreviousSha },
           },
         },
       ]);
@@ -637,7 +657,7 @@ test("reconciles source after an ambiguous patch failure", async (t) => {
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
 });
 
-test("post-patch failure automatically restores source and env then waits for rollback", async (t) => {
+test("post-patch failure restores source and env without redundant rollback when previous deploy is still live", async (t) => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "morro-cutover-rollback-"),
   );
@@ -652,25 +672,154 @@ test("post-patch failure automatically restores source and env then waits for ro
     /RENDER_DEPLOY_BUILD_FAILED/u,
   );
 
-  assert.ok(
-    fixture.requests.some(
+  assert.equal(
+    fixture.requests.filter(
       (request) =>
         request.method === "POST" &&
         request.route === "/v1/services/srv-web/rollback",
-    ),
+    ).length,
+    0,
   );
-  assert.ok(
-    fixture.requests.some(
-      (request) =>
-        request.method === "GET" &&
-        request.route === "/v1/services/srv-web/deploys/dep-rollback",
-    ),
-  );
+
   const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
-  assert.equal(evidence.status, "rolled_back");
-  assert.equal(evidence.rollbackDeployId, "dep-rollback");
+  assert.equal(evidence.status, "restored_previous_live");
+  assert.equal(evidence.rollbackDeployId, null);
+  assert.equal(evidence.rollbackNotRequired, true);
   assert.equal(evidence.previousReleaseSha, fixture.previousReleaseSha);
+
+  const idempotent = await rollback({
+    environment: fixture.environment,
+    fetchImpl: fixture.fetchImpl,
+  });
+  assert.equal(idempotent.status, "restored_previous_live");
+  assert.equal(idempotent.rollbackNotRequired, true);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
+});
+
+test("idempotent restored_previous_live revalidates Render and fails closed on stale state", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-stale-restored-live-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    previousLiveChangesAfterRestore: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_DEPLOY_BUILD_FAILED/u,
+  );
+
+  await assert.rejects(
+    rollback({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /ROLLBACK_PREVIOUS_LIVE_STATE_STALE/u,
+  );
+
+  const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  const failureEvidence = JSON.parse(
+    await fs.readFile(fixture.evidenceFile, "utf8"),
+  );
+  assert.equal(state.status, "rollback_revalidation_failed");
+  assert.equal(state.rollbackNotRequired, false);
+  assert.equal(failureEvidence.status, "rollback_revalidation_failed");
+  assert.equal(failureEvidence.rollbackNotRequired, false);
+  assert.notEqual(failureEvidence.status, "restored_previous_live");
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+
+  const mutationCountBeforeRetry = fixture.requests.filter((request) =>
+    ["PUT", "PATCH", "POST", "DELETE"].includes(request.method),
+  ).length;
+
+  await assert.rejects(
+    rollback({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /ROLLBACK_REVALIDATION_FAILED_TERMINAL/u,
+  );
+
+  const mutationCountAfterRetry = fixture.requests.filter((request) =>
+    ["PUT", "PATCH", "POST", "DELETE"].includes(request.method),
+  ).length;
+  assert.equal(mutationCountAfterRetry, mutationCountBeforeRetry);
+  const retryEvidence = JSON.parse(
+    await fs.readFile(fixture.evidenceFile, "utf8"),
+  );
+  assert.equal(retryEvidence.status, "rollback_revalidation_failed");
+  assert.equal(retryEvidence.rollbackNotRequired, false);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+});
+
+test("restored_previous_live revalidation persists failure evidence when Render deploy-list lookup fails", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-revalidation-outage-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    failPreviousLiveRevalidationGet: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_DEPLOY_BUILD_FAILED/u,
+  );
+
+  await assert.rejects(
+    rollback({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /ROLLBACK_PREVIOUS_LIVE_REVALIDATION_FAILED/u,
+  );
+
+  const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
+  assert.equal(state.status, "rollback_revalidation_failed");
+  assert.equal(state.rollbackNotRequired, false);
+  assert.equal(evidence.status, "rollback_revalidation_failed");
+  assert.equal(evidence.rollbackNotRequired, false);
+  assert.notEqual(evidence.status, "restored_previous_live");
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
 });
 
 test("pre-patch env failure restores the snapshot without changing service source", async (t) => {
@@ -738,6 +887,7 @@ test("a post-deploy verification failure can roll back a live new deploy using t
   });
   assert.equal(rolledBack.status, "rolled_back");
   assert.equal(rolledBack.rollbackDeployId, "dep-rollback");
+  assert.equal(rolledBack.rollbackNotRequired, false);
   assert.ok(
     fixture.requests.some(
       (request) =>

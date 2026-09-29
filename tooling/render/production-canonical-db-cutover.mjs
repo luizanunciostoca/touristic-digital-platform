@@ -121,6 +121,7 @@ function publicEvidence(state) {
     previousReleaseSha: state.previousReleaseSha,
     newDeployId: state.newDeployId ?? null,
     rollbackDeployId: state.rollbackDeployId ?? null,
+    rollbackNotRequired: state.rollbackNotRequired === true,
     databaseDomains: productionDatabaseDomains.length,
     paymentsMode: "test",
     subscriptionsEnabled: false,
@@ -240,6 +241,8 @@ async function snapshotRuntimeEnv(client, webServiceId) {
     previous[canonicalKey] = await readEnv(client, webServiceId, canonicalKey);
   }
   for (const key of [
+    "EXPECTED_SHA",
+    "MORRO_RELEASE_SHA",
     "MORRO_DATABASE_SCHEMA_MODE",
     "MERCADO_PAGO_CHECKOUT_MODE",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
@@ -319,6 +322,19 @@ async function restoreSource(client, serviceId, source) {
   });
 }
 
+async function previousDeployStillLive(client, state) {
+  const deployPayload = await client.get(
+    `/services/${state.webServiceId}/deploys?limit=20`,
+  );
+  const liveDeploy = normalizeDeploys(deployPayload).find(
+    (deploy) => deploy.status === "live",
+  );
+  return (
+    liveDeploy?.id === state.previousDeployId &&
+    String(liveDeploy.commit?.id ?? "") === state.previousReleaseSha
+  );
+}
+
 async function rollbackFromState({ client, state, stateFile }) {
   await restoreRuntimeEnv(client, state.webServiceId, state.previousEnv);
   await restoreSource(client, state.webServiceId, state.previousSource);
@@ -326,6 +342,17 @@ async function rollbackFromState({ client, state, stateFile }) {
   const restoredService = await client.get(`/services/${state.webServiceId}`);
   if (!sourceMatchesSnapshot(restoredService, state.previousSource)) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
+  }
+
+  if (
+    state.status === "deploying" &&
+    (await previousDeployStillLive(client, state))
+  ) {
+    state.status = "restored_previous_live";
+    state.rollbackDeployId = null;
+    state.rollbackNotRequired = true;
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+    return state;
   }
 
   const rollback = await client.post(
@@ -346,6 +373,7 @@ async function rollbackFromState({ client, state, stateFile }) {
 
   state.status = "rolled_back";
   state.rollbackDeployId = rollbackId;
+  state.rollbackNotRequired = false;
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
   return state;
 }
@@ -488,6 +516,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     previousEnv: await snapshotRuntimeEnv(client, webServiceId),
     registryCredentialId: registryCredentialId || null,
     newDeployId: null,
+    rollbackNotRequired: false,
   };
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
 
@@ -503,6 +532,8 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     for (const [key, value] of Object.entries(runtimeUrls)) {
       await writeEnv(client, webServiceId, key, value);
     }
+    await writeEnv(client, webServiceId, "EXPECTED_SHA", expectedSha);
+    await writeEnv(client, webServiceId, "MORRO_RELEASE_SHA", expectedSha);
     await writeEnv(
       client,
       webServiceId,
@@ -534,7 +565,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       serviceDetails: {
         runtime: "image",
         preDeployCommand:
-          'env EXPECTED_SHA="$MORRO_RELEASE_SHA" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs',
+          "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
         healthCheckPath: "/readyz",
         maxShutdownDelaySeconds: 30,
       },
@@ -624,7 +655,44 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
     await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
     return evidence;
   }
+  if (state.status === "rollback_revalidation_failed") {
+    await fs.writeFile(
+      evidenceFile,
+      JSON.stringify(publicEvidence(state), null, 2),
+    );
+    throw new Error("ROLLBACK_REVALIDATION_FAILED_TERMINAL");
+  }
+
   const client = createClient({ token, fetchImpl });
+  if (state.status === "restored_previous_live") {
+    let stillLive = false;
+    try {
+      stillLive = await previousDeployStillLive(client, state);
+    } catch {
+      state.status = "rollback_revalidation_failed";
+      state.rollbackNotRequired = false;
+      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      await fs.writeFile(
+        evidenceFile,
+        JSON.stringify(publicEvidence(state), null, 2),
+      );
+      throw new Error("ROLLBACK_PREVIOUS_LIVE_REVALIDATION_FAILED");
+    }
+    if (!stillLive) {
+      state.status = "rollback_revalidation_failed";
+      state.rollbackNotRequired = false;
+      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      await fs.writeFile(
+        evidenceFile,
+        JSON.stringify(publicEvidence(state), null, 2),
+      );
+      throw new Error("ROLLBACK_PREVIOUS_LIVE_STATE_STALE");
+    }
+    const evidence = publicEvidence(state);
+    await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
+    return evidence;
+  }
+
   const rolledBack = await rollbackFromState({ client, state, stateFile });
   await fs.writeFile(
     evidenceFile,
