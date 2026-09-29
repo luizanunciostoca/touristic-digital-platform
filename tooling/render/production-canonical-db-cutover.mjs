@@ -99,6 +99,7 @@ function publicEvidence(state) {
     previousDeployId: state.previousDeployId,
     previousReleaseSha: state.previousReleaseSha,
     newDeployId: state.newDeployId ?? null,
+    rollbackDeployId: state.rollbackDeployId ?? null,
     databaseDomains: productionDatabaseDomains.length,
     paymentsMode: "test",
     subscriptionsEnabled: false,
@@ -260,14 +261,39 @@ async function restoreSource(client, serviceId, source) {
 async function rollbackFromState({ client, state, stateFile }) {
   await restoreRuntimeEnv(client, state.webServiceId, state.previousEnv);
   await restoreSource(client, state.webServiceId, state.previousSource);
+
+  const restoredService = await client.get(`/services/${state.webServiceId}`);
+  const restoredDetails = nativeDetails(restoredService);
+  if (
+    String(restoredService?.repo ?? "") !== state.previousSource.repo ||
+    String(restoredService?.branch ?? "main") !== state.previousSource.branch ||
+    runtime(restoredService) !== state.previousSource.runtime ||
+    String(restoredDetails.buildCommand ?? "") !==
+      state.previousSource.buildCommand ||
+    String(restoredDetails.startCommand ?? "") !==
+      state.previousSource.startCommand
+  ) {
+    throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
+  }
+
   const rollback = await client.post(
     `/services/${state.webServiceId}/rollback`,
     { deployId: state.previousDeployId },
   );
   const rollbackId = String(rollback?.id ?? rollback?.deploy?.id ?? "");
-  if (rollbackId) await waitForDeploy(client, state.webServiceId, rollbackId);
+  if (!rollbackId) throw new Error("ROLLBACK_DEPLOY_ID_REQUIRED");
+  const liveRollback = await waitForDeploy(
+    client,
+    state.webServiceId,
+    rollbackId,
+  );
+  const rollbackSha = String(liveRollback?.commit?.id ?? "");
+  if (rollbackSha && rollbackSha !== state.previousReleaseSha) {
+    throw new Error("ROLLBACK_RELEASE_SHA_MISMATCH");
+  }
+
   state.status = "rolled_back";
-  state.rollbackDeployId = rollbackId || null;
+  state.rollbackDeployId = rollbackId;
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
   return state;
 }
@@ -461,9 +487,12 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     const observed = await client.get(
       `/services/${webServiceId}/deploys/${newDeployId}`,
     );
+    const observedRef = String(observed?.image?.ref ?? "");
+    const observedDigest = String(observed?.image?.sha ?? "");
     if (
-      String(observed?.image?.ref ?? "") !== imagePath &&
-      String(observed?.image?.sha ?? "") !== imageDigest
+      (!observedRef && !observedDigest) ||
+      (observedRef && observedRef !== imagePath) ||
+      (observedDigest && observedDigest !== imageDigest)
     ) {
       throw new Error("PRODUCTION_DEPLOY_DIGEST_MISMATCH");
     }
@@ -478,12 +507,26 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   } catch (error) {
     if (sourcePatched) {
       try {
-        await rollbackFromState({ client, state, stateFile });
+        const rolledBack = await rollbackFromState({
+          client,
+          state,
+          stateFile,
+        });
+        await fs.writeFile(
+          evidenceFile,
+          JSON.stringify(publicEvidence(rolledBack), null, 2),
+        );
       } catch {
         throw new Error("PRODUCTION_CUTOVER_FAILED_ROLLBACK_REQUIRED");
       }
     } else {
       await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+      state.status = "restored_pre_patch";
+      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      await fs.writeFile(
+        evidenceFile,
+        JSON.stringify(publicEvidence(state), null, 2),
+      );
     }
     throw error;
   }
