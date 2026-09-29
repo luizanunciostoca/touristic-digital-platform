@@ -123,7 +123,7 @@ jobs:
           dr_deploy_id=""
 
           cleanup_files() {
-            rm -f               /tmp/mysql-source.json               /tmp/mysql-deploys.json               /tmp/app-services.json               /tmp/app-service.json               /tmp/env-value.json               /tmp/dr-env.json               /tmp/dr-create.json               /tmp/dr-create-response.json               /tmp/dr-deploy-request.json               /tmp/dr-deploys.json               /tmp/dr-deploy-state.json               /tmp/dr-existing-services.json               /tmp/dr-delete-response.json
+            rm -f               /tmp/mysql-source.json               /tmp/mysql-deploys.json               /tmp/app-services.json               /tmp/app-service.json               /tmp/env-value.json               /tmp/dr-env.json               /tmp/dr-create.json               /tmp/dr-create-response.json               /tmp/dr-deploy-request.json               /tmp/dr-deploys.json               /tmp/dr-deploy-state.json               /tmp/dr-existing-services.json               /tmp/dr-stale-services.tsv               /tmp/dr-delete-response.json
           }
           trap cleanup_files EXIT
 
@@ -174,7 +174,25 @@ jobs:
           }
 
           api_get "$api/services?limit=100" > /tmp/dr-existing-services.json
-          while IFS=
+          jq -r \
+            --arg owner "$RENDER_WORKSPACE_ID" \
+            --arg prefix "$DR_SERVICE_PREFIX" \
+            '.[] | (.service // .) |
+             select(
+               .ownerId == $owner and
+               .type == "background_worker" and
+               (.name | startswith($prefix)) and
+               ((.serviceDetails.disk // null) == null)
+             ) |
+             [.id,.name] | @tsv' \
+            /tmp/dr-existing-services.json > /tmp/dr-stale-services.tsv
+
+          while IFS=$'\t' read -r stale_id stale_name; do
+            [ -n "$stale_id" ] || continue
+            delete_dr_service "$stale_id" "$stale_name"
+          done < /tmp/dr-stale-services.tsv
+
+          api_get "$api/services/$MYSQL_SERVICE_ID" > /tmp/mysql-source.json
           jq -e             --arg id "$MYSQL_SERVICE_ID"             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$MYSQL_SERVICE_NAME"             --arg disk "$EXPECTED_DISK_ID"             --arg mount "$EXPECTED_DISK_MOUNT"             --argjson size "$EXPECTED_DISK_SIZE_GB"             '.id == $id and
              .ownerId == $owner and
              .name == $name and
