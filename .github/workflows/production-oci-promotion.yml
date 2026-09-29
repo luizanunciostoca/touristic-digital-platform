@@ -342,6 +342,9 @@ jobs:
   deploy:
     needs: preflight
     if: needs.preflight.outputs.confirm_deploy == 'DEPLOY'
+    concurrency:
+      group: production-mysql-source-mutation
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     environment:
@@ -451,6 +454,68 @@ jobs:
           test "$current_main" = "$EXPECTED_SHA"
           node tooling/render/production-canonical-db-cutover.mjs cutover
 
+      - name: Seal rollback state before post-cutover verification
+        id: recovery_state
+        if: always()
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          EXPECTED_SHA: ${{ needs.preflight.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ needs.preflight.outputs.image_digest }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          state="/tmp/morro-production-cutover-state.json"
+          if [ ! -s "$state" ]; then
+            echo "sealed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          test -n "$RENDER_PRODUCTION_API_KEY"
+          recovery="/tmp/morro-production-cutover-recovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.enc"
+          metadata="/tmp/morro-production-cutover-recovery-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT.json"
+          openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -md sha256 \
+            -pass env:RENDER_PRODUCTION_API_KEY \
+            -in "$state" \
+            -out "$recovery"
+          test -s "$recovery"
+          recovery_sha256="$(sha256sum "$recovery" | awk '{print $1}')"
+          state_status="$(jq -r '.status // "unknown"' "$state")"
+          jq -n \
+            --arg expectedSha "$EXPECTED_SHA" \
+            --arg imageDigest "$IMAGE_DIGEST" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg runAttempt "$GITHUB_RUN_ATTEMPT" \
+            --arg stateStatus "$state_status" \
+            --arg sha256 "$recovery_sha256" \
+            '{
+              contract:"MORRO-PRODUCTION-CUTOVER-RECOVERY-SNAPSHOT",
+              contractVersion:1,
+              encrypted:true,
+              cipher:"aes-256-cbc-pbkdf2-sha256",
+              expectedSha:$expectedSha,
+              imageDigest:$imageDigest,
+              runId:$runId,
+              runAttempt:$runAttempt,
+              stateStatus:$stateStatus,
+              sha256:$sha256
+            }' > "$metadata"
+          chmod 600 "$recovery" "$metadata"
+          echo "sealed=true" >> "$GITHUB_OUTPUT"
+          echo "path=$recovery" >> "$GITHUB_OUTPUT"
+          echo "metadata_path=$metadata" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        id: recovery_upload
+        if: always() && steps.recovery_state.outputs.sealed == 'true'
+        with:
+          name: production-cutover-recovery-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ steps.recovery_state.outputs.path }}
+            ${{ steps.recovery_state.outputs.metadata_path }}
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Wait for exact-SHA health and readiness
         env:
           EXPECTED_SHA: ${{ needs.preflight.outputs.expected_sha }}
@@ -495,6 +560,8 @@ jobs:
         env:
           EXPECTED_SHA: ${{ needs.preflight.outputs.expected_sha }}
           IMAGE_DIGEST: ${{ needs.preflight.outputs.image_digest }}
+          RECOVERY_ARTIFACT_ID: ${{ steps.recovery_upload.outputs.artifact-id }}
+          RECOVERY_ARTIFACT_NAME: production-cutover-recovery-${{ github.run_id }}-${{ github.run_attempt }}
         shell: bash
         run: |
           set -euo pipefail
@@ -502,6 +569,21 @@ jobs:
             cp /tmp/morro-production-cutover-evidence.json production-canonical-db-cutover-evidence.json
           else
             jq -n               --arg expectedSha "$EXPECTED_SHA"               --arg imageDigest "$IMAGE_DIGEST"               '{contract:"MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER",status:"no-evidence",expectedSha:$expectedSha,imageDigest:$imageDigest}'               > production-canonical-db-cutover-evidence.json
+          fi
+          if [ -n "${RECOVERY_ARTIFACT_ID:-}" ]; then
+            jq \
+              --arg artifactId "$RECOVERY_ARTIFACT_ID" \
+              --arg artifactName "$RECOVERY_ARTIFACT_NAME" \
+              '. + {
+                recoverySnapshot:{
+                  encrypted:true,
+                  artifactId:$artifactId,
+                  artifactName:$artifactName
+                }
+              }' production-canonical-db-cutover-evidence.json \
+              > production-canonical-db-cutover-evidence.next.json
+            mv production-canonical-db-cutover-evidence.next.json \
+              production-canonical-db-cutover-evidence.json
           fi
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -514,7 +596,30 @@ jobs:
 
       - name: Destroy ephemeral rollback state
         if: always()
+        env:
+          RECOVERY_SEALED: ${{ steps.recovery_state.outputs.sealed }}
+          RECOVERY_ARTIFACT_ID: ${{ steps.recovery_upload.outputs.artifact-id }}
         shell: bash
         run: |
           set -euo pipefail
-          rm -f /tmp/morro-production-cutover-state.json
+          state="/tmp/morro-production-cutover-state.json"
+          evidence="/tmp/morro-production-cutover-evidence.json"
+          if [ -s "$state" ]; then
+            state_status="$(jq -r '.status // "unknown"' "$state")"
+            evidence_status=""
+            if [ -s "$evidence" ]; then
+              evidence_status="$(jq -r '.status // empty' "$evidence")"
+            fi
+            case "$state_status:$evidence_status" in
+              rolled_back:*|restored_pre_patch:*|restored_indeterminate_patch:*)
+                ;;
+              *)
+                test "$RECOVERY_SEALED" = "true"
+                test -n "${RECOVERY_ARTIFACT_ID:-}"
+                ;;
+            esac
+          fi
+          rm -f \
+            /tmp/morro-production-cutover-state.json \
+            /tmp/morro-production-cutover-recovery-*.enc \
+            /tmp/morro-production-cutover-recovery-*.json
