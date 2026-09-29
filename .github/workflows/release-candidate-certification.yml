@@ -3,6 +3,8 @@ name: Release Candidate Certification
 on:
   workflow_call:
   workflow_dispatch:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -18,13 +20,32 @@ env:
 
 jobs:
   candidate:
-    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    if: >-
+      github.event_name != 'issue_comment' ||
+      (github.event.issue.pull_request &&
+       github.actor == github.repository_owner &&
+       startsWith(github.event.comment.body, '/run-release-candidate '))
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - name: Authorize exact-main invocation
+        if: github.event_name == 'issue_comment'
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          read -r command expected_sha extra <<<"$COMMENT_BODY"
+          test "$command" = "/run-release-candidate"
+          test -z "${extra:-}"
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$expected_sha" = "$GITHUB_SHA"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$expected_sha"
+
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
