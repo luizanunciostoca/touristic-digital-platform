@@ -359,11 +359,11 @@ function validateDatabaseUrl(raw, domain) {
     url.hostname !== "morro-digital-v2-production-mysql" ||
     url.port !== "3306" ||
     !url.password ||
-    url.username !== domain.schema ||
+    url.username !== `${domain.schema}_runtime` ||
     database !== domain.schema
   ) {
     throw new Error(
-      `PRODUCTION_DATABASE_OWNER_INVALID_${domain.name.toUpperCase()}`,
+      `PRODUCTION_DATABASE_RUNTIME_IDENTITY_INVALID_${domain.name.toUpperCase()}`,
     );
   }
   return url.toString();
