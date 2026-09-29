@@ -192,6 +192,26 @@ async function deleteEnv(client, serviceId, key) {
   }
 }
 
+async function assertMysqlSourceStillProven(
+  client,
+  mysqlServiceId,
+  expectedMysqlSourceSha,
+) {
+  const payload = await client.get(
+    `/services/${mysqlServiceId}/deploys?limit=20`,
+  );
+  const liveDeploy = normalizeDeploys(payload).find(
+    (deploy) => deploy.status === "live",
+  );
+  if (
+    !liveDeploy?.id ||
+    String(liveDeploy.commit?.id ?? "") !== expectedMysqlSourceSha
+  ) {
+    throw new Error("PRODUCTION_MYSQL_DR_SOURCE_STALE");
+  }
+  return liveDeploy;
+}
+
 async function waitForDeploy(client, serviceId, deployId, attempts = 180) {
   for (let index = 0; index < attempts; index += 1) {
     const deploy = await client.get(
@@ -475,6 +495,11 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   let sourcePatched = false;
   try {
     const runtimeUrls = await buildRuntimeUrls(client, mysqlServiceId);
+    await assertMysqlSourceStillProven(
+      client,
+      mysqlServiceId,
+      expectedMysqlSourceSha,
+    );
     for (const [key, value] of Object.entries(runtimeUrls)) {
       await writeEnv(client, webServiceId, key, value);
     }
