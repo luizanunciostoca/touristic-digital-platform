@@ -39,6 +39,25 @@ const issued = issueReferralToken(placement, {
   kind: "q",
 });
 
+function resolutionInput(
+  overrides: Partial<{
+    publicCodeHash: string;
+    returnPath: string;
+    occurredAt: string;
+    attemptCountInWindow: number;
+    maximumAttemptsInWindow: number;
+  }> = {},
+) {
+  return {
+    publicCodeHash: "a".repeat(64),
+    returnPath: "/explore",
+    occurredAt: "2026-09-03T12:00:00.000Z",
+    attemptCountInWindow: 0,
+    maximumAttemptsInWindow: 20,
+    ...overrides,
+  };
+}
+
 describe("referral campaigns and placements", () => {
   it("issues an opaque public path without exposing affiliate id", () => {
     expect(issued.path).toBe("/q/A7KF93Hk4WzYv8S2pL6mN0Qr");
@@ -47,41 +66,36 @@ describe("referral campaigns and placements", () => {
   });
 
   it("allows permanent physical QR tokens without forced expiry", () => {
+    const input = resolutionInput({
+      returnPath: "/pt-BR/explore",
+      occurredAt: "2026-12-01T12:00:00.000Z",
+    });
     const result = resolveReferralToken(
       campaign,
       placement,
       issued.record,
-      {
-        publicCodeHash: "a".repeat(64),
-        returnPath: "/pt-BR/explore",
-        occurredAt: "2026-12-01T12:00:00.000Z",
-        attemptCountInWindow: 0,
-        maximumAttemptsInWindow: 20,
-      },
+      input,
     );
 
     expect(result.accepted).toBe(true);
   });
 
   it("fails closed for revoked and rotated tokens", () => {
-    const revoked = revokeReferralToken(
-      issued.record,
-      "2026-09-02T12:00:00.000Z",
-    );
+    const occurredAt = "2026-09-02T12:00:00.000Z";
+    const revoked = revokeReferralToken(issued.record, occurredAt);
     const rotated = rotateReferralToken(
       issued.record,
       "tok_00000002",
-      "2026-09-02T12:00:00.000Z",
+      occurredAt,
     );
 
     for (const token of [revoked, rotated]) {
-      const result = resolveReferralToken(campaign, placement, token, {
-        publicCodeHash: "a".repeat(64),
-        returnPath: "/explore",
-        occurredAt: "2026-09-03T12:00:00.000Z",
-        attemptCountInWindow: 0,
-        maximumAttemptsInWindow: 20,
-      });
+      const result = resolveReferralToken(
+        campaign,
+        placement,
+        token,
+        resolutionInput(),
+      );
       expect(result).toEqual({
         accepted: false,
         code: "TOKEN_NOT_ACTIVE",
@@ -94,33 +108,26 @@ describe("referral campaigns and placements", () => {
     expect(isSafeReferralReturnPath("//evil.example/path")).toBe(false);
     expect(isSafeReferralReturnPath("/explore")).toBe(true);
 
+    const input = resolutionInput({ attemptCountInWindow: 20 });
     const result = resolveReferralToken(
       campaign,
       placement,
       issued.record,
-      {
-        publicCodeHash: "a".repeat(64),
-        returnPath: "/explore",
-        occurredAt: "2026-09-03T12:00:00.000Z",
-        attemptCountInWindow: 20,
-        maximumAttemptsInWindow: 20,
-      },
+      input,
     );
+
     expect(result).toEqual({ accepted: false, code: "RATE_LIMITED" });
   });
 
   it("rejects token tampering and placement mismatches", () => {
+    const badHashInput = resolutionInput({
+      publicCodeHash: "b".repeat(64),
+    });
     const badHash = resolveReferralToken(
       campaign,
       placement,
       issued.record,
-      {
-        publicCodeHash: "b".repeat(64),
-        returnPath: "/explore",
-        occurredAt: "2026-09-03T12:00:00.000Z",
-        attemptCountInWindow: 0,
-        maximumAttemptsInWindow: 20,
-      },
+      badHashInput,
     );
     expect(badHash).toEqual({
       accepted: false,
@@ -135,13 +142,7 @@ describe("referral campaigns and placements", () => {
       campaign,
       otherPlacement,
       issued.record,
-      {
-        publicCodeHash: "a".repeat(64),
-        returnPath: "/explore",
-        occurredAt: "2026-09-03T12:00:00.000Z",
-        attemptCountInWindow: 0,
-        maximumAttemptsInWindow: 20,
-      },
+      resolutionInput(),
     );
     expect(mismatch).toEqual({
       accepted: false,
