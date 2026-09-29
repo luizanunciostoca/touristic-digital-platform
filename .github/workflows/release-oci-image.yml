@@ -7,6 +7,8 @@ on:
         description: Exact commit SHA to package as immutable OCI image
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -22,6 +24,12 @@ env:
 jobs:
   image:
     name: release-image
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.actor == github.repository_owner &&
+       startsWith(github.event.comment.body, '/run-release-oci '))
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
@@ -30,13 +38,35 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.expected_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha || github.sha }}
           fetch-depth: 0
+
+      - name: Resolve exact owner-authorized invocation
+        id: invocation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.expected_sha }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            expected_sha="$INPUT_SHA"
+          else
+            read -r command expected_sha extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-release-oci"
+            test -z "${extra:-}"
+          fi
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$expected_sha"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
 
       - name: Prove exact source identity
         id: identity
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -55,7 +85,7 @@ jobs:
       - name: Build and publish immutable image
         id: publish
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
@@ -75,7 +105,7 @@ jobs:
 
       - name: Verify immutable registry digest
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           DIGEST: ${{ steps.publish.outputs.digest }}
         shell: bash
         run: |
@@ -85,7 +115,7 @@ jobs:
 
       - name: Write release provenance
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           TREE_SHA: ${{ steps.identity.outputs.tree }}
           DIGEST: ${{ steps.publish.outputs.digest }}
         shell: bash
