@@ -51,31 +51,6 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Resolve exact owner-authorized invocation
-        id: invocation
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_SHA: ${{ inputs.expected_sha }}
-          INPUT_CONFIRM: ${{ inputs.confirm_provision }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            expected_sha="$INPUT_SHA"
-            confirm="$INPUT_CONFIRM"
-          else
-            read -r command expected_sha confirm extra <<<"$COMMENT_BODY"
-            test "$command" = "/run-production-mysql-provision"
-            test -z "${extra:-}"
-          fi
-          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
-          test "$confirm" = "PROVISION"
-          test "$(git rev-parse HEAD)" = "$expected_sha"
-          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$current_main" = "$expected_sha"
-          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
-
       - name: Resolve exact owner-authorized provision invocation
         id: invocation
         env:
@@ -306,8 +281,17 @@ jobs:
 
           ensure_secret() {
             local key="$1"
-            if ! jq -e --arg key "$key" 'any(.[]; .envVar.key == $key)'               /tmp/render-env-vars.json >/dev/null; then
-              curl --fail-with-body --silent --show-error                 --request PUT                 --header "$auth"                 --header "Accept: application/json"                 --header "Content-Type: application/json"                 --data '{"generateValue":true}'                 "$api/services/$service_id/env-vars/$key" >/dev/null
+            if ! jq -e --arg key "$key" 'any(.[]; .envVar.key == $key)' /tmp/render-env-vars.json >/dev/null; then
+              local value
+              value="$(openssl rand -hex 32)"
+              curl --fail-with-body --silent --show-error \
+                --request PUT \
+                --header "$auth" \
+                --header "Accept: application/json" \
+                --header "Content-Type: application/json" \
+                --data "$(jq -nc --arg value "$value" '{value:$value}')" \
+                "$api/services/$service_id/env-vars/$key" >/dev/null
+              unset value
             fi
           }
 
