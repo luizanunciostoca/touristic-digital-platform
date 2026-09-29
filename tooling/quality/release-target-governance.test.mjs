@@ -129,6 +129,36 @@ test("only explicit release control planes dispatch nested workflows", async () 
   );
 });
 
+test("production cutover resolves nested DR evidence artifacts deterministically", async () => {
+  const workflows = await workflowSources();
+  const production = workflows.get("production-oci-promotion.yml");
+  assert.ok(production, "production OCI promotion workflow must exist");
+
+  for (const marker of [
+    "find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print | sort",
+    "find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print | sort",
+    'test "${#dr_evidence_candidates[@]}" -eq 1',
+    'dr_evidence="${dr_evidence_candidates[0]}"',
+    'evidence="${dr_evidence_candidates[0]}"',
+  ]) {
+    assert.ok(
+      production.includes(marker),
+      `production DR artifact resolution missing marker: ${marker}`,
+    );
+  }
+
+  assert.ok(
+    !production.includes(
+      'dr_evidence="/tmp/dr-proof/production-mysql-backup-restore-evidence.json"',
+    ),
+  );
+  assert.ok(
+    !production.includes(
+      'evidence="/tmp/production-dr-evidence/production-mysql-backup-restore-evidence.json"',
+    ),
+  );
+});
+
 test("production cutover serializes MySQL source mutation and preserves recovery state", async () => {
   const workflows = await workflowSources();
   const provision = workflows.get("production-mysql-render-provision.yml");
