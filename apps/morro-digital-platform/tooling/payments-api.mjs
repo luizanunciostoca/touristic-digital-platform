@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomUUID } from "node:crypto";
 
 import {
@@ -1074,21 +1075,23 @@ export function createPaymentsApi({
         : null;
       if (commercePool) pools.push(commercePool);
       startupStage = "DATABASE_SCHEMA";
-      await Promise.all([
-        (async () => {
-          await applyOrderingM151Schema(orderingPool);
-          await applyOrderingTicketingReservationSchema(orderingPool);
-          await applyOrderingRestaurantReservationSchema(orderingPool);
-        })(),
-        applyFinancialM145Schema(financialPool),
-        ...(commercePool && commerceRuntime
-          ? [
-              commerceRuntime.applyCommerceRestaurantReservationSchema(
-                commercePool,
-              ),
-            ]
-          : []),
-      ]);
+      if (shouldApplyRuntimeSchema(environment)) {
+        await Promise.all([
+          (async () => {
+            await applyOrderingM151Schema(orderingPool);
+            await applyOrderingTicketingReservationSchema(orderingPool);
+            await applyOrderingRestaurantReservationSchema(orderingPool);
+          })(),
+          applyFinancialM145Schema(financialPool),
+          ...(commercePool && commerceRuntime
+            ? [
+                commerceRuntime.applyCommerceRestaurantReservationSchema(
+                  commercePool,
+                ),
+              ]
+            : []),
+        ]);
+      }
 
       startupStage = "APPLICATION";
       const orders = new MySqlOrderRepository(orderingPool);
