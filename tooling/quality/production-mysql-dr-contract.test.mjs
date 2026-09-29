@@ -102,7 +102,10 @@ test("DR executor is syntactically valid and fails closed around production", ()
     source,
     /\/var\/lib\/mysql\|\/var\/lib\/mysql\/\*\) fail "BACKUP_PATH_FORBIDDEN"/u,
   );
-  assert.doesNotMatch(source, /DROP\s+DATABASE|DROP\s+TABLE|TRUNCATE\s+TABLE/iu);
+  assert.doesNotMatch(
+    source,
+    /DROP\s+DATABASE|DROP\s+TABLE|TRUNCATE\s+TABLE/iu,
+  );
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
 });
