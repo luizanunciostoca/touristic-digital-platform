@@ -76,6 +76,31 @@ jobs:
           test "$current_main" = "$expected_sha"
           echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Resolve exact owner-authorized provision invocation
+        id: invocation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.expected_sha }}
+          INPUT_CONFIRM: ${{ inputs.confirm_provision }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            expected_sha="$INPUT_SHA"
+            confirm="$INPUT_CONFIRM"
+          else
+            read -r command expected_sha confirm extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-production-mysql-provision"
+            test -z "${extra:-}"
+          fi
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$confirm" = "PROVISION"
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          main_sha="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$main_sha" = "$expected_sha"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+
       - name: Prove exact source identity
         env:
           EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
