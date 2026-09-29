@@ -438,7 +438,7 @@ test(
     const dispatchArgs = join(fixture, "dispatch-args");
     const sha = "1234567890abcdef1234567890abcdef12345678";
     const digest = `sha256:${"d".repeat(64)}`;
-  
+
     try {
       await writeFile(output, "");
       execFileSync(
@@ -494,7 +494,7 @@ ${script}
           stdio: "pipe",
         },
       );
-  
+
       const result = await readFile(output, "utf8");
       assert.match(result, /^request_id=final-acceptance-900-2$/m);
       assert.match(result, /^run_id=222$/m);
