@@ -30,6 +30,7 @@ function poolFactory(
     extraGlobalPrivilege = false,
     crossSchemaPrivilege = false,
     roleGrant = false,
+    routineGrant = false,
   } = {},
 ) {
   return (databaseUrl) => {
@@ -80,10 +81,15 @@ function poolFactory(
         if (source.includes("information_schema.APPLICABLE_ROLES")) {
           return [[{ count: roleGrant ? 1 : 0 }], []];
         }
+        if (source === "SHOW GRANTS FOR CURRENT_USER") {
+          const grant = routineGrant
+            ? `GRANT EXECUTE ON PROCEDURE \`${schema}\`.\`dangerous_routine\` TO \`${schema}_runtime\`@\`%\``
+            : `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO \`${schema}_runtime\`@\`%\``;
+          return [[{ grant }], []];
+        }
         if (
           source.includes("information_schema.TABLE_PRIVILEGES") ||
-          source.includes("information_schema.COLUMN_PRIVILEGES") ||
-          source.includes("information_schema.ROUTINE_PRIVILEGES")
+          source.includes("information_schema.COLUMN_PRIVILEGES")
         ) {
           return [[{ count: 0 }], []];
         }
@@ -145,6 +151,16 @@ test("rejects roles attached to a runtime database account", async () => {
       poolFactory: poolFactory([], { roleGrant: true }),
     }),
     /PRODUCTION_RUNTIME_DATABASE_ROLE_PRIVILEGE_INVALID_AUTH/u,
+  );
+});
+
+test("rejects routine-scoped privileges on a runtime database account", async () => {
+  await assert.rejects(
+    runProductionRuntimeDatabasePredeploy({
+      environment: environment(),
+      poolFactory: poolFactory([], { routineGrant: true }),
+    }),
+    /PRODUCTION_RUNTIME_DATABASE_ROUTINE_PRIVILEGE_INVALID_AUTH/u,
   );
 });
 
