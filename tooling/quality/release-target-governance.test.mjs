@@ -307,6 +307,9 @@ test("staging OCI promotion is bound to the same canonical Render service", asyn
     `EXPECTED_STAGING_CANONICAL_URL: ${CANONICAL_STAGING.canonicalUrl}`,
     'url.hostname !== "api.render.com"',
     "url.pathname.match(/^\\/deploy\\/(srv-[A-Za-z0-9]+)$/)",
+    'run-name: "staging-oci-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"',
+    "request_id:",
+    "staging-deployment-evidence.json",
   ]) {
     assert.ok(
       stagingOci.includes(marker),
@@ -326,6 +329,8 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
   const workflows = await workflowSources();
   const acceptance = workflows.get("final-release-acceptance.yml");
   assert.ok(acceptance, "final-release-acceptance.yml must exist");
+  assert.ok(acceptance.includes("staging-oci-promotion.yml"));
+  assert.ok(!acceptance.includes("gh workflow run staging-render-promotion.yml"));
 
   for (const marker of [
     "staging-deployment-evidence.json",
@@ -336,6 +341,8 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
     ".expectedSha == $sha",
     ".liveSha == $sha",
     ".deploymentId | length > 0",
+    ".imageDigest == $digest",
+    "staging-oci-deployment-evidence-",
   ]) {
     assert.ok(
       acceptance.includes(marker),
@@ -347,13 +354,14 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
 test("Final Release Acceptance binds staging evidence to the exact dispatch request", async () => {
   const workflows = await workflowSources();
   const acceptance = workflows.get("final-release-acceptance.yml");
-  const staging = workflows.get("staging-render-promotion.yml");
+  const staging = workflows.get("staging-oci-promotion.yml");
   assert.ok(acceptance, "final-release-acceptance.yml must exist");
-  assert.ok(staging, "staging-render-promotion.yml must exist");
+  assert.ok(staging, "staging-oci-promotion.yml must exist");
 
   for (const marker of [
     'request_id="final-acceptance-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"',
     '-f request_id="$request_id"',
+    '-f image_digest="$IMAGE_DIGEST"',
     "--json databaseId,headSha,displayTitle,createdAt",
     "select(.headSha == $sha and .displayTitle == $title)",
   ]) {
@@ -365,9 +373,9 @@ test("Final Release Acceptance binds staging evidence to the exact dispatch requ
 
   assert.ok(
     staging.includes(
-      'run-name: "staging-render-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"',
+      'run-name: "staging-oci-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"',
     ),
-    "staging promotion must expose the request correlation in its immutable run title",
+    "staging OCI promotion must expose the request correlation in its immutable run title",
   );
   assert.ok(staging.includes("request_id:"));
   assert.ok(staging.includes("default: manual"));
@@ -412,8 +420,8 @@ gh() {
     count=$((count + 1))
     printf "%s" "$count" > "$RUN_LIST_CALLS"
 
-    stale_title="staging-render-promotion:final-acceptance-old-1:$GITHUB_SHA"
-    current_title="staging-render-promotion:final-acceptance-900-2:$GITHUB_SHA"
+    stale_title="staging-oci-promotion:final-acceptance-old-1:$GITHUB_SHA"
+    current_title="staging-oci-promotion:final-acceptance-900-2:$GITHUB_SHA"
     if [ "$count" -lt 3 ]; then
       printf '%s\\n' "[{\\\"databaseId\\\":111,\\\"headSha\\\":\\\"$GITHUB_SHA\\\",\\\"displayTitle\\\":\\\"$stale_title\\\",\\\"createdAt\\\":\\\"2026-09-28T08:00:00Z\\\"}]"
     else
@@ -437,6 +445,7 @@ ${script}
           GITHUB_RUN_ATTEMPT: "2",
           GITHUB_RUN_ID: "900",
           GITHUB_SHA: sha,
+          IMAGE_DIGEST: `sha256:${"a".repeat(64)}`,
           RUN_LIST_CALLS: calls,
         },
         stdio: "pipe",
@@ -447,10 +456,10 @@ ${script}
     assert.match(result, /^request_id=final-acceptance-900-2$/m);
     assert.match(result, /^run_id=222$/m);
     assert.equal(await readFile(calls, "utf8"), "3");
-    assert.match(
-      await readFile(dispatchArgs, "utf8"),
-      /-f request_id=final-acceptance-900-2/,
-    );
+    const dispatched = await readFile(dispatchArgs, "utf8");
+    assert.match(dispatched, /staging-oci-promotion\.yml/);
+    assert.match(dispatched, /-f request_id=final-acceptance-900-2/);
+    assert.match(dispatched, /-f image_digest=sha256:[a-f0-9]{64}/);
     assert.doesNotMatch(result, /^run_id=111$/m);
   } finally {
     await rm(fixture, { recursive: true, force: true });
