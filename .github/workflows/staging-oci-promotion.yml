@@ -1,4 +1,5 @@
 name: Staging OCI Promotion
+run-name: "staging-oci-promotion:${{ inputs.request_id }}:${{ inputs.expected_sha }}"
 
 on:
   workflow_dispatch:
@@ -14,6 +15,11 @@ on:
       confirm_deploy:
         description: Type DEPLOY to authorize this deployment
         required: true
+        type: string
+      request_id:
+        description: Correlation id for exact dispatch evidence
+        required: false
+        default: manual
         type: string
 
 permissions:
@@ -91,7 +97,10 @@ jobs:
 
   deploy:
     needs: preflight
-    if: github.ref == 'refs/heads/main' && inputs.confirm_deploy == 'DEPLOY'
+    if: >-
+      (github.ref == 'refs/heads/main' ||
+       github.ref == format('refs/tags/rc/{0}', inputs.expected_sha)) &&
+      inputs.confirm_deploy == 'DEPLOY'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment:
@@ -155,6 +164,7 @@ jobs:
           echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
 
       - name: Wait for exact-SHA runtime identity
+        id: runtime
         env:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           MORRO_V2_BASE_URL: ${{ env.TARGET_URL }}
@@ -167,6 +177,7 @@ jobs:
               release_sha="$(printf '%s\n' "$output" | tail -n 1 | jq -r '.releaseSha // empty' 2>/dev/null || true)"
               if [ "$release_sha" = "$EXPECTED_SHA" ]; then
                 printf '%s\n' "$output"
+                echo "live_sha=$release_sha" >> "$GITHUB_OUTPUT"
                 exit 0
               fi
               last_output="$output"
@@ -184,21 +195,50 @@ jobs:
           EXPECTED_SHA: ${{ inputs.expected_sha }}
           IMAGE_DIGEST: ${{ inputs.image_digest }}
           DEPLOY_ID: ${{ steps.render.outputs.deploy_id }}
+          LIVE_SHA: ${{ steps.runtime.outputs.live_sha }}
         shell: bash
         run: |
           set -euo pipefail
+          verified_at=""
+          if [ -n "${LIVE_SHA:-}" ]; then
+            verified_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          fi
           {
             echo "expected_sha=$EXPECTED_SHA"
+            echo "live_sha=${LIVE_SHA:-}"
             echo "image=$IMAGE_REPOSITORY"
             echo "digest=$IMAGE_DIGEST"
             echo "render_deploy_id=${DEPLOY_ID:-unknown}"
             echo "target_url=$TARGET_URL"
           } > oci-deployment-evidence.txt
+          jq -n \
+            --arg expectedSha "$EXPECTED_SHA" \
+            --arg liveSha "${LIVE_SHA:-}" \
+            --arg imageDigest "$IMAGE_DIGEST" \
+            --arg environment "staging" \
+            --arg serviceName "$EXPECTED_STAGING_SERVICE_NAME" \
+            --arg serviceId "$EXPECTED_STAGING_SERVICE_ID" \
+            --arg canonicalUrl "$EXPECTED_STAGING_CANONICAL_URL" \
+            --arg deploymentId "${DEPLOY_ID:-}" \
+            --arg verifiedAt "$verified_at" \
+            '{
+              expectedSha:$expectedSha,
+              liveSha:$liveSha,
+              imageDigest:$imageDigest,
+              environment:$environment,
+              serviceName:$serviceName,
+              serviceId:$serviceId,
+              canonicalUrl:$canonicalUrl,
+              deploymentId:$deploymentId,
+              verifiedAt:$verifiedAt
+            }' > staging-deployment-evidence.json
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: staging-oci-deployment-evidence-${{ github.run_id }}
-          path: oci-deployment-evidence.txt
+          path: |
+            oci-deployment-evidence.txt
+            staging-deployment-evidence.json
           if-no-files-found: error
           retention-days: 90
