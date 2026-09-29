@@ -18,6 +18,7 @@ const fixtures = [
   "tooling/render/mysql-production/01-init-databases.sh",
   "tooling/render/mysql-production/readback.sh",
   "tooling/render/mysql-production/runtime-users.sh",
+  "tooling/render/mysql-production/runtime-users-entrypoint.sh",
 ];
 
 function runCheck(t, mutate = () => {}) {
@@ -154,7 +155,7 @@ test("runtime users cannot receive owner privileges", (t) => {
       );
       fs.appendFileSync(file, "\n# GRANT ALL PRIVILEGES\n");
     }),
-    /runtime users must never receive owner privileges/u,
+    /runtime-user proof must remain read-only/u,
   );
 });
 
