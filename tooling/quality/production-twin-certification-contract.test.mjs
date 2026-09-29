@@ -21,7 +21,7 @@ test("production twin executor is syntactically valid and isolated", () => {
     "production-mysql-backup.sql.gz.enc",
     "openssl enc -d -aes-256-cbc",
     'docker pull "$image_path"',
-    "--network-alias "$MYSQL_ALIAS"",
+    '--network-alias "$MYSQL_ALIAS"',
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
     "/healthz",
