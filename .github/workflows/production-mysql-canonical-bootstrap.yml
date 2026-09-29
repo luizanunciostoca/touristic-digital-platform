@@ -327,6 +327,7 @@ jobs:
              .crossDomainDenied == 156 and
              .globalPrivilegeEntries == 0' >/dev/null
           echo "job_id=$job_id" >> "$GITHUB_OUTPUT"
+          echo "runtime_users_json=$evidence" >> "$GITHUB_OUTPUT"
           echo "PASS: DML-only runtime users verified with 156 cross-domain denials"
 
       - name: Run canonical bootstrap twice through least-privilege owners
@@ -432,12 +433,14 @@ jobs:
           BOOTSTRAP_DEPLOY_ID: ${{ steps.worker.outputs.bootstrap_deploy_id }}
           JOB_ID: ${{ steps.bootstrap.outputs.job_id }}
           BOOTSTRAP_JSON: ${{ steps.bootstrap.outputs.bootstrap_json }}
+          RUNTIME_USER_JOB_ID: ${{ steps.runtime_users.outputs.job_id }}
+          RUNTIME_USERS_JSON: ${{ steps.runtime_users.outputs.runtime_users_json }}
         shell: bash
         run: |
           set -euo pipefail
-          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg treeSha "$TREE_SHA"             --arg lockfileDigest "$LOCKFILE_DIGEST"             --arg artifactDigest "$ARTIFACT_DIGEST"             --arg image "$IMAGE_REPOSITORY"             --arg imageDigest "$IMAGE_DIGEST"             --arg candidateRunId "$CANDIDATE_RUN_ID"             --arg ociRunId "$OCI_RUN_ID"             --arg workspaceId "$RENDER_WORKSPACE_ID"             --arg mysqlServiceId "$MYSQL_SERVICE_ID"             --arg bootstrapServiceId "$BOOTSTRAP_SERVICE_ID"             --arg bootstrapDeployId "$BOOTSTRAP_DEPLOY_ID"             --arg diskId "$EXPECTED_DISK_ID"             --arg jobId "$JOB_ID"             --argjson bootstrap "$BOOTSTRAP_JSON"             '{
+          jq -n             --arg expectedSha "$EXPECTED_SHA"             --arg treeSha "$TREE_SHA"             --arg lockfileDigest "$LOCKFILE_DIGEST"             --arg artifactDigest "$ARTIFACT_DIGEST"             --arg image "$IMAGE_REPOSITORY"             --arg imageDigest "$IMAGE_DIGEST"             --arg candidateRunId "$CANDIDATE_RUN_ID"             --arg ociRunId "$OCI_RUN_ID"             --arg workspaceId "$RENDER_WORKSPACE_ID"             --arg mysqlServiceId "$MYSQL_SERVICE_ID"             --arg bootstrapServiceId "$BOOTSTRAP_SERVICE_ID"             --arg bootstrapDeployId "$BOOTSTRAP_DEPLOY_ID"             --arg diskId "$EXPECTED_DISK_ID"             --arg jobId "$JOB_ID"             --arg runtimeUserJobId "$RUNTIME_USER_JOB_ID"             --argjson runtimeUsers "$RUNTIME_USERS_JSON"             --argjson bootstrap "$BOOTSTRAP_JSON"             '{
               contract:"MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP-JOB",
-              contractVersion:2,
+              contractVersion:3,
               status:"pass",
               expectedSha:$expectedSha,
               provenance:{
@@ -455,8 +458,10 @@ jobs:
                 bootstrapServiceId:$bootstrapServiceId,
                 bootstrapDeployId:$bootstrapDeployId,
                 diskId:$diskId,
-                jobId:$jobId
+                jobId:$jobId,
+                runtimeUserJobId:$runtimeUserJobId
               },
+              runtimeUsers:$runtimeUsers,
               bootstrap:$bootstrap
             }' > production-mysql-canonical-bootstrap-evidence.json
           cat production-mysql-canonical-bootstrap-evidence.json
