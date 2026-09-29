@@ -488,3 +488,30 @@ test("required quality consumes fail-closed impact and release packaging is expl
   const certification = workflows.get("release-candidate-certification.yml");
   assert.ok(!/^  (pull_request|push|merge_group):/m.test(certification));
 });
+
+
+test("production cutover locates nested DR evidence artifacts", async () => {
+  const production = await readFile(
+    resolve(workflowsDir, "production-oci-promotion.yml"),
+    "utf8",
+  );
+
+  for (const marker of [
+    "find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print -quit",
+    "find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print -quit",
+  ]) {
+    assert.ok(
+      production.includes(marker),
+      `production DR artifact lookup missing marker: ${marker}`,
+    );
+  }
+
+  assert.ok(
+    production.includes('test -n "$dr_evidence"'),
+    "preflight DR lookup must fail closed when evidence is missing",
+  );
+  assert.ok(
+    production.includes('test -n "$evidence"'),
+    "deploy DR lookup must fail closed when evidence is missing",
+  );
+});
