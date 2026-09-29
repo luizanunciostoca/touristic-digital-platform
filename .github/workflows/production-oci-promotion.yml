@@ -157,6 +157,33 @@ jobs:
           candidate_run_id="$(
             ensure_success release-candidate-certification.yml
           )"
+          tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
+          lockfile_digest="sha256:$(sha256sum pnpm-lock.yaml | awk '{print $1}')"
+          rm -rf /tmp/release-candidate
+          mkdir -p /tmp/release-candidate
+          gh run download "$candidate_run_id" \
+            --name "morro-digital-candidate-$EXPECTED_SHA" \
+            --dir /tmp/release-candidate
+          candidate_manifest="/tmp/release-candidate/release-candidate-manifest.json"
+          candidate_archive="/tmp/release-candidate/morro-digital-candidate.tgz"
+          test -s "$candidate_manifest"
+          test -s "$candidate_archive"
+          candidate_artifact_digest="$(jq -r '.artifactDigest // empty' "$candidate_manifest")"
+          [[ "$candidate_artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "sha256:$(sha256sum "$candidate_archive" | awk '{print $1}')" = "$candidate_artifact_digest"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg tree "$tree_sha" \
+            --arg lock "$lockfile_digest" \
+            --arg artifact "$candidate_artifact_digest" \
+            --arg run "$candidate_run_id" '
+              .commitSha == $sha and
+              .treeSha == $tree and
+              .lockfileDigest == $lock and
+              .artifactDigest == $artifact and
+              (.workflowRun | endswith("/actions/runs/" + $run))
+            ' "$candidate_manifest" >/dev/null
+
           quality_run_id="$(ensure_success quality.yml)"
           dependency_run_id="$(ensure_success dependency-security-audit.yml)"
           security_run_id="$(ensure_success security-scanning.yml)"
@@ -174,7 +201,6 @@ jobs:
           gh run download "$image_run_id"             --name "release-provenance-$EXPECTED_SHA"             --dir /tmp/release-provenance
           provenance="/tmp/release-provenance/release-provenance.json"
           test -s "$provenance"
-          tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
           image_digest="$(jq -r '.digest // empty' "$provenance")"
           [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$tree_sha"             --arg image "$IMAGE_REPOSITORY"             --arg digest "$image_digest"             '.source_sha == $sha and .tree_sha == $tree and .digest == $digest and
@@ -299,6 +325,81 @@ jobs:
              .restore.checksumsMatch == true and
              .restore.leastPrivilegeReadback == true'             "$dr_evidence" >/dev/null
 
+          # Heavy production-like certification is cached by the complete
+          # immutable candidate identity: SHA + tree + candidate artifact +
+          # lockfile + OCI digest + image run. A retry still creates a fresh DR
+          # proof for the real cutover, but does not repeat the expensive twin
+          # battery when that exact artifact is already certified.
+          jq -n \
+            --arg expectedSha "$EXPECTED_SHA" \
+            --arg treeSha "$tree_sha" \
+            --arg imageRepository "$IMAGE_REPOSITORY" \
+            --arg imageDigest "$image_digest" \
+            --arg imageRunId "$image_run_id" \
+            --arg candidateArtifactDigest "$candidate_artifact_digest" \
+            --arg lockfileDigest "$lockfile_digest" '
+              {
+                expectedSha:$expectedSha,
+                treeSha:$treeSha,
+                imageRepository:$imageRepository,
+                imageDigest:$imageDigest,
+                imageRunId:$imageRunId,
+                candidateArtifactDigest:$candidateArtifactDigest,
+                lockfileDigest:$lockfileDigest
+              }
+            ' > /tmp/production-twin-expected.json
+
+          twin_run_id=""
+          rm -rf /tmp/production-twin-proof
+          mkdir -p /tmp/production-twin-proof
+          while read -r candidate_run; do
+            [ -n "$candidate_run" ] || continue
+            rm -rf /tmp/production-twin-proof/*
+            if gh run download "$candidate_run" \
+              --name "production-twin-certification-$candidate_run" \
+              --dir /tmp/production-twin-proof >/dev/null 2>&1
+            then
+              twin_evidence="/tmp/production-twin-proof/production-twin-certification-evidence.json"
+              if node tooling/release/production-twin-certificate.mjs verify \
+                "$twin_evidence" /tmp/production-twin-expected.json >/dev/null 2>&1
+              then
+                twin_run_id="$candidate_run"
+                echo "REUSE: production twin certificate run=$twin_run_id digest=$image_digest" >&2
+                break
+              fi
+            fi
+          done < <(
+            gh run list \
+              --workflow production-twin-certification.yml \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 30 \
+              --json databaseId,headSha \
+              | jq -r --arg sha "$EXPECTED_SHA" '.[] | select(.headSha == $sha) | .databaseId'
+          )
+
+          if [ -z "$twin_run_id" ]; then
+            twin_run_id="$(
+              dispatch_wait production-twin-certification.yml \
+                -f expected_sha="$EXPECTED_SHA" \
+                -f image_digest="$image_digest" \
+                -f image_run_id="$image_run_id" \
+                -f candidate_run_id="$candidate_run_id" \
+                -f dr_run_id="$dr_run_id" \
+                -f confirm_twin=CERTIFY
+            )"
+            rm -rf /tmp/production-twin-proof
+            mkdir -p /tmp/production-twin-proof
+            gh run download "$twin_run_id" \
+              --name "production-twin-certification-$twin_run_id" \
+              --dir /tmp/production-twin-proof
+            twin_evidence="/tmp/production-twin-proof/production-twin-certification-evidence.json"
+            node tooling/release/production-twin-certificate.mjs verify \
+              "$twin_evidence" /tmp/production-twin-expected.json
+            jq -e --arg drRun "$dr_run_id" \
+              '.productionSample.drRunId == $drRun' "$twin_evidence" >/dev/null
+          fi
+
           oci_gate_run_id="$(
             dispatch_wait oci-release-promotion-gate.yml               -f expected_sha="$EXPECTED_SHA"               -f image_digest="$image_digest"
           )"
@@ -314,13 +415,14 @@ jobs:
           test "$current_main" = "$EXPECTED_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-          jq -n             --arg sourceSha "$EXPECTED_SHA"             --arg imageDigest "$image_digest"             --arg candidateRunId "$candidate_run_id"             --arg qualityRunId "$quality_run_id"             --arg dependencyRunId "$dependency_run_id"             --arg securityRunId "$security_run_id"             --arg acceptanceRunId "$acceptance_run_id"             --arg imageRunId "$image_run_id"             --arg provisionRunId "$provision_run_id"             --arg bootstrapRunId "$bootstrap_run_id"             --arg stagingRunId "$staging_run_id"             --arg drRunId "$dr_run_id"             --arg ociGateRunId "$oci_gate_run_id"             '{
+          jq -n             --arg sourceSha "$EXPECTED_SHA"             --arg imageDigest "$image_digest"             --arg candidateRunId "$candidate_run_id"             --arg qualityRunId "$quality_run_id"             --arg dependencyRunId "$dependency_run_id"             --arg securityRunId "$security_run_id"             --arg acceptanceRunId "$acceptance_run_id"             --arg imageRunId "$image_run_id"             --arg provisionRunId "$provision_run_id"             --arg bootstrapRunId "$bootstrap_run_id"             --arg stagingRunId "$staging_run_id"             --arg drRunId "$dr_run_id"             --arg twinRunId "$twin_run_id"             --arg ociGateRunId "$oci_gate_run_id"             '{
               contract:"MORRO-PRODUCTION-CUTOVER-PREFLIGHT",
-              contractVersion:1,
+              contractVersion:2,
               status:"pass",
               sourceSha:$sourceSha,
               imageDigest:$imageDigest,
               freshDr:true,
+              goldenDigestCertified:true,
               runs:{
                 candidate:$candidateRunId,
                 quality:$qualityRunId,
@@ -332,6 +434,7 @@ jobs:
                 mysqlBootstrap:$bootstrapRunId,
                 stagingPromotion:$stagingRunId,
                 backupRestore:$drRunId,
+                twinCertification:$twinRunId,
                 ociGate:$ociGateRunId
               }
             }' > production-cutover-preflight-evidence.json

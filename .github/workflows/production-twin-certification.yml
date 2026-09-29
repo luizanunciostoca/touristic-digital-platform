@@ -1,0 +1,85 @@
+name: Production Twin Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact current main SHA to certify
+        required: true
+        type: string
+      image_digest:
+        description: Exact immutable OCI digest to certify
+        required: true
+        type: string
+      image_run_id:
+        description: Release OCI Image workflow run that produced the digest
+        required: true
+        type: string
+      candidate_run_id:
+        description: Release Candidate Certification run that produced the immutable candidate
+        required: true
+        type: string
+      dr_run_id:
+        description: Successful production MySQL DR run providing the encrypted sample
+        required: true
+        type: string
+      confirm_twin:
+        description: Type CERTIFY to authorize the isolated twin
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  packages: read
+
+concurrency:
+  group: production-twin-certification-${{ inputs.expected_sha }}
+  cancel-in-progress: false
+
+env:
+  IMAGE_REPOSITORY: ghcr.io/${{ github.repository_owner }}/morro-digital-v2
+
+jobs:
+  certify:
+    name: production twin / golden digest certification
+    if: github.ref == 'refs/heads/main' && inputs.confirm_twin == 'CERTIFY'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require protected DR decryption key
+        env:
+          PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1: ${{ secrets.PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1"
+          test "${#PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1}" -ge 32
+
+      - name: Certify exact digest against isolated production-data twin
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          IMAGE_RUN_ID: ${{ inputs.image_run_id }}
+          CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+          DR_RUN_ID: ${{ inputs.dr_run_id }}
+          PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1: ${{ secrets.PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1 }}
+        shell: bash
+        run: bash tooling/release/production-twin-certification.sh
+
+      - name: Upload golden candidate certificate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: production-twin-certification-${{ github.run_id }}
+          path: production-twin-certification-evidence.json
+          if-no-files-found: error
+          retention-days: 90
