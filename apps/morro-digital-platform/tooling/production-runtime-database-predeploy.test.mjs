@@ -24,7 +24,14 @@ function environment(overrides = {}) {
   return value;
 }
 
-function poolFactory(closed) {
+function poolFactory(
+  closed,
+  {
+    extraGlobalPrivilege = false,
+    crossSchemaPrivilege = false,
+    roleGrant = false,
+  } = {},
+) {
   return (databaseUrl) => {
     const url = new URL(databaseUrl);
     const schema = url.pathname.slice(1);
@@ -52,17 +59,35 @@ function poolFactory(closed) {
             [],
           ];
         }
-        if (source === "SHOW GRANTS FOR CURRENT_USER") {
-          return [
-            [
-              {
-                grant: `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO \`${schema}_runtime\`@\`%\``,
-              },
-            ],
-            [],
-          ];
+        if (source.includes("information_schema.SCHEMA_PRIVILEGES")) {
+          const rows = ["DELETE", "INSERT", "SELECT", "UPDATE"].map(
+            (privilege_type) => ({
+              table_schema: schema,
+              privilege_type,
+            }),
+          );
+          if (crossSchemaPrivilege) {
+            rows.push({
+              table_schema: "morro_other",
+              privilege_type: "SELECT",
+            });
+          }
+          return [rows, []];
         }
-        throw new Error("unexpected query");
+        if (source.includes("information_schema.USER_PRIVILEGES")) {
+          return [[{ count: extraGlobalPrivilege ? 1 : 0 }], []];
+        }
+        if (source.includes("information_schema.APPLICABLE_ROLES")) {
+          return [[{ count: roleGrant ? 1 : 0 }], []];
+        }
+        if (
+          source.includes("information_schema.TABLE_PRIVILEGES") ||
+          source.includes("information_schema.COLUMN_PRIVILEGES") ||
+          source.includes("information_schema.ROUTINE_PRIVILEGES")
+        ) {
+          return [[{ count: 0 }], []];
+        }
+        throw new Error(`unexpected query: ${source}`);
       },
       async execute(sql) {
         assert.equal(
@@ -90,6 +115,36 @@ test("validates all thirteen runtime identities without DDL", async () => {
   assert.equal(closed.length, 13);
   assert.ok(
     result.domains.every((item) => item.runtimeUser.endsWith("_runtime")),
+  );
+});
+
+test("rejects any global privilege on a runtime database account", async () => {
+  await assert.rejects(
+    runProductionRuntimeDatabasePredeploy({
+      environment: environment(),
+      poolFactory: poolFactory([], { extraGlobalPrivilege: true }),
+    }),
+    /PRODUCTION_RUNTIME_DATABASE_GLOBAL_PRIVILEGE_INVALID_AUTH/u,
+  );
+});
+
+test("rejects runtime privileges granted on another schema", async () => {
+  await assert.rejects(
+    runProductionRuntimeDatabasePredeploy({
+      environment: environment(),
+      poolFactory: poolFactory([], { crossSchemaPrivilege: true }),
+    }),
+    /PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_SET_INVALID_AUTH/u,
+  );
+});
+
+test("rejects roles attached to a runtime database account", async () => {
+  await assert.rejects(
+    runProductionRuntimeDatabasePredeploy({
+      environment: environment(),
+      poolFactory: poolFactory([], { roleGrant: true }),
+    }),
+    /PRODUCTION_RUNTIME_DATABASE_ROLE_PRIVILEGE_INVALID_AUTH/u,
   );
 });
 

@@ -3,8 +3,14 @@ import mysql from "mysql2/promise";
 import { canonicalProductionDomains } from "./production-database-predeploy.mjs";
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
-const FORBIDDEN_GRANT =
-  /\b(?:ALL PRIVILEGES|ALTER|CREATE|DROP|GRANT OPTION|INDEX|REFERENCES|TRIGGER|CREATE USER|RELOAD|PROCESS|SUPER|SYSTEM_USER)\b/iu;
+const RUNTIME_SCHEMA_PRIVILEGES = Object.freeze([
+  "DELETE",
+  "INSERT",
+  "SELECT",
+  "UPDATE",
+]);
+const CURRENT_GRANTEE_SQL =
+  "CONCAT(CHAR(39), SUBSTRING_INDEX(CURRENT_USER(), '@', 1), CHAR(39), '@', CHAR(39), SUBSTRING_INDEX(CURRENT_USER(), '@', -1), CHAR(39))";
 
 function required(environment, key) {
   const value = String(environment[key] ?? "").trim();
@@ -87,20 +93,45 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
       );
     }
 
-    const [grants] = await pool.query("SHOW GRANTS FOR CURRENT_USER");
-    const grantText = grants
-      .flatMap((row) => Object.values(row))
-      .map(String)
-      .join("\n");
-    if (FORBIDDEN_GRANT.test(grantText)) {
+    const [schemaPrivileges] = await pool.query(
+      `SELECT TABLE_SCHEMA AS table_schema, PRIVILEGE_TYPE AS privilege_type
+         FROM information_schema.SCHEMA_PRIVILEGES
+        WHERE GRANTEE = ${CURRENT_GRANTEE_SQL}
+        ORDER BY TABLE_SCHEMA, PRIVILEGE_TYPE`,
+    );
+    const observedPrivileges = schemaPrivileges
+      .map(
+        (row) =>
+          `${String(row.table_schema)}:${String(row.privilege_type).toUpperCase()}`,
+      )
+      .sort();
+    const expectedPrivileges = RUNTIME_SCHEMA_PRIVILEGES.map(
+      (privilege) => `${domain.schema}:${privilege}`,
+    ).sort();
+    if (
+      JSON.stringify(observedPrivileges) !== JSON.stringify(expectedPrivileges)
+    ) {
       throw new Error(
-        `PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_EXCESS_${domain.name.toUpperCase()}`,
+        `PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_SET_INVALID_${domain.name.toUpperCase()}`,
       );
     }
-    for (const privilege of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
-      if (!grantText.includes(privilege)) {
+
+    for (const [table, label] of [
+      ["USER_PRIVILEGES", "GLOBAL"],
+      ["TABLE_PRIVILEGES", "TABLE"],
+      ["COLUMN_PRIVILEGES", "COLUMN"],
+      ["ROUTINE_PRIVILEGES", "ROUTINE"],
+      ["APPLICABLE_ROLES", "ROLE"],
+    ]) {
+      const [[row]] = await pool.query(
+        `SELECT COUNT(*) AS count
+           FROM information_schema.${table}
+          WHERE GRANTEE = ${CURRENT_GRANTEE_SQL}` +
+          (table === "USER_PRIVILEGES" ? " AND PRIVILEGE_TYPE <> 'USAGE'" : ""),
+      );
+      if (Number(row?.count ?? 0) !== 0) {
         throw new Error(
-          `PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_MISSING_${domain.name.toUpperCase()}_${privilege}`,
+          `PRODUCTION_RUNTIME_DATABASE_${label}_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
         );
       }
     }
