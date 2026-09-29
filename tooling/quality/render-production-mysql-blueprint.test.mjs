@@ -6,6 +6,8 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
+import "./production-mysql-dr-contract.test.mjs";
+
 const root = fileURLToPath(new URL("../../", import.meta.url));
 const checker = "tooling/quality/check-render-production-mysql-blueprint.mjs";
 const fixtures = [

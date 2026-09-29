@@ -37,11 +37,7 @@
         "tooling/quality/production-mysql-dr-contract.test.mjs",
         "docs/operations/PRODUCTION-MYSQL-BACKUP-RESTORE-DR.md"
       ],
-      "domains": [
-        "ci-release",
-        "database",
-        "infrastructure"
-      ],
+      "domains": ["ci-release", "database", "infrastructure"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-09-29T23:59:59Z"

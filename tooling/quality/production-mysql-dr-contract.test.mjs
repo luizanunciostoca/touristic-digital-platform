@@ -48,10 +48,9 @@ test("DR canonical manifest exactly matches production bootstrap authority", () 
     );
 
     for (const table of tables) {
-      const scopeMatch = new RegExp(
-        "\\b" + table + ': "([^"]+)"',
-        "u",
-      ).exec(scopeSection);
+      const scopeMatch = new RegExp("\\b" + table + ': "([^"]+)"', "u").exec(
+        scopeSection,
+      );
       assert.ok(scopeMatch, `missing canonical scope for ${table}`);
       expected.push([schema, table, scopeMatch[1]]);
     }
