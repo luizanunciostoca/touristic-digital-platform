@@ -1504,6 +1504,7 @@ body[data-md-mode="discover"] .md-home-header-inner {
   gap: var(--md-space-1);
   padding: var(--md-space-1) var(--md-space-3);
   border-radius: var(--md-radius-pill);
+  box-shadow: none;
 }
 
 body[data-md-mode="discover"] .md-home-brand-mark,
