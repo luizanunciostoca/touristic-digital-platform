@@ -54,37 +54,36 @@ export function productionTwinCertificateMatches(evidence, expected) {
 
   return Boolean(
     evidence?.contract === "MORRO-PRODUCTION-TWIN-CERTIFICATION" &&
-      evidence?.contractVersion === 1 &&
-      evidence?.status === "pass" &&
-      evidence?.result === "PRODUCTION_TWIN_CERTIFICATION = PASS" &&
-      evidence?.expectedSha === identity.expectedSha &&
-      evidence?.treeSha === identity.treeSha &&
-      evidence?.candidate?.artifactDigest ===
-        identity.candidateArtifactDigest &&
-      evidence?.candidate?.lockfileDigest === identity.lockfileDigest &&
-      evidence?.image?.repository === identity.imageRepository &&
-      evidence?.image?.digest === identity.imageDigest &&
-      text(evidence?.image?.runId) === identity.imageRunId &&
-      evidence?.image?.immutable === true &&
-      evidence?.productionSample?.schemaCount === 13 &&
-      evidence?.productionSample?.totalTables === 91 &&
-      evidence?.twin?.runtimePredeploy?.status === "pass" &&
-      evidence?.twin?.runtimePredeploy?.domainCount === 13 &&
-      evidence?.twin?.runtimePredeploy?.totalTables === 91 &&
-      evidence?.twin?.paymentsPredeploy?.status === "pass" &&
-      evidence?.twin?.paymentsPredeploy?.checkoutMode === "test" &&
-      evidence?.persistence?.write === "stored" &&
-      evidence?.persistence?.readback === "replayed" &&
-      evidence?.persistence?.reloadReadback === "replayed" &&
-      evidence?.persistence?.newSessionReadback === "replayed" &&
-      evidence?.persistence?.redeployReadback === "replayed" &&
-      evidence?.persistence?.survivedRedeploy === true &&
-      evidence?.safety?.productionMutation === false &&
-      evidence?.safety?.renderMutation === false &&
-      evidence?.safety?.railwayTouched === false &&
-      evidence?.safety?.productionCredentialsConfirmed === false &&
-      evidence?.safety?.subscriptionsEnabled === false &&
-      evidence?.safety?.plaintextUploaded === false,
+    evidence?.contractVersion === 1 &&
+    evidence?.status === "pass" &&
+    evidence?.result === "PRODUCTION_TWIN_CERTIFICATION = PASS" &&
+    evidence?.expectedSha === identity.expectedSha &&
+    evidence?.treeSha === identity.treeSha &&
+    evidence?.candidate?.artifactDigest === identity.candidateArtifactDigest &&
+    evidence?.candidate?.lockfileDigest === identity.lockfileDigest &&
+    evidence?.image?.repository === identity.imageRepository &&
+    evidence?.image?.digest === identity.imageDigest &&
+    text(evidence?.image?.runId) === identity.imageRunId &&
+    evidence?.image?.immutable === true &&
+    evidence?.productionSample?.schemaCount === 13 &&
+    evidence?.productionSample?.totalTables === 91 &&
+    evidence?.twin?.runtimePredeploy?.status === "pass" &&
+    evidence?.twin?.runtimePredeploy?.domainCount === 13 &&
+    evidence?.twin?.runtimePredeploy?.totalTables === 91 &&
+    evidence?.twin?.paymentsPredeploy?.status === "pass" &&
+    evidence?.twin?.paymentsPredeploy?.checkoutMode === "test" &&
+    evidence?.persistence?.write === "stored" &&
+    evidence?.persistence?.readback === "replayed" &&
+    evidence?.persistence?.reloadReadback === "replayed" &&
+    evidence?.persistence?.newSessionReadback === "replayed" &&
+    evidence?.persistence?.redeployReadback === "replayed" &&
+    evidence?.persistence?.survivedRedeploy === true &&
+    evidence?.safety?.productionMutation === false &&
+    evidence?.safety?.renderMutation === false &&
+    evidence?.safety?.railwayTouched === false &&
+    evidence?.safety?.productionCredentialsConfirmed === false &&
+    evidence?.safety?.subscriptionsEnabled === false &&
+    evidence?.safety?.plaintextUploaded === false,
   );
 }
 
@@ -104,9 +103,7 @@ export function selectReusableProductionTwinCertificate(candidates, expected) {
 }
 
 export function productionTwinDispatchRequired(candidates, expected) {
-  return (
-    selectReusableProductionTwinCertificate(candidates, expected) === null
-  );
+  return selectReusableProductionTwinCertificate(candidates, expected) === null;
 }
 
 function readJson(path) {
