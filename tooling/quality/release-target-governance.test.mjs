@@ -138,6 +138,7 @@ test(
     const staging = workflows.get("staging-oci-promotion.yml");
 
     assert.ok(acceptance.includes('-f image_run_id="$IMAGE_RUN_ID"'));
+    assert.ok(acceptance.includes(".image_run_id == $run"));
     assert.ok(production.includes('-f image_run_id="$image_run_id"'));
     assert.ok(staging.includes("image_run_id:"));
     assert.ok(staging.includes('actions/runs/$IMAGE_RUN_ID'));
