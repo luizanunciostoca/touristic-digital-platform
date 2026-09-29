@@ -162,6 +162,7 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "MORRO_DEPLOYMENT_ID=production-twin-",
     'runtimeProbe:"docker-exec-loopback"',
     "syntheticReleaseIdentity:true",
+    'Origin: "http://127.0.0.1:3000"',
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
     "/healthz",
