@@ -507,7 +507,7 @@ ${script}
       assert.match(args, /-f image_digest=sha256:/);
       assert.match(args, /-f image_run_id=424242/);
       assert.doesNotMatch(result, /^run_id=111$/m);
-      } finally {
+    } finally {
       await rm(fixture, { recursive: true, force: true });
     }
   },
