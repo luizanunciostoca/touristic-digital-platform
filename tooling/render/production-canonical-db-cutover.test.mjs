@@ -323,6 +323,16 @@ function failureCutoverFixture({
       `${domain.toLowerCase()}-runtime-secret`;
   }
 
+  const webEnvInventory = [];
+  if (staleBrowserDatabaseEnv) {
+    webEnvInventory.push({
+      envVar: {
+        key: "VITE_BUSINESS_DATABASE_URL",
+        value: "redacted",
+      },
+    });
+  }
+
   const originalService = {
     id: "srv-web",
     ownerId: "tea-owner",
@@ -397,19 +407,7 @@ function failureCutoverFixture({
       return jsonResponse(200, [{ id: "reg-ghcr", registry: "GITHUB" }]);
     }
     if (method === "GET" && route === "/v1/services/srv-web/env-vars") {
-      return jsonResponse(
-        200,
-        staleBrowserDatabaseEnv
-          ? [
-              {
-                envVar: {
-                  key: "VITE_BUSINESS_DATABASE_URL",
-                  value: "redacted",
-                },
-              },
-            ]
-          : [],
-      );
+      return jsonResponse(200, webEnvInventory);
     }
     if (
       method === "GET" &&
@@ -513,9 +511,7 @@ function failureCutoverFixture({
   };
 }
 
-test(
-  "rejects any browser-exposed database URL already configured on the web service",
-  async (t) => {
+test("rejects browser-exposed database URLs", async (t) => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "morro-cutover-browser-db-env-"),
   );
@@ -542,65 +538,61 @@ test(
     ).length,
     0,
   );
-  },
-);
+});
 
-test(
-  "ambiguous source patch failure reconciles committed source and restores env without rollback deployment",
-  async (t) => {
-    const directory = await fs.mkdtemp(
-      path.join(os.tmpdir(), "morro-cutover-source-patch-failure-"),
-    );
-    t.after(() => fs.rm(directory, { recursive: true, force: true }));
-    const fixture = failureCutoverFixture({
-      directory,
-      failSourcePatch: true,
-      deployStatus: "live",
-    });
+test("reconciles source after an ambiguous patch failure", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-source-patch-failure-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    failSourcePatch: true,
+    deployStatus: "live",
+  });
 
-    await assert.rejects(
-      cutover({
-        environment: fixture.environment,
-        fetchImpl: fixture.fetchImpl,
-      }),
-      /RENDER_API_PATCH_HTTP_500/u,
-    );
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_API_PATCH_HTTP_500/u,
+  );
 
-    const envWrites = fixture.requests.filter(
+  const envWrites = fixture.requests.filter(
+    (request) =>
+      request.method === "PUT" &&
+      request.route.startsWith("/v1/services/srv-web/env-vars/"),
+  );
+  const envDeletes = fixture.requests.filter(
+    (request) =>
+      request.method === "DELETE" &&
+      request.route.startsWith("/v1/services/srv-web/env-vars/"),
+  );
+  assert.ok(envWrites.length >= productionDatabaseDomains.length);
+  assert.equal(envDeletes.length, envWrites.length);
+  assert.equal(
+    fixture.requests.filter(
       (request) =>
-        request.method === "PUT" &&
-        request.route.startsWith("/v1/services/srv-web/env-vars/"),
-    );
-    const envDeletes = fixture.requests.filter(
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+  assert.ok(
+    fixture.requests.filter(
       (request) =>
-        request.method === "DELETE" &&
-        request.route.startsWith("/v1/services/srv-web/env-vars/"),
-    );
-    assert.ok(envWrites.length >= productionDatabaseDomains.length);
-    assert.equal(envDeletes.length, envWrites.length);
-    assert.equal(
-      fixture.requests.filter(
-        (request) =>
-          request.method === "POST" &&
-          request.route === "/v1/services/srv-web/rollback",
-      ).length,
-      0,
-    );
-    assert.ok(
-      fixture.requests.filter(
-        (request) =>
-          request.method === "PATCH" &&
-          request.route === "/v1/services/srv-web",
-      ).length >= 2,
-    );
+        request.method === "PATCH" &&
+        request.route === "/v1/services/srv-web",
+    ).length >= 2,
+  );
 
-    const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
-    const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
-    assert.equal(state.status, "restored_indeterminate_patch");
-    assert.equal(evidence.status, "restored_indeterminate_patch");
-    assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
-  },
-);
+  const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
+  assert.equal(state.status, "restored_indeterminate_patch");
+  assert.equal(evidence.status, "restored_indeterminate_patch");
+  assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
+});
 
 test("post-patch failure automatically restores source and env then waits for rollback", async (t) => {
   const directory = await fs.mkdtemp(
