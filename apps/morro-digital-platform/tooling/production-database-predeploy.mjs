@@ -312,21 +312,36 @@ function required(environment, key) {
 }
 
 function sourceIdentity(environment) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !==
-    "morro-digital-v2-production-db-bootstrap"
-  ) {
-    throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SERVICE_DENIED");
-  }
+  const serviceName = String(environment.RENDER_SERVICE_NAME ?? "").trim();
   const expectedSha = required(environment, "EXPECTED_SHA");
-  const renderGitCommit = required(environment, "RENDER_GIT_COMMIT");
-  if (!SHA_PATTERN.test(renderGitCommit) || !SHA_PATTERN.test(expectedSha)) {
+
+  let runtimeSourceSha;
+  if (serviceName === "morro-digital-v2-production-db-bootstrap") {
+    runtimeSourceSha = required(environment, "RENDER_GIT_COMMIT");
+  } else if (serviceName === "morro-digital-v2") {
+    runtimeSourceSha = String(
+      environment.MORRO_RELEASE_SHA ?? environment.RENDER_GIT_COMMIT ?? "",
+    ).trim();
+    if (!runtimeSourceSha) {
+      throw new Error("PRODUCTION_DATABASE_APPLICATION_SHA_REQUIRED");
+    }
+  } else {
+    throw new Error("PRODUCTION_DATABASE_PREDEPLOY_SERVICE_DENIED");
+  }
+
+  if (!SHA_PATTERN.test(runtimeSourceSha) || !SHA_PATTERN.test(expectedSha)) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_INVALID");
   }
-  if (renderGitCommit !== expectedSha) {
+  if (runtimeSourceSha !== expectedSha) {
     throw new Error("PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH");
   }
-  return Object.freeze({ expectedSha, renderGitCommit });
+
+  return Object.freeze({
+    expectedSha,
+    renderGitCommit: runtimeSourceSha,
+    runtimeSourceSha,
+    serviceName,
+  });
 }
 
 function validateDatabaseUrl(raw, domain) {
