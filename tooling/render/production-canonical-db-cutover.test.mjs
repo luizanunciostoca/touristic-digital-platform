@@ -158,6 +158,21 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
 
     if (
       method === "GET" &&
+      route === "/v1/services/srv-mysql/deploys?limit=20"
+    ) {
+      return jsonResponse(200, [
+        {
+          deploy: {
+            id: "dep-mysql",
+            status: "live",
+            commit: { id: "d".repeat(40) },
+          },
+        },
+      ]);
+    }
+
+    if (
+      method === "GET" &&
       route === "/v1/registrycredentials?ownerId=tea-owner&type=GITHUB&limit=100"
     ) {
       return jsonResponse(200, [{ id: "reg-ghcr", registry: "GITHUB" }]);
@@ -227,6 +242,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       EXPECTED_SHA: "c".repeat(40),
       IMAGE_DIGEST: imageDigest,
       IMAGE_REPOSITORY: "ghcr.io/luizanunciostoca/morro-digital-v2",
+      EXPECTED_MYSQL_SOURCE_SHA: "d".repeat(40),
       CUTOVER_STATE_FILE: stateFile,
       CUTOVER_EVIDENCE_FILE: evidenceFile,
     },
