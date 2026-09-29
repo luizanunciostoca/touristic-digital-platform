@@ -411,10 +411,8 @@ requireIncludes(
   ],
 );
 
-for (const file of [
-  "staging-oci-promotion.yml",
-  "production-oci-promotion.yml",
-]) {
+{
+  const file = "staging-oci-promotion.yml";
   const source = workflowSources.get(file);
   if (!source) fail(`${file} is missing`);
   requireIncludes(source, `.github/workflows/${file}`, [
@@ -426,7 +424,27 @@ for (const file of [
     "payments:render:smoke",
   ]);
   if (/^\s{2}(pull_request|push):/m.test(source)) {
-    fail(`${file} must remain explicit workflow_dispatch only`);
+    fail(`${file} must remain explicitly operator-triggered`);
+  }
+}
+
+{
+  const file = "production-oci-promotion.yml";
+  const source = workflowSources.get(file);
+  if (!source) fail(`${file} is missing`);
+  requireIncludes(source, `.github/workflows/${file}`, [
+    "workflow_dispatch:",
+    "issue_comment:",
+    "expected_sha:",
+    "image_digest:",
+    "confirm_deploy:",
+    "production-mysql-backup-restore-proof.yml",
+    "production-canonical-db-cutover.mjs cutover",
+    "production-canonical-db-cutover.mjs rollback",
+    "payments:render:smoke",
+  ]);
+  if (/^\s{2}(pull_request|push):/m.test(source)) {
+    fail(`${file} must remain explicitly operator-triggered`);
   }
 }
 
