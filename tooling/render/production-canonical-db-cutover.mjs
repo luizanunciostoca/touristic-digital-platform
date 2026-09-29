@@ -71,11 +71,7 @@ export function selectRegistryCredential(credentials, explicitId = "") {
   return github[0].id;
 }
 
-export function assertDeployImageIdentity(
-  observed,
-  imagePath,
-  imageDigest,
-) {
+export function assertDeployImageIdentity(observed, imagePath, imageDigest) {
   const observedRef = String(observed?.image?.ref ?? "");
   const observedDigest = String(observed?.image?.sha ?? "");
   if (
