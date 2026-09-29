@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
   issue_comment:
     types: [created]
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -31,6 +33,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - name: Authorize exact-main candidate invocation
+        if: github.event_name == 'issue_comment'
+        env:
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          read -r command expected_sha extra <<<"$COMMENT_BODY"
+          test "$command" = "/run-release-candidate"
+          test -z "${extra:-}"
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$expected_sha" = "$GITHUB_SHA"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$expected_sha"
+
       - name: Authorize exact-main invocation
         if: github.event_name == 'issue_comment'
         env:
