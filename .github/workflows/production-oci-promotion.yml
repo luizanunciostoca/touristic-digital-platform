@@ -234,7 +234,7 @@ jobs:
           exit 1
 
       - name: Roll back source and database config on failed verification
-        if: failure() && hashFiles('/tmp/morro-production-cutover-state.json') != ''
+        if: failure()
         env:
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
           CUTOVER_STATE_FILE: /tmp/morro-production-cutover-state.json
@@ -242,7 +242,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node tooling/render/production-canonical-db-cutover.mjs rollback
+          if [ -s /tmp/morro-production-cutover-state.json ]; then
+            node tooling/render/production-canonical-db-cutover.mjs rollback
+          else
+            echo "No cutover state exists; no production mutation requires rollback."
+          fi
 
       - name: Publish deployment evidence
         if: always()
