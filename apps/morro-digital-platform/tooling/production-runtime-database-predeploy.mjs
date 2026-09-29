@@ -120,7 +120,6 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
       ["USER_PRIVILEGES", "GLOBAL"],
       ["TABLE_PRIVILEGES", "TABLE"],
       ["COLUMN_PRIVILEGES", "COLUMN"],
-      ["ROUTINE_PRIVILEGES", "ROUTINE"],
       ["APPLICABLE_ROLES", "ROLE"],
     ]) {
       const [[row]] = await pool.query(
@@ -134,6 +133,23 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
           `PRODUCTION_RUNTIME_DATABASE_${label}_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
         );
       }
+    }
+
+    // MySQL 8.4 has no INFORMATION_SCHEMA.ROUTINE_PRIVILEGES table.
+    // SHOW GRANTS is supported for the current user without mysql schema access,
+    // so use it to fail closed on object-level routine capabilities.
+    const [grantRows] = await pool.query("SHOW GRANTS FOR CURRENT_USER()");
+    const grantStatements = grantRows.flatMap((row) =>
+      Object.values(row ?? {}).map((value) => String(value)),
+    );
+    if (
+      grantStatements.some((statement) =>
+        /\\b(?:EXECUTE|ALTER ROUTINE|CREATE ROUTINE)\\b/iu.test(statement),
+      )
+    ) {
+      throw new Error(
+        `PRODUCTION_RUNTIME_DATABASE_ROUTINE_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+      );
     }
 
     if (domain.name === "destinations") {
