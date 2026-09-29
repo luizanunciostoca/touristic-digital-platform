@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { createHash, randomUUID } from "node:crypto";
 
 const prefix = "/api/commerce/v1";
@@ -294,10 +295,12 @@ async function buildProductionRuntime(environment) {
     ORDERING_DATABASE_URL: environment.ORDERING_DATABASE_URL,
   });
   try {
-    await Promise.all([
-      commerceServer.applyCommerceRestaurantReservationSchema(commercePool),
-      orderingServer.applyOrderingRestaurantReservationSchema(orderingPool),
-    ]);
+    if (shouldApplyRuntimeSchema(environment)) {
+      await Promise.all([
+        commerceServer.applyCommerceRestaurantReservationSchema(commercePool),
+        orderingServer.applyOrderingRestaurantReservationSchema(orderingPool),
+      ]);
+    }
     const orders = new orderingServer.MySqlOrderRepository(orderingPool);
     const bindings =
       new orderingServer.MySqlRestaurantReservationOrderBindingRepository(

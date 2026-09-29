@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import {
   authorizeBusinessAccess,
   canonicalAuthRole,
@@ -105,7 +106,13 @@ export function createAuthApi({ getEnvironmentValue, audit = () => {} }) {
       const pool = createCrmMySqlPoolFromEnvironment({
         CRM_DATABASE_URL: authDatabaseUrl,
       });
-      securityState = createSqlAuthSecurityState(pool);
+      securityState = createSqlAuthSecurityState(pool, {
+        applySchema: shouldApplyRuntimeSchema({
+          MORRO_DATABASE_SCHEMA_MODE: getEnvironmentValue(
+            "MORRO_DATABASE_SCHEMA_MODE",
+          ),
+        }),
+      });
       durableSecurityStateCreated = true;
     } else {
       securityState = createInMemoryAuthSecurityState();

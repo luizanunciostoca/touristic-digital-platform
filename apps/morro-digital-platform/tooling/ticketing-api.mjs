@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { randomUUID } from "node:crypto";
 import {
   hasAuthCapability,
@@ -367,8 +368,12 @@ export function createTicketingApi({
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(ticketingPool, orderingPool, financialPool);
       await Promise.all([
-        applyTicketingPublicApiSchema(ticketingPool),
-        applyOrderingTicketingReservationSchema(orderingPool),
+        ...(shouldApplyRuntimeSchema(environment)
+          ? [
+              applyTicketingPublicApiSchema(ticketingPool),
+              applyOrderingTicketingReservationSchema(orderingPool),
+            ]
+          : []),
         financialPool.execute(
           "SELECT payment_id FROM financial_payments LIMIT 1",
         ),
@@ -391,7 +396,9 @@ export function createTicketingApi({
           candidatePool = createCrmMySqlPoolFromEnvironment({
             CRM_DATABASE_URL: environment.CRM_DATABASE_URL,
           });
-          await applyCrmCommerceSchema(candidatePool);
+          if (shouldApplyRuntimeSchema(environment)) {
+            await applyCrmCommerceSchema(candidatePool);
+          }
           pools.push(candidatePool);
           crmCommerce = new MySqlCrmCommerceCustomerRepository(candidatePool);
           crmRetryAttempt = 0;

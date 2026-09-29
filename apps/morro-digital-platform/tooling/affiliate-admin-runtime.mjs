@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import { hasAuthCapability, isPlatformWideAuthRole } from "@touristic/auth";
 function actorAllowed(actor, capability) {
   return Boolean(
@@ -63,8 +64,10 @@ export function createAffiliateAdminRuntime({
         createAffiliatePool,
       } = await import("@touristic/affiliates-server");
       pool = createAffiliatePool(databaseUrl);
-      await applyAffiliatesM154Schema(pool);
-      await applyAffiliatesIdentityEligibilityM155(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await applyAffiliatesM154Schema(pool);
+        await applyAffiliatesIdentityEligibilityM155(pool);
+      }
       queries = new AffiliateAdminQueryService(pool);
       identity = new AffiliateIdentityApplicationService(
         pool,

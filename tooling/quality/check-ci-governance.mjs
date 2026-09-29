@@ -411,10 +411,8 @@ requireIncludes(
   ],
 );
 
-for (const file of [
-  "staging-oci-promotion.yml",
-  "production-oci-promotion.yml",
-]) {
+{
+  const file = "staging-oci-promotion.yml";
   const source = workflowSources.get(file);
   if (!source) fail(`${file} is missing`);
   requireIncludes(source, `.github/workflows/${file}`, [
@@ -426,8 +424,60 @@ for (const file of [
     "payments:render:smoke",
   ]);
   if (/^\s{2}(pull_request|push):/m.test(source)) {
-    fail(`${file} must remain explicit workflow_dispatch only`);
+    fail(`${file} must remain explicitly operator-triggered`);
   }
+}
+
+{
+  const file = "production-oci-promotion.yml";
+  const source = workflowSources.get(file);
+  if (!source) fail(`${file} is missing`);
+  requireIncludes(source, `.github/workflows/${file}`, [
+    "workflow_dispatch:",
+    "issue_comment:",
+    "expected_sha:",
+    "image_digest:",
+    "confirm_deploy:",
+    "actions: write",
+    "/run-production-cutover ",
+    "release-candidate-certification.yml",
+    "quality.yml",
+    "production-mysql-render-provision.yml",
+    "production-mysql-canonical-bootstrap.yml",
+    "production-mysql-backup-restore-proof.yml",
+    "confirm_dr=BACKUP_RESTORE",
+    "oci-release-promotion-gate.yml",
+    "Reconfirm exact main and fresh DR immediately before mutation",
+    "age_seconds",
+    "production-canonical-db-cutover.mjs cutover",
+    "production-canonical-db-cutover.mjs rollback",
+    "payments:render:smoke",
+  ]);
+  if (source.includes("/run-production-oci-promotion")) {
+    fail(
+      `${file} must expose only the canonical /run-production-cutover command`,
+    );
+  }
+  if (/^\s{2}(pull_request|push):/m.test(source)) {
+    fail(`${file} must remain explicitly operator-triggered`);
+  }
+}
+
+for (const [file, command] of [
+  ["production-mysql-render-provision.yml", "/run-production-mysql-provision "],
+  [
+    "production-mysql-canonical-bootstrap.yml",
+    "/run-production-mysql-bootstrap ",
+  ],
+]) {
+  const source = workflowSources.get(file);
+  if (!source) fail(`${file} is missing`);
+  requireIncludes(source, `.github/workflows/${file}`, [
+    "workflow_dispatch:",
+    "issue_comment:",
+    command,
+    "github.actor == github.repository_owner",
+  ]);
 }
 
 const codeowners = await text(".github/CODEOWNERS");

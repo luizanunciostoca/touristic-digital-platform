@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import {
   applyFinancialM145Schema,
   createFinancialMySqlPoolFromEnvironment,
@@ -128,13 +129,15 @@ try {
   orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
   financialPool = createFinancialMySqlPoolFromEnvironment(environment);
 
-  await Promise.all([
-    (async () => {
-      await applyOrderingM151Schema(orderingPool);
-      await applyOrderingTicketingReservationSchema(orderingPool);
-    })(),
-    applyFinancialM145Schema(financialPool),
-  ]);
+  if (shouldApplyRuntimeSchema()) {
+    await Promise.all([
+      (async () => {
+        await applyOrderingM151Schema(orderingPool);
+        await applyOrderingTicketingReservationSchema(orderingPool);
+      })(),
+      applyFinancialM145Schema(financialPool),
+    ]);
+  }
 
   await Promise.all([
     orderingPool.query("SELECT 1 AS ordering_ready"),

@@ -20,6 +20,17 @@ const readback = fs.readFileSync(
   new URL("../render/mysql-production/readback.sh", import.meta.url),
   "utf8",
 );
+const runtimeUsers = fs.readFileSync(
+  new URL("../render/mysql-production/runtime-users.sh", import.meta.url),
+  "utf8",
+);
+const runtimeUserEntrypoint = fs.readFileSync(
+  new URL(
+    "../render/mysql-production/runtime-users-entrypoint.sh",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 const domains = [
   ["AUTH", "morro_auth"],
@@ -159,7 +170,19 @@ for (const [domain, database] of domains) {
   requireDirective(domain + "_DATABASE_NAME", "value: " + database);
   requireDirective(domain + "_DATABASE_USER", "value: " + database);
   requireDirective(domain + "_DATABASE_PASSWORD", "generateValue: true");
+  requireDirective(
+    domain + "_RUNTIME_DATABASE_USER",
+    "value: " + database + "_runtime",
+  );
+  requireDirective(
+    domain + "_RUNTIME_DATABASE_PASSWORD",
+    "generateValue: true",
+  );
   requireText(init, "$" + domain + "_DATABASE_NAME");
+  requireText(init, "$" + domain + "_RUNTIME_DATABASE_USER");
+  requireText(init, "$" + domain + "_RUNTIME_DATABASE_PASSWORD");
+  requireText(runtimeUsers, "${domain}_RUNTIME_DATABASE_USER");
+  requireText(runtimeUsers, "${domain}_RUNTIME_DATABASE_PASSWORD");
   requireText(init, "$" + domain + "_DATABASE_USER");
   requireText(init, "$" + domain + "_DATABASE_PASSWORD");
 }
@@ -184,6 +207,9 @@ for (const required of [
   "RUN mysqld --verbose --help >/dev/null",
   "COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh",
   "COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback",
+  "COPY tooling/render/mysql-production/runtime-users.sh /usr/local/bin/morro-mysql-runtime-users",
+  "COPY tooling/render/mysql-production/runtime-users-entrypoint.sh /usr/local/bin/morro-mysql-entrypoint",
+  'ENTRYPOINT ["/usr/local/bin/morro-mysql-entrypoint"]',
 ]) {
   requireActiveLine(dockerfile, required);
 }
@@ -205,12 +231,63 @@ for (const required of [
   "CREATE USER IF NOT EXISTS",
   "ALTER USER",
   "GRANT ALL PRIVILEGES",
+  "REVOKE ALL PRIVILEGES, GRANT OPTION",
+  "GRANT SELECT, INSERT, UPDATE, DELETE",
   "utf8mb4_0900_ai_ci",
-  "13 canonical schemas and least-privilege owners initialized",
+  "13 canonical schemas, migration owners, and bounded runtime users initialized",
 ]) {
   requireText(init, required);
 }
 requireText(init, "\\`$database\\`", "escaped SQL database identifier");
+
+for (const required of [
+  'CONTRACT="MORRO-PRODUCTION-MYSQL-RUNTIME-USERS"',
+  "schema_privilege_entries",
+  "denied_count",
+  "crossDomainDenied",
+  "globalPrivilegeEntries",
+]) {
+  requireText(runtimeUsers, required);
+}
+for (const forbidden of [
+  "MYSQL_ROOT_PASSWORD",
+  "CREATE USER",
+  "ALTER USER",
+  "GRANT ALL PRIVILEGES",
+  "GRANT SELECT",
+  "REVOKE ALL PRIVILEGES",
+]) {
+  forbidText(
+    runtimeUsers,
+    forbidden,
+    "runtime-user proof must remain read-only: " + forbidden,
+  );
+}
+for (const required of [
+  "CREATE USER IF NOT EXISTS",
+  "ALTER USER",
+  "REVOKE ALL PRIVILEGES, GRANT OPTION",
+  "GRANT SELECT, INSERT, UPDATE, DELETE",
+  "--init-file",
+]) {
+  requireText(
+    runtimeUserEntrypoint,
+    required,
+    "runtime-user startup reconciliation " + required,
+  );
+}
+for (const forbidden of [
+  "CREATE, ALTER",
+  "INDEX",
+  "REFERENCES",
+  "GRANT OPTION ON",
+]) {
+  forbidText(
+    runtimeUserEntrypoint,
+    forbidden,
+    "runtime identities must remain DML-only: " + forbidden,
+  );
+}
 
 for (const required of [
   'CONTRACT="MORRO-PRODUCTION-MYSQL-READBACK"',
@@ -291,13 +368,42 @@ for (const [domain] of domains) {
 
 requireText(
   webService,
-  "preDeployCommand: node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+  "preDeployCommand: 'env EXPECTED_SHA=\"${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}\" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs'",
 );
+requireText(webService, "- key: MORRO_DATABASE_SCHEMA_MODE");
+requireText(webService, "value: external", "external runtime schema mode");
+
+for (const runtimeDatabaseUrl of [
+  "AUTH_DATABASE_URL",
+  "CONTROL_CENTER_AUDIT_DATABASE_URL",
+  "DESTINATIONS_DATABASE_URL",
+  "CONTENT_DATABASE_URL",
+  "BUSINESS_DATABASE_URL",
+  "ORDERING_DATABASE_URL",
+  "FINANCIAL_DATABASE_URL",
+  "TICKETING_DATABASE_URL",
+  "NOTIFICATIONS_DATABASE_URL",
+  "AFFILIATES_DATABASE_URL",
+  "ANALYTICS_DATABASE_URL",
+  "CRM_DATABASE_URL",
+  "COMMERCE_DATABASE_URL",
+]) {
+  requireText(
+    webService,
+    "- key: " + runtimeDatabaseUrl,
+    "server-only canonical runtime database URL " + runtimeDatabaseUrl,
+  );
+  forbidText(
+    webService,
+    "- key: VITE_" + runtimeDatabaseUrl,
+    "database credentials must never enter the browser build",
+  );
+}
 requireText(
   webService,
   "startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs",
 );
 
 console.log(
-  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 domain owners scoped to the bootstrap worker, no application cutover.",
+  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, owner-only migrations, DML-only runtime identities, external runtime schema mode, 13 server-only URLs, and fail-closed Payments predeploy.",
 );

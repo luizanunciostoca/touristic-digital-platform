@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 const runtimePackage = "@touristic/analytics-server";
 const maxRuntimeEntries = 1_000;
 
@@ -52,7 +53,9 @@ export function createAdminAuditRuntime({
     try {
       const runtime = await loadRuntime();
       pool = runtime.createAnalyticsMySqlPool(databaseUrl);
-      await runtime.applyControlCenterAuditSchema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await runtime.applyControlCenterAuditSchema(pool);
+      }
       persistentStore = new runtime.MySqlControlCenterAuditStore(pool);
       ready = true;
       startError = null;

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   authSecuritySchemaStatements,
+  authSecurityTableNames,
   createInMemoryAuthSecurityState,
   createSqlAuthSecurityState,
   type AuthSqlConnection,
@@ -148,6 +149,31 @@ describe("Auth security state", () => {
     }
     await state.close();
     expect(end).toHaveBeenCalledTimes(1);
+  });
+
+  it("validates externally managed auth tables without executing DDL", async () => {
+    const query = vi.fn().mockResolvedValue([[], []]);
+    const pool = {
+      query,
+      execute: vi.fn().mockResolvedValue([[], []]),
+      getConnection: vi.fn(),
+      end: vi.fn().mockResolvedValue(undefined),
+    } as unknown as AuthSqlPool;
+    const state = createSqlAuthSecurityState(pool, {
+      closePool: false,
+      applySchema: false,
+    });
+
+    await state.initialize();
+    await state.initialize();
+
+    expect(query).toHaveBeenCalledTimes(authSecurityTableNames.length);
+    for (const table of authSecurityTableNames) {
+      expect(query).toHaveBeenCalledWith(`SELECT 1 FROM ${table} LIMIT 0`);
+    }
+    for (const statement of authSecuritySchemaStatements) {
+      expect(query).not.toHaveBeenCalledWith(statement);
+    }
   });
 
   it("serializes durable login attempts under a row lock and commits the decision", async () => {

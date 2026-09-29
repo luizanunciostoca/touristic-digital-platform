@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 function booleanFlag(value, fallback = false) {
   const normalized = String(value ?? "")
     .trim()
@@ -92,7 +93,9 @@ export function createNotificationsRuntime({
       if (!databaseUrl) throw new Error("NOTIFICATIONS_DATABASE_URL_REQUIRED");
       const runtime = await loadRuntime();
       pool = runtime.server.createNotificationsMySqlPool(databaseUrl);
-      await runtime.server.applyNotificationsSchema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await runtime.server.applyNotificationsSchema(pool);
+      }
       repository = new runtime.server.MySqlNotificationOutboxRepository(pool);
       preferences = new runtime.server.MySqlNotificationPreferenceStore(pool);
       const idempotency = new runtime.server.MySqlNotificationIdempotencyStore(

@@ -77,14 +77,19 @@ process.stdout.write(result + "\\n");
   }
 });
 
-test("one explicit candidate dispatcher preserves the former Control Center matrix", async () => {
+test("only explicit release control planes dispatch nested workflows", async () => {
   const sources = await workflowSources();
   const dispatchers = [...sources].filter(([, source]) =>
     source.includes("gh workflow run"),
   );
   assert.deepEqual(
     dispatchers.map(([file]) => file),
-    ["final-release-acceptance.yml"],
+    ["final-release-acceptance.yml", "production-oci-promotion.yml"],
+  );
+  assert.ok(
+    sources
+      .get("production-oci-promotion.yml")
+      ?.includes("/run-production-cutover "),
   );
   const manifest = JSON.parse(
     await readFile(
@@ -122,6 +127,64 @@ test("one explicit candidate dispatcher preserves the former Control Center matr
       "CI_RELEASE_CANDIDATE: ${{ startsWith(github.ref, 'refs/tags/rc/') }}",
     ),
   );
+});
+
+test("production cutover serializes MySQL source mutation and preserves recovery state", async () => {
+  const workflows = await workflowSources();
+  const provision = workflows.get("production-mysql-render-provision.yml");
+  const production = workflows.get("production-oci-promotion.yml");
+  assert.ok(provision, "production MySQL provision workflow must exist");
+  assert.ok(production, "production OCI promotion workflow must exist");
+
+  assert.ok(
+    provision.includes(
+      "concurrency:\n  group: production-mysql-source-mutation\n  cancel-in-progress: false",
+    ),
+    "MySQL provision must hold the shared source mutation lock",
+  );
+
+  const deploySection = production.split("\n  deploy:\n")[1];
+  assert.ok(deploySection, "production OCI workflow must expose deploy job");
+  assert.ok(
+    deploySection.includes(
+      "concurrency:\n      group: production-mysql-source-mutation\n      cancel-in-progress: false",
+    ),
+    "production cutover deploy job must share the MySQL source mutation lock",
+  );
+
+  for (const marker of [
+    "Seal rollback state before post-cutover verification",
+    "openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -md sha256",
+    "production-cutover-recovery-${{ github.run_id }}-${{ github.run_attempt }}",
+    "retention-days: 14",
+    "RECOVERY_ARTIFACT_ID",
+    'test -n "${RECOVERY_ARTIFACT_ID:-}"',
+  ]) {
+    assert.ok(
+      production.includes(marker),
+      `production recovery contract missing marker: ${marker}`,
+    );
+  }
+
+  const sealIndex = production.indexOf(
+    "Seal rollback state before post-cutover verification",
+  );
+  const recoveryUploadIndex = production.indexOf(
+    "id: recovery_upload",
+    sealIndex,
+  );
+  const smokeIndex = production.indexOf(
+    "Wait for exact-SHA health and readiness",
+  );
+  const rollbackIndex = production.indexOf(
+    "Roll back source and database config on failed verification",
+  );
+  const destroyIndex = production.indexOf("Destroy ephemeral rollback state");
+  assert.ok(sealIndex > 0);
+  assert.ok(recoveryUploadIndex > sealIndex);
+  assert.ok(smokeIndex > recoveryUploadIndex);
+  assert.ok(rollbackIndex > smokeIndex);
+  assert.ok(destroyIndex > rollbackIndex);
 });
 
 const CANONICAL_STAGING = {

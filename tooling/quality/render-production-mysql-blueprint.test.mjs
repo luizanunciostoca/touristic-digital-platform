@@ -17,6 +17,8 @@ const fixtures = [
   "tooling/render/mysql-production/morro-memory.cnf",
   "tooling/render/mysql-production/01-init-databases.sh",
   "tooling/render/mysql-production/readback.sh",
+  "tooling/render/mysql-production/runtime-users.sh",
+  "tooling/render/mysql-production/runtime-users-entrypoint.sh",
 ];
 
 function runCheck(t, mutate = () => {}) {
@@ -45,7 +47,7 @@ function rejects(result, expected) {
   assert.match(result.stderr, expected);
 }
 
-test("production MySQL Blueprint satisfies bootstrap wiring without application cutover", (t) => {
+test("production MySQL Blueprint satisfies bootstrap and application cutover wiring", (t) => {
   const result = runCheck(t);
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
@@ -66,7 +68,7 @@ test("canonical bootstrap polling tolerates Render visibility lag", () => {
   const guardedCurlReads = [
     ...source.matchAll(/if ! curl --fail-with-body --silent --show-error/gu),
   ].map((match) => source.slice(match.index, match.index + 1_200));
-  assert.equal(guardedCurlReads.length, 2);
+  assert.ok(guardedCurlReads.length >= 2);
   assert.ok(
     guardedCurlReads.some((block) =>
       block.includes("$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id"),
@@ -127,6 +129,36 @@ test("shared morro_app ownership is forbidden", (t) => {
   );
 });
 
+test("runtime database credentials are distinct from bootstrap owners", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replace(
+          "      - key: BUSINESS_RUNTIME_DATABASE_USER\n        value: morro_business_runtime\n",
+          "      - key: BUSINESS_RUNTIME_DATABASE_USER\n        value: morro_business\n",
+        ),
+      );
+    }),
+    /BUSINESS_RUNTIME_DATABASE_USER/u,
+  );
+});
+
+test("runtime users cannot receive owner privileges", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/runtime-users.sh",
+      );
+      fs.appendFileSync(file, "\n# GRANT ALL PRIVILEGES\n");
+    }),
+    /runtime-user proof must remain read-only/u,
+  );
+});
+
 test("bootstrap database credentials require the dedicated background worker", (t) => {
   rejects(
     runCheck(t, (directory) => {
@@ -140,6 +172,24 @@ test("bootstrap database credentials require the dedicated background worker", (
       fs.writeFileSync(file, source.slice(0, start) + source.slice(end));
     }),
     /morro-digital-v2-production-db-bootstrap/u,
+  );
+});
+
+test("production web service requires every canonical server-only database URL", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "      - key: BUSINESS_DATABASE_URL\n        sync: false\n",
+            "",
+          ),
+      );
+    }),
+    /BUSINESS_DATABASE_URL/u,
   );
 });
 
