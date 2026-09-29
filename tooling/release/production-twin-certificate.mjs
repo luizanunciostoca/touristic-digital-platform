@@ -104,7 +104,9 @@ export function selectReusableProductionTwinCertificate(candidates, expected) {
 }
 
 export function productionTwinDispatchRequired(candidates, expected) {
-  return selectReusableProductionTwinCertificate(candidates, expected) === null;
+  return (
+    selectReusableProductionTwinCertificate(candidates, expected) === null
+  );
 }
 
 function readJson(path) {
