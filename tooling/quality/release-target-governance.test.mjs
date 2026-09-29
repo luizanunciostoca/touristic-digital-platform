@@ -201,6 +201,33 @@ test("production cutover resolves nested DR evidence artifacts deterministically
   );
 });
 
+test("production DR evidence binds its workflow run ID to cutover rehydration", async () => {
+  const workflows = await workflowSources();
+  const dr = workflows.get("production-mysql-backup-restore-proof.yml");
+  const production = workflows.get("production-oci-promotion.yml");
+
+  assert.ok(dr, "production MySQL DR workflow must exist");
+  assert.ok(production, "production OCI promotion workflow must exist");
+
+  for (const marker of [
+    '--arg runId "$GITHUB_RUN_ID"',
+    "runId:$runId",
+    'artifactName:("production-mysql-backup-restore-proof-" + $runId)',
+  ]) {
+    assert.ok(
+      dr.includes(marker),
+      `production DR evidence missing run correlation marker: ${marker}`,
+    );
+  }
+
+  const deploySection = production.split("\n  deploy:\n")[1];
+  assert.ok(deploySection, "production OCI workflow must expose deploy job");
+  assert.ok(
+    deploySection.includes(".runId == $run"),
+    "production cutover must reject DR evidence from a different workflow run",
+  );
+});
+
 test("production cutover serializes MySQL source mutation and preserves recovery state", async () => {
   const workflows = await workflowSources();
   const provision = workflows.get("production-mysql-render-provision.yml");
