@@ -38,6 +38,20 @@ function validateIdentity(environment) {
   return { expectedSha, releaseSha };
 }
 
+function contextualizeDomainError(error, domain) {
+  const message = error instanceof Error ? String(error.message).trim() : "";
+  if (/^[A-Z][A-Z0-9_:-]{2,180}$/u.test(message)) return error;
+
+  const code =
+    error && typeof error === "object" ? String(error.code ?? "").trim() : "";
+  if (/^[A-Z][A-Z0-9_]{2,80}$/u.test(code)) {
+    return new Error(
+      `PRODUCTION_RUNTIME_DATABASE_${domain.name.toUpperCase()}_${code}`,
+    );
+  }
+  return error;
+}
+
 function validateUrl(environment, domain) {
   let url;
   try {
@@ -120,8 +134,6 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
       ["USER_PRIVILEGES", "GLOBAL"],
       ["TABLE_PRIVILEGES", "TABLE"],
       ["COLUMN_PRIVILEGES", "COLUMN"],
-      ["ROUTINE_PRIVILEGES", "ROUTINE"],
-      ["APPLICABLE_ROLES", "ROLE"],
     ]) {
       const [[row]] = await pool.query(
         `SELECT COUNT(*) AS count
@@ -134,6 +146,34 @@ async function validateDomain(domain, databaseUrl, poolFactory) {
           `PRODUCTION_RUNTIME_DATABASE_${label}_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
         );
       }
+    }
+
+    const [[roleRow]] = await pool.query(
+      `SELECT COUNT(*) AS count
+         FROM information_schema.APPLICABLE_ROLES
+        WHERE USER = SUBSTRING_INDEX(CURRENT_USER(), '@', 1)
+          AND HOST = SUBSTRING_INDEX(CURRENT_USER(), '@', -1)`,
+    );
+    if (Number(roleRow?.count ?? 0) !== 0) {
+      throw new Error(
+        `PRODUCTION_RUNTIME_DATABASE_ROLE_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+      );
+    }
+
+    const [grantRows] = await pool.query("SHOW GRANTS FOR CURRENT_USER()");
+    const routineGrant = grantRows.some((row) => {
+      const grant = Object.values(row ?? {})
+        .map((value) => String(value))
+        .join(" ");
+      return (
+        /\b(?:PROCEDURE|FUNCTION)\b/iu.test(grant) ||
+        /^GRANT\s+EXECUTE\b/iu.test(grant)
+      );
+    });
+    if (routineGrant) {
+      throw new Error(
+        `PRODUCTION_RUNTIME_DATABASE_ROUTINE_PRIVILEGE_INVALID_${domain.name.toUpperCase()}`,
+      );
     }
 
     if (domain.name === "destinations") {
@@ -174,7 +214,11 @@ export async function runProductionRuntimeDatabasePredeploy({
   }));
   const domains = [];
   for (const { domain, databaseUrl } of validatedDomains) {
-    domains.push(await validateDomain(domain, databaseUrl, poolFactory));
+    try {
+      domains.push(await validateDomain(domain, databaseUrl, poolFactory));
+    } catch (error) {
+      throw contextualizeDomainError(error, domain);
+    }
   }
   return {
     contract: "MORRO-PRODUCTION-RUNTIME-DATABASE-PREDEPLOY",
