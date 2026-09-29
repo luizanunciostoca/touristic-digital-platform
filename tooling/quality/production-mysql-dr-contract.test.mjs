@@ -20,6 +20,12 @@ function manifestRows() {
   return lines.map((line) => line.split("\t"));
 }
 
+function commandInventory(source, label) {
+  const match = /for command_name in ([A-Za-z0-9_ ]+); do/u.exec(source);
+  assert.ok(match, `missing runtime command inventory in ${label}`);
+  return match[1].trim().split(/\s+/u);
+}
+
 function workflowRunBlock(stepName) {
   const lines = readFileSync(workflowPath, "utf8").split(/\r?\n/u);
   const stepMarker = `      - name: ${stepName}`;
@@ -226,6 +232,20 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   );
   assert.match(source, /microdnf remove -y mysql-shell/u);
   assert.match(source, /microdnf install -y jq gzip/u);
+  assert.match(source, /microdnf install -y jq gzip diffutils/u);
+
+  const dockerCommands = commandInventory(source, "DR worker Dockerfile");
+  const executorCommands = commandInventory(
+    readFileSync(executorPath, "utf8"),
+    "DR executor",
+  );
+  assert.deepEqual(dockerCommands, executorCommands);
+  for (const requiredCommand of ["cmp", "printenv", "chmod", "seq", "sleep"]) {
+    assert.ok(
+      dockerCommands.includes(requiredCommand),
+      `missing required DR runtime command: ${requiredCommand}`,
+    );
+  }
   assert.match(
     source,
     /COPY tooling\/render\/mysql-production\/readback\.sh \/usr\/local\/bin\/morro-mysql-readback/u,
