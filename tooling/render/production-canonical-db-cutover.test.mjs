@@ -317,6 +317,7 @@ function failureCutoverFixture({
   staleBrowserDatabaseEnv = false,
   mysqlSourceChangesBeforeMutation = false,
   deployStatus = "build_failed",
+  previousLiveChangesAfterRestore = false,
 }) {
   const stateFile = path.join(directory, "state.json");
   const evidenceFile = path.join(directory, "evidence.json");
@@ -365,6 +366,7 @@ function failureCutoverFixture({
 
   let currentService = structuredClone(originalService);
   let mysqlDeployReads = 0;
+  let webDeployReads = 0;
 
   const fetchImpl = async (url, options = {}) => {
     const parsed = new URL(url);
@@ -386,12 +388,17 @@ function failureCutoverFixture({
       });
     }
     if (method === "GET" && route === "/v1/services/srv-web/deploys?limit=20") {
+      webDeployReads += 1;
+      const observedPreviousSha =
+        previousLiveChangesAfterRestore && webDeployReads >= 3
+          ? "f".repeat(40)
+          : previousReleaseSha;
       return jsonResponse(200, [
         {
           deploy: {
             id: "dep-old",
             status: "live",
-            commit: { id: previousReleaseSha },
+            commit: { id: observedPreviousSha },
           },
         },
       ]);
@@ -691,6 +698,45 @@ test("post-patch failure restores source and env without redundant rollback when
     0,
   );
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
+});
+
+test("idempotent restored_previous_live revalidates Render and fails closed on stale state", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-stale-restored-live-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    previousLiveChangesAfterRestore: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_DEPLOY_BUILD_FAILED/u,
+  );
+
+  await assert.rejects(
+    rollback({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /ROLLBACK_PREVIOUS_LIVE_STATE_STALE/u,
+  );
+
+  const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  assert.equal(state.status, "rollback_revalidation_failed");
+  assert.equal(state.rollbackNotRequired, false);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
 });
 
 test("pre-patch env failure restores the snapshot without changing service source", async (t) => {

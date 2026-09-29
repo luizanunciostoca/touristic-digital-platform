@@ -322,6 +322,19 @@ async function restoreSource(client, serviceId, source) {
   });
 }
 
+async function previousDeployStillLive(client, state) {
+  const deployPayload = await client.get(
+    `/services/${state.webServiceId}/deploys?limit=20`,
+  );
+  const liveDeploy = normalizeDeploys(deployPayload).find(
+    (deploy) => deploy.status === "live",
+  );
+  return (
+    liveDeploy?.id === state.previousDeployId &&
+    String(liveDeploy.commit?.id ?? "") === state.previousReleaseSha
+  );
+}
+
 async function rollbackFromState({ client, state, stateFile }) {
   await restoreRuntimeEnv(client, state.webServiceId, state.previousEnv);
   await restoreSource(client, state.webServiceId, state.previousSource);
@@ -331,23 +344,15 @@ async function rollbackFromState({ client, state, stateFile }) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
   }
 
-  if (state.status === "deploying") {
-    const deployPayload = await client.get(
-      `/services/${state.webServiceId}/deploys?limit=20`,
-    );
-    const liveDeploy = normalizeDeploys(deployPayload).find(
-      (deploy) => deploy.status === "live",
-    );
-    if (
-      liveDeploy?.id === state.previousDeployId &&
-      String(liveDeploy.commit?.id ?? "") === state.previousReleaseSha
-    ) {
-      state.status = "restored_previous_live";
-      state.rollbackDeployId = null;
-      state.rollbackNotRequired = true;
-      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
-      return state;
-    }
+  if (
+    state.status === "deploying" &&
+    (await previousDeployStillLive(client, state))
+  ) {
+    state.status = "restored_previous_live";
+    state.rollbackDeployId = null;
+    state.rollbackNotRequired = true;
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+    return state;
   }
 
   const rollback = await client.post(
@@ -645,15 +650,25 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
   const stateFile = required(environment, "CUTOVER_STATE_FILE");
   const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
   const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
-  if (
-    state.status === "rolled_back" ||
-    state.status === "restored_previous_live"
-  ) {
+  if (state.status === "rolled_back") {
     const evidence = publicEvidence(state);
     await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
     return evidence;
   }
+
   const client = createClient({ token, fetchImpl });
+  if (state.status === "restored_previous_live") {
+    if (!(await previousDeployStillLive(client, state))) {
+      state.status = "rollback_revalidation_failed";
+      state.rollbackNotRequired = false;
+      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      throw new Error("ROLLBACK_PREVIOUS_LIVE_STATE_STALE");
+    }
+    const evidence = publicEvidence(state);
+    await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
+    return evidence;
+  }
+
   const rolledBack = await rollbackFromState({ client, state, stateFile });
   await fs.writeFile(
     evidenceFile,
