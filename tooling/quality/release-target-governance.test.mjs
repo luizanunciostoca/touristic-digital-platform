@@ -513,4 +513,13 @@ test("production cutover locates nested DR evidence artifacts", async () => {
     production.includes('test -n "$evidence"'),
     "deploy DR lookup must fail closed when evidence is missing",
   );
+
+  assert.ok(
+    production.includes('test -s "$dr_evidence"'),
+    "preflight DR lookup must fail closed when evidence is empty",
+  );
+  assert.ok(
+    production.includes('test -s "$evidence"'),
+    "deploy DR lookup must fail closed when evidence is empty",
+  );
 });
