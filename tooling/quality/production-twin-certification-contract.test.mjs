@@ -237,6 +237,9 @@ test("production cutover verifies exact certificate identity before reuse", () =
     "goldenDigestCertified:true",
     "twinCertification",
   ]) {
-    assert.ok(source.includes(required), `missing promotion twin gate: ${required}`);
+    assert.ok(
+      source.includes(required),
+      `missing promotion twin gate: ${required}`,
+    );
   }
 });
