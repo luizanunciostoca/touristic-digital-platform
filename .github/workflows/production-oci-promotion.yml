@@ -20,7 +20,7 @@ on:
 
 permissions:
   contents: read
-  actions: read
+  actions: write
   deployments: write
 
 concurrency:
@@ -42,14 +42,15 @@ jobs:
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        github.actor == github.repository_owner &&
-       startsWith(github.event.comment.body, '/run-production-oci-promotion '))
+       startsWith(github.event.comment.body, '/run-production-cutover '))
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 180
     outputs:
       expected_sha: ${{ steps.invocation.outputs.expected_sha }}
-      image_digest: ${{ steps.invocation.outputs.image_digest }}
+      image_digest: ${{ steps.orchestrate.outputs.image_digest }}
       confirm_deploy: ${{ steps.invocation.outputs.confirm_deploy }}
-      dr_run_id: ${{ steps.gates.outputs.dr_run_id }}
+      dr_run_id: ${{ steps.orchestrate.outputs.dr_run_id }}
+      dr_requested_at: ${{ steps.orchestrate.outputs.dr_requested_at }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,13 +72,18 @@ jobs:
             expected_sha="$INPUT_SHA"
             image_digest="$INPUT_DIGEST"
             confirm_deploy="$INPUT_CONFIRM"
+            orchestrate="false"
           else
-            read -r command expected_sha image_digest confirm_deploy extra <<<"$COMMENT_BODY"
-            test "$command" = "/run-production-oci-promotion"
+            read -r command expected_sha confirm_deploy extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-production-cutover"
             test -z "${extra:-}"
+            image_digest=""
+            orchestrate="true"
           fi
           [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          if [ "$orchestrate" = "false" ]; then
+            [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          fi
           test "$confirm_deploy" = "DEPLOY"
           test "$(git rev-parse HEAD)" = "$expected_sha"
           current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
@@ -85,130 +91,235 @@ jobs:
           echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
           echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
           echo "confirm_deploy=$confirm_deploy" >> "$GITHUB_OUTPUT"
+          echo "orchestrate=$orchestrate" >> "$GITHUB_OUTPUT"
 
-      - name: Prove frozen candidate provenance
+      - name: Orchestrate exact-main release, MySQL, and fresh DR gates
+        id: orchestrate
         env:
+          GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
-          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
+          INPUT_DIGEST: ${{ steps.invocation.outputs.image_digest }}
+          ORCHESTRATE: ${{ steps.invocation.outputs.orchestrate }}
         shell: bash
         run: |
           set -euo pipefail
+
+          assert_exact_main() {
+            test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+            current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+            test "$current_main" = "$EXPECTED_SHA"
+          }
+
+          wait_for_success() {
+            local workflow="$1"
+            for _ in $(seq 1 1440); do
+              assert_exact_main
+              local run_id
+              run_id="$(gh run list \
+                --workflow "$workflow" \
+                --commit "$EXPECTED_SHA" \
+                --status success \
+                --limit 20 \
+                --json databaseId,headSha \
+                --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty')"
+              if [ -n "$run_id" ]; then
+                printf '%s\n' "$run_id"
+                return 0
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for $workflow @ $EXPECTED_SHA" >&2
+            return 1
+          }
+
+          dispatch_and_wait() {
+            local workflow="$1"
+            shift
+            local key before_file run_id status conclusion head_sha
+            key="${workflow//[^A-Za-z0-9]/_}"
+            before_file="/tmp/${key}.before"
+            gh run list \
+              --workflow "$workflow" \
+              --commit "$EXPECTED_SHA" \
+              --event workflow_dispatch \
+              --limit 100 \
+              --json databaseId \
+              --jq '.[].databaseId' > "$before_file" || true
+
+            assert_exact_main
+            gh workflow run "$workflow" --ref main "$@"
+
+            run_id=""
+            for _ in $(seq 1 120); do
+              assert_exact_main
+              while read -r candidate; do
+                [ -n "$candidate" ] || continue
+                if ! grep -Fxq "$candidate" "$before_file"; then
+                  run_id="$candidate"
+                  break
+                fi
+              done < <(
+                gh run list \
+                  --workflow "$workflow" \
+                  --commit "$EXPECTED_SHA" \
+                  --event workflow_dispatch \
+                  --limit 20 \
+                  --json databaseId,headSha \
+                  --jq --arg sha "$EXPECTED_SHA" '.[] | select(.headSha == $sha) | .databaseId'
+              )
+              [ -n "$run_id" ] && break
+              sleep 5
+            done
+            test -n "$run_id"
+
+            for _ in $(seq 1 1440); do
+              assert_exact_main
+              status="$(gh run view "$run_id" --json status --jq '.status')"
+              if [ "$status" = "completed" ]; then
+                conclusion="$(gh run view "$run_id" --json conclusion --jq '.conclusion')"
+                head_sha="$(gh run view "$run_id" --json headSha --jq '.headSha')"
+                test "$head_sha" = "$EXPECTED_SHA"
+                test "$conclusion" = "success"
+                echo "PASS: $workflow run $run_id @ $EXPECTED_SHA" >&2
+                printf '%s\n' "$run_id"
+                return 0
+              fi
+              sleep 5
+            done
+            echo "Timed out waiting for dispatched $workflow run $run_id" >&2
+            return 1
+          }
+
+          assert_exact_main
           node tooling/ci/release-candidate.mjs "$EXPECTED_SHA"
 
-      - name: Re-prove immutable image provenance
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
-          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          run_id="$(
-            gh run list               --workflow release-oci-image.yml               --commit "$EXPECTED_SHA"               --status success               --limit 20               --json databaseId,headSha               --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
-          )"
-          test -n "$run_id"
-          rm -rf /tmp/release-provenance
-          mkdir -p /tmp/release-provenance
-          gh run download "$run_id"             --name "release-provenance-$EXPECTED_SHA"             --dir /tmp/release-provenance
-          expected_tree="$(git rev-parse "$EXPECTED_SHA^{tree}")"
-          jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$expected_tree"             --arg digest "$IMAGE_DIGEST"             '.source_sha == $sha and .tree_sha == $tree and .digest == $digest'             /tmp/release-provenance/release-provenance.json >/dev/null
-          echo "PASS: immutable image $IMAGE_REPOSITORY@$IMAGE_DIGEST from run $run_id"
+          if [ "$ORCHESTRATE" = "true" ]; then
+            final_release_run_id="$(dispatch_and_wait final-release-acceptance.yml)"
+            candidate_run_id="$(dispatch_and_wait release-candidate-certification.yml)"
+            dependency_run_id="$(wait_for_success dependency-security-audit.yml)"
+            security_run_id="$(wait_for_success security-scanning.yml)"
+            oci_run_id="$(dispatch_and_wait release-oci-image.yml -f "expected_sha=$EXPECTED_SHA")"
 
-      - name: Re-prove mandatory release and DR gates
-        id: gates
-        env:
-          GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
-          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          for workflow in             final-release-acceptance.yml             dependency-security-audit.yml             security-scanning.yml             production-mysql-render-provision.yml
-          do
-            run_id="$(
-              gh run list                 --workflow "$workflow"                 --commit "$EXPECTED_SHA"                 --status success                 --limit 30                 --json databaseId,headSha                 --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
-            )"
-            test -n "$run_id"
-            echo "PASS: $workflow run $run_id @ $EXPECTED_SHA"
-          done
+            rm -rf /tmp/release-provenance
+            mkdir -p /tmp/release-provenance
+            gh run download "$oci_run_id" \
+              --name "release-provenance-$EXPECTED_SHA" \
+              --dir /tmp/release-provenance
+            expected_tree="$(git rev-parse "$EXPECTED_SHA^{tree}")"
+            image_digest="$(jq -r \
+              --arg sha "$EXPECTED_SHA" \
+              --arg tree "$expected_tree" \
+              'select(.source_sha == $sha and .tree_sha == $tree) | .digest // empty' \
+              /tmp/release-provenance/release-provenance.json)"
+            [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
 
-          bootstrap_run_id="$(
-            gh run list \
-              --workflow production-mysql-canonical-bootstrap.yml \
-              --commit "$EXPECTED_SHA" \
-              --status success \
-              --limit 30 \
-              --json databaseId,headSha \
-            | jq -r --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
-          )"
-          test -n "$bootstrap_run_id"
-          rm -rf /tmp/bootstrap-gate
-          mkdir -p /tmp/bootstrap-gate
-          gh run download "$bootstrap_run_id" \
-            --name "production-mysql-canonical-bootstrap-$bootstrap_run_id" \
-            --dir /tmp/bootstrap-gate
-          bootstrap_evidence="/tmp/bootstrap-gate/production-mysql-canonical-bootstrap-evidence.json"
-          test -s "$bootstrap_evidence"
-          jq -e \
-            --arg sha "$EXPECTED_SHA" \
-            '.status == "pass" and
-             .expectedSha == $sha and
-             .contractVersion >= 3 and
-             .runtimeUsers.status == "pass" and
-             .runtimeUsers.runtimeUsers == 13 and
-             .runtimeUsers.allowedSchemaPrivilegesPerUser == 4 and
-             .runtimeUsers.schemaPrivilegeEntries == 52 and
-             .runtimeUsers.crossDomainDenied == 156 and
-             .runtimeUsers.globalPrivilegeEntries == 0 and
-             .bootstrap.status == "pass" and
-             .bootstrap.expectedSha == $sha and
-             .bootstrap.idempotent == true and
-             .bootstrap.runs == 2 and
-             .bootstrap.totalTables == 91' \
-            "$bootstrap_evidence" >/dev/null
-          echo "PASS: canonical bootstrap/runtime-user evidence run $bootstrap_run_id @ $EXPECTED_SHA"
+            oci_gate_run_id="$(dispatch_and_wait oci-release-promotion-gate.yml \
+              -f "expected_sha=$EXPECTED_SHA" \
+              -f "image_digest=$image_digest")"
+            mysql_provision_run_id="$(dispatch_and_wait production-mysql-render-provision.yml \
+              -f "expected_sha=$EXPECTED_SHA" \
+              -f "confirm_provision=PROVISION")"
+            bootstrap_run_id="$(dispatch_and_wait production-mysql-canonical-bootstrap.yml \
+              -f "expected_sha=$EXPECTED_SHA" \
+              -f "image_digest=$image_digest" \
+              -f "confirm_bootstrap=BOOTSTRAP")"
 
-          gate_run_id=""
-          rm -rf /tmp/oci-gate
-          mkdir -p /tmp/oci-gate
-          while read -r candidate_run; do
-            [ -n "$candidate_run" ] || continue
-            rm -rf /tmp/oci-gate/*
-            if gh run download "$candidate_run" \
-              --name "oci-promotion-gate-evidence-$candidate_run" \
-              --dir /tmp/oci-gate >/dev/null 2>&1
-            then
-              evidence="/tmp/oci-gate/oci-promotion-gate-evidence.json"
-              if jq -e \
-                --arg sha "$EXPECTED_SHA" \
-                --arg digest "$IMAGE_DIGEST" \
-                '.status == "pass" and
-                 .sourceSha == $sha and
-                 .imageDigest == $digest' \
-                "$evidence" >/dev/null 2>&1
+            echo "PASS: orchestrated final=$final_release_run_id candidate=$candidate_run_id dependency=$dependency_run_id security=$security_run_id oci=$oci_run_id gate=$oci_gate_run_id mysql=$mysql_provision_run_id bootstrap=$bootstrap_run_id" >&2
+          else
+            image_digest="$INPUT_DIGEST"
+            [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+
+            for workflow in \
+              final-release-acceptance.yml \
+              release-candidate-certification.yml \
+              dependency-security-audit.yml \
+              security-scanning.yml \
+              production-mysql-render-provision.yml
+            do
+              wait_for_success "$workflow" >/dev/null
+            done
+
+            oci_run_id="$(wait_for_success release-oci-image.yml)"
+            rm -rf /tmp/release-provenance
+            mkdir -p /tmp/release-provenance
+            gh run download "$oci_run_id" \
+              --name "release-provenance-$EXPECTED_SHA" \
+              --dir /tmp/release-provenance
+            expected_tree="$(git rev-parse "$EXPECTED_SHA^{tree}")"
+            jq -e \
+              --arg sha "$EXPECTED_SHA" \
+              --arg tree "$expected_tree" \
+              --arg digest "$image_digest" \
+              '.source_sha == $sha and .tree_sha == $tree and .digest == $digest' \
+              /tmp/release-provenance/release-provenance.json >/dev/null
+
+            gate_run_id=""
+            rm -rf /tmp/oci-gate
+            mkdir -p /tmp/oci-gate
+            while read -r candidate_run; do
+              [ -n "$candidate_run" ] || continue
+              rm -rf /tmp/oci-gate/*
+              if gh run download "$candidate_run" \
+                --name "oci-promotion-gate-evidence-$candidate_run" \
+                --dir /tmp/oci-gate >/dev/null 2>&1
               then
-                gate_run_id="$candidate_run"
-                break
+                if jq -e \
+                  --arg sha "$EXPECTED_SHA" \
+                  --arg digest "$image_digest" \
+                  '.status == "pass" and .sourceSha == $sha and .imageDigest == $digest' \
+                  /tmp/oci-gate/oci-promotion-gate-evidence.json >/dev/null 2>&1
+                then
+                  gate_run_id="$candidate_run"
+                  break
+                fi
               fi
-            fi
-          done < <(
-            gh run list \
-              --workflow oci-release-promotion-gate.yml \
-              --commit "$EXPECTED_SHA" \
-              --status success \
-              --limit 30 \
-              --json databaseId,headSha \
-            | jq -r --arg sha "$EXPECTED_SHA" '.[] | select(.headSha == $sha) | .databaseId'
-          )
-          test -n "$gate_run_id"
-          echo "PASS: digest-bound OCI promotion gate run $gate_run_id @ $EXPECTED_SHA / $IMAGE_DIGEST"
+            done < <(
+              gh run list \
+                --workflow oci-release-promotion-gate.yml \
+                --commit "$EXPECTED_SHA" \
+                --status success \
+                --limit 30 \
+                --json databaseId,headSha \
+              | jq -r --arg sha "$EXPECTED_SHA" '.[] | select(.headSha == $sha) | .databaseId'
+            )
+            test -n "$gate_run_id"
 
-          dr_run_id="$(
-            gh run list               --workflow production-mysql-backup-restore-proof.yml               --commit "$EXPECTED_SHA"               --status success               --limit 30               --json databaseId,headSha               --jq --arg sha "$EXPECTED_SHA" '[.[] | select(.headSha == $sha)][0].databaseId // empty'
-          )"
-          test -n "$dr_run_id"
+            bootstrap_run_id="$(wait_for_success production-mysql-canonical-bootstrap.yml)"
+            rm -rf /tmp/bootstrap-gate
+            mkdir -p /tmp/bootstrap-gate
+            gh run download "$bootstrap_run_id" \
+              --name "production-mysql-canonical-bootstrap-$bootstrap_run_id" \
+              --dir /tmp/bootstrap-gate
+            jq -e \
+              --arg sha "$EXPECTED_SHA" \
+              --arg digest "$image_digest" \
+              '.status == "pass" and
+               .expectedSha == $sha and
+               .release.imageDigest == $digest and
+               .runtimeUsers.status == "pass" and
+               .runtimeUsers.runtimeUsers == 13 and
+               .runtimeUsers.allowedSchemaPrivilegesPerUser == 4 and
+               .runtimeUsers.schemaPrivilegeEntries == 52 and
+               .runtimeUsers.crossDomainDenied == 156 and
+               .runtimeUsers.globalPrivilegeEntries == 0 and
+               .bootstrap.status == "pass" and
+               .bootstrap.idempotent == true and
+               .bootstrap.runs == 2 and
+               .bootstrap.totalTables == 91' \
+              /tmp/bootstrap-gate/production-mysql-canonical-bootstrap-evidence.json >/dev/null
+          fi
+
+          assert_exact_main
+          dr_requested_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          dr_run_id="$(dispatch_and_wait production-mysql-backup-restore-proof.yml \
+            -f "expected_sha=$EXPECTED_SHA" \
+            -f "source_mysql_sha=$EXPECTED_SHA" \
+            -f "confirm_dr=BACKUP_RESTORE")"
+
+          echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
           echo "dr_run_id=$dr_run_id" >> "$GITHUB_OUTPUT"
-          echo "PASS: production MySQL backup/restore run $dr_run_id @ $EXPECTED_SHA"
+          echo "dr_requested_at=$dr_requested_at" >> "$GITHUB_OUTPUT"
+          echo "PASS: fresh DR run $dr_run_id dispatched at $dr_requested_at" >&2
 
   deploy:
     needs: preflight
@@ -240,18 +351,31 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           DR_RUN_ID: ${{ needs.preflight.outputs.dr_run_id }}
+          DR_REQUESTED_AT: ${{ needs.preflight.outputs.dr_requested_at }}
           EXPECTED_SHA: ${{ needs.preflight.outputs.expected_sha }}
         shell: bash
         run: |
           set -euo pipefail
+          run_meta="$(gh run view "$DR_RUN_ID" --json headSha,event,status,conclusion,createdAt)"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg requested "$DR_REQUESTED_AT" \
+            '.headSha == $sha and
+             .event == "workflow_dispatch" and
+             .status == "completed" and
+             .conclusion == "success" and
+             .createdAt >= $requested' <<<"$run_meta" >/dev/null
+
           rm -rf /tmp/production-dr-evidence
           mkdir -p /tmp/production-dr-evidence
           gh run download "$DR_RUN_ID"             --name "production-mysql-backup-restore-proof-$DR_RUN_ID"             --dir /tmp/production-dr-evidence
           evidence="/tmp/production-dr-evidence/production-mysql-backup-restore-evidence.json"
           test -s "$evidence"
-          jq -e             --arg sha "$EXPECTED_SHA"             '.status == "pass" and
+          jq -e             --arg sha "$EXPECTED_SHA" --arg run "$DR_RUN_ID"             '.status == "pass" and
              .result == "PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS" and
              .toolSha == $sha and
+             .runId == $run and
+             .sourceSha == $sha and
              .source.schemaCount == 13 and
              .source.totalTables == 91 and
              .restore.schemaCount == 13 and
@@ -261,6 +385,7 @@ jobs:
              .restore.leastPrivilegeReadback == true'             "$evidence" >/dev/null
           source_sha="$(jq -r '.sourceSha // empty' "$evidence")"
           [[ "$source_sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$source_sha" = "$EXPECTED_SHA"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
 
       - name: Execute fail-closed canonical database cutover
@@ -279,6 +404,9 @@ jobs:
           set -euo pipefail
           test -n "$RENDER_PRODUCTION_API_KEY"
           test -n "$RENDER_PRODUCTION_SERVICE_ID"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$EXPECTED_SHA"
           node tooling/render/production-canonical-db-cutover.mjs cutover
 
       - name: Wait for exact-SHA health and readiness
