@@ -286,24 +286,33 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
   const expectedSha = required(environment, "EXPECTED_SHA");
   const imageDigest = required(environment, "IMAGE_DIGEST");
   const imageRepository = required(environment, "IMAGE_REPOSITORY");
+  const expectedMysqlSourceSha = required(
+    environment,
+    "EXPECTED_MYSQL_SOURCE_SHA",
+  );
   const stateFile = required(environment, "CUTOVER_STATE_FILE");
   const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
 
   if (!SHA_PATTERN.test(expectedSha)) throw new Error("EXPECTED_SHA_INVALID");
   if (!DIGEST_PATTERN.test(imageDigest)) throw new Error("IMAGE_DIGEST_INVALID");
+  if (!SHA_PATTERN.test(expectedMysqlSourceSha)) {
+    throw new Error("EXPECTED_MYSQL_SOURCE_SHA_INVALID");
+  }
   if (imageRepository !== "ghcr.io/luizanunciostoca/morro-digital-v2") {
     throw new Error("IMAGE_REPOSITORY_UNTRUSTED");
   }
 
   const client = createClient({ token, fetchImpl });
-  const [service, mysqlService, deployPayload, credentials] = await Promise.all([
-    client.get(`/services/${webServiceId}`),
-    client.get(`/services/${mysqlServiceId}`),
-    client.get(`/services/${webServiceId}/deploys?limit=20`),
-    client.get(
-      `/registrycredentials?ownerId=${encodeURIComponent(workspaceId)}&type=GITHUB&limit=100`,
-    ),
-  ]);
+  const [service, mysqlService, deployPayload, mysqlDeployPayload, credentials] =
+    await Promise.all([
+      client.get(`/services/${webServiceId}`),
+      client.get(`/services/${mysqlServiceId}`),
+      client.get(`/services/${webServiceId}/deploys?limit=20`),
+      client.get(`/services/${mysqlServiceId}/deploys?limit=20`),
+      client.get(
+        `/registrycredentials?ownerId=${encodeURIComponent(workspaceId)}&type=GITHUB&limit=100`,
+      ),
+    ]);
 
   if (
     service.id !== webServiceId ||
@@ -323,6 +332,16 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     mysqlService.serviceDetails?.region !== "virginia"
   ) {
     throw new Error("PRODUCTION_MYSQL_SERVICE_IDENTITY_INVALID");
+  }
+
+  const liveMysqlDeploy = normalizeDeploys(mysqlDeployPayload).find(
+    (deploy) => deploy.status === "live",
+  );
+  if (
+    !liveMysqlDeploy?.id ||
+    String(liveMysqlDeploy.commit?.id ?? "") !== expectedMysqlSourceSha
+  ) {
+    throw new Error("PRODUCTION_MYSQL_DR_SOURCE_STALE");
   }
 
   const liveDeploy = normalizeDeploys(deployPayload).find(
@@ -348,6 +367,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     expectedSha,
     imageDigest,
     imageRepository,
+    expectedMysqlSourceSha,
     webServiceId,
     mysqlServiceId,
     previousDeployId: liveDeploy.id,
@@ -440,6 +460,11 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
   const stateFile = required(environment, "CUTOVER_STATE_FILE");
   const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
   const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+  if (state.status === "rolled_back") {
+    const evidence = publicEvidence(state);
+    await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
+    return evidence;
+  }
   const client = createClient({ token, fetchImpl });
   const rolledBack = await rollbackFromState({ client, state, stateFile });
   await fs.writeFile(
