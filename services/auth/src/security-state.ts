@@ -186,6 +186,14 @@ export const authSecuritySchemaStatements = Object.freeze([
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`,
 ]);
 
+export const authSecurityTableNames = Object.freeze([
+  "auth_session_revocations",
+  "auth_login_rate_limits",
+  "auth_session_registry",
+  "auth_principal_admin_state",
+  "auth_admin_mutation_replay_guard",
+]);
+
 export const authSessionRegistryRollbackSql =
   "DROP TABLE IF EXISTS auth_session_registry";
 
@@ -563,9 +571,10 @@ export function createInMemoryAuthSecurityState(): AuthSecurityState {
 
 export function createSqlAuthSecurityState(
   pool: AuthSqlPool,
-  options: { readonly closePool?: boolean } = {},
+  options: { readonly closePool?: boolean; readonly applySchema?: boolean } = {},
 ): AuthSecurityState {
   const closePool = options.closePool ?? true;
+  const applySchema = options.applySchema ?? true;
   let initialized = false;
   let lastCleanupMs = 0;
 
@@ -604,8 +613,14 @@ export function createSqlAuthSecurityState(
 
   async function initialize(): Promise<void> {
     if (initialized) return;
-    for (const statement of authSecuritySchemaStatements) {
-      await pool.query(statement);
+    if (applySchema) {
+      for (const statement of authSecuritySchemaStatements) {
+        await pool.query(statement);
+      }
+    } else {
+      for (const table of authSecurityTableNames) {
+        await pool.query(`SELECT 1 FROM ${table} LIMIT 0`);
+      }
     }
     initialized = true;
   }
