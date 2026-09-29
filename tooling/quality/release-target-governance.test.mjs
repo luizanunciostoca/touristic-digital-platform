@@ -129,6 +129,55 @@ test("only explicit release control planes dispatch nested workflows", async () 
   );
 });
 
+test("production cutover resolves nested DR evidence artifacts deterministically", async () => {
+  const workflows = await workflowSources();
+  const production = workflows.get("production-oci-promotion.yml");
+  assert.ok(production, "production OCI promotion workflow must exist");
+
+  const [preflightSection, deploySection] = production.split("\n  deploy:\n");
+  assert.ok(preflightSection, "production OCI workflow must expose preflight");
+  assert.ok(deploySection, "production OCI workflow must expose deploy");
+
+  for (const [section, root, assignment] of [
+    [
+      preflightSection,
+      "/tmp/dr-proof",
+      'dr_evidence="${dr_evidence_candidates[0]}"',
+    ],
+    [
+      deploySection,
+      "/tmp/production-dr-evidence",
+      'evidence="${dr_evidence_candidates[0]}"',
+    ],
+  ]) {
+    assert.ok(
+      section.includes(
+        `find ${root} -type f -name 'production-mysql-backup-restore-evidence.json' -print | sort`,
+      ),
+      `missing recursive DR evidence lookup in ${root}`,
+    );
+    assert.ok(
+      section.includes('test "${#dr_evidence_candidates[@]}" -eq 1'),
+      `missing exact-one DR evidence guard in ${root}`,
+    );
+    assert.ok(
+      section.includes(assignment),
+      `missing resolved DR evidence assignment in ${root}`,
+    );
+  }
+
+  assert.ok(
+    !preflightSection.includes(
+      'dr_evidence="/tmp/dr-proof/production-mysql-backup-restore-evidence.json"',
+    ),
+  );
+  assert.ok(
+    !deploySection.includes(
+      'evidence="/tmp/production-dr-evidence/production-mysql-backup-restore-evidence.json"',
+    ),
+  );
+});
+
 test("production cutover serializes MySQL source mutation and preserves recovery state", async () => {
   const workflows = await workflowSources();
   const provision = workflows.get("production-mysql-render-provision.yml");
