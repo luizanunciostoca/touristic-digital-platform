@@ -299,6 +299,119 @@ jobs:
              .restore.checksumsMatch == true and
              .restore.leastPrivilegeReadback == true'             "$dr_evidence" >/dev/null
 
+          # Heavy production-like certification is cached by exact SHA + tree + OCI
+          # digest. A retry still creates a fresh DR proof for the real cutover, but
+          # does not repeat the expensive twin battery when the immutable artifact
+          # is already certified.
+          twin_run_id=""
+          rm -rf /tmp/production-twin-proof
+          mkdir -p /tmp/production-twin-proof
+          while read -r candidate_run; do
+            [ -n "$candidate_run" ] || continue
+            rm -rf /tmp/production-twin-proof/*
+            if gh run download "$candidate_run" \
+              --name "production-twin-certification-$candidate_run" \
+              --dir /tmp/production-twin-proof >/dev/null 2>&1
+            then
+              twin_evidence="/tmp/production-twin-proof/production-twin-certification-evidence.json"
+              if jq -e \
+                --arg sha "$EXPECTED_SHA" \
+                --arg tree "$tree_sha" \
+                --arg image "$IMAGE_REPOSITORY" \
+                --arg digest "$image_digest" \
+                --arg imageRun "$image_run_id" '
+                  .contract == "MORRO-PRODUCTION-TWIN-CERTIFICATION" and
+                  .contractVersion == 1 and
+                  .status == "pass" and
+                  .result == "PRODUCTION_TWIN_CERTIFICATION = PASS" and
+                  .expectedSha == $sha and
+                  .treeSha == $tree and
+                  .image.repository == $image and
+                  .image.digest == $digest and
+                  (.image.runId | tostring) == $imageRun and
+                  .image.immutable == true and
+                  .productionSample.schemaCount == 13 and
+                  .productionSample.totalTables == 91 and
+                  .twin.runtimePredeploy.status == "pass" and
+                  .twin.runtimePredeploy.domainCount == 13 and
+                  .twin.runtimePredeploy.totalTables == 91 and
+                  .twin.paymentsPredeploy.status == "pass" and
+                  .twin.paymentsPredeploy.checkoutMode == "test" and
+                  .persistence.write == "stored" and
+                  .persistence.readback == "replayed" and
+                  .persistence.reloadReadback == "replayed" and
+                  .persistence.newSessionReadback == "replayed" and
+                  .persistence.redeployReadback == "replayed" and
+                  .persistence.survivedRedeploy == true and
+                  .safety.productionMutation == false and
+                  .safety.renderMutation == false and
+                  .safety.railwayTouched == false and
+                  .safety.productionCredentialsConfirmed == false and
+                  .safety.subscriptionsEnabled == false and
+                  .safety.plaintextUploaded == false
+                ' "$twin_evidence" >/dev/null 2>&1
+              then
+                twin_run_id="$candidate_run"
+                echo "REUSE: production twin certificate run=$twin_run_id digest=$image_digest" >&2
+                break
+              fi
+            fi
+          done < <(
+            gh run list \
+              --workflow production-twin-certification.yml \
+              --commit "$EXPECTED_SHA" \
+              --status success \
+              --limit 30 \
+              --json databaseId,headSha \
+              | jq -r --arg sha "$EXPECTED_SHA" '.[] | select(.headSha == $sha) | .databaseId'
+          )
+
+          if [ -z "$twin_run_id" ]; then
+            twin_run_id="$(
+              dispatch_wait production-twin-certification.yml \
+                -f expected_sha="$EXPECTED_SHA" \
+                -f image_digest="$image_digest" \
+                -f image_run_id="$image_run_id" \
+                -f dr_run_id="$dr_run_id" \
+                -f confirm_twin=CERTIFY
+            )"
+            rm -rf /tmp/production-twin-proof
+            mkdir -p /tmp/production-twin-proof
+            gh run download "$twin_run_id" \
+              --name "production-twin-certification-$twin_run_id" \
+              --dir /tmp/production-twin-proof
+            twin_evidence="/tmp/production-twin-proof/production-twin-certification-evidence.json"
+            jq -e \
+              --arg sha "$EXPECTED_SHA" \
+              --arg tree "$tree_sha" \
+              --arg image "$IMAGE_REPOSITORY" \
+              --arg digest "$image_digest" \
+              --arg imageRun "$image_run_id" \
+              --arg drRun "$dr_run_id" '
+                .contract == "MORRO-PRODUCTION-TWIN-CERTIFICATION" and
+                .contractVersion == 1 and
+                .status == "pass" and
+                .result == "PRODUCTION_TWIN_CERTIFICATION = PASS" and
+                .expectedSha == $sha and
+                .treeSha == $tree and
+                .image.repository == $image and
+                .image.digest == $digest and
+                (.image.runId | tostring) == $imageRun and
+                .productionSample.drRunId == $drRun and
+                .productionSample.schemaCount == 13 and
+                .productionSample.totalTables == 91 and
+                .twin.runtimePredeploy.status == "pass" and
+                .twin.paymentsPredeploy.checkoutMode == "test" and
+                .persistence.survivedRedeploy == true and
+                .safety.productionMutation == false and
+                .safety.renderMutation == false and
+                .safety.railwayTouched == false and
+                .safety.productionCredentialsConfirmed == false and
+                .safety.subscriptionsEnabled == false and
+                .safety.plaintextUploaded == false
+              ' "$twin_evidence" >/dev/null
+          fi
+
           oci_gate_run_id="$(
             dispatch_wait oci-release-promotion-gate.yml               -f expected_sha="$EXPECTED_SHA"               -f image_digest="$image_digest"
           )"
@@ -314,13 +427,14 @@ jobs:
           test "$current_main" = "$EXPECTED_SHA"
           test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
 
-          jq -n             --arg sourceSha "$EXPECTED_SHA"             --arg imageDigest "$image_digest"             --arg candidateRunId "$candidate_run_id"             --arg qualityRunId "$quality_run_id"             --arg dependencyRunId "$dependency_run_id"             --arg securityRunId "$security_run_id"             --arg acceptanceRunId "$acceptance_run_id"             --arg imageRunId "$image_run_id"             --arg provisionRunId "$provision_run_id"             --arg bootstrapRunId "$bootstrap_run_id"             --arg stagingRunId "$staging_run_id"             --arg drRunId "$dr_run_id"             --arg ociGateRunId "$oci_gate_run_id"             '{
+          jq -n             --arg sourceSha "$EXPECTED_SHA"             --arg imageDigest "$image_digest"             --arg candidateRunId "$candidate_run_id"             --arg qualityRunId "$quality_run_id"             --arg dependencyRunId "$dependency_run_id"             --arg securityRunId "$security_run_id"             --arg acceptanceRunId "$acceptance_run_id"             --arg imageRunId "$image_run_id"             --arg provisionRunId "$provision_run_id"             --arg bootstrapRunId "$bootstrap_run_id"             --arg stagingRunId "$staging_run_id"             --arg drRunId "$dr_run_id"             --arg twinRunId "$twin_run_id"             --arg ociGateRunId "$oci_gate_run_id"             '{
               contract:"MORRO-PRODUCTION-CUTOVER-PREFLIGHT",
-              contractVersion:1,
+              contractVersion:2,
               status:"pass",
               sourceSha:$sourceSha,
               imageDigest:$imageDigest,
               freshDr:true,
+              goldenDigestCertified:true,
               runs:{
                 candidate:$candidateRunId,
                 quality:$qualityRunId,
@@ -332,6 +446,7 @@ jobs:
                 mysqlBootstrap:$bootstrapRunId,
                 stagingPromotion:$stagingRunId,
                 backupRestore:$drRunId,
+                twinCertification:$twinRunId,
                 ociGate:$ociGateRunId
               }
             }' > production-cutover-preflight-evidence.json
