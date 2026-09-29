@@ -83,6 +83,9 @@ describe("Home / Discover V2 visual shell", () => {
     expect(css).toMatch(
       /\.md-home-title-block\s*\{[^}]*flex:\s*1 1 auto[^}]*overflow:\s*hidden/isu,
     );
+    expect(css).toMatch(
+      /body\[data-md-mode="discover"\]\s+\.md-home-header-inner\s*\{[^}]*box-shadow:\s*none/isu,
+    );
     expect(css).toContain(
       'body[data-md-mode="discover"] .analytics-consent-preferences.is-collapsed',
     );
