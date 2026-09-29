@@ -25,7 +25,7 @@ RUN set -eux; \
     microdnf remove -y mysql-shell; \
     microdnf update -y openssl openssl-libs libevent curl libcurl libxml2; \
     microdnf install -y jq gzip diffutils; \
-    for command_name in mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir gzip base64; do command -v "$command_name"; done; \
+    for command_name in env bash printenv mysql mysqladmin mysqld mysqldump jq openssl sha256sum cmp sort uniq awk sed cut head tail wc date stat rm mkdir chmod gzip base64 seq sleep; do command -v "$command_name"; done; \
     microdnf clean all
 
 COPY tooling/render/mysql-production-dr/canonical-manifest.tsv /opt/morro-dr/canonical-manifest.tsv
