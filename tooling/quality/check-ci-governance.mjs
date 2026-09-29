@@ -465,7 +465,10 @@ requireIncludes(
 
 for (const [file, command] of [
   ["production-mysql-render-provision.yml", "/run-production-mysql-provision "],
-  ["production-mysql-canonical-bootstrap.yml", "/run-production-mysql-bootstrap "],
+  [
+    "production-mysql-canonical-bootstrap.yml",
+    "/run-production-mysql-bootstrap ",
+  ],
 ]) {
   const source = workflowSources.get(file);
   if (!source) fail(`${file} is missing`);
