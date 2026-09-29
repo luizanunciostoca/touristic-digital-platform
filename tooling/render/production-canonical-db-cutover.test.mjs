@@ -318,6 +318,7 @@ function failureCutoverFixture({
   mysqlSourceChangesBeforeMutation = false,
   deployStatus = "build_failed",
   previousLiveChangesAfterRestore = false,
+  failPreviousLiveRevalidationGet = false,
 }) {
   const stateFile = path.join(directory, "state.json");
   const evidenceFile = path.join(directory, "evidence.json");
@@ -389,6 +390,9 @@ function failureCutoverFixture({
     }
     if (method === "GET" && route === "/v1/services/srv-web/deploys?limit=20") {
       webDeployReads += 1;
+      if (failPreviousLiveRevalidationGet && webDeployReads >= 3) {
+        return jsonResponse(503, { error: "injected-revalidation-outage" });
+      }
       const observedPreviousSha =
         previousLiveChangesAfterRestore && webDeployReads >= 3
           ? "f".repeat(40)
@@ -765,6 +769,49 @@ test("idempotent restored_previous_live revalidates Render and fails closed on s
   );
   assert.equal(retryEvidence.status, "rollback_revalidation_failed");
   assert.equal(retryEvidence.rollbackNotRequired, false);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+});
+
+test("restored_previous_live revalidation persists failure evidence when Render deploy-list lookup fails", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-revalidation-outage-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    failPreviousLiveRevalidationGet: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_DEPLOY_BUILD_FAILED/u,
+  );
+
+  await assert.rejects(
+    rollback({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /ROLLBACK_PREVIOUS_LIVE_REVALIDATION_FAILED/u,
+  );
+
+  const state = JSON.parse(await fs.readFile(fixture.stateFile, "utf8"));
+  const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
+  assert.equal(state.status, "rollback_revalidation_failed");
+  assert.equal(state.rollbackNotRequired, false);
+  assert.equal(evidence.status, "rollback_revalidation_failed");
+  assert.equal(evidence.rollbackNotRequired, false);
+  assert.notEqual(evidence.status, "restored_previous_live");
   assert.equal(
     fixture.requests.filter(
       (request) =>

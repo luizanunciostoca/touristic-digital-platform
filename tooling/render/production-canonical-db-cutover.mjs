@@ -665,7 +665,20 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
 
   const client = createClient({ token, fetchImpl });
   if (state.status === "restored_previous_live") {
-    if (!(await previousDeployStillLive(client, state))) {
+    let stillLive = false;
+    try {
+      stillLive = await previousDeployStillLive(client, state);
+    } catch {
+      state.status = "rollback_revalidation_failed";
+      state.rollbackNotRequired = false;
+      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      await fs.writeFile(
+        evidenceFile,
+        JSON.stringify(publicEvidence(state), null, 2),
+      );
+      throw new Error("ROLLBACK_PREVIOUS_LIVE_REVALIDATION_FAILED");
+    }
+    if (!stillLive) {
       state.status = "rollback_revalidation_failed";
       state.rollbackNotRequired = false;
       await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
