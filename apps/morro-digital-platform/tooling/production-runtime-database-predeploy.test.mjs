@@ -99,14 +99,12 @@ function poolFactory(
           const rows = [
             { [column]: `GRANT USAGE ON *.* TO ${account}` },
             {
-              [column]:
-                `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO ${account}`,
+              [column]: `GRANT SELECT, INSERT, UPDATE, DELETE ON \`${schema}\`.* TO ${account}`,
             },
           ];
           if (routineGrant) {
             rows.push({
-              [column]:
-                `GRANT EXECUTE ON PROCEDURE \`${schema}\`.\`danger\` TO ${account}`,
+              [column]: `GRANT EXECUTE ON PROCEDURE \`${schema}\`.\`danger\` TO ${account}`,
             });
           }
           return [rows, []];
