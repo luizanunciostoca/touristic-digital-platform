@@ -100,7 +100,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
-          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
@@ -120,6 +119,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
