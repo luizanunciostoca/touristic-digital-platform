@@ -134,26 +134,45 @@ test("production cutover resolves nested DR evidence artifacts deterministically
   const production = workflows.get("production-oci-promotion.yml");
   assert.ok(production, "production OCI promotion workflow must exist");
 
-  for (const marker of [
-    "find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print | sort",
-    "find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print | sort",
-    'test "${#dr_evidence_candidates[@]}" -eq 1',
-    'dr_evidence="${dr_evidence_candidates[0]}"',
-    'evidence="${dr_evidence_candidates[0]}"',
+  const [preflightSection, deploySection] = production.split("\n  deploy:\n");
+  assert.ok(preflightSection, "production OCI workflow must expose preflight");
+  assert.ok(deploySection, "production OCI workflow must expose deploy");
+
+  for (const [section, root, assignment] of [
+    [
+      preflightSection,
+      "/tmp/dr-proof",
+      'dr_evidence="${dr_evidence_candidates[0]}"',
+    ],
+    [
+      deploySection,
+      "/tmp/production-dr-evidence",
+      'evidence="${dr_evidence_candidates[0]}"',
+    ],
   ]) {
     assert.ok(
-      production.includes(marker),
-      `production DR artifact resolution missing marker: ${marker}`,
+      section.includes(
+        `find ${root} -type f -name 'production-mysql-backup-restore-evidence.json' -print | sort`,
+      ),
+      `missing recursive DR evidence lookup in ${root}`,
+    );
+    assert.ok(
+      section.includes('test "${#dr_evidence_candidates[@]}" -eq 1'),
+      `missing exact-one DR evidence guard in ${root}`,
+    );
+    assert.ok(
+      section.includes(assignment),
+      `missing resolved DR evidence assignment in ${root}`,
     );
   }
 
   assert.ok(
-    !production.includes(
+    !preflightSection.includes(
       'dr_evidence="/tmp/dr-proof/production-mysql-backup-restore-evidence.json"',
     ),
   );
   assert.ok(
-    !production.includes(
+    !deploySection.includes(
       'evidence="/tmp/production-dr-evidence/production-mysql-backup-restore-evidence.json"',
     ),
   );
