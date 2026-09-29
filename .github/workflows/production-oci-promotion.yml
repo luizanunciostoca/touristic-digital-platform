@@ -262,6 +262,8 @@ jobs:
           grep -Fxq "expected_sha=$EXPECTED_SHA" "$staging_evidence"
           grep -Fxq "digest=$image_digest" "$staging_evidence"
           grep -Fxq "image=$IMAGE_REPOSITORY" "$staging_evidence"
+          grep -Fxq "image_run_id=$image_run_id" "$staging_evidence"
+          grep -Fxq "live_image_run_id=$image_run_id" "$staging_evidence"
           grep -Fxq "target_url=https://morro-digital-v2-staging.onrender.com" "$staging_evidence"
           staging_deploy_id="$(sed -n 's/^render_deploy_id=//p' "$staging_evidence" | head -n1)"
           test -n "$staging_deploy_id"
