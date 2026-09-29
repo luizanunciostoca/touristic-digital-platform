@@ -19,6 +19,7 @@
       ".github/workflows/security-scanning.yml",
       ".github/workflows/production-mysql-render-provision.yml",
       "tooling/render/mysql-production/readback.sh",
+      "tooling/render/mysql-production/runtime-users.sh",
       ".github/workflows/production-mysql-render-readback.yml",
       "tooling/render/with-production-mysql-env.mjs",
       "tooling/render/with-production-mysql-env.test.mjs",
