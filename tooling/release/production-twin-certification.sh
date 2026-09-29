@@ -363,7 +363,7 @@ jq -e '.data.status == "replayed"' "$work_root/redeploy-readback.json" >/dev/nul
 db_rows_after_redeploy="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   morro_analytics   -e "SELECT COUNT(*) FROM analytics_events WHERE event_id='${event_id}';")"
 [[ "$db_rows_after_redeploy" == "1" ]] || fail "TWIN_REDEPLOY_DATABASE_READBACK_INVALID"
 
-jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg imageRepository "$IMAGE_REPOSITORY"   --arg imageDigest "$image_digest"   --arg imageRunId "$image_run_id"   --arg drRunId "$dr_run_id"   --arg drEncryptedSha "$actual_encrypted_sha"   --arg drPlainSha "$actual_plain_sha"   --arg mysqlImage "$MYSQL_IMAGE"   --arg eventId "$event_id"   --argjson runtimePredeploy "$(cat "$work_root/runtime-predeploy.json")"   --argjson paymentsPredeploy "$(cat "$work_root/payments-predeploy.json")"   '{
+jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg imageRepository "$IMAGE_REPOSITORY"   --arg imageDigest "$image_digest"   --arg imageRunId "$image_run_id"   --arg candidateRunId "$candidate_run_id"   --arg candidateArtifactDigest "$candidate_artifact_digest"   --arg lockfileDigest "$lockfile_digest"   --arg drRunId "$dr_run_id"   --arg drEncryptedSha "$actual_encrypted_sha"   --arg drPlainSha "$actual_plain_sha"   --arg mysqlImage "$MYSQL_IMAGE"   --arg eventId "$event_id"   --argjson runtimePredeploy "$(cat "$work_root/runtime-predeploy.json")"   --argjson paymentsPredeploy "$(cat "$work_root/payments-predeploy.json")"   '{
     contract:"MORRO-PRODUCTION-TWIN-CERTIFICATION",
     contractVersion:1,
     status:"pass",
