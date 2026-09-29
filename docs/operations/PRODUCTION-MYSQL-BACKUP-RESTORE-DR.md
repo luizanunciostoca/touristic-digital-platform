@@ -59,7 +59,9 @@ The repository is public, so the SQL dump is never uploaded in plaintext.
 
 The DR executor encrypts the logical dump with AES-256-CBC + PBKDF2 before it leaves the temporary Render worker. The encryption passphrase is derived for the run from the protected Render MySQL root secret and the source SHA; neither the root secret nor the derived passphrase is emitted or retained in artifacts.
 
-Transport uses a temporary draft GitHub release while the workflow is running. The GitHub runner downloads the encrypted asset, verifies its SHA-256 and byte length, decrypts it only long enough to verify the plaintext dump digest, then immediately removes the plaintext copy. The draft release and temporary Render worker are deleted in the always-run cleanup phase.
+The temporary worker never receives a GitHub credential. After encryption, the compressed ciphertext is emitted in bounded, ordered log chunks. The workflow reads those chunks through the already protected Render control-plane credential, reconstructs the ciphertext on the GitHub runner, verifies its SHA-256 and byte length, and decrypts it only as a stream to verify the plaintext dump digest. No plaintext SQL file is written on the runner.
+
+The log transport is deliberately capped at 300 KB of encrypted compressed payload. This pre-cutover database is expected to remain far below that bound; exceeding it fails closed instead of weakening transport security. A later production backup service should use dedicated encrypted object storage rather than logs.
 
 The retained GitHub Actions artifact contains only:
 
@@ -81,11 +83,10 @@ The DR workflow makes no source mutation, so a failed drill requires no data rol
 On failure:
 
 1. delete only the temporary DR worker whose id and name pass the cleanup guard;
-2. delete the temporary draft release;
-3. remove runner temporary files;
-4. leave `morro-digital-v2-production-mysql` and disk `dsk-datbtpk9v7es7384alk0` untouched;
-5. leave Railway untouched;
-6. rerun the existing production MySQL readback before investigating any source-side anomaly.
+2. remove runner temporary files;
+3. leave `morro-digital-v2-production-mysql` and disk `dsk-datbtpk9v7es7384alk0` untouched;
+4. leave Railway untouched;
+5. rerun the existing production MySQL readback before investigating any source-side anomaly.
 
 Never restore the retained dump directly over the production volume. A real disaster recovery must provision an isolated replacement target first, restore there, validate it, and only then use a separately authorized cutover procedure.
 
