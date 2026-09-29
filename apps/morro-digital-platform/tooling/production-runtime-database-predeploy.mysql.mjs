@@ -2,9 +2,7 @@ import assert from "node:assert/strict";
 
 import mysql from "mysql2/promise";
 
-import {
-  validateRuntimePrivilegeBoundaries,
-} from "./production-runtime-database-predeploy.mjs";
+import { validateRuntimePrivilegeBoundaries } from "./production-runtime-database-predeploy.mjs";
 
 const adminDatabaseUrl = String(
   process.env.MYSQL_ADMIN_DATABASE_URL ?? "",
