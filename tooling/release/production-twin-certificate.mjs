@@ -130,10 +130,8 @@ if (
 ) {
   try {
     main();
-  } catch (error) {
-    process.stderr.write(
-      `${error instanceof Error ? error.message : "PRODUCTION_TWIN_CERTIFICATE_FAILED"}\n`,
-    );
+  } catch {
+    process.stderr.write("PRODUCTION_TWIN_CERTIFICATE_FAILED\n");
     process.exitCode = 1;
   }
 }
