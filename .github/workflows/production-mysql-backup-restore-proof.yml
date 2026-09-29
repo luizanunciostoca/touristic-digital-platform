@@ -384,6 +384,7 @@ jobs:
           test "$http_status" = "201"
           job_id="$(jq -r '.id // empty' /tmp/dr-job-create.json)"
           test -n "$job_id"
+          echo "Render DR job id: $job_id"
 
           status=""
           for _ in $(seq 1 240); do
@@ -396,7 +397,24 @@ jobs:
             status="$(jq -r '.status // empty' /tmp/dr-job.json)"
             case "$status" in
               succeeded) break ;;
-              failed|canceled) exit 1 ;;
+              failed|canceled)
+                safe_code=""
+                for _ in $(seq 1 30); do
+                  if curl --fail --silent                     --get                     --header "$auth"                     --header "Accept: application/json"                     --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"                     --data-urlencode "resource=$job_id"                     --data-urlencode "direction=backward"                     --data-urlencode "limit=100"                     "$api/logs" > /tmp/dr-job-failure-logs.json
+                  then
+                    safe_code="$(jq -r                       --arg contract "MORRO-PRODUCTION-MYSQL-BACKUP-RESTORE-PROOF"                       -f tooling/render/mysql-production-dr/safe-failure-code.jq                       /tmp/dr-job-failure-logs.json)"
+                    if [ -n "$safe_code" ]; then
+                      break
+                    fi
+                  fi
+                  sleep 2
+                done
+                if [ -z "$safe_code" ]; then
+                  safe_code="DR_JOB_FAILED_WITHOUT_SAFE_CODE"
+                fi
+                echo "DR_FAIL_CODE=$safe_code" >&2
+                exit 1
+                ;;
               pending|running) sleep 5 ;;
               *) exit 1 ;;
             esac
