@@ -382,6 +382,30 @@ jobs:
           test "$source_sha" = "$EXPECTED_SHA"
           echo "source_sha=$source_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Reconfirm exact main and fresh DR immediately before mutation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ needs.preflight.outputs.expected_sha }}
+          DR_RUN_ID: ${{ needs.preflight.outputs.dr_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$EXPECTED_SHA"
+
+          dr_state="$(gh run view "$DR_RUN_ID" --json headSha,status,conclusion,updatedAt)"
+          test "$(jq -r '.headSha' <<<"$dr_state")" = "$EXPECTED_SHA"
+          test "$(jq -r '.status' <<<"$dr_state")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$dr_state")" = "success"
+          dr_updated="$(jq -r '.updatedAt' <<<"$dr_state")"
+          dr_epoch="$(date -u -d "$dr_updated" +%s)"
+          now_epoch="$(date -u +%s)"
+          age_seconds="$((now_epoch - dr_epoch))"
+          test "$age_seconds" -ge 0
+          test "$age_seconds" -le 1800
+          echo "Fresh DR proof confirmed: run=$DR_RUN_ID age_seconds=$age_seconds"
+
       - name: Execute fail-closed canonical database cutover
         id: cutover
         env:
