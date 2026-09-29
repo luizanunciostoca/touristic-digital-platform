@@ -71,6 +71,22 @@ export function selectRegistryCredential(credentials, explicitId = "") {
   return github[0].id;
 }
 
+export function assertDeployImageIdentity(
+  observed,
+  imagePath,
+  imageDigest,
+) {
+  const observedRef = String(observed?.image?.ref ?? "");
+  const observedDigest = String(observed?.image?.sha ?? "");
+  if (
+    (!observedRef && !observedDigest) ||
+    (observedRef && observedRef !== imagePath) ||
+    (observedDigest && observedDigest !== imageDigest)
+  ) {
+    throw new Error("PRODUCTION_DEPLOY_DIGEST_MISMATCH");
+  }
+}
+
 export function buildDatabaseUrl({ host, port, database, user, password }) {
   if (host !== "morro-digital-v2-production-mysql" || Number(port) !== 3306) {
     throw new Error("PRODUCTION_MYSQL_PRIVATE_ENDPOINT_UNTRUSTED");
@@ -487,15 +503,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     const observed = await client.get(
       `/services/${webServiceId}/deploys/${newDeployId}`,
     );
-    const observedRef = String(observed?.image?.ref ?? "");
-    const observedDigest = String(observed?.image?.sha ?? "");
-    if (
-      (!observedRef && !observedDigest) ||
-      (observedRef && observedRef !== imagePath) ||
-      (observedDigest && observedDigest !== imageDigest)
-    ) {
-      throw new Error("PRODUCTION_DEPLOY_DIGEST_MISMATCH");
-    }
+    assertDeployImageIdentity(observed, imagePath, imageDigest);
 
     state.status = "live";
     await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
