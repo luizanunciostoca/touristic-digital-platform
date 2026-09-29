@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 import {
   createHash,
   createHmac,
@@ -609,8 +610,10 @@ export function createAffiliatesApi({
           ));
 
       pool = createPool(getEnvironmentValue("AFFILIATES_DATABASE_URL"));
-      await applySchema(pool);
-      await applyIdentitySchema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await applySchema(pool);
+        await applyIdentitySchema(pool);
+      }
       application = createApplication(pool);
       started = true;
       startError = null;
