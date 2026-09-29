@@ -236,6 +236,46 @@ test("runs every canonical applier, validates structure, seeds once, and closes 
   }
 });
 
+test("accepts the exact immutable application release identity", async () => {
+  const events = [];
+  const closed = [];
+  const result = await runProductionDatabasePredeploy({
+    environment: environment({
+      RENDER_SERVICE_NAME: "morro-digital-v2",
+      RENDER_GIT_COMMIT: "",
+      MORRO_RELEASE_SHA: "a".repeat(40),
+    }),
+    dependencies: dependencies(events),
+    poolFactory: poolFactory(closed),
+  });
+
+  assert.equal(result.status, "pass");
+  assert.equal(result.serviceName, "morro-digital-v2");
+  assert.equal(result.runtimeSourceSha, "a".repeat(40));
+  assert.equal(result.domains.length, 13);
+  assert.deepEqual(
+    closed,
+    canonicalProductionDomains.map((domain) => domain.name),
+  );
+});
+
+test("rejects application release identity drift before connecting", async () => {
+  await assert.rejects(
+    runProductionDatabasePredeploy({
+      environment: environment({
+        RENDER_SERVICE_NAME: "morro-digital-v2",
+        RENDER_GIT_COMMIT: "",
+        MORRO_RELEASE_SHA: "b".repeat(40),
+      }),
+      dependencies: dependencies([]),
+      poolFactory() {
+        throw new Error("pool must not be created");
+      },
+    }),
+    /PRODUCTION_DATABASE_BOOTSTRAP_SHA_MISMATCH/u,
+  );
+});
+
 test("fails closed when an expected canonical table is absent", async () => {
   const closed = [];
   await assert.rejects(
