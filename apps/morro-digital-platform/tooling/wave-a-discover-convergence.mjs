@@ -352,6 +352,10 @@ try {
         [0.25, 0.5],
         [0.5, 0.3],
         [0.65, 0.42],
+        [0.18, 0.32],
+        [0.78, 0.32],
+        [0.18, 0.62],
+        [0.78, 0.62],
       ];
       for (const [xRatio, yRatio] of candidates) {
         const x = rect.left + rect.width * xRatio;
@@ -365,24 +369,43 @@ try {
           y <= dock.bottom;
         const blockedByUi = Boolean(
           target?.closest(
-            "#unified-assistant-dock, .md-home-header, #weather-widget, #globe-map-control, #privacy-control",
+            "#unified-assistant-dock, .md-home-header, #weather-widget, #globe-map-control, #privacy-control, .mapboxgl-marker, .morro-explore-marker",
           ),
         );
-        if (!blockedByDock && !blockedByUi) return { x, y };
+        const targetsCanvas =
+          target === canvas ||
+          Boolean(target?.closest?.(".mapboxgl-canvas-container"));
+        if (!blockedByDock && !blockedByUi && targetsCanvas) {
+          return { x, y };
+        }
       }
-      return {
-        x: rect.left + rect.width * 0.25,
-        y: rect.top + rect.height * 0.42,
-      };
+      return null;
     });
-    assert(gesturePoint, "No unobstructed map gesture point is available");
+    assert(
+      gesturePoint,
+      "No unobstructed Mapbox canvas gesture point is available",
+    );
     const gestureX = gesturePoint.x;
     const gestureY = gesturePoint.y;
     await page.mouse.move(gestureX, gestureY);
-    await page.mouse.down();
-    await page.mouse.move(gestureX + 52, gestureY + 28, { steps: 6 });
-    await page.mouse.up();
-    await page.waitForTimeout(350);
+    await page.mouse.down({ button: "left" });
+    await page.mouse.move(gestureX + 96, gestureY + 54, { steps: 12 });
+    await page.mouse.up({ button: "left" });
+    await page.waitForFunction(
+      ({ lng, lat }) => {
+        const center = globalThis.mapboxPrimaryInstance?.getCenter?.();
+        return Boolean(
+          center &&
+            (Math.abs(center.lng - lng) > 0.00001 ||
+              Math.abs(center.lat - lat) > 0.00001),
+        );
+      },
+      {
+        lng: cameraBeforeGestures.center?.lng ?? 0,
+        lat: cameraBeforeGestures.center?.lat ?? 0,
+      },
+      { timeout: 2500 },
+    );
     const afterPan = await page.evaluate(() => {
       const map = globalThis.mapboxPrimaryInstance;
       const center = map?.getCenter?.();
