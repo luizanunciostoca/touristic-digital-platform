@@ -41,7 +41,27 @@
       ".github/workflows/final-release-acceptance.yml",
       ".github/workflows/release-oci-image.yml",
       ".github/workflows/oci-release-promotion-gate.yml",
-      "tooling/quality/check-ci-governance.mjs"
+      "tooling/quality/check-ci-governance.mjs",
+      "apps/morro-digital-platform/tooling/admin-audit-runtime.mjs",
+      "apps/morro-digital-platform/tooling/affiliate-admin-runtime.mjs",
+      "apps/morro-digital-platform/tooling/affiliates-api.mjs",
+      "apps/morro-digital-platform/tooling/analytics-api.mjs",
+      "apps/morro-digital-platform/tooling/commerce-api.mjs",
+      "apps/morro-digital-platform/tooling/content-admin-runtime.mjs",
+      "apps/morro-digital-platform/tooling/crm-api.mjs",
+      "apps/morro-digital-platform/tooling/database-schema-mode.mjs",
+      "apps/morro-digital-platform/tooling/database-schema-mode.test.mjs",
+      "apps/morro-digital-platform/tooling/destination-admin-runtime.mjs",
+      "apps/morro-digital-platform/tooling/notifications-runtime.mjs",
+      "apps/morro-digital-platform/tooling/payments-api.mjs",
+      "apps/morro-digital-platform/tooling/payments-card-api.mjs",
+      "apps/morro-digital-platform/tooling/payments-migrate.mjs",
+      "apps/morro-digital-platform/tooling/payments-subscription-api.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs",
+      "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+      "tooling/render/mysql-production/runtime-users-entrypoint.sh"
     ],
     "contracts": [
       "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP",
@@ -91,13 +111,21 @@
   "stopAt": "REMOTE_PROVEN",
   "sizeException": {
     "kind": "mechanical-composition",
-    "reason": "This critical production database front mechanically composes the already exact-head-audited provisioning and least-privilege readback work from PRs #514, #515, and #516 with the canonical bootstrap proof. The exception covers aggregate review size only and does not waive quality, security, tenancy, provenance, runtime, backup, recovery, or exact-head evidence.",
+    "reason": "This P0 cutover composes the already-proven canonical MySQL bootstrap/DR front with one bounded application cutover. The additional files are the mechanical external-schema guards required to keep DDL in the private migration plane and DML-only credentials in the public runtime; the exception does not waive exact-head, CI, review, security, tenancy, provenance, backup, rollback, or runtime evidence.",
     "sourcePullRequests": [
       514,
       515,
-      516
+      516,
+      517,
+      518,
+      519,
+      520,
+      521,
+      523,
+      525,
+      528
     ],
-    "maxFiles": 20,
-    "maxLines": 4000
+    "maxFiles": 50,
+    "maxLines": 8000
   }
 }
