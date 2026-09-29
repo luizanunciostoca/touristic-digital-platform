@@ -79,6 +79,8 @@ test("DR worker image uses the exact pinned MySQL 8.4 base", () => {
   );
   assert.match(source, /^USER root$/mu);
   assert.match(source, /microdnf install -y jq gzip/u);
+  assert.match(source, /^USER mysql$/mu);
+  assert.ok(source.lastIndexOf("USER mysql") > source.lastIndexOf("USER root"));
   assert.match(
     source,
     /CMD \["bash", "-lc", "sleep infinity"\]/u,
