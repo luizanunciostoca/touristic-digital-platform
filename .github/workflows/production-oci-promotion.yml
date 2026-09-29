@@ -404,7 +404,8 @@ jobs:
           jq -e             --arg sha "$EXPECTED_SHA" --arg run "$DR_RUN_ID"             '.status == "pass" and
              .result == "PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS" and
              .toolSha == $sha and
-             .runId == $run and
+             .backup.artifactName == ("production-mysql-backup-restore-proof-" + $run) and
+             .render.temporaryDrServiceName == ("morro-digital-v2-production-mysql-dr-" + $run) and
              .sourceSha == $sha and
              .source.schemaCount == 13 and
              .source.totalTables == 91 and
