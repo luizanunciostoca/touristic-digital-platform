@@ -36,6 +36,7 @@ env:
   SERVICE_REPO: https://github.com/luizanunciostoca/touristic-digital-platform
   APPLICATION_SERVICE_NAME: morro-digital-v2
   DR_SERVICE_PREFIX: morro-digital-v2-production-mysql-dr-
+  DR_ENCRYPTION_KEY_ID: github-actions-production-mysql-dr-key-v1
 
 jobs:
   backup-restore:
@@ -92,13 +93,16 @@ jobs:
       - name: Re-prove canonical scope manifest contract
         run: node --test apps/morro-digital-platform/tooling/production-mysql-dr-contract.test.mjs
 
-      - name: Require protected Render credential
+      - name: Require protected Render and DR credentials
         env:
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1: ${{ secrets.PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1 }}
         shell: bash
         run: |
           set -euo pipefail
           test -n "$RENDER_PRODUCTION_API_KEY"
+          test -n "$PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1"
+          test "${#PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1}" -ge 32
 
       - name: Prove source identity, no cutover, and provision isolated DR worker
         id: provision
@@ -106,6 +110,7 @@ jobs:
           TOOL_SHA: ${{ steps.identity.outputs.tool_sha }}
           SOURCE_SHA: ${{ steps.identity.outputs.source_sha }}
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+          PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1: ${{ secrets.PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1 }}
         shell: bash
         run: |
           set -euo pipefail
@@ -175,6 +180,7 @@ jobs:
           jq -n             --arg tool "$TOOL_SHA"             --arg source "$SOURCE_SHA"             --arg host "$MYSQL_SERVICE_NAME"             '[
               {key:"DR_TOOL_SHA",value:$tool},
               {key:"DR_SOURCE_SHA",value:$source},
+              {key:"DR_ENCRYPTION_KEY_ID",value:env.DR_ENCRYPTION_KEY_ID},
               {key:"SOURCE_MYSQL_HOST",value:$host},
               {key:"SOURCE_MYSQL_PORT",value:"3306"}
             ]' > /tmp/dr-env.json
@@ -197,17 +203,11 @@ jobs:
             done
           done
 
-          api_get "$api/services/$MYSQL_SERVICE_ID/env-vars/MYSQL_ROOT_PASSWORD" > /tmp/env-value.json
-          root_secret="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
-          test -n "$root_secret"
-          encryption_secret="$(printf '%s:%s' "$root_secret" "$SOURCE_SHA" | sha256sum | awk '{print $1}')"
-          unset root_secret
-          printf '%s' "$encryption_secret" > /tmp/dr-encryption-secret
+          printf '%s' "$PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1" > /tmp/dr-encryption-secret
           chmod 600 /tmp/dr-encryption-secret
 
-          jq --arg value "$encryption_secret"             '. + [{key:"DR_ENCRYPTION_SECRET",value:$value}]'             /tmp/dr-env.json > /tmp/dr-env.next.json
+          jq --arg value "$PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1"             '. + [{key:"DR_ENCRYPTION_SECRET",value:$value}]'             /tmp/dr-env.json > /tmp/dr-env.next.json
           mv /tmp/dr-env.next.json /tmp/dr-env.json
-          unset encryption_secret
 
           jq -n             --arg owner "$RENDER_WORKSPACE_ID"             --arg name "$dr_service_name"             --arg repo "$SERVICE_REPO"             --argjson envVars "$(cat /tmp/dr-env.json)"             '{
               type:"background_worker",
@@ -342,6 +342,10 @@ jobs:
             .restore.primaryKeysMatch == true and
             .restore.indexesMatch == true and
             .restore.foreignKeysMatch == true and
+            .restore.leastPrivilegeReadback == true and
+            .restore.schemaOwners == 13 and
+            .restore.crossDomainDenied == 156 and
+            .backup.encryptionKeyId == "github-actions-production-mysql-dr-key-v1" and
             .scopePolicy.verified == true and
             (.backup.plaintextSha256 | test("^sha256:[0-9a-f]{64}$")) and
             (.backup.encryptedSha256 | test("^sha256:[0-9a-f]{64}$"))

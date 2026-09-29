@@ -9,8 +9,9 @@ RUN set -eux; \
 
 COPY tooling/render/mysql-production-dr/canonical-manifest.tsv /opt/morro-dr/canonical-manifest.tsv
 COPY tooling/render/mysql-production-dr/dr-proof.sh /usr/local/bin/morro-production-mysql-dr-proof
+COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback
 RUN chmod 0444 /opt/morro-dr/canonical-manifest.tsv && \
-    chmod 0555 /usr/local/bin/morro-production-mysql-dr-proof
+    chmod 0555 /usr/local/bin/morro-production-mysql-dr-proof /usr/local/bin/morro-mysql-readback
 
 USER mysql
 

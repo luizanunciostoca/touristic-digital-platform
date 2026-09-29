@@ -37,6 +37,8 @@ Any change across the backup window fails the run. All canonical base tables mus
 
 ## Restore validation
 
+The isolated restore provisions the same 13 schema owners using the protected source owner credentials, then runs the existing `MORRO-PRODUCTION-MYSQL-READBACK` contract against the restored target. This proves all 13 owners can read their own schemas and that all 156 cross-domain access attempts remain denied.
+
 The isolated restore must match the source for:
 
 - all 13 canonical schemas;
@@ -57,7 +59,7 @@ The scope-policy manifest is contract-tested against `canonicalProductionDomains
 
 The repository is public, so the SQL dump is never uploaded in plaintext.
 
-The DR executor encrypts the logical dump with AES-256-CBC + PBKDF2 before it leaves the temporary Render worker. The encryption passphrase is derived for the run from the protected Render MySQL root secret and the source SHA; neither the root secret nor the derived passphrase is emitted or retained in artifacts.
+The DR executor encrypts the logical dump with AES-256-CBC + PBKDF2 before it leaves the temporary Render worker. Encryption uses the independently managed GitHub Actions production secret `PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1`; the non-secret key identifier `github-actions-production-mysql-dr-key-v1` is recorded in evidence so retained backups remain decryptable independently of the Render MySQL root password lifecycle.
 
 The temporary worker never receives a GitHub credential. After encryption, the compressed ciphertext is emitted in bounded, ordered log chunks. The workflow reads those chunks through the already protected Render control-plane credential, reconstructs the ciphertext on the GitHub runner, verifies its SHA-256 and byte length, and decrypts it only as a stream to verify the plaintext dump digest. No plaintext SQL file is written on the runner.
 
@@ -68,7 +70,7 @@ The retained GitHub Actions artifact contains only:
 - the encrypted `.sql.enc` backup;
 - the DR evidence JSON.
 
-Retention is 90 days. Recovery from that retained artifact requires access to the protected Render secret used for key derivation.
+Retention is 90 days. Recovery from that retained artifact requires access to the versioned GitHub Actions DR encryption key identified by the evidence. Rotate by introducing a new versioned secret/key ID while retaining old key material for every unexpired backup encrypted under the previous key.
 
 ## RPO and RTO interpretation
 

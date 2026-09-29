@@ -35,6 +35,10 @@ validate_identifier() {
   [[ "$1" =~ ^[A-Za-z0-9_]+$ ]] || fail "IDENTIFIER_INVALID"
 }
 
+sql_escape() {
+  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e "s/'/''/g"
+}
+
 domain_for_schema() {
   case "$1" in
     morro_auth) printf AUTH ;;
@@ -68,6 +72,52 @@ source_mysql() {
 restore_mysql() {
   mysql --protocol=socket --batch --raw --skip-column-names \
     --socket="$restore_socket" --user=root --execute="$1"
+}
+
+provision_restore_owners() {
+  local spec domain database user password escaped
+  for spec in \
+    AUTH:morro_auth AUDIT:morro_audit DESTINATIONS:morro_destinations \
+    CONTENT:morro_content BUSINESS:morro_business ORDERING:morro_ordering \
+    FINANCIAL:morro_financial TICKETING:morro_ticketing \
+    NOTIFICATIONS:morro_notifications AFFILIATES:morro_affiliates \
+    ANALYTICS:morro_analytics CRM:morro_crm COMMERCE:morro_commerce; do
+    domain="${spec%%:*}"
+    database="${spec#*:}"
+    user="$(required_env "SOURCE_${domain}_DATABASE_USER")"
+    password="$(required_env "SOURCE_${domain}_DATABASE_PASSWORD")"
+    escaped="$(sql_escape "$password")"
+    restore_mysql "CREATE USER IF NOT EXISTS '${user}'@'%' IDENTIFIED BY '${escaped}'; ALTER USER '${user}'@'%' IDENTIFIED BY '${escaped}'; GRANT ALL PRIVILEGES ON \`${database}\`.* TO '${user}'@'%';"
+  done
+  restore_mysql "FLUSH PRIVILEGES;"
+}
+
+run_restore_readback() {
+  local domain key value
+  (
+    export EXPECTED_SHA="$tool_sha"
+    export RENDER_GIT_COMMIT="$tool_sha"
+    for domain in AUTH AUDIT DESTINATIONS CONTENT BUSINESS ORDERING FINANCIAL TICKETING NOTIFICATIONS AFFILIATES ANALYTICS CRM COMMERCE; do
+      for suffix in NAME USER PASSWORD; do
+        key="${domain}_DATABASE_${suffix}"
+        value="$(required_env "SOURCE_${key}")"
+        export "${key}=${value}"
+      done
+    done
+    MORRO_MYSQL_READBACK_HOST=127.0.0.1 \
+    MORRO_MYSQL_READBACK_PORT="$RESTORE_PORT" \
+    MORRO_READBACK_MODE=full \
+      /usr/local/bin/morro-mysql-readback
+  ) >"$WORK_ROOT/restore-readback.log"
+
+  restore_readback_json="$(tail -n 1 "$WORK_ROOT/restore-readback.log")"
+  printf '%s\n' "$restore_readback_json" | jq -e '
+    .contract == "MORRO-PRODUCTION-MYSQL-READBACK" and
+    .status == "pass" and
+    .schemaOwners == 13 and
+    .crossDomainDenied == 156 and
+    .totalTables == 91
+  ' >/dev/null || fail "RESTORE_LEAST_PRIVILEGE_READBACK_FAILED"
 }
 
 capture_source_tables() {
@@ -190,6 +240,7 @@ tool_sha="$(required_env DR_TOOL_SHA)"
 source_sha="$(required_env DR_SOURCE_SHA)"
 render_git_commit="$(required_env RENDER_GIT_COMMIT)"
 render_service_name="$(required_env RENDER_SERVICE_NAME)"
+dr_encryption_key_id="$(required_env DR_ENCRYPTION_KEY_ID)"
 required_env DR_ENCRYPTION_SECRET >/dev/null
 
 [[ "$tool_sha" =~ ^[0-9a-f]{40}$ && "$source_sha" =~ ^[0-9a-f]{40}$ && "$render_git_commit" =~ ^[0-9a-f]{40}$ ]] || fail "SHA_INVALID"
@@ -331,6 +382,8 @@ done
 [[ "$ready" == true ]] || fail "RESTORE_MYSQL_NOT_READY"
 
 mysql --protocol=socket --socket="$restore_socket" --user=root <"$dump_file"
+provision_restore_owners
+run_restore_readback
 restore_completed_epoch="$(date +%s)"
 restore_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
@@ -364,6 +417,8 @@ openssl enc -aes-256-cbc -salt -pbkdf2 -iter 200000 -md sha256 \
 
 encrypted_sha256="$(sha256sum "$encrypted_file" | awk '{print $1}')"
 encrypted_bytes="$(stat -c %s "$encrypted_file")"
+restore_schema_owners="$(printf '%s\n' "$restore_readback_json" | jq -r '.schemaOwners')"
+restore_cross_domain_denied="$(printf '%s\n' "$restore_readback_json" | jq -r '.crossDomainDenied')"
 [[ "$encrypted_bytes" -le "$MAX_ENCRYPTED_BYTES" ]] || fail "ENCRYPTED_BACKUP_TOO_LARGE_FOR_SECURE_LOG_TRANSPORT"
 
 payload="$(base64 -w 0 "$encrypted_file")"
@@ -391,19 +446,21 @@ jq -nc \
   --arg manifestSha256 "sha256:${manifest_sha256}" \
   --arg backupStartedAt "$backup_started_at" --arg backupCompletedAt "$backup_completed_at" \
   --arg plainSha256 "sha256:${plain_sha256}" --arg encryptedSha256 "sha256:${encrypted_sha256}" \
+  --arg encryptionKeyId "$dr_encryption_key_id" \
   --arg restoreStartedAt "$restore_started_at" --arg restoreCompletedAt "$restore_completed_at" \
   --arg validationCompletedAt "$validation_completed_at" \
   --argjson plainBytes "$plain_bytes" --argjson encryptedBytes "$encrypted_bytes" \
   --argjson payloadChunks "$payload_total" --argjson backupDurationSeconds "$backup_duration_seconds" \
   --argjson restoreDurationSeconds "$restore_duration_seconds" --argjson observedRtoSeconds "$observed_rto_seconds" \
+  --argjson restoreSchemaOwners "$restore_schema_owners" --argjson restoreCrossDomainDenied "$restore_cross_domain_denied" \
   --argjson primaryKeyEntries "$primary_key_entries" --argjson foreignKeyEntries "$foreign_key_entries" \
   --argjson indexEntries "$index_entries" --argjson triggerEntries "$trigger_entries" \
   '{
     contract:$contract,contractVersion:$contractVersion,status:"pass",
     toolSha:$toolSha,sourceSha:$sourceSha,
     source:{service:"morro-digital-v2-production-mysql",schemaCount:13,totalTables:91,stableDuringBackup:true,allCanonicalTablesInnoDb:true,routines:0,events:0,canonicalDestinationCount:1},
-    backup:{format:"mysqldump-logical",consistency:"least-privilege single-transaction per schema plus pre/post checksum and metadata stability",startedAt:$backupStartedAt,completedAt:$backupCompletedAt,durationSeconds:$backupDurationSeconds,plaintextBytes:$plainBytes,plaintextSha256:$plainSha256,encryption:"gzip+AES-256-CBC/PBKDF2-SHA256/200000",encryptedBytes:$encryptedBytes,encryptedSha256:$encryptedSha256,payloadChunks:$payloadChunks},
-    restore:{target:"ephemeral-render-one-off-job-local-mysql-8.4",persistentDisk:false,startedAt:$restoreStartedAt,importCompletedAt:$restoreCompletedAt,validationCompletedAt:$validationCompletedAt,restoreDurationSeconds:$restoreDurationSeconds,observedRtoSeconds:$observedRtoSeconds,schemaCount:13,totalTables:91,businessTables:12,financialTables:14,canonicalDestinationCount:1,rowCountsMatch:true,checksumsMatch:true,columnsMatch:true,primaryKeysMatch:true,indexesMatch:true,foreignKeysMatch:true,triggersMatch:true,primaryKeyEntries:$primaryKeyEntries,foreignKeyEntries:$foreignKeyEntries,indexEntries:$indexEntries,triggerEntries:$triggerEntries},
+    backup:{format:"mysqldump-logical",consistency:"least-privilege single-transaction per schema plus pre/post checksum and metadata stability",startedAt:$backupStartedAt,completedAt:$backupCompletedAt,durationSeconds:$backupDurationSeconds,plaintextBytes:$plainBytes,plaintextSha256:$plainSha256,encryption:"gzip+AES-256-CBC/PBKDF2-SHA256/200000",encryptionKeyId:$encryptionKeyId,encryptedBytes:$encryptedBytes,encryptedSha256:$encryptedSha256,payloadChunks:$payloadChunks},
+    restore:{target:"ephemeral-render-one-off-job-local-mysql-8.4",persistentDisk:false,startedAt:$restoreStartedAt,importCompletedAt:$restoreCompletedAt,validationCompletedAt:$validationCompletedAt,restoreDurationSeconds:$restoreDurationSeconds,observedRtoSeconds:$observedRtoSeconds,schemaCount:13,totalTables:91,businessTables:12,financialTables:14,canonicalDestinationCount:1,rowCountsMatch:true,checksumsMatch:true,columnsMatch:true,primaryKeysMatch:true,indexesMatch:true,foreignKeysMatch:true,triggersMatch:true,leastPrivilegeReadback:true,schemaOwners:$restoreSchemaOwners,crossDomainDenied:$restoreCrossDomainDenied,primaryKeyEntries:$primaryKeyEntries,foreignKeyEntries:$foreignKeyEntries,indexEntries:$indexEntries,triggerEntries:$triggerEntries},
     scopePolicy:{verified:true,manifestSha256:$manifestSha256,canonicalRows:91},
     rpo:{productionMeasured:false,reason:"PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP"}
   }'

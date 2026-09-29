@@ -57,6 +57,10 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "AES-256-CBC",
     "PBKDF2",
     "DR_ENCRYPTION_SECRET",
+    "/usr/local/bin/morro-mysql-readback",
+    "RESTORE_LEAST_PRIVILEGE_READBACK_FAILED",
+    "schemaOwners",
+    "crossDomainDenied",
     "PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP",
   ]) {
     assert.ok(source.includes(required), `missing DR executor contract: ${required}`);
@@ -79,6 +83,10 @@ test("DR worker image uses the exact pinned MySQL 8.4 base", () => {
   );
   assert.match(source, /^USER root$/mu);
   assert.match(source, /microdnf install -y jq gzip/u);
+  assert.match(
+    source,
+    /COPY tooling\/render\/mysql-production\/readback\.sh \/usr\/local\/bin\/morro-mysql-readback/u,
+  );
   assert.match(source, /^USER mysql$/mu);
   assert.ok(source.lastIndexOf("USER mysql") > source.lastIndexOf("USER root"));
   assert.match(
@@ -97,6 +105,10 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "MORRO-PRODUCTION-MYSQL-BACKUP-CHUNK",
     "production-mysql-backup-restore-proof-",
     "retention-days: 90",
+    "PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1",
+    "github-actions-production-mysql-dr-key-v1",
+    ".restore.leastPrivilegeReadback == true",
+    ".restore.crossDomainDenied == 156",
     'test "$dr_service_id" != "$MYSQL_SERVICE_ID"',
     'test "$dr_service_name" != "$MYSQL_SERVICE_NAME"',
   ]) {
@@ -104,6 +116,7 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
   }
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
+  assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(
     source,
     /DELETE[^\n]+services\/\$MYSQL_SERVICE_ID/iu,
