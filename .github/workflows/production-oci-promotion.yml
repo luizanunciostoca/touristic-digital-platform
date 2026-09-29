@@ -277,7 +277,10 @@ jobs:
           rm -rf /tmp/dr-proof
           mkdir -p /tmp/dr-proof
           gh run download "$dr_run_id"             --name "production-mysql-backup-restore-proof-$dr_run_id"             --dir /tmp/dr-proof
-          dr_evidence="/tmp/dr-proof/production-mysql-backup-restore-evidence.json"
+          dr_evidence_count="$(find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print | wc -l | awk '{print $1}')"
+          test "$dr_evidence_count" -eq 1
+          dr_evidence="$(find /tmp/dr-proof -type f -name 'production-mysql-backup-restore-evidence.json' -print | head -n 1)"
+          test -s "$dr_evidence"
           jq -e             --arg sha "$EXPECTED_SHA"             '.status == "pass" and
              .result == "PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS" and
              .toolSha == $sha and
@@ -390,7 +393,9 @@ jobs:
           rm -rf /tmp/production-dr-evidence
           mkdir -p /tmp/production-dr-evidence
           gh run download "$DR_RUN_ID"             --name "production-mysql-backup-restore-proof-$DR_RUN_ID"             --dir /tmp/production-dr-evidence
-          evidence="/tmp/production-dr-evidence/production-mysql-backup-restore-evidence.json"
+          evidence_count="$(find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print | wc -l | awk '{print $1}')"
+          test "$evidence_count" -eq 1
+          evidence="$(find /tmp/production-dr-evidence -type f -name 'production-mysql-backup-restore-evidence.json' -print | head -n 1)"
           test -s "$evidence"
           jq -e             --arg sha "$EXPECTED_SHA" --arg run "$DR_RUN_ID"             '.status == "pass" and
              .result == "PRODUCTION_MYSQL_BACKUP_RESTORE_PROOF = PASS" and
