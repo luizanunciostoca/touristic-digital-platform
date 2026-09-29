@@ -177,10 +177,8 @@ jobs:
           tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
           image_digest="$(jq -r '.digest // empty' "$provenance")"
           [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-          jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$tree_sha"             --arg image "$IMAGE_REPOSITORY"             --arg digest "$image_digest"             '.source_sha == $sha and
-             .tree_sha == $tree and
-             .image == $image and
-             .digest == $digest'             "$provenance" >/dev/null
+          jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$tree_sha"             --arg image "$IMAGE_REPOSITORY"             --arg digest "$image_digest"             '.source_sha == $sha and .tree_sha == $tree and .digest == $digest and
+             .image == $image'             "$provenance" >/dev/null
           if [ -n "$REQUESTED_DIGEST" ]; then
             test "$REQUESTED_DIGEST" = "$image_digest"
           fi
