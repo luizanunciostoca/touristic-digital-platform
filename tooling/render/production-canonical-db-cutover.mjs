@@ -1,0 +1,478 @@
+import fs from "node:fs/promises";
+
+const SHA_PATTERN = /^[0-9a-f]{40}$/u;
+const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
+
+export const productionDatabaseDomains = Object.freeze([
+  Object.freeze(["AUTH", "AUTH_DATABASE_URL", "morro_auth"]),
+  Object.freeze(["AUDIT", "CONTROL_CENTER_AUDIT_DATABASE_URL", "morro_audit"]),
+  Object.freeze(["DESTINATIONS", "DESTINATIONS_DATABASE_URL", "morro_destinations"]),
+  Object.freeze(["CONTENT", "CONTENT_DATABASE_URL", "morro_content"]),
+  Object.freeze(["BUSINESS", "BUSINESS_DATABASE_URL", "morro_business"]),
+  Object.freeze(["ORDERING", "ORDERING_DATABASE_URL", "morro_ordering"]),
+  Object.freeze(["FINANCIAL", "FINANCIAL_DATABASE_URL", "morro_financial"]),
+  Object.freeze(["TICKETING", "TICKETING_DATABASE_URL", "morro_ticketing"]),
+  Object.freeze(["NOTIFICATIONS", "NOTIFICATIONS_DATABASE_URL", "morro_notifications"]),
+  Object.freeze(["AFFILIATES", "AFFILIATES_DATABASE_URL", "morro_affiliates"]),
+  Object.freeze(["ANALYTICS", "ANALYTICS_DATABASE_URL", "morro_analytics"]),
+  Object.freeze(["CRM", "CRM_DATABASE_URL", "morro_crm"]),
+  Object.freeze(["COMMERCE", "COMMERCE_DATABASE_URL", "morro_commerce"]),
+]);
+
+function required(environment, key) {
+  const value = String(environment[key] ?? "").trim();
+  if (!value) throw new Error(`${key}_REQUIRED`);
+  return value;
+}
+
+function safeCode(error) {
+  const message = error instanceof Error ? String(error.message) : "";
+  return /^[A-Z][A-Z0-9_:-]{2,180}$/u.test(message)
+    ? message
+    : "PRODUCTION_CUTOVER_FAILED";
+}
+
+function normalizeDeploys(payload) {
+  if (!Array.isArray(payload)) return [];
+  return payload.map((entry) => entry?.deploy ?? entry).filter(Boolean);
+}
+
+function runtime(service) {
+  return String(service?.serviceDetails?.runtime ?? service?.serviceDetails?.env ?? "");
+}
+
+function nativeDetails(service) {
+  return service?.serviceDetails?.envSpecificDetails ?? {};
+}
+
+export function selectRegistryCredential(credentials, explicitId = "") {
+  const github = (Array.isArray(credentials) ? credentials : []).filter(
+    (credential) => String(credential?.registry ?? "") === "GITHUB",
+  );
+  if (explicitId) {
+    const match = github.find((credential) => credential.id === explicitId);
+    if (!match) throw new Error("RENDER_GHCR_REGISTRY_CREDENTIAL_NOT_FOUND");
+    return match.id;
+  }
+  if (github.length === 0) return "";
+  if (github.length > 1) {
+    throw new Error("RENDER_GHCR_REGISTRY_CREDENTIAL_AMBIGUOUS");
+  }
+  return github[0].id;
+}
+
+export function buildDatabaseUrl({ host, port, database, user, password }) {
+  if (host !== "morro-digital-v2-production-mysql" || Number(port) !== 3306) {
+    throw new Error("PRODUCTION_MYSQL_PRIVATE_ENDPOINT_UNTRUSTED");
+  }
+  if (!/^[A-Za-z0-9_]+$/u.test(database) || !/^[A-Za-z0-9_]+$/u.test(user)) {
+    throw new Error("PRODUCTION_MYSQL_IDENTIFIER_INVALID");
+  }
+  if (!password) throw new Error("PRODUCTION_MYSQL_PASSWORD_REQUIRED");
+  const url = new URL("mysql://placeholder.invalid/");
+  url.hostname = host;
+  url.port = String(port);
+  url.username = user;
+  url.password = password;
+  url.pathname = `/${database}`;
+  return url.toString();
+}
+
+function publicEvidence(state) {
+  return {
+    contract: "MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER",
+    contractVersion: 1,
+    status: state.status,
+    expectedSha: state.expectedSha,
+    imageDigest: state.imageDigest,
+    imageRepository: state.imageRepository,
+    previousDeployId: state.previousDeployId,
+    previousReleaseSha: state.previousReleaseSha,
+    newDeployId: state.newDeployId ?? null,
+    databaseDomains: productionDatabaseDomains.length,
+    paymentsMode: "test",
+    subscriptionsEnabled: false,
+    railwayRetirement: "KEEP_TEMPORARILY",
+  };
+}
+
+export function createClient({
+  token,
+  baseUrl = "https://api.render.com/v1",
+  fetchImpl = fetch,
+} = {}) {
+  if (!token) throw new Error("RENDER_PRODUCTION_API_KEY_REQUIRED");
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+  };
+
+  async function request(method, path, body, { allow404 = false } = {}) {
+    const response = await fetchImpl(`${baseUrl}${path}`, {
+      method,
+      headers:
+        body === undefined
+          ? headers
+          : { ...headers, "Content-Type": "application/json" },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (allow404 && response.status === 404) return null;
+    if (!response.ok) {
+      throw new Error(`RENDER_API_${method}_HTTP_${response.status}`);
+    }
+    if (response.status === 204) return null;
+    return response.json();
+  }
+
+  return Object.freeze({
+    get: (path, options) => request("GET", path, undefined, options),
+    put: (path, body) => request("PUT", path, body),
+    patch: (path, body) => request("PATCH", path, body),
+    post: (path, body) => request("POST", path, body),
+    delete: (path) => request("DELETE", path),
+  });
+}
+
+async function readEnv(client, serviceId, key) {
+  const value = await client.get(
+    `/services/${serviceId}/env-vars/${encodeURIComponent(key)}`,
+    { allow404: true },
+  );
+  return value == null ? null : String(value.value ?? "");
+}
+
+async function writeEnv(client, serviceId, key, value) {
+  await client.put(
+    `/services/${serviceId}/env-vars/${encodeURIComponent(key)}`,
+    { value },
+  );
+}
+
+async function deleteEnv(client, serviceId, key) {
+  try {
+    await client.delete(
+      `/services/${serviceId}/env-vars/${encodeURIComponent(key)}`,
+    );
+  } catch (error) {
+    if (safeCode(error) !== "RENDER_API_DELETE_HTTP_404") throw error;
+  }
+}
+
+async function waitForDeploy(client, serviceId, deployId, attempts = 180) {
+  for (let index = 0; index < attempts; index += 1) {
+    const deploy = await client.get(
+      `/services/${serviceId}/deploys/${deployId}`,
+    );
+    const status = String(deploy?.status ?? "");
+    if (status === "live") return deploy;
+    if (
+      ["build_failed", "update_failed", "pre_deploy_failed", "canceled"].includes(
+        status,
+      )
+    ) {
+      throw new Error(`RENDER_DEPLOY_${status.toUpperCase()}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+  throw new Error("RENDER_DEPLOY_TIMEOUT");
+}
+
+async function snapshotRuntimeEnv(client, webServiceId) {
+  const previous = {};
+  for (const [, canonicalKey] of productionDatabaseDomains) {
+    previous[canonicalKey] = await readEnv(client, webServiceId, canonicalKey);
+  }
+  for (const key of [
+    "MERCADO_PAGO_CHECKOUT_MODE",
+    "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
+    "PAYMENTS_SUBSCRIPTIONS_ENABLED",
+  ]) {
+    previous[key] = await readEnv(client, webServiceId, key);
+  }
+  return previous;
+}
+
+async function restoreRuntimeEnv(client, webServiceId, previousEnv) {
+  for (const [key, value] of Object.entries(previousEnv)) {
+    if (value == null) await deleteEnv(client, webServiceId, key);
+    else await writeEnv(client, webServiceId, key, value);
+  }
+}
+
+function previousSource(service, previousReleaseSha) {
+  const details = nativeDetails(service);
+  return Object.freeze({
+    repo: String(service.repo ?? ""),
+    branch: String(service.branch ?? "main"),
+    runtime: runtime(service),
+    buildCommand: String(details.buildCommand ?? ""),
+    startCommand: String(details.startCommand ?? ""),
+    preDeployCommand: String(
+      service?.serviceDetails?.preDeployCommand ??
+        details.preDeployCommand ??
+        "",
+    ),
+    healthCheckPath: String(service?.serviceDetails?.healthCheckPath ?? ""),
+    maxShutdownDelaySeconds: Number(
+      service?.serviceDetails?.maxShutdownDelaySeconds ?? 30,
+    ),
+    previousReleaseSha,
+  });
+}
+
+async function restoreSource(client, serviceId, source) {
+  if (!source.repo || !source.runtime) {
+    throw new Error("ROLLBACK_SOURCE_IDENTITY_INCOMPLETE");
+  }
+  await client.patch(`/services/${serviceId}`, {
+    repo: source.repo,
+    branch: source.branch,
+    autoDeployTrigger: "off",
+    serviceDetails: {
+      runtime: source.runtime,
+      envSpecificDetails: {
+        buildCommand: source.buildCommand,
+        startCommand: source.startCommand,
+      },
+      preDeployCommand: source.preDeployCommand,
+      healthCheckPath: source.healthCheckPath,
+      maxShutdownDelaySeconds: source.maxShutdownDelaySeconds,
+    },
+  });
+}
+
+async function rollbackFromState({ client, state, stateFile }) {
+  await restoreRuntimeEnv(client, state.webServiceId, state.previousEnv);
+  await restoreSource(client, state.webServiceId, state.previousSource);
+  const rollback = await client.post(
+    `/services/${state.webServiceId}/rollback`,
+    { deployId: state.previousDeployId },
+  );
+  const rollbackId = String(rollback?.id ?? rollback?.deploy?.id ?? "");
+  if (rollbackId) await waitForDeploy(client, state.webServiceId, rollbackId);
+  state.status = "rolled_back";
+  state.rollbackDeployId = rollbackId || null;
+  await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+  return state;
+}
+
+async function buildRuntimeUrls(client, mysqlServiceId) {
+  const urls = {};
+  for (const [domain, canonicalKey, schema] of productionDatabaseDomains) {
+    const [database, user, password] = await Promise.all([
+      readEnv(client, mysqlServiceId, `${domain}_DATABASE_NAME`),
+      readEnv(client, mysqlServiceId, `${domain}_DATABASE_USER`),
+      readEnv(client, mysqlServiceId, `${domain}_DATABASE_PASSWORD`),
+    ]);
+    if (database !== schema || user !== schema || !password) {
+      throw new Error(`PRODUCTION_MYSQL_OWNER_INVALID_${domain}`);
+    }
+    urls[canonicalKey] = buildDatabaseUrl({
+      host: "morro-digital-v2-production-mysql",
+      port: 3306,
+      database,
+      user,
+      password,
+    });
+  }
+  return urls;
+}
+
+async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
+  const token = required(environment, "RENDER_PRODUCTION_API_KEY");
+  const workspaceId = required(environment, "RENDER_WORKSPACE_ID");
+  const webServiceId = required(environment, "RENDER_PRODUCTION_SERVICE_ID");
+  const mysqlServiceId = required(environment, "RENDER_PRODUCTION_MYSQL_SERVICE_ID");
+  const expectedSha = required(environment, "EXPECTED_SHA");
+  const imageDigest = required(environment, "IMAGE_DIGEST");
+  const imageRepository = required(environment, "IMAGE_REPOSITORY");
+  const stateFile = required(environment, "CUTOVER_STATE_FILE");
+  const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
+
+  if (!SHA_PATTERN.test(expectedSha)) throw new Error("EXPECTED_SHA_INVALID");
+  if (!DIGEST_PATTERN.test(imageDigest)) throw new Error("IMAGE_DIGEST_INVALID");
+  if (imageRepository !== "ghcr.io/luizanunciostoca/morro-digital-v2") {
+    throw new Error("IMAGE_REPOSITORY_UNTRUSTED");
+  }
+
+  const client = createClient({ token, fetchImpl });
+  const [service, mysqlService, deployPayload, credentials] = await Promise.all([
+    client.get(`/services/${webServiceId}`),
+    client.get(`/services/${mysqlServiceId}`),
+    client.get(`/services/${webServiceId}/deploys?limit=20`),
+    client.get(
+      `/registrycredentials?ownerId=${encodeURIComponent(workspaceId)}&type=GITHUB&limit=100`,
+    ),
+  ]);
+
+  if (
+    service.id !== webServiceId ||
+    service.ownerId !== workspaceId ||
+    service.name !== "morro-digital-v2" ||
+    service.type !== "web_service" ||
+    service.serviceDetails?.region !== "virginia" ||
+    String(service.autoDeployTrigger ?? "off") !== "off"
+  ) {
+    throw new Error("PRODUCTION_WEB_SERVICE_IDENTITY_INVALID");
+  }
+  if (
+    mysqlService.id !== mysqlServiceId ||
+    mysqlService.ownerId !== workspaceId ||
+    mysqlService.name !== "morro-digital-v2-production-mysql" ||
+    mysqlService.type !== "private_service" ||
+    mysqlService.serviceDetails?.region !== "virginia"
+  ) {
+    throw new Error("PRODUCTION_MYSQL_SERVICE_IDENTITY_INVALID");
+  }
+
+  const liveDeploy = normalizeDeploys(deployPayload).find(
+    (deploy) => deploy.status === "live",
+  );
+  if (!liveDeploy?.id) throw new Error("PRODUCTION_PREVIOUS_DEPLOY_REQUIRED");
+  const previousReleaseSha = String(liveDeploy.commit?.id ?? "");
+  if (!SHA_PATTERN.test(previousReleaseSha)) {
+    throw new Error("PRODUCTION_PREVIOUS_SHA_INVALID");
+  }
+
+  const explicitCredential = String(
+    environment.RENDER_GHCR_REGISTRY_CREDENTIAL_ID ?? "",
+  ).trim();
+  const registryCredentialId = selectRegistryCredential(
+    credentials,
+    explicitCredential,
+  );
+
+  const state = {
+    contract: "MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER-STATE",
+    status: "prepared",
+    expectedSha,
+    imageDigest,
+    imageRepository,
+    webServiceId,
+    mysqlServiceId,
+    previousDeployId: liveDeploy.id,
+    previousReleaseSha,
+    previousSource: previousSource(service, previousReleaseSha),
+    previousEnv: await snapshotRuntimeEnv(client, webServiceId),
+    registryCredentialId: registryCredentialId || null,
+    newDeployId: null,
+  };
+  await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+
+  let sourcePatched = false;
+  try {
+    const runtimeUrls = await buildRuntimeUrls(client, mysqlServiceId);
+    for (const [key, value] of Object.entries(runtimeUrls)) {
+      await writeEnv(client, webServiceId, key, value);
+    }
+    await writeEnv(client, webServiceId, "MERCADO_PAGO_CHECKOUT_MODE", "test");
+    await writeEnv(
+      client,
+      webServiceId,
+      "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
+      "false",
+    );
+    await writeEnv(
+      client,
+      webServiceId,
+      "PAYMENTS_SUBSCRIPTIONS_ENABLED",
+      "false",
+    );
+
+    const imagePath = `${imageRepository}@${imageDigest}`;
+    const image = { ownerId: workspaceId, imagePath };
+    if (registryCredentialId) image.registryCredentialId = registryCredentialId;
+
+    await client.patch(`/services/${webServiceId}`, {
+      autoDeployTrigger: "off",
+      image,
+      serviceDetails: {
+        runtime: "image",
+        preDeployCommand:
+          'env EXPECTED_SHA="$MORRO_RELEASE_SHA" node apps/morro-digital-platform/tooling/production-database-predeploy.mjs --verify-idempotent && node apps/morro-digital-platform/tooling/payments-migrate.mjs',
+        healthCheckPath: "/readyz",
+        maxShutdownDelaySeconds: 30,
+      },
+    });
+    sourcePatched = true;
+
+    const deploy = await client.post(`/services/${webServiceId}/deploys`, {
+      imageUrl: imagePath,
+      clearCache: "do_not_clear",
+    });
+    const newDeployId = String(deploy?.id ?? deploy?.deploy?.id ?? "");
+    if (!newDeployId) throw new Error("PRODUCTION_DEPLOY_ID_REQUIRED");
+    state.newDeployId = newDeployId;
+    state.status = "deploying";
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+
+    await waitForDeploy(client, webServiceId, newDeployId);
+    const observed = await client.get(
+      `/services/${webServiceId}/deploys/${newDeployId}`,
+    );
+    if (
+      String(observed?.image?.ref ?? "") !== imagePath &&
+      String(observed?.image?.sha ?? "") !== imageDigest
+    ) {
+      throw new Error("PRODUCTION_DEPLOY_DIGEST_MISMATCH");
+    }
+
+    state.status = "live";
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+    await fs.writeFile(evidenceFile, JSON.stringify(publicEvidence(state), null, 2));
+    return publicEvidence(state);
+  } catch (error) {
+    if (sourcePatched) {
+      try {
+        await rollbackFromState({ client, state, stateFile });
+      } catch {
+        throw new Error("PRODUCTION_CUTOVER_FAILED_ROLLBACK_REQUIRED");
+      }
+    } else {
+      await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+    }
+    throw error;
+  }
+}
+
+async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
+  const token = required(environment, "RENDER_PRODUCTION_API_KEY");
+  const stateFile = required(environment, "CUTOVER_STATE_FILE");
+  const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
+  const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
+  const client = createClient({ token, fetchImpl });
+  const rolledBack = await rollbackFromState({ client, state, stateFile });
+  await fs.writeFile(
+    evidenceFile,
+    JSON.stringify(publicEvidence(rolledBack), null, 2),
+  );
+  return publicEvidence(rolledBack);
+}
+
+async function main() {
+  const mode = process.argv[2] ?? "cutover";
+  const result =
+    mode === "rollback"
+      ? await rollback()
+      : mode === "cutover"
+        ? await cutover()
+        : (() => {
+            throw new Error("PRODUCTION_CUTOVER_MODE_INVALID");
+          })();
+  process.stdout.write(`${JSON.stringify(result)}\n`);
+}
+
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  main().catch((error) => {
+    process.stderr.write(
+      `${JSON.stringify({
+        contract: "MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER",
+        status: "fail",
+        reason: safeCode(error),
+      })}\n`,
+    );
+    process.exitCode = 1;
+  });
+}
+
+export { cutover, rollback };
