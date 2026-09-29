@@ -287,7 +287,16 @@ async function rollbackFromState({ client, state, stateFile }) {
     String(restoredDetails.buildCommand ?? "") !==
       state.previousSource.buildCommand ||
     String(restoredDetails.startCommand ?? "") !==
-      state.previousSource.startCommand
+      state.previousSource.startCommand ||
+    String(
+      restoredService?.serviceDetails?.preDeployCommand ??
+        restoredDetails.preDeployCommand ??
+        "",
+    ) !== state.previousSource.preDeployCommand ||
+    String(restoredService?.serviceDetails?.healthCheckPath ?? "") !==
+      state.previousSource.healthCheckPath ||
+    Number(restoredService?.serviceDetails?.maxShutdownDelaySeconds ?? 30) !==
+      state.previousSource.maxShutdownDelaySeconds
   ) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
   }
@@ -304,7 +313,7 @@ async function rollbackFromState({ client, state, stateFile }) {
     rollbackId,
   );
   const rollbackSha = String(liveRollback?.commit?.id ?? "");
-  if (rollbackSha && rollbackSha !== state.previousReleaseSha) {
+  if (rollbackSha !== state.previousReleaseSha) {
     throw new Error("ROLLBACK_RELEASE_SHA_MISMATCH");
   }
 
