@@ -108,8 +108,9 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     source,
     /DELETE[^\n]+services\/\$MYSQL_SERVICE_ID/iu,
   );
-  assert.match(
-    source,
-    /node --test apps\\/morro-digital-platform\\/tooling\\/production-mysql-dr-contract\\.test\\.mjs/u,
+  assert.ok(
+    source.includes(
+      "node --test apps/morro-digital-platform/tooling/production-mysql-dr-contract.test.mjs",
+    ),
   );
 });
