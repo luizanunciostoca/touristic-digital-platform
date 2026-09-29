@@ -17,6 +17,7 @@ const fixtures = [
   "tooling/render/mysql-production/morro-memory.cnf",
   "tooling/render/mysql-production/01-init-databases.sh",
   "tooling/render/mysql-production/readback.sh",
+  "tooling/render/mysql-production/runtime-users.sh",
 ];
 
 function runCheck(t, mutate = () => {}) {
@@ -124,6 +125,36 @@ test("shared morro_app ownership is forbidden", (t) => {
       fs.appendFileSync(file, "\n# morro_app\n");
     }),
     /shared broad production database user/u,
+  );
+});
+
+test("runtime database credentials are distinct from bootstrap owners", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      const source = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        source.replace(
+          "      - key: BUSINESS_RUNTIME_DATABASE_USER\n        value: morro_business_runtime\n",
+          "      - key: BUSINESS_RUNTIME_DATABASE_USER\n        value: morro_business\n",
+        ),
+      );
+    }),
+    /BUSINESS_RUNTIME_DATABASE_USER/u,
+  );
+});
+
+test("runtime users cannot receive owner privileges", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/mysql-production/runtime-users.sh",
+      );
+      fs.appendFileSync(file, "\n# GRANT ALL PRIVILEGES\n");
+    }),
+    /runtime users must never receive owner privileges/u,
   );
 });
 
