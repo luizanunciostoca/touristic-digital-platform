@@ -72,6 +72,9 @@ export function productionTwinCertificateMatches(evidence, expected) {
     evidence?.twin?.runtimePredeploy?.totalTables === 91 &&
     evidence?.twin?.paymentsPredeploy?.status === "pass" &&
     evidence?.twin?.paymentsPredeploy?.checkoutMode === "test" &&
+    evidence?.twin?.noEgress === true &&
+    evidence?.twin?.runtimeProbe === "docker-exec-loopback" &&
+    evidence?.twin?.syntheticReleaseIdentity === true &&
     evidence?.persistence?.write === "stored" &&
     evidence?.persistence?.readback === "replayed" &&
     evidence?.persistence?.reloadReadback === "replayed" &&
