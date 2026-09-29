@@ -138,7 +138,9 @@ async function readEnv(client, serviceId, key) {
     `/services/${serviceId}/env-vars/${encodeURIComponent(key)}`,
     { allow404: true },
   );
-  return value == null ? null : String(value.value ?? "");
+  if (value == null) return null;
+  const record = value?.envVar ?? value;
+  return String(record?.value ?? "");
 }
 
 async function writeEnv(client, serviceId, key, value) {
@@ -261,11 +263,11 @@ async function buildRuntimeUrls(client, mysqlServiceId) {
   for (const [domain, canonicalKey, schema] of productionDatabaseDomains) {
     const [database, user, password] = await Promise.all([
       readEnv(client, mysqlServiceId, `${domain}_DATABASE_NAME`),
-      readEnv(client, mysqlServiceId, `${domain}_DATABASE_USER`),
-      readEnv(client, mysqlServiceId, `${domain}_DATABASE_PASSWORD`),
+      readEnv(client, mysqlServiceId, `${domain}_RUNTIME_DATABASE_USER`),
+      readEnv(client, mysqlServiceId, `${domain}_RUNTIME_DATABASE_PASSWORD`),
     ]);
-    if (database !== schema || user !== schema || !password) {
-      throw new Error(`PRODUCTION_MYSQL_OWNER_INVALID_${domain}`);
+    if (database !== schema || user !== `${schema}_runtime` || !password) {
+      throw new Error(`PRODUCTION_MYSQL_RUNTIME_USER_INVALID_${domain}`);
     }
     urls[canonicalKey] = buildDatabaseUrl({
       host: "morro-digital-v2-production-mysql",
