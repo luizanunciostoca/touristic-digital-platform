@@ -139,6 +139,9 @@ test("production and acceptance staging promotion bind the exact OCI image run",
   assert.ok(production.includes('-f image_run_id="$image_run_id"'));
   assert.ok(staging.includes("image_run_id:"));
   assert.ok(staging.includes('actions/runs/$IMAGE_RUN_ID'));
+  assert.ok(staging.includes('.image_run_id == $run'));
+  assert.ok(staging.includes('EXPECTED_IMAGE_RUN_ID: ${{ inputs.image_run_id }}'));
+  assert.ok(staging.includes('live_image_run_id=$image_run_id'));
   assert.ok(
     staging.includes('.path == ".github/workflows/release-oci-image.yml"'),
   );
@@ -366,6 +369,7 @@ test("Final Release Acceptance consumes structured staging target evidence", asy
     '--arg environment "staging"',
     'grep -Fxq "expected_sha=$EXPECTED_SHA"',
     'grep -Fxq "digest=$IMAGE_DIGEST"',
+    'grep -Fxq "live_image_run_id=${{ steps.release-image.outputs.run_id }}"',
     'test "$deployment_id" != "unknown"',
     "final-release-staging-target-evidence.json",
   ]) {
