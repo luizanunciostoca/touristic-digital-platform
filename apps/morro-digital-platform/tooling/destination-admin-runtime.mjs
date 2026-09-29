@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 export function createDestinationAdminRuntime(environment = process.env) {
   const databaseUrl = String(
     environment.DESTINATIONS_DATABASE_URL ?? "",
@@ -38,7 +39,9 @@ export function createDestinationAdminRuntime(environment = process.env) {
       pool = createDestinationsMySqlPool(databaseUrl);
       service = createDestinationAdminService(pool);
       try {
-        await applyDestinationsSchema(pool);
+        if (shouldApplyRuntimeSchema()) {
+          await applyDestinationsSchema(pool);
+        }
         const bootstrapped = await bootstrapMorroDeSaoPauloDestination(service);
         if (!["created", "found"].includes(bootstrapped.status)) {
           throw new Error("DESTINATION_BOOTSTRAP_FAILED");
