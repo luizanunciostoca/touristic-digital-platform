@@ -620,7 +620,7 @@ jobs:
               evidence_status="$(jq -r '.status // empty' "$evidence")"
             fi
             case "$state_status:$evidence_status" in
-              rolled_back:*|restored_pre_patch:*|restored_indeterminate_patch:*)
+              rolled_back:*|restored_pre_patch:*|restored_indeterminate_patch:*|restored_previous_live:*)
                 ;;
               *)
                 test "$RECOVERY_SEALED" = "true"

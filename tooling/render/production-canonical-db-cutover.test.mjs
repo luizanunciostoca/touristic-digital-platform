@@ -277,6 +277,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   assert.equal(result.paymentsMode, "test");
   assert.equal(result.subscriptionsEnabled, false);
   assert.equal(result.railwayRetirement, "KEEP_TEMPORARILY");
+  assert.equal(result.rollbackNotRequired, false);
 
   const envWrites = requests.filter(
     (request) =>
@@ -645,7 +646,7 @@ test("reconciles source after an ambiguous patch failure", async (t) => {
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
 });
 
-test("post-patch failure automatically restores source and env then waits for rollback", async (t) => {
+test("post-patch failure restores source and env without redundant rollback when previous deploy is still live", async (t) => {
   const directory = await fs.mkdtemp(
     path.join(os.tmpdir(), "morro-cutover-rollback-"),
   );
@@ -660,24 +661,35 @@ test("post-patch failure automatically restores source and env then waits for ro
     /RENDER_DEPLOY_BUILD_FAILED/u,
   );
 
-  assert.ok(
-    fixture.requests.some(
+  assert.equal(
+    fixture.requests.filter(
       (request) =>
         request.method === "POST" &&
         request.route === "/v1/services/srv-web/rollback",
-    ),
+    ).length,
+    0,
   );
-  assert.ok(
-    fixture.requests.some(
-      (request) =>
-        request.method === "GET" &&
-        request.route === "/v1/services/srv-web/deploys/dep-rollback",
-    ),
-  );
+
   const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
-  assert.equal(evidence.status, "rolled_back");
-  assert.equal(evidence.rollbackDeployId, "dep-rollback");
+  assert.equal(evidence.status, "restored_previous_live");
+  assert.equal(evidence.rollbackDeployId, null);
+  assert.equal(evidence.rollbackNotRequired, true);
   assert.equal(evidence.previousReleaseSha, fixture.previousReleaseSha);
+
+  const idempotent = await rollback({
+    environment: fixture.environment,
+    fetchImpl: fixture.fetchImpl,
+  });
+  assert.equal(idempotent.status, "restored_previous_live");
+  assert.equal(idempotent.rollbackNotRequired, true);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
 });
 
@@ -746,6 +758,7 @@ test("a post-deploy verification failure can roll back a live new deploy using t
   });
   assert.equal(rolledBack.status, "rolled_back");
   assert.equal(rolledBack.rollbackDeployId, "dep-rollback");
+  assert.equal(rolledBack.rollbackNotRequired, false);
   assert.ok(
     fixture.requests.some(
       (request) =>

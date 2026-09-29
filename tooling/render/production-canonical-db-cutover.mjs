@@ -121,6 +121,7 @@ function publicEvidence(state) {
     previousReleaseSha: state.previousReleaseSha,
     newDeployId: state.newDeployId ?? null,
     rollbackDeployId: state.rollbackDeployId ?? null,
+    rollbackNotRequired: state.rollbackNotRequired === true,
     databaseDomains: productionDatabaseDomains.length,
     paymentsMode: "test",
     subscriptionsEnabled: false,
@@ -330,6 +331,25 @@ async function rollbackFromState({ client, state, stateFile }) {
     throw new Error("ROLLBACK_SOURCE_CONFIG_MISMATCH");
   }
 
+  if (state.status === "deploying") {
+    const deployPayload = await client.get(
+      `/services/${state.webServiceId}/deploys?limit=20`,
+    );
+    const liveDeploy = normalizeDeploys(deployPayload).find(
+      (deploy) => deploy.status === "live",
+    );
+    if (
+      liveDeploy?.id === state.previousDeployId &&
+      String(liveDeploy.commit?.id ?? "") === state.previousReleaseSha
+    ) {
+      state.status = "restored_previous_live";
+      state.rollbackDeployId = null;
+      state.rollbackNotRequired = true;
+      await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
+      return state;
+    }
+  }
+
   const rollback = await client.post(
     `/services/${state.webServiceId}/rollback`,
     { deployId: state.previousDeployId },
@@ -348,6 +368,7 @@ async function rollbackFromState({ client, state, stateFile }) {
 
   state.status = "rolled_back";
   state.rollbackDeployId = rollbackId;
+  state.rollbackNotRequired = false;
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
   return state;
 }
@@ -490,6 +511,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     previousEnv: await snapshotRuntimeEnv(client, webServiceId),
     registryCredentialId: registryCredentialId || null,
     newDeployId: null,
+    rollbackNotRequired: false,
   };
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
 
@@ -623,7 +645,10 @@ async function rollback({ environment = process.env, fetchImpl = fetch } = {}) {
   const stateFile = required(environment, "CUTOVER_STATE_FILE");
   const evidenceFile = required(environment, "CUTOVER_EVIDENCE_FILE");
   const state = JSON.parse(await fs.readFile(stateFile, "utf8"));
-  if (state.status === "rolled_back") {
+  if (
+    state.status === "rolled_back" ||
+    state.status === "restored_previous_live"
+  ) {
     const evidence = publicEvidence(state);
     await fs.writeFile(evidenceFile, JSON.stringify(evidence, null, 2));
     return evidence;
