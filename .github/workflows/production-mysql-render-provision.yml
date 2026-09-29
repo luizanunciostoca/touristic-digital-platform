@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-mysql-render-provision
+  group: production-mysql-source-mutation
   cancel-in-progress: false
 
 env:
