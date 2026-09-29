@@ -238,9 +238,10 @@ jobs:
             esac
           done
 
-          jq -n             --arg tool "$TOOL_SHA"             --arg source "$SOURCE_SHA"             --arg host "$MYSQL_SERVICE_NAME"             '[
+          jq -n             --arg tool "$TOOL_SHA"             --arg source "$SOURCE_SHA"             --arg host "$MYSQL_SERVICE_NAME"             --arg service "$dr_service_name"             '[
               {key:"DR_TOOL_SHA",value:$tool},
               {key:"DR_SOURCE_SHA",value:$source},
+              {key:"DR_EXPECTED_SERVICE_NAME",value:$service},
               {key:"DR_ENCRYPTION_KEY_ID",value:env.DR_ENCRYPTION_KEY_ID},
               {key:"SOURCE_MYSQL_HOST",value:$host},
               {key:"SOURCE_MYSQL_PORT",value:"3306"}
