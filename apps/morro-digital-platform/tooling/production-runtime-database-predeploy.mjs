@@ -93,7 +93,9 @@ export async function validateRuntimePrivilegeBoundaries(domain, pool) {
   const expectedPrivileges = RUNTIME_SCHEMA_PRIVILEGES.map(
     (privilege) => `${domain.schema}:${privilege}`,
   ).sort();
-  if (JSON.stringify(observedPrivileges) !== JSON.stringify(expectedPrivileges)) {
+  if (
+    JSON.stringify(observedPrivileges) !== JSON.stringify(expectedPrivileges)
+  ) {
     throw new Error(
       `PRODUCTION_RUNTIME_DATABASE_PRIVILEGE_SET_INVALID_${domain.name.toUpperCase()}`,
     );
