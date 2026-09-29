@@ -1,3 +1,4 @@
+import { shouldApplyRuntimeSchema } from "./database-schema-mode.mjs";
 function unavailable() {
   return Object.freeze({ status: "unavailable", data: null });
 }
@@ -60,7 +61,9 @@ export function createContentAdminRuntime({
         createContentPool,
       } = await import("@touristic/content-server");
       pool = createContentPool(databaseUrl);
-      await applyContentM156Schema(pool);
+      if (shouldApplyRuntimeSchema()) {
+        await applyContentM156Schema(pool);
+      }
       service = new ContentAdminApplicationService(
         new MySqlContentRepository(pool),
       );
