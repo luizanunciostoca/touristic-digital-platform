@@ -15,6 +15,8 @@ on:
         description: Type BOOTSTRAP to authorize the idempotent canonical schema bootstrap
         required: true
         type: string
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: read
@@ -38,7 +40,14 @@ env:
 jobs:
   bootstrap:
     name: production mysql / canonical bootstrap
-    if: github.ref == 'refs/heads/main' && inputs.confirm_bootstrap == 'BOOTSTRAP'
+    if: >-
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main' &&
+       inputs.confirm_bootstrap == 'BOOTSTRAP') ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       github.actor == github.repository_owner &&
+       startsWith(github.event.comment.body, '/run-production-mysql-bootstrap '))
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     environment:
@@ -46,15 +55,44 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.expected_sha }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
+
+      - name: Resolve exact owner-authorized invocation
+        id: invocation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_SHA: ${{ inputs.expected_sha }}
+          INPUT_DIGEST: ${{ inputs.image_digest }}
+          INPUT_CONFIRM: ${{ inputs.confirm_bootstrap }}
+          COMMENT_BODY: ${{ github.event.comment.body }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            expected_sha="$INPUT_SHA"
+            image_digest="$INPUT_DIGEST"
+            confirm="$INPUT_CONFIRM"
+          else
+            read -r command expected_sha image_digest confirm extra <<<"$COMMENT_BODY"
+            test "$command" = "/run-production-mysql-bootstrap"
+            test -z "${extra:-}"
+          fi
+          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "$confirm" = "BOOTSTRAP"
+          test "$(git rev-parse HEAD)" = "$expected_sha"
+          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
+          test "$current_main" = "$expected_sha"
+          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
+          echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
 
       - name: Prove exact main source identity
         id: identity
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
         shell: bash
         run: |
           set -euo pipefail
@@ -72,8 +110,8 @@ jobs:
         id: provenance
         env:
           GH_TOKEN: ${{ github.token }}
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
           TREE_SHA: ${{ steps.identity.outputs.tree_sha }}
           LOCKFILE_DIGEST: ${{ steps.identity.outputs.lockfile_digest }}
         shell: bash
@@ -82,7 +120,7 @@ jobs:
           rm -rf /tmp/release-candidate /tmp/release-provenance
           mkdir -p /tmp/release-candidate /tmp/release-provenance
 
-          candidate_run_id="$(gh run list             --workflow release-candidate-certification.yml             --event workflow_dispatch             --commit "$EXPECTED_SHA"             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')"
+          candidate_run_id="$(gh run list             --workflow release-candidate-certification.yml             --commit "$EXPECTED_SHA"             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')"
           test -n "$candidate_run_id"
           gh run download "$candidate_run_id"             --name "morro-digital-candidate-$EXPECTED_SHA"             --dir /tmp/release-candidate
 
@@ -93,7 +131,7 @@ jobs:
 
           artifact_digest="$(jq -r '.artifactDigest'             /tmp/release-candidate/release-candidate-manifest.json)"
 
-          oci_run_id="$(gh run list             --workflow release-oci-image.yml             --event workflow_dispatch             --commit "$EXPECTED_SHA"             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')"
+          oci_run_id="$(gh run list             --workflow release-oci-image.yml             --commit "$EXPECTED_SHA"             --status success             --limit 1             --json databaseId             --jq '.[0].databaseId // empty')"
           test -n "$oci_run_id"
           gh run download "$oci_run_id"             --name "release-provenance-$EXPECTED_SHA"             --dir /tmp/release-provenance
 
@@ -117,7 +155,7 @@ jobs:
       - name: Prove MySQL identity and provision isolated bootstrap worker
         id: worker
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
         shell: bash
         run: |
@@ -333,7 +371,7 @@ jobs:
       - name: Run canonical bootstrap twice through least-privilege owners
         id: bootstrap
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
           BOOTSTRAP_SERVICE_ID: ${{ steps.worker.outputs.bootstrap_service_id }}
           RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
         shell: bash
@@ -422,8 +460,8 @@ jobs:
 
       - name: Publish provenance-bound bootstrap evidence
         env:
-          EXPECTED_SHA: ${{ inputs.expected_sha }}
-          IMAGE_DIGEST: ${{ inputs.image_digest }}
+          EXPECTED_SHA: ${{ steps.invocation.outputs.expected_sha }}
+          IMAGE_DIGEST: ${{ steps.invocation.outputs.image_digest }}
           TREE_SHA: ${{ steps.identity.outputs.tree_sha }}
           LOCKFILE_DIGEST: ${{ steps.identity.outputs.lockfile_digest }}
           ARTIFACT_DIGEST: ${{ steps.provenance.outputs.artifact_digest }}
