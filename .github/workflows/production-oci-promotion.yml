@@ -157,6 +157,33 @@ jobs:
           candidate_run_id="$(
             ensure_success release-candidate-certification.yml
           )"
+          tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
+          lockfile_digest="sha256:$(sha256sum pnpm-lock.yaml | awk '{print $1}')"
+          rm -rf /tmp/release-candidate
+          mkdir -p /tmp/release-candidate
+          gh run download "$candidate_run_id" \
+            --name "morro-digital-candidate-$EXPECTED_SHA" \
+            --dir /tmp/release-candidate
+          candidate_manifest="/tmp/release-candidate/release-candidate-manifest.json"
+          candidate_archive="/tmp/release-candidate/morro-digital-candidate.tgz"
+          test -s "$candidate_manifest"
+          test -s "$candidate_archive"
+          candidate_artifact_digest="$(jq -r '.artifactDigest // empty' "$candidate_manifest")"
+          [[ "$candidate_artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          test "sha256:$(sha256sum "$candidate_archive" | awk '{print $1}')" = "$candidate_artifact_digest"
+          jq -e \
+            --arg sha "$EXPECTED_SHA" \
+            --arg tree "$tree_sha" \
+            --arg lock "$lockfile_digest" \
+            --arg artifact "$candidate_artifact_digest" \
+            --arg run "$candidate_run_id" '
+              .commitSha == $sha and
+              .treeSha == $tree and
+              .lockfileDigest == $lock and
+              .artifactDigest == $artifact and
+              (.workflowRun | endswith("/actions/runs/" + $run))
+            ' "$candidate_manifest" >/dev/null
+
           quality_run_id="$(ensure_success quality.yml)"
           dependency_run_id="$(ensure_success dependency-security-audit.yml)"
           security_run_id="$(ensure_success security-scanning.yml)"
@@ -174,7 +201,6 @@ jobs:
           gh run download "$image_run_id"             --name "release-provenance-$EXPECTED_SHA"             --dir /tmp/release-provenance
           provenance="/tmp/release-provenance/release-provenance.json"
           test -s "$provenance"
-          tree_sha="$(git rev-parse "$EXPECTED_SHA^{tree}")"
           image_digest="$(jq -r '.digest // empty' "$provenance")"
           [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           jq -e             --arg sha "$EXPECTED_SHA"             --arg tree "$tree_sha"             --arg image "$IMAGE_REPOSITORY"             --arg digest "$image_digest"             '.source_sha == $sha and .tree_sha == $tree and .digest == $digest and
@@ -299,10 +325,30 @@ jobs:
              .restore.checksumsMatch == true and
              .restore.leastPrivilegeReadback == true'             "$dr_evidence" >/dev/null
 
-          # Heavy production-like certification is cached by exact SHA + tree + OCI
-          # digest. A retry still creates a fresh DR proof for the real cutover, but
-          # does not repeat the expensive twin battery when the immutable artifact
-          # is already certified.
+          # Heavy production-like certification is cached by the complete
+          # immutable candidate identity: SHA + tree + candidate artifact +
+          # lockfile + OCI digest + image run. A retry still creates a fresh DR
+          # proof for the real cutover, but does not repeat the expensive twin
+          # battery when that exact artifact is already certified.
+          jq -n \
+            --arg expectedSha "$EXPECTED_SHA" \
+            --arg treeSha "$tree_sha" \
+            --arg imageRepository "$IMAGE_REPOSITORY" \
+            --arg imageDigest "$image_digest" \
+            --arg imageRunId "$image_run_id" \
+            --arg candidateArtifactDigest "$candidate_artifact_digest" \
+            --arg lockfileDigest "$lockfile_digest" '
+              {
+                expectedSha:$expectedSha,
+                treeSha:$treeSha,
+                imageRepository:$imageRepository,
+                imageDigest:$imageDigest,
+                imageRunId:$imageRunId,
+                candidateArtifactDigest:$candidateArtifactDigest,
+                lockfileDigest:$lockfileDigest
+              }
+            ' > /tmp/production-twin-expected.json
+
           twin_run_id=""
           rm -rf /tmp/production-twin-proof
           mkdir -p /tmp/production-twin-proof
@@ -314,42 +360,8 @@ jobs:
               --dir /tmp/production-twin-proof >/dev/null 2>&1
             then
               twin_evidence="/tmp/production-twin-proof/production-twin-certification-evidence.json"
-              if jq -e \
-                --arg sha "$EXPECTED_SHA" \
-                --arg tree "$tree_sha" \
-                --arg image "$IMAGE_REPOSITORY" \
-                --arg digest "$image_digest" \
-                --arg imageRun "$image_run_id" '
-                  .contract == "MORRO-PRODUCTION-TWIN-CERTIFICATION" and
-                  .contractVersion == 1 and
-                  .status == "pass" and
-                  .result == "PRODUCTION_TWIN_CERTIFICATION = PASS" and
-                  .expectedSha == $sha and
-                  .treeSha == $tree and
-                  .image.repository == $image and
-                  .image.digest == $digest and
-                  (.image.runId | tostring) == $imageRun and
-                  .image.immutable == true and
-                  .productionSample.schemaCount == 13 and
-                  .productionSample.totalTables == 91 and
-                  .twin.runtimePredeploy.status == "pass" and
-                  .twin.runtimePredeploy.domainCount == 13 and
-                  .twin.runtimePredeploy.totalTables == 91 and
-                  .twin.paymentsPredeploy.status == "pass" and
-                  .twin.paymentsPredeploy.checkoutMode == "test" and
-                  .persistence.write == "stored" and
-                  .persistence.readback == "replayed" and
-                  .persistence.reloadReadback == "replayed" and
-                  .persistence.newSessionReadback == "replayed" and
-                  .persistence.redeployReadback == "replayed" and
-                  .persistence.survivedRedeploy == true and
-                  .safety.productionMutation == false and
-                  .safety.renderMutation == false and
-                  .safety.railwayTouched == false and
-                  .safety.productionCredentialsConfirmed == false and
-                  .safety.subscriptionsEnabled == false and
-                  .safety.plaintextUploaded == false
-                ' "$twin_evidence" >/dev/null 2>&1
+              if node tooling/release/production-twin-certificate.mjs verify \
+                "$twin_evidence" /tmp/production-twin-expected.json >/dev/null 2>&1
               then
                 twin_run_id="$candidate_run"
                 echo "REUSE: production twin certificate run=$twin_run_id digest=$image_digest" >&2
@@ -372,6 +384,7 @@ jobs:
                 -f expected_sha="$EXPECTED_SHA" \
                 -f image_digest="$image_digest" \
                 -f image_run_id="$image_run_id" \
+                -f candidate_run_id="$candidate_run_id" \
                 -f dr_run_id="$dr_run_id" \
                 -f confirm_twin=CERTIFY
             )"
@@ -381,35 +394,10 @@ jobs:
               --name "production-twin-certification-$twin_run_id" \
               --dir /tmp/production-twin-proof
             twin_evidence="/tmp/production-twin-proof/production-twin-certification-evidence.json"
-            jq -e \
-              --arg sha "$EXPECTED_SHA" \
-              --arg tree "$tree_sha" \
-              --arg image "$IMAGE_REPOSITORY" \
-              --arg digest "$image_digest" \
-              --arg imageRun "$image_run_id" \
-              --arg drRun "$dr_run_id" '
-                .contract == "MORRO-PRODUCTION-TWIN-CERTIFICATION" and
-                .contractVersion == 1 and
-                .status == "pass" and
-                .result == "PRODUCTION_TWIN_CERTIFICATION = PASS" and
-                .expectedSha == $sha and
-                .treeSha == $tree and
-                .image.repository == $image and
-                .image.digest == $digest and
-                (.image.runId | tostring) == $imageRun and
-                .productionSample.drRunId == $drRun and
-                .productionSample.schemaCount == 13 and
-                .productionSample.totalTables == 91 and
-                .twin.runtimePredeploy.status == "pass" and
-                .twin.paymentsPredeploy.checkoutMode == "test" and
-                .persistence.survivedRedeploy == true and
-                .safety.productionMutation == false and
-                .safety.renderMutation == false and
-                .safety.railwayTouched == false and
-                .safety.productionCredentialsConfirmed == false and
-                .safety.subscriptionsEnabled == false and
-                .safety.plaintextUploaded == false
-              ' "$twin_evidence" >/dev/null
+            node tooling/release/production-twin-certificate.mjs verify \
+              "$twin_evidence" /tmp/production-twin-expected.json
+            jq -e --arg drRun "$dr_run_id" \
+              '.productionSample.drRunId == $drRun' "$twin_evidence" >/dev/null
           fi
 
           oci_gate_run_id="$(
