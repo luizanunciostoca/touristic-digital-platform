@@ -20,39 +20,54 @@ function manifestRows() {
   return lines.map((line) => line.split("\t"));
 }
 
-test("DR manifest matches canonical production source", () => {
-  const rows = manifestRows();
+test("DR canonical manifest exactly matches production bootstrap authority", () => {
+  const actual = manifestRows();
   const authority = readFileSync(authorityPath, "utf8");
   const domainsStart = authority.indexOf(
     "export const canonicalProductionDomains",
   );
-  const scopesStart = authority.indexOf(
+  const scopeStart = authority.indexOf(
     "export const canonicalProductionScopePolicy",
   );
-  const scopesEnd = authority.indexOf("function safeFailureCode");
+  const scopeEnd = authority.indexOf("function safeFailureCode");
 
   assert.ok(domainsStart >= 0);
-  assert.ok(scopesStart > domainsStart);
-  assert.ok(scopesEnd > scopesStart);
+  assert.ok(scopeStart > domainsStart);
+  assert.ok(scopeEnd > scopeStart);
 
-  const domains = authority.slice(domainsStart, scopesStart);
-  const scopes = authority.slice(scopesStart, scopesEnd);
+  const domainsSection = authority.slice(domainsStart, scopeStart);
+  const scopeSection = authority.slice(scopeStart, scopeEnd);
+  const domainPattern =
+    /Object\.freeze\(\{\s*name:\s*"([^"]+)",[\s\S]*?schema:\s*"([^"]+)",\s*expectedTables:\s*Object\.freeze\(\[([\s\S]*?)\]\),\s*\}\)/gu;
 
-  assert.equal(rows.length, 91);
-  assert.equal(new Set(rows.map(([schema]) => schema)).size, 13);
+  const expected = [];
+  for (const match of domainsSection.matchAll(domainPattern)) {
+    const schema = match[2];
+    const tables = [...match[3].matchAll(/"([a-z0-9_]+)"/gu)].map(
+      (tableMatch) => tableMatch[1],
+    );
+
+    for (const table of tables) {
+      const scopeMatch = new RegExp("\\b" + table + ': "([^"]+)"', "u").exec(
+        scopeSection,
+      );
+      assert.ok(scopeMatch, `missing canonical scope for ${table}`);
+      expected.push([schema, table, scopeMatch[1]]);
+    }
+  }
+
+  assert.equal(actual.length, 91);
+  assert.equal(new Set(actual.map(([schema]) => schema)).size, 13);
   assert.equal(
-    new Set(rows.map(([schema, table]) => `${schema}.${table}`)).size,
+    new Set(actual.map(([schema, table]) => `${schema}.${table}`)).size,
     91,
   );
-
-  for (const [schema, table, scope] of rows) {
-    assert.ok(domains.includes(`schema: "${schema}"`));
-    assert.ok(domains.includes(`"${table}"`));
-    assert.ok(scopes.includes(`${table}: "${scope}"`));
-  }
+  assert.equal(expected.length, 91);
+  assert.equal(new Set(expected.map(([schema]) => schema)).size, 13);
+  assert.deepEqual(actual, expected);
 });
 
-test("DR executor fails closed around production", () => {
+test("DR executor is syntactically valid and fails closed around production", () => {
   const syntax = spawnSync("bash", ["-n", executorPath], {
     encoding: "utf8",
   });
@@ -87,15 +102,12 @@ test("DR executor fails closed around production", () => {
     source,
     /\/var\/lib\/mysql\|\/var\/lib\/mysql\/\*\) fail "BACKUP_PATH_FORBIDDEN"/u,
   );
-  assert.doesNotMatch(
-    source,
-    /DROP\s+DATABASE|DROP\s+TABLE|TRUNCATE\s+TABLE/iu,
-  );
+  assert.doesNotMatch(source, /DROP\s+DATABASE|DROP\s+TABLE|TRUNCATE\s+TABLE/iu);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
   assert.doesNotMatch(source, /GITHUB_TOKEN|DR_UPLOAD_TOKEN/u);
 });
 
-test("DR worker image uses pinned MySQL 8.4 as non-root runtime", () => {
+test("DR worker image uses the exact pinned MySQL 8.4 base", () => {
   const source = readFileSync(dockerfilePath, "utf8");
   assert.match(
     source,
@@ -108,13 +120,11 @@ test("DR worker image uses pinned MySQL 8.4 as non-root runtime", () => {
     /COPY tooling\/render\/mysql-production\/readback\.sh \/usr\/local\/bin\/morro-mysql-readback/u,
   );
   assert.match(source, /^USER mysql$/mu);
-  assert.ok(
-    source.lastIndexOf("USER mysql") > source.lastIndexOf("USER root"),
-  );
+  assert.ok(source.lastIndexOf("USER mysql") > source.lastIndexOf("USER root"));
   assert.match(source, /CMD \["bash", "-lc", "sleep infinity"\]/u);
 });
 
-test("DR workflow preserves source service and GitHub credential boundaries", () => {
+test("DR workflow never delegates GitHub credentials or deletes the source service", () => {
   const source = readFileSync(workflowPath, "utf8");
 
   for (const required of [
