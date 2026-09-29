@@ -57,8 +57,7 @@ function validateUrl(environment, domain) {
   return url.toString();
 }
 
-async function validateDomain(environment, domain, poolFactory) {
-  const databaseUrl = validateUrl(environment, domain);
+async function validateDomain(domain, databaseUrl, poolFactory) {
   const pool = poolFactory(databaseUrl);
   try {
     const [[identity]] = await pool.query(
@@ -139,9 +138,13 @@ export async function runProductionRuntimeDatabasePredeploy({
     }),
 } = {}) {
   const identity = validateIdentity(environment);
+  const validatedDomains = canonicalProductionDomains.map((domain) => ({
+    domain,
+    databaseUrl: validateUrl(environment, domain),
+  }));
   const domains = [];
-  for (const domain of canonicalProductionDomains) {
-    domains.push(await validateDomain(environment, domain, poolFactory));
+  for (const { domain, databaseUrl } of validatedDomains) {
+    domains.push(await validateDomain(domain, databaseUrl, poolFactory));
   }
   return {
     contract: "MORRO-PRODUCTION-RUNTIME-DATABASE-PREDEPLOY",
