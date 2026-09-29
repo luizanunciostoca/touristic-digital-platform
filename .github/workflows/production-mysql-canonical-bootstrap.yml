@@ -59,35 +59,6 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - name: Resolve exact owner-authorized invocation
-        id: invocation
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          INPUT_SHA: ${{ inputs.expected_sha }}
-          INPUT_DIGEST: ${{ inputs.image_digest }}
-          INPUT_CONFIRM: ${{ inputs.confirm_bootstrap }}
-          COMMENT_BODY: ${{ github.event.comment.body }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
-            expected_sha="$INPUT_SHA"
-            image_digest="$INPUT_DIGEST"
-            confirm="$INPUT_CONFIRM"
-          else
-            read -r command expected_sha image_digest confirm extra <<<"$COMMENT_BODY"
-            test "$command" = "/run-production-mysql-bootstrap"
-            test -z "${extra:-}"
-          fi
-          [[ "$expected_sha" =~ ^[0-9a-f]{40}$ ]]
-          [[ "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-          test "$confirm" = "BOOTSTRAP"
-          test "$(git rev-parse HEAD)" = "$expected_sha"
-          current_main="$(git ls-remote origin refs/heads/main | awk '{print $1}')"
-          test "$current_main" = "$expected_sha"
-          echo "expected_sha=$expected_sha" >> "$GITHUB_OUTPUT"
-          echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
-
       - name: Resolve exact owner-authorized bootstrap invocation
         id: invocation
         env:
