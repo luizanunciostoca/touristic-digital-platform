@@ -257,9 +257,10 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
     "seq",
     "sleep",
   ];
-  const dockerCommands = /for command_name in ([^;]+); do command -v "\$command_name"; done;/u.exec(
-    source,
-  );
+  const dockerCommands =
+    /for command_name in ([^;]+); do command -v "\$command_name"; done;/u.exec(
+      source,
+    );
   assert.ok(dockerCommands);
 
   const executorSource = readFileSync(executorPath, "utf8");
@@ -269,10 +270,7 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
   assert.ok(executorCommands);
 
   assert.deepEqual(dockerCommands[1].trim().split(/\s+/u), expectedCommands);
-  assert.deepEqual(
-    executorCommands[1].trim().split(/\s+/u),
-    expectedCommands,
-  );
+  assert.deepEqual(executorCommands[1].trim().split(/\s+/u), expectedCommands);
   assert.match(
     source,
     /COPY tooling\/render\/mysql-production\/readback\.sh \/usr\/local\/bin\/morro-mysql-readback/u,
