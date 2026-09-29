@@ -63,6 +63,7 @@ function sendJson(response, status, payload, correlationId, headers = {}) {
 function collectEnvironment(getEnvironmentValue) {
   const keys = [
     "NODE_ENV",
+    "MORRO_DATABASE_SCHEMA_MODE",
     "ORDERING_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
     "PAYMENTS_PROVIDER_MODE",

@@ -240,6 +240,7 @@ function secureRequest(request) {
 function collectEnvironment(getEnvironmentValue) {
   const keys = [
     "COMMERCE_FEATURE_ENABLED",
+    "MORRO_DATABASE_SCHEMA_MODE",
     "COMMERCE_DATABASE_URL",
     "ORDERING_DATABASE_URL",
     "PAYMENTS_HANDOFF_SECRET",

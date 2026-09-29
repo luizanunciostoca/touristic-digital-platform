@@ -157,6 +157,7 @@ async function readJsonBody(
 function collectEnvironment(getEnvironmentValue) {
   const keys = [
     "NODE_ENV",
+    "MORRO_DATABASE_SCHEMA_MODE",
     "ORDERING_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
     "COMMERCE_DATABASE_URL",
