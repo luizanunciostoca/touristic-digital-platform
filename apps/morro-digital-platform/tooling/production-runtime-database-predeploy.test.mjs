@@ -32,6 +32,7 @@ function poolFactory(
     roleGrant = false,
     routineGrant = false,
     nativeErrorCode = "",
+    nativeErrorMessage = "database connection failed",
   } = {},
 ) {
   return (databaseUrl) => {
@@ -46,7 +47,7 @@ function poolFactory(
         const source = String(sql);
         if (source.startsWith("SELECT DATABASE()")) {
           if (nativeErrorCode) {
-            const error = new Error("database connection failed");
+            const error = new Error(nativeErrorMessage);
             error.code = nativeErrorCode;
             throw error;
           }
@@ -184,7 +185,10 @@ test("surfaces sanitized native MySQL errors with domain context", async () => {
   await assert.rejects(
     runProductionRuntimeDatabasePredeploy({
       environment: environment(),
-      poolFactory: poolFactory([], { nativeErrorCode: "ECONNREFUSED" }),
+      poolFactory: poolFactory([], {
+        nativeErrorCode: "ECONNREFUSED",
+        nativeErrorMessage: "ECONNREFUSED",
+      }),
     }),
     /PRODUCTION_RUNTIME_DATABASE_AUTH_ECONNREFUSED/u,
   );
