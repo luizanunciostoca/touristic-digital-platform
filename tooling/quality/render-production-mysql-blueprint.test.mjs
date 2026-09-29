@@ -45,7 +45,7 @@ function rejects(result, expected) {
   assert.match(result.stderr, expected);
 }
 
-test("production MySQL Blueprint satisfies bootstrap wiring without application cutover", (t) => {
+test("production MySQL Blueprint satisfies bootstrap and application cutover wiring", (t) => {
   const result = runCheck(t);
   assert.equal(result.error, undefined);
   assert.equal(result.status, 0, result.stderr);
@@ -140,6 +140,24 @@ test("bootstrap database credentials require the dedicated background worker", (
       fs.writeFileSync(file, source.slice(0, start) + source.slice(end));
     }),
     /morro-digital-v2-production-db-bootstrap/u,
+  );
+});
+
+test("production web service requires every canonical server-only database URL", (t) => {
+  rejects(
+    runCheck(t, (directory) => {
+      const file = path.join(directory, "render.yaml");
+      fs.writeFileSync(
+        file,
+        fs
+          .readFileSync(file, "utf8")
+          .replace(
+            "      - key: BUSINESS_DATABASE_URL\n        sync: false\n",
+            "",
+          ),
+      );
+    }),
+    /BUSINESS_DATABASE_URL/u,
   );
 });
 
