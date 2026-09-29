@@ -50,14 +50,9 @@ export type PlatformEventType =
   | FinancialAuthorityEventType
   | GrowthDomainEventType;
 
-export type PlatformEventPayload = Readonly<Record<string, unknown>>;
-
-export interface PlatformEventEnvelopeV1<
-  TType extends PlatformEventType = PlatformEventType,
-  TPayload extends PlatformEventPayload = PlatformEventPayload,
-> {
+export interface PlatformEventEnvelopeV1 {
   readonly eventId: string;
-  readonly type: TType;
+  readonly type: PlatformEventType;
   readonly version: 1;
   readonly occurredAt: string;
   readonly destinationId: string;
@@ -66,7 +61,7 @@ export interface PlatformEventEnvelopeV1<
   readonly userId?: string;
   readonly correlationId: string;
   readonly causationId?: string;
-  readonly payload: TPayload;
+  readonly payload: Readonly<Record<string, unknown>>;
 }
 
 const BEHAVIORAL = new Set<PlatformEventType>([
@@ -89,7 +84,7 @@ const FINANCIAL = new Set<PlatformEventType>([
   "SettlementCompleted",
 ]);
 
-export const PLATFORM_EVENT_TYPES: ReadonlySet<PlatformEventType> = new Set([
+export const PLATFORM_EVENT_TYPES = new Set<PlatformEventType>([
   ...BEHAVIORAL,
   ...VERIFIED,
   ...FINANCIAL,

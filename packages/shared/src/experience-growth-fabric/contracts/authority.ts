@@ -10,19 +10,19 @@ export type ValueActionClass =
   | "experience_value"
   | "financial_consequence";
 
-const TRUST_RANK: Record<EventTrustClass, number> = {
+const TRUST_RANK = {
   behavioral: 0,
   session_verified: 1,
   experience_verified: 2,
   financial_authoritative: 3,
-};
+} as const;
 
-const REQUIRED_TRUST: Record<ValueActionClass, EventTrustClass> = {
+const REQUIRED_TRUST = {
   telemetry: "behavioral",
   low_risk_progress: "session_verified",
   experience_value: "experience_verified",
   financial_consequence: "financial_authoritative",
-};
+} as const;
 
 export function canTrustClassAuthorize(
   trust: EventTrustClass,
