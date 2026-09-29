@@ -223,7 +223,7 @@ for (const required of [
   "ALTER USER",
   "GRANT ALL PRIVILEGES",
   "REVOKE ALL PRIVILEGES, GRANT OPTION",
-  "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES",
+  "GRANT SELECT, INSERT, UPDATE, DELETE",
   "utf8mb4_0900_ai_ci",
   "13 canonical schemas and least-privilege owners initialized",
 ]) {
@@ -233,10 +233,10 @@ requireText(init, "\\`$database\\`", "escaped SQL database identifier");
 
 for (const required of [
   'CONTRACT="MORRO-PRODUCTION-MYSQL-RUNTIME-USERS"',
-  'EXPECTED_PRIVILEGES="SELECT INSERT UPDATE DELETE CREATE ALTER INDEX REFERENCES"',
+  'EXPECTED_PRIVILEGES="SELECT INSERT UPDATE DELETE"',
   "RUNTIME_USER_PROVISION_CONFIRM",
   "REVOKE ALL PRIVILEGES, GRANT OPTION",
-  "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES",
+  "GRANT SELECT, INSERT, UPDATE, DELETE",
   "schemaPrivilegeEntries",
   "crossDomainDenied",
   "globalPrivilegeEntries",
@@ -328,8 +328,9 @@ for (const [domain] of domains) {
 
 requireText(
   webService,
-  "preDeployCommand: 'env EXPECTED_SHA=\"${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}\" node apps/morro-digital-platform/tooling/production-database-predeploy.mjs --verify-idempotent && node apps/morro-digital-platform/tooling/payments-migrate.mjs'",
+  "preDeployCommand: env MORRO_DATABASE_SCHEMA_MODE=external node apps/morro-digital-platform/tooling/payments-migrate.mjs",
 );
+requireText(webService, "value: external", "external runtime schema mode");
 
 for (const runtimeDatabaseUrl of [
   "AUTH_DATABASE_URL",
@@ -363,5 +364,5 @@ requireText(
 );
 
 console.log(
-  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, persistent disk, 13 bounded runtime URLs, fail-closed application predeploy, and bootstrap owners isolated from the public web service.",
+  "Render production MySQL Blueprint contract valid: private Virginia MySQL 8.4, owner-only migrations, DML-only runtime identities, external runtime schema mode, 13 server-only URLs, and fail-closed Payments predeploy.",
 );
