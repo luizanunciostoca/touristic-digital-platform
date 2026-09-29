@@ -77,14 +77,19 @@ process.stdout.write(result + "\\n");
   }
 });
 
-test("one explicit candidate dispatcher preserves the former Control Center matrix", async () => {
+test("only explicit release control planes dispatch nested workflows", async () => {
   const sources = await workflowSources();
   const dispatchers = [...sources].filter(([, source]) =>
     source.includes("gh workflow run"),
   );
   assert.deepEqual(
     dispatchers.map(([file]) => file),
-    ["final-release-acceptance.yml"],
+    ["final-release-acceptance.yml", "production-oci-promotion.yml"],
+  );
+  assert.ok(
+    sources
+      .get("production-oci-promotion.yml")
+      ?.includes("/run-production-cutover "),
   );
   const manifest = JSON.parse(
     await readFile(
