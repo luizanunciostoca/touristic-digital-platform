@@ -445,7 +445,8 @@ function failureCutoverFixture({
             ...structuredClone(originalService.serviceDetails),
             runtime: "image",
             healthCheckPath: body.serviceDetails.healthCheckPath,
-            maxShutdownDelaySeconds: body.serviceDetails.maxShutdownDelaySeconds,
+            maxShutdownDelaySeconds:
+              body.serviceDetails.maxShutdownDelaySeconds,
             preDeployCommand: body.serviceDetails.preDeployCommand,
             envSpecificDetails: {},
           },
