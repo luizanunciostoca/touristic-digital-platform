@@ -22,6 +22,10 @@ services:
         value: morro_auth
       - key: AUTH_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_AUTH_DATABASE_USER
+        value: morro_auth_runtime
+      - key: RUNTIME_AUTH_DATABASE_PASSWORD
+        generateValue: true
       - key: AUTH_RUNTIME_DATABASE_USER
         value: morro_auth_runtime
       - key: AUTH_RUNTIME_DATABASE_PASSWORD
@@ -31,6 +35,10 @@ services:
       - key: AUDIT_DATABASE_USER
         value: morro_audit
       - key: AUDIT_DATABASE_PASSWORD
+        generateValue: true
+      - key: RUNTIME_AUDIT_DATABASE_USER
+        value: morro_audit_runtime
+      - key: RUNTIME_AUDIT_DATABASE_PASSWORD
         generateValue: true
       - key: AUDIT_RUNTIME_DATABASE_USER
         value: morro_audit_runtime
@@ -42,6 +50,10 @@ services:
         value: morro_destinations
       - key: DESTINATIONS_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_DESTINATIONS_DATABASE_USER
+        value: morro_destinations_runtime
+      - key: RUNTIME_DESTINATIONS_DATABASE_PASSWORD
+        generateValue: true
       - key: DESTINATIONS_RUNTIME_DATABASE_USER
         value: morro_destinations_runtime
       - key: DESTINATIONS_RUNTIME_DATABASE_PASSWORD
@@ -51,6 +63,10 @@ services:
       - key: CONTENT_DATABASE_USER
         value: morro_content
       - key: CONTENT_DATABASE_PASSWORD
+        generateValue: true
+      - key: RUNTIME_CONTENT_DATABASE_USER
+        value: morro_content_runtime
+      - key: RUNTIME_CONTENT_DATABASE_PASSWORD
         generateValue: true
       - key: CONTENT_RUNTIME_DATABASE_USER
         value: morro_content_runtime
@@ -62,6 +78,10 @@ services:
         value: morro_business
       - key: BUSINESS_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_BUSINESS_DATABASE_USER
+        value: morro_business_runtime
+      - key: RUNTIME_BUSINESS_DATABASE_PASSWORD
+        generateValue: true
       - key: BUSINESS_RUNTIME_DATABASE_USER
         value: morro_business_runtime
       - key: BUSINESS_RUNTIME_DATABASE_PASSWORD
@@ -71,6 +91,10 @@ services:
       - key: ORDERING_DATABASE_USER
         value: morro_ordering
       - key: ORDERING_DATABASE_PASSWORD
+        generateValue: true
+      - key: RUNTIME_ORDERING_DATABASE_USER
+        value: morro_ordering_runtime
+      - key: RUNTIME_ORDERING_DATABASE_PASSWORD
         generateValue: true
       - key: ORDERING_RUNTIME_DATABASE_USER
         value: morro_ordering_runtime
@@ -82,6 +106,10 @@ services:
         value: morro_financial
       - key: FINANCIAL_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_FINANCIAL_DATABASE_USER
+        value: morro_financial_runtime
+      - key: RUNTIME_FINANCIAL_DATABASE_PASSWORD
+        generateValue: true
       - key: FINANCIAL_RUNTIME_DATABASE_USER
         value: morro_financial_runtime
       - key: FINANCIAL_RUNTIME_DATABASE_PASSWORD
@@ -91,6 +119,10 @@ services:
       - key: TICKETING_DATABASE_USER
         value: morro_ticketing
       - key: TICKETING_DATABASE_PASSWORD
+        generateValue: true
+      - key: RUNTIME_TICKETING_DATABASE_USER
+        value: morro_ticketing_runtime
+      - key: RUNTIME_TICKETING_DATABASE_PASSWORD
         generateValue: true
       - key: TICKETING_RUNTIME_DATABASE_USER
         value: morro_ticketing_runtime
@@ -102,6 +134,10 @@ services:
         value: morro_notifications
       - key: NOTIFICATIONS_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_NOTIFICATIONS_DATABASE_USER
+        value: morro_notifications_runtime
+      - key: RUNTIME_NOTIFICATIONS_DATABASE_PASSWORD
+        generateValue: true
       - key: NOTIFICATIONS_RUNTIME_DATABASE_USER
         value: morro_notifications_runtime
       - key: NOTIFICATIONS_RUNTIME_DATABASE_PASSWORD
@@ -111,6 +147,10 @@ services:
       - key: AFFILIATES_DATABASE_USER
         value: morro_affiliates
       - key: AFFILIATES_DATABASE_PASSWORD
+        generateValue: true
+      - key: RUNTIME_AFFILIATES_DATABASE_USER
+        value: morro_affiliates_runtime
+      - key: RUNTIME_AFFILIATES_DATABASE_PASSWORD
         generateValue: true
       - key: AFFILIATES_RUNTIME_DATABASE_USER
         value: morro_affiliates_runtime
@@ -122,6 +162,10 @@ services:
         value: morro_analytics
       - key: ANALYTICS_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_ANALYTICS_DATABASE_USER
+        value: morro_analytics_runtime
+      - key: RUNTIME_ANALYTICS_DATABASE_PASSWORD
+        generateValue: true
       - key: ANALYTICS_RUNTIME_DATABASE_USER
         value: morro_analytics_runtime
       - key: ANALYTICS_RUNTIME_DATABASE_PASSWORD
@@ -132,6 +176,10 @@ services:
         value: morro_crm
       - key: CRM_DATABASE_PASSWORD
         generateValue: true
+      - key: RUNTIME_CRM_DATABASE_USER
+        value: morro_crm_runtime
+      - key: RUNTIME_CRM_DATABASE_PASSWORD
+        generateValue: true
       - key: CRM_RUNTIME_DATABASE_USER
         value: morro_crm_runtime
       - key: CRM_RUNTIME_DATABASE_PASSWORD
@@ -141,6 +189,10 @@ services:
       - key: COMMERCE_DATABASE_USER
         value: morro_commerce
       - key: COMMERCE_DATABASE_PASSWORD
+        generateValue: true
+      - key: RUNTIME_COMMERCE_DATABASE_USER
+        value: morro_commerce_runtime
+      - key: RUNTIME_COMMERCE_DATABASE_PASSWORD
         generateValue: true
       - key: COMMERCE_RUNTIME_DATABASE_USER
         value: morro_commerce_runtime
