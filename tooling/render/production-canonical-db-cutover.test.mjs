@@ -17,13 +17,13 @@ test("builds only the trusted private production MySQL URL", () => {
       host: "morro-digital-v2-production-mysql",
       port: 3306,
       database: "morro_business",
-      user: "morro_business",
+      user: "morro_business_runtime",
       password: "a+/= safe password",
     }),
   );
   assert.equal(url.hostname, "morro-digital-v2-production-mysql");
   assert.equal(url.port, "3306");
-  assert.equal(url.username, "morro_business");
+  assert.equal(url.username, "morro_business_runtime");
   assert.equal(url.pathname, "/morro_business");
   assert.equal(decodeURIComponent(url.password), "a+/= safe password");
 
@@ -33,7 +33,7 @@ test("builds only the trusted private production MySQL URL", () => {
         host: "legacy.example",
         port: 3306,
         database: "morro_business",
-        user: "morro_business",
+        user: "morro_business_runtime",
         password: "secret",
       }),
     /PRODUCTION_MYSQL_PRIVATE_ENDPOINT_UNTRUSTED/u,
@@ -92,8 +92,9 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   const mysqlValues = {};
   for (const [domain, , schema] of productionDatabaseDomains) {
     mysqlValues[`${domain}_DATABASE_NAME`] = schema;
-    mysqlValues[`${domain}_DATABASE_USER`] = schema;
-    mysqlValues[`${domain}_DATABASE_PASSWORD`] = `${domain.toLowerCase()}-secret`;
+    mysqlValues[`${domain}_RUNTIME_DATABASE_USER`] = `${schema}_runtime`;
+    mysqlValues[`${domain}_RUNTIME_DATABASE_PASSWORD`] =
+      `${domain.toLowerCase()}-runtime-secret`;
   }
 
   const imageDigest = `sha256:${"b".repeat(64)}`;
@@ -190,7 +191,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       parsed.pathname.startsWith("/v1/services/srv-mysql/env-vars/")
     ) {
       const key = decodeURIComponent(parsed.pathname.split("/").at(-1));
-      return jsonResponse(200, { key, value: mysqlValues[key] });
+      return jsonResponse(200, { envVar: { key, value: mysqlValues[key] } });
     }
 
     if (
