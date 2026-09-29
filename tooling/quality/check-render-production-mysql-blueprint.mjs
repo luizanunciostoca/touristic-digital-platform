@@ -20,6 +20,10 @@ const readback = fs.readFileSync(
   new URL("../render/mysql-production/readback.sh", import.meta.url),
   "utf8",
 );
+const runtimeUsers = fs.readFileSync(
+  new URL("../render/mysql-production/runtime-users.sh", import.meta.url),
+  "utf8",
+);
 
 const domains = [
   ["AUTH", "morro_auth"],
@@ -159,7 +163,19 @@ for (const [domain, database] of domains) {
   requireDirective(domain + "_DATABASE_NAME", "value: " + database);
   requireDirective(domain + "_DATABASE_USER", "value: " + database);
   requireDirective(domain + "_DATABASE_PASSWORD", "generateValue: true");
+  requireDirective(
+    domain + "_RUNTIME_DATABASE_USER",
+    "value: " + database + "_runtime",
+  );
+  requireDirective(
+    domain + "_RUNTIME_DATABASE_PASSWORD",
+    "generateValue: true",
+  );
   requireText(init, "$" + domain + "_DATABASE_NAME");
+  requireText(init, "$" + domain + "_RUNTIME_DATABASE_USER");
+  requireText(init, "$" + domain + "_RUNTIME_DATABASE_PASSWORD");
+  requireText(runtimeUsers, "${domain}_RUNTIME_DATABASE_USER");
+  requireText(runtimeUsers, "${domain}_RUNTIME_DATABASE_PASSWORD");
   requireText(init, "$" + domain + "_DATABASE_USER");
   requireText(init, "$" + domain + "_DATABASE_PASSWORD");
 }
@@ -184,6 +200,7 @@ for (const required of [
   "RUN mysqld --verbose --help >/dev/null",
   "COPY tooling/render/mysql-production/01-init-databases.sh /docker-entrypoint-initdb.d/01-init-databases.sh",
   "COPY tooling/render/mysql-production/readback.sh /usr/local/bin/morro-mysql-readback",
+  "COPY tooling/render/mysql-production/runtime-users.sh /usr/local/bin/morro-mysql-runtime-users",
 ]) {
   requireActiveLine(dockerfile, required);
 }
@@ -205,12 +222,32 @@ for (const required of [
   "CREATE USER IF NOT EXISTS",
   "ALTER USER",
   "GRANT ALL PRIVILEGES",
+  "REVOKE ALL PRIVILEGES, GRANT OPTION",
+  "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES",
   "utf8mb4_0900_ai_ci",
   "13 canonical schemas and least-privilege owners initialized",
 ]) {
   requireText(init, required);
 }
 requireText(init, "\\`$database\\`", "escaped SQL database identifier");
+
+for (const required of [
+  'CONTRACT="MORRO-PRODUCTION-MYSQL-RUNTIME-USERS"',
+  'EXPECTED_PRIVILEGES="SELECT INSERT UPDATE DELETE CREATE ALTER INDEX REFERENCES"',
+  "RUNTIME_USER_PROVISION_CONFIRM",
+  "REVOKE ALL PRIVILEGES, GRANT OPTION",
+  "GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES",
+  "schemaPrivilegeEntries",
+  "crossDomainDenied",
+  "globalPrivilegeEntries",
+]) {
+  requireText(runtimeUsers, required);
+}
+forbidText(
+  runtimeUsers,
+  "GRANT ALL PRIVILEGES",
+  "runtime users must never receive owner privileges",
+);
 
 for (const required of [
   'CONTRACT="MORRO-PRODUCTION-MYSQL-READBACK"',
