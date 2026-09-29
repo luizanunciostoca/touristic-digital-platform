@@ -154,10 +154,7 @@ test("DR failure telemetry distinguishes handled and unhandled failures", () => 
     env: cleanEnv,
   });
   assert.equal(handled.status, 86);
-  const handledLines = handled.stderr
-    .trim()
-    .split(/\r?\n/u)
-    .filter(Boolean);
+  const handledLines = handled.stderr.trim().split(/\r?\n/u).filter(Boolean);
   assert.equal(handledLines.length, 1);
   const handledEvent = JSON.parse(handledLines[0]);
   assert.equal(
