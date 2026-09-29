@@ -68,11 +68,6 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
-      - name: Diagnose runtime predeploy formatting
-        run: |
-          pnpm exec prettier apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mysql.mjs --write
-          git diff -- apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mysql.mjs
-          git diff --exit-code -- apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mysql.mjs
       - name: Check formatting
         run: pnpm format:check
       - name: Enforce Stylelint V2 CSS governance
