@@ -93,16 +93,17 @@ async function getEnv(serviceId, key) {
 }
 
 async function putEnv(serviceId, key, value) {
-  await api(
-    "/services/" + serviceId + "/env-vars/" + encodeURIComponent(key),
-    { method: "PUT", body: { value } },
-  );
+  await api("/services/" + serviceId + "/env-vars/" + encodeURIComponent(key), {
+    method: "PUT",
+    body: { value },
+  });
 }
 
 async function listEnv(serviceId) {
   const response = await api("/services/" + serviceId + "/env-vars?limit=100");
   if (!Array.isArray(response)) throw new Error("RENDER_ENV_LIST_INVALID");
-  if (response.length >= 100) throw new Error("RENDER_ENV_LIST_PAGINATION_REQUIRED");
+  if (response.length >= 100)
+    throw new Error("RENDER_ENV_LIST_PAGINATION_REQUIRED");
   return response.map(envRecord).map((record) => ({
     key: String(record?.key ?? ""),
     value: String(record?.value ?? ""),
@@ -119,7 +120,9 @@ async function replaceEnv(serviceId, records) {
 async function latestLiveDeploy(serviceId) {
   const response = await api("/services/" + serviceId + "/deploys?limit=20");
   if (!Array.isArray(response)) throw new Error("RENDER_DEPLOY_LIST_INVALID");
-  const live = response.map(deployRecord).find((deploy) => deploy?.status === "live");
+  const live = response
+    .map(deployRecord)
+    .find((deploy) => deploy?.status === "live");
   if (!live?.id) throw new Error("RENDER_LIVE_DEPLOY_REQUIRED");
   return live;
 }
@@ -140,9 +143,12 @@ async function waitDeploy(serviceId, deployId, timeoutMs = 20 * 60_000) {
     const status = String(deploy?.status ?? "");
     if (status === "live") return deploy;
     if (
-      ["build_failed", "update_failed", "pre_deploy_failed", "canceled"].includes(
-        status,
-      )
+      [
+        "build_failed",
+        "update_failed",
+        "pre_deploy_failed",
+        "canceled",
+      ].includes(status)
     ) {
       throw new Error("RENDER_DEPLOY_" + status.toUpperCase());
     }
@@ -193,7 +199,10 @@ function currentSourcePatch(app) {
   const details = record?.serviceDetails ?? {};
   const envDetails = details?.envSpecificDetails ?? {};
   return {
-    autoDeploy: record?.autoDeploy === true || record?.autoDeploy === "yes" ? "yes" : "no",
+    autoDeploy:
+      record?.autoDeploy === true || record?.autoDeploy === "yes"
+        ? "yes"
+        : "no",
     repo: record?.repo ?? null,
     branch: record?.branch ?? null,
     image: record?.imagePath
@@ -205,14 +214,22 @@ function currentSourcePatch(app) {
       preDeployCommand: details.preDeployCommand ?? "",
       maxShutdownDelaySeconds: details.maxShutdownDelaySeconds ?? 30,
       envSpecificDetails: {
-        ...(envDetails.buildCommand ? { buildCommand: envDetails.buildCommand } : {}),
-        ...(envDetails.startCommand ? { startCommand: envDetails.startCommand } : {}),
+        ...(envDetails.buildCommand
+          ? { buildCommand: envDetails.buildCommand }
+          : {}),
+        ...(envDetails.startCommand
+          ? { startCommand: envDetails.startCommand }
+          : {}),
       },
     },
   };
 }
 
-async function rollback({ previousEnv, previousServicePatch, previousDeployId }) {
+async function rollback({
+  previousEnv,
+  previousServicePatch,
+  previousDeployId,
+}) {
   const errors = [];
   try {
     await replaceEnv(APP_SERVICE_ID, previousEnv);
@@ -329,7 +346,11 @@ try {
 
   await Promise.all([
     putEnv(APP_SERVICE_ID, "MERCADO_PAGO_CHECKOUT_MODE", "test"),
-    putEnv(APP_SERVICE_ID, "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED", "false"),
+    putEnv(
+      APP_SERVICE_ID,
+      "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
+      "false",
+    ),
     putEnv(APP_SERVICE_ID, "PAYMENTS_SUBSCRIPTIONS_ENABLED", "false"),
   ]);
 

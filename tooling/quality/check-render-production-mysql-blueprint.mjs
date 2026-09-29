@@ -291,7 +291,7 @@ for (const [domain] of domains) {
 
 requireText(
   webService,
-  'preDeployCommand: \'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-database-predeploy.mjs --verify-idempotent && node apps/morro-digital-platform/tooling/payments-migrate.mjs\'',
+  "preDeployCommand: 'env EXPECTED_SHA=\"${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}\" node apps/morro-digital-platform/tooling/production-database-predeploy.mjs --verify-idempotent && node apps/morro-digital-platform/tooling/payments-migrate.mjs'",
 );
 
 for (const runtimeDatabaseUrl of [
