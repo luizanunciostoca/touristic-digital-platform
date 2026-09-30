@@ -185,7 +185,7 @@ test("production twin executor is syntactically valid and no-egress", () => {
     'runtimeProbe:"docker-exec-loopback"',
     "syntheticReleaseIdentity:true",
     'Origin: "http://127.0.0.1:3000"',
-    'date -u +%Y-%m-%dT%H:%M:%S.000Z',
+    "date -u +%Y-%m-%dT%H:%M:%S.000Z",
     'probe:"analytics-write"',
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
