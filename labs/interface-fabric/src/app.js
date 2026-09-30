@@ -120,6 +120,7 @@ function wire(def){
   document.querySelector("#qa-state")?.addEventListener("change",e=>{ const u=new URL(location.href);u.searchParams.set("state",e.target.value);location.href=u.toString(); });
   document.querySelector("#locale-select")?.addEventListener("change",e=>{storage.set("if-locale",e.target.value);location.reload();});
   document.querySelectorAll("[data-nav-id]").forEach(el=>el.addEventListener("click",()=>navigate(el.dataset.navId)));
+  document.querySelectorAll('[data-action="command"]').forEach(el=>el.addEventListener("click",async()=>{if(!def)return;const result=await adapter.command(def,"action",{label:el.textContent?.trim()||"action"});showToast(result.message);}));
   document.querySelector('[data-action="nav-explore"]')?.addEventListener("click",()=>navigate("IF-PUB-008"));
   document.querySelectorAll('[data-action="nav-assistant"]').forEach(el=>el.addEventListener("click",()=>navigate("IF-PUB-014")));
   document.querySelector('[data-action="nav-route"]')?.addEventListener("click",()=>navigate("IF-PUB-017"));
