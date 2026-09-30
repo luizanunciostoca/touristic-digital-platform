@@ -107,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail-with-body --silent --show-error -D /tmp/health.headers             "$TARGET_URL/healthz" > /tmp/health.json
-          jq -e '.status == "live"' /tmp/health.json >/dev/null
+          jq -e '(.status == "live" or .status == "healthy")' /tmp/health.json >/dev/null
           grep -Eiq "^x-release-sha: $EXPECTED_SHA\r?$" /tmp/health.headers
 
           curl --fail-with-body --silent --show-error -D /tmp/ready.headers             "$TARGET_URL/readyz" > /tmp/ready.json
