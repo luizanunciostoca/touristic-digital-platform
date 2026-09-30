@@ -93,7 +93,10 @@ export class AssistantCapabilityGateway {
     if (!policy.ok) return policy;
 
     const executionScopes = new Set(executionContext.authScopes);
-    if (tool.permissions.some((permission) => !executionScopes.has(permission))) {
+    const authPermissions = tool.permissions.filter(
+      (permission) => !permission.startsWith("context:"),
+    );
+    if (authPermissions.some((permission) => !executionScopes.has(permission))) {
       return err("POLICY_DENIED", "Execution identity lacks required permission");
     }
 
