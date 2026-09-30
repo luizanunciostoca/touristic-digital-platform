@@ -256,14 +256,14 @@ describe("Restaurant Commerce API", () => {
       const diagnostic = stderr.mock.calls
         .map(([chunk]) => String(chunk))
         .join("");
-      expect(diagnostic).toContain(
-        '"reason":"COMMERCE_RUNTIME_UNAVAILABLE"',
-      );
+      expect(diagnostic).toContain('"reason":"COMMERCE_RUNTIME_UNAVAILABLE"');
       expect(diagnostic).not.toContain("private-password");
       expect(diagnostic).not.toContain(
         "PRIVATE_CREDENTIAL_ABCDEFGHIJKLMNOPQRSTUVWXYZ",
       );
-      expect(diagnostic).not.toContain("SECRET_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+      expect(diagnostic).not.toContain(
+        "SECRET_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      );
     } finally {
       stderr.mockRestore();
     }
