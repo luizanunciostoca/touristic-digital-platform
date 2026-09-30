@@ -1,0 +1,7506 @@
+[
+  {
+    "ordinal": 1,
+    "id": "IF-PUB-001",
+    "title": "Acesso direto / bootstrap da Home",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-001.html",
+    "html": "interfaces/IF-PUB-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 1",
+    "owner": "experience",
+    "template": "map-home",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 2,
+    "id": "IF-PUB-002",
+    "title": "Landing de captura por link/QR de afiliado",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-002.html",
+    "html": "interfaces/IF-PUB-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 2",
+    "owner": "experience",
+    "template": "capture",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 3,
+    "id": "IF-PUB-003",
+    "title": "Boas-vindas de primeiro acesso",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-003.html",
+    "html": "interfaces/IF-PUB-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 3",
+    "owner": "experience",
+    "template": "welcome",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 4,
+    "id": "IF-PUB-004",
+    "title": "Tutorial interativo inicial",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-004.html",
+    "html": "interfaces/IF-PUB-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 4",
+    "owner": "experience",
+    "template": "tutorial",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 5,
+    "id": "IF-PUB-005",
+    "title": "Idioma / locale",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-005.html",
+    "html": "interfaces/IF-PUB-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 5",
+    "owner": "experience",
+    "template": "locale",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 6,
+    "id": "IF-PUB-006",
+    "title": "Home / Discover com mapa",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-006.html",
+    "html": "interfaces/IF-PUB-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 6",
+    "owner": "experience",
+    "template": "map-home",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 7,
+    "id": "IF-PUB-007",
+    "title": "Clima / detalhes meteorológicos",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-007.html",
+    "html": "interfaces/IF-PUB-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 7",
+    "owner": "experience",
+    "template": "weather",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 8,
+    "id": "IF-PUB-008",
+    "title": "Explore / categorias",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-008.html",
+    "html": "interfaces/IF-PUB-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 8",
+    "owner": "experience",
+    "template": "explore",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 9,
+    "id": "IF-PUB-009",
+    "title": "Busca / resultados",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-009.html",
+    "html": "interfaces/IF-PUB-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 9",
+    "owner": "experience",
+    "template": "search",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 10,
+    "id": "IF-PUB-010",
+    "title": "Place / detalhe de local ou empresa",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-010.html",
+    "html": "interfaces/IF-PUB-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 10",
+    "owner": "experience",
+    "template": "place",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 11,
+    "id": "IF-PUB-011",
+    "title": "Favoritos / salvos",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-011.html",
+    "html": "interfaces/IF-PUB-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 11",
+    "owner": "experience",
+    "template": "favorites",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 12,
+    "id": "IF-PUB-012",
+    "title": "Perfil / preferências",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-012.html",
+    "html": "interfaces/IF-PUB-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 12",
+    "owner": "experience",
+    "template": "profile",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 13,
+    "id": "IF-PUB-013",
+    "title": "Privacidade / consentimentos",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-013.html",
+    "html": "interfaces/IF-PUB-013.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 13",
+    "owner": "experience",
+    "template": "privacy",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-013.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 14,
+    "id": "IF-PUB-014",
+    "title": "Assistant por texto",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-014.html",
+    "html": "interfaces/IF-PUB-014.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 14",
+    "owner": "experience",
+    "template": "assistant",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-014.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 15,
+    "id": "IF-PUB-015",
+    "title": "Assistant por voz",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-015.html",
+    "html": "interfaces/IF-PUB-015.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 15",
+    "owner": "experience",
+    "template": "assistant-voice",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-015.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 16,
+    "id": "IF-PUB-016",
+    "title": "Visão global / perspectiva do mapa",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-016.html",
+    "html": "interfaces/IF-PUB-016.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 16",
+    "owner": "experience",
+    "template": "map-perspective",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-016.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 17,
+    "id": "IF-PUB-017",
+    "title": "Prévia de rota",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-017.html",
+    "html": "interfaces/IF-PUB-017.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 17",
+    "owner": "experience",
+    "template": "route-preview",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-017.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 18,
+    "id": "IF-PUB-018",
+    "title": "Navegação guiada ativa",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-018.html",
+    "html": "interfaces/IF-PUB-018.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 18",
+    "owner": "experience",
+    "template": "navigation",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-018.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 19,
+    "id": "IF-PUB-019",
+    "title": "Tour guiado do destino",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-019.html",
+    "html": "interfaces/IF-PUB-019.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 19",
+    "owner": "experience",
+    "template": "tour",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-019.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 20,
+    "id": "IF-PUB-020",
+    "title": "PWA / fallback offline",
+    "domain": "Tourist/Resident",
+    "persona": "Turista / morador",
+    "route": "/labs/interface-fabric/interfaces/IF-PUB-020.html",
+    "html": "interfaces/IF-PUB-020.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 20",
+    "owner": "experience",
+    "template": "offline",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-PUB-020.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 21,
+    "id": "IF-COM-001",
+    "title": "Detalhe de experiência",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-001.html",
+    "html": "interfaces/IF-COM-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 21",
+    "owner": "commerce",
+    "template": "offer",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 22,
+    "id": "IF-COM-002",
+    "title": "Ingresso de evento / ticketed admission",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-002.html",
+    "html": "interfaces/IF-COM-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 22",
+    "owner": "commerce",
+    "template": "ticket-offer",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 23,
+    "id": "IF-COM-003",
+    "title": "Reserva de passeio",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-003.html",
+    "html": "interfaces/IF-COM-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 23",
+    "owner": "commerce",
+    "template": "booking",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 24,
+    "id": "IF-COM-004",
+    "title": "Reserva de restaurante / mesa",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-004.html",
+    "html": "interfaces/IF-COM-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 24",
+    "owner": "commerce",
+    "template": "table-booking",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 25,
+    "id": "IF-COM-005",
+    "title": "Ticket de transporte",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-005.html",
+    "html": "interfaces/IF-COM-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 25",
+    "owner": "commerce",
+    "template": "transport-booking",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 26,
+    "id": "IF-COM-006",
+    "title": "Reserva de hospedagem",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-006.html",
+    "html": "interfaces/IF-COM-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 26",
+    "owner": "commerce",
+    "template": "lodging-booking",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 27,
+    "id": "IF-COM-007",
+    "title": "Data / disponibilidade / quantidade / quote",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-007.html",
+    "html": "interfaces/IF-COM-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 27",
+    "owner": "commerce",
+    "template": "availability",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 28,
+    "id": "IF-COM-008",
+    "title": "Identificação do comprador/responsável",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-008.html",
+    "html": "interfaces/IF-COM-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 28",
+    "owner": "commerce",
+    "template": "buyer",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 29,
+    "id": "IF-COM-009",
+    "title": "Checkout / handoff de pagamento",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-009.html",
+    "html": "interfaces/IF-COM-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 29",
+    "owner": "commerce",
+    "template": "checkout",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 30,
+    "id": "IF-COM-010",
+    "title": "Confirmação de pagamento",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-010.html",
+    "html": "interfaces/IF-COM-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 30",
+    "owner": "commerce",
+    "template": "payment-confirmation",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 31,
+    "id": "IF-COM-011",
+    "title": "Carteira / Meus ingressos",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-011.html",
+    "html": "interfaces/IF-COM-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 31",
+    "owner": "commerce",
+    "template": "wallet",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 32,
+    "id": "IF-COM-012",
+    "title": "QR do ingresso",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-012.html",
+    "html": "interfaces/IF-COM-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 32",
+    "owner": "commerce",
+    "template": "ticket-qr",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 33,
+    "id": "IF-COM-013",
+    "title": "Histórico de pedidos/reservas + cancelamento/reembolso do consumidor",
+    "domain": "Commerce/Booking",
+    "persona": "Consumidor",
+    "route": "/labs/interface-fabric/interfaces/IF-COM-013.html",
+    "html": "interfaces/IF-COM-013.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 33",
+    "owner": "commerce",
+    "template": "history",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-COM-013.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 34,
+    "id": "IF-BIZ-001",
+    "title": "Login empresarial",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-001.html",
+    "html": "interfaces/IF-BIZ-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 34",
+    "owner": "business",
+    "template": "login",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 35,
+    "id": "IF-BIZ-002",
+    "title": "Onboarding empresarial",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-002.html",
+    "html": "interfaces/IF-BIZ-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 35",
+    "owner": "business",
+    "template": "onboarding",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 36,
+    "id": "IF-BIZ-003",
+    "title": "Dashboard / visão geral",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-003.html",
+    "html": "interfaces/IF-BIZ-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 36",
+    "owner": "business",
+    "template": "dashboard",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 37,
+    "id": "IF-BIZ-004",
+    "title": "Perfil da empresa",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-004.html",
+    "html": "interfaces/IF-BIZ-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 37",
+    "owner": "business",
+    "template": "business-profile",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 38,
+    "id": "IF-BIZ-005",
+    "title": "Localização",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-005.html",
+    "html": "interfaces/IF-BIZ-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 38",
+    "owner": "business",
+    "template": "location",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 39,
+    "id": "IF-BIZ-006",
+    "title": "Fotos / mídia",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-006.html",
+    "html": "interfaces/IF-BIZ-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 39",
+    "owner": "business",
+    "template": "media",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 40,
+    "id": "IF-BIZ-007",
+    "title": "Produtos",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-007.html",
+    "html": "interfaces/IF-BIZ-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 40",
+    "owner": "business",
+    "template": "catalog",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 41,
+    "id": "IF-BIZ-008",
+    "title": "Ofertas",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-008.html",
+    "html": "interfaces/IF-BIZ-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 41",
+    "owner": "business",
+    "template": "offers",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 42,
+    "id": "IF-BIZ-009",
+    "title": "Cardápio",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-009.html",
+    "html": "interfaces/IF-BIZ-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 42",
+    "owner": "business",
+    "template": "menu",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 43,
+    "id": "IF-BIZ-010",
+    "title": "Reservas",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-010.html",
+    "html": "interfaces/IF-BIZ-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 43",
+    "owner": "business",
+    "template": "reservations",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 44,
+    "id": "IF-BIZ-011",
+    "title": "Ticketing / check-in",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-011.html",
+    "html": "interfaces/IF-BIZ-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 44",
+    "owner": "business",
+    "template": "checkin",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 45,
+    "id": "IF-BIZ-012",
+    "title": "Financeiro read-only",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-012.html",
+    "html": "interfaces/IF-BIZ-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 45",
+    "owner": "business",
+    "template": "financial",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 46,
+    "id": "IF-BIZ-013",
+    "title": "Conteúdo",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-013.html",
+    "html": "interfaces/IF-BIZ-013.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 46",
+    "owner": "business",
+    "template": "content",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-013.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 47,
+    "id": "IF-BIZ-014",
+    "title": "Preview da presença pública",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-014.html",
+    "html": "interfaces/IF-BIZ-014.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 47",
+    "owner": "business",
+    "template": "preview",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-014.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 48,
+    "id": "IF-BIZ-015",
+    "title": "Equipe",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-015.html",
+    "html": "interfaces/IF-BIZ-015.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 48",
+    "owner": "business",
+    "template": "team",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-015.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 49,
+    "id": "IF-BIZ-016",
+    "title": "Configurações",
+    "domain": "Business Portal / Morro Pro",
+    "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
+    "route": "/labs/interface-fabric/interfaces/IF-BIZ-016.html",
+    "html": "interfaces/IF-BIZ-016.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PLACEHOLDER",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 49",
+    "owner": "business",
+    "template": "settings",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-BIZ-016.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 50,
+    "id": "IF-AFF-001",
+    "title": "Entrada/autenticação do afiliado",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-001.html",
+    "html": "interfaces/IF-AFF-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 50",
+    "owner": "affiliates",
+    "template": "login",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 51,
+    "id": "IF-AFF-002",
+    "title": "Cadastro / self-onboarding do afiliado",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-002.html",
+    "html": "interfaces/IF-AFF-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 51",
+    "owner": "affiliates",
+    "template": "onboarding",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 52,
+    "id": "IF-AFF-003",
+    "title": "Aprovação / status da conta",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-003.html",
+    "html": "interfaces/IF-AFF-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 52",
+    "owner": "affiliates",
+    "template": "status",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 53,
+    "id": "IF-AFF-004",
+    "title": "Dashboard / resumo",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-004.html",
+    "html": "interfaces/IF-AFF-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 53",
+    "owner": "affiliates",
+    "template": "affiliate-dashboard",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 54,
+    "id": "IF-AFF-005",
+    "title": "Gerador de link rastreável",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-005.html",
+    "html": "interfaces/IF-AFF-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 54",
+    "owner": "affiliates",
+    "template": "referral-link",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 55,
+    "id": "IF-AFF-006",
+    "title": "Gerador/download de QR de afiliado",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-006.html",
+    "html": "interfaces/IF-AFF-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 55",
+    "owner": "affiliates",
+    "template": "affiliate-qr",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 56,
+    "id": "IF-AFF-007",
+    "title": "Analytics de cliques/atribuições",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-007.html",
+    "html": "interfaces/IF-AFF-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 56",
+    "owner": "affiliates",
+    "template": "analytics",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 57,
+    "id": "IF-AFF-008",
+    "title": "Vendas / conversões atribuídas",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-008.html",
+    "html": "interfaces/IF-AFF-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 57",
+    "owner": "affiliates",
+    "template": "conversions",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 58,
+    "id": "IF-AFF-009",
+    "title": "Histórico de comissões",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-009.html",
+    "html": "interfaces/IF-AFF-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 58",
+    "owner": "affiliates",
+    "template": "commissions",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 59,
+    "id": "IF-AFF-010",
+    "title": "Saldo disponível / pendente",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-010.html",
+    "html": "interfaces/IF-AFF-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 59",
+    "owner": "affiliates",
+    "template": "balance",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 60,
+    "id": "IF-AFF-011",
+    "title": "Extrato / statement",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-011.html",
+    "html": "interfaces/IF-AFF-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 60",
+    "owner": "affiliates",
+    "template": "statement",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 61,
+    "id": "IF-AFF-012",
+    "title": "Repasse / settlement / payout status e histórico",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-012.html",
+    "html": "interfaces/IF-AFF-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 61",
+    "owner": "affiliates",
+    "template": "payout",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 62,
+    "id": "IF-AFF-013",
+    "title": "Gamificação do afiliado / progressão / rewards",
+    "domain": "Affiliate Portal",
+    "persona": "Afiliado",
+    "route": "/labs/interface-fabric/interfaces/IF-AFF-013.html",
+    "html": "interfaces/IF-AFF-013.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 62",
+    "owner": "affiliates",
+    "template": "affiliate-growth",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-AFF-013.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 63,
+    "id": "IF-CRM-001",
+    "title": "Dashboard CRM",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-001.html",
+    "html": "interfaces/IF-CRM-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 63",
+    "owner": "crm",
+    "template": "crm-dashboard",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 64,
+    "id": "IF-CRM-002",
+    "title": "Leads",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-002.html",
+    "html": "interfaces/IF-CRM-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 64",
+    "owner": "crm",
+    "template": "crm-leads",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 65,
+    "id": "IF-CRM-003",
+    "title": "Detalhe do lead",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-003.html",
+    "html": "interfaces/IF-CRM-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 65",
+    "owner": "crm",
+    "template": "crm-lead",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 66,
+    "id": "IF-CRM-004",
+    "title": "Reuniões",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-004.html",
+    "html": "interfaces/IF-CRM-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 66",
+    "owner": "crm",
+    "template": "crm-meetings",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 67,
+    "id": "IF-CRM-005",
+    "title": "Propostas",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-005.html",
+    "html": "interfaces/IF-CRM-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 67",
+    "owner": "crm",
+    "template": "crm-proposals",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 68,
+    "id": "IF-CRM-006",
+    "title": "Proposta pública",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-006.html",
+    "html": "interfaces/IF-CRM-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 68",
+    "owner": "crm",
+    "template": "public-document",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 69,
+    "id": "IF-CRM-007",
+    "title": "Contratos",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-007.html",
+    "html": "interfaces/IF-CRM-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 69",
+    "owner": "crm",
+    "template": "crm-contracts",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 70,
+    "id": "IF-CRM-008",
+    "title": "Contrato público / assinatura",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-008.html",
+    "html": "interfaces/IF-CRM-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 70",
+    "owner": "crm",
+    "template": "public-document",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 71,
+    "id": "IF-CRM-009",
+    "title": "Follow-ups",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-009.html",
+    "html": "interfaces/IF-CRM-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 71",
+    "owner": "crm",
+    "template": "crm-followups",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 72,
+    "id": "IF-CRM-010",
+    "title": "Trials",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-010.html",
+    "html": "interfaces/IF-CRM-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 72",
+    "owner": "crm",
+    "template": "crm-trials",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 73,
+    "id": "IF-CRM-011",
+    "title": "Indicações comerciais",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-011.html",
+    "html": "interfaces/IF-CRM-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 73",
+    "owner": "crm",
+    "template": "crm-referrals",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 74,
+    "id": "IF-CRM-012",
+    "title": "Configurações CRM",
+    "domain": "Admin CRM",
+    "persona": "CRM_OPERATOR",
+    "route": "/labs/interface-fabric/interfaces/IF-CRM-012.html",
+    "html": "interfaces/IF-CRM-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 74",
+    "owner": "crm",
+    "template": "settings",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CRM-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 75,
+    "id": "IF-CTL-001",
+    "title": "Visão Geral / Dashboard",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-001.html",
+    "html": "interfaces/IF-CTL-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 75",
+    "owner": "control-center",
+    "template": "control-dashboard",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 76,
+    "id": "IF-CTL-002",
+    "title": "Busca universal",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-002.html",
+    "html": "interfaces/IF-CTL-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 76",
+    "owner": "control-center",
+    "template": "universal-search",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 77,
+    "id": "IF-CTL-003",
+    "title": "Empresas",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-003.html",
+    "html": "interfaces/IF-CTL-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 77",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 78,
+    "id": "IF-CTL-004",
+    "title": "Usuários",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-004.html",
+    "html": "interfaces/IF-CTL-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 78",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 79,
+    "id": "IF-CTL-005",
+    "title": "Afiliados",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-005.html",
+    "html": "interfaces/IF-CTL-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 79",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 80,
+    "id": "IF-CTL-006",
+    "title": "CRM",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-006.html",
+    "html": "interfaces/IF-CTL-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 80",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 81,
+    "id": "IF-CTL-007",
+    "title": "Produtos",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-007.html",
+    "html": "interfaces/IF-CTL-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 81",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 82,
+    "id": "IF-CTL-008",
+    "title": "Ofertas",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-008.html",
+    "html": "interfaces/IF-CTL-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 82",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 83,
+    "id": "IF-CTL-009",
+    "title": "Reservas",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-009.html",
+    "html": "interfaces/IF-CTL-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 83",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 84,
+    "id": "IF-CTL-010",
+    "title": "Ticketing",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-010.html",
+    "html": "interfaces/IF-CTL-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 84",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 85,
+    "id": "IF-CTL-011",
+    "title": "Check-in",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-011.html",
+    "html": "interfaces/IF-CTL-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 85",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 86,
+    "id": "IF-CTL-012",
+    "title": "Pedidos",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-012.html",
+    "html": "interfaces/IF-CTL-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 86",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 87,
+    "id": "IF-CTL-013",
+    "title": "Pagamentos",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-013.html",
+    "html": "interfaces/IF-CTL-013.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 87",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-013.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 88,
+    "id": "IF-CTL-014",
+    "title": "Reembolsos",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-014.html",
+    "html": "interfaces/IF-CTL-014.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 88",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-014.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 89,
+    "id": "IF-CTL-015",
+    "title": "Comissões",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-015.html",
+    "html": "interfaces/IF-CTL-015.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 89",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-015.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 90,
+    "id": "IF-CTL-016",
+    "title": "Conteúdo",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-016.html",
+    "html": "interfaces/IF-CTL-016.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 90",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-016.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 91,
+    "id": "IF-CTL-017",
+    "title": "Destinos",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-017.html",
+    "html": "interfaces/IF-CTL-017.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 91",
+    "owner": "control-center",
+    "template": "admin-table",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-017.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 92,
+    "id": "IF-CTL-018",
+    "title": "Support Mode",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-018.html",
+    "html": "interfaces/IF-CTL-018.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 92",
+    "owner": "control-center",
+    "template": "support",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-018.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 93,
+    "id": "IF-CTL-019",
+    "title": "Auditoria",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-019.html",
+    "html": "interfaces/IF-CTL-019.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 93",
+    "owner": "control-center",
+    "template": "audit",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-019.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 94,
+    "id": "IF-CTL-020",
+    "title": "Sistema / health / release",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-020.html",
+    "html": "interfaces/IF-CTL-020.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 94",
+    "owner": "control-center",
+    "template": "system",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-020.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 95,
+    "id": "IF-CTL-021",
+    "title": "Integrações",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-021.html",
+    "html": "interfaces/IF-CTL-021.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 95",
+    "owner": "control-center",
+    "template": "integrations",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-021.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 96,
+    "id": "IF-CTL-022",
+    "title": "Configurações",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-022.html",
+    "html": "interfaces/IF-CTL-022.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 96",
+    "owner": "control-center",
+    "template": "settings",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-022.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 97,
+    "id": "IF-CTL-023",
+    "title": "Central de notificações",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-023.html",
+    "html": "interfaces/IF-CTL-023.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "PARTIAL",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 97",
+    "owner": "control-center",
+    "template": "notifications",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-023.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 98,
+    "id": "IF-CTL-024",
+    "title": "Perfil / sessão administrativa",
+    "domain": "Control Center",
+    "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
+    "route": "/labs/interface-fabric/interfaces/IF-CTL-024.html",
+    "html": "interfaces/IF-CTL-024.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "INTEGRATED",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 98",
+    "owner": "control-center",
+    "template": "profile",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-CTL-024.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 99,
+    "id": "IF-GRW-001",
+    "title": "Morro Pass / hub de progressão",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-001.html",
+    "html": "interfaces/IF-GRW-001.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 99",
+    "owner": "growth-fabric",
+    "template": "morro-pass",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-001.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 100,
+    "id": "IF-GRW-002",
+    "title": "Missões",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-002.html",
+    "html": "interfaces/IF-GRW-002.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 100",
+    "owner": "growth-fabric",
+    "template": "missions",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-002.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 101,
+    "id": "IF-GRW-003",
+    "title": "XP / níveis",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-003.html",
+    "html": "interfaces/IF-GRW-003.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 101",
+    "owner": "growth-fabric",
+    "template": "xp",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-003.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 102,
+    "id": "IF-GRW-004",
+    "title": "Badges",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-004.html",
+    "html": "interfaces/IF-GRW-004.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 102",
+    "owner": "growth-fabric",
+    "template": "badges",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-004.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 103,
+    "id": "IF-GRW-005",
+    "title": "Coleções",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-005.html",
+    "html": "interfaces/IF-GRW-005.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 103",
+    "owner": "growth-fabric",
+    "template": "collections",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-005.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 104,
+    "id": "IF-GRW-006",
+    "title": "Rewards / benefícios",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-006.html",
+    "html": "interfaces/IF-GRW-006.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 104",
+    "owner": "growth-fabric",
+    "template": "rewards",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-006.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 105,
+    "id": "IF-GRW-007",
+    "title": "Journey / contexto da viagem",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-007.html",
+    "html": "interfaces/IF-GRW-007.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 105",
+    "owner": "growth-fabric",
+    "template": "journey",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-007.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 106,
+    "id": "IF-GRW-008",
+    "title": "Next Best Actions / Orchestrator",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-008.html",
+    "html": "interfaces/IF-GRW-008.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 106",
+    "owner": "growth-fabric",
+    "template": "orchestrator",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-008.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 107,
+    "id": "IF-GRW-009",
+    "title": "Conclusão/claim de desafios",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-009.html",
+    "html": "interfaces/IF-GRW-009.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 107",
+    "owner": "growth-fabric",
+    "template": "claim",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-009.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 108,
+    "id": "IF-GRW-010",
+    "title": "Affiliate Growth dashboard",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-010.html",
+    "html": "interfaces/IF-GRW-010.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 108",
+    "owner": "growth-fabric",
+    "template": "affiliate-growth-dashboard",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-010.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 109,
+    "id": "IF-GRW-011",
+    "title": "Trust & Risk / revisão operacional",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-011.html",
+    "html": "interfaces/IF-GRW-011.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 109",
+    "owner": "growth-fabric",
+    "template": "risk",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-011.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 110,
+    "id": "IF-GRW-012",
+    "title": "Experimentation / testes controlados",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-012.html",
+    "html": "interfaces/IF-GRW-012.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 110",
+    "owner": "growth-fabric",
+    "template": "experiments",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-012.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 111,
+    "id": "IF-GRW-013",
+    "title": "Growth Analytics",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-013.html",
+    "html": "interfaces/IF-GRW-013.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 111",
+    "owner": "growth-fabric",
+    "template": "growth-analytics",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-013.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  },
+  {
+    "ordinal": 112,
+    "id": "IF-GRW-014",
+    "title": "Growth Control Plane",
+    "domain": "Growth / Gamification V2",
+    "persona": "Turista / Afiliado / Operação",
+    "route": "/labs/interface-fabric/interfaces/IF-GRW-014.html",
+    "html": "interfaces/IF-GRW-014.html",
+    "css": [
+      "design-system/index.css"
+    ],
+    "js": [
+      "src/app.js"
+    ],
+    "components": [
+      "FabricShell",
+      "StatusBanner",
+      "DomainTemplate",
+      "FixtureAdapter"
+    ],
+    "states": [
+      "loading",
+      "skeleton",
+      "empty",
+      "populated",
+      "success",
+      "warning",
+      "partial",
+      "disabled",
+      "unauthorized",
+      "forbidden",
+      "offline",
+      "network_error",
+      "api_error",
+      "timeout",
+      "validation_error",
+      "stale_data"
+    ],
+    "dependencies": [
+      "FixtureProvider"
+    ],
+    "backendExpected": "See manifest/integration-contracts.json",
+    "legacyStatus": "MISSING",
+    "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 112",
+    "owner": "growth-fabric",
+    "template": "growth-control",
+    "tests": [
+      "unit",
+      "dom",
+      "browser",
+      "visual",
+      "a11y"
+    ],
+    "screenshot": "visual/evidence/IF-GRW-014.png",
+    "a11y": "WCAG_2_2_AA_TARGET",
+    "responsive": [
+      "360x800",
+      "390x844",
+      "430x932",
+      "768x1024",
+      "1024x768",
+      "1280x800",
+      "1440x900"
+    ],
+    "integrationFuture": "ADAPTER_SWAP_OR_CONTROLLED_WAVE",
+    "isolatedStatus": "ISOLATED_COMPLETE"
+  }
+]
