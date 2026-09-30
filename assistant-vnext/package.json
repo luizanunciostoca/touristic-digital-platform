@@ -17,8 +17,9 @@
     "test:coverage": "npm run build && node --experimental-test-coverage --test tests/*.test.mjs",
     "build": "tsc -p tsconfig.build.json",
     "guard:zero-touch": "node scripts/verify-zero-touch.mjs",
-    "check": "npm run guard:zero-touch && npm run format:check && npm run lint && npm run typecheck && npm test && npm run evals && npm run build",
-    "evals": "npm run build && node scripts/run-critical-evals.mjs"
+    "check": "npm run guard:zero-touch && npm run architecture:check && npm run format:check && npm run lint && npm run typecheck && npm test && npm run evals && npm run build",
+    "evals": "npm run build && node scripts/run-critical-evals.mjs",
+    "architecture:check": "node scripts/verify-architecture.mjs"
   },
   "dependencies": {
     "zod": "4.1.11"
