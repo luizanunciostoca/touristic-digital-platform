@@ -1,6 +1,6 @@
 # Interface Completion Matrix
 
-Baseline main recapturado: `5693cf09d037bbc81d02680b1871c4915969870f`  
+Baseline main recapturado: `5693cf09d037bbc81d02680b1871c4915969870f`
 Branch de continuação: `feat/interface-fabric-isolated-completion-v2`
 
 O único status final aceitável é `ISOLATED_COMPLETE`. Nesta etapa, HTML/estrutura/fixtures existem, mas browser, visual e axe ainda não foram certificados; por isso os 112 itens permanecem `IMPLEMENTED_UNVERIFIED`.
