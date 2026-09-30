@@ -1,0 +1,43 @@
+{
+  "id": "MD-EGF-W04-JOURNEY-DOMAIN",
+  "baseSha": "5693cf09d037bbc81d02680b1871c4915969870f",
+  "branch": "feat/egf-w04-journey-domain-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W04-JOURNEY-DOMAIN.json",
+      "packages/shared/src/experience-growth-fabric/journey/**"
+    ],
+    "contracts": ["destination-journey-v1", "journey-identity-link-v1"]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [
+      "JourneyStarted",
+      "JourneyUpdated",
+      "JourneyCompleted"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-EGF-W01-CONTRACTS"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
