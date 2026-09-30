@@ -7,6 +7,6 @@
     "test": "node --test tests/unit/*.test.mjs",
     "check": "node tooling/check.mjs",
     "serve": "python3 -m http.server 4173",
-    "visual": "python3 tests/browser/visual_qa.py"
+    "visual": "node tests/browser/visual_qa.mjs"
   }
 }

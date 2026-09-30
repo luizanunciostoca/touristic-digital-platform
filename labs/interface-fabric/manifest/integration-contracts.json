@@ -15,7 +15,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-002": {
     "endpoint": "/api/affiliates/v1/referral-capture",
@@ -33,7 +34,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-003": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -51,7 +53,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-004": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -69,7 +72,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-005": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -87,7 +91,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-006": {
     "endpoint": "/api/places/v1/map",
@@ -105,7 +110,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-007": {
     "endpoint": "/api/weather",
@@ -123,7 +129,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-008": {
     "endpoint": "/api/places/v1/map",
@@ -141,7 +148,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-009": {
     "endpoint": "/api/places/v1/map",
@@ -159,7 +167,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-010": {
     "endpoint": "/api/places/v1/:placeId",
@@ -177,7 +186,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-011": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -195,7 +205,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-PUB-012": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -213,7 +224,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-PUB-013": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -231,7 +243,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-014": {
     "endpoint": "/api/ai/assistant/respond",
@@ -249,7 +262,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-015": {
     "endpoint": "/api/ai/assistant/respond",
@@ -267,7 +281,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-PUB-016": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -285,7 +300,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-017": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -303,7 +319,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-018": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -321,7 +338,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-019": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -339,7 +357,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-PUB-020": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -357,7 +376,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "experience",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-COM-001": {
     "endpoint": "/api/ticketing/v1/inventory",
@@ -375,7 +395,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-002": {
     "endpoint": "/api/ticketing/v1/inventory",
@@ -393,7 +414,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-003": {
     "endpoint": "/api/ticketing/v1/reservations",
@@ -411,7 +433,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-004": {
     "endpoint": "/api/commerce/v1/restaurants/:businessId/availability",
@@ -429,7 +452,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-005": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -447,7 +471,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-COM-006": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -465,7 +490,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-COM-007": {
     "endpoint": "/api/ticketing/v1/quote",
@@ -483,7 +509,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-008": {
     "endpoint": "/api/ticketing/v1/reservations",
@@ -501,7 +528,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-009": {
     "endpoint": "/api/payments/v1/checkouts",
@@ -519,7 +547,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-010": {
     "endpoint": "/api/payments/v1/checkouts/:checkoutId",
@@ -537,7 +566,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-011": {
     "endpoint": "/api/ticketing/v1/reservations",
@@ -555,7 +585,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-012": {
     "endpoint": "/api/ticketing/v1/reservations/:id/ticket",
@@ -573,7 +604,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-COM-013": {
     "endpoint": "/api/ticketing/v1/reservations",
@@ -591,7 +623,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "commerce",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-001": {
     "endpoint": "/api/dashboard/auth/login",
@@ -609,7 +642,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-002": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -627,7 +661,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-003": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -645,7 +680,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-004": {
     "endpoint": "/api/business/:id/profile",
@@ -663,7 +699,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-005": {
     "endpoint": "/api/business/:id/profile",
@@ -681,7 +718,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-006": {
     "endpoint": "/api/business/:id/media",
@@ -699,7 +737,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-007": {
     "endpoint": "/api/business/:id/catalog",
@@ -717,7 +756,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-008": {
     "endpoint": "/api/business/:id/catalog",
@@ -735,7 +775,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-009": {
     "endpoint": "/api/business/:id/catalog",
@@ -753,7 +794,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-010": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -771,7 +813,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-011": {
     "endpoint": "/api/ticketing/v1/operator/businesses/:businessId/inventory",
@@ -789,7 +832,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-BIZ-012": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -807,7 +851,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-013": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -825,7 +870,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-014": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -843,7 +889,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-015": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -861,7 +908,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-BIZ-016": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -879,7 +927,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "business",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-AFF-001": {
     "endpoint": "/api/dashboard/auth/login",
@@ -897,7 +946,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-002": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -915,7 +965,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-AFF-003": {
     "endpoint": "/api/affiliates/v1/me",
@@ -933,7 +984,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-004": {
     "endpoint": "/api/affiliates/v1/me",
@@ -951,7 +1003,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-005": {
     "endpoint": "/api/affiliates/v1/referral-links",
@@ -969,7 +1022,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-006": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -987,7 +1041,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-AFF-007": {
     "endpoint": "/api/affiliates/v1/me",
@@ -1005,7 +1060,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-008": {
     "endpoint": "/api/affiliates/v1/me",
@@ -1023,7 +1079,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-009": {
     "endpoint": "/api/affiliates/v1/me",
@@ -1041,7 +1098,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-010": {
     "endpoint": "/api/affiliates/v1/me",
@@ -1059,7 +1117,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-AFF-011": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1077,7 +1136,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-AFF-012": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1095,7 +1155,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-AFF-013": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1113,7 +1174,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "affiliates",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-CRM-001": {
     "endpoint": "/api/crm/metrics/funnel",
@@ -1131,7 +1193,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-002": {
     "endpoint": "/api/crm/leads",
@@ -1149,7 +1212,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-003": {
     "endpoint": "/api/crm/leads/:id",
@@ -1167,7 +1231,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-004": {
     "endpoint": "/api/crm/meetings",
@@ -1185,7 +1250,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-005": {
     "endpoint": "/api/crm/proposals",
@@ -1203,7 +1269,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-006": {
     "endpoint": "/api/crm/public/proposals/:token",
@@ -1221,7 +1288,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-007": {
     "endpoint": "/api/crm/contracts",
@@ -1239,7 +1307,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-008": {
     "endpoint": "/api/crm/public/contracts/:token",
@@ -1257,7 +1326,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-009": {
     "endpoint": "/api/crm/follow-ups",
@@ -1275,7 +1345,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-010": {
     "endpoint": "/api/crm/trials",
@@ -1293,7 +1364,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-011": {
     "endpoint": "/api/crm/referrals",
@@ -1311,7 +1383,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CRM-012": {
     "endpoint": "/api/crm/follow-ups/settings",
@@ -1329,7 +1402,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "crm",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-001": {
     "endpoint": "/api/admin/v1/dashboard",
@@ -1347,7 +1421,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-002": {
     "endpoint": "/api/admin/v1/search",
@@ -1365,7 +1440,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-003": {
     "endpoint": "/api/admin/v1/businesses",
@@ -1383,7 +1459,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-004": {
     "endpoint": "/api/admin/v1/users",
@@ -1401,7 +1478,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-005": {
     "endpoint": "/api/admin/v1/affiliates",
@@ -1419,7 +1497,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-006": {
     "endpoint": "/api/admin/v1/crm/leads",
@@ -1437,7 +1516,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-007": {
     "endpoint": "/api/admin/v1/products",
@@ -1455,7 +1535,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-008": {
     "endpoint": "/api/admin/v1/products/offers",
@@ -1473,7 +1554,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-009": {
     "endpoint": "/api/admin/v1/reservations",
@@ -1491,7 +1573,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-010": {
     "endpoint": "/api/admin/v1/ticketing/inventory",
@@ -1509,7 +1592,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-011": {
     "endpoint": "/api/admin/v1/ticketing/operator/check-in",
@@ -1527,7 +1611,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-012": {
     "endpoint": "/api/admin/v1/orders/:id",
@@ -1545,7 +1630,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-013": {
     "endpoint": "/api/admin/v1/payments/:id",
@@ -1563,7 +1649,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-014": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1581,7 +1668,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-CTL-015": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1599,7 +1687,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-CTL-016": {
     "endpoint": "/api/admin/v1/content",
@@ -1617,7 +1706,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-017": {
     "endpoint": "/api/admin/v1/destinations",
@@ -1635,7 +1725,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-018": {
     "endpoint": "/api/admin/v1/support/session",
@@ -1653,7 +1744,8 @@
     "idempotency": "required by owner mutation policy",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-019": {
     "endpoint": "/api/admin/v1/audit",
@@ -1671,7 +1763,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-020": {
     "endpoint": "/api/admin/v1/system",
@@ -1689,7 +1782,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-CTL-021": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1707,7 +1801,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-CTL-022": {
     "endpoint": "CLIENT_LOCAL_NO_ENDPOINT",
@@ -1725,7 +1820,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "CLIENT_LOCAL_NO_ENDPOINT"
+    "status": "CLIENT_LOCAL_NO_ENDPOINT",
+    "verification": "CLIENT_LOCAL_PRESENTATION_ONLY"
   },
   "IF-CTL-023": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1743,7 +1839,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-CTL-024": {
     "endpoint": "/api/admin/v1/session",
@@ -1761,7 +1858,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "control-center",
-    "status": "EXISTING_CONTRACT_VERIFIED"
+    "status": "EXISTING_CONTRACT_REFERENCE",
+    "verification": "REQUIRES_EXACT_HEAD_RECHECK_BEFORE_BINDING"
   },
   "IF-GRW-001": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1779,7 +1877,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-002": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1797,7 +1896,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-003": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1815,7 +1915,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-004": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1833,7 +1934,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-005": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1851,7 +1953,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-006": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1869,7 +1972,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-007": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1887,7 +1991,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-008": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1905,7 +2010,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-009": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1923,7 +2029,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-010": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1941,7 +2048,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-011": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1959,7 +2067,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-012": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1977,7 +2086,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-013": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -1995,7 +2105,8 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   },
   "IF-GRW-014": {
     "endpoint": "INTEGRATION_CONTRACT_REQUIRED",
@@ -2013,6 +2124,7 @@
     "idempotency": "N/A for read/client-local unless owner requires it",
     "effects": "server-authoritative",
     "owner": "growth-fabric",
-    "status": "INTEGRATION_CONTRACT_REQUIRED"
+    "status": "INTEGRATION_CONTRACT_REQUIRED",
+    "verification": "REQUIRES_DOMAIN_OWNER_CONTRACT"
   }
 }

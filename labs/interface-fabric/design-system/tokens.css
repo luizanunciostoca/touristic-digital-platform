@@ -1,9 +1,9 @@
 :root{
-  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --c-bg:#eef4f6;--c-surface:#ffffff;--c-surface-2:#f7fafb;--c-ink:#102a2f;--c-muted:#5d7479;
   --c-line:#d6e2e5;--c-accent:#0f766e;--c-accent-2:#115e59;--c-accent-soft:#dff4ef;
-  --c-success:#167c4a;--c-warning:#a05a00;--c-danger:#b42318;--c-info:#175cd3;
+  --c-success:#167c4a;--c-warning:#a05a00;--c-danger:#b42318;--c-info:#175cd3;--c-on-accent:#ffffff;--c-nav:#08252b;--c-nav-ink:#ecfffb;--c-overlay:rgba(1,13,18,.58);--c-map-a:#d9f0e9;--c-map-b:#b8ded3;--c-map-c:#e7e2c5;--c-map-d:#bee0d2;--c-map-e:#d8f1e7;
   --shadow-1:0 10px 32px rgba(16,42,47,.10);--shadow-2:0 24px 64px rgba(16,42,47,.14);
   --r-xs:.5rem;--r-sm:.75rem;--r-md:1rem;--r-lg:1.5rem;--r-pill:999px;
   --s-1:.25rem;--s-2:.5rem;--s-3:.75rem;--s-4:1rem;--s-5:1.25rem;--s-6:1.5rem;--s-8:2rem;--s-10:2.5rem;--s-12:3rem;
