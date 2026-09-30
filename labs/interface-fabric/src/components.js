@@ -166,7 +166,7 @@ export function field(
   return `<div class="field"><label>${esc(label)}<input name="${esc(name)}" type="${esc(type)}" value="${esc(value)}" ${extra}></label></div>`;
 }
 export function table(headers, rows) {
-  return `<div class="table-wrap"><table><thead><tr>${headers.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+  return `<div class="table-wrap" tabindex="0" role="region" aria-label="Tabela rolável"><table><thead><tr>${headers.map((h) => `<th scope="col">${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 export function qr(label = "QR") {
   return `<div class="qr" role="img" aria-label="${esc(label)}"></div>`;
