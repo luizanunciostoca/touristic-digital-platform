@@ -268,6 +268,34 @@ async function restoreRuntimeEnv(client, webServiceId, previousEnv) {
   }
 }
 
+function summarizeCommerceRuntimeEnvironment(environment) {
+  const paymentsHandoff = String(
+    environment?.PAYMENTS_HANDOFF_SECRET ?? "",
+  ).trim();
+  const ticketingOffline = String(
+    environment?.TICKETING_OFFLINE_PROVISIONING_SECRET ?? "",
+  ).trim();
+  const destination = String(environment?.PAYMENTS_DESTINATION_ID ?? "").trim();
+
+  const secretState = (value) =>
+    !value ? "absent" : value.length >= 32 ? "existing" : "invalid";
+  const destinationState = !destination
+    ? "absent"
+    : destination === COMMERCE_DESTINATION_ID
+      ? "existing"
+      : "invalid";
+
+  return Object.freeze({
+    paymentsHandoff: secretState(paymentsHandoff),
+    ticketingOffline: secretState(ticketingOffline),
+    destination: destinationState,
+    ready:
+      paymentsHandoff.length >= 32 &&
+      ticketingOffline.length >= 32 &&
+      destination === COMMERCE_DESTINATION_ID,
+  });
+}
+
 async function ensureCommerceRuntimeEnvironment(client, webServiceId) {
   const [paymentsHandoffSecret, ticketingOfflineSecret, destinationId] =
     await Promise.all([
@@ -395,6 +423,8 @@ async function previousDeployStillLive(client, state) {
 
 async function rollbackFromState({ client, state, stateFile }) {
   await restoreRuntimeEnv(client, state.webServiceId, state.previousEnv);
+  state.commerceRuntimeCredentials =
+    state.previousCommerceRuntimeCredentials ?? null;
   await restoreSource(client, state.webServiceId, state.previousSource);
 
   const restoredService = await client.get(`/services/${state.webServiceId}`);
@@ -559,6 +589,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     explicitCredential,
   );
 
+  const previousEnv = await snapshotRuntimeEnv(client, webServiceId);
   const state = {
     contract: "MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER-STATE",
     status: "prepared",
@@ -571,7 +602,9 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     previousDeployId: liveDeploy.id,
     previousReleaseSha,
     previousSource: previousSource(service, previousReleaseSha),
-    previousEnv: await snapshotRuntimeEnv(client, webServiceId),
+    previousEnv,
+    previousCommerceRuntimeCredentials:
+      summarizeCommerceRuntimeEnvironment(previousEnv),
     registryCredentialId: registryCredentialId || null,
     newDeployId: null,
     rollbackNotRequired: false,
@@ -678,6 +711,8 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     } else if (sourcePatchAttempted) {
       try {
         await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+        state.commerceRuntimeCredentials =
+          state.previousCommerceRuntimeCredentials ?? null;
         const observedService = await client.get(`/services/${webServiceId}`);
         if (!sourceMatchesSnapshot(observedService, state.previousSource)) {
           await restoreSource(client, webServiceId, state.previousSource);
@@ -699,6 +734,8 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       }
     } else {
       await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+      state.commerceRuntimeCredentials =
+        state.previousCommerceRuntimeCredentials ?? null;
       state.status = "restored_pre_patch";
       await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
       await fs.writeFile(
