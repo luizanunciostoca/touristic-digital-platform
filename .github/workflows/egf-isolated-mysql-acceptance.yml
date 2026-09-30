@@ -1,0 +1,158 @@
+name: EGF Isolated MySQL Acceptance
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".github/workflows/egf-isolated-mysql-acceptance.yml"
+      - "packages/shared/src/experience-growth-fabric/**"
+      - "docs/qa/experience-growth-fabric/**"
+      - ".morro/changesets/MD-EGF-CONSTRUCTION.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: egf-isolated-mysql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-mysql:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.ref == 'feat/experience-growth-fabric-isolated-20260929'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: growth-fabric-ci
+          MYSQL_DATABASE: growth_fabric_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pgrowth-fabric-ci"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
+        with:
+          version: 10.15.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Run isolated Growth Fabric tests
+        run: >-
+          pnpm --filter @touristic/shared exec vitest run
+          src/experience-growth-fabric
+          --no-file-parallelism
+      - name: Apply isolated MySQL schema twice and verify readback
+        env:
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: "3306"
+          MYSQL_USER: root
+          MYSQL_PASSWORD: growth-fabric-ci
+          MYSQL_DATABASE: growth_fabric_test
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from "node:fs";
+          import mysql from "mysql2/promise";
+
+          const schemaPath =
+            "packages/shared/src/experience-growth-fabric/persistence/schema.sql";
+          const schema = readFileSync(schemaPath, "utf8");
+
+          if (/\b(DROP\s+TABLE|TRUNCATE|ALTER\s+TABLE|DELETE\s+FROM)\b/iu.test(schema)) {
+            throw new Error("DESTRUCTIVE_DDL_DETECTED");
+          }
+
+          const connection = await mysql.createConnection({
+            host: process.env.MYSQL_HOST,
+            port: Number(process.env.MYSQL_PORT),
+            user: process.env.MYSQL_USER,
+            password: process.env.MYSQL_PASSWORD,
+            database: process.env.MYSQL_DATABASE,
+            multipleStatements: true,
+          });
+
+          await connection.query(schema);
+          await connection.query(schema);
+
+          const expected = [
+            "affiliate_acquisition_cycles",
+            "affiliate_influence_touchpoints",
+            "referral_campaigns",
+            "referral_placements",
+            "referral_tokens",
+            "destination_journeys",
+            "journey_experiences",
+            "engagement_xp_ledger",
+            "engagement_badge_grants",
+            "engagement_collection_progress",
+            "mission_definitions",
+            "mission_progress",
+            "reward_definitions",
+            "reward_inventory",
+            "reward_entitlements",
+            "affiliate_xp_ledger",
+            "affiliate_growth_profiles",
+            "affiliate_challenge_progress",
+            "risk_signals",
+            "risk_decisions",
+            "experiment_definitions",
+            "experiment_assignments",
+            "experiment_exposures",
+            "experiment_outcomes",
+            "growth_outbox_events",
+            "growth_consumer_claims",
+            "growth_dead_letters",
+            "journey_progress_projection",
+            "affiliate_performance_projection",
+            "growth_campaign_projection",
+            "reward_performance_projection",
+            "mission_performance_projection",
+            "experiment_outcome_projection",
+          ];
+
+          const [rows] = await connection.query(
+            "SELECT table_name AS tableName FROM information_schema.tables WHERE table_schema = ?",
+            [process.env.MYSQL_DATABASE],
+          );
+          const actual = new Set(rows.map((row) => row.tableName));
+          const missing = expected.filter((name) => !actual.has(name));
+          if (missing.length) {
+            throw new Error(`MYSQL_TABLE_READBACK_MISSING:${missing.join(",")}`);
+          }
+
+          console.log(
+            JSON.stringify({
+              status: "PASS",
+              exactHead: process.env.GITHUB_SHA,
+              expectedTables: expected.length,
+              presentTables: expected.filter((name) => actual.has(name)).length,
+              idempotentSecondApply: true,
+            }),
+          );
+          await connection.end();
+          NODE
+      - name: Record isolated acceptance identity
+        shell: bash
+        run: |
+          mkdir -p /tmp/egf-isolated-acceptance
+          printf '%s\n' "$GITHUB_SHA" > /tmp/egf-isolated-acceptance/exact-head.txt
+          printf '%s\n' "$GITHUB_RUN_ID" > /tmp/egf-isolated-acceptance/run-id.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: egf-isolated-mysql-${{ github.run_id }}
+          path: /tmp/egf-isolated-acceptance
+          if-no-files-found: error
+          retention-days: 30
