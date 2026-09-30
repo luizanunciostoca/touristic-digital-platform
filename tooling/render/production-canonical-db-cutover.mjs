@@ -568,7 +568,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       serviceDetails: {
         runtime: "image",
         preDeployCommand:
-          "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+          "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/production-commerce-runtime-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
         healthCheckPath: "/readyz",
         maxShutdownDelaySeconds: 30,
       },
