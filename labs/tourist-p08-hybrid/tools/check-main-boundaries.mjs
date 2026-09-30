@@ -17,8 +17,7 @@ const required=[
  ];
 const run=(...cmd)=>execFileSync('git',cmd,{cwd:root,encoding:'utf8'}).trim();
 const current=run('rev-parse','HEAD');
-const branchChanges=run('diff','--name-only',parent,current).split('
-').filter(Boolean);
+const branchChanges=run('diff','--name-only',parent,current).split('\n').filter(Boolean);
 const violations=branchChanges.filter(path=>!path.startsWith(labPrefix));
 const main=run('rev-parse','refs/remotes/origin/main');
 const baseSourceIsAncestor=run('merge-base',source,current)===source;

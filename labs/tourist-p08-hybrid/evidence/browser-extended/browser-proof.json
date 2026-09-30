@@ -495,7 +495,8 @@
     "tests/owner-boundary.test.mjs": "360ec6d9cb8375947a8a1bb4daecf05ece3c3b3cdba16dc1c218a6f3a7ae532b",
     "tests/preview-server.test.mjs": "6239333861fa0bedbebb28c057dc4339539b7a2ae4ea8a92a8cb46950df12f43",
     "tools/preview-server.mjs": "cf9342a49ddc16e43779f9aed07a605a9784eaf6c72db37f4116186dc1bc40ea",
-    "tools/verify-isolation.mjs": "2b3427ff92c83b387f77196543a69532f648d9cf6dd5555fa6a09f6454045379"
+    "tools/verify-isolation.mjs": "2b3427ff92c83b387f77196543a69532f648d9cf6dd5555fa6a09f6454045379",
+    "tools/check-main-boundaries.mjs": "6fefaf6139bc9e80065d6ffed1693d50e6be9cf9218aa5a9689c52ef206600c0"
   },
   "durationSeconds": 21.9,
   "limitations": [
