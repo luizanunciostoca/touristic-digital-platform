@@ -75,6 +75,7 @@ export function productionTwinCertificateMatches(evidence, expected) {
     evidence?.twin?.noEgress === true &&
     evidence?.twin?.runtimeProbe === "docker-exec-loopback" &&
     evidence?.twin?.syntheticReleaseIdentity === true &&
+    evidence?.twin?.healthyReadiness === true &&
     evidence?.persistence?.write === "stored" &&
     evidence?.persistence?.readback === "replayed" &&
     evidence?.persistence?.reloadReadback === "replayed" &&
