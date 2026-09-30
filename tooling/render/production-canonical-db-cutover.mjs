@@ -542,12 +542,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       "MORRO_DATABASE_SCHEMA_MODE",
       "external",
     );
-    await writeEnv(
-      client,
-      webServiceId,
-      "COMMERCE_FEATURE_ENABLED",
-      "true",
-    );
+    await writeEnv(client, webServiceId, "COMMERCE_FEATURE_ENABLED", "true");
     await writeEnv(client, webServiceId, "MERCADO_PAGO_CHECKOUT_MODE", "test");
     await writeEnv(
       client,
