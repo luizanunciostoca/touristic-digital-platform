@@ -35,4 +35,4 @@
 .badge,.chip,.card,.panel,.status-banner,.hero,.message{overflow-wrap:anywhere;word-break:normal}
 .composer input{min-width:0}
 img,video,svg{max-width:100%}
-.breadcrumbs{flex-wrap:wrap;min-width:0}.breadcrumbs>*{min-width:0;overflow-wrap:anywhere}
+.breadcrumbs{flex-wrap:wrap;min-width:0}.breadcrumbs>*{min-width:0;overflow-wrap:anywhere}.breadcrumbs a{display:inline-flex;align-items:center;min-width:var(--touch);min-height:var(--touch);padding-inline:.2rem}
