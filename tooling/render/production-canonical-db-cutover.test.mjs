@@ -277,6 +277,12 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   assert.equal(result.paymentsMode, "test");
   assert.equal(result.subscriptionsEnabled, false);
   assert.equal(result.commerceFeatureEnabled, true);
+  assert.deepEqual(result.commerceRuntimeCredentials, {
+    paymentsHandoff: "generated",
+    ticketingOffline: "generated",
+    destination: "canonicalized",
+    ready: true,
+  });
   assert.equal(result.railwayRetirement, "KEEP_TEMPORARILY");
   assert.equal(result.rollbackNotRequired, false);
 
@@ -299,6 +305,23 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
     request.route.endsWith("/env-vars/COMMERCE_FEATURE_ENABLED"),
   );
   assert.deepEqual(JSON.parse(commerceFlagWrite.body), { value: "true" });
+
+  for (const secretKey of [
+    "PAYMENTS_HANDOFF_SECRET",
+    "TICKETING_OFFLINE_PROVISIONING_SECRET",
+  ]) {
+    const secretWrite = envWrites.find((request) =>
+      request.route.endsWith(`/env-vars/${secretKey}`),
+    );
+    assert.ok(secretWrite, secretKey);
+    assert.ok(JSON.parse(secretWrite.body).value.length >= 32, secretKey);
+  }
+  const destinationWrite = envWrites.find((request) =>
+    request.route.endsWith("/env-vars/PAYMENTS_DESTINATION_ID"),
+  );
+  assert.deepEqual(JSON.parse(destinationWrite.body), {
+    value: "morro-de-sao-paulo",
+  });
   for (const key of ["EXPECTED_SHA", "MORRO_RELEASE_SHA"]) {
     const write = envWrites.find((request) =>
       request.route.endsWith(`/env-vars/${key}`),
@@ -314,7 +337,15 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   const evidence = JSON.parse(await fs.readFile(evidenceFile, "utf8"));
   assert.equal(evidence.newDeployId, "dep-new");
   assert.equal(evidence.commerceFeatureEnabled, true);
-  assert.ok(!JSON.stringify(evidence).includes("-secret"));
+  assert.deepEqual(evidence.commerceRuntimeCredentials, {
+    paymentsHandoff: "generated",
+    ticketingOffline: "generated",
+    destination: "canonicalized",
+    ready: true,
+  });
+  assert.ok(!JSON.stringify(evidence).includes("-runtime-secret"));
+  assert.ok(!JSON.stringify(evidence).includes("PAYMENTS_HANDOFF_SECRET"));
+  assert.ok(!JSON.stringify(evidence).includes("TICKETING_OFFLINE_PROVISIONING_SECRET"));
 });
 
 function failureCutoverFixture({
