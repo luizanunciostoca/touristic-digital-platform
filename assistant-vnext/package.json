@@ -1,0 +1,34 @@
+{
+  "name": "@morro-digital/assistant-vnext-isolated",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Isolated Assistant VNext architecture harness. Not wired to current runtime.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "clean": "node -e \"import('node:fs').then(fs=>{fs.rmSync('dist',{recursive:true,force:true});fs.rmSync('coverage',{recursive:true,force:true})})\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint src",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "test:coverage": "npm run build && node --experimental-test-coverage --test tests/*.test.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "guard:zero-touch": "node scripts/verify-zero-touch.mjs",
+    "check": "npm run guard:zero-touch && npm run format:check && npm run lint && npm run typecheck && npm test && npm run evals && npm run build",
+    "evals": "npm run build && node scripts/run-critical-evals.mjs"
+  },
+  "dependencies": {
+    "zod": "4.1.11"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.36.0",
+    "@types/node": "24.5.2",
+    "eslint": "9.36.0",
+    "prettier": "3.6.2",
+    "typescript": "5.9.2",
+    "typescript-eslint": "8.44.1"
+  }
+}
