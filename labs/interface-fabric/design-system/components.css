@@ -97,6 +97,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.topbar > div:not(.state-lab) {
+  min-width: 0;
+}
 .topbar .spacer {
   flex: 1;
 }
