@@ -15,13 +15,13 @@
       "growth-experiment-exposure-v1"
     ]
   },
-  "reads": {"contracts": []},
+  "reads": { "contracts": [] },
   "produces": {
     "events": ["ExperimentAssigned", "ExperimentExposureRecorded"],
     "routes": []
   },
-  "database": {"tables": []},
-  "auth": {"capabilities": []},
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
   "dependencies": ["MD-EGF-W01-CONTRACTS"],
   "requiredEvidence": [
     "format",
