@@ -1,0 +1,86 @@
+{
+  "scope": "LOCALHOST_P08_FIXTURE_HTTP_READ_ONLY",
+  "capturedAtUtc": "2026-09-30T09:37:19.588125+00:00",
+  "checks": [
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 3547
+    },
+    {
+      "method": "HEAD",
+      "path": "/",
+      "status": 200,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 0
+    },
+    {
+      "method": "GET",
+      "path": "/src/service.mjs",
+      "status": 200,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 10384
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "status": 405,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 17
+    },
+    {
+      "method": "PUT",
+      "path": "/src/service.mjs",
+      "status": 405,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 17
+    },
+    {
+      "method": "GET",
+      "path": "/%E0%A4%A",
+      "status": 400,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 11
+    },
+    {
+      "method": "GET",
+      "path": "/..%2F..%2Fetc%2Fpasswd",
+      "status": 403,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 11
+    },
+    {
+      "method": "GET",
+      "path": "/src/../tools/preview-server.mjs",
+      "status": 404,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 9
+    },
+    {
+      "method": "GET",
+      "path": "/src/nonexistent.mjs",
+      "status": 404,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 9
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "status": 200,
+      "isolationHeader": "isolated-fixture-only",
+      "contentLength": 3547
+    }
+  ],
+  "checksPassed": 10,
+  "failures": 0,
+  "productionAccess": false,
+  "externalMutations": false,
+  "notes": [
+    "Raw URL dot segments normalized by URL parser and rejected by route allowlist with HTTP 404.",
+    "Percent-encoded traversal rejected with HTTP 403.",
+    "Malformed percent-encoding rejected with HTTP 400.",
+    "Browser fixture QA separately executes exact HTML/CSS/JS inline due administrative navigation blocking."
+  ]
+}

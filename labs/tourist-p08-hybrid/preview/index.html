@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR" dir="ltr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light"><title>Morro Digital — P08 Híbrida (laboratório isolado)</title>
+<link rel="stylesheet" href="/preview/styles.css"><script type="module" src="/preview/main.mjs"></script>
+</head>
+<body>
+<div class="lab-flag" role="status">LAB ISOLADO • NÃO É O SITE REAL • DADOS DEMONSTRATIVOS • SEM EFEITOS EXTERNOS</div>
+<details class="lab-tools" aria-label="Controles exclusivos do laboratório"><summary>Configurar laboratório</summary><div class="lab-tool-body">
+<label>Destino <select id="destination" data-testid="destination"><option value="morro-de-sao-paulo">Morro de São Paulo</option><option value="itacare">Itacaré (fixture)</option></select></label>
+<label>Idioma <select id="locale" data-testid="locale"><option value="pt-BR">Português</option><option value="en">English</option><option value="es">Español</option><option value="he">עברית</option></select></label>
+<label>Fonte <select id="mode" data-testid="mode"><option value="guest">Visitante / memória</option><option value="owner">Servidor simulado</option></select></label>
+<label class="lab-check"><input type="checkbox" id="remember" data-testid="remember"> Autorizar favoritos neste navegador</label>
+<label class="lab-check"><input type="checkbox" id="offline" data-testid="offline"> Simular offline</label>
+</div></details>
+<div class="shell">
+  <div class="map-demo" aria-label="Mapa ilustrativo de laboratório; não contém tiles do destino real">
+    <header class="home-heading"><div class="brand-pill"><span class="brand-mark">M</span><div><strong id="brand-title">Morro de São Paulo</strong><small id="brand-subtitle">Seu guia pelo destino</small></div></div><div class="weather"><span aria-hidden="true">☀</span> 27°<small>fixture</small></div></header>
+    <div class="map-path" aria-hidden="true"></div>
+    <div class="demo-badge">CENÁRIO SIMULADO · sem Mapbox</div>
+    <div class="demo-markers" id="demo-markers" aria-label="Lugares de teste"></div>
+    <div class="intro-card"><strong>Descubra e salve lugares</strong><p>P08 híbrida: o painel e o Assistant compartilham uma coleção única de favoritos.</p></div>
+  </div>
+  <div id="saved-surface-host"></div>
+  <section class="assistant-dock" aria-label="Assistant demonstrativo integrado aos favoritos"><div class="dock-handle" aria-hidden="true"></div>
+    <div class="dock-header"><strong id="dock-label">Assistant contextual</strong><span id="dock-proof" class="dock-fixture">Prévia não autoritativa</span></div>
+    <div id="assistant-projection" data-testid="assistant-projection"></div>
+    <div id="assistant-response" aria-live="polite" data-testid="assistant-response">Consulte seus salvos no painel ou converse comigo.</div>
+    <form id="chat-form" class="composer"><label class="sr-only" for="chat-input">Mensagem</label><input id="chat-input" autocomplete="off" placeholder="Mostre meus salvos" value=""><button type="submit">Enviar</button></form>
+  </section>
+  <nav class="bottom-nav" aria-label="Navegação demonstrativa"><span class="nav-item" id="nav-explore">Explorar</span><span class="nav-item" id="nav-tours">Passeios</span><button id="nav-saved" data-testid="nav-saved" type="button">♡ <span>Salvos</span></button><span class="nav-item" id="nav-tickets">Ingressos</span><span class="nav-item" id="nav-profile">Perfil</span></nav>
+</div>
+</body>
+</html>

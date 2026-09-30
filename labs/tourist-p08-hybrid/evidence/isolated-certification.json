@@ -1,0 +1,147 @@
+{
+  "kind": "P08_HYBRID_ISOLATED_LAB_HANDOFF",
+  "dateUtc": "2026-09-30T09:38:58.469928+00:00",
+  "sourceMainBaseline": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "parentLab": "e76cd78775995d15da2419d082f925dad4178446",
+  "targetBranch": "feat/tourist-p08-hybrid-isolated-20260930",
+  "mergeAuthorized": false,
+  "currentMainModified": false,
+  "ownerRealServiceIntegrated": false,
+  "featureFlagsDefault": "OFF",
+  "unitSuite": {
+    "command": "node --test tests/*.test.mjs",
+    "runtime": "Node v22.16.0",
+    "tests": 72,
+    "passed": 72,
+    "failed": 0
+  },
+  "browserExtended": {
+    "method": "exact HTML/CSS/JS inline; URL navigation restricted by administrator",
+    "viewports": 8,
+    "screenshots": 72,
+    "errors": 0,
+    "sha256Manifest": "evidence/browser-extended/browser-proof.json"
+  },
+  "browserEarlier": {
+    "method": "EXACT_SOURCE_HTML_CSS_JS_INLINE_BROWSER_NO_NETWORK; HTTP read-only security independently verified via localhost urllib",
+    "viewports": [
+      {
+        "viewport": [
+          320,
+          720
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      },
+      {
+        "viewport": [
+          360,
+          800
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      },
+      {
+        "viewport": [
+          390,
+          844
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      },
+      {
+        "viewport": [
+          430,
+          932
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      },
+      {
+        "viewport": [
+          768,
+          1024
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      },
+      {
+        "viewport": [
+          844,
+          390
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      },
+      {
+        "viewport": [
+          1440,
+          900
+        ],
+        "status": "PASS",
+        "panelAssistantSameSource": true,
+        "contextExplicit": true,
+        "keyboardEscape": true,
+        "noPageErrors": true,
+        "externalRequests": 0,
+        "mapComposerNavPreserved": true
+      }
+    ],
+    "screenshots": 21,
+    "source": "evidence/browser/BROWSER_MATRIX.json"
+  },
+  "localhostSecurity": {
+    "checks": 10,
+    "passed": 10,
+    "externalMutations": 0,
+    "manifest": "evidence/http-security-proof.json"
+  },
+  "safetyInvariants": [
+    "One service and one canonical key per destination/place",
+    "No automatic name-only legacy migration",
+    "Guest persistence only after consent",
+    "Verified owner readback required",
+    "No transactional requests via preview",
+    "Two visual access points share one source",
+    "No main/application files modified"
+  ],
+  "remainingForActualProduct": [
+    "Choose/build real authenticated Saved owner contract with scoped authorization",
+    "User consent withdrawal and export/deletion policy reviewed",
+    "TS integration in separate future candidate under flag OFF",
+    "App-bundle E2E served by real bundler, real map and backend",
+    "WCAG axe, physical devices, real screens before-after",
+    "New separate permission for any actual main merge or production release"
+  ],
+  "unitLogTail": "0.281232\n  type: 'test'\n  ...\n# Subtest: preview only binds localhost; fails closed on writes/traversal and recovers from malformed paths\nok 72 - preview only binds localhost; fails closed on writes/traversal and recovers from malformed paths\n  ---\n  duration_ms: 92.92271\n  type: 'test'\n  ...\n1..72\n# tests 72\n# suites 0\n# pass 72\n# fail 0\n# cancelled 0\n# skipped 0\n# todo 0\n# duration_ms 254.00872\n"
+}

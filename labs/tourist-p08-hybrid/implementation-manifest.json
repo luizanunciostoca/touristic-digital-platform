@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "featureId": "P08_HYBRID_SAVED_HOME_ASSISTANT",
+  "approvedByUser": true,
+  "approvalScope": "isolated implementation and tests only; no current app modifications, no main merge, no production deploy",
+  "visualDecision": "HYBRID: HOME_VISUAL_PANEL + EXISTING_UNIFIED_ASSISTANT_ONE_SOURCE",
+  "sourceMainSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "parentLabCommit": "e76cd78775995d15da2419d082f925dad4178446",
+  "targetBranch": "feat/tourist-p08-hybrid-isolated-20260930",
+  "scope": "labs/tourist-p08-hybrid/**",
+  "featureFlagDefault": "OFF; preview-only enabled by explicit LAB configuration",
+  "sourceOfTruth": "createSavedPlacesService singleton per session/destination + future owner adapter",
+  "storage": {
+    "guest": "ephemeral session by default; explicit local persistence consent optional",
+    "owner": "port injected, write disabled by default; auth/csrf/capability/idempotency/readback required",
+    "legacyMigration": "explicit approval and unique canonical association required; no name-only automatic migration"
+  },
+  "surfaces": ["Home Saved panel", "Assistant Saved projection"],
+  "locales": ["pt-BR", "en", "es", "he RTL"],
+  "destinationsInPreview": ["morro-de-sao-paulo fixture", "itacare fixture"],
+  "realOwnerBound": false,
+  "currentMainModified": false,
+  "productionDeploymentAuthorized": false,
+  "commerceEffects": false,
+  "pendingGates": ["real owner contract", "legacy data opt-in migration", "actual app composition and E2E", "axe+real devices", "visual before-after of approved Home", "merge authorization"]
+}

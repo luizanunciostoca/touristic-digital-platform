@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "runAtUtc": "2026-09-30T09:38:27.774810+00:00",
+  "scope": "P08_HYBRID_SOURCE_LOCAL_PREPUBLICATION_NOT_MAIN",
+  "node": "v22.16.0",
+  "unitTests": 72,
+  "failed": 0,
+  "unitTestsLogSHA256": "d373104b2a28c73b42d9d15d255ea8f3b917a63372fbb02facf19eebcea6eab2",
+  "browser": {
+    "type": "EXACT_SOURCE_HTML_CSS_JS_INLINE_BROWSER_NO_NETWORK; HTTP read-only security independently verified via localhost urllib",
+    "viewports": 7,
+    "screenshots": 21,
+    "assertions": 192,
+    "file": "evidence/browser/BROWSER_MATRIX.json"
+  },
+  "sourceScope": "labs/tourist-p08-hybrid/**",
+  "realBackendBound": false,
+  "mainChanged": false,
+  "browserRealHomeBound": false,
+  "releaseAuthorized": false,
+  "sourceGitHead": "AWAITING_BRANCH_PUBLICATION"
+}

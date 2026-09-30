@@ -1,0 +1,35 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createOwnerBoundary,validateOwnerProjection,buildOwnerCommand} from '../src/owner-port.mjs';
+import {createSavedPlacesService} from '../src/service.mjs';
+const D='morro-de-sao-paulo';const a={destinationId:D,placeId:'p1',name:'Segunda Praia'};
+const auth={authorized:true,capability:'favorites.write',csrf:'SIMULATED_CSRF_ONLY'};
+const read=async dest=>({ownerVerified:true,destinationId:dest,revision:3,items:[a]});
+test('owner projection must be expressly verified',()=>assert.throws(()=>validateOwnerProjection({ownerVerified:false,destinationId:D,revision:1,items:[]},D)));
+test('cross-destination owner response denied',()=>assert.throws(()=>validateOwnerProjection({ownerVerified:true,destinationId:'itacare',revision:1,items:[]},D)));
+test('owner command default OFF even with good auth',()=>assert.throws(()=>buildOwnerCommand({destinationId:D,placeId:'p1',action:'add',idempotencyKey:'p08-123456789012',auth})));
+test('owner command forbidden without capability',()=>assert.throws(()=>buildOwnerCommand({destinationId:D,placeId:'p1',action:'add',idempotencyKey:'p08-123456789012',auth:{...auth,capability:'favorites.read'},featureEnabled:true})));
+test('owner command forbidden without valid CSRF',()=>assert.throws(()=>buildOwnerCommand({destinationId:D,placeId:'p1',action:'add',idempotencyKey:'p08-123456789012',auth:{...auth,csrf:''},featureEnabled:true})));
+test('offline owner mutation forbidden',()=>assert.throws(()=>buildOwnerCommand({destinationId:D,placeId:'p1',action:'add',idempotencyKey:'p08-123456789012',auth,featureEnabled:true,online:false})));
+test('owner read-only port returns strictly validated owner data',async()=>{const port=createOwnerBoundary({read});const r=await port.read(D);assert.equal(r.ownerVerified,true);assert.equal(r.items[0].source,'owner');});
+test('owner write default disabled even with custom command function',async()=>{let commands=0;const port=createOwnerBoundary({read,command:async()=>{commands++;},auth});await assert.rejects(port.write({destinationId:D,placeId:'p1',action:'add',idempotencyKey:'p08-123456789012'}));assert.equal(commands,0);});
+test('service accepts only verified owner readbacks',async()=>{const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:{read:async()=>({items:[a],revision:4})}});await s.refresh();assert.equal(s.snapshot().status,'error');assert.equal(s.snapshot().items.length,0);});
+test('owner read path loads same items for Home + Assistant without guest storage',async()=>{const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:createOwnerBoundary({read})});await s.refresh();assert.equal(s.snapshot().ownerVerified,true);assert.equal(s.snapshot().items.length,1);});
+test('owner failure does not mutate cache or pretend confirmed',async()=>{let data=[a];const port=createOwnerBoundary({read:async dest=>({ownerVerified:true,destinationId:dest,revision:2,items:data}),command:async()=>{throw Error('SERVICE_DOWN')},enabled:true,auth});const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:port});await s.refresh();await s.remove(a);assert.equal(s.snapshot().status,'error');assert.equal(s.snapshot().ownerVerified,false);assert.equal(s.snapshot().items.length,1);});
+test('owner server write only confirmed after independent readback',async()=>{let data=[];let writes=0;const port=createOwnerBoundary({read:async dest=>({ownerVerified:true,destinationId:dest,revision:2+writes,items:data}),command:async()=>{writes++;data=[a]},enabled:true,auth});const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:port});await s.refresh();await s.add(a);assert.equal(writes,1);assert.equal(s.snapshot().ownerVerified,true);assert.equal(s.snapshot().items[0].placeId,'p1');});
+test('provider ack without changed readback never confirms UI write',async()=>{const port=createOwnerBoundary({read:async dest=>({ownerVerified:true,destinationId:dest,revision:2,items:[]}),command:async()=>({ok:true}),enabled:true,auth});const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:port});await s.refresh();await s.add(a);assert.equal(s.snapshot().items.length,0);assert.equal(s.snapshot().status,'error');});
+test('owner service offline cannot call commands',async()=>{let called=0;const port=createOwnerBoundary({read,command:async()=>{called++},enabled:true,auth});const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:port});await s.refresh();s.setOnline(false);await s.remove(a);assert.equal(called,0);assert.equal(s.snapshot().status,'offline');});
+test('unrelated destination switch invalidates stale in-flight owner load',async()=>{let complete;const port={read:dest=>dest===D?new Promise(r=>{complete=r}):Promise.resolve({ownerVerified:true,destinationId:dest,revision:1,items:[]})};const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:port});const old=s.refresh();await s.switchDestination('itacare');complete({ownerVerified:true,destinationId:D,revision:2,items:[a]});await old;assert.equal(s.snapshot().destinationId,'itacare');assert.equal(s.snapshot().items.length,0);});
+test('owner offline refresh never calls a network read',async()=>{
+ let reads=0;
+ const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:{read:async()=>{reads++;throw Error('SHOULD_NOT_READ')}}});
+ s.setOnline(false);await s.refresh();
+ assert.equal(reads,0);assert.equal(s.snapshot().status,'offline');
+});
+test('owner in-flight readback must not restore authority after disconnect',async()=>{
+ let resolveRead;
+ const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:{read:()=>new Promise(resolve=>{resolveRead=resolve})}});
+ const pending=s.refresh();s.setOnline(false);
+ resolveRead({destinationId:D,ownerVerified:true,revision:3,items:[a]});
+ await pending;
+ assert.equal(s.snapshot().status,'offline');assert.equal(s.snapshot().ownerVerified,false);
+});

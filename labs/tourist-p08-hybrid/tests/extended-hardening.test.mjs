@@ -1,0 +1,9 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {createSavedPlacesService} from '../src/service.mjs';
+import {createOwnerBoundary,buildOwnerCommand} from '../src/owner-port.mjs';
+import {resolveFavoriteIntent} from '../src/assistant-bridge.mjs';
+const D='morro-de-sao-paulo';const a={destinationId:D,placeId:'p1',name:'Segunda Praia'};
+test('owner boundary rejects noncanonical ID even with valid auth',()=>assert.throws(()=>buildOwnerCommand({destinationId:D,placeId:'Segunda Praia',action:'add',idempotencyKey:'p08-123456789012',featureEnabled:true,online:true,auth:{authorized:true,capability:'favorites.write',csrf:'12345678'}})));
+test('guest ephemeral favorites survive destination switch without storage',async()=>{const s=createSavedPlacesService({destinationId:D});await s.add(a);await s.switchDestination('itacare');await s.add({destinationId:'itacare',placeId:'resende',name:'Praia do Resende'});await s.switchDestination(D);assert.deepEqual(s.snapshot().items.map(x=>x.placeId),['p1']);await s.switchDestination('itacare');assert.deepEqual(s.snapshot().items.map(x=>x.placeId),['resende']);});
+test('owner queued commands stop after first readback failure',async()=>{let writes=0;const port=createOwnerBoundary({enabled:true,auth:{authorized:true,capability:'favorites.write',csrf:'12345678'},read:async dest=>({ownerVerified:true,destinationId:dest,revision:2,items:[a]}),command:async()=>{writes++;throw Error('DOWN')}});const s=createSavedPlacesService({destinationId:D,mode:'owner',owner:port,idFactory:()=>String(Date.now())+'-secure'});await s.refresh();await Promise.all([s.remove(a),s.remove(a)]);assert.equal(writes,1);assert.equal(s.snapshot().ownerVerified,false);});
+test('unrelated chat cannot execute favorites read',()=>assert.equal(resolveFavoriteIntent('Quero fazer um passeio'), 'unrelated'));

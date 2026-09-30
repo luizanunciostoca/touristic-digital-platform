@@ -1,0 +1,15 @@
+{
+  "name": "@touristic/tourist-p08-hybrid-isolated",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "preview": "node tools/preview-server.mjs",
+    "test:browser": "python3 tools/browser_matrix.py",
+    "verify:isolated": "node tools/verify-isolation.mjs"
+  }
+}

@@ -1,0 +1,442 @@
+TAP version 13
+# Subtest: Assistant cannot silently read user collection without explicit action
+ok 1 - Assistant cannot silently read user collection without explicit action
+  ---
+  duration_ms: 1.729787
+  type: 'test'
+  ...
+# Subtest: Assistant cannot access another destination
+ok 2 - Assistant cannot access another destination
+  ---
+  duration_ms: 0.252729
+  type: 'test'
+  ...
+# Subtest: Assistant context and Home snapshot share same IDs
+ok 3 - Assistant context and Home snapshot share same IDs
+  ---
+  duration_ms: 0.250516
+  type: 'test'
+  ...
+# Subtest: Portuguese, English, Spanish and Hebrew saved intents recognized
+ok 4 - Portuguese, English, Spanish and Hebrew saved intents recognized
+  ---
+  duration_ms: 0.653661
+  type: 'test'
+  ...
+# Subtest: nearest intent needs geolocation and source
+ok 5 - nearest intent needs geolocation and source
+  ---
+  duration_ms: 0.251097
+  type: 'test'
+  ...
+# Subtest: itinerary intent does not invent a route
+ok 6 - itinerary intent does not invent a route
+  ---
+  duration_ms: 0.171407
+  type: 'test'
+  ...
+# Subtest: without favorites Assistant provides empty state, not fabricated list
+ok 7 - without favorites Assistant provides empty state, not fabricated list
+  ---
+  duration_ms: 0.214953
+  type: 'test'
+  ...
+# Subtest: legacy names do not automatically gain unverified canonical IDs
+ok 8 - legacy names do not automatically gain unverified canonical IDs
+  ---
+  duration_ms: 0.240201
+  type: 'test'
+  ...
+# Subtest: ambiguous legacy names do not migrate
+ok 9 - ambiguous legacy names do not migrate
+  ---
+  duration_ms: 0.455995
+  type: 'test'
+  ...
+# Subtest: explicit user acceptance and unique canonical matching required for import
+ok 10 - explicit user acceptance and unique canonical matching required for import
+  ---
+  duration_ms: 0.4264
+  type: 'test'
+  ...
+# Subtest: legacy catalog matched only within current destination
+ok 11 - legacy catalog matched only within current destination
+  ---
+  duration_ms: 0.157697
+  type: 'test'
+  ...
+# Subtest: owner boundary rejects noncanonical ID even with valid auth
+ok 12 - owner boundary rejects noncanonical ID even with valid auth
+  ---
+  duration_ms: 1.006371
+  type: 'test'
+  ...
+# Subtest: guest ephemeral favorites survive destination switch without storage
+ok 13 - guest ephemeral favorites survive destination switch without storage
+  ---
+  duration_ms: 1.360914
+  type: 'test'
+  ...
+# Subtest: owner queued commands stop after first readback failure
+ok 14 - owner queued commands stop after first readback failure
+  ---
+  duration_ms: 0.700231
+  type: 'test'
+  ...
+# Subtest: unrelated chat cannot execute favorites read
+ok 15 - unrelated chat cannot execute favorites read
+  ---
+  duration_ms: 0.285198
+  type: 'test'
+  ...
+# Subtest: initial visitor list empty, no synthetic favorites
+ok 16 - initial visitor list empty, no synthetic favorites
+  ---
+  duration_ms: 1.806612
+  type: 'test'
+  ...
+# Subtest: same collection broadcasts to two independent UI subscribers
+ok 17 - same collection broadcasts to two independent UI subscribers
+  ---
+  duration_ms: 1.275655
+  type: 'test'
+  ...
+# Subtest: duplicate same canonical identity idempotent
+ok 18 - duplicate same canonical identity idempotent
+  ---
+  duration_ms: 0.242854
+  type: 'test'
+  ...
+# Subtest: removal unknown ID idempotent
+ok 19 - removal unknown ID idempotent
+  ---
+  duration_ms: 0.376886
+  type: 'test'
+  ...
+# Subtest: cross destination add rejected before side effects
+ok 20 - cross destination add rejected before side effects
+  ---
+  duration_ms: 0.414772
+  type: 'test'
+  ...
+# Subtest: destinations never share a guest favorite list
+ok 21 - destinations never share a guest favorite list
+  ---
+  duration_ms: 0.463666
+  type: 'test'
+  ...
+# Subtest: local guest offline can retain session entries without fake server authority
+ok 22 - local guest offline can retain session entries without fake server authority
+  ---
+  duration_ms: 0.218098
+  type: 'test'
+  ...
+# Subtest: without consent never touches provided storage
+ok 23 - without consent never touches provided storage
+  ---
+  duration_ms: 0.202354
+  type: 'test'
+  ...
+# Subtest: with explicit consent destination-local payload survives service reinitialization
+ok 24 - with explicit consent destination-local payload survives service reinitialization
+  ---
+  duration_ms: 1.536127
+  type: 'test'
+  ...
+# Subtest: storage write error does not commit false favorite or revision
+ok 25 - storage write error does not commit false favorite or revision
+  ---
+  duration_ms: 0.395333
+  type: 'test'
+  ...
+# Subtest: corrupt storage never silently erased
+ok 26 - corrupt storage never silently erased
+  ---
+  duration_ms: 0.284277
+  type: 'test'
+  ...
+# Subtest: storage events update other tab on newer revision only
+ok 27 - storage events update other tab on newer revision only
+  ---
+  duration_ms: 0.266069
+  type: 'test'
+  ...
+# Subtest: storage events ignore other destination
+ok 28 - storage events ignore other destination
+  ---
+  duration_ms: 0.118919
+  type: 'test'
+  ...
+# Subtest: same revision conflicting tab writes require user review
+ok 29 - same revision conflicting tab writes require user review
+  ---
+  duration_ms: 0.244047
+  type: 'test'
+  ...
+# Subtest: malformed storage events ignored, not erased
+ok 30 - malformed storage events ignored, not erased
+  ---
+  duration_ms: 0.162263
+  type: 'test'
+  ...
+# Subtest: subscription unsubscribe stops events
+ok 31 - subscription unsubscribe stops events
+  ---
+  duration_ms: 0.1198
+  type: 'test'
+  ...
+# Subtest: public snapshots immutable
+ok 32 - public snapshots immutable
+  ---
+  duration_ms: 0.160662
+  type: 'test'
+  ...
+# Subtest: stale consented guest tab cannot overwrite a newer persisted revision
+ok 33 - stale consented guest tab cannot overwrite a newer persisted revision
+  ---
+  duration_ms: 0.149224
+  type: 'test'
+  ...
+# Subtest: guest tab refuses resurrecting favorites silently removed in another tab
+ok 34 - guest tab refuses resurrecting favorites silently removed in another tab
+  ---
+  duration_ms: 0.120832
+  type: 'test'
+  ...
+# Subtest: invalid destination rejected:
+ok 35 - invalid destination rejected:
+  ---
+  duration_ms: 1.018789
+  type: 'test'
+  ...
+# Subtest: invalid destination rejected: null
+ok 36 - invalid destination rejected: null
+  ---
+  duration_ms: 0.184407
+  type: 'test'
+  ...
+# Subtest: invalid destination rejected: undefined
+ok 37 - invalid destination rejected: undefined
+  ---
+  duration_ms: 0.067381
+  type: 'test'
+  ...
+# Subtest: invalid destination rejected:  /etc
+ok 38 - invalid destination rejected:  /etc
+  ---
+  duration_ms: 0.101202
+  type: 'test'
+  ...
+# Subtest: invalid destination rejected: invalid/slug
+ok 39 - invalid destination rejected: invalid/slug
+  ---
+  duration_ms: 0.075162
+  type: 'test'
+  ...
+# Subtest: invalid destination rejected: ✈️
+ok 40 - invalid destination rejected: ✈️
+  ---
+  duration_ms: 0.095814
+  type: 'test'
+  ...
+# Subtest: canonical ID required, not human display name
+ok 41 - canonical ID required, not human display name
+  ---
+  duration_ms: 0.110806
+  type: 'test'
+  ...
+# Subtest: canonical ID accepts UUID-shaped slug
+ok 42 - canonical ID accepts UUID-shaped slug
+  ---
+  duration_ms: 0.09959
+  type: 'test'
+  ...
+# Subtest: unsafe/control text bounded
+ok 43 - unsafe/control text bounded
+  ---
+  duration_ms: 0.31323
+  type: 'test'
+  ...
+# Subtest: same place cannot be saved to other destination
+ok 44 - same place cannot be saved to other destination
+  ---
+  duration_ms: 0.402024
+  type: 'test'
+  ...
+# Subtest: same ID deduplicates list
+ok 45 - same ID deduplicates list
+  ---
+  duration_ms: 0.205949
+  type: 'test'
+  ...
+# Subtest: strict item rejects empty and invalid names
+ok 46 - strict item rejects empty and invalid names
+  ---
+  duration_ms: 0.117796
+  type: 'test'
+  ...
+# Subtest: list strict malformed coordinates irrelevant, identity only
+ok 47 - list strict malformed coordinates irrelevant, identity only
+  ---
+  duration_ms: 0.08021
+  type: 'test'
+  ...
+# Subtest: bound number of saved places
+ok 48 - bound number of saved places
+  ---
+  duration_ms: 0.35309
+  type: 'test'
+  ...
+# Subtest: guest schema roundtrip
+ok 49 - guest schema roundtrip
+  ---
+  duration_ms: 0.215003
+  type: 'test'
+  ...
+# Subtest: other destination persisted payload denied
+ok 50 - other destination persisted payload denied
+  ---
+  duration_ms: 0.106019
+  type: 'test'
+  ...
+# Subtest: invalid JSON never becomes favorites
+ok 51 - invalid JSON never becomes favorites
+  ---
+  duration_ms: 0.125238
+  type: 'test'
+  ...
+# Subtest: invalid schema version rejected
+ok 52 - invalid schema version rejected
+  ---
+  duration_ms: 0.22607
+  type: 'test'
+  ...
+# Subtest: unbounded payload rejected
+ok 53 - unbounded payload rejected
+  ---
+  duration_ms: 0.080671
+  type: 'test'
+  ...
+# Subtest: guest storage key scoped by destination
+ok 54 - guest storage key scoped by destination
+  ---
+  duration_ms: 0.079389
+  type: 'test'
+  ...
+# Subtest: owner projection must be expressly verified
+ok 55 - owner projection must be expressly verified
+  ---
+  duration_ms: 1.288324
+  type: 'test'
+  ...
+# Subtest: cross-destination owner response denied
+ok 56 - cross-destination owner response denied
+  ---
+  duration_ms: 0.48618
+  type: 'test'
+  ...
+# Subtest: owner command default OFF even with good auth
+ok 57 - owner command default OFF even with good auth
+  ---
+  duration_ms: 0.288163
+  type: 'test'
+  ...
+# Subtest: owner command forbidden without capability
+ok 58 - owner command forbidden without capability
+  ---
+  duration_ms: 0.17968
+  type: 'test'
+  ...
+# Subtest: owner command forbidden without valid CSRF
+ok 59 - owner command forbidden without valid CSRF
+  ---
+  duration_ms: 0.19287
+  type: 'test'
+  ...
+# Subtest: offline owner mutation forbidden
+ok 60 - offline owner mutation forbidden
+  ---
+  duration_ms: 0.170176
+  type: 'test'
+  ...
+# Subtest: owner read-only port returns strictly validated owner data
+ok 61 - owner read-only port returns strictly validated owner data
+  ---
+  duration_ms: 0.592399
+  type: 'test'
+  ...
+# Subtest: owner write default disabled even with custom command function
+ok 62 - owner write default disabled even with custom command function
+  ---
+  duration_ms: 0.431848
+  type: 'test'
+  ...
+# Subtest: service accepts only verified owner readbacks
+ok 63 - service accepts only verified owner readbacks
+  ---
+  duration_ms: 0.790677
+  type: 'test'
+  ...
+# Subtest: owner read path loads same items for Home + Assistant without guest storage
+ok 64 - owner read path loads same items for Home + Assistant without guest storage
+  ---
+  duration_ms: 0.622625
+  type: 'test'
+  ...
+# Subtest: owner failure does not mutate cache or pretend confirmed
+ok 65 - owner failure does not mutate cache or pretend confirmed
+  ---
+  duration_ms: 2.826114
+  type: 'test'
+  ...
+# Subtest: owner server write only confirmed after independent readback
+ok 66 - owner server write only confirmed after independent readback
+  ---
+  duration_ms: 0.425769
+  type: 'test'
+  ...
+# Subtest: provider ack without changed readback never confirms UI write
+ok 67 - provider ack without changed readback never confirms UI write
+  ---
+  duration_ms: 0.223035
+  type: 'test'
+  ...
+# Subtest: owner service offline cannot call commands
+ok 68 - owner service offline cannot call commands
+  ---
+  duration_ms: 0.185008
+  type: 'test'
+  ...
+# Subtest: unrelated destination switch invalidates stale in-flight owner load
+ok 69 - unrelated destination switch invalidates stale in-flight owner load
+  ---
+  duration_ms: 0.233711
+  type: 'test'
+  ...
+# Subtest: owner offline refresh never calls a network read
+ok 70 - owner offline refresh never calls a network read
+  ---
+  duration_ms: 0.117626
+  type: 'test'
+  ...
+# Subtest: owner in-flight readback must not restore authority after disconnect
+ok 71 - owner in-flight readback must not restore authority after disconnect
+  ---
+  duration_ms: 0.185939
+  type: 'test'
+  ...
+# Subtest: preview only binds localhost; fails closed on writes/traversal and recovers from malformed paths
+ok 72 - preview only binds localhost; fails closed on writes/traversal and recovers from malformed paths
+  ---
+  duration_ms: 87.938881
+  type: 'test'
+  ...
+1..72
+# tests 72
+# suites 0
+# pass 72
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 249.707986
