@@ -377,6 +377,13 @@ export function createCommerceApi({
       return true;
     } catch (error) {
       startupFailure = classifyStartupFailure(error);
+      console.error(
+        `[commerce-audit] ${JSON.stringify({
+          action: "commerce.runtime",
+          result: "failure",
+          reason: startupFailure,
+        })}`,
+      );
       runtime = null;
       return false;
     }
