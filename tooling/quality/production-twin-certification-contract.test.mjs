@@ -185,6 +185,9 @@ test("production twin executor is syntactically valid and no-egress", () => {
     'runtimeProbe:"docker-exec-loopback"',
     "syntheticReleaseIdentity:true",
     'Origin: "http://127.0.0.1:3000"',
+    "date -u +%Y-%m-%dT%H:%M:%S.000Z",
+    'jq -nc --arg status "$write_status" --arg code "$write_error"',
+    '{contract:"MORRO-PRODUCTION-TWIN-PROBE",probe:"analytics-write",status:$status,code:$code}',
     "production-runtime-database-predeploy.mjs",
     "payments-migrate.mjs",
     "/healthz",
@@ -219,6 +222,7 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "PAYMENTS_SUBSCRIPTIONS_ENABLED=true",
     "-p 127.0.0.1:18080:3000",
     "http://127.0.0.1:18080",
+    'cat "$work_root/write.json" >&2',
   ]) {
     assert.ok(
       !source.includes(forbidden),
