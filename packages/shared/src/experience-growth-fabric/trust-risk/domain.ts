@@ -16,10 +16,7 @@ export type TrustLevel =
   | "financial_authoritative";
 
 export type RiskActionClass =
-  | "guide_read"
-  | "low_value_progress"
-  | "experience_reward"
-  | "financial_value";
+  "guide_read" | "low_value_progress" | "experience_reward" | "financial_value";
 
 export interface RiskSignal {
   readonly signalId: string;
@@ -88,8 +85,7 @@ const SEVERITY_SCORE: Readonly<Record<RiskSeverity, number>> = {
 };
 
 const SHA_256 = /^[a-f0-9]{64}$/;
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function isUtc(value: string): boolean {
   return UTC_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
@@ -232,11 +228,13 @@ export function evaluateRiskDecision(
   };
 }
 
-export function detectSelfReferral(input: Readonly<{
-  sameVerifiedIdentity: boolean;
-  sameAccountRelationship: boolean;
-  sameTrustedDeviceRelationship: boolean;
-}>): boolean {
+export function detectSelfReferral(
+  input: Readonly<{
+    sameVerifiedIdentity: boolean;
+    sameAccountRelationship: boolean;
+    sameTrustedDeviceRelationship: boolean;
+  }>,
+): boolean {
   return (
     input.sameVerifiedIdentity ||
     input.sameAccountRelationship ||
@@ -244,10 +242,12 @@ export function detectSelfReferral(input: Readonly<{
   );
 }
 
-export function detectVelocity(input: Readonly<{
-  attemptsInWindow: number;
-  maximumAttempts: number;
-}>): boolean {
+export function detectVelocity(
+  input: Readonly<{
+    attemptsInWindow: number;
+    maximumAttempts: number;
+  }>,
+): boolean {
   if (
     !Number.isSafeInteger(input.attemptsInWindow) ||
     !Number.isSafeInteger(input.maximumAttempts) ||
@@ -266,11 +266,13 @@ export function detectReplay(
   return seenEventIds.has(eventId);
 }
 
-export function detectGeoAnomaly(input: Readonly<{
-  claimedPlaceId: string;
-  verifiedPlaceId: string | null;
-  proofValid: boolean;
-}>): boolean {
+export function detectGeoAnomaly(
+  input: Readonly<{
+    claimedPlaceId: string;
+    verifiedPlaceId: string | null;
+    proofValid: boolean;
+  }>,
+): boolean {
   if (!input.claimedPlaceId) {
     throw new Error("RISK_GEO_CLAIM_INVALID");
   }

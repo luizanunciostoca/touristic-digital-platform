@@ -52,7 +52,9 @@ describe("trust and risk", () => {
       assessedAt: "2026-09-30T12:01:00.000Z",
     });
 
-    expect(evaluateRiskDecision(assessment, "guide_read", policy)).toMatchObject({
+    expect(
+      evaluateRiskDecision(assessment, "guide_read", policy),
+    ).toMatchObject({
       outcome: "observe",
     });
   });
