@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "repository": "luizanunciostoca/touristic-digital-platform",
+  "sourceMainSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "approvedByUser": true,
+  "approvalScope": "isolated build, tests, comparative visual previews only; no integration/merge/production approval",
+  "nonProduction": true,
+  "baseContract": "Tourist UX V2: map first, Mapbox authoritative, approved unified dock and category rail, no quick actions/FAB, Place peek-half-full, frozen legacy",
+  "featureFlagsDefault": "OFF",
+  "P08VisualOption": "BOTH_COMPARATIVE_OPTIONS_NO_FINAL_SELECTION",
+  "proposals": [
+    {"id":"P01","name":"Browser locale precedence","module":"locale-policy.mjs","integrationTarget":"src/runtime/browser-locale.ts","binding":"FUTURE_DIFF_REQUIRED"},
+    {"id":"P02","name":"Canonical Places map, counts, pagination","module":"canonical-places.mjs","integrationTarget":"src/map/explore-locations-control.ts","binding":"OWNER_DATA_COVERAGE_PENDING"},
+    {"id":"P03","name":"Place partial state and localized category","module":"place-presentation.mjs","integrationTarget":"src/map/public-place-presentation-v2.ts","binding":"CAPABILITY_EXACT_HEAD_REQUIRED"},
+    {"id":"P04","name":"Commerce contextual CTAs fail closed","module":"commercial-gateway.mjs","integrationTarget":"Commerce, Ordering, Ticketing owners","binding":"OWNER_E2E_TEST_REQUIRED"},
+    {"id":"P05","name":"Eight-step tutorial without replay","module":"tutorial-extension.mjs","integrationTarget":"src/onboarding/public-interactive-tour.ts","binding":"VISUAL_REGRESSION_REQUIRED"},
+    {"id":"P06","name":"Assistant/Place/map context continuity","module":"assistant-continuity.mjs","integrationTarget":"src/assistant/*, src/home/*, src/ux/*","binding":"REAL_BROWSER_E2E_REQUIRED"},
+    {"id":"P07","name":"Conditional header shadow opt-in","module":"header-correction.mjs","integrationTarget":"public/tourist-shell-v2.css","binding":"BEFORE_AFTER_HALO_CONFIRMATION_REQUIRED"},
+    {"id":"P08","name":"Saved A/B comparative views","module":"saved-options.mjs","integrationTarget":"src/home/home-discover-navigation.ts","binding":"USER_VISUAL_OPTION_CHOICE_REQUIRED"},
+    {"id":"P09","name":"Offline read-only/cache safety","module":"offline-safety.mjs","integrationTarget":"PWA/SW runtime","binding":"REAL_OFFLINE_BROWSER_E2E_REQUIRED"},
+    {"id":"P10","name":"Responsive and a11y regression profiles","module":"qa-profile.mjs","integrationTarget":"QA browser harness","binding":"DEVICE_BROWSER_MATRIX_REQUIRED"},
+    {"id":"P11","name":"Canonical media and editorial fallback","module":"media-coverage.mjs","integrationTarget":"src/map/public-place-presentation-v2.ts","binding":"CANONICAL_MEDIA_COVERAGE_REQUIRED"}
+  ]
+}

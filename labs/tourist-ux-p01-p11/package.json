@@ -1,0 +1,13 @@
+{
+  "name": "@touristic/tourist-ux-approved-isolated-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22 <23"},
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "test:contracts": "node tools/source-contracts.mjs",
+    "audit:read-only": "node tools/public-readback.mjs",
+    "preview": "node tools/preview-server.mjs"
+  }
+}
