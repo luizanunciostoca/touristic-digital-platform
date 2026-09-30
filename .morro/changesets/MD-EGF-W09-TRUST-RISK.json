@@ -1,0 +1,33 @@
+{
+  "id": "MD-EGF-W09-TRUST-RISK",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w09-trust-risk-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W09-TRUST-RISK.json",
+      "packages/shared/src/experience-growth-fabric/trust-risk/**"
+    ],
+    "contracts": ["growth-risk-signals-v1", "growth-risk-decision-v1"]
+  },
+  "reads": {"contracts": []},
+  "produces": {
+    "events": ["RiskSignalRecorded", "RiskDecisionMade"],
+    "routes": []
+  },
+  "database": {"tables": []},
+  "auth": {"capabilities": []},
+  "dependencies": ["MD-EGF-W01-CONTRACTS"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
