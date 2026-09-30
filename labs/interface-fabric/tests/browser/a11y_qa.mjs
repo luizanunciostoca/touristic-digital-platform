@@ -42,7 +42,11 @@ for (const id of ids) {
       id,
       rule: v.id,
       impact: v.impact,
-      nodes: v.nodes.length,
+      nodes: v.nodes.map((node) => ({
+        target: node.target,
+        html: node.html,
+        failureSummary: node.failureSummary,
+      })),
     });
   await page.close();
 }
