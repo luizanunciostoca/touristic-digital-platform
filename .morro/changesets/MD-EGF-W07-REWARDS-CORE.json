@@ -1,0 +1,48 @@
+{
+  "id": "MD-EGF-W07-REWARDS-CORE",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w07-rewards-core-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W07-REWARDS-CORE.json",
+      "packages/shared/src/experience-growth-fabric/rewards/**"
+    ],
+    "contracts": [
+      "rewards-definition-v1",
+      "rewards-inventory-v1",
+      "rewards-entitlement-v1",
+      "rewards-redemption-v1"
+    ]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": ["RewardUnlocked", "RewardRedeemed", "RewardExpired"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-EGF-W01-CONTRACTS",
+    "MD-EGF-W05-ENGAGEMENT-CORE",
+    "MD-EGF-W06-MISSION-ENGINE"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
