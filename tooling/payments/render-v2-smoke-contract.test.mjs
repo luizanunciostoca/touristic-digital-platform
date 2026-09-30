@@ -28,10 +28,14 @@ test("rejects degraded runtime even when readiness remains ready", () => {
         status: "degraded",
         checks: [
           { name: "commerce-runtime", status: "pass" },
-          { name: "place-platform-runtime", status: "fail" },
+          {
+            name: "place-platform-runtime",
+            status: "fail",
+            detail: "PLACE_PLATFORM_DATABASE_UNREACHABLE",
+          },
         ],
       }),
-    /READYZ_FAILED_200_DEGRADED_place-platform-runtime/u,
+    /READYZ_FAILED_200_DEGRADED_place-platform-runtime:PLACE_PLATFORM_DATABASE_UNREACHABLE/u,
   );
 });
 
@@ -41,9 +45,15 @@ test("rejects a non-pass check even if top-level status is healthy", () => {
       assertHealthyReadiness(200, {
         readiness: "ready",
         status: "healthy",
-        checks: [{ name: "database", status: "warn" }],
+        checks: [
+          {
+            name: "database",
+            status: "warn",
+            detail: "DATABASE_UNAVAILABLE",
+          },
+        ],
       }),
-    /READYZ_FAILED_200_HEALTHY_database/u,
+    /READYZ_FAILED_200_HEALTHY_database:DATABASE_UNAVAILABLE/u,
   );
 });
 
