@@ -11,8 +11,8 @@
     ],
     "contracts": ["growth-read-models-v1"]
   },
-  "reads": {"contracts": []},
-  "produces": {"events": [], "routes": []},
+  "reads": { "contracts": [] },
+  "produces": { "events": [], "routes": [] },
   "database": {
     "tables": [
       "journey_progress_projection",
@@ -23,7 +23,7 @@
       "experiment_outcome_projection"
     ]
   },
-  "auth": {"capabilities": []},
+  "auth": { "capabilities": [] },
   "dependencies": [
     "MD-EGF-W13-EVENT-FABRIC",
     "MD-EGF-W04-JOURNEY-DOMAIN",

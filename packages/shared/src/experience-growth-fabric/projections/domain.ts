@@ -106,8 +106,7 @@ export interface GrowthProjectionState {
   readonly experiments: ReadonlyMap<string, ExperimentOutcomeProjection>;
 }
 
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function isUtc(value: string): boolean {
   return UTC_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));

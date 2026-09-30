@@ -73,12 +73,8 @@ describe("growth projections", () => {
       occurredAt: "2026-09-30T12:00:01.000Z",
     });
 
-    expect(
-      state.affiliates.get("morro:aff_1")?.qualifiedReferrals,
-    ).toBe(1);
-    expect(
-      state.affiliates.get("itacare:aff_1")?.qualifiedReferrals,
-    ).toBe(1);
+    expect(state.affiliates.get("morro:aff_1")?.qualifiedReferrals).toBe(1);
+    expect(state.affiliates.get("itacare:aff_1")?.qualifiedReferrals).toBe(1);
   });
 
   it("aggregates experiment assignment/exposure/outcomes per variant", () => {
@@ -113,9 +109,7 @@ describe("growth projections", () => {
       state = applyGrowthProjectionEvent(state, event);
     }
 
-    const projection = state.experiments.get(
-      "morro:experiment_1:control",
-    );
+    const projection = state.experiments.get("morro:experiment_1:control");
     expect(projection).toMatchObject({
       assignments: 1,
       exposures: 1,
