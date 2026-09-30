@@ -1,0 +1,693 @@
+import { esc, kpi, field, table, qr, progress } from "../components.js";
+const button = (label, action = "command", klass = "") =>
+  '<button class="button ' +
+  klass +
+  '" type="button" data-action="' +
+  action +
+  '">' +
+  esc(label) +
+  "</button>";
+const actions = (labels) =>
+  '<div class="actions">' +
+  labels
+    .map((x, i) =>
+      button(x, i === 0 ? "command" : "toast", i === 0 ? "primary" : ""),
+    )
+    .join("") +
+  "</div>";
+const formActions = (primary = "Salvar", secondary = "Cancelar") =>
+  '<div class="actions"><button class="button primary" type="submit">' +
+  esc(primary) +
+  '</button><button class="button" type="button" data-action="toast">' +
+  esc(secondary) +
+  "</button></div>";
+const panel = (title, body) =>
+  '<section class="panel"><h3>' + esc(title) + "</h3>" + body + "</section>";
+const form = (title, extra = "") =>
+  panel(
+    title,
+    '<form data-demo-form><div class="form-grid">' +
+      field("Nome", "text", "Exemplo", "name", "required") +
+      field("Status", "text", "Ativo", "status", "required") +
+      field("Referência", "text", "FABRIC-DEMO", "reference") +
+      field("Observação", "text", "", "note") +
+      "</div>" +
+      extra +
+      formActions("Salvar", "Cancelar") +
+      "</form>",
+  );
+const metrics = (pairs) =>
+  '<section class="grid cards">' +
+  pairs
+    .map((x) => kpi(x[0], String(x[1]), x[2] || "fixture projection"))
+    .join("") +
+  "</section>";
+const rows = (d) =>
+  table(
+    ["Nome", "Categoria", "Estado", "Ação"],
+    d.places.map((p) => [
+      esc(p.name),
+      esc(p.category),
+      '<span class="badge">' + p.rating + " ★</span>",
+      button("Abrir", "dialog"),
+    ]),
+  );
+export function renderTemplate(def, d) {
+  const t = def.template;
+  if (t === "map-home")
+    return (
+      '<section class="map-canvas" aria-label="Mapa interativo"><button class="map-pin pin-a" type="button" data-nav-id="IF-PUB-010" aria-label="Abrir Segunda Praia"><span>●</span></button><button class="map-pin pin-b" type="button" data-nav-id="IF-PUB-010" aria-label="Abrir Toca do Morcego"><span>●</span></button><button class="map-pin pin-c" type="button" data-nav-id="IF-PUB-010" aria-label="Abrir Mirante"><span>●</span></button><div class="map-overlay"><div class="map-card"><span class="eyebrow">Agora em ' +
+      esc(d.destination.name) +
+      "</span><h3>Explore o destino pelo mapa</h3><p>" +
+      d.destination.weather.temp +
+      "° · " +
+      esc(d.destination.weather.condition) +
+      '</p><div class="actions">' +
+      button("Explorar", "nav-explore", "primary") +
+      button("Perguntar ao Assistant", "nav-assistant") +
+      "</div></div></div></section>"
+    );
+  if (t === "capture")
+    return panel(
+      "Acesso por QR / link",
+      '<div class="ticket"><div><strong>/q/A7KF93H</strong><p>Código opaco resolvido server-side no binding real.</p></div>' +
+        qr("QR demonstrativo") +
+        "</div>" +
+        metrics([
+          ["Destino", "Morro de São Paulo", "escopo"],
+          ["Origem", "QR físico", "fixture"],
+        ]) +
+        actions(["Continuar", "Copiar link"]),
+    );
+  if (t === "welcome")
+    return panel(
+      "Bem-vindo ao guia oficial",
+      "<p>Mapa, clima e Assistant trabalham juntos sem bloquear a descoberta.</p>" +
+        metrics([
+          ["Mapa", "Descoberta"],
+          ["Assistant", "Contextual"],
+          ["Rotas", "Guiadas"],
+        ]) +
+        actions(["Começar tutorial", "Pular"]),
+    );
+  if (t === "tutorial")
+    return panel(
+      "Tutorial interativo",
+      '<div class="tutorial-stage" data-tutorial-stage role="region" aria-live="polite" aria-label="Tutorial de primeiro acesso"></div><div class="actions"><button class="button" type="button" data-action="tutorial-back">Voltar</button><button class="button primary" type="button" data-action="tutorial-next">Avançar</button><button class="button" type="button" data-action="tutorial-skip">Pular</button><button class="button" type="button" data-action="tutorial-resume">Retomar</button><button class="button" type="button" data-action="tutorial-end">Encerrar</button></div>',
+    );
+  if (t === "locale")
+    return panel(
+      "Idioma e precedência",
+      "<p>override manual → browser locale → destination fallback → safe fallback.</p>" +
+        metrics([
+          ["pt-BR", "Suportado"],
+          ["English", "Supported"],
+          ["Español", "Compatible"],
+          ["עברית", "RTL"],
+        ]),
+    );
+  if (t === "weather")
+    return metrics([
+      ["Temperatura", d.destination.weather.temp + "°C"],
+      ["Umidade", d.destination.weather.humidity + "%"],
+      ["Vento", d.destination.weather.wind],
+      ["Fonte", "Fixture"],
+    ]);
+  if (t === "explore")
+    return (
+      '<section class="grid cards">' +
+      [
+        "Praias",
+        "Passeios",
+        "Atrações",
+        "Restaurantes",
+        "Pousadas",
+        "Vida Noturna",
+        "Lojas",
+        "Transporte",
+        "Emergências",
+        "Ajuda",
+      ]
+        .map(
+          (x) =>
+            '<article class="card"><span class="eyebrow">Categoria</span><h3>' +
+            x +
+            '</h3><p>Descoberta contextual próxima do mapa.</p><button class="button" type="button" data-nav-id="IF-PUB-009">Explorar</button></article>',
+        )
+        .join("") +
+      "</section>"
+    );
+  if (t === "search" || t === "universal-search")
+    return (
+      panel(
+        "Busca",
+        '<form role="search" data-search-form><div class="field"><label>Buscar<input name="q" type="search" placeholder="Lugar, empresa, reserva..." required></label></div><div class="actions"><button class="button primary" type="submit">Buscar</button><button class="button" type="reset">Limpar</button></div></form>',
+      ) + rows(d)
+    );
+  if (t === "place") {
+    const p = d.places[1];
+    const capabilityActions = [
+      ["navigate", "Como chegar", "nav-route"],
+      ["navigate", "Navegar", "nav-route"],
+      ["save", "Salvar", "command"],
+      ["share", "Compartilhar", "command"],
+      ["photos", "Ver fotos", "command"],
+      ["menu", "Ver menu", "command"],
+      ["ticket", "Comprar", "nav-commerce"],
+      ["reserve", "Reservar", "nav-commerce"],
+      ["event", "Ver evento", "command"],
+      ["tour", "Iniciar tour", "command"],
+      ["assistant", "Perguntar ao Assistant", "nav-assistant"],
+    ].filter(([cap]) => p.capabilities.includes(cap));
+    return (
+      '<div class="grid two">' +
+      panel(
+        p.name,
+        "<p>Detalhe contextual com ações expostas por capability.</p>" +
+          metrics([
+            ["Avaliação", p.rating + " ★"],
+            ["Distância", p.distance],
+          ]) +
+          '<div class="actions">' +
+          capabilityActions
+            .map(([cap, label, action], i) =>
+              button(label, action, i === 1 ? "primary" : ""),
+            )
+            .join("") +
+          "</div>",
+      ) +
+      '<section class="map-canvas" aria-label="Mapa do local"><button class="map-pin pin-b" aria-label="Local selecionado"><span>●</span></button></section></div>'
+    );
+  }
+  if (t === "favorites") return rows(d);
+  if (t === "profile" || t === "privacy" || t === "settings")
+    return form(
+      def.title,
+      '<fieldset class="field"><legend>Preferências</legend><label><input type="checkbox" checked> Essenciais</label><label><input type="checkbox"> Notificações</label></fieldset>',
+    );
+  if (t === "assistant" || t === "assistant-voice")
+    return panel(
+      "Assistant",
+      '<div class="chat"><div class="assistant-runtime status-banner" data-assistant-runtime role="status" aria-live="polite"><strong>Pronto</strong><span> Texto e voz preservam o mesmo contexto.</span></div><div class="messages" aria-live="polite"><div class="message">Posso ajudar com lugares, rotas e experiências.</div><div class="message user">O que fazer no pôr do sol?</div><div class="message">Posso sugerir um lugar, rota ou experiência sem executar ação autoritativa.</div></div><form class="composer" data-chat-form><label class="sr-only" for="composer-input">Mensagem</label><input id="composer-input" name="message" required><button class="button" type="button" data-action="assistant-voice" aria-pressed="false">🎙 Falar</button><button class="button primary" type="submit">Enviar</button></form></div>',
+    );
+  if (
+    t === "map-perspective" ||
+    t === "route-preview" ||
+    t === "navigation" ||
+    t === "tour"
+  )
+    return (
+      '<div class="grid two"><section class="map-canvas" aria-label="Mapa contextual"><button class="map-pin pin-a"><span>●</span></button><button class="map-pin pin-c"><span>●</span></button></section>' +
+      panel(
+        def.title,
+        "<ol><li>Centro histórico</li><li>Farol / mirante</li><li>Destino selecionado</li></ol>" +
+          metrics([
+            ["Distância", "1,2 km"],
+            ["Tempo", "18 min"],
+          ]) +
+          actions(["Iniciar/retomar", "Recalcular", "Encerrar"]),
+      ) +
+      "</div>"
+    );
+  if (t === "offline")
+    return panel(
+      "Você está offline",
+      "<p>Conteúdo seguro pode ser consultado; checkout, pagamento, inventário e valor permanecem bloqueados sem confirmação do servidor.</p>" +
+        actions(["Tentar reconectar"]),
+    );
+  if (["offer", "ticket-offer"].includes(t))
+    return panel(
+      def.title,
+      "<p>Preço e inventário são projeções de fixture e permanecem server-authoritative no binding real.</p>" +
+        metrics([
+          ["Preço", d.offers[0].price],
+          ["Disponibilidade", d.offers[0].availability],
+        ]) +
+        actions(["Ver disponibilidade", "Salvar"]),
+    );
+  if (
+    [
+      "booking",
+      "table-booking",
+      "transport-booking",
+      "lodging-booking",
+      "availability",
+      "buyer",
+    ].includes(t)
+  )
+    return panel(
+      def.title,
+      '<form data-demo-form><div class="form-grid">' +
+        field("Data", "date", "2026-10-11", "date", "required") +
+        field("Quantidade", "number", "2", "quantity", 'min="1" required') +
+        field("Responsável", "text", "Visitante Demo", "name", "required") +
+        field(
+          "Contato",
+          "email",
+          "visitante@example.test",
+          "email",
+          "required",
+        ) +
+        "</div>" +
+        formActions("Continuar", "Voltar") +
+        "</form>",
+    );
+  if (t === "checkout")
+    return (
+      '<div class="grid two">' +
+      panel(
+        "Resumo",
+        "<p>Sunset Experience · 2 unidades</p>" +
+          metrics([["Total", d.offers[0].price, "projeção"]]),
+      ) +
+      panel(
+        "Pagamento",
+        "<p>Handoff para Financial/Payments; o browser não confirma pagamento.</p>" +
+          actions(["Ir para pagamento", "Cancelar"]),
+      ) +
+      "</div>"
+    );
+  if (t === "payment-confirmation")
+    return panel(
+      "Reserva concluída",
+      metrics([
+        ["Pedido", "ORD-2026-0142"],
+        ["Pagamento", "Aprovado", "readback"],
+        ["Ticket", "Emitido", "server-authoritative"],
+      ]) + actions(["Abrir ingresso", "Voltar ao mapa"]),
+    );
+  if (t === "wallet" || t === "history")
+    return panel(
+      def.title,
+      table(
+        ["Item", "Data", "Status", "Ação"],
+        [
+          [
+            d.tickets[0].title,
+            d.tickets[0].date,
+            '<span class="badge">' + d.tickets[0].status + "</span>",
+            button("Abrir", "dialog"),
+          ],
+          [
+            "Passeio Volta à Ilha",
+            "08 out",
+            "Concluído",
+            button("Detalhes", "dialog"),
+          ],
+        ],
+      ) +
+        actions(
+          t === "history"
+            ? ["Solicitar cancelamento", "Ver reembolso"]
+            : ["Abrir ingresso"],
+        ),
+    );
+  if (t === "ticket-qr" || t === "affiliate-qr")
+    return panel(
+      def.title,
+      '<div class="ticket"><div><strong>' +
+        esc(def.title) +
+        "</strong><p>QR demonstrativo sem validade real.</p></div>" +
+        qr("QR demonstrativo") +
+        "</div>" +
+        actions(["Baixar QR", "Copiar link"]),
+    );
+  if (t === "login") return form(def.title);
+  if (t === "onboarding")
+    return form(
+      def.title,
+      '<fieldset class="field"><legend>Termos</legend><label><input type="checkbox" required> Confirmo os dados.</label></fieldset>',
+    );
+  if (
+    [
+      "dashboard",
+      "affiliate-dashboard",
+      "crm-dashboard",
+      "control-dashboard",
+      "growth-analytics",
+      "affiliate-growth-dashboard",
+    ].includes(t)
+  )
+    return (
+      metrics([
+        ["Atividade", "128"],
+        ["Conversões", "17"],
+        ["Alertas", "3"],
+        ["Estado", "Fixture"],
+      ]) +
+      panel(
+        "Atividade recente",
+        table(
+          ["Item", "Estado", "Atualizado"],
+          [
+            ["Fluxo principal", "Saudável", "agora"],
+            ["Read model", "Fixture", "agora"],
+            ["Integração", "Pendente", "após gate"],
+          ],
+        ),
+      )
+    );
+  if (t === "referral-link")
+    return panel(
+      "Link rastreável",
+      "<form data-demo-form>" +
+        field("Programa", "text", "Morro Oficial", "program") +
+        field(
+          "Link",
+          "url",
+          "https://morro.example/r/H7PQ2K",
+          "url",
+          "readonly",
+        ) +
+        formActions("Gerar link", "Copiar") +
+        "</form>",
+    );
+  if (
+    [
+      "analytics",
+      "conversions",
+      "commissions",
+      "balance",
+      "statement",
+      "payout",
+      "financial",
+    ].includes(t)
+  )
+    return (
+      metrics([
+        ["Disponível", d.affiliate.earned],
+        ["Pendente", d.affiliate.pending],
+        ["Conversões", d.affiliate.conversions],
+      ]) +
+      table(
+        ["Referência", "Tipo", "Estado", "Data"],
+        [
+          ["CNV-1042", "Conversão", "Confirmada", "29/09"],
+          ["COM-1042", "Comissão", "Pendente", "29/09"],
+          ["PAY-031", "Repasse", "Processando", "27/09"],
+        ],
+      )
+    );
+  if (t === "media")
+    return panel(
+      "Fotos e mídia",
+      '<div class="grid cards">' +
+        ["Capa", "Galeria 1", "Galeria 2"]
+          .map(
+            (x) =>
+              '<article class="card"><div class="skeleton" style="height:8rem"></div><h3>' +
+              x +
+              "</h3>" +
+              actions(["Reordenar", "Remover"]) +
+              "</article>",
+          )
+          .join("") +
+        "</div>" +
+        actions(["Adicionar mídia"]),
+    );
+  if (t === "preview")
+    return panel(
+      "Preview público",
+      '<div class="map-card"><span class="eyebrow">Vida Noturna</span><h3>' +
+        d.business.name +
+        "</h3><p>Preview de presença pública por capability.</p>" +
+        actions(["Como chegar", "Comprar"]) +
+        "</div>",
+    );
+  if (t === "affiliate-growth")
+    return panel(
+      "Progressão do afiliado",
+      "<h3>Nível " +
+        d.affiliate.level +
+        "</h3>" +
+        progress(d.affiliate.xp, d.affiliate.nextLevel, "Progresso sazonal") +
+        metrics([
+          ["AQS", d.affiliate.aqs],
+          ["AIS", d.affiliate.ais],
+          ["XP", d.affiliate.xp],
+        ]) +
+        "<p>Nenhum pagamento é concedido por scan/clique.</p>",
+    );
+  if (t === "crm-leads")
+    return (
+      form("Cadastrar lead") +
+      table(
+        ["Empresa", "Contato", "Etapa", "Ação"],
+        d.leads.map((x) => [
+          x.name,
+          x.contact,
+          x.stage,
+          button("Abrir", "dialog"),
+        ]),
+      )
+    );
+  if (t === "crm-lead")
+    return (
+      '<div class="grid two">' +
+      form("Detalhe do lead") +
+      panel(
+        "Timeline",
+        '<div class="steps">' +
+          ["Lead criado", "Primeiro contato", "Reunião", "Proposta"]
+            .map(
+              (x, i) =>
+                '<div class="step"><span class="step-index">' +
+                (i + 1) +
+                "</span><div><strong>" +
+                x +
+                "</strong><p>Registro demonstrativo append-only.</p></div></div>",
+            )
+            .join("") +
+          "</div>",
+      ) +
+      "</div>"
+    );
+  if (/^crm-/.test(t))
+    return (
+      form(def.title) +
+      table(
+        ["Registro", "Lead", "Status", "Ação"],
+        [
+          ["#1042", "Pousada Horizonte", "Ativo", button("Abrir", "dialog")],
+          ["#1043", "Restaurante Cais", "Pendente", button("Abrir", "dialog")],
+        ],
+      )
+    );
+  if (t === "public-document")
+    return panel(
+      def.title,
+      "<p>Documento público demonstrativo; assinatura/resposta será validada pelo owner.</p><h4>Termos principais</h4><p>Escopo, vigência, responsabilidades e aceite.</p>" +
+        actions(["Aceitar", "Recusar"]),
+    );
+  if (t === "support")
+    return (
+      form("Support Mode") +
+      "<p>Actor e effectiveUser permanecem distintos; sessão exige capability, motivo e auditoria.</p>"
+    );
+  if (t === "audit")
+    return table(
+      ["Quando", "Actor", "Ação", "Escopo", "Resultado"],
+      [
+        [
+          "20:32",
+          "platform-admin",
+          "business.read",
+          "morro/biz-001",
+          "permitido",
+        ],
+        ["20:28", "support-agent", "support.start", "user-demo", "auditado"],
+      ],
+    );
+  if (t === "system")
+    return metrics([
+      ["Runtime", "Healthy"],
+      ["Release", "isolated"],
+      ["Database", "N/A"],
+      ["CI", "QA"],
+    ]);
+  if (t === "integrations")
+    return (
+      '<section class="grid cards">' +
+      [
+        "Auth",
+        "Business",
+        "Commerce",
+        "Financial",
+        "Ticketing",
+        "Affiliates",
+        "Analytics",
+        "Notifications",
+      ]
+        .map(
+          (x) =>
+            '<article class="card"><span class="eyebrow">Adapter</span><h3>' +
+            x +
+            '</h3><p>Binding somente após contrato verificado.</p><span class="badge">Isolado</span></article>',
+        )
+        .join("") +
+      "</section>"
+    );
+  if (t === "notifications")
+    return panel(
+      "Central de notificações",
+      '<div class="steps">' +
+        ["Reserva confirmada", "Alerta operacional", "Relatório disponível"]
+          .map(
+            (x, i) =>
+              '<div class="step"><span class="step-index">' +
+              (i + 1) +
+              "</span><div><strong>" +
+              x +
+              "</strong><p>Fixture sem push real.</p></div></div>",
+          )
+          .join("") +
+        "</div>" +
+        actions(["Marcar como lidas"]),
+    );
+  if (t === "morro-pass")
+    return panel(
+      "Morro Pass",
+      "<h3>Nível " +
+        d.growth.level +
+        "</h3>" +
+        progress(d.growth.xp, d.growth.next, "XP") +
+        metrics([
+          ["Missões", "2"],
+          ["Badges", d.growth.badges.length],
+          ["Próximo benefício", "320 XP"],
+        ]),
+    );
+  if (t === "missions")
+    return (
+      '<section class="grid cards">' +
+      d.growth.missions
+        .map(
+          (m) =>
+            '<article class="card"><span class="badge">' +
+            m.status +
+            "</span><h3>" +
+            m.title +
+            "</h3>" +
+            progress(m.progress, m.total, m.title) +
+            "<p>" +
+            m.reward +
+            "</p>" +
+            actions(["Ver detalhes"]) +
+            "</article>",
+        )
+        .join("") +
+      "</section>"
+    );
+  if (t === "xp")
+    return panel(
+      "XP e níveis",
+      progress(d.growth.xp, d.growth.next, "XP") +
+        table(
+          ["Evento", "Motivo", "XP"],
+          [
+            ["EV-100", "AssistantUsed", "+40"],
+            ["EV-101", "NavigationStarted", "+80"],
+            ["EV-102", "Compensação", "-40"],
+          ],
+        ),
+    );
+  if (t === "badges" || t === "collections" || t === "rewards")
+    return (
+      '<section class="grid cards">' +
+      (t === "badges"
+        ? d.growth.badges
+        : t === "collections"
+          ? d.growth.collections.map((x) => x.title)
+          : d.growth.rewards.map((x) => x.title)
+      )
+        .map(
+          (x) =>
+            '<article class="card"><span class="eyebrow">' +
+            esc(def.title) +
+            "</span><h3>" +
+            esc(x) +
+            "</h3><p>Projeção de fixture; owner mantém autoridade.</p></article>",
+        )
+        .join("") +
+      "</section>"
+    );
+  if (t === "journey")
+    return metrics([
+      ["Journey", "JNY-ANON-042"],
+      ["Destino", "Morro de São Paulo"],
+      ["Perfil", "Turista"],
+      ["Identity", "Não vinculada"],
+    ]);
+  if (t === "orchestrator")
+    return table(
+      ["Ação", "Target", "Rationale", "Validade"],
+      [
+        ["Explorar", "place:p3", "nearby+interest", "15 min"],
+        ["Iniciar rota", "place:p2", "sunset-window", "30 min"],
+        ["Missão", "mission:m1", "progress-2/3", "2 h"],
+      ],
+    );
+  if (t === "claim")
+    return panel(
+      "Conclusão de desafio",
+      metrics([
+        ["Missão", "Descubra 3 lugares"],
+        ["Evidência", "2/3"],
+        ["Claim", "Pendente"],
+      ]) + actions(["Enviar claim demonstrativo"]),
+    );
+  if (t === "risk")
+    return table(
+      ["Objeto", "Sinal", "Severidade", "Estado"],
+      d.growth.risk.map((x) => [x.subject, x.signal, x.severity, x.status]),
+    );
+  if (t === "experiments")
+    return table(
+      ["Experimento", "Variante", "Modo", "Guardrail"],
+      d.growth.experiments.map((x) => [
+        x.name,
+        x.variant,
+        x.status,
+        x.guardrail,
+      ]),
+    );
+  if (t === "growth-control")
+    return (
+      '<section class="grid cards">' +
+      [
+        "Journey",
+        "Engagement",
+        "Rewards",
+        "Affiliate Growth",
+        "Risk",
+        "Experiments",
+      ]
+        .map(
+          (x) =>
+            '<article class="card"><span class="eyebrow">Control plane</span><h3>' +
+            x +
+            '</h3><p>Draft → review → publish versionado.</p><span class="badge">Flag OFF por padrão</span></article>',
+        )
+        .join("") +
+      "</section>" +
+      form("Publicar configuração")
+    );
+  if (t === "admin-table")
+    return panel(
+      def.title,
+      table(
+        ["Item", "Tipo", "Status", "Escopo", "Ação"],
+        d.adminRows.map((x) => [
+          x.name,
+          x.type,
+          x.status,
+          x.scope,
+          button("Abrir", "dialog"),
+        ]),
+      ) + actions(["Criar", "Filtrar", "Exportar"]),
+    );
+  return form(
+    def.title,
+    "<p>Superfície operacional sobre FixtureProvider; binding futuro respeita owner, auth, scope e capabilities.</p>",
+  );
+}
