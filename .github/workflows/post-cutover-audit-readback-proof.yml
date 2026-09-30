@@ -135,7 +135,10 @@ jobs:
             state="/tmp/job-$sequence-state.json"
             logs="/tmp/job-$sequence-logs.json"
 
-            command="set -eu; out=\"\$(MYSQL_PWD=\"\$AUDIT_DATABASE_PASSWORD\" mysql --protocol=tcp --connect-timeout=10 --batch --skip-column-names -h morro-digital-v2-production-mysql -P 3306 -u \"\$AUDIT_DATABASE_USER\" \"\$AUDIT_DATABASE_NAME\" -e \"SELECT CONCAT(id,'|',action,'|',result,'|',correlation_id,'|',request_id) FROM control_center_audit_entries WHERE correlation_id='$CORRELATION_ID' AND request_id='$REQUEST_ID' ORDER BY id DESC LIMIT 1;\")\"; test -n \"\$out\"; printf 'MORRO_POST_CUTOVER_AUDIT_READBACK %s\\n' \"\$out\""
+            corr_hex="$(printf '%s' "$CORRELATION_ID" | od -An -tx1 | tr -d ' \n')"
+            req_hex="$(printf '%s' "$REQUEST_ID" | od -An -tx1 | tr -d ' \n')"
+            script="set -eu; out=\"\$(MYSQL_PWD=\"\$AUDIT_DATABASE_PASSWORD\" mysql --protocol=tcp --connect-timeout=10 --batch --skip-column-names -h morro-digital-v2-production-mysql -P 3306 -u \"\$AUDIT_DATABASE_USER\" \"\$AUDIT_DATABASE_NAME\" -e \"SELECT CONCAT(id,CHAR(124),action,CHAR(124),result,CHAR(124),correlation_id,CHAR(124),request_id) FROM control_center_audit_entries WHERE correlation_id=0x$corr_hex AND request_id=0x$req_hex ORDER BY id DESC LIMIT 1;\")\"; test -n \"\$out\"; printf \"MORRO_POST_CUTOVER_AUDIT_READBACK %s\\n\" \"\$out\""
+            command="sh -c '$script'"
             jq -nc --arg command "$command" '{startCommand:$command}' > "$request"
 
             http_status="$(curl --silent --show-error --output "$created" --write-out '%{http_code}'               --request POST --header "$auth" --header "Accept: application/json"               --header "Content-Type: application/json" --data-binary @"$request"               "$api/services/$MYSQL_SERVICE_ID/jobs")"
