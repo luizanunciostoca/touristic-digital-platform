@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 const require = createRequire(import.meta.url);
 const playwrightPath =
   process.env.IF_PLAYWRIGHT_PATH ?? "/tmp/pw/node_modules/playwright";
 const { chromium } = require(playwrightPath);
-const base =
-  process.env.IF_BASE_URL || "http://127.0.0.1:4173/labs/interface-fabric";
+const base =\n  process.env.IF_BASE_URL || "http://127.0.0.1:4173/labs/interface-fabric";\nconst manifest = JSON.parse(\n  await readFile(new URL("../../manifest/interfaces.json", import.meta.url), "utf8"),\n);
 const browser = await chromium.launch({ headless: true });
 const errors = [];
 const context = await browser.newContext({
@@ -20,8 +20,7 @@ async function open(id, state = "populated") {
     waitUntil: "networkidle",
   });
   assert.ok(r?.ok(), id);
-}
-await open("IF-PUB-006");
+}\nfor (const { id } of manifest) {\n  await open(id);\n  assert.equal(await page.locator("body").getAttribute("data-interface-id"), id);\n  assert.ok(await page.locator("#main-content").isVisible(), id);\n  const layout = await page.evaluate(() => ({\n    scrollWidth: document.documentElement.scrollWidth,\n    clientWidth: document.documentElement.clientWidth,\n  }));\n  assert.ok(\n    layout.scrollWidth <= layout.clientWidth + 1,\n    \`${id}: page-level horizontal overflow ${layout.scrollWidth} > ${layout.clientWidth}`,\n  );\n}\nawait open("IF-PUB-006");
 assert.ok(await page.locator(".map-canvas").isVisible());
 await page.getByRole("button", { name: "Explorar" }).click();
 await page.waitForURL(/IF-PUB-008\.html/);
