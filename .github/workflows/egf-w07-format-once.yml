@@ -38,14 +38,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm exec prettier --write \
-            packages/shared/src/experience-growth-fabric/rewards/domain.test.ts \
-            packages/shared/src/experience-growth-fabric/rewards/domain.ts \
-          git rm .github/workflows/egf-w07-format-once.yml
+          FILES=(
+            "packages/shared/src/experience-growth-fabric/rewards/domain.test.ts"
+            "packages/shared/src/experience-growth-fabric/rewards/domain.ts"
+          )
+          pnpm exec prettier --write "${FILES[@]}"
+          git rm ".github/workflows/egf-w07-format-once.yml"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            packages/shared/src/experience-growth-fabric/rewards/domain.test.ts \
-            packages/shared/src/experience-growth-fabric/rewards/domain.ts \
+          git add "${FILES[@]}"
           git commit -m "style(growth): apply canonical W07 formatting"
           git push origin "HEAD:${GITHUB_HEAD_REF}"
