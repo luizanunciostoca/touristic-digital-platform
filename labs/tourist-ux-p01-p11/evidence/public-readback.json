@@ -1,0 +1,30 @@
+{
+  "source": "read-only-public-api",
+  "origin": "https://morro-digital-v2-staging.onrender.com",
+  "at": "2026-09-30T08:41:08.935Z",
+  "results": [
+    {
+      "path": "/readyz",
+      "status": 200,
+      "releaseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+      "readOnly": true
+    },
+    {
+      "path": "/runtime-config.js",
+      "status": 200,
+      "releaseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+      "readOnly": true,
+      "placeFlagPresent": true,
+      "publicConfigBytes": 425
+    },
+    {
+      "path": "/api/places/v1/map",
+      "status": 200,
+      "releaseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+      "readOnly": true,
+      "placeItems": 72,
+      "nextCursor": false
+    }
+  ],
+  "conclusion": "A zero-item map response does not certify global catalog absence and never authorizes fallback removal."
+}

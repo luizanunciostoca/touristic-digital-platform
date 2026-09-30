@@ -1,5 +1,5 @@
 /** P06: proofable assistant/map/place continuity policy; does not replace V1 orchestrator. */
-export const APPROVED_CATEGORY_ORDER=Object.freeze(['beaches','restaurants','hotels','shops','transport','attractions','tours','nightlife','emergencies','help']);
+export const APPROVED_CATEGORY_ORDER=Object.freeze(['beaches','tours','attractions','restaurants','hotels','nightlife','shops','transport','emergencies','help']);
 export const BOTTOM_NAV=Object.freeze(['explore','tours','saved','tickets','profile']);
 const SAVABLE=['discover','place','assistant','commerce','navigation','tour'];
 export function validateApprovedShell(document){

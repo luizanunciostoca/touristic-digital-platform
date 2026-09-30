@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "authority": "ISOLATED_LAB_ONLY_NOT_MERGE_READY",
+  "sourceMainSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "createdAtUtc": "2026-09-30T08:57:47.087676+00:00",
+  "codeScope": "labs/tourist-ux-p01-p11/**",
+  "tests": {
+    "run": "Node test fresh exact branch worktree",
+    "count": 68,
+    "passed": 68,
+    "failed": 0,
+    "nodeVersion": "v24.17.0"
+  },
+  "sourceGate": {
+    "pass": true,
+    "matchesMainMenu": true,
+    "mainShaSame": true,
+    "outOfScope": [],
+    "legacyChanges": []
+  },
+  "readOnlyStaging": {
+    "source": "read-only-public-api",
+    "origin": "https://morro-digital-v2-staging.onrender.com",
+    "at": "2026-09-30T08:41:08.935Z",
+    "results": [
+      {
+        "path": "/readyz",
+        "status": 200,
+        "releaseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+        "readOnly": true
+      },
+      {
+        "path": "/runtime-config.js",
+        "status": 200,
+        "releaseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+        "readOnly": true,
+        "placeFlagPresent": true,
+        "publicConfigBytes": 425
+      },
+      {
+        "path": "/api/places/v1/map",
+        "status": 200,
+        "releaseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+        "readOnly": true,
+        "placeItems": 72,
+        "nextCursor": false
+      }
+    ],
+    "conclusion": "A zero-item map response does not certify global catalog absence and never authorizes fallback removal."
+  },
+  "visualFixtureProof": {
+    "cases": 21,
+    "passed": 21,
+    "viewports": 7,
+    "evidenceLocation": "external conversation ZIP and PNG; not copied into branch",
+    "proofSha256": "8ef1fbc5da19a83f0fbe427b2cf3879806b714c43442c228572feb16893a6857"
+  },
+  "isolatedHttp": {
+    "GET": 200,
+    "POST": 405,
+    "remoteDebianChromiumScreenshot": "BLOCKED_SIGTRAP"
+  },
+  "featureFlags": "OFF",
+  "notProven": [
+    "P07 normalized real Home header before/after",
+    "P08 final design choice",
+    "full apps integration E2E",
+    "owner media mapping and pricing readback",
+    "full device and accessibility matrix",
+    "Node22 CI"
+  ],
+  "integrationIntoMain": false,
+  "productionChanged": false,
+  "commercialEffects": false
+}
