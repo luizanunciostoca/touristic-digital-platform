@@ -318,7 +318,7 @@ export function resolveAffiliateLevel(
     throw new Error("AFFILIATE_FIRST_LEVEL_MUST_START_AT_ZERO");
   }
 
-  let current = ordered[0] as AffiliateLevelDefinition;
+  let current = ordered[0];
   for (const level of ordered) {
     if (lifetimeXp >= level.minimumLifetimeXp) current = level;
     else break;
