@@ -39,10 +39,7 @@ const draft = validateMissionDefinition({
   ],
 });
 
-const published = publishMissionDefinition(
-  draft,
-  "2026-09-29T12:00:00.000Z",
-);
+const published = publishMissionDefinition(draft, "2026-09-29T12:00:00.000Z");
 
 function newProgress() {
   return createMissionProgress(published, {
@@ -123,13 +120,8 @@ describe("mission engine", () => {
     expect(completed.kind).toBe("completed");
     if (completed.kind !== "completed") return;
 
-    expect(completed.events).toEqual([
-      "MissionProgressed",
-      "MissionCompleted",
-    ]);
-    expect(completed.completionKey).toBe(
-      "journey_00000001:mission_beaches:1",
-    );
+    expect(completed.events).toEqual(["MissionProgressed", "MissionCompleted"]);
+    expect(completed.completionKey).toBe("journey_00000001:mission_beaches:1");
   });
 
   it("treats duplicate evidence as replay without double completion", () => {

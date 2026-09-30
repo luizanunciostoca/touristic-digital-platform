@@ -1,8 +1,4 @@
-export type MissionProfileType =
-  | "tourist"
-  | "resident"
-  | "visitor"
-  | "unknown";
+export type MissionProfileType = "tourist" | "resident" | "visitor" | "unknown";
 
 export type MissionTrustClass =
   | "behavioral"
@@ -90,8 +86,7 @@ const TRUST_RANK: Readonly<Record<MissionTrustClass, number>> = {
   financial_authoritative: 3,
 };
 
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function isUtc(value: string): boolean {
   return UTC_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
@@ -113,7 +108,10 @@ export function validateMissionDefinition(
   if (definition.eligibleProfiles.length < 1) {
     throw new Error("MISSION_PROFILE_POLICY_EMPTY");
   }
-  if (new Set(definition.eligibleProfiles).size !== definition.eligibleProfiles.length) {
+  if (
+    new Set(definition.eligibleProfiles).size !==
+    definition.eligibleProfiles.length
+  ) {
     throw new Error("MISSION_PROFILE_POLICY_DUPLICATE");
   }
   if (definition.steps.length < 1) {
@@ -324,8 +322,7 @@ export function applyMissionEvidence(
     ? state.completedStepIds
     : unique([...state.completedStepIds, step.stepId]);
 
-  const completed =
-    completedStepIds.length === definition.steps.length;
+  const completed = completedStepIds.length === definition.steps.length;
 
   const nextState = Object.freeze({
     ...state,
