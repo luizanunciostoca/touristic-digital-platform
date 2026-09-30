@@ -36,3 +36,11 @@ vulnerabilities:
   - id: CVE-2026-9538
     expired_at: 2026-10-01
     statement: Debian 13.7 perl-base HIGH finding is vendor fix-deferred in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
+
+  - id: CVE-2026-84782
+    expired_at: 2026-10-01
+    statement: >-
+      OpenSSL DTLS HIGH finding disclosed on 2026-09-29 has no Debian stable
+      fixed package for Trixie in the 2026-09-30 SEC-07 scan. Keep
+      ignore-unfixed=false and re-evaluate this narrow exception no later than
+      the expiry date.
