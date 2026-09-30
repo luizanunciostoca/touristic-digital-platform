@@ -67,7 +67,7 @@ function shell(def,body){
 }
 function hero(def){
   return `<nav class="breadcrumbs" aria-label="Breadcrumb"><a href="${basePath()}index.html">Fabric</a><span>/</span><span>${esc(def.domain)}</span><span>/</span><span aria-current="page">${esc(def.id)}</span></nav>
-  <section class="hero"><div><span class="eyebrow">${esc(def.persona)}</span><h2>${esc(def.title)}</h2><p>${esc(def.sourceEvidence)}</p></div><div><span class="badge">${esc(def.legacyStatus)} → ISOLATED_COMPLETE</span></div></section>`;
+  <section class="hero"><div><span class="eyebrow">${esc(def.persona)}</span><h2>${esc(def.title)}</h2><p>${esc(def.sourceEvidence)}</p></div><div><span class="badge">${esc(def.legacyStatus)} → ${esc(def.isolatedStatus)}</span></div></section>`;
 }
 function stateBody(def,data){
   if(currentState==="loading") return `${statusBanner("loading")}<div class="grid cards">${Array.from({length:6},()=>'<div class="card"><div class="skeleton" style="height:1rem;width:38%"></div><div class="skeleton" style="height:2rem;margin-top:.8rem"></div><div class="skeleton" style="height:4rem;margin-top:.8rem"></div></div>').join("")}</div>`;
@@ -89,7 +89,7 @@ async function renderInterface(def){
 }
 function renderCatalog(){
   const groups=domainGroups();
-  const body=`<section class="hero"><div><span class="eyebrow">Interface-complete</span><h2>112 interfaces isoladas</h2><p>Catálogo físico da Fabric. Cada item possui HTML próprio, Design System compartilhado, lógica, estados, fixture adapter e contrato de integração.</p></div><span class="badge">ZERO-TOUCH LEGACY</span></section>
+  const body=`<section class="hero"><div><span class="eyebrow">Isolated build</span><h2>112 interfaces implementadas, aguardando prova final</h2><p>Catálogo físico da Fabric. Cada item possui HTML próprio, Design System compartilhado, lógica, estados, fixture adapter e contrato de integração; browser, visual e acessibilidade permanecem gates explícitos.</p></div><span class="badge">ZERO-TOUCH LEGACY</span></section>
   ${[...groups.entries()].map(([domain,items])=>`<section class="panel"><h3>${esc(domain)} <small>(${items.length})</small></h3><div class="grid cards">${items.map(x=>`<article class="card"><span class="eyebrow">${esc(x.id)}</span><h3>${esc(x.title)}</h3><p>${esc(x.legacyStatus)} → alvo isolado</p><a class="button primary" href="${pageFor(x.id)}">Abrir interface</a></article>`).join("")}</div></section>`).join("")}`;
   app.innerHTML=shell(null,body);
   wire(null);
