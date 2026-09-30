@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 const base =
   process.env.IF_BASE_URL || "http://127.0.0.1:4173/labs/interface-fabric";
 let chromium;
@@ -10,6 +10,10 @@ try {
   );
   process.exit(2);
 }
+const manifest = JSON.parse(
+  await readFile(new URL("../../manifest/interfaces.json", import.meta.url), "utf8"),
+);
+const ids = manifest.map(({ id }) => id);
 const viewports = [
   [360, 800],
   [390, 844],
@@ -18,8 +22,9 @@ const viewports = [
   [1024, 768],
   [1280, 800],
   [1440, 900],
+  [800, 360],
 ];
-const ids = [
+const representativeIds = new Set([
   "IF-PUB-006",
   "IF-PUB-010",
   "IF-COM-004",
@@ -28,7 +33,7 @@ const ids = [
   "IF-CRM-001",
   "IF-CTL-001",
   "IF-GRW-001",
-];
+]);
 await mkdir(new URL("../../visual/evidence/", import.meta.url), {
   recursive: true,
 });
@@ -50,13 +55,25 @@ for (const [width, height] of viewports) {
       failures.push({ id, width, height, http: response?.status() });
       continue;
     }
-    await page.screenshot({
-      path: new URL(
-        "../../visual/evidence/" + id + "-" + width + "x" + height + ".png",
-        import.meta.url,
-      ).pathname,
-      fullPage: true,
-    });
+    const layout = await page.evaluate(() => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+    }));
+    if (layout.scrollWidth > layout.clientWidth + 1) {
+      failures.push({ id, width, height, ...layout });
+    }
+    if (
+      (width === 390 && height === 844) ||
+      representativeIds.has(id)
+    ) {
+      await page.screenshot({
+        path: new URL(
+          "../../visual/evidence/" + id + "-" + width + "x" + height + ".png",
+          import.meta.url,
+        ).pathname,
+        fullPage: true,
+      });
+    }
   }
   await context.close();
 }
@@ -65,4 +82,4 @@ if (failures.length) {
   console.error(JSON.stringify(failures, null, 2));
   process.exit(1);
 }
-console.log("VISUAL_SMOKE_PASS");
+console.log("VISUAL_RESPONSIVE_PASS");
