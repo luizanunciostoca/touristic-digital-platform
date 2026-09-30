@@ -24,7 +24,8 @@
       ".morro/changesets/MD-EGF-W15-HTTP-CONTRACTS.json",
       ".morro/changesets/MD-EGF-W16-UI-REFERENCE.json",
       "packages/shared/src/experience-growth-fabric/**",
-      "docs/qa/experience-growth-fabric/**"
+      "docs/qa/experience-growth-fabric/**",
+      ".github/workflows/egf-isolated-mysql-acceptance.yml"
     ],
     "contracts": [
       "growth-platform-event-v1",
@@ -73,14 +74,33 @@
     "replay-idempotency",
     "accessibility-contract",
     "exact-head-ci",
-    "automated-independent-proof"
+    "automated-independent-proof",
+    "security-privacy-fraud",
+    "failure-replay-recovery",
+    "performance-load",
+    "isolated-mysql",
+    "full-isolated-e2e"
   ],
   "stopAt": "REMOTE_PROVEN",
   "sizeException": {
     "kind": "mechanical-composition",
-    "reason": "Mechanical composition of sixteen independently scoped, ADD-ONLY and exact-head-proven Experience & Growth Fabric waves into one isolated construction tree. This exception covers aggregate file and line count only and does not waive formatting, lint, typecheck, tests, security, replay, accessibility, exact-head, rollback, or release acceptance gates.",
+    "reason": "Mechanical composition of sixteen independently scoped, ADD-ONLY and exact-head-proven Experience & Growth Fabric waves plus isolated W17-W21 acceptance assets into one construction tree. This exception covers aggregate file and line count only and does not waive formatting, lint, typecheck, tests, security, privacy, fraud, recovery, replay, performance, MySQL, accessibility, exact-head, rollback, or final release acceptance gates.",
     "sourcePullRequests": [
-      545, 546, 547, 548, 550, 551, 552, 553, 554, 555, 556, 557, 558, 559, 561,
+      545,
+      546,
+      547,
+      548,
+      550,
+      551,
+      552,
+      553,
+      554,
+      555,
+      556,
+      557,
+      558,
+      559,
+      561,
       563
     ],
     "maxFiles": 120,
