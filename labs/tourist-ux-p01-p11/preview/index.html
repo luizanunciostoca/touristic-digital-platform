@@ -1,44 +1,156 @@
 <!doctype html>
 <html lang="pt-BR" data-p07-header-approved="false">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Morro Digital — Propostas P07/P08 — LAB ISOLADO</title>
-<link rel="stylesheet" href="./preview.css">
-<script type="module" src="./preview.mjs"></script>
-</head>
-<body data-md-mode="discover">
-<div class="not-prod" role="status">LAB ISOLADO • PROPOSTAS VISUAIS • NÃO É O SITE REAL • DADOS DEMONSTRATIVOS</div>
-<div class="lab-control">
- <label for="saved-option">P08 Salvos</label>
- <select id="saved-option"><option value="A">A — Dentro do Assistant</option><option value="B">B — Painel dedicado na Home</option></select>
- <label class="checkbox"><input id="header-preview" type="checkbox">P07: prévia sem sombra externa do cabeçalho</label>
- <button type="button" id="reset" class="tool-btn">Redefinir</button>
-</div>
-<div class="screen" id="screen">
- <section class="preview-map" aria-label="Área reservada ao mapa real na integração futura">
-   <div class="map-note"><strong>MAPBOX REAL SERÁ PRESERVADO</strong><span>Esta composição isolada demonstra SOMENTE a organização da interface, não tiles ou Places reais.</span></div>
-   <span class="map-spot spot-1" aria-hidden="true"></span><span class="map-spot spot-2" aria-hidden="true"></span>
- </section>
- <header class="md-home-header">
-  <div class="md-home-header-inner"><span class="mark">M</span><div class="title-block"><h1>Morro de São Paulo</h1><small>Seu guia pelo destino</small></div></div>
- </header>
- <button class="weather" type="button" aria-label="Ver previsão demonstrativa">🌤 <strong>27°</strong></button>
- <section class="saved-home hidden" id="home-saved-panel" aria-labelledby="home-saved-title">
-   <div class="panel-title"><span class="eyebrow">P08 • OPÇÃO B</span><button type="button" id="close-saved" class="icon">×</button></div>
-   <h2 id="home-saved-title">Seus lugares salvos</h2><p>Os favoritos aparecerão aqui usando a MESMA fonte de dados do Assistant, após verificação do owner.</p>
-   <div class="empty"><span>♡</span><strong>Sem favoritos carregados</strong><small>Não inventamos resultados enquanto o serviço canônico não estiver vinculado.</small></div>
- </section>
- <section class="dock" id="unified-assistant-dock" aria-label="Dock unificado ilustrativo">
-  <div class="grabber" aria-hidden="true"></div>
-  <div class="message" id="lab-assistant-message"><span class="eyebrow">ASSISTANT CONTEXTUAL</span><p id="assistant-copy">Posso ajudar você a explorar Morro de São Paulo.</p>
-    <div class="assistant-saved hidden" id="assistant-saved"><span>♡</span><strong>Seus lugares salvos</strong><small>Conteúdo do owner será exibido aqui.</small></div>
-  </div>
-  <div class="categories" aria-label="Categorias em rolagem horizontal">
-    <button type="button">Praias</button><button type="button">Passeios</button><button type="button">Atrações</button><button type="button">Restaurantes</button><button type="button">Pousadas</button><button type="button">Vida Noturna</button><button type="button">Lojas</button><button type="button">Transporte</button><button type="button">Emergências</button><button type="button">Ajuda</button>
-  </div>
-  <div class="composer" id="assistant-input-area"><label class="sr-only" for="question">Pergunta</label><input id="question" placeholder="Pergunte ao Morro Digital..." disabled><button type="button" aria-label="Voz em preview desativado">🎙</button><button type="button" aria-label="Enviar em preview desativado" disabled>➤</button></div>
-  <nav class="bottom-nav" id="home-bottom-navigation" aria-label="Navegação do produto (prévia)"><button type="button">Explorar</button><button type="button">Tours</button><button type="button" id="saved-button">Salvos</button><button type="button">Ingressos</button><button type="button">Perfil</button></nav>
- </section>
-</div>
-<section class="instructions"><h2>Sobre esta proposta comparativa</h2><p><strong>Elementos congelados:</strong> mapa dominante, cabeçalho compacto, clima separado, um dock unificado, rolagem das 10 categorias, composer contínuo e navegação inferior. Sem botões flutuantes, Quick Actions ou painel administrativo genérico.</p><p><strong>P08:</strong> opção A usa somente o Assistant atual. Opção B adiciona um painel pequeno sobre o mapa. Nenhuma delas cria uma segunda fonte de dados ou assume sua preferência final.</p><p><strong>P07:</strong> a caixa de seleção altera SOMENTE a sombra do contêiner do nome; não remove a sombra do clima. A correção real exige prova com capturas normalizadas da Home atual.</p></section>
-</body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Morro Digital — Propostas P07/P08 — LAB ISOLADO</title>
+    <link rel="stylesheet" href="./preview.css" />
+    <script type="module" src="./preview.mjs"></script>
+  </head>
+  <body data-md-mode="discover">
+    <div class="not-prod" role="status">
+      LAB ISOLADO • PROPOSTAS VISUAIS • NÃO É O SITE REAL • DADOS DEMONSTRATIVOS
+    </div>
+    <div class="lab-control">
+      <label for="saved-option">P08 Salvos</label>
+      <select id="saved-option">
+        <option value="A">A — Dentro do Assistant</option>
+        <option value="B">B — Painel dedicado na Home</option>
+      </select>
+      <label class="checkbox"
+        ><input id="header-preview" type="checkbox" />P07: prévia sem sombra
+        externa do cabeçalho</label
+      >
+      <button type="button" id="reset" class="tool-btn">Redefinir</button>
+    </div>
+    <div class="screen" id="screen">
+      <section
+        class="preview-map"
+        aria-label="Área reservada ao mapa real na integração futura"
+      >
+        <div class="map-note">
+          <strong>MAPBOX REAL SERÁ PRESERVADO</strong
+          ><span
+            >Esta composição isolada demonstra SOMENTE a organização da
+            interface, não tiles ou Places reais.</span
+          >
+        </div>
+        <span class="map-spot spot-1" aria-hidden="true"></span
+        ><span class="map-spot spot-2" aria-hidden="true"></span>
+      </section>
+      <header class="md-home-header">
+        <div class="md-home-header-inner">
+          <span class="mark">M</span>
+          <div class="title-block">
+            <h1>Morro de São Paulo</h1>
+            <small>Seu guia pelo destino</small>
+          </div>
+        </div>
+      </header>
+      <button
+        class="weather"
+        type="button"
+        aria-label="Ver previsão demonstrativa"
+      >
+        🌤 <strong>27°</strong>
+      </button>
+      <section
+        class="saved-home hidden"
+        id="home-saved-panel"
+        aria-labelledby="home-saved-title"
+      >
+        <div class="panel-title">
+          <span class="eyebrow">P08 • OPÇÃO B</span
+          ><button type="button" id="close-saved" class="icon">×</button>
+        </div>
+        <h2 id="home-saved-title">Seus lugares salvos</h2>
+        <p>
+          Os favoritos aparecerão aqui usando a MESMA fonte de dados do
+          Assistant, após verificação do owner.
+        </p>
+        <div class="empty">
+          <span>♡</span><strong>Sem favoritos carregados</strong
+          ><small
+            >Não inventamos resultados enquanto o serviço canônico não estiver
+            vinculado.</small
+          >
+        </div>
+      </section>
+      <section
+        class="dock"
+        id="unified-assistant-dock"
+        aria-label="Dock unificado ilustrativo"
+      >
+        <div class="grabber" aria-hidden="true"></div>
+        <div class="message" id="lab-assistant-message">
+          <span class="eyebrow">ASSISTANT CONTEXTUAL</span>
+          <p id="assistant-copy">
+            Posso ajudar você a explorar Morro de São Paulo.
+          </p>
+          <div class="assistant-saved hidden" id="assistant-saved">
+            <span>♡</span><strong>Seus lugares salvos</strong
+            ><small>Conteúdo do owner será exibido aqui.</small>
+          </div>
+        </div>
+        <div class="categories" aria-label="Categorias em rolagem horizontal">
+          <button type="button">Praias</button
+          ><button type="button">Passeios</button
+          ><button type="button">Atrações</button
+          ><button type="button">Restaurantes</button
+          ><button type="button">Pousadas</button
+          ><button type="button">Vida Noturna</button
+          ><button type="button">Lojas</button
+          ><button type="button">Transporte</button
+          ><button type="button">Emergências</button
+          ><button type="button">Ajuda</button>
+        </div>
+        <div class="composer" id="assistant-input-area">
+          <label class="sr-only" for="question">Pergunta</label
+          ><input
+            id="question"
+            placeholder="Pergunte ao Morro Digital..."
+            disabled
+          /><button type="button" aria-label="Voz em preview desativado">
+            🎙</button
+          ><button
+            type="button"
+            aria-label="Enviar em preview desativado"
+            disabled
+          >
+            ➤
+          </button>
+        </div>
+        <nav
+          class="bottom-nav"
+          id="home-bottom-navigation"
+          aria-label="Navegação do produto (prévia)"
+        >
+          <button type="button">Explorar</button
+          ><button type="button">Tours</button
+          ><button type="button" id="saved-button">Salvos</button
+          ><button type="button">Ingressos</button
+          ><button type="button">Perfil</button>
+        </nav>
+      </section>
+    </div>
+    <section class="instructions">
+      <h2>Sobre esta proposta comparativa</h2>
+      <p>
+        <strong>Elementos congelados:</strong> mapa dominante, cabeçalho
+        compacto, clima separado, um dock unificado, rolagem das 10 categorias,
+        composer contínuo e navegação inferior. Sem botões flutuantes, Quick
+        Actions ou painel administrativo genérico.
+      </p>
+      <p>
+        <strong>P08:</strong> opção A usa somente o Assistant atual. Opção B
+        adiciona um painel pequeno sobre o mapa. Nenhuma delas cria uma segunda
+        fonte de dados ou assume sua preferência final.
+      </p>
+      <p>
+        <strong>P07:</strong> a caixa de seleção altera SOMENTE a sombra do
+        contêiner do nome; não remove a sombra do clima. A correção real exige
+        prova com capturas normalizadas da Home atual.
+      </p>
+    </section>
+  </body>
+</html>
