@@ -2,7 +2,16 @@ export function assertHealthyReadiness(responseStatus, body) {
   const checks = Array.isArray(body?.checks) ? body.checks : [];
   const failedChecks = checks
     .filter((check) => check?.status !== "pass")
-    .map((check) => check?.name)
+    .map((check) => {
+      const name = String(check?.name ?? "")
+        .trim()
+        .replace(/[^A-Za-z0-9_-]+/gu, "_");
+      const detail = String(check?.detail ?? "")
+        .trim()
+        .replace(/[^A-Za-z0-9_:-]+/gu, "_");
+      if (!name) return "";
+      return detail ? `${name}:${detail}` : name;
+    })
     .filter(Boolean);
 
   if (
