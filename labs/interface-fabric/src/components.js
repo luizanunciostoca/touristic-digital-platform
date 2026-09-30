@@ -17,6 +17,19 @@ export function statusBanner(state){
     api_error:["Erro do serviço","O domínio respondeu com erro. Nenhum fallback inventa autoridade.","danger"],
     timeout:["Tempo esgotado","A operação não confirmou resultado. O estado permanece não confirmado.","danger"],
     validation_error:["Revise os campos","Há dados inválidos antes do envio.","danger"],
+    session_expired:["Sessão expirada","Sua sessão terminou. Reautentique-se antes de qualquer operação protegida.","danger"],
+    suspended:["Conta suspensa","A conta está suspensa e nenhuma mutação é permitida.","danger"],
+    rate_limit:["Muitas tentativas","O limite de requisições foi atingido. Aguarde antes de tentar novamente.","warning"],
+    internal_error:["Erro interno","A operação falhou de forma segura e não há confirmação de efeito.","danger"],
+    service_unavailable:["Serviço indisponível","O domínio necessário está temporariamente indisponível.","danger"],
+    maintenance:["Manutenção em andamento","Esta superfície está temporariamente indisponível durante manutenção.","warning"],
+    idle:["Aguardando ação","A operação ainda não foi iniciada.","info"],
+    pending:["Pendente","A solicitação foi recebida e aguarda processamento autoritativo.","info"],
+    processing:["Processando","A operação está em andamento; não repita a ação.","info"],
+    confirmed:["Confirmado","O resultado foi confirmado pela projeção de fixture; binding real exigirá readback do owner.","success"],
+    failed:["Falhou","A operação não foi concluída e pode exigir nova tentativa segura.","danger"],
+    cancelled:["Cancelado","A operação foi cancelada e não deve avançar.","warning"],
+    reversed:["Revertido","A operação foi revertida; o histórico permanece preservado.","warning"],
     stale_data:["Dados possivelmente desatualizados","A projeção pode estar antiga; ações autoritativas exigem novo readback.","warning"]
   };
   const [title,body,tone]=map[state]||map.populated;

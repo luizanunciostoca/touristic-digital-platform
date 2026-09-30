@@ -10,8 +10,8 @@ const storage={
 const adapter=new InterfaceAdapter();
 const app=document.querySelector("#app");
 const currentId=document.body.dataset.interfaceId || "CATALOG";
-const stateOptions=["populated","loading","skeleton","empty","success","warning","partial","disabled","unauthorized","forbidden","offline","network_error","api_error","timeout","validation_error","stale_data"];
-const fatalStates=new Set(["unauthorized","forbidden","network_error","api_error","timeout","offline"]);
+const stateOptions=["populated","loading","skeleton","empty","success","warning","partial","disabled","unauthorized","forbidden","session_expired","suspended","rate_limit","offline","network_error","api_error","internal_error","service_unavailable","maintenance","timeout","validation_error","stale_data","idle","pending","processing","confirmed","failed","cancelled","reversed"];
+const fatalStates=new Set(["unauthorized","forbidden","session_expired","suspended","rate_limit","network_error","api_error","internal_error","service_unavailable","maintenance","timeout","offline"]);
 
 let catalog=[], nav={next:{},previous:{}}, currentState=new URLSearchParams(location.search).get("state")||"populated";
 let locale=resolveLocale({
