@@ -1,0 +1,39 @@
+{
+  "id": "MD-EGF-W08-REWARD-ECONOMY",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w08-reward-economy-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W08-REWARD-ECONOMY.json",
+      "packages/shared/src/experience-growth-fabric/economics/**"
+    ],
+    "contracts": ["growth-economics-input-v1", "growth-budget-guard-v1"]
+  },
+  "reads": {
+    "contracts": ["verified-payment-outcome"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-EGF-W01-CONTRACTS", "MD-EGF-W07-REWARDS-CORE"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

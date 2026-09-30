@@ -1,0 +1,48 @@
+{
+  "id": "MD-EGF-W05-ENGAGEMENT-CORE",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w05-engagement-core-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W05-ENGAGEMENT-CORE.json",
+      "packages/shared/src/experience-growth-fabric/engagement/**"
+    ],
+    "contracts": [
+      "engagement-xp-ledger-v1",
+      "engagement-level-policy-v1",
+      "engagement-badge-collection-v1"
+    ]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [
+      "XpGranted",
+      "LevelAdvanced",
+      "BadgeGranted",
+      "CollectionProgressed"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-EGF-W01-CONTRACTS", "MD-EGF-W04-JOURNEY-DOMAIN"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
