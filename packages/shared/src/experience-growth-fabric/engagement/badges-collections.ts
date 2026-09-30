@@ -77,7 +77,10 @@ export function projectCollectionProgress(
   }
 
   const components = new Set(definition.componentIds);
-  if (components.size !== definition.componentIds.length || components.size < 1) {
+  if (
+    components.size !== definition.componentIds.length ||
+    components.size < 1
+  ) {
     throw new Error("COLLECTION_COMPONENTS_INVALID");
   }
 

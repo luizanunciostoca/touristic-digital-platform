@@ -33,10 +33,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-EGF-W01-CONTRACTS",
-    "MD-EGF-W04-JOURNEY-DOMAIN"
-  ],
+  "dependencies": ["MD-EGF-W01-CONTRACTS", "MD-EGF-W04-JOURNEY-DOMAIN"],
   "requiredEvidence": [
     "format",
     "secrets",
