@@ -234,7 +234,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       assert.equal(body.serviceDetails.healthCheckPath, "/readyz");
       assert.equal(
         body.serviceDetails.preDeployCommand,
-        "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
+        "node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/production-commerce-runtime-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs",
       );
       return jsonResponse(200, { id: "srv-web" });
     }
