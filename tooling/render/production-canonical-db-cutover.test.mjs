@@ -345,7 +345,11 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   });
   assert.ok(!JSON.stringify(evidence).includes("-runtime-secret"));
   assert.ok(!JSON.stringify(evidence).includes("PAYMENTS_HANDOFF_SECRET"));
-  assert.ok(!JSON.stringify(evidence).includes("TICKETING_OFFLINE_PROVISIONING_SECRET"));
+  assert.ok(
+    !JSON.stringify(evidence).includes(
+      "TICKETING_OFFLINE_PROVISIONING_SECRET",
+    ),
+  );
 });
 
 function failureCutoverFixture({
