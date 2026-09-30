@@ -9,9 +9,7 @@
       ".morro/changesets/MD-INTERFACE-FABRIC-ISOLATED-COMPOSITION.json",
       "labs/interface-fabric/**"
     ],
-    "contracts": [
-      "isolated-interface-fabric-v1"
-    ]
+    "contracts": ["isolated-interface-fabric-v1"]
   },
   "reads": {
     "contracts": []
@@ -26,10 +24,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "PR#562",
-    "PR#564"
-  ],
+  "dependencies": ["PR#562", "PR#564"],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -44,10 +39,7 @@
   "sizeException": {
     "kind": "mechanical-composition",
     "reason": "Mechanical composition of the bounded core foundation PR #562 and QA/evidence foundation PR #564 with generated 112 interface shells and catalog manifests. This exception covers aggregate generated size only and does not waive formatting, security, unit, browser, visual, accessibility, zero-touch, exact-head, or integration hard gates.",
-    "sourcePullRequests": [
-      562,
-      564
-    ],
+    "sourcePullRequests": [562, 564],
     "maxFiles": 170,
     "maxLines": 18000
   }

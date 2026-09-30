@@ -7,12 +7,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-001.html",
     "html": "interfaces/IF-PUB-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -37,21 +33,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 1",
     "owner": "experience",
     "template": "map-home",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -84,12 +72,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-002.html",
     "html": "interfaces/IF-PUB-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -114,21 +98,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 2",
     "owner": "experience",
     "template": "capture",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -161,12 +137,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-003.html",
     "html": "interfaces/IF-PUB-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -191,21 +163,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 3",
     "owner": "experience",
     "template": "welcome",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -238,12 +202,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-004.html",
     "html": "interfaces/IF-PUB-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -268,21 +228,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 4",
     "owner": "experience",
     "template": "tutorial",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -315,12 +267,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-005.html",
     "html": "interfaces/IF-PUB-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -345,21 +293,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 5",
     "owner": "experience",
     "template": "locale",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -392,12 +332,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-006.html",
     "html": "interfaces/IF-PUB-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -422,21 +358,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 6",
     "owner": "experience",
     "template": "map-home",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -469,12 +397,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-007.html",
     "html": "interfaces/IF-PUB-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -499,21 +423,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 7",
     "owner": "experience",
     "template": "weather",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -546,12 +462,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-008.html",
     "html": "interfaces/IF-PUB-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -576,21 +488,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 8",
     "owner": "experience",
     "template": "explore",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -623,12 +527,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-009.html",
     "html": "interfaces/IF-PUB-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -653,21 +553,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 9",
     "owner": "experience",
     "template": "search",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -700,12 +592,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-010.html",
     "html": "interfaces/IF-PUB-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -730,21 +618,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 10",
     "owner": "experience",
     "template": "place",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -777,12 +657,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-011.html",
     "html": "interfaces/IF-PUB-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -807,21 +683,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 11",
     "owner": "experience",
     "template": "favorites",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -854,12 +722,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-012.html",
     "html": "interfaces/IF-PUB-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -884,21 +748,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 12",
     "owner": "experience",
     "template": "profile",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -931,12 +787,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-013.html",
     "html": "interfaces/IF-PUB-013.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -961,21 +813,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 13",
     "owner": "experience",
     "template": "privacy",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-013.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1008,12 +852,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-014.html",
     "html": "interfaces/IF-PUB-014.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1038,21 +878,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 14",
     "owner": "experience",
     "template": "assistant",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-014.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1085,12 +917,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-015.html",
     "html": "interfaces/IF-PUB-015.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1115,21 +943,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 15",
     "owner": "experience",
     "template": "assistant-voice",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-015.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1162,12 +982,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-016.html",
     "html": "interfaces/IF-PUB-016.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1192,21 +1008,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 16",
     "owner": "experience",
     "template": "map-perspective",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-016.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1239,12 +1047,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-017.html",
     "html": "interfaces/IF-PUB-017.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1269,21 +1073,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 17",
     "owner": "experience",
     "template": "route-preview",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-017.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1316,12 +1112,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-018.html",
     "html": "interfaces/IF-PUB-018.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1346,21 +1138,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 18",
     "owner": "experience",
     "template": "navigation",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-018.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1393,12 +1177,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-019.html",
     "html": "interfaces/IF-PUB-019.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1423,21 +1203,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 19",
     "owner": "experience",
     "template": "tour",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-019.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1470,12 +1242,8 @@
     "persona": "Turista / morador",
     "route": "/labs/interface-fabric/interfaces/IF-PUB-020.html",
     "html": "interfaces/IF-PUB-020.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1500,21 +1268,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 20",
     "owner": "experience",
     "template": "offline",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-PUB-020.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1547,12 +1307,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-001.html",
     "html": "interfaces/IF-COM-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1577,21 +1333,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 21",
     "owner": "commerce",
     "template": "offer",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1624,12 +1372,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-002.html",
     "html": "interfaces/IF-COM-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1654,21 +1398,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 22",
     "owner": "commerce",
     "template": "ticket-offer",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1701,12 +1437,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-003.html",
     "html": "interfaces/IF-COM-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1731,21 +1463,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 23",
     "owner": "commerce",
     "template": "booking",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1778,12 +1502,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-004.html",
     "html": "interfaces/IF-COM-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1808,21 +1528,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 24",
     "owner": "commerce",
     "template": "table-booking",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1855,12 +1567,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-005.html",
     "html": "interfaces/IF-COM-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1885,21 +1593,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 25",
     "owner": "commerce",
     "template": "transport-booking",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -1932,12 +1632,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-006.html",
     "html": "interfaces/IF-COM-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -1962,21 +1658,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 26",
     "owner": "commerce",
     "template": "lodging-booking",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2009,12 +1697,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-007.html",
     "html": "interfaces/IF-COM-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2039,21 +1723,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 27",
     "owner": "commerce",
     "template": "availability",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2086,12 +1762,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-008.html",
     "html": "interfaces/IF-COM-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2116,21 +1788,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 28",
     "owner": "commerce",
     "template": "buyer",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2163,12 +1827,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-009.html",
     "html": "interfaces/IF-COM-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2193,21 +1853,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 29",
     "owner": "commerce",
     "template": "checkout",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2240,12 +1892,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-010.html",
     "html": "interfaces/IF-COM-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2270,21 +1918,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 30",
     "owner": "commerce",
     "template": "payment-confirmation",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2317,12 +1957,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-011.html",
     "html": "interfaces/IF-COM-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2347,21 +1983,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 31",
     "owner": "commerce",
     "template": "wallet",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2394,12 +2022,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-012.html",
     "html": "interfaces/IF-COM-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2424,21 +2048,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 32",
     "owner": "commerce",
     "template": "ticket-qr",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2471,12 +2087,8 @@
     "persona": "Consumidor",
     "route": "/labs/interface-fabric/interfaces/IF-COM-013.html",
     "html": "interfaces/IF-COM-013.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2501,21 +2113,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 33",
     "owner": "commerce",
     "template": "history",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-COM-013.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2548,12 +2152,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-001.html",
     "html": "interfaces/IF-BIZ-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2578,21 +2178,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 34",
     "owner": "business",
     "template": "login",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2625,12 +2217,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-002.html",
     "html": "interfaces/IF-BIZ-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2655,21 +2243,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 35",
     "owner": "business",
     "template": "onboarding",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2702,12 +2282,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-003.html",
     "html": "interfaces/IF-BIZ-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2732,21 +2308,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 36",
     "owner": "business",
     "template": "dashboard",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2779,12 +2347,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-004.html",
     "html": "interfaces/IF-BIZ-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2809,21 +2373,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 37",
     "owner": "business",
     "template": "business-profile",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2856,12 +2412,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-005.html",
     "html": "interfaces/IF-BIZ-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2886,21 +2438,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 38",
     "owner": "business",
     "template": "location",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -2933,12 +2477,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-006.html",
     "html": "interfaces/IF-BIZ-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -2963,21 +2503,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 39",
     "owner": "business",
     "template": "media",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3010,12 +2542,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-007.html",
     "html": "interfaces/IF-BIZ-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3040,21 +2568,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 40",
     "owner": "business",
     "template": "catalog",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3087,12 +2607,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-008.html",
     "html": "interfaces/IF-BIZ-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3117,21 +2633,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 41",
     "owner": "business",
     "template": "offers",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3164,12 +2672,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-009.html",
     "html": "interfaces/IF-BIZ-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3194,21 +2698,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 42",
     "owner": "business",
     "template": "menu",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3241,12 +2737,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-010.html",
     "html": "interfaces/IF-BIZ-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3271,21 +2763,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 43",
     "owner": "business",
     "template": "reservations",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3318,12 +2802,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-011.html",
     "html": "interfaces/IF-BIZ-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3348,21 +2828,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 44",
     "owner": "business",
     "template": "checkin",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3395,12 +2867,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-012.html",
     "html": "interfaces/IF-BIZ-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3425,21 +2893,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 45",
     "owner": "business",
     "template": "financial",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3472,12 +2932,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-013.html",
     "html": "interfaces/IF-BIZ-013.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3502,21 +2958,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 46",
     "owner": "business",
     "template": "content",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-013.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3549,12 +2997,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-014.html",
     "html": "interfaces/IF-BIZ-014.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3579,21 +3023,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 47",
     "owner": "business",
     "template": "preview",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-014.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3626,12 +3062,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-015.html",
     "html": "interfaces/IF-BIZ-015.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3656,21 +3088,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 48",
     "owner": "business",
     "template": "team",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-015.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3703,12 +3127,8 @@
     "persona": "BUSINESS_OWNER / BUSINESS_MANAGER / BUSINESS_VIEWER",
     "route": "/labs/interface-fabric/interfaces/IF-BIZ-016.html",
     "html": "interfaces/IF-BIZ-016.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3733,21 +3153,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PLACEHOLDER",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 49",
     "owner": "business",
     "template": "settings",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-BIZ-016.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3780,12 +3192,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-001.html",
     "html": "interfaces/IF-AFF-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3810,21 +3218,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 50",
     "owner": "affiliates",
     "template": "login",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3857,12 +3257,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-002.html",
     "html": "interfaces/IF-AFF-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3887,21 +3283,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 51",
     "owner": "affiliates",
     "template": "onboarding",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -3934,12 +3322,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-003.html",
     "html": "interfaces/IF-AFF-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -3964,21 +3348,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 52",
     "owner": "affiliates",
     "template": "status",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4011,12 +3387,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-004.html",
     "html": "interfaces/IF-AFF-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4041,21 +3413,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 53",
     "owner": "affiliates",
     "template": "affiliate-dashboard",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4088,12 +3452,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-005.html",
     "html": "interfaces/IF-AFF-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4118,21 +3478,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 54",
     "owner": "affiliates",
     "template": "referral-link",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4165,12 +3517,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-006.html",
     "html": "interfaces/IF-AFF-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4195,21 +3543,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 55",
     "owner": "affiliates",
     "template": "affiliate-qr",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4242,12 +3582,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-007.html",
     "html": "interfaces/IF-AFF-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4272,21 +3608,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 56",
     "owner": "affiliates",
     "template": "analytics",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4319,12 +3647,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-008.html",
     "html": "interfaces/IF-AFF-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4349,21 +3673,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 57",
     "owner": "affiliates",
     "template": "conversions",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4396,12 +3712,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-009.html",
     "html": "interfaces/IF-AFF-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4426,21 +3738,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 58",
     "owner": "affiliates",
     "template": "commissions",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4473,12 +3777,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-010.html",
     "html": "interfaces/IF-AFF-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4503,21 +3803,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 59",
     "owner": "affiliates",
     "template": "balance",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4550,12 +3842,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-011.html",
     "html": "interfaces/IF-AFF-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4580,21 +3868,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 60",
     "owner": "affiliates",
     "template": "statement",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4627,12 +3907,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-012.html",
     "html": "interfaces/IF-AFF-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4657,21 +3933,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 61",
     "owner": "affiliates",
     "template": "payout",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4704,12 +3972,8 @@
     "persona": "Afiliado",
     "route": "/labs/interface-fabric/interfaces/IF-AFF-013.html",
     "html": "interfaces/IF-AFF-013.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4734,21 +3998,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 62",
     "owner": "affiliates",
     "template": "affiliate-growth",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-AFF-013.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4781,12 +4037,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-001.html",
     "html": "interfaces/IF-CRM-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4811,21 +4063,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 63",
     "owner": "crm",
     "template": "crm-dashboard",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4858,12 +4102,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-002.html",
     "html": "interfaces/IF-CRM-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4888,21 +4128,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 64",
     "owner": "crm",
     "template": "crm-leads",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -4935,12 +4167,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-003.html",
     "html": "interfaces/IF-CRM-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -4965,21 +4193,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 65",
     "owner": "crm",
     "template": "crm-lead",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5012,12 +4232,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-004.html",
     "html": "interfaces/IF-CRM-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5042,21 +4258,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 66",
     "owner": "crm",
     "template": "crm-meetings",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5089,12 +4297,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-005.html",
     "html": "interfaces/IF-CRM-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5119,21 +4323,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 67",
     "owner": "crm",
     "template": "crm-proposals",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5166,12 +4362,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-006.html",
     "html": "interfaces/IF-CRM-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5196,21 +4388,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 68",
     "owner": "crm",
     "template": "public-document",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5243,12 +4427,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-007.html",
     "html": "interfaces/IF-CRM-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5273,21 +4453,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 69",
     "owner": "crm",
     "template": "crm-contracts",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5320,12 +4492,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-008.html",
     "html": "interfaces/IF-CRM-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5350,21 +4518,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 70",
     "owner": "crm",
     "template": "public-document",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5397,12 +4557,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-009.html",
     "html": "interfaces/IF-CRM-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5427,21 +4583,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 71",
     "owner": "crm",
     "template": "crm-followups",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5474,12 +4622,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-010.html",
     "html": "interfaces/IF-CRM-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5504,21 +4648,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 72",
     "owner": "crm",
     "template": "crm-trials",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5551,12 +4687,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-011.html",
     "html": "interfaces/IF-CRM-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5581,21 +4713,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 73",
     "owner": "crm",
     "template": "crm-referrals",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5628,12 +4752,8 @@
     "persona": "CRM_OPERATOR",
     "route": "/labs/interface-fabric/interfaces/IF-CRM-012.html",
     "html": "interfaces/IF-CRM-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5658,21 +4778,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 74",
     "owner": "crm",
     "template": "settings",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CRM-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5705,12 +4817,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-001.html",
     "html": "interfaces/IF-CTL-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5735,21 +4843,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 75",
     "owner": "control-center",
     "template": "control-dashboard",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5782,12 +4882,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-002.html",
     "html": "interfaces/IF-CTL-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5812,21 +4908,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 76",
     "owner": "control-center",
     "template": "universal-search",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5859,12 +4947,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-003.html",
     "html": "interfaces/IF-CTL-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5889,21 +4973,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 77",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -5936,12 +5012,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-004.html",
     "html": "interfaces/IF-CTL-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -5966,21 +5038,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 78",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6013,12 +5077,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-005.html",
     "html": "interfaces/IF-CTL-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6043,21 +5103,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 79",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6090,12 +5142,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-006.html",
     "html": "interfaces/IF-CTL-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6120,21 +5168,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 80",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6167,12 +5207,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-007.html",
     "html": "interfaces/IF-CTL-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6197,21 +5233,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 81",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6244,12 +5272,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-008.html",
     "html": "interfaces/IF-CTL-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6274,21 +5298,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 82",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6321,12 +5337,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-009.html",
     "html": "interfaces/IF-CTL-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6351,21 +5363,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 83",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6398,12 +5402,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-010.html",
     "html": "interfaces/IF-CTL-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6428,21 +5428,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 84",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6475,12 +5467,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-011.html",
     "html": "interfaces/IF-CTL-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6505,21 +5493,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 85",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6552,12 +5532,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-012.html",
     "html": "interfaces/IF-CTL-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6582,21 +5558,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 86",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6629,12 +5597,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-013.html",
     "html": "interfaces/IF-CTL-013.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6659,21 +5623,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 87",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-013.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6706,12 +5662,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-014.html",
     "html": "interfaces/IF-CTL-014.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6736,21 +5688,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 88",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-014.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6783,12 +5727,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-015.html",
     "html": "interfaces/IF-CTL-015.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6813,21 +5753,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 89",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-015.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6860,12 +5792,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-016.html",
     "html": "interfaces/IF-CTL-016.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6890,21 +5818,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 90",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-016.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -6937,12 +5857,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-017.html",
     "html": "interfaces/IF-CTL-017.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -6967,21 +5883,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 91",
     "owner": "control-center",
     "template": "admin-table",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-017.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7014,12 +5922,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-018.html",
     "html": "interfaces/IF-CTL-018.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7044,21 +5948,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 92",
     "owner": "control-center",
     "template": "support",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-018.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7091,12 +5987,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-019.html",
     "html": "interfaces/IF-CTL-019.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7121,21 +6013,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 93",
     "owner": "control-center",
     "template": "audit",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-019.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7168,12 +6052,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-020.html",
     "html": "interfaces/IF-CTL-020.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7198,21 +6078,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 94",
     "owner": "control-center",
     "template": "system",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-020.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7245,12 +6117,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-021.html",
     "html": "interfaces/IF-CTL-021.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7275,21 +6143,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 95",
     "owner": "control-center",
     "template": "integrations",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-021.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7322,12 +6182,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-022.html",
     "html": "interfaces/IF-CTL-022.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7352,21 +6208,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 96",
     "owner": "control-center",
     "template": "settings",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-022.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7399,12 +6247,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-023.html",
     "html": "interfaces/IF-CTL-023.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7429,21 +6273,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "PARTIAL",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 97",
     "owner": "control-center",
     "template": "notifications",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-023.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7476,12 +6312,8 @@
     "persona": "PLATFORM_ADMIN / PLATFORM_SUPPORT",
     "route": "/labs/interface-fabric/interfaces/IF-CTL-024.html",
     "html": "interfaces/IF-CTL-024.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7506,21 +6338,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "INTEGRATED",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 98",
     "owner": "control-center",
     "template": "profile",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-CTL-024.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7553,12 +6377,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-001.html",
     "html": "interfaces/IF-GRW-001.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7583,21 +6403,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 99",
     "owner": "growth-fabric",
     "template": "morro-pass",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-001.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7631,12 +6443,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-002.html",
     "html": "interfaces/IF-GRW-002.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7661,21 +6469,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 100",
     "owner": "growth-fabric",
     "template": "missions",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-002.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7709,12 +6509,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-003.html",
     "html": "interfaces/IF-GRW-003.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7739,21 +6535,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 101",
     "owner": "growth-fabric",
     "template": "xp",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-003.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7787,12 +6575,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-004.html",
     "html": "interfaces/IF-GRW-004.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7817,21 +6601,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 102",
     "owner": "growth-fabric",
     "template": "badges",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-004.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7865,12 +6641,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-005.html",
     "html": "interfaces/IF-GRW-005.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7895,21 +6667,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 103",
     "owner": "growth-fabric",
     "template": "collections",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-005.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -7943,12 +6707,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-006.html",
     "html": "interfaces/IF-GRW-006.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -7973,21 +6733,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 104",
     "owner": "growth-fabric",
     "template": "rewards",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-006.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8021,12 +6773,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-007.html",
     "html": "interfaces/IF-GRW-007.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8051,21 +6799,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 105",
     "owner": "growth-fabric",
     "template": "journey",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-007.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8099,12 +6839,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-008.html",
     "html": "interfaces/IF-GRW-008.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8129,21 +6865,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 106",
     "owner": "growth-fabric",
     "template": "orchestrator",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-008.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8177,12 +6905,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-009.html",
     "html": "interfaces/IF-GRW-009.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8207,21 +6931,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 107",
     "owner": "growth-fabric",
     "template": "claim",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-009.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8255,12 +6971,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-010.html",
     "html": "interfaces/IF-GRW-010.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8285,21 +6997,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 108",
     "owner": "growth-fabric",
     "template": "affiliate-growth-dashboard",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-010.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8333,12 +7037,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-011.html",
     "html": "interfaces/IF-GRW-011.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8363,21 +7063,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 109",
     "owner": "growth-fabric",
     "template": "risk",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-011.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8411,12 +7103,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-012.html",
     "html": "interfaces/IF-GRW-012.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8441,21 +7129,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 110",
     "owner": "growth-fabric",
     "template": "experiments",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-012.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8489,12 +7169,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-013.html",
     "html": "interfaces/IF-GRW-013.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8519,21 +7195,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 111",
     "owner": "growth-fabric",
     "template": "growth-analytics",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-013.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
@@ -8567,12 +7235,8 @@
     "persona": "Turista / Afiliado / Operação",
     "route": "/labs/interface-fabric/interfaces/IF-GRW-014.html",
     "html": "interfaces/IF-GRW-014.html",
-    "css": [
-      "design-system/index.css"
-    ],
-    "js": [
-      "src/app.js"
-    ],
+    "css": ["design-system/index.css"],
+    "js": ["src/app.js"],
     "components": [
       "FabricShell",
       "StatusBanner",
@@ -8597,21 +7261,13 @@
       "validation_error",
       "stale_data"
     ],
-    "dependencies": [
-      "FixtureProvider"
-    ],
+    "dependencies": ["FixtureProvider"],
     "backendExpected": "See manifest/integration-contracts.json",
     "legacyStatus": "MISSING",
     "sourceEvidence": "Auditoria de interfaces 2026-09-29 · item 112",
     "owner": "growth-fabric",
     "template": "growth-control",
-    "tests": [
-      "unit",
-      "dom",
-      "browser",
-      "visual",
-      "a11y"
-    ],
+    "tests": ["unit", "dom", "browser", "visual", "a11y"],
     "screenshot": "visual/evidence/IF-GRW-014.png",
     "a11y": "WCAG_2_2_AA_TARGET",
     "responsive": [
