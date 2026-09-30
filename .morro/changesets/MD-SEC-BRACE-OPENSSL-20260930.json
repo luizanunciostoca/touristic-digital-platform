@@ -1,0 +1,44 @@
+{
+  "id": "MD-SEC-BRACE-OPENSSL-20260930",
+  "baseSha": "9105a508bb5c211e0db6a19cde333b965fdb81d9",
+  "branch": "fix/security-brace-expansion-openssl-20260930",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-SEC-BRACE-OPENSSL-20260930.json",
+      ".trivyignore.yaml",
+      "pnpm-lock.yaml",
+      ".github/workflows/security-dependency-refresh-once.yml",
+      "docs/qa/security/SECURITY_SCAN_20260930.md"
+    ],
+    "contracts": [
+      "application-container-security"
+    ]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "tests",
+    "build",
+    "security-scanning",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
