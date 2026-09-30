@@ -125,6 +125,7 @@ function publicEvidence(state) {
     databaseDomains: productionDatabaseDomains.length,
     paymentsMode: "test",
     subscriptionsEnabled: false,
+    commerceFeatureEnabled: true,
     railwayRetirement: "KEEP_TEMPORARILY",
   };
 }
@@ -244,6 +245,7 @@ async function snapshotRuntimeEnv(client, webServiceId) {
     "EXPECTED_SHA",
     "MORRO_RELEASE_SHA",
     "MORRO_DATABASE_SCHEMA_MODE",
+    "COMMERCE_FEATURE_ENABLED",
     "MERCADO_PAGO_CHECKOUT_MODE",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
     "PAYMENTS_SUBSCRIPTIONS_ENABLED",
@@ -540,6 +542,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       "MORRO_DATABASE_SCHEMA_MODE",
       "external",
     );
+    await writeEnv(client, webServiceId, "COMMERCE_FEATURE_ENABLED", "true");
     await writeEnv(client, webServiceId, "MERCADO_PAGO_CHECKOUT_MODE", "test");
     await writeEnv(
       client,

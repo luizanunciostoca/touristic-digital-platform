@@ -409,6 +409,8 @@ services:
         sync: false
       - key: COMMERCE_DATABASE_URL
         sync: false
+      - key: COMMERCE_FEATURE_ENABLED
+        value: "true"
       # Set true only when the configured production user set intentionally
       # contains a global admin. Leaving it false/unset fails readiness closed.
       - key: DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED

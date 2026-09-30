@@ -177,7 +177,7 @@ table_count="$(docker exec "$mysql_container" mysql   --user=root --password="$r
 [[ "$schema_count" == "13" && "$table_count" == "91" ]] || fail "TWIN_DATABASE_INVENTORY_INVALID"
 
 : >"$env_file"
-printf '%s\n'   "NODE_ENV=production"   "HOST=0.0.0.0"   "PORT=3000"   "RENDER_SERVICE_NAME=morro-digital-v2"   "EXPECTED_SHA=$expected_sha"   "MORRO_RELEASE_SHA=$expected_sha"   "MORRO_RELEASE_VERSION=$expected_sha"   "MORRO_DEPLOYMENT_ID=production-twin-${GITHUB_RUN_ID:-local}"   "MORRO_RELEASE_IMAGE_RUN_ID=$image_run_id"   "MORRO_DATABASE_SCHEMA_MODE=external"   "DASHBOARD_AUTH_SECRET=twin-dashboard-auth-secret-0123456789abcdef"   "DASHBOARD_AUTH_ORIGIN=https://twin.morro.invalid"   "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=false"   "DASHBOARD_SESSION_TTL_SECONDS=28800"   "CONTROL_CENTER_SUPPORT_SECRET=twin-control-support-secret-0123456789abcdef"   "CONTROL_CENTER_STEP_UP_SECRET=twin-control-step-up-secret-0123456789abcdef"   "ANALYTICS_FEATURE_ENABLED=true"   "ANALYTICS_RETENTION_DAYS=90"   "NOTIFICATIONS_FEATURE_ENABLED=false"   "TICKETING_FEATURE_ENABLED=false"   "TICKETING_OFFLINE_PROVISIONING_SECRET=twin-ticketing-offline-secret-0123456789abcdef"   "ORDERING_PRICING_CATALOG_JSON={\"version\":\"production-twin-v1\",\"plans\":[{\"id\":\"growth\",\"name\":\"Growth\",\"minorUnits\":5000,\"currency\":\"BRL\"}]}"   "PAYMENTS_DESTINATION_ID=morro-de-sao-paulo"   "PAYMENTS_STATUS_TOKEN_SECRET=twin-payment-status-secret-0123456789abcdef"   "PAYMENTS_HANDOFF_SECRET=twin-payment-handoff-secret-0123456789abcdef"   "PAYMENTS_RETURN_URL_ORIGINS=https://twin.morro.invalid"   "PAYMENTS_PROVIDER_MODE=mercado_pago"   "MERCADO_PAGO_CHECKOUT_MODE=test"   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true"   "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false"   "MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com"   "V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com"   "MERCADO_PAGO_ACCESS_TOKEN=TEST-TWIN-ACCESS-TOKEN-0123456789abcdef0123456789"   "MERCADO_PAGO_WEBHOOK_SECRET=twin-webhook-secret-0123456789abcdef"   "VITE_MERCADO_PAGO_PUBLIC_KEY=TEST-TWINPUBLICKEY1234567890"   "PAYMENTS_SUBSCRIPTIONS_ENABLED=false"   "PAYMENTS_WEBHOOK_URL=https://twin.morro.invalid/api/payments/v1/webhooks/sandbox"   "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS=300"   "PAYMENTS_PROVIDER_TIMEOUT_MS=8000"   "PAYMENTS_PROVIDER_MAX_ATTEMPTS=2"   "PAYMENTS_PROVIDER_RETRY_BASE_MS=100"   "PAYMENTS_RUNTIME_REPLICA_COUNT=1"   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED=false"   "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED=false"   >"$env_file"
+printf '%s\n'   "NODE_ENV=production"   "HOST=0.0.0.0"   "PORT=3000"   "RENDER_SERVICE_NAME=morro-digital-v2"   "EXPECTED_SHA=$expected_sha"   "MORRO_RELEASE_SHA=$expected_sha"   "MORRO_RELEASE_VERSION=$expected_sha"   "MORRO_DEPLOYMENT_ID=production-twin-${GITHUB_RUN_ID:-local}"   "MORRO_RELEASE_IMAGE_RUN_ID=$image_run_id"   "MORRO_DATABASE_SCHEMA_MODE=external"   "COMMERCE_FEATURE_ENABLED=true"   "DASHBOARD_AUTH_SECRET=twin-dashboard-auth-secret-0123456789abcdef"   "DASHBOARD_AUTH_ORIGIN=https://twin.morro.invalid"   "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=false"   "DASHBOARD_SESSION_TTL_SECONDS=28800"   "CONTROL_CENTER_SUPPORT_SECRET=twin-control-support-secret-0123456789abcdef"   "CONTROL_CENTER_STEP_UP_SECRET=twin-control-step-up-secret-0123456789abcdef"   "ANALYTICS_FEATURE_ENABLED=true"   "ANALYTICS_RETENTION_DAYS=90"   "NOTIFICATIONS_FEATURE_ENABLED=false"   "TICKETING_FEATURE_ENABLED=false"   "TICKETING_OFFLINE_PROVISIONING_SECRET=twin-ticketing-offline-secret-0123456789abcdef"   "ORDERING_PRICING_CATALOG_JSON={\"version\":\"production-twin-v1\",\"plans\":[{\"id\":\"growth\",\"name\":\"Growth\",\"minorUnits\":5000,\"currency\":\"BRL\"}]}"   "PAYMENTS_DESTINATION_ID=morro-de-sao-paulo"   "PAYMENTS_STATUS_TOKEN_SECRET=twin-payment-status-secret-0123456789abcdef"   "PAYMENTS_HANDOFF_SECRET=twin-payment-handoff-secret-0123456789abcdef"   "PAYMENTS_RETURN_URL_ORIGINS=https://twin.morro.invalid"   "PAYMENTS_PROVIDER_MODE=mercado_pago"   "MERCADO_PAGO_CHECKOUT_MODE=test"   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true"   "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false"   "MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com"   "V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com"   "MERCADO_PAGO_ACCESS_TOKEN=TEST-TWIN-ACCESS-TOKEN-0123456789abcdef0123456789"   "MERCADO_PAGO_WEBHOOK_SECRET=twin-webhook-secret-0123456789abcdef"   "VITE_MERCADO_PAGO_PUBLIC_KEY=TEST-TWINPUBLICKEY1234567890"   "PAYMENTS_SUBSCRIPTIONS_ENABLED=false"   "PAYMENTS_WEBHOOK_URL=https://twin.morro.invalid/api/payments/v1/webhooks/sandbox"   "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS=300"   "PAYMENTS_PROVIDER_TIMEOUT_MS=8000"   "PAYMENTS_PROVIDER_MAX_ATTEMPTS=2"   "PAYMENTS_PROVIDER_RETRY_BASE_MS=100"   "PAYMENTS_RUNTIME_REPLICA_COUNT=1"   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED=false"   "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED=false"   >"$env_file"
 
 for spec in   AUTH:AUTH_DATABASE_URL:morro_auth   AUDIT:CONTROL_CENTER_AUDIT_DATABASE_URL:morro_audit   DESTINATIONS:DESTINATIONS_DATABASE_URL:morro_destinations   CONTENT:CONTENT_DATABASE_URL:morro_content   BUSINESS:BUSINESS_DATABASE_URL:morro_business   ORDERING:ORDERING_DATABASE_URL:morro_ordering   FINANCIAL:FINANCIAL_DATABASE_URL:morro_financial   TICKETING:TICKETING_DATABASE_URL:morro_ticketing   NOTIFICATIONS:NOTIFICATIONS_DATABASE_URL:morro_notifications   AFFILIATES:AFFILIATES_DATABASE_URL:morro_affiliates   ANALYTICS:ANALYTICS_DATABASE_URL:morro_analytics   CRM:CRM_DATABASE_URL:morro_crm   COMMERCE:COMMERCE_DATABASE_URL:morro_commerce
 do
@@ -301,6 +301,13 @@ wait_app() {
     cat "$work_root/readyz.json" >&2 2>/dev/null || true
     fail "TWIN_APP_READINESS_TIMEOUT"
   fi
+
+  jq -e '
+    .readiness == "ready" and
+    .status == "healthy" and
+    ([.checks[] | select(.status != "pass")] | length) == 0 and
+    ([.checks[] | select(.name == "commerce-runtime" and .status == "pass")] | length) == 1
+  ' "$work_root/readyz.json" >/dev/null || fail "TWIN_APP_READINESS_DEGRADED"
 }
 
 post_event() {
@@ -411,6 +418,7 @@ jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg im
       authHelperNetwork:"none",
       runtimeProbe:"docker-exec-loopback",
       syntheticReleaseIdentity:true,
+      healthyReadiness:true,
       productionHostnameAlias:true,
       frontendHttp:true,
       backendApi:"/api/analytics/v1/events",
@@ -449,6 +457,7 @@ jq -e '
   .twin.authHelperNetwork == "none" and
   .twin.runtimeProbe == "docker-exec-loopback" and
   .twin.syntheticReleaseIdentity == true and
+  .twin.healthyReadiness == true and
   .twin.runtimePredeploy.status == "pass" and
   .twin.paymentsPredeploy.checkoutMode == "test" and
   .persistence.survivedRedeploy == true and

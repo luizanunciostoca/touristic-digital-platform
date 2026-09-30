@@ -56,6 +56,7 @@ function evidence(overrides = {}) {
       noEgress: true,
       runtimeProbe: "docker-exec-loopback",
       syntheticReleaseIdentity: true,
+      healthyReadiness: true,
       runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 91 },
       paymentsPredeploy: { status: "pass", checkoutMode: "test" },
     },
@@ -115,6 +116,9 @@ test("rejects certificates that weaken isolation or safety boundaries", () => {
     },
     (value) => {
       value.twin.syntheticReleaseIdentity = false;
+    },
+    (value) => {
+      value.twin.healthyReadiness = false;
     },
   ];
 
@@ -177,13 +181,18 @@ test("production twin executor is syntactically valid and no-egress", () => {
     'docker exec "$app_container"',
     "MORRO_RELEASE_VERSION=$expected_sha",
     "MORRO_DEPLOYMENT_ID=production-twin-",
+    "COMMERCE_FEATURE_ENABLED=true",
     "TWIN_RELEASE_IDENTITY_INVALID",
+    "TWIN_APP_READINESS_DEGRADED",
+    '.status == "healthy"',
+    '.name == "commerce-runtime" and .status == "pass"',
     ".release.sha == $sha",
     ".release.version == $version",
     ".release.deploymentId == $deployment",
     ".release.imageRunId == $imageRun",
     'runtimeProbe:"docker-exec-loopback"',
     "syntheticReleaseIdentity:true",
+    "healthyReadiness:true",
     'Origin: "http://127.0.0.1:3000"',
     "date -u +%Y-%m-%dT%H:%M:%S.000Z",
     'jq -nc --arg status "$write_status" --arg code "$write_error"',
