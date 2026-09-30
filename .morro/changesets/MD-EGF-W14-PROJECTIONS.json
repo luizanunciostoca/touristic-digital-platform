@@ -1,0 +1,45 @@
+{
+  "id": "MD-EGF-W14-PROJECTIONS",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w14-projections-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W14-PROJECTIONS.json",
+      "packages/shared/src/experience-growth-fabric/projections/**"
+    ],
+    "contracts": ["growth-read-models-v1"]
+  },
+  "reads": {"contracts": []},
+  "produces": {"events": [], "routes": []},
+  "database": {
+    "tables": [
+      "journey_progress_projection",
+      "affiliate_performance_projection",
+      "growth_campaign_projection",
+      "reward_performance_projection",
+      "mission_performance_projection",
+      "experiment_outcome_projection"
+    ]
+  },
+  "auth": {"capabilities": []},
+  "dependencies": [
+    "MD-EGF-W13-EVENT-FABRIC",
+    "MD-EGF-W04-JOURNEY-DOMAIN",
+    "MD-EGF-W07-REWARDS-CORE",
+    "MD-EGF-W10-AFFILIATE-GROWTH",
+    "MD-EGF-W11-EXPERIMENTATION"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
