@@ -1,0 +1,221 @@
+name: Post Cutover Audit Readback Proof
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/post-cutover-audit-readback-proof.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-cutover-audit-readback-proof-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+env:
+  RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990
+  APP_SERVICE_ID: srv-daqgk83ncjis739tghig
+  MYSQL_SERVICE_ID: srv-datbsavlot8c73evbhj0
+  TARGET_URL: https://morro-digital-v2.onrender.com
+  EXPECTED_SHA: 37eb641eefa91f57d8d74c1dc87894c2da36f3ae
+  EXPECTED_DIGEST: sha256:d2aff5e25dd0e54a6b7775f125f1d094bf6c6bd934fa47a72cc12d30692e946d
+  EXPECTED_IMAGE: ghcr.io/luizanunciostoca/morro-digital-v2@sha256:d2aff5e25dd0e54a6b7775f125f1d094bf6c6bd934fa47a72cc12d30692e946d
+  CORRELATION_ID: corr_postcutover_20260930_0515
+  REQUEST_ID: req_postcutover_20260930_0515
+
+jobs:
+  prove:
+    name: post-cutover / same-row readback
+    if: github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+    steps:
+      - name: Prove main and immutable production identity
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$RENDER_PRODUCTION_API_KEY"
+          main_sha="$(git ls-remote "https://github.com/$GITHUB_REPOSITORY.git" refs/heads/main | awk '{print $1}')"
+          test "$main_sha" = "$EXPECTED_SHA"
+
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+
+          curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"             "$api/services/$APP_SERVICE_ID" > /tmp/app-service.json
+          jq -e --arg owner "$RENDER_WORKSPACE_ID" --arg image "$EXPECTED_IMAGE" '
+            .ownerId == $owner and
+            .id == env.APP_SERVICE_ID and
+            .type == "web_service" and
+            .autoDeploy == "no" and
+            .imagePath == $image and
+            .serviceDetails.runtime == "image"
+          ' /tmp/app-service.json >/dev/null
+
+          curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"             "$api/services/$APP_SERVICE_ID/deploys?limit=20" > /tmp/app-deploys.json
+          live_deploy_id="$(jq -r --arg image "$EXPECTED_IMAGE" --arg digest "$EXPECTED_DIGEST" '
+            [.[] | (.deploy // .) |
+              select(.status == "live" and .image.ref == $image and .image.sha == $digest)][0].id // empty
+          ' /tmp/app-deploys.json)"
+          test -n "$live_deploy_id"
+          printf '%s' "$live_deploy_id" > /tmp/live-deploy-id
+
+          curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"             "$api/services/$MYSQL_SERVICE_ID/deploys?limit=20" > /tmp/mysql-deploys.json
+          jq -e --arg sha "$EXPECTED_SHA" '
+            any(.[] | (.deploy // .); .status == "live" and .commit.id == $sha)
+          ' /tmp/mysql-deploys.json >/dev/null
+
+          for key in             AUTH_DATABASE_URL CONTROL_CENTER_AUDIT_DATABASE_URL DESTINATIONS_DATABASE_URL             CONTENT_DATABASE_URL BUSINESS_DATABASE_URL ORDERING_DATABASE_URL FINANCIAL_DATABASE_URL             TICKETING_DATABASE_URL NOTIFICATIONS_DATABASE_URL AFFILIATES_DATABASE_URL             ANALYTICS_DATABASE_URL CRM_DATABASE_URL COMMERCE_DATABASE_URL
+          do
+            curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"               "$api/services/$APP_SERVICE_ID/env-vars/$key" > /tmp/env.json
+            value="$(jq -r '.value // .envVar.value // empty' /tmp/env.json)"
+            test -n "$value"
+            node -e '
+              const u = new URL(process.argv[1]);
+              if (u.protocol !== "mysql:" || u.hostname !== "morro-digital-v2-production-mysql" || u.port !== "3306") process.exit(1);
+            ' "$value"
+          done
+
+          check_env() {
+            key="$1"
+            expected="$2"
+            curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"               "$api/services/$APP_SERVICE_ID/env-vars/$key" > /tmp/env.json
+            value="$(jq -r '.value // .envVar.value // empty' /tmp/env.json)"
+            test "$value" = "$expected"
+          }
+          check_env MERCADO_PAGO_CHECKOUT_MODE test
+          check_env MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED false
+          check_env PAYMENTS_SUBSCRIPTIONS_ENABLED false
+
+          jq -n --arg deploy "$live_deploy_id" --arg sha "$EXPECTED_SHA" --arg digest "$EXPECTED_DIGEST" '{
+            mainSha:$sha,
+            liveDeployId:$deploy,
+            imageDigest:$digest,
+            databaseDomains:13,
+            allDatabaseHostsCanonicalRender:true,
+            railwayWritePathAbsent:true,
+            paymentsMode:"test",
+            productionCredentialsConfirmed:false,
+            subscriptionsEnabled:false
+          }' > /tmp/authority.json
+
+      - name: Prove health and readiness after same-digest redeploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error -D /tmp/health.headers             "$TARGET_URL/healthz" > /tmp/health.json
+          jq -e '.status == "live"' /tmp/health.json >/dev/null
+          grep -Eiq "^x-release-sha: $EXPECTED_SHA\r?$" /tmp/health.headers
+
+          curl --fail-with-body --silent --show-error -D /tmp/ready.headers             "$TARGET_URL/readyz" > /tmp/ready.json
+          grep -Eiq "^x-release-sha: $EXPECTED_SHA\r?$" /tmp/ready.headers
+          jq -e '
+            .readiness == "ready" and
+            any(.checks[]; .name == "control-center-audit" and .status == "pass") and
+            any(.checks[]; .name == "commerce-runtime" and .status == "pass") and
+            any(.checks[]; .name == "payments-runtime" and .status == "pass")
+          ' /tmp/ready.json >/dev/null
+
+      - name: Read the pre-redeploy audit row from two independent MySQL jobs
+        env:
+          RENDER_PRODUCTION_API_KEY: ${{ secrets.RENDER_PRODUCTION_API_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.render.com/v1"
+          auth="Authorization: Bearer $RENDER_PRODUCTION_API_KEY"
+
+          run_readback() {
+            sequence="$1"
+            request="/tmp/job-$sequence-request.json"
+            created="/tmp/job-$sequence-created.json"
+            state="/tmp/job-$sequence-state.json"
+            logs="/tmp/job-$sequence-logs.json"
+
+            command="set -eu; out=\"\$(MYSQL_PWD=\"\$AUDIT_DATABASE_PASSWORD\" mysql --protocol=tcp --connect-timeout=10 --batch --skip-column-names -h morro-digital-v2-production-mysql -P 3306 -u \"\$AUDIT_DATABASE_USER\" \"\$AUDIT_DATABASE_NAME\" -e \"SELECT CONCAT(id,'|',action,'|',result,'|',correlation_id,'|',request_id) FROM control_center_audit_entries WHERE correlation_id='$CORRELATION_ID' AND request_id='$REQUEST_ID' ORDER BY id DESC LIMIT 1;\")\"; test -n \"\$out\"; printf 'MORRO_POST_CUTOVER_AUDIT_READBACK %s\\n' \"\$out\""
+            jq -nc --arg command "$command" '{startCommand:$command}' > "$request"
+
+            http_status="$(curl --silent --show-error --output "$created" --write-out '%{http_code}'               --request POST --header "$auth" --header "Accept: application/json"               --header "Content-Type: application/json" --data-binary @"$request"               "$api/services/$MYSQL_SERVICE_ID/jobs")"
+            test "$http_status" = "201"
+            job_id="$(jq -r '.id // empty' "$created")"
+            test -n "$job_id"
+
+            final=""
+            for _ in $(seq 1 120); do
+              curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"                 "$api/services/$MYSQL_SERVICE_ID/jobs/$job_id" > "$state"
+              final="$(jq -r '.status // empty' "$state")"
+              case "$final" in
+                succeeded) break ;;
+                failed|canceled) jq '{id,status,createdAt,startedAt,finishedAt}' "$state" >&2; exit 1 ;;
+                pending|running) sleep 2 ;;
+                *) sleep 2 ;;
+              esac
+            done
+            test "$final" = "succeeded"
+
+            line=""
+            for _ in $(seq 1 30); do
+              curl --fail-with-body --silent --show-error --get --header "$auth" --header "Accept: application/json"                 --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"                 --data-urlencode "resource=$job_id"                 --data-urlencode "direction=backward"                 --data-urlencode "limit=100"                 "$api/logs" > "$logs"
+              line="$(jq -r '[.logs[]?.message | select(startswith("MORRO_POST_CUTOVER_AUDIT_READBACK "))][0] // empty' "$logs")"
+              [ -n "$line" ] && break
+              sleep 2
+            done
+            test -n "$line"
+
+            payload="${line#MORRO_POST_CUTOVER_AUDIT_READBACK }"
+            IFS='|' read -r entry_id action result correlation request <<<"$payload"
+            [[ "$entry_id" =~ ^[0-9]+$ ]]
+            test "$action" = "control-center.authorize.platform.read"
+            test "$result" = "denied"
+            test "$correlation" = "$CORRELATION_ID"
+            test "$request" = "$REQUEST_ID"
+
+            printf '%s' "$entry_id" > "/tmp/entry-$sequence"
+            printf '%s' "$job_id" > "/tmp/job-$sequence-id"
+          }
+
+          run_readback 1
+          run_readback 2
+
+          entry1="$(cat /tmp/entry-1)"
+          entry2="$(cat /tmp/entry-2)"
+          test "$entry1" = "$entry2"
+
+          jq -n             --arg contract "MORRO-PRODUCTION-POST-CUTOVER-AUDIT-READBACK"             --arg sha "$EXPECTED_SHA"             --arg digest "$EXPECTED_DIGEST"             --arg deploy "$(cat /tmp/live-deploy-id)"             --arg correlation "$CORRELATION_ID"             --arg request "$REQUEST_ID"             --arg entry "$entry1"             --arg job1 "$(cat /tmp/job-1-id)"             --arg job2 "$(cat /tmp/job-2-id)"             --argjson authority "$(cat /tmp/authority.json)"             '{
+              contract:$contract,
+              contractVersion:1,
+              status:"pass",
+              result:"PRODUCTION_POST_CUTOVER_AUDIT_READBACK = PASS",
+              expectedSha:$sha,
+              imageDigest:$digest,
+              liveDeployId:$deploy,
+              correlationId:$correlation,
+              requestId:$request,
+              entryId:$entry,
+              independentReadbacks:[
+                {phase:"POST_REDEPLOY_READBACK_1",jobId:$job1,entryId:$entry},
+                {phase:"POST_REDEPLOY_NEW_SESSION_READBACK",jobId:$job2,entryId:$entry}
+              ],
+              authority:$authority,
+              safety:{
+                databaseMutation:false,
+                businessMutation:false,
+                financialMutation:false,
+                railwayMutation:false,
+                analyticsFeatureMutation:false
+              }
+            }' > post-cutover-audit-readback-evidence.json
+
+          cat post-cutover-audit-readback-evidence.json
+
+      - name: Upload post-cutover evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: post-cutover-audit-readback-${{ github.run_id }}
+          path: post-cutover-audit-readback-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+
