@@ -9,10 +9,7 @@
       ".morro/changesets/MD-EGF-W15-HTTP-CONTRACTS.json",
       "packages/shared/src/experience-growth-fabric/http/**"
     ],
-    "contracts": [
-      "growth-http-surface-v1",
-      "growth-http-request-guard-v1"
-    ]
+    "contracts": ["growth-http-surface-v1", "growth-http-request-guard-v1"]
   },
   "reads": {
     "contracts": ["platform-authz"]
@@ -30,7 +27,7 @@
       "/v1/growth/control/read-models"
     ]
   },
-  "database": {"tables": []},
+  "database": { "tables": [] },
   "auth": {
     "capabilities": [
       "growth.read",

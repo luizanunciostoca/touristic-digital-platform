@@ -116,9 +116,7 @@ describe("isolated growth HTTP contracts", () => {
   it("allows an authorized scoped request without mounting any runtime", () => {
     if (!redeemRoute) throw new Error("REDEEM_ROUTE_MISSING");
 
-    expect(
-      evaluateGrowthRequestGuard(redeemRoute, subjectContext()),
-    ).toEqual({
+    expect(evaluateGrowthRequestGuard(redeemRoute, subjectContext())).toEqual({
       allowed: true,
       code: "ALLOWED",
     });

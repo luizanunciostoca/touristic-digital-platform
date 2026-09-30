@@ -1,10 +1,7 @@
 import type { GrowthHttpRouteContract } from "./contracts.js";
 
 export type GrowthCredentialKind =
-  | "none"
-  | "anonymous_subject"
-  | "authenticated_session"
-  | "service_identity";
+  "none" | "anonymous_subject" | "authenticated_session" | "service_identity";
 
 export interface GrowthRequestContext {
   readonly credentialKind: GrowthCredentialKind;
@@ -84,10 +81,7 @@ export function evaluateGrowthRequestGuard(
   const scope = scopeFailure(route, context);
   if (scope) return { allowed: false, code: scope };
 
-  if (
-    route.capability &&
-    !context.capabilities.has(route.capability)
-  ) {
+  if (route.capability && !context.capabilities.has(route.capability)) {
     return { allowed: false, code: "CAPABILITY_DENIED" };
   }
 

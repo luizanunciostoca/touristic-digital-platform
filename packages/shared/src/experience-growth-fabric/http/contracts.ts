@@ -1,19 +1,13 @@
 export type GrowthHttpMethod = "GET" | "POST";
 
 export type GrowthHttpAuthPolicy =
-  | "anonymous"
-  | "optional_subject"
-  | "authenticated_subject"
-  | "control_plane";
+  "anonymous" | "optional_subject" | "authenticated_subject" | "control_plane";
 
 export type GrowthHttpScopePolicy =
-  | "destination"
-  | "tenant_and_destination"
-  | "control_plane_destination";
+  "destination" | "tenant_and_destination" | "control_plane_destination";
 
 export type GrowthHttpCsrfPolicy =
-  | "not_applicable"
-  | "required_for_session_mutation";
+  "not_applicable" | "required_for_session_mutation";
 
 export interface GrowthHttpRouteContract {
   readonly operationId: string;
