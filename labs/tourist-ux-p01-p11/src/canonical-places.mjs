@@ -14,9 +14,10 @@ export async function fetchCanonicalCoverage(client,query,{maxPages=20}={}) {
   if(!client||typeof client.listMap!=='function') throw new Error('CANONICAL_OWNER_CLIENT_REQUIRED');
   if(!Number.isInteger(maxPages)||maxPages<1||maxPages>20) throw new Error('PAGE_LIMIT_INVALID');
   const seen=new Set(),items=[];
-  let cursor=null,complete=false;
+  let cursor=null,complete=false,pagesFetched=0;
   for(let index=0;index<maxPages;index++) {
     const response=await client.listMap({...query,...(cursor?{cursor}:{})});
+    pagesFetched += 1;
     if(!response||!Array.isArray(response.items))throw new Error('OWNER_INVALID_RESPONSE');
     for(const item of response.items) if(validPlace(item)) items.push(Object.freeze({...item,source:'canonical'}));
     const next=response.nextCursor??null;
@@ -24,7 +25,7 @@ export async function fetchCanonicalCoverage(client,query,{maxPages=20}={}) {
     if(typeof next!=='string'||seen.has(next))throw new Error('OWNER_PAGINATION_LOOP');
     seen.add(next);cursor=next;
   }
-  return Object.freeze({items:Object.freeze(items),complete,pages:seen.size+1,source:'canonical',queried:true});
+  return Object.freeze({items:Object.freeze(items),complete,pages:pagesFetched,source:'canonical',queried:true});
 }
 export function reconcileVisiblePlaces({canonical=null,legacy=[],legacyApproved=false,category=null}={}) {
   const safeCanonical=canonical?.items??[];
