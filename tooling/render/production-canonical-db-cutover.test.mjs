@@ -306,6 +306,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   );
   assert.deepEqual(JSON.parse(commerceFlagWrite.body), { value: "true" });
 
+  const generatedSecretValues = [];
   for (const secretKey of [
     "PAYMENTS_HANDOFF_SECRET",
     "TICKETING_OFFLINE_PROVISIONING_SECRET",
@@ -314,7 +315,9 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
       request.route.endsWith(`/env-vars/${secretKey}`),
     );
     assert.ok(secretWrite, secretKey);
-    assert.ok(JSON.parse(secretWrite.body).value.length >= 32, secretKey);
+    const secretValue = JSON.parse(secretWrite.body).value;
+    assert.ok(secretValue.length >= 32, secretKey);
+    generatedSecretValues.push(secretValue);
   }
   const destinationWrite = envWrites.find((request) =>
     request.route.endsWith("/env-vars/PAYMENTS_DESTINATION_ID"),
@@ -343,13 +346,13 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
     destination: "canonicalized",
     ready: true,
   });
-  assert.ok(!JSON.stringify(evidence).includes("-runtime-secret"));
-  assert.ok(!JSON.stringify(evidence).includes("PAYMENTS_HANDOFF_SECRET"));
-  assert.ok(
-    !JSON.stringify(evidence).includes(
-      "TICKETING_OFFLINE_PROVISIONING_SECRET",
-    ),
-  );
+  const serializedEvidence = JSON.stringify(evidence);
+  assert.ok(!serializedEvidence.includes("-runtime-secret"));
+  assert.ok(!serializedEvidence.includes("PAYMENTS_HANDOFF_SECRET"));
+  assert.ok(!serializedEvidence.includes("TICKETING_OFFLINE_PROVISIONING_SECRET"));
+  for (const secretValue of generatedSecretValues) {
+    assert.ok(!serializedEvidence.includes(secretValue));
+  }
 });
 
 function failureCutoverFixture({
@@ -728,6 +731,12 @@ test("post-patch failure restores source and env without redundant rollback when
   assert.equal(evidence.rollbackDeployId, null);
   assert.equal(evidence.rollbackNotRequired, true);
   assert.equal(evidence.previousReleaseSha, fixture.previousReleaseSha);
+  assert.deepEqual(evidence.commerceRuntimeCredentials, {
+    paymentsHandoff: "absent",
+    ticketingOffline: "absent",
+    destination: "absent",
+    ready: false,
+  });
 
   const idempotent = await rollback({
     environment: fixture.environment,
@@ -904,6 +913,12 @@ test("pre-patch env failure restores the snapshot without changing service sourc
   const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
   assert.equal(evidence.status, "restored_pre_patch");
   assert.equal(evidence.rollbackDeployId, null);
+  assert.deepEqual(evidence.commerceRuntimeCredentials, {
+    paymentsHandoff: "absent",
+    ticketingOffline: "absent",
+    destination: "absent",
+    ready: false,
+  });
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
 });
 
