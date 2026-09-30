@@ -119,7 +119,6 @@ describe("rewards core", () => {
           currency: "BRL",
         },
         status: "draft",
-        publishedAt: undefined,
       }),
       "2026-09-01T00:00:00.000Z",
     );
