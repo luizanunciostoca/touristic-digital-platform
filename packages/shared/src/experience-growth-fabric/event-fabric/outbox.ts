@@ -1,8 +1,5 @@
 export type OutboxStatus =
-  | "pending"
-  | "dispatching"
-  | "delivered"
-  | "dead_letter";
+  "pending" | "dispatching" | "delivered" | "dead_letter";
 
 export interface OutboxEventRecord {
   readonly eventId: string;
@@ -41,8 +38,7 @@ export type ConsumerClaimDecision =
   | Readonly<{ kind: "replayed"; claim: ConsumerClaim }>
   | Readonly<{ kind: "conflict"; claim: ConsumerClaim }>;
 
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 const SHA_256 = /^[a-f0-9]{64}$/;
 
 function isUtc(value: string): boolean {
@@ -92,7 +88,10 @@ export function createOutboxEvent(
   ) {
     throw new Error("OUTBOX_EVENT_IDENTITY_INVALID");
   }
-  if (!Number.isSafeInteger(input.contractVersion) || input.contractVersion < 1) {
+  if (
+    !Number.isSafeInteger(input.contractVersion) ||
+    input.contractVersion < 1
+  ) {
     throw new Error("OUTBOX_CONTRACT_VERSION_INVALID");
   }
   if (!isUtc(input.availableAt)) {
@@ -141,10 +140,7 @@ export function claimOutboxEvent(
     ...record,
     status: "dispatching",
     leasedBy: input.workerId,
-    leaseExpiresAt: addSeconds(
-      input.occurredAt,
-      input.policy.leaseSeconds,
-    ),
+    leaseExpiresAt: addSeconds(input.occurredAt, input.policy.leaseSeconds),
   });
 }
 
@@ -205,10 +201,7 @@ export function markOutboxFailure(
 
   const exponential =
     input.policy.baseDelaySeconds * 2 ** Math.max(0, attempts - 1);
-  const delaySeconds = Math.min(
-    exponential,
-    input.policy.maximumDelaySeconds,
-  );
+  const delaySeconds = Math.min(exponential, input.policy.maximumDelaySeconds);
 
   return Object.freeze({
     ...record,

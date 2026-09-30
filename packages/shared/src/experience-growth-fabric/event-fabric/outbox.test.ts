@@ -39,11 +39,14 @@ describe("event fabric and outbox", () => {
     });
     expect(claimed?.status).toBe("dispatching");
 
-    const concurrent = claimOutboxEvent(claimed as NonNullable<typeof claimed>, {
-      workerId: "worker_b",
-      occurredAt: "2026-09-30T12:00:05.000Z",
-      policy,
-    });
+    const concurrent = claimOutboxEvent(
+      claimed as NonNullable<typeof claimed>,
+      {
+        workerId: "worker_b",
+        occurredAt: "2026-09-30T12:00:05.000Z",
+        policy,
+      },
+    );
     expect(concurrent).toBeNull();
   });
 
@@ -61,9 +64,9 @@ describe("event fabric and outbox", () => {
       "2026-09-30T12:00:01.000Z",
     );
     expect(delivered.status).toBe("delivered");
-    expect(markOutboxDelivered(delivered, "worker_a", delivered.deliveredAt!)).toBe(
-      delivered,
-    );
+    expect(
+      markOutboxDelivered(delivered, "worker_a", delivered.deliveredAt!),
+    ).toBe(delivered);
   });
 
   it("retries with backoff then enters dead-letter state", () => {
@@ -73,9 +76,7 @@ describe("event fabric and outbox", () => {
       const claimed = claimOutboxEvent(current, {
         workerId: "worker_a",
         occurredAt:
-          attempt === 1
-            ? "2026-09-30T12:00:00.000Z"
-            : current.availableAt,
+          attempt === 1 ? "2026-09-30T12:00:00.000Z" : current.availableAt,
         policy,
       });
       if (!claimed) throw new Error("OUTBOX_CLAIM_FAILED");
@@ -83,9 +84,7 @@ describe("event fabric and outbox", () => {
       current = markOutboxFailure(claimed, {
         workerId: "worker_a",
         occurredAt:
-          attempt === 1
-            ? "2026-09-30T12:00:00.000Z"
-            : current.availableAt,
+          attempt === 1 ? "2026-09-30T12:00:00.000Z" : current.availableAt,
         errorCode: "DOWNSTREAM_UNAVAILABLE",
         policy,
       });

@@ -15,8 +15,8 @@
       "growth-dead-letter-v1"
     ]
   },
-  "reads": {"contracts": []},
-  "produces": {"events": [], "routes": []},
+  "reads": { "contracts": [] },
+  "produces": { "events": [], "routes": [] },
   "database": {
     "tables": [
       "growth_outbox_events",
@@ -24,7 +24,7 @@
       "growth_dead_letters"
     ]
   },
-  "auth": {"capabilities": []},
+  "auth": { "capabilities": [] },
   "dependencies": ["MD-EGF-W01-CONTRACTS"],
   "requiredEvidence": [
     "format",
