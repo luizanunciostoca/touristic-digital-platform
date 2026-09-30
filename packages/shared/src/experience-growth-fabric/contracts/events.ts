@@ -2,20 +2,13 @@ import type { EventTrustClass } from "./authority.js";
 import { isUtcTimestamp } from "./ids.js";
 
 export type BehavioralEventType =
-  | "AssistantUsed"
-  | "MapOpened"
-  | "PlaceViewed"
-  | "NavigationStarted";
+  "AssistantUsed" | "MapOpened" | "PlaceViewed" | "NavigationStarted";
 
 export type VerifiedExperienceEventType =
-  | "PlaceVisitVerified"
-  | "TicketCheckedIn"
-  | "BookingConsumed";
+  "PlaceVisitVerified" | "TicketCheckedIn" | "BookingConsumed";
 
 export type FinancialAuthorityEventType =
-  | "PaymentApproved"
-  | "PaymentRefunded"
-  | "SettlementCompleted";
+  "PaymentApproved" | "PaymentRefunded" | "SettlementCompleted";
 
 export type GrowthDomainEventType =
   | "JourneyStarted"
@@ -126,8 +119,7 @@ export function eventTrustClass(type: PlatformEventType): EventTrustClass {
 }
 
 export type EventValidationResult =
-  | Readonly<{ valid: true }>
-  | Readonly<{ valid: false; code: string }>;
+  Readonly<{ valid: true }> | Readonly<{ valid: false; code: string }>;
 
 export function validateEventV1(input: unknown): EventValidationResult {
   if (!input || typeof input !== "object") {

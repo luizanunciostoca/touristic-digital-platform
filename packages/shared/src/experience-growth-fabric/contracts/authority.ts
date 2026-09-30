@@ -32,10 +32,7 @@ export function canTrustClassAuthorize(
 }
 
 export type DecisionActor =
-  | "browser"
-  | "llm"
-  | "deterministic_service"
-  | "financial";
+  "browser" | "llm" | "deterministic_service" | "financial";
 
 export function actorMayAuthorizeValue(
   actor: DecisionActor,
