@@ -109,6 +109,36 @@ function restoreDialogFocus(){
   if(dialogReturnFocus instanceof HTMLElement && dialogReturnFocus.isConnected) dialogReturnFocus.focus();
   dialogReturnFocus=null;
 }
+const tutorialSteps=[
+  ["Mapa","Use o mapa como canvas principal para descobrir o que existe perto de você."],
+  ["Clima","Consulte as condições do destino sem sair do contexto principal."],
+  ["Assistant","Peça recomendações contextuais sem perder o mapa."],
+  ["Voz","Use voz quando for conveniente; texto continua sempre disponível."],
+  ["Perfil","Ajuste preferências, idioma e privacidade no seu perfil."],
+  ["Perspectiva","Alterne a perspectiva do mapa preservando seu contexto."],
+  ["Explore","Use categorias para filtrar praias, passeios, restaurantes e outros lugares."],
+  ["Próximas ações","Abra um lugar, trace uma rota, reserve ou continue com o Assistant."]
+];
+function tutorialState(){
+  const raw=Number(storage.get("if-tutorial-step")??0);
+  return {step:Number.isFinite(raw)?Math.max(0,Math.min(tutorialSteps.length-1,raw)):0,complete:storage.get("if-tutorial-complete")==="true"};
+}
+function renderTutorialStep(step){
+  const host=document.querySelector("[data-tutorial-stage]");
+  if(!host)return;
+  const item=tutorialSteps[step];
+  host.innerHTML='<div class="step"><span class="step-index">'+(step+1)+'</span><div><span class="eyebrow">Etapa '+(step+1)+' de '+tutorialSteps.length+'</span><h3>'+esc(item[0])+'</h3><p>'+esc(item[1])+'</p></div></div>';
+}
+function setTutorialStep(step){
+  const next=Math.max(0,Math.min(tutorialSteps.length-1,step));
+  storage.set("if-tutorial-step",String(next));
+  storage.set("if-tutorial-complete","false");
+  renderTutorialStep(next);
+}
+function finishTutorial(){
+  storage.set("if-tutorial-complete","true");
+  showToast("Tutorial concluído. Você pode retomá-lo quando quiser.");
+}
 function wire(def){
   document.querySelector('[data-action="menu"]')?.addEventListener("click",e=>{
     const s=document.querySelector("#sidebar"); const open=s.classList.toggle("open"); e.currentTarget.setAttribute("aria-expanded",String(open));
@@ -121,6 +151,14 @@ function wire(def){
   document.querySelector("#locale-select")?.addEventListener("change",e=>{storage.set("if-locale",e.target.value);location.reload();});
   document.querySelectorAll("[data-nav-id]").forEach(el=>el.addEventListener("click",()=>navigate(el.dataset.navId)));
   document.querySelectorAll('[data-action="command"]').forEach(el=>el.addEventListener("click",async()=>{if(!def)return;const result=await adapter.command(def,"action",{label:el.textContent?.trim()||"action"});showToast(result.message);}));
+  const tutorial=tutorialState();
+  renderTutorialStep(tutorial.step);
+  document.querySelector('[data-action="tutorial-next"]')?.addEventListener("click",()=>{const current=tutorialState();if(current.step>=tutorialSteps.length-1){finishTutorial();return;}setTutorialStep(current.step+1);});
+  document.querySelector('[data-action="tutorial-back"]')?.addEventListener("click",()=>setTutorialStep(tutorialState().step-1));
+  document.querySelector('[data-action="tutorial-skip"]')?.addEventListener("click",finishTutorial);
+  document.querySelector('[data-action="tutorial-end"]')?.addEventListener("click",finishTutorial);
+  document.querySelector('[data-action="tutorial-resume"]')?.addEventListener("click",()=>{storage.set("if-tutorial-complete","false");renderTutorialStep(tutorialState().step);showToast("Tutorial retomado.");});
+
   document.querySelector('[data-action="nav-explore"]')?.addEventListener("click",()=>navigate("IF-PUB-008"));
   document.querySelectorAll('[data-action="nav-assistant"]').forEach(el=>el.addEventListener("click",()=>navigate("IF-PUB-014")));
   document.querySelector('[data-action="nav-route"]')?.addEventListener("click",()=>navigate("IF-PUB-017"));
