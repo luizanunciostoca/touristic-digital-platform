@@ -1,0 +1,47 @@
+{
+  "id": "MD-EGF-W06-MISSION-ENGINE",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w06-mission-engine-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W06-MISSION-ENGINE.json",
+      "packages/shared/src/experience-growth-fabric/missions/**"
+    ],
+    "contracts": [
+      "engagement-mission-definition-v1",
+      "engagement-mission-progress-v1",
+      "engagement-mission-evidence-v1"
+    ]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": ["MissionProgressed", "MissionCompleted"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-EGF-W01-CONTRACTS",
+    "MD-EGF-W04-JOURNEY-DOMAIN",
+    "MD-EGF-W05-ENGAGEMENT-CORE"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
