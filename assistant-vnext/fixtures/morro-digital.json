@@ -1,0 +1,27 @@
+{
+  "places": [
+    {
+      "id": "restaurant-romantic",
+      "name": "Restaurante Romântico",
+      "category": "restaurants",
+      "hours": "18:00-23:00",
+      "photos": ["fixture://restaurant-romantic/1"]
+    }
+  ],
+  "businesses": [
+    {
+      "id": "restaurant-romantic",
+      "menu": [{ "id": "dinner", "name": "Jantar", "priceMinor": 8000, "currency": "BRL" }],
+      "availability": "fixture-available"
+    }
+  ],
+  "events": [
+    { "id": "party-today", "title": "Festa Hoje", "ticketed": true },
+    { "id": "indoor-activity", "title": "Atividade coberta", "ticketed": false }
+  ],
+  "weather": { "current": { "condition": "rain", "temperatureC": 24 }, "forecast": [] },
+  "offers": [
+    { "id": "party-offer", "eventId": "party-today", "unitPriceMinor": 10000, "currency": "BRL" }
+  ],
+  "tickets": [{ "id": "party-today", "availability": 50 }]
+}

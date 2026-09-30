@@ -1,0 +1,93 @@
+[
+  {
+    "id": "intent-pt-restaurant",
+    "category": "intent",
+    "locale": "pt",
+    "input": "Quero um restaurante romântico perto de mim.",
+    "expectedIntent": "restaurant_search"
+  },
+  {
+    "id": "intent-pt-hours",
+    "category": "multi-turn",
+    "locale": "pt",
+    "input": "E ele está aberto agora?",
+    "expectedIntent": "hours"
+  },
+  {
+    "id": "intent-pt-navigation",
+    "category": "navigation",
+    "locale": "pt",
+    "input": "Me leve até lá.",
+    "expectedIntent": "navigate"
+  },
+  {
+    "id": "intent-pt-event",
+    "category": "ticketing",
+    "locale": "pt",
+    "input": "Quero ir a uma festa hoje.",
+    "expectedIntent": "event"
+  },
+  {
+    "id": "intent-pt-price",
+    "category": "commerce",
+    "locale": "pt",
+    "input": "Quanto custa para duas pessoas?",
+    "expectedIntent": "price"
+  },
+  {
+    "id": "intent-pt-ticket",
+    "category": "confirmation",
+    "locale": "pt",
+    "input": "Prepare dois ingressos.",
+    "expectedIntent": "ticket"
+  },
+  {
+    "id": "intent-pt-confirm",
+    "category": "action-safety",
+    "locale": "pt",
+    "input": "Confirmo.",
+    "expectedIntent": "confirm"
+  },
+  {
+    "id": "intent-pt-notify",
+    "category": "recovery",
+    "locale": "pt",
+    "input": "Me avise quando começar o evento.",
+    "expectedIntent": "notification"
+  },
+  {
+    "id": "intent-pt-resume",
+    "category": "memory",
+    "locale": "pt",
+    "input": "Voltei. Onde paramos?",
+    "expectedIntent": "resume"
+  },
+  {
+    "id": "intent-pt-rain",
+    "category": "grounding",
+    "locale": "pt",
+    "input": "Está chovendo. O que podemos fazer agora?",
+    "expectedIntent": "weather_activity"
+  },
+  {
+    "id": "intent-en-restaurant",
+    "category": "language",
+    "locale": "en",
+    "input": "I want a romantic restaurant near me.",
+    "expectedIntent": "restaurant_search"
+  },
+  {
+    "id": "intent-es-event",
+    "category": "language",
+    "locale": "es",
+    "input": "Quiero ir a una fiesta hoy.",
+    "expectedIntent": "event"
+  },
+  {
+    "id": "intent-he-hours",
+    "category": "language",
+    "locale": "he",
+    "input": "האם הוא פתוח עכשיו?",
+    "expectedIntent": "hours"
+  }
+]

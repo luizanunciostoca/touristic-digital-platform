@@ -1,26 +1,36 @@
 import { execFileSync } from "node:child_process";
-import path from "node:path";
 
 const base = process.env.ASSISTANT_VNEXT_BASE_SHA || "9105a508bb5c211e0db6a19cde333b965fdb81d9";
-const repoRoot = path.resolve(import.meta.dirname, "../..");
+const repo = new URL("../../", import.meta.url);
 
-function git(args) {
-  return execFileSync("git", ["-C", repoRoot, ...args], { encoding: "utf8" });
+function run(args) {
+  return execFileSync("git", args, { encoding: "utf8", cwd: repo });
+}
+function lines(value) {
+  return value
+    .split(/\r?\n/u)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-const changed = new Set(git(["diff", "--name-only", base, "--"]).split(/\r?\n/u).filter(Boolean));
+const tracked = lines(run(["diff", "--name-only", base, "--"]));
+const staged = lines(run(["diff", "--cached", "--name-only", base, "--"]));
+const untracked = lines(run(["ls-files", "--others", "--exclude-standard"]));
+const changed = [...new Set([...tracked, ...staged, ...untracked])].sort();
+const violations = changed.filter((item) => !item.startsWith("assistant-vnext/"));
 
-for (const line of git(["status", "--porcelain=v1", "--untracked-files=all"]).split(/\r?\n/u)) {
-  if (!line) continue;
-  const pathPart = line.slice(3).replace(/^"|"$/gu, "");
-  const normalized = pathPart.includes(" -> ") ? pathPart.split(" -> ").at(-1) : pathPart;
-  if (normalized) changed.add(normalized);
-}
-
-const violations = [...changed].filter((file) => !file.startsWith("assistant-vnext/"));
-if (violations.length > 0) {
+if (violations.length) {
   console.error("ZERO_TOUCH_VIOLATION");
-  for (const file of violations) console.error(file);
+  for (const item of violations) console.error(item);
   process.exit(1);
 }
-console.log("ZERO_TOUCH_PASS changed=" + changed.size);
+console.log(
+  "ZERO_TOUCH_PASS changed=" +
+    changed.length +
+    " tracked=" +
+    tracked.length +
+    " staged=" +
+    staged.length +
+    " untracked=" +
+    untracked.length,
+);
