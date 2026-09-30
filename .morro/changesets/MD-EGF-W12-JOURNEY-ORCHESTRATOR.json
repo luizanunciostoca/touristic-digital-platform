@@ -1,0 +1,35 @@
+{
+  "id": "MD-EGF-W12-JOURNEY-ORCHESTRATOR",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w12-journey-orchestrator-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W12-JOURNEY-ORCHESTRATOR.json",
+      "packages/shared/src/experience-growth-fabric/orchestrator/**"
+    ],
+    "contracts": ["journey-next-best-action-v1"]
+  },
+  "reads": {"contracts": []},
+  "produces": {"events": [], "routes": []},
+  "database": {"tables": []},
+  "auth": {"capabilities": []},
+  "dependencies": [
+    "MD-EGF-W04-JOURNEY-DOMAIN",
+    "MD-EGF-W05-ENGAGEMENT-CORE",
+    "MD-EGF-W06-MISSION-ENGINE",
+    "MD-EGF-W07-REWARDS-CORE"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
