@@ -16,6 +16,7 @@ env:
   RENDER_WORKSPACE_ID: tea-d9p09oks728c7381s990
   APP_SERVICE_ID: srv-daqgk83ncjis739tghig
   MYSQL_SERVICE_ID: srv-datbsavlot8c73evbhj0
+  BOOTSTRAP_SERVICE_ID: srv-datf922d0e5s73bs4ee0
   TARGET_URL: https://morro-digital-v2.onrender.com
   EXPECTED_SHA: 37eb641eefa91f57d8d74c1dc87894c2da36f3ae
   EXPECTED_DIGEST: sha256:d2aff5e25dd0e54a6b7775f125f1d094bf6c6bd934fa47a72cc12d30692e946d
@@ -67,6 +68,12 @@ jobs:
           jq -e --arg sha "$EXPECTED_SHA" '
             any(.[] | (.deploy // .); .status == "live" and .commit.id == $sha)
           ' /tmp/mysql-deploys.json >/dev/null
+
+          curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json" \
+            "$api/services/$BOOTSTRAP_SERVICE_ID/deploys?limit=20" > /tmp/bootstrap-deploys.json
+          jq -e --arg sha "$EXPECTED_SHA" '
+            any(.[] | (.deploy // .); .status == "live" and .commit.id == $sha)
+          ' /tmp/bootstrap-deploys.json >/dev/null
 
           for key in             AUTH_DATABASE_URL CONTROL_CENTER_AUDIT_DATABASE_URL DESTINATIONS_DATABASE_URL             CONTENT_DATABASE_URL BUSINESS_DATABASE_URL ORDERING_DATABASE_URL FINANCIAL_DATABASE_URL             TICKETING_DATABASE_URL NOTIFICATIONS_DATABASE_URL AFFILIATES_DATABASE_URL             ANALYTICS_DATABASE_URL CRM_DATABASE_URL COMMERCE_DATABASE_URL
           do
@@ -135,25 +142,38 @@ jobs:
             state="/tmp/job-$sequence-state.json"
             logs="/tmp/job-$sequence-logs.json"
 
-            corr_hex="$(printf '%s' "$CORRELATION_ID" | od -An -tx1 | tr -d ' \n')"
-            req_hex="$(printf '%s' "$REQUEST_ID" | od -An -tx1 | tr -d ' \n')"
-            script="set -eu; out=\"\$(MYSQL_PWD=\"\$AUDIT_DATABASE_PASSWORD\" mysql --protocol=tcp --connect-timeout=10 --batch --skip-column-names -h morro-digital-v2-production-mysql -P 3306 -u \"\$AUDIT_DATABASE_USER\" \"\$AUDIT_DATABASE_NAME\" -e \"SELECT CONCAT(id,CHAR(124),action,CHAR(124),result,CHAR(124),correlation_id,CHAR(124),request_id) FROM control_center_audit_entries WHERE correlation_id=0x$corr_hex AND request_id=0x$req_hex ORDER BY id DESC LIMIT 1;\")\"; test -n \"\$out\"; printf \"MORRO_POST_CUTOVER_AUDIT_READBACK %s\\n\" \"\$out\""
-            command="sh -c '$script'"
+            # A fixed data: module executes SELECT-only using the already
+            # protected, exact-SHA Render bootstrap worker environment.
+            encoded="import%20%7B%20createRequire%20%7D%20from%20%22node%3Amodule%22%3B%0Aconst%20require%20%3D%20createRequire%28process.cwd%28%29%20%2B%20%22%2Fpackage.json%22%29%3B%0Aconst%20mysql%20%3D%20require%28%22mysql2%2Fpromise%22%29%3B%0Aconst%20e%20%3D%20process.env%3B%0Aconst%20sha%20%3D%20%2237eb641eefa91f57d8d74c1dc87894c2da36f3ae%22%3B%0Aconst%20correlationId%20%3D%20%22corr_postcutover_20260930_0515%22%3B%0Aconst%20requestId%20%3D%20%22req_postcutover_20260930_0515%22%3B%0Alet%20connection%3B%0Atry%20%7B%0A%20%20if%20%28e.RENDER_GIT_COMMIT%20%21%3D%3D%20sha%20%7C%7C%0A%20%20%20%20%20%20e.PRODUCTION_MYSQL_HOSTPORT%20%21%3D%3D%20%22morro-digital-v2-production-mysql%3A3306%22%20%7C%7C%0A%20%20%20%20%20%20e.PRODUCTION_AUDIT_DATABASE_NAME%20%21%3D%3D%20%22morro_audit%22%20%7C%7C%0A%20%20%20%20%20%20%21e.PRODUCTION_AUDIT_DATABASE_USER%20%7C%7C%20%21e.PRODUCTION_AUDIT_DATABASE_PASSWORD%29%20%7B%0A%20%20%20%20throw%20new%20Error%28%22POST_CUTOVER_WORKER_ENV_INVALID%22%29%3B%0A%20%20%7D%0A%20%20connection%20%3D%20await%20mysql.createConnection%28%7B%0A%20%20%20%20host%3A%20%22morro-digital-v2-production-mysql%22%2C%0A%20%20%20%20port%3A%203306%2C%0A%20%20%20%20user%3A%20e.PRODUCTION_AUDIT_DATABASE_USER%2C%0A%20%20%20%20password%3A%20e.PRODUCTION_AUDIT_DATABASE_PASSWORD%2C%0A%20%20%20%20database%3A%20%22morro_audit%22%2C%0A%20%20%20%20connectTimeout%3A%2010000%0A%20%20%7D%29%3B%0A%20%20await%20connection.query%28%22START%20TRANSACTION%20READ%20ONLY%22%29%3B%0A%20%20const%20%5Brows%5D%20%3D%20await%20connection.execute%28%0A%20%20%20%20%22SELECT%20id%2C%20action%2C%20result%2C%20correlation_id%2C%20request_id%2C%20occurred_at%20FROM%20control_center_audit_entries%20WHERE%20correlation_id%20%3D%20%3F%20AND%20request_id%20%3D%20%3F%20ORDER%20BY%20id%20DESC%20LIMIT%202%22%2C%0A%20%20%20%20%5BcorrelationId%2C%20requestId%5D%0A%20%20%29%3B%0A%20%20await%20connection.query%28%22ROLLBACK%22%29%3B%0A%20%20if%20%28rows.length%20%21%3D%3D%201%29%20throw%20new%20Error%28%22POST_CUTOVER_AUDIT_ROW_COUNT_INVALID%22%29%3B%0A%20%20const%20row%20%3D%20rows%5B0%5D%3B%0A%20%20if%20%28row.action%20%21%3D%3D%20%22control-center.authorize.platform.read%22%20%7C%7C%0A%20%20%20%20%20%20row.result%20%21%3D%3D%20%22denied%22%20%7C%7C%0A%20%20%20%20%20%20row.correlation_id%20%21%3D%3D%20correlationId%20%7C%7C%0A%20%20%20%20%20%20row.request_id%20%21%3D%3D%20requestId%29%20%7B%0A%20%20%20%20throw%20new%20Error%28%22POST_CUTOVER_AUDIT_ROW_IDENTITY_MISMATCH%22%29%3B%0A%20%20%7D%0A%20%20const%20result%20%3D%20%7B%0A%20%20%20%20contract%3A%20%22MORRO-POST-CUTOVER-AUDIT-READBACK%22%2C%0A%20%20%20%20contractVersion%3A%201%2C%0A%20%20%20%20status%3A%20%22pass%22%2C%0A%20%20%20%20sourceSha%3A%20sha%2C%0A%20%20%20%20schema%3A%20%22morro_audit%22%2C%0A%20%20%20%20readOnly%3A%20true%2C%0A%20%20%20%20correlationId%2C%0A%20%20%20%20requestId%2C%0A%20%20%20%20entryId%3A%20String%28row.id%29%2C%0A%20%20%20%20occurredAt%3A%20row.occurred_at%20instanceof%20Date%0A%20%20%20%20%20%20%3F%20row.occurred_at.toISOString%28%29%0A%20%20%20%20%20%20%3A%20String%28row.occurred_at%29%0A%20%20%7D%3B%0A%20%20await%20connection.end%28%29%3B%0A%20%20connection%20%3D%20null%3B%0A%20%20console.log%28%22MORRO_POST_CUTOVER_AUDIT_READBACK%20%22%20%2B%20JSON.stringify%28result%29%29%3B%0A%7D%20catch%20%28error%29%20%7B%0A%20%20console.error%28%22POST_CUTOVER_READBACK_FAILED%3A%22%20%2B%0A%20%20%20%20String%28error%20%26%26%20%28error.code%20%7C%7C%20error.message%29%20%7C%7C%20%22UNKNOWN%22%29%0A%20%20%20%20%20%20.replace%28%2F%5B%5EA-Z0-9_%3A-%5D%2Fg%2C%20%22_%22%29.slice%280%2C%20100%29%29%3B%0A%20%20try%20%7B%20await%20connection%3F.end%28%29%3B%20%7D%20catch%20%7B%7D%0A%20%20process.exitCode%20%3D%201%3B%0A%7D"
+            command="node --import=data:text/javascript,$encoded -e 0"
             jq -nc --arg command "$command" '{startCommand:$command}' > "$request"
 
-            http_status="$(curl --silent --show-error --output "$created" --write-out '%{http_code}'               --request POST --header "$auth" --header "Accept: application/json"               --header "Content-Type: application/json" --data-binary @"$request"               "$api/services/$MYSQL_SERVICE_ID/jobs")"
+            http_status="$(curl --silent --show-error --output "$created" --write-out '%{http_code}' \
+              --request POST --header "$auth" --header "Accept: application/json" \
+              --header "Content-Type: application/json" --data-binary @"$request" \
+              "$api/services/$BOOTSTRAP_SERVICE_ID/jobs")"
             test "$http_status" = "201"
             job_id="$(jq -r '.id // empty' "$created")"
             test -n "$job_id"
 
             final=""
             for _ in $(seq 1 120); do
-              curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json"                 "$api/services/$MYSQL_SERVICE_ID/jobs/$job_id" > "$state"
+              curl --fail-with-body --silent --show-error --header "$auth" --header "Accept: application/json" \
+                "$api/services/$BOOTSTRAP_SERVICE_ID/jobs/$job_id" > "$state"
               final="$(jq -r '.status // empty' "$state")"
               case "$final" in
                 succeeded) break ;;
-                failed|canceled) jq '{id,status,createdAt,startedAt,finishedAt}' "$state" >&2; exit 1 ;;
-                pending|running) sleep 2 ;;
+                failed|canceled)
+                  jq '{id,status,createdAt,startedAt,finishedAt}' "$state" >&2
+                  curl --fail-with-body --silent --show-error --get \
+                    --header "$auth" --header "Accept: application/json" \
+                    --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
+                    --data-urlencode "resource=$job_id" \
+                    --data-urlencode "direction=backward" \
+                    --data-urlencode "limit=100" "$api/logs" > "$logs" || true
+                  jq -r '.logs[]?.message |
+                    select(startswith("POST_CUTOVER_READBACK_FAILED:"))' "$logs" >&2 || true
+                  exit 1 ;;
                 *) sleep 2 ;;
               esac
             done
@@ -161,21 +181,35 @@ jobs:
 
             line=""
             for _ in $(seq 1 30); do
-              curl --fail-with-body --silent --show-error --get --header "$auth" --header "Accept: application/json"                 --data-urlencode "ownerId=$RENDER_WORKSPACE_ID"                 --data-urlencode "resource=$job_id"                 --data-urlencode "direction=backward"                 --data-urlencode "limit=100"                 "$api/logs" > "$logs"
-              line="$(jq -r '[.logs[]?.message | select(startswith("MORRO_POST_CUTOVER_AUDIT_READBACK "))][0] // empty' "$logs")"
+              curl --fail-with-body --silent --show-error --get \
+                --header "$auth" --header "Accept: application/json" \
+                --data-urlencode "ownerId=$RENDER_WORKSPACE_ID" \
+                --data-urlencode "resource=$job_id" \
+                --data-urlencode "direction=backward" \
+                --data-urlencode "limit=100" "$api/logs" > "$logs"
+              line="$(jq -r '[.logs[]?.message |
+                select(startswith("MORRO_POST_CUTOVER_AUDIT_READBACK "))][0] // empty' "$logs")"
               [ -n "$line" ] && break
               sleep 2
             done
             test -n "$line"
 
-            payload="${line#MORRO_POST_CUTOVER_AUDIT_READBACK }"
-            IFS='|' read -r entry_id action result correlation request <<<"$payload"
-            [[ "$entry_id" =~ ^[0-9]+$ ]]
-            test "$action" = "control-center.authorize.platform.read"
-            test "$result" = "denied"
-            test "$correlation" = "$CORRELATION_ID"
-            test "$request" = "$REQUEST_ID"
+            payload="$(printf '%s' "$line" |
+              sed 's/^MORRO_POST_CUTOVER_AUDIT_READBACK //')"
+            printf '%s\n' "$payload" > "/tmp/row-$sequence.json"
+            jq -e --arg sha "$EXPECTED_SHA" \
+              --arg corr "$CORRELATION_ID" --arg req "$REQUEST_ID" '
+              .contract == "MORRO-POST-CUTOVER-AUDIT-READBACK" and
+              .status == "pass" and
+              .sourceSha == $sha and
+              .schema == "morro_audit" and
+              .readOnly == true and
+              .correlationId == $corr and
+              .requestId == $req and
+              (.entryId | test("^[0-9]+$"))
+            ' "/tmp/row-$sequence.json" >/dev/null
 
+            entry_id="$(jq -r '.entryId' "/tmp/row-$sequence.json")"
             printf '%s' "$entry_id" > "/tmp/entry-$sequence"
             printf '%s' "$job_id" > "/tmp/job-$sequence-id"
           }
