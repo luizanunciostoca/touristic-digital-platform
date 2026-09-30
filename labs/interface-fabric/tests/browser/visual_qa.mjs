@@ -53,11 +53,12 @@ for (const [width, height] of viewports) {
   );
   for (const id of ids) {
     const url = base + "/interfaces/" + id + ".html";
-    const response = await page.goto(url, { waitUntil: "networkidle" });
+    const response = await page.goto(url, { waitUntil: "domcontentloaded" });
     if (!response || !response.ok()) {
       failures.push({ id, width, height, http: response?.status() });
       continue;
     }
+    await page.locator("#main-content").waitFor({ state: "visible" });
     const layout = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
