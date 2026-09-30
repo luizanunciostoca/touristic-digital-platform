@@ -36,10 +36,20 @@ export interface AssistantToolDefinition<I, O> {
   execute(context: ToolExecutionContext, input: I): Promise<Result<ToolSuccess<O>>>;
 }
 
+const TOOL_NAME = /^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]*)+$/u;
+const VERSION = /^\d+(?:\.\d+){0,2}$/u;
+const DOMAIN = /^[a-z][a-z0-9_-]*$/u;
+
 export class AssistantToolRegistry {
   private readonly tools = new Map<string, AssistantToolDefinition<unknown, unknown>>();
 
   register<I, O>(definition: AssistantToolDefinition<I, O>): void {
+    if (!TOOL_NAME.test(definition.name)) throw new Error("Invalid tool name");
+    if (!VERSION.test(definition.version)) throw new Error("Invalid tool version");
+    if (!DOMAIN.test(definition.domain)) throw new Error("Invalid tool domain");
+    if (!definition.description.trim() || definition.description.length > 500) {
+      throw new Error("Invalid tool description");
+    }
     const key = this.key(definition.name, definition.version);
     if (this.tools.has(key)) throw new Error("Duplicate tool registration: " + key);
     if (definition.timeoutMs < 1 || definition.timeoutMs > 30000) {
@@ -47,6 +57,9 @@ export class AssistantToolRegistry {
     }
     if (definition.retryAttempts < 0 || definition.retryAttempts > 3) {
       throw new Error("Invalid retry count for " + key);
+    }
+    if (definition.effect === "read" && !definition.idempotent) {
+      throw new Error("READ tools must be idempotent: " + key);
     }
     const frozen = Object.freeze({
       ...definition,

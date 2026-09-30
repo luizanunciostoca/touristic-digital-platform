@@ -1,3 +1,3 @@
-# Future Database Schema
+# Future database design
 
-The file schemas/future-memory-schema.sql is design output only. It is not referenced by current migrations, current database tooling, root workspace configuration or runtime bootstraps. Applying it is explicitly outside this isolated mission.
+The file schemas/assistant-vnext-future.sql is a design artifact only. It is intentionally not referenced by the current migration system and must not be applied during the isolated-build mission. A separately authorized integration phase must review tenancy, retention, encryption, least privilege, migration ordering and rollback before any schema reaches a database.

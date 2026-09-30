@@ -11,7 +11,7 @@ export interface MockDomainDataset {
   readonly tickets: readonly Readonly<Record<string, unknown>>[];
 }
 
-const AnyOutputSchema = z.unknown();
+const AnyOutputSchema: z.ZodType<unknown> = z.json();
 const QuerySchema = z.object({ query: z.string().min(1).max(200) }).strict();
 const IdSchema = z.object({ id: z.string().min(1).max(160) }).strict();
 const NearbySchema = z
@@ -27,7 +27,7 @@ const LocationSchema = z
   .strict();
 const MapSchema = z.object({ id: z.string().min(1).max(160) }).strict();
 const CategorySchema = z.object({ category: z.string().min(1).max(80) }).strict();
-const FilterSchema = z.object({ filters: z.record(z.string(), z.unknown()) }).strict();
+const FilterSchema = z.object({ filters: z.record(z.string(), z.json()) }).strict();
 const PrepareNavSchema = z.object({ destinationId: z.string().min(1).max(160) }).strict();
 const StatusSchema = z.object({ reference: z.string().min(1).max(160) }).strict();
 const CountSchema = z

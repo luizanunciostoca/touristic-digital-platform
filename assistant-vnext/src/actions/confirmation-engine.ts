@@ -1,5 +1,5 @@
 import type { Result } from "../core/contracts.js";
-import type { PreparedAction, ConfirmationReceipt } from "./prepared-actions.js";
+import type { ConfirmationReceipt } from "./prepared-actions.js";
 import type { PreparedActionStore } from "./prepared-actions.js";
 
 export class ConfirmationEngine {
@@ -21,12 +21,9 @@ export interface SandboxExecutionReceipt {
 export class SandboxActionExecutor {
   constructor(private readonly store: PreparedActionStore) {}
 
-  execute(
-    preparedActionId: string,
-    contextFingerprint: string,
-  ): Result<PreparedAction | SandboxExecutionReceipt> {
+  execute(preparedActionId: string, contextFingerprint: string): Result<SandboxExecutionReceipt> {
     const claimed = this.store.claimForSandboxExecution(preparedActionId, contextFingerprint);
-    if (!claimed.ok) return claimed;
+    if (!claimed.ok) return { ok: false, error: claimed.error };
     return {
       ok: true,
       value: {

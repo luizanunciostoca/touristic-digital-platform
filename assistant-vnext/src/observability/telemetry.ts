@@ -10,6 +10,8 @@ export const OBSERVABILITY_EVENTS = [
   "assistant.action.prepared",
   "assistant.action.confirmed",
   "assistant.action.denied",
+  "assistant.action.executed",
+  "assistant.action.verified",
   "assistant.response.generated",
   "assistant.fallback.used",
   "assistant.turn.completed",

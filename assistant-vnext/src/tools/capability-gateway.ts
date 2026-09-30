@@ -1,5 +1,5 @@
 import type { AssistantContextEnvelope } from "../context/context-envelope.js";
-import type { Result } from "../core/contracts.js";
+import type { AssistantFailure, Result } from "../core/contracts.js";
 import { err, ok } from "../core/contracts.js";
 import { composeAbortSignal } from "../core/runtime.js";
 import type { AssistantPolicyEngine } from "../policy/policy-engine.js";
@@ -9,6 +9,50 @@ export interface ToolCallProposal {
   readonly name: string;
   readonly version?: string;
   readonly arguments: unknown;
+}
+
+function publicFailure(failure: AssistantFailure): Result<never> {
+  const messages: Record<AssistantFailure["code"], string> = {
+    UNAVAILABLE: "Tool unavailable",
+    INSUFFICIENT_EVIDENCE: "Insufficient evidence",
+    POLICY_DENIED: "Tool request denied",
+    VALIDATION_FAILED: "Tool validation failed",
+    TIMEOUT: "Tool call timed out",
+    CANCELLED: "Tool call cancelled",
+    NOT_FOUND: "Requested data not found",
+    CONFLICT: "Tool result conflict",
+    EXPIRED: "Prepared state expired",
+    DUPLICATE: "Duplicate operation denied",
+    PROVIDER_ERROR: "Provider unavailable",
+  };
+  return err(failure.code, messages[failure.code], failure.retryable);
+}
+
+function validTimestamp(value: string): boolean {
+  return Number.isFinite(Date.parse(value));
+}
+
+function validSuccess(result: ToolSuccess<unknown>): boolean {
+  if (!validTimestamp(result.observedAt)) return false;
+  if (result.validUntil && !validTimestamp(result.validUntil)) return false;
+  return result.evidence.every(
+    (item) =>
+      item.id.trim().length > 0 &&
+      item.source.trim().length > 0 &&
+      item.sourceType.trim().length > 0,
+  );
+}
+
+function executeBounded<T>(execute: () => Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(new Error("aborted"));
+  return Promise.race([
+    execute(),
+    new Promise<T>((_resolve, reject) => {
+      signal.addEventListener("abort", () => reject(new Error("aborted")), {
+        once: true,
+      });
+    }),
+  ]);
 }
 
 export class AssistantCapabilityGateway {
@@ -26,6 +70,16 @@ export class AssistantCapabilityGateway {
     if (!resolved.ok) return resolved;
     const tool = resolved.value;
 
+    if (contextEnvelope.user.authenticated) {
+      if (
+        !contextEnvelope.user.userId ||
+        !executionContext.userId ||
+        contextEnvelope.user.userId !== executionContext.userId
+      ) {
+        return err("POLICY_DENIED", "Authenticated identity mismatch");
+      }
+    }
+
     const policy = this.policy.evaluateTool(
       {
         name: tool.name,
@@ -38,6 +92,11 @@ export class AssistantCapabilityGateway {
     );
     if (!policy.ok) return policy;
 
+    const executionScopes = new Set(executionContext.authScopes);
+    if (tool.permissions.some((permission) => !executionScopes.has(permission))) {
+      return err("POLICY_DENIED", "Execution identity lacks required permission");
+    }
+
     const input = tool.inputSchema.safeParse(proposal.arguments);
     if (!input.success) return err("VALIDATION_FAILED", "Tool input schema validation failed");
 
@@ -45,28 +104,23 @@ export class AssistantCapabilityGateway {
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const bounded = composeAbortSignal(executionContext.abortSignal, tool.timeoutMs);
       try {
-        if (bounded.signal.aborted) {
-          const isParent = executionContext.abortSignal.aborted;
-          return err(
-            isParent ? "CANCELLED" : "TIMEOUT",
-            isParent ? "Tool call cancelled" : "Tool call timed out",
-            !isParent,
-          );
-        }
-        const result = await tool.execute(
-          { ...executionContext, abortSignal: bounded.signal },
-          input.data,
+        const result = await executeBounded(
+          () => tool.execute({ ...executionContext, abortSignal: bounded.signal }, input.data),
+          bounded.signal,
         );
         if (!result.ok) {
           if (result.error.retryable && attempt < maxAttempts) continue;
-          return result;
+          return publicFailure(result.error);
+        }
+        if (!validSuccess(result.value)) {
+          return err("VALIDATION_FAILED", "Tool result metadata validation failed");
         }
         const output = tool.outputSchema.safeParse(result.value.data);
         if (!output.success) {
           return err("VALIDATION_FAILED", "Tool output schema validation failed");
         }
         return ok({ ...result.value, data: output.data });
-      } catch (cause) {
+      } catch {
         if (executionContext.abortSignal.aborted) {
           return err("CANCELLED", "Tool call cancelled", false);
         }
@@ -75,11 +129,7 @@ export class AssistantCapabilityGateway {
           return err("TIMEOUT", "Tool call timed out", true);
         }
         if (attempt < maxAttempts) continue;
-        return err(
-          "UNAVAILABLE",
-          cause instanceof Error ? cause.message : "Tool execution failed",
-          true,
-        );
+        return err("UNAVAILABLE", "Tool execution failed", true);
       } finally {
         bounded.dispose();
       }

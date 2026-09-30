@@ -28,3 +28,6 @@ export * from "./application.js";
 
 export * from "./input/input-normalizer.js";
 export * from "./evals/eval-runner.js";
+
+export * from "./memory/layered-memory.js";
+export * from "./actions/action-lifecycle.js";

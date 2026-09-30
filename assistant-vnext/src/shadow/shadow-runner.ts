@@ -5,14 +5,12 @@ export interface ShadowComparison {
   readonly legacyIntent: string;
   readonly vnextIntent: string;
 }
-
 export interface ShadowMetrics {
   readonly runs: number;
   readonly intentMatches: number;
   readonly toolSetMatches: number;
   readonly averageLatencyDeltaMs: number;
 }
-
 export class ShadowComparator {
   compare(
     args: Readonly<{
@@ -32,12 +30,13 @@ export class ShadowComparator {
     };
   }
 }
-
 export class ShadowRunner {
   private readonly comparisons: ShadowComparison[] = [];
+  private readonly pending = new Set<Promise<void>>();
+
   constructor(private readonly comparator: ShadowComparator) {}
 
-  async run<TLegacy, TVNext>(
+  run<TLegacy, TVNext>(
     args: Readonly<{
       legacy: () => Promise<TLegacy>;
       vnext: () => Promise<TVNext>;
@@ -53,24 +52,36 @@ export class ShadowRunner {
     }>,
   ): Promise<TLegacy> {
     const now = args.now ?? Date.now;
-    const legacyStart = now();
-    const legacyValue = await args.legacy();
-    const legacyLatency = Math.max(0, now() - legacyStart);
+    const legacyStarted = now();
+    const legacyPromise = args.legacy().then((value) => ({
+      value,
+      latencyMs: Math.max(0, now() - legacyStarted),
+    }));
+    const vnextStarted = now();
+    const vnextPromise = args.vnext().then((value) => ({
+      value,
+      latencyMs: Math.max(0, now() - vnextStarted),
+    }));
 
-    const vnextStart = now();
-    try {
-      const vnextValue = await args.vnext();
-      const vnextLatency = Math.max(0, now() - vnextStart);
-      this.comparisons.push(
-        this.comparator.compare({
-          legacy: args.summarizeLegacy(legacyValue, legacyLatency),
-          vnext: args.summarizeVNext(vnextValue, vnextLatency),
-        }),
-      );
-    } catch {
-      // Shadow failures never affect legacy authority.
-    }
-    return legacyValue;
+    const work = Promise.all([legacyPromise, vnextPromise])
+      .then(([legacy, vnext]) => {
+        this.comparisons.push(
+          this.comparator.compare({
+            legacy: args.summarizeLegacy(legacy.value, legacy.latencyMs),
+            vnext: args.summarizeVNext(vnext.value, vnext.latencyMs),
+          }),
+        );
+      })
+      .catch(() => {
+        // Shadow failures never affect the legacy authority.
+      });
+    this.pending.add(work);
+    void work.finally(() => this.pending.delete(work));
+    return legacyPromise.then(({ value }) => value);
+  }
+
+  async drain(): Promise<void> {
+    await Promise.allSettled([...this.pending]);
   }
 
   metrics(): ShadowMetrics {
