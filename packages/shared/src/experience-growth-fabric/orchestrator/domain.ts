@@ -7,12 +7,7 @@ export type NextBestActionType =
   | "reward";
 
 export type CandidateSource =
-  | "assistant"
-  | "map"
-  | "search"
-  | "catalog"
-  | "mission"
-  | "reward";
+  "assistant" | "map" | "search" | "catalog" | "mission" | "reward";
 
 export interface JourneyOrchestratorContext {
   readonly journeyId: string;
@@ -71,8 +66,7 @@ const REQUIRED_CAPABILITIES: Readonly<
   reward: ["rewards.read"],
 };
 
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function isUtc(value: string): boolean {
   return UTC_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
@@ -162,8 +156,7 @@ export function orchestrateNextBestActions(
       }
       if (
         candidate.expiresAt !== null &&
-        (!isUtc(candidate.expiresAt) ||
-          Date.parse(candidate.expiresAt) <= now)
+        (!isUtc(candidate.expiresAt) || Date.parse(candidate.expiresAt) <= now)
       ) {
         return false;
       }
