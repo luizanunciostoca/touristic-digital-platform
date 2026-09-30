@@ -2,7 +2,7 @@
 import { assertReadOnly } from './authority.mjs';
 const norm=(v)=>String(v??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim().toLocaleLowerCase('pt-BR').replace(/\s+/g,' ');
 const key=(place)=>place.id&&place.source==='canonical'?`id:${place.id}`:`name:${norm(place.category)}:${norm(place.name)}`;
-const validPlace=(p)=>p&&typeof p.name==='string'&&p.name.trim()&&Number.isFinite(Number(p.lat??p.latitude))&&Number.isFinite(Number(p.lng??p.longitude));
+const validPlace=(p)=>p&&typeof p.name==='string'&&p.name.trim()&&Number.isFinite(p.lat??p.latitude)&&Number.isFinite(p.lng??p.longitude);
 export function mapCameraQuery({destinationId,bbox,zoom,category}={}) {
   if(!/^[a-z0-9][a-z0-9-]*$/.test(destinationId??''))throw new Error('INVALID_DESTINATION');
   if(!Array.isArray(bbox)||bbox.length!==4||bbox.some(x=>!Number.isFinite(x))||bbox[0]>=bbox[2]||bbox[1]>=bbox[3])throw new Error('INVALID_BBOX');
@@ -37,7 +37,7 @@ export function reconcileVisiblePlaces({canonical=null,legacy=[],legacyApproved=
   const counts={};for(const p of rendered) counts[p.category]=(counts[p.category]??0)+1;
   return Object.freeze({
     places:Object.freeze(filtered), counts:Object.freeze(counts),
-    canonicalCount:safeCanonical.length,legacyCount:rendered.filter(p=>p.source==='legacy').length,
+    canonicalCount:rendered.filter(p=>p.source==='canonical').length,legacyCount:rendered.filter(p=>p.source==='legacy').length,
     status: !canonical?.queried? 'unverified' : !canonical.complete?'partial' : safeCanonical.length===0?(rendered.length?'legacy-fallback':'empty'):(rendered.some(p=>p.source==='legacy')?'hybrid':'canonical'),
     verified: Boolean(canonical?.queried&&canonical?.complete&&canonical.items.length>0),
     emptyReason:canonical?.queried&&canonical.complete&&rendered.length===0?'Nenhum local retornado para a área e filtros consultados.':'',
