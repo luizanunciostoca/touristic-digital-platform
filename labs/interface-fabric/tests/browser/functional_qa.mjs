@@ -37,8 +37,8 @@ await page
   .getByRole("button", { name: "Continuar" })
   .click();
 await page.getByText("Nenhum backend real foi alterado").waitFor();
-await open("IF-PUB-010");
-const trigger = page.getByRole("button", { name: "Salvar" });
+await open("IF-PUB-009");
+const trigger = page.getByRole("button", { name: "Abrir" }).first();
 await trigger.focus();
 await trigger.click();
 const dialog = page.locator("#fabric-dialog");
