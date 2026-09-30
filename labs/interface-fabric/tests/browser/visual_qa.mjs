@@ -11,7 +11,10 @@ try {
   process.exit(2);
 }
 const manifest = JSON.parse(
-  await readFile(new URL("../../manifest/interfaces.json", import.meta.url), "utf8"),
+  await readFile(
+    new URL("../../manifest/interfaces.json", import.meta.url),
+    "utf8",
+  ),
 );
 const ids = manifest.map(({ id }) => id);
 const viewports = [
@@ -45,8 +48,8 @@ for (const [width, height] of viewports) {
     reducedMotion: "reduce",
   });
   const page = await context.newPage();
-  page.on("pageerror", (e) =>
-    failures.push({ width, height, error: e.message }),
+  page.on("pageerror", (error) =>
+    failures.push({ width, height, error: error.message }),
   );
   for (const id of ids) {
     const url = base + "/interfaces/" + id + ".html";
@@ -62,10 +65,7 @@ for (const [width, height] of viewports) {
     if (layout.scrollWidth > layout.clientWidth + 1) {
       failures.push({ id, width, height, ...layout });
     }
-    if (
-      (width === 390 && height === 844) ||
-      representativeIds.has(id)
-    ) {
+    if ((width === 390 && height === 844) || representativeIds.has(id)) {
       await page.screenshot({
         path: new URL(
           "../../visual/evidence/" + id + "-" + width + "x" + height + ".png",
