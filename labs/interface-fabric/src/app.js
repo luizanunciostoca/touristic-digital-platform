@@ -162,8 +162,8 @@ function wire(def){
 
   document.querySelector('[data-action="nav-explore"]')?.addEventListener("click",()=>navigate("IF-PUB-008"));
   document.querySelectorAll('[data-action="nav-assistant"]').forEach(el=>el.addEventListener("click",()=>navigate("IF-PUB-014")));
-  document.querySelector('[data-action="nav-route"]')?.addEventListener("click",()=>navigate("IF-PUB-017"));
-  document.querySelector('[data-action="nav-commerce"]')?.addEventListener("click",()=>navigate("IF-COM-001"));
+  document.querySelectorAll('[data-action="nav-route"]').forEach(el=>el.addEventListener("click",()=>navigate("IF-PUB-017")));
+  document.querySelectorAll('[data-action="nav-commerce"]').forEach(el=>el.addEventListener("click",()=>navigate("IF-COM-001")));
   document.querySelectorAll('[data-action="dialog"]').forEach(el=>el.addEventListener("click",openDialog));
   document.querySelector('[data-action="dialog-close"]')?.addEventListener("click",closeDialog);
   document.querySelectorAll('[data-action="toast"]').forEach(el=>el.addEventListener("click",()=>showToast("Ação demonstrativa concluída.")));
