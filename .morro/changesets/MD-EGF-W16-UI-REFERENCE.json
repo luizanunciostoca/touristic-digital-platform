@@ -12,10 +12,10 @@
     ],
     "contracts": ["growth-ui-reference-v1"]
   },
-  "reads": {"contracts": []},
-  "produces": {"events": [], "routes": []},
-  "database": {"tables": []},
-  "auth": {"capabilities": []},
+  "reads": { "contracts": [] },
+  "produces": { "events": [], "routes": [] },
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
   "dependencies": [
     "MD-EGF-W04-JOURNEY-DOMAIN",
     "MD-EGF-W05-ENGAGEMENT-CORE",

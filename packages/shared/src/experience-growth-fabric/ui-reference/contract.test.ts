@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  GROWTH_UI_SURFACES,
-  validateGrowthUiSurfaces,
-} from "./contract.js";
+import { GROWTH_UI_SURFACES, validateGrowthUiSurfaces } from "./contract.js";
 
 describe("growth UI reference contract", () => {
   it("covers all isolated reference surfaces", () => {
