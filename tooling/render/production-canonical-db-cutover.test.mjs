@@ -276,6 +276,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   assert.equal(result.databaseDomains, 13);
   assert.equal(result.paymentsMode, "test");
   assert.equal(result.subscriptionsEnabled, false);
+  assert.equal(result.commerceFeatureEnabled, true);
   assert.equal(result.railwayRetirement, "KEEP_TEMPORARILY");
   assert.equal(result.rollbackNotRequired, false);
 
@@ -293,6 +294,11 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   assert.ok(keys.includes("EXPECTED_SHA"));
   assert.ok(keys.includes("MORRO_RELEASE_SHA"));
   assert.ok(keys.includes("MORRO_DATABASE_SCHEMA_MODE"));
+  assert.ok(keys.includes("COMMERCE_FEATURE_ENABLED"));
+  const commerceFlagWrite = envWrites.find((request) =>
+    request.route.endsWith("/env-vars/COMMERCE_FEATURE_ENABLED"),
+  );
+  assert.deepEqual(JSON.parse(commerceFlagWrite.body), { value: "true" });
   for (const key of ["EXPECTED_SHA", "MORRO_RELEASE_SHA"]) {
     const write = envWrites.find((request) =>
       request.route.endsWith(`/env-vars/${key}`),
@@ -307,6 +313,7 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
 
   const evidence = JSON.parse(await fs.readFile(evidenceFile, "utf8"));
   assert.equal(evidence.newDeployId, "dep-new");
+  assert.equal(evidence.commerceFeatureEnabled, true);
   assert.ok(!JSON.stringify(evidence).includes("-secret"));
 });
 
