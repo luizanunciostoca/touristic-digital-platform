@@ -39,16 +39,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm exec prettier --write \
-            .morro/changesets/MD-EGF-W05-ENGAGEMENT-CORE.json \
-            packages/shared/src/experience-growth-fabric/engagement/badges-collections.ts \
-            packages/shared/src/experience-growth-fabric/engagement/xp-ledger.ts \
-          git rm .github/workflows/egf-w05-format-once.yml
+          FILES=(
+            ".morro/changesets/MD-EGF-W05-ENGAGEMENT-CORE.json"
+            "packages/shared/src/experience-growth-fabric/engagement/badges-collections.ts"
+            "packages/shared/src/experience-growth-fabric/engagement/xp-ledger.ts"
+          )
+          pnpm exec prettier --write "${FILES[@]}"
+          git rm ".github/workflows/egf-w05-format-once.yml"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            .morro/changesets/MD-EGF-W05-ENGAGEMENT-CORE.json \
-            packages/shared/src/experience-growth-fabric/engagement/badges-collections.ts \
-            packages/shared/src/experience-growth-fabric/engagement/xp-ledger.ts \
+          git add "${FILES[@]}"
           git commit -m "style(growth): apply canonical W05 formatting"
           git push origin "HEAD:${GITHUB_HEAD_REF}"
