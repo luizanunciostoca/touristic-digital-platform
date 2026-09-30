@@ -349,7 +349,9 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   const serializedEvidence = JSON.stringify(evidence);
   assert.ok(!serializedEvidence.includes("-runtime-secret"));
   assert.ok(!serializedEvidence.includes("PAYMENTS_HANDOFF_SECRET"));
-  assert.ok(!serializedEvidence.includes("TICKETING_OFFLINE_PROVISIONING_SECRET"));
+  assert.ok(
+    !serializedEvidence.includes("TICKETING_OFFLINE_PROVISIONING_SECRET"),
+  );
   for (const secretValue of generatedSecretValues) {
     assert.ok(!serializedEvidence.includes(secretValue));
   }
