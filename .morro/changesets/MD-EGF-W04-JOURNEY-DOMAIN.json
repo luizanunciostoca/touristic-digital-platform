@@ -15,11 +15,7 @@
     "contracts": []
   },
   "produces": {
-    "events": [
-      "JourneyStarted",
-      "JourneyUpdated",
-      "JourneyCompleted"
-    ],
+    "events": ["JourneyStarted", "JourneyUpdated", "JourneyCompleted"],
     "routes": []
   },
   "database": {
