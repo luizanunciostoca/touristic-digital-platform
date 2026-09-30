@@ -1,0 +1,40 @@
+{
+  "id": "MD-EGF-W16-UI-REFERENCE",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w16-ui-reference-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W16-UI-REFERENCE.json",
+      "packages/shared/src/experience-growth-fabric/ui-reference/**",
+      "docs/qa/experience-growth-fabric/ui-reference/**"
+    ],
+    "contracts": ["growth-ui-reference-v1"]
+  },
+  "reads": { "contracts": [] },
+  "produces": { "events": [], "routes": [] },
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
+  "dependencies": [
+    "MD-EGF-W04-JOURNEY-DOMAIN",
+    "MD-EGF-W05-ENGAGEMENT-CORE",
+    "MD-EGF-W06-MISSION-ENGINE",
+    "MD-EGF-W07-REWARDS-CORE",
+    "MD-EGF-W10-AFFILIATE-GROWTH",
+    "MD-EGF-W12-JOURNEY-ORCHESTRATOR",
+    "MD-EGF-W14-PROJECTIONS",
+    "MD-EGF-W15-HTTP-CONTRACTS"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "accessibility-contract",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
