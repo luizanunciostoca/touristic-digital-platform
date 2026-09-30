@@ -108,10 +108,10 @@ jobs:
           set -euo pipefail
           curl --fail-with-body --silent --show-error -D /tmp/health.headers             "$TARGET_URL/healthz" > /tmp/health.json
           jq -e '(.status == "live" or .status == "healthy")' /tmp/health.json >/dev/null
-          grep -Eiq "^x-release-sha: $EXPECTED_SHA\r?$" /tmp/health.headers
+          tr -d '\r' < /tmp/health.headers | grep -Fqi "x-release-sha: $EXPECTED_SHA"
 
           curl --fail-with-body --silent --show-error -D /tmp/ready.headers             "$TARGET_URL/readyz" > /tmp/ready.json
-          grep -Eiq "^x-release-sha: $EXPECTED_SHA\r?$" /tmp/ready.headers
+          tr -d '\r' < /tmp/ready.headers | grep -Fqi "x-release-sha: $EXPECTED_SHA"
           jq -e '
             .readiness == "ready" and
             any(.checks[]; .name == "control-center-audit" and .status == "pass") and
