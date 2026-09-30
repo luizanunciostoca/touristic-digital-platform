@@ -40,7 +40,8 @@ def run_browser(browser,html,script,viewport,out,proof):
     tag=f'{w}x{h}'
     context=browser.new_context(viewport={'width':w,'height':h},device_scale_factor=1,locale='pt-BR',reduced_motion='reduce')
     page=context.new_page();page.set_default_timeout(8000)
-    errors=[];page.on('pageerror',lambda e: errors.append(str(e)))
+    errors=[];requests=[];page.on('pageerror',lambda e: errors.append(str(e)))
+    page.on('request',lambda r: requests.append(r.url))
     page.set_content(html,wait_until='domcontentloaded')
     # about:blank disables localStorage. A deterministic memory port is used only
     # by these inline browser fixtures; the real service has separate persistence unit tests.
@@ -76,7 +77,14 @@ def run_browser(browser,html,script,viewport,out,proof):
     assert not overlap, f'panel/dock overlap {tag}: {rects}'
     assert n['top']>=d['bottom']-1 or (w,h)==(844,390), f'dock/nav overlap {tag}: {rects}'
     assert rects['documentWidth']<=w+1, f'horizontal overflow {tag}: {rects}'
+    assert page.evaluate('document.documentElement.scrollHeight <= innerHeight + 1'), f'vertical viewport shift {tag}'
+    assert page.evaluate('scrollY')==0, f'full-page scroll hides Home chrome {tag}'
+    for touch in ['.composer button','.saved-panel [data-action=ask-assistant]']:
+        bb=page.locator(touch).first.bounding_box()
+        assert bb and bb['x']>=-1 and bb['x']+bb['width']<=w+1 and bb['y']>=-1 and bb['y']+bb['height']<=h+1, f'hit target clipped {tag} {touch} {bb}'
     assert p['height']>60 and d['height']>60
+    cta=page.locator('#home-saved-panel [data-action=ask-assistant]').bounding_box()
+    assert cta and cta['y']>=p['top']-1 and cta['y']+cta['height']<=p['bottom']+1, f'handoff CTA initially clipped {tag}: {cta}, panel {p}'
     shot('panel-one-favorite')
     page.keyboard.press('Escape')
     assert page.locator('#home-saved-panel').is_hidden()
@@ -148,10 +156,11 @@ def run_browser(browser,html,script,viewport,out,proof):
     page.wait_for_timeout(55)
     assert page.locator('#home-saved-panel [data-action="open-place"]').is_enabled()
     assert not errors, f'JS page errors {tag}: {errors}'
+    assert not requests, f'external browser requests {tag}: {requests}'
     proof.append({'viewport':tag,'status':'PASS','screenshots':len(list(out.glob(f'{tag}--*.png'))),
                   'panelDockOverlap':False,'horizontalOverflow':False,'keyFocusRestored':True,
                   'assistantHomeSameCollection':True,'destinationsIsolated':True,
-                  'guestOwnerSeparated':True,'ownerOfflineFailClosed':True,'hebrewRTL':True,'consoleErrors':errors})
+                  'guestOwnerSeparated':True,'ownerOfflineFailClosed':True,'hebrewRTL':True,'consoleErrors':errors,'requests':requests,'viewportDidNotScroll':True})
     context.close()
 
 

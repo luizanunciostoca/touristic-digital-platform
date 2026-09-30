@@ -57,3 +57,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .assistant-dock .composer { min-width: 0; width: 100%; }
 .assistant-dock .composer input { min-width: 0; }
 .assistant-dock .composer button { flex: 0 0 auto; }
+
+/* Compact portrait must not scroll the full map-first shell. */
+@media (max-height: 680px) {
+  .shell { min-height: 0; }
+}
+/* Keep panel-to-Assistant CTA visible while saved rows scroll. */
+.saved-panel__footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--surface);
+  padding-top: 8px;
+}

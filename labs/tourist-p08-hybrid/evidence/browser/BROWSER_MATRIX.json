@@ -1,7 +1,7 @@
 {
   "scope": "P08_HYBRID_ISOLATED_PREVIEW_ONLY_NOT_MAIN_NOT_PRODUCTION",
   "method": "EXACT_SOURCE_HTML_CSS_JS_INLINE_BROWSER_NO_NETWORK; HTTP read-only security independently verified via localhost urllib",
-  "timestampUtc": "2026-09-30T09:37:02.197119+00:00",
+  "timestampUtc": "2026-09-30T09:54:59.953679+00:00",
   "sourceFilesSHA256": {
     "src/identity.mjs": "cf72f44fa6b0a79d1ee9923298c5d146148f041a488b0ce488da257406e727d4",
     "src/owner-port.mjs": "670fb966adf545fa7b87d782e6d47e781d217e2721b7e1221c0d960fe65a3164",
@@ -10,7 +10,7 @@
     "src/surfaces.mjs": "129d36a0f6680d17d8e700551a9b5833f21b8120f79830cb82ce3554185c2dc6",
     "preview/main.mjs": "6f0122eba4cba14433a2387513b49070612c5194bd28247d826e011e3f3ea4ab",
     "preview/index.html": "1062ecf6fd526128ff57e3efe8f67795d685b09163d663282b73a605b60f3078",
-    "preview/styles.css": "c256d28096e16d99897fb02bb39d196ed1f077c9237b3993f9e5b11399004e7c",
+    "preview/styles.css": "e3589eeb76107af0bd9b72c97c8faa90d8047280dda2d9c788a5ffcaf0e8f17f",
     "tools/preview-server.mjs": "cf9342a49ddc16e43779f9aed07a605a9784eaf6c72db37f4116186dc1bc40ea"
   },
   "viewports": [
@@ -110,8 +110,8 @@
   "screenshots": [
     {
       "path": "P08_Hybrid_panel_320x720.png",
-      "sha256": "e545aaac7e038d7318bc4ba9513503e074b0a2b68617306ef768c901fc071662",
-      "bytes": 78146
+      "sha256": "b60c2410002acc343c4d8b1934060f4e7041f6320173dc2e9f92277f61232237",
+      "bytes": 78057
     },
     {
       "path": "P08_Hybrid_assistant_320x720.png",
@@ -120,48 +120,48 @@
     },
     {
       "path": "P08_Hybrid_panel_360x800.png",
-      "sha256": "b3e9a71528b4a0e13e7becf9cb3fab675e58571e002d6133024c99a55bc15bb8",
-      "bytes": 96472
+      "sha256": "3be1c56869f20ff2fcddaa3b17d5914ea45ba87f5acd3002813be467c8779628",
+      "bytes": 94103
     },
     {
       "path": "P08_Hybrid_assistant_360x800.png",
-      "sha256": "5af5ba013bf7371e22e6e7023fe2b41e5491858bde8b88ae2b9845f0972fde19",
-      "bytes": 126125
+      "sha256": "247e66a503ad3c653585025db84738e6fea0201148b5d35d00ffdd892df5da45",
+      "bytes": 126131
     },
     {
       "path": "P08_Hybrid_panel_390x844.png",
-      "sha256": "295c6e2bf3d90c4ccb23251ca9d2def042887fe69f7eeb61ae090be8b60c1c3f",
-      "bytes": 105913
+      "sha256": "d6792402a0645243ffa19b1834db36420a27a9f9546f33d7436dd6d883e9905c",
+      "bytes": 104491
     },
     {
       "path": "P08_Hybrid_assistant_390x844.png",
-      "sha256": "597aad0064e4f593b0c91780d55fbbf565d1b983f12e9cd7845696424e62efd1",
-      "bytes": 135767
+      "sha256": "a160b47c554da1efa4afd157d30aef048eab9fe497ed9d6cb9f9ce09d3485204",
+      "bytes": 135773
     },
     {
       "path": "P08_Hybrid_panel_430x932.png",
-      "sha256": "8d968b1157b5033a438bfb3093637cf6713d550dd88a97b1b75dfda36d356a20",
-      "bytes": 137991
+      "sha256": "5aebc094b76fc3c35454c3f8f58f4447054adb362f79f73cda75c1d0c434ad82",
+      "bytes": 136739
     },
     {
       "path": "P08_Hybrid_assistant_430x932.png",
-      "sha256": "b7885539eb43e63b08192e6138d8e2599550f9094f9b8406314d841b523c327a",
-      "bytes": 163943
+      "sha256": "954148eccded84f3f6b8faf8931b37c92ca0f40d278b19be9601c93ef5962eb6",
+      "bytes": 163929
     },
     {
       "path": "P08_Hybrid_panel_768x1024.png",
-      "sha256": "c888bb8f0a1d360c687f966d5c675ff36d62b27d1e309de85b7ad2c66fdbdce4",
-      "bytes": 231573
+      "sha256": "a22f4c6ca50d56288ae811bc260804990e8703d55d2076332345b4e75be14a6b",
+      "bytes": 228961
     },
     {
       "path": "P08_Hybrid_assistant_768x1024.png",
-      "sha256": "6dc170eb44a8c0bbb47476c6eddbfe9db11953b7013b2f03309768b9718d45dd",
-      "bytes": 278944
+      "sha256": "ea6ed3e467ace8f38b9b6a1f73e84f419a7658a5eded6a142bb6bed3740a63b9",
+      "bytes": 278956
     },
     {
       "path": "P08_Hybrid_panel_844x390.png",
-      "sha256": "7805954523158e9454dca3ee502ddc17d3fcf4b771854377887549970d6aa605",
-      "bytes": 93593
+      "sha256": "9840036eb44fd05795b60af0ed625a44441115ab2eaa6f297aa5fb7930c4a5ae",
+      "bytes": 93526
     },
     {
       "path": "P08_Hybrid_assistant_844x390.png",
@@ -170,8 +170,8 @@
     },
     {
       "path": "P08_Hybrid_panel_1440x900.png",
-      "sha256": "4b6946c7378e410086142e8b92a2f47075246306f53cd757054d3a4cd8d8cd98",
-      "bytes": 435661
+      "sha256": "4fc7eb5a927065c88ade22cf3ef02d339f0a7c82462b5b000fd1549a48de285b",
+      "bytes": 434566
     },
     {
       "path": "P08_Hybrid_assistant_1440x900.png",
@@ -180,38 +180,38 @@
     },
     {
       "path": "P08_Hybrid_destinations_isolated_390x844.png",
-      "sha256": "9795f3f65b37fc624615ff0618b1e6a5df96e786c89d5f0a9b1b07e1cfb2fe22",
-      "bytes": 105913
+      "sha256": "b5fb2c722bfcb9a275d04d2559e34c7d437ab3c09eea9dc0e333b0b174efaca1",
+      "bytes": 104491
     },
     {
       "path": "P08_Hybrid_locale_en_390x844.png",
-      "sha256": "57e04cb43607b2b5795a53bc9427636dec1e63fa4891724e8f4c6613dba2a039",
-      "bytes": 105216
+      "sha256": "15a9b79c4edac441a6494575554960601c39e72df8285401bd90e32b786fc5a3",
+      "bytes": 103751
     },
     {
       "path": "P08_Hybrid_locale_es_390x844.png",
-      "sha256": "541bbd0b7292c39cb41716e6554898c37d59bee54fa3076ed3e7b013628e1635",
-      "bytes": 106494
+      "sha256": "4198c23a6264b099d0f0ec0a388d7875ef068d06ed9950a10f586db04ddaeb8c",
+      "bytes": 105084
     },
     {
       "path": "P08_Hybrid_locale_he_390x844.png",
-      "sha256": "32962c96544c980c6f9b48e317967a593acca030d3dc9b9986fd445d5437b2d4",
-      "bytes": 99196
+      "sha256": "fee698097412813cd8408deff2b98949b6d724692d14e244aea3e0f250b4fbf8",
+      "bytes": 97731
     },
     {
       "path": "P08_Hybrid_locale_pt_BR_390x844.png",
-      "sha256": "295c6e2bf3d90c4ccb23251ca9d2def042887fe69f7eeb61ae090be8b60c1c3f",
-      "bytes": 105913
+      "sha256": "d6792402a0645243ffa19b1834db36420a27a9f9546f33d7436dd6d883e9905c",
+      "bytes": 104491
     },
     {
       "path": "P08_Hybrid_verified_owner_fixture_390x844.png",
-      "sha256": "735766cedbf956132e461ccebd3ede477185158852eb603070451a36e406ca4a",
-      "bytes": 105668
+      "sha256": "974ff48d1f4f207168cf7b26cd0d190d250a2c54bdc8528a8c2e0aa0a59707bb",
+      "bytes": 104227
     },
     {
       "path": "P08_Hybrid_owner_offline_fail_closed_390x844.png",
-      "sha256": "dfb9a70a4abaf79dbc4188ba8aea6a818bfed352164b8f6d8ffa7cebee38f658",
-      "bytes": 100135
+      "sha256": "dc97feb5200892b2aeabb17b4aa0390a7a48882e8932b216c41df010aae60a64",
+      "bytes": 99994
     }
   ],
   "screenshotCount": 21,
