@@ -1,7 +1,5 @@
 export type RewardFundingClass =
-  | "merchant-funded"
-  | "platform-funded"
-  | "access-based";
+  "merchant-funded" | "platform-funded" | "access-based";
 
 export type RewardStatus = "draft" | "published" | "retired";
 
@@ -21,10 +19,7 @@ export interface RewardFundingPolicy {
 
 export interface RewardEligibilityRule {
   readonly eligibleProfiles: readonly (
-    | "tourist"
-    | "resident"
-    | "visitor"
-    | "unknown"
+    "tourist" | "resident" | "visitor" | "unknown"
   )[];
   readonly minimumTrustClass: RewardTrustClass;
   readonly requiredMissionIds: readonly string[];
@@ -128,8 +123,7 @@ const TRUST_RANK: Readonly<Record<RewardTrustClass, number>> = {
   financial_authoritative: 3,
 };
 
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function isUtc(value: string): boolean {
   return UTC_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
@@ -237,9 +231,7 @@ export function createRewardInventory(
 
 function availableUnits(inventory: RewardInventory): number {
   return (
-    inventory.totalUnits -
-    inventory.reservedUnits -
-    inventory.redeemedUnits
+    inventory.totalUnits - inventory.reservedUnits - inventory.redeemedUnits
   );
 }
 
@@ -260,9 +252,7 @@ function eligibilityFailure(
   ) {
     return "REWARD_OUTSIDE_VALIDITY";
   }
-  if (
-    !definition.eligibility.eligibleProfiles.includes(context.profileType)
-  ) {
+  if (!definition.eligibility.eligibleProfiles.includes(context.profileType)) {
     return "REWARD_PROFILE_NOT_ELIGIBLE";
   }
   if (
@@ -348,13 +338,25 @@ export function unlockReward(
     return { kind: "rejected", code: "REWARD_INVENTORY_EXHAUSTED", inventory };
   }
   if (!input.entitlementId || !input.policyVersion || !input.idempotencyKey) {
-    return { kind: "rejected", code: "REWARD_ENTITLEMENT_INPUT_INVALID", inventory };
+    return {
+      kind: "rejected",
+      code: "REWARD_ENTITLEMENT_INPUT_INVALID",
+      inventory,
+    };
   }
   if (!isUtc(input.expiresAt)) {
-    return { kind: "rejected", code: "REWARD_ENTITLEMENT_EXPIRY_INVALID", inventory };
+    return {
+      kind: "rejected",
+      code: "REWARD_ENTITLEMENT_EXPIRY_INVALID",
+      inventory,
+    };
   }
   if (Date.parse(input.expiresAt) <= Date.parse(context.occurredAt)) {
-    return { kind: "rejected", code: "REWARD_ENTITLEMENT_EXPIRY_INVALID", inventory };
+    return {
+      kind: "rejected",
+      code: "REWARD_ENTITLEMENT_EXPIRY_INVALID",
+      inventory,
+    };
   }
 
   const entitlement: RewardEntitlement = Object.freeze({
@@ -405,7 +407,11 @@ export function redeemReward(
     return { kind: "rejected", code: "REWARD_NOT_REDEEMABLE", inventory };
   }
   if (!isUtc(input.occurredAt)) {
-    return { kind: "rejected", code: "REWARD_REDEMPTION_TIME_INVALID", inventory };
+    return {
+      kind: "rejected",
+      code: "REWARD_REDEMPTION_TIME_INVALID",
+      inventory,
+    };
   }
   if (Date.parse(input.occurredAt) >= Date.parse(entitlement.expiresAt)) {
     return { kind: "rejected", code: "REWARD_ENTITLEMENT_EXPIRED", inventory };
@@ -414,7 +420,11 @@ export function redeemReward(
     return { kind: "rejected", code: "REWARD_IDEMPOTENCY_CONFLICT", inventory };
   }
   if (input.expectedInventoryRevision !== inventory.revision) {
-    return { kind: "rejected", code: "REWARD_INVENTORY_REVISION_CONFLICT", inventory };
+    return {
+      kind: "rejected",
+      code: "REWARD_INVENTORY_REVISION_CONFLICT",
+      inventory,
+    };
   }
   if (inventory.reservedUnits < 1) {
     return { kind: "rejected", code: "REWARD_RESERVATION_MISSING", inventory };

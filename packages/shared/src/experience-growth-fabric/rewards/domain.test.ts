@@ -33,10 +33,7 @@ const draft = validateRewardDefinition({
   },
 });
 
-const reward = publishRewardDefinition(
-  draft,
-  "2026-09-01T00:00:00.000Z",
-);
+const reward = publishRewardDefinition(draft, "2026-09-01T00:00:00.000Z");
 
 const context = {
   subjectId: "asub_00000001",
@@ -177,29 +174,21 @@ describe("rewards core", () => {
       code: "REWARD_INVENTORY_REVISION_CONFLICT",
     });
 
-    const redeemed = redeemReward(
-      unlocked.entitlement,
-      unlocked.inventory,
-      {
-        idempotencyKey: unlocked.entitlement.idempotencyKey,
-        occurredAt: "2026-09-30T13:00:00.000Z",
-        expectedInventoryRevision: unlocked.inventory.revision,
-      },
-    );
+    const redeemed = redeemReward(unlocked.entitlement, unlocked.inventory, {
+      idempotencyKey: unlocked.entitlement.idempotencyKey,
+      occurredAt: "2026-09-30T13:00:00.000Z",
+      expectedInventoryRevision: unlocked.inventory.revision,
+    });
     expect(redeemed.kind).toBe("redeemed");
     if (redeemed.kind !== "redeemed") return;
     expect(redeemed.inventory.reservedUnits).toBe(0);
     expect(redeemed.inventory.redeemedUnits).toBe(1);
 
-    const replay = redeemReward(
-      redeemed.entitlement,
-      redeemed.inventory,
-      {
-        idempotencyKey: redeemed.entitlement.idempotencyKey,
-        occurredAt: "2026-09-30T13:00:00.000Z",
-        expectedInventoryRevision: redeemed.inventory.revision,
-      },
-    );
+    const replay = redeemReward(redeemed.entitlement, redeemed.inventory, {
+      idempotencyKey: redeemed.entitlement.idempotencyKey,
+      occurredAt: "2026-09-30T13:00:00.000Z",
+      expectedInventoryRevision: redeemed.inventory.revision,
+    });
     expect(replay.kind).toBe("replayed");
   });
 
