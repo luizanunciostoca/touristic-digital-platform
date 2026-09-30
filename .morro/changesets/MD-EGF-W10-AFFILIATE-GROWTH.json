@@ -16,7 +16,7 @@
       "affiliate-growth-progression-v1"
     ]
   },
-  "reads": {"contracts": []},
+  "reads": { "contracts": [] },
   "produces": {
     "events": [
       "AffiliateQualifiedReferralRecorded",
@@ -26,8 +26,8 @@
     ],
     "routes": []
   },
-  "database": {"tables": []},
-  "auth": {"capabilities": []},
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
   "dependencies": [
     "MD-EGF-W02-ACQUISITION-V2",
     "MD-EGF-W03-REFERRAL-PLACEMENTS",

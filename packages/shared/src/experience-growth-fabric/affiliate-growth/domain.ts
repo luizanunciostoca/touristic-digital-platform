@@ -93,8 +93,7 @@ export interface AffiliateChallengeProgress {
   readonly completed: boolean;
 }
 
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 function isUtc(value: string): boolean {
   return UTC_TIMESTAMP.test(value) && Number.isFinite(Date.parse(value));
@@ -130,7 +129,10 @@ export function evaluateQualifiedReferral(
         event: "AffiliateQualifiedReferralRecorded",
       };
     }
-    return { qualified: false, code: "QUALIFIED_REFERRAL_IDEMPOTENCY_CONFLICT" };
+    return {
+      qualified: false,
+      code: "QUALIFIED_REFERRAL_IDEMPOTENCY_CONFLICT",
+    };
   }
   if (!input.referralId || !input.affiliateId || !input.programId) {
     return { qualified: false, code: "QUALIFIED_REFERRAL_IDENTITY_INVALID" };
@@ -267,7 +269,10 @@ export function appendAffiliateXp(
   ) {
     throw new Error("AFFILIATE_XP_ENTRY_INVALID");
   }
-  if (!Number.isSafeInteger(candidate.amountSigned) || candidate.amountSigned === 0) {
+  if (
+    !Number.isSafeInteger(candidate.amountSigned) ||
+    candidate.amountSigned === 0
+  ) {
     throw new Error("AFFILIATE_XP_AMOUNT_INVALID");
   }
   if (!isUtc(candidate.occurredAt)) {
@@ -336,7 +341,10 @@ export function projectAffiliateChallenge(
   ) {
     throw new Error("AFFILIATE_CHALLENGE_DEFINITION_INVALID");
   }
-  if (!Number.isSafeInteger(qualifiedReferralCount) || qualifiedReferralCount < 0) {
+  if (
+    !Number.isSafeInteger(qualifiedReferralCount) ||
+    qualifiedReferralCount < 0
+  ) {
     throw new Error("AFFILIATE_CHALLENGE_PROGRESS_INVALID");
   }
 

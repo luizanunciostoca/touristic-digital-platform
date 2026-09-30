@@ -110,9 +110,19 @@ describe("affiliate growth", () => {
 
   it("separates lifetime level from seasonal challenge progress", () => {
     const level = resolveAffiliateLevel(250, [
-      { levelId: "starter", ordinal: 1, minimumLifetimeXp: 0, label: "Starter" },
+      {
+        levelId: "starter",
+        ordinal: 1,
+        minimumLifetimeXp: 0,
+        label: "Starter",
+      },
       { levelId: "guide", ordinal: 2, minimumLifetimeXp: 100, label: "Guide" },
-      { levelId: "ambassador", ordinal: 3, minimumLifetimeXp: 500, label: "Ambassador" },
+      {
+        levelId: "ambassador",
+        ordinal: 3,
+        minimumLifetimeXp: 500,
+        label: "Ambassador",
+      },
     ]);
     expect(level.levelId).toBe("guide");
 
