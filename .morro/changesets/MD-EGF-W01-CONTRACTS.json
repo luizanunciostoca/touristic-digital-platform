@@ -8,8 +8,7 @@
     "paths": [
       ".morro/changesets/MD-EGF-W01-CONTRACTS.json",
       "packages/shared/src/experience-growth-fabric/contracts/**",
-      "docs/qa/experience-growth-fabric/W01_BASELINE.md",
-      ".github/workflows/egf-w01-format-once.yml"
+      "docs/qa/experience-growth-fabric/W01_BASELINE.md"
     ],
     "contracts": [
       "growth-platform-event-v1",
