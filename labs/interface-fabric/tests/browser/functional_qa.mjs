@@ -88,7 +88,9 @@ await page.getByRole("status").or(page.getByRole("alert")).first().waitFor();
 
 await open("IF-PUB-006");
 await page.locator("#locale-select").selectOption("he");
-await page.waitForLoadState("networkidle");
+await page.waitForFunction(
+  () => document.documentElement.getAttribute("dir") === "rtl",
+);
 assert.equal(await page.locator("html").getAttribute("dir"), "rtl");
 
 assert.deepEqual(errors, []);
