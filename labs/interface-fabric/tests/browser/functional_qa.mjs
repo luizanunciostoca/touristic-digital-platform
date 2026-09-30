@@ -38,11 +38,16 @@ await page
   .click();
 await page.getByText("Nenhum backend real foi alterado").waitFor();
 await open("IF-PUB-009");
-const trigger = page.getByRole("button", { name: "Abrir" }).first();
+const trigger = page.locator('[data-action="dialog"]').first();
 await trigger.focus();
 await trigger.click();
 const dialog = page.locator("#fabric-dialog");
-await assert.equal(await dialog.evaluate((el) => el.open), true);
+await page.waitForTimeout(50);
+if (!(await dialog.evaluate((el) => el.open))) {
+  throw new Error(
+    `DIALOG_NOT_OPEN action=${await trigger.getAttribute("data-action")} pageErrors=${JSON.stringify(errors)}`,
+  );
+}
 await page.keyboard.press("Escape");
 await assert.equal(await dialog.evaluate((el) => el.open), false);
 await open("IF-PUB-006", "offline");
