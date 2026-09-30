@@ -331,7 +331,7 @@ frontend_status="$(capture_request GET / "$work_root/frontend.html")"
 [[ -s "$work_root/frontend.html" ]] || fail "TWIN_FRONTEND_EMPTY"
 
 event_id="production-twin-${GITHUB_RUN_ID:-local}"
-event_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+event_time="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
 jq -n   --arg eventId "$event_id"   --arg occurredAt "$event_time"   '{
     schemaVersion:"1",
     eventId:$eventId,
@@ -345,7 +345,11 @@ jq -n   --arg eventId "$event_id"   --arg occurredAt "$event_time"   '{
   }' >"$work_root/event.json"
 
 write_status="$(post_event "$work_root/write.json")"
-[[ "$write_status" == "201" ]] || fail "TWIN_API_WRITE_FAILED"
+if [[ "$write_status" != "201" ]]; then
+  write_error="$(jq -r '.error // "UNKNOWN"' "$work_root/write.json" 2>/dev/null || printf 'INVALID_RESPONSE')"
+  jq -nc --arg status "$write_status" --arg code "$write_error"     '{contract:"MORRO-PRODUCTION-TWIN-PROBE",probe:"analytics-write",status:$status,code:$code}' >&2
+  fail "TWIN_API_WRITE_FAILED"
+fi
 jq -e '.data.status == "stored" and (.data.eventId | length > 0)'   "$work_root/write.json" >/dev/null || fail "TWIN_API_WRITE_EVIDENCE_INVALID"
 
 readback_status="$(post_event "$work_root/readback.json")"
