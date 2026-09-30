@@ -1,8 +1,4 @@
-export type JourneyProfileType =
-  | "tourist"
-  | "resident"
-  | "visitor"
-  | "unknown";
+export type JourneyProfileType = "tourist" | "resident" | "visitor" | "unknown";
 
 export type JourneyStatus = "active" | "completed" | "expired";
 
@@ -141,9 +137,7 @@ export function updateJourneyContext(
   const updated: DestinationJourney = Object.freeze({
     ...journey,
     ...(input.profileType ? { profileType: input.profileType } : {}),
-    ...(input.interests
-      ? { interests: cleanInterests(input.interests) }
-      : {}),
+    ...(input.interests ? { interests: cleanInterests(input.interests) } : {}),
     ...(input.partyProfile ? { partyProfile: input.partyProfile } : {}),
     updatedAt: input.occurredAt,
   });
