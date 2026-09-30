@@ -1,0 +1,53 @@
+{
+  "id": "MD-INTERFACE-FABRIC-ISOLATED-COMPOSITION",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/interface-fabric-isolated-completion-v2",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "labs/interface-fabric/**"
+    ],
+    "contracts": [
+      "isolated-interface-fabric-v1"
+    ]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "PR#562",
+    "PR#564"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "unit-tests",
+    "browser-functional",
+    "visual-regression",
+    "accessibility",
+    "zero-legacy-modifications",
+    "exact-head-ci"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "sizeException": {
+    "kind": "mechanical-composition",
+    "reason": "Mechanical composition of the bounded core foundation PR #562 and QA/evidence foundation PR #564 with generated 112 interface shells and catalog manifests. This exception covers aggregate generated size only and does not waive formatting, security, unit, browser, visual, accessibility, zero-touch, exact-head, or integration hard gates.",
+    "sourcePullRequests": [
+      562,
+      564
+    ],
+    "maxFiles": 170,
+    "maxLines": 18000
+  }
+}
