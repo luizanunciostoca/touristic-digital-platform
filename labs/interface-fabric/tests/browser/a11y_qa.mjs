@@ -10,16 +10,7 @@ const { readFile } = await import("node:fs/promises");
 const axeSource = await readFile(axePath, "utf8");
 const base =
   process.env.IF_BASE_URL || "http://127.0.0.1:4173/labs/interface-fabric";
-const ids = [
-  "IF-PUB-006",
-  "IF-PUB-010",
-  "IF-COM-004",
-  "IF-AFF-005",
-  "IF-BIZ-003",
-  "IF-CRM-001",
-  "IF-CTL-001",
-  "IF-GRW-001",
-];
+const manifest = JSON.parse(\n  await readFile(new URL("../../manifest/interfaces.json", import.meta.url), "utf8"),\n);\nconst ids = manifest.map(({ id }) => id);
 const browser = await chromium.launch({ headless: true });
 const violations = [];
 for (const id of ids) {
