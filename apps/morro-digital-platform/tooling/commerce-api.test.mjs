@@ -193,24 +193,37 @@ describe("Restaurant Commerce API", () => {
   ])(
     "classifies startup %s without exposing its message",
     async (code, detail) => {
-      const api = createCommerceApi({
-        authApi: makeAuth(),
-        getEnvironmentValue: env,
-        runtimeFactory: async () => {
-          throw Object.assign(
-            new Error(
-              "mysql://private-user:private-password@internal-host/private-db",
-            ),
-            { code },
-          );
-        },
-      });
-      await expect(api.start()).resolves.toBe(false);
-      expect(api.readinessCheck()).toEqual({
-        status: "fail",
-        critical: false,
-        detail,
-      });
+      const stderr = vi
+        .spyOn(process.stderr, "write")
+        .mockImplementation(() => true);
+      try {
+        const api = createCommerceApi({
+          authApi: makeAuth(),
+          getEnvironmentValue: env,
+          runtimeFactory: async () => {
+            throw Object.assign(
+              new Error(
+                "mysql://private-user:private-password@internal-host/private-db",
+              ),
+              { code },
+            );
+          },
+        });
+        await expect(api.start()).resolves.toBe(false);
+        expect(api.readinessCheck()).toEqual({
+          status: "fail",
+          critical: false,
+          detail,
+        });
+        const diagnostic = stderr.mock.calls
+          .map(([chunk]) => String(chunk))
+          .join("");
+        expect(diagnostic).toContain(`"reason":"${detail}"`);
+        expect(diagnostic).not.toContain("private-password");
+        expect(diagnostic).not.toContain("internal-host");
+      } finally {
+        stderr.mockRestore();
+      }
     },
   );
 
@@ -223,19 +236,37 @@ describe("Restaurant Commerce API", () => {
     "mysql://private-user:private-password@internal-host/private-db",
     null,
   ])("keeps unknown startup failures generic", async (failure) => {
-    const api = createCommerceApi({
-      authApi: makeAuth(),
-      getEnvironmentValue: env,
-      runtimeFactory: async () => {
-        throw failure;
-      },
-    });
-    await expect(api.start()).resolves.toBe(false);
-    expect(api.readinessCheck()).toEqual({
-      status: "fail",
-      critical: false,
-      detail: "COMMERCE_RUNTIME_UNAVAILABLE",
-    });
+    const stderr = vi
+      .spyOn(process.stderr, "write")
+      .mockImplementation(() => true);
+    try {
+      const api = createCommerceApi({
+        authApi: makeAuth(),
+        getEnvironmentValue: env,
+        runtimeFactory: async () => {
+          throw failure;
+        },
+      });
+      await expect(api.start()).resolves.toBe(false);
+      expect(api.readinessCheck()).toEqual({
+        status: "fail",
+        critical: false,
+        detail: "COMMERCE_RUNTIME_UNAVAILABLE",
+      });
+      const diagnostic = stderr.mock.calls
+        .map(([chunk]) => String(chunk))
+        .join("");
+      expect(diagnostic).toContain('"reason":"COMMERCE_RUNTIME_UNAVAILABLE"');
+      expect(diagnostic).not.toContain("private-password");
+      expect(diagnostic).not.toContain(
+        "PRIVATE_CREDENTIAL_ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      );
+      expect(diagnostic).not.toContain(
+        "SECRET_TOKEN_ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+      );
+    } finally {
+      stderr.mockRestore();
+    }
   });
 
   it("reports invalid Commerce enablement without exposing the configured value", async () => {

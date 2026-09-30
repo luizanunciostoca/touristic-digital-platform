@@ -277,6 +277,12 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   assert.equal(result.paymentsMode, "test");
   assert.equal(result.subscriptionsEnabled, false);
   assert.equal(result.commerceFeatureEnabled, true);
+  assert.deepEqual(result.commerceRuntimeCredentials, {
+    paymentsHandoff: "generated",
+    ticketingOffline: "generated",
+    destination: "canonicalized",
+    ready: true,
+  });
   assert.equal(result.railwayRetirement, "KEEP_TEMPORARILY");
   assert.equal(result.rollbackNotRequired, false);
 
@@ -299,6 +305,26 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
     request.route.endsWith("/env-vars/COMMERCE_FEATURE_ENABLED"),
   );
   assert.deepEqual(JSON.parse(commerceFlagWrite.body), { value: "true" });
+
+  const generatedSecretValues = [];
+  for (const secretKey of [
+    "PAYMENTS_HANDOFF_SECRET",
+    "TICKETING_OFFLINE_PROVISIONING_SECRET",
+  ]) {
+    const secretWrite = envWrites.find((request) =>
+      request.route.endsWith(`/env-vars/${secretKey}`),
+    );
+    assert.ok(secretWrite, secretKey);
+    const secretValue = JSON.parse(secretWrite.body).value;
+    assert.ok(secretValue.length >= 32, secretKey);
+    generatedSecretValues.push(secretValue);
+  }
+  const destinationWrite = envWrites.find((request) =>
+    request.route.endsWith("/env-vars/PAYMENTS_DESTINATION_ID"),
+  );
+  assert.deepEqual(JSON.parse(destinationWrite.body), {
+    value: "morro-de-sao-paulo",
+  });
   for (const key of ["EXPECTED_SHA", "MORRO_RELEASE_SHA"]) {
     const write = envWrites.find((request) =>
       request.route.endsWith(`/env-vars/${key}`),
@@ -314,7 +340,21 @@ test("cutover wires thirteen server-only URLs, locks payments to TEST, and deplo
   const evidence = JSON.parse(await fs.readFile(evidenceFile, "utf8"));
   assert.equal(evidence.newDeployId, "dep-new");
   assert.equal(evidence.commerceFeatureEnabled, true);
-  assert.ok(!JSON.stringify(evidence).includes("-secret"));
+  assert.deepEqual(evidence.commerceRuntimeCredentials, {
+    paymentsHandoff: "generated",
+    ticketingOffline: "generated",
+    destination: "canonicalized",
+    ready: true,
+  });
+  const serializedEvidence = JSON.stringify(evidence);
+  assert.ok(!serializedEvidence.includes("-runtime-secret"));
+  assert.ok(!serializedEvidence.includes("PAYMENTS_HANDOFF_SECRET"));
+  assert.ok(
+    !serializedEvidence.includes("TICKETING_OFFLINE_PROVISIONING_SECRET"),
+  );
+  for (const secretValue of generatedSecretValues) {
+    assert.ok(!serializedEvidence.includes(secretValue));
+  }
 });
 
 function failureCutoverFixture({
@@ -693,6 +733,12 @@ test("post-patch failure restores source and env without redundant rollback when
   assert.equal(evidence.rollbackDeployId, null);
   assert.equal(evidence.rollbackNotRequired, true);
   assert.equal(evidence.previousReleaseSha, fixture.previousReleaseSha);
+  assert.deepEqual(evidence.commerceRuntimeCredentials, {
+    paymentsHandoff: "absent",
+    ticketingOffline: "absent",
+    destination: "absent",
+    ready: false,
+  });
 
   const idempotent = await rollback({
     environment: fixture.environment,
@@ -869,6 +915,12 @@ test("pre-patch env failure restores the snapshot without changing service sourc
   const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
   assert.equal(evidence.status, "restored_pre_patch");
   assert.equal(evidence.rollbackDeployId, null);
+  assert.deepEqual(evidence.commerceRuntimeCredentials, {
+    paymentsHandoff: "absent",
+    ticketingOffline: "absent",
+    destination: "absent",
+    ready: false,
+  });
   assert.ok(!JSON.stringify(evidence).includes("runtime-secret"));
 });
 

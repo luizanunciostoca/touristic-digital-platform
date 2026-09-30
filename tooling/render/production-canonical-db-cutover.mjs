@@ -1,7 +1,9 @@
+import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/u;
+const COMMERCE_DESTINATION_ID = "morro-de-sao-paulo";
 
 export const productionDatabaseDomains = Object.freeze([
   Object.freeze(["AUTH", "AUTH_DATABASE_URL", "morro_auth"]),
@@ -126,6 +128,7 @@ function publicEvidence(state) {
     paymentsMode: "test",
     subscriptionsEnabled: false,
     commerceFeatureEnabled: true,
+    commerceRuntimeCredentials: state.commerceRuntimeCredentials ?? null,
     railwayRetirement: "KEEP_TEMPORARILY",
   };
 }
@@ -246,6 +249,9 @@ async function snapshotRuntimeEnv(client, webServiceId) {
     "MORRO_RELEASE_SHA",
     "MORRO_DATABASE_SCHEMA_MODE",
     "COMMERCE_FEATURE_ENABLED",
+    "PAYMENTS_HANDOFF_SECRET",
+    "TICKETING_OFFLINE_PROVISIONING_SECRET",
+    "PAYMENTS_DESTINATION_ID",
     "MERCADO_PAGO_CHECKOUT_MODE",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED",
     "PAYMENTS_SUBSCRIPTIONS_ENABLED",
@@ -260,6 +266,84 @@ async function restoreRuntimeEnv(client, webServiceId, previousEnv) {
     if (value == null) await deleteEnv(client, webServiceId, key);
     else await writeEnv(client, webServiceId, key, value);
   }
+}
+
+function summarizeCommerceRuntimeEnvironment(environment) {
+  const paymentsHandoff = String(
+    environment?.PAYMENTS_HANDOFF_SECRET ?? "",
+  ).trim();
+  const ticketingOffline = String(
+    environment?.TICKETING_OFFLINE_PROVISIONING_SECRET ?? "",
+  ).trim();
+  const destination = String(environment?.PAYMENTS_DESTINATION_ID ?? "").trim();
+
+  const secretState = (value) =>
+    !value ? "absent" : value.length >= 32 ? "existing" : "invalid";
+  const destinationState = !destination
+    ? "absent"
+    : destination === COMMERCE_DESTINATION_ID
+      ? "existing"
+      : "invalid";
+
+  return Object.freeze({
+    paymentsHandoff: secretState(paymentsHandoff),
+    ticketingOffline: secretState(ticketingOffline),
+    destination: destinationState,
+    ready:
+      paymentsHandoff.length >= 32 &&
+      ticketingOffline.length >= 32 &&
+      destination === COMMERCE_DESTINATION_ID,
+  });
+}
+
+async function ensureCommerceRuntimeEnvironment(client, webServiceId) {
+  const [paymentsHandoffSecret, ticketingOfflineSecret, destinationId] =
+    await Promise.all([
+      readEnv(client, webServiceId, "PAYMENTS_HANDOFF_SECRET"),
+      readEnv(client, webServiceId, "TICKETING_OFFLINE_PROVISIONING_SECRET"),
+      readEnv(client, webServiceId, "PAYMENTS_DESTINATION_ID"),
+    ]);
+
+  async function ensureSecret(key, observed) {
+    const value = String(observed ?? "").trim();
+    if (value) {
+      if (value.length < 32) throw new Error(`${key}_INVALID`);
+      return "existing";
+    }
+    const generated = randomBytes(48).toString("base64url");
+    await writeEnv(client, webServiceId, key, generated);
+    return "generated";
+  }
+
+  const paymentsHandoff = await ensureSecret(
+    "PAYMENTS_HANDOFF_SECRET",
+    paymentsHandoffSecret,
+  );
+  const ticketingOffline = await ensureSecret(
+    "TICKETING_OFFLINE_PROVISIONING_SECRET",
+    ticketingOfflineSecret,
+  );
+
+  const normalizedDestination = String(destinationId ?? "").trim();
+  let destination = "existing";
+  if (!normalizedDestination) {
+    await writeEnv(
+      client,
+      webServiceId,
+      "PAYMENTS_DESTINATION_ID",
+      COMMERCE_DESTINATION_ID,
+    );
+    destination = "canonicalized";
+  } else if (normalizedDestination !== COMMERCE_DESTINATION_ID) {
+    throw new Error("PAYMENTS_DESTINATION_ID_PRODUCTION_INVALID");
+  }
+
+  return Object.freeze({
+    paymentsHandoff,
+    ticketingOffline,
+    destination,
+    ready: true,
+  });
 }
 
 function previousSource(service, previousReleaseSha) {
@@ -339,6 +423,8 @@ async function previousDeployStillLive(client, state) {
 
 async function rollbackFromState({ client, state, stateFile }) {
   await restoreRuntimeEnv(client, state.webServiceId, state.previousEnv);
+  state.commerceRuntimeCredentials =
+    state.previousCommerceRuntimeCredentials ?? null;
   await restoreSource(client, state.webServiceId, state.previousSource);
 
   const restoredService = await client.get(`/services/${state.webServiceId}`);
@@ -503,6 +589,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     explicitCredential,
   );
 
+  const previousEnv = await snapshotRuntimeEnv(client, webServiceId);
   const state = {
     contract: "MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER-STATE",
     status: "prepared",
@@ -515,10 +602,13 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     previousDeployId: liveDeploy.id,
     previousReleaseSha,
     previousSource: previousSource(service, previousReleaseSha),
-    previousEnv: await snapshotRuntimeEnv(client, webServiceId),
+    previousEnv,
+    previousCommerceRuntimeCredentials:
+      summarizeCommerceRuntimeEnvironment(previousEnv),
     registryCredentialId: registryCredentialId || null,
     newDeployId: null,
     rollbackNotRequired: false,
+    commerceRuntimeCredentials: null,
   };
   await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
 
@@ -531,6 +621,11 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       mysqlServiceId,
       expectedMysqlSourceSha,
     );
+    state.commerceRuntimeCredentials = await ensureCommerceRuntimeEnvironment(
+      client,
+      webServiceId,
+    );
+    await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
     for (const [key, value] of Object.entries(runtimeUrls)) {
       await writeEnv(client, webServiceId, key, value);
     }
@@ -616,6 +711,8 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     } else if (sourcePatchAttempted) {
       try {
         await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+        state.commerceRuntimeCredentials =
+          state.previousCommerceRuntimeCredentials ?? null;
         const observedService = await client.get(`/services/${webServiceId}`);
         if (!sourceMatchesSnapshot(observedService, state.previousSource)) {
           await restoreSource(client, webServiceId, state.previousSource);
@@ -637,6 +734,8 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
       }
     } else {
       await restoreRuntimeEnv(client, webServiceId, state.previousEnv);
+      state.commerceRuntimeCredentials =
+        state.previousCommerceRuntimeCredentials ?? null;
       state.status = "restored_pre_patch";
       await fs.writeFile(stateFile, JSON.stringify(state), { mode: 0o600 });
       await fs.writeFile(
