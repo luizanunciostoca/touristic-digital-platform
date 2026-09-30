@@ -1,0 +1,88 @@
+{
+  "id": "MD-EGF-CONSTRUCTION",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/experience-growth-fabric-isolated-20260929",
+  "state": "INTEGRATING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-CONSTRUCTION.json",
+      ".morro/changesets/MD-EGF-W*.json",
+      "packages/shared/src/experience-growth-fabric/**",
+      "docs/qa/experience-growth-fabric/**"
+    ],
+    "contracts": [
+      "growth-platform-event-v1",
+      "affiliate-acquisition-v2",
+      "referral-placement-v1",
+      "destination-journey-v1",
+      "engagement-xp-ledger-v1",
+      "engagement-mission-definition-v1",
+      "rewards-definition-v1",
+      "growth-economics-input-v1",
+      "growth-risk-decision-v1",
+      "affiliate-growth-progression-v1",
+      "growth-experiment-assignment-v1",
+      "journey-next-best-action-v1",
+      "growth-outbox-v1",
+      "growth-read-models-v1",
+      "growth-http-surface-v1",
+      "growth-ui-reference-v1"
+    ]
+  },
+  "dependencies": [
+    "PR#545",
+    "PR#546",
+    "PR#547",
+    "PR#548",
+    "PR#550",
+    "PR#551",
+    "PR#552",
+    "PR#553",
+    "PR#554",
+    "PR#555",
+    "PR#556",
+    "PR#557",
+    "PR#558",
+    "PR#559",
+    "PR#561",
+    "PR#563"
+  ],
+  "requiredEvidence": [
+    "format",
+    "lint",
+    "typecheck",
+    "unit-tests",
+    "integration-tests",
+    "security-scanning",
+    "replay-idempotency",
+    "accessibility-contract",
+    "exact-head-ci",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "sizeException": {
+    "kind": "mechanical-composition",
+    "reason": "Mechanical composition of sixteen independently scoped, ADD-ONLY and exact-head-proven Experience & Growth Fabric waves into one isolated construction tree. This exception covers aggregate file and line count only and does not waive formatting, lint, typecheck, tests, security, replay, accessibility, exact-head, rollback, or release acceptance gates.",
+    "sourcePullRequests": [
+      545,
+      546,
+      547,
+      548,
+      550,
+      551,
+      552,
+      553,
+      554,
+      555,
+      556,
+      557,
+      558,
+      559,
+      561,
+      563
+    ],
+    "maxFiles": 120,
+    "maxLines": 15000
+  }
+}
