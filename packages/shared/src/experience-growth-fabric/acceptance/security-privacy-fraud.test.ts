@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { evaluateQualifiedReferral } from "../affiliate-growth/index.js";
 import { actorMayAuthorizeValue } from "../contracts/authority.js";
-import { appendXpEntry, createEmptyXpLedgerState } from "../engagement/index.js";
+import {
+  appendXpEntry,
+  createEmptyXpLedgerState,
+} from "../engagement/index.js";
 import {
   evaluateGrowthRequestGuard,
   GROWTH_HTTP_ROUTES,

@@ -1,8 +1,5 @@
 export type RecoveryAction =
-  | "no_op"
-  | "retry_delivery"
-  | "dead_letter"
-  | "halt_for_reconciliation";
+  "no_op" | "retry_delivery" | "dead_letter" | "halt_for_reconciliation";
 
 export interface RecoveryDecisionInput {
   readonly ownerStateCommitted: boolean;
@@ -17,9 +14,7 @@ export interface RecoveryDecision {
   readonly code: string;
 }
 
-export function decideRecovery(
-  input: RecoveryDecisionInput,
-): RecoveryDecision {
+export function decideRecovery(input: RecoveryDecisionInput): RecoveryDecision {
   if (
     !Number.isSafeInteger(input.attempts) ||
     !Number.isSafeInteger(input.maximumAttempts) ||

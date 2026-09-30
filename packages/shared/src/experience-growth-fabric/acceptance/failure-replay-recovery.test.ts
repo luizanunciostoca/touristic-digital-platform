@@ -70,9 +70,7 @@ describe("W19 failure replay and recovery acceptance", () => {
       const claimed = claimOutboxEvent(current, {
         workerId: "worker_a",
         occurredAt:
-          attempt === 0
-            ? "2026-09-30T12:00:00.000Z"
-            : current.availableAt,
+          attempt === 0 ? "2026-09-30T12:00:00.000Z" : current.availableAt,
         policy: retryPolicy,
       });
       if (!claimed) throw new Error("LEASE_FAILED");
@@ -80,9 +78,7 @@ describe("W19 failure replay and recovery acceptance", () => {
       current = markOutboxFailure(claimed, {
         workerId: "worker_a",
         occurredAt:
-          attempt === 0
-            ? "2026-09-30T12:00:00.000Z"
-            : current.availableAt,
+          attempt === 0 ? "2026-09-30T12:00:00.000Z" : current.availableAt,
         errorCode: "DATABASE_TRANSIENT_FAILURE",
         policy: retryPolicy,
       });

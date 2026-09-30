@@ -1,7 +1,5 @@
 export type PrivacyRecordClass =
-  | "journey_operational"
-  | "security_audit"
-  | "analytics_projection";
+  "journey_operational" | "security_audit" | "analytics_projection";
 
 export interface PrivacyRetentionPolicy {
   readonly version: string;
@@ -32,8 +30,7 @@ export interface PseudonymousAnalyticsSubject {
 }
 
 const SHA_256 = /^[a-f0-9]{64}$/;
-const UTC_TIMESTAMP =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
+const UTC_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 const FORBIDDEN_PERSISTED_KEYS = new Set([
   "email",

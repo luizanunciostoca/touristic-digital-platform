@@ -101,18 +101,13 @@ describe("W20 deterministic performance and load qualification", () => {
 
     const results = [
       runLoad("referral-resolution", 2000, () => {
-        const result = resolveReferralToken(
-          campaign,
-          placement,
-          token.record,
-          {
-            publicCodeHash: "a".repeat(64),
-            returnPath: "/explore",
-            occurredAt: "2026-09-30T10:01:00.000Z",
-            attemptCountInWindow: 0,
-            maximumAttemptsInWindow: 100,
-          },
-        );
+        const result = resolveReferralToken(campaign, placement, token.record, {
+          publicCodeHash: "a".repeat(64),
+          returnPath: "/explore",
+          occurredAt: "2026-09-30T10:01:00.000Z",
+          attemptCountInWindow: 0,
+          maximumAttemptsInWindow: 100,
+        });
         if (!result.accepted) throw new Error("PERF_REFERRAL_REJECTED");
       }),
       runLoad("acquisition-evaluation", 2000, (index) => {
@@ -140,11 +135,8 @@ describe("W20 deterministic performance and load qualification", () => {
       }),
       runLoad("risk-decision", 5000, () => {
         if (
-          evaluateRiskDecision(
-            riskAssessment,
-            "experience_reward",
-            riskPolicy,
-          ).outcome !== "allow"
+          evaluateRiskDecision(riskAssessment, "experience_reward", riskPolicy)
+            .outcome !== "allow"
         ) {
           throw new Error("PERF_RISK_REJECTED");
         }
@@ -180,8 +172,8 @@ describe("W20 deterministic performance and load qualification", () => {
       expect(result.elapsedMs, result.label).toBeLessThan(5000);
     }
 
-    expect(
-      results.reduce((sum, result) => sum + result.iterations, 0),
-    ).toBe(24000);
+    expect(results.reduce((sum, result) => sum + result.iterations, 0)).toBe(
+      24000,
+    );
   });
 });
