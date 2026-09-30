@@ -1,0 +1,37 @@
+{
+  "id": "MD-EGF-W11-EXPERIMENTATION",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w11-experimentation-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W11-EXPERIMENTATION.json",
+      "packages/shared/src/experience-growth-fabric/experimentation/**"
+    ],
+    "contracts": [
+      "growth-experiment-definition-v1",
+      "growth-experiment-assignment-v1",
+      "growth-experiment-exposure-v1"
+    ]
+  },
+  "reads": { "contracts": [] },
+  "produces": {
+    "events": ["ExperimentAssigned", "ExperimentExposureRecorded"],
+    "routes": []
+  },
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
+  "dependencies": ["MD-EGF-W01-CONTRACTS"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

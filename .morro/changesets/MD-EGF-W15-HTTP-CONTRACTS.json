@@ -1,0 +1,61 @@
+{
+  "id": "MD-EGF-W15-HTTP-CONTRACTS",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w15-http-contracts-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W15-HTTP-CONTRACTS.json",
+      "packages/shared/src/experience-growth-fabric/http/**"
+    ],
+    "contracts": ["growth-http-surface-v1", "growth-http-request-guard-v1"]
+  },
+  "reads": {
+    "contracts": ["platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": [
+      "/v1/growth/acquisition/resolve",
+      "/v1/growth/journeys",
+      "/v1/growth/engagement/profile",
+      "/v1/growth/missions",
+      "/v1/growth/rewards",
+      "/v1/growth/risk/decision",
+      "/v1/growth/experiments/assignment",
+      "/v1/growth/control/read-models"
+    ]
+  },
+  "database": { "tables": [] },
+  "auth": {
+    "capabilities": [
+      "growth.read",
+      "growth.write",
+      "growth.control.read",
+      "growth.control.write"
+    ]
+  },
+  "dependencies": [
+    "MD-EGF-W01-CONTRACTS",
+    "MD-EGF-W02-ACQUISITION-V2",
+    "MD-EGF-W04-JOURNEY-DOMAIN",
+    "MD-EGF-W05-ENGAGEMENT-CORE",
+    "MD-EGF-W06-MISSION-ENGINE",
+    "MD-EGF-W07-REWARDS-CORE",
+    "MD-EGF-W09-TRUST-RISK",
+    "MD-EGF-W11-EXPERIMENTATION",
+    "MD-EGF-W14-PROJECTIONS"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

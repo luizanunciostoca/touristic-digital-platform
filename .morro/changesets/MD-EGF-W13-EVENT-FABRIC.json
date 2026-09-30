@@ -1,0 +1,40 @@
+{
+  "id": "MD-EGF-W13-EVENT-FABRIC",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w13-event-fabric-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W13-EVENT-FABRIC.json",
+      "packages/shared/src/experience-growth-fabric/event-fabric/**"
+    ],
+    "contracts": [
+      "growth-outbox-v1",
+      "growth-consumer-idempotency-v1",
+      "growth-dead-letter-v1"
+    ]
+  },
+  "reads": { "contracts": [] },
+  "produces": { "events": [], "routes": [] },
+  "database": {
+    "tables": [
+      "growth_outbox_events",
+      "growth_consumer_claims",
+      "growth_dead_letters"
+    ]
+  },
+  "auth": { "capabilities": [] },
+  "dependencies": ["MD-EGF-W01-CONTRACTS"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

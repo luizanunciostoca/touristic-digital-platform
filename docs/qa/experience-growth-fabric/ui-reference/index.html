@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Experience & Growth Fabric — UI Reference</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f5f6f8;
+        color: #17202a;
+      }
+
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 16px 20px;
+        background: #ffffff;
+        border-bottom: 1px solid #dfe4ea;
+      }
+
+      nav {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding-block: 8px;
+      }
+
+      nav a,
+      button {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #c9d1d9;
+        border-radius: 12px;
+        padding: 10px 14px;
+        background: #ffffff;
+        color: inherit;
+        text-decoration: none;
+        font: inherit;
+      }
+
+      main {
+        width: min(1120px, calc(100% - 32px));
+        margin: 24px auto 64px;
+        display: grid;
+        gap: 20px;
+      }
+
+      section {
+        scroll-margin-top: 132px;
+        background: #ffffff;
+        border: 1px solid #dfe4ea;
+        border-radius: 18px;
+        padding: 20px;
+      }
+
+      .grid {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .card {
+        border: 1px solid #dfe4ea;
+        border-radius: 14px;
+        padding: 16px;
+      }
+
+      .eyebrow {
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .metric {
+        font-size: 1.6rem;
+        font-weight: 700;
+      }
+
+      .status {
+        display: inline-flex;
+        min-height: 32px;
+        align-items: center;
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: #eef2f6;
+      }
+
+      .notice {
+        border-inline-start: 4px solid currentColor;
+        padding: 12px 16px;
+        background: #f8fafc;
+      }
+
+      :focus-visible {
+        outline: 3px solid currentColor;
+        outline-offset: 3px;
+      }
+
+      @media (max-width: 640px) {
+        header {
+          position: static;
+        }
+
+        section {
+          scroll-margin-top: 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Experience & Growth Fabric — referência isolada</strong>
+      <nav aria-label="Superfícies da referência">
+        <a href="#pass">Morro Pass</a>
+        <a href="#journey">Jornada</a>
+        <a href="#missions">Missões</a>
+        <a href="#rewards">Recompensas</a>
+        <a href="#affiliate">Afiliado</a>
+        <a href="#placements">Campanhas</a>
+        <a href="#control">Growth Control</a>
+        <a href="#risk">Risk</a>
+        <a href="#experiments">Experimentos</a>
+      </nav>
+    </header>
+
+    <main>
+      <p class="notice" role="status">
+        Referência visual ADD-ONLY. Nenhum botão desta página está conectado ao
+        runtime, banco ou produção atuais.
+      </p>
+
+      <section id="pass" aria-labelledby="pass-title">
+        <p class="eyebrow">Turista / Morador</p>
+        <h1 id="pass-title">Morro Pass</h1>
+        <div class="grid">
+          <article class="card">
+            <strong>Nível</strong>
+            <p class="metric">Navigator</p>
+            <p>120 XP · 130 XP para o próximo nível</p>
+          </article>
+          <article class="card">
+            <strong>Próxima melhor ação</strong>
+            <p>Explore a Segunda Praia</p>
+            <button type="button" disabled>Ver no mapa</button>
+          </article>
+        </div>
+      </section>
+
+      <section id="journey" aria-labelledby="journey-title">
+        <h2 id="journey-title">Minha Jornada</h2>
+        <div class="grid">
+          <article class="card">
+            <strong>Destino</strong>
+            <p>Morro de São Paulo</p>
+          </article>
+          <article class="card">
+            <strong>Progresso</strong>
+            <p>2 missões concluídas · 1 recompensa desbloqueada</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="missions" aria-labelledby="missions-title">
+        <h2 id="missions-title">Missões</h2>
+        <article class="card">
+          <span class="status">Em andamento</span>
+          <h3>Descubra as praias</h3>
+          <p>2 de 3 etapas verificadas.</p>
+          <button type="button" disabled>Ver missão</button>
+        </article>
+      </section>
+
+      <section id="rewards" aria-labelledby="rewards-title">
+        <h2 id="rewards-title">Recompensas</h2>
+        <article class="card">
+          <span class="status">Desbloqueada</span>
+          <h3>Acesso antecipado</h3>
+          <p>
+            Elegibilidade verificada. Resgate sujeito à autoridade do domínio.
+          </p>
+          <button type="button" disabled>Solicitar resgate</button>
+        </article>
+      </section>
+
+      <section id="affiliate" aria-labelledby="affiliate-title">
+        <p class="eyebrow">Afiliado</p>
+        <h2 id="affiliate-title">Crescimento do Afiliado</h2>
+        <div class="grid">
+          <article class="card">
+            <strong>AQS</strong>
+            <p class="metric">74</p>
+          </article>
+          <article class="card">
+            <strong>AIS</strong>
+            <p class="metric">96</p>
+          </article>
+          <article class="card">
+            <strong>Nível</strong>
+            <p class="metric">Guide</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="placements" aria-labelledby="placements-title">
+        <h2 id="placements-title">Campanhas e Placements</h2>
+        <article class="card">
+          <strong>Recepção — QR permanente</strong>
+          <p>Token opaco · ativo · destino Morro de São Paulo</p>
+          <button type="button" disabled>Gerenciar placement</button>
+        </article>
+      </section>
+
+      <section id="control" aria-labelledby="control-title">
+        <p class="eyebrow">Operação</p>
+        <h2 id="control-title">Growth Control Plane</h2>
+        <div class="grid">
+          <article class="card">
+            <strong>Qualified acquisitions</strong>
+            <p class="metric">—</p>
+          </article>
+          <article class="card">
+            <strong>Mission completions</strong>
+            <p class="metric">—</p>
+          </article>
+          <article class="card">
+            <strong>Reward redemptions</strong>
+            <p class="metric">—</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="risk" aria-labelledby="risk-title">
+        <h2 id="risk-title">Risk Console</h2>
+        <article class="card">
+          <strong>Decisões explicáveis</strong>
+          <p>allow · observe · review · block</p>
+          <p>Nenhuma decisão desta referência altera estado real.</p>
+        </article>
+      </section>
+
+      <section id="experiments" aria-labelledby="experiments-title">
+        <h2 id="experiments-title">Experimentos</h2>
+        <article class="card">
+          <strong>Controle e tratamento</strong>
+          <p>Atribuição determinística e exposição persistida.</p>
+          <button type="button" disabled>Ver resultados</button>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

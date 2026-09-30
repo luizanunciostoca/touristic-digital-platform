@@ -1,0 +1,75 @@
+{
+  "id": "MD-EGF-W01-CONTRACTS",
+  "baseSha": "5693cf09d037bbc81d02680b1871c4915969870f",
+  "branch": "feat/egf-w01-contracts-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W01-CONTRACTS.json",
+      "packages/shared/src/experience-growth-fabric/contracts/**",
+      "docs/qa/experience-growth-fabric/W01_BASELINE.md"
+    ],
+    "contracts": [
+      "growth-platform-event-v1",
+      "growth-authority-classes",
+      "growth-domain-ports",
+      "growth-feature-flags"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "platform-authz",
+      "verified-payment-outcome",
+      "ticket-fulfillment"
+    ]
+  },
+  "produces": {
+    "events": [
+      "JourneyStarted",
+      "JourneyUpdated",
+      "JourneyCompleted",
+      "QualifiedAcquisitionEstablished",
+      "AcquisitionCycleOpened",
+      "AcquisitionCycleExpired",
+      "InfluenceTouchpointRecorded",
+      "QualifiedReacquisitionEstablished",
+      "MissionProgressed",
+      "MissionCompleted",
+      "XpGranted",
+      "LevelAdvanced",
+      "BadgeGranted",
+      "CollectionProgressed",
+      "RewardUnlocked",
+      "RewardRedeemed",
+      "RewardExpired",
+      "AffiliateQualifiedReferralRecorded",
+      "AffiliateXpGranted",
+      "AffiliateLevelAdvanced",
+      "AffiliateChallengeCompleted",
+      "RiskSignalRecorded",
+      "RiskDecisionMade",
+      "ExperimentAssigned",
+      "ExperimentExposureRecorded"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

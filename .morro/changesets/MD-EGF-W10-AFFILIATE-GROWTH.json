@@ -1,0 +1,47 @@
+{
+  "id": "MD-EGF-W10-AFFILIATE-GROWTH",
+  "baseSha": "3144fe3e9856b5208bade923451c07834df573e8",
+  "branch": "feat/egf-w10-affiliate-growth-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W10-AFFILIATE-GROWTH.json",
+      "packages/shared/src/experience-growth-fabric/affiliate-growth/**"
+    ],
+    "contracts": [
+      "affiliate-qualified-referral-v1",
+      "affiliate-aqs-v1",
+      "affiliate-ais-v1",
+      "affiliate-growth-progression-v1"
+    ]
+  },
+  "reads": { "contracts": [] },
+  "produces": {
+    "events": [
+      "AffiliateQualifiedReferralRecorded",
+      "AffiliateXpGranted",
+      "AffiliateLevelAdvanced",
+      "AffiliateChallengeCompleted"
+    ],
+    "routes": []
+  },
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
+  "dependencies": [
+    "MD-EGF-W02-ACQUISITION-V2",
+    "MD-EGF-W03-REFERRAL-PLACEMENTS",
+    "MD-EGF-W09-TRUST-RISK"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}

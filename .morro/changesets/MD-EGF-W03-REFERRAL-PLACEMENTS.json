@@ -1,0 +1,39 @@
+{
+  "id": "MD-EGF-W03-REFERRAL-PLACEMENTS",
+  "baseSha": "5693cf09d037bbc81d02680b1871c4915969870f",
+  "branch": "feat/egf-w03-referral-placements-20260929",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EGF-W03-REFERRAL-PLACEMENTS.json",
+      "packages/shared/src/experience-growth-fabric/referrals/**"
+    ],
+    "contracts": ["referral-campaign-placement-token-v1"]
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": ["AffiliatePlacementResolved"],
+    "routes": ["/q/:opaqueToken", "/r/:opaqueToken"]
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-EGF-W01-CONTRACTS", "MD-EGF-W02-ACQUISITION-V2"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
