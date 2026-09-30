@@ -6,6 +6,7 @@
   "risk": "critical",
   "owns": {
     "paths": [
+      ".morro/changesets/MD-INTERFACE-FABRIC-ISOLATED-COMPOSITION.json",
       "labs/interface-fabric/**"
     ],
     "contracts": [
