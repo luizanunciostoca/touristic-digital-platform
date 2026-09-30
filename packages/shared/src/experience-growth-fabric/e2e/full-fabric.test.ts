@@ -96,18 +96,13 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       issuedAt: "2026-09-30T10:00:00.000Z",
       kind: "q",
     });
-    const resolved = resolveReferralToken(
-      campaign,
-      placement,
-      token.record,
-      {
-        publicCodeHash: "a".repeat(64),
-        returnPath: "/explore",
-        occurredAt: "2026-09-30T10:01:00.000Z",
-        attemptCountInWindow: 0,
-        maximumAttemptsInWindow: 20,
-      },
-    );
+    const resolved = resolveReferralToken(campaign, placement, token.record, {
+      publicCodeHash: "a".repeat(64),
+      returnPath: "/explore",
+      occurredAt: "2026-09-30T10:01:00.000Z",
+      attemptCountInWindow: 0,
+      maximumAttemptsInWindow: 20,
+    });
     expect(resolved.accepted).toBe(true);
     if (!resolved.accepted) throw new Error("REFERRAL_RESOLUTION_FAILED");
 
@@ -130,11 +125,7 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       meaningfulSignalCount: 1,
       occurredAt: "2026-09-30T10:02:00.000Z",
     };
-    const acquired = evaluateAcquisitionV2(
-      acquisitionInput,
-      policy,
-      null,
-    );
+    const acquired = evaluateAcquisitionV2(acquisitionInput, policy, null);
     expect(acquired.kind).toBe("acquired");
     if (acquired.kind !== "acquired") {
       throw new Error("ACQUISITION_FAILED");
@@ -214,61 +205,49 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       journeyId,
       destinationId,
     });
-    const mapProgress = applyMissionEvidence(
-      mission,
-      initialProgress,
-      {
-        evidenceId: "evidence_map_00000001",
-        stepId: "step_map",
-        subjectId,
-        journeyId,
-        destinationId,
-        eventType: "MapOpened",
-        trustClass: "session_verified",
-        reference: "session_map_00000001",
-        occurredAt: "2026-09-30T10:06:00.000Z",
-      },
-    );
+    const mapProgress = applyMissionEvidence(mission, initialProgress, {
+      evidenceId: "evidence_map_00000001",
+      stepId: "step_map",
+      subjectId,
+      journeyId,
+      destinationId,
+      eventType: "MapOpened",
+      trustClass: "session_verified",
+      reference: "session_map_00000001",
+      occurredAt: "2026-09-30T10:06:00.000Z",
+    });
     expect(mapProgress.kind).toBe("progressed");
     if (mapProgress.kind !== "progressed") {
       throw new Error("MISSION_MAP_PROGRESS_FAILED");
     }
 
-    const completed = applyMissionEvidence(
-      mission,
-      mapProgress.state,
-      {
-        evidenceId: "evidence_visit_00000001",
-        stepId: "step_visit",
-        subjectId,
-        journeyId,
-        destinationId,
-        eventType: "PlaceVisitVerified",
-        trustClass: "experience_verified",
-        reference: "place_second_beach",
-        occurredAt: "2026-09-30T10:07:00.000Z",
-      },
-    );
+    const completed = applyMissionEvidence(mission, mapProgress.state, {
+      evidenceId: "evidence_visit_00000001",
+      stepId: "step_visit",
+      subjectId,
+      journeyId,
+      destinationId,
+      eventType: "PlaceVisitVerified",
+      trustClass: "experience_verified",
+      reference: "place_second_beach",
+      occurredAt: "2026-09-30T10:07:00.000Z",
+    });
     expect(completed.kind).toBe("completed");
     if (completed.kind !== "completed") {
       throw new Error("MISSION_COMPLETION_FAILED");
     }
 
-    const missionReplay = applyMissionEvidence(
-      mission,
-      completed.state,
-      {
-        evidenceId: "evidence_visit_00000001",
-        stepId: "step_visit",
-        subjectId,
-        journeyId,
-        destinationId,
-        eventType: "PlaceVisitVerified",
-        trustClass: "experience_verified",
-        reference: "place_second_beach",
-        occurredAt: "2026-09-30T10:07:00.000Z",
-      },
-    );
+    const missionReplay = applyMissionEvidence(mission, completed.state, {
+      evidenceId: "evidence_visit_00000001",
+      stepId: "step_visit",
+      subjectId,
+      journeyId,
+      destinationId,
+      eventType: "PlaceVisitVerified",
+      trustClass: "experience_verified",
+      reference: "place_second_beach",
+      occurredAt: "2026-09-30T10:07:00.000Z",
+    });
     expect(missionReplay.kind).toBe("replayed");
 
     const xpEntry = {
@@ -285,15 +264,9 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       trustClass: "experience_verified" as const,
       occurredAt: "2026-09-30T10:08:00.000Z",
     };
-    const xpDecision = appendXpEntry(
-      createEmptyXpLedgerState(),
-      xpEntry,
-    );
+    const xpDecision = appendXpEntry(createEmptyXpLedgerState(), xpEntry);
     expect(xpDecision.kind).toBe("appended");
-    const xpState = reduceXpLedger(
-      createEmptyXpLedgerState(),
-      xpDecision,
-    );
+    const xpState = reduceXpLedger(createEmptyXpLedgerState(), xpDecision);
     expect(calculateXpBalance(xpState.entries, subjectId, destinationId)).toBe(
       120,
     );
@@ -321,11 +294,8 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       assessedAt: "2026-09-30T10:09:00.000Z",
     });
     expect(
-      evaluateRiskDecision(
-        riskAssessment,
-        "experience_reward",
-        riskPolicy,
-      ).outcome,
+      evaluateRiskDecision(riskAssessment, "experience_reward", riskPolicy)
+        .outcome,
     ).toBe("allow");
 
     const reward = publishRewardDefinition(
@@ -384,15 +354,11 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       throw new Error("REWARD_UNLOCK_FAILED");
     }
 
-    const redeemed = redeemReward(
-      unlocked.entitlement,
-      unlocked.inventory,
-      {
-        idempotencyKey: unlocked.entitlement.idempotencyKey,
-        occurredAt: "2026-09-30T10:11:00.000Z",
-        expectedInventoryRevision: unlocked.inventory.revision,
-      },
-    );
+    const redeemed = redeemReward(unlocked.entitlement, unlocked.inventory, {
+      idempotencyKey: unlocked.entitlement.idempotencyKey,
+      occurredAt: "2026-09-30T10:11:00.000Z",
+      expectedInventoryRevision: unlocked.inventory.revision,
+    });
     expect(redeemed.kind).toBe("redeemed");
     if (redeemed.kind !== "redeemed") {
       throw new Error("REWARD_REDEMPTION_FAILED");
@@ -556,9 +522,9 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
       missionProjectionEvent,
     );
     expect(replayProjection).toBe(projections);
-    expect(
-      projections.missions.get("morro:mission_beaches")?.completions,
-    ).toBe(1);
+    expect(projections.missions.get("morro:mission_beaches")?.completions).toBe(
+      1,
+    );
     expect(
       projections.journeys.get("morro:journey_00000001")?.authoritative,
     ).toBe(false);
@@ -610,18 +576,10 @@ describe("Experience & Growth Fabric full isolated E2E", () => {
     });
 
     expect(
-      evaluateRiskDecision(
-        suspicious,
-        "guide_read",
-        riskPolicy,
-      ).outcome,
+      evaluateRiskDecision(suspicious, "guide_read", riskPolicy).outcome,
     ).toBe("observe");
     expect(
-      evaluateRiskDecision(
-        suspicious,
-        "financial_value",
-        riskPolicy,
-      ).outcome,
+      evaluateRiskDecision(suspicious, "financial_value", riskPolicy).outcome,
     ).toBe("block");
   });
 });
