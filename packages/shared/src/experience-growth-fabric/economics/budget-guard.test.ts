@@ -82,16 +82,12 @@ describe("growth budget guard", () => {
       code: "GROWTH_BUDGET_SUBSIDY_APPROVAL_REQUIRED",
     });
 
-    const approved = evaluateGrowthBudgetGuard(
-      expensive,
-      subsidizedPolicy,
-      {
-        approvalReference: "approval_00000001",
-        policyVersion: subsidizedPolicy.version,
-        maximumSubsidyMinorUnits: 3500,
-        approvedByReference: "growth_control_plane_0001",
-      },
-    );
+    const approved = evaluateGrowthBudgetGuard(expensive, subsidizedPolicy, {
+      approvalReference: "approval_00000001",
+      policyVersion: subsidizedPolicy.version,
+      maximumSubsidyMinorUnits: 3500,
+      approvedByReference: "growth_control_plane_0001",
+    });
 
     expect(approved.allowed).toBe(true);
     if (!approved.allowed) return;

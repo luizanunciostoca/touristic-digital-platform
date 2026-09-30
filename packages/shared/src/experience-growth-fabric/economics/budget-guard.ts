@@ -138,8 +138,7 @@ export function evaluateGrowthBudgetGuard(
   const economics = calculateGrowthEconomics(input);
 
   if (
-    economics.netGrowthValueMinorUnits >=
-    policy.minimumNetGrowthValueMinorUnits
+    economics.netGrowthValueMinorUnits >= policy.minimumNetGrowthValueMinorUnits
   ) {
     return {
       allowed: true,
@@ -182,8 +181,7 @@ export function evaluateGrowthBudgetGuard(
 
   if (
     !isMinorUnits(approval.maximumSubsidyMinorUnits) ||
-    approval.maximumSubsidyMinorUnits >
-      policy.maximumApprovedSubsidyMinorUnits
+    approval.maximumSubsidyMinorUnits > policy.maximumApprovedSubsidyMinorUnits
   ) {
     return {
       allowed: false,
@@ -194,8 +192,7 @@ export function evaluateGrowthBudgetGuard(
   }
 
   const deficit =
-    policy.minimumNetGrowthValueMinorUnits -
-    economics.netGrowthValueMinorUnits;
+    policy.minimumNetGrowthValueMinorUnits - economics.netGrowthValueMinorUnits;
 
   if (deficit > approval.maximumSubsidyMinorUnits) {
     return {

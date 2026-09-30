@@ -9,10 +9,7 @@
       ".morro/changesets/MD-EGF-W08-REWARD-ECONOMY.json",
       "packages/shared/src/experience-growth-fabric/economics/**"
     ],
-    "contracts": [
-      "growth-economics-input-v1",
-      "growth-budget-guard-v1"
-    ]
+    "contracts": ["growth-economics-input-v1", "growth-budget-guard-v1"]
   },
   "reads": {
     "contracts": ["verified-payment-outcome"]
@@ -27,10 +24,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-EGF-W01-CONTRACTS",
-    "MD-EGF-W07-REWARDS-CORE"
-  ],
+  "dependencies": ["MD-EGF-W01-CONTRACTS", "MD-EGF-W07-REWARDS-CORE"],
   "requiredEvidence": [
     "format",
     "secrets",
