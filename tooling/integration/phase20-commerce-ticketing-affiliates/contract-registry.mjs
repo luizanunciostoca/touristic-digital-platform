@@ -6,7 +6,8 @@ export const laneCContracts = Object.freeze([
     laneOwnership: "COMMERCE_TICKETING",
     classification: "VERSIONED_CONTRACT_REQUIRED",
     requiredContract: "TransportTicketV1",
-    reason: "Generic ticket reservations do not prove trip/leg/operator/origin/destination/boarding semantics.",
+    reason:
+      "Generic ticket reservations do not prove trip/leg/operator/origin/destination/boarding semantics.",
     ownerApproved: false,
     versionedContractApproved: false,
     runtimeBindingEnabled: false,
@@ -19,7 +20,8 @@ export const laneCContracts = Object.freeze([
     laneOwnership: "COMMERCE_REVALIDATION_ONLY",
     classification: "NEW_CANONICAL_CAPABILITY_REQUIRED",
     requiredContract: "LodgingReservationV1",
-    reason: "No canonical lodging lifecycle equivalent to room/rate-plan/inventory-night/stay/guest semantics exists.",
+    reason:
+      "No canonical lodging lifecycle equivalent to room/rate-plan/inventory-night/stay/guest semantics exists.",
     ownerApproved: false,
     versionedContractApproved: false,
     runtimeBindingEnabled: false,
@@ -32,7 +34,8 @@ export const laneCContracts = Object.freeze([
     laneOwnership: "REVALIDATION_ONLY_LANE_B_OWNER",
     classification: "VERSIONED_CONTRACT_REQUIRED",
     requiredContract: "BusinessReservationProjectionV1",
-    reason: "Business-scoped reservation projection is not equivalent to inventory/slot management or consumer-holder reads.",
+    reason:
+      "Business-scoped reservation projection is not equivalent to inventory/slot management or consumer-holder reads.",
     ownerApproved: false,
     versionedContractApproved: false,
     runtimeBindingEnabled: false,
@@ -45,7 +48,8 @@ export const laneCContracts = Object.freeze([
     laneOwnership: "AFFILIATES",
     classification: "VERSIONED_CONTRACT_REQUIRED",
     requiredContract: "AffiliateSelfOnboardingV1",
-    reason: "Owner primitives exist but no versioned replay-safe browser orchestration contract is approved.",
+    reason:
+      "Owner primitives exist but no versioned replay-safe browser orchestration contract is approved.",
     ownerApproved: false,
     versionedContractApproved: false,
     runtimeBindingEnabled: false,
@@ -58,7 +62,8 @@ export const laneCContracts = Object.freeze([
     laneOwnership: "AFFILIATES",
     classification: "VERSIONED_CONTRACT_REQUIRED",
     requiredContract: "AffiliateReferralQrArtifactV1",
-    reason: "Server-issued referral authority exists, while the QR artifact/export contract remains unapproved.",
+    reason:
+      "Server-issued referral authority exists, while the QR artifact/export contract remains unapproved.",
     ownerApproved: false,
     versionedContractApproved: false,
     runtimeBindingEnabled: false,
@@ -67,19 +72,35 @@ export const laneCContracts = Object.freeze([
 ]);
 
 export function laneCContractById(interfaceId) {
-  return laneCContracts.find((entry) => entry.interfaceId === interfaceId) ?? null;
+  return (
+    laneCContracts.find((entry) => entry.interfaceId === interfaceId) ?? null
+  );
 }
 
 export function assertLaneCContractRegistry() {
-  const expected = new Set(["IF-COM-005", "IF-COM-006", "IF-BIZ-010", "IF-AFF-002", "IF-AFF-006"]);
-  if (laneCContracts.length !== expected.size) throw new Error("LANE_C_CONTRACT_COUNT_INVALID");
+  const expected = new Set([
+    "IF-COM-005",
+    "IF-COM-006",
+    "IF-BIZ-010",
+    "IF-AFF-002",
+    "IF-AFF-006",
+  ]);
+  if (laneCContracts.length !== expected.size)
+    throw new Error("LANE_C_CONTRACT_COUNT_INVALID");
   const seen = new Set();
   for (const entry of laneCContracts) {
-    if (!expected.has(entry.interfaceId) || seen.has(entry.interfaceId)) throw new Error("LANE_C_CONTRACT_SET_INVALID");
+    if (!expected.has(entry.interfaceId) || seen.has(entry.interfaceId))
+      throw new Error("LANE_C_CONTRACT_SET_INVALID");
     seen.add(entry.interfaceId);
-    if (entry.ownerApproved !== false) throw new Error("LANE_C_OWNER_APPROVAL_MUST_REMAIN_FALSE");
-    if (entry.versionedContractApproved !== false) throw new Error("LANE_C_VERSIONED_CONTRACT_APPROVAL_MUST_REMAIN_FALSE");
-    if (entry.runtimeBindingEnabled !== false || entry.productionAuthorized !== false) throw new Error("LANE_C_RUNTIME_BINDING_MUST_REMAIN_DISABLED");
+    if (entry.ownerApproved !== false)
+      throw new Error("LANE_C_OWNER_APPROVAL_MUST_REMAIN_FALSE");
+    if (entry.versionedContractApproved !== false)
+      throw new Error("LANE_C_VERSIONED_CONTRACT_APPROVAL_MUST_REMAIN_FALSE");
+    if (
+      entry.runtimeBindingEnabled !== false ||
+      entry.productionAuthorized !== false
+    )
+      throw new Error("LANE_C_RUNTIME_BINDING_MUST_REMAIN_DISABLED");
   }
   return true;
 }

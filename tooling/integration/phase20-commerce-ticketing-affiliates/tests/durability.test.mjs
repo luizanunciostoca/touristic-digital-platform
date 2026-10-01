@@ -123,7 +123,8 @@ test("SQLite evidence store arbitrates concurrent duplicate claims", async () =>
       attempts.every(
         (entry) =>
           entry.status === "fulfilled" ||
-          (entry.reason instanceof Error && /IDEMPOTENCY_IN_FLIGHT/u.test(entry.reason.message)),
+          (entry.reason instanceof Error &&
+            /IDEMPOTENCY_IN_FLIGHT/u.test(entry.reason.message)),
       ),
     );
   } finally {

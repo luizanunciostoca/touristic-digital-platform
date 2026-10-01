@@ -70,7 +70,10 @@ test("blocked contract registry remains fail-closed", () => {
         entry.productionAuthorized === false,
     ),
   );
-  assert.equal(laneCContractById("IF-BIZ-010").laneOwnership, "REVALIDATION_ONLY_LANE_B_OWNER");
+  assert.equal(
+    laneCContractById("IF-BIZ-010").laneOwnership,
+    "REVALIDATION_ONLY_LANE_B_OWNER",
+  );
 });
 
 test("PREPARE -> CONFIRM -> EXECUTE is explicit and replay-safe", async () => {
@@ -94,7 +97,11 @@ test("PREPARE -> CONFIRM -> EXECUTE is explicit and replay-safe", async () => {
     /CONFIRM_REQUIRED/u,
   );
 
-  const confirmed = await coordinator.confirm(prepared.preparationId, context(), "CONFIRM");
+  const confirmed = await coordinator.confirm(
+    prepared.preparationId,
+    context(),
+    "CONFIRM",
+  );
   assert.equal(confirmed.state, "CONFIRMED");
 
   let effects = 0;
@@ -174,7 +181,8 @@ test("stale authorization is rejected after prepare", async () => {
   });
   const prepared = await coordinator.prepare(onboarding, context());
   await assert.rejects(
-    () => coordinator.confirm(prepared.preparationId, context({ authzVersion: 8 })),
+    () =>
+      coordinator.confirm(prepared.preparationId, context({ authzVersion: 8 })),
     /STALE_AUTHORIZATION/u,
   );
 });
@@ -346,7 +354,8 @@ test("concurrent duplicate execution permits exactly one local proof effect", as
     attempts.every(
       (entry) =>
         entry.status === "fulfilled" ||
-        (entry.reason instanceof Error && /IDEMPOTENCY_IN_FLIGHT/u.test(entry.reason.message)),
+        (entry.reason instanceof Error &&
+          /IDEMPOTENCY_IN_FLIGHT/u.test(entry.reason.message)),
     ),
   );
 });

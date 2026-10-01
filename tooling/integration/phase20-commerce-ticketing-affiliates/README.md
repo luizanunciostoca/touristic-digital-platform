@@ -17,13 +17,13 @@ This directory is an integration-candidate proof surface only. It is intentional
 
 ## Revalidated blocked interfaces
 
-| Interface | Classification | Required decision |
-|---|---|---|
-| IF-COM-005 | VERSIONED_CONTRACT_REQUIRED | TransportTicketV1 |
-| IF-COM-006 | NEW_CANONICAL_CAPABILITY_REQUIRED | LodgingReservationV1 + owner decision |
-| IF-BIZ-010 | VERSIONED_CONTRACT_REQUIRED | BusinessReservationProjectionV1; Lane B owns Business |
-| IF-AFF-002 | VERSIONED_CONTRACT_REQUIRED | AffiliateSelfOnboardingV1 |
-| IF-AFF-006 | VERSIONED_CONTRACT_REQUIRED | AffiliateReferralQrArtifactV1 |
+| Interface  | Classification                    | Required decision                                     |
+| ---------- | --------------------------------- | ----------------------------------------------------- |
+| IF-COM-005 | VERSIONED_CONTRACT_REQUIRED       | TransportTicketV1                                     |
+| IF-COM-006 | NEW_CANONICAL_CAPABILITY_REQUIRED | LodgingReservationV1 + owner decision                 |
+| IF-BIZ-010 | VERSIONED_CONTRACT_REQUIRED       | BusinessReservationProjectionV1; Lane B owns Business |
+| IF-AFF-002 | VERSIONED_CONTRACT_REQUIRED       | AffiliateSelfOnboardingV1                             |
+| IF-AFF-006 | VERSIONED_CONTRACT_REQUIRED       | AffiliateReferralQrArtifactV1                         |
 
 For every entry:
 
