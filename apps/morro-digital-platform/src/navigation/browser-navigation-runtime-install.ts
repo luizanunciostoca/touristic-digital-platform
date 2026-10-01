@@ -14,6 +14,7 @@ import {
   installBrowserAssistantRuntime,
   type BrowserAssistantRuntime,
 } from "../assistant/browser-assistant-runtime.js";
+import type { PublicPlaceReadContext } from "../runtime/public-place-read-context.js";
 import {
   installAssistantNavigationFeedback,
   type AssistantNavigationFeedback,
@@ -73,6 +74,7 @@ export interface BrowserNavigationRuntimeInstallOptions {
   readonly createContextualSuggestions?: typeof createNavigationContextualSuggestions;
   readonly installAssistant?: typeof installBrowserAssistantRuntime;
   readonly installAssistantFeedback?: typeof installAssistantNavigationFeedback;
+  readonly assistantPublicPlaceReadContext?: PublicPlaceReadContext;
 }
 
 export interface BrowserNavigationRuntimeInstall {
@@ -364,6 +366,9 @@ export function installBrowserNavigationRuntime(
     document: options.document,
     navigation: activeLifecycle,
     ...(explore ? { explore } : {}),
+    ...(options.assistantPublicPlaceReadContext
+      ? { publicPlaceReadContext: options.assistantPublicPlaceReadContext }
+      : {}),
   });
   const assistantFeedback = installAssistantFeedback(options.document);
   let destroyed = false;
