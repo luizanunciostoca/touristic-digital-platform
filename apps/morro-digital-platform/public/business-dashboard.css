@@ -107,7 +107,7 @@ button {
   font-size: 0.72rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #60a5fa;
+  color: #19b6d8;
   font-weight: 700;
 }
 .sidebar-nav {
@@ -132,7 +132,7 @@ button {
 .nav-item:hover,
 .sidebar-action:hover,
 .nav-item.active {
-  background: rgba(59, 130, 246, 0.18);
+  background: rgb(8 103 178 / 22%);
   color: #fff;
 }
 .sidebar-footer {
@@ -204,7 +204,7 @@ button {
   gap: 24px;
   padding: 28px;
   border-radius: 22px;
-  background: linear-gradient(135deg, #172554, #1d4ed8);
+  background: linear-gradient(135deg, #07152f, #0867b2);
   color: #fff;
   box-shadow: 0 20px 60px rgba(30, 64, 175, 0.18);
 }
@@ -224,7 +224,7 @@ button {
   border: 0;
   border-radius: 12px;
   padding: 11px 16px;
-  background: #2563eb;
+  background: #0867b2;
   color: #fff;
   font-weight: 700;
   text-decoration: none;
@@ -431,4 +431,9 @@ textarea:disabled,
 select:disabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.brand-row .brand-v2__symbol {
+  width: 2.65rem;
+  height: 2.65rem;
 }
