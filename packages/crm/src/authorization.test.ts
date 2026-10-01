@@ -91,5 +91,4 @@ describe("CRM M69 authorization policy", () => {
       ).toEqual({ allowed: false, reason: "read_only_role" });
     },
   );
-
 });

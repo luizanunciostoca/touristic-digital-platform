@@ -31,13 +31,13 @@ owner of the domains it displays.
 
 No blocked Phase 14 contract is promoted:
 
-| Interface | Classification | ownerApproved | versionedContractApproved |
-| --- | --- | --- | --- |
-| IF-BIZ-002 | CLIENT_LOCAL_NO_ENDPOINT | false | false |
-| IF-BIZ-013 | BLOCKED_SEMANTIC_MISMATCH | false | false |
-| IF-BIZ-015 | VERSIONED_CONTRACT_REQUIRED | false | false |
-| IF-CTL-021 | NEW_CANONICAL_CAPABILITY_REQUIRED | false | false |
-| IF-CTL-023 | VERSIONED_CONTRACT_REQUIRED | false | false |
+| Interface  | Classification                    | ownerApproved | versionedContractApproved |
+| ---------- | --------------------------------- | ------------- | ------------------------- |
+| IF-BIZ-002 | CLIENT_LOCAL_NO_ENDPOINT          | false         | false                     |
+| IF-BIZ-013 | BLOCKED_SEMANTIC_MISMATCH         | false         | false                     |
+| IF-BIZ-015 | VERSIONED_CONTRACT_REQUIRED       | false         | false                     |
+| IF-CTL-021 | NEW_CANONICAL_CAPABILITY_REQUIRED | false         | false                     |
+| IF-CTL-023 | VERSIONED_CONTRACT_REQUIRED       | false         | false                     |
 
 Business onboarding/settings browser-local behavior is not converted into
 server authority. Business team lifecycle is not aliased to platform

@@ -79,7 +79,9 @@ describe("Phase 20 Lane B semantic authority boundaries", () => {
     expect(hasAuthCapability("PLATFORM_ADMIN", "system.manage")).toBe(false);
     expect(hasAuthCapability("PLATFORM_OWNER", "system.manage")).toBe(true);
     expect(hasAuthCapability("SUPPORT", "support.impersonate")).toBe(true);
-    expect(hasAuthCapability("BUSINESS_OWNER", "support.impersonate")).toBe(false);
+    expect(hasAuthCapability("BUSINESS_OWNER", "support.impersonate")).toBe(
+      false,
+    );
   });
 
   it("keeps CRM behind Auth-owned crm.read/crm.manage capabilities", () => {
@@ -97,10 +99,12 @@ describe("Phase 20 Lane B semantic authority boundaries", () => {
         nowEpochSeconds: now,
       }),
     ).toEqual({ allowed: false, reason: "capability_denied" });
-    expect(authorizeCrmAccess(businessOwner, { nowEpochSeconds: now })).toEqual({
-      allowed: true,
-      reason: "allowed",
-    });
+    expect(authorizeCrmAccess(businessOwner, { nowEpochSeconds: now })).toEqual(
+      {
+        allowed: true,
+        reason: "allowed",
+      },
+    );
     expect(
       authorizeCrmAccess(businessOwner, {
         mutation: true,
