@@ -1,7 +1,7 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "47decd5f09681ef23eb0a8e0bcb6caddca6decff",
-  "branch": "infra/control-plane-v3.2-merge-gate-required-workflow-20261001",
+  "baseSha": "140c689de528fe93738c46304ec387da9f58b9ea",
+  "branch": "chore/control-plane-merge-gate-enforcement-canary-20261001",
   "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
