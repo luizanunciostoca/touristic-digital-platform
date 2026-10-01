@@ -16,10 +16,23 @@ const ACTIVE_CLAIM_STATUSES = new Set([
 const TRUST_WORKFLOW =
   ".github/workflows/morro-claim-guard-trust-bootstrap.yml";
 const TRUST_WORKFLOW_NAME = "Trusted Claim Guard Bootstrap";
-const TRUSTED_FILES = Object.freeze([
-  TRUST_WORKFLOW,
+const TRUST_ROOT_WORKFLOW = ".github/workflows/morro-claim-guard.yml";
+const TRUST_ROOT_WORKFLOW_NAME = "Claim Guard Contract";
+const TRUST_ROOT_RECONCILIATION_JOB =
+  "base-controlled-trust-root-reconciliation";
+const TRUST_ROOT_RECONCILIATION_STEP =
+  "Validate approved trust-routing candidate blobs";
+const TRUST_ROOT_RETIREMENT_JOB = "base-controlled-retirement-proof";
+const TRUST_ROOT_RETIREMENT_STEP = "Run base-controlled retirement proof";
+const TRUSTED_IMMUTABLE_FILES = Object.freeze([
+  TRUST_ROOT_WORKFLOW,
   ".github/workflows/morro-claim-guard-trusted.yml",
   "tooling/fabric/claim-guard.mjs",
+  "tooling/mdctl/scheduler-live.mjs",
+]);
+const TRUSTED_ROUTABLE_FILES = Object.freeze([
+  TRUST_WORKFLOW,
+  ".github/workflows/morro-agent-profiles.yml",
 ]);
 const TRUSTED_JOBS = Object.freeze([
   "trusted-claim-guard-bootstrap",
@@ -342,9 +355,9 @@ function stablePullIdentity(pulls) {
     .sort((left, right) => Number(left.number) - Number(right.number));
 }
 
-async function trustedFileBlobsEqual({ repository, mainSha, headSha, api }) {
+async function trustedFileBlobState({ repository, mainSha, headSha, api }) {
   const root = "repos/" + repository;
-  for (const path of TRUSTED_FILES) {
+  for (const path of TRUSTED_IMMUTABLE_FILES) {
     const [mainFile, headFile] = await Promise.all([
       jsonAtRef({ api, root, path, ref: mainSha }),
       jsonAtRef({ api, root, path, ref: headSha }),
@@ -354,11 +367,183 @@ async function trustedFileBlobsEqual({ repository, mainSha, headSha, api }) {
     if (mainBlob !== headBlob) {
       return {
         trusted: false,
-        reason: "TRUSTED_CONTROL_FILE_DIVERGED:" + path,
+        reconcilable: false,
+        divergentPaths: [path],
+        reason: "TRUSTED_IMMUTABLE_FILE_DIVERGED:" + path,
       };
     }
   }
-  return { trusted: true };
+
+  const divergentPaths = [];
+  for (const path of TRUSTED_ROUTABLE_FILES) {
+    const [mainFile, headFile] = await Promise.all([
+      jsonAtRef({ api, root, path, ref: mainSha }),
+      jsonAtRef({ api, root, path, ref: headSha }),
+    ]);
+    const mainBlob = contentSha(mainFile, "TRUST_MAIN_BLOB_INVALID");
+    const headBlob = contentSha(headFile, "TRUST_HEAD_BLOB_INVALID");
+    if (mainBlob !== headBlob) divergentPaths.push(path);
+  }
+
+  if (divergentPaths.length > 0) {
+    return {
+      trusted: false,
+      reconcilable: true,
+      divergentPaths,
+      reason: "TRUSTED_CONTROL_FILE_DIVERGED:" + divergentPaths[0],
+    };
+  }
+  return { trusted: true, reconcilable: false, divergentPaths: [] };
+}
+
+async function verifyTrustRootJobEvidence({
+  repository,
+  headSha,
+  branch,
+  prNumber,
+  jobName,
+  requiredStep,
+  authority,
+  reasonPrefix,
+  api,
+}) {
+  const root = "repos/" + repository;
+  const runs = await list(
+    api,
+    root +
+      "/actions/runs?head_sha=" +
+      encodeURIComponent(headSha) +
+      "&event=pull_request&per_page=100",
+    "workflow_runs",
+  );
+  const matchingRuns = runs
+    .filter(
+      (run) =>
+        run?.path === TRUST_ROOT_WORKFLOW &&
+        run?.name === TRUST_ROOT_WORKFLOW_NAME &&
+        run?.event === "pull_request" &&
+        run?.head_sha === headSha &&
+        run?.head_branch === branch &&
+        Array.isArray(run?.pull_requests) &&
+        run.pull_requests.some((pull) => pull?.number === prNumber),
+    )
+    .sort(
+      (left, right) =>
+        Date.parse(right?.created_at ?? "") -
+          Date.parse(left?.created_at ?? "") ||
+        Number(right?.id ?? 0) - Number(left?.id ?? 0),
+    );
+  if (matchingRuns.length === 0) {
+    return { trusted: false, reason: reasonPrefix + "_RUN_MISSING" };
+  }
+  const run = matchingRuns[0];
+  if (run?.status !== "completed") {
+    return { trusted: false, reason: reasonPrefix + "_RUN_NOT_COMPLETED" };
+  }
+  if (run?.conclusion !== "success") {
+    return { trusted: false, reason: reasonPrefix + "_RUN_NOT_SUCCESS" };
+  }
+
+  const jobs = await list(
+    api,
+    root + "/actions/runs/" + run.id + "/jobs?per_page=100",
+    "jobs",
+  );
+  const matchingJobs = jobs.filter((job) => job?.name === jobName);
+  if (
+    matchingJobs.length !== 1 ||
+    matchingJobs[0]?.status !== "completed" ||
+    matchingJobs[0]?.conclusion !== "success" ||
+    matchingJobs[0]?.head_sha !== headSha
+  ) {
+    return { trusted: false, reason: reasonPrefix + "_JOB_INVALID" };
+  }
+  const proofStep = Array.isArray(matchingJobs[0]?.steps)
+    ? matchingJobs[0].steps.find((step) => step?.name === requiredStep)
+    : null;
+  if (!proofStep || proofStep?.conclusion !== "success") {
+    return { trusted: false, reason: reasonPrefix + "_STEP_INVALID" };
+  }
+
+  const checks = await list(
+    api,
+    root + "/commits/" + headSha + "/check-runs?per_page=100",
+    "check_runs",
+  );
+  const check = checks.find(
+    (entry) =>
+      entry?.name === jobName &&
+      entry?.status === "completed" &&
+      entry?.conclusion === "success" &&
+      entry?.app?.id === GITHUB_ACTIONS_APP_ID &&
+      entry?.app?.slug === "github-actions",
+  );
+  if (!check) {
+    return { trusted: false, reason: reasonPrefix + "_CHECK_MISSING" };
+  }
+
+  return {
+    trusted: true,
+    authority,
+    workflowRunId: run.id,
+    workflowPath: run.path,
+    jobName,
+    requiredStep,
+    headSha,
+  };
+}
+
+async function verifyTrustRootReconciliationEvidence(args) {
+  return verifyTrustRootJobEvidence({
+    ...args,
+    jobName: TRUST_ROOT_RECONCILIATION_JOB,
+    requiredStep: TRUST_ROOT_RECONCILIATION_STEP,
+    authority: "BASE_CONTROLLED_TRUST_ROOT_RECONCILIATION",
+    reasonPrefix: "TRUST_ROOT_RECONCILIATION",
+  });
+}
+
+export async function verifyTrustedRetirementEvidence({
+  repository = "luizanunciostoca/touristic-digital-platform",
+  mainSha,
+  headSha,
+  branch,
+  prNumber,
+  api = githubApi,
+}) {
+  assert.match(mainSha ?? "", SHA, "RETIREMENT_TRUST_MAIN_SHA_INVALID");
+  assert.match(headSha ?? "", SHA, "RETIREMENT_TRUST_HEAD_SHA_INVALID");
+  assert.ok(
+    typeof branch === "string" && branch.length > 0,
+    "RETIREMENT_TRUST_BRANCH_INVALID",
+  );
+  assert.ok(
+    Number.isInteger(prNumber) && prNumber > 0,
+    "RETIREMENT_TRUST_PR_NUMBER_INVALID",
+  );
+  const blobs = await trustedFileBlobState({
+    repository,
+    mainSha,
+    headSha,
+    api,
+  });
+  if (!blobs.trusted) {
+    return {
+      trusted: false,
+      reason: "RETIREMENT_" + (blobs.reason ?? "TRUSTED_CONTROL_FILE_DIVERGED"),
+    };
+  }
+  return verifyTrustRootJobEvidence({
+    repository,
+    headSha,
+    branch,
+    prNumber,
+    jobName: TRUST_ROOT_RETIREMENT_JOB,
+    requiredStep: TRUST_ROOT_RETIREMENT_STEP,
+    authority: "BASE_CONTROLLED_RETIREMENT_EXACT_HEAD",
+    reasonPrefix: "TRUST_ROOT_RETIREMENT",
+    api,
+  });
 }
 
 export async function verifyTrustedClaimEvidence({
@@ -380,13 +565,35 @@ export async function verifyTrustedClaimEvidence({
     "TRUST_PR_NUMBER_INVALID",
   );
   const root = "repos/" + repository;
-  const blobs = await trustedFileBlobsEqual({
+  const blobs = await trustedFileBlobState({
     repository,
     mainSha,
     headSha,
     api,
   });
-  if (!blobs.trusted) return blobs;
+  if (!blobs.trusted) {
+    if (!blobs.reconcilable) return blobs;
+    const reconciliation = await verifyTrustRootReconciliationEvidence({
+      repository,
+      headSha,
+      branch,
+      prNumber,
+      api,
+    });
+    if (!reconciliation.trusted) {
+      return {
+        ...reconciliation,
+        reason: blobs.reason + ":" + reconciliation.reason,
+      };
+    }
+    return {
+      trusted: true,
+      authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+      headSha,
+      reconciledTrustedFiles: blobs.divergentPaths,
+      trustRootReconciliation: reconciliation,
+    };
+  }
 
   const runs = await list(
     api,
@@ -472,6 +679,7 @@ export async function verifyTrustedClaimEvidence({
     workflowRunId: run.id,
     workflowPath: run.path,
     headSha,
+    reconciledTrustedFiles: [],
   };
 }
 
@@ -616,7 +824,7 @@ export async function collectLivePullWork({
 
     let trustedControlFiles;
     try {
-      trustedControlFiles = await trustedFileBlobsEqual({
+      trustedControlFiles = await trustedFileBlobState({
         repository,
         mainSha,
         headSha,
@@ -628,7 +836,7 @@ export async function collectLivePullWork({
       );
       continue;
     }
-    if (!trustedControlFiles.trusted) {
+    if (!trustedControlFiles.trusted && !trustedControlFiles.reconcilable) {
       items.push(invalidItem(pr, { invalid: trustedControlFiles.reason }));
       continue;
     }
@@ -744,7 +952,8 @@ export async function collectLivePullWork({
     };
     if (
       candidateRegistrySha !== canonicalRegistrySha ||
-      candidateManifestSha !== canonicalManifestSha
+      candidateManifestSha !== canonicalManifestSha ||
+      trustedControlFiles.reconcilable
     ) {
       trust = await verifyTrustedClaimEvidence({
         repository,

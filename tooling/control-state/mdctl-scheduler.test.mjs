@@ -454,6 +454,15 @@ function createLiveApi(options = {}) {
     branch: LIVE_BRANCH,
     state: "LOCAL_PROVEN",
   });
+  if (options.trustRootReconciled) {
+    for (const trustedPath of [
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-agent-profiles.yml",
+    ]) {
+      canonicalManifest.owns.paths.push(trustedPath);
+      candidateManifest.owns.paths.push(trustedPath);
+    }
+  }
   if (options.authorityWiden) {
     candidateManifest.owns = {
       paths: [...candidateManifest.owns.paths, "packages/extra/**"],
@@ -519,6 +528,8 @@ function createLiveApi(options = {}) {
     "base-controlled-orchestrator-registry-proof",
     "base-controlled-independent-proof / trusted-agent-profile-contract",
   ];
+  const trustRootReconciliationJob =
+    "base-controlled-trust-root-reconciliation";
 
   const api = async (endpoint, apiOptions = {}) => {
     if (endpoint.endsWith("/commits/main")) {
@@ -596,6 +607,16 @@ function createLiveApi(options = {}) {
           deletions: 2,
         },
       ];
+      if (options.trustRootReconciled) {
+        files[0] = {
+          ...files[0],
+          filename: ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        };
+        files[1] = {
+          ...files[1],
+          filename: ".github/workflows/morro-agent-profiles.yml",
+        };
+      }
       if (options.fileOutsideScope) {
         files[0] = {
           ...files[0],
@@ -652,15 +673,41 @@ function createLiveApi(options = {}) {
     }
 
     if (
-      endpoint.includes("/contents/") &&
-      (endpoint.includes("morro-claim-guard-trust-bootstrap.yml") ||
-        endpoint.includes("morro-claim-guard-trusted.yml") ||
-        endpoint.includes("tooling/fabric/claim-guard.mjs"))
+      endpoint.includes(
+        "/contents/.github/workflows/morro-claim-guard.yml?ref=",
+      )
     ) {
       const isHead = endpoint.includes("?ref=" + encodedHead);
       return {
         sha:
-          isHead && options.trustFileDiverged ? "9".repeat(40) : "8".repeat(40),
+          isHead && options.trustRootWorkflowDiverged
+            ? "7".repeat(40)
+            : "6".repeat(40),
+      };
+    }
+    if (
+      endpoint.includes("/contents/") &&
+      (endpoint.includes("morro-claim-guard-trusted.yml") ||
+        endpoint.includes("tooling/fabric/claim-guard.mjs") ||
+        endpoint.includes("tooling/mdctl/scheduler-live.mjs"))
+    ) {
+      const isHead = endpoint.includes("?ref=" + encodedHead);
+      return {
+        sha:
+          isHead && options.immutableTrustFileDiverged
+            ? "9".repeat(40)
+            : "8".repeat(40),
+      };
+    }
+    if (
+      endpoint.includes("/contents/") &&
+      (endpoint.includes("morro-claim-guard-trust-bootstrap.yml") ||
+        endpoint.includes("morro-agent-profiles.yml"))
+    ) {
+      const isHead = endpoint.includes("?ref=" + encodedHead);
+      return {
+        sha:
+          isHead && options.trustFileDiverged ? "5".repeat(40) : "4".repeat(40),
       };
     }
     if (
@@ -688,6 +735,28 @@ function createLiveApi(options = {}) {
                 { number: options.wrongTrustPrAssociation ? 8 : 7 },
               ],
             },
+            ...(options.trustRootReconciled
+              ? [
+                  {
+                    id: 77,
+                    name: "Claim Guard Contract",
+                    path: ".github/workflows/morro-claim-guard.yml",
+                    event: "pull_request",
+                    head_sha: LIVE_HEAD,
+                    head_branch: LIVE_BRANCH,
+                    status: "completed",
+                    conclusion: options.trustRootReconciliationFails
+                      ? "failure"
+                      : "success",
+                    created_at: "2026-10-01T12:09:00Z",
+                    pull_requests: [
+                      {
+                        number: options.wrongTrustRootPrAssociation ? 8 : 7,
+                      },
+                    ],
+                  },
+                ]
+              : []),
             ...(options.latestTrustRunFails
               ? [
                   {
@@ -725,21 +794,65 @@ function createLiveApi(options = {}) {
         },
       ];
     }
+    if (endpoint.endsWith("/actions/runs/77/jobs?per_page=100")) {
+      assert.equal(apiOptions.paginate, true);
+      return [
+        {
+          jobs: [
+            {
+              name: trustRootReconciliationJob,
+              status: "completed",
+              conclusion: options.trustRootReconciliationJobFails
+                ? "failure"
+                : "success",
+              head_sha: LIVE_HEAD,
+              steps: [
+                {
+                  name: "Validate approved trust-routing candidate blobs",
+                  conclusion: options.trustRootReconciliationStepFails
+                    ? "failure"
+                    : "success",
+                },
+              ],
+            },
+          ],
+        },
+      ];
+    }
     if (
       endpoint.endsWith("/commits/" + LIVE_HEAD + "/check-runs?per_page=100")
     ) {
       assert.equal(apiOptions.paginate, true);
       return [
         {
-          check_runs: trustJobs.map((name) => ({
-            name,
-            status: "completed",
-            conclusion: "success",
-            app: {
-              id: options.spoofCheck ? 999 : 15368,
-              slug: options.spoofCheck ? "other-app" : "github-actions",
-            },
-          })),
+          check_runs: [
+            ...trustJobs.map((name) => ({
+              name,
+              status: "completed",
+              conclusion: "success",
+              app: {
+                id: options.spoofCheck ? 999 : 15368,
+                slug: options.spoofCheck ? "other-app" : "github-actions",
+              },
+            })),
+            ...(options.trustRootReconciled
+              ? [
+                  {
+                    name: trustRootReconciliationJob,
+                    status: "completed",
+                    conclusion: options.trustRootReconciliationJobFails
+                      ? "failure"
+                      : "success",
+                    app: {
+                      id: options.spoofTrustRootCheck ? 999 : 15368,
+                      slug: options.spoofTrustRootCheck
+                        ? "other-app"
+                        : "github-actions",
+                    },
+                  },
+                ]
+              : []),
+          ],
         },
       ];
     }
@@ -864,8 +977,44 @@ test("live collector rejects candidate authority widened beyond exact main", asy
   assert.match(live.items[0].invalid, /AUTHORITY_DIVERGED_FROM_MAIN/u);
 });
 
-test("trusted claim evidence fails when trusted control files diverge", async () => {
-  const fixture = createLiveApi({ trustFileDiverged: true });
+test("trusted claim evidence accepts reconciled trusted control drift", async () => {
+  const fixture = createLiveApi({
+    trustFileDiverged: true,
+    trustRootReconciled: true,
+  });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, true, JSON.stringify(trust));
+  assert.equal(
+    trust.authority,
+    "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+    JSON.stringify(trust),
+  );
+  assert.deepEqual(trust.reconciledTrustedFiles, [
+    ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+    ".github/workflows/morro-agent-profiles.yml",
+  ]);
+  assert.equal(
+    trust.trustRootReconciliation?.authority,
+    "BASE_CONTROLLED_TRUST_ROOT_RECONCILIATION",
+  );
+  assert.equal(
+    trust.trustRootReconciliation?.requiredStep,
+    "Validate approved trust-routing candidate blobs",
+  );
+});
+
+test("trusted control drift fails closed without root reconciliation", async () => {
+  const fixture = createLiveApi({
+    trustFileDiverged: true,
+    missingTrustRootReconciliation: true,
+  });
   const trust = await verifyTrustedClaimEvidence({
     repository: "example/repo",
     mainSha: LIVE_MAIN,
@@ -875,7 +1024,39 @@ test("trusted claim evidence fails when trusted control files diverge", async ()
     api: fixture.api,
   });
   assert.equal(trust.trusted, false);
-  assert.match(trust.reason, /TRUSTED_CONTROL_FILE_DIVERGED/u);
+  assert.match(trust.reason, /TRUST_ROOT_RECONCILIATION_RUN_MISSING/u);
+});
+
+test("trust root workflow itself cannot self-reconcile", async () => {
+  const fixture = createLiveApi({ trustRootWorkflowDiverged: true });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUSTED_IMMUTABLE_FILE_DIVERGED/u);
+});
+
+test("trust root reconciliation rejects same-name check from another app", async () => {
+  const fixture = createLiveApi({
+    trustFileDiverged: true,
+    trustRootReconciled: true,
+    spoofTrustRootCheck: true,
+  });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUST_ROOT_RECONCILIATION_CHECK_MISSING/u);
 });
 
 test("trusted claim evidence requires every base-controlled job", async () => {
@@ -1107,16 +1288,36 @@ test("candidate cannot alter canonical proof contract", async () => {
   assert.equal(live.items[0].ready, false);
 });
 
-test("trusted control files are checked even when authority blobs match main", async () => {
+test("reconciled trusted control drift is checked even when authority blobs match main", async () => {
   const fixture = createLiveApi({
     authorityBlobsIdentical: true,
     trustFileDiverged: true,
+    trustRootReconciled: true,
   });
   const live = await collectLivePullWork({
     repository: "example/repo",
     api: fixture.api,
   });
-  assert.match(live.items[0].invalid, /TRUSTED_CONTROL_FILE_DIVERGED/u);
+  assert.equal(live.items[0].invalid, null);
+  assert.equal(live.items[0].trust.trusted, true);
+  assert.equal(live.items[0].trust.authority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
+  assert.equal(
+    live.items[0].trust.trustRootReconciliation?.authority,
+    "BASE_CONTROLLED_TRUST_ROOT_RECONCILIATION",
+  );
+});
+
+test("authority equality cannot bypass missing trust-root reconciliation", async () => {
+  const fixture = createLiveApi({
+    authorityBlobsIdentical: true,
+    trustFileDiverged: true,
+    missingTrustRootReconciliation: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.match(live.items[0].invalid, /TRUST_ROOT_RECONCILIATION_RUN_MISSING/u);
   assert.equal(live.items[0].writerActive, false);
   assert.equal(live.items[0].ready, false);
 });
