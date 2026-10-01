@@ -3,7 +3,8 @@ import { resolve } from "node:path";
 import { githubApi } from "../control-state/status.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
-const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;\nconst RUN_ID = /^[1-9][0-9]*$/u;
+const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
+const RUN_ID = /^[1-9][0-9]*$/u;
 const ACTIVE_CLAIM_STATES = new Set([
   "CLAIMED",
   "IMPLEMENTING",
