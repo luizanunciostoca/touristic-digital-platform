@@ -81,7 +81,7 @@ function validateOwnedPath(path) {
   assert.equal(typeof path, "string", "CHANGESET_PATH_INVALID");
   assert.ok(path.length > 0 && path.length <= 320, "CHANGESET_PATH_INVALID");
   assert.equal(path.startsWith("/"), false, "CHANGESET_PATH_ABSOLUTE");
-  assert.equal(path.includes("\"), false, "CHANGESET_PATH_BACKSLASH");
+  assert.equal(path.includes("\\"), false, "CHANGESET_PATH_BACKSLASH");
   assert.equal(
     path.split("/").includes(".."),
     false,
@@ -98,7 +98,7 @@ function validateProofTarget(target) {
   assert.equal(typeof target, "string", "CHANGESET_PROOF_TARGET_INVALID");
   assert.equal(target.startsWith("/"), false, "CHANGESET_PROOF_TARGET_ABSOLUTE");
   assert.equal(
-    target.includes("\"),
+    target.includes("\\"),
     false,
     "CHANGESET_PROOF_TARGET_BACKSLASH",
   );
