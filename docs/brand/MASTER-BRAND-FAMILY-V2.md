@@ -2,18 +2,16 @@
 
 ## Status
 
-**Candidate:** V2.0.0
-**Approved visual direction:** Concept 02
-**Production publication:** not authorized by this document
-**Territorial design validation:** INTERNAL
+- **Candidate:** V2.0.0
+- **Approved visual direction:** Concept 02
+- **Production publication:** not authorized by this document
+- **Territorial design validation:** INTERNAL
 
 ## Brand architecture
 
-| Brand | Role | Design concept |
-| --- | --- | --- |
-| Touristic Digital Platform | Master brand / platform core | REDE |
-| Morro Digital | Destination brand — Morro de São Paulo | PERCURSO |
-| Itacaré Digital | Destination brand — Itacaré | FLUXO |
+- Touristic Digital Platform — master brand / platform core — **REDE**.
+- Morro Digital — destination brand for Morro de São Paulo — **PERCURSO**.
+- Itacaré Digital — destination brand for Itacaré — **FLUXO**.
 
 The family shares a geometric and behavioral grammar without repeating one symbol across destinations. Shared characteristics include circular nodes, connected curves, round route terminals, optical spacing logic, common typography hierarchy and a coral human/value node.
 
