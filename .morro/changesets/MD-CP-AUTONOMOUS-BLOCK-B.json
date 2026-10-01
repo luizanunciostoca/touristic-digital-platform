@@ -1,6 +1,6 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "a3d33d3220d9056cbf38edf736ba8b91255753b8",
+  "baseSha": "3b824b2c18487e1483a3a01e7d465b2d7fffb30b",
   "branch": "infra/control-plane-v3.2-b2c-mdctl-live-20261001",
   "state": "LOCAL_PROVEN",
   "risk": "high",
@@ -29,14 +29,18 @@
       "package.json",
       "tooling/control-state/mdctl-event-ledger.test.mjs",
       ".morro/scheduler-policy.json",
-      "tooling/control-state/mdctl-scheduler.test.mjs"
+      "tooling/control-state/mdctl-scheduler.test.mjs",
+      "tooling/control-state/mdctl-plan.test.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+      ".github/workflows/morro-merge-gate.yml"
     ],
     "contracts": [
       "TDP-CHANGESET-V2",
       "TDP-CAPABILITY-LEASE",
       "TDP-CONTEXT-PACK",
       "TDP-TASK-LIFECYCLE",
-      "TDP-SCHEDULER"
+      "TDP-SCHEDULER",
+      "TDP-MERGE-GATE"
     ]
   },
   "reads": {
