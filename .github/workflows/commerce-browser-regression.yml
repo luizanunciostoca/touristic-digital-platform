@@ -85,6 +85,11 @@ jobs:
           cat /tmp/commerce-browser/server.log
           exit 1
       - name: Browser acceptance
+        env:
+          EXACT_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EVIDENCE_WORKFLOW: ${{ github.workflow }}
+          EVIDENCE_RUN_ID: ${{ github.run_id }}
+          EVIDENCE_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
@@ -215,14 +220,22 @@ jobs:
           }
 
           (async () => {
+            const { createTicketQrPayload } = await import(
+              pathToFileURL(
+                process.cwd() + '/packages/ticketing/dist/index.js',
+              ).href
+            );
             const { renderTicketQrSvg } = await import(
               pathToFileURL(
                 process.cwd() + '/packages/ticketing/dist/qr-svg.js',
               ).href
             );
-            representativeQrSvg = renderTicketQrSvg(
-              'tck.v1.UX584_BROWSER_FIXTURE_20261001',
+            const representativeQrPayload = createTicketQrPayload(
+              'tck_UX584_BROWSER_FIXTURE_20261001',
+              'ux584-browser-fixture-signing-secret-20261001',
             );
+            if (!representativeQrPayload) throw new Error('Representative QR payload failed to render');
+            representativeQrSvg = renderTicketQrSvg(representativeQrPayload);
             if (!representativeQrSvg) throw new Error('Representative QR fixture failed to render');
             const bounded = (promise, label, ms = 10000) =>
               Promise.race([
@@ -692,11 +705,21 @@ jobs:
                   dataClass: 'Runtime with Fixture',
                   fixtureId: 'tck.v1.UX584_BROWSER_FIXTURE_20261001',
                   renderer: 'packages/ticketing/dist/qr-svg.js#renderTicketQrSvg',
-                  exactHeadSha: process.env.GITHUB_HEAD_SHA || process.env.GITHUB_SHA || null,
+                  exactHeadSha: process.env.EXACT_HEAD_SHA || null,
                   url: origin + '/tickets.html',
+                  viewport: { width: 390, height: 844 },
+                  finalDimensions: {
+                    width: await failPage.evaluate(() => document.documentElement.scrollWidth),
+                    height: await failPage.evaluate(() => document.documentElement.scrollHeight),
+                  },
+                  fullPage: false,
                   locale: 'pt-BR',
                   browser: 'chromium',
-                  generatedAt: new Date().toISOString(),
+                  device: 'chromium-mobile-viewport',
+                  timestamp: new Date().toISOString(),
+                  workflow: process.env.EVIDENCE_WORKFLOW,
+                  runId: process.env.EVIDENCE_RUN_ID,
+                  runAttempt: process.env.EVIDENCE_RUN_ATTEMPT,
                 },
               });
               markAuthStage('failure-path:asserted');

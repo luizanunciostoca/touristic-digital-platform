@@ -47,6 +47,11 @@ jobs:
           cat /tmp/tour-booking/server.log
           exit 1
       - name: First-paint and ready-state acceptance
+        env:
+          EXACT_HEAD_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          EVIDENCE_WORKFLOW: ${{ github.workflow }}
+          EVIDENCE_RUN_ID: ${{ github.run_id }}
+          EVIDENCE_RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
@@ -175,8 +180,14 @@ jobs:
             const ready = await page.evaluate(() => {
               const hero = document.querySelector('.tour-hero');
               const cta = document.querySelector('#reserve-button');
+              const identity = document.querySelector('#identity-panel');
+              const name = document.querySelector('#holder-name');
+              const email = document.querySelector('#holder-email');
               const heroRect = hero instanceof HTMLElement ? hero.getBoundingClientRect() : null;
               const ctaRect = cta instanceof HTMLElement ? cta.getBoundingClientRect() : null;
+              const identityRect = identity instanceof HTMLElement ? identity.getBoundingClientRect() : null;
+              const nameRect = name instanceof HTMLElement ? name.getBoundingClientRect() : null;
+              const emailRect = email instanceof HTMLElement ? email.getBoundingClientRect() : null;
               return {
                 loading: document.body.dataset.ticketingLoading,
                 singleProduct: document.body.dataset.ticketingSingleProduct,
@@ -188,6 +199,7 @@ jobs:
                 heroHeight: heroRect?.height || 0,
                 ctaWidth: ctaRect?.width || 0,
                 ctaHeight: ctaRect?.height || 0,
+                ctaDisabled: cta instanceof HTMLButtonElement ? cta.disabled : true,
                 scrollWidth: document.documentElement.scrollWidth,
                 clientWidth: document.documentElement.clientWidth,
               };
@@ -201,23 +213,133 @@ jobs:
               ready.heroHeight < 180 ||
               ready.ctaWidth < 44 ||
               ready.ctaHeight < 44 ||
+              ready.ctaDisabled ||
               ready.scrollWidth > ready.clientWidth + 1
             ) {
               throw new Error('Dedicated ready-state contract failed: ' + JSON.stringify(ready));
+            }
+
+            const hierarchy = await page.evaluate(() => {
+              const form = document.querySelector('#reservation-form');
+              const name = document.querySelector('#holder-name');
+              const email = document.querySelector('#holder-email');
+              const reserve = document.querySelector('#reserve-button');
+              const contains = form instanceof HTMLFormElement && reserve instanceof HTMLElement
+                ? form.contains(reserve)
+                : false;
+              const relation = name && email && reserve
+                ? Boolean(
+                    name.compareDocumentPosition(email) & Node.DOCUMENT_POSITION_FOLLOWING
+                  ) &&
+                  Boolean(
+                    email.compareDocumentPosition(reserve) & Node.DOCUMENT_POSITION_FOLLOWING
+                  )
+                : false;
+              const quantity = document.querySelector('#quantity');
+              return {
+                reserveInsideForm: contains,
+                identityBeforeReserve: relation,
+                formNoValidate:
+                  form instanceof HTMLFormElement ? form.noValidate : true,
+                reserveFormAttribute: reserve?.getAttribute('form') ?? null,
+                quantityFormId:
+                  quantity instanceof HTMLInputElement ? quantity.form?.id ?? null : null,
+              };
+            });
+            if (
+              !hierarchy.reserveInsideForm ||
+              !hierarchy.identityBeforeReserve ||
+              hierarchy.formNoValidate ||
+              hierarchy.reserveFormAttribute !== null ||
+              hierarchy.quantityFormId !== 'reservation-form'
+            ) {
+              throw new Error(
+                'Tour booking hierarchy drift: ' + JSON.stringify(hierarchy),
+              );
+            }
+
+            await page.locator('#reserve-button').click();
+            await page.waitForTimeout(80);
+            const emptyFocus = await page.evaluate(() => ({
+              activeId:
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement.id
+                  : null,
+              message:
+                document.querySelector('#reservation-message')?.textContent?.trim() ?? '',
+            }));
+            if (emptyFocus.activeId !== 'holder-name' || !emptyFocus.message) {
+              throw new Error(
+                'Empty booking did not focus first invalid field: ' +
+                  JSON.stringify(emptyFocus),
+              );
+            }
+
+            await page.locator('#holder-name').fill('Visitante de Teste');
+            await page.locator('#holder-email').fill('email-invalido');
+            await page.locator('#reserve-button').click();
+            await page.waitForTimeout(80);
+            const invalidEmailFocus = await page.evaluate(() => ({
+              activeId:
+                document.activeElement instanceof HTMLElement
+                  ? document.activeElement.id
+                  : null,
+              emailValid:
+                document.querySelector('#holder-email') instanceof HTMLInputElement
+                  ? document.querySelector('#holder-email').checkValidity()
+                  : false,
+            }));
+            if (
+              invalidEmailFocus.activeId !== 'holder-email' ||
+              invalidEmailFocus.emailValid
+            ) {
+              throw new Error(
+                'Invalid email did not receive focus: ' +
+                  JSON.stringify(invalidEmailFocus),
+              );
             }
 
             if (errors.length) {
               throw new Error('Tour booking page errors: ' + JSON.stringify(errors));
             }
 
+            const finalDimensions = await page.evaluate(() => ({
+              width: document.documentElement.scrollWidth,
+              height: document.documentElement.scrollHeight,
+            }));
             await page.screenshot({
               path: '/tmp/tour-booking/tour-booking-390x844.png',
-              fullPage: true,
+              fullPage: false,
               animations: 'disabled',
             });
             writeFileSync(
               '/tmp/tour-booking/evidence.json',
-              JSON.stringify({ firstFrame, ready }, null, 2),
+              JSON.stringify(
+                {
+                  schemaVersion: 1,
+                  dataClass: 'Runtime with Fixture',
+                  fixtureId: 'UX584_TOUR_BOOKING_API_FIXTURE_V1',
+                  exactHeadSha: process.env.EXACT_HEAD_SHA || null,
+                  url,
+                  viewport: { width: 390, height: 844 },
+                  finalDimensions,
+                  fullPage: false,
+                  locale: 'pt-BR',
+                  browser: 'chromium',
+                  device: 'chromium-mobile-viewport',
+                  workflow: process.env.GITHUB_WORKFLOW,
+                  runId: process.env.GITHUB_RUN_ID,
+                  runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+                  timestamp: new Date().toISOString(),
+                  firstFrame,
+                  ready,
+                  hierarchy,
+                  emptyFocus,
+                  invalidEmailFocus,
+                },
+                null,
+                2,
+              ),
             );
             await context.close();
             await browser.close();
