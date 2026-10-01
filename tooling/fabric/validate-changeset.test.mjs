@@ -93,11 +93,7 @@ test("ChangeSet V2 enforces proof budgets and bounded node test targets", () => 
     /CHANGESET_PROOF_TARGET_TRAVERSAL/u,
   );
 
-  manifest.proof.commands[0].argv = [
-    "node",
-    "--test",
-    "tooling/test.test.mjs",
-  ];
+  manifest.proof.commands[0].argv = ["node", "--test", "tooling/test.test.mjs"];
   manifest.proof.commands[0].timeoutSeconds = 121;
   assert.throws(
     () => validateChangeSetV2(manifest),
