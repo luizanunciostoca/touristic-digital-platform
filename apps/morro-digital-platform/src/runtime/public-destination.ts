@@ -1,6 +1,7 @@
+import type { DestinationConfig } from "@touristic/core";
 import { morroDeSaoPauloDestination } from "../config/destination.js";
 
-export type MorroPublicDestination = typeof morroDeSaoPauloDestination;
+export type MorroPublicDestination = DestinationConfig;
 export type PublicDestinationSource = "destination-owner" | "static-fallback";
 
 export interface ResolvedPublicDestination {
@@ -22,15 +23,25 @@ const staticFallback = (): ResolvedPublicDestination =>
 function isValidDestination(value: unknown): value is MorroPublicDestination {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<MorroPublicDestination>;
+  const modules = candidate.modules;
   return (
-    candidate.id === morroDeSaoPauloDestination.id &&
+    typeof candidate.id === "string" &&
+    /^[a-z0-9][a-z0-9_-]{0,159}$/u.test(candidate.id) &&
     typeof candidate.name === "string" &&
+    Boolean(candidate.name.trim()) &&
+    typeof candidate.countryCode === "string" &&
+    Boolean(candidate.countryCode.trim()) &&
     typeof candidate.timezone === "string" &&
+    Boolean(candidate.timezone.trim()) &&
     typeof candidate.currency === "string" &&
+    Boolean(candidate.currency.trim()) &&
     Number.isFinite(candidate.center?.latitude) &&
     Number.isFinite(candidate.center?.longitude) &&
-    typeof candidate.modules === "object" &&
-    candidate.modules !== null
+    Number.isFinite(candidate.radiusMeters) &&
+    Number(candidate.radiusMeters) > 0 &&
+    typeof modules === "object" &&
+    modules !== null &&
+    Object.values(modules).every((enabled) => typeof enabled === "boolean")
   );
 }
 
