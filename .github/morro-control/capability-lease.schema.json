@@ -3,20 +3,13 @@
   "title": "TDP Capability Lease Registry",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schemaVersion",
-    "authority",
-    "leases"
-  ],
+  "required": ["schemaVersion", "authority", "leases"],
   "properties": {
     "schemaVersion": {
       "const": 1
     },
     "authority": {
-      "enum": [
-        "ORCHESTRATOR",
-        "TASK_LOCAL_PROJECTION"
-      ]
+      "enum": ["ORCHESTRATOR", "TASK_LOCAL_PROJECTION"]
     },
     "leases": {
       "type": "object",
@@ -74,11 +67,7 @@
             "format": "date-time"
           },
           "state": {
-            "enum": [
-              "ACTIVE",
-              "RELEASED",
-              "EXPIRED"
-            ]
+            "enum": ["ACTIVE", "RELEASED", "EXPIRED"]
           }
         }
       }

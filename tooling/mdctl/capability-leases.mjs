@@ -18,16 +18,17 @@ function clone(value) {
   return structuredClone(value);
 }
 
-export function createLeaseRegistry(
-  authority = "TASK_LOCAL_PROJECTION",
-) {
+export function createLeaseRegistry(authority = "TASK_LOCAL_PROJECTION") {
   assert.ok(AUTHORITIES.has(authority), "LEASE_REGISTRY_AUTHORITY_INVALID");
   return { schemaVersion: 1, authority, leases: {} };
 }
 
 export function validateLeaseRegistry(registry) {
   assert.equal(registry?.schemaVersion, 1, "LEASE_REGISTRY_SCHEMA_INVALID");
-  assert.ok(AUTHORITIES.has(registry?.authority), "LEASE_REGISTRY_AUTHORITY_INVALID");
+  assert.ok(
+    AUTHORITIES.has(registry?.authority),
+    "LEASE_REGISTRY_AUTHORITY_INVALID",
+  );
   assert.ok(
     registry?.leases &&
       typeof registry.leases === "object" &&
@@ -38,13 +39,24 @@ export function validateLeaseRegistry(registry) {
   for (const [key, lease] of Object.entries(registry.leases)) {
     assert.match(key, LEASE_ID, "LEASE_ID_INVALID");
     assert.equal(lease?.leaseId, key, "LEASE_KEY_ID_MISMATCH");
-    assert.match(lease.changeSetId ?? "", /^MD-[A-Z0-9-]+$/u, "LEASE_CHANGESET_INVALID");
+    assert.match(
+      lease.changeSetId ?? "",
+      /^MD-[A-Z0-9-]+$/u,
+      "LEASE_CHANGESET_INVALID",
+    );
     assert.match(lease.owner ?? "", OWNER, "LEASE_OWNER_INVALID");
-    assert.match(lease.capability ?? "", CAPABILITY, "LEASE_CAPABILITY_INVALID");
+    assert.match(
+      lease.capability ?? "",
+      CAPABILITY,
+      "LEASE_CAPABILITY_INVALID",
+    );
     assert.ok(
-      ["PLATFORM", "DESTINATION:MORRO", "DESTINATION:ITACARE", "CROSS_DESTINATION"].includes(
-        lease.scope,
-      ),
+      [
+        "PLATFORM",
+        "DESTINATION:MORRO",
+        "DESTINATION:ITACARE",
+        "CROSS_DESTINATION",
+      ].includes(lease.scope),
       "LEASE_SCOPE_INVALID",
     );
     assert.ok(
@@ -172,7 +184,10 @@ export function renewCapabilityLeases({
 }) {
   validateLeaseRegistry(registry);
   assertMutationAuthority(registry);
-  assert.ok(Array.isArray(leaseIds) && leaseIds.length > 0, "LEASE_IDS_REQUIRED");
+  assert.ok(
+    Array.isArray(leaseIds) && leaseIds.length > 0,
+    "LEASE_IDS_REQUIRED",
+  );
   assert.ok(
     Number.isInteger(ttlSeconds) && ttlSeconds >= 60 && ttlSeconds <= 7200,
     "LEASE_TTL_INVALID",
@@ -207,7 +222,10 @@ export function releaseCapabilityLeases({
 }) {
   validateLeaseRegistry(registry);
   assertMutationAuthority(registry);
-  assert.ok(Array.isArray(leaseIds) && leaseIds.length > 0, "LEASE_IDS_REQUIRED");
+  assert.ok(
+    Array.isArray(leaseIds) && leaseIds.length > 0,
+    "LEASE_IDS_REQUIRED",
+  );
   const next = clone(registry);
   for (const leaseId of leaseIds) {
     const lease = next.leases[leaseId];
@@ -215,7 +233,10 @@ export function releaseCapabilityLeases({
     assert.equal(lease.changeSetId, changeSetId, "LEASE_CHANGESET_MISMATCH");
     assert.equal(lease.owner, owner, "LEASE_OWNER_MISMATCH");
     assert.equal(lease.branch, branch, "LEASE_BRANCH_MISMATCH");
-    assert.ok(["ACTIVE", "EXPIRED"].includes(lease.state), "LEASE_RELEASE_INVALID");
+    assert.ok(
+      ["ACTIVE", "EXPIRED"].includes(lease.state),
+      "LEASE_RELEASE_INVALID",
+    );
     lease.state = "RELEASED";
   }
   validateLeaseRegistry(next);

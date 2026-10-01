@@ -11,8 +11,7 @@ const LEASE_ID = /^lease-[A-Za-z0-9._-]{1,120}$/u;
 
 function digestPayload(value) {
   return (
-    "sha256:" +
-    createHash("sha256").update(canonicalJson(value)).digest("hex")
+    "sha256:" + createHash("sha256").update(canonicalJson(value)).digest("hex")
   );
 }
 
@@ -94,7 +93,11 @@ export function validateContextPack(pack, changeSet) {
   assert.match(pack?.treeSha ?? "", SHA, "CONTEXT_TREE_SHA_INVALID");
   assert.equal(pack?.branch, changeSet.branch, "CONTEXT_BRANCH_MISMATCH");
   assert.equal(pack?.scope, changeSet.scope, "CONTEXT_SCOPE_MISMATCH");
-  assert.equal(pack?.digest, contextPackDigest(pack), "CONTEXT_DIGEST_MISMATCH");
+  assert.equal(
+    pack?.digest,
+    contextPackDigest(pack),
+    "CONTEXT_DIGEST_MISMATCH",
+  );
   const bytes = Buffer.byteLength(JSON.stringify(pack), "utf8");
   assert.ok(bytes <= changeSet.contextPack.maxBytes, "CONTEXT_PACK_TOO_LARGE");
   return pack;
