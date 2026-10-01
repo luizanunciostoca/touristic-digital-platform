@@ -1,0 +1,49 @@
+{
+  "id": "MD-BRAND-001",
+  "baseSha": "290d94804878fd0882dadb2aa60173bbc3be7ff2",
+  "branch": "feat/brand-family-v2-concept02-20261001-r2",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-BRAND-001.json",
+      "packages/design-system/src/brand/**",
+      "packages/design-system/src/index.ts",
+      "docs/brand/**"
+    ],
+    "contracts": [
+      "TDP-BRAND-FAMILY-V2",
+      "TDP-DESIGN-TOKENS-V2"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "CONCEPT-02-APPROVED",
+      "GITHUB-CURRENT-MAIN",
+      "TDP-CONTROL-PLANE-V3.2-AUTHORITY"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
