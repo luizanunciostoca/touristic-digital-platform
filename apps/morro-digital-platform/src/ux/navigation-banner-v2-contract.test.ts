@@ -99,6 +99,7 @@ describe("Navigation Banner V2 contract", () => {
     expect(finalDetailsRule).toContain("text-overflow: clip");
     expect(finalDetailsRule).toContain("white-space: normal");
     expect(finalDetailsRule).toContain("overflow-wrap: anywhere");
+    expect(finalDetailsRule).toContain("pointer-events: none");
     expect(finalDetailsRule).not.toContain("text-overflow: ellipsis");
     expect(finalDetailsRule).not.toContain("white-space: nowrap");
   });

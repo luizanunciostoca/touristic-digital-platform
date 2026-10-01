@@ -842,6 +842,7 @@ body[data-md-mode="navigation"] #instruction-details {
   text-overflow: clip;
   white-space: normal;
   overflow-wrap: anywhere;
+  pointer-events: none;
 }
 
 body[data-md-mode="navigation"] #instruction-banner .progress-container,
