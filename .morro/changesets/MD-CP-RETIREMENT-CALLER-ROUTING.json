@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-CP-RETIREMENT-CALLER-ROUTING",
-  "baseSha": "72eb9887778bcb3cf4ffff08400752b28dd4adca",
-  "branch": "chore/control-plane-retirement-caller-routing-claim-v2-20261001",
-  "state": "IMPLEMENTING",
+  "baseSha": "ff96a19702e3cab33f243bea28fcc422d93929c6",
+  "branch": "fix/control-plane-retirement-caller-routing-v2-20261001",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
