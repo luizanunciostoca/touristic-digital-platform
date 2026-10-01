@@ -21,21 +21,111 @@ export interface GrowthContractDecision {
 }
 
 export const GROWTH_CONTRACT_DECISIONS = Object.freeze([
-  { id: "IF-AFF-013", classification: "READY_WITH_ADAPTER", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-001", classification: "EXPERIMENTAL_ONLY", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-002", classification: "NEEDS_AUTHORIZATION_MODEL", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-003", classification: "NEEDS_VERSIONED_CONTRACT", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-004", classification: "CANONICALIZATION_READY", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-005", classification: "CANONICALIZATION_READY", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-006", classification: "FINANCIAL_BOUNDARY_BLOCKED", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-007", classification: "READY_WITH_ADAPTER", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-008", classification: "CANONICALIZATION_READY", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-009", classification: "NEEDS_VERSIONED_CONTRACT", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-010", classification: "READY_WITH_ADAPTER", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-011", classification: "NEEDS_AUTHORIZATION_MODEL", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-012", classification: "READY_WITH_ADAPTER", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-013", classification: "NEEDS_PERSISTENCE", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
-  { id: "IF-GRW-014", classification: "NEEDS_AUTHORIZATION_MODEL", ownerApproved: false, versionedContractApproved: false, productionAuthority: false },
+  {
+    id: "IF-AFF-013",
+    classification: "READY_WITH_ADAPTER",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-001",
+    classification: "EXPERIMENTAL_ONLY",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-002",
+    classification: "NEEDS_AUTHORIZATION_MODEL",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-003",
+    classification: "NEEDS_VERSIONED_CONTRACT",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-004",
+    classification: "CANONICALIZATION_READY",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-005",
+    classification: "CANONICALIZATION_READY",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-006",
+    classification: "FINANCIAL_BOUNDARY_BLOCKED",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-007",
+    classification: "READY_WITH_ADAPTER",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-008",
+    classification: "CANONICALIZATION_READY",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-009",
+    classification: "NEEDS_VERSIONED_CONTRACT",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-010",
+    classification: "READY_WITH_ADAPTER",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-011",
+    classification: "NEEDS_AUTHORIZATION_MODEL",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-012",
+    classification: "READY_WITH_ADAPTER",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-013",
+    classification: "NEEDS_PERSISTENCE",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
+  {
+    id: "IF-GRW-014",
+    classification: "NEEDS_AUTHORIZATION_MODEL",
+    ownerApproved: false,
+    versionedContractApproved: false,
+    productionAuthority: false,
+  },
 ] as const satisfies readonly GrowthContractDecision[]);
 
 export type GrowthContractId = (typeof GROWTH_CONTRACT_DECISIONS)[number]["id"];
@@ -79,8 +169,7 @@ export const PERSISTENCE_POLICY = Object.freeze({
 
 const FORBIDDEN_AUTHORITY_KEY =
   /^(?:payment|payout|settlement|refund|commission|currency|price|minor_?units|money|monetary|amount|canonical_?order|canonical_?ticket|affiliate_?attribution|referral_?attribution)(?:$|_)/iu;
-const UTC =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
+const UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u;
 
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map((item) => stable(item));
@@ -102,8 +191,14 @@ export function semanticDigest(value: unknown): string {
   return createHash("sha256").update(stableJson(value)).digest("hex");
 }
 
-export function deterministicId(namespace: string, ...parts: unknown[]): string {
-  if (!namespace.trim() || parts.some((value) => value === null || value === undefined || value === "")) {
+export function deterministicId(
+  namespace: string,
+  ...parts: unknown[]
+): string {
+  if (
+    !namespace.trim() ||
+    parts.some((value) => value === null || value === undefined || value === "")
+  ) {
     throw new Error("DETERMINISTIC_ID_INPUT_INVALID");
   }
   const digest = semanticDigest(parts);
@@ -140,10 +235,7 @@ export interface GrowthScope {
 }
 
 export type EvidenceSurface =
-  | "server_owner_adapter"
-  | "browser"
-  | "assistant"
-  | "client";
+  "server_owner_adapter" | "browser" | "assistant" | "client";
 
 export interface OwnerEvidenceV1 extends GrowthScope {
   readonly version: 1;
@@ -213,7 +305,9 @@ export function validateOwnerEvidenceV1(
   });
 }
 
-function decisionFor(contractId: GrowthContractId): (typeof GROWTH_CONTRACT_DECISIONS)[number] {
+function decisionFor(
+  contractId: GrowthContractId,
+): (typeof GROWTH_CONTRACT_DECISIONS)[number] {
   const decision = GROWTH_CONTRACT_DECISIONS.find(
     (candidate) => candidate.id === contractId,
   );
@@ -239,13 +333,14 @@ export type GrowthCandidateEventType =
   | "CollectionCompletedCandidate.v1"
   | "NextBestActionComputedCandidate.v1";
 
-const EVENT_CONTRACT: Readonly<Record<GrowthCandidateEventType, GrowthContractId>> =
-  Object.freeze({
-    "BadgeGrantedCandidate.v1": "IF-GRW-004",
-    "CollectionProgressedCandidate.v1": "IF-GRW-005",
-    "CollectionCompletedCandidate.v1": "IF-GRW-005",
-    "NextBestActionComputedCandidate.v1": "IF-GRW-008",
-  });
+const EVENT_CONTRACT: Readonly<
+  Record<GrowthCandidateEventType, GrowthContractId>
+> = Object.freeze({
+  "BadgeGrantedCandidate.v1": "IF-GRW-004",
+  "CollectionProgressedCandidate.v1": "IF-GRW-005",
+  "CollectionCompletedCandidate.v1": "IF-GRW-005",
+  "NextBestActionComputedCandidate.v1": "IF-GRW-008",
+});
 
 export interface GrowthCandidateEventV1 extends GrowthScope {
   readonly version: 1;

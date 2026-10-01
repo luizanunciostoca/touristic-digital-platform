@@ -68,15 +68,15 @@ describe("Phase20 Growth candidate canonicalization", () => {
 
   it("keeps every Growth feature flag off by default", () => {
     expect(Object.keys(FEATURE_DEFAULTS).length).toBeGreaterThanOrEqual(10);
-    expect(Object.values(FEATURE_DEFAULTS).every((value) => value === false)).toBe(
-      true,
-    );
+    expect(
+      Object.values(FEATURE_DEFAULTS).every((value) => value === false),
+    ).toBe(true);
   });
 
   it("preserves financial, order, ticket and affiliate authority boundaries", () => {
-    expect(Object.values(OWNERSHIP_BOUNDARIES).every((value) => value === false)).toBe(
-      true,
-    );
+    expect(
+      Object.values(OWNERSHIP_BOUNDARIES).every((value) => value === false),
+    ).toBe(true);
     expect(growthMayMutateFinancialAuthority()).toBe(false);
     expect(EXTERNAL_PROVIDER_BINDINGS).toEqual([]);
   });
@@ -268,9 +268,9 @@ describe("Phase20 Growth candidate canonicalization", () => {
       badgeVersion: 1,
     } as const;
     store.grantBadge(input);
-    const snapshot = JSON.parse(
-      JSON.stringify(store.snapshot()),
-    ) as ReturnType<GrowthCandidateStore["snapshot"]>;
+    const snapshot = JSON.parse(JSON.stringify(store.snapshot())) as ReturnType<
+      GrowthCandidateStore["snapshot"]
+    >;
     const restarted = new GrowthCandidateStore(snapshot);
     expect(restarted.grantBadge(input).kind).toBe("replayed");
     expect(restarted.badges.size).toBe(1);
@@ -279,8 +279,6 @@ describe("Phase20 Growth candidate canonicalization", () => {
   });
 
   it("semantic digest is stable across object key order", () => {
-    expect(semanticDigest({ a: 1, b: 2 })).toBe(
-      semanticDigest({ b: 2, a: 1 }),
-    );
+    expect(semanticDigest({ a: 1, b: 2 })).toBe(semanticDigest({ b: 2, a: 1 }));
   });
 });
