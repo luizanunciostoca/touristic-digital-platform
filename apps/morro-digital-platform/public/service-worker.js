@@ -1,14 +1,18 @@
 const CACHE_PREFIX = "morro-digital";
-const STATIC_CACHE = `${CACHE_PREFIX}-static-v2`;
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v4`;
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = Object.freeze([
   OFFLINE_URL,
   "/manifest.json",
   "/pwa-register.js",
-  "/pwa-icon-192.png",
-  "/pwa-icon-512.png",
+  "/assets/brand/morro-digital-symbol-v2.svg",
+  "/assets/brand/morro-digital-touch-v2.png",
+  "/assets/brand/morro-digital-maskable-v2-192.png",
+  "/assets/brand/morro-digital-maskable-v2-512.png",
+  "/assets/brand/morro-digital-micro-v2.svg",
   "/apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
+  "/apps/morro-digital-platform/public/brand-v2.css",
   "/apps/morro-digital-platform/public/styles.css",
   "/apps/morro-digital-platform/public/commerce.css",
   "/apps/morro-digital-platform/public/assistant-photo-carousel.css",
@@ -32,6 +36,7 @@ const NETWORK_ONLY_PATHS = Object.freeze([
 const NETWORK_ONLY_PREFIXES = Object.freeze(["/api/"]);
 
 const CACHEABLE_PREFIXES = Object.freeze([
+  "/assets/",
   "/apps/morro-digital-platform/public/",
   "/apps/morro-digital-platform/dist/",
   "/packages/assistant/dist/",
@@ -45,8 +50,6 @@ const CACHEABLE_PATHS = new Set([
   "/manifest.json",
   "/offline.html",
   "/pwa-register.js",
-  "/pwa-icon-192.png",
-  "/pwa-icon-512.png",
 ]);
 
 function isNetworkOnly(pathname) {

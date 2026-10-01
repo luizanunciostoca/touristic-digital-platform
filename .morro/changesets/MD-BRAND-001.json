@@ -2,7 +2,7 @@
   "id": "MD-BRAND-001",
   "baseSha": "290d94804878fd0882dadb2aa60173bbc3be7ff2",
   "branch": "feat/brand-family-v2-concept02-20261001-r2",
-  "state": "IMPLEMENTING",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
