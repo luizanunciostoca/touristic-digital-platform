@@ -115,6 +115,13 @@ jobs:
               const page=await context.newPage();
               page.on('pageerror',e=>evidence.pageErrors.push(e.message));
               await page.route('**/api/admin/v1/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(common)}));
+              await page.route('**/api/admin/v1/session',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({
+                actor:{id:'platform-visual',email:'platform.visual@example.com',canonicalRole:'PLATFORM_OWNER',role:'PLATFORM_OWNER',capabilities:[
+                  'users.manage','businesses.manage','affiliates.manage','crm.manage','ticketing.manage','financial.read','content.manage','destinations.manage','audit.read','system.read'
+                ],businessIds:[]},
+                effectiveUser:null,
+                support:null
+              })}));
               await page.route('**/api/admin/v1/dashboard',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(dashboard)}));
               await page.route('**/api/admin/v1/destinations',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({destinations:[destination]})}));
               await page.route('**/api/admin/v1/users',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({users:[]})}));
