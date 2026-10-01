@@ -1,0 +1,101 @@
+/* Brand Family V2 runtime presentation primitives.
+ * Source geometry is governed by @touristic/design-system.
+ */
+
+:root {
+  --brand-v2-ink: #07152f;
+  --brand-v2-blue: #056fb5;
+  --brand-v2-cyan: #19b6d8;
+  --brand-v2-teal: #0aacb0;
+  --brand-v2-green: #5cba71;
+  --brand-v2-coral: #fa7951;
+  --brand-v2-morro-mango: #ffaa24;
+  --brand-v2-morro-pink: #ea3c89;
+  --brand-v2-morro-atlantic: #08a7cf;
+  --brand-v2-morro-cobalt: #0867b2;
+}
+
+.brand-v2 {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.7rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-v2__symbol {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.brand-v2__copy {
+  display: grid;
+  min-width: 0;
+  line-height: 1;
+}
+
+.brand-v2__primary {
+  color: currentColor;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+}
+
+.brand-v2__secondary {
+  margin-top: 0.2rem;
+  color: currentColor;
+  font-size: 0.72em;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  opacity: 0.72;
+}
+
+.brand-v2--compact .brand-v2__symbol {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.brand-v2--compact .brand-v2__secondary {
+  display: none;
+}
+
+.brand-v2--platform .brand-v2__symbol {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.brand-v2--inverse {
+  color: #fff;
+}
+
+.brand-v2--dark {
+  color: var(--brand-v2-ink);
+}
+
+.brand-v2__product {
+  color: currentColor;
+  font-size: 0.74em;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+@media (max-width: 30rem) {
+  .brand-v2__symbol {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+
+  .brand-v2__secondary {
+    font-size: 0.66em;
+  }
+}
+
+@media (forced-colors: active) {
+  .brand-v2__symbol {
+    forced-color-adjust: auto;
+  }
+}
