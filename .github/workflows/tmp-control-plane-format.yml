@@ -1,0 +1,55 @@
+name: Temporary Control Plane Formatter
+
+on:
+  push:
+    branches:
+      - infra/control-plane-v3.2-autonomous-block-a-20261001
+    paths:
+      - ".github/workflows/tmp-control-plane-format.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: infra/control-plane-v3.2-autonomous-block-a-20261001
+          fetch-depth: 0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: "10.15.0"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Format exact Control Plane files
+        run: >-
+          pnpm exec prettier --write
+          .github/morro-control/claims.json
+          .github/morro-control/event-ledger.schema.json
+          .morro/changesets/MD-CP-AUTONOMOUS-BLOCK-A.json
+          .morro/fabric.json
+          tooling/control-state/mdctl-event-ledger.test.mjs
+          tooling/control-state/mdctl-invariants.test.mjs
+          tooling/mdctl/event-ledger.mjs
+          tooling/mdctl/invariants.mjs
+          tooling/mdctl/mdctl.mjs
+      - name: Commit formatting only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "Nothing to format."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add             .github/morro-control/claims.json             .github/morro-control/event-ledger.schema.json             .morro/changesets/MD-CP-AUTONOMOUS-BLOCK-A.json             .morro/fabric.json             tooling/control-state/mdctl-event-ledger.test.mjs             tooling/control-state/mdctl-invariants.test.mjs             tooling/mdctl/event-ledger.mjs             tooling/mdctl/invariants.mjs             tooling/mdctl/mdctl.mjs
+          git commit -m "style(control-plane): apply canonical Prettier"
+          git push origin HEAD:infra/control-plane-v3.2-autonomous-block-a-20261001
