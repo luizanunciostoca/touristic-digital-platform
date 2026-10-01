@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   collectObservedState,
+  githubApi,
   renderSummary,
 } from "../control-state/status.mjs";
 import {
@@ -70,6 +71,8 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
     throw new Error("MAIN_CHANGED_DURING_SCHEDULER_CAPTURE");
   if (!Array.isArray(liveWork?.items))
     throw new Error("LIVE_SCHEDULER_ITEMS_REQUIRED");
+  if (liveWork?.authority !== "TRUSTED_PR_EXACT_HEADS")
+    throw new Error("LIVE_SCHEDULER_AUTHORITY_INVALID");
 
   const liveIntegrationQueue = buildIntegrationQueue({
     mainSha: observed.mainSha,
@@ -84,8 +87,7 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
   return {
     ...observed,
     liveIntegrationQueue,
-    liveIntegrationQueueAuthority:
-      liveWork.authority ?? "TRUSTED_PR_EXACT_HEADS",
+    liveIntegrationQueueAuthority: liveWork.authority,
     liveIntegrationQueueMainSha: liveWork.mainSha,
     liveSchedulerPlan,
     liveSchedulerWork: liveWork.items.map((item) => ({
@@ -127,11 +129,23 @@ async function snapshot(config) {
       sha: control.projectionSha,
     },
     liveProjection: {
-      authority: liveWork.authority ?? "TRUSTED_PR_EXACT_HEADS",
+      authority: liveWork.authority,
       mainSha: liveWork.mainSha,
     },
     invariants,
   };
+}
+
+export async function assertCurrentMainUnchanged({
+  repository,
+  expectedMainSha,
+  api = githubApi,
+}) {
+  const latest = await api("repos/" + repository + "/commits/main");
+  if (latest?.sha !== expectedMainSha) {
+    throw new Error("MAIN_CHANGED_AFTER_DEPENDENCY_READ");
+  }
+  return latest.sha;
 }
 
 export async function buildScheduleCandidateItem({
@@ -226,6 +240,10 @@ async function main(argv) {
           mainSha: live.mainSha,
         }),
       );
+      await assertCurrentMainUnchanged({
+        repository,
+        expectedMainSha: live.mainSha,
+      });
     } else if (argv.length !== 1) {
       throw new Error("QUEUE_ARGUMENTS_INVALID");
     }

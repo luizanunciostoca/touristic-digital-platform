@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assertCurrentMainUnchanged,
   attachLiveSchedulerState,
   buildPlan as buildMdctlPlan,
   buildScheduleCandidateItem,
@@ -1382,5 +1383,50 @@ test("reconcile projection fails closed when live collector main differs", () =>
         liveWork: { mainSha: "c".repeat(40), items: [] },
       }),
     /RECONCILE_LIVE_MAIN_MISMATCH/u,
+  );
+});
+
+test("mdctl rejects missing or unexpected live scheduler authority", () => {
+  const observed = { mainSha: LIVE_MAIN };
+  assert.throws(
+    () =>
+      attachLiveSchedulerState(
+        observed,
+        { mainSha: LIVE_MAIN, items: [] },
+        undefined,
+      ),
+    /LIVE_SCHEDULER_AUTHORITY_INVALID/u,
+  );
+  assert.throws(
+    () =>
+      attachLiveSchedulerState(
+        observed,
+        {
+          mainSha: LIVE_MAIN,
+          authority: "UNTRUSTED",
+          items: [],
+        },
+        undefined,
+      ),
+    /LIVE_SCHEDULER_AUTHORITY_INVALID/u,
+  );
+});
+
+test("mdctl terminal main readback fails closed after dependency reads", async () => {
+  assert.equal(
+    await assertCurrentMainUnchanged({
+      repository: "example/repo",
+      expectedMainSha: LIVE_MAIN,
+      api: async () => ({ sha: LIVE_MAIN }),
+    }),
+    LIVE_MAIN,
+  );
+  await assert.rejects(
+    assertCurrentMainUnchanged({
+      repository: "example/repo",
+      expectedMainSha: LIVE_MAIN,
+      api: async () => ({ sha: "d".repeat(40) }),
+    }),
+    /MAIN_CHANGED_AFTER_DEPENDENCY_READ/u,
   );
 });
