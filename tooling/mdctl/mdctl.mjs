@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   collectObservedState,
   renderSummary,
@@ -78,7 +80,7 @@ async function snapshot(config) {
   };
 }
 
-function plan(state) {
+export function buildPlan(state) {
   const dispatchableCandidates = (state.observed.nextReadyTasks ?? []).filter(
     (candidate) => candidate?.dispatchAllowed === true,
   );
@@ -130,7 +132,7 @@ async function main(argv) {
         : renderInvariantReport(state.invariants),
     );
   } else if (parsed.command === "plan") {
-    console.log(JSON.stringify(plan(state), null, 2));
+    console.log(JSON.stringify(buildPlan(state), null, 2));
   }
 
   if (
@@ -143,7 +145,12 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).catch(() => {
-  console.error("MDCTL_FAILED");
-  process.exitCode = 2;
-});
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  main(process.argv.slice(2)).catch(() => {
+    console.error("MDCTL_FAILED");
+    process.exitCode = 2;
+  });
+}
