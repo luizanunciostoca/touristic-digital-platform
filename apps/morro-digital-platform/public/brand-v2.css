@@ -1,0 +1,148 @@
+:root {
+  --brand-platform-ink: #07152f;
+  --brand-platform-navy: #0a2342;
+  --brand-platform-blue-dark: #07579e;
+  --brand-platform-blue: #056fb5;
+  --brand-platform-cyan: #19b6d8;
+  --brand-platform-teal: #0aacb0;
+  --brand-platform-green: #5cba71;
+  --brand-platform-coral: #fa7951;
+  --brand-destination-morro-mango: #ffaa24;
+  --brand-destination-morro-bougainvillea: #ea3c89;
+  --brand-destination-morro-atlantic: #08a7cf;
+  --brand-destination-morro-cobalt: #0867b2;
+}
+
+html[data-destination-theme="morro"],
+body[data-destination-theme="morro"],
+body[data-md-mode] {
+  --md-color-brand-primary: var(--brand-destination-morro-cobalt);
+  --md-color-brand-primary-strong: var(--brand-platform-blue-dark);
+  --md-color-accent: var(--brand-destination-morro-atlantic);
+  --md-color-accent-strong: var(--brand-platform-teal);
+  --md-color-brand: var(--md-color-brand-primary);
+  --md-color-brand-strong: var(--md-color-brand-primary-strong);
+  --md-color-interactive-primary: var(--md-color-brand-strong);
+  --md-color-interactive-primary-hover: var(--brand-platform-blue);
+  --md-color-info: var(--brand-platform-blue-dark);
+}
+
+.md-home-brand-mark {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  padding: 0.0625rem;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+
+body[data-md-mode="discover"] .md-home-header {
+  width: auto;
+}
+
+body[data-md-mode="discover"] .md-home-header-inner {
+  width: var(--md-touch-target-min);
+  min-width: var(--md-touch-target-min);
+  padding: var(--md-space-1);
+}
+
+body[data-md-mode="discover"] .md-home-brand-mark {
+  display: block;
+  width: 2.125rem;
+  height: 2.125rem;
+}
+
+body[data-md-mode="discover"] .md-home-title-block {
+  display: none;
+}
+
+.md-brand-context {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+}
+
+.md-brand-context__mark,
+.md-brand-lockup__mark,
+.md-brand-icon {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  object-fit: contain;
+}
+
+.md-brand-context__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.md-brand-lockup {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.625rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.md-brand-lockup__copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.0625rem;
+}
+
+.md-brand-lockup__copy strong,
+.md-brand-lockup__copy span,
+.md-brand-lockup__copy small {
+  margin: 0;
+  line-height: 1.1;
+}
+
+.md-brand-lockup__copy small {
+  opacity: 0.72;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ticketing-context-title .md-brand-context__mark,
+.tour-booking-heading .md-brand-context__mark {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-basis: 1.75rem;
+}
+
+.ticketing-context-title,
+.tour-booking-heading {
+  min-width: 0;
+}
+
+.ticket-dialog::before {
+  display: block;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto 0.5rem;
+  background: url("/assets/brand/morro-digital-micro-v2.svg") center / contain
+    no-repeat;
+  content: "";
+}
+
+@media (max-width: 25rem) {
+  .md-brand-context__label {
+    max-width: 9rem;
+  }
+}
+
+@media (forced-colors: active) {
+  .md-home-brand-mark,
+  .md-brand-context__mark,
+  .md-brand-lockup__mark,
+  .md-brand-icon {
+    forced-color-adjust: auto;
+  }
+}
