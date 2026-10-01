@@ -3183,3 +3183,29 @@ html[dir="rtl"]
   line-height: 1.35;
   opacity: 0.82;
 }
+
+/* Brand V2 compact Discover identity — Tourist Shell remains final authority. */
+body[data-md-mode="discover"] .md-home-header {
+  width: auto;
+}
+
+body[data-md-mode="discover"] .md-home-header-inner {
+  width: var(--md-touch-target-min);
+  min-width: var(--md-touch-target-min);
+  gap: 0;
+  padding: var(--md-space-1);
+}
+
+body[data-md-mode="discover"] .md-home-brand-mark {
+  display: block;
+  width: 2.125rem;
+  height: 2.125rem;
+  padding: 0.0625rem;
+  border-radius: 0;
+  background: transparent;
+  object-fit: contain;
+}
+
+body[data-md-mode="discover"] .md-home-title-block {
+  display: none;
+}
