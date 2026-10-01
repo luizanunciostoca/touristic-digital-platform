@@ -52,13 +52,30 @@ describe("Brand Family V2 runtime application", () => {
   });
 
   it.each([
-    ["pwa-icon-192.png", "a2391713e3b6467d1795e4e26522aeb2df2edb4031dee39609c432900469311e"],
-    ["pwa-icon-512.png", "5044eb44376894f0a5593dc4cc5ed542149b5f8cbd75847e1c0ec2f372d123df"],
-    ["pwa-maskable-192.png", "4727dbe9505cdfcaf3c9ad33f25d4c9100525a22ffd5d28598c707e3f209ae9f"],
-    ["pwa-maskable-512.png", "8845a7f5b3ad3a3dc8bd1a5b05dc1af402388860f20277bbccfb819742a97d1d"],
-    ["apple-touch-icon.png", "da1140a69b2b9bc46616537947a0ef7372e9902c661b2ff046735e3311e03927"],
+    [
+      "pwa-icon-192.png",
+      "a2391713e3b6467d1795e4e26522aeb2df2edb4031dee39609c432900469311e",
+    ],
+    [
+      "pwa-icon-512.png",
+      "5044eb44376894f0a5593dc4cc5ed542149b5f8cbd75847e1c0ec2f372d123df",
+    ],
+    [
+      "pwa-maskable-192.png",
+      "4727dbe9505cdfcaf3c9ad33f25d4c9100525a22ffd5d28598c707e3f209ae9f",
+    ],
+    [
+      "pwa-maskable-512.png",
+      "8845a7f5b3ad3a3dc8bd1a5b05dc1af402388860f20277bbccfb819742a97d1d",
+    ],
+    [
+      "apple-touch-icon.png",
+      "da1140a69b2b9bc46616537947a0ef7372e9902c661b2ff046735e3311e03927",
+    ],
   ] as const)("pins %s to the governed V2 bytes", async (path, expected) => {
-    expect(sha256(await readFile(new URL(path, appPublic)))).toBe(expected);
+    expect(sha256(await readFile(new URL(path, appPublic)))).toBe(
+      expected,
+    );
   });
 
   it("uses the V2 micro mark in the traveler shell and offline cache", async () => {
