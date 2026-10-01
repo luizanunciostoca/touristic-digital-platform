@@ -1,0 +1,48 @@
+{
+  "id": "MD-P20-LANE-D",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "branch": "wave/phase20-d-financial-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "packages/financial/**",
+      "services/financial/**",
+      "tooling/payments/**",
+      "docs/integration/phase20/lane-d/**"
+    ],
+    "contracts": [
+      "verified-payment-outcome"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "platform-authz"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "authorityInvariants": [
+    "Financial is sole owner of payment truth ledger payable settlement payout refund final state reconciliation money movement and verified monetary outcome",
+    "Phase16 ownerApproved=false remains false",
+    "no paid provider activation",
+    "no production or staging database access",
+    "CONTROL_TOWER_SHARED_PATCH_REQUIRED for any path outside owns.paths"
+  ]
+}
