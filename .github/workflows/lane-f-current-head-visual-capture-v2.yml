@@ -1,0 +1,94 @@
+name: Lane F Current Head Visual Capture V2
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/lane-f-current-head-visual-capture-v2.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: lane-f-current-head-visual-capture-v2-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  collect-current-main:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Verify exact current main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/lane-f-v2/official
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          LIVE_MAIN="$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)"
+          test "$BASE_SHA" = "$LIVE_MAIN"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          printf '%s\n' "$BASE_SHA" > /tmp/lane-f-v2/exact-main.txt
+          printf '%s\n' "base_sha=$BASE_SHA" >> "$GITHUB_ENV"
+
+      - name: Dispatch official visual suites
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/lane-f-v2/workflows.tsv <<'EOF'
+          home	home-discover-manual-conformance.yml
+          profile	profile-v2-visual-regression.yml
+          place	place-explore-v2-visual-regression.yml
+          commerce	commerce-browser-regression.yml
+          ticketing	ticketing-v2-visual-regression.yml
+          tour	map-tour-browser-regression.yml
+          onboarding	home-first-run-browser-regression.yml
+          control-center	control-center-visual-golden-v1.yml
+          EOF
+          : > /tmp/lane-f-v2/run-map.tsv
+          while IFS=$'\t' read -r label wf; do
+            echo "Dispatching $label -> $wf on main@$base_sha"
+            run_url="$(gh workflow run "$wf" --ref main)"
+            run_id="${run_url##*/}"
+            test -n "$run_id"
+            printf '%s\t%s\t%s\n' "$label" "$wf" "$run_id" >> /tmp/lane-f-v2/run-map.tsv
+          done < /tmp/lane-f-v2/workflows.tsv
+          cat /tmp/lane-f-v2/run-map.tsv
+
+      - name: Wait and collect artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/lane-f-v2/results.tsv
+          while IFS=$'\t' read -r label wf run_id; do
+            echo "Watching $label run $run_id"
+            if gh run watch "$run_id" --exit-status; then
+              conclusion="success"
+            else
+              conclusion="$(gh run view "$run_id" --json conclusion --jq .conclusion 2>/dev/null || echo failed)"
+            fi
+            mkdir -p "/tmp/lane-f-v2/official/$label"
+            gh run download "$run_id" -D "/tmp/lane-f-v2/official/$label" || true
+            printf '%s\t%s\t%s\n' "$label" "$conclusion" "$run_id" >> /tmp/lane-f-v2/results.tsv
+          done < /tmp/lane-f-v2/run-map.tsv
+          cat /tmp/lane-f-v2/results.tsv
+          printf '{"mainSha":"%s","generatedAt":"%s"}\n' "$base_sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/lane-f-v2/official/identity.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-current-main-official-visual-evidence-v2
+          path: /tmp/lane-f-v2
+          retention-days: 14
+          if-no-files-found: error
