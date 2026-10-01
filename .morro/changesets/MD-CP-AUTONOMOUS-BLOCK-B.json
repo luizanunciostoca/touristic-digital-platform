@@ -1,8 +1,8 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
+  "baseSha": "a5bc6fb2758d1a248cc685f0445d01558b1e9ed6",
   "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
@@ -47,7 +47,11 @@
       "CHANGESET_CREATED",
       "CLAIM_ACQUIRED",
       "CLAIM_RELEASED",
-      "CLAIM_RENEWED"
+      "CLAIM_RENEWED",
+      "LEASE_ACQUIRED",
+      "LEASE_RENEWED",
+      "LEASE_RELEASED",
+      "CONTEXT_PACK_CREATED"
     ],
     "routes": []
   },
@@ -57,7 +61,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-A"],
+  "dependencies": [
+    "MD-CP-AUTONOMOUS-BLOCK-A"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -87,7 +93,7 @@
   "proof": {
     "budget": {
       "maxCommands": 2,
-      "maxSeconds": 300
+      "maxSeconds": 480
     },
     "commands": [
       {
@@ -97,6 +103,16 @@
           "--test",
           "tooling/fabric/validate-changeset.test.mjs",
           "tooling/control-state/mdctl-changeset-v2.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "block-b2a-capability-context",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-capability-leases.test.mjs",
+          "tooling/control-state/mdctl-context-pack.test.mjs"
         ],
         "timeoutSeconds": 180
       }
