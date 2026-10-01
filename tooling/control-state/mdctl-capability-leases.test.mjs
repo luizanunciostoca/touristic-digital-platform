@@ -80,12 +80,13 @@ test("capability acquisition is complete, idempotent and digestable", () => {
 });
 
 test("conflicting active capability lease fails closed", () => {
+  let id = 0;
   const acquired = acquireCapabilityLeases({
     registry: createLeaseRegistry(),
     changeSet: changeSet(),
     owner: "worker-1",
     now: "2026-10-01T09:00:00Z",
-    idFactory: () => Math.random().toString(36).slice(2),
+    idFactory: () => "conflict-" + ++id,
   });
   const other = changeSet("MD-LEASE-OTHER");
   assert.throws(
