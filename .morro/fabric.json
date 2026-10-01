@@ -57,8 +57,6 @@
     "no-http-200-degraded-acceptance",
     "runtime-release-identity",
     "changeset-v2-contract",
-    "capability-lease-secondary-to-claim",
-    "context-pack-candidate-binding",
     "control-projection-terminal-main-recheck",
     "critical-evidence-candidate-binding"
   ],
@@ -76,8 +74,6 @@
     "integrationQueue": "shadow",
     "shadowMain": "shadow",
     "progressiveDelivery": "disabled-until-capability-verified",
-    "changeSetV2": "active-for-control-plane-block-b",
-    "capabilityLeases": "task-local-enforced-global-claim-authoritative",
-    "contextPacks": "active-for-v2-tasks"
+    "changeSetV2": "active-for-control-plane-block-b1"
   }
 }
