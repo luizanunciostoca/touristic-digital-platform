@@ -211,8 +211,16 @@ export async function collectObservedState({
   });
   const mainSha = main?.sha ?? null;
   const atMain = (path) => root + "/contents/" + path + "?ref=" + mainSha;
-  const [pulls, registry, backlog, runs, activeRuns, deployments, local] =
-    await Promise.all([
+  const [
+    pulls,
+    registry,
+    backlog,
+    releaseState,
+    runs,
+    activeRuns,
+    deployments,
+    local,
+  ] = await Promise.all([
       capture("pullRequests", () =>
         list(root + "/pulls?state=open&per_page=100"),
       ),
@@ -236,6 +244,15 @@ export async function collectObservedState({
           await api(atMain(".github/morro-control/backlog.json")),
         );
         if (!Array.isArray(value?.items)) throw new Error("BACKLOG_INVALID");
+        return value;
+      }),
+      capture("releaseState", async () => {
+        if (!mainSha) throw new Error("MAIN_REQUIRED");
+        const value = decodeContent(
+          await api(atMain(".github/morro-control/release-state.json")),
+        );
+        if (value?.schemaVersion !== 1)
+          throw new Error("RELEASE_STATE_INVALID");
         return value;
       }),
       capture("recentCi", async () => {
@@ -433,6 +450,9 @@ export async function collectObservedState({
     )
       block("CLAIM_MANIFEST_IDENTITY_MISMATCH", claim.id);
   }
+  const expectedCertifiedReleaseSha = sha(
+    releaseState?.expectedCertifiedReleaseSha,
+  );
   const runtimeHealth = {};
   for (const [environment, url] of [
     ["staging", stagingUrl],
@@ -453,8 +473,13 @@ export async function collectObservedState({
     };
     if (value?.state !== "HEALTHY")
       block("RUNTIME_UNHEALTHY_OR_UNVERIFIED", environment);
-    if (value?.releaseSha && mainSha && value.releaseSha !== mainSha)
-      block("RUNTIME_MAIN_DRIFT", environment);
+    if (value?.state === "HEALTHY" && !expectedCertifiedReleaseSha)
+      block("EXPECTED_CERTIFIED_RELEASE_NOT_CONFIGURED", environment);
+    else if (
+      value?.state === "HEALTHY" &&
+      value.releaseSha !== expectedCertifiedReleaseSha
+    )
+      block("RUNTIME_CERTIFIED_RELEASE_DRIFT", environment);
   }
   const deploymentSummary = {};
   for (const environment of ["staging", "production"]) {
@@ -533,8 +558,10 @@ export async function collectObservedState({
     RUNTIME_NOT_CONFIGURED: "CONFIGURE_VERIFIED_RUNTIME_ORIGIN_AND_RECAPTURE",
     RUNTIME_UNHEALTHY_OR_UNVERIFIED:
       "INVESTIGATE_FAILED_RUNTIME_CHECKS_AND_IDENTITY",
-    RUNTIME_MAIN_DRIFT:
-      "COMPARE_ACCEPTED_CANDIDATE_AND_DEPLOYMENT_BEFORE_PROMOTION",
+    EXPECTED_CERTIFIED_RELEASE_NOT_CONFIGURED:
+      "CERTIFY_AND_RECORD_EXPECTED_RELEASE_BEFORE_RUNTIME_ACCEPTANCE",
+    RUNTIME_CERTIFIED_RELEASE_DRIFT:
+      "COMPARE_RUNTIME_WITH_EXPECTED_CERTIFIED_RELEASE_BEFORE_PROMOTION",
     MAIN_CHANGED_OR_UNVERIFIABLE: "RECAPTURE_LIVE_MAIN_BEFORE_DECIDING",
   };
   const nextActions = blockers.map((blocker) => ({
@@ -553,6 +580,7 @@ export async function collectObservedState({
     mainSha,
     mainTreeSha: main?.commit?.tree?.sha ?? null,
     mainShaAtEnd: sha(latestMain?.sha),
+    expectedCertifiedReleaseSha,
     consistency: mainStable
       ? "MAIN_STABLE_VOLATILE_SOURCES_NON_ATOMIC"
       : "INCONSISTENT",
@@ -628,6 +656,8 @@ export function renderSummary(state) {
       state.ci.recentRuns.length,
     "STAGING " + runtime(state.runtimeHealth.staging),
     "PRODUCTION " + runtime(state.runtimeHealth.production),
+    "EXPECTED CERTIFIED RELEASE " +
+      (state.expectedCertifiedReleaseSha ?? "UNCONFIGURED"),
     "BLOCKERS " +
       (state.blockers.map((item) => item.code + ":" + item.subject).join(" ") ||
         "none observed"),
