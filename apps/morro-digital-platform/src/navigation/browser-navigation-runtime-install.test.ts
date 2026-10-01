@@ -144,6 +144,11 @@ describe("browser navigation runtime install", () => {
       Marker: vi.fn(),
     } as unknown as MapboxGlModuleLike;
     const document = {} as Document;
+    const assistantPublicPlaceReadContext = {
+      destinationId: "itacare",
+      bbox: [-39.08, -14.33, -38.95, -14.24] as const,
+      zoom: 13,
+    };
     const bootstrap = bootstrapStub();
     const lifecycleStop = vi.fn<(reason?: string) => void>();
     const lifecycleDestroy = vi.fn<() => void>();
@@ -177,6 +182,7 @@ describe("browser navigation runtime install", () => {
       createEventBridge,
       createGuidanceUi,
       installAssistant,
+      assistantPublicPlaceReadContext,
     });
 
     expect(createBootstrap).toHaveBeenCalledTimes(1);
@@ -202,6 +208,7 @@ describe("browser navigation runtime install", () => {
     expect(installAssistant).toHaveBeenCalledWith({
       document,
       navigation: lifecycle,
+      publicPlaceReadContext: assistantPublicPlaceReadContext,
     });
     expect(installed.bootstrap).toBe(bootstrap);
     expect(installed.lifecycle).toBe(lifecycle);
