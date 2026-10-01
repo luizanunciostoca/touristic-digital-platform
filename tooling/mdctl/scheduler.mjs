@@ -290,6 +290,13 @@ export function buildSchedulerPlan({
       prNumber: item.prNumber ?? null,
       reason: item.invalid,
     }));
+  const staleActive = active.filter((item) => item.replanRequired);
+  if (staleActive.length) {
+    violations.push({
+      code: "ACTIVE_WRITER_REPLAN_REQUIRED",
+      ids: staleActive.map((item) => item.changeSet.id),
+    });
+  }
   if (active.length > policy.globalWriterLimit) {
     violations.push({
       code: "GLOBAL_WIP_LIMIT_EXCEEDED",
@@ -320,7 +327,9 @@ export function buildSchedulerPlan({
     }
   }
 
-  let slots = Math.max(0, policy.globalWriterLimit - active.length);
+  let slots = staleActive.length
+    ? 0
+    : Math.max(0, policy.globalWriterLimit - active.length);
   const granted = [];
   const blocked = [];
   const pending = classified
@@ -731,6 +740,7 @@ export function buildIntegrationQueue({
         item.invalid == null &&
         item.dependenciesSatisfied === true &&
         item.replanRequired === false &&
+        item.changeSet.baseSha === mainSha &&
         SHA.test(item.headSha ?? "") &&
         (!policy.objectiveRequiredForDispatch ||
           Boolean(item.changeSet.objective)),

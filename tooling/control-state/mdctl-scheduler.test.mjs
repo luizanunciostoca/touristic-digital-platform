@@ -182,6 +182,7 @@ test("scheduler grants compatible work by priority", () => {
 test("integration queue includes only MERGE_READY items", () => {
   const ready = changeSet("MD-READY", "ready-objective", {
     state: "MERGE_READY",
+    baseSha: "b".repeat(40),
   });
   const implementing = changeSet("MD-WIP", "wip-objective");
   const queue = buildIntegrationQueue({
@@ -412,6 +413,7 @@ test("invalid active writer prevents new dispatch", () => {
 test("integration queue excludes invalid, stale, or dependency-blocked candidates", () => {
   const ready = changeSet("MD-QUEUE-GOOD", "queue-good", {
     state: "MERGE_READY",
+    baseSha: "b".repeat(40),
   });
   const item = (id, overrides = {}) => ({
     changeSet: { ...ready, id, objective: id.toLowerCase() },
@@ -498,4 +500,58 @@ test("merge-ready live PRs belong to integration queue, not writer dispatch", ()
   });
   assert.equal(plan.grants.length, 0);
   assert.equal(plan.blocked.length, 0);
+});
+
+test("integration queue requires exact current-main base", () => {
+  const stale = {
+    changeSet: changeSet("MD-STALE-Q", "stale-q", {
+      state: "MERGE_READY",
+      baseSha: "a".repeat(40),
+    }),
+    prNumber: 77,
+    headSha: "c".repeat(40),
+    openPr: true,
+    dependenciesSatisfied: true,
+    behindBy: 1,
+    baseIsAncestorOfMain: true,
+    statsKnown: true,
+    changedFiles: 1,
+    changedLines: 1,
+    invalid: null,
+  };
+  assert.equal(
+    buildIntegrationQueue({
+      mainSha: "b".repeat(40),
+      workItems: [stale],
+    }).batches.length,
+    0,
+  );
+});
+
+test("stale active writer prevents new writer grants", () => {
+  const stale = {
+    changeSet: changeSet("MD-STALE-W", "stale-w"),
+    openPr: true,
+    writerActive: true,
+    behindBy: 21,
+  };
+  const fresh = {
+    changeSet: changeSet("MD-FRESH", "fresh"),
+    openPr: false,
+    writerActive: false,
+    ready: true,
+    dependenciesSatisfied: true,
+    priority: "P0",
+  };
+  const plan = buildSchedulerPlan({
+    mainSha: "b".repeat(40),
+    workItems: [stale, fresh],
+  });
+  assert.equal(plan.grants.length, 0);
+  assert.ok(
+    plan.violations.some(
+      (item) => item.code === "ACTIVE_WRITER_REPLAN_REQUIRED",
+    ),
+  );
+  assert.equal(plan.dispatchAllowed, false);
 });
