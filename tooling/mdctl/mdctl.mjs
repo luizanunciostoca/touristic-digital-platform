@@ -11,6 +11,7 @@ import {
   loadInvariantContextAtMain,
   renderInvariantReport,
 } from "./invariants.mjs";
+import { runTaskCli } from "./task-lifecycle.mjs";
 
 function parseOptions(args, env = process.env) {
   const explicit = args[0] && !args[0].startsWith("--");
@@ -102,6 +103,12 @@ export function buildPlan(state) {
 }
 
 async function main(argv) {
+  if (argv[0] === "task") {
+    const result = await runTaskCli(argv.slice(1));
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   const parsed = parseOptions(argv);
   if (!["bootstrap", "status", "invariants", "plan"].includes(parsed.command)) {
     throw new Error("COMMAND_NOT_IMPLEMENTED_FAIL_CLOSED:" + parsed.command);
