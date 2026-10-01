@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "morro-digital";
-const STATIC_CACHE = `${CACHE_PREFIX}-static-v2`;
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v3`;
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = Object.freeze([
@@ -8,7 +8,13 @@ const PRECACHE_URLS = Object.freeze([
   "/pwa-register.js",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",
+  "/pwa-maskable-192.png",
+  "/pwa-maskable-512.png",
+  "/apple-touch-icon.png",
   "/apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
+  "/apps/morro-digital-platform/public/brand/morro-digital-symbol.svg",
+  "/apps/morro-digital-platform/public/brand/morro-digital-micro.svg",
+  "/apps/morro-digital-platform/public/brand/brand-v2.css",
   "/apps/morro-digital-platform/public/styles.css",
   "/apps/morro-digital-platform/public/commerce.css",
   "/apps/morro-digital-platform/public/assistant-photo-carousel.css",
@@ -47,6 +53,9 @@ const CACHEABLE_PATHS = new Set([
   "/pwa-register.js",
   "/pwa-icon-192.png",
   "/pwa-icon-512.png",
+  "/pwa-maskable-192.png",
+  "/pwa-maskable-512.png",
+  "/apple-touch-icon.png",
 ]);
 
 function isNetworkOnly(pathname) {
