@@ -87,6 +87,45 @@ test("retirement forbids adding any claim in the same transition", () => {
   );
 });
 
+test("candidate retirement manifest must be merged and exact-base bound", () => {
+  const valid = {
+    id: "MD-ONE",
+    state: "MERGED",
+    baseSha: BASE,
+  };
+  assert.equal(
+    validateCandidateRetirementManifest(valid, {
+      claimId: "MD-ONE",
+      expectedBaseSha: BASE,
+    }).state,
+    "MERGED",
+  );
+  assert.throws(
+    () =>
+      validateCandidateRetirementManifest(
+        { ...valid, state: "LOCAL_PROVEN" },
+        { claimId: "MD-ONE", expectedBaseSha: BASE },
+      ),
+    /CLAIM_RETIREMENT_MANIFEST_NOT_MERGED/u,
+  );
+  assert.throws(
+    () =>
+      validateCandidateRetirementManifest(
+        { ...valid, baseSha: MERGE },
+        { claimId: "MD-ONE", expectedBaseSha: BASE },
+      ),
+    /CLAIM_RETIREMENT_MANIFEST_BASE_MISMATCH/u,
+  );
+  assert.throws(
+    () =>
+      validateCandidateRetirementManifest(
+        { ...valid, id: "MD-TWO" },
+        { claimId: "MD-ONE", expectedBaseSha: BASE },
+      ),
+    /CLAIM_RETIREMENT_MANIFEST_ID_MISMATCH/u,
+  );
+});
+
 test("claim deletion without evidence fails closed", () => {
   const base = registry({ "MD-ONE": claim() });
   const candidate = registry({});

@@ -49,6 +49,28 @@ export function assertCanonicalRetirementTransition(
   return { removed, added };
 }
 
+export function validateCandidateRetirementManifest(
+  manifest,
+  { claimId, expectedBaseSha },
+) {
+  assert.ok(
+    manifest && typeof manifest === "object" && !Array.isArray(manifest),
+    "CLAIM_RETIREMENT_MANIFEST_INVALID",
+  );
+  assert.equal(manifest.id, claimId, "CLAIM_RETIREMENT_MANIFEST_ID_MISMATCH");
+  assert.equal(
+    manifest.state,
+    "MERGED",
+    "CLAIM_RETIREMENT_MANIFEST_NOT_MERGED",
+  );
+  assert.equal(
+    manifest.baseSha,
+    expectedBaseSha,
+    "CLAIM_RETIREMENT_MANIFEST_BASE_MISMATCH",
+  );
+  return manifest;
+}
+
 export function validateClaimRetirements({
   baseRegistry,
   candidateRegistry,
