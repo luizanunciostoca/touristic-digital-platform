@@ -415,6 +415,7 @@ describe("assistant browser domain adapter", () => {
             JSON.stringify({
               profile: {
                 id: "place-segunda-praia",
+                destinationId: "morro-de-sao-paulo",
                 name: "Segunda Praia",
                 categoryId: "beaches",
                 location: { latitude: -13.3801, longitude: -38.9118 },
