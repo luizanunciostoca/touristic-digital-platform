@@ -58,7 +58,7 @@ export function createAppShellMarkup(): string {
     >
       <header class="md-home-header" aria-label="Morro Digital">
         <div class="header-content md-home-header-inner md-card">
-          <span class="md-home-brand-mark" aria-hidden="true">M</span>
+          <img class="md-home-brand-mark" src="/assets/brand/morro-digital-symbol-v2.svg" alt="" aria-hidden="true" />
           <div class="md-home-title-block">
             <span class="md-home-eyebrow">Morro Digital</span>
             <h1>Morro de São Paulo</h1>
