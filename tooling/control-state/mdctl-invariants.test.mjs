@@ -64,6 +64,30 @@ test("expired unmerged active claim fails closed", () => {
   );
 });
 
+test("expired merged claim still fails stale active declaration", () => {
+  const report = evaluateInvariants(
+    context({
+      observed: {
+        snapshotStartedAt: "2026-10-01T07:00:00Z",
+        mainSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        runtimeHealth: {},
+        observedClaims: [
+          {
+            id: "MD-STALE-MERGED",
+            declaredState: "IMPLEMENTING",
+            expiresAt: "2026-09-30T00:00:00Z",
+            observedState: "MERGED",
+          },
+        ],
+      },
+    }),
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-002").status,
+    "FAIL",
+  );
+});
+
 test("HTTP 200 degraded runtime cannot be accepted", () => {
   const report = evaluateInvariants(
     context({
