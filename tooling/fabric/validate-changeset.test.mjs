@@ -126,7 +126,6 @@ test("legacy ChangeSets remain valid during V2 rollout", () => {
   assert.equal(validateChangeSet(legacy), legacy);
 });
 
-
 test("ChangeSet V2 rejects unknown and missing closed-schema fields", () => {
   let manifest = { ...v2(), unexpected: true };
   assert.throws(
