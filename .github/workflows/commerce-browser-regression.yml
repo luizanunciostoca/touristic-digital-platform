@@ -88,6 +88,7 @@ jobs:
         run: |
           node <<'NODE'
           const { writeFileSync } = require('node:fs');
+          const { pathToFileURL } = require('node:url');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const origin = 'http://127.0.0.1:4173';
           const now = Date.now();
@@ -95,6 +96,7 @@ jobs:
           const HOUR = 60 * 60 * 1000;
           const iso = offset => new Date(now + offset).toISOString();
           const localDateTime = offset => iso(offset).slice(0, 16);
+          let representativeQrSvg = null;
           const offer = {
             id: 'mpi_0123456789abcdef0123456789abcdef',
             destinationId: 'morro-de-sao-paulo',
@@ -207,12 +209,21 @@ jobs:
             await page.route('**/api/ticketing/v1/reservations/trv_browser_0001/ticket', route => fulfill(route, { data: {
               code: 'MORRO-BROWSER-0001', quantity: 2, amount: { minorUnits: 31800, currency: 'BRL' },
               issuedAt: iso(-HOUR + 6000), validUntil: iso(3 * DAY + 5 * HOUR),
-              qrSvg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
+              qrSvg: representativeQrSvg,
             } }));
             await page.route('**/api/ticketing/v1/operator/check-in', route => fulfill(route, { error: 'AUTH_REQUIRED' }, 401));
           }
 
           (async () => {
+            const { renderTicketQrSvg } = await import(
+              pathToFileURL(
+                process.cwd() + '/packages/ticketing/dist/qr-svg.js',
+              ).href
+            );
+            representativeQrSvg = renderTicketQrSvg(
+              'tck.v1.UX584_BROWSER_FIXTURE_20261001',
+            );
+            if (!representativeQrSvg) throw new Error('Representative QR fixture failed to render');
             const bounded = (promise, label, ms = 10000) =>
               Promise.race([
                 promise,
@@ -676,6 +687,18 @@ jobs:
                 throw new Error('Technical failure leaked into Ticketing UI: ' + friendlyFailure);
               }
               evidence.push({ predictableFailure: 'friendly-unavailable' });
+              evidence.push({
+                qrEvidence: {
+                  dataClass: 'Runtime with Fixture',
+                  fixtureId: 'tck.v1.UX584_BROWSER_FIXTURE_20261001',
+                  renderer: 'packages/ticketing/dist/qr-svg.js#renderTicketQrSvg',
+                  exactHeadSha: process.env.GITHUB_HEAD_SHA || process.env.GITHUB_SHA || null,
+                  url: origin + '/tickets.html',
+                  locale: 'pt-BR',
+                  browser: 'chromium',
+                  generatedAt: new Date().toISOString(),
+                },
+              });
               markAuthStage('failure-path:asserted');
               await bounded(failPage.close({ runBeforeUnload: false }), 'failure page close', 5000);
               await bounded(failContext.close(), 'failure context close', 5000);
