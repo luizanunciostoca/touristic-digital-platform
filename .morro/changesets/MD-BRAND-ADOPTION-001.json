@@ -1,0 +1,72 @@
+{
+  "id": "MD-BRAND-ADOPTION-001",
+  "baseSha": "5f9cf0d971de5039c545c9bce9c3be6b863f1c70",
+  "branch": "feat/brand-v2-product-adoption-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-BRAND-001.json",
+      ".morro/changesets/MD-BRAND-ADOPTION-001.json",
+      "apps/morro-digital-platform/public/assets/brand/**",
+      "apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
+      "apps/morro-digital-platform/public/brand-v2.css",
+      "apps/morro-digital-platform/public/index.html",
+      "apps/morro-digital-platform/public/manifest.json",
+      "apps/morro-digital-platform/public/tickets.html",
+      "apps/morro-digital-platform/public/tour-booking.html",
+      "apps/morro-digital-platform/public/affiliate-portal.html",
+      "apps/morro-digital-platform/public/business-dashboard.html",
+      "apps/morro-digital-platform/public/business-onboarding.html",
+      "apps/morro-digital-platform/src/layouts/app-shell.ts",
+      "apps/morro-digital-platform/src/brand/**",
+      "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+      "apps/admin-crm/public/index.html",
+      "apps/admin-crm/public/crm.css",
+      "apps/control-center/public/index.html",
+      "apps/control-center/public/control-center-shell-v1.css",
+      "docs/brand/**"
+    ],
+    "contracts": [
+      "TDP-BRAND-FAMILY-V2",
+      "TDP-DESIGN-TOKENS-V2",
+      "TDP-PRODUCT-BRAND-ADOPTION-V2"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "CONCEPT-02-APPROVED",
+      "TDP-BRAND-FAMILY-V2",
+      "TDP-CONTROL-PLANE-V3.2-AUTHORITY"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-BRAND-001"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "browser",
+    "visual-regression",
+    "accessibility",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
