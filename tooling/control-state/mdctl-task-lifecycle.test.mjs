@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 import {
+  buildTaskRestart,
   buildTaskStart,
   buildTaskSubmit,
   buildTaskTest,
   validateTaskContext,
+  validateTaskLocalProof,
 } from "../mdctl/task-lifecycle.mjs";
 import { contextPackDigest } from "../mdctl/context-pack.mjs";
+import { canonicalJson } from "../mdctl/changeset-v2.mjs";
 
 function changeSet() {
   return {
@@ -47,6 +51,14 @@ function changeSet() {
     },
     stopAt: "REMOTE_PROVEN",
   };
+}
+
+function proofDigest(proof) {
+  const { digest: _ignored, ...payload } = proof;
+  return (
+    "sha256:" +
+    createHash("sha256").update(canonicalJson(payload)).digest("hex")
+  );
 }
 
 function identity(head = "b".repeat(40), tree = "c".repeat(40)) {
@@ -208,4 +220,122 @@ test("task submit is exact-head bound, releases leases and does not claim remote
       (id) => submitted.leaseRegistry.leases[id].state === "RELEASED",
     ),
   );
+});
+
+test("lease expiry during proof execution cannot advance to LOCAL_PROVEN", async () => {
+  let n = 0;
+  const started = buildTaskStart({
+    changeSet: changeSet(),
+    owner: "worker-1",
+    identity: identity(),
+    now: "2026-10-01T09:00:00Z",
+    ttlSeconds: 60,
+    idFactory: () => "expiring-" + ++n,
+  });
+  const times = [
+    "2026-10-01T09:00:30Z",
+    "2026-10-01T09:02:00Z",
+  ];
+  await assert.rejects(
+    buildTaskTest({
+      task: started.task,
+      changeSet: changeSet(),
+      leaseRegistry: started.leaseRegistry,
+      identity: identity(),
+      now: () => times.shift(),
+      commandRunner: async () => ({
+        status: "PASS",
+        stdout: "ok",
+        stderr: "",
+      }),
+    }),
+    /REQUIRED_CAPABILITY_LEASE_MISSING/u,
+  );
+  assert.equal(started.task.state, "STARTED");
+});
+
+test("recomputed digest cannot hide forged local proof content", async () => {
+  let n = 0;
+  const manifest = changeSet();
+  const started = buildTaskStart({
+    changeSet: manifest,
+    owner: "worker-1",
+    identity: identity(),
+    now: "2026-10-01T09:00:00Z",
+    idFactory: () => "proof-" + ++n,
+  });
+  const tested = await buildTaskTest({
+    task: started.task,
+    changeSet: manifest,
+    leaseRegistry: started.leaseRegistry,
+    identity: identity("d".repeat(40), "e".repeat(40)),
+    now: "2026-10-01T09:05:00Z",
+    commandRunner: async () => ({
+      status: "PASS",
+      stdout: "ok",
+      stderr: "",
+    }),
+  });
+  const forged = structuredClone(tested.task);
+  forged.localProof.commandEvidence[0].id = "forged-command";
+  forged.localProof.digest = proofDigest(forged.localProof);
+  assert.throws(
+    () =>
+      validateTaskLocalProof({
+        proof: forged.localProof,
+        task: forged,
+        changeSet: manifest,
+      }),
+    /TASK_LOCAL_PROOF_COMMAND_ID_MISMATCH/u,
+  );
+  assert.throws(
+    () =>
+      buildTaskSubmit({
+        task: forged,
+        changeSet: manifest,
+        leaseRegistry: started.leaseRegistry,
+        identity: identity("d".repeat(40), "e".repeat(40)),
+        now: "2026-10-01T09:06:00Z",
+      }),
+    /TASK_LOCAL_PROOF_COMMAND_ID_MISMATCH/u,
+  );
+});
+
+test("restart recovers an expired non-submitted task and requires fresh proof", async () => {
+  let n = 0;
+  const manifest = changeSet();
+  const started = buildTaskStart({
+    changeSet: manifest,
+    owner: "worker-1",
+    identity: identity(),
+    now: "2026-10-01T09:00:00Z",
+    ttlSeconds: 60,
+    idFactory: () => "old-" + ++n,
+  });
+  let replacement = 0;
+  const restarted = buildTaskRestart({
+    task: started.task,
+    changeSet: manifest,
+    leaseRegistry: started.leaseRegistry,
+    identity: identity("d".repeat(40), "e".repeat(40)),
+    now: "2026-10-01T09:02:00Z",
+    idFactory: () => "new-" + ++replacement,
+  });
+  assert.equal(restarted.task.state, "STARTED");
+  assert.equal(restarted.task.localProof, null);
+  assert.equal(restarted.task.testedAt, null);
+  assert.notDeepEqual(restarted.task.leaseIds, started.task.leaseIds);
+  const tested = await buildTaskTest({
+    task: restarted.task,
+    changeSet: manifest,
+    leaseRegistry: restarted.leaseRegistry,
+    identity: identity("d".repeat(40), "e".repeat(40)),
+    now: "2026-10-01T09:02:30Z",
+    commandRunner: async () => ({
+      status: "PASS",
+      stdout: "fresh",
+      stderr: "",
+    }),
+  });
+  assert.equal(tested.task.state, "LOCAL_PROVEN");
 });

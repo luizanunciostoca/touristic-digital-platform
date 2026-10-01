@@ -20,6 +20,37 @@ import {
 const execute = promisify(execFile);
 const SHA = /^[0-9a-f]{40}$/u;
 const OWNER = /^[A-Za-z0-9._:@/-]{1,120}$/u;
+const DIGEST = /^sha256:[0-9a-f]{64}$/u;
+const LOCAL_PROOF_KEYS = new Set([
+  "schemaVersion",
+  "kind",
+  "changeSetId",
+  "changeSetDigest",
+  "candidateSha",
+  "treeSha",
+  "contextPackDigest",
+  "commandEvidence",
+  "requiredRemoteEvidence",
+  "completedAt",
+  "digest",
+]);
+const COMMAND_EVIDENCE_KEYS = new Set([
+  "id",
+  "status",
+  "candidateSha",
+  "timeoutSeconds",
+  "outputDigest",
+]);
+
+function assertClosedObject(value, allowed, code) {
+  assert.ok(
+    value && typeof value === "object" && !Array.isArray(value),
+    code + "_OBJECT_INVALID",
+  );
+  for (const key of Object.keys(value))
+    assert.ok(allowed.has(key), code + "_PROPERTY_UNKNOWN:" + key);
+  return value;
+}
 
 const digest = (value) =>
   "sha256:" + createHash("sha256").update(canonicalJson(value)).digest("hex");
@@ -30,12 +61,22 @@ function parseTime(value, code) {
   return new Date(ms).toISOString();
 }
 
+function resolveNow(now) {
+  const value =
+    typeof now === "function"
+      ? now()
+      : now instanceof Date
+        ? now.toISOString()
+        : now;
+  return parseTime(value, "TASK_TIME_INVALID");
+}
+
 export function buildTaskStart({
   changeSet,
   owner,
   identity,
   leaseRegistry = createLeaseRegistry(),
-  now = new Date().toISOString(),
+  now = () => new Date().toISOString(),
   ttlSeconds = 1800,
   idFactory = randomUUID,
 }) {
@@ -46,10 +87,7 @@ export function buildTaskStart({
   assert.match(identity?.treeSha ?? "", SHA, "TASK_TREE_SHA_INVALID");
   assert.equal(identity?.baseIsAncestor, true, "TASK_BASE_NOT_ANCESTOR");
   assert.equal(identity?.dirty, false, "TASK_WORKSPACE_DIRTY");
-  const startedAt = parseTime(
-    now instanceof Date ? now.toISOString() : now,
-    "TASK_TIME_INVALID",
-  );
+  const startedAt = resolveNow(now);
 
   const acquired = acquireCapabilityLeases({
     registry: leaseRegistry,
@@ -100,7 +138,7 @@ export async function buildTaskTest({
   leaseRegistry,
   identity,
   commandRunner,
-  now = new Date().toISOString(),
+  now = () => new Date().toISOString(),
 }) {
   validateChangeSetV2(changeSet);
   assert.equal(task?.state, "STARTED", "TASK_STATE_NOT_STARTABLE_FOR_TEST");
@@ -126,16 +164,13 @@ export async function buildTaskTest({
     "TASK_COMMAND_RUNNER_REQUIRED",
   );
 
-  const testedAt = parseTime(
-    now instanceof Date ? now.toISOString() : now,
-    "TASK_TIME_INVALID",
-  );
-  const leases = assertRequiredCapabilityLeases({
+  const proofStartedAt = resolveNow(now);
+  assertRequiredCapabilityLeases({
     registry: leaseRegistry,
     changeSet,
     owner: task.owner,
     branch: task.branch,
-    now: testedAt,
+    now: proofStartedAt,
   });
   const evidence = [];
 
@@ -163,25 +198,39 @@ export async function buildTaskTest({
     });
   }
 
+  const completedAt = resolveNow(now);
+  assert.ok(
+    Date.parse(completedAt) >= Date.parse(proofStartedAt),
+    "TASK_TIME_REVERSED",
+  );
+  const completedLeases = assertRequiredCapabilityLeases({
+    registry: leaseRegistry,
+    changeSet,
+    owner: task.owner,
+    branch: task.branch,
+    now: completedAt,
+  });
   const contextPack = buildContextPack({
     changeSet,
     candidateSha: identity.headSha,
     treeSha: identity.treeSha,
     branch: identity.branch,
-    capabilityLeaseIds: leases.map((lease) => lease.leaseId),
+    capabilityLeaseIds: completedLeases.map((lease) => lease.leaseId),
     leaseRegistry,
     owner: task.owner,
-    generatedAt: testedAt,
+    generatedAt: completedAt,
   });
   const localProof = {
     schemaVersion: 1,
     kind: "TDP_TASK_LOCAL_PROOF",
     changeSetId: changeSet.id,
+    changeSetDigest: changeSetDigest(changeSet),
     candidateSha: identity.headSha,
     treeSha: identity.treeSha,
+    contextPackDigest: contextPack.digest,
     commandEvidence: evidence,
     requiredRemoteEvidence: changeSet.proof.requiredRemoteEvidence,
-    completedAt: testedAt,
+    completedAt,
   };
   localProof.digest = digest(localProof);
 
@@ -192,7 +241,7 @@ export async function buildTaskTest({
       candidateSha: identity.headSha,
       treeSha: identity.treeSha,
       contextPackDigest: contextPack.digest,
-      testedAt,
+      testedAt: completedAt,
       localProof,
     },
     contextPack,
@@ -218,12 +267,177 @@ export function validateTaskContext({
   return contextPack;
 }
 
+export function validateTaskLocalProof({ proof, task, changeSet }) {
+  validateChangeSetV2(changeSet);
+  assertClosedObject(proof, LOCAL_PROOF_KEYS, "TASK_LOCAL_PROOF");
+  assert.equal(proof.schemaVersion, 1, "TASK_LOCAL_PROOF_SCHEMA_INVALID");
+  assert.equal(
+    proof.kind,
+    "TDP_TASK_LOCAL_PROOF",
+    "TASK_LOCAL_PROOF_KIND_INVALID",
+  );
+  assert.equal(
+    proof.changeSetId,
+    changeSet.id,
+    "TASK_LOCAL_PROOF_CHANGESET_MISMATCH",
+  );
+  assert.equal(
+    proof.changeSetDigest,
+    changeSetDigest(changeSet),
+    "TASK_LOCAL_PROOF_CHANGESET_DIGEST_MISMATCH",
+  );
+  assert.equal(
+    proof.changeSetDigest,
+    task.changeSetDigest,
+    "TASK_LOCAL_PROOF_TASK_DIGEST_MISMATCH",
+  );
+  assert.equal(
+    proof.candidateSha,
+    task.candidateSha,
+    "TASK_LOCAL_PROOF_CANDIDATE_MISMATCH",
+  );
+  assert.equal(
+    proof.treeSha,
+    task.treeSha,
+    "TASK_LOCAL_PROOF_TREE_MISMATCH",
+  );
+  assert.equal(
+    proof.contextPackDigest,
+    task.contextPackDigest,
+    "TASK_LOCAL_PROOF_CONTEXT_MISMATCH",
+  );
+  assert.equal(
+    proof.completedAt,
+    task.testedAt,
+    "TASK_LOCAL_PROOF_TIME_MISMATCH",
+  );
+  parseTime(proof.completedAt, "TASK_LOCAL_PROOF_TIME_INVALID");
+  assert.deepEqual(
+    proof.requiredRemoteEvidence,
+    changeSet.proof.requiredRemoteEvidence,
+    "TASK_LOCAL_PROOF_REMOTE_EVIDENCE_MISMATCH",
+  );
+  assert.ok(
+    Array.isArray(proof.commandEvidence),
+    "TASK_LOCAL_PROOF_COMMAND_EVIDENCE_INVALID",
+  );
+  assert.equal(
+    proof.commandEvidence.length,
+    changeSet.proof.commands.length,
+    "TASK_LOCAL_PROOF_COMMAND_COUNT_MISMATCH",
+  );
+  for (let index = 0; index < changeSet.proof.commands.length; index += 1) {
+    const command = changeSet.proof.commands[index];
+    const evidence = assertClosedObject(
+      proof.commandEvidence[index],
+      COMMAND_EVIDENCE_KEYS,
+      "TASK_LOCAL_PROOF_COMMAND",
+    );
+    assert.equal(
+      evidence.id,
+      command.id,
+      "TASK_LOCAL_PROOF_COMMAND_ID_MISMATCH",
+    );
+    assert.equal(evidence.status, "PASS", "TASK_LOCAL_PROOF_COMMAND_NOT_PASS");
+    assert.equal(
+      evidence.candidateSha,
+      task.candidateSha,
+      "TASK_LOCAL_PROOF_COMMAND_CANDIDATE_MISMATCH",
+    );
+    assert.equal(
+      evidence.timeoutSeconds,
+      command.timeoutSeconds,
+      "TASK_LOCAL_PROOF_COMMAND_TIMEOUT_MISMATCH",
+    );
+    assert.match(
+      evidence.outputDigest ?? "",
+      DIGEST,
+      "TASK_LOCAL_PROOF_OUTPUT_DIGEST_INVALID",
+    );
+  }
+  assert.match(proof.digest ?? "", DIGEST, "TASK_LOCAL_PROOF_DIGEST_INVALID");
+  const { digest: observedDigest, ...payload } = proof;
+  assert.equal(
+    observedDigest,
+    digest(payload),
+    "TASK_LOCAL_PROOF_DIGEST_MISMATCH",
+  );
+  return proof;
+}
+
+export function buildTaskRestart({
+  task,
+  changeSet,
+  leaseRegistry,
+  identity,
+  now = () => new Date().toISOString(),
+  ttlSeconds = 1800,
+  idFactory = randomUUID,
+}) {
+  validateChangeSetV2(changeSet);
+  assert.ok(
+    ["STARTED", "LOCAL_PROVEN"].includes(task?.state),
+    "TASK_STATE_NOT_RESTARTABLE",
+  );
+  assert.equal(task.changeSetId, changeSet.id, "TASK_CHANGESET_MISMATCH");
+  assert.equal(
+    task.changeSetDigest,
+    changeSetDigest(changeSet),
+    "TASK_CHANGESET_DIGEST_MISMATCH",
+  );
+  assert.match(task.owner ?? "", OWNER, "TASK_OWNER_INVALID");
+  assert.equal(identity?.branch, task.branch, "TASK_BRANCH_MISMATCH");
+  assert.match(identity?.headSha ?? "", SHA, "TASK_HEAD_SHA_INVALID");
+  assert.match(identity?.treeSha ?? "", SHA, "TASK_TREE_SHA_INVALID");
+  assert.equal(identity?.baseIsAncestor, true, "TASK_BASE_NOT_ANCESTOR");
+  assert.equal(identity?.dirty, false, "TASK_WORKSPACE_DIRTY");
+
+  const restartedAt = resolveNow(now);
+  const acquired = acquireCapabilityLeases({
+    registry: leaseRegistry,
+    changeSet,
+    owner: task.owner,
+    branch: task.branch,
+    now: restartedAt,
+    ttlSeconds,
+    idFactory,
+  });
+  const leaseIds = acquired.leases.map((lease) => lease.leaseId);
+  const contextPack = buildContextPack({
+    changeSet,
+    candidateSha: identity.headSha,
+    treeSha: identity.treeSha,
+    branch: identity.branch,
+    capabilityLeaseIds: leaseIds,
+    leaseRegistry: acquired.registry,
+    owner: task.owner,
+    generatedAt: restartedAt,
+  });
+  return {
+    task: {
+      ...task,
+      state: "STARTED",
+      candidateSha: identity.headSha,
+      treeSha: identity.treeSha,
+      contextPackDigest: contextPack.digest,
+      leaseIds,
+      startedAt: restartedAt,
+      testedAt: null,
+      submittedAt: null,
+      localProof: null,
+      handoffDigest: null,
+    },
+    leaseRegistry: acquired.registry,
+    contextPack,
+  };
+}
+
 export function buildTaskSubmit({
   task,
   changeSet,
   leaseRegistry,
   identity,
-  now = new Date().toISOString(),
+  now = () => new Date().toISOString(),
 }) {
   validateChangeSetV2(changeSet);
   assert.equal(task?.state, "LOCAL_PROVEN", "TASK_STATE_NOT_SUBMITTABLE");
@@ -242,10 +456,8 @@ export function buildTaskSubmit({
   assert.equal(identity?.treeSha, task.treeSha, "TASK_TREE_MOVED_AFTER_TEST");
   assert.equal(identity?.dirty, false, "TASK_WORKSPACE_DIRTY");
   assert.equal(identity?.baseIsAncestor, true, "TASK_BASE_NOT_ANCESTOR");
-  const submittedAt = parseTime(
-    now instanceof Date ? now.toISOString() : now,
-    "TASK_TIME_INVALID",
-  );
+  validateTaskLocalProof({ proof: task.localProof, task, changeSet });
+  const submittedAt = resolveNow(now);
 
   assertRequiredCapabilityLeases({
     registry: leaseRegistry,
@@ -266,17 +478,12 @@ export function buildTaskSubmit({
     candidateSha: task.candidateSha,
     treeSha: task.treeSha,
     contextPackDigest: task.contextPackDigest,
-    localProofDigest: task.localProof?.digest ?? null,
+    localProofDigest: task.localProof.digest,
     requiredRemoteEvidence: changeSet.proof.requiredRemoteEvidence,
     nextState: "REMOTE_PROVEN",
     authority: "WORKER_SUBMISSION_NOT_REMOTE_PROOF",
     generatedAt: submittedAt,
   };
-  assert.match(
-    handoffPayload.localProofDigest ?? "",
-    /^sha256:[0-9a-f]{64}$/u,
-    "TASK_LOCAL_PROOF_MISSING",
-  );
   const handoff = { ...handoffPayload, digest: digest(handoffPayload) };
 
   const releasedRegistry = releaseCapabilityLeases({
@@ -388,7 +595,7 @@ function parseTaskArgs(args) {
   const action = args[0];
   const manifestPath = args[1];
   assert.ok(
-    ["start", "test", "submit"].includes(action),
+    ["start", "restart", "test", "submit"].includes(action),
     "TASK_ACTION_INVALID",
   );
   assert.ok(
@@ -459,6 +666,27 @@ export async function runTaskCli(args, { root = process.cwd() } = {}) {
   const task = await readJson(taskPath);
   const leaseRegistry = await readJson(leasePath);
   const identity = await collectTaskGitIdentity(root, changeSet.baseSha);
+
+  if (parsed.action === "restart") {
+    const restarted = buildTaskRestart({
+      task,
+      changeSet,
+      leaseRegistry,
+      identity,
+      ttlSeconds: parsed.ttlSeconds,
+    });
+    await writeJsonAtomic(leasePath, restarted.leaseRegistry);
+    await writeJsonAtomic(contextPath, restarted.contextPack);
+    await writeJsonAtomic(taskPath, restarted.task);
+    return {
+      action: "restart",
+      state: restarted.task.state,
+      taskPath,
+      contextPath,
+      leasePath,
+      candidateSha: restarted.task.candidateSha,
+    };
+  }
 
   if (parsed.action === "test") {
     const tested = await buildTaskTest({
