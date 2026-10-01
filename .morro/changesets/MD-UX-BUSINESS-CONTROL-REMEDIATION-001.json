@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-UX-BUSINESS-CONTROL-REMEDIATION-001",
+  "baseSha": "e1222d0aaffca8f32c2e38f43ccb83f9ba3a9e9a",
+  "branch": "chore/ux-business-control-remediation-claim-v2-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-UX-BUSINESS-CONTROL-REMEDIATION-001.json",
+      "apps/morro-digital-platform/public/business-dashboard.html",
+      "apps/morro-digital-platform/public/business-dashboard.css",
+      "apps/morro-digital-platform/src/business-dashboard-surface.ts",
+      "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+      "apps/control-center/public/control-center.css",
+      "apps/control-center/public/control-center.js",
+      "tooling/ux/business-control-center-remediation.test.mjs"
+    ],
+    "contracts": ["TDP-BUSINESS-UX", "TDP-CONTROL-CENTER-UX"]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-AUTH-AUTHORITY",
+      "TDP-TENANT-BOUNDARY",
+      "TDP-FINANCIAL-AUTHORITY",
+      "TDP-TICKETING-AUTHORITY",
+      "TDP-CONTENT-AUTHORITY"
+    ]
+  },
+  "produces": {
+    "events": ["UX_REMEDIATION_PROVEN"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-UX-TOURIST-REMEDIATION-001"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "browser-evidence",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 196608,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "business-control-ux",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ux/business-control-center-remediation.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "ux-business-control-center-remediation-585"
+}

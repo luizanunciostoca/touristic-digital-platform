@@ -1,5 +1,28 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-UX-BUSINESS-CONTROL-REMEDIATION-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/ux-business-control-remediation-claim-v2-20261001",
+      "baseSha": "e1222d0aaffca8f32c2e38f43ccb83f9ba3a9e9a",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-UX-BUSINESS-CONTROL-REMEDIATION-001.json",
+        "apps/morro-digital-platform/public/business-dashboard.html",
+        "apps/morro-digital-platform/public/business-dashboard.css",
+        "apps/morro-digital-platform/src/business-dashboard-surface.ts",
+        "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+        "apps/control-center/public/control-center.css",
+        "apps/control-center/public/control-center.js",
+        "tooling/ux/business-control-center-remediation.test.mjs"
+      ],
+      "domains": ["business-ux", "control-center-ux"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T12:00:00Z"
+    }
+  }
 }
