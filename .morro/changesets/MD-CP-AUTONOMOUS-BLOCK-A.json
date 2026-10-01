@@ -1,0 +1,59 @@
+{
+  "id": "MD-CP-AUTONOMOUS-BLOCK-A",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "branch": "infra/control-plane-v3.2-autonomous-block-a-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/event-ledger.schema.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-CP-AUTONOMOUS-BLOCK-A.json",
+      ".morro/fabric.json",
+      "AGENTS.md",
+      "CONSTITUTION.md",
+      "ENGINEERING-OPERATING-MANUAL.md",
+      "docs/adr/0005-autonomous-engineering-control-plane-v3-2.md",
+      "docs/adr/README.md",
+      "tooling/mdctl/event-ledger.mjs",
+      "tooling/mdctl/invariants.mjs",
+      "tooling/mdctl/mdctl.mjs",
+      "tooling/control-state/mdctl-event-ledger.test.mjs",
+      "tooling/control-state/mdctl-invariants.test.mjs",
+      "package.json"
+    ],
+    "contracts": [
+      "TDP-CONTROL-PLANE-V3.2-AUTHORITY",
+      "TDP-MACHINE-EVIDENCE-STATE"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "TERMUX-NATIVE-AGENT-HEARTBEAT"
+    ]
+  },
+  "produces": {
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RELEASED"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
