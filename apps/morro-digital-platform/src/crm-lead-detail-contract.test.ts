@@ -90,5 +90,13 @@ describe("CRM M140 Lead Detail permanent contract", () => {
       ".lead-checklist-card .dashboard-list-item{gap:4px;padding:8px 0}",
     );
     expect(css).toContain(".lead-create-form>*{min-width:0}");
+    expect(css).toContain(".content,.lead-create-card{min-width:0}");
+    expect(css).toContain(
+      ".content header{align-items:flex-start;flex-direction:column}",
+    );
+    expect(css).toContain(".lead-create-actions{min-width:0;flex-wrap:wrap}");
+    expect(css).toContain(
+      ".lead-create-actions a{max-width:100%;overflow-wrap:anywhere}",
+    );
   });
 });
