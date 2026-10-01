@@ -1,0 +1,132 @@
+{
+  "id": "MD-BRAND-ADOPTION-001",
+  "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
+  "branch": "feat/brand-v2-product-adoption-20261001-r2",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".morro/changesets/MD-BRAND-001.json",
+      ".morro/changesets/MD-BRAND-ADOPTION-001.json",
+      "apps/morro-digital-platform/public/assets/brand/**",
+      "apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
+      "apps/morro-digital-platform/public/brand-v2.css",
+      "apps/morro-digital-platform/public/index.html",
+      "apps/morro-digital-platform/public/manifest.json",
+      "apps/morro-digital-platform/public/service-worker.js",
+      "apps/morro-digital-platform/public/tickets.html",
+      "apps/morro-digital-platform/public/tour-booking.html",
+      "apps/morro-digital-platform/public/affiliate-portal.html",
+      "apps/morro-digital-platform/public/business-dashboard.html",
+      "apps/morro-digital-platform/public/business-onboarding.html",
+      "apps/morro-digital-platform/src/layouts/app-shell.ts",
+      "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+      "apps/admin-crm/public/index.html",
+      "apps/admin-crm/public/crm.css",
+      "apps/control-center/public/index.html",
+      "apps/control-center/public/control-center-shell-v1.css",
+      "docs/brand/**"
+    ],
+    "contracts": [
+      "TDP-BRAND-FAMILY-V2",
+      "TDP-DESIGN-TOKENS-V2",
+      "TDP-PRODUCT-BRAND-ADOPTION-V2"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "CONCEPT-02-APPROVED",
+      "TDP-BRAND-FAMILY-V2",
+      "TDP-CONTROL-PLANE-V3.2-AUTHORITY"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-BRAND-001"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "quality",
+    "browser",
+    "visual-regression",
+    "accessibility",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "schemaVersion": 2,
+  "scope": "CROSS_DESTINATION",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 196608,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "brand-v2-adoption-contracts",
+        "argv": [
+          "pnpm",
+          "--filter",
+          "@touristic/morro-digital-platform",
+          "exec",
+          "vitest",
+          "run",
+          "src/ux/brand-v2-adoption.test.ts",
+          "src/pwa/pwa-contract.test.ts"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "brand-v2-adoption-typecheck",
+        "argv": [
+          "pnpm",
+          "--filter",
+          "@touristic/morro-digital-platform",
+          "typecheck"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "quality",
+      "browser",
+      "visual-regression",
+      "accessibility",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  }
+}
