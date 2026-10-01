@@ -36,13 +36,13 @@ creation, refund command, provider call, or client-authoritative aggregation.
 
 ## Reconciled interface contracts
 
-| Interface | Phase 20 classification | Owner approval | Versioned contract approval | Lane result |
-|---|---|---:|---:|---|
-| IF-BIZ-012 | `EXISTING_FINANCIAL_MODEL_NEEDS_ADAPTER` | false | false | Product-side read projection and authorization semantics implemented; concrete canonical Business→Financial query binding remains shared/integration work. |
-| IF-AFF-011 | `VERSIONED_FINANCIAL_PROJECTION_REQUIRED` | false | false | Candidate statement projection preserves Affiliate commercial vs Financial monetary ownership; not promoted to an approved canonical contract. |
-| IF-AFF-012 | `VERSIONED_FINANCIAL_PROJECTION_REQUIRED` | false | false | Candidate payout/settlement history projection is read-only and Financial-authoritative; not promoted to an approved canonical contract. |
-| IF-CTL-014 | `EXISTING_FINANCIAL_MODEL_NEEDS_ADAPTER` | false | false | Candidate GET refund projection separates request acceptance from verified refund final state; existing refund mutation path is untouched. |
-| IF-CTL-015 | `VERSIONED_FINANCIAL_PROJECTION_REQUIRED` | false | false | Candidate composite projection labels Affiliate commercial entitlement and Financial monetary outcome separately; not promoted to an approved canonical contract. |
+| Interface  | Phase 20 classification                   | Owner approval | Versioned contract approval | Lane result                                                                                                                                                       |
+| ---------- | ----------------------------------------- | -------------: | --------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| IF-BIZ-012 | `EXISTING_FINANCIAL_MODEL_NEEDS_ADAPTER`  |          false |                       false | Product-side read projection and authorization semantics implemented; concrete canonical Business→Financial query binding remains shared/integration work.        |
+| IF-AFF-011 | `VERSIONED_FINANCIAL_PROJECTION_REQUIRED` |          false |                       false | Candidate statement projection preserves Affiliate commercial vs Financial monetary ownership; not promoted to an approved canonical contract.                    |
+| IF-AFF-012 | `VERSIONED_FINANCIAL_PROJECTION_REQUIRED` |          false |                       false | Candidate payout/settlement history projection is read-only and Financial-authoritative; not promoted to an approved canonical contract.                          |
+| IF-CTL-014 | `EXISTING_FINANCIAL_MODEL_NEEDS_ADAPTER`  |          false |                       false | Candidate GET refund projection separates request acceptance from verified refund final state; existing refund mutation path is untouched.                        |
+| IF-CTL-015 | `VERSIONED_FINANCIAL_PROJECTION_REQUIRED` |          false |                       false | Candidate composite projection labels Affiliate commercial entitlement and Financial monetary outcome separately; not promoted to an approved canonical contract. |
 
 ## Product-side boundary
 

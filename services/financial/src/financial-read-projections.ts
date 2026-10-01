@@ -147,10 +147,12 @@ export interface ControlCommissionReadRow {
 }
 
 export interface FinancialReadProjectionRepository {
-  listBusinessPayments(input: Readonly<{
-    tenantId: string;
-    businessId: string;
-  }>): Promise<readonly BusinessFinancialReadRow[]>;
+  listBusinessPayments(
+    input: Readonly<{
+      tenantId: string;
+      businessId: string;
+    }>,
+  ): Promise<readonly BusinessFinancialReadRow[]>;
   listAffiliateStatementRows(
     affiliateId: string,
   ): Promise<readonly AffiliateStatementReadRow[]>;
@@ -203,7 +205,9 @@ function identifier(value: unknown, code: string): string {
   return value;
 }
 
-function actor(value: FinancialReadActor | null | undefined): FinancialReadActor {
+function actor(
+  value: FinancialReadActor | null | undefined,
+): FinancialReadActor {
   if (!value || typeof value.subject !== "string" || !value.subject) {
     deny(401, "AUTHENTICATION_REQUIRED");
   }
@@ -255,7 +259,9 @@ function timestamp(value: string): string {
   return parsed.toISOString();
 }
 
-function encodeCursor(row: Readonly<{ id: string; occurredAt: string }>): string {
+function encodeCursor(
+  row: Readonly<{ id: string; occurredAt: string }>,
+): string {
   return Buffer.from(
     JSON.stringify({ at: timestamp(row.occurredAt), id: String(row.id) }),
     "utf8",
@@ -312,8 +318,12 @@ function page<T extends Readonly<{ id: string; occurredAt: string }>>(
   }
   const cursor = decodeCursor(options.cursor);
   const ordered = rows
-    .map((row) =>
-      deepFreeze({ ...row, occurredAt: timestamp(row.occurredAt) }) as Readonly<T>,
+    .map(
+      (row) =>
+        deepFreeze({
+          ...row,
+          occurredAt: timestamp(row.occurredAt),
+        }) as Readonly<T>,
     )
     .sort((left, right) => {
       const time = Date.parse(right.occurredAt) - Date.parse(left.occurredAt);
@@ -341,7 +351,8 @@ function normalizePaymentState(value: string): ProjectionState {
     refunded: "refunded",
   });
   const normalized = states[value];
-  if (!normalized) throw new Error("FINANCIAL_PROJECTION_UNKNOWN_PAYMENT_STATE");
+  if (!normalized)
+    throw new Error("FINANCIAL_PROJECTION_UNKNOWN_PAYMENT_STATE");
   return normalized;
 }
 
@@ -412,10 +423,7 @@ function affiliateStatementProjection(row: AffiliateStatementReadRow) {
         authority: "Financial" as const,
       };
   if (financial.settledMinor !== null) {
-    assertFinancialProjectionMoney(
-      financial.settledMinor,
-      financial.currency,
-    );
+    assertFinancialProjectionMoney(financial.settledMinor, financial.currency);
   } else {
     assertFinancialProjectionMoney(0, financial.currency);
   }
@@ -430,7 +438,8 @@ function affiliateStatementProjection(row: AffiliateStatementReadRow) {
       authority: "Affiliate" as const,
     },
     financial,
-    statementSemantics: "commercial_entitlement_plus_financial_projection" as const,
+    statementSemantics:
+      "commercial_entitlement_plus_financial_projection" as const,
   });
 }
 
@@ -478,7 +487,10 @@ function controlRefundProjection(row: ControlRefundReadRow) {
 }
 
 function controlCommissionProjection(row: ControlCommissionReadRow) {
-  const money = assertFinancialProjectionMoney(row.commissionMinor, row.currency);
+  const money = assertFinancialProjectionMoney(
+    row.commissionMinor,
+    row.currency,
+  );
   const financialState = row.financialState
     ? normalizeFinancialProjectionSettlementState(row.financialState)
     : "pending";

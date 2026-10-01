@@ -474,9 +474,9 @@ describe("Phase20 Financial authority boundary", () => {
     expect(result.page.items[0]?.financialState).toBe("accepted");
     expect(result.page.items[1]?.financialState).toBe("settled");
     expect(JSON.stringify(result)).not.toContain("provider-secret");
-    expect(result.page.items.every((row) => row.providerReferenceExposed === false)).toBe(
-      true,
-    );
+    expect(
+      result.page.items.every((row) => row.providerReferenceExposed === false),
+    ).toBe(true);
   });
 
   it("mints refund final state only from verified Financial payment outcome", async () => {
@@ -521,10 +521,7 @@ describe("Phase20 Financial authority boundary", () => {
 
   it("keeps accepted distinct from terminal monetary states", () => {
     expect(
-      normalizeFinancialProjectionRefundState(
-        "provider_accepted",
-        "confirmed",
-      ),
+      normalizeFinancialProjectionRefundState("provider_accepted", "confirmed"),
     ).toBe("accepted");
     expect(
       normalizeFinancialProjectionRefundState("provider_accepted", "refunded"),
