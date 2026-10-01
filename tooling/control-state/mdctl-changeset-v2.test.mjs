@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  stat,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -25,7 +33,9 @@ test("Block B dogfoods ChangeSet V2 with bounded executable proof", async () => 
   assert.equal(manifest.scope, "PLATFORM");
   assert.ok(manifest.requiredCapabilities.length >= 1);
   assert.ok(manifest.contextPack.maxBytes <= 1024 * 1024);
-  assert.ok(manifest.proof.commands.length <= manifest.proof.budget.maxCommands);
+  assert.ok(
+    manifest.proof.commands.length <= manifest.proof.budget.maxCommands,
+  );
   assert.match(changeSetDigest(manifest), /^sha256:[0-9a-f]{64}$/u);
 
   for (const command of manifest.proof.commands) {
