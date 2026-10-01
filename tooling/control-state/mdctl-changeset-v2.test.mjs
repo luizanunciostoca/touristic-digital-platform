@@ -139,7 +139,8 @@ test("critical VERIFIED evidence rejects stale and invented Actions runs", () =>
     tenantIsolationState: "VERIFIED",
     tenantIsolationEvidenceSha: candidateSha,
     tenantIsolationRunId: "202",
-    tenantIsolationWorkflowPath: ".github/workflows/auth-integration-contract.yml",
+    tenantIsolationWorkflowPath:
+      ".github/workflows/auth-integration-contract.yml",
     tenantIsolationWorkflowName: "Auth Integration Contract",
     destinationIsolationState: "VERIFIED",
     destinationIsolationEvidenceSha: candidateSha,
@@ -196,7 +197,8 @@ test("critical VERIFIED evidence requires live successful exact-head trusted run
     tenantIsolationState: "VERIFIED",
     tenantIsolationEvidenceSha: candidateSha,
     tenantIsolationRunId: "202",
-    tenantIsolationWorkflowPath: ".github/workflows/auth-integration-contract.yml",
+    tenantIsolationWorkflowPath:
+      ".github/workflows/auth-integration-contract.yml",
     tenantIsolationWorkflowName: "Auth Integration Contract",
     destinationIsolationState: "VERIFIED",
     destinationIsolationEvidenceSha: candidateSha,
@@ -324,6 +326,8 @@ test("projection loader resolves trusted run evidence before terminal main reche
     name: "Agent Profile Contract",
     referencedWorkflows: [trustedRef],
   });
-  assert.ok(calls.indexOf("repos/fixture/repo/actions/runs/201") <
-    calls.indexOf("repos/fixture/repo/commits/main"));
+  assert.ok(
+    calls.indexOf("repos/fixture/repo/actions/runs/201") <
+      calls.indexOf("repos/fixture/repo/commits/main"),
+  );
 });
