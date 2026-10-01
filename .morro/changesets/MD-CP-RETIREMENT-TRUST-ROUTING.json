@@ -1,0 +1,80 @@
+{
+  "id": "MD-CP-RETIREMENT-TRUST-ROUTING",
+  "baseSha": "7e9569f8dc7f7af256c349aea87ddad2e8e04c0b",
+  "branch": "fix/control-plane-retirement-trust-routing-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-CP-RETIREMENT-TRUST-ROUTING.json",
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-agent-profiles.yml",
+      "tooling/control-state/retirement-trusted-routing.test.mjs"
+    ],
+    "contracts": ["TDP-CLAIM-RETIREMENT", "TDP-TRUSTED-PROOF-ROUTING"]
+  },
+  "reads": {
+    "contracts": ["GITHUB-CURRENT-MAIN", "TDP-CONTROL-PLANE-V3.2-AUTHORITY"]
+  },
+  "produces": {
+    "events": ["RETIREMENT_TRUST_PROOF"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-CLAIM-ACQUISITION-BOOTSTRAP"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "schemaVersion": 2,
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "retirement-trusted-routing",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/retirement-trusted-routing.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "control-plane-v3.2-retirement-trusted-proof-routing"
+}
