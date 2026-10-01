@@ -30,26 +30,52 @@
         "tooling/control-state/mdctl-task-lifecycle.test.mjs",
         "package.json"
       ],
-      "domains": ["ci-release", "control-plane"],
+      "domains": [
+        "ci-release",
+        "control-plane"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T18:00:00Z"
     },
-    "MD-BRAND-001": {
+    "MD-BRAND-ADOPTION-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "feat/brand-family-v2-concept02-20261001-r2",
-      "baseSha": "290d94804878fd0882dadb2aa60173bbc3be7ff2",
+      "branch": "feat/brand-v2-product-adoption-20261001-r2",
+      "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
       "paths": [
+        ".github/morro-control/claims.json",
         ".morro/changesets/MD-BRAND-001.json",
-        "packages/design-system/src/brand/**",
-        "packages/design-system/src/index.ts",
+        ".morro/changesets/MD-BRAND-ADOPTION-001.json",
+        "apps/morro-digital-platform/public/assets/brand/**",
+        "apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
+        "apps/morro-digital-platform/public/brand-v2.css",
+        "apps/morro-digital-platform/public/index.html",
+        "apps/morro-digital-platform/public/manifest.json",
+        "apps/morro-digital-platform/public/service-worker.js",
+        "apps/morro-digital-platform/public/tickets.html",
+        "apps/morro-digital-platform/public/tour-booking.html",
+        "apps/morro-digital-platform/public/affiliate-portal.html",
+        "apps/morro-digital-platform/public/business-dashboard.html",
+        "apps/morro-digital-platform/public/business-onboarding.html",
+        "apps/morro-digital-platform/src/layouts/app-shell.ts",
+        "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
+        "apps/admin-crm/public/index.html",
+        "apps/admin-crm/public/crm.css",
+        "apps/control-center/public/index.html",
+        "apps/control-center/public/control-center-shell-v1.css",
         "docs/brand/**"
       ],
-      "domains": ["design-system", "brand"],
+      "domains": [
+        "frontend-ux",
+        "design-system",
+        "brand",
+        "pwa"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-01T18:00:00Z"
+      "expiresAt": "2026-10-01T20:00:00Z"
     }
   }
 }
