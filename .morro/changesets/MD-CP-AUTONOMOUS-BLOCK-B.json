@@ -51,7 +51,9 @@
       "LEASE_RENEWED",
       "LEASE_RELEASED",
       "CONTEXT_PACK_CREATED",
-      "TASK_SUBMITTED"
+      "TASK_SUBMITTED",
+      "TASK_STARTED",
+      "TASK_TESTED"
     ],
     "routes": []
   },
@@ -61,7 +63,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-A"],
+  "dependencies": [
+    "MD-CP-AUTONOMOUS-BLOCK-A"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -69,5 +73,67 @@
     "automated-independent-proof",
     "exact-head-identity"
   ],
-  "stopAt": "REMOTE_PROVEN"
+  "stopAt": "REMOTE_PROVEN",
+  "schemaVersion": 2,
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 8,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "changeset-v2-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/validate-changeset.test.mjs",
+          "tooling/control-state/mdctl-changeset-v2.test.mjs"
+        ],
+        "timeoutSeconds": 120
+      },
+      {
+        "id": "capability-context-task-contracts",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-capability-leases.test.mjs",
+          "tooling/control-state/mdctl-context-pack.test.mjs",
+          "tooling/control-state/mdctl-task-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "integrity-regressions",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-event-ledger.test.mjs",
+          "tooling/control-state/mdctl-invariants.test.mjs",
+          "tooling/ci/control-state-status.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  }
 }
