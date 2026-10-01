@@ -436,8 +436,10 @@ function liveClaim(manifest, overrides = {}) {
 
 function createLiveApi(options = {}) {
   const canonicalManifest = changeSet(LIVE_ID, "live-scheduler", {
-    baseSha: "a".repeat(40),
-    branch: "authority/live-scheduler",
+    baseSha: options.authorityBlobsIdentical ? LIVE_MAIN : "a".repeat(40),
+    branch: options.authorityBlobsIdentical
+      ? LIVE_BRANCH
+      : "authority/live-scheduler",
     state: "LOCAL_PROVEN",
   });
   const candidateManifest = changeSet(LIVE_ID, "live-scheduler", {
@@ -550,17 +552,55 @@ function createLiveApi(options = {}) {
       assert.equal(apiOptions.paginate, true);
       if (options.filesUnavailable) throw new Error("files unavailable");
       const files = [
-        { filename: "packages/md-live/a.mjs", additions: 20, deletions: 5 },
-        { filename: "packages/md-live/b.mjs", additions: 15, deletions: 4 },
-        { filename: "packages/md-live/c.mjs", additions: 15, deletions: 3 },
-        { filename: "packages/md-live/d.mjs", additions: 10, deletions: 3 },
-        { filename: "packages/md-live/e.mjs", additions: 10, deletions: 3 },
-        { filename: "packages/md-live/f.mjs", additions: 10, deletions: 2 },
+        {
+          filename: "packages/md-live/a.mjs",
+          status: "modified",
+          additions: 20,
+          deletions: 5,
+        },
+        {
+          filename: "packages/md-live/b.mjs",
+          status: "modified",
+          additions: 15,
+          deletions: 4,
+        },
+        {
+          filename: "packages/md-live/c.mjs",
+          status: "modified",
+          additions: 15,
+          deletions: 3,
+        },
+        {
+          filename: "packages/md-live/d.mjs",
+          status: "modified",
+          additions: 10,
+          deletions: 3,
+        },
+        {
+          filename: "packages/md-live/e.mjs",
+          status: "modified",
+          additions: 10,
+          deletions: 3,
+        },
+        {
+          filename: "packages/md-live/f.mjs",
+          status: "modified",
+          additions: 10,
+          deletions: 2,
+        },
       ];
       if (options.fileOutsideScope) {
         files[0] = {
           ...files[0],
           filename: "packages/other/outside.mjs",
+        };
+      }
+      if (options.renameFromOutsideScope) {
+        files[0] = {
+          ...files[0],
+          status: "renamed",
+          previous_filename: "packages/other/secret.mjs",
+          filename: "packages/md-live/a.mjs",
         };
       }
       return [files.slice(0, 3), files.slice(3)];
@@ -581,7 +621,10 @@ function createLiveApi(options = {}) {
       )
     ) {
       if (options.registryMalformed) throw new Error("registry unavailable");
-      return encodeLiveContent(candidateRegistry, "2");
+      return encodeLiveContent(
+        candidateRegistry,
+        options.authorityBlobsIdentical ? "1" : "2",
+      );
     }
     if (
       endpoint.includes(
@@ -595,7 +638,10 @@ function createLiveApi(options = {}) {
         "/contents/.morro/changesets/" + LIVE_ID + ".json?ref=" + encodedHead,
       )
     ) {
-      return encodeLiveContent(candidateManifest, "4");
+      return encodeLiveContent(
+        candidateManifest,
+        options.authorityBlobsIdentical ? "3" : "4",
+      );
     }
 
     if (
@@ -631,6 +677,9 @@ function createLiveApi(options = {}) {
               status: "completed",
               conclusion: "success",
               created_at: "2026-10-01T12:10:00Z",
+              pull_requests: [
+                { number: options.wrongTrustPrAssociation ? 8 : 7 },
+              ],
             },
             ...(options.latestTrustRunFails
               ? [
@@ -644,6 +693,9 @@ function createLiveApi(options = {}) {
                     status: "completed",
                     conclusion: "failure",
                     created_at: "2026-10-01T12:11:00Z",
+                    pull_requests: [
+                      { number: options.wrongTrustPrAssociation ? 8 : 7 },
+                    ],
                   },
                 ]
               : []),
@@ -812,6 +864,7 @@ test("trusted claim evidence fails when trusted control files diverge", async ()
     mainSha: LIVE_MAIN,
     headSha: LIVE_HEAD,
     branch: LIVE_BRANCH,
+    prNumber: 7,
     api: fixture.api,
   });
   assert.equal(trust.trusted, false);
@@ -827,6 +880,7 @@ test("trusted claim evidence requires every base-controlled job", async () => {
     mainSha: LIVE_MAIN,
     headSha: LIVE_HEAD,
     branch: LIVE_BRANCH,
+    prNumber: 7,
     api: fixture.api,
   });
   assert.equal(trust.trusted, false);
@@ -840,10 +894,25 @@ test("trusted claim evidence rejects same-name checks from another app", async (
     mainSha: LIVE_MAIN,
     headSha: LIVE_HEAD,
     branch: LIVE_BRANCH,
+    prNumber: 7,
     api: fixture.api,
   });
   assert.equal(trust.trusted, false);
   assert.match(trust.reason, /TRUSTED_GITHUB_ACTIONS_CHECK_MISSING/u);
+});
+
+test("trusted claim evidence must belong to the PR being collected", async () => {
+  const fixture = createLiveApi({ wrongTrustPrAssociation: true });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.equal(trust.reason, "TRUSTED_CLAIM_GUARD_RUN_MISSING");
 });
 
 test("unknown compare and PR statistics fail closed as an invalid blocker", async () => {
@@ -974,6 +1043,20 @@ test("live collector rejects changed file outside canonical claim scope", async 
   assert.match(live.items[0].invalid, /CANONICAL_CLAIM_PATH_VIOLATION/u);
 });
 
+test("live collector requires both rename source and destination to be owned", async () => {
+  const fixture = createLiveApi({ renameFromOutsideScope: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(
+    live.items[0].invalid,
+    "CANONICAL_CLAIM_PATH_VIOLATION:packages/other/secret.mjs",
+  );
+  assert.equal(live.items[0].writerActive, false);
+  assert.equal(live.items[0].ready, false);
+});
+
 test("latest failed Trusted Claim Guard run cannot borrow an older success", async () => {
   const fixture = createLiveApi({ latestTrustRunFails: true });
   const trust = await verifyTrustedClaimEvidence({
@@ -981,6 +1064,7 @@ test("latest failed Trusted Claim Guard run cannot borrow an older success", asy
     mainSha: LIVE_MAIN,
     headSha: LIVE_HEAD,
     branch: LIVE_BRANCH,
+    prNumber: 7,
     api: fixture.api,
   });
   assert.equal(trust.trusted, false);
@@ -1012,6 +1096,20 @@ test("candidate cannot alter canonical proof contract", async () => {
     live.items[0].invalid,
     /CHANGESET_AUTHORITY_DIVERGED_FROM_MAIN/u,
   );
+  assert.equal(live.items[0].writerActive, false);
+  assert.equal(live.items[0].ready, false);
+});
+
+test("trusted control files are checked even when authority blobs match main", async () => {
+  const fixture = createLiveApi({
+    authorityBlobsIdentical: true,
+    trustFileDiverged: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.match(live.items[0].invalid, /TRUSTED_CONTROL_FILE_DIVERGED/u);
   assert.equal(live.items[0].writerActive, false);
   assert.equal(live.items[0].ready, false);
 });
