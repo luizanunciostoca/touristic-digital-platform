@@ -9,20 +9,18 @@
 
 ## Gates in this ChangeSet
 
-| Gate | Candidate state |
-| --- | --- |
-| Concept 02 reference authority | PASS — pinned as `CONCEPT_02_APPROVED` |
-| Vector source | IMPLEMENTED |
-| Responsive symbol/micro distinction | IMPLEMENTED |
-| Family relationship | IMPLEMENTED |
-| Territorial validation | INTERNAL — community validation not claimed |
-| Token hierarchy | IMPLEMENTED |
-| Hash/provenance contract | IMPLEMENTED |
-| Drive package | PUBLISHED AS CANDIDATE |
-| Repository integration | IMPLEMENTING |
-| CI | PENDING REMOTE PROOF |
-| Runtime/PWA replacement | OUT OF SCOPE — follow-up ChangeSet |
-| Production | NOT AUTHORIZED |
+- Concept 02 reference authority: PASS — pinned as `CONCEPT_02_APPROVED`.
+- Vector source: IMPLEMENTED.
+- Responsive symbol/micro distinction: IMPLEMENTED.
+- Family relationship: IMPLEMENTED.
+- Territorial validation: INTERNAL — community validation not claimed.
+- Token hierarchy: IMPLEMENTED.
+- Hash/provenance contract: IMPLEMENTED.
+- Drive package: PUBLISHED AS CANDIDATE.
+- Repository integration: IMPLEMENTING.
+- CI: PENDING REMOTE PROOF.
+- Runtime/PWA replacement: OUT OF SCOPE — follow-up ChangeSet.
+- Production: NOT AUTHORIZED.
 
 ## Acceptance rule
 
