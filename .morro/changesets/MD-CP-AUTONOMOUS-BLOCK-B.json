@@ -57,9 +57,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-CP-AUTONOMOUS-BLOCK-A"
-  ],
+  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-A"],
   "requiredEvidence": [
     "format",
     "secrets",
