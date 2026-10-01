@@ -592,7 +592,38 @@ jobs:
                 });
                 if (privileged.status !== 401) throw new Error(`Guest operator escalation on ${viewport.name}`);
                 if (errors.length) throw new Error(`Browser errors on ${viewport.name}: ${JSON.stringify(errors)}`);
-                evidence.push({ viewport: viewport.name, home, privileged, state });
+                const walletDimensions = await page.evaluate(() => ({
+                  width: document.documentElement.scrollWidth,
+                  height: document.documentElement.scrollHeight,
+                }));
+                await page.screenshot({
+                  path: `/tmp/commerce-browser/ticket-wallet-${viewport.name}.png`,
+                  fullPage: false,
+                  animations: 'disabled',
+                });
+                evidence.push({
+                  viewport: viewport.name,
+                  home,
+                  privileged,
+                  state,
+                  qrEvidence: {
+                    dataClass: 'Runtime with Fixture',
+                    fixtureId: 'tck.v1.UX584_BROWSER_FIXTURE_20261001',
+                    renderer: 'packages/ticketing/dist/qr-svg.js#renderTicketQrSvg',
+                    exactHeadSha: process.env.EXACT_HEAD_SHA || null,
+                    url: page.url(),
+                    viewport: { width: viewport.width, height: viewport.height },
+                    finalDimensions: walletDimensions,
+                    fullPage: false,
+                    locale: 'pt-BR',
+                    browser: 'chromium',
+                    device: viewport.name,
+                    timestamp: new Date().toISOString(),
+                    workflow: process.env.EVIDENCE_WORKFLOW,
+                    runId: process.env.EVIDENCE_RUN_ID,
+                    runAttempt: process.env.EVIDENCE_RUN_ATTEMPT,
+                  },
+                });
                 await context.close();
               }
 
@@ -700,28 +731,6 @@ jobs:
                 throw new Error('Technical failure leaked into Ticketing UI: ' + friendlyFailure);
               }
               evidence.push({ predictableFailure: 'friendly-unavailable' });
-              evidence.push({
-                qrEvidence: {
-                  dataClass: 'Runtime with Fixture',
-                  fixtureId: 'tck.v1.UX584_BROWSER_FIXTURE_20261001',
-                  renderer: 'packages/ticketing/dist/qr-svg.js#renderTicketQrSvg',
-                  exactHeadSha: process.env.EXACT_HEAD_SHA || null,
-                  url: origin + '/tickets.html',
-                  viewport: { width: 390, height: 844 },
-                  finalDimensions: {
-                    width: await failPage.evaluate(() => document.documentElement.scrollWidth),
-                    height: await failPage.evaluate(() => document.documentElement.scrollHeight),
-                  },
-                  fullPage: false,
-                  locale: 'pt-BR',
-                  browser: 'chromium',
-                  device: 'chromium-mobile-viewport',
-                  timestamp: new Date().toISOString(),
-                  workflow: process.env.EVIDENCE_WORKFLOW,
-                  runId: process.env.EVIDENCE_RUN_ID,
-                  runAttempt: process.env.EVIDENCE_RUN_ATTEMPT,
-                },
-              });
               markAuthStage('failure-path:asserted');
               await bounded(failPage.close({ runBeforeUnload: false }), 'failure page close', 5000);
               await bounded(failContext.close(), 'failure context close', 5000);

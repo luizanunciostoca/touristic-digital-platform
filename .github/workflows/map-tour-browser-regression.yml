@@ -23,6 +23,8 @@ on:
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
+      - apps/admin-crm/public/crm.css
+      - apps/admin-crm/public/lead-detail.html
       - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -47,6 +49,8 @@ on:
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
+      - apps/admin-crm/public/crm.css
+      - apps/admin-crm/public/lead-detail.html
       - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -68,6 +72,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
@@ -1073,11 +1080,20 @@ jobs:
       - name: UX 584 computed-layout acceptance
         run: |
           node <<'NODE'
+          const { execFileSync } = require('node:child_process');
           const { readFileSync, writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
 
           const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
           const exactHeadSha = event.pull_request?.head?.sha || process.env.GITHUB_SHA;
+          const checkedOutHeadSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          const exactTreeSha = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim();
+          if (checkedOutHeadSha !== exactHeadSha) {
+            throw new Error(
+              'UX584 exact-head checkout mismatch: ' +
+                JSON.stringify({ exactHeadSha, checkedOutHeadSha, exactTreeSha }),
+            );
+          }
           const foundations = readFileSync(
             'apps/morro-digital-platform/public/design-system-v2.css',
             'utf8',
@@ -1139,6 +1155,7 @@ jobs:
             dataClass: 'Runtime with Fixture',
             fixtureId: 'UX584_COMPUTED_LAYOUT_V1',
             exactHeadSha,
+            exactTreeSha,
             locale: 'pt-BR',
             browser: 'chromium',
             workflow: process.env.GITHUB_WORKFLOW,
@@ -1364,6 +1381,8 @@ jobs:
               return {
                 scrollWidth: document.documentElement.scrollWidth,
                 clientWidth: document.documentElement.clientWidth,
+                scrollHeight: document.documentElement.scrollHeight,
+                clientHeight: document.documentElement.clientHeight,
                 wideGridColumn: wideStyle?.gridColumn || '',
                 checklistPadding: checklistStyle?.padding || '',
                 inlineGridStyleCount: document.querySelectorAll('[style*="grid-column"]').length,
@@ -1382,9 +1401,25 @@ jobs:
               animations: 'disabled',
             });
             evidence.crm = {
+              exactHeadSha,
+              exactTreeSha,
               viewport: { width: 390, height: 844 },
               url: 'fixture://ux584-crm-lead-detail',
+              finalDimensions: {
+                width: crm.scrollWidth,
+                height: crm.scrollHeight,
+                clientWidth: crm.clientWidth,
+                clientHeight: crm.clientHeight,
+              },
               fullPage: false,
+              dataClass: 'Runtime with Fixture',
+              fixtureId: 'UX584_CRM_LEAD_DETAIL_V1',
+              locale: 'pt-BR',
+              browser: 'chromium',
+              device: 'chromium-mobile-viewport',
+              timestamp: new Date().toISOString(),
+              workflow: process.env.GITHUB_WORKFLOW,
+              runId: process.env.GITHUB_RUN_ID,
               ...crm,
             };
             await crmContext.close();

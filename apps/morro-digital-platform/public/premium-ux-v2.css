@@ -1075,7 +1075,17 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
   body[data-md-mode="navigation"] #instruction-banner {
     right: calc(var(--md-safe-right) + var(--md-space-2)) !important;
     left: calc(var(--md-safe-left) + var(--md-space-2)) !important;
-    padding-left: var(--md-space-3);
+    padding-inline: var(--md-space-3);
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: var(--md-space-2);
+    padding-right: calc(var(--md-touch-target-min) + var(--md-space-2));
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
+    margin-left: 0;
   }
 
   body[data-md-mode="navigation"] #navigation-summary {

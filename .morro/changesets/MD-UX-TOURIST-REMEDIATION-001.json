@@ -2,7 +2,7 @@
   "id": "MD-UX-TOURIST-REMEDIATION-001",
   "baseSha": "7e9569f8dc7f7af256c349aea87ddad2e8e04c0b",
   "branch": "fix/ux-tourist-remediation-584-20261001",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "high",
   "owns": {
     "paths": [
