@@ -30,13 +30,7 @@
         ".github/workflows/commerce-browser-regression.yml",
         "tooling/ticketing/browser-contract.test.mjs"
       ],
-      "domains": [
-        "ux",
-        "tourist",
-        "crm",
-        "navigation",
-        "visual-evidence"
-      ],
+      "domains": ["ux", "tourist", "crm", "navigation", "visual-evidence"],
       "risk": "P1",
       "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T12:00:00Z"

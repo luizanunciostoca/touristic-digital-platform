@@ -28,10 +28,7 @@
       ".github/workflows/commerce-browser-regression.yml",
       "tooling/ticketing/browser-contract.test.mjs"
     ],
-    "contracts": [
-      "TDP-TOURIST-UX-REMEDIATION",
-      "TDP-VISUAL-EVIDENCE"
-    ]
+    "contracts": ["TDP-TOURIST-UX-REMEDIATION", "TDP-VISUAL-EVIDENCE"]
   },
   "reads": {
     "contracts": [
@@ -55,9 +52,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-CP-CLAIM-ACQUISITION-BOOTSTRAP"
-  ],
+  "dependencies": ["MD-CP-CLAIM-ACQUISITION-BOOTSTRAP"],
   "requiredEvidence": [
     "format",
     "secrets",
