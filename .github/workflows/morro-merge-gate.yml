@@ -60,6 +60,41 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
+      - name: Wait for exact-head Trusted Claim Guard
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            run="$(
+              gh api "repos/$REPOSITORY/actions/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=100" \
+                | jq -c '
+                    [.workflow_runs[]
+                      | select(
+                          .name == "Trusted Claim Guard Bootstrap" and
+                          .head_sha == env.HEAD_SHA and
+                          .event == "pull_request"
+                        )]
+                    | sort_by(.run_number)
+                    | last // empty
+                  '
+            )"
+            if [ -n "$run" ]; then
+              status="$(jq -r '.status' <<<"$run")"
+              conclusion="$(jq -r '.conclusion // ""' <<<"$run")"
+              if [ "$status" = "completed" ]; then
+                test "$conclusion" = "success"
+                exit 0
+              fi
+            fi
+            sleep 10
+          done
+          echo "TRUSTED_CLAIM_GUARD_TIMEOUT:$HEAD_SHA" >&2
+          exit 1
+
       - name: Run trusted merge-gate policy
         env:
           GH_TOKEN: ${{ github.token }}
