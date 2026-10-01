@@ -5,6 +5,10 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { githubApi } from "../control-state/status.mjs";
 import { validateClaimContext } from "../fabric/claim-guard.mjs";
+import {
+  buildClaimRetirementProof,
+  removedClaimIds,
+} from "../fabric/claim-retirement-proof.mjs";
 import { canonicalJson, validateChangeSetV2 } from "./changeset-v2.mjs";
 import {
   DEFAULT_SCHEDULER_POLICY,
@@ -14,6 +18,7 @@ import {
 } from "./scheduler.mjs";
 import {
   authorityDivergence,
+  changeSetAuthorityEnvelope,
   collectLivePullWork,
   evaluateDependenciesAtMain,
   resolveCanonicalClaimTransition,
@@ -92,6 +97,177 @@ export function diffEvidence({ candidateDir, baseSha, headSha }) {
     additions,
     deletions,
     changedLines: additions + deletions,
+  };
+}
+
+export function assertRetirementClaimKeyset(
+  canonicalRegistry,
+  candidateRegistry,
+  claimId,
+) {
+  const canonicalIds = Object.keys(canonicalRegistry?.claims ?? {}).sort();
+  const candidateIds = Object.keys(candidateRegistry?.claims ?? {}).sort();
+  assert.deepEqual(
+    candidateIds,
+    canonicalIds.filter((id) => id !== claimId),
+    "MERGE_GATE_RETIREMENT_CLAIM_KEYSET_INVALID",
+  );
+}
+
+export async function buildMergedRetirementProof(
+  trustedDir,
+  candidateDir,
+  env,
+  { proofBuilder = buildClaimRetirementProof } = {},
+) {
+  const proof = await proofBuilder(trustedDir, candidateDir, env, { now: 0 });
+  assert.equal(
+    proof?.retirements?.length,
+    1,
+    "MERGE_GATE_RETIREMENT_EVIDENCE_COUNT_INVALID",
+  );
+  assert.equal(
+    proof.retirements[0]?.reason,
+    "MERGED_PR",
+    "MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED",
+  );
+  return proof;
+}
+
+export function evaluateRetirementMergeGate({
+  manifest,
+  canonicalManifest,
+  claimId,
+  branch,
+  baseSha,
+  headSha,
+  authorizationPaths,
+  changedFileCount,
+  changedLines,
+  unresolvedReviewThreads,
+  retirementProof,
+  policy = DEFAULT_SCHEDULER_POLICY,
+}) {
+  validateChangeSetV2(manifest);
+  validateChangeSetV2(canonicalManifest);
+  assert.equal(manifest.id, claimId, "MERGE_GATE_RETIREMENT_ID_MISMATCH");
+  assert.equal(
+    canonicalManifest.id,
+    claimId,
+    "MERGE_GATE_RETIREMENT_CANONICAL_ID_MISMATCH",
+  );
+  assert.equal(manifest.state, "MERGED", "MERGE_GATE_RETIREMENT_STATE_INVALID");
+  assert.equal(
+    manifest.baseSha,
+    baseSha,
+    "MERGE_GATE_RETIREMENT_BASE_MISMATCH",
+  );
+  assert.equal(
+    manifest.branch,
+    branch,
+    "MERGE_GATE_RETIREMENT_BRANCH_MISMATCH",
+  );
+  assert.match(baseSha ?? "", SHA, "MERGE_GATE_RETIREMENT_BASE_INVALID");
+  assert.match(headSha ?? "", SHA, "MERGE_GATE_RETIREMENT_HEAD_INVALID");
+  assert.equal(
+    canonicalJson(changeSetAuthorityEnvelope(manifest)),
+    canonicalJson(changeSetAuthorityEnvelope(canonicalManifest)),
+    "MERGE_GATE_RETIREMENT_AUTHORITY_DIVERGED",
+  );
+
+  assert.ok(
+    Number.isInteger(unresolvedReviewThreads) && unresolvedReviewThreads >= 0,
+    "MERGE_GATE_REVIEW_THREAD_COUNT_INVALID",
+  );
+  assert.equal(
+    unresolvedReviewThreads,
+    0,
+    "MERGE_GATE_UNRESOLVED_REVIEW_THREADS",
+  );
+  assert.ok(
+    changedFileCount <= policy.hardFiles,
+    "MERGE_GATE_HARD_FILE_LIMIT_EXCEEDED",
+  );
+  assert.ok(
+    changedLines <= policy.hardLines,
+    "MERGE_GATE_HARD_LINE_LIMIT_EXCEEDED",
+  );
+
+  const manifestPath = ".morro/changesets/" + claimId + ".json";
+  const expectedPaths = [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    manifestPath,
+  ].sort();
+  assert.deepEqual(
+    [...authorizationPaths].sort(),
+    expectedPaths,
+    "MERGE_GATE_RETIREMENT_SCOPE_INVALID",
+  );
+  assert.equal(
+    changedFileCount,
+    expectedPaths.length,
+    "MERGE_GATE_RETIREMENT_FILE_COUNT_INVALID",
+  );
+
+  assert.equal(
+    retirementProof?.contract,
+    "MORRO-CLAIM-RETIREMENT-PROOF",
+    "MERGE_GATE_RETIREMENT_PROOF_CONTRACT_INVALID",
+  );
+  assert.equal(
+    retirementProof?.status,
+    "pass",
+    "MERGE_GATE_RETIREMENT_PROOF_FAILED",
+  );
+  assert.equal(
+    retirementProof?.failClosed,
+    true,
+    "MERGE_GATE_RETIREMENT_PROOF_NOT_FAIL_CLOSED",
+  );
+  assert.equal(
+    retirementProof?.exactHead,
+    headSha,
+    "MERGE_GATE_RETIREMENT_PROOF_HEAD_MISMATCH",
+  );
+  assert.equal(
+    retirementProof?.currentBaseSha,
+    baseSha,
+    "MERGE_GATE_RETIREMENT_PROOF_BASE_MISMATCH",
+  );
+  assert.deepEqual(
+    retirementProof?.removedClaims,
+    [claimId],
+    "MERGE_GATE_RETIREMENT_CLAIM_SET_INVALID",
+  );
+  assert.equal(
+    retirementProof?.retirements?.length,
+    1,
+    "MERGE_GATE_RETIREMENT_EVIDENCE_COUNT_INVALID",
+  );
+  assert.equal(
+    retirementProof.retirements[0]?.id,
+    claimId,
+    "MERGE_GATE_RETIREMENT_EVIDENCE_ID_INVALID",
+  );
+  assert.equal(
+    retirementProof.retirements[0]?.reason,
+    "MERGED_PR",
+    "MERGE_GATE_RETIREMENT_REASON_INVALID",
+  );
+
+  return {
+    schemaVersion: 1,
+    kind: "TDP_MERGE_GATE_DECISION",
+    decision: "POLICY_SATISFIED",
+    mode: "CLAIM_RETIREMENT",
+    changeSetId: claimId,
+    exactBaseSha: baseSha,
+    exactHeadSha: headSha,
+    changedFiles: changedFileCount,
+    changedLines,
+    unresolvedReviewThreads,
+    retirementReason: retirementProof.retirements[0].reason,
   };
 }
 
@@ -340,6 +516,7 @@ export async function runMergeGate({
   reviewThreadCounter = countUnresolvedReviewThreads,
   liveCollector = collectLivePullWork,
   dependencyEvaluator = evaluateDependenciesAtMain,
+  retirementProofBuilder = buildMergedRetirementProof,
 } = {}) {
   assert.ok(candidateDir, "MERGE_GATE_CANDIDATE_DIR_REQUIRED");
   assert.ok(trustedDir, "MERGE_GATE_TRUSTED_DIR_REQUIRED");
@@ -384,14 +561,6 @@ export async function runMergeGate({
     ".github/morro-control/claims.json",
   );
   const registry = readJson(candidateDir, ".github/morro-control/claims.json");
-  const transition = resolveCanonicalClaimTransition({
-    canonicalRegistry,
-    candidateRegistry: registry,
-    branch,
-  });
-  const manifestPath = ".morro/changesets/" + transition.id + ".json";
-  const canonicalManifest = readJson(trustedDir, manifestPath);
-  const manifest = readJson(candidateDir, manifestPath);
   const policy = await loadSchedulerPolicy(
     join(trustedDir, ".morro/scheduler-policy.json"),
   );
@@ -411,6 +580,63 @@ export async function runMergeGate({
     pr?.deletions,
     "MERGE_GATE_PR_DELETIONS_MISMATCH",
   );
+
+  const removedClaims = removedClaimIds(canonicalRegistry, registry);
+  if (removedClaims.length > 0) {
+    assert.deepEqual(
+      removedClaims.length,
+      1,
+      "MERGE_GATE_RETIREMENT_MULTIPLE_CLAIMS_FORBIDDEN",
+    );
+    const claimId = removedClaims[0];
+    assertRetirementClaimKeyset(canonicalRegistry, registry, claimId);
+    const manifestPath = ".morro/changesets/" + claimId + ".json";
+    const canonicalManifest = readJson(trustedDir, manifestPath);
+    const manifest = readJson(candidateDir, manifestPath);
+    const unresolvedReviewThreads = await reviewThreadCounter({
+      repository,
+      prNumber,
+    });
+    const retirementProof = await retirementProofBuilder(
+      trustedDir,
+      candidateDir,
+      {
+        ...process.env,
+        EXPECTED_BASE_SHA: baseSha,
+        EXPECTED_CANDIDATE_SHA: headSha,
+        GITHUB_REPOSITORY: repository,
+      },
+    );
+    const finalMain = await api(root + "/commits/main");
+    assert.equal(
+      finalMain?.sha,
+      baseSha,
+      "MERGE_GATE_MAIN_MOVED_DURING_RETIREMENT_PROOF",
+    );
+    return evaluateRetirementMergeGate({
+      manifest,
+      canonicalManifest,
+      claimId,
+      branch,
+      baseSha,
+      headSha,
+      authorizationPaths: diff.authorizationPaths,
+      changedFileCount: diff.changedFileCount,
+      changedLines: diff.changedLines,
+      unresolvedReviewThreads,
+      retirementProof,
+      policy,
+    });
+  }
+
+  const transition = resolveCanonicalClaimTransition({
+    canonicalRegistry,
+    candidateRegistry: registry,
+    branch,
+  });
+  const manifestPath = ".morro/changesets/" + transition.id + ".json";
+  const canonicalManifest = readJson(trustedDir, manifestPath);
+  const manifest = readJson(candidateDir, manifestPath);
 
   const live = await liveCollector({ repository, api, policy });
   assert.equal(live.mainSha, baseSha, "MERGE_GATE_LIVE_MAIN_MISMATCH");

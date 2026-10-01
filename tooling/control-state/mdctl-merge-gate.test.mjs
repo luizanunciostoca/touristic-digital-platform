@@ -11,9 +11,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
+  assertRetirementClaimKeyset,
+  buildMergedRetirementProof,
   countUnresolvedReviewThreads,
   diffEvidence,
   evaluateMergeGate,
+  evaluateRetirementMergeGate,
   runMergeGate,
 } from "../mdctl/merge-gate.mjs";
 
@@ -42,7 +45,7 @@ test("merge-gate workflow shares the required context across PR and merge-group 
     "Checkout trusted base",
     "Checkout candidate as data",
     "Setup Node for PR policy",
-    "Wait for exact-head Trusted Claim Guard",
+    "Detect canonical claim retirement",
     "Run trusted merge-gate policy",
   ];
   for (const name of prSteps) {
@@ -53,6 +56,13 @@ test("merge-gate workflow shares the required context across PR and merge-group 
       "PR_STEP_GUARD_MISSING:" + name,
     );
   }
+  assert.ok(
+    source.includes(
+      "      - name: Wait for exact-head Trusted Claim Guard\n" +
+        "        if: github.event_name == 'pull_request' && steps.retirement.outputs.eligible != 'true'\n",
+    ),
+    "RETIREMENT_BOOTSTRAP_GUARD_MISSING",
+  );
   assert.ok(
     source.includes(
       "      - name: Upload PR merge-gate decision\n" +
@@ -749,6 +759,296 @@ test("runMergeGate rejects moved main and mismatched PR head identity", async ()
       }),
       /MERGE_GATE_PR_HEAD_MISMATCH/u,
     );
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+function retirementProof({ headSha = HEAD, baseSha = BASE } = {}) {
+  return {
+    contract: "MORRO-CLAIM-RETIREMENT-PROOF",
+    status: "pass",
+    failClosed: true,
+    exactHead: headSha,
+    currentBaseSha: baseSha,
+    removedClaims: ["MD-GATED"],
+    retirements: [
+      {
+        id: "MD-GATED",
+        reason: "MERGED_PR",
+        branch: OLD_BRANCH,
+        baseSha: OLD_BASE,
+        prNumber: 9,
+        mergeSha: "d".repeat(40),
+        mergeShaAncestorOfBase: true,
+        claimBaseAncestorOfMerge: true,
+        historicalManifestMatches: true,
+      },
+    ],
+  };
+}
+
+function retirementInput(overrides = {}) {
+  const canonicalManifest = manifest({
+    branch: OLD_BRANCH,
+    baseSha: OLD_BASE,
+    state: "LOCAL_PROVEN",
+  });
+  const candidateManifest =
+    overrides.manifest ??
+    manifest({
+      branch: BRANCH,
+      baseSha: BASE,
+      state: "MERGED",
+    });
+  return {
+    manifest: candidateManifest,
+    canonicalManifest,
+    claimId: "MD-GATED",
+    branch: BRANCH,
+    baseSha: BASE,
+    headSha: HEAD,
+    authorizationPaths: [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-GATED.json",
+    ],
+    changedFileCount: 3,
+    changedLines: 9,
+    unresolvedReviewThreads: 0,
+    retirementProof: retirementProof(),
+    ...overrides,
+  };
+}
+
+test("retirement keyset rejects removal plus claim addition", () => {
+  const canonical = { claims: { "MD-GATED": {}, "MD-OTHER": {} } };
+  assert.doesNotThrow(() =>
+    assertRetirementClaimKeyset(
+      canonical,
+      { claims: { "MD-OTHER": {} } },
+      "MD-GATED",
+    ),
+  );
+  assert.throws(
+    () =>
+      assertRetirementClaimKeyset(
+        canonical,
+        { claims: { "MD-OTHER": {}, "MD-NEW": {} } },
+        "MD-GATED",
+      ),
+    /MERGE_GATE_RETIREMENT_CLAIM_KEYSET_INVALID/u,
+  );
+});
+
+test("merged retirement proof is time-stable and rejects expiry-only evidence", async () => {
+  let observedNow = null;
+  const merged = retirementProof();
+  const value = await buildMergedRetirementProof(
+    "trusted",
+    "candidate",
+    {},
+    {
+      proofBuilder: async (_trusted, _candidate, _env, options) => {
+        observedNow = options.now;
+        return merged;
+      },
+    },
+  );
+  assert.equal(observedNow, 0);
+  assert.equal(value.retirements[0].reason, "MERGED_PR");
+
+  await assert.rejects(
+    buildMergedRetirementProof(
+      "trusted",
+      "candidate",
+      {},
+      {
+        proofBuilder: async () => ({
+          ...merged,
+          retirements: [{ ...merged.retirements[0], reason: "EXPIRED" }],
+        }),
+      },
+    ),
+    /MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED/u,
+  );
+});
+
+test("retirement gate accepts one canonically proven merged claim release", () => {
+  const result = evaluateRetirementMergeGate(retirementInput());
+  assert.equal(result.decision, "POLICY_SATISFIED");
+  assert.equal(result.mode, "CLAIM_RETIREMENT");
+  assert.equal(result.changeSetId, "MD-GATED");
+  assert.equal(result.retirementReason, "MERGED_PR");
+});
+
+test("retirement gate rejects authority mutation while closing the ChangeSet", () => {
+  const candidate = manifest({
+    branch: BRANCH,
+    baseSha: BASE,
+    state: "MERGED",
+    owns: {
+      ...manifest().owns,
+      contracts: ["GATED-CONTRACT", "WIDENED-CONTRACT"],
+    },
+  });
+  assert.throws(
+    () =>
+      evaluateRetirementMergeGate(
+        retirementInput({
+          manifest: candidate,
+        }),
+      ),
+    /MERGE_GATE_RETIREMENT_AUTHORITY_DIVERGED/u,
+  );
+});
+
+test("retirement gate rejects extra files outside the three governance records", () => {
+  assert.throws(
+    () =>
+      evaluateRetirementMergeGate(
+        retirementInput({
+          authorizationPaths: [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+            ".morro/changesets/MD-GATED.json",
+            "tooling/mdctl/merge-gate.mjs",
+          ],
+          changedFileCount: 4,
+        }),
+      ),
+    /MERGE_GATE_RETIREMENT_SCOPE_INVALID/u,
+  );
+});
+
+function createRetirementRunGateFixture() {
+  const root = mkdtempSync(join(tmpdir(), "morro-retirement-gate-"));
+  const source = join(root, "source");
+  mkdirSync(source, { recursive: true });
+  gitFixture(source, ["init", "-q"]);
+  gitFixture(source, ["config", "user.name", "Retirement Gate Fixture"]);
+  gitFixture(source, [
+    "config",
+    "user.email",
+    "retirement-gate@example.invalid",
+  ]);
+
+  const canonicalManifest = manifest({
+    branch: OLD_BRANCH,
+    baseSha: OLD_BASE,
+    state: "LOCAL_PROVEN",
+  });
+  const canonicalRegistry = {
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      [canonicalManifest.id]: claim(canonicalManifest),
+    },
+  };
+  writeFixtureJson(
+    source,
+    ".morro/changesets/MD-GATED.json",
+    canonicalManifest,
+  );
+  writeFixtureJson(
+    source,
+    ".github/morro-control/claims.json",
+    canonicalRegistry,
+  );
+  writeFixtureJson(source, ".morro/scheduler-policy.json", {
+    version: 1,
+    globalWriterLimit: 3,
+    activePrLimit: 8,
+    sameObjectiveLimit: 1,
+    replanBehindCommits: 20,
+    changeLimits: { hardFiles: 30, hardLines: 1500 },
+    objectiveRequiredForDispatch: true,
+    writerStates: [
+      "IMPLEMENTING",
+      "LOCAL_PROVEN",
+      "REMOTE_PROVEN",
+      "COMPOSITION_PROVEN",
+      "POLICY_SATISFIED",
+    ],
+    slotReleaseStates: ["MERGE_READY", "MERGED"],
+  });
+  mkdirSync(join(source, ".github", "morro-control"), { recursive: true });
+  writeFileSync(
+    join(source, ".github", "morro-control", "events.ndjson"),
+    '{"event":"base"}\n',
+  );
+  gitFixture(source, ["add", "."]);
+  gitFixture(source, ["commit", "-qm", "trusted retirement base"]);
+  const baseSha = gitFixture(source, ["rev-parse", "HEAD"]);
+
+  const candidateManifest = manifest({
+    branch: BRANCH,
+    baseSha,
+    state: "MERGED",
+  });
+  writeFixtureJson(
+    source,
+    ".morro/changesets/MD-GATED.json",
+    candidateManifest,
+  );
+  writeFixtureJson(source, ".github/morro-control/claims.json", {
+    registryAuthority: "ORCHESTRATOR",
+    claims: {},
+  });
+  writeFileSync(
+    join(source, ".github", "morro-control", "events.ndjson"),
+    '{"event":"base"}\n{"event":"retired"}\n',
+  );
+  gitFixture(source, ["add", "."]);
+  gitFixture(source, ["commit", "-qm", "retire claim"]);
+  const headSha = gitFixture(source, ["rev-parse", "HEAD"]);
+
+  const trustedDir = join(root, "trusted");
+  const candidateDir = join(root, "candidate");
+  execFileSync("git", ["clone", "-q", "--no-hardlinks", source, trustedDir]);
+  gitFixture(trustedDir, ["checkout", "-q", "--detach", baseSha]);
+  execFileSync("git", ["clone", "-q", "--no-hardlinks", source, candidateDir]);
+  gitFixture(candidateDir, ["checkout", "-q", "--detach", headSha]);
+  const diff = diffEvidence({ candidateDir, baseSha, headSha });
+  return {
+    root,
+    trustedDir,
+    candidateDir,
+    baseSha,
+    headSha,
+    candidateManifest,
+    diff,
+  };
+}
+
+test("runMergeGate routes a proven claim removal through retirement mode", async () => {
+  const fixture = createRetirementRunGateFixture();
+  try {
+    const result = await runMergeGate({
+      trustedDir: fixture.trustedDir,
+      candidateDir: fixture.candidateDir,
+      repository: "example/repo",
+      prNumber: 10,
+      headSha: fixture.headSha,
+      baseSha: fixture.baseSha,
+      branch: BRANCH,
+      api: gateApiFor(fixture),
+      reviewThreadCounter: async () => 0,
+      liveCollector: async () => {
+        throw new Error("RETIREMENT_MUST_NOT_USE_LIVE_WRITER_ADMISSION");
+      },
+      dependencyEvaluator: async () => {
+        throw new Error(
+          "RETIREMENT_MUST_NOT_REQUIRE_ACTIVE_DEPENDENCY_DISPATCH",
+        );
+      },
+      retirementProofBuilder: async () =>
+        retirementProof({
+          headSha: fixture.headSha,
+          baseSha: fixture.baseSha,
+        }),
+    });
+    assert.equal(result.decision, "POLICY_SATISFIED");
+    assert.equal(result.mode, "CLAIM_RETIREMENT");
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

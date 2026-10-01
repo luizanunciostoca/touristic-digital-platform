@@ -64,8 +64,42 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Wait for exact-head Trusted Claim Guard
+      - name: Detect canonical claim retirement
         if: github.event_name == 'pull_request'
+        id: retirement
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - "$BASE_SHA" "$HEAD_BRANCH" >> "$GITHUB_OUTPUT" <<'NODE'
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const [baseSha, branch] = process.argv.slice(2);
+          const base = JSON.parse(fs.readFileSync("trusted/.github/morro-control/claims.json", "utf8"));
+          const candidate = JSON.parse(fs.readFileSync("candidate/.github/morro-control/claims.json", "utf8"));
+          const baseIds = Object.keys(base.claims ?? {});
+          const candidateIds = Object.keys(candidate.claims ?? {});
+          const removed = baseIds.filter((id) => !candidateIds.includes(id));
+          const added = candidateIds.filter((id) => !baseIds.includes(id));
+          let eligible = false;
+          if (removed.length === 1 && added.length === 0) {
+            const file = path.join("candidate", ".morro", "changesets", removed[0] + ".json");
+            if (fs.existsSync(file)) {
+              const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
+              eligible =
+                manifest.id === removed[0] &&
+                manifest.state === "MERGED" &&
+                manifest.baseSha === baseSha &&
+                manifest.branch === branch;
+            }
+          }
+          process.stdout.write("eligible=" + String(eligible) + "\n");
+          NODE
+
+      - name: Wait for exact-head Trusted Claim Guard
+        if: github.event_name == 'pull_request' && steps.retirement.outputs.eligible != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
