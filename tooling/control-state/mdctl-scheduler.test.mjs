@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assertCurrentMainUnchanged,
+  attachLiveSchedulerState,
+  buildPlan as buildMdctlPlan,
+  buildScheduleCandidateItem,
+} from "../mdctl/mdctl.mjs";
+import {
   buildIntegrationQueue,
   buildSchedulerPlan,
   findSemanticCollisions,
@@ -16,6 +22,7 @@ import {
   schedulerClaimBindingError,
   verifyTrustedClaimEvidence,
 } from "../mdctl/scheduler-live.mjs";
+import { buildLiveProjection } from "../mdctl/reconcile.mjs";
 
 function changeSet(id, objective, overrides = {}) {
   return {
@@ -1144,4 +1151,282 @@ test("live collector preserves a missing branch claim as an invalid blocker", as
   assert.equal(live.items[0].invalid, "CLAIM_MISSING");
   assert.equal(live.items[0].writerActive, false);
   assert.equal(live.items[0].ready, false);
+});
+
+test("mdctl preserves canonical queue while attaching trusted live projection", () => {
+  const ready = {
+    changeSet: changeSet("MD-LIVE-Q", "live-q", {
+      state: "MERGE_READY",
+      baseSha: LIVE_MAIN,
+    }),
+    prNumber: 21,
+    headSha: "e".repeat(40),
+    openPr: true,
+    writerActive: false,
+    ready: true,
+    dependenciesSatisfied: true,
+    unresolvedDependencies: [],
+    behindBy: 0,
+    baseIsAncestorOfMain: true,
+    statsKnown: true,
+    changedFiles: 1,
+    changedLines: 5,
+    invalid: null,
+    trust: { authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD" },
+  };
+  const invalid = {
+    prNumber: 22,
+    openPr: true,
+    writerActive: false,
+    ready: false,
+    invalid: "CLAIM_REGISTRY_UNAVAILABLE",
+  };
+  const canonicalQueue = { version: 1, batches: [{ id: "canonical" }] };
+  const observed = {
+    mainSha: LIVE_MAIN,
+    collectionState: "CAPTURED",
+    blockers: [],
+    integrationQueue: canonicalQueue,
+  };
+  const value = attachLiveSchedulerState(
+    observed,
+    {
+      mainSha: LIVE_MAIN,
+      authority: "TRUSTED_PR_EXACT_HEADS",
+      items: [ready, invalid],
+    },
+    undefined,
+  );
+  assert.equal(value.integrationQueue, canonicalQueue);
+  assert.equal(value.liveIntegrationQueueAuthority, "TRUSTED_PR_EXACT_HEADS");
+  assert.equal(value.liveIntegrationQueueMainSha, LIVE_MAIN);
+  assert.equal(value.liveSchedulerWork.length, 2);
+  assert.equal(
+    value.liveSchedulerWork[1].invalid,
+    "CLAIM_REGISTRY_UNAVAILABLE",
+  );
+  assert.equal(value.liveIntegrationQueue.batches.length, 1);
+  assert.equal(
+    value.liveIntegrationQueue.batches[0].items[0].changeSetId,
+    "MD-LIVE-Q",
+  );
+});
+
+test("mdctl live projection fails closed on main mismatch", () => {
+  assert.throws(
+    () =>
+      attachLiveSchedulerState(
+        { mainSha: LIVE_MAIN },
+        {
+          mainSha: "d".repeat(40),
+          authority: "TRUSTED_PR_EXACT_HEADS",
+          items: [],
+        },
+      ),
+    /MAIN_CHANGED_DURING_SCHEDULER_CAPTURE/u,
+  );
+});
+
+test("mdctl plan consumes live scheduler grants instead of stale ready tasks", () => {
+  const plan = buildMdctlPlan({
+    observed: {
+      mainSha: LIVE_MAIN,
+      collectionState: "CAPTURED",
+      blockers: [],
+      readyCandidates: [],
+      nextActions: [],
+      nextReadyTasks: [{ id: "STALE", dispatchAllowed: true }],
+      liveSchedulerPlan: {
+        grants: [{ id: "MD-TRUSTED", exactBaseSha: LIVE_MAIN }],
+        blocked: [],
+        violations: [],
+      },
+    },
+    invariants: { criticalFailures: [] },
+  });
+  assert.equal(plan.dispatchAllowed, true);
+  assert.deepEqual(
+    plan.dispatchableCandidates.map((item) => item.id),
+    ["MD-TRUSTED"],
+  );
+});
+
+test("mdctl schedule candidate requires exact main and carries dependencies", async () => {
+  const manifest = changeSet("MD-SCHEDULE", "schedule-objective", {
+    baseSha: LIVE_MAIN,
+  });
+  const accepted = await buildScheduleCandidateItem({
+    manifest,
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    dependencyEvaluator: async () => ({
+      satisfied: true,
+      unresolved: [],
+    }),
+  });
+  assert.equal(accepted.invalid, null);
+  assert.equal(accepted.ready, true);
+  assert.equal(accepted.changedFiles, 0);
+  assert.equal(accepted.changedLines, 0);
+
+  const stale = await buildScheduleCandidateItem({
+    manifest: { ...manifest, baseSha: "a".repeat(40) },
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    dependencyEvaluator: async () => ({
+      satisfied: false,
+      unresolved: ["MD-BASE"],
+    }),
+  });
+  assert.equal(stale.invalid, "CANDIDATE_EXACT_BASE_MISMATCH");
+  assert.equal(stale.dependenciesSatisfied, false);
+  assert.deepEqual(stale.unresolvedDependencies, ["MD-BASE"]);
+});
+
+test("reconcile projection replaces stale main assumptions with observed main", () => {
+  const mainSha = "b".repeat(40);
+  const projection = buildLiveProjection({
+    mainSha,
+    backlog: {
+      updatedFromMainSha: "c".repeat(40),
+      items: [{ id: "MD-A", state: "READY" }],
+    },
+    registry: {
+      claims: {
+        "MD-A": {
+          status: "IMPLEMENTING",
+          branch: "feat/md-a",
+          baseSha: "a".repeat(40),
+        },
+        "MD-OLD": {
+          status: "IMPLEMENTING",
+          branch: "feat/old",
+          baseSha: "a".repeat(40),
+        },
+      },
+    },
+    releaseState: {
+      candidateSha: null,
+      stagingSha: "d".repeat(40),
+      productionSha: "e".repeat(40),
+    },
+    liveWork: {
+      mainSha,
+      items: [
+        {
+          prNumber: 9,
+          headSha: "f".repeat(40),
+          changeSet: changeSet("MD-A", "objective-a"),
+          claim: { branch: "feat/md-a" },
+        },
+      ],
+    },
+  });
+  assert.equal(projection.currentMain, mainSha);
+  assert.equal(projection.backlog.anchorMatchesMain, false);
+  assert.deepEqual(projection.claims.staleCandidates, ["MD-OLD"]);
+  assert.equal(
+    projection.claims.items.find((item) => item.id === "MD-A").liveState,
+    "OPEN_PR",
+  );
+  assert.equal(projection.release.currentMain, mainSha);
+});
+
+test("reconcile integration queue is derived from trusted live MERGE_READY work", () => {
+  const mainSha = "b".repeat(40);
+  const projection = buildLiveProjection({
+    mainSha,
+    backlog: { updatedFromMainSha: null, items: [] },
+    registry: { claims: {} },
+    releaseState: {},
+    liveWork: {
+      mainSha,
+      items: [
+        {
+          prNumber: 4,
+          headSha: "c".repeat(40),
+          openPr: true,
+          writerActive: false,
+          ready: true,
+          changeSet: changeSet("MD-READY", "ready-objective", {
+            state: "MERGE_READY",
+            baseSha: mainSha,
+          }),
+          priority: "P0",
+          dependenciesSatisfied: true,
+          unresolvedDependencies: [],
+          behindBy: 0,
+          baseIsAncestorOfMain: true,
+          statsKnown: true,
+          changedFiles: 1,
+          changedLines: 10,
+          invalid: null,
+        },
+      ],
+    },
+  });
+  assert.equal(projection.integrationQueue.batches.length, 1);
+  assert.equal(
+    projection.integrationQueue.batches[0].items[0].changeSetId,
+    "MD-READY",
+  );
+});
+
+test("reconcile projection fails closed when live collector main differs", () => {
+  assert.throws(
+    () =>
+      buildLiveProjection({
+        mainSha: "b".repeat(40),
+        backlog: { items: [] },
+        registry: { claims: {} },
+        releaseState: {},
+        liveWork: { mainSha: "c".repeat(40), items: [] },
+      }),
+    /RECONCILE_LIVE_MAIN_MISMATCH/u,
+  );
+});
+
+test("mdctl rejects missing or unexpected live scheduler authority", () => {
+  const observed = { mainSha: LIVE_MAIN };
+  assert.throws(
+    () =>
+      attachLiveSchedulerState(
+        observed,
+        { mainSha: LIVE_MAIN, items: [] },
+        undefined,
+      ),
+    /LIVE_SCHEDULER_AUTHORITY_INVALID/u,
+  );
+  assert.throws(
+    () =>
+      attachLiveSchedulerState(
+        observed,
+        {
+          mainSha: LIVE_MAIN,
+          authority: "UNTRUSTED",
+          items: [],
+        },
+        undefined,
+      ),
+    /LIVE_SCHEDULER_AUTHORITY_INVALID/u,
+  );
+});
+
+test("mdctl terminal main readback fails closed after dependency reads", async () => {
+  assert.equal(
+    await assertCurrentMainUnchanged({
+      repository: "example/repo",
+      expectedMainSha: LIVE_MAIN,
+      api: async () => ({ sha: LIVE_MAIN }),
+    }),
+    LIVE_MAIN,
+  );
+  await assert.rejects(
+    assertCurrentMainUnchanged({
+      repository: "example/repo",
+      expectedMainSha: LIVE_MAIN,
+      api: async () => ({ sha: "d".repeat(40) }),
+    }),
+    /MAIN_CHANGED_AFTER_DEPENDENCY_READ/u,
+  );
 });
