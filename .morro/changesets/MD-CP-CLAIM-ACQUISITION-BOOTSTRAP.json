@@ -1,8 +1,8 @@
 {
   "id": "MD-CP-CLAIM-ACQUISITION-BOOTSTRAP",
-  "baseSha": "4628912eee9dc38a29a519d6410826495e65001f",
-  "branch": "fix/control-plane-claim-acquisition-gate-20261001",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "dbf9cf73869855b95e523c0ec714054763c13c35",
+  "branch": "chore/control-plane-claim-acquisition-retirement-20261001",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
