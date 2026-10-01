@@ -120,16 +120,11 @@ async function createOwnedLock(lockPath, ownerToken) {
   }
 }
 
-async function releaseOwnedLock(lockPath, ownerToken) {
+async function releaseAcquiredLock(lockPath) {
   try {
-    const observedOwner = (
-      await readFile(lockOwnerPath(lockPath), "utf8")
-    ).trim();
-    if (observedOwner !== ownerToken) return false;
-    await rm(lockPath, { recursive: true, force: true });
-    return true;
+    await rm(lockPath, { recursive: true, force: false });
   } catch (error) {
-    if (error?.code === "ENOENT") return false;
+    if (error?.code === "ENOENT") return;
     throw error;
   }
 }
@@ -169,7 +164,7 @@ async function withLedgerLock(path, operation) {
   try {
     return await operation();
   } finally {
-    if (acquired) await releaseOwnedLock(lockPath, ownerToken);
+    if (acquired) await releaseAcquiredLock(lockPath);
   }
 }
 export async function appendAuthorityEvent(path, event) {
