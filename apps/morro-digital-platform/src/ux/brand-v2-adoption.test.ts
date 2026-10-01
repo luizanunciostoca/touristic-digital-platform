@@ -19,10 +19,18 @@ describe("Brand V2 product adoption", () => {
       runtimeTdpMicro,
       legacyMorroMark,
     ] = await Promise.all([
-      read("../../../../packages/design-system/src/brand/v2/assets/morro-symbol.svg"),
-      read("../../../../packages/design-system/src/brand/v2/assets/morro-micro.svg"),
-      read("../../../../packages/design-system/src/brand/v2/assets/tdp-symbol.svg"),
-      read("../../../../packages/design-system/src/brand/v2/assets/tdp-micro.svg"),
+      read(
+        "../../../../packages/design-system/src/brand/v2/assets/morro-symbol.svg",
+      ),
+      read(
+        "../../../../packages/design-system/src/brand/v2/assets/morro-micro.svg",
+      ),
+      read(
+        "../../../../packages/design-system/src/brand/v2/assets/tdp-symbol.svg",
+      ),
+      read(
+        "../../../../packages/design-system/src/brand/v2/assets/tdp-micro.svg",
+      ),
       read("../../public/assets/brand/morro-digital-symbol-v2.svg"),
       read("../../public/assets/brand/morro-digital-micro-v2.svg"),
       read("../../public/assets/brand/tdp-symbol-v2.svg"),
@@ -54,7 +62,9 @@ describe("Brand V2 product adoption", () => {
     expect(html).toContain("<title>Morro Digital — Morro de São Paulo</title>");
     expect(html).toContain('content="#0867b2"');
     expect(html).toContain("/assets/brand/morro-digital-micro-v2.svg");
-    expect(html).toContain("/apps/morro-digital-platform/public/brand-v2.css");
+    expect(html).toContain(
+      "/apps/morro-digital-platform/public/brand-v2.css",
+    );
     expect(html).not.toContain("/pwa-icon-192.png");
 
     expect(manifest.name).toBe("Morro Digital — Morro de São Paulo");
@@ -101,7 +111,13 @@ describe("Brand V2 product adoption", () => {
         read("../../public/business-onboarding.html"),
       ]);
 
-    for (const surface of [tickets, booking, affiliate, dashboard, onboarding]) {
+    for (const surface of [
+      tickets,
+      booking,
+      affiliate,
+      dashboard,
+      onboarding,
+    ]) {
       expect(surface).toContain(
         "/apps/morro-digital-platform/public/brand-v2.css",
       );
