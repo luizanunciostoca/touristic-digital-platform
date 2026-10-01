@@ -1,5 +1,39 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-UX-TOURIST-REMEDIATION-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/ux-tourist-remediation-claim-20261001",
+      "baseSha": "919ce32e61977a3c4cb399172661477fa4597548",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-UX-TOURIST-REMEDIATION-001.json",
+        "apps/morro-digital-platform/public/explore-locations.css",
+        "apps/morro-digital-platform/public/tour-booking.html",
+        "apps/morro-digital-platform/public/tour-booking.css",
+        "apps/morro-digital-platform/public/ticketing.js",
+        "apps/admin-crm/public/lead-detail.html",
+        "apps/admin-crm/public/crm.css",
+        "apps/morro-digital-platform/public/premium-ux-v2.css",
+        "apps/morro-digital-platform/src/ux/navigation-tour-manual-conformance.test.ts",
+        "apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts",
+        "apps/morro-digital-platform/src/ux/navigation-banner-v2-contract.test.ts",
+        "apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts",
+        "apps/morro-digital-platform/src/legacy/visual-regression-manifest.test.ts",
+        ".github/workflows/map-tour-browser-regression.yml",
+        ".github/workflows/tour-booking-browser-regression.yml",
+        ".github/workflows/v1-tour-responsive-browser-regression.yml",
+        ".github/workflows/ticketing-v2-visual-regression.yml",
+        ".github/workflows/commerce-browser-regression.yml",
+        "tooling/ticketing/browser-contract.test.mjs"
+      ],
+      "domains": ["ux", "tourist", "crm", "navigation", "visual-evidence"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T12:00:00Z"
+    }
+  }
 }
