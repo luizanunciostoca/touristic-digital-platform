@@ -50,7 +50,7 @@ export function resolvePublicPlaceReadContext(
 export function allowsMorroLegacyPlaceFallback(
   context: PublicPlaceReadContext,
 ): boolean {
-  return context.destinationId === MORRO_PUBLIC_PLACE_READ_CONTEXT.destinationId;
+  return (\n    context.destinationId === MORRO_PUBLIC_PLACE_READ_CONTEXT.destinationId\n  );
 }
 
 export function createPublicPlaceReadContextFromDestination(
