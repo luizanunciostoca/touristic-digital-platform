@@ -7,9 +7,15 @@ import {
 } from "@touristic/assistant";
 import type { DestinationId } from "@touristic/core";
 
-import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
-import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
-import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
+import {
+  resolveAssistantCanonicalPhotos,
+} from "./assistant-canonical-photo-adapter.js";
+import {
+  createAssistantBrowserDomainHandlers,
+} from "./assistant-domain-adapter.js";
+import {
+  fetchAssistantPlaceDetails,
+} from "./assistant-place-details-adapter.js";
 import { createAssistantSearchHandler } from "./assistant-search-adapter.js";
 import {
   createPublicPlaceReadContextFromDestination,
@@ -209,7 +215,9 @@ describe("Phase20 public Place + Assistant binding", () => {
       const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
         const url = inputUrl(input);
         calls.push(url);
-        if (url.startsWith("/api/places/v1/map?")) return canonicalMapResponse();
+        if (url.startsWith("/api/places/v1/map?")) {
+          return canonicalMapResponse();
+        }
         return canonicalDetailResponse("itacare");
       });
 
