@@ -1,45 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-CP-AUTONOMOUS-BLOCK-B": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/control-plane-merge-gate-retirement-20261001",
-      "baseSha": "d65c2b3dcc086008ea2bd4e1c3a5f9d8f7410a0c",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/event-ledger.schema.json",
-        ".github/morro-control/events.ndjson",
-        ".github/morro-control/capability-lease.schema.json",
-        ".github/morro-control/capability-leases.json",
-        ".github/morro-control/context-pack.schema.json",
-        ".morro/changesets/MD-CP-AUTONOMOUS-BLOCK-A.json",
-        ".morro/changesets/MD-CP-AUTONOMOUS-BLOCK-B.json",
-        ".morro/changeset-v2.schema.json",
-        ".morro/fabric.json",
-        "ENGINEERING-OPERATING-MANUAL.md",
-        "tooling/fabric/validate-changeset.mjs",
-        "tooling/fabric/validate-changeset.test.mjs",
-        "tooling/mdctl/**",
-        "tooling/control-state/status.mjs",
-        "tooling/ci/control-state-status.test.mjs",
-        "tooling/control-state/mdctl-changeset-v2.test.mjs",
-        "tooling/control-state/mdctl-capability-leases.test.mjs",
-        "tooling/control-state/mdctl-context-pack.test.mjs",
-        "tooling/control-state/mdctl-task-lifecycle.test.mjs",
-        "package.json",
-        "tooling/control-state/mdctl-event-ledger.test.mjs",
-        ".morro/scheduler-policy.json",
-        "tooling/control-state/mdctl-scheduler.test.mjs",
-        "tooling/control-state/mdctl-plan.test.mjs",
-        "tooling/control-state/mdctl-merge-gate.test.mjs",
-        ".github/workflows/morro-merge-gate.yml"
-      ],
-      "domains": ["ci-release", "control-plane"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-01T20:00:00Z"
-    }
-  }
+  "claims": {}
 }

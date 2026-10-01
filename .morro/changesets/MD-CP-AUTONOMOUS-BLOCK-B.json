@@ -1,8 +1,8 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "d65c2b3dcc086008ea2bd4e1c3a5f9d8f7410a0c",
-  "branch": "fix/control-plane-merge-gate-retirement-20261001",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "66a63d074c1e82f5dc60b50ad71edf891fd5693e",
+  "branch": "chore/control-plane-block-b-retirement-20261001",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
