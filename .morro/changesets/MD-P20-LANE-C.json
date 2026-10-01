@@ -1,0 +1,64 @@
+{
+  "id": "MD-P20-LANE-C",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "branch": "wave/phase20-c-commerce-ticketing-affiliates-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "packages/commerce/**",
+      "packages/ticketing/**",
+      "packages/affiliates/**",
+      "packages/ordering/**",
+      "services/commerce/**",
+      "services/ticketing/**",
+      "services/affiliates/**",
+      "services/ordering/**",
+      "tooling/ticketing/**",
+      "apps/morro-digital-platform/src/affiliate-*.ts",
+      "apps/morro-digital-platform/src/ticketing-*.ts",
+      "apps/morro-digital-platform/tooling/affiliates-api*.mjs",
+      "apps/morro-digital-platform/tooling/commerce-api*.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-api*.mjs",
+      "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-action-facts.node-test.mjs",
+      "docs/integration/phase20/lane-c/**"
+    ],
+    "contracts": [
+      "commerce-offering-identity",
+      "reservation-capacity",
+      "ticket-fulfillment"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "verified-payment-outcome",
+      "platform-authz"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "authorityInvariants": [
+    "Affiliates remains canonical attribution owner",
+    "Commerce and Ticketing remain lifecycle owners",
+    "no Financial truth or money movement",
+    "ownerApproved=false unless explicit owner decision",
+    "CONTROL_TOWER_SHARED_PATCH_REQUIRED for any path outside owns.paths"
+  ]
+}
