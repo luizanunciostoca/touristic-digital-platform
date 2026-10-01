@@ -51,7 +51,9 @@
         "MERGED"
       ]
     },
-    "risk": {\n      "enum": ["low", "medium", "high", "critical"]\n    },
+    "risk": {
+      "enum": ["low", "medium", "high", "critical"]
+    },
     "scope": {
       "enum": [
         "PLATFORM",
