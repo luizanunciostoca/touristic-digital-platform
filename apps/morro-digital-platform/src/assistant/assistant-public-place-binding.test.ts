@@ -7,15 +7,9 @@ import {
 } from "@touristic/assistant";
 import type { DestinationId } from "@touristic/core";
 
-import {
-  resolveAssistantCanonicalPhotos,
-} from "./assistant-canonical-photo-adapter.js";
-import {
-  createAssistantBrowserDomainHandlers,
-} from "./assistant-domain-adapter.js";
-import {
-  fetchAssistantPlaceDetails,
-} from "./assistant-place-details-adapter.js";
+import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
+import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
+import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 import { createAssistantSearchHandler } from "./assistant-search-adapter.js";
 import {
   createPublicPlaceReadContextFromDestination,
@@ -76,10 +70,7 @@ function mapResponse(): Response {
   );
 }
 
-function detailResponse(
-  destinationId: string,
-  withMedia = false,
-): Response {
+function detailResponse(destinationId: string, withMedia = false): Response {
   return new Response(
     JSON.stringify({
       profile: {
@@ -170,14 +161,12 @@ describe("Phase20 public Place + Assistant binding", () => {
   });
 
   it("uses same-origin Place reads for Itacare", async () => {
-    const fetcher = vi.fn<typeof globalThis.fetch>(
-      async (input, init) => {
-        expect(init?.method).toBe("GET");
-        const url = inputUrl(input);
-        expect(url.startsWith("/api/places/v1/map?")).toBe(true);
-        return mapResponse();
-      },
-    );
+    const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
+      expect(init?.method).toBe("GET");
+      const url = inputUrl(input);
+      expect(url.startsWith("/api/places/v1/map?")).toBe(true);
+      return mapResponse();
+    });
 
     const handler = createAssistantSearchHandler({
       fetch: fetcher,
@@ -235,25 +224,20 @@ describe("Phase20 public Place + Assistant binding", () => {
 
     for (const [language, locale] of cases) {
       const calls: string[] = [];
-      const fetcher = vi.fn<typeof globalThis.fetch>(
-        async (input) => {
-          const url = inputUrl(input);
-          calls.push(url);
-          if (url.startsWith("/api/places/v1/map?")) {
-            return mapResponse();
-          }
-          return detailResponse("itacare");
-        },
-      );
+      const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
+        const url = inputUrl(input);
+        calls.push(url);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return mapResponse();
+        }
+        return detailResponse("itacare");
+      });
 
-      const result = await fetchAssistantPlaceDetails(
-        "Praia da Concha",
-        {
-          fetch: fetcher,
-          language,
-          publicPlaceReadContext: ITACARE_CONTEXT,
-        },
-      );
+      const result = await fetchAssistantPlaceDetails("Praia da Concha", {
+        fetch: fetcher,
+        language,
+        publicPlaceReadContext: ITACARE_CONTEXT,
+      });
 
       expect(result?.source).toBe("canonical");
       const localeParam = "locale=" + encodeURIComponent(locale);
