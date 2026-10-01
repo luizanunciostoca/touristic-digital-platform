@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-CP-RETIREMENT-PROOF-HARDENING",
-  "baseSha": "3c3fab0707c7a5a8d3e31f8d2ad77102c98ea999",
-  "branch": "fix/control-plane-retirement-proof-hardening-v3-20261001",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "ebaf980d1f33eda93cbd87a94685809a6122ceab",
+  "branch": "chore/control-plane-retirement-proof-hardening-retire-20261001",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
