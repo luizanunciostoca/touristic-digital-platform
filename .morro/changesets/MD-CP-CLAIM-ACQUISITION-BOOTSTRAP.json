@@ -1,0 +1,88 @@
+{
+  "id": "MD-CP-CLAIM-ACQUISITION-BOOTSTRAP",
+  "baseSha": "f227044f57537cdf971f64e76cf826c988e7deff",
+  "branch": "infra/control-plane-claim-acquisition-bootstrap-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-CP-CLAIM-ACQUISITION-BOOTSTRAP.json",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs"
+    ],
+    "contracts": ["TDP-MERGE-GATE", "TDP-CLAIM-ACQUISITION"]
+  },
+  "reads": {
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "TDP-CONTROL-PLANE-V3.2-AUTHORITY",
+      "TDP-MACHINE-EVIDENCE-STATE"
+    ]
+  },
+  "produces": {
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RENEWED",
+      "CLAIM_RELEASED"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-B"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "schemaVersion": 2,
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "claim-acquisition-gate",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "control-plane-v3.2-claim-acquisition-bootstrap"
+}

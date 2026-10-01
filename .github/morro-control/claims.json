@@ -1,5 +1,23 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-CP-CLAIM-ACQUISITION-BOOTSTRAP": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/control-plane-claim-acquisition-bootstrap-20261001",
+      "baseSha": "f227044f57537cdf971f64e76cf826c988e7deff",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-CP-CLAIM-ACQUISITION-BOOTSTRAP.json",
+        "tooling/mdctl/merge-gate.mjs",
+        "tooling/control-state/mdctl-merge-gate.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T06:00:00Z"
+    }
+  }
 }
