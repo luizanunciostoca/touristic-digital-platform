@@ -35,7 +35,7 @@ function v2() {
       commands: [
         {
           id: "unit",
-          argv: ["node", "--test", "tooling/test.mjs"],
+          argv: ["node", "--test", "tooling/test.test.mjs"],
           timeoutSeconds: 60,
         },
       ],
