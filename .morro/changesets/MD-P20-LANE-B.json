@@ -1,0 +1,60 @@
+{
+  "id": "MD-P20-LANE-B",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "branch": "wave/phase20-b-business-auth-control-crm-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "owns": {
+    "paths": [
+      "packages/auth/**",
+      "packages/auth-browser/**",
+      "packages/business/**",
+      "packages/crm/**",
+      "services/auth/**",
+      "services/crm/**",
+      "apps/control-center/**",
+      "apps/admin-crm/**",
+      "apps/morro-digital-platform/src/business-*.ts",
+      "apps/morro-digital-platform/src/crm-*.ts",
+      "apps/morro-digital-platform/src/morro-pro-business-management*.ts",
+      "apps/morro-digital-platform/tooling/auth-api*.mjs",
+      "apps/morro-digital-platform/tooling/business-api*.mjs",
+      "apps/morro-digital-platform/tooling/crm-api*.mjs",
+      "apps/morro-digital-platform/tooling/business-onboarding-lifecycle-browser-contract.mjs",
+      "docs/integration/phase20/lane-b/**"
+    ],
+    "contracts": [
+      "platform-authz"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "reservation-capacity",
+      "verified-payment-outcome"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "authorityInvariants": [
+    "ownerApproved=false unless explicit owner decision",
+    "versionedContractApproved=false unless explicit owner decision",
+    "no destination-scope inference from business scope",
+    "CONTROL_TOWER_SHARED_PATCH_REQUIRED for any path outside owns.paths"
+  ]
+}
