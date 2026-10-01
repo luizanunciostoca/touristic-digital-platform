@@ -48,3 +48,12 @@ export type {
   NavigationContract,
   NavigationItemContract,
 } from "./core-ui/contracts.js";
+
+export {
+  BRAND_FAMILY_V2_REFERENCE,
+  BRAND_FAMILY_V2_VERSION,
+  TERRITORIAL_DESIGN_VALIDATION,
+  brandFamilyV2,
+  type BrandFamilyV2,
+} from "./brand/v2/index.js";
+export { brandTokensV2, type BrandTokensV2 } from "./brand/v2/tokens.js";
