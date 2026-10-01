@@ -5,8 +5,8 @@
     "MD-CP-CLAIM-ACQUISITION-BOOTSTRAP": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/control-plane-claim-acquisition-bootstrap-20261001",
-      "baseSha": "f227044f57537cdf971f64e76cf826c988e7deff",
+      "branch": "fix/control-plane-claim-acquisition-gate-20261001",
+      "baseSha": "4628912eee9dc38a29a519d6410826495e65001f",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -19,7 +19,7 @@
       ],
       "domains": ["ci-release", "control-plane"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T06:00:00Z"
     }
   }
