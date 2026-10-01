@@ -9,6 +9,13 @@ import {
   semanticLocks,
   validateSchedulerPolicy,
 } from "../mdctl/scheduler.mjs";
+import {
+  authorityDivergence,
+  collectLivePullWork,
+  evaluateDependenciesAtMain,
+  schedulerClaimBindingError,
+  verifyTrustedClaimEvidence,
+} from "../mdctl/scheduler-live.mjs";
 
 function changeSet(id, objective, overrides = {}) {
   return {
@@ -397,4 +404,646 @@ test("stale active writer prevents new writer grants", () => {
     ),
   );
   assert.equal(plan.dispatchAllowed, false);
+});
+
+const LIVE_MAIN = "b".repeat(40);
+const LIVE_HEAD = "c".repeat(40);
+const LIVE_BRANCH = "feat/live-scheduler";
+const LIVE_ID = "MD-LIVE";
+
+function encodeLiveContent(value, blobChar) {
+  return {
+    encoding: "base64",
+    content: Buffer.from(JSON.stringify(value)).toString("base64"),
+    sha: blobChar.repeat(40),
+  };
+}
+
+function liveClaim(manifest, overrides = {}) {
+  return {
+    owner: "CHATGPT-PRO-CONTROL",
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    branch: manifest.branch,
+    baseSha: manifest.baseSha,
+    paths: [...manifest.owns.paths],
+    domains: ["control-plane"],
+    risk: "P1",
+    status: "LOCAL_PROVEN",
+    expiresAt: "2099-01-01T00:00:00Z",
+    ...overrides,
+  };
+}
+
+function createLiveApi(options = {}) {
+  const canonicalManifest = changeSet(LIVE_ID, "live-scheduler", {
+    baseSha: "a".repeat(40),
+    branch: "authority/live-scheduler",
+    state: "LOCAL_PROVEN",
+  });
+  const candidateManifest = changeSet(LIVE_ID, "live-scheduler", {
+    baseSha: LIVE_MAIN,
+    branch: LIVE_BRANCH,
+    state: "LOCAL_PROVEN",
+  });
+  if (options.authorityWiden) {
+    candidateManifest.owns = {
+      paths: [...candidateManifest.owns.paths, "packages/extra/**"],
+      contracts: [...candidateManifest.owns.contracts],
+    };
+  }
+  if (options.proofContractDrift) {
+    candidateManifest.proof = {
+      ...candidateManifest.proof,
+      budget: {
+        ...candidateManifest.proof.budget,
+        maxSeconds: candidateManifest.proof.budget.maxSeconds + 1,
+      },
+    };
+  }
+  if (options.exactBaseMismatch) candidateManifest.baseSha = "a".repeat(40);
+  if (options.manifestIdMismatch) candidateManifest.id = "MD-OTHER";
+
+  const canonicalClaim = liveClaim(canonicalManifest);
+  const candidateClaim = liveClaim(candidateManifest, {
+    branch: LIVE_BRANCH,
+    baseSha: candidateManifest.baseSha,
+  });
+  if (options.expiryExtended) {
+    canonicalClaim.expiresAt = "2099-01-01T00:00:00Z";
+    candidateClaim.expiresAt = "2100-01-01T00:00:00Z";
+  }
+  if (options.missingClaim) candidateClaim.branch = "feat/not-this-pr";
+  const canonicalClaims = { [LIVE_ID]: canonicalClaim };
+  const candidateClaims = { [LIVE_ID]: candidateClaim };
+  if (options.ambiguousClaim) {
+    canonicalClaims["MD-ALT"] = {
+      ...canonicalClaim,
+      branch: "authority/alt",
+    };
+    candidateClaims["MD-ALT"] = { ...candidateClaim };
+  }
+  if (options.extraClaimKey) {
+    candidateClaims["MD-EXTRA"] = {
+      ...candidateClaim,
+      branch: "feat/extra",
+    };
+  }
+  const canonicalRegistry = {
+    registryAuthority: "ORCHESTRATOR",
+    claims: canonicalClaims,
+  };
+  const candidateRegistry = {
+    registryAuthority: "ORCHESTRATOR",
+    claims: candidateClaims,
+  };
+  const listed = {
+    number: 7,
+    draft: false,
+    head: { sha: LIVE_HEAD, ref: LIVE_BRANCH },
+    base: { ref: "main" },
+  };
+  let mainCalls = 0;
+  let pullListCalls = 0;
+
+  const trustJobs = [
+    "trusted-claim-guard-bootstrap",
+    "base-controlled-orchestrator-registry-proof",
+    "base-controlled-independent-proof / trusted-agent-profile-contract",
+  ];
+
+  const api = async (endpoint, apiOptions = {}) => {
+    if (endpoint.endsWith("/commits/main")) {
+      mainCalls += 1;
+      return {
+        sha: options.mainMoves && mainCalls > 1 ? "d".repeat(40) : LIVE_MAIN,
+      };
+    }
+    if (endpoint.includes("/pulls?state=open&base=main&per_page=100")) {
+      assert.equal(apiOptions.paginate, true);
+      pullListCalls += 1;
+      const terminal = options.pullSetMoves && pullListCalls > 1;
+      return [
+        [],
+        [
+          terminal
+            ? {
+                ...listed,
+                head: { ...listed.head, sha: "d".repeat(40) },
+              }
+            : listed,
+        ],
+      ];
+    }
+    if (endpoint.endsWith("/pulls/7")) {
+      return {
+        ...listed,
+        head: options.headMoves
+          ? { ...listed.head, sha: "d".repeat(40) }
+          : listed.head,
+        changed_files: options.unknownStats ? null : 6,
+        additions: options.unknownStats ? null : 80,
+        deletions: options.unknownStats ? null : 20,
+        created_at: "2026-10-01T12:00:00Z",
+      };
+    }
+    if (endpoint.endsWith("/pulls/7/files?per_page=100")) {
+      assert.equal(apiOptions.paginate, true);
+      if (options.filesUnavailable) throw new Error("files unavailable");
+      const files = [
+        { filename: "packages/md-live/a.mjs", additions: 20, deletions: 5 },
+        { filename: "packages/md-live/b.mjs", additions: 15, deletions: 4 },
+        { filename: "packages/md-live/c.mjs", additions: 15, deletions: 3 },
+        { filename: "packages/md-live/d.mjs", additions: 10, deletions: 3 },
+        { filename: "packages/md-live/e.mjs", additions: 10, deletions: 3 },
+        { filename: "packages/md-live/f.mjs", additions: 10, deletions: 2 },
+      ];
+      if (options.fileOutsideScope) {
+        files[0] = {
+          ...files[0],
+          filename: "packages/other/outside.mjs",
+        };
+      }
+      return [files.slice(0, 3), files.slice(3)];
+    }
+
+    const encodedMain = encodeURIComponent(LIVE_MAIN);
+    const encodedHead = encodeURIComponent(LIVE_HEAD);
+    if (
+      endpoint.includes(
+        "/contents/.github/morro-control/claims.json?ref=" + encodedMain,
+      )
+    ) {
+      return encodeLiveContent(canonicalRegistry, "1");
+    }
+    if (
+      endpoint.includes(
+        "/contents/.github/morro-control/claims.json?ref=" + encodedHead,
+      )
+    ) {
+      if (options.registryMalformed) throw new Error("registry unavailable");
+      return encodeLiveContent(candidateRegistry, "2");
+    }
+    if (
+      endpoint.includes(
+        "/contents/.morro/changesets/" + LIVE_ID + ".json?ref=" + encodedMain,
+      )
+    ) {
+      return encodeLiveContent(canonicalManifest, "3");
+    }
+    if (
+      endpoint.includes(
+        "/contents/.morro/changesets/" + LIVE_ID + ".json?ref=" + encodedHead,
+      )
+    ) {
+      return encodeLiveContent(candidateManifest, "4");
+    }
+
+    if (
+      endpoint.includes("/contents/") &&
+      (endpoint.includes("morro-claim-guard-trust-bootstrap.yml") ||
+        endpoint.includes("morro-claim-guard-trusted.yml") ||
+        endpoint.includes("tooling/fabric/claim-guard.mjs"))
+    ) {
+      const isHead = endpoint.includes("?ref=" + encodedHead);
+      return {
+        sha:
+          isHead && options.trustFileDiverged ? "9".repeat(40) : "8".repeat(40),
+      };
+    }
+    if (
+      endpoint.includes(
+        "/actions/runs?head_sha=" +
+          encodeURIComponent(LIVE_HEAD) +
+          "&event=pull_request&per_page=100",
+      )
+    ) {
+      assert.equal(apiOptions.paginate, true);
+      return [
+        {
+          workflow_runs: [
+            {
+              id: 99,
+              name: "Trusted Claim Guard Bootstrap",
+              path: ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+              event: "pull_request",
+              head_sha: LIVE_HEAD,
+              head_branch: LIVE_BRANCH,
+              status: "completed",
+              conclusion: "success",
+              created_at: "2026-10-01T12:10:00Z",
+            },
+            ...(options.latestTrustRunFails
+              ? [
+                  {
+                    id: 100,
+                    name: "Trusted Claim Guard Bootstrap",
+                    path: ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+                    event: "pull_request",
+                    head_sha: LIVE_HEAD,
+                    head_branch: LIVE_BRANCH,
+                    status: "completed",
+                    conclusion: "failure",
+                    created_at: "2026-10-01T12:11:00Z",
+                  },
+                ]
+              : []),
+          ],
+        },
+      ];
+    }
+    if (endpoint.endsWith("/actions/runs/99/jobs?per_page=100")) {
+      assert.equal(apiOptions.paginate, true);
+      return [
+        {
+          jobs: trustJobs
+            .filter((name) => name !== options.missingTrustJob)
+            .map((name) => ({
+              name,
+              status: "completed",
+              conclusion: "success",
+              head_sha: LIVE_HEAD,
+            })),
+        },
+      ];
+    }
+    if (
+      endpoint.endsWith("/commits/" + LIVE_HEAD + "/check-runs?per_page=100")
+    ) {
+      assert.equal(apiOptions.paginate, true);
+      return [
+        {
+          check_runs: trustJobs.map((name) => ({
+            name,
+            status: "completed",
+            conclusion: "success",
+            app: {
+              id: options.spoofCheck ? 999 : 15368,
+              slug: options.spoofCheck ? "other-app" : "github-actions",
+            },
+          })),
+        },
+      ];
+    }
+    if (endpoint.includes("/compare/")) {
+      if (options.compareUnknown) throw new Error("compare unavailable");
+      if (options.exactBaseMismatch) {
+        return {
+          status: "ahead",
+          ahead_by: 1,
+          merge_base_commit: { sha: "a".repeat(40) },
+        };
+      }
+      return {
+        status: "identical",
+        ahead_by: 0,
+        merge_base_commit: { sha: LIVE_MAIN },
+      };
+    }
+    throw new Error("unexpected endpoint: " + endpoint);
+  };
+
+  return {
+    api,
+    canonicalManifest,
+    candidateManifest,
+    canonicalClaim,
+    candidateClaim,
+  };
+}
+
+test("live collector paginates, binds trusted exact-head proof and preserves stats", async () => {
+  const fixture = createLiveApi();
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+    now: Date.parse("2026-10-01T12:30:00Z"),
+  });
+  assert.equal(live.mainSha, LIVE_MAIN);
+  assert.equal(live.authority, "TRUSTED_PR_EXACT_HEADS");
+  assert.equal(live.items.length, 1);
+  const item = live.items[0];
+  assert.equal(item.invalid, null);
+  assert.equal(item.prNumber, 7);
+  assert.equal(item.headSha, LIVE_HEAD);
+  assert.equal(item.changedFiles, 6);
+  assert.equal(item.changedLines, 100);
+  assert.equal(item.statsKnown, true);
+  assert.equal(item.behindBy, 0);
+  assert.equal(item.baseIsAncestorOfMain, true);
+  assert.equal(item.trust.trusted, true);
+  assert.equal(item.trust.authority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
+  assert.equal(item.trust.workflowRunId, 99);
+});
+
+test("live collector rejects head movement during capture", async () => {
+  const fixture = createLiveApi({ headMoves: true });
+  await assert.rejects(
+    collectLivePullWork({ repository: "example/repo", api: fixture.api }),
+    /SCHEDULER_PR_MOVED_DURING_CAPTURE/u,
+  );
+});
+
+test("live collector rejects canonical main movement during capture", async () => {
+  const fixture = createLiveApi({ mainMoves: true });
+  await assert.rejects(
+    collectLivePullWork({ repository: "example/repo", api: fixture.api }),
+    /MAIN_CHANGED_DURING_SCHEDULER_CAPTURE/u,
+  );
+});
+
+test("live collector rejects pull-set movement during capture", async () => {
+  const fixture = createLiveApi({ pullSetMoves: true });
+  await assert.rejects(
+    collectLivePullWork({ repository: "example/repo", api: fixture.api }),
+    /PULL_SET_CHANGED_DURING_SCHEDULER_CAPTURE/u,
+  );
+});
+
+test("live collector preserves malformed registry PR as an invalid blocker", async () => {
+  const fixture = createLiveApi({ registryMalformed: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(live.items.length, 1);
+  assert.equal(live.items[0].invalid, "CLAIM_REGISTRY_UNAVAILABLE");
+  const plan = buildSchedulerPlan({
+    mainSha: LIVE_MAIN,
+    workItems: live.items,
+  });
+  assert.ok(
+    plan.violations.some(
+      (entry) => entry.reason === "CLAIM_REGISTRY_UNAVAILABLE",
+    ),
+  );
+});
+
+test("live collector binds manifest identity to the matching claim key", async () => {
+  const fixture = createLiveApi({ manifestIdMismatch: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(live.items[0].invalid, "CHANGESET_INVALID");
+});
+
+test("live collector rejects ambiguous branch claims", async () => {
+  const fixture = createLiveApi({ ambiguousClaim: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(live.items[0].invalid, "CLAIM_AMBIGUOUS");
+});
+
+test("live collector rejects candidate authority widened beyond exact main", async () => {
+  const fixture = createLiveApi({ authorityWiden: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.match(live.items[0].invalid, /AUTHORITY_DIVERGED_FROM_MAIN/u);
+});
+
+test("trusted claim evidence fails when trusted control files diverge", async () => {
+  const fixture = createLiveApi({ trustFileDiverged: true });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUSTED_CONTROL_FILE_DIVERGED/u);
+});
+
+test("trusted claim evidence requires every base-controlled job", async () => {
+  const fixture = createLiveApi({
+    missingTrustJob: "base-controlled-orchestrator-registry-proof",
+  });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUSTED_CLAIM_GUARD_JOB_INVALID/u);
+});
+
+test("trusted claim evidence rejects same-name checks from another app", async () => {
+  const fixture = createLiveApi({ spoofCheck: true });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUSTED_GITHUB_ACTIONS_CHECK_MISSING/u);
+});
+
+test("unknown compare and PR statistics fail closed as an invalid blocker", async () => {
+  const fixture = createLiveApi({
+    compareUnknown: true,
+    unknownStats: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  const item = live.items[0];
+  assert.equal(item.invalid, "PR_STATS_OR_FILES_MISMATCH");
+  assert.equal(item.behindBy, null);
+  assert.equal(item.baseIsAncestorOfMain, false);
+  assert.equal(item.statsKnown, false);
+  const plan = buildSchedulerPlan({
+    mainSha: LIVE_MAIN,
+    workItems: live.items,
+  });
+  assert.equal(plan.dispatchAllowed, false);
+  assert.ok(
+    plan.violations.some(
+      (entry) =>
+        entry.code === "LIVE_WORK_ITEM_INVALID" &&
+        entry.reason === "PR_STATS_OR_FILES_MISMATCH",
+    ),
+  );
+});
+
+test("dependency proof reads only exact-main MERGED manifests", async () => {
+  const child = changeSet("MD-CHILD-LIVE", "child-live", {
+    dependencies: ["MD-BASE-LIVE"],
+  });
+  const merged = changeSet("MD-BASE-LIVE", "base-live", {
+    state: "MERGED",
+  });
+  const api = async (endpoint) => {
+    assert.match(endpoint, /MD-BASE-LIVE\.json\?ref=/u);
+    return encodeLiveContent(merged, "7");
+  };
+  assert.deepEqual(
+    await evaluateDependenciesAtMain({
+      changeSet: child,
+      repository: "example/repo",
+      mainSha: LIVE_MAIN,
+      api,
+    }),
+    { satisfied: true, unresolved: [] },
+  );
+  assert.deepEqual(
+    await evaluateDependenciesAtMain({
+      changeSet: child,
+      repository: "example/repo",
+      mainSha: LIVE_MAIN,
+      api: async () =>
+        encodeLiveContent({ ...merged, state: "LOCAL_PROVEN" }, "7"),
+    }),
+    { satisfied: false, unresolved: ["MD-BASE-LIVE"] },
+  );
+});
+
+test("claim binding rejects claim/manifest path mismatch", () => {
+  const fixture = createLiveApi();
+  const claim = {
+    ...fixture.candidateClaim,
+    paths: [...fixture.candidateClaim.paths, "packages/extra/**"],
+  };
+  assert.equal(
+    schedulerClaimBindingError(
+      claim,
+      fixture.candidateManifest,
+      LIVE_BRANCH,
+      Date.parse("2026-10-01T12:30:00Z"),
+    ),
+    "CLAIM_CHANGESET_PATHS_MISMATCH",
+  );
+});
+
+test("authority envelope ignores lifecycle identity but not semantic authority", () => {
+  const fixture = createLiveApi();
+  assert.equal(
+    authorityDivergence({
+      canonicalClaim: fixture.canonicalClaim,
+      candidateClaim: fixture.candidateClaim,
+      canonicalChangeSet: fixture.canonicalManifest,
+      candidateChangeSet: fixture.candidateManifest,
+    }),
+    null,
+  );
+  const widened = structuredClone(fixture.candidateManifest);
+  widened.auth.capabilities.push("platform:admin");
+  assert.match(
+    authorityDivergence({
+      canonicalClaim: fixture.canonicalClaim,
+      candidateClaim: fixture.candidateClaim,
+      canonicalChangeSet: fixture.canonicalManifest,
+      candidateChangeSet: widened,
+    }),
+    /CHANGESET_AUTHORITY_DIVERGED_FROM_MAIN/u,
+  );
+});
+
+test("live collector rejects claim registry keyset mutation", async () => {
+  const fixture = createLiveApi({ extraClaimKey: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(live.items[0].invalid, "CLAIM_REGISTRY_KEYSET_CHANGED");
+});
+
+test("live collector rejects unavailable PR file inventory", async () => {
+  const fixture = createLiveApi({ filesUnavailable: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(live.items[0].invalid, "PR_FILES_UNAVAILABLE");
+});
+
+test("live collector rejects changed file outside canonical claim scope", async () => {
+  const fixture = createLiveApi({ fileOutsideScope: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.match(live.items[0].invalid, /CANONICAL_CLAIM_PATH_VIOLATION/u);
+});
+
+test("latest failed Trusted Claim Guard run cannot borrow an older success", async () => {
+  const fixture = createLiveApi({ latestTrustRunFails: true });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.equal(trust.reason, "TRUSTED_CLAIM_GUARD_RUN_NOT_SUCCESS");
+});
+
+test("candidate cannot extend canonical claim expiry", async () => {
+  const fixture = createLiveApi({ expiryExtended: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+    now: Date.parse("2026-10-01T12:30:00Z"),
+  });
+  assert.equal(
+    live.items[0].invalid,
+    "CLAIM_EXPIRY_EXCEEDS_CANONICAL_AUTHORITY",
+  );
+  assert.equal(live.items[0].writerActive, false);
+  assert.equal(live.items[0].ready, false);
+});
+
+test("candidate cannot alter canonical proof contract", async () => {
+  const fixture = createLiveApi({ proofContractDrift: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.match(
+    live.items[0].invalid,
+    /CHANGESET_AUTHORITY_DIVERGED_FROM_MAIN/u,
+  );
+  assert.equal(live.items[0].writerActive, false);
+  assert.equal(live.items[0].ready, false);
+});
+
+test("live collector keeps a recent ancestral writer valid without granting merge readiness", async () => {
+  const fixture = createLiveApi({ exactBaseMismatch: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  const item = live.items[0];
+  assert.equal(item.invalid, null);
+  assert.equal(item.writerActive, true);
+  assert.equal(item.ready, false);
+  assert.equal(item.behindBy, 1);
+  assert.equal(item.baseIsAncestorOfMain, true);
+  const plan = buildSchedulerPlan({
+    mainSha: LIVE_MAIN,
+    workItems: live.items,
+  });
+  assert.equal(plan.violations.length, 0);
+  assert.equal(plan.dispatchAllowed, false);
+});
+
+test("live collector preserves a missing branch claim as an invalid blocker", async () => {
+  const fixture = createLiveApi({ missingClaim: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.equal(live.items.length, 1);
+  assert.equal(live.items[0].invalid, "CLAIM_MISSING");
+  assert.equal(live.items[0].writerActive, false);
+  assert.equal(live.items[0].ready, false);
 });

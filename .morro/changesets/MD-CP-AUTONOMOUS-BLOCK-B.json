@@ -1,7 +1,7 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "4f01d21911ae6a22c49af702094dda3b572451dc",
-  "branch": "infra/control-plane-v3.2-b2c-scheduler-core-20261001",
+  "baseSha": "25240ce5737f0c052a31145b74bca4a2c94e9fc1",
+  "branch": "infra/control-plane-v3.2-b2c-live-collector-20261001",
   "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
