@@ -41,16 +41,9 @@ body {
   margin-bottom: 24px;
 }
 
-.logo {
-  width: 46px;
-  height: 46px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0ea5e9, #2563eb);
-  font-size: 22px;
-  font-weight: 800;
+.brand .brand-v2__symbol {
+  width: 52px;
+  height: 52px;
 }
 
 h1 {
@@ -82,8 +75,8 @@ input {
 }
 
 input:focus-visible {
-  border-color: #38bdf8;
-  box-shadow: 0 0 0 3px rgb(56 189 248 / 15%);
+  border-color: #19b6d8;
+  box-shadow: 0 0 0 3px rgb(25 182 216 / 18%);
 }
 
 button {
@@ -92,7 +85,7 @@ button {
   padding: 14px 16px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  background: linear-gradient(135deg, #0867b2, #07579e);
   color: #fff;
   font: inherit;
   font-weight: 800;
@@ -100,7 +93,7 @@ button {
 }
 
 button:focus-visible {
-  outline: 3px solid #7dd3fc;
+  outline: 3px solid #19b6d8;
   outline-offset: 3px;
 }
 
