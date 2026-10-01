@@ -7,9 +7,15 @@ import {
 } from "@touristic/assistant";
 import type { DestinationId } from "@touristic/core";
 
-import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
-import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
-import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
+import {
+  resolveAssistantCanonicalPhotos,
+} from "./assistant-canonical-photo-adapter.js";
+import {
+  createAssistantBrowserDomainHandlers,
+} from "./assistant-domain-adapter.js";
+import {
+  fetchAssistantPlaceDetails,
+} from "./assistant-place-details-adapter.js";
 import { createAssistantSearchHandler } from "./assistant-search-adapter.js";
 import {
   createPublicPlaceReadContextFromDestination,
