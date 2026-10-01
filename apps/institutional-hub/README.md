@@ -4,17 +4,11 @@ Wave 3 / Chat B non-production implementation for Touristic Digital Platform.
 
 ## Authority
 
-- WAVE_2_INSTITUTIONAL_BASELINE_V1 — FROZEN
-- TDP_INSTITUTIONAL_MASTER_BOOK_V3_1
-- Brand Family V2: TDP = REDE, Morro Digital = PERCURSO, Itacaré Digital = FLUXO
-- TDP_PRODUCT_VISUAL_EVIDENCE_INDEX_V1_1
-- Latest accepted Investor, Sponsorship and Destination lane handoffs
-- Wave 2 Publication Acceptance V1 for dated market qualifiers
+Wave 2 Institutional Baseline V1 (FROZEN), Institutional Master Book V3.1, Product Visual Evidence V1.1, latest accepted Investor/Sponsorship/Destination handoffs and Publication Acceptance V1. Brand Family V2 is fixed as TDP = REDE, Morro Digital = PERCURSO and Itacaré Digital = FLUXO.
 
 ## Development
 
-Run `pnpm --filter @touristic/institutional-hub lint`, `test` and `build`.
-The static build emits sixteen pt-BR institutional routes, copies official Brand V2 SVG masters, disables indexing and keeps public downloads/contact submission gated.
+Run `pnpm --filter @touristic/institutional-hub lint`, `test` and `build`. The static build emits sixteen pt-BR routes, copies official Brand V2 SVG masters, disables indexing and keeps public downloads/contact submission gated.
 
 ## Release boundary
 
