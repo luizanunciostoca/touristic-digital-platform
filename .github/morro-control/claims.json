@@ -35,41 +35,6 @@
       "risk": "P1",
       "status": "INTEGRATION_READY",
       "expiresAt": "2026-10-01T20:00:00Z"
-    },
-    "MD-BRAND-ADOPTION-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "feat/brand-v2-product-adoption-20261001-r2",
-      "baseSha": "1fd6ef5f286aeaed26e8086c669dcfe3f5288ac2",
-      "paths": [
-        ".morro/changesets/MD-BRAND-001.json",
-        ".morro/changesets/MD-BRAND-ADOPTION-001.json",
-        "apps/morro-digital-platform/public/assets/brand/**",
-        "apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
-        "apps/morro-digital-platform/public/brand-v2.css",
-        "apps/morro-digital-platform/public/index.html",
-        "apps/morro-digital-platform/public/manifest.json",
-        "apps/morro-digital-platform/public/service-worker.js",
-        "apps/morro-digital-platform/public/tickets.html",
-        "apps/morro-digital-platform/public/tour-booking.html",
-        "apps/morro-digital-platform/public/tourist-shell-v2.css",
-        "apps/morro-digital-platform/public/affiliate-portal.html",
-        "apps/morro-digital-platform/public/business-dashboard.html",
-        "apps/morro-digital-platform/public/business-onboarding.html",
-        "apps/morro-digital-platform/src/layouts/app-shell.ts",
-        "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
-        "apps/morro-digital-platform/src/ux/brand-v2-adoption.test.ts",
-        "apps/admin-crm/public/index.html",
-        "apps/admin-crm/public/crm.css",
-        "apps/control-center/public/index.html",
-        "apps/control-center/public/control-center-shell-v1.css",
-        "docs/brand/**",
-        "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts"
-      ],
-      "domains": ["frontend-ux", "design-system", "brand", "pwa"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-01T20:00:00Z"
     }
   }
 }
