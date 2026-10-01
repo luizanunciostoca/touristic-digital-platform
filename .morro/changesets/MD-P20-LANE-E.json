@@ -1,0 +1,52 @@
+{
+  "id": "MD-P20-LANE-E",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "branch": "wave/phase20-e-growth-gamification-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      "packages/growth/**",
+      "services/growth/**",
+      "tooling/growth/**",
+      "apps/morro-digital-platform/src/growth/**",
+      "docs/integration/phase20/lane-e/**"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": [
+      "platform-authz",
+      "verified-payment-outcome"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "authorityInvariants": [
+    "CANDIDATE_ONLY_NOT_CANONICAL_PRODUCTION_AUTHORITY",
+    "Growth has no money authority",
+    "Growth has no Affiliate attribution authority",
+    "feature flags remain off by default",
+    "blocked Phase17 classifications remain blocked",
+    "CONTROL_TOWER_SHARED_PATCH_REQUIRED for any path outside owns.paths"
+  ]
+}
