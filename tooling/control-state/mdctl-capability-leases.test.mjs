@@ -7,6 +7,7 @@ import {
   leaseRegistryDigest,
   releaseCapabilityLeases,
   renewCapabilityLeases,
+  validateLeaseRegistry,
 } from "../mdctl/capability-leases.mjs";
 
 function changeSet(id = "MD-LEASE-TEST") {
@@ -160,4 +161,29 @@ test("renew and release require exact owner changeset and branch", () => {
     branch: "infra/lease-test",
   });
   assert.ok(ids.every((id) => released.leases[id].state === "RELEASED"));
+});
+
+test("lease registry and entries are closed objects", () => {
+  const manifest = changeSet();
+  const registry = createLeaseRegistry();
+  assert.throws(
+    () => validateLeaseRegistry({ ...registry, unexpected: true }),
+    /LEASE_REGISTRY_PROPERTY_UNKNOWN/u,
+  );
+
+  let sequence = 0;
+  const acquired = acquireCapabilityLeases({
+    registry,
+    changeSet: manifest,
+    owner: "worker-1",
+    now: "2026-10-01T09:00:00Z",
+    idFactory: () => "closed-shape-" + ++sequence,
+  });
+  const leaseId = acquired.leases[0].leaseId;
+  const tampered = structuredClone(acquired.registry);
+  tampered.leases[leaseId].unexpected = true;
+  assert.throws(
+    () => validateLeaseRegistry(tampered),
+    /LEASE_PROPERTY_UNKNOWN/u,
+  );
 });

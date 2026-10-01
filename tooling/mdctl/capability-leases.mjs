@@ -7,6 +7,28 @@ const OWNER = /^[A-Za-z0-9._:@/-]{1,120}$/u;
 const CAPABILITY = /^[a-z0-9][a-z0-9:._/-]{0,159}$/u;
 const ACTIVE = new Set(["ACTIVE", "RELEASED", "EXPIRED"]);
 const AUTHORITIES = new Set(["ORCHESTRATOR", "TASK_LOCAL_PROJECTION"]);
+const REGISTRY_KEYS = new Set(["schemaVersion", "authority", "leases"]);
+const LEASE_KEYS = new Set([
+  "leaseId",
+  "changeSetId",
+  "owner",
+  "capability",
+  "scope",
+  "branch",
+  "issuedAt",
+  "expiresAt",
+  "state",
+]);
+
+function assertClosedObject(value, allowed, code) {
+  assert.ok(
+    value && typeof value === "object" && !Array.isArray(value),
+    code + "_OBJECT_INVALID",
+  );
+  for (const key of Object.keys(value))
+    assert.ok(allowed.has(key), code + "_PROPERTY_UNKNOWN:" + key);
+  return value;
+}
 
 const parseTime = (value, code) => {
   const ms = Date.parse(value ?? "");
@@ -24,6 +46,7 @@ export function createLeaseRegistry(authority = "TASK_LOCAL_PROJECTION") {
 }
 
 export function validateLeaseRegistry(registry) {
+  assertClosedObject(registry, REGISTRY_KEYS, "LEASE_REGISTRY");
   assert.equal(registry?.schemaVersion, 1, "LEASE_REGISTRY_SCHEMA_INVALID");
   assert.ok(
     AUTHORITIES.has(registry?.authority),
@@ -37,6 +60,7 @@ export function validateLeaseRegistry(registry) {
   );
 
   for (const [key, lease] of Object.entries(registry.leases)) {
+    assertClosedObject(lease, LEASE_KEYS, "LEASE");
     assert.match(key, LEASE_ID, "LEASE_ID_INVALID");
     assert.equal(lease?.leaseId, key, "LEASE_KEY_ID_MISMATCH");
     assert.match(

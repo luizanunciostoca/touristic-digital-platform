@@ -28,6 +28,10 @@ export const EVENT_TYPES = new Set([
   "PRODUCTION_ACCEPTED",
   "ROLLBACK",
   "INCIDENT_CREATED",
+  "LEASE_ACQUIRED",
+  "LEASE_RENEWED",
+  "LEASE_RELEASED",
+  "CONTEXT_PACK_CREATED",
 ]);
 
 const SHA = /^[0-9a-f]{40}$/u;
