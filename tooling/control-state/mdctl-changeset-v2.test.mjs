@@ -70,7 +70,7 @@ const event = {
   payload: {},
 };
 
-function invariantContext(releaseState) {
+function invariantContext(releaseState, trustedRunEvidence = null) {
   return {
     observed: {
       snapshotStartedAt: "2026-10-01T09:00:00Z",
@@ -81,6 +81,7 @@ function invariantContext(releaseState) {
     termux: { state: "HEALTHY" },
     integrationQueue: { batches: [] },
     releaseState,
+    trustedRunEvidence,
     ownership: {
       domains: [
         {
@@ -92,7 +93,7 @@ function invariantContext(releaseState) {
   };
 }
 
-test("stale ledger takeover remains serialized under concurrent successors", async () => {
+test("stale ledger lock fails closed without takeover or successor deletion", async () => {
   const directory = await mkdtemp(join(tmpdir(), "tdp-integrity-"));
   const path = join(directory, "events.ndjson");
   const lockPath = path + ".lock";
@@ -101,58 +102,145 @@ test("stale ledger takeover remains serialized under concurrent successors", asy
     await writeFile(join(lockPath, "owner"), "stale-owner\n", "utf8");
     const stale = new Date(Date.now() - 10 * 60 * 1000);
     await utimes(lockPath, stale, stale);
-    const second = { ...event, eventId: "evt-integrity-002" };
 
-    await Promise.all([
+    await assert.rejects(
       appendAuthorityEvent(path, event),
-      appendAuthorityEvent(path, second),
-    ]);
-
-    const stored = parseAuthorityLedger(await readFile(path, "utf8"));
-    assert.deepEqual(
-      new Set(stored.map((item) => item.eventId)),
-      new Set(["evt-integrity-001", "evt-integrity-002"]),
+      /EVENT_LEDGER_STALE_LOCK_REQUIRES_RECOVERY/u,
     );
-    await assert.rejects(readFile(join(lockPath, "owner"), "utf8"), /ENOENT/u);
+
+    assert.equal(
+      (await readFile(join(lockPath, "owner"), "utf8")).trim(),
+      "stale-owner",
+    );
+    await assert.rejects(
+      readFile(lockPath + ".takeover/owner", "utf8"),
+      /ENOENT/u,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
 });
 
-test("critical VERIFIED evidence is exact-candidate and trusted-run bound", () => {
+test("critical VERIFIED evidence rejects stale and invented Actions runs", () => {
   const candidateSha = "c".repeat(40);
   const staleSha = "d".repeat(40);
-  let report = evaluateInvariants(
-    invariantContext({
-      candidateSha,
-      trustedValidatorIndependenceState: "VERIFIED",
-      trustedValidatorIndependenceEvidenceSha: staleSha,
-      trustedValidatorIndependenceRunId: "101",
-      tenantIsolationState: "VERIFIED",
-      tenantIsolationEvidenceSha: staleSha,
-      tenantIsolationRunId: "102",
-      destinationIsolationState: "VERIFIED",
-      destinationIsolationEvidenceSha: staleSha,
-      destinationIsolationRunId: "103",
-    }),
-  );
+  const trustedRef =
+    "fixture/repo/.github/workflows/morro-agent-profiles-trusted.yml@" +
+    "e".repeat(40);
+  const releaseState = {
+    candidateSha,
+    trustedValidatorIndependenceState: "VERIFIED",
+    trustedValidatorIndependenceEvidenceSha: candidateSha,
+    trustedValidatorIndependenceRunId: "201",
+    trustedValidatorIndependenceWorkflowPath:
+      ".github/workflows/morro-agent-profiles.yml",
+    trustedValidatorIndependenceWorkflowName: "Agent Profile Contract",
+    trustedValidatorIndependenceTrustedWorkflowRef: trustedRef,
+    tenantIsolationState: "VERIFIED",
+    tenantIsolationEvidenceSha: candidateSha,
+    tenantIsolationRunId: "202",
+    tenantIsolationWorkflowPath:
+      ".github/workflows/auth-integration-contract.yml",
+    tenantIsolationWorkflowName: "Auth Integration Contract",
+    destinationIsolationState: "VERIFIED",
+    destinationIsolationEvidenceSha: candidateSha,
+    destinationIsolationRunId: "203",
+    destinationIsolationWorkflowPath:
+      ".github/workflows/morro-pro-business-management-contract.yml",
+    destinationIsolationWorkflowName: "Morro Pro Business Management Contract",
+  };
+
+  let report = evaluateInvariants(invariantContext(releaseState));
   for (const id of ["INV-005", "INV-010", "INV-011"])
     assert.equal(report.checks.find((check) => check.id === id).status, "FAIL");
 
   report = evaluateInvariants(
-    invariantContext({
-      candidateSha,
-      trustedValidatorIndependenceState: "VERIFIED",
-      trustedValidatorIndependenceEvidenceSha: candidateSha,
-      trustedValidatorIndependenceRunId: "201",
-      tenantIsolationState: "VERIFIED",
-      tenantIsolationEvidenceSha: candidateSha,
-      tenantIsolationRunId: "202",
-      destinationIsolationState: "VERIFIED",
-      destinationIsolationEvidenceSha: candidateSha,
-      destinationIsolationRunId: "203",
-    }),
+    invariantContext(
+      {
+        ...releaseState,
+        trustedValidatorIndependenceEvidenceSha: staleSha,
+      },
+      {
+        trustedValidatorIndependence: {
+          id: 201,
+          headSha: candidateSha,
+          status: "completed",
+          conclusion: "success",
+          event: "pull_request",
+          path: ".github/workflows/morro-agent-profiles.yml",
+          name: "Agent Profile Contract",
+          referencedWorkflows: [trustedRef],
+        },
+      },
+    ),
   );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-005").status,
+    "FAIL",
+  );
+});
+
+test("critical VERIFIED evidence requires live successful exact-head trusted runs", () => {
+  const candidateSha = "c".repeat(40);
+  const trustedRef =
+    "fixture/repo/.github/workflows/morro-agent-profiles-trusted.yml@" +
+    "e".repeat(40);
+  const releaseState = {
+    candidateSha,
+    trustedValidatorIndependenceState: "VERIFIED",
+    trustedValidatorIndependenceEvidenceSha: candidateSha,
+    trustedValidatorIndependenceRunId: "201",
+    trustedValidatorIndependenceWorkflowPath:
+      ".github/workflows/morro-agent-profiles.yml",
+    trustedValidatorIndependenceWorkflowName: "Agent Profile Contract",
+    trustedValidatorIndependenceTrustedWorkflowRef: trustedRef,
+    tenantIsolationState: "VERIFIED",
+    tenantIsolationEvidenceSha: candidateSha,
+    tenantIsolationRunId: "202",
+    tenantIsolationWorkflowPath:
+      ".github/workflows/auth-integration-contract.yml",
+    tenantIsolationWorkflowName: "Auth Integration Contract",
+    destinationIsolationState: "VERIFIED",
+    destinationIsolationEvidenceSha: candidateSha,
+    destinationIsolationRunId: "203",
+    destinationIsolationWorkflowPath:
+      ".github/workflows/morro-pro-business-management-contract.yml",
+    destinationIsolationWorkflowName: "Morro Pro Business Management Contract",
+  };
+  const live = {
+    trustedValidatorIndependence: {
+      id: 201,
+      headSha: candidateSha,
+      status: "completed",
+      conclusion: "success",
+      event: "pull_request",
+      path: ".github/workflows/morro-agent-profiles.yml",
+      name: "Agent Profile Contract",
+      referencedWorkflows: [trustedRef],
+    },
+    tenantIsolation: {
+      id: 202,
+      headSha: candidateSha,
+      status: "completed",
+      conclusion: "success",
+      event: "pull_request",
+      path: ".github/workflows/auth-integration-contract.yml",
+      name: "Auth Integration Contract",
+      referencedWorkflows: [],
+    },
+    destinationIsolation: {
+      id: 203,
+      headSha: candidateSha,
+      status: "completed",
+      conclusion: "success",
+      event: "pull_request",
+      path: ".github/workflows/morro-pro-business-management-contract.yml",
+      name: "Morro Pro Business Management Contract",
+      referencedWorkflows: [],
+    },
+  };
+
+  const report = evaluateInvariants(invariantContext(releaseState, live));
   for (const id of ["INV-005", "INV-010", "INV-011"])
     assert.equal(report.checks.find((check) => check.id === id).status, "PASS");
 });
@@ -181,5 +269,64 @@ test("projection loader rechecks main after reading decision projections", async
       api,
     }),
     /MAIN_CHANGED_DURING_CONTROL_PROJECTION_LOAD/u,
+  );
+});
+
+test("projection loader resolves trusted run evidence before terminal main recheck", async () => {
+  const mainSha = "a".repeat(40);
+  const candidateSha = "c".repeat(40);
+  const trustedRef =
+    "fixture/repo/.github/workflows/morro-agent-profiles-trusted.yml@" +
+    "e".repeat(40);
+  const releaseState = {
+    schemaVersion: 1,
+    candidateSha,
+    trustedValidatorIndependenceRunId: "201",
+  };
+  const content = (value) => ({
+    encoding: "base64",
+    content: Buffer.from(JSON.stringify(value)).toString("base64"),
+  });
+  const calls = [];
+  const api = async (endpoint) => {
+    calls.push(endpoint);
+    if (endpoint.endsWith("/commits/main")) return { sha: mainSha };
+    if (endpoint.endsWith("/actions/runs/201"))
+      return {
+        id: 201,
+        head_sha: candidateSha,
+        status: "completed",
+        conclusion: "success",
+        event: "pull_request",
+        path: ".github/workflows/morro-agent-profiles.yml",
+        name: "Agent Profile Contract",
+        referenced_workflows: [{ path: trustedRef }],
+      };
+    if (endpoint.includes("integration-queue.json"))
+      return content({ version: 1, batches: [] });
+    if (endpoint.includes("release-state.json")) return content(releaseState);
+    if (endpoint.includes("ownership.json"))
+      return content({ version: 2, domains: [] });
+    throw new Error("UNEXPECTED_ENDPOINT");
+  };
+
+  const loaded = await loadInvariantContextAtMain({
+    repository: "fixture/repo",
+    mainSha,
+    api,
+  });
+  assert.deepEqual(loaded.trustedRunEvidence.trustedValidatorIndependence, {
+    id: 201,
+    headSha: candidateSha,
+    status: "completed",
+    conclusion: "success",
+    event: "pull_request",
+    path: ".github/workflows/morro-agent-profiles.yml",
+    name: "Agent Profile Contract",
+    referencedWorkflows: [trustedRef],
+  });
+  assert.ok(
+    calls.indexOf("repos/fixture/repo/actions/runs/201") <
+      calls.indexOf("repos/fixture/repo/commits/main"),
   );
 });

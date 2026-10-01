@@ -1,6 +1,6 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "0951b28f05d5486d3d06695285c4e6628ed1ccf1",
+  "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
   "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
   "state": "IMPLEMENTING",
   "risk": "high",
@@ -43,7 +43,12 @@
     ]
   },
   "produces": {
-    "events": ["CHANGESET_CREATED", "CLAIM_ACQUIRED", "CLAIM_RELEASED"],
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RELEASED",
+      "CLAIM_RENEWED"
+    ],
     "routes": []
   },
   "database": {

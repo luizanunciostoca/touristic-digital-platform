@@ -40,9 +40,9 @@ export function validateLegacyChangeSet(manifest) {
 }
 
 export function validateChangeSet(manifest) {
-  return manifest?.schemaVersion === 2
-    ? validateChangeSetV2(manifest)
-    : validateLegacyChangeSet(manifest);
+  if (manifest?.schemaVersion === 2) return validateChangeSetV2(manifest);
+  if (manifest?.schemaVersion == null) return validateLegacyChangeSet(manifest);
+  throw new Error("unsupported ChangeSet schemaVersion");
 }
 
 async function main(argv) {

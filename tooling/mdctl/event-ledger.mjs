@@ -120,42 +120,22 @@ async function createOwnedLock(lockPath, ownerToken) {
   }
 }
 
-async function releaseOwnedLock(lockPath, ownerToken) {
+async function releaseAcquiredLock(lockPath) {
   try {
-    const observedOwner = (
-      await readFile(lockOwnerPath(lockPath), "utf8")
-    ).trim();
-    if (observedOwner !== ownerToken) return false;
-    await rm(lockPath, { recursive: true, force: true });
-    return true;
+    await rm(lockPath, { recursive: true, force: false });
   } catch (error) {
-    if (error?.code === "ENOENT") return false;
+    if (error?.code === "ENOENT") return;
     throw error;
   }
 }
 
 async function withLedgerLock(path, operation) {
   const lockPath = path + ".lock";
-  const takeoverPath = lockPath + ".takeover";
   const ownerToken = randomUUID();
   const startedAt = Date.now();
   let acquired = false;
 
-  const timedOut = () => Date.now() - startedAt >= LOCK_TIMEOUT_MS;
-  const wait = async () => {
-    if (timedOut()) throw new Error("EVENT_LEDGER_LOCK_TIMEOUT");
-    await sleep(LOCK_WAIT_MS);
-  };
-
   for (;;) {
-    try {
-      await stat(takeoverPath);
-      await wait();
-      continue;
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
-    }
-
     try {
       await createOwnedLock(lockPath, ownerToken);
       acquired = true;
@@ -172,53 +152,21 @@ async function withLedgerLock(path, operation) {
       throw error;
     }
 
-    if (Date.now() - info.mtimeMs <= LOCK_STALE_MS) {
-      await wait();
-      continue;
-    }
+    if (Date.now() - info.mtimeMs > LOCK_STALE_MS)
+      throw new Error("EVENT_LEDGER_STALE_LOCK_REQUIRES_RECOVERY");
 
-    try {
-      await mkdir(takeoverPath, { mode: 0o700 });
-    } catch (error) {
-      if (error?.code !== "EEXIST") throw error;
-      await wait();
-      continue;
-    }
+    if (Date.now() - startedAt >= LOCK_TIMEOUT_MS)
+      throw new Error("EVENT_LEDGER_LOCK_TIMEOUT");
 
-    try {
-      let current;
-      try {
-        current = await stat(lockPath);
-      } catch (error) {
-        if (error?.code === "ENOENT") continue;
-        throw error;
-      }
-
-      if (Date.now() - current.mtimeMs <= LOCK_STALE_MS) continue;
-
-      await rm(lockPath, { recursive: true, force: true });
-
-      try {
-        await createOwnedLock(lockPath, ownerToken);
-        acquired = true;
-        break;
-      } catch (error) {
-        if (error?.code !== "EEXIST") throw error;
-      }
-    } finally {
-      await rm(takeoverPath, { recursive: true, force: true });
-    }
-
-    if (!acquired) await wait();
+    await sleep(LOCK_WAIT_MS);
   }
 
   try {
     return await operation();
   } finally {
-    if (acquired) await releaseOwnedLock(lockPath, ownerToken);
+    if (acquired) await releaseAcquiredLock(lockPath);
   }
 }
-
 export async function appendAuthorityEvent(path, event) {
   validateAuthorityEvent(event);
   return withLedgerLock(path, async () => {
