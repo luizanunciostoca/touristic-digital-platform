@@ -18,6 +18,7 @@ function context(overrides = {}) {
       artifactDigest: null,
       stagingState: "UNVERIFIED",
       productionState: "UNVERIFIED",
+      ...overrides.releaseState,
     },
     ownership: {
       domains: [
@@ -124,6 +125,108 @@ test("production before staging fails", () => {
   );
   assert.equal(
     report.checks.find((check) => check.id === "INV-008").status,
+    "FAIL",
+  );
+});
+
+test("active candidate requires trusted validator independence", () => {
+  const report = evaluateInvariants(
+    context({
+      releaseState: {
+        candidateSha: "cccccccccccccccccccccccccccccccccccccccc",
+      },
+    }),
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-005").status,
+    "FAIL",
+  );
+});
+
+test("candidate acceptance requires tenant and destination isolation proof", () => {
+  const report = evaluateInvariants(
+    context({
+      releaseState: {
+        candidateSha: "cccccccccccccccccccccccccccccccccccccccc",
+        trustedValidatorIndependenceState: "VERIFIED",
+      },
+    }),
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-010").status,
+    "FAIL",
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-011").status,
+    "FAIL",
+  );
+});
+
+test("docs-only main advance does not create runtime drift", () => {
+  const runtimeSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const report = evaluateInvariants(
+    context({
+      observed: {
+        mainSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        snapshotStartedAt: "2026-10-01T07:00:00Z",
+        observedClaims: [],
+        runtimeHealth: {
+          production: {
+            state: "HEALTHY",
+            releaseSha: runtimeSha,
+          },
+        },
+      },
+      releaseState: {
+        candidateSha: null,
+        expectedCertifiedReleaseSha: runtimeSha,
+        tenantIsolationState: "VERIFIED",
+        destinationIsolationState: "VERIFIED",
+      },
+    }),
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-013").status,
+    "PASS",
+  );
+});
+
+test("healthy runtime without expected certified release fails closed", () => {
+  const report = evaluateInvariants(
+    context({
+      observed: {
+        mainSha: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        snapshotStartedAt: "2026-10-01T07:00:00Z",
+        observedClaims: [],
+        runtimeHealth: {
+          production: {
+            state: "HEALTHY",
+            releaseSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          },
+        },
+      },
+      releaseState: {
+        candidateSha: null,
+        tenantIsolationState: "VERIFIED",
+        destinationIsolationState: "VERIFIED",
+      },
+    }),
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-013").status,
+    "FAIL",
+  );
+});
+
+test("control projection identity mismatch fails closed", () => {
+  const report = evaluateInvariants(
+    context({
+      projectionAuthority: "GITHUB_EXACT_MAIN",
+      projectionSha: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    }),
+  );
+  assert.equal(
+    report.checks.find((check) => check.id === "INV-000").status,
     "FAIL",
   );
 });
