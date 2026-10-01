@@ -158,6 +158,13 @@
   "destinationImpact": "CROSS_DESTINATION",
   "dependencies": [],
   "stopAt": "REMOTE_PROVEN",
+  "sizeException": {
+    "kind": "mechanical-composition",
+    "reason": "Phase 21 composes five independently certified, zero-direct-overlap lane heads plus bounded Control Tower governance. The exception does not waive exact-head, trusted proof, Quality, Security, authority, tenant/destination isolation, browser, database, rollback or runtime gates.",
+    "sourcePullRequests": [574, 575, 576, 577, 578],
+    "maxFiles": 60,
+    "maxLines": 8000
+  },
   "composition": {
     "order": ["F", "B", "C", "D", "E"],
     "foundationLaneA": {
