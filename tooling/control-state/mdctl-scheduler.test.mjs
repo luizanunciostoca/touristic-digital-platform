@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  attachLiveSchedulerState,
+  buildPlan as buildMdctlPlan,
+  buildScheduleCandidateItem,
+} from "../mdctl/mdctl.mjs";
+import {
   buildIntegrationQueue,
   buildSchedulerPlan,
   findSemanticCollisions,
@@ -1144,4 +1149,134 @@ test("live collector preserves a missing branch claim as an invalid blocker", as
   assert.equal(live.items[0].invalid, "CLAIM_MISSING");
   assert.equal(live.items[0].writerActive, false);
   assert.equal(live.items[0].ready, false);
+});
+
+test("mdctl preserves canonical queue while attaching trusted live projection", () => {
+  const ready = {
+    changeSet: changeSet("MD-LIVE-Q", "live-q", {
+      state: "MERGE_READY",
+      baseSha: LIVE_MAIN,
+    }),
+    prNumber: 21,
+    headSha: "e".repeat(40),
+    openPr: true,
+    writerActive: false,
+    ready: true,
+    dependenciesSatisfied: true,
+    unresolvedDependencies: [],
+    behindBy: 0,
+    baseIsAncestorOfMain: true,
+    statsKnown: true,
+    changedFiles: 1,
+    changedLines: 5,
+    invalid: null,
+    trust: { authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD" },
+  };
+  const invalid = {
+    prNumber: 22,
+    openPr: true,
+    writerActive: false,
+    ready: false,
+    invalid: "CLAIM_REGISTRY_UNAVAILABLE",
+  };
+  const canonicalQueue = { version: 1, batches: [{ id: "canonical" }] };
+  const observed = {
+    mainSha: LIVE_MAIN,
+    collectionState: "CAPTURED",
+    blockers: [],
+    integrationQueue: canonicalQueue,
+  };
+  const value = attachLiveSchedulerState(
+    observed,
+    {
+      mainSha: LIVE_MAIN,
+      authority: "TRUSTED_PR_EXACT_HEADS",
+      items: [ready, invalid],
+    },
+    undefined,
+  );
+  assert.equal(value.integrationQueue, canonicalQueue);
+  assert.equal(value.liveIntegrationQueueAuthority, "TRUSTED_PR_EXACT_HEADS");
+  assert.equal(value.liveIntegrationQueueMainSha, LIVE_MAIN);
+  assert.equal(value.liveSchedulerWork.length, 2);
+  assert.equal(
+    value.liveSchedulerWork[1].invalid,
+    "CLAIM_REGISTRY_UNAVAILABLE",
+  );
+  assert.equal(value.liveIntegrationQueue.batches.length, 1);
+  assert.equal(
+    value.liveIntegrationQueue.batches[0].items[0].changeSetId,
+    "MD-LIVE-Q",
+  );
+});
+
+test("mdctl live projection fails closed on main mismatch", () => {
+  assert.throws(
+    () =>
+      attachLiveSchedulerState(
+        { mainSha: LIVE_MAIN },
+        {
+          mainSha: "d".repeat(40),
+          authority: "TRUSTED_PR_EXACT_HEADS",
+          items: [],
+        },
+      ),
+    /MAIN_CHANGED_DURING_SCHEDULER_CAPTURE/u,
+  );
+});
+
+test("mdctl plan consumes live scheduler grants instead of stale ready tasks", () => {
+  const plan = buildMdctlPlan({
+    observed: {
+      mainSha: LIVE_MAIN,
+      collectionState: "CAPTURED",
+      blockers: [],
+      readyCandidates: [],
+      nextActions: [],
+      nextReadyTasks: [{ id: "STALE", dispatchAllowed: true }],
+      liveSchedulerPlan: {
+        grants: [{ id: "MD-TRUSTED", exactBaseSha: LIVE_MAIN }],
+        blocked: [],
+        violations: [],
+      },
+    },
+    invariants: { criticalFailures: [] },
+  });
+  assert.equal(plan.dispatchAllowed, true);
+  assert.deepEqual(
+    plan.dispatchableCandidates.map((item) => item.id),
+    ["MD-TRUSTED"],
+  );
+});
+
+test("mdctl schedule candidate requires exact main and carries dependencies", async () => {
+  const manifest = changeSet("MD-SCHEDULE", "schedule-objective", {
+    baseSha: LIVE_MAIN,
+  });
+  const accepted = await buildScheduleCandidateItem({
+    manifest,
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    dependencyEvaluator: async () => ({
+      satisfied: true,
+      unresolved: [],
+    }),
+  });
+  assert.equal(accepted.invalid, null);
+  assert.equal(accepted.ready, true);
+  assert.equal(accepted.changedFiles, 0);
+  assert.equal(accepted.changedLines, 0);
+
+  const stale = await buildScheduleCandidateItem({
+    manifest: { ...manifest, baseSha: "a".repeat(40) },
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    dependencyEvaluator: async () => ({
+      satisfied: false,
+      unresolved: ["MD-BASE"],
+    }),
+  });
+  assert.equal(stale.invalid, "CANDIDATE_EXACT_BASE_MISMATCH");
+  assert.equal(stale.dependenciesSatisfied, false);
+  assert.deepEqual(stale.unresolvedDependencies, ["MD-BASE"]);
 });
