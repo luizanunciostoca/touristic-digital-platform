@@ -533,11 +533,11 @@ export function installExploreLocationsControl({
   );
   const legacyLocationsForCategory = (category: string) =>
     allowsMorroLegacyPlaceFallback(activePublicPlaceReadContext)
-      ? legacyLocationsForCategory(category)
+      ? getExploreLocationsForCategory(category)
       : [];
   const resolveLegacyLocationByName = (place: string, category?: string) =>
     allowsMorroLegacyPlaceFallback(activePublicPlaceReadContext)
-      ? resolveLegacyLocationByName(place, category)
+      ? resolveExploreLocationByName(place, category)
       : undefined;
   let activeCategoryButton: HTMLButtonElement | undefined;
   let activeCategory: ExploreLocationsCategory | undefined;
