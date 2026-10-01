@@ -296,11 +296,7 @@ export function validateTaskLocalProof({ proof, task, changeSet }) {
     task.candidateSha,
     "TASK_LOCAL_PROOF_CANDIDATE_MISMATCH",
   );
-  assert.equal(
-    proof.treeSha,
-    task.treeSha,
-    "TASK_LOCAL_PROOF_TREE_MISMATCH",
-  );
+  assert.equal(proof.treeSha, task.treeSha, "TASK_LOCAL_PROOF_TREE_MISMATCH");
   assert.equal(
     proof.contextPackDigest,
     task.contextPackDigest,
@@ -551,6 +547,19 @@ export async function collectTaskGitIdentity(root, baseSha) {
   };
 }
 
+export function assertTaskIdentityStable(before, after) {
+  assert.equal(after?.branch, before?.branch, "TASK_BRANCH_MOVED_DURING_TEST");
+  assert.equal(after?.headSha, before?.headSha, "TASK_HEAD_MOVED_DURING_TEST");
+  assert.equal(after?.treeSha, before?.treeSha, "TASK_TREE_MOVED_DURING_TEST");
+  assert.equal(
+    after?.baseIsAncestor,
+    true,
+    "TASK_BASE_NOT_ANCESTOR_AFTER_TEST",
+  );
+  assert.equal(after?.dirty, false, "TASK_WORKSPACE_DIRTY_AFTER_TEST");
+  return after;
+}
+
 async function writeJsonAtomic(path, value) {
   await mkdir(resolve(path, ".."), { recursive: true, mode: 0o700 });
   const temporary = path + ".tmp-" + randomUUID();
@@ -696,6 +705,11 @@ export async function runTaskCli(args, { root = process.cwd() } = {}) {
       identity,
       commandRunner: (command) => defaultCommandRunner(root, command),
     });
+    const terminalIdentity = await collectTaskGitIdentity(
+      root,
+      changeSet.baseSha,
+    );
+    assertTaskIdentityStable(identity, terminalIdentity);
     validateContextPack(tested.contextPack, changeSet, {
       leaseRegistry,
       owner: task.owner,

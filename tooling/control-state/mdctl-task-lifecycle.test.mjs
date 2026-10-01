@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import test from "node:test";
 import {
+  assertTaskIdentityStable,
   buildTaskRestart,
   buildTaskStart,
   buildTaskSubmit,
@@ -70,6 +71,20 @@ function identity(head = "b".repeat(40), tree = "c".repeat(40)) {
     baseIsAncestor: true,
   };
 }
+
+test("task identity must remain exact and clean across proof execution", () => {
+  const before = identity();
+  assert.deepEqual(assertTaskIdentityStable(before, { ...before }), before);
+  assert.throws(
+    () =>
+      assertTaskIdentityStable(before, { ...before, headSha: "d".repeat(40) }),
+    /TASK_HEAD_MOVED_DURING_TEST/u,
+  );
+  assert.throws(
+    () => assertTaskIdentityStable(before, { ...before, dirty: true }),
+    /TASK_WORKSPACE_DIRTY_AFTER_TEST/u,
+  );
+});
 
 test("task start acquires exact capabilities and creates candidate-bound context", () => {
   let n = 0;
@@ -232,10 +247,7 @@ test("lease expiry during proof execution cannot advance to LOCAL_PROVEN", async
     ttlSeconds: 60,
     idFactory: () => "expiring-" + ++n,
   });
-  const times = [
-    "2026-10-01T09:00:30Z",
-    "2026-10-01T09:02:00Z",
-  ];
+  const times = ["2026-10-01T09:00:30Z", "2026-10-01T09:02:00Z"];
   await assert.rejects(
     buildTaskTest({
       task: started.task,
