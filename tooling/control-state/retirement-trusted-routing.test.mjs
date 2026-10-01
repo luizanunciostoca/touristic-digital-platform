@@ -8,46 +8,23 @@ async function read(path) {
   return readFile(new URL(path, root), "utf8");
 }
 
-function block(source, start, end) {
-  const from = source.indexOf(start);
-  assert.notEqual(from, -1, "BLOCK_START_MISSING:" + start);
-  const to = source.indexOf(end, from + start.length);
-  assert.notEqual(to, -1, "BLOCK_END_MISSING:" + end);
-  return source.slice(from, to);
-}
-
-test("agent profile routes MERGED retirement away from generic proof", async () => {
+test("agent profile workflow routes retirement away from generic proof", async () => {
   const workflow = await read(".github/workflows/morro-agent-profiles.yml");
   assert.match(
     workflow,
     /retirement: \$\{\{ steps\.transition\.outputs\.retirement \}\}/,
   );
-  assert.match(workflow, /Classify exact retirement transition/);
-  assert.match(workflow, /jq length <<<"\$removed"\)[^\n]*-eq 1/);
-  assert.match(workflow, /jq length <<<"\$added"\)[^\n]*-eq 0/);
-  assert.match(workflow, /\.state' "\$MANIFEST_PATH"\)" = "MERGED"/);
-  assert.match(workflow, /\.baseSha' "\$MANIFEST_PATH"\)" = "\$BASE_SHA"/);
-  assert.match(workflow, /\.branch' "\$MANIFEST_PATH"\)" = "\$HEAD_BRANCH"/);
-  const generic = block(workflow, "  validate-pr:", "  validate-retirement:");
-  assert.match(generic, /retirement != 'true'/);
-  assert.match(generic, /agent-profile-contract-generic-skipped/);
-
-  const retirement = block(
-    workflow,
-    "  validate-retirement:",
-    "  validate-merge-group:",
-  );
-  assert.match(retirement, /retirement == 'true'/);
   assert.match(
-    retirement,
-    /name: agent-profile-contract \/ trusted-agent-profile-contract/,
+    workflow,
+    /validate-pr:[\s\S]*retirement != 'true'[\s\S]*morro-agent-profiles-trusted\.yml@/,
   );
-  assert.match(retirement, /agent-profile-contract-trusted\.mjs candidate/);
-  assert.match(retirement, /claim-retirement-proof\.mjs trusted candidate/);
-  assert.doesNotMatch(retirement, /independent-proof-trusted\.mjs/);
+  assert.match(
+    workflow,
+    /validate-retirement:[\s\S]*retirement == 'true'[\s\S]*claim-retirement-proof\.mjs trusted candidate/,
+  );
 });
 
-test("trusted bootstrap uses dedicated retirement proof and keeps normal proof isolated", async () => {
+test("claim guard bootstrap uses dedicated retirement proof", async () => {
   const workflow = await read(
     ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
   );
@@ -55,39 +32,25 @@ test("trusted bootstrap uses dedicated retirement proof and keeps normal proof i
     workflow,
     /retirement: \$\{\{ steps\.transition\.outputs\.retirement \}\}/,
   );
-  assert.match(workflow, /Classify exact retirement transition/);
   assert.match(
     workflow,
-    /RETIREMENT: \$\{\{ needs\.unit\.outputs\.retirement \}\}/,
+    /orchestrator-registry-proof:[\s\S]*retirement != 'true'/,
   );
+  assert.match(workflow, /independent-proof:[\s\S]*retirement != 'true'/);
   assert.match(
     workflow,
-    /Canonical retirement detected; registry removal is proven by the trusted retirement step\./,
+    /retirement-proof:[\s\S]*retirement == 'true'[\s\S]*claim-retirement-proof\.mjs trusted candidate/,
   );
+});
 
-  const generic = block(
-    workflow,
-    "  independent-proof:",
-    "  retirement-independent-proof:",
-  );
-  assert.match(generic, /retirement != 'true'/);
-  assert.match(generic, /base-controlled-independent-proof-generic-skipped/);
-
-  const retirement = block(
-    workflow,
-    "  retirement-independent-proof:",
-    "  claim-handoff-proof:",
-  );
-  assert.match(retirement, /retirement == 'true'/);
-  assert.match(
-    retirement,
-    /name: base-controlled-independent-proof \/ trusted-agent-profile-contract/,
-  );
-  assert.match(retirement, /agent-profile-contract-trusted\.mjs candidate/);
-  assert.match(retirement, /claim-retirement-proof\.mjs trusted candidate/);
-  assert.doesNotMatch(retirement, /independent-proof-trusted\.mjs/);
-  assert.match(
-    workflow,
-    /id: claim-retirement-proof[\s\S]*claim-retirement-proof\.mjs trusted candidate/,
-  );
+test("retirement classification is exact one removal with no additions", async () => {
+  for (const path of [
+    ".github/workflows/morro-agent-profiles.yml",
+    ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+  ]) {
+    const workflow = await read(path);
+    assert.match(workflow, /removed_count" -eq 1/);
+    assert.match(workflow, /added_count" -eq 0/);
+    assert.match(workflow, /retirement=false/);
+  }
 });

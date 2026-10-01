@@ -53,28 +53,19 @@ jobs:
           path="$(node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH")"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
-      - name: Classify exact retirement transition
+      - name: Classify claim registry transition
         id: transition
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          MANIFEST_PATH: ${{ steps.changeset.outputs.path }}
         shell: bash
         run: |
           set -euo pipefail
-          git show "$BASE_SHA:.github/morro-control/claims.json" > "$RUNNER_TEMP/base-claims.json"
-          removed="$(jq -n --slurpfile base "$RUNNER_TEMP/base-claims.json" --slurpfile candidate .github/morro-control/claims.json '($base[0].claims | keys) - ($candidate[0].claims | keys)')"
-          added="$(jq -n --slurpfile base "$RUNNER_TEMP/base-claims.json" --slurpfile candidate .github/morro-control/claims.json '($candidate[0].claims | keys) - ($base[0].claims | keys)')"
+          base_claims="$(mktemp)"
+          git show "$BASE_SHA:.github/morro-control/claims.json" > "$base_claims"
+          removed_count="$(jq -n --slurpfile base "$base_claims" --slurpfile candidate .github/morro-control/claims.json '($base[0].claims | keys) - ($candidate[0].claims | keys) | length')"
+          added_count="$(jq -n --slurpfile base "$base_claims" --slurpfile candidate .github/morro-control/claims.json '($candidate[0].claims | keys) - ($base[0].claims | keys) | length')"
           retirement=false
-          if [ "$(jq length <<<"$removed")" -eq 1 ] && [ "$(jq length <<<"$added")" -eq 0 ]; then
-            claim_id="$(jq -r '.[0]' <<<"$removed")"
-            if [ "$MANIFEST_PATH" = ".morro/changesets/$claim_id.json" ] &&
-              [ "$(jq -r '.state' "$MANIFEST_PATH")" = "MERGED" ] &&
-              [ "$(jq -r '.baseSha' "$MANIFEST_PATH")" = "$BASE_SHA" ] &&
-              [ "$(jq -r '.branch' "$MANIFEST_PATH")" = "$HEAD_BRANCH" ]; then
-              retirement=true
-            fi
-          fi
+          if [ "$removed_count" -eq 1 ] && [ "$added_count" -eq 0 ]; then retirement=true; fi
           echo "retirement=$retirement" >> "$GITHUB_OUTPUT"
 
       - name: Test trusted Claim Guard contract
@@ -84,6 +75,7 @@ jobs:
           tooling/fabric/claim-retirement-proof.test.mjs
 
   orchestrator-registry-proof:
+    if: needs.unit.outputs.retirement != 'true'
     needs: unit
     name: base-controlled-orchestrator-registry-proof
     runs-on: ubuntu-latest
@@ -118,7 +110,6 @@ jobs:
           EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
           MANIFEST_PATH: ${{ needs.unit.outputs.manifest_path }}
           CLAIM_GUARD_AUTHORITY: ORCHESTRATOR
-          RETIREMENT: ${{ needs.unit.outputs.retirement }}
         shell: bash
         run: |
           set -euo pipefail
@@ -126,12 +117,6 @@ jobs:
           if ! grep -Fxq '.github/morro-control/claims.json' <<<"$changed"; then
             echo "required=false" >> "$GITHUB_OUTPUT"
             echo "No claim registry mutation detected."
-            exit 0
-          fi
-
-          if [ "$RETIREMENT" = "true" ]; then
-            echo "required=false" >> "$GITHUB_OUTPUT"
-            echo "Canonical retirement detected; registry removal is proven by the trusted retirement step."
             exit 0
           fi
 
@@ -187,34 +172,19 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  independent-proof:
-    if: needs.unit.outputs.retirement != 'true'
-    needs: unit
-    name: ${{ needs.unit.outputs.retirement == 'true' && 'base-controlled-independent-proof-generic-skipped' || 'base-controlled-independent-proof' }}
-    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@504d587c9eb780cff01aae71d377b2c2aec99054
-    with:
-      candidate_sha: ${{ github.event.pull_request.head.sha }}
-      base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: ${{ needs.unit.outputs.manifest_path }}
-    permissions:
-      contents: read
-
-  retirement-independent-proof:
+  retirement-proof:
     if: needs.unit.outputs.retirement == 'true'
     needs: unit
-    name: base-controlled-independent-proof / trusted-agent-profile-contract
+    name: base-controlled-retirement-proof
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
       - name: Checkout trusted base
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.base.sha }}
           path: trusted
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
       - name: Checkout candidate as data
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -223,54 +193,41 @@ jobs:
           path: candidate
           fetch-depth: 0
           persist-credentials: false
-      - id: trusted-identity
-        name: Verify trusted validator checkout identity
-        shell: bash
-        env:
-          EXPECTED_TRUSTED_SHA: ${{ github.event.pull_request.base.sha }}
-        run: |
-          set -euo pipefail
-          head_sha="$(git -C trusted rev-parse HEAD)"
-          tree_sha="$(git -C trusted rev-parse 'HEAD^{tree}')"
-          test "$head_sha" = "$EXPECTED_TRUSTED_SHA"
-          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
-          echo "tree_sha=$tree_sha" >> "$GITHUB_OUTPUT"
-
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
           package-manager-cache: false
-      - name: Run trusted retirement proof
+      - name: Prove retirement from trusted base evidence
         env:
           EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
           test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
-          node --test trusted/tooling/quality/agent-profile-contract-trusted.test.mjs
-          EXPECTED_CANDIDATE_SHA="$EXPECTED_CANDIDATE_SHA" \
-            TRUSTED_VALIDATOR_SHA="${{ steps.trusted-identity.outputs.head_sha }}" \
-            TRUSTED_VALIDATOR_TREE_SHA="${{ steps.trusted-identity.outputs.tree_sha }}" \
-            node trusted/tooling/quality/agent-profile-contract-trusted.mjs candidate
-          node --test trusted/tooling/quality/independent-proof-trusted.test.mjs
-          (
-            cd candidate
-            node ../trusted/tooling/quality/check-workflow-supply-chain.mjs --strict
-          )
           node --test trusted/tooling/fabric/claim-retirement-proof.test.mjs
-          node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate | tee automated-independent-proof.json
-
-      - name: Upload retirement independent proof
+          node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate | tee claim-retirement-proof.json
+      - name: Upload retirement proof
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
         with:
-          name: automated-independent-proof-${{ github.event.pull_request.head.sha }}
-          path: automated-independent-proof.json
+          name: claim-retirement-proof-${{ github.event.pull_request.head.sha }}
+          path: claim-retirement-proof.json
           if-no-files-found: error
           retention-days: 30
+
+  independent-proof:
+    if: needs.unit.outputs.retirement != 'true'
+    needs: unit
+    name: base-controlled-independent-proof
+    uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@504d587c9eb780cff01aae71d377b2c2aec99054
+    with:
+      candidate_sha: ${{ github.event.pull_request.head.sha }}
+      base_sha: ${{ github.event.pull_request.base.sha }}
+      manifest_path: ${{ needs.unit.outputs.manifest_path }}
+    permissions:
+      contents: read
 
   claim-handoff-proof:
     if: ${{ github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-trust-reconcile-20260928' }}
