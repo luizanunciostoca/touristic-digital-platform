@@ -40,6 +40,7 @@ import {
 import { getExploreLocationsCategories } from "./map/explore-locations-control.js";
 import { createV1ExploreMarkerElement } from "./map/explore-marker-element.js";
 import { initializeMorroBrowserLocale } from "./runtime/browser-locale.js";
+import { createPublicPlaceReadContextFromDestination } from "./runtime/public-place-read-context.js";
 import {
   loadPublicDestination,
   type MorroPublicDestination,
@@ -105,6 +106,9 @@ const privacyPreferences = installBrowserAnalyticsConsentPreferences({
 const application = bootstrapMorroDigitalApplication(document);
 
 function discoverInitialMarkers(): readonly MapMarker[] {
+  if (String(activeDestination.id) !== String(morroDeSaoPauloDestination.id)) {
+    return Object.freeze([]);
+  }
   const selected = DISCOVER_POI_CATEGORIES.flatMap((category) =>
     morroV1SearchCatalog
       .filter((location) => location.category === category)
@@ -997,6 +1001,10 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
                 map,
                 sdk: provider.sdk,
                 document,
+                assistantPublicPlaceReadContext:
+                  createPublicPlaceReadContextFromDestination(
+                    activeDestination,
+                  ),
               });
               void installGrantedCurrentLocationMarker(map, provider.sdk);
             },
@@ -1036,6 +1044,9 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
 async function start(): Promise<void> {
   const resolvedDestination = await loadPublicDestination();
   activeDestination = resolvedDestination.destination;
+  application.exploreLocations.setPublicPlaceReadContext(
+    createPublicPlaceReadContextFromDestination(activeDestination),
+  );
   document.documentElement.dataset.destinationSource =
     resolvedDestination.source;
   document.documentElement.dataset.destinationId = activeDestination.id;
