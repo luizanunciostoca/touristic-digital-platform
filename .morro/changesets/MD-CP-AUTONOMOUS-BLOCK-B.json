@@ -1,8 +1,8 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "a5bc6fb2758d1a248cc685f0445d01558b1e9ed6",
-  "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
-  "state": "MERGE_READY",
+  "baseSha": "5f98a8d8105a7a0d6815b369a372a5b61e82592e",
+  "branch": "infra/control-plane-v3.2-block-b2b-20261001",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
@@ -62,7 +62,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-A"],
+  "dependencies": [
+    "MD-CP-AUTONOMOUS-BLOCK-A"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -91,8 +93,8 @@
   },
   "proof": {
     "budget": {
-      "maxCommands": 2,
-      "maxSeconds": 480
+      "maxCommands": 3,
+      "maxSeconds": 660
     },
     "commands": [
       {
@@ -112,6 +114,15 @@
           "--test",
           "tooling/control-state/mdctl-capability-leases.test.mjs",
           "tooling/control-state/mdctl-context-pack.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "block-b2b-task-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-task-lifecycle.test.mjs"
         ],
         "timeoutSeconds": 180
       }
