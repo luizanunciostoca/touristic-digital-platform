@@ -6,6 +6,10 @@
     <meta name="color-scheme" content="dark" />
     <title>Portal de Afiliados · Morro Digital</title>
     <link rel="stylesheet" href="/affiliate-portal.css" />
+    <link
+      rel="stylesheet"
+      href="/apps/morro-digital-platform/public/brand/brand-v2.css"
+    />
     <script type="importmap">
       {
         "imports": {
@@ -21,7 +25,22 @@
   </head>
   <body>
     <header class="portal-header">
-      <a class="brand" href="/" aria-label="Morro Digital">Morro Digital</a>
+      <a
+        class="brand brand-v2 brand-v2--inverse"
+        href="/"
+        aria-label="Morro Digital"
+      >
+        <img
+          class="brand-v2__symbol"
+          src="/apps/morro-digital-platform/public/brand/morro-digital-symbol.svg"
+          alt=""
+          aria-hidden="true"
+        />
+        <span class="brand-v2__copy">
+          <span class="brand-v2__primary">Morro</span>
+          <span class="brand-v2__secondary">Digital</span>
+        </span>
+      </a>
       <div class="account">
         <span id="affiliate-user">Carregando conta…</span>
         <button id="affiliate-logout" class="ghost-button" type="button">
