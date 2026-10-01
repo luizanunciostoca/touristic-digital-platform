@@ -27,34 +27,20 @@ describe("PWA manifest", () => {
     expect(manifest.start_url).toBe("/");
     expect(manifest.scope).toBe("/");
     expect(manifest.display).toBe("standalone");
-    expect(manifest.icons).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          src: "/assets/brand/morro-digital-symbol-v2.svg",
-          sizes: "any",
-          type: "image/svg+xml",
-          purpose: "any",
-        }),
-        expect.objectContaining({
-          src: "/assets/brand/morro-digital-maskable-v2-192.png",
-          sizes: "192x192",
-          type: "image/png",
-          purpose: "maskable",
-        }),
-        expect.objectContaining({
-          src: "/assets/brand/morro-digital-maskable-v2-512.png",
-          sizes: "512x512",
-          type: "image/png",
-          purpose: "maskable",
-        }),
-        expect.objectContaining({
-          src: "/assets/brand/morro-digital-micro-v2.svg",
-          sizes: "any",
-          type: "image/svg+xml",
-          purpose: "monochrome",
-        }),
-      ]),
-    );
+    expect(manifest.icons).toEqual([
+      expect.objectContaining({
+        src: "/assets/brand/morro-digital-maskable-v2-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any maskable",
+      }),
+      expect.objectContaining({
+        src: "/assets/brand/morro-digital-maskable-v2-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any maskable",
+      }),
+    ]);
   });
 
   it("ships governed Brand V2 PNGs at declared install sizes", async () => {
