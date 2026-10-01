@@ -26,6 +26,29 @@ export function removedClaimIds(baseRegistry, candidateRegistry) {
     .sort();
 }
 
+export function addedClaimIds(baseRegistry, candidateRegistry) {
+  assertRegistry(baseRegistry, "BASE_REGISTRY_INVALID");
+  assertRegistry(candidateRegistry, "CANDIDATE_REGISTRY_INVALID");
+  return Object.keys(candidateRegistry.claims)
+    .filter((id) => !(id in baseRegistry.claims))
+    .sort();
+}
+
+export function assertCanonicalRetirementTransition(
+  baseRegistry,
+  candidateRegistry,
+) {
+  const removed = removedClaimIds(baseRegistry, candidateRegistry);
+  const added = addedClaimIds(baseRegistry, candidateRegistry);
+  assert.equal(
+    removed.length,
+    1,
+    "CLAIM_RETIREMENT_EXACTLY_ONE_REMOVAL_REQUIRED",
+  );
+  assert.equal(added.length, 0, "CLAIM_ADDITION_FORBIDDEN_DURING_RETIREMENT");
+  return { removed, added };
+}
+
 export function validateClaimRetirements({
   baseRegistry,
   candidateRegistry,
@@ -36,7 +59,10 @@ export function validateClaimRetirements({
   assertRegistry(candidateRegistry, "CANDIDATE_REGISTRY_INVALID");
   assert.ok(Number.isFinite(now), "CLAIM_RETIREMENT_NOW_INVALID");
 
-  const removed = removedClaimIds(baseRegistry, candidateRegistry);
+  const { removed } = assertCanonicalRetirementTransition(
+    baseRegistry,
+    candidateRegistry,
+  );
 
   for (const id of Object.keys(baseRegistry.claims)) {
     if (removed.includes(id)) continue;
@@ -312,11 +338,24 @@ export async function buildClaimRetirementProof(
   const candidateRegistry = JSON.parse(
     readFileSync(resolve(targetRoot, registryPath), "utf8"),
   );
-  const removed = removedClaimIds(baseRegistry, candidateRegistry);
+  const { removed } = assertCanonicalRetirementTransition(
+    baseRegistry,
+    candidateRegistry,
+  );
   const evidenceById = {};
 
   for (const id of removed) {
     const claim = baseRegistry.claims[id];
+    const candidateManifest = JSON.parse(
+      readFileSync(
+        resolve(targetRoot, ".morro", "changesets", id + ".json"),
+        "utf8",
+      ),
+    );
+    validateCandidateRetirementManifest(candidateManifest, {
+      claimId: id,
+      expectedBaseSha,
+    });
     const evidence = await collectClaimRetirementEvidence(id, claim, {
       repository,
       expectedBaseSha,

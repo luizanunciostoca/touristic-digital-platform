@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  addedClaimIds,
   collectClaimRetirementEvidence,
   removedClaimIds,
+  validateCandidateRetirementManifest,
   validateClaimRetirements,
 } from "./claim-retirement-proof.mjs";
 
@@ -33,17 +35,55 @@ function registry(claims) {
   };
 }
 
-test("no retirement passes and preserves all base claims", () => {
+test("retirement rejects a transition with zero removals", () => {
   const base = registry({ "MD-ONE": claim() });
   const candidate = structuredClone(base);
   assert.deepEqual(removedClaimIds(base, candidate), []);
-  assert.deepEqual(
-    validateClaimRetirements({
-      baseRegistry: base,
-      candidateRegistry: candidate,
-      now: Date.parse("2026-09-28T00:00:00Z"),
-    }).removedClaims,
-    [],
+  assert.throws(
+    () =>
+      validateClaimRetirements({
+        baseRegistry: base,
+        candidateRegistry: candidate,
+        now: Date.parse("2026-09-28T00:00:00Z"),
+      }),
+    /CLAIM_RETIREMENT_EXACTLY_ONE_REMOVAL_REQUIRED/u,
+  );
+});
+
+test("retirement rejects a transition with multiple removals", () => {
+  const base = registry({
+    "MD-ONE": claim(),
+    "MD-TWO": claim({ branch: "infra/two" }),
+  });
+  const candidate = registry({});
+  assert.deepEqual(removedClaimIds(base, candidate), ["MD-ONE", "MD-TWO"]);
+  assert.throws(
+    () =>
+      validateClaimRetirements({
+        baseRegistry: base,
+        candidateRegistry: candidate,
+        evidenceById: {},
+        now: Date.parse("2026-09-28T00:00:00Z"),
+      }),
+    /CLAIM_RETIREMENT_EXACTLY_ONE_REMOVAL_REQUIRED/u,
+  );
+});
+
+test("retirement forbids adding any claim in the same transition", () => {
+  const base = registry({ "MD-ONE": claim() });
+  const candidate = registry({
+    "MD-NEW": claim({ branch: "infra/new" }),
+  });
+  assert.deepEqual(addedClaimIds(base, candidate), ["MD-NEW"]);
+  assert.throws(
+    () =>
+      validateClaimRetirements({
+        baseRegistry: base,
+        candidateRegistry: candidate,
+        evidenceById: {},
+        now: Date.parse("2026-09-28T00:00:00Z"),
+      }),
+    /CLAIM_ADDITION_FORBIDDEN_DURING_RETIREMENT/u,
   );
 });
 
