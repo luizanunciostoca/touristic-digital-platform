@@ -1,0 +1,13 @@
+{
+  "name": "@touristic/institutional-hub",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node tooling/build.mjs",
+    "dev": "node tooling/serve.mjs",
+    "lint": "node tooling/validate.mjs",
+    "test": "node --test test/*.test.mjs",
+    "typecheck": "node tooling/validate.mjs"
+  }
+}
