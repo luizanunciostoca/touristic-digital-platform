@@ -7,6 +7,7 @@
     "schemaVersion",
     "kind",
     "changeSetId",
+    "changeSetDigest",
     "baseSha",
     "candidateSha",
     "treeSha",
@@ -80,6 +81,10 @@
       "format": "date-time"
     },
     "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "changeSetDigest": {
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     }
