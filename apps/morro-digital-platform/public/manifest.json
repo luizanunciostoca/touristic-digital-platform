@@ -19,6 +19,18 @@
       "purpose": "any"
     },
     {
+      "src": "/assets/brand/morro-digital-maskable-v2-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/assets/brand/morro-digital-maskable-v2-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
       "src": "/assets/brand/morro-digital-micro-v2.svg",
       "sizes": "any",
       "type": "image/svg+xml",

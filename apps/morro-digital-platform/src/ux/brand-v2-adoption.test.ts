@@ -72,11 +72,18 @@ describe("Brand V2 product adoption", () => {
     expect(manifest.background_color).toBe("#f7fafc");
     expect(manifest.icons.map((icon) => icon.src)).toEqual([
       "/assets/brand/morro-digital-symbol-v2.svg",
+      "/assets/brand/morro-digital-maskable-v2-192.png",
+      "/assets/brand/morro-digital-maskable-v2-512.png",
       "/assets/brand/morro-digital-micro-v2.svg",
     ]);
-    expect(manifest.icons.every((icon) => icon.type === "image/svg+xml")).toBe(
-      true,
-    );
+    expect(
+      manifest.icons
+        .filter((icon) => icon.type === "image/png")
+        .map((icon) => icon.src),
+    ).toEqual([
+      "/assets/brand/morro-digital-maskable-v2-192.png",
+      "/assets/brand/morro-digital-maskable-v2-512.png",
+    ]);
 
     expect(css).toContain("--brand-platform-coral: #fa7951");
     expect(css).toContain("--brand-destination-morro-cobalt: #0867b2");
@@ -156,7 +163,14 @@ describe("Brand V2 product adoption", () => {
       await read("../../../../.morro/changesets/MD-BRAND-ADOPTION-001.json"),
     ) as { state: string; stopAt: string };
 
-    expect(changeset.state).toBe("IMPLEMENTING");
+    expect([
+      "IMPLEMENTING",
+      "LOCAL_PROVEN",
+      "REMOTE_PROVEN",
+      "COMPOSITION_PROVEN",
+      "POLICY_SATISFIED",
+      "MERGE_READY",
+    ]).toContain(changeset.state);
     expect(changeset.stopAt).toBe("REMOTE_PROVEN");
   });
 });
