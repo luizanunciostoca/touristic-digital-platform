@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-RETIREMENT-TRUST-ROUTING",
+  "baseSha": "2a05862e9dfce1145ce6421c9144d0e88b8ca3c4",
+  "branch": "chore/control-plane-retirement-trust-routing-claim-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-CP-RETIREMENT-TRUST-ROUTING.json",
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-agent-profiles.yml",
+      "tooling/control-state/retirement-trusted-routing.test.mjs"
+    ],
+    "contracts": ["TDP-CLAIM-RETIREMENT", "TDP-TRUSTED-PROOF-ROUTING"]
+  },
+  "reads": {
+    "contracts": ["GITHUB-CURRENT-MAIN", "TDP-CONTROL-PLANE-V3.2-AUTHORITY"]
+  },
+  "produces": {
+    "events": ["RETIREMENT_TRUST_PROOF"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-UX-TOURIST-REMEDIATION-001"],
+  "requiredEvidence": [
+    "format",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "retirement-trusted-routing",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/retirement-trusted-routing.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "control-plane-v3.2-retirement-trusted-proof-routing"
+}
