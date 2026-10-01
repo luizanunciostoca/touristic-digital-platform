@@ -1,0 +1,68 @@
+name: Lane F Final Visual Closure
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/lane-f-final-visual-closure.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  final-visual-closure:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Verify exact current main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/lane-f-final
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          LIVE_MAIN="$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)"
+          test "$BASE_SHA" = "$LIVE_MAIN"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          printf '%s\n' "$BASE_SHA" > /tmp/lane-f-final/exact-main.txt
+          printf '%s\n' "base_sha=$BASE_SHA" >> "$GITHUB_ENV"
+
+      - name: Run Home and Navigation visual suites serially
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/lane-f-final/results.tsv
+          for entry in             "home:home-discover-manual-conformance.yml"             "navigation:navigation-visual-baseline.yml"; do
+            label="${entry%%:*}"
+            wf="${entry#*:}"
+            run_url="$(gh workflow run "$wf" --ref main)"
+            run_id="${run_url##*/}"
+            if gh run watch "$run_id" --exit-status; then
+              conclusion="success"
+            else
+              conclusion="$(gh run view "$run_id" --json conclusion --jq .conclusion 2>/dev/null || echo failed)"
+            fi
+            mkdir -p "/tmp/lane-f-final/$label"
+            gh run download "$run_id" -D "/tmp/lane-f-final/$label" || true
+            printf '%s\t%s\t%s\n' "$label" "$conclusion" "$run_id" >> /tmp/lane-f-final/results.tsv
+          done
+          cat /tmp/lane-f-final/results.tsv
+          test "$(awk -F '\t' '$1=="home"{print $2}' /tmp/lane-f-final/results.tsv)" = "success"
+          test "$(awk -F '\t' '$1=="navigation"{print $2}' /tmp/lane-f-final/results.tsv)" = "success"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-final-current-main-home-navigation
+          path: /tmp/lane-f-final
+          retention-days: 14
+          if-no-files-found: error
