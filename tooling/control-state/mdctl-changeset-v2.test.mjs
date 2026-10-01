@@ -341,4 +341,10 @@ test("Block B semantic objective is canonical and malformed objectives fail clos
     () => validateChangeSetV2(invalid),
     /CHANGESET_OBJECTIVE_INVALID/u,
   );
+
+  const nullObjective = { ...manifest, objective: null };
+  assert.throws(
+    () => validateChangeSetV2(nullObjective),
+    /CHANGESET_OBJECTIVE_INVALID/u,
+  );
 });

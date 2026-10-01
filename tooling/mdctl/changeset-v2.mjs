@@ -148,12 +148,18 @@ export function validateChangeSetV2(manifest) {
   );
   assert.equal(manifest.schemaVersion, 2, "CHANGESET_SCHEMA_VERSION_INVALID");
   assert.match(manifest.id, ID, "CHANGESET_ID_INVALID");
-  if (manifest.objective != null)
+  if (Object.hasOwn(manifest, "objective")) {
+    assert.equal(
+      typeof manifest.objective,
+      "string",
+      "CHANGESET_OBJECTIVE_INVALID",
+    );
     assert.match(
       manifest.objective,
       /^[a-z0-9][a-z0-9._/-]{2,159}$/u,
       "CHANGESET_OBJECTIVE_INVALID",
     );
+  }
   assert.match(manifest.baseSha, SHA, "CHANGESET_BASE_SHA_INVALID");
   assert.match(manifest.branch, BRANCH, "CHANGESET_BRANCH_INVALID");
   assert.equal(
