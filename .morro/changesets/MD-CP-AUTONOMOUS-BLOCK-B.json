@@ -1,7 +1,7 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "0ce94874fc31c40233757f10e3c89aa9884b4b27",
-  "branch": "infra/control-plane-v3.2-b2c-scope-reservation-20261001",
+  "baseSha": "4f01d21911ae6a22c49af702094dda3b572451dc",
+  "branch": "infra/control-plane-v3.2-b2c-scheduler-core-20261001",
   "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
@@ -94,8 +94,8 @@
   },
   "proof": {
     "budget": {
-      "maxCommands": 3,
-      "maxSeconds": 660
+      "maxCommands": 4,
+      "maxSeconds": 840
     },
     "commands": [
       {
@@ -124,6 +124,15 @@
           "node",
           "--test",
           "tooling/control-state/mdctl-task-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "block-b2c-scheduler-core",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-scheduler.test.mjs"
         ],
         "timeoutSeconds": 180
       }
