@@ -661,7 +661,7 @@ function gateLiveCollector(fixture, extraItems = []) {
   });
 }
 
-test("merge gate fails closed on invalid concurrent non-draft PR", () => {
+test("merge gate fails closed on any invalid concurrent live PR", () => {
   assert.throws(
     () =>
       evaluateMergeGate(
@@ -670,7 +670,6 @@ test("merge gate fails closed on invalid concurrent non-draft PR", () => {
             {
               prNumber: 11,
               openPr: true,
-              draft: false,
               writerActive: false,
               invalid: "PR_FILES_UNAVAILABLE",
             },
@@ -679,24 +678,6 @@ test("merge gate fails closed on invalid concurrent non-draft PR", () => {
       ),
     /MERGE_GATE_LIVE_WORK_ITEM_INVALID/u,
   );
-});
-
-test("invalid draft PR is observed but does not block another merge candidate", () => {
-  const result = evaluateMergeGate(
-    input({
-      liveItems: [
-        {
-          prNumber: 11,
-          openPr: true,
-          draft: true,
-          writerActive: false,
-          invalid: "CLAIM_MISSING",
-        },
-      ],
-    }),
-  );
-  assert.equal(result.decision, "POLICY_SATISFIED");
-  assert.equal(result.openPrs, 2);
 });
 
 test("runMergeGate proves trusted and candidate checkout identity end to end", async () => {
