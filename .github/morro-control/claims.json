@@ -55,8 +55,7 @@
         "services/financial/src/financial-read-projections.ts",
         "apps/morro-digital-platform/src/runtime/growth-candidate.test.ts",
         "apps/morro-digital-platform/src/runtime/growth-candidate.ts",
-        "docs/qa/PHASE20-GROWTH-CANONICALIZATION-EVIDENCE.md",
-        ".github/workflows/tmp-phase21-format.yml"
+        "docs/qa/PHASE20-GROWTH-CANONICALIZATION-EVIDENCE.md"
       ],
       "domains": [
         "ci-release",
