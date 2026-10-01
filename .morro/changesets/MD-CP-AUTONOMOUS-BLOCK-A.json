@@ -19,8 +19,11 @@
       "tooling/mdctl/event-ledger.mjs",
       "tooling/mdctl/invariants.mjs",
       "tooling/mdctl/mdctl.mjs",
+      "tooling/ci/control-state-status.test.mjs",
+      "tooling/control-state/status.mjs",
       "tooling/control-state/mdctl-event-ledger.test.mjs",
       "tooling/control-state/mdctl-invariants.test.mjs",
+      "tooling/control-state/mdctl-plan.test.mjs",
       "package.json",
       ".trivyignore.yaml"
     ],
@@ -33,7 +36,12 @@
     "contracts": ["GITHUB-CURRENT-MAIN", "TERMUX-NATIVE-AGENT-HEARTBEAT"]
   },
   "produces": {
-    "events": ["CHANGESET_CREATED", "CLAIM_ACQUIRED", "CLAIM_RELEASED"],
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RENEWED",
+      "CLAIM_RELEASED"
+    ],
     "routes": []
   },
   "database": {

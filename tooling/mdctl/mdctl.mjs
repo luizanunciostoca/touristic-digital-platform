@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   collectObservedState,
   renderSummary,
@@ -6,7 +8,7 @@ import {
 import {
   collectTermuxHeartbeat,
   evaluateInvariants,
-  loadInvariantContext,
+  loadInvariantContextAtMain,
   renderInvariantReport,
 } from "./invariants.mjs";
 
@@ -50,15 +52,19 @@ function parseOptions(args, env = process.env) {
 }
 
 async function snapshot(config) {
-  const [observed, termux, local] = await Promise.all([
+  const [observed, termux] = await Promise.all([
     collectObservedState(config),
     collectTermuxHeartbeat(),
-    loadInvariantContext(config.localDirectory),
   ]);
+  if (!observed?.mainSha) throw new Error("OBSERVED_MAIN_REQUIRED");
+  const control = await loadInvariantContextAtMain({
+    repository: config.repository,
+    mainSha: observed.mainSha,
+  });
   const invariants = evaluateInvariants({
     observed,
     termux,
-    ...local,
+    ...control,
   });
   return {
     schemaVersion: 1,
@@ -66,11 +72,18 @@ async function snapshot(config) {
     controlPlaneVersion: "3.2",
     observed,
     termux,
+    controlProjection: {
+      authority: control.projectionAuthority,
+      sha: control.projectionSha,
+    },
     invariants,
   };
 }
 
-function plan(state) {
+export function buildPlan(state) {
+  const dispatchableCandidates = (state.observed.nextReadyTasks ?? []).filter(
+    (candidate) => candidate?.dispatchAllowed === true,
+  );
   return {
     schemaVersion: 1,
     kind: "TDP_MDCTL_PLAN",
@@ -78,10 +91,13 @@ function plan(state) {
     blockers: state.observed.blockers,
     criticalInvariantFailures: state.invariants.criticalFailures,
     readyCandidates: state.observed.readyCandidates,
+    dispatchableCandidates,
     nextActions: state.observed.nextActions,
     dispatchAllowed:
       state.observed.collectionState === "CAPTURED" &&
-      state.invariants.criticalFailures.length === 0,
+      state.observed.blockers.length === 0 &&
+      state.invariants.criticalFailures.length === 0 &&
+      dispatchableCandidates.length > 0,
   };
 }
 
@@ -116,7 +132,7 @@ async function main(argv) {
         : renderInvariantReport(state.invariants),
     );
   } else if (parsed.command === "plan") {
-    console.log(JSON.stringify(plan(state), null, 2));
+    console.log(JSON.stringify(buildPlan(state), null, 2));
   }
 
   if (
@@ -129,7 +145,12 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).catch(() => {
-  console.error("MDCTL_FAILED");
-  process.exitCode = 2;
-});
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
+  main(process.argv.slice(2)).catch(() => {
+    console.error("MDCTL_FAILED");
+    process.exitCode = 2;
+  });
+}

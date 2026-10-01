@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { githubApi } from "../control-state/status.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
+const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 const ACTIVE_CLAIM_STATES = new Set([
   "CLAIMED",
   "IMPLEMENTING",
@@ -74,13 +75,51 @@ async function readJson(root, path) {
   return JSON.parse(await readFile(resolve(root, path), "utf8"));
 }
 
+function decodeGitHubJson(value) {
+  if (value?.encoding !== "base64" || typeof value.content !== "string")
+    throw new Error("CONTROL_PROJECTION_CONTENT_INVALID");
+  return JSON.parse(Buffer.from(value.content, "base64").toString("utf8"));
+}
+
 export async function loadInvariantContext(root = process.cwd()) {
   const [integrationQueue, releaseState, ownership] = await Promise.all([
     readJson(root, ".morro/integration-queue.json"),
     readJson(root, ".github/morro-control/release-state.json"),
     readJson(root, ".morro/ownership.json"),
   ]);
-  return { integrationQueue, releaseState, ownership };
+  return {
+    integrationQueue,
+    releaseState,
+    ownership,
+    projectionAuthority: "LOCAL_WORKSPACE_UNTRUSTED_FOR_LIVE_AUTHORITY",
+    projectionSha: null,
+  };
+}
+
+export async function loadInvariantContextAtMain({
+  repository = "luizanunciostoca/touristic-digital-platform",
+  mainSha,
+  api = githubApi,
+} = {}) {
+  if (!REPOSITORY.test(repository)) throw new Error("REPOSITORY_INVALID");
+  if (!SHA.test(mainSha ?? "")) throw new Error("MAIN_SHA_INVALID");
+  const root = "repos/" + repository + "/contents/";
+  const readAtMain = async (path) =>
+    decodeGitHubJson(
+      await api(root + path + "?ref=" + encodeURIComponent(mainSha)),
+    );
+  const [integrationQueue, releaseState, ownership] = await Promise.all([
+    readAtMain(".morro/integration-queue.json"),
+    readAtMain(".github/morro-control/release-state.json"),
+    readAtMain(".morro/ownership.json"),
+  ]);
+  return {
+    integrationQueue,
+    releaseState,
+    ownership,
+    projectionAuthority: "GITHUB_EXACT_MAIN",
+    projectionSha: mainSha,
+  };
 }
 
 export function evaluateInvariants({
@@ -89,8 +128,31 @@ export function evaluateInvariants({
   integrationQueue,
   releaseState,
   ownership,
+  projectionAuthority,
+  projectionSha,
 }) {
   const checks = [];
+
+  const bindingSupplied = projectionAuthority != null || projectionSha != null;
+  checks.push(
+    result(
+      "INV-000",
+      "control projections are bound to observed exact main",
+      !bindingSupplied
+        ? "NOT_APPLICABLE"
+        : projectionAuthority === "GITHUB_EXACT_MAIN" &&
+            SHA.test(projectionSha ?? "") &&
+            projectionSha === observed?.mainSha
+          ? "PASS"
+          : "FAIL",
+      !bindingSupplied
+        ? "isolated invariant evaluation has no projection binding input"
+        : projectionAuthority === "GITHUB_EXACT_MAIN" &&
+            projectionSha === observed?.mainSha
+          ? "integration, release and ownership projections came from observed exact main"
+          : "control projections are not proven to originate from observed exact main",
+    ),
+  );
 
   checks.push(
     result(
@@ -138,14 +200,17 @@ export function evaluateInvariants({
   );
 
   const candidate = releaseState?.candidateSha;
+  const activeCandidate = SHA.test(candidate ?? "");
   checks.push(
     result(
       "INV-004",
       "one release candidate",
-      candidate == null || SHA.test(candidate) ? "PASS" : "FAIL",
+      candidate == null || activeCandidate ? "PASS" : "FAIL",
       candidate == null
         ? "no active release candidate"
-        : "single candidate identity is well formed",
+        : activeCandidate
+          ? "single candidate identity is well formed"
+          : "candidate identity is malformed",
     ),
   );
 
@@ -153,8 +218,16 @@ export function evaluateInvariants({
     result(
       "INV-005",
       "candidate cannot self-validate trusted gates",
-      "NOT_APPLICABLE",
-      "no candidate validator-diff evidence supplied to this snapshot",
+      !activeCandidate
+        ? "NOT_APPLICABLE"
+        : releaseState?.trustedValidatorIndependenceState === "VERIFIED"
+          ? "PASS"
+          : "FAIL",
+      !activeCandidate
+        ? "no active release candidate"
+        : releaseState?.trustedValidatorIndependenceState === "VERIFIED"
+          ? "trusted-validator independence is explicitly verified"
+          : "active candidate lacks verified trusted-validator independence evidence",
     ),
   );
 
@@ -221,20 +294,45 @@ export function evaluateInvariants({
     ),
   );
 
+  const healthyRuntimeEntries = Object.entries(
+    observed?.runtimeHealth ?? {},
+  ).filter(([, runtime]) => runtime?.state === "HEALTHY");
+  const acceptanceInScope =
+    activeCandidate ||
+    stagingVerified ||
+    productionVerified ||
+    healthyRuntimeEntries.length > 0;
+
   checks.push(
     result(
       "INV-010",
       "no cross-tenant authority leak",
-      "NOT_APPLICABLE",
-      "requires candidate/runtime tenant-isolation evidence",
+      !acceptanceInScope
+        ? "NOT_APPLICABLE"
+        : releaseState?.tenantIsolationState === "VERIFIED"
+          ? "PASS"
+          : "FAIL",
+      !acceptanceInScope
+        ? "no candidate or accepted runtime requires tenant-isolation proof"
+        : releaseState?.tenantIsolationState === "VERIFIED"
+          ? "tenant isolation is explicitly verified for acceptance scope"
+          : "candidate/runtime acceptance lacks verified tenant-isolation evidence",
     ),
   );
   checks.push(
     result(
       "INV-011",
       "no cross-destination authority leak",
-      "NOT_APPLICABLE",
-      "requires candidate/runtime destination-isolation evidence",
+      !acceptanceInScope
+        ? "NOT_APPLICABLE"
+        : releaseState?.destinationIsolationState === "VERIFIED"
+          ? "PASS"
+          : "FAIL",
+      !acceptanceInScope
+        ? "no candidate or accepted runtime requires destination-isolation proof"
+        : releaseState?.destinationIsolationState === "VERIFIED"
+          ? "destination isolation is explicitly verified for acceptance scope"
+          : "candidate/runtime acceptance lacks verified destination-isolation evidence",
     ),
   );
 
@@ -261,26 +359,32 @@ export function evaluateInvariants({
     ),
   );
 
-  const identityDrift = runtimeEntries.filter(
+  const expectedCertifiedReleaseSha = releaseState?.expectedCertifiedReleaseSha;
+  const expectedReleaseValid = SHA.test(expectedCertifiedReleaseSha ?? "");
+  const identityDrift = healthyRuntimeEntries.filter(
     ([, runtime]) =>
-      runtime?.state === "HEALTHY" &&
-      runtime?.releaseSha &&
-      observed?.mainSha &&
-      runtime.releaseSha !== observed.mainSha,
+      expectedReleaseValid &&
+      runtime?.releaseSha !== expectedCertifiedReleaseSha,
   );
   checks.push(
     result(
       "INV-013",
-      "no runtime release identity mismatch",
-      identityDrift.length
-        ? "FAIL"
-        : runtimeEntries.length
-          ? "PASS"
-          : "NOT_APPLICABLE",
-      identityDrift.length
-        ? "runtime identity drift: " +
-            identityDrift.map(([name]) => name).join(",")
-        : "no healthy runtime identity mismatch observed",
+      "healthy runtime matches expected certified release",
+      healthyRuntimeEntries.length === 0
+        ? "NOT_APPLICABLE"
+        : !expectedReleaseValid
+          ? "FAIL"
+          : identityDrift.length
+            ? "FAIL"
+            : "PASS",
+      healthyRuntimeEntries.length === 0
+        ? "no healthy runtime identity is in acceptance scope"
+        : !expectedReleaseValid
+          ? "expected certified release identity is missing or malformed"
+          : identityDrift.length
+            ? "runtime certified-release drift: " +
+              identityDrift.map(([name]) => name).join(",")
+            : "all healthy runtimes match the expected certified release",
     ),
   );
 

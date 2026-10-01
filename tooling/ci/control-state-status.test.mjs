@@ -89,6 +89,13 @@ function harness(overrides = {}) {
           { id: "MD-TASK", priority: "P0", state: "MERGED", dependencies: [] },
         ],
       });
+    if (path.includes("/contents/.github/morro-control/release-state.json"))
+      return content(
+        overrides.releaseState ?? {
+          schemaVersion: 1,
+          expectedCertifiedReleaseSha: MAIN,
+        },
+      );
     if (path.includes("/contents/.morro/changesets/"))
       return content(
         path.endsWith("ref=" + OLD)
@@ -344,7 +351,7 @@ test("runtime fetch sends no credentials, forbids redirects, and reads only heal
   );
 });
 
-test("runtime configuration, availability and main drift remain separate blockers", async () => {
+test("runtime configuration and unhealthy state remain separate blockers", async () => {
   const { options } = harness();
   options.stagingUrl = undefined;
   options.probe = async () => ({
@@ -354,10 +361,31 @@ test("runtime configuration, availability and main drift remain separate blocker
   const state = await collectObservedState(options);
   assert.equal(state.runtimeHealth.staging.state, "NOT_CONFIGURED");
   assert.equal(state.productionSha, OLD);
-  assert.ok(state.blockers.some((item) => item.code === "RUNTIME_MAIN_DRIFT"));
   assert.ok(
     state.blockers.some(
       (item) => item.code === "RUNTIME_UNHEALTHY_OR_UNVERIFIED",
+    ),
+  );
+  assert.equal(
+    state.blockers.some(
+      (item) => item.code === "RUNTIME_CERTIFIED_RELEASE_DRIFT",
+    ),
+    false,
+  );
+});
+
+test("healthy runtime drift compares against expected certified release", async () => {
+  const { options } = harness();
+  options.probe = async () => ({
+    state: "HEALTHY",
+    releaseSha: OLD,
+    identityVerified: true,
+  });
+  const state = await collectObservedState(options);
+  assert.equal(state.expectedCertifiedReleaseSha, MAIN);
+  assert.ok(
+    state.blockers.some(
+      (item) => item.code === "RUNTIME_CERTIFIED_RELEASE_DRIFT",
     ),
   );
 });

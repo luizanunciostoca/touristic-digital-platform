@@ -21,8 +21,11 @@
         "tooling/mdctl/event-ledger.mjs",
         "tooling/mdctl/invariants.mjs",
         "tooling/mdctl/mdctl.mjs",
+        "tooling/ci/control-state-status.test.mjs",
+        "tooling/control-state/status.mjs",
         "tooling/control-state/mdctl-event-ledger.test.mjs",
         "tooling/control-state/mdctl-invariants.test.mjs",
+        "tooling/control-state/mdctl-plan.test.mjs",
         "package.json",
         ".trivyignore.yaml"
       ],
