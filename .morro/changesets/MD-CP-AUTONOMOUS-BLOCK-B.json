@@ -43,7 +43,12 @@
     ]
   },
   "produces": {
-    "events": ["CHANGESET_CREATED", "CLAIM_ACQUIRED", "CLAIM_RELEASED"],
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RELEASED",
+      "CLAIM_RENEWED"
+    ],
     "routes": []
   },
   "database": {
@@ -52,7 +57,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-A"],
+  "dependencies": [
+    "MD-CP-AUTONOMOUS-BLOCK-A"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
