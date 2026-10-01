@@ -1,13 +1,14 @@
 import { normalizeSearchText } from "@touristic/search";
 
 import { createPublicPlaceMapClient } from "../map/public-place-map-client-v2.js";
+import {
+  allowsMorroLegacyPlaceFallback,
+  resolvePublicPlaceReadContext,
+  type PublicPlaceReadContext,
+} from "../runtime/public-place-read-context.js";
 import { resolveMorroAssistantDestinationV1 } from "./assistant-v1-place-resolver.js";
 
-const CANONICAL_DESTINATION_ID = "morro-de-sao-paulo";
-const CANONICAL_DESTINATION_BBOX = Object.freeze([
-  -39.05, -13.5, -38.89, -13.35,
-] as const);
-const CANONICAL_DESTINATION_ZOOM = 13;
+class AssistantCanonicalPlaceScopeMismatchError extends Error {}
 
 export interface AssistantPlaceDetails {
   readonly name: string;
@@ -26,6 +27,7 @@ export interface AssistantPlaceDetailsAdapterOptions {
   readonly fetch?: typeof globalThis.fetch;
   readonly language?: string;
   readonly now?: Date;
+  readonly publicPlaceReadContext?: PublicPlaceReadContext;
 }
 
 type UnknownRecord = Readonly<Record<string, unknown>>;
@@ -249,12 +251,15 @@ async function fetchCanonicalPlaceDetails(
   const normalized = normalizeSearchText(place);
   if (!normalized) return null;
   const fetchImplementation = options.fetch ?? globalThis.fetch;
+  const readContext = resolvePublicPlaceReadContext(
+    options.publicPlaceReadContext,
+  );
   try {
     const client = createPublicPlaceMapClient(fetchImplementation);
     const page = await client.listMap({
-      destinationId: CANONICAL_DESTINATION_ID,
-      bbox: CANONICAL_DESTINATION_BBOX,
-      zoom: CANONICAL_DESTINATION_ZOOM,
+      destinationId: readContext.destinationId,
+      bbox: readContext.bbox,
+      zoom: readContext.zoom,
     });
     const candidate = page.items
       .map((item) => ({ item, score: canonicalScore(item.name, normalized) }))
@@ -277,6 +282,15 @@ async function fetchCanonicalPlaceDetails(
       locale: localeFor(options.language),
     });
     if (!detail || detail.profile.id !== candidate.item.id) return null;
+    const canonicalDestinationId =
+      typeof detail.profile.destinationId === "string"
+        ? detail.profile.destinationId
+        : String(detail.actions.destinationId ?? "");
+    if (canonicalDestinationId !== readContext.destinationId) {
+      throw new AssistantCanonicalPlaceScopeMismatchError(
+        "ASSISTANT_CANONICAL_PLACE_SCOPE_MISMATCH",
+      );
+    }
 
     const address =
       detail.profile.location.address.trim() ||
@@ -297,7 +311,8 @@ async function fetchCanonicalPlaceDetails(
       source: "canonical" as const,
       placeId: String(detail.profile.id),
     });
-  } catch {
+  } catch (error) {
+    if (error instanceof AssistantCanonicalPlaceScopeMismatchError) throw error;
     return null;
   }
 }
@@ -306,8 +321,21 @@ export async function fetchAssistantPlaceDetails(
   place: string,
   options: AssistantPlaceDetailsAdapterOptions = {},
 ): Promise<AssistantPlaceDetails | null> {
-  const canonical = await fetchCanonicalPlaceDetails(place, options);
-  if (canonical) return canonical;
+  const readContext = resolvePublicPlaceReadContext(
+    options.publicPlaceReadContext,
+  );
+  try {
+    const canonical = await fetchCanonicalPlaceDetails(place, {
+      ...options,
+      publicPlaceReadContext: readContext,
+    });
+    if (canonical) return canonical;
+  } catch (error) {
+    if (error instanceof AssistantCanonicalPlaceScopeMismatchError) return null;
+    throw error;
+  }
+
+  if (!allowsMorroLegacyPlaceFallback(readContext)) return null;
 
   const destination = resolveMorroAssistantDestinationV1(place);
   const token = options.accessToken?.trim();
