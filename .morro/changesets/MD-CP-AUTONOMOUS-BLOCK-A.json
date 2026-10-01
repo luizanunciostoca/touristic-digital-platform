@@ -22,7 +22,8 @@
       "tooling/control-state/mdctl-event-ledger.test.mjs",
       "tooling/control-state/mdctl-invariants.test.mjs",
       "package.json",
-      ".trivyignore.yaml"
+      ".trivyignore.yaml",
+      "tooling/ci/control-state-status.test.mjs"
     ],
     "contracts": [
       "TDP-CONTROL-PLANE-V3.2-AUTHORITY",
@@ -30,10 +31,18 @@
     ]
   },
   "reads": {
-    "contracts": ["GITHUB-CURRENT-MAIN", "TERMUX-NATIVE-AGENT-HEARTBEAT"]
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "TERMUX-NATIVE-AGENT-HEARTBEAT"
+    ]
   },
   "produces": {
-    "events": ["CHANGESET_CREATED", "CLAIM_ACQUIRED", "CLAIM_RELEASED"],
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RELEASED",
+      "CLAIM_RENEWED"
+    ],
     "routes": []
   },
   "database": {
