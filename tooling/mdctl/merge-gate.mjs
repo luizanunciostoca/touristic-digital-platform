@@ -373,7 +373,9 @@ export function evaluateMergeGate({
   const others = (liveItems ?? []).filter(
     (item) => item?.prNumber !== currentPrNumber,
   );
-  const invalidOthers = others.filter((item) => item?.invalid);
+  const invalidOthers = others.filter(
+    (item) => item?.invalid && item?.draft !== true,
+  );
   assert.deepEqual(
     invalidOthers.map((item) => ({
       prNumber: item.prNumber ?? null,
