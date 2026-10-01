@@ -30,7 +30,10 @@ export function validateAuthorityEvent(event) {
   assert.equal(event?.schemaVersion, 1, "EVENT_SCHEMA_VERSION_INVALID");
   assert.match(event?.eventId ?? "", EVENT_ID, "EVENT_ID_INVALID");
   assert.ok(EVENT_TYPES.has(event?.eventType), "EVENT_TYPE_INVALID");
-  assert.ok(Number.isFinite(Date.parse(event?.observedAt)), "EVENT_TIME_INVALID");
+  assert.ok(
+    Number.isFinite(Date.parse(event?.observedAt)),
+    "EVENT_TIME_INVALID",
+  );
   assert.equal(typeof event?.actor, "string", "EVENT_ACTOR_INVALID");
   assert.ok(
     event.actor.length > 0 && event.actor.length <= 120,

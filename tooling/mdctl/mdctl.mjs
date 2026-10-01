@@ -16,8 +16,7 @@ function parseOptions(args, env = process.env) {
   const rest = explicit ? args.slice(1) : args;
   const config = {
     repository:
-      env.GITHUB_REPOSITORY ??
-      "luizanunciostoca/touristic-digital-platform",
+      env.GITHUB_REPOSITORY ?? "luizanunciostoca/touristic-digital-platform",
     stagingUrl: env.MORRO_STAGING_URL,
     productionUrl: env.MORRO_PRODUCTION_URL,
     localDirectory: process.cwd(),
@@ -32,12 +31,9 @@ function parseOptions(args, env = process.env) {
     else if (arg === "--json") json = true;
     else if (arg === "--summary") summary = true;
     else if (
-      [
-        "--repo",
-        "--staging-url",
-        "--production-url",
-        "--local-dir",
-      ].includes(arg)
+      ["--repo", "--staging-url", "--production-url", "--local-dir"].includes(
+        arg,
+      )
     ) {
       const value = rest[++i];
       if (!value || value.startsWith("--"))
@@ -91,14 +87,8 @@ function plan(state) {
 
 async function main(argv) {
   const parsed = parseOptions(argv);
-  if (
-    !["bootstrap", "status", "invariants", "plan"].includes(
-      parsed.command,
-    )
-  ) {
-    throw new Error(
-      "COMMAND_NOT_IMPLEMENTED_FAIL_CLOSED:" + parsed.command,
-    );
+  if (!["bootstrap", "status", "invariants", "plan"].includes(parsed.command)) {
+    throw new Error("COMMAND_NOT_IMPLEMENTED_FAIL_CLOSED:" + parsed.command);
   }
 
   const state = await snapshot(parsed.config);

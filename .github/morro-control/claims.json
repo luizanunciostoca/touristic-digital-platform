@@ -25,10 +25,7 @@
         "tooling/control-state/mdctl-invariants.test.mjs",
         "package.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane"
-      ],
+      "domains": ["ci-release", "control-plane"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T18:00:00Z"

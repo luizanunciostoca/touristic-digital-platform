@@ -23,10 +23,7 @@ function context(overrides = {}) {
       domains: [
         {
           id: "payments",
-          pathPrefixes: [
-            "packages/financial/",
-            "services/financial/",
-          ],
+          pathPrefixes: ["packages/financial/", "services/financial/"],
         },
       ],
     },
@@ -117,7 +114,9 @@ test("production before staging fails", () => {
     context({
       releaseState: {
         candidateSha: "cccccccccccccccccccccccccccccccccccccccc",
-        artifactDigest: "sha256:" + "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        artifactDigest:
+          "sha256:" +
+          "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         stagingState: "UNVERIFIED",
         productionState: "VERIFIED",
       },

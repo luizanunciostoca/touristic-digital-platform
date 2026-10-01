@@ -22,10 +22,7 @@ test("authority event validates and ledger digest is stable", () => {
   assert.equal(validateAuthorityEvent(event), event);
   const text = JSON.stringify(event) + "\n";
   assert.deepEqual(parseAuthorityLedger(text), [event]);
-  assert.match(
-    authorityLedgerDigest(text),
-    /^sha256:[0-9a-f]{64}$/u,
-  );
+  assert.match(authorityLedgerDigest(text), /^sha256:[0-9a-f]{64}$/u);
 });
 
 test("duplicate event IDs fail closed", () => {

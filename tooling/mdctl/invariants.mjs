@@ -39,8 +39,7 @@ export async function collectTermuxHeartbeat({
   const issues = pages
     .flat()
     .filter(
-      (issue) =>
-        !issue.pull_request && issue.title === "[TERMUX-AGENT] status",
+      (issue) => !issue.pull_request && issue.title === "[TERMUX-AGENT] status",
     );
   const details = issues.map((issue) => {
     const fields = heartbeatFields(issue.body);
@@ -125,8 +124,7 @@ export function evaluateInvariants({
   );
 
   const activeBatches = (integrationQueue?.batches ?? []).filter(
-    (batch) =>
-      !["MERGED", "CANCELLED", "SUPERSEDED"].includes(batch?.state),
+    (batch) => !["MERGED", "CANCELLED", "SUPERSEDED"].includes(batch?.state),
   );
   checks.push(
     result(
@@ -184,8 +182,7 @@ export function evaluateInvariants({
       "production artifact equals certified artifact",
       certifiedArtifact == null && productionArtifact == null
         ? "NOT_APPLICABLE"
-        : certifiedArtifact != null &&
-            certifiedArtifact === productionArtifact
+        : certifiedArtifact != null && certifiedArtifact === productionArtifact
           ? "PASS"
           : "FAIL",
       certifiedArtifact == null && productionArtifact == null
@@ -210,8 +207,7 @@ export function evaluateInvariants({
   const financialOwners = (ownership?.domains ?? []).filter((domain) =>
     (domain.pathPrefixes ?? []).some(
       (path) =>
-        path === "packages/financial/" ||
-        path === "services/financial/",
+        path === "packages/financial/" || path === "services/financial/",
     ),
   );
   checks.push(
@@ -293,9 +289,8 @@ export function evaluateInvariants({
     checks,
     pass: checks.filter((check) => check.status === "PASS").length,
     fail: checks.filter((check) => check.status === "FAIL").length,
-    notApplicable: checks.filter(
-      (check) => check.status === "NOT_APPLICABLE",
-    ).length,
+    notApplicable: checks.filter((check) => check.status === "NOT_APPLICABLE")
+      .length,
     criticalFailures: checks.filter(
       (check) => check.critical && check.status === "FAIL",
     ),
@@ -304,8 +299,7 @@ export function evaluateInvariants({
 
 export function renderInvariantReport(report) {
   const lines = report.checks.map(
-    (check) =>
-      `${check.id} ${check.status} — ${check.title}: ${check.reason}`,
+    (check) => `${check.id} ${check.status} — ${check.title}: ${check.reason}`,
   );
   lines.push(
     `${report.pass}/${report.checks.length} PASS; ${report.fail} FAIL; ${report.notApplicable} NOT_APPLICABLE`,
