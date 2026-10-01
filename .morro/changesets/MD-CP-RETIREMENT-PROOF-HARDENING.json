@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-RETIREMENT-PROOF-HARDENING",
+  "baseSha": "2c6f3fe1c02cd9afce4b4f30740a1e88356d041b",
+  "branch": "chore/control-plane-retirement-proof-hardening-claim-v3-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-CP-RETIREMENT-PROOF-HARDENING.json",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs"
+    ],
+    "contracts": ["TDP-CLAIM-RETIREMENT-PROOF"]
+  },
+  "reads": {
+    "contracts": ["GITHUB-CURRENT-MAIN", "TDP-CONTROL-PLANE-V3.2-AUTHORITY"]
+  },
+  "produces": {
+    "events": ["RETIREMENT_PROOF_HARDENED"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "retirement-proof-hardening",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-retirement-proof.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "control-plane-v3.2-retirement-proof-hardening"
+}

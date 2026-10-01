@@ -1,5 +1,23 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-CP-RETIREMENT-PROOF-HARDENING": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/control-plane-retirement-proof-hardening-claim-v3-20261001",
+      "baseSha": "2c6f3fe1c02cd9afce4b4f30740a1e88356d041b",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-CP-RETIREMENT-PROOF-HARDENING.json",
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs"
+      ],
+      "domains": ["control-plane", "ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T12:00:00Z"
+    }
+  }
 }
