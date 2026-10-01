@@ -150,7 +150,8 @@ export async function appendAuthorityEvent(path, event) {
       "EVENT_ID_DUPLICATE",
     );
 
-    const separator =\n      existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
+    const separator =
+      existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
     await appendFile(path, separator + JSON.stringify(event) + "\n", {
       encoding: "utf8",
       mode: 0o600,
