@@ -287,8 +287,23 @@ async function pullFiles({ api, root, prNumber }) {
     );
     assert.equal(seen.has(file.filename), false, "PR_FILE_DUPLICATE");
     seen.add(file.filename);
+    const status =
+      typeof file?.status === "string" && file.status.length > 0
+        ? file.status
+        : null;
+    const previousFilename =
+      status === "renamed" &&
+      typeof file?.previous_filename === "string" &&
+      file.previous_filename.length > 0
+        ? file.previous_filename
+        : null;
+    if (status === "renamed") {
+      assert.ok(previousFilename, "PR_RENAMED_FILE_SOURCE_INVALID");
+    }
     normalized.push({
       filename: file.filename,
+      previousFilename,
+      status,
       additions: Number.isInteger(file.additions) ? file.additions : null,
       deletions: Number.isInteger(file.deletions) ? file.deletions : null,
     });
@@ -298,13 +313,19 @@ async function pullFiles({ api, root, prNumber }) {
 
 function changedFileCoverageError(files, claim, changeSet) {
   for (const file of files) {
-    if (!claim.paths.some((pattern) => pathOwned(file.filename, pattern))) {
-      return "CANONICAL_CLAIM_PATH_VIOLATION:" + file.filename;
-    }
-    if (
-      !changeSet.owns.paths.some((pattern) => pathOwned(file.filename, pattern))
-    ) {
-      return "CHANGESET_OWNERSHIP_VIOLATION:" + file.filename;
+    const paths =
+      file.status === "renamed"
+        ? [file.previousFilename, file.filename]
+        : [file.filename];
+    for (const pathname of paths) {
+      if (!claim.paths.some((pattern) => pathOwned(pathname, pattern))) {
+        return "CANONICAL_CLAIM_PATH_VIOLATION:" + pathname;
+      }
+      if (
+        !changeSet.owns.paths.some((pattern) => pathOwned(pathname, pattern))
+      ) {
+        return "CHANGESET_OWNERSHIP_VIOLATION:" + pathname;
+      }
     }
   }
   return null;
@@ -345,6 +366,7 @@ export async function verifyTrustedClaimEvidence({
   mainSha,
   headSha,
   branch,
+  prNumber,
   api = githubApi,
 }) {
   assert.match(mainSha ?? "", SHA, "TRUST_MAIN_SHA_INVALID");
@@ -352,6 +374,10 @@ export async function verifyTrustedClaimEvidence({
   assert.ok(
     typeof branch === "string" && branch.length > 0,
     "TRUST_BRANCH_INVALID",
+  );
+  assert.ok(
+    Number.isInteger(prNumber) && prNumber > 0,
+    "TRUST_PR_NUMBER_INVALID",
   );
   const root = "repos/" + repository;
   const blobs = await trustedFileBlobsEqual({
@@ -377,7 +403,9 @@ export async function verifyTrustedClaimEvidence({
         run?.name === TRUST_WORKFLOW_NAME &&
         run?.event === "pull_request" &&
         run?.head_sha === headSha &&
-        run?.head_branch === branch,
+        run?.head_branch === branch &&
+        Array.isArray(run?.pull_requests) &&
+        run.pull_requests.some((pull) => pull?.number === prNumber),
     )
     .sort(
       (left, right) =>
@@ -586,6 +614,25 @@ export async function collectLivePullWork({
       continue;
     }
 
+    let trustedControlFiles;
+    try {
+      trustedControlFiles = await trustedFileBlobsEqual({
+        repository,
+        mainSha,
+        headSha,
+        api,
+      });
+    } catch {
+      items.push(
+        invalidItem(pr, { invalid: "TRUSTED_CONTROL_FILE_UNAVAILABLE" }),
+      );
+      continue;
+    }
+    if (!trustedControlFiles.trusted) {
+      items.push(invalidItem(pr, { invalid: trustedControlFiles.reason }));
+      continue;
+    }
+
     let candidateRegistryLoaded;
     try {
       candidateRegistryLoaded = await loadRegistryAtRef({
@@ -704,6 +751,7 @@ export async function collectLivePullWork({
         mainSha,
         headSha,
         branch,
+        prNumber: pr.number,
         api,
       });
       if (!trust.trusted && !invalid) invalid = trust.reason;
@@ -768,7 +816,11 @@ export async function collectLivePullWork({
       statsKnown,
       changedFiles: statsKnown ? pr.changed_files : null,
       changedLines: statsKnown ? pr.additions + pr.deletions : null,
-      actualFiles: files.map((file) => file.filename),
+      actualFiles: files.flatMap((file) =>
+        file.status === "renamed"
+          ? [file.previousFilename, file.filename]
+          : [file.filename],
+      ),
       createdAt: pr.created_at ?? "",
       invalid,
     });
