@@ -231,6 +231,15 @@ export function evaluateMergeGate({
   const others = (liveItems ?? []).filter(
     (item) => item?.prNumber !== currentPrNumber,
   );
+  const invalidOthers = others.filter((item) => item?.invalid);
+  assert.deepEqual(
+    invalidOthers.map((item) => ({
+      prNumber: item.prNumber ?? null,
+      invalid: item.invalid,
+    })),
+    [],
+    "MERGE_GATE_LIVE_WORK_ITEM_INVALID",
+  );
   const openPrs = others.filter((item) => item?.openPr === true).length + 1;
   assert.ok(
     openPrs <= policy.activePrLimit,
@@ -329,6 +338,8 @@ export async function runMergeGate({
   branch,
   api = githubApi,
   reviewThreadCounter = countUnresolvedReviewThreads,
+  liveCollector = collectLivePullWork,
+  dependencyEvaluator = evaluateDependenciesAtMain,
 } = {}) {
   assert.ok(candidateDir, "MERGE_GATE_CANDIDATE_DIR_REQUIRED");
   assert.ok(trustedDir, "MERGE_GATE_TRUSTED_DIR_REQUIRED");
@@ -401,9 +412,9 @@ export async function runMergeGate({
     "MERGE_GATE_PR_DELETIONS_MISMATCH",
   );
 
-  const live = await collectLivePullWork({ repository, api, policy });
+  const live = await liveCollector({ repository, api, policy });
   assert.equal(live.mainSha, baseSha, "MERGE_GATE_LIVE_MAIN_MISMATCH");
-  const dependencies = await evaluateDependenciesAtMain({
+  const dependencies = await dependencyEvaluator({
     changeSet: manifest,
     repository,
     mainSha: baseSha,
