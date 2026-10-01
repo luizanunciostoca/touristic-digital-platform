@@ -335,7 +335,7 @@ jobs:
               };
             });
 
-            const maxSheetRatio = state.viewport.width <= 480 ? 0.7 : 0.6;
+            const maxSheetRatio = 0.5;
             if (!state.sheet || state.sheet.height > state.viewport.height * maxSheetRatio + 1 || state.sheet.bottom > state.viewport.height + 1) {
               throw new Error(
                 `Tour card covers excessive map context at ${label}: ${JSON.stringify(state.sheet)}`,
