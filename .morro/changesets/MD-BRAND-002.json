@@ -58,9 +58,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-BRAND-001"
-  ],
+  "dependencies": ["MD-BRAND-001"],
   "requiredEvidence": [
     "format",
     "secrets",
