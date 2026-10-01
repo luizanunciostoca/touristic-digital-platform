@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "globalWriterLimit": 3,
+  "activePrLimit": 8,
+  "sameObjectiveLimit": 1,
+  "replanBehindCommits": 20,
+  "changeLimits": {
+    "hardFiles": 30,
+    "hardLines": 1500
+  },
+  "objectiveRequiredForDispatch": true,
+  "writerStates": [
+    "IMPLEMENTING",
+    "LOCAL_PROVEN",
+    "REMOTE_PROVEN",
+    "COMPOSITION_PROVEN",
+    "POLICY_SATISFIED"
+  ],
+  "slotReleaseStates": ["MERGE_READY", "MERGED"]
+}
