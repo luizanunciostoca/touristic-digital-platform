@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { appendFile, mkdir, readFile, rm, stat } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { appendFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 
 export const EVENT_TYPES = new Set([
   "CHANGESET_CREATED",
@@ -97,39 +97,116 @@ export function authorityLedgerDigest(text) {
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const lockOwnerPath = (lockPath) => lockPath + "/owner";
+
+async function createOwnedLock(lockPath, ownerToken) {
+  await mkdir(lockPath, { mode: 0o700 });
+  try {
+    await writeFile(lockOwnerPath(lockPath), ownerToken + "\n", {
+      encoding: "utf8",
+      mode: 0o600,
+      flag: "wx",
+    });
+  } catch (error) {
+    await rm(lockPath, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+async function releaseOwnedLock(lockPath, ownerToken) {
+  try {
+    const observedOwner = (await readFile(lockOwnerPath(lockPath), "utf8")).trim();
+    if (observedOwner !== ownerToken) return false;
+    await rm(lockPath, { recursive: true, force: true });
+    return true;
+  } catch (error) {
+    if (error?.code === "ENOENT") return false;
+    throw error;
+  }
+}
 
 async function withLedgerLock(path, operation) {
   const lockPath = path + ".lock";
+  const takeoverPath = lockPath + ".takeover";
+  const ownerToken = randomUUID();
   const startedAt = Date.now();
+  let acquired = false;
+
+  const timedOut = () => Date.now() - startedAt >= LOCK_TIMEOUT_MS;
+  const wait = async () => {
+    if (timedOut()) throw new Error("EVENT_LEDGER_LOCK_TIMEOUT");
+    await sleep(LOCK_WAIT_MS);
+  };
 
   for (;;) {
     try {
-      await mkdir(lockPath, { mode: 0o700 });
+      await stat(takeoverPath);
+      await wait();
+      continue;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+    }
+
+    try {
+      await createOwnedLock(lockPath, ownerToken);
+      acquired = true;
       break;
     } catch (error) {
       if (error?.code !== "EEXIST") throw error;
+    }
 
+    let info;
+    try {
+      info = await stat(lockPath);
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      throw error;
+    }
+
+    if (Date.now() - info.mtimeMs <= LOCK_STALE_MS) {
+      await wait();
+      continue;
+    }
+
+    try {
+      await mkdir(takeoverPath, { mode: 0o700 });
+    } catch (error) {
+      if (error?.code !== "EEXIST") throw error;
+      await wait();
+      continue;
+    }
+
+    try {
+      let current;
       try {
-        const info = await stat(lockPath);
-        if (Date.now() - info.mtimeMs > LOCK_STALE_MS) {
-          await rm(lockPath, { recursive: true, force: true });
-          continue;
-        }
-      } catch (statError) {
-        if (statError?.code === "ENOENT") continue;
-        throw statError;
+        current = await stat(lockPath);
+      } catch (error) {
+        if (error?.code === "ENOENT") continue;
+        throw error;
       }
 
-      if (Date.now() - startedAt >= LOCK_TIMEOUT_MS)
-        throw new Error("EVENT_LEDGER_LOCK_TIMEOUT");
-      await sleep(LOCK_WAIT_MS);
+      if (Date.now() - current.mtimeMs <= LOCK_STALE_MS) continue;
+
+      await rm(lockPath, { recursive: true, force: true });
+
+      try {
+        await createOwnedLock(lockPath, ownerToken);
+        acquired = true;
+        break;
+      } catch (error) {
+        if (error?.code !== "EEXIST") throw error;
+      }
+    } finally {
+      await rm(takeoverPath, { recursive: true, force: true });
     }
+
+    if (!acquired) await wait();
   }
 
   try {
     return await operation();
   } finally {
-    await rm(lockPath, { recursive: true, force: true });
+    if (acquired) await releaseOwnedLock(lockPath, ownerToken);
   }
 }
 
