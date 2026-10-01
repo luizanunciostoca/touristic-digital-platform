@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: agent-profile-contract-${{ github.event.pull_request.number || github.ref }}
@@ -25,10 +26,12 @@ jobs:
     timeout-minutes: 5
     outputs:
       manifest_path: ${{ steps.changeset.outputs.path }}
+      retirement: ${{ steps.transition.outputs.retirement }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -42,8 +45,23 @@ jobs:
           path="$(node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH")"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
+      - name: Classify claim registry transition
+        id: transition
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_claims="$(mktemp)"
+          git show "$BASE_SHA:.github/morro-control/claims.json" > "$base_claims"
+          removed_count="$(jq -n --slurpfile base "$base_claims" --slurpfile candidate .github/morro-control/claims.json '($base[0].claims | keys) - ($candidate[0].claims | keys) | length')"
+          added_count="$(jq -n --slurpfile base "$base_claims" --slurpfile candidate .github/morro-control/claims.json '($candidate[0].claims | keys) - ($base[0].claims | keys) | length')"
+          retirement=false
+          if [ "$removed_count" -eq 1 ] && [ "$added_count" -eq 0 ]; then retirement=true; fi
+          echo "retirement=$retirement" >> "$GITHUB_OUTPUT"
+
   validate-pr:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && needs.resolve-pr-changeset.outputs.retirement != 'true'
     needs: resolve-pr-changeset
     name: agent-profile-contract
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@504d587c9eb780cff01aae71d377b2c2aec99054
@@ -53,6 +71,51 @@ jobs:
       manifest_path: ${{ needs.resolve-pr-changeset.outputs.manifest_path }}
     permissions:
       contents: read
+
+  validate-retirement:
+    if: github.event_name == 'pull_request' && needs.resolve-pr-changeset.outputs.retirement == 'true'
+    needs: resolve-pr-changeset
+    name: agent-profile-retirement-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Prove retirement from trusted base evidence
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+          node --test trusted/tooling/fabric/claim-retirement-proof.test.mjs
+          node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate | tee agent-profile-retirement-proof.json
+      - name: Upload retirement proof
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: agent-profile-retirement-proof-${{ github.event.pull_request.head.sha }}
+          path: agent-profile-retirement-proof.json
+          if-no-files-found: error
+          retention-days: 30
 
   validate-merge-group:
     if: github.event_name == 'merge_group'
