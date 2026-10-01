@@ -1,11 +1,11 @@
 :root {
-  --md-bg: #f4f8fc;
+  --md-bg: #f7fafc;
   --md-surface: #ffffff;
-  --md-text: #0b2447;
+  --md-text: #07152f;
   --md-text-muted: #60738f;
-  --md-primary: #0b63ce;
-  --md-primary-soft: #eaf3ff;
-  --md-success: #10a760;
+  --md-primary: #056fb5;
+  --md-primary-soft: #e8f6fb;
+  --md-success: #16794b;
   --md-success-soft: #eaf9f1;
   --md-warning: #d97706;
   --md-warning-soft: #fff6e8;
@@ -67,11 +67,25 @@ body {
 .brand-wordmark {
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
+  gap: 8px;
   color: var(--md-text);
   text-decoration: none;
   line-height: 1.1;
+}
+
+.brand-wordmark__mark {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  object-fit: contain;
+}
+
+.brand-wordmark__copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .brand-wordmark__name {
