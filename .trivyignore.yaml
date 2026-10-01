@@ -13,34 +13,46 @@ misconfigurations:
       or entrypoint change and no later than the expiry date.
 vulnerabilities:
   - id: CVE-2026-76642
-    expired_at: 2026-10-01
-    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before the expiry date.
-  - id: CVE-2026-78408
-    expired_at: 2026-10-01
-    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-  - id: CVE-2026-78409
-    expired_at: 2026-10-01
-    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-  - id: CVE-2026-78410
-    expired_at: 2026-10-01
-    statement: Debian 13.7 util-linux family HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-  - id: CVE-2026-54369
-    expired_at: 2026-10-01
-    statement: Debian 13.7 libacl1 HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-  - id: CVE-2026-16742
-    expired_at: 2026-10-01
-    statement: Debian 13.7 systemd libraries HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-  - id: CVE-2025-69720
-    expired_at: 2026-10-01
-    statement: Debian 13.7 ncurses HIGH finding has no vendor-fixed version in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-  - id: CVE-2026-9538
-    expired_at: 2026-10-01
-    statement: Debian 13.7 perl-base HIGH finding is vendor fix-deferred in the 2026-09-17 SEC-07 scan; re-evaluate before expiry.
-
-  - id: CVE-2026-84782
-    expired_at: 2026-10-01
+    expired_at: 2026-10-08
     statement: >-
-      OpenSSL DTLS HIGH finding disclosed on 2026-09-29 has no Debian stable
-      fixed package for Trixie in the 2026-09-30 SEC-07 scan. Keep
-      ignore-unfixed=false and re-evaluate this narrow exception no later than
-      the expiry date.
+      Debian 13.7 util-linux 2.41.5-0+deb13u1 remains affected with no fixed
+      version in the 2026-10-01 Trivy scan and Debian tracker; narrow temporary
+      exception only until the next weekly re-evaluation.
+  - id: CVE-2026-78408
+    expired_at: 2026-10-08
+    statement: >-
+      Debian 13.7 util-linux 2.41.5-0+deb13u1 remains affected with no fixed
+      version in the 2026-10-01 Trivy scan and Debian tracker; narrow temporary
+      exception only until the next weekly re-evaluation.
+  - id: CVE-2026-78409
+    expired_at: 2026-10-08
+    statement: >-
+      Debian 13.7 util-linux 2.41.5-0+deb13u1 remains affected with no fixed
+      version in the 2026-10-01 Trivy scan and Debian tracker; narrow temporary
+      exception only until the next weekly re-evaluation.
+  - id: CVE-2026-78410
+    expired_at: 2026-10-08
+    statement: >-
+      Debian 13.7 util-linux 2.41.5-0+deb13u1 remains affected with no fixed
+      version in the 2026-10-01 Trivy scan and Debian tracker; narrow temporary
+      exception only until the next weekly re-evaluation.
+  - id: CVE-2026-54369
+    expired_at: 2026-10-08
+    statement: >-
+      Debian trixie acl/libacl1 remains vulnerable and Debian plans the fix via
+      a future point release; the 2026-10-01 Trivy scan reports no FixedVersion.
+  - id: CVE-2026-16742
+    expired_at: 2026-10-08
+    statement: >-
+      Debian trixie systemd 257.13-1~deb13u1 remains vulnerable/no-DSA and the
+      2026-10-01 Trivy scan reports no FixedVersion; re-evaluate weekly.
+  - id: CVE-2025-69720
+    expired_at: 2026-10-08
+    statement: >-
+      Debian trixie ncurses 6.5+20250216-2 remains vulnerable/no-DSA and the
+      2026-10-01 Trivy scan reports no FixedVersion; re-evaluate weekly.
+  - id: CVE-2026-9538
+    expired_at: 2026-10-08
+    statement: >-
+      Debian trixie perl 5.40.1-6+deb13u1 remains postponed/fix-deferred and
+      the 2026-10-01 Trivy scan reports no FixedVersion; re-evaluate weekly.

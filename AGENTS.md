@@ -1,4 +1,8 @@
-# Morro Digital — Autonomous Engineering Constitution
+# Touristic Digital Platform — Autonomous Engineering Constitution
+
+## Architecture
+
+The operational engineering system is **Touristic Digital Platform — Autonomous Engineering Control Plane**, completing and hardening Control Plane V3.2. Do not create V4/V5 or a parallel control architecture without an accepted ADR. Platform Core, Morro Digital, Itacaré Digital and future destinations are distinct scopes on the same governed platform. Root invariants are summarized in `CONSTITUTION.md`.
 
 ## Source of truth
 

@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP Control Plane Authority Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "eventId",
+    "eventType",
+    "observedAt",
+    "actor",
+    "entity",
+    "payloadVersion",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "eventId": {
+      "type": "string",
+      "pattern": "^evt-[A-Za-z0-9._-]{1,120}$"
+    },
+    "eventType": {
+      "enum": [
+        "CHANGESET_CREATED",
+        "CHANGESET_CANCELLED",
+        "CLAIM_ACQUIRED",
+        "CLAIM_RENEWED",
+        "CLAIM_RELEASED",
+        "CLAIM_EXPIRED",
+        "CANDIDATE_COMPOSED",
+        "EVIDENCE_ACCEPTED",
+        "EVIDENCE_REJECTED",
+        "MERGED",
+        "ARTIFACT_BUILT",
+        "RELEASE_CERTIFIED",
+        "STAGING_PROMOTED",
+        "STAGING_ACCEPTED",
+        "PRODUCTION_PROMOTED",
+        "PRODUCTION_ACCEPTED",
+        "ROLLBACK",
+        "INCIDENT_CREATED"
+      ]
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actor": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120
+    },
+    "entity": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160
+    },
+    "sourceSha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "payloadVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "payload": {
+      "type": "object"
+    }
+  }
+}
