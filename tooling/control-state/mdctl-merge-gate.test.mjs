@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -16,6 +22,64 @@ const HEAD = "c".repeat(40);
 const OLD_BASE = "a".repeat(40);
 const BRANCH = "feat/gated";
 const OLD_BRANCH = "feat/previous";
+
+test("merge-gate workflow shares the required context across PR and merge-group events", () => {
+  const source = readFileSync(
+    join(process.cwd(), ".github/workflows/morro-merge-gate.yml"),
+    "utf8",
+  );
+
+  assert.match(source, /^  pull_request:$/mu);
+  assert.match(source, /^  merge_group:$/mu);
+  assert.equal(
+    [...source.matchAll(/^    name: morro\/merge-gate$/gmu)].length,
+    1,
+  );
+  assert.doesNotMatch(source, /morro\/merge-group-gate/u);
+
+  const prSteps = [
+    "Reject fork candidates",
+    "Checkout trusted base",
+    "Checkout candidate as data",
+    "Setup Node for PR policy",
+    "Wait for exact-head Trusted Claim Guard",
+    "Run trusted merge-gate policy",
+  ];
+  for (const name of prSteps) {
+    assert.ok(
+      source.includes(
+        `      - name: ${name}\n        if: github.event_name == 'pull_request'\n`,
+      ),
+      "PR_STEP_GUARD_MISSING:" + name,
+    );
+  }
+  assert.ok(
+    source.includes(
+      "      - name: Upload PR merge-gate decision\n" +
+        "        if: always() && github.event_name == 'pull_request'\n",
+    ),
+    "PR_UPLOAD_GUARD_MISSING",
+  );
+
+  for (const name of [
+    "Checkout merge group",
+    "Require current main ancestry",
+  ]) {
+    assert.ok(
+      source.includes(
+        `      - name: ${name}\n        if: github.event_name == 'merge_group'\n`,
+      ),
+      "MERGE_GROUP_STEP_GUARD_MISSING:" + name,
+    );
+  }
+  assert.ok(
+    source.includes(
+      "      - name: Upload merge-group decision\n" +
+        "        if: always() && github.event_name == 'merge_group'\n",
+    ),
+    "MERGE_GROUP_UPLOAD_GUARD_MISSING",
+  );
+});
 
 function manifest(overrides = {}) {
   return {
