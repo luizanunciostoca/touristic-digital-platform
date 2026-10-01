@@ -62,7 +62,8 @@
     "mdctl:invariants": "node tooling/mdctl/mdctl.mjs invariants",
     "mdctl:task": "node tooling/mdctl/mdctl.mjs task",
     "mdctl:schedule": "node tooling/mdctl/mdctl.mjs schedule",
-    "mdctl:queue": "node tooling/mdctl/mdctl.mjs queue"
+    "mdctl:queue": "node tooling/mdctl/mdctl.mjs queue",
+    "mdctl:reconcile": "node tooling/mdctl/mdctl.mjs reconcile"
   },
   "pnpm": {
     "overrides": {

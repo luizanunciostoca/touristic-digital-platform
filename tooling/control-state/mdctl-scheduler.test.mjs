@@ -21,6 +21,7 @@ import {
   schedulerClaimBindingError,
   verifyTrustedClaimEvidence,
 } from "../mdctl/scheduler-live.mjs";
+import { buildLiveProjection } from "../mdctl/reconcile.mjs";
 
 function changeSet(id, objective, overrides = {}) {
   return {
@@ -1279,4 +1280,107 @@ test("mdctl schedule candidate requires exact main and carries dependencies", as
   assert.equal(stale.invalid, "CANDIDATE_EXACT_BASE_MISMATCH");
   assert.equal(stale.dependenciesSatisfied, false);
   assert.deepEqual(stale.unresolvedDependencies, ["MD-BASE"]);
+});
+
+test("reconcile projection replaces stale main assumptions with observed main", () => {
+  const mainSha = "b".repeat(40);
+  const projection = buildLiveProjection({
+    mainSha,
+    backlog: {
+      updatedFromMainSha: "c".repeat(40),
+      items: [{ id: "MD-A", state: "READY" }],
+    },
+    registry: {
+      claims: {
+        "MD-A": {
+          status: "IMPLEMENTING",
+          branch: "feat/md-a",
+          baseSha: "a".repeat(40),
+        },
+        "MD-OLD": {
+          status: "IMPLEMENTING",
+          branch: "feat/old",
+          baseSha: "a".repeat(40),
+        },
+      },
+    },
+    releaseState: {
+      candidateSha: null,
+      stagingSha: "d".repeat(40),
+      productionSha: "e".repeat(40),
+    },
+    liveWork: {
+      mainSha,
+      items: [
+        {
+          prNumber: 9,
+          headSha: "f".repeat(40),
+          changeSet: changeSet("MD-A", "objective-a"),
+          claim: { branch: "feat/md-a" },
+        },
+      ],
+    },
+  });
+  assert.equal(projection.currentMain, mainSha);
+  assert.equal(projection.backlog.anchorMatchesMain, false);
+  assert.deepEqual(projection.claims.staleCandidates, ["MD-OLD"]);
+  assert.equal(
+    projection.claims.items.find((item) => item.id === "MD-A").liveState,
+    "OPEN_PR",
+  );
+  assert.equal(projection.release.currentMain, mainSha);
+});
+
+test("reconcile integration queue is derived from trusted live MERGE_READY work", () => {
+  const mainSha = "b".repeat(40);
+  const projection = buildLiveProjection({
+    mainSha,
+    backlog: { updatedFromMainSha: null, items: [] },
+    registry: { claims: {} },
+    releaseState: {},
+    liveWork: {
+      mainSha,
+      items: [
+        {
+          prNumber: 4,
+          headSha: "c".repeat(40),
+          openPr: true,
+          writerActive: false,
+          ready: true,
+          changeSet: changeSet("MD-READY", "ready-objective", {
+            state: "MERGE_READY",
+            baseSha: mainSha,
+          }),
+          priority: "P0",
+          dependenciesSatisfied: true,
+          unresolvedDependencies: [],
+          behindBy: 0,
+          baseIsAncestorOfMain: true,
+          statsKnown: true,
+          changedFiles: 1,
+          changedLines: 10,
+          invalid: null,
+        },
+      ],
+    },
+  });
+  assert.equal(projection.integrationQueue.batches.length, 1);
+  assert.equal(
+    projection.integrationQueue.batches[0].items[0].changeSetId,
+    "MD-READY",
+  );
+});
+
+test("reconcile projection fails closed when live collector main differs", () => {
+  assert.throws(
+    () =>
+      buildLiveProjection({
+        mainSha: "b".repeat(40),
+        backlog: { items: [] },
+        registry: { claims: {} },
+        releaseState: {},
+        liveWork: { mainSha: "c".repeat(40), items: [] },
+      }),
+    /RECONCILE_LIVE_MAIN_MISMATCH/u,
+  );
 });

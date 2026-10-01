@@ -23,6 +23,7 @@ import {
   evaluateDependenciesAtMain,
 } from "./scheduler-live.mjs";
 import { validateChangeSetV2 } from "./changeset-v2.mjs";
+import { runReconcileCli } from "./reconcile.mjs";
 
 function parseOptions(args, env = process.env) {
   const explicit = args[0] && !args[0].startsWith("--");
@@ -193,6 +194,12 @@ export function buildPlan(state) {
 async function main(argv) {
   if (argv[0] === "task") {
     const result = await runTaskCli(argv.slice(1));
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (argv[0] === "reconcile") {
+    const result = await runReconcileCli(argv.slice(1));
     console.log(JSON.stringify(result, null, 2));
     return;
   }
