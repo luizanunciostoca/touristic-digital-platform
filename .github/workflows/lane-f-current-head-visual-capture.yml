@@ -1,0 +1,289 @@
+name: Lane F Current Head Visual Capture
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/lane-f-current-head-visual-capture.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: lane-f-current-head-visual-capture-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  official-visual-suites:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Capture exact main identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/lane-f/official
+          MAIN_SHA="${{ github.event.pull_request.base.sha }}"
+          LIVE_MAIN="$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)"
+          test "$MAIN_SHA" = "$LIVE_MAIN"
+          printf '%s\n' "$MAIN_SHA" > /tmp/lane-f/exact-main.txt
+          printf '%s\n' "main_sha=$MAIN_SHA" >> "$GITHUB_ENV"
+
+      - name: Dispatch bounded official visual suites on exact main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          START="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > /tmp/lane-f/workflows.tsv <<'EOF'
+          home	home-discover-manual-conformance.yml
+          profile	profile-v2-visual-regression.yml
+          place	place-explore-v2-visual-regression.yml
+          commerce	commerce-browser-regression.yml
+          ticketing	ticketing-v2-visual-regression.yml
+          tour	map-tour-browser-regression.yml
+          onboarding	home-first-run-browser-regression.yml
+          control-center	control-center-visual-golden-v1.yml
+          EOF
+          : > /tmp/lane-f/run-map.tsv
+          while IFS=$'\t' read -r label wf; do
+            echo "Dispatching $label -> $wf on main@$main_sha"
+            gh workflow run "$wf" --ref main
+            run_id=""
+            for _ in $(seq 1 30); do
+              run_id="$(gh run list --workflow "$wf" --branch main --event workflow_dispatch --limit 20                 --json databaseId,headSha,createdAt                 --jq '.[] | select(.headSha=="'\"$main_sha\"'" and .createdAt >= "'\"$START\"'") | .databaseId'                 | head -n 1)"
+              test -n "$run_id" && break
+              sleep 2
+            done
+            if test -z "$run_id"; then
+              echo -e "$label\t$wf\tNOT_FOUND" >> /tmp/lane-f/run-map.tsv
+            else
+              echo -e "$label\t$wf\t$run_id" >> /tmp/lane-f/run-map.tsv
+            fi
+          done < /tmp/lane-f/workflows.tsv
+          cat /tmp/lane-f/run-map.tsv
+
+      - name: Wait and collect official artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -uo pipefail
+          : > /tmp/lane-f/results.tsv
+          while IFS=$'\t' read -r label wf run_id; do
+            if test "$run_id" = "NOT_FOUND"; then
+              echo -e "$label\tRUN_NOT_FOUND" >> /tmp/lane-f/results.tsv
+              continue
+            fi
+            echo "Watching $label run $run_id"
+            if gh run watch "$run_id" --exit-status; then
+              conclusion="success"
+            else
+              conclusion="$(gh run view "$run_id" --json conclusion --jq .conclusion 2>/dev/null || echo failed)"
+            fi
+            mkdir -p "/tmp/lane-f/official/$label"
+            gh run download "$run_id" -D "/tmp/lane-f/official/$label" || true
+            echo -e "$label\t$conclusion\t$run_id" >> /tmp/lane-f/results.tsv
+          done < /tmp/lane-f/run-map.tsv
+          cat /tmp/lane-f/results.tsv
+          printf '{"mainSha":"%s","generatedAt":"%s"}\n' "$main_sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > /tmp/lane-f/official/identity.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-current-main-official-visual-evidence
+          path: |
+            /tmp/lane-f/exact-main.txt
+            /tmp/lane-f/run-map.tsv
+            /tmp/lane-f/results.tsv
+            /tmp/lane-f/official/**
+          retention-days: 14
+          if-no-files-found: error
+
+  business-current-head:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: lane-f-business
+          MYSQL_DATABASE: lane_f_business
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -plane-f-business"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      BUSINESS_DATABASE_URL: mysql://root:lane-f-business@127.0.0.1:3306/lane_f_business
+      CONTENT_DATABASE_URL: mysql://root:lane-f-business@127.0.0.1:3306/lane_f_business
+      MEDIA_STORAGE_BASE_PATH: /tmp/lane-f-media
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - uses: ./.github/actions/ci-bootstrap
+        with:
+          browser: "true"
+
+      - name: Verify exact current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.base.sha }}"
+          mkdir -p /tmp/lane-f-business
+          git rev-parse HEAD > /tmp/lane-f-business/exact-head.txt
+
+      - name: Build workspace and browser
+        run: |
+          pnpm -w build
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+
+      - name: Apply canonical Content schema
+        working-directory: apps/morro-digital-platform
+        run: >-
+          node --input-type=module -e
+          "import('@touristic/content-server').then(async ({createMySqlPool,applyContentM156Schema}) => {
+          const pool = createMySqlPool(process.env.CONTENT_DATABASE_URL);
+          try { await applyContentM156Schema(pool); }
+          finally { await pool.end(); }
+          })"
+
+      - name: Start deterministic Business runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4177
+          SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="lane f visual capture fixture"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 11))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([
+            {id:"owner-lane-f",email:"owner-lane-f@example.com",passwordHash:process.argv[1],role:"owner",businessIds:["business-a"]},
+            {id:"admin-lane-f",email:"admin-lane-f@example.com",passwordHash:process.argv[1],role:"admin",businessIds:[]}
+          ]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1"             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/lane-f-business/server.log 2>&1 &
+          echo $! >/tmp/lane-f-business/server.pid
+          for _ in $(seq 1 90); do
+            curl --fail --silent "http://127.0.0.1:${PORT}/runtime-config.js" >/dev/null && exit 0
+            sleep .25
+          done
+          cat /tmp/lane-f-business/server.log
+          exit 1
+
+      - name: Capture real Business UI with deterministic demo data
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const origin = 'http://127.0.0.1:4177';
+          const password = 'lane f visual capture fixture';
+          const out = '/tmp/lane-f-business';
+          async function login(context,email){
+            const r=await context.request.post(origin+'/api/dashboard/auth/login',{
+              headers:{Origin:origin,'Content-Type':'application/json'},
+              data:{email,password}
+            });
+            if(r.status()!==200) throw new Error('login failed '+email+' '+r.status());
+            return r.json();
+          }
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const evidence={screens:[],errors:[]};
+            try{
+              const admin=await browser.newContext();
+              const adminLogin=await login(admin,'admin-lane-f@example.com');
+              const place=await admin.request.post(origin+'/api/admin/v1/businesses/cms',{
+                headers:{Origin:origin,'Content-Type':'application/json','X-CSRF-Token':adminLogin.csrfToken,'Idempotency-Key':'lane-f-business-place'},
+                data:{businessId:'business-a',placeId:'place-business-a',destinationId:'morro-de-sao-paulo',categoryId:'attractions',name:'Empresa demonstração',shortDescription:'Perfil demonstrativo para documentação visual',capabilities:['directions','photos']}
+              });
+              if(![201,409].includes(place.status())) throw new Error('place seed '+place.status()+' '+await place.text());
+              await admin.close();
+
+              const context=await browser.newContext({viewport:{width:1280,height:900},locale:'pt-BR',colorScheme:'light',reducedMotion:'reduce'});
+              const owner=await login(context,'owner-lane-f@example.com');
+              const profile=await context.request.put(origin+'/api/business/business-a/profile',{
+                headers:{Origin:origin,'Content-Type':'application/json','X-CSRF-Token':owner.csrfToken},
+                data:{id:'business-a',name:'Empresa demonstração',categoryLabel:'Experiência',description:'Ambiente demonstrativo sem dados comerciais reais.',cta:'Ver empresa',locationLabel:'Morro de São Paulo'}
+              });
+              if(profile.status()!==200) throw new Error('profile seed '+profile.status()+' '+await profile.text());
+              const page=await context.newPage();
+              page.on('pageerror',e=>evidence.errors.push(e.message));
+              await page.goto(origin+'/apps/morro-digital-platform/public/business-dashboard.html?businessId=business-a',{waitUntil:'domcontentloaded',timeout:30000});
+              await page.locator('#main-dashboard:not([hidden])').waitFor({state:'visible',timeout:15000});
+              await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}'});
+              const safeName=await page.locator('#business-name').textContent();
+              if(!safeName?.includes('Empresa demonstração')) throw new Error('unexpected business label');
+              const targets=[
+                ['dashboard','Dashboard'],
+                ['profile','Perfil'],
+                ['location','Localização'],
+                ['photos','Fotos'],
+                ['products','Produtos'],
+                ['offers','Ofertas'],
+                ['menu','Cardápio'],
+                ['reservations','Reservas'],
+                ['ticketing','Ticketing / check-in'],
+                ['financial','Financeiro'],
+                ['content','Conteúdo'],
+                ['preview','Preview']
+              ];
+              await page.screenshot({path:out+'/business-dashboard-1280x900.png',fullPage:false,animations:'disabled'});
+              evidence.screens.push('business-dashboard-1280x900.png');
+              for(const [slug,label] of targets){
+                const nav=page.locator('.sidebar-nav .nav-item',{hasText:label}).first();
+                if(await nav.count()){
+                  try{
+                    await nav.click();
+                    await page.waitForTimeout(250);
+                    await page.screenshot({path:out+'/business-'+slug+'-1280x900.png',fullPage:false,animations:'disabled'});
+                    evidence.screens.push('business-'+slug+'-1280x900.png');
+                  }catch(e){ evidence.errors.push(slug+':'+e.message); }
+                }
+              }
+              await page.setViewportSize({width:390,height:844});
+              const mobile=page.locator('#mobile-menu');
+              if(await mobile.count()) await mobile.click().catch(()=>{});
+              await page.screenshot({path:out+'/business-mobile-390x844.png',fullPage:false,animations:'disabled'});
+              evidence.screens.push('business-mobile-390x844.png');
+
+              const onboarding=await context.newPage();
+              await onboarding.goto(origin+'/apps/morro-digital-platform/public/business-onboarding.html',{waitUntil:'domcontentloaded',timeout:30000});
+              await onboarding.setViewportSize({width:390,height:844});
+              await onboarding.screenshot({path:out+'/business-onboarding-390x844.png',fullPage:true,animations:'disabled'});
+              evidence.screens.push('business-onboarding-390x844.png');
+              await onboarding.setViewportSize({width:1280,height:900});
+              await onboarding.screenshot({path:out+'/business-onboarding-1280x900.png',fullPage:true,animations:'disabled'});
+              evidence.screens.push('business-onboarding-1280x900.png');
+
+              writeFileSync(out+'/evidence.json',JSON.stringify(evidence,null,2));
+              await context.close();
+            } finally { await browser.close(); }
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Show Business diagnostics
+        if: failure()
+        run: cat /tmp/lane-f-business/server.log || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-business-current-main-visual-evidence
+          path: /tmp/lane-f-business
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Stop Business runtime
+        if: always()
+        run: kill "$(cat /tmp/lane-f-business/server.pid)" 2>/dev/null || true
