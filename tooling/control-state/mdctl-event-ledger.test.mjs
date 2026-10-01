@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -79,6 +79,34 @@ test("concurrent duplicate appends serialize and preserve one event", async () =
     );
     const stored = await readFile(path, "utf8");
     assert.deepEqual(parseAuthorityLedger(stored), [event]);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+
+test("stale-lock takeover preserves a single owner and serializes successors", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "tdp-ledger-"));
+  const path = join(directory, "events.ndjson");
+  const lockPath = path + ".lock";
+  const second = { ...event, eventId: "evt-test-002" };
+  try {
+    await mkdir(lockPath, { mode: 0o700 });
+    await writeFile(join(lockPath, "owner"), "stale-owner\n", "utf8");
+    const stale = new Date(Date.now() - 10 * 60 * 1000);
+    await utimes(lockPath, stale, stale);
+
+    await Promise.all([
+      appendAuthorityEvent(path, event),
+      appendAuthorityEvent(path, second),
+    ]);
+
+    const stored = parseAuthorityLedger(await readFile(path, "utf8"));
+    assert.deepEqual(
+      new Set(stored.map((item) => item.eventId)),
+      new Set(["evt-test-001", "evt-test-002"]),
+    );
+    await assert.rejects(readFile(join(lockPath, "owner"), "utf8"), /ENOENT/u);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
