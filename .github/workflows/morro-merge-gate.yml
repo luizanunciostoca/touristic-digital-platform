@@ -1,0 +1,130 @@
+name: Morro Merge Gate
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+  merge_group:
+    types:
+      - checks_requested
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: morro-merge-gate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pull-request-policy:
+    if: github.event_name == 'pull_request'
+    name: morro/merge-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Reject fork candidates
+        env:
+          BASE_REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$HEAD_REPOSITORY" = "$BASE_REPOSITORY"
+
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Run trusted merge-gate policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node trusted/tooling/mdctl/merge-gate.mjs \
+            --trusted trusted \
+            --candidate candidate \
+            --repository "$REPOSITORY" \
+            --pr-number "$PR_NUMBER" \
+            --head-sha "$HEAD_SHA" \
+            --base-sha "$BASE_SHA" \
+            --branch "$HEAD_BRANCH" \
+            | tee merge-gate-decision.json
+          jq -e '.decision == "POLICY_SATISFIED"' merge-gate-decision.json >/dev/null
+
+      - name: Upload merge-gate decision
+        if: always()
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: morro-merge-gate-${{ github.event.pull_request.head.sha }}
+          path: merge-gate-decision.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  merge-group-policy:
+    if: github.event_name == 'merge_group'
+    name: morro/merge-group-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout merge group
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Require current main ancestry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          GROUP_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+          git fetch --no-tags origin "$MAIN_SHA"
+          test "$(git rev-parse HEAD)" = "$GROUP_SHA"
+          git merge-base --is-ancestor "$MAIN_SHA" "$GROUP_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=normal)"
+          printf '{"kind":"TDP_MERGE_GROUP_GATE","mainSha":"%s","groupSha":"%s","status":"PASS"}\n' \
+            "$MAIN_SHA" "$GROUP_SHA" | tee merge-group-decision.json
+
+      - name: Upload merge-group decision
+        if: always()
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: morro-merge-group-gate-${{ github.sha }}
+          path: merge-group-decision.json
+          if-no-files-found: warn
+          retention-days: 30
