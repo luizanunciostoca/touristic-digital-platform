@@ -139,10 +139,7 @@ async function main(argv) {
   }
 }
 
-main(process.argv.slice(2)).catch((error) => {
-  console.error(
-    "MDCTL_FAILED:" +
-      (error instanceof Error ? error.message : String(error)),
-  );
+main(process.argv.slice(2)).catch(() => {
+  console.error("MDCTL_FAILED");
   process.exitCode = 2;
 });
