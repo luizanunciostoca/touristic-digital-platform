@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { validateChangeSet, validateLegacyChangeSet } from "./validate-changeset.mjs";
-import { changeSetDigest, validateChangeSetV2 } from "../mdctl/changeset-v2.mjs";
+import {
+  validateChangeSet,
+  validateLegacyChangeSet,
+} from "./validate-changeset.mjs";
+import {
+  changeSetDigest,
+  validateChangeSetV2,
+} from "../mdctl/changeset-v2.mjs";
 
 function v2() {
   return {
@@ -51,7 +57,10 @@ test("ChangeSet V2 validates and has a stable canonical digest", () => {
 test("ChangeSet V2 fails closed on unsafe ownership paths", () => {
   const manifest = v2();
   manifest.owns.paths = ["../secret"];
-  assert.throws(() => validateChangeSetV2(manifest), /CHANGESET_PATH_TRAVERSAL/u);
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_PATH_TRAVERSAL/u,
+  );
 });
 
 test("ChangeSet V2 enforces proof budgets and executable allowlist", () => {
