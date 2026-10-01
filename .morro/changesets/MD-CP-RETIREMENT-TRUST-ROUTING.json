@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-CP-RETIREMENT-TRUST-ROUTING",
-  "baseSha": "2a05862e9dfce1145ce6421c9144d0e88b8ca3c4",
-  "branch": "chore/control-plane-retirement-trust-routing-claim-20261001",
-  "state": "IMPLEMENTING",
+  "baseSha": "3394a39893473ab6d0155938ccd0d0555287f740",
+  "branch": "chore/control-plane-retirement-trust-routing-retire-20261001",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
