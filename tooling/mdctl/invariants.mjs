@@ -47,7 +47,9 @@ function sanitizeActionsRun(run) {
     event: TRUSTED_RUN_EVENTS.has(run?.event) ? run.event : "other",
     path: WORKFLOW_PATH.test(run?.path ?? "") ? run.path : null,
     name:
-      typeof run?.name === "string" && run.name.length > 0 && run.name.length <= 160
+      typeof run?.name === "string" &&
+      run.name.length > 0 &&
+      run.name.length <= 160
         ? run.name
         : null,
     referencedWorkflows: Array.isArray(run?.referenced_workflows)
@@ -99,22 +101,22 @@ function evidenceBoundToSha(
 
   return Boolean(
     releaseState?.[fields.state] === "VERIFIED" &&
-      SHA.test(subjectSha ?? "") &&
-      releaseState?.[fields.sha] === subjectSha &&
-      RUN_ID.test(runId) &&
-      WORKFLOW_PATH.test(workflowPath ?? "") &&
-      typeof workflowName === "string" &&
-      workflowName.length > 0 &&
-      liveRun?.id === Number(runId) &&
-      liveRun.headSha === subjectSha &&
-      liveRun.status === "completed" &&
-      liveRun.conclusion === "success" &&
-      TRUSTED_RUN_EVENTS.has(liveRun.event) &&
-      liveRun.path === workflowPath &&
-      liveRun.name === workflowName &&
-      (!requireTrustedWorkflowRef ||
-        (TRUSTED_WORKFLOW_REF.test(expectedTrustedWorkflowRef ?? "") &&
-          liveRun.referencedWorkflows.includes(expectedTrustedWorkflowRef)))
+    SHA.test(subjectSha ?? "") &&
+    releaseState?.[fields.sha] === subjectSha &&
+    RUN_ID.test(runId) &&
+    WORKFLOW_PATH.test(workflowPath ?? "") &&
+    typeof workflowName === "string" &&
+    workflowName.length > 0 &&
+    liveRun?.id === Number(runId) &&
+    liveRun.headSha === subjectSha &&
+    liveRun.status === "completed" &&
+    liveRun.conclusion === "success" &&
+    TRUSTED_RUN_EVENTS.has(liveRun.event) &&
+    liveRun.path === workflowPath &&
+    liveRun.name === workflowName &&
+    (!requireTrustedWorkflowRef ||
+      (TRUSTED_WORKFLOW_REF.test(expectedTrustedWorkflowRef ?? "") &&
+        liveRun.referencedWorkflows.includes(expectedTrustedWorkflowRef)))
   );
 }
 
