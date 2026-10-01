@@ -222,64 +222,64 @@ export async function collectObservedState({
     local,
   ] = await Promise.all([
     capture("pullRequests", () =>
-        list(root + "/pulls?state=open&per_page=100"),
-      ),
+      list(root + "/pulls?state=open&per_page=100"),
+    ),
     capture("claims", async () => {
-        if (!mainSha) throw new Error("MAIN_REQUIRED");
-        const value = decodeContent(
-          await api(atMain(".github/morro-control/claims.json")),
-        );
-        if (
-          value?.registryAuthority !== "ORCHESTRATOR" ||
-          !value.claims ||
-          typeof value.claims !== "object" ||
-          Array.isArray(value.claims)
-        )
-          throw new Error("REGISTRY_INVALID");
-        return value;
-      }),
+      if (!mainSha) throw new Error("MAIN_REQUIRED");
+      const value = decodeContent(
+        await api(atMain(".github/morro-control/claims.json")),
+      );
+      if (
+        value?.registryAuthority !== "ORCHESTRATOR" ||
+        !value.claims ||
+        typeof value.claims !== "object" ||
+        Array.isArray(value.claims)
+      )
+        throw new Error("REGISTRY_INVALID");
+      return value;
+    }),
     capture("backlog", async () => {
-        if (!mainSha) throw new Error("MAIN_REQUIRED");
-        const value = decodeContent(
-          await api(atMain(".github/morro-control/backlog.json")),
-        );
-        if (!Array.isArray(value?.items)) throw new Error("BACKLOG_INVALID");
-        return value;
-      }),
+      if (!mainSha) throw new Error("MAIN_REQUIRED");
+      const value = decodeContent(
+        await api(atMain(".github/morro-control/backlog.json")),
+      );
+      if (!Array.isArray(value?.items)) throw new Error("BACKLOG_INVALID");
+      return value;
+    }),
     capture("releaseState", async () => {
-        if (!mainSha) throw new Error("MAIN_REQUIRED");
-        const value = decodeContent(
-          await api(atMain(".github/morro-control/release-state.json")),
-        );
-        if (value?.schemaVersion !== 1)
-          throw new Error("RELEASE_STATE_INVALID");
-        return value;
-      }),
+      if (!mainSha) throw new Error("MAIN_REQUIRED");
+      const value = decodeContent(
+        await api(atMain(".github/morro-control/release-state.json")),
+      );
+      if (value?.schemaVersion !== 1)
+        throw new Error("RELEASE_STATE_INVALID");
+      return value;
+    }),
     capture("recentCi", async () => {
-        const value = await api(root + "/actions/runs?per_page=30");
-        if (!Array.isArray(value?.workflow_runs))
-          throw new Error("CI_RESPONSE_INVALID");
-        return value;
-      }),
+      const value = await api(root + "/actions/runs?per_page=30");
+      if (!Array.isArray(value?.workflow_runs))
+        throw new Error("CI_RESPONSE_INVALID");
+      return value;
+    }),
     capture("activeCi", async () =>
-        (
-          await Promise.all(
-            ["queued", "in_progress", "waiting", "pending", "requested"].map(
-              (status) =>
-                list(
-                  root + "/actions/runs?status=" + status + "&per_page=100",
-                  "workflow_runs",
-                ),
-            ),
-          )
-        ).flat(),
-      ),
+      (
+        await Promise.all(
+          ["queued", "in_progress", "waiting", "pending", "requested"].map(
+            (status) =>
+              list(
+                root + "/actions/runs?status=" + status + "&per_page=100",
+                "workflow_runs",
+              ),
+          ),
+        )
+      ).flat(),
+    ),
     capture("deployments", async () => {
-        const value = await api(root + "/deployments?per_page=30");
-        if (!Array.isArray(value))
-          throw new Error("DEPLOYMENTS_RESPONSE_INVALID");
-        return value;
-      }),
+      const value = await api(root + "/deployments?per_page=30");
+      if (!Array.isArray(value))
+        throw new Error("DEPLOYMENTS_RESPONSE_INVALID");
+      return value;
+    }),
     capture("localWorkspace", () => workspace(localDirectory)),
   ]);
   const activePrs = (Array.isArray(pulls) ? pulls : []).map((pr) => ({
