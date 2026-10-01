@@ -30,10 +30,7 @@
         "tooling/control-state/mdctl-task-lifecycle.test.mjs",
         "package.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane"
-      ],
+      "domains": ["ci-release", "control-plane"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T18:00:00Z"
@@ -70,11 +67,7 @@
         "apps/morro-digital-platform/src/brand-v2-runtime.test.ts",
         "docs/brand/BRAND-FAMILY-V2-PRODUCT-APPLICATION.md"
       ],
-      "domains": [
-        "design-system",
-        "frontend-ux",
-        "brand"
-      ],
+      "domains": ["design-system", "frontend-ux", "brand"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T18:00:00Z"
