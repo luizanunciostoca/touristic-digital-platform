@@ -1,0 +1,58 @@
+{
+  "contract": "MORRO-PHASE20-LANE-B-BUSINESS-AUTH-CONTROL-CRM-V1",
+  "lane": "B",
+  "baseBranch": "integration/phase19-real-product-baseline-20261001",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "labReferenceSha": "cfefe89bf5b3d6ffbc4a83fc76842f245330a900",
+  "ownerApproved": false,
+  "versionedContractApproved": false,
+  "productionAuthorized": false,
+  "productMainMutationAuthorized": false,
+  "globalProofGraphChanged": false,
+  "globalWorkflowsChanged": false,
+  "financialAuthorityChanged": false,
+  "commerceTicketingGrowthAuthorityChanged": false,
+  "implementedBindings": [
+    {
+      "id": "CRM-AUTH-CAPABILITY-BINDING",
+      "status": "TECHNICALLY_PROVABLE_EXISTING_CAPABILITY_BINDING",
+      "readCapability": "crm.read",
+      "mutationCapability": "crm.manage",
+      "authorityOwner": "Auth/IAM",
+      "domainOwner": "CRM",
+      "note": "CRM consumes existing Auth capabilities; no role, capability or endpoint authority is minted by CRM, Control Center, browser or Assistant."
+    }
+  ],
+  "blockedContracts": [
+    {
+      "interfaceId": "IF-BIZ-002",
+      "classification": "CLIENT_LOCAL_NO_ENDPOINT",
+      "ownerApproved": false,
+      "versionedContractApproved": false
+    },
+    {
+      "interfaceId": "IF-BIZ-013",
+      "classification": "BLOCKED_SEMANTIC_MISMATCH",
+      "ownerApproved": false,
+      "versionedContractApproved": false
+    },
+    {
+      "interfaceId": "IF-BIZ-015",
+      "classification": "VERSIONED_CONTRACT_REQUIRED",
+      "ownerApproved": false,
+      "versionedContractApproved": false
+    },
+    {
+      "interfaceId": "IF-CTL-021",
+      "classification": "NEW_CANONICAL_CAPABILITY_REQUIRED",
+      "ownerApproved": false,
+      "versionedContractApproved": false
+    },
+    {
+      "interfaceId": "IF-CTL-023",
+      "classification": "VERSIONED_CONTRACT_REQUIRED",
+      "ownerApproved": false,
+      "versionedContractApproved": false
+    }
+  ]
+}
