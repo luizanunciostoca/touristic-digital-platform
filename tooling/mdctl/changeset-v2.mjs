@@ -48,7 +48,11 @@ function validateOwnedPath(path) {
   assert.ok(path.length > 0 && path.length <= 320, "CHANGESET_PATH_INVALID");
   assert.equal(path.startsWith("/"), false, "CHANGESET_PATH_ABSOLUTE");
   assert.equal(path.includes("\\"), false, "CHANGESET_PATH_BACKSLASH");
-  assert.equal(path.split("/").includes(".."), false, "CHANGESET_PATH_TRAVERSAL");
+  assert.equal(
+    path.split("/").includes(".."),
+    false,
+    "CHANGESET_PATH_TRAVERSAL",
+  );
   if (path.includes("*"))
     assert.ok(
       path.endsWith("/**") && path.slice(0, -3).includes("*") === false,
@@ -89,7 +93,11 @@ export function validateChangeSetV2(manifest) {
   assert.match(manifest.id ?? "", ID, "CHANGESET_ID_INVALID");
   assert.match(manifest.baseSha ?? "", SHA, "CHANGESET_BASE_SHA_INVALID");
   assert.match(manifest.branch ?? "", BRANCH, "CHANGESET_BRANCH_INVALID");
-  assert.equal(manifest.branch.includes(".."), false, "CHANGESET_BRANCH_INVALID");
+  assert.equal(
+    manifest.branch.includes(".."),
+    false,
+    "CHANGESET_BRANCH_INVALID",
+  );
   assert.ok(STATES.has(manifest.state), "CHANGESET_STATE_INVALID");
   assert.ok(RISKS.has(manifest.risk), "CHANGESET_RISK_INVALID");
   assert.ok(SCOPES.has(manifest.scope), "CHANGESET_SCOPE_INVALID");
@@ -97,18 +105,34 @@ export function validateChangeSetV2(manifest) {
 
   uniqueStrings(manifest.owns?.paths, "CHANGESET_OWNED_PATHS_REQUIRED");
   for (const path of manifest.owns.paths) validateOwnedPath(path);
-  uniqueStrings(manifest.owns?.contracts ?? [], "CHANGESET_OWNED_CONTRACTS_INVALID");
-  uniqueStrings(manifest.reads?.contracts ?? [], "CHANGESET_READ_CONTRACTS_INVALID");
+  uniqueStrings(
+    manifest.owns?.contracts ?? [],
+    "CHANGESET_OWNED_CONTRACTS_INVALID",
+  );
+  uniqueStrings(
+    manifest.reads?.contracts ?? [],
+    "CHANGESET_READ_CONTRACTS_INVALID",
+  );
   uniqueStrings(manifest.produces?.events ?? [], "CHANGESET_EVENTS_INVALID");
   uniqueStrings(manifest.produces?.routes ?? [], "CHANGESET_ROUTES_INVALID");
   uniqueStrings(manifest.database?.tables ?? [], "CHANGESET_TABLES_INVALID");
-  uniqueStrings(manifest.auth?.capabilities ?? [], "CHANGESET_AUTH_CAPABILITIES_INVALID");
-  uniqueStrings(manifest.dependencies ?? [], "CHANGESET_DEPENDENCIES_INVALID", ID);
+  uniqueStrings(
+    manifest.auth?.capabilities ?? [],
+    "CHANGESET_AUTH_CAPABILITIES_INVALID",
+  );
+  uniqueStrings(
+    manifest.dependencies ?? [],
+    "CHANGESET_DEPENDENCIES_INVALID",
+    ID,
+  );
   uniqueStrings(
     manifest.requiredEvidence,
     "CHANGESET_REQUIRED_EVIDENCE_INVALID",
   );
-  assert.ok(manifest.requiredEvidence.length > 0, "CHANGESET_REQUIRED_EVIDENCE_EMPTY");
+  assert.ok(
+    manifest.requiredEvidence.length > 0,
+    "CHANGESET_REQUIRED_EVIDENCE_EMPTY",
+  );
   uniqueStrings(
     manifest.requiredCapabilities,
     "CHANGESET_REQUIRED_CAPABILITIES_INVALID",
@@ -129,7 +153,10 @@ export function validateChangeSetV2(manifest) {
     manifest.contextPack?.include,
     "CHANGESET_CONTEXT_PACK_INCLUDE_INVALID",
   );
-  assert.ok(manifest.contextPack.include.length > 0, "CHANGESET_CONTEXT_PACK_EMPTY");
+  assert.ok(
+    manifest.contextPack.include.length > 0,
+    "CHANGESET_CONTEXT_PACK_EMPTY",
+  );
   for (const part of manifest.contextPack.include)
     assert.ok(CONTEXT_PARTS.has(part), "CHANGESET_CONTEXT_PACK_PART_INVALID");
 
@@ -156,7 +183,11 @@ export function validateChangeSetV2(manifest) {
   const commandIds = [];
   let declaredSeconds = 0;
   for (const command of manifest.proof.commands) {
-    assert.match(command?.id ?? "", COMMAND_ID, "CHANGESET_PROOF_COMMAND_ID_INVALID");
+    assert.match(
+      command?.id ?? "",
+      COMMAND_ID,
+      "CHANGESET_PROOF_COMMAND_ID_INVALID",
+    );
     commandIds.push(command.id);
     assert.ok(
       Array.isArray(command?.argv) &&
@@ -169,7 +200,10 @@ export function validateChangeSetV2(manifest) {
         typeof arg === "string" && arg.length > 0 && arg.length <= 400,
         "CHANGESET_PROOF_ARG_INVALID",
       );
-    assert.ok(COMMANDS.has(command.argv[0]), "CHANGESET_PROOF_EXECUTABLE_DENIED");
+    assert.ok(
+      COMMANDS.has(command.argv[0]),
+      "CHANGESET_PROOF_EXECUTABLE_DENIED",
+    );
     assert.ok(
       Number.isInteger(command.timeoutSeconds) &&
         command.timeoutSeconds >= 1 &&
