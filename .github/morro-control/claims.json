@@ -67,7 +67,7 @@
       ],
       "domains": ["frontend-ux", "design-system", "brand", "pwa"],
       "risk": "P1",
-      "status": "INTEGRATION_READY",
+      "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T20:00:00Z"
     }
   }

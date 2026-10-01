@@ -3198,8 +3198,8 @@ body[data-md-mode="discover"] .md-home-header-inner {
 
 body[data-md-mode="discover"] .md-home-brand-mark {
   display: block;
-  width: 2.125rem;
-  height: 2.125rem;
+  width: 2rem;
+  height: 2rem;
   padding: 0.0625rem;
   border-radius: 0;
   background: transparent;
@@ -3207,5 +3207,23 @@ body[data-md-mode="discover"] .md-home-brand-mark {
 }
 
 body[data-md-mode="discover"] .md-home-title-block {
-  display: none;
+  display: block;
+  flex: 0 0 1px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+body[data-md-mode="discover"] .md-home-header h1 {
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  font-size: 1px;
+  line-height: 1;
+  white-space: nowrap;
 }

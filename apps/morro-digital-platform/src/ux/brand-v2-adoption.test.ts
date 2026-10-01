@@ -46,10 +46,11 @@ describe("Brand V2 product adoption", () => {
   });
 
   it("adopts Morro Digital V2 in public metadata and PWA identity", async () => {
-    const [html, manifestSource, css] = await Promise.all([
+    const [html, manifestSource, css, touristShell] = await Promise.all([
       read("../../public/index.html"),
       read("../../public/manifest.json"),
       read("../../public/brand-v2.css"),
+      read("../../public/tourist-shell-v2.css"),
     ]);
     const manifest = JSON.parse(manifestSource) as {
       name: string;
@@ -80,8 +81,11 @@ describe("Brand V2 product adoption", () => {
     expect(css).toContain("--brand-platform-coral: #fa7951");
     expect(css).toContain("--brand-destination-morro-cobalt: #0867b2");
     expect(css).toContain('url("/assets/brand/morro-digital-symbol-v2.svg")');
-    expect(css).toContain('body[data-md-mode="discover"] .md-home-title-block');
-    expect(css).toContain("display: none");
+    expect(touristShell).toContain(
+      'body[data-md-mode="discover"] .md-home-title-block',
+    );
+    expect(touristShell).toContain("clip-path: inset(50%)");
+    expect(touristShell).toContain("opacity: 0");
   });
 
   it("renders the governed Morro mark instead of a literal placeholder", async () => {
