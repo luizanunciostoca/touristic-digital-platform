@@ -12,10 +12,7 @@
       "packages/design-system/src/index.ts",
       "docs/brand/**"
     ],
-    "contracts": [
-      "TDP-BRAND-FAMILY-V2",
-      "TDP-DESIGN-TOKENS-V2"
-    ]
+    "contracts": ["TDP-BRAND-FAMILY-V2", "TDP-DESIGN-TOKENS-V2"]
   },
   "reads": {
     "contracts": [
