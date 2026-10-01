@@ -36,7 +36,12 @@
   "dependencies": [],
   "requiredEvidence": [
     "format",
+    "secrets",
+    "lint",
+    "typecheck",
     "affected-tests",
+    "build",
+    "integration",
     "automated-independent-proof",
     "exact-head-identity"
   ],
