@@ -73,8 +73,8 @@ describe("Control Center UX V1 shell contract", () => {
       expect(html).toContain(`id="${id}"`);
     }
 
-    expect(html).toContain("Morro Digital");
-    expect(html).not.toContain('class="brand-mark"');
+    expect(html).toContain("Touristic Digital Platform");
+    expect(html).toContain('class="brand-wordmark__mark"');
     expect(html).toContain('id="release-chip" class="technical-meta" hidden');
     expect(html).toContain(
       'placeholder="Pesquisar empresa, afiliado, reserva, pedido..."',
@@ -95,14 +95,14 @@ describe("Control Center UX V1 shell contract", () => {
     expect(css).toContain("overflow: auto");
   });
 
-  it("uses the V1 light shell tokens and active navigation treatment", () => {
-    expect(css).toContain("--md-bg: #f4f8fc");
+  it("uses the governed V2 light shell tokens and active navigation treatment", () => {
+    expect(css).toContain("--md-bg: #f7fafc");
     expect(css).toContain("--md-surface: #ffffff");
-    expect(css).toContain("--md-text: #0b2447");
-    expect(css).toContain("--md-primary: #0b63ce");
-    expect(css).toContain("--md-primary-soft: #eaf3ff");
+    expect(css).toContain("--md-text: #07152f");
+    expect(css).toContain("--md-primary: #056fb5");
+    expect(css).toContain("--md-primary-soft: #e8f6fb");
     expect(css).toContain("--md-border: #dce6f1");
-    expect(css).toContain("--md-success: #10a760");
+    expect(css).toContain("--md-success: #16794b");
     expect(css).toContain("--md-warning: #d97706");
     expect(css).toContain("--md-danger: #d92d20");
     expect(css).toContain("--md-purple: #6d5ce8");
