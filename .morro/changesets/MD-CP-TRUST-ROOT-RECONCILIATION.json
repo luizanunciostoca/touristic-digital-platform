@@ -3,7 +3,7 @@
   "id": "MD-CP-TRUST-ROOT-RECONCILIATION",
   "baseSha": "885742b4542a86fe7cf3dc545664ccd9f22be080",
   "branch": "fix/control-plane-trust-root-reconciliation-v2-20261001",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "high",
   "owns": {
     "paths": [

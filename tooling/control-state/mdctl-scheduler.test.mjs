@@ -518,7 +518,10 @@ function createLiveApi(options = {}) {
     number: 7,
     draft: false,
     head: { sha: LIVE_HEAD, ref: LIVE_BRANCH },
-    base: { ref: "main" },
+    base: {
+      ref: "main",
+      sha: options.trustRootStaleBase ? "e".repeat(40) : LIVE_MAIN,
+    },
   };
   let mainCalls = 0;
   let pullListCalls = 0;
@@ -560,6 +563,10 @@ function createLiveApi(options = {}) {
         head: options.headMoves
           ? { ...listed.head, sha: "d".repeat(40) }
           : listed.head,
+        base: {
+          ref: "main",
+          sha: options.trustRootStaleBase ? "e".repeat(40) : LIVE_MAIN,
+        },
         changed_files: options.unknownStats ? null : 6,
         additions: options.unknownStats ? null : 80,
         deletions: options.unknownStats ? null : 20,
@@ -752,6 +759,13 @@ function createLiveApi(options = {}) {
                     pull_requests: [
                       {
                         number: options.wrongTrustRootPrAssociation ? 8 : 7,
+                        head: { ref: LIVE_BRANCH, sha: LIVE_HEAD },
+                        base: {
+                          ref: "main",
+                          sha: options.trustRootStaleRunBase
+                            ? "e".repeat(40)
+                            : LIVE_MAIN,
+                        },
                       },
                     ],
                   },
@@ -806,6 +820,9 @@ function createLiveApi(options = {}) {
                 ? "failure"
                 : "success",
               head_sha: LIVE_HEAD,
+              run_id: 77,
+              check_run_url:
+                "https://api.github.com/repos/example/repo/check-runs/770",
               steps: [
                 {
                   name: "Validate approved trust-routing candidate blobs",
@@ -838,6 +855,11 @@ function createLiveApi(options = {}) {
             ...(options.trustRootReconciled
               ? [
                   {
+                    id: options.sameAppWrongTrustRootCheck ? 771 : 770,
+                    url: options.sameAppWrongTrustRootCheck
+                      ? "https://api.github.com/repos/example/repo/check-runs/771"
+                      : "https://api.github.com/repos/example/repo/check-runs/770",
+                    head_sha: LIVE_HEAD,
                     name: trustRootReconciliationJob,
                     status: "completed",
                     conclusion: options.trustRootReconciliationJobFails
@@ -1046,6 +1068,60 @@ test("trust root reconciliation rejects same-name check from another app", async
     trustFileDiverged: true,
     trustRootReconciled: true,
     spoofTrustRootCheck: true,
+  });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUST_ROOT_RECONCILIATION_CHECK_MISSING/u);
+});
+
+test("trust root reconciliation rejects proof captured against a stale base", async () => {
+  const fixture = createLiveApi({
+    trustFileDiverged: true,
+    trustRootReconciled: true,
+    trustRootStaleBase: true,
+  });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false, JSON.stringify(trust));
+  assert.match(trust.reason, /TRUST_ROOT_RECONCILIATION_BASE_SHA_MISMATCH/u);
+});
+
+test("trust root reconciliation rejects a run captured against a stale base", async () => {
+  const fixture = createLiveApi({
+    trustFileDiverged: true,
+    trustRootReconciled: true,
+    trustRootStaleRunBase: true,
+  });
+  const trust = await verifyTrustedClaimEvidence({
+    repository: "example/repo",
+    mainSha: LIVE_MAIN,
+    headSha: LIVE_HEAD,
+    branch: LIVE_BRANCH,
+    prNumber: 7,
+    api: fixture.api,
+  });
+  assert.equal(trust.trusted, false);
+  assert.match(trust.reason, /TRUST_ROOT_RECONCILIATION_RUN_BASE_MISMATCH/u);
+});
+
+test("trust root reconciliation rejects same-app check from another job", async () => {
+  const fixture = createLiveApi({
+    trustFileDiverged: true,
+    trustRootReconciled: true,
+    sameAppWrongTrustRootCheck: true,
   });
   const trust = await verifyTrustedClaimEvidence({
     repository: "example/repo",

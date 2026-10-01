@@ -398,6 +398,7 @@ async function trustedFileBlobState({ repository, mainSha, headSha, api }) {
 
 async function verifyTrustRootJobEvidence({
   repository,
+  expectedBaseSha,
   headSha,
   branch,
   prNumber,
@@ -408,6 +409,21 @@ async function verifyTrustRootJobEvidence({
   api,
 }) {
   const root = "repos/" + repository;
+  assert.match(expectedBaseSha ?? "", SHA, reasonPrefix + "_BASE_SHA_INVALID");
+  const pull = await api(root + "/pulls/" + prNumber);
+  if (
+    pull?.number !== prNumber ||
+    pull?.head?.sha !== headSha ||
+    pull?.head?.ref !== branch ||
+    pull?.base?.ref !== "main" ||
+    pull?.base?.sha !== expectedBaseSha
+  ) {
+    return {
+      trusted: false,
+      reason: reasonPrefix + "_BASE_SHA_MISMATCH",
+    };
+  }
+
   const runs = await list(
     api,
     root +
@@ -437,6 +453,19 @@ async function verifyTrustRootJobEvidence({
     return { trusted: false, reason: reasonPrefix + "_RUN_MISSING" };
   }
   const run = matchingRuns[0];
+  const runPull = Array.isArray(run?.pull_requests)
+    ? run.pull_requests.find((entry) => entry?.number === prNumber)
+    : null;
+  if (
+    runPull?.head?.sha !== headSha ||
+    runPull?.base?.ref !== "main" ||
+    runPull?.base?.sha !== expectedBaseSha
+  ) {
+    return {
+      trusted: false,
+      reason: reasonPrefix + "_RUN_BASE_MISMATCH",
+    };
+  }
   if (run?.status !== "completed") {
     return { trusted: false, reason: reasonPrefix + "_RUN_NOT_COMPLETED" };
   }
@@ -450,16 +479,31 @@ async function verifyTrustRootJobEvidence({
     "jobs",
   );
   const matchingJobs = jobs.filter((job) => job?.name === jobName);
+  if (matchingJobs.length !== 1) {
+    return { trusted: false, reason: reasonPrefix + "_JOB_INVALID" };
+  }
+  const selectedJob = matchingJobs[0];
   if (
-    matchingJobs.length !== 1 ||
-    matchingJobs[0]?.status !== "completed" ||
-    matchingJobs[0]?.conclusion !== "success" ||
-    matchingJobs[0]?.head_sha !== headSha
+    selectedJob?.status !== "completed" ||
+    selectedJob?.conclusion !== "success" ||
+    selectedJob?.head_sha !== headSha ||
+    selectedJob?.run_id !== run.id
   ) {
     return { trusted: false, reason: reasonPrefix + "_JOB_INVALID" };
   }
-  const proofStep = Array.isArray(matchingJobs[0]?.steps)
-    ? matchingJobs[0].steps.find((step) => step?.name === requiredStep)
+  const checkRunMatch =
+    typeof selectedJob?.check_run_url === "string"
+      ? selectedJob.check_run_url.match(/\/check-runs\/(\d+)$/u)
+      : null;
+  if (!checkRunMatch) {
+    return { trusted: false, reason: reasonPrefix + "_CHECK_ID_INVALID" };
+  }
+  const selectedCheckRunId = Number(checkRunMatch[1]);
+  if (!Number.isSafeInteger(selectedCheckRunId) || selectedCheckRunId <= 0) {
+    return { trusted: false, reason: reasonPrefix + "_CHECK_ID_INVALID" };
+  }
+  const proofStep = Array.isArray(selectedJob?.steps)
+    ? selectedJob.steps.find((step) => step?.name === requiredStep)
     : null;
   if (!proofStep || proofStep?.conclusion !== "success") {
     return { trusted: false, reason: reasonPrefix + "_STEP_INVALID" };
@@ -472,7 +516,9 @@ async function verifyTrustRootJobEvidence({
   );
   const check = checks.find(
     (entry) =>
+      entry?.id === selectedCheckRunId &&
       entry?.name === jobName &&
+      entry?.head_sha === headSha &&
       entry?.status === "completed" &&
       entry?.conclusion === "success" &&
       entry?.app?.id === GITHUB_ACTIONS_APP_ID &&
@@ -489,6 +535,7 @@ async function verifyTrustRootJobEvidence({
     workflowPath: run.path,
     jobName,
     requiredStep,
+    checkRunUrl: selectedJob.check_run_url,
     headSha,
   };
 }
@@ -535,6 +582,7 @@ export async function verifyTrustedRetirementEvidence({
   }
   return verifyTrustRootJobEvidence({
     repository,
+    expectedBaseSha: mainSha,
     headSha,
     branch,
     prNumber,
@@ -575,6 +623,7 @@ export async function verifyTrustedClaimEvidence({
     if (!blobs.reconcilable) return blobs;
     const reconciliation = await verifyTrustRootReconciliationEvidence({
       repository,
+      expectedBaseSha: mainSha,
       headSha,
       branch,
       prNumber,
