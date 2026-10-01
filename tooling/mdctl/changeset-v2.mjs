@@ -6,6 +6,8 @@ const ID = /^MD-[A-Z0-9-]+$/u;
 const BRANCH = /^[A-Za-z0-9._/-]{1,240}$/u;
 const CAPABILITY = /^[a-z0-9][a-z0-9:._/-]{0,159}$/u;
 const COMMAND_ID = /^[a-z][a-z0-9-]{0,79}$/u;
+const TEST_TARGET =
+  /^(?:tooling|\.github)\/[A-Za-z0-9._/-]+\.(?:test|contract)\.mjs$/u;
 const STATES = new Set([
   "IMPLEMENTING",
   "LOCAL_PROVEN",
@@ -30,7 +32,39 @@ const CONTEXT_PARTS = new Set([
   "dependencies",
   "proof-plan",
 ]);
-const COMMANDS = new Set(["node", "pnpm"]);
+
+const TOP_LEVEL_KEYS = new Set([
+  "schemaVersion",
+  "id",
+  "baseSha",
+  "branch",
+  "state",
+  "risk",
+  "scope",
+  "owns",
+  "reads",
+  "produces",
+  "database",
+  "auth",
+  "dependencies",
+  "requiredEvidence",
+  "requiredCapabilities",
+  "contextPack",
+  "proof",
+  "stopAt",
+]);
+
+function assertClosedObject(value, required, allowed, code) {
+  assert.ok(
+    value && typeof value === "object" && !Array.isArray(value),
+    code + "_OBJECT_REQUIRED",
+  );
+  for (const key of required)
+    assert.ok(Object.hasOwn(value, key), code + "_FIELD_REQUIRED:" + key);
+  for (const key of Object.keys(value))
+    assert.ok(allowed.has(key), code + "_PROPERTY_UNKNOWN:" + key);
+  return value;
+}
 
 function uniqueStrings(values, code, pattern = null) {
   assert.ok(Array.isArray(values), code);
@@ -60,6 +94,26 @@ function validateOwnedPath(path) {
     );
 }
 
+function validateProofTarget(target) {
+  assert.equal(typeof target, "string", "CHANGESET_PROOF_TARGET_INVALID");
+  assert.equal(
+    target.startsWith("/"),
+    false,
+    "CHANGESET_PROOF_TARGET_ABSOLUTE",
+  );
+  assert.equal(
+    target.includes("\\"),
+    false,
+    "CHANGESET_PROOF_TARGET_BACKSLASH",
+  );
+  assert.equal(
+    target.split("/").includes(".."),
+    false,
+    "CHANGESET_PROOF_TARGET_TRAVERSAL",
+  );
+  assert.match(target, TEST_TARGET, "CHANGESET_PROOF_TARGET_DENIED");
+}
+
 function canonicalize(value) {
   if (Array.isArray(value)) return value.map(canonicalize);
   if (value && typeof value === "object") {
@@ -85,14 +139,16 @@ export function changeSetDigest(manifest) {
 }
 
 export function validateChangeSetV2(manifest) {
-  assert.ok(
-    manifest && typeof manifest === "object" && !Array.isArray(manifest),
-    "CHANGESET_OBJECT_REQUIRED",
+  assertClosedObject(
+    manifest,
+    [...TOP_LEVEL_KEYS],
+    TOP_LEVEL_KEYS,
+    "CHANGESET",
   );
   assert.equal(manifest.schemaVersion, 2, "CHANGESET_SCHEMA_VERSION_INVALID");
-  assert.match(manifest.id ?? "", ID, "CHANGESET_ID_INVALID");
-  assert.match(manifest.baseSha ?? "", SHA, "CHANGESET_BASE_SHA_INVALID");
-  assert.match(manifest.branch ?? "", BRANCH, "CHANGESET_BRANCH_INVALID");
+  assert.match(manifest.id, ID, "CHANGESET_ID_INVALID");
+  assert.match(manifest.baseSha, SHA, "CHANGESET_BASE_SHA_INVALID");
+  assert.match(manifest.branch, BRANCH, "CHANGESET_BRANCH_INVALID");
   assert.equal(
     manifest.branch.includes(".."),
     false,
@@ -103,28 +159,53 @@ export function validateChangeSetV2(manifest) {
   assert.ok(SCOPES.has(manifest.scope), "CHANGESET_SCOPE_INVALID");
   assert.equal(manifest.stopAt, "REMOTE_PROVEN", "CHANGESET_STOP_INVALID");
 
-  uniqueStrings(manifest.owns?.paths, "CHANGESET_OWNED_PATHS_REQUIRED");
+  assertClosedObject(
+    manifest.owns,
+    ["paths", "contracts"],
+    new Set(["paths", "contracts"]),
+    "CHANGESET_OWNS",
+  );
+  uniqueStrings(manifest.owns.paths, "CHANGESET_OWNED_PATHS_REQUIRED");
   for (const path of manifest.owns.paths) validateOwnedPath(path);
-  uniqueStrings(
-    manifest.owns?.contracts ?? [],
-    "CHANGESET_OWNED_CONTRACTS_INVALID",
+  uniqueStrings(manifest.owns.contracts, "CHANGESET_OWNED_CONTRACTS_INVALID");
+
+  assertClosedObject(
+    manifest.reads,
+    ["contracts"],
+    new Set(["contracts"]),
+    "CHANGESET_READS",
+  );
+  uniqueStrings(manifest.reads.contracts, "CHANGESET_READ_CONTRACTS_INVALID");
+
+  assertClosedObject(
+    manifest.produces,
+    ["events", "routes"],
+    new Set(["events", "routes"]),
+    "CHANGESET_PRODUCES",
+  );
+  uniqueStrings(manifest.produces.events, "CHANGESET_EVENTS_INVALID");
+  uniqueStrings(manifest.produces.routes, "CHANGESET_ROUTES_INVALID");
+
+  assertClosedObject(
+    manifest.database,
+    ["tables"],
+    new Set(["tables"]),
+    "CHANGESET_DATABASE",
+  );
+  uniqueStrings(manifest.database.tables, "CHANGESET_TABLES_INVALID");
+
+  assertClosedObject(
+    manifest.auth,
+    ["capabilities"],
+    new Set(["capabilities"]),
+    "CHANGESET_AUTH",
   );
   uniqueStrings(
-    manifest.reads?.contracts ?? [],
-    "CHANGESET_READ_CONTRACTS_INVALID",
-  );
-  uniqueStrings(manifest.produces?.events ?? [], "CHANGESET_EVENTS_INVALID");
-  uniqueStrings(manifest.produces?.routes ?? [], "CHANGESET_ROUTES_INVALID");
-  uniqueStrings(manifest.database?.tables ?? [], "CHANGESET_TABLES_INVALID");
-  uniqueStrings(
-    manifest.auth?.capabilities ?? [],
+    manifest.auth.capabilities,
     "CHANGESET_AUTH_CAPABILITIES_INVALID",
   );
-  uniqueStrings(
-    manifest.dependencies ?? [],
-    "CHANGESET_DEPENDENCIES_INVALID",
-    ID,
-  );
+
+  uniqueStrings(manifest.dependencies, "CHANGESET_DEPENDENCIES_INVALID", ID);
   uniqueStrings(
     manifest.requiredEvidence,
     "CHANGESET_REQUIRED_EVIDENCE_INVALID",
@@ -143,14 +224,20 @@ export function validateChangeSetV2(manifest) {
     "CHANGESET_REQUIRED_CAPABILITIES_EMPTY",
   );
 
+  assertClosedObject(
+    manifest.contextPack,
+    ["maxBytes", "include"],
+    new Set(["maxBytes", "include"]),
+    "CHANGESET_CONTEXT_PACK",
+  );
   assert.ok(
-    Number.isInteger(manifest.contextPack?.maxBytes) &&
+    Number.isInteger(manifest.contextPack.maxBytes) &&
       manifest.contextPack.maxBytes >= 4096 &&
       manifest.contextPack.maxBytes <= 1024 * 1024,
     "CHANGESET_CONTEXT_PACK_SIZE_INVALID",
   );
   uniqueStrings(
-    manifest.contextPack?.include,
+    manifest.contextPack.include,
     "CHANGESET_CONTEXT_PACK_INCLUDE_INVALID",
   );
   assert.ok(
@@ -160,21 +247,32 @@ export function validateChangeSetV2(manifest) {
   for (const part of manifest.contextPack.include)
     assert.ok(CONTEXT_PARTS.has(part), "CHANGESET_CONTEXT_PACK_PART_INVALID");
 
-  const budget = manifest.proof?.budget;
+  assertClosedObject(
+    manifest.proof,
+    ["budget", "commands", "requiredRemoteEvidence"],
+    new Set(["budget", "commands", "requiredRemoteEvidence"]),
+    "CHANGESET_PROOF",
+  );
+  const budget = assertClosedObject(
+    manifest.proof.budget,
+    ["maxCommands", "maxSeconds"],
+    new Set(["maxCommands", "maxSeconds"]),
+    "CHANGESET_PROOF_BUDGET",
+  );
   assert.ok(
-    Number.isInteger(budget?.maxCommands) &&
+    Number.isInteger(budget.maxCommands) &&
       budget.maxCommands >= 1 &&
       budget.maxCommands <= 32,
     "CHANGESET_PROOF_COMMAND_BUDGET_INVALID",
   );
   assert.ok(
-    Number.isInteger(budget?.maxSeconds) &&
+    Number.isInteger(budget.maxSeconds) &&
       budget.maxSeconds >= 1 &&
       budget.maxSeconds <= 3600,
     "CHANGESET_PROOF_TIME_BUDGET_INVALID",
   );
   assert.ok(
-    Array.isArray(manifest.proof?.commands) &&
+    Array.isArray(manifest.proof.commands) &&
       manifest.proof.commands.length >= 1 &&
       manifest.proof.commands.length <= budget.maxCommands,
     "CHANGESET_PROOF_COMMANDS_INVALID",
@@ -183,27 +281,27 @@ export function validateChangeSetV2(manifest) {
   const commandIds = [];
   let declaredSeconds = 0;
   for (const command of manifest.proof.commands) {
-    assert.match(
-      command?.id ?? "",
-      COMMAND_ID,
-      "CHANGESET_PROOF_COMMAND_ID_INVALID",
+    assertClosedObject(
+      command,
+      ["id", "argv", "timeoutSeconds"],
+      new Set(["id", "argv", "timeoutSeconds"]),
+      "CHANGESET_PROOF_COMMAND",
     );
+    assert.match(command.id, COMMAND_ID, "CHANGESET_PROOF_COMMAND_ID_INVALID");
     commandIds.push(command.id);
     assert.ok(
-      Array.isArray(command?.argv) &&
-        command.argv.length >= 2 &&
+      Array.isArray(command.argv) &&
+        command.argv.length >= 3 &&
         command.argv.length <= 32,
       "CHANGESET_PROOF_ARGV_INVALID",
     );
-    for (const arg of command.argv)
-      assert.ok(
-        typeof arg === "string" && arg.length > 0 && arg.length <= 400,
-        "CHANGESET_PROOF_ARG_INVALID",
-      );
-    assert.ok(
-      COMMANDS.has(command.argv[0]),
-      "CHANGESET_PROOF_EXECUTABLE_DENIED",
+    assert.equal(command.argv[0], "node", "CHANGESET_PROOF_EXECUTABLE_DENIED");
+    assert.equal(
+      command.argv[1],
+      "--test",
+      "CHANGESET_PROOF_SUBCOMMAND_DENIED",
     );
+    for (const target of command.argv.slice(2)) validateProofTarget(target);
     assert.ok(
       Number.isInteger(command.timeoutSeconds) &&
         command.timeoutSeconds >= 1 &&

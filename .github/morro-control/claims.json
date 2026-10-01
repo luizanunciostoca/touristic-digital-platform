@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
-      "baseSha": "0951b28f05d5486d3d06695285c4e6628ed1ccf1",
+      "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/event-ledger.schema.json",
