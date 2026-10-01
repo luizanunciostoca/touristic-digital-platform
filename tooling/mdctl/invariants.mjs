@@ -116,7 +116,7 @@ function evidenceBoundToSha(
     liveRun.name === workflowName &&
     (!requireTrustedWorkflowRef ||
       (TRUSTED_WORKFLOW_REF.test(expectedTrustedWorkflowRef ?? "") &&
-        liveRun.referencedWorkflows.includes(expectedTrustedWorkflowRef)))
+        liveRun.referencedWorkflows.includes(expectedTrustedWorkflowRef))),
   );
 }
 
