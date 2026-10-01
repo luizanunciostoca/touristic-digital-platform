@@ -34,6 +34,12 @@ function resultResponse<T>(result: CrmLeadBoundaryResult<T>): CrmHttpResponse {
       reason: result.reason,
     });
   }
+  if (result.reason === "capability_denied") {
+    return crmHttpResponse(403, {
+      error: "CAPABILITY_DENIED",
+      reason: result.reason,
+    });
+  }
   if (result.reason === "not_found") {
     return crmHttpResponse(404, { error: "NOT_FOUND", reason: result.reason });
   }
