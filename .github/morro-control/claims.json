@@ -62,7 +62,13 @@
         "apps/control-center/public/index.html",
         "apps/control-center/public/control-center.css",
         "apps/morro-digital-platform/src/brand-v2-runtime.test.ts",
-        "docs/brand/BRAND-FAMILY-V2-PRODUCT-APPLICATION.md"
+        "docs/brand/BRAND-FAMILY-V2-PRODUCT-APPLICATION.md",
+        "apps/morro-digital-platform/public/assets/morro-digital-mark.svg",
+        "apps/morro-digital-platform/public/pwa-icon-192.png",
+        "apps/morro-digital-platform/public/pwa-icon-512.png",
+        "apps/morro-digital-platform/public/pwa-maskable-192.png",
+        "apps/morro-digital-platform/public/pwa-maskable-512.png",
+        "apps/morro-digital-platform/public/apple-touch-icon.png"
       ],
       "domains": [
         "design-system",
