@@ -145,7 +145,7 @@ describe("Phase20 public Place + Assistant binding", () => {
     expect(derived.bbox[2]).toBeGreaterThan(-38.995);
   });
 
-  it("uses only same-origin canonical Place reads for Itacare search", async () => {
+  it("uses same-origin canonical Place reads for Itacare", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
       expect(init?.method).toBe("GET");
       expect(inputUrl(input).startsWith("/api/places/v1/map?")).toBe(true);
@@ -176,7 +176,7 @@ describe("Phase20 public Place + Assistant binding", () => {
     ).toBe(false);
   });
 
-  it("fails closed on a canonical detail from another destination", async () => {
+  it("fails closed on cross-destination canonical detail", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
       const url = inputUrl(input);
       if (url.startsWith("/api/places/v1/map?")) return canonicalMapResponse();
@@ -202,7 +202,7 @@ describe("Phase20 public Place + Assistant binding", () => {
     ["en", "en-US"],
     ["es", "es-ES"],
     ["he", "he-IL"],
-  ] as const)("keeps canonical detail reads scoped in %s", async (language, locale) => {
+  ] as const)("scopes canonical detail locale %s", async (language, locale) => {
     const calls: string[] = [];
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
       const url = inputUrl(input);
@@ -241,7 +241,7 @@ describe("Phase20 public Place + Assistant binding", () => {
     ).resolves.toBeNull();
   });
 
-  it("keeps favorites client-local with zero network authority calls", async () => {
+  it("keeps favorites client-local without network authority", async () => {
     const values = new Map<string, string>();
     const storage = {
       getItem: (key: string) => values.get(key) ?? null,
