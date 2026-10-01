@@ -55,7 +55,10 @@
     "tenant-isolation-server-side",
     "destination-isolation-server-side",
     "no-http-200-degraded-acceptance",
-    "runtime-release-identity"
+    "runtime-release-identity",
+    "changeset-v2-contract",
+    "control-projection-terminal-main-recheck",
+    "critical-evidence-candidate-binding"
   ],
   "branchPrefixes": ["agent/", "feat/", "fix/", "infra/", "wave/"],
   "pullRequestPolicy": {
@@ -70,6 +73,7 @@
     "semanticOwnership": "enforced",
     "integrationQueue": "shadow",
     "shadowMain": "shadow",
-    "progressiveDelivery": "disabled-until-capability-verified"
+    "progressiveDelivery": "disabled-until-capability-verified",
+    "changeSetV2": "active-for-control-plane-block-b1"
   }
 }

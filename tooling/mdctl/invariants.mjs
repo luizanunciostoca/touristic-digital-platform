@@ -4,6 +4,7 @@ import { githubApi } from "../control-state/status.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
+const RUN_ID = /^[1-9][0-9]*$/u;
 const ACTIVE_CLAIM_STATES = new Set([
   "CLAIMED",
   "IMPLEMENTING",
@@ -15,6 +16,21 @@ const ACTIVE_CLAIM_STATES = new Set([
 
 function result(id, title, status, reason, critical = true) {
   return { id, title, status, reason, critical };
+}
+
+function evidenceBoundToSha(
+  releaseState,
+  stateField,
+  shaField,
+  runField,
+  subjectSha,
+) {
+  return Boolean(
+    releaseState?.[stateField] === "VERIFIED" &&
+    SHA.test(subjectSha ?? "") &&
+    releaseState?.[shaField] === subjectSha &&
+    RUN_ID.test(String(releaseState?.[runField] ?? "")),
+  );
 }
 
 function heartbeatFields(body) {
@@ -113,12 +129,18 @@ export async function loadInvariantContextAtMain({
     readAtMain(".github/morro-control/release-state.json"),
     readAtMain(".morro/ownership.json"),
   ]);
+  const latestMain = await api("repos/" + repository + "/commits/main");
+  if (!SHA.test(latestMain?.sha ?? ""))
+    throw new Error("CONTROL_PROJECTION_MAIN_RECHECK_INVALID");
+  if (latestMain.sha !== mainSha)
+    throw new Error("MAIN_CHANGED_DURING_CONTROL_PROJECTION_LOAD");
   return {
     integrationQueue,
     releaseState,
     ownership,
     projectionAuthority: "GITHUB_EXACT_MAIN",
     projectionSha: mainSha,
+    projectionMainShaAtEnd: latestMain.sha,
   };
 }
 
@@ -214,20 +236,27 @@ export function evaluateInvariants({
     ),
   );
 
+  const trustedValidatorEvidenceMatches = evidenceBoundToSha(
+    releaseState,
+    "trustedValidatorIndependenceState",
+    "trustedValidatorIndependenceEvidenceSha",
+    "trustedValidatorIndependenceRunId",
+    candidate,
+  );
   checks.push(
     result(
       "INV-005",
       "candidate cannot self-validate trusted gates",
       !activeCandidate
         ? "NOT_APPLICABLE"
-        : releaseState?.trustedValidatorIndependenceState === "VERIFIED"
+        : trustedValidatorEvidenceMatches
           ? "PASS"
           : "FAIL",
       !activeCandidate
         ? "no active release candidate"
-        : releaseState?.trustedValidatorIndependenceState === "VERIFIED"
-          ? "trusted-validator independence is explicitly verified"
-          : "active candidate lacks verified trusted-validator independence evidence",
+        : trustedValidatorEvidenceMatches
+          ? "trusted-validator independence evidence is bound to the active candidate and trusted run"
+          : "active candidate lacks candidate-bound trusted-validator independence evidence",
     ),
   );
 
@@ -302,6 +331,26 @@ export function evaluateInvariants({
     stagingVerified ||
     productionVerified ||
     healthyRuntimeEntries.length > 0;
+  const expectedCertifiedReleaseSha = releaseState?.expectedCertifiedReleaseSha;
+  const acceptanceSubjectSha = activeCandidate
+    ? candidate
+    : SHA.test(expectedCertifiedReleaseSha ?? "")
+      ? expectedCertifiedReleaseSha
+      : null;
+  const tenantEvidenceMatches = evidenceBoundToSha(
+    releaseState,
+    "tenantIsolationState",
+    "tenantIsolationEvidenceSha",
+    "tenantIsolationRunId",
+    acceptanceSubjectSha,
+  );
+  const destinationEvidenceMatches = evidenceBoundToSha(
+    releaseState,
+    "destinationIsolationState",
+    "destinationIsolationEvidenceSha",
+    "destinationIsolationRunId",
+    acceptanceSubjectSha,
+  );
 
   checks.push(
     result(
@@ -309,14 +358,14 @@ export function evaluateInvariants({
       "no cross-tenant authority leak",
       !acceptanceInScope
         ? "NOT_APPLICABLE"
-        : releaseState?.tenantIsolationState === "VERIFIED"
+        : tenantEvidenceMatches
           ? "PASS"
           : "FAIL",
       !acceptanceInScope
         ? "no candidate or accepted runtime requires tenant-isolation proof"
-        : releaseState?.tenantIsolationState === "VERIFIED"
-          ? "tenant isolation is explicitly verified for acceptance scope"
-          : "candidate/runtime acceptance lacks verified tenant-isolation evidence",
+        : tenantEvidenceMatches
+          ? "tenant isolation evidence is bound to the accepted subject and proof run"
+          : "candidate/runtime acceptance lacks subject-bound tenant-isolation evidence",
     ),
   );
   checks.push(
@@ -325,14 +374,14 @@ export function evaluateInvariants({
       "no cross-destination authority leak",
       !acceptanceInScope
         ? "NOT_APPLICABLE"
-        : releaseState?.destinationIsolationState === "VERIFIED"
+        : destinationEvidenceMatches
           ? "PASS"
           : "FAIL",
       !acceptanceInScope
         ? "no candidate or accepted runtime requires destination-isolation proof"
-        : releaseState?.destinationIsolationState === "VERIFIED"
-          ? "destination isolation is explicitly verified for acceptance scope"
-          : "candidate/runtime acceptance lacks verified destination-isolation evidence",
+        : destinationEvidenceMatches
+          ? "destination isolation evidence is bound to the accepted subject and proof run"
+          : "candidate/runtime acceptance lacks subject-bound destination-isolation evidence",
     ),
   );
 
@@ -359,7 +408,6 @@ export function evaluateInvariants({
     ),
   );
 
-  const expectedCertifiedReleaseSha = releaseState?.expectedCertifiedReleaseSha;
   const expectedReleaseValid = SHA.test(expectedCertifiedReleaseSha ?? "");
   const identityDrift = healthyRuntimeEntries.filter(
     ([, runtime]) =>
