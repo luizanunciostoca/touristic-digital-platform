@@ -10,6 +10,10 @@ const script = await readFile(
   "apps/morro-digital-platform/public/ticketing.js",
   "utf8",
 );
+const tourBooking = await readFile(
+  "apps/morro-digital-platform/public/tour-booking.html",
+  "utf8",
+);
 
 test("Ticketing browser surface exposes the authenticated reservation flow", () => {
   assert.match(html, /id="reservation-form"/);
@@ -31,4 +35,26 @@ test("Ticketing browser surface fails closed on malformed checkout handoff", () 
     /descriptor\.handoff\.reservationReference !== descriptor\.reservationReference/,
   );
   assert.match(script, /credentials: "same-origin"/);
+});
+
+test("Tour booking confirms only after required identity fields", () => {
+  const name = tourBooking.indexOf('id="holder-name"');
+  const email = tourBooking.indexOf('id="holder-email"');
+  const reserve = tourBooking.indexOf('id="reserve-button"');
+  assert.ok(name > -1 && email > name && reserve > email);
+  assert.doesNotMatch(tourBooking, /novalidate/u);
+  assert.match(tourBooking, /id="quantity"[\s\S]*?form="reservation-form"/u);
+  const reservationForm = tourBooking.match(
+    /<form id="reservation-form"[\s\S]*?<\/form>/u,
+  )?.[0];
+  assert.ok(reservationForm);
+  assert.doesNotMatch(
+    reservationForm.match(
+      /<button[\s\S]*?id="reserve-button"[\s\S]*?<\/button>/u,
+    )?.[0] ?? "",
+    /form="reservation-form"/u,
+  );
+  assert.match(script, /elements\.form\.checkValidity\(\)/u);
+  assert.match(script, /Array\.from\(elements\.form\.elements\)/u);
+  assert.match(script, /scrollIntoView/u);
 });

@@ -834,13 +834,14 @@ body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
 body[data-md-mode="navigation"] #instruction-details {
   max-width: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow: visible;
   color: color-mix(in srgb, var(--md-navigation-inverse) 88%, transparent);
   font-size: 1rem;
   font-weight: 550;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 body[data-md-mode="navigation"] #instruction-banner .progress-container,

@@ -133,10 +133,19 @@ describe("UX Design V2 Wave D tour contract", () => {
   it("keeps the Active Tour map visible while de-emphasizing See all stops", async () => {
     const css = await readPublic("explore-locations.css");
 
-    expect(css).toContain("max-height: min(43dvh, 26rem)");
+    expect(css).toContain("max-height: min(49dvh, 30rem)");
+    expect(css).toContain("max-height: 49dvh");
     expect(css).toContain(
       '.explore-flow-sheet-option[data-value="__tour_list__"]',
     );
+    expect(css).toContain(".explore-flow-sheet-actions");
+    expect(css).toContain("> .explore-flow-sheet-source");
+    expect(css).toContain("grid-column: 1 / -1");
+    expect(css).toContain("overflow-y: auto");
+    expect(css).toContain("overscroll-behavior-y: contain");
+    expect(css).not.toContain("-webkit-line-clamp: 3");
+    expect(css).toContain("max-height: none");
+    expect(css).toContain("overflow: visible");
     expect(css).toContain('body:has(#map[data-tour-flow-stage="stop"])');
     expect(css).toContain("display: none");
   });

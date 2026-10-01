@@ -165,6 +165,7 @@
                 max="1"
                 value="1"
                 required
+                form="reservation-form"
                 aria-label="Quantidade de ingressos"
               />
               <button
@@ -209,16 +210,6 @@
               Valor, disponibilidade e pagamento são confirmados com segurança
               pelo servidor.
             </p>
-
-            <button
-              id="reserve-button"
-              class="tour-checkout-cta"
-              type="submit"
-              form="reservation-form"
-              disabled
-            >
-              Finalizar Reserva
-            </button>
           </div>
         </div>
       </section>
@@ -235,7 +226,7 @@
             <h2 id="reservation-title">Quem vai fazer o passeio?</h2>
           </div>
         </div>
-        <form id="reservation-form" class="reservation-form" novalidate>
+        <form id="reservation-form" class="reservation-form">
           <input id="inventory-id" name="inventoryId" type="hidden" />
           <label class="selected-offer-field" hidden>
             Experiência selecionada
@@ -280,6 +271,14 @@
               maxlength="40"
             />
           </label>
+          <button
+            id="reserve-button"
+            class="tour-checkout-cta"
+            type="submit"
+            disabled
+          >
+            Finalizar Reserva
+          </button>
         </form>
       </section>
 

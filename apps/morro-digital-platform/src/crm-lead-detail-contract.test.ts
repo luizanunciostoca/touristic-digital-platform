@@ -67,4 +67,28 @@ describe("CRM M140 Lead Detail permanent contract", () => {
       runtime.indexOf("new CrmLeadHttpTransport"),
     );
   });
+  it("keeps lead forms responsive without inline grid spans", async () => {
+    const [html, css] = await Promise.all([
+      read("apps/admin-crm/public/lead-detail.html"),
+      read("apps/admin-crm/public/crm.css"),
+    ]);
+
+    expect(html).not.toMatch(/style="grid-column:/u);
+    expect(html).toContain('class="lead-form-span-full"');
+    expect(html).toContain('class="lead-form-span-wide"');
+    expect(html).toContain("lead-checklist-card");
+    expect(css).toContain(
+      ".lead-create-form .lead-form-span-full{grid-column:1/-1}",
+    );
+    expect(css).toContain(
+      ".lead-create-form .lead-form-span-wide{grid-column:span 2}",
+    );
+    expect(css).toContain(
+      ".lead-create-form .lead-form-span-full,.lead-create-form .lead-form-span-wide{grid-column:1/-1}",
+    );
+    expect(css).toContain(
+      ".lead-checklist-card .dashboard-list-item{gap:4px;padding:8px 0}",
+    );
+    expect(css).toContain(".lead-create-form>*{min-width:0}");
+  });
 });

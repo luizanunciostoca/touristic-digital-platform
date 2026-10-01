@@ -1039,7 +1039,20 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
 }
 
 #explore-flow-bottom-sheet[data-flow-kind="tour"] {
-  max-height: min(43dvh, 26rem);
+  max-height: min(49dvh, 30rem);
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-actions
+  > .explore-flow-sheet-source {
+  grid-column: 1 / -1;
+}
+
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable;
 }
 
 #explore-flow-bottom-sheet[data-flow-kind="tour"] .tour-active-header {
@@ -1199,15 +1212,14 @@ body:has(#map[data-tour-flow-stage="stop"])
 body:has(#map[data-tour-flow-stage="stop"])
   #explore-flow-bottom-sheet[data-flow-kind="tour"]
   .tour-stop-desc {
-  display: -webkit-box;
+  display: block;
   grid-column: 2;
   grid-row: 4;
   margin: var(--md-space-1) 0 0;
-  overflow: hidden;
+  overflow: visible;
   font-size: var(--md-font-size-sm);
   line-height: 1.35;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
+  overflow-wrap: anywhere;
 }
 
 body:has(#map[data-tour-flow-stage="stop"])
@@ -1240,9 +1252,9 @@ body:has(#map[data-tour-flow-stage="stop"])
   #explore-flow-bottom-sheet[data-flow-kind="tour"]
   .tour-tips
   ul {
-  max-height: 2.8em;
+  max-height: none;
   margin-block: var(--md-space-1) 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 body:has(#map[data-tour-flow-stage="stop"])
@@ -1273,12 +1285,16 @@ body:has(#map[data-tour-flow-stage="stop"])
 body:has(#map[data-tour-flow-stage="intro"])
   #explore-flow-bottom-sheet[data-flow-kind="tour"]
   .explore-flow-sheet-option[data-value="__tour_list__"] {
-  justify-self: start;
-  width: fit-content;
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  width: 100%;
+  min-width: 0;
   border-color: transparent;
   background: transparent;
   color: var(--md-color-text-secondary);
   box-shadow: none;
+  white-space: normal;
+  overflow-wrap: normal;
 }
 
 body:has(#map[data-tour-flow-stage="intro"])
@@ -1315,7 +1331,7 @@ body:has(#map[data-tour-flow-stage="intro"])
 
 @media (max-width: 30rem) {
   #explore-flow-bottom-sheet[data-flow-kind="tour"] {
-    max-height: 44dvh;
+    max-height: 49dvh;
   }
 
   body:has(#map[data-tour-flow-stage="stop"])
