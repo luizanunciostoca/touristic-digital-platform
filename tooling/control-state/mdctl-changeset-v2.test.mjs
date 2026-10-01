@@ -330,3 +330,15 @@ test("projection loader resolves trusted run evidence before terminal main reche
       calls.indexOf("repos/fixture/repo/commits/main"),
   );
 });
+
+test("Block B semantic objective is canonical and malformed objectives fail closed", async () => {
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  assert.equal(manifest.objective, "control-plane-v3.2-scheduler");
+  assert.equal(validateChangeSetV2(manifest), manifest);
+
+  const invalid = { ...manifest, objective: "Not A Canonical Objective" };
+  assert.throws(
+    () => validateChangeSetV2(invalid),
+    /CHANGESET_OBJECTIVE_INVALID/u,
+  );
+});

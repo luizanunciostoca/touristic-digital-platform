@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -12,6 +13,13 @@ import {
   renderInvariantReport,
 } from "./invariants.mjs";
 import { runTaskCli } from "./task-lifecycle.mjs";
+import {
+  buildIntegrationQueue,
+  buildSchedulerPlan,
+  collectLivePullWork,
+  evaluateDependenciesAtMain,
+  loadSchedulerPolicy,
+} from "./scheduler.mjs";
 
 function parseOptions(args, env = process.env) {
   const explicit = args[0] && !args[0].startsWith("--");
@@ -53,17 +61,37 @@ function parseOptions(args, env = process.env) {
 }
 
 async function snapshot(config) {
-  const [observed, termux] = await Promise.all([
+  const policy = await loadSchedulerPolicy();
+  const [observed, termux, liveWork] = await Promise.all([
     collectObservedState(config),
     collectTermuxHeartbeat(),
+    collectLivePullWork({ repository: config.repository, policy }),
   ]);
   if (!observed?.mainSha) throw new Error("OBSERVED_MAIN_REQUIRED");
+  if (liveWork.mainSha !== observed.mainSha)
+    throw new Error("MAIN_CHANGED_DURING_SCHEDULER_CAPTURE");
   const control = await loadInvariantContextAtMain({
     repository: config.repository,
     mainSha: observed.mainSha,
   });
+  control.integrationQueue = buildIntegrationQueue({
+    mainSha: observed.mainSha,
+    workItems: liveWork.items,
+    policy,
+  });
+  const observedWithLive = {
+    ...observed,
+    liveIntegrationQueue: control.integrationQueue,
+    liveSchedulerWork: liveWork.items.map((item) => ({
+      prNumber: item.prNumber ?? null,
+      changeSetId: item.changeSet?.id ?? null,
+      objective: item.changeSet?.objective ?? null,
+      state: item.changeSet?.state ?? null,
+      invalid: item.invalid ?? null,
+    })),
+  };
   const invariants = evaluateInvariants({
-    observed,
+    observed: observedWithLive,
     termux,
     ...control,
   });
@@ -71,7 +99,7 @@ async function snapshot(config) {
     schemaVersion: 1,
     kind: "TDP_MDCTL_BOOTSTRAP",
     controlPlaneVersion: "3.2",
-    observed,
+    observed: observedWithLive,
     termux,
     controlProjection: {
       authority: control.projectionAuthority,
@@ -105,6 +133,55 @@ export function buildPlan(state) {
 async function main(argv) {
   if (argv[0] === "task") {
     const result = await runTaskCli(argv.slice(1));
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (argv[0] === "schedule" || argv[0] === "queue") {
+    const repository =
+      process.env.GITHUB_REPOSITORY ??
+      "luizanunciostoca/touristic-digital-platform";
+    const policy = await loadSchedulerPolicy();
+    const live = await collectLivePullWork({ repository, policy });
+    const workItems = live.items.filter((item) => item?.changeSet);
+    if (argv[0] === "schedule" && argv[1]) {
+      const manifest = JSON.parse(await readFile(resolve(argv[1]), "utf8"));
+      const dependencies = await evaluateDependenciesAtMain({
+        changeSet: manifest,
+        repository,
+        mainSha: live.mainSha,
+      });
+      workItems.push({
+        changeSet: manifest,
+        openPr: false,
+        writerActive: false,
+        ready: true,
+        dependenciesSatisfied: dependencies.satisfied,
+        unresolvedDependencies: dependencies.unresolved,
+        priority: "P1",
+        behindBy: 0,
+        baseIsAncestorOfMain: manifest.baseSha === live.mainSha,
+        statsKnown: true,
+        changedFiles: 0,
+        changedLines: 0,
+        invalid:
+          manifest.baseSha === live.mainSha
+            ? null
+            : "CANDIDATE_EXACT_BASE_MISMATCH",
+      });
+    }
+    const result =
+      argv[0] === "queue"
+        ? buildIntegrationQueue({
+            mainSha: live.mainSha,
+            workItems,
+            policy,
+          })
+        : buildSchedulerPlan({
+            mainSha: live.mainSha,
+            workItems,
+            policy,
+          });
     console.log(JSON.stringify(result, null, 2));
     return;
   }
