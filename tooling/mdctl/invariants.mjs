@@ -18,12 +18,18 @@ function result(id, title, status, reason, critical = true) {
   return { id, title, status, reason, critical };
 }
 
-function evidenceBoundToSha(releaseState, stateField, shaField, runField, subjectSha) {
+function evidenceBoundToSha(
+  releaseState,
+  stateField,
+  shaField,
+  runField,
+  subjectSha,
+) {
   return Boolean(
     releaseState?.[stateField] === "VERIFIED" &&
-      SHA.test(subjectSha ?? "") &&
-      releaseState?.[shaField] === subjectSha &&
-      RUN_ID.test(String(releaseState?.[runField] ?? "")),
+    SHA.test(subjectSha ?? "") &&
+    releaseState?.[shaField] === subjectSha &&
+    RUN_ID.test(String(releaseState?.[runField] ?? "")),
   );
 }
 
