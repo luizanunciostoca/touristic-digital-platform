@@ -1,5 +1,25 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-CP-TRUST-ROOT-RECONCILIATION": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/control-plane-trust-root-reconciliation-claim-v2-20261001",
+      "baseSha": "fce5c9ee5c5cfeed3c0d28f178d0e2480e2ab70a",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-CP-TRUST-ROOT-RECONCILIATION.json",
+        ".github/workflows/morro-claim-guard.yml",
+        "tooling/mdctl/scheduler-live.mjs",
+        "tooling/control-state/mdctl-scheduler.test.mjs",
+        "tooling/control-state/trust-root-reconciliation.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T12:00:00Z"
+    }
+  }
 }
