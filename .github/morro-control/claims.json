@@ -31,10 +31,7 @@
         "package.json",
         "tooling/control-state/mdctl-event-ledger.test.mjs"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane"
-      ],
+      "domains": ["ci-release", "control-plane"],
       "risk": "P1",
       "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-01T20:00:00Z"
