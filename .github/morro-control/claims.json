@@ -5,8 +5,8 @@
     "MD-CP-AUTONOMOUS-BLOCK-B": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/control-plane-v3.2-b2c-scope-reservation-20261001",
-      "baseSha": "0ce94874fc31c40233757f10e3c89aa9884b4b27",
+      "branch": "infra/control-plane-v3.2-b2c-core-20261001",
+      "baseSha": "4f01d21911ae6a22c49af702094dda3b572451dc",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/event-ledger.schema.json",
