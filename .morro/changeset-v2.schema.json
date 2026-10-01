@@ -52,12 +52,7 @@
       ]
     },
     "risk": {
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ]
+      "enum": ["low", "medium", "high", "critical"]
     },
     "scope": {
       "enum": [
@@ -70,10 +65,7 @@
     "owns": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "paths",
-        "contracts"
-      ],
+      "required": ["paths", "contracts"],
       "properties": {
         "paths": {
           "type": "array",
@@ -97,9 +89,7 @@
     "reads": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "contracts"
-      ],
+      "required": ["contracts"],
       "properties": {
         "contracts": {
           "type": "array",
@@ -114,10 +104,7 @@
     "produces": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "events",
-        "routes"
-      ],
+      "required": ["events", "routes"],
       "properties": {
         "events": {
           "type": "array",
@@ -140,9 +127,7 @@
     "database": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "tables"
-      ],
+      "required": ["tables"],
       "properties": {
         "tables": {
           "type": "array",
@@ -157,9 +142,7 @@
     "auth": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "capabilities"
-      ],
+      "required": ["capabilities"],
       "properties": {
         "capabilities": {
           "type": "array",
@@ -200,10 +183,7 @@
     "contextPack": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "maxBytes",
-        "include"
-      ],
+      "required": ["maxBytes", "include"],
       "properties": {
         "maxBytes": {
           "type": "integer",
@@ -231,19 +211,12 @@
     "proof": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "budget",
-        "commands",
-        "requiredRemoteEvidence"
-      ],
+      "required": ["budget", "commands", "requiredRemoteEvidence"],
       "properties": {
         "budget": {
           "type": "object",
           "additionalProperties": false,
-          "required": [
-            "maxCommands",
-            "maxSeconds"
-          ],
+          "required": ["maxCommands", "maxSeconds"],
           "properties": {
             "maxCommands": {
               "type": "integer",
@@ -264,11 +237,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "id",
-              "argv",
-              "timeoutSeconds"
-            ],
+            "required": ["id", "argv", "timeoutSeconds"],
             "properties": {
               "id": {
                 "type": "string",
