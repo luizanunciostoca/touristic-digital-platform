@@ -36,6 +36,7 @@ const CONTEXT_PARTS = new Set([
 const TOP_LEVEL_KEYS = new Set([
   "schemaVersion",
   "id",
+  "objective",
   "baseSha",
   "branch",
   "state",
@@ -141,12 +142,24 @@ export function changeSetDigest(manifest) {
 export function validateChangeSetV2(manifest) {
   assertClosedObject(
     manifest,
-    [...TOP_LEVEL_KEYS],
+    [...TOP_LEVEL_KEYS].filter((key) => key !== "objective"),
     TOP_LEVEL_KEYS,
     "CHANGESET",
   );
   assert.equal(manifest.schemaVersion, 2, "CHANGESET_SCHEMA_VERSION_INVALID");
   assert.match(manifest.id, ID, "CHANGESET_ID_INVALID");
+  if (Object.hasOwn(manifest, "objective")) {
+    assert.equal(
+      typeof manifest.objective,
+      "string",
+      "CHANGESET_OBJECTIVE_INVALID",
+    );
+    assert.match(
+      manifest.objective,
+      /^[a-z0-9][a-z0-9._/-]{2,159}$/u,
+      "CHANGESET_OBJECTIVE_INVALID",
+    );
+  }
   assert.match(manifest.baseSha, SHA, "CHANGESET_BASE_SHA_INVALID");
   assert.match(manifest.branch, BRANCH, "CHANGESET_BRANCH_INVALID");
   assert.equal(
