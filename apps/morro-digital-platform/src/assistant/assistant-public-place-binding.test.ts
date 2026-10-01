@@ -7,15 +7,9 @@ import {
 } from "@touristic/assistant";
 import type { DestinationId } from "@touristic/core";
 
-import {
-  resolveAssistantCanonicalPhotos,
-} from "./assistant-canonical-photo-adapter.js";
-import {
-  createAssistantBrowserDomainHandlers,
-} from "./assistant-domain-adapter.js";
-import {
-  fetchAssistantPlaceDetails,
-} from "./assistant-place-details-adapter.js";
+import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
+import { createAssistantBrowserDomainHandlers } from "./assistant-domain-adapter.js";
+import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 import { createAssistantSearchHandler } from "./assistant-search-adapter.js";
 import {
   createPublicPlaceReadContextFromDestination,
@@ -208,26 +202,33 @@ describe("Phase20 public Place + Assistant binding", () => {
     ["en", "en-US"],
     ["es", "es-ES"],
     ["he", "he-IL"],
-  ] as const)("scopes canonical detail locale %s", async (language, locale) => {
-    const calls: string[] = [];
-    const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
-      const url = inputUrl(input);
-      calls.push(url);
-      if (url.startsWith("/api/places/v1/map?")) return canonicalMapResponse();
-      return canonicalDetailResponse("itacare");
-    });
+  ] as const)(
+    "scopes canonical detail locale %s",
+    async (language, locale) => {
+      const calls: string[] = [];
+      const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
+        const url = inputUrl(input);
+        calls.push(url);
+        if (url.startsWith("/api/places/v1/map?")) return canonicalMapResponse();
+        return canonicalDetailResponse("itacare");
+      });
 
-    const result = await fetchAssistantPlaceDetails("Praia da Concha", {
-      fetch: fetcher,
-      language,
-      publicPlaceReadContext: ITACARE_CONTEXT,
-    });
-    expect(result?.source).toBe("canonical");
-    expect(
-      calls.some((url) => url.includes("locale=" + encodeURIComponent(locale))),
-    ).toBe(true);
-    expect(calls.every((url) => url.startsWith("/api/places/v1/"))).toBe(true);
-  });
+      const result = await fetchAssistantPlaceDetails("Praia da Concha", {
+        fetch: fetcher,
+        language,
+        publicPlaceReadContext: ITACARE_CONTEXT,
+      });
+      expect(result?.source).toBe("canonical");
+      expect(
+        calls.some((url) =>
+          url.includes("locale=" + encodeURIComponent(locale)),
+        ),
+      ).toBe(true);
+      expect(calls.every((url) => url.startsWith("/api/places/v1/"))).toBe(
+        true,
+      );
+    },
+  );
 
   it("rejects cross-destination canonical media", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
