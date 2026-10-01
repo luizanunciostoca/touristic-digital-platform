@@ -41,7 +41,10 @@ describe("Master Brand + Destination Brand System V2", () => {
   it.each(assets)(
     "pins %s %s vector bytes and forbids live text",
     async (brand, variant, relativePath) => {
-      const svg = await readFile(new URL(relativePath, import.meta.url), "utf8");
+      const svg = await readFile(
+        new URL(relativePath, import.meta.url),
+        "utf8",
+      );
       const digest = createHash("sha256").update(svg).digest("hex");
 
       expect(digest).toBe(brandFamilyV2[brand].sha256[variant]);
