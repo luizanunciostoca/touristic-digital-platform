@@ -56,8 +56,7 @@ test("preserves master-brand and destination-family hierarchy", () => {
 
 test("does not elevate Itacaré runtime status or publish its pending tagline", () => {
   const page = pages.find(
-    (candidate) =>
-      candidate.path === "/destinations/itacare-digital/",
+    (candidate) => candidate.path === "/destinations/itacare-digital/",
   );
   const text = JSON.stringify(page);
   assert.match(text, /não verificada/i);
@@ -66,9 +65,7 @@ test("does not elevate Itacaré runtime status or publish its pending tagline", 
 });
 
 test("keeps sponsorship concepts visibly separated from current product", () => {
-  const page = pages.find(
-    (candidate) => candidate.path === "/sponsorship/",
-  );
+  const page = pages.find((candidate) => candidate.path === "/sponsorship/");
   assert.match(JSON.stringify(page), /CONCEPT \/ NOT LIVE PRODUCT/);
 });
 
@@ -76,9 +73,7 @@ test("does not expose controlled files or invent contact endpoints", () => {
   const resources = renderPage(
     pages.find((page) => page.path === "/resources/"),
   );
-  const contact = renderPage(
-    pages.find((page) => page.path === "/contact/"),
-  );
+  const contact = renderPage(pages.find((page) => page.path === "/contact/"));
   assert.doesNotMatch(resources, /href="https?:\/\//i);
   assert.match(resources, /Gate de publicação/);
   assert.doesNotMatch(contact, /<form/i);
@@ -86,9 +81,7 @@ test("does not expose controlled files or invent contact endpoints", () => {
 });
 
 test("keeps market planning counts explicitly dated and qualified", () => {
-  const market = JSON.stringify(
-    pages.find((page) => page.path === "/market/"),
-  );
+  const market = JSON.stringify(pages.find((page) => page.path === "/market/"));
   assert.match(market, /Q1 2026/);
   assert.match(market, /snapshot/i);
   assert.match(market, /escopo de planejamento/i);
