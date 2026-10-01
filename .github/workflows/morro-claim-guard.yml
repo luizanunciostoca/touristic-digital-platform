@@ -8,6 +8,8 @@ on:
       - ".github/workflows/morro-claim-guard.yml"
       - ".github/workflows/morro-claim-guard-trusted.yml"
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+      - ".github/workflows/morro-agent-profiles.yml"
+      - "tooling/mdctl/scheduler-live.mjs"
       - ".github/morro-control/claims.json"
       - ".morro/changesets/MD-CP-003-HOOKS.json"
       - ".morro/changesets/MD-CP-003-TRUST.json"
@@ -18,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: claim-guard-contract-${{ github.event.pull_request.number || github.ref }}
@@ -65,6 +68,182 @@ jobs:
           path: claim-guard-candidate-proof.json
           if-no-files-found: error
           retention-days: 30
+
+  trust-root-reconciliation:
+    if: github.event_name == 'pull_request'
+    name: base-controlled-trust-root-reconciliation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Resolve trust-root reconciliation scope
+        id: reconciliation
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          changed="$(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          if grep -Fxq '.github/workflows/morro-claim-guard.yml' <<<"$changed"; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          bootstrap_changed=false
+          profiles_changed=false
+          grep -Fxq '.github/workflows/morro-claim-guard-trust-bootstrap.yml' <<<"$changed" && bootstrap_changed=true || true
+          grep -Fxq '.github/workflows/morro-agent-profiles.yml' <<<"$changed" && profiles_changed=true || true
+          if [ "$bootstrap_changed" = "false" ] && [ "$profiles_changed" = "false" ]; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          test "$bootstrap_changed" = "true"
+          test "$profiles_changed" = "true"
+          claim_id="$(
+            jq -r --arg branch "$HEAD_BRANCH" '.claims | to_entries | map(select(.value.branch == $branch) | .key) | if length == 1 then .[0] else empty end' candidate/.github/morro-control/claims.json
+          )"
+          test -n "$claim_id"
+          manifest_path=".morro/changesets/$claim_id.json"
+          test -f "candidate/$manifest_path"
+          echo "manifest_path=$manifest_path" >> "$GITHUB_OUTPUT"
+          echo "required=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate approved trust-routing candidate blobs
+        if: steps.reconciliation.outputs.required == 'true'
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BASE_BOOTSTRAP_BLOB: 2babbadac3d43ba3119a027ba39be18ce31c06f3
+          EXPECTED_CANDIDATE_BOOTSTRAP_BLOB: 0b64cc545e9f07e1df17d924cd98a4b42886991f
+          EXPECTED_BASE_AGENT_PROFILES_BLOB: 88a4891c1eb4b2a99d7e7cb8b89b304b5dd1441a
+          EXPECTED_CANDIDATE_AGENT_PROFILES_BLOB: 38824df595d1f42f4e5cd89b81d2ac35cbb87e80
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+          test "$(git -C trusted rev-parse HEAD:.github/workflows/morro-claim-guard-trust-bootstrap.yml)" = "$EXPECTED_BASE_BOOTSTRAP_BLOB"
+          test "$(git -C candidate rev-parse HEAD:.github/workflows/morro-claim-guard-trust-bootstrap.yml)" = "$EXPECTED_CANDIDATE_BOOTSTRAP_BLOB"
+          test "$(git -C trusted rev-parse HEAD:.github/workflows/morro-agent-profiles.yml)" = "$EXPECTED_BASE_AGENT_PROFILES_BLOB"
+          test "$(git -C candidate rev-parse HEAD:.github/workflows/morro-agent-profiles.yml)" = "$EXPECTED_CANDIDATE_AGENT_PROFILES_BLOB"
+
+      - name: Prove trust-root reconciliation with trusted base code
+        if: steps.reconciliation.outputs.required == 'true'
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
+          MANIFEST_PATH: ${{ steps.reconciliation.outputs.manifest_path }}
+          CLAIM_GUARD_AUTHORITY: ORCHESTRATOR
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test trusted/tooling/fabric/claim-guard.test.mjs
+          node trusted/tooling/fabric/claim-guard.mjs candidate | tee trust-root-reconciliation-proof.json
+
+      - name: Upload trust-root reconciliation proof
+        if: steps.reconciliation.outputs.required == 'true'
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: trust-root-reconciliation-proof-${{ github.event.pull_request.head.sha }}
+          path: trust-root-reconciliation-proof.json
+          if-no-files-found: error
+          retention-days: 30
+
+  retirement-proof:
+    if: github.event_name == 'pull_request'
+    name: base-controlled-retirement-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Classify exact retirement from trusted base
+        id: retirement
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+          removed="$(jq -n --slurpfile base trusted/.github/morro-control/claims.json --slurpfile candidate candidate/.github/morro-control/claims.json '($base[0].claims | keys) - ($candidate[0].claims | keys)')"
+          added="$(jq -n --slurpfile base trusted/.github/morro-control/claims.json --slurpfile candidate candidate/.github/morro-control/claims.json '($candidate[0].claims | keys) - ($base[0].claims | keys)')"
+          if [ "$(jq length <<<"$removed")" -ne 1 ] || [ "$(jq length <<<"$added")" -ne 0 ]; then
+            echo "eligible=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          claim_id="$(jq -r '.[0]' <<<"$removed")"
+          jq -S --arg id "$claim_id" '.claims |= del(.[$id])' trusted/.github/morro-control/claims.json > /tmp/base-survivors.json
+          jq -S . candidate/.github/morro-control/claims.json > /tmp/candidate-registry.json
+          cmp -s /tmp/base-survivors.json /tmp/candidate-registry.json
+          manifest="candidate/.morro/changesets/$claim_id.json"
+          test -f "$manifest"
+          test "$(jq -r '.id' "$manifest")" = "$claim_id"
+          test "$(jq -r '.state' "$manifest")" = "MERGED"
+          test "$(jq -r '.baseSha' "$manifest")" = "$EXPECTED_BASE_SHA"
+          test "$(jq -r '.branch' "$manifest")" = "$EXPECTED_BRANCH"
+          echo "claim_id=$claim_id" >> "$GITHUB_OUTPUT"
+          echo "eligible=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run base-controlled retirement proof
+        if: steps.retirement.outputs.eligible == 'true'
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test trusted/tooling/fabric/claim-retirement-proof.test.mjs
+          node trusted/tooling/fabric/claim-retirement-proof.mjs trusted candidate | tee root-retirement-proof.json
+
+      - name: Upload base-controlled retirement proof
+        if: steps.retirement.outputs.eligible == 'true'
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: root-retirement-proof-${{ github.event.pull_request.head.sha }}
+          path: root-retirement-proof.json
+          if-no-files-found: error
+          retention-days: 30
+
   trusted-proof:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.ref == 'infra/control-plane-v3.2-stage-c-hooks-20260928' }}
     name: base-controlled-trusted-proof
