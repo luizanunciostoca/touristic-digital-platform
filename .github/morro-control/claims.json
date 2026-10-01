@@ -12,7 +12,10 @@
         ".github/morro-control/events.ndjson",
         ".morro/changesets/MD-CP-CLAIM-ACQUISITION-BOOTSTRAP.json",
         "tooling/mdctl/merge-gate.mjs",
-        "tooling/control-state/mdctl-merge-gate.test.mjs"
+        "tooling/control-state/mdctl-merge-gate.test.mjs",
+        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+        "tooling/quality/independent-proof-trusted.mjs",
+        "tooling/quality/independent-proof-trusted.test.mjs"
       ],
       "domains": ["ci-release", "control-plane"],
       "risk": "P1",
