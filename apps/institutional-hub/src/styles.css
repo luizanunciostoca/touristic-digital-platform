@@ -13,7 +13,12 @@
   --accent-strong: var(--blue-dark);
   --container: 76rem;
   --radius: 1.25rem;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  font-family:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
     sans-serif;
   color: var(--ink);
   background: var(--white);
