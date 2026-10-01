@@ -17,16 +17,20 @@ import {
   type SearchPresentationItem,
 } from "@touristic/search";
 
+import {
+  allowsMorroLegacyPlaceFallback,
+  resolvePublicPlaceReadContext,
+  type PublicPlaceReadContext,
+} from "../runtime/public-place-read-context.js";
+
 export interface AssistantSearchAdapterOptions {
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
+  readonly publicPlaceReadContext?: PublicPlaceReadContext;
 }
 
 type AssistantSearchLanguage = "pt" | "en" | "es" | "he";
 
-const CANONICAL_SEARCH_DESTINATION_ID = "morro-de-sao-paulo";
-const CANONICAL_SEARCH_BBOX = "-39.05,-13.50,-38.89,-13.35";
-const CANONICAL_SEARCH_ZOOM = "13";
 const CANONICAL_SEARCH_LIMIT = "1000";
 
 interface CanonicalSearchPlace {
@@ -71,13 +75,17 @@ function canonicalSearchScore(name: string, query: string): number | null {
 async function searchCanonicalPlaces(
   fetchImplementation: typeof globalThis.fetch,
   query: string,
+  context: PublicPlaceReadContext,
 ): Promise<readonly CanonicalSearchPlace[]> {
-  if (!isLikelyV1PlaceQuery(query)) return [];
+  if (!normalizeSearchText(query)) return [];
+  if (allowsMorroLegacyPlaceFallback(context) && !isLikelyV1PlaceQuery(query)) {
+    return [];
+  }
   try {
     const params = new URLSearchParams({
-      destinationId: CANONICAL_SEARCH_DESTINATION_ID,
-      bbox: CANONICAL_SEARCH_BBOX,
-      zoom: CANONICAL_SEARCH_ZOOM,
+      destinationId: context.destinationId,
+      bbox: context.bbox.join(","),
+      zoom: String(context.zoom),
       limit: CANONICAL_SEARCH_LIMIT,
     });
     const response = await fetchImplementation(
@@ -164,6 +172,12 @@ export function createAssistantSearchHandler(
   options: AssistantSearchAdapterOptions = {},
 ): AssistantDialogIntentHandler {
   const fetchImplementation = options.fetch ?? globalThis.fetch;
+  const publicPlaceReadContext = resolvePublicPlaceReadContext(
+    options.publicPlaceReadContext,
+  );
+  const allowLegacyFallback = allowsMorroLegacyPlaceFallback(
+    publicPlaceReadContext,
+  );
   const token = options.mapboxAccessToken?.trim();
   let externalProviderFailed = false;
   const observedFetch: typeof fetch = async (input, init) => {
@@ -204,12 +218,14 @@ export function createAssistantSearchHandler(
     const canonicalResults = await searchCanonicalPlaces(
       fetchImplementation,
       query,
+      publicPlaceReadContext,
     );
     const result =
-      canonicalResults.length === 0
+      canonicalResults.length === 0 && allowLegacyFallback
         ? await application.search(query, { language })
         : null;
     const providerUnavailable =
+      allowLegacyFallback &&
       canonicalResults.length === 0 &&
       result?.source === "none" &&
       isLikelyV1PlaceQuery(query) &&
