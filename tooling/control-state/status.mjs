@@ -251,8 +251,7 @@ export async function collectObservedState({
       const value = decodeContent(
         await api(atMain(".github/morro-control/release-state.json")),
       );
-      if (value?.schemaVersion !== 1)
-        throw new Error("RELEASE_STATE_INVALID");
+      if (value?.schemaVersion !== 1) throw new Error("RELEASE_STATE_INVALID");
       return value;
     }),
     capture("recentCi", async () => {
