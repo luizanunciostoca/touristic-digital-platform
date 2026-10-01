@@ -94,8 +94,10 @@ jobs:
           const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const cases = [
+            ['mobile-320', 320, 568],
             ['mobile-360', 360, 800],
             ['mobile-390', 390, 844],
+            ['mobile-412', 412, 915],
             ['mobile-430', 430, 932],
             ['tablet', 768, 1024],
             ['desktop', 1440, 900],
@@ -592,7 +594,7 @@ jobs:
             });
             if (
               !state.sheet ||
-              state.sheet.height > state.viewport.height * (state.viewport.width <= 480 ? 0.7 : 0.6) + 1 ||
+              state.sheet.height > state.viewport.height * 0.5 + 1 ||
               !state.start ||
               state.start.disabled ||
               !state.start.primary ||
