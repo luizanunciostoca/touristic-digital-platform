@@ -2,9 +2,9 @@
 
 ## Status
 
-**Candidate:** V2.0.0  
-**Approved visual direction:** Concept 02  
-**Production publication:** not authorized by this document  
+**Candidate:** V2.0.0
+**Approved visual direction:** Concept 02
+**Production publication:** not authorized by this document
 **Territorial design validation:** INTERNAL
 
 ## Brand architecture
