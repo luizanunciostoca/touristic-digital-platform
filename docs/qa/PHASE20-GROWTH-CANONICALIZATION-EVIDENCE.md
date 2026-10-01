@@ -1,9 +1,9 @@
 # Phase 20 — Growth / Gamification canonicalization lane
 
-**Lane:** E  
-**Branch:** `integration/phase20-growth-canonicalization-20261001`  
-**Base:** `integration/phase19-real-product-baseline-20261001`  
-**Frozen base SHA:** `37eb641eefa91f57d8d74c1dc87894c2da36f3ae`  
+**Lane:** E
+**Branch:** `integration/phase20-growth-canonicalization-20261001`
+**Base:** `integration/phase19-real-product-baseline-20261001`
+**Frozen base SHA:** `37eb641eefa91f57d8d74c1dc87894c2da36f3ae`
 **Lab reference:** `luizanunciostoca/morro-integration-lab@cfefe89bf5b3d6ffbc4a83fc76842f245330a900`
 
 Status: **candidate-only / feature-off / no production authority / no runtime mount**.
