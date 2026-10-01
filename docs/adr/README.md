@@ -34,3 +34,7 @@ Use sequência de quatro dígitos:
 - Mudanças de fronteiras de módulos, providers, contratos públicos, persistência, segurança, pagamentos ou estratégia multi-destino exigem ADR.
 - ADR aceito não é editado para alterar a decisão; uma nova decisão deve substituí-lo.
 - Nenhuma substituição de comportamento da V1 é autorizada apenas por ADR: equivalência e rollback continuam obrigatórios.
+
+## Accepted decisions
+
+- `0005-autonomous-engineering-control-plane-v3-2.md` — freezes the Autonomous Engineering Control Plane on V3.2.
