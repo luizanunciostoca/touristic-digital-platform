@@ -519,7 +519,7 @@ function acquisitionInput(overrides = {}) {
     {
       schemaVersion: 1,
       eventId: "evt-canonical-existing",
-      eventType: "SYSTEM_RECONCILED",
+      eventType: "MERGED",
       observedAt: "2026-10-01T16:59:00Z",
       actor: "ORCHESTRATOR",
       entity: "MD-SYSTEM",
@@ -724,6 +724,102 @@ test("claim acquisition preserves invalid concurrent fail-closed behavior", () =
   );
 });
 
+test("claim acquisition enforces active PR and global writer limits", () => {
+  const tooManyPrs = Array.from({ length: 8 }, (_, index) => ({
+    prNumber: 20 + index,
+    openPr: true,
+    writerActive: false,
+    invalid: null,
+  }));
+  assert.throws(
+    () =>
+      evaluateClaimAcquisitionMergeGate(
+        acquisitionInput({ liveItems: tooManyPrs }),
+      ),
+    /MERGE_GATE_ACTIVE_PR_LIMIT_EXCEEDED/u,
+  );
+
+  const writers = Array.from({ length: 3 }, (_, index) => ({
+    prNumber: 40 + index,
+    openPr: true,
+    writerActive: true,
+    invalid: null,
+    changeSet: manifest({
+      id: "MD-WRITER-" + index,
+      branch: "feat/writer-" + index,
+      objective: "writer-objective-" + index,
+      owns: { paths: ["writer/" + index + "/**"], contracts: [] },
+      produces: { events: ["WRITER_EVENT_" + index], routes: [] },
+      database: { tables: [] },
+      auth: { capabilities: [] },
+    }),
+  }));
+  assert.throws(
+    () =>
+      evaluateClaimAcquisitionMergeGate(
+        acquisitionInput({ liveItems: writers }),
+      ),
+    /MERGE_GATE_GLOBAL_WIP_EXCEEDED/u,
+  );
+});
+
+test("claim acquisition enforces semantic collision and exact trust binding", () => {
+  const current = acquisitionInput();
+  const collision = manifest({
+    id: "MD-COLLISION",
+    branch: "feat/collision",
+    objective: current.manifest.objective,
+    owns: { paths: ["collision/**"], contracts: [] },
+    produces: { events: ["COLLISION_EVENT"], routes: [] },
+    database: { tables: [] },
+    auth: { capabilities: [] },
+  });
+  assert.throws(
+    () =>
+      evaluateClaimAcquisitionMergeGate(
+        acquisitionInput({
+          liveItems: [
+            {
+              prNumber: 55,
+              openPr: true,
+              writerActive: true,
+              invalid: null,
+              changeSet: collision,
+            },
+          ],
+        }),
+      ),
+    /MERGE_GATE_SEMANTIC_COLLISION/u,
+  );
+
+  assert.throws(
+    () =>
+      evaluateClaimAcquisitionMergeGate(
+        acquisitionInput({
+          trust: {
+            trusted: true,
+            authority: "WRONG_AUTHORITY",
+            headSha: HEAD,
+          },
+        }),
+      ),
+    /MERGE_GATE_ACQUISITION_TRUST_AUTHORITY_INVALID/u,
+  );
+  assert.throws(
+    () =>
+      evaluateClaimAcquisitionMergeGate(
+        acquisitionInput({
+          trust: {
+            trusted: true,
+            authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+            headSha: "d".repeat(40),
+          },
+        }),
+      ),
+    /MERGE_GATE_ACQUISITION_TRUST_HEAD_MISMATCH/u,
+  );
+});
+
 function writeFixtureJson(root, relativePath, value) {
   const target = join(root, relativePath);
   mkdirSync(target.slice(0, target.lastIndexOf("/")), { recursive: true });
@@ -918,7 +1014,7 @@ test("merge gate fails closed on any invalid concurrent live PR", () => {
   );
 });
 
-function createAcquisitionRunGateFixture() {
+function createAcquisitionRunGateFixture({ invalidLedgerEvent = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "morro-acquisition-gate-"));
   const source = join(root, "source");
   mkdirSync(source, { recursive: true });
@@ -935,9 +1031,20 @@ function createAcquisitionRunGateFixture() {
     claims: {},
   });
   mkdirSync(join(source, ".github", "morro-control"), { recursive: true });
+  const canonicalEvent = {
+    schemaVersion: 1,
+    eventId: "evt-acquisition-canonical",
+    eventType: "MERGED",
+    observedAt: "2026-10-01T16:59:00Z",
+    actor: "ORCHESTRATOR",
+    entity: "MD-CANONICAL",
+    sourceSha: OLD_BASE,
+    payloadVersion: 1,
+    payload: { reason: "fixture" },
+  };
   writeFileSync(
     join(source, ".github", "morro-control", "events.ndjson"),
-    '{"schemaVersion":1,"eventType":"SYSTEM_RECONCILED"}\n',
+    JSON.stringify(canonicalEvent) + "\n",
   );
   writeFixtureJson(source, ".morro/scheduler-policy.json", {
     version: 1,
@@ -977,10 +1084,25 @@ function createAcquisitionRunGateFixture() {
       [candidateManifest.id]: candidateClaim,
     },
   });
+  const acquiredEvent = {
+    schemaVersion: 1,
+    ...(invalidLedgerEvent ? {} : { eventId: "evt-acquisition-claim" }),
+    eventType: "CLAIM_ACQUIRED",
+    observedAt: "2026-10-01T17:00:00Z",
+    actor: "ORCHESTRATOR",
+    entity: candidateManifest.id,
+    sourceSha: baseSha,
+    payloadVersion: 1,
+    payload: {
+      branch: BRANCH,
+      expiresAt: candidateClaim.expiresAt,
+      risk: candidateClaim.risk,
+    },
+  };
   writeFileSync(
     join(source, ".github", "morro-control", "events.ndjson"),
     [
-      '{"schemaVersion":1,"eventType":"SYSTEM_RECONCILED"}',
+      JSON.stringify(canonicalEvent),
       JSON.stringify({
         schemaVersion: 1,
         eventId: "evt-acquisition-created",
@@ -995,21 +1117,7 @@ function createAcquisitionRunGateFixture() {
           objective: candidateManifest.objective,
         },
       }),
-      JSON.stringify({
-        schemaVersion: 1,
-        eventId: "evt-acquisition-claim",
-        eventType: "CLAIM_ACQUIRED",
-        observedAt: "2026-10-01T17:00:00Z",
-        actor: "ORCHESTRATOR",
-        entity: candidateManifest.id,
-        sourceSha: baseSha,
-        payloadVersion: 1,
-        payload: {
-          branch: BRANCH,
-          expiresAt: candidateClaim.expiresAt,
-          risk: candidateClaim.risk,
-        },
-      }),
+      JSON.stringify(acquiredEvent),
       "",
     ].join("\n"),
   );
@@ -1074,6 +1182,42 @@ test("runMergeGate routes one new claim through trusted acquisition mode", async
     assert.equal(result.mode, "CLAIM_ACQUISITION");
     assert.equal(result.exactHeadSha, fixture.headSha);
     assert.equal(result.exactBaseSha, fixture.baseSha);
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("runMergeGate rejects malformed acquisition ledger before policy admission", async () => {
+  const fixture = createAcquisitionRunGateFixture({ invalidLedgerEvent: true });
+  try {
+    await assert.rejects(
+      runMergeGate({
+        trustedDir: fixture.trustedDir,
+        candidateDir: fixture.candidateDir,
+        repository: "example/repo",
+        prNumber: 10,
+        headSha: fixture.headSha,
+        baseSha: fixture.baseSha,
+        branch: BRANCH,
+        api: gateApiFor(fixture),
+        reviewThreadCounter: async () => 0,
+        liveCollector: async () => ({
+          mainSha: fixture.baseSha,
+          authority: "TRUSTED_PR_EXACT_HEADS",
+          items: [],
+        }),
+        dependencyEvaluator: async () => ({
+          satisfied: true,
+          unresolved: [],
+        }),
+        trustEvidenceVerifier: async () => ({
+          trusted: true,
+          authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+          headSha: fixture.headSha,
+        }),
+      }),
+      /EVENT_ID_INVALID/u,
+    );
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }

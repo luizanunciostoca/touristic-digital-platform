@@ -10,6 +10,7 @@ import {
   removedClaimIds,
 } from "../fabric/claim-retirement-proof.mjs";
 import { canonicalJson, validateChangeSetV2 } from "./changeset-v2.mjs";
+import { parseAuthorityLedger } from "./event-ledger.mjs";
 import {
   DEFAULT_SCHEDULER_POLICY,
   findSemanticCollisions,
@@ -63,10 +64,7 @@ function readJson(root, relativePath) {
 }
 
 function readNdjson(root, relativePath) {
-  return readFileSync(join(root, relativePath), "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line));
+  return parseAuthorityLedger(readFileSync(join(root, relativePath), "utf8"));
 }
 
 export function addedClaimIds(canonicalRegistry, candidateRegistry) {
