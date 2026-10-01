@@ -1,0 +1,48 @@
+name: Lane F Current Head Navigation Capture
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/lane-f-current-head-navigation-capture.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  navigation-current-main:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+
+      - name: Verify exact main and dispatch navigation visual baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/lane-f-nav
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          LIVE_MAIN="$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)"
+          test "$BASE_SHA" = "$LIVE_MAIN"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          printf '%s\n' "$BASE_SHA" > /tmp/lane-f-nav/exact-main.txt
+          run_url="$(gh workflow run navigation-visual-baseline.yml --ref main)"
+          run_id="${run_url##*/}"
+          printf '%s\n' "$run_id" > /tmp/lane-f-nav/run-id.txt
+          gh run watch "$run_id" --exit-status
+          gh run download "$run_id" -D /tmp/lane-f-nav/evidence
+          gh run view "$run_id" --json conclusion,headSha,databaseId > /tmp/lane-f-nav/result.json
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-current-main-navigation-evidence
+          path: /tmp/lane-f-nav
+          retention-days: 14
+          if-no-files-found: error
