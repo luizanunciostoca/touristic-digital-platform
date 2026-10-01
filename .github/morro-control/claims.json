@@ -29,9 +29,32 @@
         "package.json",
         ".trivyignore.yaml"
       ],
-      "domains": ["ci-release", "control-plane"],
+      "domains": [
+        "ci-release",
+        "control-plane"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-01T18:00:00Z"
+    },
+    "MD-BRAND-001": {
+      "owner": "CHATGPT-PRO-BRAND-INTEGRATOR",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "feat/brand-family-v2-concept02-20261001",
+      "baseSha": "0951b28f05d5486d3d06695285c4e6628ed1ccf1",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".morro/changesets/MD-BRAND-001.json",
+        "packages/design-system/src/brand/**",
+        "packages/design-system/src/index.ts",
+        "docs/brand/**"
+      ],
+      "domains": [
+        "design-system",
+        "brand"
+      ],
+      "risk": "P1",
+      "status": "CLAIMED",
       "expiresAt": "2026-10-01T18:00:00Z"
     }
   }
