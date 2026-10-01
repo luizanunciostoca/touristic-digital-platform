@@ -1,0 +1,78 @@
+{
+  "id": "MD-P20-LANE-F",
+  "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
+  "branch": "wave/phase20-f-public-ux-place-assistant-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      "packages/assistant/**",
+      "packages/content/**",
+      "packages/destination/**",
+      "packages/destinations/**",
+      "packages/geospatial/**",
+      "packages/navigation/**",
+      "packages/search/**",
+      "services/content/**",
+      "services/destinations/**",
+      "apps/morro-digital-platform/src/assistant/**",
+      "apps/morro-digital-platform/src/map/**",
+      "apps/morro-digital-platform/src/navigation/**",
+      "apps/morro-digital-platform/src/search/**",
+      "apps/morro-digital-platform/src/config/map-*",
+      "apps/morro-digital-platform/public/assistant-*",
+      "apps/morro-digital-platform/public/explore-locations.css",
+      "apps/morro-digital-platform/public/navigation-map.css",
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
+      "apps/morro-digital-platform/public/v1-tour-assistant-visibility.css",
+      "apps/morro-digital-platform/public/v1-weather-runtime-parity.css",
+      "apps/morro-digital-platform/public/onboarding-v2.css",
+      "apps/morro-digital-platform/public/premium-ux-v2.css",
+      "apps/morro-digital-platform/public/legacy/**",
+      "apps/morro-digital-platform/tooling/assistant-api*.mjs",
+      "apps/morro-digital-platform/tooling/destination-public-projection*.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime*.mjs",
+      "apps/morro-digital-platform/tooling/place-media-coverage-report*.mjs",
+      "apps/morro-digital-platform/tooling/weather-provider-mappers*.mjs",
+      "apps/morro-digital-platform/tooling/static-content-type*.mjs",
+      "docs/integration/phase20/lane-f/**"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": [
+      "platform-authz",
+      "reservation-capacity",
+      "ticket-fulfillment",
+      "verified-payment-outcome"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "authorityInvariants": [
+    "Assistant is presentation/orchestration and cannot mint owner truth",
+    "only proven owner bindings may be called integrated",
+    "paid reasoning remains disabled",
+    "client-local profile/favorites do not become server authority",
+    "CONTROL_TOWER_SHARED_PATCH_REQUIRED for any path outside owns.paths"
+  ]
+}
