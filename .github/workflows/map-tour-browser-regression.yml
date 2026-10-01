@@ -1132,8 +1132,9 @@ jobs:
             ['1440', 1440, 900],
           ];
 
-          const browser = await chromium.launch({ headless: true });
-          const evidence = {
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {
             schemaVersion: 1,
             dataClass: 'Runtime with Fixture',
             fixtureId: 'UX584_COMPUTED_LAYOUT_V1',
@@ -1392,9 +1393,13 @@ jobs:
               '/tmp/map-tour-evidence/ux584-computed-layout.json',
               JSON.stringify(evidence, null, 2),
             );
-          } finally {
-            await browser.close();
-          }
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
           NODE
       - name: Show diagnostics
         if: failure()
