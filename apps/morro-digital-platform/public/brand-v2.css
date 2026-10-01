@@ -110,16 +110,23 @@ body[data-md-mode="discover"] .md-home-title-block {
   text-transform: uppercase;
 }
 
-.ticketing-context-title .md-brand-context__mark,
-.tour-booking-heading .md-brand-context__mark {
-  width: 1.75rem;
-  height: 1.75rem;
-  flex-basis: 1.75rem;
-}
-
 .ticketing-context-title,
 .tour-booking-heading {
   min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--md-space-2);
+}
+
+.ticketing-context-title::before,
+.tour-booking-heading::before {
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 1.75rem;
+  background: url("/assets/brand/morro-digital-symbol-v2.svg") center / contain
+    no-repeat;
+  content: "";
 }
 
 .ticket-dialog::before {
