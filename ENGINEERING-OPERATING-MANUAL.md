@@ -31,6 +31,8 @@ Integration, release and external activation are separate gates. Configuration i
 
 ## State and evidence
 
+Ephemeral bootstrap tooling must be removed from the candidate tree before trusted proof is accepted; historical helper commits are not release authority.
+
 Desired state belongs in Git. Observed state is collected from live authorities. Derived state is computed from desired plus observed evidence. The authority event ledger records only authority-changing events.
 
 A statement such as “tests passed” is insufficient. Evidence must identify its candidate and validator inputs. Reuse requires matching tree, validator, environment class and dependency fingerprint.
