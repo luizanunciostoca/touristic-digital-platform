@@ -179,11 +179,20 @@ export async function buildScheduleCandidateItem({
 }
 
 export function buildPlan(state) {
-  const livePlan = state.observed.liveSchedulerPlan ?? {
-    grants: [],
-    blocked: [],
-    violations: [],
-  };
+  const hasLivePlan =
+    state.observed.liveSchedulerPlan &&
+    Array.isArray(state.observed.liveSchedulerPlan.grants) &&
+    Array.isArray(state.observed.liveSchedulerPlan.blocked) &&
+    Array.isArray(state.observed.liveSchedulerPlan.violations);
+  const livePlan = hasLivePlan
+    ? state.observed.liveSchedulerPlan
+    : {
+        grants: (state.observed.nextReadyTasks ?? []).filter(
+          (candidate) => candidate?.dispatchAllowed === true,
+        ),
+        blocked: [],
+        violations: [],
+      };
   const dispatchableCandidates = livePlan.grants;
   return {
     schemaVersion: 1,
