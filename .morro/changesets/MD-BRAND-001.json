@@ -6,6 +6,7 @@
   "risk": "high",
   "owns": {
     "paths": [
+      ".github/morro-control/claims.json",
       ".morro/changesets/MD-BRAND-001.json",
       "packages/design-system/src/brand/**",
       "packages/design-system/src/index.ts",
