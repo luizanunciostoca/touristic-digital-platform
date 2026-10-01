@@ -1,0 +1,180 @@
+name: Lane F CRM and Control Center Closure
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/lane-f-crm-control-center-closure.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  crm-current-main:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - name: Dispatch and collect official CRM browser evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/lane-f-crm
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          LIVE_MAIN="$(gh api repos/${GITHUB_REPOSITORY}/git/ref/heads/main --jq .object.sha)"
+          test "$BASE_SHA" = "$LIVE_MAIN"
+          test "$(git rev-parse HEAD)" = "$BASE_SHA"
+          printf '%s\n' "$BASE_SHA" > /tmp/lane-f-crm/exact-main.txt
+          run_url="$(gh workflow run crm-equivalence-browser-contract.yml --ref main)"
+          run_id="${run_url##*/}"
+          gh run watch "$run_id" --exit-status
+          gh run download "$run_id" -D /tmp/lane-f-crm/evidence
+          printf '%s\n' "$run_id" > /tmp/lane-f-crm/run-id.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-current-main-crm-evidence
+          path: /tmp/lane-f-crm
+          retention-days: 14
+          if-no-files-found: error
+
+  control-center-modules:
+    if: ${{ github.event.pull_request.draft == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+      - uses: ./.github/actions/ci-bootstrap
+        with:
+          browser: "true"
+      - name: Verify, build and install browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/lane-f-control-center
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.base.sha }}"
+          git rev-parse HEAD > /tmp/lane-f-control-center/exact-main.txt
+          pnpm -w build
+          npm install --prefix /tmp/pw --no-save playwright@1.54.2
+          /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
+      - name: Start deterministic Control Center runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=4199
+          AUTH_SECRET="0123456789abcdef0123456789abcdef"
+          PASSWORD="lane f control center fixture"
+          HASH=$(node --input-type=module -e "import('./services/auth/dist/credentials.js').then(m => console.log(m.hashPassword(process.argv[1], Buffer.alloc(16, 19))))" "$PASSWORD")
+          USERS=$(node -e 'console.log(JSON.stringify([{id:"platform-visual",email:"platform.visual@example.com",passwordHash:process.argv[1],role:"PLATFORM_OWNER",businessIds:[]}]))' "$HASH")
+          DASHBOARD_AUTH_SECRET="$AUTH_SECRET" DASHBOARD_USERS_JSON="$USERS" PORT="$PORT" HOST="127.0.0.1"             node apps/morro-digital-platform/tooling/dev-server.mjs >/tmp/lane-f-control-center/server.log 2>&1 &
+          echo $! >/tmp/lane-f-control-center/server.pid
+          for _ in $(seq 1 90); do
+            curl --fail --silent "http://127.0.0.1:${PORT}/apps/control-center/public/index.html" >/dev/null && exit 0
+            sleep .25
+          done
+          cat /tmp/lane-f-control-center/server.log
+          exit 1
+      - name: Capture Control Center module matrix
+        env:
+          LANE_F_MAIN_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          node <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+          const origin='http://127.0.0.1:4199';
+          const out='/tmp/lane-f-control-center';
+          const password='lane f control center fixture';
+          const views=['overview','businesses','users','affiliates','crm','products','reservations','ticketing','orders','financial','content','destinations','audit','system','settings'];
+          const common={
+            data:[], entries:[], users:[], businesses:[], destinations:[],
+            durability:'CI_TEST',
+            release:{sha:process.env.LANE_F_MAIN_SHA,version:'current-main',deploymentId:'lane-f-ci'},
+            health:{checks:[{name:'runtime',status:'ready',detail:'deterministic CI visual capture'}]}
+          };
+          const dashboard={
+            generatedAt:'2026-10-01T06:00:00.000Z',
+            summary:{},
+            attention:{status:'READY',knownCount:0,items:[]},
+            destinationSummary:{status:'READY',items:[]}
+          };
+          const destination={id:'morro-de-sao-paulo',status:'active',version:'1',locale:'pt-BR',timezone:'America/Bahia',branding:{name:'Morro de São Paulo'}};
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const evidence={mainSha:process.env.LANE_F_MAIN_SHA,views:[],pageErrors:[]};
+            try{
+              const context=await browser.newContext({viewport:{width:1440,height:900},locale:'pt-BR',timezoneId:'America/Bahia',colorScheme:'light',reducedMotion:'reduce'});
+              const page=await context.newPage();
+              page.on('pageerror',e=>evidence.pageErrors.push(e.message));
+              await page.route('**/api/admin/v1/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(common)}));
+              await page.route('**/api/admin/v1/dashboard',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(dashboard)}));
+              await page.route('**/api/admin/v1/destinations',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({destinations:[destination]})}));
+              await page.route('**/api/admin/v1/users',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({users:[]})}));
+              await page.route('**/api/admin/v1/businesses',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({businesses:[]})}));
+              await page.route('**/api/admin/v1/affiliates?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+              await page.route('**/api/admin/v1/crm/leads?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+              await page.route('**/api/admin/v1/products?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+              await page.route('**/api/admin/v1/reservations?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+              await page.route('**/api/admin/v1/orders?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+              await page.route('**/api/admin/v1/content?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({data:[]})}));
+              await page.route('**/api/admin/v1/audit?*',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({durability:'CI_TEST',entries:[]})}));
+              await page.route('**/api/admin/v1/system',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(common)}));
+
+              await page.goto(origin+'/apps/control-center/public/index.html',{waitUntil:'domcontentloaded',timeout:30000});
+              await page.waitForURL(u=>u.pathname==='/dashboard/login.html',{timeout:10000});
+              await page.locator('#email').fill('platform.visual@example.com');
+              await page.locator('#password').fill(password);
+              await page.locator('#submit').click();
+              await page.waitForURL(u=>u.pathname==='/apps/control-center/public/index.html',{timeout:15000});
+              await page.locator('#app:not([hidden])').waitFor({state:'visible',timeout:15000});
+              await page.addStyleTag({content:'*,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}'});
+
+              for(const view of views){
+                await page.evaluate(v=>{location.hash='#'+v},view);
+                await page.locator('#content').waitFor({state:'visible',timeout:10000});
+                await page.waitForFunction(v=>document.querySelector('#content')?.dataset.renderedView===v,view,{timeout:10000}).catch(()=>{});
+                await page.waitForTimeout(180);
+                const state=await page.evaluate(v=>({
+                  view:v,
+                  title:document.querySelector('#page-title')?.textContent?.trim()||'',
+                  description:document.querySelector('#page-description')?.textContent?.trim()||'',
+                  rendered:document.querySelector('#content')?.dataset.renderedView||null,
+                  errorText:document.querySelector('#content .empty strong')?.textContent?.trim()||null,
+                  text:(document.querySelector('#content')?.textContent||'').trim().slice(0,240)
+                }),view);
+                await page.screenshot({path:out+'/control-center-'+view+'-1440x900.png',fullPage:false,animations:'disabled'});
+                evidence.views.push(state);
+              }
+              await page.setViewportSize({width:390,height:844});
+              await page.evaluate(()=>{location.hash='#overview'});
+              await page.waitForTimeout(250);
+              await page.screenshot({path:out+'/control-center-overview-390x844.png',fullPage:false,animations:'disabled'});
+              writeFileSync(out+'/evidence.json',JSON.stringify(evidence,null,2));
+              if(evidence.views.filter(v=>v.rendered!==v).length) throw new Error('Control Center renderedView mismatch: '+JSON.stringify(evidence.views));
+              await context.close();
+            } finally { await browser.close(); }
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Show diagnostics
+        if: failure()
+        run: |
+          cat /tmp/lane-f-control-center/server.log || true
+          cat /tmp/lane-f-control-center/evidence.json || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: lane-f-current-main-control-center-module-evidence
+          path: /tmp/lane-f-control-center
+          retention-days: 14
+          if-no-files-found: error
+      - name: Stop runtime
+        if: always()
+        run: kill "$(cat /tmp/lane-f-control-center/server.pid)" 2>/dev/null || true
