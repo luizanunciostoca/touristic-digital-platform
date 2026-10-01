@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-CP-TRUST-ROOT-RECONCILIATION",
-  "baseSha": "885742b4542a86fe7cf3dc545664ccd9f22be080",
-  "branch": "fix/control-plane-trust-root-reconciliation-v2-20261001",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "7ec1b1926d31930dce92e58e0baa950ebd6c6d36",
+  "branch": "chore/control-plane-trust-root-reconciliation-retire-20261001",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
