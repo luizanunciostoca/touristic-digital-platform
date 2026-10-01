@@ -61,4 +61,35 @@ describe("CRM M69 authorization policy", () => {
       ).toEqual({ allowed: true, reason: "allowed" });
     },
   );
+
+  it("denies authenticated identities without crm.read", () => {
+    expect(
+      authorizeCrmAccess(session("AFFILIATE"), { nowEpochSeconds: now }),
+    ).toEqual({ allowed: false, reason: "capability_denied" });
+  });
+
+  it("denies authenticated identities without crm.manage", () => {
+    expect(
+      authorizeCrmAccess(session("AFFILIATE"), {
+        mutation: true,
+        nowEpochSeconds: now,
+      }),
+    ).toEqual({ allowed: false, reason: "capability_denied" });
+  });
+
+  it.each(["SUPPORT", "AUDITOR"] as const)(
+    "keeps %s read-only CRM access capability-backed",
+    (role) => {
+      expect(
+        authorizeCrmAccess(session(role), { nowEpochSeconds: now }),
+      ).toEqual({ allowed: true, reason: "allowed" });
+      expect(
+        authorizeCrmAccess(session(role), {
+          mutation: true,
+          nowEpochSeconds: now,
+        }),
+      ).toEqual({ allowed: false, reason: "read_only_role" });
+    },
+  );
+
 });
