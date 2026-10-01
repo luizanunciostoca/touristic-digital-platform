@@ -272,7 +272,6 @@ test("projection loader rechecks main after reading decision projections", async
   );
 });
 
-
 test("projection loader resolves trusted run evidence before terminal main recheck", async () => {
   const mainSha = "a".repeat(40);
   const candidateSha = "c".repeat(40);
