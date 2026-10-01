@@ -60,8 +60,8 @@ if (
   process.argv[1] &&
   resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
-  main(process.argv.slice(2)).catch((error) => {
-    console.error("CHANGESET_VALIDATION_FAILED:" + error.message);
+  main(process.argv.slice(2)).catch(() => {
+    console.error("CHANGESET_VALIDATION_FAILED");
     process.exitCode = 1;
   });
 }
