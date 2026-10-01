@@ -10,6 +10,7 @@ import {
   removedClaimIds,
 } from "../fabric/claim-retirement-proof.mjs";
 import { canonicalJson, validateChangeSetV2 } from "./changeset-v2.mjs";
+import { parseAuthorityLedger } from "./event-ledger.mjs";
 import {
   DEFAULT_SCHEDULER_POLICY,
   findSemanticCollisions,
@@ -22,6 +23,7 @@ import {
   collectLivePullWork,
   evaluateDependenciesAtMain,
   resolveCanonicalClaimTransition,
+  verifyTrustedClaimEvidence,
 } from "./scheduler-live.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
@@ -59,6 +61,140 @@ function isAncestor(cwd, ancestor, descendant) {
 
 function readJson(root, relativePath) {
   return JSON.parse(readFileSync(join(root, relativePath), "utf8"));
+}
+
+function readNdjson(root, relativePath) {
+  return parseAuthorityLedger(readFileSync(join(root, relativePath), "utf8"));
+}
+
+export function addedClaimIds(canonicalRegistry, candidateRegistry) {
+  assert.equal(
+    canonicalRegistry?.registryAuthority,
+    "ORCHESTRATOR",
+    "MERGE_GATE_ACQUISITION_CANONICAL_REGISTRY_INVALID",
+  );
+  assert.equal(
+    candidateRegistry?.registryAuthority,
+    "ORCHESTRATOR",
+    "MERGE_GATE_ACQUISITION_CANDIDATE_REGISTRY_INVALID",
+  );
+  assert.ok(
+    canonicalRegistry.claims &&
+      typeof canonicalRegistry.claims === "object" &&
+      !Array.isArray(canonicalRegistry.claims),
+    "MERGE_GATE_ACQUISITION_CANONICAL_CLAIMS_INVALID",
+  );
+  assert.ok(
+    candidateRegistry.claims &&
+      typeof candidateRegistry.claims === "object" &&
+      !Array.isArray(candidateRegistry.claims),
+    "MERGE_GATE_ACQUISITION_CANDIDATE_CLAIMS_INVALID",
+  );
+  return Object.keys(candidateRegistry.claims)
+    .filter((id) => !(id in canonicalRegistry.claims))
+    .sort();
+}
+
+export function assertAcquisitionClaimKeyset(
+  canonicalRegistry,
+  candidateRegistry,
+  claimId,
+) {
+  const canonicalIds = Object.keys(canonicalRegistry?.claims ?? {}).sort();
+  const candidateIds = Object.keys(candidateRegistry?.claims ?? {}).sort();
+  assert.equal(
+    Object.hasOwn(canonicalRegistry?.claims ?? {}, claimId),
+    false,
+    "MERGE_GATE_ACQUISITION_CLAIM_ALREADY_CANONICAL",
+  );
+  assert.deepEqual(
+    candidateIds,
+    [...canonicalIds, claimId].sort(),
+    "MERGE_GATE_ACQUISITION_CLAIM_KEYSET_INVALID",
+  );
+  for (const id of canonicalIds) {
+    assert.deepEqual(
+      candidateRegistry.claims[id],
+      canonicalRegistry.claims[id],
+      "MERGE_GATE_ACQUISITION_SURVIVING_CLAIM_MUTATION_FORBIDDEN",
+    );
+  }
+}
+
+export function validateClaimAcquisitionEvents({
+  canonicalEvents,
+  events,
+  claimId,
+  claim,
+  manifest,
+  branch,
+  baseSha,
+}) {
+  assert.ok(
+    Array.isArray(canonicalEvents),
+    "MERGE_GATE_ACQUISITION_CANONICAL_EVENTS_INVALID",
+  );
+  assert.ok(Array.isArray(events), "MERGE_GATE_ACQUISITION_EVENTS_INVALID");
+  assert.equal(
+    events.length,
+    canonicalEvents.length + 2,
+    "MERGE_GATE_ACQUISITION_EVENT_COUNT_INVALID",
+  );
+  assert.deepEqual(
+    events.slice(0, canonicalEvents.length),
+    canonicalEvents,
+    "MERGE_GATE_ACQUISITION_LEDGER_HISTORY_MUTATED",
+  );
+
+  const [created, acquired] = events.slice(canonicalEvents.length);
+  assert.equal(
+    created?.eventType,
+    "CHANGESET_CREATED",
+    "MERGE_GATE_ACQUISITION_CHANGESET_EVENT_INVALID",
+  );
+  assert.equal(
+    acquired?.eventType,
+    "CLAIM_ACQUIRED",
+    "MERGE_GATE_ACQUISITION_CLAIM_EVENT_INVALID",
+  );
+  for (const event of [created, acquired]) {
+    assert.equal(
+      event?.entity,
+      claimId,
+      "MERGE_GATE_ACQUISITION_EVENT_ENTITY_MISMATCH",
+    );
+    assert.equal(
+      event?.actor,
+      "ORCHESTRATOR",
+      "MERGE_GATE_ACQUISITION_EVENT_ACTOR_INVALID",
+    );
+    assert.equal(
+      event?.sourceSha,
+      baseSha,
+      "MERGE_GATE_ACQUISITION_EVENT_BASE_MISMATCH",
+    );
+    assert.equal(
+      event?.payload?.branch,
+      branch,
+      "MERGE_GATE_ACQUISITION_EVENT_BRANCH_MISMATCH",
+    );
+  }
+  assert.equal(
+    acquired?.payload?.expiresAt,
+    claim.expiresAt,
+    "MERGE_GATE_ACQUISITION_EVENT_EXPIRY_MISMATCH",
+  );
+  assert.equal(
+    acquired?.payload?.risk,
+    claim.risk,
+    "MERGE_GATE_ACQUISITION_EVENT_RISK_MISMATCH",
+  );
+  assert.equal(
+    created?.payload?.objective,
+    manifest.objective,
+    "MERGE_GATE_ACQUISITION_EVENT_OBJECTIVE_MISMATCH",
+  );
+  return { acquired, created };
 }
 
 export function diffEvidence({ candidateDir, baseSha, headSha }) {
@@ -268,6 +404,233 @@ export function evaluateRetirementMergeGate({
     changedLines,
     unresolvedReviewThreads,
     retirementReason: retirementProof.retirements[0].reason,
+  };
+}
+
+export function evaluateClaimAcquisitionMergeGate({
+  manifest,
+  registry,
+  canonicalRegistry,
+  claimId,
+  canonicalEvents,
+  events,
+  branch,
+  baseSha,
+  headSha,
+  authorizationPaths,
+  changedFileCount,
+  changedLines,
+  currentPrNumber,
+  liveItems,
+  dependenciesSatisfied,
+  unresolvedDependencies = [],
+  unresolvedReviewThreads,
+  trust,
+  policy = DEFAULT_SCHEDULER_POLICY,
+  now = Date.now(),
+  ancestor = () => true,
+}) {
+  validateChangeSetV2(manifest);
+  assert.ok(manifest.objective, "MERGE_GATE_ACQUISITION_OBJECTIVE_REQUIRED");
+  normalizeObjective(manifest.objective);
+  assert.equal(
+    manifest.id,
+    claimId,
+    "MERGE_GATE_ACQUISITION_CHANGESET_ID_MISMATCH",
+  );
+  assert.equal(
+    manifest.state,
+    "IMPLEMENTING",
+    "MERGE_GATE_ACQUISITION_STATE_INVALID",
+  );
+  assert.equal(
+    manifest.baseSha,
+    baseSha,
+    "MERGE_GATE_ACQUISITION_BASE_MISMATCH",
+  );
+  assert.equal(
+    manifest.branch,
+    branch,
+    "MERGE_GATE_ACQUISITION_BRANCH_MISMATCH",
+  );
+  assert.match(baseSha ?? "", SHA, "MERGE_GATE_ACQUISITION_BASE_INVALID");
+  assert.match(headSha ?? "", SHA, "MERGE_GATE_ACQUISITION_HEAD_INVALID");
+
+  assertAcquisitionClaimKeyset(canonicalRegistry, registry, claimId);
+  const claim = registry.claims[claimId];
+  assert.ok(claim, "MERGE_GATE_ACQUISITION_CLAIM_MISSING");
+  assert.equal(
+    claim.owner,
+    "CHATGPT-PRO-CONTROL",
+    "MERGE_GATE_ACQUISITION_OWNER_INVALID",
+  );
+  assert.equal(
+    claim.reviewer,
+    "AUTOMATED-INDEPENDENT-PROOF",
+    "MERGE_GATE_ACQUISITION_REVIEWER_INVALID",
+  );
+  assert.equal(
+    claim.status,
+    "IMPLEMENTING",
+    "MERGE_GATE_ACQUISITION_CLAIM_STATUS_INVALID",
+  );
+  assert.equal(
+    claim.baseSha,
+    baseSha,
+    "MERGE_GATE_ACQUISITION_CLAIM_BASE_MISMATCH",
+  );
+  assert.equal(
+    claim.branch,
+    branch,
+    "MERGE_GATE_ACQUISITION_CLAIM_BRANCH_MISMATCH",
+  );
+  assert.deepEqual(
+    [...claim.paths].sort(),
+    [...manifest.owns.paths].sort(),
+    "MERGE_GATE_ACQUISITION_CLAIM_PATHS_MISMATCH",
+  );
+
+  for (const required of REQUIRED_REMOTE_EVIDENCE) {
+    assert.ok(
+      manifest.proof.requiredRemoteEvidence.includes(required),
+      "MERGE_GATE_REMOTE_EVIDENCE_REQUIRED:" + required,
+    );
+  }
+
+  validateClaimAcquisitionEvents({
+    canonicalEvents,
+    events,
+    claimId,
+    claim,
+    manifest,
+    branch,
+    baseSha,
+  });
+
+  assert.ok(
+    Number.isInteger(unresolvedReviewThreads) && unresolvedReviewThreads >= 0,
+    "MERGE_GATE_REVIEW_THREAD_COUNT_INVALID",
+  );
+  assert.equal(
+    unresolvedReviewThreads,
+    0,
+    "MERGE_GATE_UNRESOLVED_REVIEW_THREADS",
+  );
+  assert.equal(
+    dependenciesSatisfied,
+    true,
+    "MERGE_GATE_DEPENDENCIES_UNRESOLVED",
+  );
+  assert.deepEqual(
+    unresolvedDependencies,
+    [],
+    "MERGE_GATE_DEPENDENCY_LIST_NONEMPTY",
+  );
+  assert.ok(
+    changedFileCount <= policy.hardFiles,
+    "MERGE_GATE_HARD_FILE_LIMIT_EXCEEDED",
+  );
+  assert.ok(
+    changedLines <= policy.hardLines,
+    "MERGE_GATE_HARD_LINE_LIMIT_EXCEEDED",
+  );
+
+  const manifestPath = ".morro/changesets/" + claimId + ".json";
+  const expectedPaths = [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    manifestPath,
+  ].sort();
+  assert.deepEqual(
+    [...authorizationPaths].sort(),
+    expectedPaths,
+    "MERGE_GATE_ACQUISITION_SCOPE_INVALID",
+  );
+  assert.equal(
+    changedFileCount,
+    expectedPaths.length,
+    "MERGE_GATE_ACQUISITION_FILE_COUNT_INVALID",
+  );
+
+  validateClaimContext({
+    registry,
+    manifest,
+    branch,
+    currentBaseSha: baseSha,
+    branchHeadSha: headSha,
+    changedFiles: authorizationPaths,
+    now,
+    authority: "ORCHESTRATOR",
+    isAncestor: ancestor,
+  });
+
+  assert.equal(
+    trust?.trusted,
+    true,
+    "MERGE_GATE_ACQUISITION_EXACT_HEAD_TRUST_REQUIRED",
+  );
+  assert.equal(
+    trust?.authority,
+    "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+    "MERGE_GATE_ACQUISITION_TRUST_AUTHORITY_INVALID",
+  );
+  assert.equal(
+    trust?.headSha,
+    headSha,
+    "MERGE_GATE_ACQUISITION_TRUST_HEAD_MISMATCH",
+  );
+
+  const others = (liveItems ?? []).filter(
+    (item) => item?.prNumber !== currentPrNumber,
+  );
+  const invalidOthers = others.filter((item) => item?.invalid);
+  assert.deepEqual(
+    invalidOthers.map((item) => ({
+      prNumber: item.prNumber ?? null,
+      invalid: item.invalid,
+    })),
+    [],
+    "MERGE_GATE_LIVE_WORK_ITEM_INVALID",
+  );
+
+  const openPrs = others.filter((item) => item?.openPr === true).length + 1;
+  assert.ok(
+    openPrs <= policy.activePrLimit,
+    "MERGE_GATE_ACTIVE_PR_LIMIT_EXCEEDED",
+  );
+  assert.ok(
+    policy.writerStates.includes(manifest.state),
+    "MERGE_GATE_ACQUISITION_WRITER_STATE_POLICY_INVALID",
+  );
+  const activeWriters =
+    others.filter((item) => item?.writerActive === true).length + 1;
+  assert.ok(
+    activeWriters <= policy.globalWriterLimit,
+    "MERGE_GATE_GLOBAL_WIP_EXCEEDED",
+  );
+
+  const activeChangeSets = others
+    .filter((item) => item?.writerActive === true && item?.changeSet)
+    .map((item) => item.changeSet);
+  const collisions = findSemanticCollisions(manifest, activeChangeSets);
+  assert.deepEqual(collisions, [], "MERGE_GATE_SEMANTIC_COLLISION");
+
+  return {
+    schemaVersion: 1,
+    kind: "TDP_MERGE_GATE_DECISION",
+    decision: "POLICY_SATISFIED",
+    mode: "CLAIM_ACQUISITION",
+    changeSetId: claimId,
+    objective: manifest.objective,
+    exactBaseSha: baseSha,
+    exactHeadSha: headSha,
+    changedFiles: changedFileCount,
+    changedLines,
+    activeWriters,
+    openPrs,
+    unresolvedReviewThreads,
+    trustAuthority: trust.authority,
+    collisions: [],
   };
 }
 
@@ -517,6 +880,7 @@ export async function runMergeGate({
   liveCollector = collectLivePullWork,
   dependencyEvaluator = evaluateDependenciesAtMain,
   retirementProofBuilder = buildMergedRetirementProof,
+  trustEvidenceVerifier = verifyTrustedClaimEvidence,
 } = {}) {
   assert.ok(candidateDir, "MERGE_GATE_CANDIDATE_DIR_REQUIRED");
   assert.ok(trustedDir, "MERGE_GATE_TRUSTED_DIR_REQUIRED");
@@ -626,6 +990,80 @@ export async function runMergeGate({
       unresolvedReviewThreads,
       retirementProof,
       policy,
+    });
+  }
+
+  const addedClaims = addedClaimIds(canonicalRegistry, registry);
+  if (addedClaims.length > 0) {
+    assert.equal(
+      addedClaims.length,
+      1,
+      "MERGE_GATE_ACQUISITION_MULTIPLE_CLAIMS_FORBIDDEN",
+    );
+    const claimId = addedClaims[0];
+    assertAcquisitionClaimKeyset(canonicalRegistry, registry, claimId);
+    const manifestPath = ".morro/changesets/" + claimId + ".json";
+    const manifest = readJson(candidateDir, manifestPath);
+    const canonicalEvents = readNdjson(
+      trustedDir,
+      ".github/morro-control/events.ndjson",
+    );
+    const events = readNdjson(
+      candidateDir,
+      ".github/morro-control/events.ndjson",
+    );
+    const live = await liveCollector({ repository, api, policy });
+    assert.equal(
+      live.mainSha,
+      baseSha,
+      "MERGE_GATE_ACQUISITION_LIVE_MAIN_MISMATCH",
+    );
+    const dependencies = await dependencyEvaluator({
+      changeSet: manifest,
+      repository,
+      mainSha: baseSha,
+      api,
+    });
+    const unresolvedReviewThreads = await reviewThreadCounter({
+      repository,
+      prNumber,
+    });
+    const trust = await trustEvidenceVerifier({
+      repository,
+      mainSha: baseSha,
+      headSha,
+      branch,
+      prNumber,
+      api,
+    });
+    const finalMain = await api(root + "/commits/main");
+    assert.equal(
+      finalMain?.sha,
+      baseSha,
+      "MERGE_GATE_MAIN_MOVED_DURING_ACQUISITION_PROOF",
+    );
+    return evaluateClaimAcquisitionMergeGate({
+      manifest,
+      registry,
+      canonicalRegistry,
+      claimId,
+      canonicalEvents,
+      events,
+      branch,
+      baseSha,
+      headSha,
+      authorizationPaths: diff.authorizationPaths,
+      changedFileCount: diff.changedFileCount,
+      changedLines: diff.changedLines,
+      currentPrNumber: prNumber,
+      liveItems: live.items,
+      dependenciesSatisfied: dependencies.satisfied,
+      unresolvedDependencies: dependencies.unresolved,
+      unresolvedReviewThreads,
+      trust,
+      policy,
+      ancestor: (ancestor, descendant) =>
+        isAncestor(candidateDir, ancestor, descendant),
     });
   }
 
