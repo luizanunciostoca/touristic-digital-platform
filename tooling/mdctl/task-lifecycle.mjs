@@ -1,12 +1,7 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import {
-  mkdir,
-  readFile,
-  rename,
-  writeFile,
-} from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import {
@@ -15,10 +10,7 @@ import {
   createLeaseRegistry,
   releaseCapabilityLeases,
 } from "./capability-leases.mjs";
-import {
-  buildContextPack,
-  validateContextPack,
-} from "./context-pack.mjs";
+import { buildContextPack, validateContextPack } from "./context-pack.mjs";
 import {
   canonicalJson,
   changeSetDigest,
@@ -30,8 +22,7 @@ const SHA = /^[0-9a-f]{40}$/u;
 const OWNER = /^[A-Za-z0-9._:@/-]{1,120}$/u;
 
 const digest = (value) =>
-  "sha256:" +
-  createHash("sha256").update(canonicalJson(value)).digest("hex");
+  "sha256:" + createHash("sha256").update(canonicalJson(value)).digest("hex");
 
 function parseTime(value, code) {
   const ms = Date.parse(value ?? "");
@@ -55,7 +46,10 @@ export function buildTaskStart({
   assert.match(identity?.treeSha ?? "", SHA, "TASK_TREE_SHA_INVALID");
   assert.equal(identity?.baseIsAncestor, true, "TASK_BASE_NOT_ANCESTOR");
   assert.equal(identity?.dirty, false, "TASK_WORKSPACE_DIRTY");
-  const startedAt = parseTime(now instanceof Date ? now.toISOString() : now, "TASK_TIME_INVALID");
+  const startedAt = parseTime(
+    now instanceof Date ? now.toISOString() : now,
+    "TASK_TIME_INVALID",
+  );
 
   const acquired = acquireCapabilityLeases({
     registry: leaseRegistry,
@@ -111,16 +105,31 @@ export async function buildTaskTest({
   validateChangeSetV2(changeSet);
   assert.equal(task?.state, "STARTED", "TASK_STATE_NOT_STARTABLE_FOR_TEST");
   assert.equal(task.changeSetId, changeSet.id, "TASK_CHANGESET_MISMATCH");
-  assert.equal(task.changeSetDigest, changeSetDigest(changeSet), "TASK_CHANGESET_DIGEST_MISMATCH");
-  assert.equal(task.owner && OWNER.test(task.owner), true, "TASK_OWNER_INVALID");
+  assert.equal(
+    task.changeSetDigest,
+    changeSetDigest(changeSet),
+    "TASK_CHANGESET_DIGEST_MISMATCH",
+  );
+  assert.equal(
+    task.owner && OWNER.test(task.owner),
+    true,
+    "TASK_OWNER_INVALID",
+  );
   assert.equal(identity?.branch, task.branch, "TASK_BRANCH_MISMATCH");
   assert.match(identity?.headSha ?? "", SHA, "TASK_HEAD_SHA_INVALID");
   assert.match(identity?.treeSha ?? "", SHA, "TASK_TREE_SHA_INVALID");
   assert.equal(identity?.baseIsAncestor, true, "TASK_BASE_NOT_ANCESTOR");
   assert.equal(identity?.dirty, false, "TASK_WORKSPACE_DIRTY");
-  assert.equal(typeof commandRunner, "function", "TASK_COMMAND_RUNNER_REQUIRED");
+  assert.equal(
+    typeof commandRunner,
+    "function",
+    "TASK_COMMAND_RUNNER_REQUIRED",
+  );
 
-  const testedAt = parseTime(now instanceof Date ? now.toISOString() : now, "TASK_TIME_INVALID");
+  const testedAt = parseTime(
+    now instanceof Date ? now.toISOString() : now,
+    "TASK_TIME_INVALID",
+  );
   const leases = assertRequiredCapabilityLeases({
     registry: leaseRegistry,
     changeSet,
@@ -137,7 +146,11 @@ export async function buildTaskTest({
     } catch {
       throw new Error("TASK_PROOF_COMMAND_FAILED:" + command.id);
     }
-    assert.equal(result?.status, "PASS", "TASK_PROOF_COMMAND_FAILED:" + command.id);
+    assert.equal(
+      result?.status,
+      "PASS",
+      "TASK_PROOF_COMMAND_FAILED:" + command.id,
+    );
     evidence.push({
       id: command.id,
       status: "PASS",
@@ -186,6 +199,25 @@ export async function buildTaskTest({
   };
 }
 
+export function validateTaskContext({
+  task,
+  changeSet,
+  leaseRegistry,
+  contextPack,
+}) {
+  validateContextPack(contextPack, changeSet, {
+    leaseRegistry,
+    owner: task?.owner,
+    now: task?.testedAt ?? task?.startedAt,
+  });
+  assert.equal(
+    contextPack.digest,
+    task?.contextPackDigest,
+    "TASK_CONTEXT_PACK_DIGEST_MISMATCH",
+  );
+  return contextPack;
+}
+
 export function buildTaskSubmit({
   task,
   changeSet,
@@ -196,13 +228,24 @@ export function buildTaskSubmit({
   validateChangeSetV2(changeSet);
   assert.equal(task?.state, "LOCAL_PROVEN", "TASK_STATE_NOT_SUBMITTABLE");
   assert.equal(task.changeSetId, changeSet.id, "TASK_CHANGESET_MISMATCH");
-  assert.equal(task.changeSetDigest, changeSetDigest(changeSet), "TASK_CHANGESET_DIGEST_MISMATCH");
+  assert.equal(
+    task.changeSetDigest,
+    changeSetDigest(changeSet),
+    "TASK_CHANGESET_DIGEST_MISMATCH",
+  );
   assert.equal(identity?.branch, task.branch, "TASK_BRANCH_MISMATCH");
-  assert.equal(identity?.headSha, task.candidateSha, "TASK_CANDIDATE_MOVED_AFTER_TEST");
+  assert.equal(
+    identity?.headSha,
+    task.candidateSha,
+    "TASK_CANDIDATE_MOVED_AFTER_TEST",
+  );
   assert.equal(identity?.treeSha, task.treeSha, "TASK_TREE_MOVED_AFTER_TEST");
   assert.equal(identity?.dirty, false, "TASK_WORKSPACE_DIRTY");
   assert.equal(identity?.baseIsAncestor, true, "TASK_BASE_NOT_ANCESTOR");
-  const submittedAt = parseTime(now instanceof Date ? now.toISOString() : now, "TASK_TIME_INVALID");
+  const submittedAt = parseTime(
+    now instanceof Date ? now.toISOString() : now,
+    "TASK_TIME_INVALID",
+  );
 
   assertRequiredCapabilityLeases({
     registry: leaseRegistry,
@@ -229,7 +272,11 @@ export function buildTaskSubmit({
     authority: "WORKER_SUBMISSION_NOT_REMOTE_PROOF",
     generatedAt: submittedAt,
   };
-  assert.match(handoffPayload.localProofDigest ?? "", /^sha256:[0-9a-f]{64}$/u, "TASK_LOCAL_PROOF_MISSING");
+  assert.match(
+    handoffPayload.localProofDigest ?? "",
+    /^sha256:[0-9a-f]{64}$/u,
+    "TASK_LOCAL_PROOF_MISSING",
+  );
   const handoff = { ...handoffPayload, digest: digest(handoffPayload) };
 
   const releasedRegistry = releaseCapabilityLeases({
@@ -273,7 +320,15 @@ export async function collectTaskGitIdentity(root, baseSha) {
   try {
     await execute(
       "git",
-      ["--no-optional-locks", "-C", root, "merge-base", "--is-ancestor", baseSha, headSha],
+      [
+        "--no-optional-locks",
+        "-C",
+        root,
+        "merge-base",
+        "--is-ancestor",
+        baseSha,
+        headSha,
+      ],
       { timeout: 15000 },
     );
     baseIsAncestor = true;
@@ -313,12 +368,16 @@ async function resolveStateDir(root, requested) {
 
 async function defaultCommandRunner(root, command) {
   try {
-    const { stdout, stderr } = await execute(command.argv[0], command.argv.slice(1), {
-      cwd: root,
-      encoding: "utf8",
-      timeout: command.timeoutSeconds * 1000,
-      maxBuffer: 4 * 1024 * 1024,
-    });
+    const { stdout, stderr } = await execute(
+      command.argv[0],
+      command.argv.slice(1),
+      {
+        cwd: root,
+        encoding: "utf8",
+        timeout: command.timeoutSeconds * 1000,
+        maxBuffer: 4 * 1024 * 1024,
+      },
+    );
     return { status: "PASS", stdout, stderr };
   } catch {
     return { status: "FAIL", stdout: "", stderr: "" };
@@ -328,9 +387,21 @@ async function defaultCommandRunner(root, command) {
 function parseTaskArgs(args) {
   const action = args[0];
   const manifestPath = args[1];
-  assert.ok(["start", "test", "submit"].includes(action), "TASK_ACTION_INVALID");
-  assert.ok(manifestPath && !manifestPath.startsWith("--"), "TASK_MANIFEST_REQUIRED");
-  const options = { action, manifestPath, owner: null, stateDir: null, ttlSeconds: 1800 };
+  assert.ok(
+    ["start", "test", "submit"].includes(action),
+    "TASK_ACTION_INVALID",
+  );
+  assert.ok(
+    manifestPath && !manifestPath.startsWith("--"),
+    "TASK_MANIFEST_REQUIRED",
+  );
+  const options = {
+    action,
+    manifestPath,
+    owner: null,
+    stateDir: null,
+    ttlSeconds: 1800,
+  };
   for (let i = 2; i < args.length; i++) {
     const key = args[i];
     const value = args[++i];
@@ -413,6 +484,14 @@ export async function runTaskCli(args, { root = process.cwd() } = {}) {
       localProofDigest: tested.task.localProof.digest,
     };
   }
+
+  const storedContext = await readJson(contextPath);
+  validateTaskContext({
+    task,
+    changeSet,
+    leaseRegistry,
+    contextPack: storedContext,
+  });
 
   const submitted = buildTaskSubmit({
     task,

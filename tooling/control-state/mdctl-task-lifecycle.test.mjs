@@ -4,7 +4,9 @@ import {
   buildTaskStart,
   buildTaskSubmit,
   buildTaskTest,
+  validateTaskContext,
 } from "../mdctl/task-lifecycle.mjs";
+import { contextPackDigest } from "../mdctl/context-pack.mjs";
 
 function changeSet() {
   return {
@@ -96,7 +98,9 @@ test("task test runs bounded proof commands and promotes only to LOCAL_PROVEN", 
   assert.equal(tested.task.state, "LOCAL_PROVEN");
   assert.equal(tested.task.candidateSha, "d".repeat(40));
   assert.match(tested.task.localProof.digest, /^sha256:[0-9a-f]{64}$/u);
-  assert.deepEqual(tested.task.localProof.requiredRemoteEvidence, ["remote-proof"]);
+  assert.deepEqual(tested.task.localProof.requiredRemoteEvidence, [
+    "remote-proof",
+  ]);
 });
 
 test("failed proof command cannot advance task state", async () => {
@@ -120,6 +124,41 @@ test("failed proof command cannot advance task state", async () => {
     /TASK_PROOF_COMMAND_FAILED/u,
   );
   assert.equal(started.task.state, "STARTED");
+});
+
+test("task submit rejects a valid-but-replaced persisted Context Pack", async () => {
+  let n = 0;
+  const manifest = changeSet();
+  const started = buildTaskStart({
+    changeSet: manifest,
+    owner: "worker-1",
+    identity: identity(),
+    now: "2026-10-01T09:00:00Z",
+    idFactory: () => "task-" + ++n,
+  });
+  const tested = await buildTaskTest({
+    task: started.task,
+    changeSet: manifest,
+    leaseRegistry: started.leaseRegistry,
+    identity: identity("d".repeat(40), "e".repeat(40)),
+    now: "2026-10-01T09:05:00Z",
+    commandRunner: async () => ({ status: "PASS", stdout: "ok", stderr: "" }),
+  });
+  const replaced = {
+    ...tested.contextPack,
+    generatedAt: "2026-10-01T09:05:30Z",
+  };
+  replaced.digest = contextPackDigest(replaced);
+  assert.throws(
+    () =>
+      validateTaskContext({
+        task: tested.task,
+        changeSet: manifest,
+        leaseRegistry: started.leaseRegistry,
+        contextPack: replaced,
+      }),
+    /TASK_CONTEXT_PACK_DIGEST_MISMATCH/u,
+  );
 });
 
 test("task submit is exact-head bound, releases leases and does not claim remote proof", async () => {
