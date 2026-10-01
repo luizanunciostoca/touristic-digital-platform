@@ -130,7 +130,9 @@ function canonicalDetailResponse(
 }
 
 describe("Phase20 public Place + Assistant binding", () => {
-  it("validates and derives destination-scoped canonical read contexts", () => {
+  it(
+    "validates and derives destination-scoped canonical read contexts",
+    () => {
     expect(resolvePublicPlaceReadContext(ITACARE_CONTEXT)).toEqual(
       ITACARE_CONTEXT,
     );
@@ -148,8 +150,9 @@ describe("Phase20 public Place + Assistant binding", () => {
     });
     expect(derived.destinationId).toBe("itacare");
     expect(derived.bbox[0]).toBeLessThan(-38.995);
-    expect(derived.bbox[2]).toBeGreaterThan(-38.995);
-  });
+      expect(derived.bbox[2]).toBeGreaterThan(-38.995);
+    },
+  );
 
   it("uses same-origin canonical Place reads for Itacare", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input, init) => {
@@ -208,28 +211,35 @@ describe("Phase20 public Place + Assistant binding", () => {
     ["en", "en-US"],
     ["es", "es-ES"],
     ["he", "he-IL"],
-  ] as const)("scopes canonical detail locale %s", async (language, locale) => {
-    const calls: string[] = [];
-    const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
-      const url = inputUrl(input);
-      calls.push(url);
-      if (url.startsWith("/api/places/v1/map?")) {
-        return canonicalMapResponse();
-      }
-      return canonicalDetailResponse("itacare");
-    });
+  ] as const)(
+    "scopes canonical detail locale %s",
+    async (language, locale) => {
+      const calls: string[] = [];
+      const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
+        const url = inputUrl(input);
+        calls.push(url);
+        if (url.startsWith("/api/places/v1/map?")) {
+          return canonicalMapResponse();
+        }
+        return canonicalDetailResponse("itacare");
+      });
 
-    const result = await fetchAssistantPlaceDetails("Praia da Concha", {
-      fetch: fetcher,
-      language,
-      publicPlaceReadContext: ITACARE_CONTEXT,
-    });
-    expect(result?.source).toBe("canonical");
-    expect(
-      calls.some((url) => url.includes("locale=" + encodeURIComponent(locale))),
-    ).toBe(true);
-    expect(calls.every((url) => url.startsWith("/api/places/v1/"))).toBe(true);
-  });
+      const result = await fetchAssistantPlaceDetails("Praia da Concha", {
+        fetch: fetcher,
+        language,
+        publicPlaceReadContext: ITACARE_CONTEXT,
+      });
+      expect(result?.source).toBe("canonical");
+      expect(
+        calls.some((url) =>
+          url.includes("locale=" + encodeURIComponent(locale)),
+        ),
+      ).toBe(true);
+      expect(calls.every((url) => url.startsWith("/api/places/v1/"))).toBe(
+        true,
+      );
+    },
+  );
 
   it("rejects cross-destination canonical media", async () => {
     const fetcher = vi.fn<typeof globalThis.fetch>(async (input) => {
