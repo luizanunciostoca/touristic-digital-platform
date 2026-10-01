@@ -40,7 +40,14 @@
         "PRODUCTION_PROMOTED",
         "PRODUCTION_ACCEPTED",
         "ROLLBACK",
-        "INCIDENT_CREATED"
+        "INCIDENT_CREATED",
+        "LEASE_ACQUIRED",
+        "LEASE_RENEWED",
+        "LEASE_RELEASED",
+        "CONTEXT_PACK_CREATED",
+        "TASK_STARTED",
+        "TASK_TESTED",
+        "TASK_SUBMITTED"
       ]
     },
     "observedAt": {
@@ -58,7 +65,10 @@
       "maxLength": 160
     },
     "sourceSha": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[0-9a-f]{40}$"
     },
     "payloadVersion": {
