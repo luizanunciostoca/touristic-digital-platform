@@ -263,9 +263,13 @@
   }
 
   [data-destination-theme="morro"] {
-    --md-color-brand: var(--md-color-brand-primary);
-    --md-color-brand-strong: var(--md-color-brand-primary-strong);
-    --md-color-accent: #10b981;
+    --md-color-brand-primary: #0867b2;
+    --md-color-brand-primary-strong: #07579e;
+    --md-color-brand: #0867b2;
+    --md-color-brand-strong: #07579e;
+    --md-color-accent: #ea3c89;
+    --md-color-accent-strong: #c72e73;
+    --md-focus-ring-color: #19b6d8;
   }
 
   [data-theme="high-contrast"] {
