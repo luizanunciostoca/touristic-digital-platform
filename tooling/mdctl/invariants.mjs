@@ -5,6 +5,15 @@ import { githubApi } from "../control-state/status.mjs";
 const SHA = /^[0-9a-f]{40}$/u;
 const REPOSITORY = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u;
 const RUN_ID = /^[1-9][0-9]*$/u;
+const WORKFLOW_PATH = /^\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml$/u;
+const TRUSTED_WORKFLOW_REF =
+  /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\/\.github\/workflows\/[A-Za-z0-9._/-]+\.ya?ml@[0-9a-f]{40}$/u;
+const TRUSTED_RUN_EVENTS = new Set([
+  "pull_request",
+  "push",
+  "merge_group",
+  "workflow_dispatch",
+]);
 const ACTIVE_CLAIM_STATES = new Set([
   "CLAIMED",
   "IMPLEMENTING",
@@ -18,18 +27,94 @@ function result(id, title, status, reason, critical = true) {
   return { id, title, status, reason, critical };
 }
 
+function evidenceFields(prefix) {
+  return {
+    state: prefix + "State",
+    sha: prefix + "EvidenceSha",
+    runId: prefix + "RunId",
+    workflowPath: prefix + "WorkflowPath",
+    workflowName: prefix + "WorkflowName",
+    trustedWorkflowRef: prefix + "TrustedWorkflowRef",
+  };
+}
+
+function sanitizeActionsRun(run) {
+  return {
+    id: Number(run?.id) || null,
+    headSha: SHA.test(run?.head_sha ?? "") ? run.head_sha : null,
+    status: run?.status === "completed" ? "completed" : "other",
+    conclusion: run?.conclusion === "success" ? "success" : "other",
+    event: TRUSTED_RUN_EVENTS.has(run?.event) ? run.event : "other",
+    path: WORKFLOW_PATH.test(run?.path ?? "") ? run.path : null,
+    name:
+      typeof run?.name === "string" && run.name.length > 0 && run.name.length <= 160
+        ? run.name
+        : null,
+    referencedWorkflows: Array.isArray(run?.referenced_workflows)
+      ? run.referenced_workflows
+          .map((item) => item?.path)
+          .filter((path) => TRUSTED_WORKFLOW_REF.test(path ?? ""))
+      : [],
+  };
+}
+
+async function loadTrustedRunEvidence({ repository, releaseState, api }) {
+  const output = {};
+  for (const prefix of [
+    "trustedValidatorIndependence",
+    "tenantIsolation",
+    "destinationIsolation",
+  ]) {
+    const fields = evidenceFields(prefix);
+    const runId = String(releaseState?.[fields.runId] ?? "");
+    if (!RUN_ID.test(runId)) {
+      output[prefix] = null;
+      continue;
+    }
+    try {
+      output[prefix] = sanitizeActionsRun(
+        await api("repos/" + repository + "/actions/runs/" + runId),
+      );
+    } catch {
+      output[prefix] = null;
+    }
+  }
+  return output;
+}
+
 function evidenceBoundToSha(
   releaseState,
-  stateField,
-  shaField,
-  runField,
+  trustedRunEvidence,
+  prefix,
   subjectSha,
+  { requireTrustedWorkflowRef = false } = {},
 ) {
+  const fields = evidenceFields(prefix);
+  const runId = String(releaseState?.[fields.runId] ?? "");
+  const workflowPath = releaseState?.[fields.workflowPath];
+  const workflowName = releaseState?.[fields.workflowName];
+  const liveRun = trustedRunEvidence?.[prefix];
+  const expectedTrustedWorkflowRef =
+    releaseState?.[fields.trustedWorkflowRef] ?? null;
+
   return Boolean(
-    releaseState?.[stateField] === "VERIFIED" &&
-    SHA.test(subjectSha ?? "") &&
-    releaseState?.[shaField] === subjectSha &&
-    RUN_ID.test(String(releaseState?.[runField] ?? "")),
+    releaseState?.[fields.state] === "VERIFIED" &&
+      SHA.test(subjectSha ?? "") &&
+      releaseState?.[fields.sha] === subjectSha &&
+      RUN_ID.test(runId) &&
+      WORKFLOW_PATH.test(workflowPath ?? "") &&
+      typeof workflowName === "string" &&
+      workflowName.length > 0 &&
+      liveRun?.id === Number(runId) &&
+      liveRun.headSha === subjectSha &&
+      liveRun.status === "completed" &&
+      liveRun.conclusion === "success" &&
+      TRUSTED_RUN_EVENTS.has(liveRun.event) &&
+      liveRun.path === workflowPath &&
+      liveRun.name === workflowName &&
+      (!requireTrustedWorkflowRef ||
+        (TRUSTED_WORKFLOW_REF.test(expectedTrustedWorkflowRef ?? "") &&
+          liveRun.referencedWorkflows.includes(expectedTrustedWorkflowRef)))
   );
 }
 
@@ -129,6 +214,11 @@ export async function loadInvariantContextAtMain({
     readAtMain(".github/morro-control/release-state.json"),
     readAtMain(".morro/ownership.json"),
   ]);
+  const trustedRunEvidence = await loadTrustedRunEvidence({
+    repository,
+    releaseState,
+    api,
+  });
   const latestMain = await api("repos/" + repository + "/commits/main");
   if (!SHA.test(latestMain?.sha ?? ""))
     throw new Error("CONTROL_PROJECTION_MAIN_RECHECK_INVALID");
@@ -141,6 +231,7 @@ export async function loadInvariantContextAtMain({
     projectionAuthority: "GITHUB_EXACT_MAIN",
     projectionSha: mainSha,
     projectionMainShaAtEnd: latestMain.sha,
+    trustedRunEvidence,
   };
 }
 
@@ -152,6 +243,7 @@ export function evaluateInvariants({
   ownership,
   projectionAuthority,
   projectionSha,
+  trustedRunEvidence,
 }) {
   const checks = [];
 
@@ -238,10 +330,10 @@ export function evaluateInvariants({
 
   const trustedValidatorEvidenceMatches = evidenceBoundToSha(
     releaseState,
-    "trustedValidatorIndependenceState",
-    "trustedValidatorIndependenceEvidenceSha",
-    "trustedValidatorIndependenceRunId",
+    trustedRunEvidence,
+    "trustedValidatorIndependence",
     candidate,
+    { requireTrustedWorkflowRef: true },
   );
   checks.push(
     result(
@@ -339,16 +431,14 @@ export function evaluateInvariants({
       : null;
   const tenantEvidenceMatches = evidenceBoundToSha(
     releaseState,
-    "tenantIsolationState",
-    "tenantIsolationEvidenceSha",
-    "tenantIsolationRunId",
+    trustedRunEvidence,
+    "tenantIsolation",
     acceptanceSubjectSha,
   );
   const destinationEvidenceMatches = evidenceBoundToSha(
     releaseState,
-    "destinationIsolationState",
-    "destinationIsolationEvidenceSha",
-    "destinationIsolationRunId",
+    trustedRunEvidence,
+    "destinationIsolation",
     acceptanceSubjectSha,
   );
 
