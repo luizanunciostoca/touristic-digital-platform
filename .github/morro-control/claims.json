@@ -44,7 +44,6 @@
       "branch": "feat/brand-v2-product-adoption-20261001-r2",
       "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
       "paths": [
-        ".github/morro-control/claims.json",
         ".morro/changesets/MD-BRAND-001.json",
         ".morro/changesets/MD-BRAND-ADOPTION-001.json",
         "apps/morro-digital-platform/public/assets/brand/**",
