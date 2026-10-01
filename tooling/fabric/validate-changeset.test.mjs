@@ -63,14 +63,41 @@ test("ChangeSet V2 fails closed on unsafe ownership paths", () => {
   );
 });
 
-test("ChangeSet V2 enforces proof budgets and executable allowlist", () => {
+test("ChangeSet V2 enforces proof budgets and bounded node test targets", () => {
   const manifest = v2();
   manifest.proof.commands[0].argv[0] = "bash";
   assert.throws(
     () => validateChangeSetV2(manifest),
     /CHANGESET_PROOF_EXECUTABLE_DENIED/u,
   );
-  manifest.proof.commands[0].argv[0] = "node";
+
+  manifest.proof.commands[0].argv = ["node", "-e", "process.exit(0)"];
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_PROOF_SUBCOMMAND_DENIED/u,
+  );
+
+  manifest.proof.commands[0].argv = ["node", "--test", "scripts/arbitrary.mjs"];
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_PROOF_TARGET_DENIED/u,
+  );
+
+  manifest.proof.commands[0].argv = [
+    "node",
+    "--test",
+    "../tooling/escape.test.mjs",
+  ];
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_PROOF_TARGET_TRAVERSAL/u,
+  );
+
+  manifest.proof.commands[0].argv = [
+    "node",
+    "--test",
+    "tooling/test.test.mjs",
+  ];
   manifest.proof.commands[0].timeoutSeconds = 121;
   assert.throws(
     () => validateChangeSetV2(manifest),
@@ -101,4 +128,41 @@ test("legacy ChangeSets remain valid during V2 rollout", () => {
   };
   assert.equal(validateLegacyChangeSet(legacy), legacy);
   assert.equal(validateChangeSet(legacy), legacy);
+});
+
+
+test("ChangeSet V2 rejects unknown and missing closed-schema fields", () => {
+  let manifest = { ...v2(), unexpected: true };
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_PROPERTY_UNKNOWN/u,
+  );
+
+  manifest = v2();
+  delete manifest.reads;
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_FIELD_REQUIRED:reads/u,
+  );
+
+  manifest = v2();
+  delete manifest.owns.contracts;
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_OWNS_FIELD_REQUIRED:contracts/u,
+  );
+
+  manifest = v2();
+  manifest.proof.commands[0].unexpected = true;
+  assert.throws(
+    () => validateChangeSetV2(manifest),
+    /CHANGESET_PROOF_COMMAND_PROPERTY_UNKNOWN/u,
+  );
+});
+
+test("explicit unsupported schema versions fail closed", () => {
+  assert.throws(
+    () => validateChangeSet({ ...v2(), schemaVersion: 3 }),
+    /unsupported ChangeSet schemaVersion/u,
+  );
 });
