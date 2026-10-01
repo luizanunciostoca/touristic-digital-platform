@@ -205,4 +205,40 @@ describe("V1 × V2 visual regression manifest", () => {
       "released",
     ]);
   });
+  it("requires representative QR browser evidence with exact-head provenance", async () => {
+    const [ticketingWorkflow, commerceWorkflow] = await Promise.all([
+      readFile(
+        new URL(
+          "../../../../.github/workflows/ticketing-v2-visual-regression.yml",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+      readFile(
+        new URL(
+          "../../../../.github/workflows/commerce-browser-regression.yml",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ]);
+
+    for (const workflow of [ticketingWorkflow, commerceWorkflow]) {
+      expect(workflow).not.toContain(
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>',
+      );
+      expect(workflow).toContain("renderTicketQrSvg");
+      expect(workflow).toContain("packages/ticketing/dist/qr-svg.js");
+      expect(workflow).toContain("Runtime with Fixture");
+      expect(workflow).toContain("UX584_BROWSER_FIXTURE_20261001");
+      expect(workflow).toContain("github.event.pull_request.head.sha");
+      expect(workflow).toContain("exactHeadSha");
+      expect(workflow).toContain("viewport");
+      expect(workflow).toContain("finalDimensions");
+      expect(workflow).toContain("fullPage");
+      expect(workflow).toContain("timestamp");
+      expect(workflow).toContain("workflow");
+      expect(workflow).toContain("runId");
+    }
+  });
 });

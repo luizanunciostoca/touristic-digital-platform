@@ -545,6 +545,26 @@ function setMessage(message, error = false) {
   elements.message.classList.toggle("is-error", error);
 }
 
+function focusFirstInvalidField() {
+  const firstInvalid = Array.from(elements.form.elements).find(
+    (control) =>
+      control instanceof HTMLElement &&
+      typeof control.matches === "function" &&
+      control.matches(":invalid"),
+  );
+  if (!(firstInvalid instanceof HTMLElement)) return false;
+  firstInvalid.focus({ preventScroll: true });
+  firstInvalid.scrollIntoView({
+    behavior: globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")
+      .matches
+      ? "auto"
+      : "smooth",
+    block: "center",
+    inline: "nearest",
+  });
+  return true;
+}
+
 function selectOffer(offer, { scroll = false } = {}) {
   state.selectedOffer = offer;
   state.quote = null;
@@ -1253,12 +1273,14 @@ async function submitReservation(event) {
   };
   const quantity = Number(elements.quantity.value);
   if (
+    !elements.form.checkValidity() ||
     !holder.name ||
     !holder.email ||
     !Number.isSafeInteger(quantity) ||
     quantity < 1
   ) {
     setMessage(copy.fillFields, true);
+    focusFirstInvalidField();
     return;
   }
 
@@ -1331,6 +1353,20 @@ async function submitReservation(event) {
   }
 }
 
+let invalidFocusScheduled = false;
+elements.form.addEventListener(
+  "invalid",
+  () => {
+    if (invalidFocusScheduled) return;
+    invalidFocusScheduled = true;
+    queueMicrotask(() => {
+      invalidFocusScheduled = false;
+      setMessage(copy.fillFields, true);
+      focusFirstInvalidField();
+    });
+  },
+  true,
+);
 elements.form.addEventListener(
   "submit",
   (event) => void submitReservation(event),

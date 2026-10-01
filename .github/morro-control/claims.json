@@ -5,8 +5,8 @@
     "MD-UX-TOURIST-REMEDIATION-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/ux-tourist-remediation-claim-20261001",
-      "baseSha": "919ce32e61977a3c4cb399172661477fa4597548",
+      "branch": "fix/ux-tourist-remediation-584-20261001",
+      "baseSha": "7e9569f8dc7f7af256c349aea87ddad2e8e04c0b",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -32,7 +32,7 @@
       ],
       "domains": ["ux", "tourist", "crm", "navigation", "visual-evidence"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T12:00:00Z"
     }
   }

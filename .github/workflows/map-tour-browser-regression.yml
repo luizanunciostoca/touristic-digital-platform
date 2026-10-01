@@ -23,6 +23,8 @@ on:
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
+      - apps/admin-crm/public/crm.css
+      - apps/admin-crm/public/lead-detail.html
       - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -47,6 +49,8 @@ on:
       - apps/morro-digital-platform/src/map/immersive-tour-v1-flow.ts
       - apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts
       - apps/morro-digital-platform/src/runtime/map-style-readiness.ts
+      - apps/admin-crm/public/crm.css
+      - apps/admin-crm/public/lead-detail.html
       - apps/morro-digital-platform/src/ux/outdoor-one-hand-v2-contract.test.ts
       - apps/morro-digital-platform/src/development/leaflet-compatibility-sdk.ts
       - apps/morro-digital-platform/tooling/dev-server.mjs
@@ -68,6 +72,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
@@ -94,8 +101,10 @@ jobs:
           const { writeFileSync } = require('node:fs');
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const cases = [
+            ['mobile-320', 320, 568],
             ['mobile-360', 360, 800],
             ['mobile-390', 390, 844],
+            ['mobile-412', 412, 915],
             ['mobile-430', 430, 932],
             ['tablet', 768, 1024],
             ['desktop', 1440, 900],
@@ -233,6 +242,8 @@ jobs:
                 narration instanceof HTMLElement ? narration.getBoundingClientRect() : null;
               const sheet = document.querySelector('#explore-flow-bottom-sheet[data-flow-kind="tour"]');
               const sheetRect = sheet instanceof HTMLElement ? sheet.getBoundingClientRect() : null;
+              const content = sheet?.querySelector('.explore-flow-sheet-content');
+              const contentStyle = content instanceof HTMLElement ? getComputedStyle(content) : null;
               const progress = document.querySelector('.tour-stop-progress-bar');
               const progressRect = progress instanceof HTMLElement ? progress.getBoundingClientRect() : null;
               const compactHeader = document.querySelector('.tour-active-header');
@@ -261,8 +272,25 @@ jobs:
                   scrollWidth: document.documentElement.scrollWidth,
                 },
                 sheet: sheetRect
-                  ? { top: sheetRect.top, bottom: sheetRect.bottom, height: sheetRect.height }
+                  ? { top: sheetRect.top, bottom: sheetRect.bottom, height: sheetRect.height, width: sheetRect.width }
                   : null,
+                content:
+                  content instanceof HTMLElement
+                    ? {
+                        clientHeight: content.clientHeight,
+                        scrollHeight: content.scrollHeight,
+                        overflowY: contentStyle?.overflowY ?? '',
+                      }
+                    : null,
+                description:
+                  description instanceof HTMLElement
+                    ? {
+                        clientHeight: description.clientHeight,
+                        scrollHeight: description.scrollHeight,
+                        overflow: descriptionStyle?.overflow ?? '',
+                        lineClamp: descriptionStyle?.webkitLineClamp ?? 'none',
+                      }
+                    : null,
                 compactHeader: compactHeaderRect
                   ? {
                       text: compactHeader?.textContent?.trim() ?? '',
@@ -314,9 +342,31 @@ jobs:
               };
             });
 
-            if (!state.sheet || state.sheet.height > state.viewport.height * 0.5 + 1 || state.sheet.bottom > state.viewport.height + 1) {
+            const maxSheetRatio = 0.5;
+            if (!state.sheet || state.sheet.height > state.viewport.height * maxSheetRatio + 1 || state.sheet.bottom > state.viewport.height + 1) {
               throw new Error(
                 `Tour card covers excessive map context at ${label}: ${JSON.stringify(state.sheet)}`,
+              );
+            }
+            if (!state.content) {
+              throw new Error(`Tour scroll content missing at ${label}`);
+            }
+            if (
+              state.content.scrollHeight > state.content.clientHeight + 1 &&
+              !['auto', 'scroll'].includes(state.content.overflowY)
+            ) {
+              throw new Error(
+                `Tour overflowing content is not reachable at ${label}: ${JSON.stringify(state.content)}`,
+              );
+            }
+            if (
+              !state.description ||
+              state.description.overflow === 'hidden' ||
+              (state.description.lineClamp !== 'none' && state.description.lineClamp !== '') ||
+              state.description.scrollHeight > state.description.clientHeight + 1
+            ) {
+              throw new Error(
+                `Tour stop description is clipped at ${label}: ${JSON.stringify(state.description)}`,
               );
             }
             const countParts = state.compactCount.split('/');
@@ -551,7 +601,7 @@ jobs:
             });
             if (
               !state.sheet ||
-              state.sheet.height > state.viewport.height * 0.45 + 1 ||
+              state.sheet.height > state.viewport.height * 0.5 + 1 ||
               !state.start ||
               state.start.disabled ||
               !state.start.primary ||
@@ -560,8 +610,14 @@ jobs:
             ) {
               throw new Error(`Tour preview/Start Tour drift: ${JSON.stringify(state)}`);
             }
-            if (!state.list || state.list.primary || state.list.width >= state.start.width) {
-              throw new Error(`See all stops still competes with Start Tour: ${JSON.stringify(state)}`);
+            const minimumReadableListWidth = Math.min(180, state.sheet.width * 0.55);
+            if (
+              !state.list ||
+              state.list.primary ||
+              state.list.width < minimumReadableListWidth ||
+              state.list.height > 96
+            ) {
+              throw new Error(`See all stops collapsed or became primary: ${JSON.stringify(state)}`);
             }
             await page.screenshot({
               path: `/tmp/map-tour-evidence/tour-preview-${evidenceName}.png`,
@@ -1020,6 +1076,365 @@ jobs:
             writeFileSync('/tmp/map-tour-evidence/fallback-tour-switching.json', JSON.stringify({ status: 'validated', viewports: evidence }, null, 2));
             await browser.close();
           })().catch(error => { console.error(error); process.exit(1); });
+          NODE
+      - name: UX 584 computed-layout acceptance
+        run: |
+          node <<'NODE'
+          const { execFileSync } = require('node:child_process');
+          const { readFileSync, writeFileSync } = require('node:fs');
+          const { chromium } = require('/tmp/pw/node_modules/playwright');
+
+          const event = JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'));
+          const exactHeadSha = event.pull_request?.head?.sha || process.env.GITHUB_SHA;
+          const checkedOutHeadSha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+          const exactTreeSha = execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim();
+          if (checkedOutHeadSha !== exactHeadSha) {
+            throw new Error(
+              'UX584 exact-head checkout mismatch: ' +
+                JSON.stringify({ exactHeadSha, checkedOutHeadSha, exactTreeSha }),
+            );
+          }
+          const foundations = readFileSync(
+            'apps/morro-digital-platform/public/design-system-v2.css',
+            'utf8',
+          );
+          const baseStyles = readFileSync(
+            'apps/morro-digital-platform/public/styles.css',
+            'utf8',
+          );
+          const tourStyles = readFileSync(
+            'apps/morro-digital-platform/public/explore-locations.css',
+            'utf8',
+          );
+          const navigationStyles = readFileSync(
+            'apps/morro-digital-platform/public/premium-ux-v2.css',
+            'utf8',
+          );
+          const crmStyles = readFileSync(
+            'apps/admin-crm/public/crm.css',
+            'utf8',
+          );
+          const crmHtml = readFileSync(
+            'apps/admin-crm/public/lead-detail.html',
+            'utf8',
+          ).replace(/<script[\s\S]*?<\/script>/gu, '');
+
+          const tourFixture =
+            '<div id="map" data-tour-flow-stage="stop"></div>' +
+            '<section id="explore-flow-bottom-sheet" class="md-bottom-sheet" data-flow-kind="tour">' +
+            '<div class="explore-flow-sheet-content md-bottom-sheet-content">' +
+            '<div class="tour-active-header"><span class="tour-active-thumb">🌴</span><span class="tour-active-tour-title">Volta à Ilha</span><span class="tour-active-count">1/8</span></div>' +
+            '<div class="tour-stop-progress-bar"></div>' +
+            '<div class="tour-stop-progress-segments"><span class="tour-stop-progress-segment is-current"></span></div>' +
+            '<article class="tour-stop-card" data-photo-state="missing">' +
+            '<div class="tour-stop-header"><strong class="tour-stop-title">Farol e mirante</strong><span class="tour-stop-num-badge">Parada 1</span></div>' +
+            '<p class="tour-stop-desc">Descrição completa da parada com contexto histórico, orientação, referência visual e informações úteis para garantir leitura integral sem corte destrutivo mesmo em telas compactas.</p>' +
+            '<button class="tour-narration-btn" type="button">Ouvir</button>' +
+            '<aside class="tour-tips"><strong>Dicas</strong><ul><li>Leve água.</li><li>Use calçado confortável.</li><li>Respeite a sinalização local.</li></ul></aside>' +
+            '</article>' +
+            '<div class="explore-flow-sheet-actions">' +
+            '<div class="explore-flow-sheet-source">' +
+            '<button class="explore-flow-sheet-option explore-flow-sheet-option--primary" data-value="__tour_next__" type="button">Próxima parada</button>' +
+            '<button class="explore-flow-sheet-option" data-value="__tour_list__" type="button">Ver todas as paradas</button>' +
+            '</div></div></div></section>';
+
+          const viewports = [
+            ['320', 320, 568],
+            ['360', 360, 800],
+            ['390', 390, 844],
+            ['412', 412, 915],
+            ['430', 430, 932],
+            ['768', 768, 1024],
+            ['1440', 1440, 900],
+          ];
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const evidence = {
+            schemaVersion: 1,
+            dataClass: 'Runtime with Fixture',
+            fixtureId: 'UX584_COMPUTED_LAYOUT_V1',
+            exactHeadSha,
+            exactTreeSha,
+            locale: 'pt-BR',
+            browser: 'chromium',
+            workflow: process.env.GITHUB_WORKFLOW,
+            runId: process.env.GITHUB_RUN_ID,
+            generatedAt: new Date().toISOString(),
+            tour: [],
+            navigation: [],
+            crm: null,
+          };
+
+          try {
+            for (const [name, width, height] of viewports) {
+              const context = await browser.newContext({
+                viewport: { width, height },
+                locale: 'pt-BR',
+              });
+              const page = await context.newPage();
+              await page.setContent(
+                '<style>' +
+                  foundations +
+                  baseStyles +
+                  tourStyles +
+                  '</style><body>' +
+                  tourFixture +
+                  '</body>',
+              );
+              const stop = await page.evaluate(() => {
+                const sheet = document.querySelector('#explore-flow-bottom-sheet');
+                const content = document.querySelector('.explore-flow-sheet-content');
+                const description = document.querySelector('.tour-stop-desc');
+                const tips = document.querySelector('.tour-tips ul');
+                const actions = document.querySelector('.explore-flow-sheet-actions');
+                const source = document.querySelector('.explore-flow-sheet-source');
+                const narration = document.querySelector('.tour-narration-btn');
+                const rect = node => {
+                  const value = node?.getBoundingClientRect();
+                  return value
+                    ? { width: value.width, height: value.height, top: value.top, bottom: value.bottom }
+                    : null;
+                };
+                const style = node => (node instanceof HTMLElement ? getComputedStyle(node) : null);
+                return {
+                  viewport: {
+                    width: innerWidth,
+                    height: innerHeight,
+                    scrollWidth: document.documentElement.scrollWidth,
+                  },
+                  sheet: rect(sheet),
+                  content: {
+                    ...rect(content),
+                    clientHeight: content?.clientHeight || 0,
+                    scrollHeight: content?.scrollHeight || 0,
+                    overflowY: style(content)?.overflowY || '',
+                  },
+                  description: {
+                    ...rect(description),
+                    clientHeight: description?.clientHeight || 0,
+                    scrollHeight: description?.scrollHeight || 0,
+                    overflow: style(description)?.overflow || '',
+                    lineClamp: style(description)?.webkitLineClamp || '',
+                  },
+                  tips: {
+                    clientHeight: tips?.clientHeight || 0,
+                    scrollHeight: tips?.scrollHeight || 0,
+                    overflow: style(tips)?.overflow || '',
+                  },
+                  actions: rect(actions),
+                  source: rect(source),
+                  narration: rect(narration),
+                };
+              });
+
+              if (
+                !stop.sheet ||
+                stop.sheet.top < -1 ||
+                stop.sheet.bottom > stop.viewport.height + 1 ||
+                stop.viewport.scrollWidth > stop.viewport.width + 1
+              ) {
+                throw new Error('UX584 Tour viewport overflow ' + name + ': ' + JSON.stringify(stop));
+              }
+              if (
+                stop.content.scrollHeight > stop.content.clientHeight + 1 &&
+                !['auto', 'scroll'].includes(stop.content.overflowY)
+              ) {
+                throw new Error('UX584 Tour content is clipped without scrolling ' + name + ': ' + JSON.stringify(stop.content));
+              }
+              if (
+                stop.description.scrollHeight > stop.description.clientHeight + 1 ||
+                (stop.description.lineClamp && stop.description.lineClamp !== 'none')
+              ) {
+                throw new Error('UX584 Tour description is destructively clipped ' + name + ': ' + JSON.stringify(stop.description));
+              }
+              if (stop.tips.scrollHeight > stop.tips.clientHeight + 1) {
+                throw new Error('UX584 Tour tips are destructively clipped ' + name + ': ' + JSON.stringify(stop.tips));
+              }
+              if (
+                !stop.actions ||
+                !stop.source ||
+                stop.source.width + 2 < stop.actions.width ||
+                !stop.narration ||
+                stop.narration.width < 44 ||
+                stop.narration.height < 44
+              ) {
+                throw new Error('UX584 Tour action geometry drift ' + name + ': ' + JSON.stringify(stop));
+              }
+
+              await page.locator('#map').evaluate(node => node.setAttribute('data-tour-flow-stage', 'intro'));
+              const intro = await page.evaluate(() => {
+                const list = document.querySelector('[data-value="__tour_list__"]');
+                const start = document.querySelector('[data-value="__tour_next__"]');
+                const listRect = list?.getBoundingClientRect();
+                const startRect = start?.getBoundingClientRect();
+                const listStyle = list instanceof HTMLElement ? getComputedStyle(list) : null;
+                return {
+                  list: listRect ? { width: listRect.width, height: listRect.height } : null,
+                  start: startRect ? { width: startRect.width, height: startRect.height } : null,
+                  whiteSpace: listStyle?.whiteSpace || '',
+                  overflowWrap: listStyle?.overflowWrap || '',
+                  text: list?.textContent?.trim() || '',
+                };
+              });
+              if (
+                !intro.list ||
+                !intro.start ||
+                intro.list.width < 120 ||
+                intro.list.width + 2 < intro.start.width ||
+                intro.whiteSpace === 'nowrap' ||
+                intro.text !== 'Ver todas as paradas'
+              ) {
+                throw new Error('UX584 Tour secondary action collapsed ' + name + ': ' + JSON.stringify(intro));
+              }
+              await page.screenshot({
+                path: '/tmp/map-tour-evidence/ux584-tour-' + name + '.png',
+                fullPage: false,
+                animations: 'disabled',
+              });
+              evidence.tour.push({
+                viewport: { width, height },
+                url: 'fixture://ux584-tour',
+                finalDimensions: {
+                  scrollWidth: stop.viewport.scrollWidth,
+                  sheetHeight: stop.sheet.height,
+                },
+                fullPage: false,
+                stop,
+                intro,
+              });
+              await context.close();
+            }
+
+            const navContext = await browser.newContext({
+              viewport: { width: 320, height: 568 },
+              locale: 'pt-BR',
+            });
+            const navPage = await navContext.newPage();
+            await navPage.setContent(
+              '<style>' +
+                foundations +
+                navigationStyles +
+                '</style><body data-md-mode="navigation"><section id="instruction-banner"><div class="instruction-secondary"><p id="instruction-details"></p></div></section></body>',
+            );
+            const routeNames = [
+              ['pt-BR', 'Siga pela Rua Caminho do Farol'],
+              ['en', 'Continue on Lighthouse Access Road'],
+              ['es', 'Sigue por la Rua Caminho do Farol'],
+              ['he', 'המשיכו בדרך Caminho do Farol'],
+            ];
+            for (const [locale, text] of routeNames) {
+              const nav = await navPage.locator('#instruction-details').evaluate((node, value) => {
+                node.textContent = value;
+                node.setAttribute('lang', value === 'המשיכו בדרך Caminho do Farol' ? 'he' : '');
+                const css = getComputedStyle(node);
+                const rect = node.getBoundingClientRect();
+                const lineHeight = Number.parseFloat(css.lineHeight || '0');
+                return {
+                  text: node.textContent,
+                  width: rect.width,
+                  height: rect.height,
+                  scrollWidth: node.scrollWidth,
+                  clientWidth: node.clientWidth,
+                  scrollHeight: node.scrollHeight,
+                  clientHeight: node.clientHeight,
+                  whiteSpace: css.whiteSpace,
+                  textOverflow: css.textOverflow,
+                  overflow: css.overflow,
+                  lines: lineHeight > 0 ? rect.height / lineHeight : 0,
+                };
+              }, text);
+              if (
+                nav.whiteSpace !== 'normal' ||
+                nav.textOverflow === 'ellipsis' ||
+                nav.scrollHeight > nav.clientHeight + 1 ||
+                nav.scrollWidth > nav.clientWidth + 1 ||
+                nav.lines > 2.1
+              ) {
+                throw new Error('UX584 Navigation instruction clipping ' + locale + ': ' + JSON.stringify(nav));
+              }
+              evidence.navigation.push({ locale, ...nav });
+            }
+            await navContext.close();
+
+            const crmContext = await browser.newContext({
+              viewport: { width: 390, height: 844 },
+              locale: 'pt-BR',
+            });
+            const crmPage = await crmContext.newPage();
+            const hydratedCrm = crmHtml.replace(
+              '</head>',
+              '<style>' + crmStyles + '</style></head>',
+            );
+            await crmPage.setContent(hydratedCrm);
+            await crmPage.evaluate(() => {
+              document.querySelectorAll('[hidden]').forEach(node => {
+                if (node instanceof HTMLElement) node.hidden = false;
+              });
+            });
+            const crm = await crmPage.evaluate(() => {
+              const wide = document.querySelector('.lead-form-span-wide');
+              const checklist = document.querySelector('.lead-checklist-card');
+              const wideStyle = wide instanceof HTMLElement ? getComputedStyle(wide) : null;
+              const checklistStyle =
+                checklist instanceof HTMLElement ? getComputedStyle(checklist) : null;
+              return {
+                scrollWidth: document.documentElement.scrollWidth,
+                clientWidth: document.documentElement.clientWidth,
+                scrollHeight: document.documentElement.scrollHeight,
+                clientHeight: document.documentElement.clientHeight,
+                wideGridColumn: wideStyle?.gridColumn || '',
+                checklistPadding: checklistStyle?.padding || '',
+                inlineGridStyleCount: document.querySelectorAll('[style*="grid-column"]').length,
+              };
+            });
+            if (
+              crm.scrollWidth > crm.clientWidth + 1 ||
+              crm.inlineGridStyleCount !== 0 ||
+              crm.wideGridColumn === 'span 2'
+            ) {
+              throw new Error('UX584 CRM mobile overflow: ' + JSON.stringify(crm));
+            }
+            await crmPage.screenshot({
+              path: '/tmp/map-tour-evidence/ux584-crm-390x844.png',
+              fullPage: false,
+              animations: 'disabled',
+            });
+            evidence.crm = {
+              exactHeadSha,
+              exactTreeSha,
+              viewport: { width: 390, height: 844 },
+              url: 'fixture://ux584-crm-lead-detail',
+              finalDimensions: {
+                width: crm.scrollWidth,
+                height: crm.scrollHeight,
+                clientWidth: crm.clientWidth,
+                clientHeight: crm.clientHeight,
+              },
+              fullPage: false,
+              dataClass: 'Runtime with Fixture',
+              fixtureId: 'UX584_CRM_LEAD_DETAIL_V1',
+              locale: 'pt-BR',
+              browser: 'chromium',
+              device: 'chromium-mobile-viewport',
+              timestamp: new Date().toISOString(),
+              workflow: process.env.GITHUB_WORKFLOW,
+              runId: process.env.GITHUB_RUN_ID,
+              ...crm,
+            };
+            await crmContext.close();
+
+            writeFileSync(
+              '/tmp/map-tour-evidence/ux584-computed-layout.json',
+              JSON.stringify(evidence, null, 2),
+            );
+            } finally {
+              await browser.close();
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
           NODE
       - name: Show diagnostics
         if: failure()

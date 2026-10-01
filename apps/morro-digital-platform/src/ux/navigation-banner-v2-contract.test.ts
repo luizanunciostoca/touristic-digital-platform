@@ -87,4 +87,42 @@ describe("Navigation Banner V2 contract", () => {
     expect(foundations).toContain("#minimize-navigation-btn");
     expect(foundations).toContain("#end-navigation-btn");
   });
+  it("keeps operational route details readable without single-line ellipsis", async () => {
+    const css = await readPublic("premium-ux-v2.css");
+    const selector = 'body[data-md-mode="navigation"] #instruction-details {';
+    const start = css.lastIndexOf(selector);
+    const end = css.indexOf("}", start);
+    const finalDetailsRule =
+      start >= 0 && end > start ? css.slice(start, end + 1) : "";
+
+    expect(finalDetailsRule).toContain("overflow: visible");
+    expect(finalDetailsRule).toContain("text-overflow: clip");
+    expect(finalDetailsRule).toContain("white-space: normal");
+    expect(finalDetailsRule).toContain("overflow-wrap: anywhere");
+    expect(finalDetailsRule).toContain("pointer-events: none");
+    expect(finalDetailsRule).not.toContain("text-overflow: ellipsis");
+    expect(finalDetailsRule).not.toContain("white-space: nowrap");
+
+    const activeNavigationStart = css.indexOf(
+      "/* UX V2 Wave E — active navigation convergence */",
+    );
+    const compactStart = css.indexOf(
+      "@media (max-width: 24.375rem)",
+      activeNavigationStart,
+    );
+    const compactEnd = css.indexOf(
+      "@media (forced-colors: active)",
+      compactStart,
+    );
+    const compactRules =
+      compactStart >= 0 && compactEnd > compactStart
+        ? css.slice(compactStart, compactEnd)
+        : "";
+    expect(compactRules).toContain("padding-inline: var(--md-space-3)");
+    expect(compactRules).toContain(
+      "padding-right: calc(var(--md-touch-target-min) + var(--md-space-2))",
+    );
+    expect(compactRules).toContain(".instruction-secondary");
+    expect(compactRules).toContain("margin-left: 0");
+  });
 });

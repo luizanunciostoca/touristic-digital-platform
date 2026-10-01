@@ -834,13 +834,15 @@ body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
 body[data-md-mode="navigation"] #instruction-details {
   max-width: 100%;
   margin: 0;
-  overflow: hidden;
+  overflow: visible;
   color: color-mix(in srgb, var(--md-navigation-inverse) 88%, transparent);
   font-size: 1rem;
   font-weight: 550;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
 }
 
 body[data-md-mode="navigation"] #instruction-banner .progress-container,
@@ -1073,7 +1075,17 @@ body[data-md-mode="navigation"] #map .navigation-destination-pin::after {
   body[data-md-mode="navigation"] #instruction-banner {
     right: calc(var(--md-safe-right) + var(--md-space-2)) !important;
     left: calc(var(--md-safe-left) + var(--md-space-2)) !important;
-    padding-left: var(--md-space-3);
+    padding-inline: var(--md-space-3);
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-primary {
+    grid-template-columns: 2.5rem minmax(0, 1fr);
+    gap: var(--md-space-2);
+    padding-right: calc(var(--md-touch-target-min) + var(--md-space-2));
+  }
+
+  body[data-md-mode="navigation"] #instruction-banner .instruction-secondary {
+    margin-left: 0;
   }
 
   body[data-md-mode="navigation"] #navigation-summary {
