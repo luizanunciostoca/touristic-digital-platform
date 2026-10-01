@@ -32,7 +32,7 @@
       ],
       "domains": ["ci-release", "control-plane"],
       "risk": "P1",
-      "status": "LOCAL_PROVEN",
+      "status": "INTEGRATION_READY",
       "expiresAt": "2026-10-01T20:00:00Z"
     },
     "MD-BRAND-ADOPTION-001": {
