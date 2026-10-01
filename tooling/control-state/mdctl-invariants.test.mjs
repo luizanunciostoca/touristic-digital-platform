@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { evaluateInvariants } from "../mdctl/invariants.mjs";
+import { evaluateInvariants, loadInvariantContextAtMain } from "../mdctl/invariants.mjs";
 
 function context(overrides = {}) {
   return {
@@ -144,11 +144,14 @@ test("active candidate requires trusted validator independence", () => {
 });
 
 test("candidate acceptance requires tenant and destination isolation proof", () => {
+  const candidateSha = "cccccccccccccccccccccccccccccccccccccccc";
   const report = evaluateInvariants(
     context({
       releaseState: {
-        candidateSha: "cccccccccccccccccccccccccccccccccccccccc",
+        candidateSha,
         trustedValidatorIndependenceState: "VERIFIED",
+        trustedValidatorIndependenceEvidenceSha: candidateSha,
+        trustedValidatorIndependenceRunId: "101",
       },
     }),
   );
@@ -229,4 +232,112 @@ test("control projection identity mismatch fails closed", () => {
     report.checks.find((check) => check.id === "INV-000").status,
     "FAIL",
   );
+});
+
+
+test("verified critical evidence cannot be reused across candidate identities", () => {
+  const candidateSha = "cccccccccccccccccccccccccccccccccccccccc";
+  const staleSha = "dddddddddddddddddddddddddddddddddddddddd";
+  const report = evaluateInvariants(
+    context({
+      releaseState: {
+        candidateSha,
+        trustedValidatorIndependenceState: "VERIFIED",
+        trustedValidatorIndependenceEvidenceSha: staleSha,
+        trustedValidatorIndependenceRunId: "101",
+        tenantIsolationState: "VERIFIED",
+        tenantIsolationEvidenceSha: staleSha,
+        tenantIsolationRunId: "102",
+        destinationIsolationState: "VERIFIED",
+        destinationIsolationEvidenceSha: staleSha,
+        destinationIsolationRunId: "103",
+      },
+    }),
+  );
+  for (const id of ["INV-005", "INV-010", "INV-011"]) {
+    assert.equal(
+      report.checks.find((check) => check.id === id).status,
+      "FAIL",
+    );
+  }
+});
+
+test("candidate-bound critical evidence requires exact SHA and proof run identity", () => {
+  const candidateSha = "cccccccccccccccccccccccccccccccccccccccc";
+  const report = evaluateInvariants(
+    context({
+      releaseState: {
+        candidateSha,
+        trustedValidatorIndependenceState: "VERIFIED",
+        trustedValidatorIndependenceEvidenceSha: candidateSha,
+        trustedValidatorIndependenceRunId: "201",
+        tenantIsolationState: "VERIFIED",
+        tenantIsolationEvidenceSha: candidateSha,
+        tenantIsolationRunId: "202",
+        destinationIsolationState: "VERIFIED",
+        destinationIsolationEvidenceSha: candidateSha,
+        destinationIsolationRunId: "203",
+      },
+    }),
+  );
+  for (const id of ["INV-005", "INV-010", "INV-011"]) {
+    assert.equal(
+      report.checks.find((check) => check.id === id).status,
+      "PASS",
+    );
+  }
+});
+
+test("exact-main control projection loader rechecks main after projection reads", async () => {
+  const mainSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const movedSha = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const content = (value) => ({
+    encoding: "base64",
+    content: Buffer.from(JSON.stringify(value)).toString("base64"),
+  });
+  const api = async (endpoint) => {
+    if (endpoint.endsWith("/commits/main")) return { sha: movedSha };
+    if (endpoint.includes("integration-queue.json"))
+      return content({ version: 1, batches: [] });
+    if (endpoint.includes("release-state.json"))
+      return content({ schemaVersion: 1, candidateSha: null });
+    if (endpoint.includes("ownership.json"))
+      return content({ version: 2, domains: [] });
+    throw new Error("UNEXPECTED_ENDPOINT");
+  };
+
+  await assert.rejects(
+    loadInvariantContextAtMain({
+      repository: "fixture/repo",
+      mainSha,
+      api,
+    }),
+    /MAIN_CHANGED_DURING_CONTROL_PROJECTION_LOAD/u,
+  );
+});
+
+test("exact-main control projection loader exposes the stable terminal main identity", async () => {
+  const mainSha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const content = (value) => ({
+    encoding: "base64",
+    content: Buffer.from(JSON.stringify(value)).toString("base64"),
+  });
+  const api = async (endpoint) => {
+    if (endpoint.endsWith("/commits/main")) return { sha: mainSha };
+    if (endpoint.includes("integration-queue.json"))
+      return content({ version: 1, batches: [] });
+    if (endpoint.includes("release-state.json"))
+      return content({ schemaVersion: 1, candidateSha: null });
+    if (endpoint.includes("ownership.json"))
+      return content({ version: 2, domains: [] });
+    throw new Error("UNEXPECTED_ENDPOINT");
+  };
+
+  const loaded = await loadInvariantContextAtMain({
+    repository: "fixture/repo",
+    mainSha,
+    api,
+  });
+  assert.equal(loaded.projectionSha, mainSha);
+  assert.equal(loaded.projectionMainShaAtEnd, mainSha);
 });
