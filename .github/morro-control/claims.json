@@ -1,24 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-CP-RETIREMENT-TRUST-ROUTING": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/control-plane-retirement-trust-routing-claim-20261001",
-      "baseSha": "2a05862e9dfce1145ce6421c9144d0e88b8ca3c4",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-CP-RETIREMENT-TRUST-ROUTING.json",
-        ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
-        ".github/workflows/morro-agent-profiles.yml",
-        "tooling/control-state/retirement-trusted-routing.test.mjs"
-      ],
-      "domains": ["ci-release", "control-plane"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-02T12:00:00Z"
-    }
-  }
+  "claims": {}
 }
