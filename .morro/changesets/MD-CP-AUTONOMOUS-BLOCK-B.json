@@ -81,8 +81,8 @@
   },
   "proof": {
     "budget": {
-      "maxCommands": 2,
-      "maxSeconds": 300
+      "maxCommands": 3,
+      "maxSeconds": 480
     },
     "commands": [
       {
@@ -92,6 +92,16 @@
           "--test",
           "tooling/fabric/validate-changeset.test.mjs",
           "tooling/control-state/mdctl-changeset-v2.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "block-b2a-capability-context",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-capability-leases.test.mjs",
+          "tooling/control-state/mdctl-context-pack.test.mjs"
         ],
         "timeoutSeconds": 180
       }
