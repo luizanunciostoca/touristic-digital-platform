@@ -27,6 +27,12 @@ import {
 } from "./explore-flow-bottom-sheet.js";
 import { createPublicPlaceMapClient } from "./public-place-map-client-v2.js";
 import {
+  allowsMorroLegacyPlaceFallback,
+  MORRO_PUBLIC_PLACE_READ_CONTEXT,
+  resolvePublicPlaceReadContext,
+  type PublicPlaceReadContext,
+} from "../runtime/public-place-read-context.js";
+import {
   filterV1ExploreLocations,
   getV1ExploreSubcategoryOptions,
   sortV1ExploreNearby,
@@ -54,12 +60,6 @@ const UNREGISTERED_COMMERCIAL_ACTION_IDS = new Set([
   "shop.products",
   "place.whatsapp",
 ]);
-
-const CANONICAL_MAP_DESTINATION_ID = "morro-de-sao-paulo";
-const CANONICAL_MAP_BBOX = Object.freeze([
-  -39.05, -13.5, -38.89, -13.35,
-] as const);
-const CANONICAL_MAP_ZOOM = 13;
 
 interface PlaceRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: Readonly<{
@@ -142,12 +142,14 @@ export interface ExploreLocationsStateSnapshot {
 
 export interface ExploreLocationsControlOptions {
   readonly document: Document;
+  readonly publicPlaceReadContext?: PublicPlaceReadContext;
 }
 
 export interface ExploreLocationsControl {
   execute(command: ExploreLocationsCommand): Promise<boolean>;
   getState(): ExploreLocationsStateSnapshot;
   close(): void;
+  setPublicPlaceReadContext(context: PublicPlaceReadContext): void;
   setGeospatialEngine(engine: GeospatialEngine | undefined): void;
   destroy(): void;
 }
@@ -515,6 +517,7 @@ function getCurrentPosition(
 
 export function installExploreLocationsControl({
   document,
+  publicPlaceReadContext,
 }: ExploreLocationsControlOptions): ExploreLocationsControl {
   const submenu = document.getElementById("submenu");
   const submenuContainer = document.getElementById("submenuContainer");
@@ -525,6 +528,17 @@ export function installExploreLocationsControl({
   submenuContainer?.replaceChildren();
 
   let geospatialEngine: GeospatialEngine | undefined;
+  let activePublicPlaceReadContext = resolvePublicPlaceReadContext(
+    publicPlaceReadContext ?? MORRO_PUBLIC_PLACE_READ_CONTEXT,
+  );
+  const legacyLocationsForCategory = (category: string) =>
+    allowsMorroLegacyPlaceFallback(activePublicPlaceReadContext)
+      ? getExploreLocationsForCategory(category)
+      : [];
+  const resolveLegacyLocationByName = (place: string, category?: string) =>
+    allowsMorroLegacyPlaceFallback(activePublicPlaceReadContext)
+      ? resolveExploreLocationByName(place, category)
+      : undefined;
   let activeCategoryButton: HTMLButtonElement | undefined;
   let activeCategory: ExploreLocationsCategory | undefined;
   let activePlace: string | undefined;
@@ -928,9 +942,9 @@ export function installExploreLocationsControl({
 
       do {
         const page = await client.listMap({
-          destinationId: CANONICAL_MAP_DESTINATION_ID,
-          bbox: CANONICAL_MAP_BBOX,
-          zoom: CANONICAL_MAP_ZOOM,
+          destinationId: activePublicPlaceReadContext.destinationId,
+          bbox: activePublicPlaceReadContext.bbox,
+          zoom: activePublicPlaceReadContext.zoom,
           ...(cursor ? { cursor } : {}),
         });
         canonicalLocations.push(
@@ -963,12 +977,16 @@ export function installExploreLocationsControl({
             `${normalizeSearchText(location.category)}:${normalizeSearchText(location.name)}`,
         ),
       );
-      const legacyFallback = morroV1SearchCatalog.filter(
-        (location) =>
-          !canonicalKeys.has(
-            `${normalizeSearchText(location.category)}:${normalizeSearchText(location.name)}`,
-          ),
-      );
+      const legacyFallback = allowsMorroLegacyPlaceFallback(
+        activePublicPlaceReadContext,
+      )
+        ? morroV1SearchCatalog.filter(
+            (location) =>
+              !canonicalKeys.has(
+                `${normalizeSearchText(location.category)}:${normalizeSearchText(location.name)}`,
+              ),
+          )
+        : [];
 
       await renderLocationsOnMap(
         Object.freeze([...canonicalLocations, ...legacyFallback]),
@@ -1427,7 +1445,7 @@ export function installExploreLocationsControl({
         : "";
     const canonicalLocation =
       !canonicalPlaceId && "source" in location && location.source === "local"
-        ? resolveExploreLocationByName(location.name, location.category)
+        ? resolveLegacyLocationByName(location.name, location.category)
         : !("source" in location)
           ? location
           : undefined;
@@ -1690,7 +1708,7 @@ export function installExploreLocationsControl({
     const locations =
       placeReturnLocations.length > 0
         ? placeReturnLocations
-        : getExploreLocationsForCategory(activeCategory.value);
+        : legacyLocationsForCategory(activeCategory.value);
     const message =
       placeReturnMessage ||
       getV1ExploreUiCopy(currentLocale()).chooseOther(activeCategory.label);
@@ -1735,7 +1753,7 @@ export function installExploreLocationsControl({
     const generation = ++interactionGeneration;
     const categoryValue = activeCategory.value;
     const categoryLabel = activeCategory.label;
-    const allLocations = getExploreLocationsForCategory(categoryValue);
+    const allLocations = legacyLocationsForCategory(categoryValue);
 
     if (option.action === "back-menu") {
       backToMenu();
@@ -1807,7 +1825,7 @@ export function installExploreLocationsControl({
     activePlace = undefined;
     activeStage = "filters";
     clearExploreRuntimeStatus();
-    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+    const allLocations = legacyLocationsForCategory(activeCategory.value);
     const filters = getV1ExploreSubcategoryOptions(
       activeCategory.value,
       currentLocale(),
@@ -1976,7 +1994,7 @@ export function installExploreLocationsControl({
     }
 
     if (command.type === "map_filter_category") {
-      const locations = getExploreLocationsForCategory(command.category);
+      const locations = legacyLocationsForCategory(command.category);
       if (locations.length === 0) return false;
       return renderMapOnlyLocations(locations, command.category);
     }
@@ -1997,7 +2015,7 @@ export function installExploreLocationsControl({
     }
 
     if (command.type === "select_place") {
-      const location = resolveExploreLocationByName(
+      const location = resolveLegacyLocationByName(
         command.place,
         command.category,
       );
@@ -2010,7 +2028,7 @@ export function installExploreLocationsControl({
     }
 
     if (!activeCategory) return false;
-    const allLocations = getExploreLocationsForCategory(activeCategory.value);
+    const allLocations = legacyLocationsForCategory(activeCategory.value);
 
     if (command.type === "show_all") {
       interactionGeneration += 1;
@@ -2273,7 +2291,7 @@ export function installExploreLocationsControl({
         if (activeStage === "detail" && activePlace) {
           const location =
             activePlaceLocation ??
-            resolveExploreLocationByName(activePlace, activeCategory?.value);
+            resolveLegacyLocationByName(activePlace, activeCategory?.value);
           if (location) void selectLocation(location);
         }
         if (activeStage === "tour") immersiveTourController?.refreshLocale();
@@ -2330,7 +2348,7 @@ export function installExploreLocationsControl({
       const locations =
         placeReturnLocations.length > 0
           ? placeReturnLocations
-          : getExploreLocationsForCategory(activeCategory.value);
+          : legacyLocationsForCategory(activeCategory.value);
       renderPlaces(
         locations,
         placeReturnMessage ||
@@ -2374,6 +2392,22 @@ export function installExploreLocationsControl({
     execute,
     getState: stateSnapshot,
     close: () => backToMenu(),
+    setPublicPlaceReadContext(context: PublicPlaceReadContext) {
+      const next = resolvePublicPlaceReadContext(context);
+      const changed =
+        next.destinationId !== activePublicPlaceReadContext.destinationId ||
+        next.zoom !== activePublicPlaceReadContext.zoom ||
+        next.bbox.some(
+          (value, index) => value !== activePublicPlaceReadContext.bbox[index],
+        );
+      if (!changed) return;
+      activePublicPlaceReadContext = next;
+      interactionGeneration += 1;
+      if (activeStage === "menu") {
+        visibleLocations = Object.freeze([]);
+        void loadHybridGlobalMarkers();
+      }
+    },
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
       geospatialEngine = engine;
       if (visibleLocations.length > 0) {

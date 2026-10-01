@@ -32,6 +32,10 @@
     "./settlement": {
       "types": "./src/settlement.ts",
       "default": "./dist/settlement.js"
+    },
+    "./read-projections": {
+      "types": "./src/financial-read-projections.ts",
+      "default": "./dist/financial-read-projections.js"
     }
   },
   "scripts": {

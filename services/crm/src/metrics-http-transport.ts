@@ -26,6 +26,12 @@ function resultResponse<T>(
       reason: result.reason,
     });
   }
+  if (result.reason === "capability_denied") {
+    return crmHttpResponse(403, {
+      error: "CAPABILITY_DENIED",
+      reason: result.reason,
+    });
+  }
   return crmHttpResponse(403, {
     error: "ACCESS_DENIED",
     reason: result.reason,

@@ -109,7 +109,10 @@ describe("Place + Search/Explore V2 contract", () => {
     );
     expect(control).toContain("createPublicPlaceMapClient");
     expect(control).toContain("loadHybridGlobalMarkers");
-    expect(control).toContain("CANONICAL_MAP_DESTINATION_ID");
+    expect(control).toContain("activePublicPlaceReadContext.destinationId");
+    expect(control).toContain("setPublicPlaceReadContext");
+    expect(control).toContain("allowsMorroLegacyPlaceFallback");
+    expect(control).not.toContain("CANONICAL_MAP_DESTINATION_ID");
     expect(control).toContain("canonicalPlaceRuntimeAvailable");
     expect(control).toContain("VITE_PLACE_PLATFORM_AVAILABLE");
     expect(control).toContain('source: "canonical" as const');
@@ -122,6 +125,7 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(marker).toContain("root.dataset.canonicalPlaceId");
     expect(entry).toContain("marker.dataset.canonicalPlaceId");
     expect(entry).toContain('type: "select_place_id"');
+    expect(entry).toContain("createPublicPlaceReadContextFromDestination");
     expect(control).toContain("legacyFallback");
     expect(control).toContain("canonicalPlaceId");
     expect(control).toContain("detail.actions.secondaryActions");

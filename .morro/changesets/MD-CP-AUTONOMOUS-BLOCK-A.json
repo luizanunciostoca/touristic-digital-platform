@@ -2,7 +2,7 @@
   "id": "MD-CP-AUTONOMOUS-BLOCK-A",
   "baseSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
   "branch": "infra/control-plane-v3.2-autonomous-block-a-20261001",
-  "state": "IMPLEMENTING",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
@@ -30,10 +30,17 @@
     ]
   },
   "reads": {
-    "contracts": ["GITHUB-CURRENT-MAIN", "TERMUX-NATIVE-AGENT-HEARTBEAT"]
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "TERMUX-NATIVE-AGENT-HEARTBEAT"
+    ]
   },
   "produces": {
-    "events": ["CHANGESET_CREATED", "CLAIM_ACQUIRED", "CLAIM_RELEASED"],
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RELEASED"
+    ],
     "routes": []
   },
   "database": {

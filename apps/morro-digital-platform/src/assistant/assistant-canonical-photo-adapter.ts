@@ -1,12 +1,10 @@
 import { normalizeSearchText } from "@touristic/search";
 
 import { createPublicPlaceMapClient } from "../map/public-place-map-client-v2.js";
-
-const DESTINATION_ID = "morro-de-sao-paulo";
-const DESTINATION_BBOX = Object.freeze([
-  -39.05, -13.5, -38.89, -13.35,
-] as const);
-const DESTINATION_ZOOM = 13;
+import {
+  resolvePublicPlaceReadContext,
+  type PublicPlaceReadContext,
+} from "../runtime/public-place-read-context.js";
 
 export interface AssistantCanonicalPhotoSet {
   readonly placeId: string;
@@ -52,16 +50,18 @@ export async function resolveAssistantCanonicalPhotos(
   place: string,
   fetchImplementation: typeof globalThis.fetch,
   language: string,
+  publicPlaceReadContext?: PublicPlaceReadContext,
 ): Promise<AssistantCanonicalPhotoSet | null> {
   const normalized = normalizeSearchText(place);
   if (!normalized) return null;
+  const readContext = resolvePublicPlaceReadContext(publicPlaceReadContext);
 
   try {
     const client = createPublicPlaceMapClient(fetchImplementation);
     const page = await client.listMap({
-      destinationId: DESTINATION_ID,
-      bbox: DESTINATION_BBOX,
-      zoom: DESTINATION_ZOOM,
+      destinationId: readContext.destinationId,
+      bbox: readContext.bbox,
+      zoom: readContext.zoom,
     });
     const candidate = page.items
       .map((item) => ({ item, score: discoveryScore(item.name, normalized) }))
@@ -85,6 +85,11 @@ export async function resolveAssistantCanonicalPhotos(
       locale: localeFor(language),
     });
     if (!detail || detail.profile.id !== candidate.item.id) return null;
+    const canonicalDestinationId =
+      typeof detail.profile.destinationId === "string"
+        ? detail.profile.destinationId
+        : String(detail.actions.destinationId ?? "");
+    if (canonicalDestinationId !== readContext.destinationId) return null;
     if (detail.media?.placeId !== candidate.item.id) return null;
 
     const ordered = [detail.media.coverImage, ...detail.media.gallery];

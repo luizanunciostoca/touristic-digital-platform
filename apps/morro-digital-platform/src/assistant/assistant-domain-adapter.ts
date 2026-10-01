@@ -23,6 +23,11 @@ import {
   type AssistantDomainLanguage,
 } from "./assistant-domain-copy.js";
 import { resolveAssistantCanonicalPhotos } from "./assistant-canonical-photo-adapter.js";
+import {
+  allowsMorroLegacyPlaceFallback,
+  resolvePublicPlaceReadContext,
+  type PublicPlaceReadContext,
+} from "../runtime/public-place-read-context.js";
 import { fetchAssistantPlaceDetails } from "./assistant-place-details-adapter.js";
 import { resolveAssistantV1Photos } from "./assistant-v1-photo-catalog.js";
 import {
@@ -51,6 +56,7 @@ export interface AssistantBrowserDomainAdapterOptions {
   readonly geolocation?: AssistantGeolocationPort;
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
+  readonly publicPlaceReadContext?: PublicPlaceReadContext;
 }
 
 async function getWeather(
@@ -126,12 +132,17 @@ function getCurrentLocation(
 async function getPhotos(
   place: string,
   language: AssistantDomainLanguage,
-  fetchImplementation: typeof globalThis.fetch,
+  options: AssistantBrowserDomainAdapterOptions,
 ): Promise<AssistantDialogResponse> {
+  const fetchImplementation = options.fetch ?? globalThis.fetch;
+  const readContext = resolvePublicPlaceReadContext(
+    options.publicPlaceReadContext,
+  );
   const canonical = await resolveAssistantCanonicalPhotos(
     place,
     fetchImplementation,
     language,
+    readContext,
   );
   if (canonical) {
     return {
@@ -149,6 +160,18 @@ async function getPhotos(
         placeId: canonical.placeId,
         images: [...canonical.images],
         presentation: "carousel",
+      },
+    };
+  }
+
+  if (!allowsMorroLegacyPlaceFallback(readContext)) {
+    return {
+      text: photosCopy(language, "unavailable", place),
+      metadata: {
+        domain: "photos",
+        state: "unavailable",
+        place,
+        source: "canonical",
       },
     };
   }
@@ -210,6 +233,9 @@ async function getPlaceDetails(
       ? { accessToken: options.mapboxAccessToken }
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(options.publicPlaceReadContext
+      ? { publicPlaceReadContext: options.publicPlaceReadContext }
+      : {}),
   });
   if (!details)
     return {
@@ -239,6 +265,9 @@ async function getPlaceHours(
       ? { accessToken: options.mapboxAccessToken }
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
+    ...(options.publicPlaceReadContext
+      ? { publicPlaceReadContext: options.publicPlaceReadContext }
+      : {}),
   });
   if (!details || details.openNow === null)
     return {
@@ -416,11 +445,7 @@ export function createAssistantBrowserDomainHandlers(
           options.geolocation,
         ),
       photos: (place, request) =>
-        getPhotos(
-          place,
-          request.intent.entities.language ?? "pt",
-          fetchImplementation,
-        ),
+        getPhotos(place, request.intent.entities.language ?? "pt", options),
       price: (place, request) => {
         const language = request.intent.entities.language ?? "pt";
         return {
@@ -561,6 +586,9 @@ export function createAssistantBrowserDomainHandlers(
       ...(options.fetch ? { fetch: options.fetch } : {}),
       ...(options.mapboxAccessToken
         ? { mapboxAccessToken: options.mapboxAccessToken }
+        : {}),
+      ...(options.publicPlaceReadContext
+        ? { publicPlaceReadContext: options.publicPlaceReadContext }
         : {}),
     }),
   };

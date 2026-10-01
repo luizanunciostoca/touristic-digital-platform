@@ -58,6 +58,7 @@ import {
 } from "./assistant-voice-input-adapter.js";
 import { installAssistantVoiceSettings } from "./assistant-voice-settings.js";
 import { dispatchAssistantUiState } from "./assistant-ui-state.js";
+import type { PublicPlaceReadContext } from "../runtime/public-place-read-context.js";
 
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -74,6 +75,7 @@ export interface BrowserAssistantRuntimeOptions {
   readonly storage?: Storage;
   readonly fetch?: typeof globalThis.fetch;
   readonly mapboxAccessToken?: string;
+  readonly publicPlaceReadContext?: PublicPlaceReadContext;
 }
 
 export interface BrowserAssistantRuntime {
@@ -741,6 +743,9 @@ export function installBrowserAssistantRuntime(
       : {}),
     ...(options.fetch ? { fetch: options.fetch } : {}),
     ...(mapboxAccessToken ? { mapboxAccessToken } : {}),
+    ...(options.publicPlaceReadContext
+      ? { publicPlaceReadContext: options.publicPlaceReadContext }
+      : {}),
   });
   const intelligenceHandlers = createAssistantV1IntelligenceHandlers({
     profile,

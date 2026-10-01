@@ -24,6 +24,29 @@ describe("public Destination browser runtime", () => {
     expect(result.destination.center.latitude).toBe(-13.4);
   });
 
+  it("accepts a different validated destination owner projection without falling back to Morro", async () => {
+    const itacare = {
+      ...morroDeSaoPauloDestination,
+      id: "itacare",
+      name: "Itacaré",
+      center: { latitude: -14.278, longitude: -38.995 },
+      radiusMeters: 20_000,
+    };
+    const fetcher = (async () =>
+      new Response(
+        JSON.stringify({
+          destination: itacare,
+          source: "destination-owner",
+        }),
+        { status: 200 },
+      )) as typeof fetch;
+
+    const result = await loadPublicDestination(fetcher);
+    expect(result.source).toBe("destination-owner");
+    expect(String(result.destination.id)).toBe("itacare");
+    expect(result.destination.name).toBe("Itacaré");
+  });
+
   it("preserves an explicit static fallback source from the server", async () => {
     const fetcher = (async () =>
       new Response(
