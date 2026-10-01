@@ -5,12 +5,12 @@
   --text: #17202e;
   --muted: #626d7f;
   --line: #e6eaf0;
-  --brand: #223043;
-  --brand-deep: #101827;
-  --accent: #d7a94f;
-  --success: #12715b;
-  --warning: #8b6112;
-  --danger: #a23b3b;
+  --brand: #0a2342;
+  --brand-deep: #07152f;
+  --accent: #19b6d8;
+  --success: #16794b;
+  --warning: #a55a00;
+  --danger: #b42318;
   --shadow: 0 16px 40px rgba(16, 24, 39, 0.08);
   --radius: 18px;
 }
@@ -57,7 +57,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid rgba(215, 169, 79, 0.42);
+  outline: 3px solid rgb(25 182 216 / 42%);
   outline-offset: 2px;
 }
 
@@ -415,7 +415,7 @@ h1 {
   background: white;
 }
 .table-wrap:focus-visible {
-  outline: 3px solid rgba(215, 169, 79, 0.42);
+  outline: 3px solid rgb(25 182 216 / 42%);
   outline-offset: 2px;
 }
 table {
@@ -684,4 +684,17 @@ html[data-control-motion="reduced"] *::after {
     transition: none !important;
     animation-duration: 0.001ms !important;
   }
+}
+
+.brand-wordmark.brand-v2 {
+  flex: 0 1 15rem;
+}
+
+.brand-wordmark.brand-v2 .brand-v2__primary {
+  font-size: 0.94rem;
+}
+
+.brand-wordmark.brand-v2 .brand-v2__secondary,
+.brand-wordmark.brand-v2 .brand-v2__product {
+  font-size: 0.66rem;
 }

@@ -14,8 +14,8 @@
   --surface-strong: #12233a;
   --line: rgba(148, 163, 184, 0.2);
   --muted: #a9b6c8;
-  --accent: #35d0ba;
-  --accent-strong: #13a98f;
+  --accent: #19b6d8;
+  --accent-strong: #0aacb0;
   --danger: #ff9a9a;
 }
 
@@ -411,4 +411,9 @@ th {
   .referral-result {
     grid-template-columns: 1fr;
   }
+}
+
+.portal-header .brand-v2__symbol {
+  width: 2.6rem;
+  height: 2.6rem;
 }

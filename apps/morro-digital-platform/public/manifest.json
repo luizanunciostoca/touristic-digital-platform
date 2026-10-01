@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "Morro de São Paulo Digital",
+  "name": "Morro Digital — Morro de São Paulo",
   "short_name": "Morro Digital",
   "description": "Guia digital interativo de Morro de São Paulo",
   "lang": "pt-BR",
@@ -9,20 +9,32 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#f9fafb",
-  "theme_color": "#0f766e",
+  "background_color": "#F7FAFC",
+  "theme_color": "#0867B2",
   "icons": [
     {
       "src": "/pwa-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/pwa-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/pwa-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
