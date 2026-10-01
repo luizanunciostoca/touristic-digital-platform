@@ -133,8 +133,7 @@ export function evaluateInvariants({
 }) {
   const checks = [];
 
-  const bindingSupplied =
-    projectionAuthority != null || projectionSha != null;
+  const bindingSupplied = projectionAuthority != null || projectionSha != null;
   checks.push(
     result(
       "INV-000",
@@ -364,7 +363,8 @@ export function evaluateInvariants({
   const expectedReleaseValid = SHA.test(expectedCertifiedReleaseSha ?? "");
   const identityDrift = healthyRuntimeEntries.filter(
     ([, runtime]) =>
-      expectedReleaseValid && runtime?.releaseSha !== expectedCertifiedReleaseSha,
+      expectedReleaseValid &&
+      runtime?.releaseSha !== expectedCertifiedReleaseSha,
   );
   checks.push(
     result(
