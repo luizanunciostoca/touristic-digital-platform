@@ -15,7 +15,8 @@ export const brandFamilyV2 = Object.freeze({
       micro: "packages/design-system/src/brand/v2/assets/tdp-micro.svg",
     }),
     sha256: Object.freeze({
-      symbol: "b7761dc812ea364743762d6db3d25e548ed679c8a8630ca5f8fdc64a7e1bf511",
+      symbol:
+        "b7761dc812ea364743762d6db3d25e548ed679c8a8630ca5f8fdc64a7e1bf511",
       micro: "020217dd135fc5c3a10aff648d0e4f6b4d5ea22f6f639be69443e6ed0b1b64d4",
     }),
   }),
@@ -31,7 +32,8 @@ export const brandFamilyV2 = Object.freeze({
       micro: "packages/design-system/src/brand/v2/assets/morro-micro.svg",
     }),
     sha256: Object.freeze({
-      symbol: "df3e288adc113fb4b7440694b9bd796b9e7cd10ac6839286b05267cd2f3195be",
+      symbol:
+        "df3e288adc113fb4b7440694b9bd796b9e7cd10ac6839286b05267cd2f3195be",
       micro: "014a6b0ad562fc43e730c2e89585f0bdad8bc5c021e37b13796c80a6ac0680ee",
     }),
   }),
@@ -48,7 +50,8 @@ export const brandFamilyV2 = Object.freeze({
       micro: "packages/design-system/src/brand/v2/assets/itacare-micro.svg",
     }),
     sha256: Object.freeze({
-      symbol: "1dd65603b552f4e00d47df5fe38ba2cbcc0827041f2fa7a36993779f22fcbc29",
+      symbol:
+        "1dd65603b552f4e00d47df5fe38ba2cbcc0827041f2fa7a36993779f22fcbc29",
       micro: "e6877246e709b4f32404b081620e0a9002484f5b13579779a47edb1ba852d598",
     }),
   }),
