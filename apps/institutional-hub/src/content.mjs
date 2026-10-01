@@ -61,7 +61,8 @@ export const pages = Object.freeze([
     description:
       "Infraestrutura tecnológica para conectar experiência, operação e ecossistemas de destinos com identidade local preservada.",
     eyebrow: "REDE · Destination Technology Infrastructure Platform",
-    heading: "Tecnologia compartilhada. Destinos que continuam sendo eles mesmos.",
+    heading:
+      "Tecnologia compartilhada. Destinos que continuam sendo eles mesmos.",
     lede: site.bigIdea,
     source: authority.baseline,
     ctas: [
@@ -71,18 +72,24 @@ export const pages = Object.freeze([
     sections: [
       {
         heading: "Uma infraestrutura comum, experiências locais próprias",
-        body:
-          "A Touristic Digital Platform reúne tecnologia, governança, negócio e propriedade intelectual em um Platform Core comum. Morro Digital e Itacaré Digital são destination brands pares sob essa arquitetura.",
+        body: "A Touristic Digital Platform reúne tecnologia, governança, negócio e propriedade intelectual em um Platform Core comum. Morro Digital e Itacaré Digital são destination brands pares sob essa arquitetura.",
         cards: [
-          ["REDE", "Touristic Digital Platform", "Master brand e Platform Core."],
-          ["PERCURSO", "Morro Digital", "Ecossistema digital de Morro de São Paulo."],
+          [
+            "REDE",
+            "Touristic Digital Platform",
+            "Master brand e Platform Core.",
+          ],
+          [
+            "PERCURSO",
+            "Morro Digital",
+            "Ecossistema digital de Morro de São Paulo.",
+          ],
           ["FLUXO", "Itacaré Digital", "Ecossistema digital de Itacaré."],
         ],
       },
       {
         heading: "O que a baseline permite afirmar",
-        body:
-          "As métricas descrevem arquitetura e capacidades canônicas; não representam adoção, receita ou implantação em produção.",
+        body: "As métricas descrevem arquitetura e capacidades canônicas; não representam adoção, receita ou implantação em produção.",
         metrics: [
           ["12", "Feature Registry entries", "status equivalent"],
           ["36", "capacidades canônicas", "arquitetura"],
@@ -103,9 +110,9 @@ export const pages = Object.freeze([
     description:
       "Conheça a arquitetura multi-destino, os domínios do Platform Core e as fronteiras que preservam identidade e operação local.",
     eyebrow: "PLATFORM · REDE",
-    heading: "Um core compartilhado. Fronteiras explícitas. Configuração local.",
-    lede:
-      "A plataforma conecta experiência, oferta local, operação do destino e dados/integrações sem centralizar toda a autoridade em uma única superfície.",
+    heading:
+      "Um core compartilhado. Fronteiras explícitas. Configuração local.",
+    lede: "A plataforma conecta experiência, oferta local, operação do destino e dados/integrações sem centralizar toda a autoridade em uma única superfície.",
     source: authority.masterBook,
     ctas: [
       ["/product/", "Ver produto"],
@@ -118,8 +125,7 @@ export const pages = Object.freeze([
       ),
       {
         heading: "Platform Core",
-        body:
-          "A arquitetura auditada nomeia 19 domínios. A contagem descreve estrutura arquitetural, não adoção.",
+        body: "A arquitetura auditada nomeia 19 domínios. A contagem descreve estrutura arquitetural, não adoção.",
         metrics: [
           ["19", "domínios nomeados", "estrutura arquitetural"],
           ["36", "capacidades canônicas", "baseline pública"],
@@ -138,8 +144,7 @@ export const pages = Object.freeze([
       "Veja superfícies comprovadas para viajantes, negócios e operação de destinos, com evidência visual e guardrails claros.",
     eyebrow: "CURRENT PRODUCT EVIDENCE",
     heading: "Três perspectivas do mesmo ecossistema digital.",
-    lede:
-      "A evidência atual cobre experiência turística, operação de negócios e operação da plataforma. Uma tela comprova superfície e capacidade; não comprova tração ou resultado comercial.",
+    lede: "A evidência atual cobre experiência turística, operação de negócios e operação da plataforma. Uma tela comprova superfície e capacidade; não comprova tração ou resultado comercial.",
     source: authority.product,
     sections: [
       section(
@@ -171,8 +176,7 @@ export const pages = Object.freeze([
       "Morro Digital e Itacaré Digital são ecossistemas de destino pares construídos sobre um Platform Core comum.",
     eyebrow: "DESTINATION ECOSYSTEMS",
     heading: "O core é comum. O destino continua próprio.",
-    lede:
-      "A família visual e a arquitetura institucional compartilham DNA sem transformar destinos diferentes em cópias do mesmo produto.",
+    lede: "A família visual e a arquitetura institucional compartilham DNA sem transformar destinos diferentes em cópias do mesmo produto.",
     source: authority.baseline,
     ctas: [
       ["/destinations/morro-digital/", "Morro Digital"],
@@ -182,8 +186,16 @@ export const pages = Object.freeze([
       {
         heading: "Destinos pares sob a master brand",
         cards: [
-          ["/destinations/morro-digital/", "Morro Digital · PERCURSO", "Morro de São Paulo."],
-          ["/destinations/itacare-digital/", "Itacaré Digital · FLUXO", "Itacaré."],
+          [
+            "/destinations/morro-digital/",
+            "Morro Digital · PERCURSO",
+            "Morro de São Paulo.",
+          ],
+          [
+            "/destinations/itacare-digital/",
+            "Itacaré Digital · FLUXO",
+            "Itacaré.",
+          ],
         ],
       },
       section(
@@ -199,8 +211,7 @@ export const pages = Object.freeze([
       "Conheça o ecossistema digital de Morro de São Paulo conectado ao Platform Core da Touristic Digital Platform.",
     eyebrow: "MORRO DIGITAL · PERCURSO",
     heading: "Um ecossistema pensado para o percurso de Morro de São Paulo.",
-    lede:
-      "Morro Digital representa Morro de São Paulo e é a primeira configuração oficial/baseline descrita pela arquitetura atual.",
+    lede: "Morro Digital representa Morro de São Paulo e é a primeira configuração oficial/baseline descrita pela arquitetura atual.",
     source: authority.masterBook,
     theme: "morro",
     sections: [
@@ -221,9 +232,9 @@ export const pages = Object.freeze([
     description:
       "Itacaré Digital é a destination brand de Itacaré, parte da arquitetura multi-destino da Touristic Digital Platform.",
     eyebrow: "ITACARÉ DIGITAL · FLUXO",
-    heading: "A mesma infraestrutura precisa comportar uma lógica territorial diferente.",
-    lede:
-      "Itacaré Digital representa Itacaré como destination ecosystem par de Morro Digital. A marca é canônica; equivalência de runtime com Morro permanece não verificada.",
+    heading:
+      "A mesma infraestrutura precisa comportar uma lógica territorial diferente.",
+    lede: "Itacaré Digital representa Itacaré como destination ecosystem par de Morro Digital. A marca é canônica; equivalência de runtime com Morro permanece não verificada.",
     source: authority.baseline,
     theme: "itacare",
     sections: [
@@ -245,8 +256,7 @@ export const pages = Object.freeze([
       "Entenda as superfícies para negócios locais e a arquitetura econômica da plataforma, sem confundir capacidade com resultados.",
     eyebrow: "BUSINESS",
     heading: "Operação local conectada ao contexto do destino.",
-    lede:
-      "O Business Portal e o CRM organizam presença, oferta e relacionamento. O modelo econômico é uma arquitetura de mecanismos; valores comerciais dependem de evidência própria.",
+    lede: "O Business Portal e o CRM organizam presença, oferta e relacionamento. O modelo econômico é uma arquitetura de mecanismos; valores comerciais dependem de evidência própria.",
     source: authority.baseline,
     sections: [
       section(
@@ -272,14 +282,13 @@ export const pages = Object.freeze([
       "Contexto de turismo, modelo count-based de TAM/SAM/SOM e princípios de impacto com fontes, períodos e qualificadores explícitos.",
     eyebrow: "MARKET / OPPORTUNITY",
     heading: "Contexto de mercado precisa carregar período e metodologia.",
-    lede:
-      "A baseline usa um modelo count-based de destinos. Ele organiza escopo de planejamento e não é um modelo monetário de tamanho de mercado.",
-    source: "Publication Acceptance V1 · market refresh + " + authority.baseline,
+    lede: "A baseline usa um modelo count-based de destinos. Ele organiza escopo de planejamento e não é um modelo monetário de tamanho de mercado.",
+    source:
+      "Publication Acceptance V1 · market refresh + " + authority.baseline,
     sections: [
       {
         heading: "Mapa do Turismo · snapshot Q1 2026",
-        body:
-          "TAM e SAM permanecem snapshots datados porque a base oficial é atualizada continuamente. SOM representa escopo de planejamento; não representa participação de mercado, contratos ou previsão.",
+        body: "TAM e SAM permanecem snapshots datados porque a base oficial é atualizada continuamente. SOM representa escopo de planejamento; não representa participação de mercado, contratos ou previsão.",
         metrics: [
           ["3.102", "TAM · municípios no recorte", "snapshot Q1 2026"],
           ["689", "SAM · municípios categorizados", "snapshot Q1 2026"],
@@ -298,9 +307,9 @@ export const pages = Object.freeze([
     description:
       "Conheça a tese institucional, evidências e arquitetura de expansão da Touristic Digital Platform.",
     eyebrow: "INVESTORS",
-    heading: "Uma tese institucional baseada em arquitetura, evidência e expansão configurável.",
-    lede:
-      "O Hub apresenta apenas a tese pública. Materiais de diligência e informações comerciais controladas permanecem em canais separados.",
+    heading:
+      "Uma tese institucional baseada em arquitetura, evidência e expansão configurável.",
+    lede: "O Hub apresenta apenas a tese pública. Materiais de diligência e informações comerciais controladas permanecem em canais separados.",
     source: "Investor Deck V1.2 · controlled source",
     sections: [
       section(
@@ -320,9 +329,9 @@ export const pages = Object.freeze([
     description:
       "Conheça a arquitetura conceitual de patrocínio contextual, com disclosure, readiness gates e separação entre produto atual e conceito.",
     eyebrow: "SPONSORSHIP · CONCEPT / NOT LIVE PRODUCT",
-    heading: "Marcas entram onde podem adicionar utilidade, não apenas exposição.",
-    lede:
-      "A arquitetura organiza oportunidades por contexto, benefício, disclosure, mensuração e readiness. Conceito comercial não é inventário ativo.",
+    heading:
+      "Marcas entram onde podem adicionar utilidade, não apenas exposição.",
+    lede: "A arquitetura organiza oportunidades por contexto, benefício, disclosure, mensuração e readiness. Conceito comercial não é inventário ativo.",
     source: "Sponsorship Lane M V1.3",
     sections: [
       section(
@@ -344,8 +353,7 @@ export const pages = Object.freeze([
       "Veja o framework governado para estruturar novos ecossistemas de destino sobre um Platform Core comum.",
     eyebrow: "DESTINATION PARTNERS",
     heading: "Expansão é configuração governada, não clonagem.",
-    lede:
-      "Prefeituras, secretarias, DMOs, associações, grupos privados e operadores podem avaliar o framework conforme autoridade, território e maturidade local.",
+    lede: "Prefeituras, secretarias, DMOs, associações, grupos privados e operadores podem avaliar o framework conforme autoridade, território e maturidade local.",
     source: "Destination Expansion Lane N V1.1",
     sections: [
       section(
@@ -366,8 +374,7 @@ export const pages = Object.freeze([
       "Arquitetura, domínios reutilizáveis e fronteiras de autoridade que sustentam a plataforma multi-destino.",
     eyebrow: "TECHNOLOGY",
     heading: "Reutilizar o que é comum. Explicitar o que tem autoridade.",
-    lede:
-      "Configuração multi-destino, contratos explícitos, domínios reutilizáveis e governança de evidência formam a fundação técnica descrita pela baseline.",
+    lede: "Configuração multi-destino, contratos explícitos, domínios reutilizáveis e governança de evidência formam a fundação técnica descrita pela baseline.",
     source: authority.masterBook,
     sections: [
       section(
@@ -388,8 +395,7 @@ export const pages = Object.freeze([
       "Conheça os princípios de evidência, acessibilidade, privacidade, autoridade e controle de mudanças da plataforma.",
     eyebrow: "GOVERNANCE / TRUST",
     heading: "Evidência vem antes de claim.",
-    lede:
-      "Source acceptance, institutional freeze, public release e deployment são estados diferentes e permanecem governados separadamente.",
+    lede: "Source acceptance, institutional freeze, public release e deployment são estados diferentes e permanecem governados separadamente.",
     source: authority.baseline,
     sections: [
       section(
@@ -409,8 +415,7 @@ export const pages = Object.freeze([
       "Propósito, missão, visão, valores e arquitetura institucional da Touristic Digital Platform.",
     eyebrow: "ABOUT",
     heading: "Conectar destinos sem apagar o destino.",
-    lede:
-      "A entidade-mãe reúne Platform Core, governança, negócio e propriedade intelectual; destination brands permanecem instâncias locais pares.",
+    lede: "A entidade-mãe reúne Platform Core, governança, negócio e propriedade intelectual; destination brands permanecem instâncias locais pares.",
     source: authority.masterBook,
     sections: [
       section(
@@ -430,16 +435,27 @@ export const pages = Object.freeze([
       "Documentos, evidências e notas de fonte com classificação e status de publicação claramente identificados.",
     eyebrow: "RESOURCES",
     heading: "Documentos versionados. Estado de publicação explícito.",
-    lede:
-      "Este preview não expõe links privados nem transforma um candidato técnico em material publicado.",
+    lede: "Este preview não expõe links privados nem transforma um candidato técnico em material publicado.",
     source: "Wave 2 Final Artifact Index V1",
     sections: [
       {
         heading: "Catálogo de recursos",
         resources: [
-          ["Institutional Master Book V3.1", "INTERNAL / FROZEN", "Autoridade editorial."],
-          ["Interactive Institutional PDF V2.1", "PUBLIC-CANDIDATE", "Pacote técnico preparado."],
-          ["Destination Expansion Deck V1.1", "PUBLIC-CANDIDATE", "Material de destino."],
+          [
+            "Institutional Master Book V3.1",
+            "INTERNAL / FROZEN",
+            "Autoridade editorial.",
+          ],
+          [
+            "Interactive Institutional PDF V2.1",
+            "PUBLIC-CANDIDATE",
+            "Pacote técnico preparado.",
+          ],
+          [
+            "Destination Expansion Deck V1.1",
+            "PUBLIC-CANDIDATE",
+            "Material de destino.",
+          ],
           ["Investor Deck V1.2", "CONTROLLED", "Distribuição controlada."],
           ["Sponsorship Deck V1.3", "CONTROLLED", "Direitos ainda governados."],
         ],
@@ -458,17 +474,24 @@ export const pages = Object.freeze([
       "Canais de conversa para destinos, negócios, parcerias, investimento e tecnologia, sem inventar dados de contato.",
     eyebrow: "CONTACT",
     heading: "Escolha a conversa certa para cada contexto.",
-    lede:
-      "O Hub não publica um endpoint de contato até que canal, privacidade e ownership estejam formalmente configurados.",
+    lede: "O Hub não publica um endpoint de contato até que canal, privacidade e ownership estejam formalmente configurados.",
     source: "Institutional CTA framework",
     sections: [
       {
         heading: "Rotas de conversa",
         cards: [
-          ["Destinos", "Framework", "Escopo territorial, governança e readiness."],
+          [
+            "Destinos",
+            "Framework",
+            "Escopo territorial, governança e readiness.",
+          ],
           ["Negócios", "Operação", "Superfícies e fluxos suportados."],
           ["Marcas", "Sponsorship", "Framework conceitual e readiness."],
-          ["Investidores", "Diligência", "Acesso controlado quando autorizado."],
+          [
+            "Investidores",
+            "Diligência",
+            "Acesso controlado quando autorizado.",
+          ],
           ["Tecnologia", "Integrações", "Arquitetura e contratos."],
         ],
       },
