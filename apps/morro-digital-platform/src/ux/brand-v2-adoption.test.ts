@@ -62,9 +62,7 @@ describe("Brand V2 product adoption", () => {
     expect(html).toContain("<title>Morro Digital — Morro de São Paulo</title>");
     expect(html).toContain('content="#0867b2"');
     expect(html).toContain("/assets/brand/morro-digital-micro-v2.svg");
-    expect(html).toContain(
-      "/apps/morro-digital-platform/public/brand-v2.css",
-    );
+    expect(html).toContain("/apps/morro-digital-platform/public/brand-v2.css");
     expect(html).not.toContain("/pwa-icon-192.png");
 
     expect(manifest.name).toBe("Morro Digital — Morro de São Paulo");
@@ -81,21 +79,15 @@ describe("Brand V2 product adoption", () => {
 
     expect(css).toContain("--brand-platform-coral: #fa7951");
     expect(css).toContain("--brand-destination-morro-cobalt: #0867b2");
-    expect(css).toContain(
-      'url("/assets/brand/morro-digital-symbol-v2.svg")',
-    );
-    expect(css).toContain(
-      'body[data-md-mode="discover"] .md-home-title-block',
-    );
+    expect(css).toContain('url("/assets/brand/morro-digital-symbol-v2.svg")');
+    expect(css).toContain('body[data-md-mode="discover"] .md-home-title-block');
     expect(css).toContain("display: none");
   });
 
   it("renders the governed Morro mark instead of a literal placeholder", async () => {
     const shell = await read("../layouts/app-shell.ts");
 
-    expect(shell).toContain(
-      'src="/assets/brand/morro-digital-symbol-v2.svg"',
-    );
+    expect(shell).toContain('src="/assets/brand/morro-digital-symbol-v2.svg"');
     expect(shell).not.toContain(
       '<span class="md-home-brand-mark" aria-hidden="true">M</span>',
     );
