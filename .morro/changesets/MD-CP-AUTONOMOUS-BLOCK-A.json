@@ -30,17 +30,10 @@
     ]
   },
   "reads": {
-    "contracts": [
-      "GITHUB-CURRENT-MAIN",
-      "TERMUX-NATIVE-AGENT-HEARTBEAT"
-    ]
+    "contracts": ["GITHUB-CURRENT-MAIN", "TERMUX-NATIVE-AGENT-HEARTBEAT"]
   },
   "produces": {
-    "events": [
-      "CHANGESET_CREATED",
-      "CLAIM_ACQUIRED",
-      "CLAIM_RELEASED"
-    ],
+    "events": ["CHANGESET_CREATED", "CLAIM_ACQUIRED", "CLAIM_RELEASED"],
     "routes": []
   },
   "database": {

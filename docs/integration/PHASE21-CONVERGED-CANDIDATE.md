@@ -19,13 +19,13 @@ No synthetic worker or fabricated PR is introduced.
 
 ## Frozen lane inputs
 
-| Lane | PR | Exact head | Files |
-| --- | ---: | --- | ---: |
-| F | #578 | `1a1ef9682c0125feed2f0fe25162eedba455e1d2` | 15 |
-| B | #575 | `cf8ce0bafda8881b7e262e2b185d9f68c4cc533f` | 14 |
-| C | #577 | `d177585087e1fb0d98097cf0e2e7be01909a6bd6` | 7 |
-| D | #576 | `063ec8c0f8d5cbdbe5a8ec0cf1ae9bedd9d2661f` | 4 |
-| E | #574 | `7522f050d58fdeee84c344052b68d3c0c82b1b70` | 3 |
+| Lane |   PR | Exact head                                 | Files |
+| ---- | ---: | ------------------------------------------ | ----: |
+| F    | #578 | `1a1ef9682c0125feed2f0fe25162eedba455e1d2` |    15 |
+| B    | #575 | `cf8ce0bafda8881b7e262e2b185d9f68c4cc533f` |    14 |
+| C    | #577 | `d177585087e1fb0d98097cf0e2e7be01909a6bd6` |     7 |
+| D    | #576 | `063ec8c0f8d5cbdbe5a8ec0cf1ae9bedd9d2661f` |     4 |
+| E    | #574 | `7522f050d58fdeee84c344052b68d3c0c82b1b70` |     3 |
 
 Direct path overlap across B–F: **0**.
 

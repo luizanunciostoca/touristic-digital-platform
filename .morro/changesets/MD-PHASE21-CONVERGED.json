@@ -124,9 +124,7 @@
     "PHASE19_BASELINE_FROZEN",
     "LANES_B_C_D_E_F_EXACT_HEAD_CERTIFIED"
   ],
-  "provides": [
-    "PHASE21_CONVERGED_CANDIDATE"
-  ],
+  "provides": ["PHASE21_CONVERGED_CANDIDATE"],
   "consumes": [
     "platform-authz",
     "verified-payment-outcome",
@@ -163,13 +161,7 @@
   "dependencies": [],
   "stopAt": "REMOTE_PROVEN",
   "composition": {
-    "order": [
-      "F",
-      "B",
-      "C",
-      "D",
-      "E"
-    ],
+    "order": ["F", "B", "C", "D", "E"],
     "foundationLaneA": {
       "status": "ABSORBED_BY_PHASE19_BASELINE",
       "evidenceSha": "37eb641eefa91f57d8d74c1dc87894c2da36f3ae",
