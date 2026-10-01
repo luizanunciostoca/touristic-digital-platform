@@ -34,6 +34,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T18:00:00Z"
+    },
+    "MD-BRAND-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "feat/brand-family-v2-concept02-20261001-r2",
+      "baseSha": "290d94804878fd0882dadb2aa60173bbc3be7ff2",
+      "paths": [
+        ".morro/changesets/MD-BRAND-001.json",
+        "packages/design-system/src/brand/**",
+        "packages/design-system/src/index.ts",
+        "docs/brand/**"
+      ],
+      "domains": ["design-system", "brand"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-01T18:00:00Z"
     }
   }
 }
