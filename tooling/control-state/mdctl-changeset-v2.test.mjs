@@ -92,7 +92,7 @@ function invariantContext(releaseState) {
   };
 }
 
-test("stale ledger takeover remains serialized under concurrent successors", async () => {
+test("stale ledger lock fails closed without takeover or successor deletion", async () => {
   const directory = await mkdtemp(join(tmpdir(), "tdp-integrity-"));
   const path = join(directory, "events.ndjson");
   const lockPath = path + ".lock";
@@ -101,19 +101,20 @@ test("stale ledger takeover remains serialized under concurrent successors", asy
     await writeFile(join(lockPath, "owner"), "stale-owner\n", "utf8");
     const stale = new Date(Date.now() - 10 * 60 * 1000);
     await utimes(lockPath, stale, stale);
-    const second = { ...event, eventId: "evt-integrity-002" };
 
-    await Promise.all([
+    await assert.rejects(
       appendAuthorityEvent(path, event),
-      appendAuthorityEvent(path, second),
-    ]);
-
-    const stored = parseAuthorityLedger(await readFile(path, "utf8"));
-    assert.deepEqual(
-      new Set(stored.map((item) => item.eventId)),
-      new Set(["evt-integrity-001", "evt-integrity-002"]),
+      /EVENT_LEDGER_STALE_LOCK_REQUIRES_RECOVERY/u,
     );
-    await assert.rejects(readFile(join(lockPath, "owner"), "utf8"), /ENOENT/u);
+
+    assert.equal(
+      (await readFile(join(lockPath, "owner"), "utf8")).trim(),
+      "stale-owner",
+    );
+    await assert.rejects(
+      readFile(lockPath + ".takeover/owner", "utf8"),
+      /ENOENT/u,
+    );
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
