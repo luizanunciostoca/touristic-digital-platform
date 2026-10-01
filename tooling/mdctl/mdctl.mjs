@@ -187,11 +187,9 @@ export function buildPlan(state) {
   const livePlan = hasLivePlan
     ? state.observed.liveSchedulerPlan
     : {
-        grants: (state.observed.nextReadyTasks ?? []).filter(
-          (candidate) => candidate?.dispatchAllowed === true,
-        ),
+        grants: [],
         blocked: [],
-        violations: [],
+        violations: [{ code: "LIVE_SCHEDULER_PLAN_REQUIRED" }],
       };
   const dispatchableCandidates = livePlan.grants;
   return {
