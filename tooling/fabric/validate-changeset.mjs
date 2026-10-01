@@ -53,7 +53,9 @@ async function main(argv) {
     );
   const manifest = JSON.parse(await readFile(path, "utf8"));
   validateChangeSet(manifest);
-  console.log(`ChangeSet valid: ${manifest.id} schema=${manifest.schemaVersion ?? 1}`);
+  console.log(
+    `ChangeSet valid: ${manifest.id} schema=${manifest.schemaVersion ?? 1}`,
+  );
 }
 
 if (
