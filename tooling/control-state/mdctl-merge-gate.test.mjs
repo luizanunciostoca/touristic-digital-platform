@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -688,4 +694,50 @@ test("runMergeGate rejects moved main and mismatched PR head identity", async ()
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
   }
+});
+
+test("merge-gate workflow remains base-trusted and candidate-data-only", () => {
+  const workflow = readFileSync(
+    ".github/workflows/morro-merge-gate.yml",
+    "utf8",
+  );
+
+  assert.match(workflow, /workflow_run:/u);
+  assert.match(workflow, /Trusted Claim Guard Bootstrap/u);
+  assert.match(workflow, /types:\s*\n\s*- completed/u);
+  assert.match(workflow, /actions:\s+read/u);
+  assert.match(workflow, /checks:\s+read/u);
+  assert.match(workflow, /contents:\s+read/u);
+  assert.match(workflow, /pull-requests:\s+read/u);
+  assert.match(workflow, /statuses:\s+write/u);
+  assert.match(
+    workflow,
+    /github\.event\.workflow_run\.event == 'pull_request'/u,
+  );
+  assert.match(workflow, /TRIGGER_HEAD_SHA:/u);
+  assert.match(workflow, /trigger_base_sha/u);
+  assert.match(workflow, /test "\$head_sha" = "\$TRIGGER_HEAD_SHA"/u);
+  assert.match(workflow, /test "\$base_sha" = "\$trigger_base_sha"/u);
+  assert.match(workflow, /test "\$base_sha" = "\$main_sha"/u);
+  assert.match(
+    workflow,
+    /ref:\s+\$\{\{ steps\.identity\.outputs\.base_sha \}\}/u,
+  );
+  assert.match(
+    workflow,
+    /repository:\s+\$\{\{ steps\.identity\.outputs\.head_repository \}\}/u,
+  );
+  assert.match(
+    workflow,
+    /ref:\s+\$\{\{ steps\.identity\.outputs\.head_sha \}\}/u,
+  );
+  assert.match(workflow, /node trusted\/tooling\/mdctl\/merge-gate\.mjs/u);
+  assert.match(workflow, /STATUS_CONTEXT:\s+morro\/merge-gate/u);
+  assert.equal(
+    [...workflow.matchAll(/persist-credentials:\s+false/gu)].length,
+    2,
+  );
+  assert.doesNotMatch(workflow, /pull_request_target:/u);
+  assert.doesNotMatch(workflow, /node\s+candidate\//u);
+  assert.doesNotMatch(workflow, /\$\{\{\s*secrets\./u);
 });

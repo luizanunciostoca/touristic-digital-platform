@@ -1,0 +1,165 @@
+name: Morro Merge Gate
+
+on:
+  workflow_run:
+    workflows:
+      - Trusted Claim Guard Bootstrap
+    types:
+      - completed
+
+permissions:
+  actions: read
+  checks: read
+  contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: morro-merge-gate-${{ github.event.workflow_run.head_sha }}
+  cancel-in-progress: true
+
+jobs:
+  trusted-driver:
+    name: trusted-merge-gate-driver
+    if: github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REPOSITORY: ${{ github.repository }}
+      TRIGGER_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      TRIGGER_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+      STATUS_CONTEXT: morro/merge-gate
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      GH_TOKEN: ${{ github.token }}
+      GITHUB_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Resolve exact PR identity
+        id: identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          pr_count="$(jq '.workflow_run.pull_requests | length' "$GITHUB_EVENT_PATH")"
+          test "$pr_count" -eq 1
+
+          pr_number="$(jq -r '.workflow_run.pull_requests[0].number // empty' "$GITHUB_EVENT_PATH")"
+          trigger_base_sha="$(jq -r '.workflow_run.pull_requests[0].base.sha // empty' "$GITHUB_EVENT_PATH")"
+          test -n "$pr_number"
+          test -n "$trigger_base_sha"
+
+          pr_json="$(gh api "repos/$REPOSITORY/pulls/$pr_number")"
+          head_sha="$(jq -r '.head.sha // empty' <<<"$pr_json")"
+          head_branch="$(jq -r '.head.ref // empty' <<<"$pr_json")"
+          head_repository="$(jq -r '.head.repo.full_name // empty' <<<"$pr_json")"
+          base_sha="$(jq -r '.base.sha // empty' <<<"$pr_json")"
+          base_branch="$(jq -r '.base.ref // empty' <<<"$pr_json")"
+          main_sha="$(gh api "repos/$REPOSITORY/commits/main" --jq '.sha')"
+
+          test "$head_sha" = "$TRIGGER_HEAD_SHA"
+          test "$base_branch" = "main"
+          test "$base_sha" = "$trigger_base_sha"
+          test "$base_sha" = "$main_sha"
+          test -n "$head_branch"
+          test -n "$head_repository"
+
+          {
+            echo "pr_number=$pr_number"
+            echo "head_sha=$head_sha"
+            echo "head_branch=$head_branch"
+            echo "head_repository=$head_repository"
+            echo "base_sha=$base_sha"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Mark exact head pending
+        shell: bash
+        env:
+          HEAD_SHA: ${{ steps.identity.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+          gh api -X POST "repos/$REPOSITORY/statuses/$HEAD_SHA"             -f state=pending             -f context="$STATUS_CONTEXT"             -f description="Trusted merge gate evaluating exact head"             -f target_url="$RUN_URL"
+
+      - name: Checkout trusted exact base
+        if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ github.repository }}
+          ref: ${{ steps.identity.outputs.base_sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: ${{ steps.identity.outputs.head_repository }}
+          ref: ${{ steps.identity.outputs.head_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Evaluate trusted merge gate
+        id: gate
+        if: github.event.workflow_run.conclusion == 'success'
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.identity.outputs.pr_number }}
+          HEAD_SHA: ${{ steps.identity.outputs.head_sha }}
+          HEAD_BRANCH: ${{ steps.identity.outputs.head_branch }}
+          BASE_SHA: ${{ steps.identity.outputs.base_sha }}
+        run: |
+          set +e
+          node trusted/tooling/mdctl/merge-gate.mjs             --trusted trusted             --candidate candidate             --repository "$REPOSITORY"             --pr-number "$PR_NUMBER"             --head-sha "$HEAD_SHA"             --base-sha "$BASE_SHA"             --branch "$HEAD_BRANCH"             > merge-gate-output.json             2> merge-gate-error.log
+          rc=$?
+          set -e
+
+          cat merge-gate-output.json || true
+          cat merge-gate-error.log >&2 || true
+          echo "exit_code=$rc" >> "$GITHUB_OUTPUT"
+
+      - name: Publish exact-head merge-gate status
+        if: always() && steps.identity.outputs.head_sha != ''
+        env:
+          HEAD_SHA: ${{ steps.identity.outputs.head_sha }}
+          GATE_EXIT_CODE: ${{ steps.gate.outputs.exit_code }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          state=failure
+          description="Trusted merge gate rejected exact head"
+
+          if [ "$TRIGGER_CONCLUSION" = "success" ] && [ "$GATE_EXIT_CODE" = "0" ]; then
+            state=success
+            description="Trusted merge gate accepted exact head"
+          elif [ "$TRIGGER_CONCLUSION" != "success" ]; then
+            description="Trusted Claim Guard prerequisite failed"
+          fi
+
+          gh api -X POST "repos/$REPOSITORY/statuses/$HEAD_SHA"             -f state="$state"             -f context="$STATUS_CONTEXT"             -f description="$description"             -f target_url="$RUN_URL"
+
+      - name: Upload merge-gate evidence
+        if: always() && github.event.workflow_run.conclusion == 'success'
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: morro-merge-gate-${{ steps.identity.outputs.head_sha }}
+          path: |
+            merge-gate-output.json
+            merge-gate-error.log
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce merge-gate outcome
+        if: always()
+        env:
+          GATE_EXIT_CODE: ${{ steps.gate.outputs.exit_code }}
+        shell: bash
+        run: |
+          test "$TRIGGER_CONCLUSION" = "success"
+          test "$GATE_EXIT_CODE" = "0"
