@@ -58,7 +58,9 @@
     "runtime-release-identity",
     "changeset-v2-contract",
     "control-projection-terminal-main-recheck",
-    "critical-evidence-candidate-binding"
+    "critical-evidence-candidate-binding",
+    "capability-lease-secondary-to-claim",
+    "context-pack-candidate-binding"
   ],
   "branchPrefixes": ["agent/", "feat/", "fix/", "infra/", "wave/"],
   "pullRequestPolicy": {
@@ -75,5 +77,10 @@
     "shadowMain": "shadow",
     "progressiveDelivery": "disabled-until-capability-verified",
     "changeSetV2": "active-for-control-plane-block-b1"
+  },
+  "capabilities": {
+    "changeSetV2": "active-for-control-plane-block-b",
+    "capabilityLeases": "task-local-enforced-global-claim-authoritative",
+    "contextPacks": "active-for-v2-tasks"
   }
 }

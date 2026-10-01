@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
-      "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
+      "baseSha": "a5bc6fb2758d1a248cc685f0445d01558b1e9ed6",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/event-ledger.schema.json",
@@ -28,12 +28,13 @@
         "tooling/control-state/mdctl-capability-leases.test.mjs",
         "tooling/control-state/mdctl-context-pack.test.mjs",
         "tooling/control-state/mdctl-task-lifecycle.test.mjs",
-        "package.json"
+        "package.json",
+        "tooling/control-state/mdctl-event-ledger.test.mjs"
       ],
       "domains": ["ci-release", "control-plane"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-01T18:00:00Z"
+      "status": "INTEGRATION_READY",
+      "expiresAt": "2026-10-01T20:00:00Z"
     },
     "MD-BRAND-ADOPTION-001": {
       "owner": "CHATGPT-PRO-CONTROL",

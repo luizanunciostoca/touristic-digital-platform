@@ -83,3 +83,28 @@ test("concurrent duplicate appends serialize and preserve one event", async () =
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("lease and Context Pack authority events are executable", () => {
+  for (const [index, eventType] of [
+    "LEASE_ACQUIRED",
+    "LEASE_RENEWED",
+    "LEASE_RELEASED",
+    "CONTEXT_PACK_CREATED",
+  ].entries()) {
+    const candidate = {
+      ...event,
+      eventId: "evt-b2a-" + index,
+      eventType,
+    };
+    assert.equal(validateAuthorityEvent(candidate), candidate);
+  }
+});
+
+test("tracked authority ledger satisfies the executable envelope", async () => {
+  const path = new URL(
+    "../../.github/morro-control/events.ndjson",
+    import.meta.url,
+  );
+  const stored = await readFile(path, "utf8");
+  assert.ok(parseAuthorityLedger(stored).length > 0);
+});

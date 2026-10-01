@@ -40,7 +40,11 @@
         "PRODUCTION_PROMOTED",
         "PRODUCTION_ACCEPTED",
         "ROLLBACK",
-        "INCIDENT_CREATED"
+        "INCIDENT_CREATED",
+        "LEASE_ACQUIRED",
+        "LEASE_RENEWED",
+        "LEASE_RELEASED",
+        "CONTEXT_PACK_CREATED"
       ]
     },
     "observedAt": {

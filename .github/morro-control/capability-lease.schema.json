@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP Capability Lease Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "authority", "leases"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "authority": {
+      "enum": ["ORCHESTRATOR", "TASK_LOCAL_PROJECTION"]
+    },
+    "leases": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "leaseId",
+          "changeSetId",
+          "owner",
+          "capability",
+          "scope",
+          "branch",
+          "issuedAt",
+          "expiresAt",
+          "state"
+        ],
+        "properties": {
+          "leaseId": {
+            "type": "string",
+            "pattern": "^lease-[A-Za-z0-9._-]{1,120}$"
+          },
+          "changeSetId": {
+            "type": "string",
+            "pattern": "^MD-[A-Z0-9-]+$"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "capability": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9:._/-]{0,159}$"
+          },
+          "scope": {
+            "enum": [
+              "PLATFORM",
+              "DESTINATION:MORRO",
+              "DESTINATION:ITACARE",
+              "CROSS_DESTINATION"
+            ]
+          },
+          "branch": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 240
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "state": {
+            "enum": ["ACTIVE", "RELEASED", "EXPIRED"]
+          }
+        }
+      }
+    }
+  }
+}

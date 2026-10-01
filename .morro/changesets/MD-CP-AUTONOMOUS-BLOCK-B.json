@@ -1,8 +1,8 @@
 {
   "id": "MD-CP-AUTONOMOUS-BLOCK-B",
-  "baseSha": "a82f91f1eeba97681b6fa982bd7a288050222ee9",
+  "baseSha": "a5bc6fb2758d1a248cc685f0445d01558b1e9ed6",
   "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
-  "state": "IMPLEMENTING",
+  "state": "MERGE_READY",
   "risk": "high",
   "owns": {
     "paths": [
@@ -26,7 +26,8 @@
       "tooling/control-state/mdctl-capability-leases.test.mjs",
       "tooling/control-state/mdctl-context-pack.test.mjs",
       "tooling/control-state/mdctl-task-lifecycle.test.mjs",
-      "package.json"
+      "package.json",
+      "tooling/control-state/mdctl-event-ledger.test.mjs"
     ],
     "contracts": [
       "TDP-CHANGESET-V2",
@@ -47,7 +48,11 @@
       "CHANGESET_CREATED",
       "CLAIM_ACQUIRED",
       "CLAIM_RELEASED",
-      "CLAIM_RENEWED"
+      "CLAIM_RENEWED",
+      "LEASE_ACQUIRED",
+      "LEASE_RENEWED",
+      "LEASE_RELEASED",
+      "CONTEXT_PACK_CREATED"
     ],
     "routes": []
   },
@@ -87,7 +92,7 @@
   "proof": {
     "budget": {
       "maxCommands": 2,
-      "maxSeconds": 300
+      "maxSeconds": 480
     },
     "commands": [
       {
@@ -97,6 +102,16 @@
           "--test",
           "tooling/fabric/validate-changeset.test.mjs",
           "tooling/control-state/mdctl-changeset-v2.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "block-b2a-capability-context",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-capability-leases.test.mjs",
+          "tooling/control-state/mdctl-context-pack.test.mjs"
         ],
         "timeoutSeconds": 180
       }
