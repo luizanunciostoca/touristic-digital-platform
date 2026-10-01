@@ -30,10 +30,7 @@
         "tooling/control-state/mdctl-task-lifecycle.test.mjs",
         "package.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane"
-      ],
+      "domains": ["ci-release", "control-plane"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T18:00:00Z"
@@ -67,12 +64,7 @@
         "docs/brand/**",
         "apps/morro-digital-platform/src/ux/control-center-shell-sidebar-v1-contract.test.ts"
       ],
-      "domains": [
-        "frontend-ux",
-        "design-system",
-        "brand",
-        "pwa"
-      ],
+      "domains": ["frontend-ux", "design-system", "brand", "pwa"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-01T20:00:00Z"
