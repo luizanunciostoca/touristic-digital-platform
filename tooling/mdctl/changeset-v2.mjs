@@ -96,7 +96,11 @@ function validateOwnedPath(path) {
 
 function validateProofTarget(target) {
   assert.equal(typeof target, "string", "CHANGESET_PROOF_TARGET_INVALID");
-  assert.equal(target.startsWith("/"), false, "CHANGESET_PROOF_TARGET_ABSOLUTE");
+  assert.equal(
+    target.startsWith("/"),
+    false,
+    "CHANGESET_PROOF_TARGET_ABSOLUTE",
+  );
   assert.equal(
     target.includes("\\"),
     false,
@@ -163,10 +167,7 @@ export function validateChangeSetV2(manifest) {
   );
   uniqueStrings(manifest.owns.paths, "CHANGESET_OWNED_PATHS_REQUIRED");
   for (const path of manifest.owns.paths) validateOwnedPath(path);
-  uniqueStrings(
-    manifest.owns.contracts,
-    "CHANGESET_OWNED_CONTRACTS_INVALID",
-  );
+  uniqueStrings(manifest.owns.contracts, "CHANGESET_OWNED_CONTRACTS_INVALID");
 
   assertClosedObject(
     manifest.reads,
@@ -295,7 +296,11 @@ export function validateChangeSetV2(manifest) {
       "CHANGESET_PROOF_ARGV_INVALID",
     );
     assert.equal(command.argv[0], "node", "CHANGESET_PROOF_EXECUTABLE_DENIED");
-    assert.equal(command.argv[1], "--test", "CHANGESET_PROOF_SUBCOMMAND_DENIED");
+    assert.equal(
+      command.argv[1],
+      "--test",
+      "CHANGESET_PROOF_SUBCOMMAND_DENIED",
+    );
     for (const target of command.argv.slice(2)) validateProofTarget(target);
     assert.ok(
       Number.isInteger(command.timeoutSeconds) &&
