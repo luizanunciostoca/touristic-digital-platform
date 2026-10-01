@@ -11,6 +11,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import {
+  assertRetirementClaimKeyset,
+  buildMergedRetirementProof,
   countUnresolvedReviewThreads,
   diffEvidence,
   evaluateMergeGate,
@@ -43,7 +45,7 @@ test("merge-gate workflow shares the required context across PR and merge-group 
     "Checkout trusted base",
     "Checkout candidate as data",
     "Setup Node for PR policy",
-    "Wait for exact-head Trusted Claim Guard",
+    "Detect canonical claim retirement",
     "Run trusted merge-gate policy",
   ];
   for (const name of prSteps) {
@@ -54,6 +56,13 @@ test("merge-gate workflow shares the required context across PR and merge-group 
       "PR_STEP_GUARD_MISSING:" + name,
     );
   }
+  assert.ok(
+    source.includes(
+      "      - name: Wait for exact-head Trusted Claim Guard\n" +
+        "        if: github.event_name == 'pull_request' && steps.retirement.outputs.eligible != 'true'\n",
+    ),
+    "RETIREMENT_BOOTSTRAP_GUARD_MISSING",
+  );
   assert.ok(
     source.includes(
       "      - name: Upload PR merge-gate decision\n" +
@@ -811,6 +820,59 @@ function retirementInput(overrides = {}) {
     ...overrides,
   };
 }
+
+test("retirement keyset rejects removal plus claim addition", () => {
+  const canonical = { claims: { "MD-GATED": {}, "MD-OTHER": {} } };
+  assert.doesNotThrow(() =>
+    assertRetirementClaimKeyset(
+      canonical,
+      { claims: { "MD-OTHER": {} } },
+      "MD-GATED",
+    ),
+  );
+  assert.throws(
+    () =>
+      assertRetirementClaimKeyset(
+        canonical,
+        { claims: { "MD-OTHER": {}, "MD-NEW": {} } },
+        "MD-GATED",
+      ),
+    /MERGE_GATE_RETIREMENT_CLAIM_KEYSET_INVALID/u,
+  );
+});
+
+test("merged retirement proof is time-stable and rejects expiry-only evidence", async () => {
+  let observedNow = null;
+  const merged = retirementProof();
+  const value = await buildMergedRetirementProof(
+    "trusted",
+    "candidate",
+    {},
+    {
+      proofBuilder: async (_trusted, _candidate, _env, options) => {
+        observedNow = options.now;
+        return merged;
+      },
+    },
+  );
+  assert.equal(observedNow, 0);
+  assert.equal(value.retirements[0].reason, "MERGED_PR");
+
+  await assert.rejects(
+    buildMergedRetirementProof(
+      "trusted",
+      "candidate",
+      {},
+      {
+        proofBuilder: async () => ({
+          ...merged,
+          retirements: [{ ...merged.retirements[0], reason: "EXPIRED" }],
+        }),
+      },
+    ),
+    /MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED/u,
+  );
+});
 
 test("retirement gate accepts one canonically proven merged claim release", () => {
   const result = evaluateRetirementMergeGate(retirementInput());

@@ -100,6 +100,40 @@ export function diffEvidence({ candidateDir, baseSha, headSha }) {
   };
 }
 
+export function assertRetirementClaimKeyset(
+  canonicalRegistry,
+  candidateRegistry,
+  claimId,
+) {
+  const canonicalIds = Object.keys(canonicalRegistry?.claims ?? {}).sort();
+  const candidateIds = Object.keys(candidateRegistry?.claims ?? {}).sort();
+  assert.deepEqual(
+    candidateIds,
+    canonicalIds.filter((id) => id !== claimId),
+    "MERGE_GATE_RETIREMENT_CLAIM_KEYSET_INVALID",
+  );
+}
+
+export async function buildMergedRetirementProof(
+  trustedDir,
+  candidateDir,
+  env,
+  { proofBuilder = buildClaimRetirementProof } = {},
+) {
+  const proof = await proofBuilder(trustedDir, candidateDir, env, { now: 0 });
+  assert.equal(
+    proof?.retirements?.length,
+    1,
+    "MERGE_GATE_RETIREMENT_EVIDENCE_COUNT_INVALID",
+  );
+  assert.equal(
+    proof.retirements[0]?.reason,
+    "MERGED_PR",
+    "MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED",
+  );
+  return proof;
+}
+
 export function evaluateRetirementMergeGate({
   manifest,
   canonicalManifest,
@@ -482,7 +516,7 @@ export async function runMergeGate({
   reviewThreadCounter = countUnresolvedReviewThreads,
   liveCollector = collectLivePullWork,
   dependencyEvaluator = evaluateDependenciesAtMain,
-  retirementProofBuilder = buildClaimRetirementProof,
+  retirementProofBuilder = buildMergedRetirementProof,
 } = {}) {
   assert.ok(candidateDir, "MERGE_GATE_CANDIDATE_DIR_REQUIRED");
   assert.ok(trustedDir, "MERGE_GATE_TRUSTED_DIR_REQUIRED");
@@ -555,6 +589,7 @@ export async function runMergeGate({
       "MERGE_GATE_RETIREMENT_MULTIPLE_CLAIMS_FORBIDDEN",
     );
     const claimId = removedClaims[0];
+    assertRetirementClaimKeyset(canonicalRegistry, registry, claimId);
     const manifestPath = ".morro/changesets/" + claimId + ".json";
     const canonicalManifest = readJson(trustedDir, manifestPath);
     const manifest = readJson(candidateDir, manifestPath);
