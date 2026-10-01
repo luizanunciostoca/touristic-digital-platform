@@ -1,8 +1,8 @@
 {
   "id": "MD-UX-TOURIST-REMEDIATION-001",
-  "baseSha": "7e9569f8dc7f7af256c349aea87ddad2e8e04c0b",
-  "branch": "fix/ux-tourist-remediation-584-20261001",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "38e591a93a8041afab47e1df85620df09a5d321f",
+  "branch": "chore/ux-584-retirement-20261001",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
