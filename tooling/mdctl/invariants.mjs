@@ -110,8 +110,7 @@ export function evaluateInvariants({
       ACTIVE_CLAIM_STATES.has(claim.declaredState) &&
       Number.isFinite(Date.parse(claim.expiresAt)) &&
       Number.isFinite(observedAt) &&
-      Date.parse(claim.expiresAt) <= observedAt &&
-      claim.observedState !== "MERGED",
+      Date.parse(claim.expiresAt) <= observedAt,
   );
   checks.push(
     result(
@@ -119,7 +118,7 @@ export function evaluateInvariants({
       "zero active expired claims",
       expiredActive.length === 0 ? "PASS" : "FAIL",
       expiredActive.length === 0
-        ? "no expired unmerged authority remains"
+        ? "no expired active-status declaration remains"
         : "expired authority: " +
             expiredActive.map((claim) => claim.id).join(","),
     ),
