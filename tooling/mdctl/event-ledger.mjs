@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash, randomUUID } from "node:crypto";
-import { appendFile, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 
 export const EVENT_TYPES = new Set([
   "CHANGESET_CREATED",
@@ -115,7 +122,9 @@ async function createOwnedLock(lockPath, ownerToken) {
 
 async function releaseOwnedLock(lockPath, ownerToken) {
   try {
-    const observedOwner = (await readFile(lockOwnerPath(lockPath), "utf8")).trim();
+    const observedOwner = (
+      await readFile(lockOwnerPath(lockPath), "utf8")
+    ).trim();
     if (observedOwner !== ownerToken) return false;
     await rm(lockPath, { recursive: true, force: true });
     return true;
