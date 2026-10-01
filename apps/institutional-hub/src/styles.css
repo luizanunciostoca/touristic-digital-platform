@@ -274,56 +274,6 @@ h3 {
   height: auto;
 }
 
-.route {
-  position: absolute;
-  width: 72%;
-  height: 54%;
-  border: 0.3125rem solid var(--accent);
-  border-left-color: transparent;
-  border-radius: 50%;
-  opacity: 0.7;
-}
-
-.route--a {
-  transform: rotate(-18deg);
-}
-
-.route--b {
-  width: 55%;
-  height: 74%;
-  transform: rotate(38deg);
-  border-color: var(--accent-strong);
-  border-top-color: transparent;
-  opacity: 0.45;
-}
-
-.node {
-  position: absolute;
-  z-index: 3;
-  width: 1.5rem;
-  height: 1.5rem;
-  border: 0.25rem solid var(--white);
-  border-radius: 50%;
-  background: var(--accent);
-}
-
-.node--a {
-  top: 16%;
-  right: 25%;
-}
-
-.node--b {
-  bottom: 18%;
-  left: 19%;
-  background: var(--green);
-}
-
-.node--human {
-  right: 17%;
-  bottom: 24%;
-  background: var(--coral);
-}
-
 .page-shell,
 .source-note {
   width: min(100% - 2rem, var(--container));
