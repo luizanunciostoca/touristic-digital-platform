@@ -1,0 +1,73 @@
+{
+  "id": "MD-CP-AUTONOMOUS-BLOCK-B",
+  "baseSha": "0951b28f05d5486d3d06695285c4e6628ed1ccf1",
+  "branch": "infra/control-plane-v3.2-autonomous-block-b-20261001",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/event-ledger.schema.json",
+      ".github/morro-control/events.ndjson",
+      ".github/morro-control/capability-lease.schema.json",
+      ".github/morro-control/capability-leases.json",
+      ".github/morro-control/context-pack.schema.json",
+      ".morro/changesets/MD-CP-AUTONOMOUS-BLOCK-A.json",
+      ".morro/changesets/MD-CP-AUTONOMOUS-BLOCK-B.json",
+      ".morro/changeset-v2.schema.json",
+      ".morro/fabric.json",
+      "ENGINEERING-OPERATING-MANUAL.md",
+      "tooling/fabric/validate-changeset.mjs",
+      "tooling/fabric/validate-changeset.test.mjs",
+      "tooling/mdctl/**",
+      "tooling/control-state/status.mjs",
+      "tooling/ci/control-state-status.test.mjs",
+      "tooling/control-state/mdctl-changeset-v2.test.mjs",
+      "tooling/control-state/mdctl-capability-leases.test.mjs",
+      "tooling/control-state/mdctl-context-pack.test.mjs",
+      "tooling/control-state/mdctl-task-lifecycle.test.mjs",
+      "package.json"
+    ],
+    "contracts": [
+      "TDP-CHANGESET-V2",
+      "TDP-CAPABILITY-LEASE",
+      "TDP-CONTEXT-PACK",
+      "TDP-TASK-LIFECYCLE"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "GITHUB-CURRENT-MAIN",
+      "TDP-CONTROL-PLANE-V3.2-AUTHORITY",
+      "TDP-MACHINE-EVIDENCE-STATE"
+    ]
+  },
+  "produces": {
+    "events": [
+      "CHANGESET_CREATED",
+      "CLAIM_ACQUIRED",
+      "CLAIM_RELEASED",
+      "LEASE_ACQUIRED",
+      "LEASE_RENEWED",
+      "LEASE_RELEASED",
+      "CONTEXT_PACK_CREATED",
+      "TASK_SUBMITTED"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-AUTONOMOUS-BLOCK-A"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN"
+}
