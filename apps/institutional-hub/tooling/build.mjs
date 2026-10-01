@@ -34,7 +34,11 @@ for (const page of pages) {
   const routeDirectory =
     page.path === "/" ? dist : resolve(dist, page.path.slice(1));
   await mkdir(routeDirectory, { recursive: true });
-  await writeFile(resolve(routeDirectory, "index.html"), renderPage(page), "utf8");
+  await writeFile(
+    resolve(routeDirectory, "index.html"),
+    renderPage(page),
+    "utf8",
+  );
 }
 
 await writeFile(
@@ -59,9 +63,4 @@ await writeFile(
   "utf8",
 );
 
-console.log(
-  "Institutional Hub built: " +
-    pages.length +
-    " routes -> " +
-    dist,
-);
+console.log("Institutional Hub built: " + pages.length + " routes -> " + dist);
