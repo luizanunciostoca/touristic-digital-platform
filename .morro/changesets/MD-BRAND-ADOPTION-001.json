@@ -26,7 +26,9 @@
       "apps/admin-crm/public/crm.css",
       "apps/control-center/public/index.html",
       "apps/control-center/public/control-center-shell-v1.css",
-      "docs/brand/**"
+      "docs/brand/**",
+      "apps/morro-digital-platform/public/service-worker.js",
+      "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts"
     ],
     "contracts": [
       "TDP-BRAND-FAMILY-V2",
