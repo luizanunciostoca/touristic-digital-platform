@@ -14,20 +14,22 @@ describe("PWA manifest", () => {
       await readPublicFile("manifest.json"),
     ) as Record<string, unknown>;
 
-    expect(manifest.name).toBe("Morro de São Paulo Digital");
+    expect(manifest.name).toBe("Morro Digital — Morro de São Paulo");
     expect(manifest.start_url).toBe("/");
     expect(manifest.scope).toBe("/");
     expect(manifest.display).toBe("standalone");
     expect(manifest.icons).toEqual([
       expect.objectContaining({
-        src: "/pwa-icon-192.png",
-        sizes: "192x192",
-        type: "image/png",
+        src: "/assets/brand/morro-digital-symbol-v2.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "any",
       }),
       expect.objectContaining({
-        src: "/pwa-icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
+        src: "/assets/brand/morro-digital-micro-v2.svg",
+        sizes: "any",
+        type: "image/svg+xml",
+        purpose: "monochrome",
       }),
     ]);
   });
@@ -55,12 +57,23 @@ describe("PWA offline authority boundary", () => {
   it("uses a versioned cache and network-first runtime assets", async () => {
     const worker = await readPublicFile("service-worker.js");
 
-    expect(worker).toContain("static-v2");
+    expect(worker).toContain("static-v3");
     expect(worker).toContain("function isRuntimeAsset(pathname)");
     expect(worker).toContain("networkFirstStatic(request)");
     expect(worker).toContain("isRuntimeAsset(url.pathname)");
     expect(worker).toContain("staleWhileRevalidate(request, event)");
     expect(worker).toContain("name !== STATIC_CACHE");
+    expect(worker).toContain(
+      '"/apps/morro-digital-platform/public/assets/brand/morro-digital-symbol-v2.svg"',
+    );
+    expect(worker).toContain(
+      '"/apps/morro-digital-platform/public/assets/brand/morro-digital-micro-v2.svg"',
+    );
+    expect(worker).toContain(
+      '"/apps/morro-digital-platform/public/brand-v2.css"',
+    );
+    expect(worker).not.toContain('"/pwa-icon-192.png"');
+    expect(worker).not.toContain('"/pwa-icon-512.png"');
   });
 
   it("provides a root navigation fallback without hijacking other routes", async () => {
