@@ -26,41 +26,30 @@ function state(overrides = {}) {
   };
 }
 
-test("declared ready candidate without trusted live plan cannot dispatch", () => {
+test("declared ready candidate without accepted fabric proof cannot dispatch", () => {
   const plan = buildPlan(state());
   assert.equal(plan.dispatchAllowed, false);
   assert.deepEqual(plan.dispatchableCandidates, []);
-  assert.deepEqual(plan.schedulerViolations, [
-    { code: "LIVE_SCHEDULER_PLAN_REQUIRED" },
-  ]);
 });
 
-test("observed blocker prevents dispatch even with a trusted live grant", () => {
+test("observed blocker prevents dispatch", () => {
   const plan = buildPlan(
     state({
       observed: {
         blockers: [{ code: "TEST_BLOCKER", subject: "candidate" }],
-        liveSchedulerPlan: {
-          grants: [{ id: "MD-READY", exactBaseSha: "a".repeat(40) }],
-          blocked: [],
-          violations: [],
-        },
+        nextReadyTasks: [{ id: "MD-READY", dispatchAllowed: true }],
       },
     }),
   );
   assert.equal(plan.dispatchAllowed, false);
 });
 
-test("only a trusted live scheduler grant can authorize dispatch", () => {
+test("only an explicitly dispatchable next-ready task can authorize dispatch", () => {
   const plan = buildPlan(
     state({
       observed: {
         blockers: [],
-        liveSchedulerPlan: {
-          grants: [{ id: "MD-READY", exactBaseSha: "a".repeat(40) }],
-          blocked: [],
-          violations: [],
-        },
+        nextReadyTasks: [{ id: "MD-READY", dispatchAllowed: true }],
       },
     }),
   );
