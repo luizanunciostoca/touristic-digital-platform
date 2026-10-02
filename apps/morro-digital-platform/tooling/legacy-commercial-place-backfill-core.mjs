@@ -131,12 +131,26 @@ async function saveMapping(pool, mapping, now) {
   );
 }
 
+function defaultMigrationActor() {
+  const now = Math.floor(Date.now() / 1000);
+  return Object.freeze({
+    subject: "staging-legacy-commercial-backfill",
+    email: "staging-legacy-commercial-backfill@example.invalid",
+    role: "PLATFORM_OWNER",
+    businessIds: Object.freeze([]),
+    issuedAt: now - 60,
+    expiresAt: now + 3600,
+    sessionId: "staging-legacy-commercial-backfill",
+  });
+}
+
 export async function executeLegacyCommercialPlaceBackfill({
   pool,
   runtime = null,
   apply = false,
   mappings,
   catalog,
+  actor = defaultMigrationActor(),
   now = () => new Date(),
 }) {
   validateLegacyCommercialMappings(mappings);
@@ -190,15 +204,7 @@ export async function executeLegacyCommercialPlaceBackfill({
       throw new Error("LEGACY_COMMERCIAL_BACKFILL_RUNTIME_REQUIRED");
 
     await runtime.createDraft(
-      {
-        subject: "staging-legacy-commercial-backfill",
-        email: "staging-legacy-commercial-backfill@example.invalid",
-        role: "PLATFORM_OWNER",
-        businessIds: Object.freeze([]),
-        issuedAt: Math.floor(Date.now() / 1000) - 60,
-        expiresAt: Math.floor(Date.now() / 1000) + 3600,
-        sessionId: "staging-legacy-commercial-backfill",
-      },
+      actor,
       {
         businessId: mapping.businessId,
         placeId: mapping.placeId,
@@ -210,15 +216,7 @@ export async function executeLegacyCommercialPlaceBackfill({
       },
     );
     await runtime.updateLocation(
-      {
-        subject: "staging-legacy-commercial-backfill",
-        email: "staging-legacy-commercial-backfill@example.invalid",
-        role: "PLATFORM_OWNER",
-        businessIds: Object.freeze([]),
-        issuedAt: Math.floor(Date.now() / 1000) - 60,
-        expiresAt: Math.floor(Date.now() / 1000) + 3600,
-        sessionId: "staging-legacy-commercial-backfill",
-      },
+      actor,
       mapping.businessId,
       {
         latitude: source.latitude,
