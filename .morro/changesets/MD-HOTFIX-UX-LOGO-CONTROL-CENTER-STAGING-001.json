@@ -4,7 +4,7 @@
   "objective": "remove-discover-logo-chrome-and-restore-control-center-staging-login-static-route",
   "baseSha": "a135dda350605044b6fc431d62890a51ee913e05",
   "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

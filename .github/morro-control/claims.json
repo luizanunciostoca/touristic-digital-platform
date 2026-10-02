@@ -18,7 +18,7 @@
       ],
       "domains": ["ux", "control-center", "release-runtime"],
       "risk": "P1",
-      "status": "LOCAL_PROVEN",
+      "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T15:00:00Z"
     }
   }

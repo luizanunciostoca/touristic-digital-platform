@@ -15,7 +15,7 @@ import {
   verifyWorkflowRun,
 } from "./oci-proof.mjs";
 
-test("OCI runtime includes the dashboard login static root", () => {
+test("staging hotfix packages login assets and keeps Discover logo chrome clean", () => {
   const dockerfile = readFileSync(
     new URL("../../Dockerfile", import.meta.url),
     "utf8",
@@ -27,9 +27,20 @@ test("OCI runtime includes the dashboard login static root", () => {
     ),
     "utf8",
   );
+  const touristShell = readFileSync(
+    new URL(
+      "../../apps/morro-digital-platform/public/tourist-shell-v2.css",
+      import.meta.url,
+    ),
+    "utf8",
+  );
 
   assert.match(dockerfile, /^COPY dashboard\/ dashboard\/$/mu);
   assert.match(devServer, /resolve\(repositoryRoot, "dashboard"\)/u);
+  assert.match(
+    touristShell,
+    /body\[data-md-mode="discover"\]\s+\.md-home-header-inner\s*\{(?=[^}]*width:\s*var\(--md-touch-target-min\))(?=[^}]*min-width:\s*var\(--md-touch-target-min\))(?=[^}]*border:\s*0)(?=[^}]*background:\s*transparent)(?=[^}]*box-shadow:\s*none)(?=[^}]*backdrop-filter:\s*none)(?=[^}]*-webkit-backdrop-filter:\s*none)[^}]*\}/isu,
+  );
 });
 
 const repository = "owner/repository";
