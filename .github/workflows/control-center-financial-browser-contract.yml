@@ -420,6 +420,23 @@ jobs:
               }
               evidence.criticalActions.push("support-context-bound");
 
+              await page.locator('[data-view="financial"]').click();
+              await page
+                .getByRole("heading", {
+                  name: "Resumo financeiro indisponível",
+                  exact: true,
+                })
+                .waitFor({ timeout: 15000 });
+              const delegatedFinancialText = await page
+                .locator("#content")
+                .textContent();
+              if (delegatedFinancialText?.includes("registros no período")) {
+                throw new Error(
+                  "Delegated Support Mode exposed the unscoped financial aggregate",
+                );
+              }
+              evidence.reads.push("financial-summary-support-fail-closed");
+
               if (evidence.errors.length) {
                 throw new Error(
                   `Browser page errors: ${JSON.stringify(evidence.errors)}`,
