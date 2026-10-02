@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-HOTFIX-UX-LOGO-SAFARI-BACKGROUND-001",
   "objective": "remove-legacy-header-gradient-behind-discover-brand-mark-on-mobile-safari",
-  "baseSha": "6ad3c8ed83cb2504340e34a1794ec7f976073eaa",
-  "branch": "chore/hotfix-logo-safari-background-claim-20261002",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "efab195e9097e47ea33603c4cf90c5e503c43329",
+  "branch": "chore/hotfix-logo-safari-background-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

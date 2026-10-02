@@ -1,24 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-HOTFIX-UX-LOGO-SAFARI-BACKGROUND-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/hotfix-logo-safari-background-claim-20261002",
-      "baseSha": "6ad3c8ed83cb2504340e34a1794ec7f976073eaa",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-HOTFIX-UX-LOGO-SAFARI-BACKGROUND-001.json",
-        "apps/morro-digital-platform/public/tourist-shell-v2.css",
-        "tooling/release/oci-proof.test.mjs",
-        "apps/morro-digital-platform/tooling/wave-g-webkit-safari-smoke.mjs"
-      ],
-      "domains": ["ux", "brand", "staging"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-02T16:00:00Z"
-    }
-  }
+  "claims": {}
 }
