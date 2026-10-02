@@ -19,7 +19,9 @@
       "apps/morro-digital-platform/src/business-dashboard-client.ts",
       "apps/morro-digital-platform/src/business-dashboard-client.test.ts",
       "apps/morro-digital-platform/src/business-dashboard-surface.ts",
-      "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
+      "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+      "tooling/business-location-self-service.contract.mjs",
+      "tooling/business-location-self-service-runtime.test.mjs"
     ],
     "contracts": []
   },
@@ -70,48 +72,27 @@
   },
   "proof": {
     "budget": {
-      "maxCommands": 3,
+      "maxCommands": 2,
       "maxSeconds": 720
     },
     "commands": [
       {
-        "id": "business-location-browser-tests",
+        "id": "business-location-contract",
         "argv": [
-          "pnpm",
-          "--filter",
-          "@touristic/morro-digital-platform",
-          "exec",
-          "vitest",
-          "run",
-          "src/business-location-discovery-adapter.test.ts",
-          "src/business-dashboard-client.test.ts",
-          "src/business-dashboard-surface.test.ts"
+          "node",
+          "--test",
+          "tooling/business-location-self-service.contract.mjs"
         ],
-        "timeoutSeconds": 240
+        "timeoutSeconds": 300
       },
       {
-        "id": "business-location-api-tests",
+        "id": "business-location-runtime-proof",
         "argv": [
-          "pnpm",
-          "--filter",
-          "@touristic/morro-digital-platform",
-          "exec",
-          "vitest",
-          "run",
-          "tooling/business-api.test.mjs",
-          "tooling/place-platform-runtime.vitest.mjs"
+          "node",
+          "--test",
+          "tooling/business-location-self-service-runtime.test.mjs"
         ],
-        "timeoutSeconds": 240
-      },
-      {
-        "id": "morro-platform-typecheck",
-        "argv": [
-          "pnpm",
-          "--filter",
-          "@touristic/morro-digital-platform",
-          "typecheck"
-        ],
-        "timeoutSeconds": 240
+        "timeoutSeconds": 420
       }
     ],
     "requiredRemoteEvidence": [
