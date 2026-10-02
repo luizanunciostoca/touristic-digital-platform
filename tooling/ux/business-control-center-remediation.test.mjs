@@ -76,9 +76,7 @@ test("Control Center collection zero states are explicit surfaces", () => {
   );
 });
 test("Financial summary is primary and owner-backed read-only projection", () => {
-  const summary = controlJs.indexOf(
-    'aria-label="Financeiro">Resumo financeiro</h2>',
-  );
+  const summary = controlJs.indexOf("<h2>Resumo financeiro</h2>");
   const advanced = controlJs.indexOf("<summary>Consultas avançadas</summary>");
   assert.ok(summary >= 0 && advanced > summary);
   assert.match(controlJs, /\/financial\/summary\?from=/u);
@@ -133,4 +131,8 @@ test("Primary Control Center copy excludes known architecture-first labels", () 
     assert.equal(controlJs.includes(forbidden), false, forbidden);
   }
   assert.match(controlJs, /technical-details/u);
+  assert.match(
+    controlJs,
+    /class="contract-diagnostic" aria-hidden="true">\$\{escapeHtml\(user\.canonicalRole\)\}<\/span>/u,
+  );
 });

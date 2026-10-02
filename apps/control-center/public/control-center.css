@@ -627,6 +627,15 @@ html[data-theme="dark"] .form-grid textarea:disabled {
   font-weight: 700;
 }
 
+.contract-diagnostic {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .boot {
   min-height: 100vh;
   display: grid;
