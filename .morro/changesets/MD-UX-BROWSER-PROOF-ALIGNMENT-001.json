@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-UX-BROWSER-PROOF-ALIGNMENT-001",
+  "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
+  "branch": "chore/ux585-browser-proof-authority-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-UX-BROWSER-PROOF-ALIGNMENT-001.json",
+      ".github/workflows/control-center-content-contract.yml",
+      ".github/workflows/control-center-financial-browser-contract.yml"
+    ],
+    "contracts": ["TDP-CONTROL-CENTER-UX"]
+  },
+  "reads": {
+    "contracts": ["TDP-AUTH-AUTHORITY", "TDP-TENANT-BOUNDARY"]
+  },
+  "produces": {
+    "events": ["BROWSER_PROOF_ALIGNMENT"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "browser-evidence",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "claim-acquisition-gate",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "ux-585-browser-proof-alignment"
+}

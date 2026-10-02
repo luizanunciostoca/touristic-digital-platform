@@ -29,6 +29,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T12:00:00Z"
+    },
+    "MD-UX-BROWSER-PROOF-ALIGNMENT-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/ux585-browser-proof-authority-20261002",
+      "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-UX-BROWSER-PROOF-ALIGNMENT-001.json",
+        ".github/workflows/control-center-content-contract.yml",
+        ".github/workflows/control-center-financial-browser-contract.yml"
+      ],
+      "domains": ["control-center-ux"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T14:00:00Z"
     }
   }
 }
