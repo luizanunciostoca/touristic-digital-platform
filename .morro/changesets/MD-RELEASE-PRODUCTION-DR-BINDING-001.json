@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-PRODUCTION-DR-BINDING-001",
-  "baseSha": "311f3ce489bfaa75addaac41f03c7fc2c887b71e",
-  "branch": "chore/production-dr-binding-claim-20261002",
-  "state": "IMPLEMENTING",
+  "baseSha": "5effe1e75a386ed21624da5ced040f549ec4ee50",
+  "branch": "fix/production-dr-canonical-binding-proof-20261002",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [

@@ -5,8 +5,8 @@
     "MD-RELEASE-PRODUCTION-DR-BINDING-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/production-dr-binding-claim-20261002",
-      "baseSha": "311f3ce489bfaa75addaac41f03c7fc2c887b71e",
+      "branch": "fix/production-dr-canonical-binding-proof-20261002",
+      "baseSha": "5effe1e75a386ed21624da5ced040f549ec4ee50",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -16,7 +16,7 @@
       ],
       "domains": ["release-governance", "production-dr"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T12:00:00Z"
     }
   }
