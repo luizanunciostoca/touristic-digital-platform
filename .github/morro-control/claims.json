@@ -13,9 +13,7 @@
         ".morro/changesets/MD-RELEASE-FINAL-ATTESTATION-001.json",
         ".github/morro-control/release-state.json"
       ],
-      "domains": [
-        "release-governance"
-      ],
+      "domains": ["release-governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T15:00:00Z"
@@ -32,11 +30,7 @@
         "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
         "tooling/release/oci-proof.test.mjs"
       ],
-      "domains": [
-        "ux",
-        "control-center",
-        "release-runtime"
-      ],
+      "domains": ["ux", "control-center", "release-runtime"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T15:00:00Z"

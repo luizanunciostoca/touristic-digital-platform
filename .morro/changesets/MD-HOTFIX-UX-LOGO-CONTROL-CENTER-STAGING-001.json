@@ -46,12 +46,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
@@ -71,11 +66,7 @@
       },
       {
         "id": "oci-proof-contract",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/release/oci-proof.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/release/oci-proof.test.mjs"],
         "timeoutSeconds": 180
       }
     ],
