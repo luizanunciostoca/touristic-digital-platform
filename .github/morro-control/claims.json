@@ -1,23 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-RELEASE-PRODUCTION-CUTOVER-IMAGE-ROLLBACK-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/production-cutover-image-rollback-20261002",
-      "baseSha": "2fca889ba5098c4d68bb593ea86ea64dfd9ac4fa",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-RELEASE-PRODUCTION-CUTOVER-IMAGE-ROLLBACK-001.json",
-        "tooling/render/production-canonical-db-cutover.mjs",
-        "tooling/render/production-canonical-db-cutover.test.mjs"
-      ],
-      "domains": ["release-governance", "production-cutover"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-02T15:00:00Z"
-    }
-  }
+  "claims": {}
 }
