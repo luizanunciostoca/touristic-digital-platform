@@ -1,7 +1,10 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const STAGING_SERVICE = "morro-digital-v2-staging";
+import {
+  legacyCommercialMigrationActor,
+  resolveLegacyCommercialRuntimeScope,
+} from "./legacy-commercial-runtime-guard.mjs";
 const SOURCE_SYSTEM = "morro-v1-search-catalog";
 const EXPECTED_TOTAL = 72;
 
@@ -15,19 +18,6 @@ async function loadPlacePlatformRuntime() {
     .href;
   const module = await import(/* @vite-ignore */ moduleUrl);
   return module.createPlacePlatformRuntime;
-}
-
-function actor() {
-  const now = Math.floor(Date.now() / 1000);
-  return Object.freeze({
-    subject: "staging-legacy-commercial-review-transition",
-    email: "staging-legacy-commercial-review-transition@example.invalid",
-    role: "PLATFORM_OWNER",
-    businessIds: Object.freeze([]),
-    issuedAt: now - 60,
-    expiresAt: now + 3600,
-    sessionId: "staging-legacy-commercial-review-transition",
-  });
 }
 
 async function queryRows(pool) {
@@ -173,11 +163,10 @@ export async function runLegacyCommercialReviewTransition({
   runtimeFactory,
   runtimeLoader = loadPlacePlatformRuntime,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_REVIEW_TRANSITION_SERVICE_DENIED");
-  }
+  const runtimeScope = resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_REVIEW_TRANSITION_SERVICE_DENIED",
+  );
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
   const contentDatabaseUrl = String(
     environment.CONTENT_DATABASE_URL ?? "",
@@ -232,7 +221,10 @@ export async function runLegacyCommercialReviewTransition({
 
     let reviewed = 0;
     let markersInserted = 0;
-    const session = actor();
+    const session = legacyCommercialMigrationActor(
+      runtimeScope,
+      "review-transition",
+    );
 
     for (const row of rows) {
       const key = String(row.source_key);
