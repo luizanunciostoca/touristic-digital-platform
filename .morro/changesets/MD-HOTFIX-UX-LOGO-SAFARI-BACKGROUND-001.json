@@ -45,12 +45,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
@@ -60,11 +55,7 @@
     "commands": [
       {
         "id": "logo-safari-chrome-proof",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/release/oci-proof.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/release/oci-proof.test.mjs"],
         "timeoutSeconds": 180
       }
     ],

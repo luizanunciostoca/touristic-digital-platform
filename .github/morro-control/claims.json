@@ -14,11 +14,7 @@
         "apps/morro-digital-platform/public/tourist-shell-v2.css",
         "tooling/release/oci-proof.test.mjs"
       ],
-      "domains": [
-        "ux",
-        "brand",
-        "staging"
-      ],
+      "domains": ["ux", "brand", "staging"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T16:00:00Z"
