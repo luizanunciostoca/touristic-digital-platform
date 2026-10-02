@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-PRODUCTION-DR-BINDING-001",
-  "baseSha": "5effe1e75a386ed21624da5ced040f549ec4ee50",
-  "branch": "fix/production-dr-canonical-binding-proof-20261002",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "06543a5e75d3373f98cf246e1d32ba0fe1b12bd6",
+  "branch": "chore/production-dr-binding-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
