@@ -130,15 +130,15 @@ function createLocationSurface(document: Document): LocationSurface {
   return Object.freeze({
     current: requiredElement(document, "morro-pro-location-current"),
     status: requiredElement(document, "morro-pro-location-status"),
-    searchForm: requiredElement(document, "morro-pro-location-search-form"),
-    searchInput: requiredElement(document, "morro-pro-location-search"),
+    searchForm: requiredElement<HTMLFormElement>(document, "morro-pro-location-search-form"),
+    searchInput: requiredElement<HTMLInputElement>(document, "morro-pro-location-search"),
     results: requiredElement(document, "morro-pro-location-results"),
-    manualForm: requiredElement(document, "morro-pro-location-manual-form"),
-    latitude: requiredElement(document, "morro-pro-location-latitude"),
-    longitude: requiredElement(document, "morro-pro-location-longitude"),
-    address: requiredElement(document, "morro-pro-location-address"),
-    area: requiredElement(document, "morro-pro-location-area"),
-    deviceButton: requiredElement(document, "morro-pro-location-device"),
+    manualForm: requiredElement<HTMLFormElement>(document, "morro-pro-location-manual-form"),
+    latitude: requiredElement<HTMLInputElement>(document, "morro-pro-location-latitude"),
+    longitude: requiredElement<HTMLInputElement>(document, "morro-pro-location-longitude"),
+    address: requiredElement<HTMLInputElement>(document, "morro-pro-location-address"),
+    area: requiredElement<HTMLInputElement>(document, "morro-pro-location-area"),
+    deviceButton: requiredElement<HTMLButtonElement>(document, "morro-pro-location-device"),
   });
 }
 
