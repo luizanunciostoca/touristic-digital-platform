@@ -283,6 +283,11 @@ function mergeLocation(place, input, actor, now) {
   ) {
     throw new Error("INVALID_PLACE_LOCATION");
   }
+  const requestedSource = clean(input.source, 32);
+  const source = requestedSource || "manual";
+  if (!["mapbox", "manual", "device", "imported"].includes(source)) {
+    throw new Error("INVALID_PLACE_LOCATION_SOURCE");
+  }
   return Object.freeze({
     ...place,
     location: Object.freeze({
@@ -290,9 +295,15 @@ function mergeLocation(place, input, actor, now) {
       longitude,
       address: clean(input.address, 500),
       area: clean(input.area, 160),
-      source: "manual",
-      externalProvider: null,
-      externalPlaceId: null,
+      source,
+      externalProvider:
+        source === "manual" || source === "device"
+          ? null
+          : clean(input.externalProvider, 160) || null,
+      externalPlaceId:
+        source === "manual" || source === "device"
+          ? null
+          : clean(input.externalPlaceId, 240) || null,
       verifiedAt: now,
       verifiedBy: actor?.subject ?? "platform",
     }),
@@ -1890,6 +1901,55 @@ export function createPlacePlatformRuntime({
     return { businessId: String(place.businessId), placeId: String(place.id) };
   }
 
+  async function getBusinessLocationPlace(businessId) {
+    assertReady();
+    const normalizedBusinessId = clean(businessId, 160);
+    if (!PLACE_ID.test(normalizedBusinessId)) {
+      throw new Error("INVALID_BUSINESS_ID");
+    }
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places WHERE business_id = ? ORDER BY created_at ASC LIMIT 1`,
+      [normalizedBusinessId],
+    );
+    const row = rows[0];
+    if (!row) return null;
+    const place = placeFromRow(row, false);
+    return place
+      ? Object.freeze({
+          ...place,
+          publicationState: String(row.publication_state),
+        })
+      : null;
+  }
+
+  async function listLocationDiscoveryPlaces(businessId, destinationId) {
+    const own = await getBusinessLocationPlace(businessId);
+    if (!own) throw new Error("PLACE_NOT_FOUND");
+    const normalizedDestinationId = clean(destinationId, 160);
+    if (
+      !normalizedDestinationId ||
+      String(own.destinationId) !== normalizedDestinationId
+    ) {
+      throw new Error("CROSS_DESTINATION_LOCATION_READ");
+    }
+    const [rows] = await pool.execute(
+      `SELECT * FROM business_places
+        WHERE destination_id = ?
+          AND published_revision IS NOT NULL
+          AND publication_state NOT IN ('suspended', 'archived')
+          AND published_place_json IS NOT NULL
+        ORDER BY place_id ASC
+        LIMIT 500`,
+      [normalizedDestinationId],
+    );
+    const published = rows
+      .map((row) => placeFromRow(row, true))
+      .filter(Boolean)
+      .filter((place) => place.visibility === "public")
+      .filter((place) => String(place.id) !== String(own.id));
+    return Object.freeze([own, ...published]);
+  }
+
   async function updateProfile(actor, businessId, input) {
     assertReady();
     const [rows] = await pool.execute(
@@ -2018,6 +2078,8 @@ export function createPlacePlatformRuntime({
     updateLegacyBusinessProfile,
     getCmsDetail,
     createDraft,
+    getBusinessLocationPlace,
+    listLocationDiscoveryPlaces,
     updateProfile,
     updateLocation,
     getCatalogDraft,

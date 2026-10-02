@@ -115,6 +115,40 @@ export interface MorroProCatalog {
   readonly items: readonly MorroProCatalogMenuItem[];
 }
 
+export interface MorroProLocation {
+  readonly placeId: string;
+  readonly businessId: string;
+  readonly destinationId: string;
+  readonly name: string;
+  readonly publicationState: string;
+  readonly location: Readonly<{
+    latitude: number | null;
+    longitude: number | null;
+    address: string;
+    area: string;
+    source: string;
+    externalProvider: string | null;
+    externalPlaceId: string | null;
+    verifiedAt: string | null;
+    verifiedBy: string | null;
+  }>;
+}
+
+export interface MorroProLocationCandidate {
+  readonly candidateId: string;
+  readonly confirmationToken: string;
+  readonly source: "canonical" | "legacy" | "mapbox";
+  readonly name: string;
+  readonly address: string;
+  readonly category: string;
+  readonly latitude: number;
+  readonly longitude: number;
+  readonly distanceMeters: number;
+  readonly confidence: number;
+  readonly eligible: boolean;
+  readonly rejectionReason: "OUTSIDE_DESTINATION" | null;
+}
+
 export interface MorroProMediaAsset {
   readonly id: string;
   readonly provider: string;
@@ -169,6 +203,31 @@ export interface BusinessDashboardClient {
     businessId: unknown,
     profile: unknown,
   ) => Promise<BusinessProfile>;
+  readonly loadLocation: (
+    businessId: unknown,
+    signal?: AbortSignal,
+  ) => Promise<MorroProLocation>;
+  readonly searchLocationCandidates: (
+    businessId: unknown,
+    query: string,
+    signal?: AbortSignal,
+  ) => Promise<readonly MorroProLocationCandidate[]>;
+  readonly confirmLocationCandidate: (
+    businessId: unknown,
+    query: string,
+    candidateId: string,
+    confirmationToken: string,
+  ) => Promise<MorroProLocation>;
+  readonly saveLocationSelection: (
+    businessId: unknown,
+    input: Readonly<{
+      latitude: number;
+      longitude: number;
+      address?: string;
+      area?: string;
+      source?: "manual" | "device";
+    }>,
+  ) => Promise<MorroProLocation>;
   readonly listOffers: (
     businessId: unknown,
     signal?: AbortSignal,
@@ -221,6 +280,12 @@ function businessProfileUrl(businessIdInput: unknown): string {
   const businessId = normalizeBusinessId(businessIdInput);
   if (!businessId) throw new Error("INVALID_BUSINESS_ID");
   return `/api/business/${encodeURIComponent(businessId)}/profile`;
+}
+
+function businessLocationUrl(businessIdInput: unknown, suffix = ""): string {
+  const businessId = normalizeBusinessId(businessIdInput);
+  if (!businessId) throw new Error("INVALID_BUSINESS_ID");
+  return `/api/business/${encodeURIComponent(businessId)}/location${suffix}`;
 }
 
 function businessInventoryUrl(businessIdInput: unknown): string {
@@ -306,6 +371,96 @@ export function createBusinessDashboardClient(
     const data = (await response.json()) as { profile?: BusinessProfile };
     if (!data.profile) throw new Error("INVALID_BUSINESS_PROFILE_RESPONSE");
     return data.profile;
+  }
+
+  async function loadLocation(
+    businessIdInput: unknown,
+    signal?: AbortSignal,
+  ): Promise<MorroProLocation> {
+    const response = await authClient.secureFetch(
+      businessLocationUrl(businessIdInput),
+      {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+        signal: signal ?? null,
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const payload = (await response.json()) as { data?: MorroProLocation };
+    if (!payload.data) throw new Error("INVALID_BUSINESS_LOCATION_RESPONSE");
+    return payload.data;
+  }
+
+  async function searchLocationCandidates(
+    businessIdInput: unknown,
+    query: string,
+    signal?: AbortSignal,
+  ): Promise<readonly MorroProLocationCandidate[]> {
+    const url =
+      businessLocationUrl(businessIdInput, "/candidates") +
+      `?q=${encodeURIComponent(query)}`;
+    const response = await authClient.secureFetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+      signal: signal ?? null,
+    });
+    if (!response.ok) throw new Error(await readError(response));
+    const payload = (await response.json()) as {
+      data?: MorroProLocationCandidate[];
+    };
+    return Object.freeze(Array.isArray(payload.data) ? payload.data : []);
+  }
+
+  async function confirmLocationCandidate(
+    businessIdInput: unknown,
+    query: string,
+    candidateId: string,
+    confirmationToken: string,
+  ): Promise<MorroProLocation> {
+    const response = await authClient.secureFetch(
+      businessLocationUrl(businessIdInput, "/confirm"),
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query, candidateId, confirmationToken }),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const payload = (await response.json()) as { data?: MorroProLocation };
+    if (!payload.data) throw new Error("INVALID_BUSINESS_LOCATION_RESPONSE");
+    return payload.data;
+  }
+
+  async function saveLocationSelection(
+    businessIdInput: unknown,
+    input: Readonly<{
+      latitude: number;
+      longitude: number;
+      address?: string;
+      area?: string;
+      source?: "manual" | "device";
+    }>,
+  ): Promise<MorroProLocation> {
+    const response = await authClient.secureFetch(
+      businessLocationUrl(businessIdInput),
+      {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(input),
+      },
+    );
+    if (!response.ok) throw new Error(await readError(response));
+    const payload = (await response.json()) as { data?: MorroProLocation };
+    if (!payload.data) throw new Error("INVALID_BUSINESS_LOCATION_RESPONSE");
+    return payload.data;
   }
 
   async function listOffers(
@@ -550,6 +705,10 @@ export function createBusinessDashboardClient(
     bootstrap,
     loadProfile,
     saveProfile,
+    loadLocation,
+    searchLocationCandidates,
+    confirmLocationCandidate,
+    saveLocationSelection,
     listOffers,
     createOffer,
     disableOffer,

@@ -6,6 +6,8 @@ import {
 import type {
   BusinessDashboardClient,
   MorroProCatalog,
+  MorroProLocation,
+  MorroProLocationCandidate,
   MorroProMedia,
 } from "./business-dashboard-client.js";
 import {
@@ -71,6 +73,191 @@ function requiredElement<T extends HTMLElement>(
 
 function setText(document: Document, id: string, value: string): void {
   requiredElement(document, id).textContent = value || "—";
+}
+
+interface LocationSurface {
+  readonly current: HTMLElement;
+  readonly status: HTMLElement;
+  readonly searchForm: HTMLFormElement;
+  readonly searchInput: HTMLInputElement;
+  readonly results: HTMLElement;
+  readonly manualForm: HTMLFormElement;
+  readonly latitude: HTMLInputElement;
+  readonly longitude: HTMLInputElement;
+  readonly address: HTMLInputElement;
+  readonly area: HTMLInputElement;
+  readonly deviceButton: HTMLButtonElement;
+}
+
+function createLocationSurface(document: Document): LocationSurface {
+  const panel = document.querySelector<HTMLElement>(
+    '[data-view-panel="location"]',
+  );
+  if (!panel) throw new Error("MISSING_LOCATION_PANEL");
+  panel.replaceChildren();
+  panel.innerHTML = `
+    <div class="settings-grid">
+      <article class="panel-card">
+        <span class="eyebrow">Localização canônica</span>
+        <h2>Localização do negócio</h2>
+        <p>Pesquise, confira e confirme o ponto correto. A alteração cria uma revisão editável e não publica automaticamente.</p>
+        <div id="morro-pro-location-current" aria-live="polite"></div>
+        <p id="morro-pro-location-status" class="form-status" role="status"></p>
+      </article>
+      <article class="panel-card">
+        <h2>Buscar localização</h2>
+        <form id="morro-pro-location-search-form">
+          <label>Nome ou endereço
+            <input id="morro-pro-location-search" name="query" autocomplete="off" maxlength="160" required />
+          </label>
+          <button class="button" type="submit">Buscar</button>
+        </form>
+        <div id="morro-pro-location-results" aria-live="polite"></div>
+      </article>
+      <article class="panel-card">
+        <h2>Coordenadas manuais ou do dispositivo</h2>
+        <form id="morro-pro-location-manual-form">
+          <label>Latitude<input id="morro-pro-location-latitude" name="latitude" inputmode="decimal" required /></label>
+          <label>Longitude<input id="morro-pro-location-longitude" name="longitude" inputmode="decimal" required /></label>
+          <label>Endereço<input id="morro-pro-location-address" name="address" maxlength="500" /></label>
+          <label>Área<input id="morro-pro-location-area" name="area" maxlength="160" /></label>
+          <button class="button" type="submit">Salvar localização</button>
+          <button id="morro-pro-location-device" class="button secondary" type="button">Usar localização do dispositivo</button>
+        </form>
+      </article>
+    </div>`;
+  return Object.freeze({
+    current: requiredElement(document, "morro-pro-location-current"),
+    status: requiredElement(document, "morro-pro-location-status"),
+    searchForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-location-search-form",
+    ),
+    searchInput: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-search",
+    ),
+    results: requiredElement(document, "morro-pro-location-results"),
+    manualForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-location-manual-form",
+    ),
+    latitude: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-latitude",
+    ),
+    longitude: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-longitude",
+    ),
+    address: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-address",
+    ),
+    area: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-area",
+    ),
+    deviceButton: requiredElement<HTMLButtonElement>(
+      document,
+      "morro-pro-location-device",
+    ),
+  });
+}
+
+function locationSourceLabel(source: string): string {
+  return (
+    {
+      mapbox: "Mapbox confirmado",
+      imported: "Dados canônicos/importados",
+      device: "Dispositivo",
+      manual: "Manual",
+    }[source] ?? source
+  );
+}
+
+function renderCurrentLocation(
+  document: Document,
+  surface: LocationSurface,
+  value: MorroProLocation | null,
+): void {
+  surface.current.replaceChildren();
+  if (
+    !value ||
+    value.location.latitude === null ||
+    value.location.longitude === null
+  ) {
+    surface.latitude.value = "";
+    surface.longitude.value = "";
+    surface.address.value = "";
+    surface.area.value = "";
+    surface.manualForm.dataset.locationSource = "manual";
+    const empty = document.createElement("p");
+    empty.textContent = "Localização ainda não confirmada.";
+    surface.current.append(empty);
+    return;
+  }
+  const title = document.createElement("strong");
+  title.textContent = value.name;
+  const detail = document.createElement("p");
+  detail.textContent =
+    [value.location.address, value.location.area].filter(Boolean).join(" · ") ||
+    "Endereço não informado";
+  const coordinates = document.createElement("p");
+  coordinates.textContent = `${value.location.latitude.toFixed(6)}, ${value.location.longitude.toFixed(6)} · ${locationSourceLabel(value.location.source)}`;
+  const map = document.createElement("a");
+  map.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(value.location.latitude))}&mlon=${encodeURIComponent(String(value.location.longitude))}#map=18/${encodeURIComponent(String(value.location.latitude))}/${encodeURIComponent(String(value.location.longitude))}`;
+  map.target = "_blank";
+  map.rel = "noreferrer";
+  map.textContent = "Ver no mapa";
+  surface.current.append(title, detail, coordinates, map);
+  surface.latitude.value = String(value.location.latitude);
+  surface.longitude.value = String(value.location.longitude);
+  surface.address.value = value.location.address ?? "";
+  surface.area.value = value.location.area ?? "";
+}
+
+function renderLocationCandidates(
+  document: Document,
+  surface: LocationSurface,
+  candidates: readonly MorroProLocationCandidate[],
+  mutable: boolean,
+  onConfirm: (candidate: MorroProLocationCandidate) => void,
+): void {
+  surface.results.replaceChildren();
+  if (candidates.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "Nenhuma localização correspondente foi encontrada.";
+    surface.results.append(empty);
+    return;
+  }
+  for (const candidate of candidates) {
+    const card = document.createElement("article");
+    card.className = "panel-card";
+    const title = document.createElement("strong");
+    title.textContent = candidate.name;
+    const detail = document.createElement("p");
+    detail.textContent =
+      [candidate.address, candidate.category].filter(Boolean).join(" · ") ||
+      "Sem endereço";
+    const distance = document.createElement("small");
+    distance.textContent = candidate.eligible
+      ? `${Math.max(0, candidate.distanceMeters)} m do centro do destino`
+      : "Fora do limite permitido do destino";
+    const map = document.createElement("a");
+    map.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(candidate.latitude))}&mlon=${encodeURIComponent(String(candidate.longitude))}#map=18/${encodeURIComponent(String(candidate.latitude))}/${encodeURIComponent(String(candidate.longitude))}`;
+    map.target = "_blank";
+    map.rel = "noreferrer";
+    map.textContent = "Ver no mapa";
+    const confirm = document.createElement("button");
+    confirm.type = "button";
+    confirm.className = "button";
+    confirm.textContent = "Usar esta localização";
+    confirm.disabled = !mutable || !candidate.eligible;
+    confirm.addEventListener("click", () => onConfirm(candidate));
+    card.append(title, detail, distance, map, confirm);
+    surface.results.append(card);
+  }
 }
 
 const moduleDescriptions: Readonly<Record<MorroProModule, string>> =
@@ -779,6 +966,7 @@ export async function mountBusinessDashboardSurface(
     "profile-description",
   );
   ensureMorroProPanels(document);
+  const locationSurface = createLocationSurface(document);
   const catalogSurface = createCatalogSurface(document);
   const mediaSurface = createMediaSurface(document);
 
@@ -831,6 +1019,46 @@ export async function mountBusinessDashboardSurface(
     nameInput.value = safeProfile.name;
     categoryInput.value = safeProfile.categoryLabel;
     descriptionInput.value = safeProfile.description;
+  }
+
+  async function reloadLocation(signal?: AbortSignal): Promise<void> {
+    if (!businessId) return;
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const location = await dashboardClient.loadLocation(
+      targetBusinessId,
+      signal,
+    );
+    if (request && !contextController?.isCurrent(request)) return;
+    renderCurrentLocation(document, locationSurface, location);
+  }
+
+  async function confirmLocationCandidate(
+    query: string,
+    candidate: MorroProLocationCandidate,
+  ): Promise<void> {
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    locationSurface.status.textContent = "Confirmando localização…";
+    try {
+      const saved = await dashboardClient.confirmLocationCandidate(
+        targetBusinessId,
+        query,
+        candidate.candidateId,
+        candidate.confirmationToken,
+      );
+      if (request && !contextController?.isCurrent(request)) return;
+      renderCurrentLocation(document, locationSurface, saved);
+      locationSurface.results.replaceChildren();
+      locationSurface.status.textContent =
+        "Localização confirmada na revisão editável. A publicação pública continua governada separadamente.";
+    } catch (error: unknown) {
+      if (request && !contextController?.isCurrent(request)) return;
+      locationSurface.status.textContent =
+        error instanceof Error
+          ? error.message
+          : "Falha ao confirmar localização.";
+    }
   }
 
   async function reloadMedia(signal?: AbortSignal): Promise<void> {
@@ -900,6 +1128,109 @@ export async function mountBusinessDashboardSurface(
       form.removeAttribute("aria-busy");
     }
   }
+
+  locationSurface.searchForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const query = locationSurface.searchInput.value.trim();
+    if (!query) return;
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    locationSurface.status.textContent = "Buscando localizações…";
+    void dashboardClient
+      .searchLocationCandidates(targetBusinessId, query, request?.signal)
+      .then((candidates) => {
+        if (request && !contextController?.isCurrent(request)) return;
+        renderLocationCandidates(
+          document,
+          locationSurface,
+          candidates,
+          locationSurface.results.dataset.mutable === "true",
+          (candidate) => void confirmLocationCandidate(query, candidate),
+        );
+        locationSurface.status.textContent = candidates.length
+          ? "Confira o resultado antes de confirmar."
+          : "Nenhuma localização encontrada. Use as coordenadas manuais ou do dispositivo.";
+      })
+      .catch((error: unknown) => {
+        if (request && !contextController?.isCurrent(request)) return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
+        locationSurface.status.textContent =
+          error instanceof Error
+            ? error.message
+            : "Falha ao buscar localização.";
+      });
+  });
+
+  locationSurface.manualForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    if (locationSurface.manualForm.dataset.mutable !== "true") return;
+    const request = contextController?.request();
+    const targetBusinessId = request?.businessId ?? businessId;
+    const source =
+      locationSurface.manualForm.dataset.locationSource === "device"
+        ? "device"
+        : "manual";
+    locationSurface.status.textContent = "Salvando localização…";
+    void dashboardClient
+      .saveLocationSelection(targetBusinessId, {
+        latitude: Number(locationSurface.latitude.value),
+        longitude: Number(locationSurface.longitude.value),
+        address: locationSurface.address.value,
+        area: locationSurface.area.value,
+        source,
+      })
+      .then((saved) => {
+        if (request && !contextController?.isCurrent(request)) return;
+        renderCurrentLocation(document, locationSurface, saved);
+        locationSurface.manualForm.dataset.locationSource = "manual";
+        locationSurface.status.textContent =
+          "Localização salva na revisão editável. A publicação pública continua governada separadamente.";
+      })
+      .catch((error: unknown) => {
+        if (request && !contextController?.isCurrent(request)) return;
+        locationSurface.status.textContent =
+          error instanceof Error
+            ? error.message
+            : "Falha ao salvar localização.";
+      });
+  });
+
+  for (const input of [locationSurface.latitude, locationSurface.longitude]) {
+    input.addEventListener("input", () => {
+      locationSurface.manualForm.dataset.locationSource = "manual";
+    });
+  }
+
+  locationSurface.deviceButton.addEventListener("click", () => {
+    if (locationSurface.manualForm.dataset.mutable !== "true") return;
+    const request = contextController?.request();
+    const geolocation = document.defaultView?.navigator.geolocation;
+    if (!geolocation) {
+      locationSurface.status.textContent =
+        "Geolocalização não disponível neste dispositivo.";
+      return;
+    }
+    locationSurface.status.textContent = "Obtendo localização do dispositivo…";
+    geolocation.getCurrentPosition(
+      (position) => {
+        if (request && !contextController?.isCurrent(request)) return;
+        locationSurface.latitude.value = String(position.coords.latitude);
+        locationSurface.longitude.value = String(position.coords.longitude);
+        locationSurface.manualForm.dataset.locationSource = "device";
+        locationSurface.status.textContent =
+          "Localização detectada. Confira as coordenadas e toque em Salvar localização.";
+      },
+      (error) => {
+        if (request && !contextController?.isCurrent(request)) return;
+        locationSurface.status.textContent =
+          error.code === error.PERMISSION_DENIED
+            ? "Permissão de localização negada. Use a busca ou coordenadas manuais."
+            : "Não foi possível obter a localização do dispositivo.";
+      },
+      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 10_000 },
+    );
+  });
 
   mediaSurface.form.addEventListener("submit", (event) => {
     event.preventDefault();
@@ -1220,6 +1551,21 @@ export async function mountBusinessDashboardSurface(
         });
       status.textContent = "Você pode consultar o perfil, mas não editá-lo.";
     }
+    const locationAccess = accessByModule.get("location");
+    const locationMutable = locationAccess?.mutable === true;
+    locationSurface.results.dataset.mutable = String(locationMutable);
+    locationSurface.manualForm.dataset.mutable = String(locationMutable);
+    locationSurface.manualForm.dataset.locationSource = "manual";
+    locationSurface.manualForm
+      .querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button")
+      .forEach((control) => {
+        control.disabled = !locationMutable;
+      });
+    if (!locationMutable && locationAccess?.visible) {
+      locationSurface.status.textContent =
+        "Você pode consultar a localização, mas não alterá-la.";
+    }
+
     const photoAccess = accessByModule.get("photos");
     mediaSurface.form.dataset.mutable = String(photoAccess?.mutable === true);
     if (!photoAccess?.mutable) {
@@ -1273,6 +1619,18 @@ export async function mountBusinessDashboardSurface(
       const moduleAccess = accessByModule.get(view);
       if (!moduleAccess?.visible) return;
       activateView(view);
+      if (view === "location") {
+        const request = contextController?.request();
+        void reloadLocation(request?.signal).catch((error: unknown) => {
+          if (request && !contextController?.isCurrent(request)) return;
+          if (error instanceof DOMException && error.name === "AbortError")
+            return;
+          locationSurface.status.textContent =
+            error instanceof Error
+              ? error.message
+              : "Falha ao carregar localização.";
+        });
+      }
       if (view === "photos") {
         const request = contextController?.request();
         void reloadMedia(request?.signal).catch((error: unknown) => {
@@ -1348,6 +1706,8 @@ export async function mountBusinessDashboardSurface(
           if (!request) return;
           businessId = request.businessId;
           status.textContent = "Trocando contexto do negócio…";
+          renderCurrentLocation(document, locationSurface, null);
+          locationSurface.results.replaceChildren();
           activeMedia = Object.freeze({
             count: 0,
             storageAvailable: false,
@@ -1372,6 +1732,13 @@ export async function mountBusinessDashboardSurface(
             .then(async (profile) => {
               if (!contextController?.isCurrent(request)) return;
               renderProfile(profile);
+              const activeLocationPanel = document.querySelector<HTMLElement>(
+                '[data-view-panel="location"].active',
+              );
+              if (activeLocationPanel) {
+                await reloadLocation(request.signal);
+                if (!contextController?.isCurrent(request)) return;
+              }
               const activeMediaPanel = document.querySelector<HTMLElement>(
                 '[data-view-panel="photos"].active',
               );
