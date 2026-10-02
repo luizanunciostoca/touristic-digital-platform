@@ -25,7 +25,7 @@
       ],
       "domains": ["business", "places", "map", "morro-pro"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-03T05:00:00Z"
     }
   }
