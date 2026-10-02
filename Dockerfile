@@ -10,6 +10,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.js
 COPY packages/ packages/
 COPY services/ services/
 COPY apps/ apps/
+COPY dashboard/ dashboard/
 COPY tooling/ tooling/
 COPY tests/ tests/
 

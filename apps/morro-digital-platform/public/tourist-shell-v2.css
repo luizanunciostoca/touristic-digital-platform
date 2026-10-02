@@ -3194,6 +3194,11 @@ body[data-md-mode="discover"] .md-home-header-inner {
   min-width: var(--md-touch-target-min);
   gap: 0;
   padding: var(--md-space-1);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 body[data-md-mode="discover"] .md-home-brand-mark {
