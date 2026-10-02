@@ -1110,7 +1110,7 @@ async function renderDestinations(destinationId) {
       </section>
       <div class="table-wrap" tabindex="0">
         <table>
-          <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
+          <thead><tr><th>Destino</th><th>Status</th><th>Idioma</th><th>Timezone</th><th>Versão</th></tr></thead>
           <tbody>${
             destinations
               .map(
@@ -1253,8 +1253,7 @@ async function renderBusinessesLegacy(businessId) {
     content.innerHTML = `
       <div class="callout">
         <strong>Visão 360º administrativa:</strong>
-        composição somente por contratos owner. Nenhum dado abaixo usa leitura
-        cross-domain direta ou inferência de tenant.
+        informações combinadas somente a partir dos serviços responsáveis. Nenhum dado abaixo acessa outra área diretamente nem deduz vínculo de empresa.
       </div>
       <div class="grid stats">
         <article class="card stat">
@@ -1378,25 +1377,25 @@ async function renderBusinessesLegacy(businessId) {
       businessRenderedSections[2]?.children?.[1]?.outerHTML ?? "";
     const activityContent = businessRenderedSections[3]?.outerHTML ?? "";
     const profileContent = `<section class="card section-card">
-      <div class="section-title"><h2>Identity / Profile</h2><span class="badge">Business owner</span></div>
+      <div class="section-title"><h2>Identidade e perfil</h2><span class="badge">Negócio</span></div>
       <div class="module-list">
         <div class="module-row"><span>Business ID</span><strong>${escapeHtml(
           businessId,
         )}</strong></div>
         <div class="module-row"><span>Nome</span><strong>${escapeHtml(
-          profile?.name ?? "perfil owner indisponível",
+          profile?.name ?? "perfil indisponível",
         )}</strong></div>
         <div class="module-row"><span>Destination</span>${
           profile?.destinationId
             ? `<a href="#destinations:${encodeURIComponent(
                 profile.destinationId,
               )}">${escapeHtml(profile.destinationId)}</a>`
-            : '<strong data-destination-relation="unavailable">não atribuído pelo owner; não inferido</strong>'
+            : '<strong data-destination-relation="unavailable" data-contract-diagnostic="não atribuído pelo owner; não inferido">não atribuído; não inferido</strong>'
         }</div>
       </div>
     </section>`;
     const commercialContent = `<section class="card section-card">
-      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">Somente consulta composition</span></div>
+      <div class="section-title"><h2>Comercial e financeiro</h2><span class="badge">Consulta</span></div>
       <div class="module-list">
         <div class="module-row"><span>Ofertas oficiais</span>${
           productsResult.available
@@ -1456,9 +1455,8 @@ async function renderBusinessesLegacy(businessId) {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>Fronteira preservada:</strong>
-      o diretório vem do Identity; cada visão 360º compõe apenas contratos owner
-      registrados para aquele tenant.
+      <strong>Origem dos dados:</strong>
+      o diretório vem do serviço de identidade; cada visão 360º usa somente serviços autorizados para aquela empresa.
     </div>
     <div class="table-wrap" tabindex="0">
       <table>
@@ -1576,7 +1574,8 @@ async function renderAffiliates(affiliateId) {
           if (rows.length === 0) {
             const tableWrap = body.closest(".table-wrap");
             if (tableWrap) {
-              tableWrap.innerHTML = '<section class="empty-surface" data-empty-state="empty"><h2>Nenhum afiliado encontrado</h2><p>Ajuste a busca ou limpe o termo para ver outros afiliados.</p></section>';
+              tableWrap.innerHTML =
+                '<section class="empty-surface" data-empty-state="empty"><h2>Nenhum afiliado encontrado</h2><p>Ajuste a busca ou limpe o termo para ver outros afiliados.</p></section>';
             }
             return;
           }
@@ -1753,12 +1752,12 @@ async function renderAffiliates(affiliateId) {
       </div>
       ${
         supportActive
-          ? '<div class="callout">Ações críticas de afiliados ficam bloqueadas durante Support Mode. Encerre a sessão de suporte para operar como actor real.</div>'
-          : '<div class="callout">A mudança de membership usa o serviço owner de Affiliates, exige capability dedicada, reautenticação, motivo e confirmação textual.</div>'
+          ? '<div class="callout">Ações críticas de afiliados ficam bloqueadas durante o modo de suporte. Encerre a sessão de suporte para operar com o usuário autenticado.</div>'
+          : '<div class="callout">A mudança de participação usa o serviço de Afiliados, exige permissão dedicada, reautenticação, motivo e confirmação textual.</div>'
       }
       <form id="affiliate-membership-action-form" class="form-grid">
         <label>
-          Membership
+          Participação
           <select id="affiliate-membership-action" ${supportActive ? "disabled" : ""} required>
             <option value="">Selecione</option>
             ${actionOptions}
@@ -2407,8 +2406,7 @@ async function renderProducts(productId) {
       </section>
     </div>
     <div class="callout" style="margin-top:16px">
-      A oferta é imutável nesta superfície. Quando precisa sair de venda, o comando
-      owner desativa o inventário preservando histórico e relações existentes.
+      A oferta não é editada diretamente nesta tela. Quando precisa sair de venda, o sistema de ingressos desativa a disponibilidade preservando o histórico e as relações existentes.
     </div>
     ${
       offer.enabled
@@ -2531,7 +2529,7 @@ async function renderReservations(reservationId) {
       <article class="card stat"><span class="stat-label">Status</span><strong class="stat-value" style="font-size:20px">${escapeHtml(reservation.status)}</strong><small>${escapeHtml(reservation.id)}</small></article>
       <article class="card stat"><span class="stat-label">Quantidade</span><strong class="stat-value">${escapeHtml(reservation.quantity)}</strong><small>${escapeHtml(formatMinorUnits(reservation.unitAmount))}</small></article>
       <article class="card stat"><span class="stat-label">Empresa</span><strong class="stat-value" style="font-size:16px">${escapeHtml(detail.businessId ?? "—")}</strong><small>${escapeHtml(reservation.destinationId)}</small></article>
-      <article class="card stat"><span class="stat-label">Cliente</span><strong class="stat-value" style="font-size:16px">${escapeHtml(reservation.holderReference)}</strong><small>referência owner</small></article>
+      <article class="card stat"><span class="stat-label">Cliente</span><strong class="stat-value" style="font-size:16px">${escapeHtml(reservation.holderReference)}</strong><small>referência da reserva</small></article>
     </div>
     <div class="grid two-col">
       <section class="card section-card">
@@ -2559,7 +2557,7 @@ async function renderReservations(reservationId) {
     </div>
     <div class="callout" style="margin-top:16px">
       Cancelamento de reserva confirmada não é uma mudança manual de status: exige o processo autorizado de estorno financeiro.
-      Reservas em <strong>held</strong> podem ser canceladas aqui somente pelo comando owner governado.
+      Reservas em <strong>held</strong> podem ser canceladas aqui somente pelo processo protegido.
     </div>
     ${
       reservation.status === "held"
@@ -2931,12 +2929,12 @@ async function renderOrders(orderId) {
           <span class="badge">Somente consulta</span>
         </div>
         <p style="color:var(--muted)">
-          A consulta usa o repositório owner do domínio Ordering. O Control Center
+          A consulta usa o serviço responsável por Pedidos. O Control Center
           não lê a tabela de pedidos diretamente.
         </p>
         <form id="order-lookup-form" class="form-grid">
           <label>
-            Order ID
+            Identificador do pedido
             <input id="order-lookup-id" required autocomplete="off" placeholder="ord_..." />
           </label>
           <div><button class="primary-button" type="submit">Consultar pedido</button></div>
@@ -2956,11 +2954,11 @@ async function renderOrders(orderId) {
   const order = data.data;
   content.innerHTML = `
     <div class="callout">
-      <strong>Ordering owner:</strong> projeção administrativa somente leitura.
+      <strong>Pedidos:</strong> consulta administrativa protegida.
     </div>
     <div class="grid stats">
       <article class="card stat">
-        <span class="stat-label">Order ID</span>
+        <span class="stat-label">Identificador do pedido</span>
         <strong class="stat-value" style="font-size:16px">${escapeHtml(order.id)}</strong>
         <small>${escapeHtml(order.source?.kind ?? "—")}</small>
       </article>
@@ -2988,7 +2986,9 @@ async function renderOrders(orderId) {
 async function renderFinancial(paymentId) {
   if (!paymentId) {
     const periodEnd = new Date();
-    const periodStart = new Date(periodEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const periodStart = new Date(
+      periodEnd.getTime() - 30 * 24 * 60 * 60 * 1000,
+    );
     const from = periodStart.toISOString();
     const to = periodEnd.toISOString();
     const summaryResult = await api(
@@ -2997,9 +2997,14 @@ async function renderFinancial(paymentId) {
     const summary = summaryResult.data ?? null;
     const paymentRows = summary?.payments ?? [];
     const reconciliationRows = summary?.reconciliation ?? [];
-    const confirmedRows = paymentRows.filter((row) => row.status === "confirmed");
+    const confirmedRows = paymentRows.filter(
+      (row) => row.status === "confirmed",
+    );
     const pendingRows = paymentRows.filter((row) => row.status === "pending");
-    const totalCount = paymentRows.reduce((total, row) => total + Number(row.count || 0), 0);
+    const totalCount = paymentRows.reduce(
+      (total, row) => total + Number(row.count || 0),
+      0,
+    );
     const confirmedCount = confirmedRows.reduce(
       (total, row) => total + Number(row.count || 0),
       0,
@@ -3041,8 +3046,9 @@ async function renderFinancial(paymentId) {
           <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
         </div>
       </div>
-      ${summary
-        ? `<div class="grid stats">
+      ${
+        summary
+          ? `<div class="grid stats">
             <article class="card stat">
               <span class="stat-label">Movimentações</span>
               <strong class="stat-value">${escapeHtml(totalCount)}</strong>
@@ -3064,10 +3070,11 @@ async function renderFinancial(paymentId) {
               <small>pendência(s) aberta(s)</small>
             </article>
           </div>`
-        : `<section class="card empty-surface" data-empty-state="unavailable">
+          : `<section class="card empty-surface" data-empty-state="unavailable">
             <h2>Resumo financeiro indisponível</h2>
             <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
-          </section>`}
+          </section>`
+      }
 
       <details class="technical-details" open>
         <summary>Consultas avançadas</summary>
@@ -3345,14 +3352,14 @@ async function renderContent(contentId) {
           <div class="section-title">
             <div>
               <h2>Biblioteca editorial</h2>
-              <small style="color:var(--muted)">Persistência e lifecycle pertencem ao domínio Content.</small>
+              <small style="color:var(--muted)">Conteúdos em preparação, revisão e publicação.</small>
             </div>
             <span class="badge">${documents.length} item(ns)</span>
           </div>
           <div class="table-wrap" tabindex="0">
             <table>
               <thead>
-                <tr><th>Conteúdo</th><th>Tipo</th><th>Status</th><th>Destino</th><th>Locale</th></tr>
+                <tr><th>Conteúdo</th><th>Tipo</th><th>Status</th><th>Destino</th><th>Idioma</th></tr>
               </thead>
               <tbody>
                 ${
@@ -3361,18 +3368,17 @@ async function renderContent(contentId) {
                       (document) => `<tr>
                         <td>
                           <a href="#content:${encodeURIComponent(document.id)}">
-                            <strong>${escapeHtml(contentField(document, "title") || document.id)}</strong>
+                            <strong>${escapeHtml(contentField(document, "title") || "Conteúdo sem título")}</strong>
                           </a>
-                          <br><small>${escapeHtml(document.id)}</small>
                         </td>
-                        <td>${escapeHtml(document.kind)}</td>
+                        <td>${escapeHtml({ destination: "Destino", category: "Categoria", place: "Local", media: "Mídia", tour: "Passeio", event: "Evento", translation: "Tradução", seo: "SEO", offer_reference: "Referência de oferta" }[document.kind] ?? "Conteúdo")}</td>
                         <td>${statusBadge(document.status)}</td>
-                        <td>${escapeHtml(document.destinationId)}</td>
-                        <td>${escapeHtml(document.locale)}</td>
+                        <td>${escapeHtml(document.destinationId === "morro-de-sao-paulo" ? "Morro de São Paulo" : document.destinationId === "itacare" ? "Itacaré" : "Destino configurado")}</td>
+                        <td>${escapeHtml({ "pt-BR": "Português", en: "Inglês", es: "Espanhol", he: "Hebraico" }[document.locale] ?? "Outro idioma")}</td>
                       </tr>`,
                     )
                     .join("") ||
-                  '<tr><td colspan="5" class="empty">Nenhum conteúdo cadastrado.</td></tr>'
+                  '<tr><td colspan="5"><div class="empty-surface" data-empty-state="empty"><h2>Nenhum conteúdo cadastrado</h2><p>Crie o primeiro rascunho para iniciar o fluxo editorial.</p></div></td></tr>'
                 }
               </tbody>
             </table>
@@ -3584,7 +3590,7 @@ async function renderContent(contentId) {
       </section>
 
       <section class="card section-card">
-        <div class="section-title"><h2>Publicação</h2><span class="badge">${canManage ? "governado" : "somente leitura"}</span></div>
+        <div class="section-title"><h2>Publicação</h2><span class="badge">${canManage ? "governado" : "somente consulta"}</span></div>
         <div class="module-list">
           <div class="module-row"><span>Criado</span><strong>${escapeHtml(documentData.createdAt)}</strong></div>
           <div class="module-row"><span>Agendado</span><strong>${escapeHtml(documentData.scheduledFor ?? "—")}</strong></div>
@@ -3606,7 +3612,7 @@ async function renderContent(contentId) {
                 <label>Resumo
                   <textarea id="content-revise-summary" maxlength="20000">${escapeHtml(contentField(documentData, "summary"))}</textarea>
                 </label>
-                <label>Motivo administrativo
+                <label>Motivo da alteração
                   <textarea id="content-revise-reason" minlength="8" maxlength="240" required></textarea>
                 </label>
                 <p id="content-revise-status" role="status" style="margin:0;color:var(--muted)"></p>
@@ -3629,7 +3635,7 @@ async function renderContent(contentId) {
                 <label>Publicar em (somente para agendamento)
                   <input id="content-scheduled-for" type="datetime-local" />
                 </label>
-                <label>Motivo administrativo
+                <label>Motivo da alteração
                   <textarea id="content-transition-reason" minlength="8" maxlength="240" required></textarea>
                 </label>
                 <p id="content-transition-message" role="status" style="margin:0;color:var(--muted)"></p>
@@ -3848,7 +3854,7 @@ function renderSettings() {
           <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Identidade</a></div>
           <div class="module-row"><span>Destinos</span><a href="#destinations">Destinos</a></div>
           <div class="module-row"><span>Conteúdo</span><a href="#content">Conteúdo</a></div>
-          <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente leitura</a></div>
+          <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente consulta</a></div>
         </div>
       </section>
     </div>`;

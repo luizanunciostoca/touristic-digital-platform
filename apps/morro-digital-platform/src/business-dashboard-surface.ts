@@ -119,7 +119,8 @@ function ensureMorroProPanels(document: Document): void {
     `;
     const heading = section.querySelector("h2");
     const description = section.querySelector("p");
-    if (heading) heading.textContent = moduleLabels.get(moduleId) ?? "Recurso do negócio";
+    if (heading)
+      heading.textContent = moduleLabels.get(moduleId) ?? "Recurso do negócio";
     if (description) description.textContent = moduleDescriptions[moduleId];
     main.append(section);
   }

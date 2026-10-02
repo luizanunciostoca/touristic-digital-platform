@@ -400,6 +400,36 @@ describe("M139/M141 payments API runtime boundary", () => {
     });
   });
 
+  it("fails closed when the financial summary owner is unavailable", async () => {
+    const range = {
+      from: "2026-09-01T00:00:00.000Z",
+      to: "2026-10-01T00:00:00.000Z",
+    };
+    const failing = createPaymentsApi({
+      adminRead: {
+        summary: {
+          read() {
+            throw new Error("FINANCIAL_SUMMARY_OWNER_UNAVAILABLE");
+          },
+        },
+      },
+      audit: () => undefined,
+    });
+    await expect(failing.adminFinancialSummary(range)).resolves.toEqual({
+      status: "unavailable",
+      data: null,
+    });
+
+    const missing = createPaymentsApi({
+      adminRead: {},
+      audit: () => undefined,
+    });
+    await expect(missing.adminFinancialSummary(range)).resolves.toEqual({
+      status: "unavailable",
+      data: null,
+    });
+  });
+
   it("parses bounded JSON and propagates a server correlation ID", async () => {
     let captured;
     const api = createPaymentsApi({

@@ -22,8 +22,8 @@ const adminAdapters = read(
 const paymentsApi = read(
   "apps/morro-digital-platform/tooling/payments-api.mjs",
 );
-const businessPrimaryHtml = businessHtml.replaceAll(
-  '<span class="contract-diagnostic" hidden>Endpoint ainda não migrado</span>',
+const businessPrimaryHtml = businessHtml.replace(
+  /<span\s+class="contract-diagnostic"\s+hidden\s*>Endpoint ainda não migrado<\/span\s*>/gu,
   "",
 );
 test("Business primary UX hides migration vocabulary and internal module ids", () => {
@@ -70,7 +70,10 @@ test("Control Center collection zero states are explicit surfaces", () => {
   ]) {
     assert.match(controlJs, new RegExp(copy, "u"));
   }
-  assert.match(controlJs, /class="card empty-surface" data-empty-state="empty"/u);
+  assert.match(
+    controlJs,
+    /class="card empty-surface" data-empty-state="empty"/u,
+  );
 });
 test("Financial summary is primary and owner-backed read-only projection", () => {
   const summary = controlJs.indexOf("<h2>Resumo financeiro</h2>");
@@ -81,7 +84,9 @@ test("Financial summary is primary and owner-backed read-only projection", () =>
   assert.match(adminAdapters, /\$\{adminPrefix\}\/financial\/summary/u);
   assert.match(adminAdapters, /paymentsApi\.adminFinancialSummary/u);
   assert.match(paymentsApi, /function createFinancialAdminSummaryReader/u);
-  const start = paymentsApi.indexOf("function createFinancialAdminSummaryReader");
+  const start = paymentsApi.indexOf(
+    "function createFinancialAdminSummaryReader",
+  );
   const end = paymentsApi.indexOf("export function createPaymentsApi", start);
   const projection = paymentsApi.slice(start, end);
   assert.match(projection, /FROM financial_payments/u);
