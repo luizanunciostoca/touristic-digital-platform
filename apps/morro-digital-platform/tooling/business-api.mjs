@@ -1,7 +1,12 @@
-import { hasAuthCapability } from "@touristic/auth";
+import { capabilitiesForRole, hasAuthCapability } from "@touristic/auth";
 import { createAuthorizedBusinessProfileService } from "@touristic/business";
 
 const businessProfilePattern = /^\/api\/business\/([^/]+)\/profile$/u;
+const businessLocationPattern = /^\/api\/business\/([^/]+)\/location$/u;
+const businessLocationCandidatesPattern =
+  /^\/api\/business\/([^/]+)\/location\/candidates$/u;
+const businessLocationConfirmPattern =
+  /^\/api\/business\/([^/]+)\/location\/confirm$/u;
 const businessCatalogPattern = /^\/api\/business\/([^/]+)\/catalog$/u;
 const businessMediaPattern = /^\/api\/business\/([^/]+)\/media$/u;
 const businessMediaOrderPattern = /^\/api\/business\/([^/]+)\/media\/order$/u;
@@ -33,6 +38,21 @@ async function readJsonBody(request, limit = maxBodyBytes) {
   return JSON.parse(Buffer.concat(chunks).toString("utf8"));
 }
 
+async function defaultLoadLocationDiscoveryRuntime() {
+  const [locationModule, destinationModule] = await Promise.all([
+    import(
+      new URL("../dist/business-location-discovery-adapter.js", import.meta.url)
+        .href
+    ),
+    import(new URL("../dist/config/destination.js", import.meta.url).href),
+  ]);
+  return Object.freeze({
+    createBusinessLocationDiscoveryAdapter:
+      locationModule.createBusinessLocationDiscoveryAdapter,
+    destination: destinationModule.morroDeSaoPauloDestination,
+  });
+}
+
 function createMemoryBusinessProfileRepository() {
   const profiles = new Map();
   return Object.freeze({
@@ -51,6 +71,7 @@ export function createBusinessApi({
   repository = createMemoryBusinessProfileRepository(),
   getPlacePlatformRuntime = () => null,
   getEnvironmentValue = () => "",
+  loadLocationDiscoveryRuntime = defaultLoadLocationDiscoveryRuntime,
 }) {
   if (!authApi?.authorizeBusinessRequest) {
     throw new Error("BUSINESS_AUTH_BOUNDARY_REQUIRED");
@@ -68,6 +89,18 @@ export function createBusinessApi({
   function profileRoute(pathname) {
     const match = businessProfilePattern.exec(pathname);
     return match ? { businessId: decodedBusinessId(match[1]) } : null;
+  }
+
+  function locationRoute(pathname) {
+    for (const [pattern, mode] of [
+      [businessLocationCandidatesPattern, "candidates"],
+      [businessLocationConfirmPattern, "confirm"],
+      [businessLocationPattern, "current"],
+    ]) {
+      const match = pattern.exec(pathname);
+      if (match) return { businessId: decodedBusinessId(match[1]), mode };
+    }
+    return null;
   }
 
   function mediaRoute(pathname) {
@@ -127,6 +160,40 @@ export function createBusinessApi({
       };
     }
     return null;
+  }
+
+  function locationPlatformRuntime() {
+    const runtime = getPlacePlatformRuntime();
+    if (
+      runtime?.readinessCheck?.().status !== "pass" ||
+      typeof runtime?.getBusinessLocationPlace !== "function" ||
+      typeof runtime?.listLocationDiscoveryPlaces !== "function" ||
+      typeof runtime?.updateLocation !== "function"
+    ) {
+      throw new Error("PLACE_PLATFORM_UNAVAILABLE");
+    }
+    return runtime;
+  }
+
+  function locationProjection(place) {
+    return Object.freeze({
+      placeId: String(place.id),
+      businessId: String(place.businessId),
+      destinationId: String(place.destinationId),
+      name: place.name,
+      publicationState: place.publicationState,
+      location: Object.freeze({
+        latitude: place.location.latitude,
+        longitude: place.location.longitude,
+        address: place.location.address,
+        area: place.location.area,
+        source: place.location.source,
+        externalProvider: place.location.externalProvider,
+        externalPlaceId: place.location.externalPlaceId,
+        verifiedAt: place.location.verifiedAt,
+        verifiedBy: place.location.verifiedBy,
+      }),
+    });
   }
 
   function mediaCapability(response, session, capability) {
@@ -194,6 +261,88 @@ export function createBusinessApi({
     return runtime;
   }
 
+  function locationError(response, error) {
+    const code =
+      error instanceof Error ? error.message : "LOCATION_REQUEST_FAILED";
+    const status = code.includes("NOT_FOUND")
+      ? 404
+      : code.includes("STALE") || code.includes("IDENTITY_DRIFT")
+        ? 409
+        : code.includes("DENIED") || code.includes("CROSS_")
+          ? 403
+          : code.includes("INVALID") ||
+              code.includes("REQUIRED") ||
+              code.includes("OUTSIDE_DESTINATION")
+            ? 400
+            : code.includes("UNAVAILABLE") || code.includes("DATABASE")
+              ? 503
+              : 500;
+    json(response, status, { error: code });
+  }
+
+  async function createLocationContext(access) {
+    const runtime = locationPlatformRuntime();
+    const place = await runtime.getBusinessLocationPlace(access.businessId);
+    if (!place) throw new Error("PLACE_NOT_FOUND");
+    const loaded = await loadLocationDiscoveryRuntime();
+    if (
+      typeof loaded?.createBusinessLocationDiscoveryAdapter !== "function" ||
+      !loaded?.destination
+    ) {
+      throw new Error("LOCATION_DISCOVERY_UNAVAILABLE");
+    }
+    if (String(place.destinationId) !== String(loaded.destination.id)) {
+      throw new Error("LOCATION_DESTINATION_DENIED");
+    }
+    const scope = Object.freeze({
+      businessIds: Object.freeze([place.businessId]),
+      destinationIds: Object.freeze([place.destinationId]),
+      capabilities: Object.freeze([
+        ...capabilitiesForRole(access.session.role),
+      ]),
+    });
+    const repository = Object.freeze({
+      async getById(placeId) {
+        const current =
+          await runtime.getBusinessLocationPlace(access.businessId);
+        return current && String(current.id) === String(placeId) ? current : null;
+      },
+      async listByDestination(destinationId) {
+        return runtime.listLocationDiscoveryPlaces(
+          access.businessId,
+          String(destinationId),
+        );
+      },
+      async save(nextPlace) {
+        if (
+          String(nextPlace.businessId) !== String(access.businessId) ||
+          String(nextPlace.id) !== String(place.id) ||
+          String(nextPlace.destinationId) !== String(place.destinationId)
+        ) {
+          throw new Error("PLACE_REPOSITORY_IDENTITY_DRIFT");
+        }
+        await runtime.updateLocation(
+          access.session,
+          access.businessId,
+          nextPlace.location,
+        );
+        const saved =
+          await runtime.getBusinessLocationPlace(access.businessId);
+        if (!saved) throw new Error("PLACE_NOT_FOUND");
+        return saved;
+      },
+    });
+    const adapter = loaded.createBusinessLocationDiscoveryAdapter({
+      destination: loaded.destination,
+      repository,
+      mapboxAccessToken:
+        String(getEnvironmentValue("VITE_MAPBOX_ACCESS_TOKEN") ?? "").trim() ||
+        undefined,
+      fetch: globalThis.fetch,
+    });
+    return Object.freeze({ adapter, place, scope });
+  }
+
   function profileError(response, error) {
     const code =
       error instanceof Error
@@ -219,6 +368,9 @@ export function createBusinessApi({
     matches(pathname) {
       return (
         businessProfilePattern.test(pathname) ||
+        businessLocationPattern.test(pathname) ||
+        businessLocationCandidatesPattern.test(pathname) ||
+        businessLocationConfirmPattern.test(pathname) ||
         businessMediaPattern.test(pathname) ||
         businessMediaOrderPattern.test(pathname) ||
         businessMediaEntryPattern.test(pathname) ||
@@ -229,6 +381,116 @@ export function createBusinessApi({
     },
 
     async handle(request, response, pathname) {
+      const location = locationRoute(pathname);
+      if (location) {
+        const mutation =
+          location.mode === "confirm" ||
+          (location.mode === "current" && request.method === "PUT");
+        const access = await authApi.authorizeBusinessRequest(
+          request,
+          response,
+          location.businessId,
+          {
+            mutation,
+            auditAction: mutation
+              ? "business.location.write"
+              : "business.location.read",
+          },
+        );
+        if (!access) return;
+
+        try {
+          const { adapter, place, scope } = await createLocationContext(access);
+
+          if (location.mode === "current" && request.method === "GET") {
+            response.setHeader("Vary", "Cookie");
+            json(response, 200, { data: locationProjection(place) });
+            return;
+          }
+
+          if (location.mode === "candidates" && request.method === "GET") {
+            const requestUrl = new URL(
+              request.url || pathname,
+              "http://morro.local",
+            );
+            const query = requestUrl.searchParams.get("q") ?? "";
+            const data = await adapter.search({
+              businessId: place.businessId,
+              destinationId: place.destinationId,
+              query,
+              scope,
+              language: requestUrl.searchParams.get("language") ?? "pt",
+              limit: 12,
+            });
+            response.setHeader("Vary", "Cookie");
+            json(response, 200, { data });
+            return;
+          }
+
+          if (location.mode === "confirm" && request.method === "POST") {
+            const body = await readJsonBody(request);
+            const query = String(body.query ?? "");
+            const candidateId = String(body.candidateId ?? "").trim();
+            if (!candidateId) throw new Error("LOCATION_CANDIDATE_REQUIRED");
+            const candidates = await adapter.search({
+              businessId: place.businessId,
+              destinationId: place.destinationId,
+              query,
+              scope,
+              language: String(body.language ?? "pt"),
+              limit: 20,
+            });
+            const candidate = candidates.find(
+              (entry) => entry.candidateId === candidateId,
+            );
+            if (!candidate) throw new Error("LOCATION_CANDIDATE_STALE");
+            const saved = await adapter.confirmCandidate({
+              placeId: place.id,
+              businessId: place.businessId,
+              destinationId: place.destinationId,
+              scope,
+              candidate,
+              verifiedAt: new Date().toISOString(),
+              verifiedBy: access.session.subject,
+            });
+            response.setHeader("Vary", "Cookie");
+            json(response, 200, { data: locationProjection(saved) });
+            return;
+          }
+
+          if (location.mode === "current" && request.method === "PUT") {
+            const body = await readJsonBody(request);
+            const source = body.source === "device" ? "device" : "manual";
+            const selection = adapter.createManualSelection(
+              Number(body.latitude),
+              Number(body.longitude),
+              {
+                address: String(body.address ?? ""),
+                area: String(body.area ?? ""),
+                source,
+              },
+            );
+            const saved = await adapter.confirmSelection({
+              placeId: place.id,
+              businessId: place.businessId,
+              destinationId: place.destinationId,
+              scope,
+              selection,
+              verifiedAt: new Date().toISOString(),
+              verifiedBy: access.session.subject,
+            });
+            response.setHeader("Vary", "Cookie");
+            json(response, 200, { data: locationProjection(saved) });
+            return;
+          }
+
+          json(response, 405, { error: "METHOD_NOT_ALLOWED" });
+        } catch (error) {
+          locationError(response, error);
+        }
+        return;
+      }
+
       const media = mediaRoute(pathname);
       if (media) {
         const runtime = getPlacePlatformRuntime();
