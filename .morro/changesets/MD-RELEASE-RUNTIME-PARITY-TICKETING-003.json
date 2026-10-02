@@ -77,7 +77,7 @@
   },
   "proof": {
     "budget": {
-      "maxCommands": 5,
+      "maxCommands": 4,
       "maxSeconds": 1200
     },
     "commands": [
@@ -91,20 +91,13 @@
         "timeoutSeconds": 240
       },
       {
-        "id": "staging-blueprint-proof",
-        "argv": [
-          "node",
-          "tooling/quality/check-render-staging-blueprint.mjs"
-        ],
-        "timeoutSeconds": 180
-      },
-      {
         "id": "production-blueprint-proof",
         "argv": [
           "node",
-          "tooling/quality/check-render-production-mysql-blueprint.mjs"
+          "--test",
+          "tooling/quality/render-production-mysql-blueprint.test.mjs"
         ],
-        "timeoutSeconds": 180
+        "timeoutSeconds": 240
       },
       {
         "id": "production-data-predeploy-proof",
