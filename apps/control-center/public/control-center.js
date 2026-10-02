@@ -2994,15 +2994,20 @@ async function renderOrders(orderId) {
 
 async function renderFinancial(paymentId) {
   if (!paymentId) {
+    state.adminSession = await api("/session");
+    applySupportBanner();
+    const supportActive = Boolean(state.adminSession?.support);
     const periodEnd = new Date();
     const periodStart = new Date(
       periodEnd.getTime() - 30 * 24 * 60 * 60 * 1000,
     );
     const from = periodStart.toISOString();
     const to = periodEnd.toISOString();
-    const summaryResult = await api(
-      `/financial/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
-    ).catch((error) => ({ data: null, error }));
+    const summaryResult = supportActive
+      ? { data: null }
+      : await api(
+          `/financial/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        ).catch((error) => ({ data: null, error }));
     const summary = summaryResult.data ?? null;
     const paymentRows = summary?.payments ?? [];
     const reconciliationRows = summary?.reconciliation ?? [];
@@ -3422,7 +3427,12 @@ async function renderContent(contentId) {
       api("/destinations").catch(() => null),
     ]);
     const documents = data.data ?? [];
-    const destinations = destinationPayload?.destinations ?? [];
+    const fallbackDestinationId = state.dashboard?.health?.destinationId;
+    const destinations = destinationPayload?.destinations?.length
+      ? destinationPayload.destinations
+      : fallbackDestinationId
+        ? [{ id: fallbackDestinationId }]
+        : [];
     const destinationLabelById = new Map(
       destinations.map((destination) => [
         destination.id,
@@ -4350,7 +4360,9 @@ document.addEventListener("keydown", (event) => {
 nav.addEventListener("click", (event) => {
   const button = event.target.closest("[data-view]");
   if (!button) return;
-  globalThis.location.hash = `#${button.dataset.view}`;
+  const targetHash = `#${button.dataset.view}`;
+  if (globalThis.location.hash === targetHash) openHash(targetHash);
+  else globalThis.location.hash = targetHash;
   app.classList.remove("menu-open");
 });
 
