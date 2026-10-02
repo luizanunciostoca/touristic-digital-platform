@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-BUSINESS-LOCATION-SELF-SERVICE-INTEGRATION-002",
+  "objective": "bind-wave-b-location-discovery-to-morro-pro-self-service-v2",
+  "baseSha": "d01329f4ed45070635fd738950157c9eb658dd75",
+  "branch": "feat/business-location-self-service-v2-acquire-r2-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-BUSINESS-LOCATION-SELF-SERVICE-INTEGRATION-002.json",
+      "docs/architecture/CANONICAL-RUNTIME-CAPABILITY-GRAPH.md",
+      "apps/morro-digital-platform/tooling/business-api.mjs",
+      "apps/morro-digital-platform/tooling/business-api.test.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+      "apps/morro-digital-platform/src/business-dashboard-client.ts",
+      "apps/morro-digital-platform/src/business-dashboard-client.test.ts",
+      "apps/morro-digital-platform/src/business-dashboard-surface.ts",
+      "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+      "tooling/business-location-self-service.contract.mjs",
+      "tooling/business-location-self-service-runtime.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": [
+      "/api/business/:businessId/location",
+      "/api/business/:businessId/location/candidates",
+      "/api/business/:businessId/location/confirm"
+    ]
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 720
+    },
+    "commands": [
+      {
+        "id": "business-location-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/business-location-self-service.contract.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "business-location-runtime-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/business-location-self-service-runtime.test.mjs"
+        ],
+        "timeoutSeconds": 420
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
