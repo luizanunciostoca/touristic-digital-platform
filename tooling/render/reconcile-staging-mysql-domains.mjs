@@ -4,6 +4,7 @@ export const stagingDatabaseDomains = Object.freeze([
   "AUTH",
   "ORDERING",
   "FINANCIAL",
+  "TICKETING",
   "AFFILIATES",
   "BUSINESS",
   "CONTENT",
