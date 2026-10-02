@@ -81,6 +81,9 @@ describe("Home / Discover V2 visual shell", () => {
       /\.md-home-header-inner\s*\{[^}]*flex-direction:\s*row/isu,
     );
     expect(css).toMatch(
+      /body\[data-md-mode="discover"\]\s+\.md-home-header-inner\s*\{(?=[^}]*width:\s*var\(--md-touch-target-min\))(?=[^}]*min-width:\s*var\(--md-touch-target-min\))(?=[^}]*border:\s*0)(?=[^}]*background:\s*transparent)(?=[^}]*box-shadow:\s*none)(?=[^}]*backdrop-filter:\s*none)(?=[^}]*-webkit-backdrop-filter:\s*none)[^}]*\}/isu,
+    );
+    expect(css).toMatch(
       /\.md-home-title-block\s*\{[^}]*flex:\s*1 1 auto[^}]*overflow:\s*hidden/isu,
     );
     expect(css).toContain(

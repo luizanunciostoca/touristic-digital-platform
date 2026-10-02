@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   candidateIdentity,
@@ -13,6 +14,23 @@ import {
   verifyRuntimeProof,
   verifyWorkflowRun,
 } from "./oci-proof.mjs";
+
+test("OCI runtime includes the dashboard login static root", () => {
+  const dockerfile = readFileSync(
+    new URL("../../Dockerfile", import.meta.url),
+    "utf8",
+  );
+  const devServer = readFileSync(
+    new URL(
+      "../../apps/morro-digital-platform/tooling/dev-server.mjs",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(dockerfile, /^COPY dashboard\/ dashboard\/$/mu);
+  assert.match(devServer, /resolve\(repositoryRoot, "dashboard"\)/u);
+});
 
 const repository = "owner/repository";
 const identity = {
