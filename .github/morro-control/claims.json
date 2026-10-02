@@ -5,8 +5,8 @@
     "MD-RELEASE-FINAL-ATTESTATION-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/release-final-attestation-claim-20261002",
-      "baseSha": "17124cd82bada7398e7f6eeebef84debcf7d3be2",
+      "branch": "chore/release-final-attestation-20261002",
+      "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
