@@ -368,7 +368,7 @@ services:
     branch: main
     autoDeploy: false
     buildCommand: corepack enable && corepack prepare pnpm@10.15.0 --activate && pnpm install --frozen-lockfile && pnpm build
-    preDeployCommand: 'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs'
+    preDeployCommand: 'env EXPECTED_SHA="${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs && node apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs'
     startCommand: node apps/morro-digital-platform/tooling/dev-server.mjs
     healthCheckPath: /readyz
     maxShutdownDelaySeconds: 30
@@ -451,6 +451,12 @@ services:
         generateValue: true
       - key: PAYMENTS_HANDOFF_SECRET
         generateValue: true
+      - key: TICKETING_FEATURE_ENABLED
+        value: "true"
+      - key: TICKETING_SIGNING_SECRET
+        generateValue: true
+      - key: TICKETING_FINANCIAL_POLL_INTERVAL_MS
+        value: "1000"
       # Server-only signing key; preserve existing values when syncing.
       - key: TICKETING_OFFLINE_PROVISIONING_SECRET
         generateValue: true
