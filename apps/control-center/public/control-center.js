@@ -563,7 +563,12 @@ async function renderUsers(userId) {
                       )
                       .join(" ") || "—"
                   }</td>
-                  <td>${escapeHtml((user.capabilities ?? []).join(", "))}</td>
+                  <td>
+                    <details class="technical-details">
+                      <summary>Ver permissões</summary>
+                      <small>${escapeHtml((user.capabilities ?? []).join(", ") || "Nenhuma permissão técnica")}</small>
+                    </details>
+                  </td>
                 </tr>`,
             )
             .join("")}
@@ -626,7 +631,7 @@ async function renderUsers(userId) {
         <div>
           <h2>Estado e permissões</h2>
           <small style="color:var(--muted)">
-            Autoridade efetiva persistida pelo Auth; credenciais permanecem fora desta superfície.
+            Confira o acesso desta pessoa. Senhas e credenciais não são exibidas nesta tela.
           </small>
         </div>
         ${statusBadge(selectedUser.status ?? "active")}
