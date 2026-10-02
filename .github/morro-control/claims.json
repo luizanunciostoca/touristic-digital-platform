@@ -18,7 +18,9 @@
         "apps/morro-digital-platform/src/business-dashboard-client.ts",
         "apps/morro-digital-platform/src/business-dashboard-client.test.ts",
         "apps/morro-digital-platform/src/business-dashboard-surface.ts",
-        "apps/morro-digital-platform/src/business-dashboard-surface.test.ts"
+        "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+        "tooling/business-location-self-service.contract.mjs",
+        "tooling/business-location-self-service-runtime.test.mjs"
       ],
       "domains": [
         "business",
