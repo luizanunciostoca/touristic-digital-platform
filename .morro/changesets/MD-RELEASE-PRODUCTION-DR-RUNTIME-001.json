@@ -3,7 +3,7 @@
   "id": "MD-RELEASE-PRODUCTION-DR-RUNTIME-001",
   "baseSha": "b2c2e5677f6a97c2966720a40bcea1a2da81dab8",
   "branch": "fix/production-dr-runtime-image-proof-20261002",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
