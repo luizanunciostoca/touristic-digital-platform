@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-PRODUCTION-CUTOVER-ROLLBACK-IDENTITY-001",
+  "baseSha": "8412108b253e9fe5d66d359e38394756b4e5bd80",
+  "branch": "chore/production-cutover-rollback-identity-claim-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-PRODUCTION-CUTOVER-ROLLBACK-IDENTITY-001.json",
+      "tooling/render/production-canonical-db-cutover.mjs",
+      "tooling/render/production-canonical-db-cutover.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": ["PRODUCTION_CUTOVER_ROLLBACK_IDENTITY_REMEDIATED"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "claim-acquisition-gate",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "production-image-backed-rollback-identity-remediation"
+}
