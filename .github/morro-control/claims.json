@@ -22,7 +22,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
-      "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
+      "baseSha": "e07534d351a33b6b7ec2231d2cde74b95d8808d9",
       "paths": [
         ".morro/changesets/MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001.json",
         "Dockerfile",

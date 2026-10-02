@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001",
   "objective": "remove-discover-logo-chrome-and-restore-control-center-staging-login-static-route",
-  "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
+  "baseSha": "e07534d351a33b6b7ec2231d2cde74b95d8808d9",
   "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
   "state": "IMPLEMENTING",
   "risk": "high",
