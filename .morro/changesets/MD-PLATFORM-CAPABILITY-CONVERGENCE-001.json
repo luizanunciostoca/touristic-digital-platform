@@ -5,7 +5,7 @@
   "baseSha": "fefd76bcb3b9bfc5073b4ca834c927e3d25cf45c",
   "branch": "feat/capability-convergence-place-location-subscription-20261002",
   "state": "IMPLEMENTING",
-  "risk": "high",
+  "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
     "paths": [
@@ -62,10 +62,16 @@
     ]
   },
   "database": {
-    "tables": ["business_places"]
+    "tables": [
+      "business_places"
+    ]
   },
   "auth": {
-    "capabilities": ["business.read", "business.update", "financial.read"]
+    "capabilities": [
+      "business.read",
+      "business.update",
+      "financial.read"
+    ]
   },
   "dependencies": [],
   "requiredEvidence": [
@@ -78,7 +84,10 @@
     "integration",
     "browser-evidence",
     "automated-independent-proof",
-    "exact-head-identity"
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
   ],
   "stopAt": "REMOTE_PROVEN",
   "requiredCapabilities": [
