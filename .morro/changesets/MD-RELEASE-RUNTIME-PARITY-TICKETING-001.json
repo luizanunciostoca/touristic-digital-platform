@@ -23,7 +23,7 @@
       "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs",
       "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
       "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs",
-      "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.test.mjs"
+      "tooling/render/production-runtime-data-predeploy.test.mjs"
     ],
     "contracts": []
   },
@@ -57,16 +57,11 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
-      "maxCommands": 4,
+      "maxCommands": 3,
       "maxSeconds": 900
     },
     "commands": [
@@ -93,7 +88,7 @@
         "argv": [
           "node",
           "--test",
-          "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.test.mjs"
+          "tooling/render/production-runtime-data-predeploy.test.mjs"
         ],
         "timeoutSeconds": 240
       }
