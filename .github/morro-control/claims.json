@@ -1,5 +1,22 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-RELEASE-FINAL-ATTESTATION-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/release-final-attestation-claim-20261002",
+      "baseSha": "17124cd82bada7398e7f6eeebef84debcf7d3be2",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-RELEASE-FINAL-ATTESTATION-001.json",
+        ".github/morro-control/release-state.json"
+      ],
+      "domains": ["release-governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T15:00:00Z"
+    }
+  }
 }
