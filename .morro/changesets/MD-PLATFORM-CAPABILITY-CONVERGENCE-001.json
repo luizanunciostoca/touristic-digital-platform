@@ -61,16 +61,10 @@
     ]
   },
   "database": {
-    "tables": [
-      "business_places"
-    ]
+    "tables": ["business_places"]
   },
   "auth": {
-    "capabilities": [
-      "business.read",
-      "business.update",
-      "financial.read"
-    ]
+    "capabilities": ["business.read", "business.update", "financial.read"]
   },
   "dependencies": [],
   "requiredEvidence": [
