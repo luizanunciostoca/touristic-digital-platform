@@ -3187,6 +3187,8 @@ html[dir="rtl"]
 /* Brand V2 compact Discover identity — Tourist Shell remains final authority. */
 body[data-md-mode="discover"] .md-home-header {
   width: auto;
+  background: transparent;
+  background-image: none;
 }
 
 body[data-md-mode="discover"] .md-home-header-inner {

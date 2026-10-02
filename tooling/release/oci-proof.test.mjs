@@ -34,12 +34,28 @@ test("staging hotfix packages login assets and keeps Discover logo chrome clean"
     ),
     "utf8",
   );
+  const webkitSmoke = readFileSync(
+    new URL(
+      "../../apps/morro-digital-platform/tooling/wave-g-webkit-safari-smoke.mjs",
+      import.meta.url,
+    ),
+    "utf8",
+  );
 
   assert.match(dockerfile, /^COPY dashboard\/ dashboard\/$/mu);
   assert.match(devServer, /resolve\(repositoryRoot, "dashboard"\)/u);
   assert.match(
     touristShell,
     /body\[data-md-mode="discover"\]\s+\.md-home-header-inner\s*\{(?=[^}]*width:\s*var\(--md-touch-target-min\))(?=[^}]*min-width:\s*var\(--md-touch-target-min\))(?=[^}]*border:\s*0)(?=[^}]*background:\s*transparent)(?=[^}]*box-shadow:\s*none)(?=[^}]*backdrop-filter:\s*none)(?=[^}]*-webkit-backdrop-filter:\s*none)[^}]*\}/isu,
+  );
+  assert.match(
+    touristShell,
+    /body\[data-md-mode="discover"\]\s+\.md-home-header\s*\{(?=[^}]*width:\s*auto)(?=[^}]*background:\s*transparent)(?=[^}]*background-image:\s*none)[^}]*\}/isu,
+  );
+  assert.match(webkitSmoke, /state\.brandHeader\.backgroundImage === "none"/u);
+  assert.match(
+    webkitSmoke,
+    /Discover brand header retained legacy WebKit background/u,
   );
 });
 
