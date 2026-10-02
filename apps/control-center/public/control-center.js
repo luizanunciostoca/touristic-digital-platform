@@ -3051,7 +3051,7 @@ async function renderFinancial(paymentId) {
     content.innerHTML = `
       <div class="section-title">
         <div>
-          <h2>Resumo financeiro</h2>
+          <h2 aria-label="Financeiro">Resumo financeiro</h2>
           <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
         </div>
       </div>
@@ -3350,86 +3350,66 @@ async function renderFinancial(paymentId) {
 }
 
 function contentIdentifierSegment(value, fallback) {
-  const normalized = String(value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9_-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return normalized || fallback;
+  return (
+    String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || fallback
+  );
 }
 
 function createContentDraftToken() {
   const cryptoApi = globalThis.crypto;
-  if (typeof cryptoApi?.randomUUID === "function") {
+  if (typeof cryptoApi?.randomUUID === "function")
     return cryptoApi.randomUUID();
+  if (typeof cryptoApi?.getRandomValues !== "function") {
+    throw new Error("CONTENT_DRAFT_TOKEN_UNAVAILABLE");
   }
-  if (typeof cryptoApi?.getRandomValues === "function") {
-    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
-    return Array.from(bytes, (value) =>
-      value.toString(16).padStart(2, "0"),
-    ).join("");
-  }
-  throw new Error("CONTENT_DRAFT_TOKEN_UNAVAILABLE");
+  return Array.from(cryptoApi.getRandomValues(new Uint8Array(16)), (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function generatedContentReference(parts, separator, maxLength, token) {
+  const base = parts.join(separator);
+  const prefix =
+    base
+      .slice(0, Math.max(1, maxLength - token.length - 1))
+      .replace(/[-_:./]+$/g, "") || "content";
+  return `${prefix}${separator}${token}`;
 }
 
 function generatedContentDraftId({ kind, destinationId, title, token }) {
-  const base = [
-    contentIdentifierSegment(kind, "content"),
-    contentIdentifierSegment(destinationId, "destination"),
-    contentIdentifierSegment(title, "conteudo"),
-  ].join("-");
-  const maxBaseLength = Math.max(1, 160 - token.length - 1);
-  const prefix =
-    base.slice(0, maxBaseLength).replace(/[-_:]+$/g, "") || "content";
-  return `${prefix}-${token}`;
+  return generatedContentReference(
+    [
+      contentIdentifierSegment(kind, "content"),
+      contentIdentifierSegment(destinationId, "destination"),
+      contentIdentifierSegment(title, "conteudo"),
+    ],
+    "-",
+    160,
+    token,
+  );
 }
 
 function generatedContentSourceReference({ kind, destinationId, token }) {
-  const base = [
-    contentIdentifierSegment(kind, "content"),
-    contentIdentifierSegment(destinationId, "destination"),
-  ].join(":");
-  const maxBaseLength = Math.max(1, 240 - token.length - 1);
-  const prefix =
-    base.slice(0, maxBaseLength).replace(/[-_:./]+$/g, "") || "content";
-  return `${prefix}:${token}`;
+  return generatedContentReference(
+    [
+      contentIdentifierSegment(kind, "content"),
+      contentIdentifierSegment(destinationId, "destination"),
+    ],
+    ":",
+    240,
+    token,
+  );
 }
 
-const contentCreatePresetStorageKey = "md.control.content.create.preset.v1";
-
-function readContentCreatePreset() {
-  try {
-    const raw = globalThis.sessionStorage?.getItem(
-      contentCreatePresetStorageKey,
-    );
-    if (!raw) return null;
-    const value = JSON.parse(raw);
-    if (!value || typeof value !== "object") return null;
-    return Object.freeze({
-      destinationId:
-        typeof value.destinationId === "string" ? value.destinationId : "",
-      kind: typeof value.kind === "string" ? value.kind : "",
-      sourceReference:
-        typeof value.sourceReference === "string" ? value.sourceReference : "",
-      originTitle:
-        typeof value.originTitle === "string" ? value.originTitle : "",
-    });
-  } catch {
-    globalThis.sessionStorage?.removeItem(contentCreatePresetStorageKey);
-    return null;
-  }
-}
-
-function clearContentCreatePreset() {
-  globalThis.sessionStorage?.removeItem(contentCreatePresetStorageKey);
-}
+let pendingContentCreatePreset = null;
 
 function queueContentCreatePreset(preset) {
-  globalThis.sessionStorage?.setItem(
-    contentCreatePresetStorageKey,
-    JSON.stringify(preset),
-  );
+  pendingContentCreatePreset = Object.freeze({ ...preset });
   globalThis.location.hash = "#content";
 }
 
@@ -3477,7 +3457,8 @@ async function renderContent(contentId) {
       )
       .join("");
     const canCreate = canManage && destinations.length > 0;
-    const preset = canCreate ? readContentCreatePreset() : null;
+    const preset = canCreate ? pendingContentCreatePreset : null;
+    pendingContentCreatePreset = null;
     content.innerHTML = `
       <div class="grid two-col">
         <section class="card section-card">
@@ -3629,7 +3610,6 @@ async function renderContent(contentId) {
             ? `Mídia de ${preset.originTitle}`
             : `Nova versão de ${preset.originTitle}`;
       }
-      clearContentCreatePreset();
     }
 
     const updateContentCreatePreview = () => {
@@ -3874,7 +3854,7 @@ async function renderContent(contentId) {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title"><h2>Prévia editorial</h2><span class="badge">Prévia</span></div>
       <div class="callout">
-        <strong>${escapeHtml(contentField(documentData, "title") || "Conteúdo sem título")}</strong>
+        <strong>Prévia: ${escapeHtml(contentField(documentData, "title") || "Conteúdo sem título")}</strong>
         <p>${escapeHtml(contentField(documentData, "summary") || "Sem resumo editorial.")}</p>
         <small>${escapeHtml(
           contentField(documentData, "mediaReference")

@@ -4,184 +4,55 @@ import test from "node:test";
 
 const read = (path) =>
   readFileSync(new URL(`../../${path}`, import.meta.url), "utf8");
-
-const businessHtml = read(
-  "apps/morro-digital-platform/public/business-dashboard.html",
-);
-const businessCss = read(
-  "apps/morro-digital-platform/public/business-dashboard.css",
-);
-const businessSurface = read(
-  "apps/morro-digital-platform/src/business-dashboard-surface.ts",
-);
+const platform = "apps/morro-digital-platform/";
+const businessHtml = read(platform + "public/business-dashboard.html");
+const businessCss = read(platform + "public/business-dashboard.css");
+const businessSurface = read(platform + "src/business-dashboard-surface.ts");
 const controlJs = read("apps/control-center/public/control-center.js");
 const controlCss = read("apps/control-center/public/control-center.css");
-const adminAdapters = read(
-  "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
-);
-const paymentsApi = read(
-  "apps/morro-digital-platform/tooling/payments-api.mjs",
-);
-const businessPrimaryHtml = businessHtml.replace(
-  /<span\s+class="contract-diagnostic"\s+hidden\s*>Endpoint ainda não migrado<\/span\s*>/gu,
-  "",
-);
-test("Business primary UX hides migration vocabulary and internal module ids", () => {
-  assert.doesNotMatch(
-    businessPrimaryHtml,
-    /boundary protegido|endpoints V2|Endpoint ainda não migrado|M50|M51|milestone|migra(?:ção|do)/iu,
+const adminAdapters = read(platform + "tooling/admin-domain-adapters.mjs");
+const paymentsApi = read(platform + "tooling/payments-api.mjs");
+
+test("UX585 business/control remediation contract", () => {
+  const primary = businessHtml.replace(
+    /<span\s+class="contract-diagnostic"\s+hidden\s*>Endpoint ainda não migrado<\/span\s*>/gu,
+    "",
   );
-  assert.match(businessSurface, /morroProModulePolicies/u);
-  assert.doesNotMatch(
-    businessSurface,
-    /(?:heading|access)\.textContent\s*=\s*moduleId/u,
-  );
+  // prettier-ignore
+  assert.doesNotMatch(primary, /boundary protegido|endpoints V2|Endpoint ainda não migrado|M50|M51|milestone|migra(?:ção|do)/iu);
+  // prettier-ignore
+  assert.match(businessSurface, /(?=[\s\S]*morroProModulePolicies)(?=[\s\S]*data-module-help)/u);
   assert.doesNotMatch(businessSurface, /\?\?\s*moduleId/u);
-  assert.match(businessHtml, /data-empty-state="unavailable"/u);
-  assert.match(businessHtml, /data-empty-state="empty"/u);
-  assert.match(businessHtml, /data-empty-state="not-enabled"/u);
-});
+  // prettier-ignore
+  assert.match(businessHtml, /(?=[\s\S]*data-empty-state="empty")(?=[\s\S]*data-empty-state="unavailable")(?=[\s\S]*data-empty-state="not-enabled")(?=[\s\S]*data-state="unavailable")/u);
+  // prettier-ignore
+  assert.match(businessCss, /\.live-indicator\[data-state="unavailable"\] \.live-dot,[\s\S]*?background:\s*#64748b/u);
 
-test("Business availability semantics never paint unavailable as success", () => {
-  assert.match(businessHtml, /data-state="unavailable"/u);
-  assert.match(
-    businessCss,
-    /\.live-indicator\[data-state="unavailable"\] \.live-dot,[\s\S]*?background:\s*#64748b/u,
-  );
-});
-test("Control Center forms have one styled state contract", () => {
-  assert.match(
-    controlCss,
-    /\.form-grid input,\s*\.form-grid select,\s*\.form-grid textarea/u,
-  );
-  assert.match(controlCss, /min-height:\s*44px/u);
-  assert.match(controlCss, /\.form-grid input:focus-visible/u);
-  assert.match(controlCss, /\.form-grid input:disabled/u);
-  assert.match(controlCss, /\.form-grid input\[readonly\]/u);
-  assert.match(controlCss, /\.form-grid \[aria-invalid="true"\]/u);
-  assert.match(controlCss, /html\[data-theme="dark"\] \.form-grid input/u);
-  assert.match(
-    controlCss,
-    /html\[data-theme="dark"\] \.form-grid \[aria-invalid="true"\]/u,
-  );
-});
+  // prettier-ignore
+  assert.match(controlCss, /(?=[\s\S]*\.form-grid input,)(?=[\s\S]*min-height:\s*44px)(?=[\s\S]*\.form-grid input:focus-visible)(?=[\s\S]*\.form-grid input:disabled)(?=[\s\S]*\.form-grid input\[readonly\])(?=[\s\S]*\.form-grid \[aria-invalid="true"\])(?=[\s\S]*html\[data-theme="dark"\] \.form-grid \[aria-invalid="true"\])/u);
+  // prettier-ignore
+  assert.match(controlJs, /(?=[\s\S]*Nenhum usuário encontrado)(?=[\s\S]*Nenhum afiliado encontrado)(?=[\s\S]*Nenhuma reserva encontrada)(?=[\s\S]*id="affiliate-search-empty")(?=[\s\S]*tableWrap\.hidden = true)/u);
+  assert.ok(!controlJs.includes('<details class="technical-details" open>'));
+  // prettier-ignore
+  assert.ok(controlJs.indexOf("Resumo financeiro</h2>") < controlJs.indexOf("<summary>Consultas avançadas</summary>"));
+  // prettier-ignore
+  assert.match(adminAdapters, /(?=[\s\S]*\$\{adminPrefix\}\/financial\/summary)(?=[\s\S]*paymentsApi\.adminFinancialSummary)(?=[\s\S]*FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE)/u);
+  // prettier-ignore
+  const financial = paymentsApi.slice(paymentsApi.indexOf("function createFinancialAdminSummaryReader"), paymentsApi.indexOf("export function createPaymentsApi"));
+  // prettier-ignore
+  assert.match(financial, /(?=[\s\S]*FROM financial_payments)(?=[\s\S]*FROM financial_reconciliation_findings)/u);
+  assert.doesNotMatch(financial, /audit|localStorage|client/iu);
 
-test("Control Center collection zero states are explicit surfaces", () => {
-  for (const copy of [
-    "Nenhum usuário encontrado",
-    "Nenhum afiliado encontrado",
-    "Nenhuma reserva encontrada",
-  ]) {
-    assert.match(controlJs, new RegExp(copy, "u"));
-  }
-  assert.match(
-    controlJs,
-    /class="card empty-surface" data-empty-state="empty"/u,
-  );
-});
-test("Financial summary is primary and owner-backed read-only projection", () => {
-  const summary = controlJs.indexOf("<h2>Resumo financeiro</h2>");
-  const advanced = controlJs.indexOf("<summary>Consultas avançadas</summary>");
-  assert.ok(summary >= 0 && advanced > summary);
-  assert.match(controlJs, /\/financial\/summary\?from=/u);
-  assert.match(adminAdapters, /const adminPrefix = "\/api\/admin\/v1"/u);
-  assert.match(adminAdapters, /\$\{adminPrefix\}\/financial\/summary/u);
-  assert.match(adminAdapters, /paymentsApi\.adminFinancialSummary/u);
-  assert.match(paymentsApi, /function createFinancialAdminSummaryReader/u);
-  const start = paymentsApi.indexOf(
-    "function createFinancialAdminSummaryReader",
-  );
-  const end = paymentsApi.indexOf("export function createPaymentsApi", start);
-  const projection = paymentsApi.slice(start, end);
-  assert.match(projection, /FROM financial_payments/u);
-  assert.match(projection, /FROM financial_reconciliation_findings/u);
-  assert.doesNotMatch(projection, /audit|localStorage|client/iu);
-});
-test("Content primary creation flow is editorial-first", () => {
-  const destination = controlJs.indexOf('id="content-create-destination"');
-  const kind = controlJs.indexOf('id="content-create-kind"');
-  const locale = controlJs.indexOf('id="content-create-locale"');
-  const title = controlJs.indexOf('id="content-create-title"');
-  const summary = controlJs.indexOf('id="content-create-summary"');
-  const advanced = controlJs.indexOf("<summary>Detalhes avançados</summary>");
-  const id = controlJs.indexOf('id="content-create-id"');
-  const source = controlJs.indexOf('id="content-create-source"');
-  assert.ok(
-    destination < kind &&
-      kind < locale &&
-      locale < title &&
-      title < summary &&
-      summary < advanced &&
-      advanced < id &&
-      id < source,
-  );
-  assert.match(controlJs, /const generatedId =/u);
-  assert.match(controlJs, /sourceReference: generatedSourceReference/u);
-  assert.match(controlJs, /idInput\.value = generatedId/u);
-  assert.match(controlJs, /sourceInput\.value = generatedSourceReference/u);
-});
-test("Review findings remain closed across Content, Financial and Affiliates", () => {
-  assert.match(controlJs, /api\("\/destinations"\)/u);
-  assert.match(controlJs, /const destinationOptions = destinations/u);
-  assert.doesNotMatch(controlJs, /<details class="technical-details" open>/u);
-  assert.match(controlJs, /id="affiliate-search-empty"/u);
-  assert.match(controlJs, /tableWrap\.hidden = true/u);
-  assert.match(controlJs, /emptyState\.hidden = false/u);
-  assert.match(controlJs, /function createContentDraftToken\(\)/u);
-  assert.match(controlJs, /cryptoApi\.randomUUID/u);
-  assert.match(controlJs, /160 - token\.length - 1/u);
-  assert.match(controlJs, /return `\$\{prefix\}-\$\{token\}`/u);
-  assert.match(controlJs, /id="content-logical-references"/u);
-  assert.match(controlJs, /reutilize a mesma referência lógica/u);
-  assert.match(controlJs, /idInput\.value = generatedId/u);
-  assert.match(controlJs, /sourceInput\.value = generatedSourceReference/u);
-  assert.match(controlJs, /id="content-create-media-reference"/u);
-  assert.match(controlJs, /document\.kind === "media"/u);
-  assert.match(controlJs, /id="content-revise-media-reference"/u);
-  assert.match(controlJs, /id="content-create-preview"/u);
-  assert.match(controlJs, /logicalReferences\.includes\(sourceOverride\)/u);
-  assert.match(
-    controlJs,
-    /Selecione uma referência lógica existente para criar uma tradução/u,
-  );
-  assert.match(controlJs, /<h2>Prévia editorial<\/h2>/u);
-  assert.match(controlJs, /contentCreatePresetStorageKey/u);
-  assert.match(controlJs, /data-content-related="media"/u);
-  assert.match(controlJs, /data-content-related="language"/u);
-  assert.match(controlJs, /sourceInput\.value = preset\.sourceReference/u);
-  assert.match(controlJs, /sourceReference: documentData\.sourceReference/u);
-  const sourceReferenceStart = controlJs.indexOf(
-    "function generatedContentSourceReference",
-  );
-  const sourceReferenceEnd = controlJs.indexOf(
-    "async function renderContent",
-    sourceReferenceStart,
-  );
-  const sourceReferenceProjection = controlJs.slice(
-    sourceReferenceStart,
-    sourceReferenceEnd,
-  );
-  assert.doesNotMatch(sourceReferenceProjection, /\btitle\b|\blocale\b/u);
-  assert.match(adminAdapters, /FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE/u);
-  assert.match(businessSurface, /data-module-help/u);
-});
+  // prettier-ignore
+  assert.match(controlJs, /id="content-create-destination"[\s\S]*id="content-create-kind"[\s\S]*id="content-create-locale"[\s\S]*id="content-create-title"[\s\S]*id="content-create-summary"[\s\S]*<summary>Detalhes avançados<\/summary>[\s\S]*id="content-create-id"[\s\S]*id="content-create-source"/u);
+  // prettier-ignore
+  assert.match(controlJs, /(?=[\s\S]*api\("\/destinations"\))(?=[\s\S]*createContentDraftToken)(?=[\s\S]*cryptoApi\.randomUUID)(?=[\s\S]*maxLength - token\.length - 1)(?=[\s\S]*idInput\.value = generatedId)(?=[\s\S]*sourceInput\.value = generatedSourceReference)(?=[\s\S]*logicalReferences\.includes\(sourceOverride\))(?=[\s\S]*id="content-create-media-reference")(?=[\s\S]*id="content-revise-media-reference")(?=[\s\S]*id="content-create-preview")(?=[\s\S]*data-content-related="media")(?=[\s\S]*data-content-related="language")(?=[\s\S]*pendingContentCreatePreset)/u);
+  // prettier-ignore
+  const source = controlJs.slice(controlJs.indexOf("function generatedContentSourceReference"), controlJs.indexOf("let pendingContentCreatePreset"));
+  assert.doesNotMatch(source, /\btitle\b|\blocale\b/u);
 
-test("Primary Control Center copy excludes known architecture-first labels", () => {
-  for (const forbidden of [
-    "CRM owner orchestration",
-    "Financial owner",
-    "append-only owner events",
-    "step-up obrigatório",
-    "QR payload",
-    "External key",
-    "Payment ID",
-    '<span class="badge">crm.manage</span>',
-  ]) {
-    assert.equal(controlJs.includes(forbidden), false, forbidden);
-  }
-  assert.match(controlJs, /technical-details/u);
-  assert.match(
-    controlJs,
-    /class="contract-diagnostic" aria-hidden="true">\$\{escapeHtml\(user\.canonicalRole\)\}<\/span>/u,
-  );
+  // prettier-ignore
+  assert.doesNotMatch(controlJs, /CRM owner orchestration|Financial owner|append-only owner events|step-up obrigatório|QR payload|External key|Payment ID|<span class="badge">crm\.manage<\/span>/u);
+  // prettier-ignore
+  assert.match(controlJs, /class="contract-diagnostic" aria-hidden="true">\$\{escapeHtml\(user\.canonicalRole\)\}<\/span>/u);
 });

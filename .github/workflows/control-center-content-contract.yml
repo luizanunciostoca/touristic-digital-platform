@@ -138,7 +138,6 @@ jobs:
             CONTROL_CENTER_SUPPORT_SECRET="$SUPPORT_SECRET" \
             CONTROL_CENTER_STEP_UP_SECRET="$STEP_UP_SECRET" \
             CONTROL_CENTER_AUDIT_DATABASE_URL="$DB_URL" \
-            DESTINATIONS_DATABASE_URL="$DB_URL" \
             CONTENT_DATABASE_URL="$DB_URL" \
             CRM_DATABASE_URL="$DB_URL" \
             PORT="$PORT" \
@@ -221,9 +220,6 @@ jobs:
                 const view = await page.locator("#content").innerText();
                 throw new Error(`Content create form missing after render: ${view}`);
               }
-              await page
-                .locator("#content-create-form details.technical-details > summary")
-                .click();
               await createForm.fill("content-browser-0001");
               await page.locator("#content-create-title").fill("Segunda Praia");
               await page
