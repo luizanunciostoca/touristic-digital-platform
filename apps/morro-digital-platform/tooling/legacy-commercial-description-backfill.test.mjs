@@ -270,11 +270,11 @@ describe("legacy commercial description backfill", () => {
     expect(database.state.markers).toHaveLength(72);
   });
 
-  it("fails closed outside canonical staging", async () => {
+  it("fails closed outside canonical runtime services", async () => {
     await expect(
       runLegacyCommercialDescriptionBackfill({
         environment: {
-          RENDER_SERVICE_NAME: "morro-digital-v2",
+          RENDER_SERVICE_NAME: "morro-digital-production",
           BUSINESS_DATABASE_URL: "mysql://business",
         },
         mysqlClient: { createPool: vi.fn() },

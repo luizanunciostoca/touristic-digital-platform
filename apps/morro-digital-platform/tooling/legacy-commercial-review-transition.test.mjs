@@ -137,12 +137,12 @@ describe("legacy commercial review transition", () => {
     ).rejects.toThrow(/LEGACY_REVIEW_TRANSITION_MARKER_DRIFT/u);
   });
 
-  it("fails closed outside canonical staging", async () => {
+  it("fails closed outside canonical runtime services", async () => {
     await expect(
       runLegacyCommercialReviewTransition({
         environment: {
           ...environment(),
-          RENDER_SERVICE_NAME: "morro-digital-v2",
+          RENDER_SERVICE_NAME: "morro-digital-production",
         },
         mysqlClient: { createPool: vi.fn() },
       }),

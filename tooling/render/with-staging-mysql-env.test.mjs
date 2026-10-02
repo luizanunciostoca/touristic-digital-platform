@@ -558,6 +558,7 @@ test("reconciles all staging schemas without exposing credentials", async () => 
     "auth",
     "ordering",
     "financial",
+    "ticketing",
     "affiliates",
     "business",
     "content",
@@ -568,19 +569,19 @@ test("reconciles all staging schemas without exposing credentials", async () => 
   assert.equal(ended, true);
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE DATABASE")).length,
-    9,
+    10,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE USER")).length,
-    9,
+    10,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("ALTER USER")).length,
-    9,
+    10,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("GRANT ALL PRIVILEGES")).length,
-    9,
+    10,
   );
   assert.equal(queries.at(-1)?.[0], "FLUSH PRIVILEGES");
   assert.equal(JSON.stringify(queries).includes("root-secret"), false);
