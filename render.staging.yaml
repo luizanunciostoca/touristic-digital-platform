@@ -39,6 +39,12 @@ services:
         value: morro_financial
       - key: FINANCIAL_DATABASE_PASSWORD
         generateValue: true
+      - key: TICKETING_DATABASE_NAME
+        value: morro_ticketing_staging
+      - key: TICKETING_DATABASE_USER
+        value: morro_ticketing
+      - key: TICKETING_DATABASE_PASSWORD
+        generateValue: true
       - key: AFFILIATES_DATABASE_NAME
         value: morro_affiliates_staging
       - key: AFFILIATES_DATABASE_USER
@@ -158,6 +164,21 @@ services:
           type: pserv
           name: morro-digital-v2-staging-mysql
           envVarKey: FINANCIAL_DATABASE_PASSWORD
+      - key: STAGING_TICKETING_DATABASE_NAME
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: TICKETING_DATABASE_NAME
+      - key: STAGING_TICKETING_DATABASE_USER
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: TICKETING_DATABASE_USER
+      - key: STAGING_TICKETING_DATABASE_PASSWORD
+        fromService:
+          type: pserv
+          name: morro-digital-v2-staging-mysql
+          envVarKey: TICKETING_DATABASE_PASSWORD
       - key: STAGING_AFFILIATES_DATABASE_NAME
         fromService:
           type: pserv
@@ -300,6 +321,13 @@ services:
         generateValue: true
       - key: PAYMENTS_HANDOFF_SECRET
         generateValue: true
+      # Ticketing is persisted on the isolated canonical staging schema.
+      - key: TICKETING_FEATURE_ENABLED
+        value: "true"
+      - key: TICKETING_SIGNING_SECRET
+        generateValue: true
+      - key: TICKETING_FINANCIAL_POLL_INTERVAL_MS
+        value: "1000"
       # Server-only signing key; preserve existing values when syncing.
       - key: TICKETING_OFFLINE_PROVISIONING_SECRET
         generateValue: true
