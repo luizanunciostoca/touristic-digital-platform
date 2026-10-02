@@ -18,11 +18,7 @@
     "contracts": []
   },
   "produces": {
-    "events": [
-      "RELEASE_CERTIFIED",
-      "STAGING_ACCEPTED",
-      "PRODUCTION_ACCEPTED"
-    ],
+    "events": ["RELEASE_CERTIFIED", "STAGING_ACCEPTED", "PRODUCTION_ACCEPTED"],
     "routes": []
   },
   "database": {
@@ -48,12 +44,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
