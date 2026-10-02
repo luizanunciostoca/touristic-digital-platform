@@ -3396,12 +3396,13 @@ function generatedContentSourceReference({ kind, destinationId, token }) {
   return `${prefix}:${token}`;
 }
 
-const contentCreatePresetStorageKey =
-  "md.control.content.create.preset.v1";
+const contentCreatePresetStorageKey = "md.control.content.create.preset.v1";
 
 function readContentCreatePreset() {
   try {
-    const raw = globalThis.sessionStorage?.getItem(contentCreatePresetStorageKey);
+    const raw = globalThis.sessionStorage?.getItem(
+      contentCreatePresetStorageKey,
+    );
     if (!raw) return null;
     const value = JSON.parse(raw);
     if (!value || typeof value !== "object") return null;
@@ -3456,16 +3457,27 @@ async function renderContent(contentId) {
           )}</option>`,
       )
       .join("");
-    const logicalReferenceOptions = Array.from(
+    const logicalReferences = Array.from(
       new Set(
         documents
           .map((document) => document.sourceReference)
           .filter((reference) => typeof reference === "string" && reference),
       ),
-    )
+    );
+    const logicalReferenceOptions = logicalReferences
       .map((reference) => `<option value="${escapeHtml(reference)}"></option>`)
       .join("");
+    const mediaReferenceOptions = documents
+      .filter((document) => document.kind === "media")
+      .map(
+        (document) =>
+          `<option value="${escapeHtml(document.id)}">${escapeHtml(
+            contentField(document, "title") || document.id,
+          )}</option>`,
+      )
+      .join("");
     const canCreate = canManage && destinations.length > 0;
+    const preset = canCreate ? readContentCreatePreset() : null;
     content.innerHTML = `
       <div class="grid two-col">
         <section class="card section-card">
@@ -3548,9 +3560,12 @@ async function renderContent(contentId) {
                   <label>Resumo
                     <textarea id="content-create-summary" maxlength="20000"></textarea>
                   </label>
-                  <label>Referência de mídia canônica (opcional)
-                    <input id="content-create-media-reference" maxlength="500" autocomplete="off" placeholder="ID ou referência de um item do tipo Mídia" />
-                    <small>Associe um item do tipo Mídia da biblioteca editorial antes da publicação, quando aplicável.</small>
+                  <label>Mídia principal (opcional)
+                    <select id="content-create-media-reference">
+                      <option value="">Sem mídia principal</option>
+                      ${mediaReferenceOptions}
+                    </select>
+                    <small>Escolha um item do tipo Mídia já cadastrado na biblioteca editorial.</small>
                   </label>
                   <div id="content-create-preview" class="callout" aria-live="polite">
                     <strong>Prévia editorial</strong>
@@ -3584,6 +3599,39 @@ async function renderContent(contentId) {
         </section>
       </div>`;
 
+    if (preset) {
+      const destinationSelect = document.querySelector(
+        "#content-create-destination",
+      );
+      if (
+        destinationSelect &&
+        [...destinationSelect.options].some(
+          (option) => option.value === preset.destinationId,
+        )
+      ) {
+        destinationSelect.value = preset.destinationId;
+      }
+      const kindSelect = document.querySelector("#content-create-kind");
+      if (
+        kindSelect &&
+        [...kindSelect.options].some((option) => option.value === preset.kind)
+      ) {
+        kindSelect.value = preset.kind;
+      }
+      const sourceInput = document.querySelector("#content-create-source");
+      if (sourceInput && preset.sourceReference) {
+        sourceInput.value = preset.sourceReference;
+      }
+      const titleInput = document.querySelector("#content-create-title");
+      if (titleInput && preset.originTitle) {
+        titleInput.placeholder =
+          preset.kind === "media"
+            ? `Mídia de ${preset.originTitle}`
+            : `Nova versão de ${preset.originTitle}`;
+      }
+      clearContentCreatePreset();
+    }
+
     const updateContentCreatePreview = () => {
       const preview = document.querySelector("#content-create-preview");
       if (!preview) return;
@@ -3608,12 +3656,22 @@ async function renderContent(contentId) {
     for (const selector of [
       "#content-create-title",
       "#content-create-summary",
-      "#content-create-media-reference",
     ]) {
       document
         .querySelector(selector)
         ?.addEventListener("input", updateContentCreatePreview);
     }
+    document
+      .querySelector("#content-create-media-reference")
+      ?.addEventListener("change", updateContentCreatePreview);
+    const contentKindInput = document.querySelector("#content-create-kind");
+    const contentSourceInput = document.querySelector("#content-create-source");
+    contentKindInput?.addEventListener("change", () => {
+      if (contentKindInput.value !== "translation") return;
+      const details = contentSourceInput?.closest("details");
+      if (details) details.open = true;
+      contentSourceInput?.focus();
+    });
     updateContentCreatePreview();
 
     document
@@ -3643,6 +3701,17 @@ async function renderContent(contentId) {
           const sourceInput = document.querySelector("#content-create-source");
           const idOverride = idInput?.value?.trim();
           const sourceOverride = sourceInput?.value?.trim();
+          if (
+            kind === "translation" &&
+            (!sourceOverride || !logicalReferences.includes(sourceOverride))
+          ) {
+            const details = sourceInput?.closest("details");
+            if (details) details.open = true;
+            sourceInput?.focus();
+            throw new Error(
+              "Selecione uma referência lógica existente para criar uma tradução.",
+            );
+          }
           let token =
             idInput?.dataset?.generatedToken ||
             sourceInput?.dataset?.generatedToken ||
@@ -3701,8 +3770,33 @@ async function renderContent(contentId) {
     return;
   }
 
-  const data = await api(`/content/${encodeURIComponent(contentId)}`);
+  const [data, libraryPayload] = await Promise.all([
+    api(`/content/${encodeURIComponent(contentId)}`),
+    api("/content?limit=100").catch(() => null),
+  ]);
   const documentData = data.data;
+  const currentMediaReference = String(
+    contentField(documentData, "mediaReference") ?? "",
+  );
+  const mediaDocuments = (libraryPayload?.data ?? []).filter(
+    (document) => document.kind === "media",
+  );
+  const mediaDocumentIds = new Set(mediaDocuments.map((document) => document.id));
+  const reviseMediaOptions = [
+    ...(currentMediaReference && !mediaDocumentIds.has(currentMediaReference)
+      ? [
+          `<option value="${escapeHtml(currentMediaReference)}" selected>${escapeHtml(
+            currentMediaReference,
+          )}</option>`,
+        ]
+      : []),
+    ...mediaDocuments.map(
+      (document) =>
+        `<option value="${escapeHtml(document.id)}" ${
+          document.id === currentMediaReference ? "selected" : ""
+        }>${escapeHtml(contentField(document, "title") || document.id)}</option>`,
+    ),
+  ].join("");
   const destinationLabel =
     documentData.destinationId === "morro-de-sao-paulo"
       ? "Morro de São Paulo"
@@ -3786,6 +3880,14 @@ async function renderContent(contentId) {
             : "Nenhuma mídia principal associada.",
         )}</small>
       </div>
+      ${
+        canManage && documentData.sourceReference
+          ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <button type="button" class="secondary-button" data-content-related="media">Adicionar mídia vinculada</button>
+              <button type="button" class="secondary-button" data-content-related="language">Criar versão em outro idioma</button>
+            </div>`
+          : ""
+      }
     </section>
 
     ${
@@ -3800,8 +3902,11 @@ async function renderContent(contentId) {
                 <label>Resumo
                   <textarea id="content-revise-summary" maxlength="20000">${escapeHtml(contentField(documentData, "summary"))}</textarea>
                 </label>
-                <label>Referência de mídia canônica
-                  <input id="content-revise-media-reference" maxlength="500" value="${escapeHtml(contentField(documentData, "mediaReference"))}" />
+                <label>Mídia principal
+                  <select id="content-revise-media-reference">
+                    <option value="" ${currentMediaReference ? "" : "selected"}>Sem mídia principal</option>
+                    ${reviseMediaOptions}
+                  </select>
                 </label>
                 <label>Motivo da alteração
                   <textarea id="content-revise-reason" minlength="8" maxlength="240" required></textarea>
@@ -3838,6 +3943,27 @@ async function renderContent(contentId) {
     }
 
     <div style="margin-top:16px"><a href="#content">← Voltar para Conteúdo</a></div>`;
+
+  document
+    .querySelector('[data-content-related="media"]')
+    ?.addEventListener("click", () => {
+      queueContentCreatePreset({
+        destinationId: documentData.destinationId,
+        kind: "media",
+        sourceReference: documentData.sourceReference,
+        originTitle: contentField(documentData, "title"),
+      });
+    });
+  document
+    .querySelector('[data-content-related="language"]')
+    ?.addEventListener("click", () => {
+      queueContentCreatePreset({
+        destinationId: documentData.destinationId,
+        kind: documentData.kind,
+        sourceReference: documentData.sourceReference,
+        originTitle: contentField(documentData, "title"),
+      });
+    });
 
   document
     .querySelector("#content-revise-form")

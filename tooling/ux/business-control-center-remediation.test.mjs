@@ -136,8 +136,20 @@ test("Review findings remain closed across Content, Financial and Affiliates", (
   assert.match(controlJs, /idInput\.value = generatedId/u);
   assert.match(controlJs, /sourceInput\.value = generatedSourceReference/u);
   assert.match(controlJs, /id="content-create-media-reference"/u);
+  assert.match(controlJs, /document\.kind === "media"/u);
+  assert.match(controlJs, /id="content-revise-media-reference"/u);
   assert.match(controlJs, /id="content-create-preview"/u);
+  assert.match(controlJs, /logicalReferences\.includes\(sourceOverride\)/u);
+  assert.match(
+    controlJs,
+    /Selecione uma referência lógica existente para criar uma tradução/u,
+  );
   assert.match(controlJs, /<h2>Prévia editorial<\/h2>/u);
+  assert.match(controlJs, /contentCreatePresetStorageKey/u);
+  assert.match(controlJs, /data-content-related="media"/u);
+  assert.match(controlJs, /data-content-related="language"/u);
+  assert.match(controlJs, /sourceInput\.value = preset\.sourceReference/u);
+  assert.match(controlJs, /sourceReference: documentData\.sourceReference/u);
   const sourceReferenceStart = controlJs.indexOf(
     "function generatedContentSourceReference",
   );
