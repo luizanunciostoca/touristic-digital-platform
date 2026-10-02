@@ -236,6 +236,7 @@ function installAdvancedDisclosures(root = document) {
 }
 
 function renderNav() {
+  if (nav.querySelector(".nav-group")) return;
   nav.innerHTML = navItems
     .map(
       ([id, label, icon]) =>

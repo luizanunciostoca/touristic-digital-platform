@@ -16,6 +16,7 @@ test("UX585 business/control remediation contract", () => {
   assert.match(bc,/\.live-indicator\[data-state="unavailable"\] \.live-dot,[\s\S]*?background:\s*#64748b/u);
   has(css,/\.form-grid input,/u,/min-height:\s*44px/u,/focus-visible/u,/aria-invalid/u,/html\[data-theme="dark"\]/u,/:focus-within > :not\(summary\)/u);
   has(cc,/Nenhum usuário encontrado/u,/Nenhum afiliado encontrado/u,/Nenhuma reserva encontrada/u,/id="affiliate-search-empty"/u,/aria-label="Financeiro">Resumo financeiro<\/h2>/u,/aria-label="Financeiro">Resumo financeiro indisponível<\/h2>/u,/data-advanced-toggle[^>]*>Consultas avançadas<\/button>/u,/state\.adminSession = await api\("\/session"\)/u,/targetHash/u,/data-advanced-disclosure/u,/body\.addEventListener\("focusin"/u);
+  assert.match(cc,/nav\.querySelector\("\.nav-group"\)\) return/u);
   assert.doesNotMatch(cc,/<details class="technical-details" open>/u);
   has(ad,/\/financial\/summary/u,/paymentsApi\.adminFinancialSummary/u,/FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE/u);
   const projection=pa.slice(pa.indexOf("function createFinancialAdminSummaryReader"),pa.indexOf("export function createPaymentsApi"));
