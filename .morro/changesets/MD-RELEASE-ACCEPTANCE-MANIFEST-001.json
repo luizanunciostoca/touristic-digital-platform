@@ -3,7 +3,7 @@
   "id": "MD-RELEASE-ACCEPTANCE-MANIFEST-001",
   "baseSha": "845550d66197bc8d3b74d6af8579d848223c158c",
   "branch": "fix/release-acceptance-manifest-20261002",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
