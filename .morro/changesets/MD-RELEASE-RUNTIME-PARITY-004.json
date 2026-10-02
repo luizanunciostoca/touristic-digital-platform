@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-RUNTIME-PARITY-004",
+  "objective": "restore-runtime-parity-ticketing-canonical-places-and-publish-certified-release",
+  "baseSha": "cc9c7a27739291443be2066a9a60c2672d1ec00f",
+  "branch": "chore/runtime-parity-release-004-acquire-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-004.json",
+      "render.staging.yaml",
+      "render.yaml",
+      "tooling/render/**",
+      "tooling/quality/**",
+      "apps/morro-digital-platform/tooling/**"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof",
+    "production-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 4,
+      "maxSeconds": 1200
+    },
+    "commands": [
+      {
+        "id": "staging-ticketing-domain-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/with-staging-mysql-env.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      },
+      {
+        "id": "production-blueprint-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/render-production-mysql-blueprint.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      },
+      {
+        "id": "production-data-predeploy-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/production-runtime-data-predeploy.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "release-target-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "staging-runtime-proof",
+      "production-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
