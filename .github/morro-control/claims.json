@@ -1,5 +1,32 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-BUSINESS-LOCATION-SELF-SERVICE-PROOF-003": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "test/business-location-self-service-proof-003-acquire-20261002",
+      "baseSha": "d0206931a99ba8971113da4458622a687e758ce8",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-BUSINESS-LOCATION-SELF-SERVICE-PROOF-003.json",
+        "docs/architecture/CANONICAL-RUNTIME-CAPABILITY-GRAPH.md",
+        "apps/morro-digital-platform/src/business-dashboard-client.test.ts",
+        "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+        "apps/morro-digital-platform/tooling/business-api.test.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs"
+      ],
+      "domains": [
+        "business",
+        "places",
+        "map",
+        "morro-pro",
+        "documentation"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T04:00:00Z"
+    }
+  }
 }
