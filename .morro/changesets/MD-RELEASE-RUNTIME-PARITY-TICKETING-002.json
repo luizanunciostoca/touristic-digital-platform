@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-RUNTIME-PARITY-TICKETING-002",
   "objective": "restore-staging-production-runtime-parity-enable-ticketing-persistence-and-harden-immutable-image-promotion",
-  "baseSha": "fefd76bcb3b9bfc5073b4ca834c927e3d25cf45c",
-  "branch": "chore/runtime-parity-ticketing-reacquire-20261002",
-  "state": "IMPLEMENTING",
+  "baseSha": "1bcf6f5a7efb0fc5a572e007ae359e2aa041eeea",
+  "branch": "chore/retire-orphan-runtime-parity-ticketing-002-20261002",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
@@ -57,7 +57,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
