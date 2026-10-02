@@ -966,7 +966,6 @@ export async function mountBusinessDashboardSurface(
   const mediaSurface = createMediaSurface(document);
 
   let activeProfile: BusinessProfile | null = null;
-  let activeLocation: MorroProLocation | null = null;
   let activeMedia: MorroProMedia = Object.freeze({
     count: 0,
     storageAvailable: false,
@@ -1026,7 +1025,6 @@ export async function mountBusinessDashboardSurface(
       signal,
     );
     if (request && !contextController?.isCurrent(request)) return;
-    activeLocation = location;
     renderCurrentLocation(document, locationSurface, location);
   }
 
@@ -1044,7 +1042,6 @@ export async function mountBusinessDashboardSurface(
         candidate.candidateId,
       );
       if (request && !contextController?.isCurrent(request)) return;
-      activeLocation = saved;
       renderCurrentLocation(document, locationSurface, saved);
       locationSurface.results.replaceChildren();
       locationSurface.status.textContent =
@@ -1179,7 +1176,6 @@ export async function mountBusinessDashboardSurface(
       })
       .then((saved) => {
         if (request && !contextController?.isCurrent(request)) return;
-        activeLocation = saved;
         renderCurrentLocation(document, locationSurface, saved);
         locationSurface.manualForm.dataset.locationSource = "manual";
         locationSurface.status.textContent =
@@ -1701,7 +1697,6 @@ export async function mountBusinessDashboardSurface(
           if (!request) return;
           businessId = request.businessId;
           status.textContent = "Trocando contexto do negócio…";
-          activeLocation = null;
           renderCurrentLocation(document, locationSurface, null);
           locationSurface.results.replaceChildren();
           activeMedia = Object.freeze({
