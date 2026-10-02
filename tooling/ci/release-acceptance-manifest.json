@@ -100,7 +100,7 @@
     },
     {
       "workflow": "map-tour-browser-regression.yml",
-      "reuse_tree_equivalent": true
+      "reuse_tree_equivalent": false
     },
     {
       "workflow": "mapbox-visual-contract-regression.yml",
