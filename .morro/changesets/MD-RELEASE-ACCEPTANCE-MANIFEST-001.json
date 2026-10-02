@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-ACCEPTANCE-MANIFEST-001",
-  "baseSha": "845550d66197bc8d3b74d6af8579d848223c158c",
-  "branch": "fix/release-acceptance-manifest-20261002",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "93919fe8687bdcefdae67e9157bde1e9b11fa869",
+  "branch": "chore/release-acceptance-manifest-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
