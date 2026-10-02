@@ -4,7 +4,7 @@
   "objective": "remove-legacy-header-gradient-behind-discover-brand-mark-on-mobile-safari",
   "baseSha": "6ad3c8ed83cb2504340e34a1794ec7f976073eaa",
   "branch": "chore/hotfix-logo-safari-background-claim-20261002",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

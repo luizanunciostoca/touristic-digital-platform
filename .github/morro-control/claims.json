@@ -17,7 +17,7 @@
       ],
       "domains": ["ux", "brand", "staging"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T16:00:00Z"
     }
   }

@@ -25,6 +25,9 @@ async function inspect(page, label) {
       "#assistant-category-rail .md-assistant-category-scroll",
     );
     const input = document.getElementById("assistantInput");
+    const brandHeader = document.querySelector(".md-home-header");
+    const brandHeaderStyle =
+      brandHeader instanceof HTMLElement ? getComputedStyle(brandHeader) : null;
     const dockRect = dock?.getBoundingClientRect();
     const inputRect = input?.getBoundingClientRect();
     const chips = Array.from(
@@ -36,6 +39,12 @@ async function inspect(page, label) {
       width: window.innerWidth,
       height: window.innerHeight,
       overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+      brandHeader: brandHeaderStyle
+        ? {
+            backgroundColor: brandHeaderStyle.backgroundColor,
+            backgroundImage: brandHeaderStyle.backgroundImage,
+          }
+        : null,
       dock:
         dockRect && dockRect.width > 0
           ? {
@@ -66,6 +75,14 @@ async function inspect(page, label) {
   });
 
   assert(!state.overflow, `${label}: horizontal page overflow`);
+  assert(
+    state.brandHeader &&
+      state.brandHeader.backgroundImage === "none" &&
+      ["rgba(0, 0, 0, 0)", "transparent"].includes(
+        state.brandHeader.backgroundColor,
+      ),
+    `${label}: Discover brand header retained legacy WebKit background: ${JSON.stringify(state.brandHeader)}`,
+  );
   assert(
     state.dock &&
       state.dock.left >= -1 &&
