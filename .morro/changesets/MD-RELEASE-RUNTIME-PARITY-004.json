@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-RUNTIME-PARITY-004",
+  "objective": "restore-staging-production-parity-enable-ticketing-persistence-bootstrap-canonical-places-and-promote-one-immutable-image",
+  "baseSha": "cc9c7a27739291443be2066a9a60c2672d1ec00f",
+  "branch": "fix/runtime-parity-release-v4-acquire-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-004.json",
+      "render.staging.yaml",
+      "render.yaml",
+      "tooling/render/with-staging-mysql-env.mjs",
+      "tooling/render/reconcile-staging-mysql-domains.mjs",
+      "tooling/render/mysql-staging/01-init-databases.sh",
+      "tooling/render/mysql-staging/backup-restore-drill.sh",
+      "tooling/render/mysql-staging/backup-restore-drill.contract.mjs",
+      "tooling/render/with-staging-mysql-env.test.mjs",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/render-staging-blueprint.test.mjs",
+      "tooling/quality/check-render-production-mysql-blueprint.mjs",
+      "tooling/quality/render-production-mysql-blueprint.test.mjs",
+      ".github/workflows/production-mysql-canonical-bootstrap.yml",
+      "apps/morro-digital-platform/tooling/production-canonical-place-bootstrap.mjs",
+      "tooling/render/production-canonical-place-bootstrap.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof",
+    "production-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 4,
+      "maxSeconds": 1200
+    },
+    "commands": [
+      {
+        "id": "staging-ticketing-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/with-staging-mysql-env.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      },
+      {
+        "id": "staging-blueprint-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/render-staging-blueprint.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      },
+      {
+        "id": "production-bootstrap-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/production-canonical-place-bootstrap.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "production-blueprint-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/render-production-mysql-blueprint.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "staging-runtime-proof",
+      "production-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

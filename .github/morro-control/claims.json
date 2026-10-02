@@ -1,5 +1,43 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-RELEASE-RUNTIME-PARITY-004": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/runtime-parity-release-v4-acquire-20261002",
+      "baseSha": "cc9c7a27739291443be2066a9a60c2672d1ec00f",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-004.json",
+        "render.staging.yaml",
+        "render.yaml",
+        "tooling/render/with-staging-mysql-env.mjs",
+        "tooling/render/reconcile-staging-mysql-domains.mjs",
+        "tooling/render/mysql-staging/01-init-databases.sh",
+        "tooling/render/mysql-staging/backup-restore-drill.sh",
+        "tooling/render/mysql-staging/backup-restore-drill.contract.mjs",
+        "tooling/render/with-staging-mysql-env.test.mjs",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs",
+        "tooling/quality/check-render-production-mysql-blueprint.mjs",
+        "tooling/quality/render-production-mysql-blueprint.test.mjs",
+        ".github/workflows/production-mysql-canonical-bootstrap.yml",
+        "apps/morro-digital-platform/tooling/production-canonical-place-bootstrap.mjs",
+        "tooling/render/production-canonical-place-bootstrap.test.mjs"
+      ],
+      "domains": [
+        "release",
+        "ticketing",
+        "places",
+        "database",
+        "staging",
+        "production"
+      ],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T06:00:00Z"
+    }
+  }
 }
