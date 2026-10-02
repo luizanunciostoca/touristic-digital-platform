@@ -22,7 +22,9 @@
       "apps/morro-digital-platform/tooling/payments-api.test.mjs",
       "apps/morro-digital-platform/tooling/payments-runtime-api.mjs",
       "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs",
-      "tooling/ux/business-control-center-remediation.test.mjs"
+      "tooling/ux/business-control-center-remediation.test.mjs",
+      ".github/workflows/control-center-content-contract.yml",
+      ".github/workflows/control-center-financial-browser-contract.yml"
     ],
     "contracts": [
       "TDP-BUSINESS-UX",
