@@ -379,5 +379,6 @@ async function login(page) {
   }
 })().catch((error) => {
   console.error("Control Center Shell V1 browser contract failed");
+  console.error(error?.stack || error);
   process.exit(1);
 });
