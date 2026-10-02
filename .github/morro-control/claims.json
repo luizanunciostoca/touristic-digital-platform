@@ -22,10 +22,57 @@
         "tooling/business-location-self-service.contract.mjs",
         "tooling/business-location-self-service-runtime.test.mjs"
       ],
-      "domains": ["business", "places", "map", "morro-pro"],
+      "domains": [
+        "business",
+        "places",
+        "map",
+        "morro-pro"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T18:00:00Z"
+    },
+    "MD-RELEASE-RUNTIME-PARITY-TICKETING-003": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/runtime-parity-ticketing-claim-v3-20261002",
+      "baseSha": "ea1ae4cfba718ab2abbb623fea81829fbf298d01",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-TICKETING-003.json",
+        "render.staging.yaml",
+        "render.yaml",
+        "tooling/render/with-staging-mysql-env.mjs",
+        "tooling/render/reconcile-staging-mysql-domains.mjs",
+        "tooling/render/mysql-staging/01-init-databases.sh",
+        "tooling/render/mysql-staging/backup-restore-drill.sh",
+        "tooling/render/mysql-staging/backup-restore-drill.contract.mjs",
+        "tooling/render/with-staging-mysql-env.test.mjs",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/check-render-production-mysql-blueprint.mjs",
+        "tooling/quality/render-production-mysql-blueprint.test.mjs",
+        "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs",
+        "tooling/render/production-runtime-data-predeploy.test.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-runtime-guard.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-place-backfill.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs"
+      ],
+      "domains": [
+        "release",
+        "ticketing",
+        "places",
+        "database",
+        "staging",
+        "production"
+      ],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T03:00:00Z"
     }
   }
 }
