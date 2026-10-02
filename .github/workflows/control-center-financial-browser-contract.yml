@@ -332,6 +332,9 @@ jobs:
               evidence.reads.push("order-owner");
 
               await page.locator('[data-view="financial"]').click();
+              await page
+                .getByText("Consultas avançadas", { exact: true })
+                .click();
               await page.locator("#payment-lookup-id").fill(paymentId);
               await page
                 .getByRole("button", { name: "Abrir pagamento" })
@@ -366,6 +369,9 @@ jobs:
               );
 
               await page.locator('[data-view="financial"]').click();
+              await page
+                .getByText("Consultas avançadas", { exact: true })
+                .click();
               await page.locator("#ledger-lookup-key").fill(externalKey);
               await page
                 .getByRole("button", { name: "Consultar lançamento" })

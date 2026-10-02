@@ -220,6 +220,9 @@ jobs:
                 const view = await page.locator("#content").innerText();
                 throw new Error(`Content create form missing after render: ${view}`);
               }
+              await page
+                .locator("#content-create-form details.technical-details > summary")
+                .click();
               await createForm.fill("content-browser-0001");
               await page.locator("#content-create-title").fill("Segunda Praia");
               await page
