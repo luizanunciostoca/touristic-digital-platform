@@ -17,13 +17,7 @@
         "apps/morro-digital-platform/tooling/business-api.test.mjs",
         "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs"
       ],
-      "domains": [
-        "business",
-        "places",
-        "map",
-        "morro-pro",
-        "documentation"
-      ],
+      "domains": ["business", "places", "map", "morro-pro", "documentation"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-03T04:00:00Z"
