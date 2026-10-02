@@ -3,7 +3,7 @@
   "id": "MD-RELEASE-FINAL-ATTESTATION-001",
   "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
   "branch": "chore/release-final-attestation-20261002",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
