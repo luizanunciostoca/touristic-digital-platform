@@ -1,22 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-RELEASE-ACCEPTANCE-MANIFEST-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/release-acceptance-manifest-20261002",
-      "baseSha": "845550d66197bc8d3b74d6af8579d848223c158c",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-RELEASE-ACCEPTANCE-MANIFEST-001.json",
-        "tooling/ci/release-acceptance-manifest.json"
-      ],
-      "domains": ["release-governance"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-02T12:00:00Z"
-    }
-  }
+  "claims": {}
 }
