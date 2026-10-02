@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/hotfix-logo-safari-background-claim-20261002",
-      "baseSha": "029457c28f40420615010e08f2d0cba355c70419",
+      "baseSha": "6ad3c8ed83cb2504340e34a1794ec7f976073eaa",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
