@@ -1937,6 +1937,7 @@ export function createPlacePlatformRuntime({
     const published = rows
       .map((row) => placeFromRow(row, true))
       .filter(Boolean)
+      .filter((place) => place.visibility === "public")
       .filter((place) => String(place.id) !== String(own.id));
     return Object.freeze([own, ...published]);
   }

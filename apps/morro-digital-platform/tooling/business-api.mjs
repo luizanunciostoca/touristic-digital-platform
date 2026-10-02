@@ -281,7 +281,17 @@ export function createBusinessApi({
             : code.includes("UNAVAILABLE") || code.includes("DATABASE")
               ? 503
               : 500;
-    json(response, status, { error: code });
+    const message =
+      status === 409
+        ? "A localização mudou. Pesquise novamente antes de confirmar."
+        : status === 403
+          ? "Você não tem permissão para alterar esta localização."
+          : status === 503
+            ? "O serviço de localização está indisponível no momento."
+            : status === 400
+              ? "Revise os dados da localização e tente novamente."
+              : "Não foi possível concluir a solicitação de localização.";
+    json(response, status, { error: code, message });
   }
 
   async function createLocationContext(access) {

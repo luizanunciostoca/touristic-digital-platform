@@ -1123,17 +1123,24 @@ export async function mountBusinessDashboardSurface(
     }
   }
 
+  let locationSearchGeneration = 0;
+
   locationSurface.searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const query = locationSurface.searchInput.value.trim();
     if (!query) return;
     const request = contextController?.request();
+    const searchGeneration = ++locationSearchGeneration;
     const targetBusinessId = request?.businessId ?? businessId;
     locationSurface.status.textContent = "Buscando localizações…";
     void dashboardClient
       .searchLocationCandidates(targetBusinessId, query, request?.signal)
       .then((candidates) => {
-        if (request && !contextController?.isCurrent(request)) return;
+        if (
+          searchGeneration !== locationSearchGeneration ||
+          (request && !contextController?.isCurrent(request))
+        )
+          return;
         renderLocationCandidates(
           document,
           locationSurface,
@@ -1146,7 +1153,11 @@ export async function mountBusinessDashboardSurface(
           : "Nenhuma localização encontrada. Use as coordenadas manuais ou do dispositivo.";
       })
       .catch((error: unknown) => {
-        if (request && !contextController?.isCurrent(request)) return;
+        if (
+          searchGeneration !== locationSearchGeneration ||
+          (request && !contextController?.isCurrent(request))
+        )
+          return;
         if (error instanceof DOMException && error.name === "AbortError")
           return;
         locationSurface.status.textContent =
@@ -1198,6 +1209,7 @@ export async function mountBusinessDashboardSurface(
 
   locationSurface.deviceButton.addEventListener("click", () => {
     if (locationSurface.manualForm.dataset.mutable !== "true") return;
+    const request = contextController?.request();
     const geolocation = document.defaultView?.navigator.geolocation;
     if (!geolocation) {
       locationSurface.status.textContent =
@@ -1207,6 +1219,7 @@ export async function mountBusinessDashboardSurface(
     locationSurface.status.textContent = "Obtendo localização do dispositivo…";
     geolocation.getCurrentPosition(
       (position) => {
+        if (request && !contextController?.isCurrent(request)) return;
         locationSurface.latitude.value = String(position.coords.latitude);
         locationSurface.longitude.value = String(position.coords.longitude);
         locationSurface.manualForm.dataset.locationSource = "device";
@@ -1214,6 +1227,7 @@ export async function mountBusinessDashboardSurface(
           "Localização detectada. Confira as coordenadas e toque em Salvar localização.";
       },
       (error) => {
+        if (request && !contextController?.isCurrent(request)) return;
         locationSurface.status.textContent =
           error.code === error.PERMISSION_DENIED
             ? "Permissão de localização negada. Use a busca ou coordenadas manuais."

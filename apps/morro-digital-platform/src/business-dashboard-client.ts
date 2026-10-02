@@ -322,10 +322,12 @@ async function readError(response: Response): Promise<string> {
   const body = (await response
     .clone()
     .json()
-    .catch(() => ({}))) as { error?: unknown };
-  return typeof body.error === "string"
-    ? body.error
-    : `HTTP_${response.status}`;
+    .catch(() => ({}))) as { error?: unknown; message?: unknown };
+  return typeof body.message === "string"
+    ? body.message
+    : typeof body.error === "string"
+      ? body.error
+      : `HTTP_${response.status}`;
 }
 
 export function createBusinessDashboardClient(
