@@ -22,7 +22,7 @@
         "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs",
         "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
         "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs",
-        "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.test.mjs"
+        "tooling/render/production-runtime-data-predeploy.test.mjs"
       ],
       "domains": [
         "release",
