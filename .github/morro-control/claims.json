@@ -1,5 +1,53 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-PLATFORM-CAPABILITY-CONVERGENCE-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "feat/capability-convergence-place-location-subscription-20261002",
+      "baseSha": "fefd76bcb3b9bfc5073b4ca834c927e3d25cf45c",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-PLATFORM-CAPABILITY-CONVERGENCE-001.json",
+        "docs/architecture/CANONICAL-CAPABILITY-GRAPH.md",
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+        "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
+        "apps/morro-digital-platform/src/map/place-bottom-sheet.ts",
+        "apps/morro-digital-platform/src/map/public-place-presentation-v2.ts",
+        "apps/morro-digital-platform/src/map/public-place-presentation-v2.test.ts",
+        "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
+        "apps/morro-digital-platform/src/business-location-discovery-adapter.test.ts",
+        "apps/morro-digital-platform/tooling/business-api.mjs",
+        "apps/morro-digital-platform/tooling/business-api.test.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+        "apps/morro-digital-platform/src/business-dashboard-client.ts",
+        "apps/morro-digital-platform/src/business-dashboard-client.test.ts",
+        "apps/morro-digital-platform/src/business-dashboard-surface.ts",
+        "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+        "apps/morro-digital-platform/src/business-dashboard-entry.ts",
+        "apps/morro-digital-platform/src/payments-business-checkout-composition.ts",
+        "apps/morro-digital-platform/src/payments-business-checkout-composition.test.ts",
+        "apps/morro-digital-platform/src/payments-browser-subscription-client.ts",
+        "apps/morro-digital-platform/src/payments-browser-subscription-client.test.ts",
+        "apps/morro-digital-platform/src/morro-pro-business-management.ts",
+        "apps/morro-digital-platform/public/business-dashboard.css",
+        "apps/morro-digital-platform/public/business-dashboard.html",
+        "apps/morro-digital-platform/public/explore-locations.css"
+      ],
+      "domains": [
+        "architecture",
+        "places",
+        "tourist-experience",
+        "business",
+        "payments",
+        "subscriptions"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T20:00:00Z"
+    }
+  }
 }
