@@ -1,40 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-RELEASE-RUNTIME-PARITY-TICKETING-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/runtime-parity-ticketing-claim-20261002",
-      "baseSha": "f1a311e6063a95c78396ead1fc96505d15086a2f",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-TICKETING-001.json",
-        ".github/workflows/staging-oci-promotion.yml",
-        "render.staging.yaml",
-        "render.yaml",
-        "tooling/render/with-staging-mysql-env.mjs",
-        "tooling/render/reconcile-staging-mysql-domains.mjs",
-        "tooling/render/with-staging-mysql-env.test.mjs",
-        "tooling/quality/check-render-staging-blueprint.mjs",
-        "tooling/quality/release-target-governance.test.mjs",
-        "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs",
-        "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
-        "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs",
-        "tooling/render/production-runtime-data-predeploy.test.mjs"
-      ],
-      "domains": [
-        "release",
-        "database",
-        "ticketing",
-        "places",
-        "staging",
-        "production"
-      ],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-02T18:00:00Z"
-    }
-  }
+  "claims": {}
 }
