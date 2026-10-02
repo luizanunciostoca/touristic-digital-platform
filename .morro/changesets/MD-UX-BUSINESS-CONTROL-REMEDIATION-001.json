@@ -3,7 +3,7 @@
   "id": "MD-UX-BUSINESS-CONTROL-REMEDIATION-001",
   "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
   "branch": "fix/ux-business-control-remediation-585-20261002",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "high",
   "owns": {
     "paths": [
