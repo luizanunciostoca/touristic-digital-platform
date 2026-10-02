@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-PRODUCTION-CUTOVER-IMAGE-ROLLBACK-001",
-  "baseSha": "2fca889ba5098c4d68bb593ea86ea64dfd9ac4fa",
-  "branch": "fix/production-cutover-image-rollback-20261002",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "9d6b39813359a05211dafd18c0f2aeee32bccbd8",
+  "branch": "chore/production-cutover-image-rollback-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
