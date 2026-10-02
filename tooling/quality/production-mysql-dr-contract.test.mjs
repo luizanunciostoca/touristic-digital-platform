@@ -282,6 +282,9 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1",
     "github-actions-production-mysql-dr-key-v1",
     "DR_WORKER_SERVICE_NAME",
+    '.serviceDetails.runtime == "image"',
+    '.autoDeploy == "no"',
+    "ghcr\\\\.io/luizanunciostoca/morro-digital-v2@sha256:[0-9a-f]{64}",
     ".restore.leastPrivilegeReadback == true",
     ".restore.crossDomainDenied == 156",
     "initial_deploy_id",
@@ -315,6 +318,11 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
+  assert.doesNotMatch(source, /app_start_command/u);
+  assert.doesNotMatch(
+    source,
+    /node apps\/morro-digital-platform\/tooling\/dev-server\.mjs/u,
+  );
   assert.doesNotMatch(source, /DELETE[^\n]+services\/\$MYSQL_SERVICE_ID/iu);
   assert.ok(
     source.includes(
