@@ -213,9 +213,19 @@ jobs:
           test -n "$app_service_id"
 
           api_get "$api/services/$app_service_id" > /tmp/app-service.json
-          app_start_command="$(jq -r             '.serviceDetails.envSpecificDetails.startCommand //
-             .serviceDetails.startCommand // empty'             /tmp/app-service.json)"
-          test "$app_start_command" = "node apps/morro-digital-platform/tooling/dev-server.mjs"
+          jq -e \
+            --arg id "$app_service_id" \
+            --arg owner "$RENDER_WORKSPACE_ID" \
+            --arg name "$APPLICATION_SERVICE_NAME" \
+            '.id == $id and
+             .ownerId == $owner and
+             .name == $name and
+             .type == "web_service" and
+             .autoDeploy == "no" and
+             .serviceDetails.runtime == "image" and
+             .serviceDetails.region == "virginia" and
+             ((.imagePath // "") | test("^ghcr\\.io/luizanunciostoca/morro-digital-v2@sha256:[0-9a-f]{64}$"))' \
+            /tmp/app-service.json >/dev/null
 
           for key in             AUTH_DATABASE_URL             CONTROL_CENTER_AUDIT_DATABASE_URL             DESTINATIONS_DATABASE_URL             CONTENT_DATABASE_URL             BUSINESS_DATABASE_URL             ORDERING_DATABASE_URL             FINANCIAL_DATABASE_URL             TICKETING_DATABASE_URL             NOTIFICATIONS_DATABASE_URL             AFFILIATES_DATABASE_URL             ANALYTICS_DATABASE_URL             CRM_DATABASE_URL             COMMERCE_DATABASE_URL
           do
