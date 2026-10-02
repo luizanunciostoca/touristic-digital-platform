@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-UX-BUSINESS-CONTROL-REMEDIATION-001",
-  "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
-  "branch": "fix/ux-business-control-remediation-585-20261002",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "f5c96c4588afba97ea5ea393a35dd724662356bf",
+  "branch": "chore/ux-585-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
