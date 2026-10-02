@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
-      "baseSha": "640f6d5d0309b4557bc4c65884c32af21806e30e",
+      "baseSha": "a135dda350605044b6fc431d62890a51ee913e05",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
