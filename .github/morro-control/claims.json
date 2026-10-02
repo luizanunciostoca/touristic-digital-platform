@@ -1,34 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-UX-BUSINESS-CONTROL-REMEDIATION-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ux-business-control-remediation-585-20261002",
-      "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-UX-BUSINESS-CONTROL-REMEDIATION-001.json",
-        "apps/control-center/public/control-center.css",
-        "apps/control-center/public/control-center.js",
-        "apps/morro-digital-platform/public/business-dashboard.css",
-        "apps/morro-digital-platform/public/business-dashboard.html",
-        "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
-        "apps/morro-digital-platform/src/business-dashboard-surface.ts",
-        "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
-        "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs",
-        "apps/morro-digital-platform/tooling/payments-api.mjs",
-        "apps/morro-digital-platform/tooling/payments-api.test.mjs",
-        "apps/morro-digital-platform/tooling/payments-runtime-api.mjs",
-        "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs",
-        "tooling/ux/business-control-center-remediation.test.mjs"
-      ],
-      "domains": ["business-ux", "control-center-ux"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-02T12:00:00Z"
-    }
-  }
+  "claims": {}
 }
