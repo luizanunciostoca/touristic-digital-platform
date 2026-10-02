@@ -36,7 +36,7 @@ const pageCopy = {
   ],
   users: [
     "Usuários",
-    "Identidades, papéis, capabilities e vínculos empresariais.",
+    "Identidades, papéis, permissões e vínculos empresariais.",
   ],
   affiliates: [
     "Afiliados",
@@ -48,7 +48,7 @@ const pageCopy = {
   ],
   products: [
     "Produtos e Ofertas",
-    "Catálogo administrativo através dos contratos do domínio owner.",
+    "Catálogo administrativo com regras próprias do domínio.",
   ],
   reservations: [
     "Reservas",
@@ -326,7 +326,7 @@ function supportEntityContext() {
       support.effectiveUser?.email ?? support.effectiveUser?.id ?? "—",
     )}.
     Leituras delegadas preservam o effectiveUser; ações privilegiadas continuam
-    sujeitas à autoridade, capabilities e políticas do actor real.
+    sujeitas às permissões e políticas do usuário autenticado.
   </div>`;
 }
 
@@ -2041,7 +2041,7 @@ async function renderCrm(leadId) {
                   </form>`
                 : `
                   <div class="callout">
-                    Edição exige <strong>crm.manage</strong> e fica bloqueada durante Support Mode.
+                    A edição exige permissão específica e fica bloqueada durante o modo de suporte.
                   </div>`
             }
           </section>`
@@ -3510,7 +3510,7 @@ async function renderContent(contentId) {
       </section>
 
       <section class="card section-card">
-        <div class="section-title"><h2>Lifecycle</h2><span class="badge">${canManage ? "governado" : "somente leitura"}</span></div>
+        <div class="section-title"><h2>Publicação</h2><span class="badge">${canManage ? "governado" : "somente leitura"}</span></div>
         <div class="module-list">
           <div class="module-row"><span>Criado</span><strong>${escapeHtml(documentData.createdAt)}</strong></div>
           <div class="module-row"><span>Agendado</span><strong>${escapeHtml(documentData.scheduledFor ?? "—")}</strong></div>
@@ -3772,8 +3772,8 @@ function renderSettings() {
         <div class="module-list">
           <div class="module-row"><span>Secrets</span><strong>somente server-side</strong></div>
           <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Auth owner</a></div>
-          <div class="module-row"><span>Destinos</span><a href="#destinations">Destination owner</a></div>
-          <div class="module-row"><span>Conteúdo</span><a href="#content">Content owner</a></div>
+          <div class="module-row"><span>Destinos</span><a href="#destinations">Destinos</a></div>
+          <div class="module-row"><span>Conteúdo</span><a href="#content">Conteúdo</a></div>
           <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente leitura</a></div>
         </div>
       </section>
