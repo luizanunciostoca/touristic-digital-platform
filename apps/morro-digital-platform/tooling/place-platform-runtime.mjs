@@ -1911,7 +1911,15 @@ export function createPlacePlatformRuntime({
       `SELECT * FROM business_places WHERE business_id = ? ORDER BY created_at ASC LIMIT 1`,
       [normalizedBusinessId],
     );
-    return rows[0] ? placeFromRow(rows[0], false) : null;
+    const row = rows[0];
+    if (!row) return null;
+    const place = placeFromRow(row, false);
+    return place
+      ? Object.freeze({
+          ...place,
+          publicationState: String(row.publication_state),
+        })
+      : null;
   }
 
   async function listLocationDiscoveryPlaces(businessId, destinationId) {
@@ -1937,6 +1945,7 @@ export function createPlacePlatformRuntime({
     const published = rows
       .map((row) => placeFromRow(row, true))
       .filter(Boolean)
+      .filter((place) => place.visibility === "public")
       .filter((place) => String(place.id) !== String(own.id));
     return Object.freeze([own, ...published]);
   }

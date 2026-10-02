@@ -187,6 +187,11 @@ function renderCurrentLocation(
     value.location.latitude === null ||
     value.location.longitude === null
   ) {
+    surface.latitude.value = "";
+    surface.longitude.value = "";
+    surface.address.value = "";
+    surface.area.value = "";
+    surface.manualForm.dataset.locationSource = "manual";
     const empty = document.createElement("p");
     empty.textContent = "Localização ainda não confirmada.";
     surface.current.append(empty);
@@ -1040,6 +1045,7 @@ export async function mountBusinessDashboardSurface(
         targetBusinessId,
         query,
         candidate.candidateId,
+        candidate.confirmationToken,
       );
       if (request && !contextController?.isCurrent(request)) return;
       renderCurrentLocation(document, locationSurface, saved);
@@ -1198,6 +1204,7 @@ export async function mountBusinessDashboardSurface(
 
   locationSurface.deviceButton.addEventListener("click", () => {
     if (locationSurface.manualForm.dataset.mutable !== "true") return;
+    const request = contextController?.request();
     const geolocation = document.defaultView?.navigator.geolocation;
     if (!geolocation) {
       locationSurface.status.textContent =
@@ -1207,6 +1214,7 @@ export async function mountBusinessDashboardSurface(
     locationSurface.status.textContent = "Obtendo localização do dispositivo…";
     geolocation.getCurrentPosition(
       (position) => {
+        if (request && !contextController?.isCurrent(request)) return;
         locationSurface.latitude.value = String(position.coords.latitude);
         locationSurface.longitude.value = String(position.coords.longitude);
         locationSurface.manualForm.dataset.locationSource = "device";
@@ -1214,6 +1222,7 @@ export async function mountBusinessDashboardSurface(
           "Localização detectada. Confira as coordenadas e toque em Salvar localização.";
       },
       (error) => {
+        if (request && !contextController?.isCurrent(request)) return;
         locationSurface.status.textContent =
           error.code === error.PERMISSION_DENIED
             ? "Permissão de localização negada. Use a busca ou coordenadas manuais."

@@ -136,6 +136,7 @@ export interface MorroProLocation {
 
 export interface MorroProLocationCandidate {
   readonly candidateId: string;
+  readonly confirmationToken: string;
   readonly source: "canonical" | "legacy" | "mapbox";
   readonly name: string;
   readonly address: string;
@@ -215,6 +216,7 @@ export interface BusinessDashboardClient {
     businessId: unknown,
     query: string,
     candidateId: string,
+    confirmationToken: string,
   ) => Promise<MorroProLocation>;
   readonly saveLocationSelection: (
     businessId: unknown,
@@ -415,6 +417,7 @@ export function createBusinessDashboardClient(
     businessIdInput: unknown,
     query: string,
     candidateId: string,
+    confirmationToken: string,
   ): Promise<MorroProLocation> {
     const response = await authClient.secureFetch(
       businessLocationUrl(businessIdInput, "/confirm"),
@@ -424,7 +427,7 @@ export function createBusinessDashboardClient(
           Accept: "application/json",
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query, candidateId }),
+        body: JSON.stringify({ query, candidateId, confirmationToken }),
       },
     );
     if (!response.ok) throw new Error(await readError(response));

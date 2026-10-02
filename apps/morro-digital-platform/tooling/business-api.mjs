@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { capabilitiesForRole, hasAuthCapability } from "@touristic/auth";
 import { createAuthorizedBusinessProfileService } from "@touristic/business";
 
@@ -173,6 +174,24 @@ export function createBusinessApi({
       throw new Error("PLACE_PLATFORM_UNAVAILABLE");
     }
     return runtime;
+  }
+
+  function locationCandidateFingerprint(candidate) {
+    return createHash("sha256")
+      .update(
+        JSON.stringify([
+          candidate.candidateId,
+          candidate.source,
+          candidate.name,
+          candidate.address,
+          candidate.category,
+          candidate.latitude,
+          candidate.longitude,
+          candidate.eligible,
+          candidate.rejectionReason,
+        ]),
+      )
+      .digest("hex");
   }
 
   function locationProjection(place) {
@@ -416,7 +435,7 @@ export function createBusinessApi({
               "http://morro.local",
             );
             const query = requestUrl.searchParams.get("q") ?? "";
-            const data = await adapter.search({
+            const candidates = await adapter.search({
               businessId: place.businessId,
               destinationId: place.destinationId,
               query,
@@ -424,6 +443,12 @@ export function createBusinessApi({
               language: requestUrl.searchParams.get("language") ?? "pt",
               limit: 12,
             });
+            const data = candidates.map((candidate) =>
+              Object.freeze({
+                ...candidate,
+                confirmationToken: locationCandidateFingerprint(candidate),
+              }),
+            );
             response.setHeader("Vary", "Cookie");
             json(response, 200, { data });
             return;
@@ -433,7 +458,12 @@ export function createBusinessApi({
             const body = await readJsonBody(request);
             const query = String(body.query ?? "");
             const candidateId = String(body.candidateId ?? "").trim();
-            if (!candidateId) throw new Error("LOCATION_CANDIDATE_REQUIRED");
+            const confirmationToken = String(
+              body.confirmationToken ?? "",
+            ).trim();
+            if (!candidateId || !confirmationToken) {
+              throw new Error("LOCATION_CANDIDATE_REQUIRED");
+            }
             const candidates = await adapter.search({
               businessId: place.businessId,
               destinationId: place.destinationId,
@@ -445,7 +475,12 @@ export function createBusinessApi({
             const candidate = candidates.find(
               (entry) => entry.candidateId === candidateId,
             );
-            if (!candidate) throw new Error("LOCATION_CANDIDATE_STALE");
+            if (
+              !candidate ||
+              locationCandidateFingerprint(candidate) !== confirmationToken
+            ) {
+              throw new Error("LOCATION_CANDIDATE_STALE");
+            }
             const saved = await adapter.confirmCandidate({
               placeId: place.id,
               businessId: place.businessId,

@@ -23,6 +23,9 @@ test("Morro Pro Location has canonical end-to-end wiring", async () => {
         "createBusinessLocationDiscoveryAdapter",
         "confirmCandidate",
         "confirmSelection",
+        "locationCandidateFingerprint",
+        "confirmationToken",
+        "LOCATION_CANDIDATE_STALE",
       ],
     ],
     [
@@ -33,6 +36,7 @@ test("Morro Pro Location has canonical end-to-end wiring", async () => {
         "confirmLocationCandidate",
         "saveLocationSelection",
         "authClient.secureFetch",
+        "confirmationToken",
       ],
     ],
     [
@@ -43,6 +47,8 @@ test("Morro Pro Location has canonical end-to-end wiring", async () => {
         "Usar esta localização",
         "Usar localização do dispositivo",
         "A publicação pública continua governada separadamente.",
+        'surface.latitude.value = ""',
+        "!contextController?.isCurrent(request)",
       ],
     ],
     [
@@ -54,6 +60,8 @@ test("Morro Pro Location has canonical end-to-end wiring", async () => {
         "published_place_json IS NOT NULL",
         "externalProvider",
         "externalPlaceId",
+        'place.visibility === "public"',
+        "publicationState: String(row.publication_state)",
       ],
     ],
   ];
@@ -76,4 +84,27 @@ test("retired Place sheet and server-authoritative subscriptions stay unchanged"
   assert.ok(payments.includes("canonical Subscription"));
   assert.ok(payments.includes("authenticated server session"));
   assert.ok(payments.includes("authoritative read"));
+});
+
+test("review hardening remains wired", async () => {
+  const [api, client, surface, placeRuntime] = await Promise.all([
+    read("apps/morro-digital-platform/tooling/business-api.mjs"),
+    read("apps/morro-digital-platform/src/business-dashboard-client.ts"),
+    read("apps/morro-digital-platform/src/business-dashboard-surface.ts"),
+    read("apps/morro-digital-platform/tooling/place-platform-runtime.mjs"),
+  ]);
+  for (const token of [
+    "confirmationToken",
+    "locationCandidateFingerprint",
+    "LOCATION_CANDIDATE_STALE",
+  ]) {
+    assert.ok(api.includes(token), "missing API hardening " + token);
+  }
+  assert.ok(client.includes("confirmationToken"));
+  assert.ok(surface.includes('surface.latitude.value = ""'));
+  assert.ok(surface.includes("contextController?.isCurrent(request)"));
+  assert.ok(placeRuntime.includes('place.visibility === "public"'));
+  assert.ok(
+    placeRuntime.includes("publicationState: String(row.publication_state)"),
+  );
 });
