@@ -56,6 +56,16 @@ describe("business dashboard surface", () => {
     );
   });
 
+  it("gives not-enabled modules an actionable profile/help fallback", () => {
+    const source = readFileSync(
+      new URL("./business-dashboard-surface.ts", import.meta.url),
+      "utf8",
+    );
+    expect(source).toContain("data-module-help");
+    expect(source).toContain("Abrir perfil e orientações");
+    expect(source).toContain('[data-dashboard-view="profile"]');
+  });
+
   it("patches editable fields without dropping protected profile state", () => {
     const current = normalizeBusinessProfile({
       id: "toca-do-morcego",

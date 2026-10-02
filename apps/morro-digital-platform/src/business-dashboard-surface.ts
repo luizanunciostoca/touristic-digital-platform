@@ -114,7 +114,8 @@ function ensureMorroProPanels(document: Document): void {
         <span class="eyebrow">Ainda não disponível</span>
         <h2></h2>
         <p></p>
-        <small>Você pode continuar usando os recursos já disponíveis no painel.</small>
+        <small>Você pode continuar usando os recursos já disponíveis no painel. Para revisar os dados do negócio ou pedir orientação, abra o perfil.</small>
+        <button type="button" class="secondary-button" data-module-help>Abrir perfil e orientações</button>
       </div>
     `;
     const heading = section.querySelector("h2");
@@ -122,6 +123,13 @@ function ensureMorroProPanels(document: Document): void {
     if (heading)
       heading.textContent = moduleLabels.get(moduleId) ?? "Recurso do negócio";
     if (description) description.textContent = moduleDescriptions[moduleId];
+    section
+      .querySelector<HTMLButtonElement>("[data-module-help]")
+      ?.addEventListener("click", () => {
+        document
+          .querySelector<HTMLButtonElement>('[data-dashboard-view="profile"]')
+          ?.click();
+      });
     main.append(section);
   }
 }

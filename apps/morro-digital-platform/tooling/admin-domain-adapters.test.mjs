@@ -416,6 +416,29 @@ describe("Control Center Financial owner adapter", () => {
     });
   });
 
+  it("fails closed for financial summaries in Support Mode across business scopes", async () => {
+    const { adapter, paymentsApi } = fixture();
+    const response = responseCapture();
+
+    await adapter.handle({
+      request: request(),
+      response,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/financial/summary?from=2026-09-01T00:00:00.000Z&to=2026-10-01T00:00:00.000Z",
+      ),
+      effectiveUser: {
+        id: "support-effective-user",
+        businessIds: ["business-a", "business-b"],
+      },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(JSON.parse(response.payload)).toEqual({
+      error: "FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE",
+    });
+    expect(paymentsApi.adminFinancialSummary).not.toHaveBeenCalled();
+  });
+
   it("delegates reconciliation reads to the canonical Payments route", async () => {
     const { adapter, handle } = fixture();
     const response = responseCapture();

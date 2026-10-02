@@ -1178,7 +1178,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
       return Object.freeze(results);
     },
 
-    async handle({ request, response, requestUrl }) {
+    async handle({ request, response, requestUrl, effectiveUser }) {
       const orderMatch = /^\/api\/admin\/v1\/orders\/([A-Za-z0-9_-]+)$/u.exec(
         requestUrl.pathname,
       );
@@ -1208,6 +1208,12 @@ export function createFinancialAdminAdapter(paymentsApi) {
         request.method === "GET" &&
         requestUrl.pathname === `${adminPrefix}/financial/summary`
       ) {
+        if (effectiveUser) {
+          sendJson(response, 403, {
+            error: "FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE",
+          });
+          return;
+        }
         await ownerRead(
           response,
           await paymentsApi.adminFinancialSummary({

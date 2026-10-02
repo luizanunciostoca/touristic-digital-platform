@@ -60,6 +60,10 @@ test("Control Center forms have one styled state contract", () => {
   assert.match(controlCss, /\.form-grid input\[readonly\]/u);
   assert.match(controlCss, /\.form-grid \[aria-invalid="true"\]/u);
   assert.match(controlCss, /html\[data-theme="dark"\] \.form-grid input/u);
+  assert.match(
+    controlCss,
+    /html\[data-theme="dark"\] \.form-grid \[aria-invalid="true"\]/u,
+  );
 });
 
 test("Control Center collection zero states are explicit surfaces", () => {
@@ -112,11 +116,44 @@ test("Content primary creation flow is editorial-first", () => {
       id < source,
   );
   assert.match(controlJs, /const generatedId =/u);
-  assert.match(
-    controlJs,
-    /sourceReference: sourceOverride \|\| generatedSourceReference/u,
-  );
+  assert.match(controlJs, /sourceReference: generatedSourceReference/u);
+  assert.match(controlJs, /idInput\.value = generatedId/u);
+  assert.match(controlJs, /sourceInput\.value = generatedSourceReference/u);
 });
+test("Review findings remain closed across Content, Financial and Affiliates", () => {
+  assert.match(controlJs, /api\("\/destinations"\)/u);
+  assert.match(controlJs, /const destinationOptions = destinations/u);
+  assert.doesNotMatch(controlJs, /<details class="technical-details" open>/u);
+  assert.match(controlJs, /id="affiliate-search-empty"/u);
+  assert.match(controlJs, /tableWrap\.hidden = true/u);
+  assert.match(controlJs, /emptyState\.hidden = false/u);
+  assert.match(controlJs, /function createContentDraftToken\(\)/u);
+  assert.match(controlJs, /cryptoApi\.randomUUID/u);
+  assert.match(controlJs, /160 - token\.length - 1/u);
+  assert.match(controlJs, /return `\$\{prefix\}-\$\{token\}`/u);
+  assert.match(controlJs, /id="content-logical-references"/u);
+  assert.match(controlJs, /reutilize a mesma referência lógica/u);
+  assert.match(controlJs, /idInput\.value = generatedId/u);
+  assert.match(controlJs, /sourceInput\.value = generatedSourceReference/u);
+  assert.match(controlJs, /id="content-create-media-reference"/u);
+  assert.match(controlJs, /id="content-create-preview"/u);
+  assert.match(controlJs, /<h2>Prévia editorial<\/h2>/u);
+  const sourceReferenceStart = controlJs.indexOf(
+    "function generatedContentSourceReference",
+  );
+  const sourceReferenceEnd = controlJs.indexOf(
+    "async function renderContent",
+    sourceReferenceStart,
+  );
+  const sourceReferenceProjection = controlJs.slice(
+    sourceReferenceStart,
+    sourceReferenceEnd,
+  );
+  assert.doesNotMatch(sourceReferenceProjection, /\btitle\b|\blocale\b/u);
+  assert.match(adminAdapters, /FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE/u);
+  assert.match(businessSurface, /data-module-help/u);
+});
+
 test("Primary Control Center copy excludes known architecture-first labels", () => {
   for (const forbidden of [
     "CRM owner orchestration",

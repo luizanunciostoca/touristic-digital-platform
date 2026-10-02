@@ -586,6 +586,10 @@ html[data-theme="dark"] .form-grid textarea {
   color: #e2e8f0;
 }
 
+html[data-theme="dark"] .form-grid [aria-invalid="true"] {
+  border-color: #f87171;
+}
+
 html[data-theme="dark"] .form-grid input[readonly],
 html[data-theme="dark"] .form-grid textarea[readonly] {
   background: #111827;

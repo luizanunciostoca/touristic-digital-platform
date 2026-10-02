@@ -1526,7 +1526,7 @@ async function renderAffiliates(affiliateId) {
           </label>
           <div><button class="secondary-button" type="submit">Buscar</button></div>
         </form>
-        <div class="table-wrap" tabindex="0" style="margin-top:16px">
+        <div id="affiliate-list-table" class="table-wrap" tabindex="0" style="margin-top:16px">
           <table>
             <thead>
               <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Participações</th><th>Conversões</th></tr>
@@ -1554,6 +1554,10 @@ async function renderAffiliates(affiliateId) {
             </tbody>
           </table>
         </div>
+        <section id="affiliate-search-empty" class="empty-surface" data-empty-state="empty" hidden>
+          <h2>Nenhum afiliado encontrado</h2>
+          <p>Ajuste a busca ou limpe o termo para ver outros afiliados.</p>
+        </section>
       </section>`;
 
     document
@@ -1564,7 +1568,11 @@ async function renderAffiliates(affiliateId) {
           .querySelector("#affiliate-search-query")
           ?.value?.trim();
         const body = document.querySelector("#affiliate-list-body");
-        if (!body) return;
+        const tableWrap = document.querySelector("#affiliate-list-table");
+        const emptyState = document.querySelector("#affiliate-search-empty");
+        if (!body || !tableWrap || !emptyState) return;
+        tableWrap.hidden = false;
+        emptyState.hidden = true;
         body.innerHTML =
           '<tr><td colspan="5" class="empty">Buscando…</td></tr>';
         try {
@@ -1573,11 +1581,9 @@ async function renderAffiliates(affiliateId) {
           );
           const rows = result.data ?? [];
           if (rows.length === 0) {
-            const tableWrap = body.closest(".table-wrap");
-            if (tableWrap) {
-              tableWrap.innerHTML =
-                '<section class="empty-surface" data-empty-state="empty"><h2>Nenhum afiliado encontrado</h2><p>Ajuste a busca ou limpe o termo para ver outros afiliados.</p></section>';
-            }
+            body.innerHTML = "";
+            tableWrap.hidden = true;
+            emptyState.hidden = false;
             return;
           }
           body.innerHTML =
@@ -1599,6 +1605,8 @@ async function renderAffiliates(affiliateId) {
               .join("") ||
             '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>';
         } catch (error) {
+          tableWrap.hidden = false;
+          emptyState.hidden = true;
           body.innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(
             error.body?.error || error.message,
           )}</td></tr>`;
@@ -3077,7 +3085,7 @@ async function renderFinancial(paymentId) {
           </section>`
       }
 
-      <details class="technical-details" open>
+      <details class="technical-details">
         <summary>Consultas avançadas</summary>
         <div class="grid two-col" style="margin-top:14px">
           <section class="card section-card">
@@ -3341,12 +3349,123 @@ async function renderFinancial(paymentId) {
   );
 }
 
+function contentIdentifierSegment(value, fallback) {
+  const normalized = String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || fallback;
+}
+
+function createContentDraftToken() {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === "function") {
+    return cryptoApi.randomUUID();
+  }
+  if (typeof cryptoApi?.getRandomValues === "function") {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (value) =>
+      value.toString(16).padStart(2, "0"),
+    ).join("");
+  }
+  throw new Error("CONTENT_DRAFT_TOKEN_UNAVAILABLE");
+}
+
+function generatedContentDraftId({ kind, destinationId, title, token }) {
+  const base = [
+    contentIdentifierSegment(kind, "content"),
+    contentIdentifierSegment(destinationId, "destination"),
+    contentIdentifierSegment(title, "conteudo"),
+  ].join("-");
+  const maxBaseLength = Math.max(1, 160 - token.length - 1);
+  const prefix =
+    base.slice(0, maxBaseLength).replace(/[-_:]+$/g, "") || "content";
+  return `${prefix}-${token}`;
+}
+
+function generatedContentSourceReference({ kind, destinationId, token }) {
+  const base = [
+    contentIdentifierSegment(kind, "content"),
+    contentIdentifierSegment(destinationId, "destination"),
+  ].join(":");
+  const maxBaseLength = Math.max(1, 240 - token.length - 1);
+  const prefix =
+    base.slice(0, maxBaseLength).replace(/[-_:./]+$/g, "") || "content";
+  return `${prefix}:${token}`;
+}
+
+const contentCreatePresetStorageKey =
+  "md.control.content.create.preset.v1";
+
+function readContentCreatePreset() {
+  try {
+    const raw = globalThis.sessionStorage?.getItem(contentCreatePresetStorageKey);
+    if (!raw) return null;
+    const value = JSON.parse(raw);
+    if (!value || typeof value !== "object") return null;
+    return Object.freeze({
+      destinationId:
+        typeof value.destinationId === "string" ? value.destinationId : "",
+      kind: typeof value.kind === "string" ? value.kind : "",
+      sourceReference:
+        typeof value.sourceReference === "string" ? value.sourceReference : "",
+      originTitle:
+        typeof value.originTitle === "string" ? value.originTitle : "",
+    });
+  } catch {
+    globalThis.sessionStorage?.removeItem(contentCreatePresetStorageKey);
+    return null;
+  }
+}
+
+function clearContentCreatePreset() {
+  globalThis.sessionStorage?.removeItem(contentCreatePresetStorageKey);
+}
+
+function queueContentCreatePreset(preset) {
+  globalThis.sessionStorage?.setItem(
+    contentCreatePresetStorageKey,
+    JSON.stringify(preset),
+  );
+  globalThis.location.hash = "#content";
+}
+
 async function renderContent(contentId) {
   const canManage = actorHasCapability("content.manage");
 
   if (!contentId) {
-    const data = await api("/content?limit=100");
+    const [data, destinationPayload] = await Promise.all([
+      api("/content?limit=100"),
+      api("/destinations").catch(() => null),
+    ]);
     const documents = data.data ?? [];
+    const destinations = destinationPayload?.destinations ?? [];
+    const destinationLabelById = new Map(
+      destinations.map((destination) => [
+        destination.id,
+        destination.branding?.name ?? destination.id,
+      ]),
+    );
+    const destinationOptions = destinations
+      .map(
+        (destination) =>
+          `<option value="${escapeHtml(destination.id)}">${escapeHtml(
+            destination.branding?.name ?? destination.id,
+          )}</option>`,
+      )
+      .join("");
+    const logicalReferenceOptions = Array.from(
+      new Set(
+        documents
+          .map((document) => document.sourceReference)
+          .filter((reference) => typeof reference === "string" && reference),
+      ),
+    )
+      .map((reference) => `<option value="${escapeHtml(reference)}"></option>`)
+      .join("");
+    const canCreate = canManage && destinations.length > 0;
     content.innerHTML = `
       <div class="grid two-col">
         <section class="card section-card">
@@ -3374,7 +3493,7 @@ async function renderContent(contentId) {
                         </td>
                         <td>${escapeHtml({ destination: "Destino", category: "Categoria", place: "Local", media: "Mídia", tour: "Passeio", event: "Evento", translation: "Tradução", seo: "SEO", offer_reference: "Referência de oferta" }[document.kind] ?? "Conteúdo")}</td>
                         <td>${statusBadge(document.status)}</td>
-                        <td>${escapeHtml(document.destinationId === "morro-de-sao-paulo" ? "Morro de São Paulo" : document.destinationId === "itacare" ? "Itacaré" : "Destino configurado")}</td>
+                        <td>${escapeHtml(destinationLabelById.get(document.destinationId) ?? "Destino configurado")}</td>
                         <td>${escapeHtml({ "pt-BR": "Português", en: "Inglês", es: "Espanhol", he: "Hebraico" }[document.locale] ?? "Outro idioma")}</td>
                       </tr>`,
                     )
@@ -3395,12 +3514,11 @@ async function renderContent(contentId) {
             <span class="badge">${canManage ? "Edição disponível" : "Consulta"}</span>
           </div>
           ${
-            canManage
+            canCreate
               ? `<form id="content-create-form" class="form-grid">
                   <label>Destino
                     <select id="content-create-destination" required>
-                      <option value="morro-de-sao-paulo" selected>Morro de São Paulo</option>
-                      <option value="itacare">Itacaré</option>
+                      ${destinationOptions}
                     </select>
                   </label>
                   <label>Tipo
@@ -3430,16 +3548,23 @@ async function renderContent(contentId) {
                   <label>Resumo
                     <textarea id="content-create-summary" maxlength="20000"></textarea>
                   </label>
-                  <div class="callout">
-                    <strong>Próximas etapas:</strong> revise a mídia e a prévia antes da publicação governada.
+                  <label>Referência de mídia canônica (opcional)
+                    <input id="content-create-media-reference" maxlength="500" autocomplete="off" placeholder="ID ou referência de um item do tipo Mídia" />
+                    <small>Associe um item do tipo Mídia da biblioteca editorial antes da publicação, quando aplicável.</small>
+                  </label>
+                  <div id="content-create-preview" class="callout" aria-live="polite">
+                    <strong>Prévia editorial</strong>
+                    <p>Preencha título e resumo para visualizar este conteúdo.</p>
                   </div>
-                  <details class="technical-details" open>
+                  <details class="technical-details">
                     <summary>Detalhes avançados</summary>
                     <label>Identificador interno (opcional)
                       <input id="content-create-id" maxlength="160" autocomplete="off" placeholder="Gerado automaticamente" />
                     </label>
-                    <label>Referência de origem (opcional)
-                      <input id="content-create-source" maxlength="240" autocomplete="off" placeholder="Gerada automaticamente" />
+                    <label>Referência lógica entre idiomas (opcional)
+                      <input id="content-create-source" list="content-logical-references" maxlength="240" autocomplete="off" placeholder="Gerada automaticamente; reutilize em outras traduções" />
+                      <datalist id="content-logical-references">${logicalReferenceOptions}</datalist>
+                      <small>Para outra tradução do mesmo conteúdo, reutilize a mesma referência lógica.</small>
                     </label>
                   </details>
                   <label>Motivo da criação
@@ -3448,10 +3573,48 @@ async function renderContent(contentId) {
                   <p id="content-create-status" role="status" style="margin:0;color:var(--muted)"></p>
                   <div><button class="primary-button" type="submit">Criar rascunho</button></div>
                 </form>`
-              : `<div class="callout">Seu acesso atual permite consultar conteúdo, mas não editar.</div>`
+              : canManage
+                ? `<div class="empty-surface" data-empty-state="unavailable">
+                    <h2>Destinos indisponíveis para criação</h2>
+                    <p>O catálogo editorial continua disponível, mas um destino governado precisa estar carregado antes de criar conteúdo.</p>
+                    <div><a class="secondary-button" href="#destinations">Revisar destinos</a></div>
+                  </div>`
+                : `<div class="callout">Seu acesso atual permite consultar conteúdo, mas não editar.</div>`
           }
         </section>
       </div>`;
+
+    const updateContentCreatePreview = () => {
+      const preview = document.querySelector("#content-create-preview");
+      if (!preview) return;
+      const title =
+        document.querySelector("#content-create-title")?.value?.trim() || "";
+      const summary =
+        document.querySelector("#content-create-summary")?.value?.trim() || "";
+      const mediaReference =
+        document
+          .querySelector("#content-create-media-reference")
+          ?.value?.trim() || "";
+      preview.innerHTML = `
+        <strong>${escapeHtml(title || "Prévia editorial")}</strong>
+        <p>${escapeHtml(summary || "Preencha o resumo para visualizar a apresentação do conteúdo.")}</p>
+        <small>${escapeHtml(
+          mediaReference
+            ? `Mídia associada: ${mediaReference}`
+            : "Nenhuma mídia principal associada.",
+        )}</small>
+      `;
+    };
+    for (const selector of [
+      "#content-create-title",
+      "#content-create-summary",
+      "#content-create-media-reference",
+    ]) {
+      document
+        .querySelector(selector)
+        ?.addEventListener("input", updateContentCreatePreview);
+    }
+    updateContentCreatePreview();
 
     document
       .querySelector("#content-create-form")
@@ -3473,42 +3636,53 @@ async function renderContent(contentId) {
           const locale = document
             .querySelector("#content-create-locale")
             ?.value?.trim();
-          const slug = String(title ?? "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "")
-            .slice(0, 80);
-          const generatedId = [
-            kind || "content",
-            destinationId || "destination",
-            slug || "conteudo",
-          ]
-            .join("-")
-            .slice(0, 160);
-          const generatedSourceReference = [
-            kind || "content",
-            destinationId || "destination",
-            slug || "conteudo",
-          ]
-            .join(":")
-            .slice(0, 240);
-          const idOverride = document
-            .querySelector("#content-create-id")
+          const mediaReference = document
+            .querySelector("#content-create-media-reference")
             ?.value?.trim();
-          const sourceOverride = document
-            .querySelector("#content-create-source")
-            ?.value?.trim();
+          const idInput = document.querySelector("#content-create-id");
+          const sourceInput = document.querySelector("#content-create-source");
+          const idOverride = idInput?.value?.trim();
+          const sourceOverride = sourceInput?.value?.trim();
+          let token =
+            idInput?.dataset?.generatedToken ||
+            sourceInput?.dataset?.generatedToken ||
+            "";
+          if ((!idOverride || !sourceOverride) && !token) {
+            token = createContentDraftToken();
+          }
+          const generatedId =
+            idOverride ||
+            generatedContentDraftId({
+              kind,
+              destinationId,
+              title,
+              token,
+            });
+          const generatedSourceReference =
+            sourceOverride ||
+            generatedContentSourceReference({
+              kind,
+              destinationId,
+              token,
+            });
+          if (idInput && !idOverride) {
+            idInput.value = generatedId;
+            idInput.dataset.generatedToken = token;
+          }
+          if (sourceInput && !sourceOverride) {
+            sourceInput.value = generatedSourceReference;
+            sourceInput.dataset.generatedToken = token;
+          }
           const body = {
-            id: idOverride || generatedId,
+            id: generatedId,
             destinationId,
             kind,
             locale,
-            sourceReference: sourceOverride || generatedSourceReference,
+            sourceReference: generatedSourceReference,
             fields: {
               title,
               ...(summary ? { summary } : {}),
+              ...(mediaReference ? { mediaReference } : {}),
             },
             reason: document
               .querySelector("#content-create-reason")
@@ -3601,6 +3775,19 @@ async function renderContent(contentId) {
       </section>
     </div>
 
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title"><h2>Prévia editorial</h2><span class="badge">Prévia</span></div>
+      <div class="callout">
+        <strong>${escapeHtml(contentField(documentData, "title") || "Conteúdo sem título")}</strong>
+        <p>${escapeHtml(contentField(documentData, "summary") || "Sem resumo editorial.")}</p>
+        <small>${escapeHtml(
+          contentField(documentData, "mediaReference")
+            ? `Mídia associada: ${contentField(documentData, "mediaReference")}`
+            : "Nenhuma mídia principal associada.",
+        )}</small>
+      </div>
+    </section>
+
     ${
       canManage
         ? `<div class="grid two-col" style="margin-top:16px">
@@ -3612,6 +3799,9 @@ async function renderContent(contentId) {
                 </label>
                 <label>Resumo
                   <textarea id="content-revise-summary" maxlength="20000">${escapeHtml(contentField(documentData, "summary"))}</textarea>
+                </label>
+                <label>Referência de mídia canônica
+                  <input id="content-revise-media-reference" maxlength="500" value="${escapeHtml(contentField(documentData, "mediaReference"))}" />
                 </label>
                 <label>Motivo da alteração
                   <textarea id="content-revise-reason" minlength="8" maxlength="240" required></textarea>
@@ -3666,6 +3856,9 @@ async function renderContent(contentId) {
                 ?.value?.trim(),
               summary: document
                 .querySelector("#content-revise-summary")
+                ?.value?.trim(),
+              mediaReference: document
+                .querySelector("#content-revise-media-reference")
                 ?.value?.trim(),
             },
             reason: document
