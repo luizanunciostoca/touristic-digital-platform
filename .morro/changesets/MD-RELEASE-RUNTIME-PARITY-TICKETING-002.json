@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-RUNTIME-PARITY-TICKETING-002",
+  "objective": "restore-staging-production-runtime-parity-enable-ticketing-persistence-and-harden-immutable-image-promotion",
+  "baseSha": "fefd76bcb3b9bfc5073b4ca834c927e3d25cf45c",
+  "branch": "chore/runtime-parity-ticketing-reacquire-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-TICKETING-002.json",
+      ".github/workflows/staging-oci-promotion.yml",
+      "render.staging.yaml",
+      "render.yaml",
+      "tooling/render/with-staging-mysql-env.mjs",
+      "tooling/render/reconcile-staging-mysql-domains.mjs",
+      "tooling/render/with-staging-mysql-env.test.mjs",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/release-target-governance.test.mjs",
+      "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs",
+      "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
+      "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs",
+      "tooling/render/production-runtime-data-predeploy.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof",
+    "production-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 3,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "staging-mysql-ticketing-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/with-staging-mysql-env.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "release-target-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "production-runtime-data-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/production-runtime-data-predeploy.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "staging-runtime-proof",
+      "production-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
