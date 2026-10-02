@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-UX-PLACE-V2-RUNTIME-INTEGRATION-001",
+  "objective": "integrate-canonical-place-v2-bottom-sheet-into-tourist-runtime",
+  "baseSha": "56e86246baf01a34e4ea18e4b539291e7571432e",
+  "branch": "feat/place-v2-runtime-integration-claim-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "medium",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-UX-PLACE-V2-RUNTIME-INTEGRATION-001.json",
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.test.ts"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 480
+    },
+    "commands": [
+      {
+        "id": "place-v2-affected-tests",
+        "argv": [
+          "pnpm",
+          "--filter",
+          "@touristic/morro-digital-platform",
+          "exec",
+          "vitest",
+          "run",
+          "src/map/explore-locations-control.test.ts",
+          "src/map/public-place-presentation-v2.test.ts"
+        ],
+        "timeoutSeconds": 240
+      },
+      {
+        "id": "morro-platform-typecheck",
+        "argv": [
+          "pnpm",
+          "--filter",
+          "@touristic/morro-digital-platform",
+          "typecheck"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
