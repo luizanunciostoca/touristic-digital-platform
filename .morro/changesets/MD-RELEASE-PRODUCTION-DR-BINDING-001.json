@@ -3,7 +3,7 @@
   "id": "MD-RELEASE-PRODUCTION-DR-BINDING-001",
   "baseSha": "5effe1e75a386ed21624da5ced040f549ec4ee50",
   "branch": "fix/production-dr-canonical-binding-proof-20261002",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
