@@ -66,3 +66,7 @@ test("affected Business Location runtime tests pass", () => {
 test("Morro Digital platform typecheck passes", () => {
   run(["--filter", "@touristic/morro-digital-platform", "typecheck"], 240_000);
 });
+
+test("Morro Digital platform build passes", () => {
+  run(["--filter", "@touristic/morro-digital-platform", "build"], 300_000);
+});
