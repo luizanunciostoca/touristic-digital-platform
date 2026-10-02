@@ -25,6 +25,9 @@ function fixture(overrides = {}) {
     STAGING_FINANCIAL_DATABASE_NAME: "morro_financial_staging",
     STAGING_FINANCIAL_DATABASE_USER: "morro_financial",
     STAGING_FINANCIAL_DATABASE_PASSWORD: "financial+/=safe-password",
+    STAGING_TICKETING_DATABASE_NAME: "morro_ticketing_staging",
+    STAGING_TICKETING_DATABASE_USER: "morro_ticketing",
+    STAGING_TICKETING_DATABASE_PASSWORD: "ticketing+/=safe-password",
     STAGING_AFFILIATES_DATABASE_NAME: "morro_affiliates_staging",
     STAGING_AFFILIATES_DATABASE_USER: "morro_affiliates",
     STAGING_AFFILIATES_DATABASE_PASSWORD: "affiliates+/=safe-password",
@@ -81,6 +84,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
     "FINANCIAL_DATABASE_URL",
     "NOTIFICATIONS_DATABASE_URL",
     "ORDERING_DATABASE_URL",
+    "TICKETING_DATABASE_URL",
   ]);
   assert.equal(
     derived.CONTROL_CENTER_AUDIT_DATABASE_URL,
@@ -98,7 +102,15 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   const names = Object.values(derived).map((value) =>
     new URL(value).pathname.slice(1),
   );
-  assert.equal(new Set(names).size, 9);
+  assert.equal(new Set(names).size, 10);
+
+  const ticketing = new URL(derived.TICKETING_DATABASE_URL);
+  assert.equal(decodeURIComponent(ticketing.username), "morro_ticketing");
+  assert.equal(
+    decodeURIComponent(ticketing.password),
+    "ticketing+/=safe-password",
+  );
+  assert.equal(ticketing.pathname, "/morro_ticketing_staging");
 
   const commerce = new URL(derived.COMMERCE_DATABASE_URL);
   assert.equal(decodeURIComponent(commerce.username), "morro_commerce");
