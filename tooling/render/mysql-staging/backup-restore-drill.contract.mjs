@@ -19,7 +19,6 @@ function run(extraEnvironment = {}) {
       AUTH_DATABASE_NAME: "morro_auth_staging",
       ORDERING_DATABASE_NAME: "morro_ordering_staging",
       FINANCIAL_DATABASE_NAME: "morro_financial_staging",
-      TICKETING_DATABASE_NAME: "morro_ticketing_staging",
       AFFILIATES_DATABASE_NAME: "morro_affiliates_staging",
       NOTIFICATIONS_DATABASE_NAME: "morro_notifications_staging",
       DRILL_SOURCE_DATABASE: "morro_ordering_staging",
