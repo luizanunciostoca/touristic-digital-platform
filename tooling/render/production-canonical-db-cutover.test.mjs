@@ -9,8 +9,10 @@ import {
   buildDatabaseUrl,
   cutover,
   productionDatabaseDomains,
+  resolvePreviousReleaseSha,
   rollback,
   selectRegistryCredential,
+  trustedPreviousImageIdentity,
 } from "./production-canonical-db-cutover.mjs";
 
 test("builds only the trusted private production MySQL URL", () => {
@@ -366,6 +368,9 @@ function failureCutoverFixture({
   deployStatus = "build_failed",
   previousLiveChangesAfterRestore = false,
   failPreviousLiveRevalidationGet = false,
+  imageBackedPrevious = false,
+  previousEnvMismatch = false,
+  untrustedPreviousImage = false,
 }) {
   const stateFile = path.join(directory, "state.json");
   const evidenceFile = path.join(directory, "evidence.json");
@@ -374,6 +379,10 @@ function failureCutoverFixture({
   const mysqlSourceSha = "d".repeat(40);
   const imageDigest = `sha256:${"b".repeat(64)}`;
   const imagePath = `ghcr.io/luizanunciostoca/morro-digital-v2@${imageDigest}`;
+  const previousImageDigest = `sha256:${"9".repeat(64)}`;
+  const previousImagePath = untrustedPreviousImage
+    ? `ghcr.io/untrusted/example@${previousImageDigest}`
+    : `ghcr.io/luizanunciostoca/morro-digital-v2@${previousImageDigest}`;
   const mysqlValues = {};
   for (const [domain, , schema] of productionDatabaseDomains) {
     mysqlValues[`${domain}_DATABASE_NAME`] = schema;
@@ -392,25 +401,42 @@ function failureCutoverFixture({
     });
   }
 
-  const originalService = {
-    id: "srv-web",
-    ownerId: "tea-owner",
-    name: "morro-digital-v2",
-    type: "web_service",
-    autoDeployTrigger: "off",
-    repo: "https://github.com/luizanunciostoca/touristic-digital-platform",
-    branch: "main",
-    serviceDetails: {
-      runtime: "node",
-      region: "virginia",
-      healthCheckPath: "",
-      maxShutdownDelaySeconds: 30,
-      envSpecificDetails: {
-        buildCommand: "pnpm build",
-        startCommand: "node app.mjs",
-      },
-    },
-  };
+  const originalService = imageBackedPrevious
+    ? {
+        id: "srv-web",
+        ownerId: "tea-owner",
+        name: "morro-digital-v2",
+        type: "web_service",
+        autoDeployTrigger: "off",
+        imagePath: previousImagePath,
+        serviceDetails: {
+          runtime: "image",
+          region: "virginia",
+          preDeployCommand: "node old-predeploy.mjs",
+          healthCheckPath: "/readyz",
+          maxShutdownDelaySeconds: 30,
+          envSpecificDetails: {},
+        },
+      }
+    : {
+        id: "srv-web",
+        ownerId: "tea-owner",
+        name: "morro-digital-v2",
+        type: "web_service",
+        autoDeployTrigger: "off",
+        repo: "https://github.com/luizanunciostoca/touristic-digital-platform",
+        branch: "main",
+        serviceDetails: {
+          runtime: "node",
+          region: "virginia",
+          healthCheckPath: "",
+          maxShutdownDelaySeconds: 30,
+          envSpecificDetails: {
+            buildCommand: "pnpm build",
+            startCommand: "node app.mjs",
+          },
+        },
+      };
 
   let currentService = structuredClone(originalService);
   let mysqlDeployReads = 0;
@@ -439,6 +465,22 @@ function failureCutoverFixture({
       webDeployReads += 1;
       if (failPreviousLiveRevalidationGet && webDeployReads >= 3) {
         return jsonResponse(503, { error: "injected-revalidation-outage" });
+      }
+      if (imageBackedPrevious) {
+        const observedDigest =
+          previousLiveChangesAfterRestore && webDeployReads >= 3
+            ? `sha256:${"8".repeat(64)}`
+            : previousImageDigest;
+        const observedPath = `ghcr.io/luizanunciostoca/morro-digital-v2@${observedDigest}`;
+        return jsonResponse(200, [
+          {
+            deploy: {
+              id: "dep-old",
+              status: "live",
+              image: { ref: observedPath, sha: observedDigest },
+            },
+          },
+        ]);
       }
       const observedPreviousSha =
         previousLiveChangesAfterRestore && webDeployReads >= 3
@@ -487,6 +529,17 @@ function failureCutoverFixture({
       method === "GET" &&
       parsed.pathname.startsWith("/v1/services/srv-web/env-vars/")
     ) {
+      const key = decodeURIComponent(parsed.pathname.split("/").at(-1));
+      if (
+        imageBackedPrevious &&
+        (key === "MORRO_RELEASE_SHA" || key === "EXPECTED_SHA")
+      ) {
+        const value =
+          previousEnvMismatch && key === "EXPECTED_SHA"
+            ? "f".repeat(40)
+            : previousReleaseSha;
+        return jsonResponse(200, { envVar: { key, value } });
+      }
       return jsonResponse(404, {});
     }
     if (
@@ -515,6 +568,7 @@ function failureCutoverFixture({
         currentService = {
           ...structuredClone(originalService),
           repo: "",
+          imagePath: body.image.imagePath,
           serviceDetails: {
             ...structuredClone(originalService.serviceDetails),
             runtime: "image",
@@ -554,11 +608,20 @@ function failureCutoverFixture({
       method === "GET" &&
       route === "/v1/services/srv-web/deploys/dep-rollback"
     ) {
-      return jsonResponse(200, {
-        id: "dep-rollback",
-        status: "live",
-        commit: { id: previousReleaseSha },
-      });
+      return jsonResponse(
+        200,
+        imageBackedPrevious
+          ? {
+              id: "dep-rollback",
+              status: "live",
+              image: { ref: previousImagePath, sha: previousImageDigest },
+            }
+          : {
+              id: "dep-rollback",
+              status: "live",
+              commit: { id: previousReleaseSha },
+            },
+      );
     }
     throw new Error(`unexpected request ${method} ${route}`);
   };
@@ -570,6 +633,8 @@ function failureCutoverFixture({
     fetchImpl,
     imageDigest,
     imagePath,
+    previousImageDigest,
+    previousImagePath,
     previousReleaseSha,
     environment: {
       RENDER_PRODUCTION_API_KEY: "test-token",
@@ -585,6 +650,165 @@ function failureCutoverFixture({
     },
   };
 }
+
+test("resolves previous image-backed release identity from canonical runtime metadata", () => {
+  const sha = "a".repeat(40);
+  assert.equal(
+    resolvePreviousReleaseSha(
+      {
+        id: "dep-old",
+        status: "live",
+        image: { sha: `sha256:${"9".repeat(64)}` },
+      },
+      { MORRO_RELEASE_SHA: sha, EXPECTED_SHA: sha },
+    ),
+    sha,
+  );
+  assert.throws(
+    () =>
+      resolvePreviousReleaseSha(
+        { id: "dep-old", status: "live" },
+        { MORRO_RELEASE_SHA: sha, EXPECTED_SHA: "f".repeat(40) },
+      ),
+    /PRODUCTION_PREVIOUS_SHA_MISMATCH/u,
+  );
+  assert.throws(
+    () => resolvePreviousReleaseSha({ id: "dep-old", status: "live" }, {}),
+    /PRODUCTION_PREVIOUS_SHA_INVALID/u,
+  );
+
+  const digest = `sha256:${"9".repeat(64)}`;
+  assert.deepEqual(
+    trustedPreviousImageIdentity({
+      imagePath: `ghcr.io/luizanunciostoca/morro-digital-v2@${digest}`,
+    }),
+    {
+      imagePath: `ghcr.io/luizanunciostoca/morro-digital-v2@${digest}`,
+      imageDigest: digest,
+    },
+  );
+  assert.throws(
+    () =>
+      trustedPreviousImageIdentity({
+        imagePath: `ghcr.io/untrusted/example@${digest}`,
+      }),
+    /PRODUCTION_PREVIOUS_IMAGE_UNTRUSTED/u,
+  );
+});
+
+test("image-backed previous production cuts over and explicitly rolls back by immutable digest", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-image-backed-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    imageBackedPrevious: true,
+    deployStatus: "live",
+  });
+
+  const deployed = await cutover({
+    environment: fixture.environment,
+    fetchImpl: fixture.fetchImpl,
+  });
+  assert.equal(deployed.status, "live");
+  assert.equal(deployed.previousReleaseSha, fixture.previousReleaseSha);
+  assert.equal(deployed.previousImageDigest, fixture.previousImageDigest);
+
+  const preparedState = JSON.parse(
+    await fs.readFile(fixture.stateFile, "utf8"),
+  );
+  assert.equal(preparedState.previousSource.runtime, "image");
+  assert.equal(
+    preparedState.previousSource.imagePath,
+    fixture.previousImagePath,
+  );
+  assert.equal(
+    preparedState.previousSource.imageDigest,
+    fixture.previousImageDigest,
+  );
+
+  const rolledBack = await rollback({
+    environment: fixture.environment,
+    fetchImpl: fixture.fetchImpl,
+  });
+  assert.equal(rolledBack.status, "rolled_back");
+  assert.equal(rolledBack.rollbackDeployId, "dep-rollback");
+  assert.equal(rolledBack.previousReleaseSha, fixture.previousReleaseSha);
+  assert.ok(
+    fixture.requests.some(
+      (request) =>
+        request.method === "PATCH" &&
+        request.route === "/v1/services/srv-web" &&
+        request.body?.image?.imagePath === fixture.previousImagePath,
+    ),
+  );
+});
+
+test("image-backed failed deploy restores previous live digest without redundant rollback", async (t) => {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "morro-cutover-image-backed-failure-"),
+  );
+  t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const fixture = failureCutoverFixture({
+    directory,
+    imageBackedPrevious: true,
+  });
+
+  await assert.rejects(
+    cutover({
+      environment: fixture.environment,
+      fetchImpl: fixture.fetchImpl,
+    }),
+    /RENDER_DEPLOY_BUILD_FAILED/u,
+  );
+
+  const evidence = JSON.parse(await fs.readFile(fixture.evidenceFile, "utf8"));
+  assert.equal(evidence.status, "restored_previous_live");
+  assert.equal(evidence.rollbackNotRequired, true);
+  assert.equal(
+    fixture.requests.filter(
+      (request) =>
+        request.method === "POST" &&
+        request.route === "/v1/services/srv-web/rollback",
+    ).length,
+    0,
+  );
+});
+
+test("image-backed previous identity fails closed before mutation on mismatch or untrusted image", async (t) => {
+  for (const [name, options, pattern] of [
+    [
+      "mismatch",
+      { imageBackedPrevious: true, previousEnvMismatch: true },
+      /PRODUCTION_PREVIOUS_SHA_MISMATCH/u,
+    ],
+    [
+      "untrusted",
+      { imageBackedPrevious: true, untrustedPreviousImage: true },
+      /PRODUCTION_PREVIOUS_IMAGE_UNTRUSTED/u,
+    ],
+  ]) {
+    const directory = await fs.mkdtemp(
+      path.join(os.tmpdir(), `morro-cutover-image-${name}-`),
+    );
+    t.after(() => fs.rm(directory, { recursive: true, force: true }));
+    const fixture = failureCutoverFixture({ directory, ...options });
+    await assert.rejects(
+      cutover({
+        environment: fixture.environment,
+        fetchImpl: fixture.fetchImpl,
+      }),
+      pattern,
+    );
+    assert.equal(
+      fixture.requests.filter((request) =>
+        ["PUT", "PATCH", "POST", "DELETE"].includes(request.method),
+      ).length,
+      0,
+    );
+  }
+});
 
 test("rejects a MySQL source that changes before the first web mutation", async (t) => {
   const directory = await fs.mkdtemp(

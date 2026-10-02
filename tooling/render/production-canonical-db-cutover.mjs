@@ -94,6 +94,41 @@ export function assertDeployImageIdentity(observed, imagePath, imageDigest) {
   }
 }
 
+export function resolvePreviousReleaseSha(liveDeploy, previousEnv = {}) {
+  const candidates = [
+    String(liveDeploy?.commit?.id ?? "").trim(),
+    String(previousEnv.MORRO_RELEASE_SHA ?? "").trim(),
+    String(previousEnv.EXPECTED_SHA ?? "").trim(),
+  ].filter(Boolean);
+
+  if (
+    candidates.length === 0 ||
+    candidates.some((sha) => !SHA_PATTERN.test(sha))
+  ) {
+    throw new Error("PRODUCTION_PREVIOUS_SHA_INVALID");
+  }
+  if (new Set(candidates).size !== 1) {
+    throw new Error("PRODUCTION_PREVIOUS_SHA_MISMATCH");
+  }
+  return candidates[0];
+}
+
+export function trustedPreviousImageIdentity(
+  service,
+  imageRepository = "ghcr.io/luizanunciostoca/morro-digital-v2",
+) {
+  const imagePath = String(service?.imagePath ?? "").trim();
+  const prefix = `${imageRepository}@`;
+  if (!imagePath.startsWith(prefix)) {
+    throw new Error("PRODUCTION_PREVIOUS_IMAGE_UNTRUSTED");
+  }
+  const imageDigest = imagePath.slice(prefix.length);
+  if (!DIGEST_PATTERN.test(imageDigest)) {
+    throw new Error("PRODUCTION_PREVIOUS_IMAGE_DIGEST_INVALID");
+  }
+  return Object.freeze({ imagePath, imageDigest });
+}
+
 export function buildDatabaseUrl({ host, port, database, user, password }) {
   if (host !== "morro-digital-v2-production-mysql" || Number(port) !== 3306) {
     throw new Error("PRODUCTION_MYSQL_PRIVATE_ENDPOINT_UNTRUSTED");
@@ -121,6 +156,7 @@ function publicEvidence(state) {
     imageRepository: state.imageRepository,
     previousDeployId: state.previousDeployId,
     previousReleaseSha: state.previousReleaseSha,
+    previousImageDigest: state.previousSource?.imageDigest ?? null,
     newDeployId: state.newDeployId ?? null,
     rollbackDeployId: state.rollbackDeployId ?? null,
     rollbackNotRequired: state.rollbackNotRequired === true,
@@ -346,9 +382,14 @@ async function ensureCommerceRuntimeEnvironment(client, webServiceId) {
   });
 }
 
-function previousSource(service, previousReleaseSha) {
+function previousSource(
+  service,
+  previousReleaseSha,
+  imageRepository,
+  registryCredentialId,
+) {
   const details = nativeDetails(service);
-  return Object.freeze({
+  const source = {
     repo: String(service.repo ?? ""),
     branch: String(service.branch ?? "main"),
     runtime: runtime(service),
@@ -364,17 +405,29 @@ function previousSource(service, previousReleaseSha) {
       service?.serviceDetails?.maxShutdownDelaySeconds ?? 30,
     ),
     previousReleaseSha,
-  });
+  };
+
+  if (source.runtime === "image") {
+    const image = trustedPreviousImageIdentity(service, imageRepository);
+    return Object.freeze({
+      ...source,
+      imagePath: image.imagePath,
+      imageDigest: image.imageDigest,
+      imageOwnerId: String(service.ownerId ?? ""),
+      registryCredentialId: registryCredentialId || null,
+    });
+  }
+
+  if (!source.repo || !source.runtime) {
+    throw new Error("PRODUCTION_PREVIOUS_SOURCE_IDENTITY_INCOMPLETE");
+  }
+  return Object.freeze(source);
 }
 
 function sourceMatchesSnapshot(service, source) {
   const details = nativeDetails(service);
-  return (
-    String(service?.repo ?? "") === source.repo &&
-    String(service?.branch ?? "main") === source.branch &&
+  const common =
     runtime(service) === source.runtime &&
-    String(details.buildCommand ?? "") === source.buildCommand &&
-    String(details.startCommand ?? "") === source.startCommand &&
     String(
       service?.serviceDetails?.preDeployCommand ??
         details.preDeployCommand ??
@@ -383,12 +436,60 @@ function sourceMatchesSnapshot(service, source) {
     String(service?.serviceDetails?.healthCheckPath ?? "") ===
       source.healthCheckPath &&
     Number(service?.serviceDetails?.maxShutdownDelaySeconds ?? 30) ===
-      source.maxShutdownDelaySeconds
+      source.maxShutdownDelaySeconds &&
+    String(service?.autoDeployTrigger ?? "off") === "off";
+
+  if (!common) return false;
+  if (source.runtime === "image") {
+    return (
+      String(service?.imagePath ?? "") === source.imagePath &&
+      String(service?.ownerId ?? "") === source.imageOwnerId
+    );
+  }
+
+  return (
+    String(service?.repo ?? "") === source.repo &&
+    String(service?.branch ?? "main") === source.branch &&
+    String(details.buildCommand ?? "") === source.buildCommand &&
+    String(details.startCommand ?? "") === source.startCommand
   );
 }
 
 async function restoreSource(client, serviceId, source) {
-  if (!source.repo || !source.runtime) {
+  if (!source.runtime) {
+    throw new Error("ROLLBACK_SOURCE_IDENTITY_INCOMPLETE");
+  }
+
+  if (source.runtime === "image") {
+    if (
+      !source.imagePath ||
+      !source.imageDigest ||
+      !source.imageOwnerId ||
+      !DIGEST_PATTERN.test(source.imageDigest)
+    ) {
+      throw new Error("ROLLBACK_IMAGE_IDENTITY_INCOMPLETE");
+    }
+    const image = {
+      ownerId: source.imageOwnerId,
+      imagePath: source.imagePath,
+    };
+    if (source.registryCredentialId) {
+      image.registryCredentialId = source.registryCredentialId;
+    }
+    await client.patch(`/services/${serviceId}`, {
+      autoDeployTrigger: "off",
+      image,
+      serviceDetails: {
+        runtime: "image",
+        preDeployCommand: source.preDeployCommand,
+        healthCheckPath: source.healthCheckPath,
+        maxShutdownDelaySeconds: source.maxShutdownDelaySeconds,
+      },
+    });
+    return;
+  }
+
+  if (!source.repo) {
     throw new Error("ROLLBACK_SOURCE_IDENTITY_INCOMPLETE");
   }
   await client.patch(`/services/${serviceId}`, {
@@ -408,6 +509,23 @@ async function restoreSource(client, serviceId, source) {
   });
 }
 
+function deployMatchesPreviousIdentity(deploy, state) {
+  if (!deploy) return false;
+  if (state.previousSource?.runtime === "image") {
+    try {
+      assertDeployImageIdentity(
+        deploy,
+        state.previousSource.imagePath,
+        state.previousSource.imageDigest,
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  }
+  return String(deploy.commit?.id ?? "") === state.previousReleaseSha;
+}
+
 async function previousDeployStillLive(client, state) {
   const deployPayload = await client.get(
     `/services/${state.webServiceId}/deploys?limit=20`,
@@ -417,7 +535,7 @@ async function previousDeployStillLive(client, state) {
   );
   return (
     liveDeploy?.id === state.previousDeployId &&
-    String(liveDeploy.commit?.id ?? "") === state.previousReleaseSha
+    deployMatchesPreviousIdentity(liveDeploy, state)
   );
 }
 
@@ -454,9 +572,12 @@ async function rollbackFromState({ client, state, stateFile }) {
     state.webServiceId,
     rollbackId,
   );
-  const rollbackSha = String(liveRollback?.commit?.id ?? "");
-  if (rollbackSha !== state.previousReleaseSha) {
-    throw new Error("ROLLBACK_RELEASE_SHA_MISMATCH");
+  if (!deployMatchesPreviousIdentity(liveRollback, state)) {
+    throw new Error(
+      state.previousSource?.runtime === "image"
+        ? "ROLLBACK_RELEASE_IMAGE_MISMATCH"
+        : "ROLLBACK_RELEASE_SHA_MISMATCH",
+    );
   }
 
   state.status = "rolled_back";
@@ -576,10 +697,9 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     (deploy) => deploy.status === "live",
   );
   if (!liveDeploy?.id) throw new Error("PRODUCTION_PREVIOUS_DEPLOY_REQUIRED");
-  const previousReleaseSha = String(liveDeploy.commit?.id ?? "");
-  if (!SHA_PATTERN.test(previousReleaseSha)) {
-    throw new Error("PRODUCTION_PREVIOUS_SHA_INVALID");
-  }
+
+  const previousEnv = await snapshotRuntimeEnv(client, webServiceId);
+  const previousReleaseSha = resolvePreviousReleaseSha(liveDeploy, previousEnv);
 
   const explicitCredential = String(
     environment.RENDER_GHCR_REGISTRY_CREDENTIAL_ID ?? "",
@@ -588,8 +708,13 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     credentials,
     explicitCredential,
   );
+  const previousSourceSnapshot = previousSource(
+    service,
+    previousReleaseSha,
+    imageRepository,
+    registryCredentialId,
+  );
 
-  const previousEnv = await snapshotRuntimeEnv(client, webServiceId);
   const state = {
     contract: "MORRO-CANONICAL-PRODUCTION-DATABASE-CUTOVER-STATE",
     status: "prepared",
@@ -601,7 +726,7 @@ async function cutover({ environment = process.env, fetchImpl = fetch } = {}) {
     mysqlServiceId,
     previousDeployId: liveDeploy.id,
     previousReleaseSha,
-    previousSource: previousSource(service, previousReleaseSha),
+    previousSource: previousSourceSnapshot,
     previousEnv,
     previousCommerceRuntimeCredentials:
       summarizeCommerceRuntimeEnvironment(previousEnv),
