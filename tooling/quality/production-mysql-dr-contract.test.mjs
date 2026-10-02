@@ -282,6 +282,12 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1",
     "github-actions-production-mysql-dr-key-v1",
     "DR_WORKER_SERVICE_NAME",
+    "AUTH_DATABASE_URL:morro_auth",
+    "COMMERCE_DATABASE_URL:morro_commerce",
+    'expected_user="${database}_runtime"',
+    '"mysql://${expected_user}:"*"@${MYSQL_SERVICE_NAME}:3306/${database}") ;;',
+    "Application canonical database binding invalid in $key",
+    "Application canonical database binding missing in $key",
     '.serviceDetails.runtime == "image"',
     '.autoDeploy == "no"',
     "ghcr\\\\.io/luizanunciostoca/morro-digital-v2@sha256:[0-9a-f]{64}",
@@ -318,6 +324,7 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
 
   assert.doesNotMatch(source, /DR_UPLOAD_TOKEN|GITHUB_TOKEN.*envVars/u);
   assert.doesNotMatch(source, /MYSQL_ROOT_PASSWORD/u);
+  assert.doesNotMatch(source, /Application cutover detected/u);
   assert.doesNotMatch(source, /app_start_command/u);
   assert.doesNotMatch(
     source,

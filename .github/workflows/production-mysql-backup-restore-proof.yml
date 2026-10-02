@@ -227,20 +227,46 @@ jobs:
              ((.imagePath // "") | test("^ghcr\\.io/luizanunciostoca/morro-digital-v2@sha256:[0-9a-f]{64}$"))' \
             /tmp/app-service.json >/dev/null
 
-          for key in             AUTH_DATABASE_URL             CONTROL_CENTER_AUDIT_DATABASE_URL             DESTINATIONS_DATABASE_URL             CONTENT_DATABASE_URL             BUSINESS_DATABASE_URL             ORDERING_DATABASE_URL             FINANCIAL_DATABASE_URL             TICKETING_DATABASE_URL             NOTIFICATIONS_DATABASE_URL             AFFILIATES_DATABASE_URL             ANALYTICS_DATABASE_URL             CRM_DATABASE_URL             COMMERCE_DATABASE_URL
+          for spec in \
+            AUTH_DATABASE_URL:morro_auth \
+            CONTROL_CENTER_AUDIT_DATABASE_URL:morro_audit \
+            DESTINATIONS_DATABASE_URL:morro_destinations \
+            CONTENT_DATABASE_URL:morro_content \
+            BUSINESS_DATABASE_URL:morro_business \
+            ORDERING_DATABASE_URL:morro_ordering \
+            FINANCIAL_DATABASE_URL:morro_financial \
+            TICKETING_DATABASE_URL:morro_ticketing \
+            NOTIFICATIONS_DATABASE_URL:morro_notifications \
+            AFFILIATES_DATABASE_URL:morro_affiliates \
+            ANALYTICS_DATABASE_URL:morro_analytics \
+            CRM_DATABASE_URL:morro_crm \
+            COMMERCE_DATABASE_URL:morro_commerce
           do
-            status="$(curl --silent --show-error               --output /tmp/env-value.json               --write-out '%{http_code}'               --header "$auth"               --header "Accept: application/json"               "$api/services/$app_service_id/env-vars/$key")"
+            key="${spec%%:*}"
+            database="${spec#*:}"
+            expected_user="${database}_runtime"
+            status="$(curl --silent --show-error \
+              --output /tmp/env-value.json \
+              --write-out '%{http_code}' \
+              --header "$auth" \
+              --header "Accept: application/json" \
+              "$api/services/$app_service_id/env-vars/$key")"
             case "$status" in
               200)
                 value="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
+                test -n "$value"
                 case "$value" in
-                  *"$MYSQL_SERVICE_NAME"*)
-                    echo "Application cutover detected in $key" >&2
+                  "mysql://${expected_user}:"*"@${MYSQL_SERVICE_NAME}:3306/${database}") ;;
+                  *)
+                    echo "Application canonical database binding invalid in $key" >&2
                     exit 1
                     ;;
                 esac
                 ;;
-              404) ;;
+              404)
+                echo "Application canonical database binding missing in $key" >&2
+                exit 1
+                ;;
               *)
                 echo "Unexpected Render env lookup HTTP $status for $key" >&2
                 exit 1
