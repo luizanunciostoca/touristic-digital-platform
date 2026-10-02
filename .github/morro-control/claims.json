@@ -1,23 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-RELEASE-PRODUCTION-DR-RUNTIME-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/production-dr-runtime-image-proof-20261002",
-      "baseSha": "b2c2e5677f6a97c2966720a40bcea1a2da81dab8",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-RELEASE-PRODUCTION-DR-RUNTIME-001.json",
-        ".github/workflows/production-mysql-backup-restore-proof.yml",
-        "tooling/quality/production-mysql-dr-contract.test.mjs"
-      ],
-      "domains": ["release-governance", "production-dr"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-02T12:00:00Z"
-    }
-  }
+  "claims": {}
 }
