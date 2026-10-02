@@ -10,6 +10,7 @@
   "owns": {
     "paths": [
       ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
       ".morro/changesets/MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001.json",
       "Dockerfile",
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
