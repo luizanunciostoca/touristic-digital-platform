@@ -2,28 +2,13 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-RELEASE-FINAL-ATTESTATION-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/release-final-attestation-20261002",
-      "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-RELEASE-FINAL-ATTESTATION-001.json",
-        ".github/morro-control/release-state.json"
-      ],
-      "domains": ["release-governance"],
-      "risk": "P1",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-02T15:00:00Z"
-    },
     "MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
-      "baseSha": "e07534d351a33b6b7ec2231d2cde74b95d8808d9",
+      "baseSha": "640f6d5d0309b4557bc4c65884c32af21806e30e",
       "paths": [
+        ".github/morro-control/claims.json",
         ".morro/changesets/MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001.json",
         "Dockerfile",
         "apps/morro-digital-platform/public/tourist-shell-v2.css",
