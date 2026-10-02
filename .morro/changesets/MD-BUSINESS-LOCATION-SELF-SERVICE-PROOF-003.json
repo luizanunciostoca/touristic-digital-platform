@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-BUSINESS-LOCATION-SELF-SERVICE-PROOF-003",
   "objective": "prove-and-document-governed-morro-pro-location-runtime",
-  "baseSha": "d0206931a99ba8971113da4458622a687e758ce8",
-  "branch": "test/business-location-self-service-proof-003-acquire-20261002",
-  "state": "IMPLEMENTING",
+  "baseSha": "3703b2798d0cc5ac515c1ab501ac7d19a3a98ef9",
+  "branch": "test/business-location-self-service-proof-003-impl-20261002",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
