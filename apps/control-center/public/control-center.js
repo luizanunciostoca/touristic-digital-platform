@@ -503,7 +503,16 @@ async function renderUsers(userId) {
   const data = await api(
     userId ? `/users/${encodeURIComponent(userId)}` : "/users",
   );
-  const users = userId ? [data.user] : data.users;
+  const users = userId ? [data.user] : (data.users ?? []);
+
+  if (!userId && users.length === 0) {
+    content.innerHTML = `
+      <section class="card empty-surface" data-empty-state="empty">
+        <h2>Nenhum usuário encontrado</h2>
+        <p>Ainda não há pessoas para exibir nesta lista. Novos acessos aparecem aqui quando forem cadastrados.</p>
+      </section>`;
+    return;
+  }
 
   const userTable = `
     <div class="table-wrap" tabindex="0">
@@ -616,12 +625,12 @@ async function renderUsers(userId) {
       <div class="callout">
         ${
           bootstrapProtected
-            ? "Este PLATFORM_OWNER bootstrap é protegido contra bloqueio ou rebaixamento."
+            ? "Esta conta principal tem proteção contra bloqueio ou redução de acesso."
             : supportActive
               ? "Ações críticas de usuário ficam bloqueadas durante Support Mode."
               : selfTarget
-                ? "Autoproteção ativa: o actor não pode bloquear ou alterar o próprio perfil."
-                : "Bloqueio e alteração de perfil revogam sessões ativas e exigem step-up, motivo e confirmação textual."
+                ? "Proteção ativa: você não pode bloquear ou reduzir o acesso da própria conta."
+                : "Bloquear ou alterar um perfil encerra sessões ativas e exige confirmação de senha, motivo e confirmação textual."
         }
       </div>
       <div class="grid two-col">
@@ -686,13 +695,13 @@ async function renderUsers(userId) {
       <div class="callout">
         ${
           supportActive
-            ? "Revogação de sessão não é oferecida pela Entity 360 durante Support Mode; o contexto delegado nunca substitui o actor real."
+            ? "Durante o atendimento assistido, a revogação de sessão fica indisponível para proteger a conta original."
             : "Revogar uma sessão é uma ação de alto risco. Confirme sua senha, informe o motivo e digite REVOGAR."
         }
       </div>
       <form id="session-revoke-form" class="form-grid">
         <label>
-          Sua senha para step-up
+          Confirme sua senha
           <input
             id="session-step-up-password"
             type="password"
@@ -1372,7 +1381,7 @@ async function renderBusinessesLegacy(businessId) {
       </div>
     </section>`;
     const commercialContent = `<section class="card section-card">
-      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">read-only composition</span></div>
+      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">Somente consulta composition</span></div>
       <div class="module-list">
         <div class="module-row"><span>Ofertas owner-backed</span>${
           productsResult.available
@@ -1477,6 +1486,14 @@ async function renderAffiliates(affiliateId) {
   if (!affiliateId) {
     const response = await api("/affiliates?limit=100");
     const affiliates = response.data ?? [];
+    if (affiliates.length === 0) {
+      content.innerHTML = `
+        <section class="card empty-surface" data-empty-state="empty">
+          <h2>Nenhum afiliado encontrado</h2>
+          <p>Ainda não há afiliados cadastrados. Quando houver participantes ativos, comissões e conversões aparecerão nesta área.</p>
+        </section>`;
+      return;
+    }
     content.innerHTML = `
       <section class="card section-card">
         <div class="section-title">
@@ -1484,8 +1501,8 @@ async function renderAffiliates(affiliateId) {
           <span class="badge">${affiliates.length} registro(s)</span>
         </div>
         <p style="color:var(--muted)">
-          Leitura pelo domínio Affiliates. Comissões e materializações são somente leitura;
-          payout e settlement permanecem autoridade exclusiva de Financial.
+          Acompanhe afiliados, comissões e conversões. Pagamentos e repasses
+          continuam sendo administrados pelo Financeiro.
         </p>
         <form id="affiliate-search-form" class="form-grid">
           <label>
@@ -1497,7 +1514,7 @@ async function renderAffiliates(affiliateId) {
         <div class="table-wrap" tabindex="0" style="margin-top:16px">
           <table>
             <thead>
-              <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Memberships</th><th>Conversões</th></tr>
+              <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Participações</th><th>Conversões</th></tr>
             </thead>
             <tbody id="affiliate-list-body">
               ${
@@ -1627,12 +1644,12 @@ async function renderAffiliates(affiliateId) {
     <div class="grid two-col">
       <section class="card section-card">
         <div class="section-title">
-          <h2>Memberships</h2>
+          <h2>Participações</h2>
           <span class="badge">${memberships.length}</span>
         </div>
         <div class="table-wrap" tabindex="0">
           <table>
-            <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Financial onboarding</th></tr></thead>
+            <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Recebimento</th></tr></thead>
             <tbody>
               ${
                 memberships
@@ -1656,7 +1673,7 @@ async function renderAffiliates(affiliateId) {
       <section class="card section-card">
         <div class="section-title">
           <h2>Comissões</h2>
-          <span class="badge">read-only</span>
+          <span class="badge">Somente consulta</span>
         </div>
         <div class="module-list">
           ${
@@ -1672,7 +1689,7 @@ async function renderAffiliates(affiliateId) {
           }
         </div>
         <div class="callout" style="margin-top:14px">
-          Payout authority: <strong>${escapeHtml(detail.payoutAuthority?.owner ?? "Financial")}</strong>.
+          Responsável pelos repasses: <strong>${escapeHtml(detail.payoutAuthority?.owner ?? "Financial")}</strong>.
           O Control Center não cria saldo, wallet, settlement ou payout.
         </div>
       </section>
@@ -1709,7 +1726,7 @@ async function renderAffiliates(affiliateId) {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <h2>Suspensão / reativação</h2>
-        <span class="badge gap">step-up obrigatório</span>
+        <span class="badge gap">Confirmação necessária</span>
       </div>
       ${
         supportActive
@@ -1946,7 +1963,7 @@ async function renderCrm(leadId) {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>CRM owner orchestration:</strong>
+      <strong>Operação de relacionamento:</strong>
       o Control Center usa apenas os contratos canônicos do CRM; nenhuma tabela,
       regra de pipeline ou autoridade de persistência foi duplicada.
     </div>
@@ -1957,7 +1974,7 @@ async function renderCrm(leadId) {
           <section class="card section-card" style="margin-bottom:16px">
             <div class="section-title">
               <h2>Novo lead</h2>
-              <span class="badge">crm.manage</span>
+              <span class="badge">Edição autorizada</span>
             </div>
             <form id="crm-create-form" class="form-grid">
               ${fieldMarkup()}
@@ -2165,7 +2182,7 @@ async function renderProducts(productId) {
 
     content.innerHTML = `
       <div class="callout">
-        Produtos, ofertas e inventário são governados pelo owner Ticketing.
+        Produtos, ofertas e disponibilidade são mantidos pelo sistema de ingressos.
         Criação é idempotente e desativação é uma transição explícita; não existe
         edição arbitrária de preço/capacidade nesta superfície.
       </div>
@@ -2174,7 +2191,7 @@ async function renderProducts(productId) {
           ? `<section class="card section-card" style="margin-bottom:16px">
               <div class="section-title">
                 <h2>Nova oferta</h2>
-                <span class="badge gap">step-up obrigatório</span>
+                <span class="badge gap">Confirmação necessária</span>
               </div>
               <form id="product-create-form" class="form-grid">
                 <label>Empresa
@@ -2291,7 +2308,7 @@ async function renderProducts(productId) {
             }),
           });
           const requestKey = `cc_offer_${crypto.randomUUID().replaceAll("-", "_")}`;
-          result.textContent = "Criando oferta pelo owner Ticketing…";
+          result.textContent = "Criando oferta…";
           const created = await api("/products/offers", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2348,7 +2365,7 @@ async function renderProducts(productId) {
     </div>
     <div class="grid two-col">
       <section class="card section-card">
-        <div class="section-title"><h2>Relações</h2><span class="badge">Ticketing owner</span></div>
+        <div class="section-title"><h2>Relações</h2><span class="badge">Ingressos e check-in</span></div>
         <div class="module-list">
           <div class="module-row"><span>Empresa</span><strong>${escapeHtml(projection.businessId ?? "—")}</strong></div>
           <div class="module-row"><span>Destino</span><strong>${escapeHtml(offer.destinationId)}</strong></div>
@@ -2373,7 +2390,7 @@ async function renderProducts(productId) {
     ${
       offer.enabled
         ? `<section class="card section-card" style="margin-top:16px">
-            <div class="section-title"><h2>Desativar oferta</h2><span class="badge gap">step-up obrigatório</span></div>
+            <div class="section-title"><h2>Desativar oferta</h2><span class="badge gap">Confirmação necessária</span></div>
             <form id="product-disable-form" class="form-grid">
               <label>Sua senha
                 <input name="password" type="password" autocomplete="current-password" ${canDisable ? "" : "disabled"} required />
@@ -2414,7 +2431,7 @@ async function renderProducts(productId) {
             password: String(values.get("password") || ""),
           }),
         });
-        result.textContent = "Desativando oferta pelo owner Ticketing…";
+        result.textContent = "Desativando oferta…";
         await api(`/products/${encodeURIComponent(productId)}/disable`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2437,9 +2454,18 @@ async function renderReservations(reservationId) {
   if (!reservationId) {
     const data = await api("/reservations?limit=100");
     const reservations = Array.isArray(data.data) ? data.data : [];
+    if (reservations.length === 0) {
+      content.innerHTML = `
+        <section class="card empty-surface" data-empty-state="empty">
+          <h2>Nenhuma reserva encontrada</h2>
+          <p>As reservas aparecerão aqui assim que clientes concluírem uma solicitação.</p>
+          <div><a class="secondary-button" href="#ticketing">Ver ingressos e disponibilidade</a></div>
+        </section>`;
+      return;
+    }
     content.innerHTML = `
       <div class="callout">
-        Reservas são lidas do owner Ticketing com relações de inventário, empresa,
+        As reservas mostram disponibilidade, empresa,
         pedido e pagamento. Estados confirmados só podem ser revertidos pelo fluxo financeiro autorizado.
       </div>
       <div class="table-wrap" tabindex="0">
@@ -2495,7 +2521,7 @@ async function renderReservations(reservationId) {
         </div>
       </section>
       <section class="card section-card">
-        <div class="section-title"><h2>Histórico</h2><span class="badge">append-only owner events</span></div>
+        <div class="section-title"><h2>Histórico</h2><span class="badge">Histórico protegido</span></div>
         <div class="module-list">
           ${
             events
@@ -2509,7 +2535,7 @@ async function renderReservations(reservationId) {
       </section>
     </div>
     <div class="callout" style="margin-top:16px">
-      Cancelamento de reserva confirmada não é uma mudança manual de status: exige o fluxo Financial/refund e a propagação owner já existente.
+      Cancelamento de reserva confirmada não é uma mudança manual de status: exige o processo autorizado de estorno financeiro.
       Reservas em <strong>held</strong> podem ser canceladas aqui somente pelo comando owner governado.
     </div>
     ${
@@ -2517,13 +2543,13 @@ async function renderReservations(reservationId) {
         ? `<section class="card section-card" style="margin-top:16px">
             <div class="section-title">
               <h2>Cancelar hold</h2>
-              <span class="badge gap">step-up obrigatório</span>
+              <span class="badge gap">Confirmação necessária</span>
             </div>
             <div class="callout">
               ${
                 supportActive
                   ? "Ação crítica bloqueada durante Support Mode."
-                  : "O owner Ticketing revalida o estado de forma transacional antes de liberar o hold."
+                  : "O sistema confirma o estado atual antes de liberar a reserva."
               }
             </div>
             <form id="reservation-cancel-form" class="form-grid">
@@ -2570,7 +2596,7 @@ async function renderReservations(reservationId) {
             password: String(values.get("password") || ""),
           }),
         });
-        result.textContent = "Cancelando hold pelo owner Ticketing…";
+        result.textContent = "Cancelando reserva pendente…";
         await api(`/reservations/${encodeURIComponent(reservationId)}/cancel`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2599,7 +2625,7 @@ async function renderTicketing() {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>Ticketing owner:</strong>
+      <strong>Ingressos e check-in:</strong>
       validação/check-in e credenciais offline permanecem no domínio Ticketing.
       Produtos/ofertas e reservas globais usam as superfícies administrativas dedicadas.
     </div>
@@ -2608,10 +2634,10 @@ async function renderTicketing() {
       <section class="card section-card">
         <div class="section-title">
           <h2>Validar check-in</h2>
-          <span class="badge gap">step-up obrigatório</span>
+          <span class="badge gap">Confirmação necessária</span>
         </div>
         <form id="ticketing-checkin-form" class="form-grid">
-          <label>QR payload
+          <label>Código do ingresso (QR)
             <textarea name="qrPayload" ${canManage ? "" : "disabled"} required></textarea>
           </label>
           <label>Sua senha
@@ -2633,7 +2659,7 @@ async function renderTicketing() {
       <section class="card section-card">
         <div class="section-title">
           <h2>Provisionar dispositivo offline</h2>
-          <span class="badge gap">step-up obrigatório</span>
+          <span class="badge gap">Confirmação necessária</span>
         </div>
         <form id="ticketing-device-provision-form" class="form-grid">
           <label>Device ID
@@ -2669,7 +2695,7 @@ async function renderTicketing() {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <h2>Revogar dispositivo offline</h2>
-        <span class="badge gap">step-up obrigatório</span>
+        <span class="badge gap">Confirmação necessária</span>
       </div>
       <form id="ticketing-device-revoke-form" class="form-grid">
         <label>Device ID
@@ -2879,7 +2905,7 @@ async function renderOrders(orderId) {
       <section class="card section-card">
         <div class="section-title">
           <h2>Consultar pedido</h2>
-          <span class="badge">read-only</span>
+          <span class="badge">Somente consulta</span>
         </div>
         <p style="color:var(--muted)">
           A consulta usa o repositório owner do domínio Ordering. O Control Center
@@ -2943,11 +2969,11 @@ async function renderFinancial(paymentId) {
         <section class="card section-card">
           <div class="section-title">
             <h2>Consultar pagamento</h2>
-            <span class="badge">Financial owner</span>
+            <span class="badge">Financeiro</span>
           </div>
           <form id="payment-lookup-form" class="form-grid">
             <label>
-              Payment ID
+              Identificador do pagamento
               <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
             </label>
             <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
@@ -2956,11 +2982,11 @@ async function renderFinancial(paymentId) {
         <section class="card section-card">
           <div class="section-title">
             <h2>Consultar ledger</h2>
-            <span class="badge">read-only</span>
+            <span class="badge">Somente consulta</span>
           </div>
           <form id="ledger-lookup-form" class="form-grid">
             <label>
-              External key
+              Referência do lançamento
               <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
             </label>
             <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
@@ -2998,7 +3024,7 @@ async function renderFinancial(paymentId) {
           result.innerHTML = `
             <div class="module-list">
               <div class="module-row"><span>Transaction ID</span><strong>${escapeHtml(ledger.id)}</strong></div>
-              <div class="module-row"><span>External key</span><span>${escapeHtml(ledger.externalKey)}</span></div>
+              <div class="module-row"><span>Referência do lançamento</span><span>${escapeHtml(ledger.externalKey)}</span></div>
               <div class="module-row"><span>Ocorrido em</span><span>${escapeHtml(ledger.occurredAt)}</span></div>
               <div class="module-row"><span>Postings</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
             </div>`;
@@ -3021,9 +3047,9 @@ async function renderFinancial(paymentId) {
   content.innerHTML = `
     <div class="grid stats">
       <article class="card stat">
-        <span class="stat-label">Payment ID</span>
+        <span class="stat-label">Identificador do pagamento</span>
         <strong class="stat-value" style="font-size:16px">${escapeHtml(payment.id)}</strong>
-        <small>Financial source of truth</small>
+        <small>Registro financeiro</small>
       </article>
       <article class="card stat">
         <span class="stat-label">Status</span>
@@ -3045,7 +3071,7 @@ async function renderFinancial(paymentId) {
     <div class="grid two-col">
       <section class="card section-card">
         <div class="section-title">
-          <h2>Reconciliation findings</h2>
+          <h2>Pendências de conciliação</h2>
           <span class="badge">${findings.length} aberta(s)</span>
         </div>
         <div class="table-wrap" tabindex="0">
@@ -3075,7 +3101,7 @@ async function renderFinancial(paymentId) {
       <section class="card section-card">
         <div class="section-title">
           <h2>Ações críticas</h2>
-          <span class="badge gap">step-up obrigatório</span>
+          <span class="badge gap">Confirmação necessária</span>
         </div>
         <div class="callout">
           Produção está bloqueada por código. Em staging/dev, cada ação exige reautenticação,
@@ -3294,7 +3320,7 @@ async function renderContent(contentId) {
                   <p id="content-create-status" role="status" style="margin:0;color:var(--muted)"></p>
                   <div><button class="primary-button" type="submit">Criar rascunho</button></div>
                 </form>`
-              : `<div class="callout">Seu papel pode consultar conteúdo, mas não possui a capability <strong>content.manage</strong>.</div>`
+              : `<div class="callout">Seu acesso atual permite consultar conteúdo, mas não editar.</div>`
           }
         </section>
       </div>`;
@@ -3381,7 +3407,7 @@ async function renderContent(contentId) {
 
     <div class="grid two-col">
       <section class="card section-card">
-        <div class="section-title"><h2>Campos editoriais</h2><span class="badge">Content owner</span></div>
+        <div class="section-title"><h2>Campos editoriais</h2><span class="badge">Conteúdo</span></div>
         <div class="module-list">${fieldRows || '<div class="empty">Sem campos.</div>'}</div>
       </section>
 
@@ -3417,7 +3443,7 @@ async function renderContent(contentId) {
             </section>
 
             <section class="card section-card">
-              <div class="section-title"><h2>Alterar estado</h2><span class="badge">lifecycle owner</span></div>
+              <div class="section-title"><h2>Alterar estado</h2><span class="badge">Publicação</span></div>
               <form id="content-transition-form" class="form-grid">
                 <label>Novo estado
                   <select id="content-transition-status" required>
@@ -3439,7 +3465,7 @@ async function renderContent(contentId) {
               </form>
             </section>
           </div>`
-        : `<div class="callout" style="margin-top:16px">Modo somente leitura: este actor não possui <strong>content.manage</strong>.</div>`
+        : `<div class="callout" style="margin-top:16px">Seu acesso atual permite consultar este conteúdo, mas não editar.</div>`
     }
 
     <div style="margin-top:16px"><a href="#content">← Voltar para Conteúdo</a></div>`;
