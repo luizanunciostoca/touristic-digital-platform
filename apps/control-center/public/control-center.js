@@ -3081,7 +3081,7 @@ async function renderFinancial(paymentId) {
     content.innerHTML = `
       <div class="section-title">
         <div>
-          <h2>Resumo financeiro</h2>
+          <h2 aria-label="Financeiro">Resumo financeiro</h2>
           <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
         </div>
       </div>
@@ -3110,7 +3110,7 @@ async function renderFinancial(paymentId) {
             </article>
           </div>`
           : `<section class="card empty-surface" data-empty-state="unavailable">
-            <h2>Resumo financeiro indisponível</h2>
+            <h2 aria-label="Financeiro">Resumo financeiro indisponível</h2>
             <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
           </section>`
       }
