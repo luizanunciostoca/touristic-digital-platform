@@ -3781,7 +3781,9 @@ async function renderContent(contentId) {
   const mediaDocuments = (libraryPayload?.data ?? []).filter(
     (document) => document.kind === "media",
   );
-  const mediaDocumentIds = new Set(mediaDocuments.map((document) => document.id));
+  const mediaDocumentIds = new Set(
+    mediaDocuments.map((document) => document.id),
+  );
   const reviseMediaOptions = [
     ...(currentMediaReference && !mediaDocumentIds.has(currentMediaReference)
       ? [
