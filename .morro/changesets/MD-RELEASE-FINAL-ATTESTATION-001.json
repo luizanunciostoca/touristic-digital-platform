@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-FINAL-ATTESTATION-001",
+  "baseSha": "17124cd82bada7398e7f6eeebef84debcf7d3be2",
+  "branch": "chore/release-final-attestation-claim-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-FINAL-ATTESTATION-001.json",
+      ".github/morro-control/release-state.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": ["RELEASE_CERTIFIED", "STAGING_ACCEPTED", "PRODUCTION_ACCEPTED"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "stopAt": "REMOTE_PROVEN",
+  "scope": "PLATFORM",
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 240
+    },
+    "commands": [
+      {
+        "id": "claim-acquisition-gate",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "objective": "record-final-release-attestation-17124cd82bada7398e7f6eeebef84debcf7d3be2"
+}
