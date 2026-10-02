@@ -3,7 +3,7 @@
   "id": "MD-UX-BUSINESS-CONTROL-REMEDIATION-001",
   "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
   "branch": "fix/ux-business-control-remediation-585-20261002",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "high",
   "owns": {
     "paths": [
@@ -41,8 +41,12 @@
     ]
   },
   "produces": {
-    "events": ["UX_REMEDIATION_PROVEN"],
-    "routes": ["GET /api/admin/v1/financial/summary"]
+    "events": [
+      "UX_REMEDIATION_PROVEN"
+    ],
+    "routes": [
+      "GET /api/admin/v1/financial/summary"
+    ]
   },
   "database": {
     "tables": []
@@ -50,7 +54,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-UX-TOURIST-REMEDIATION-001"],
+  "dependencies": [
+    "MD-UX-TOURIST-REMEDIATION-001"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
