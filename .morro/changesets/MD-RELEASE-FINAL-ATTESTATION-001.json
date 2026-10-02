@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-FINAL-ATTESTATION-001",
-  "baseSha": "17124cd82bada7398e7f6eeebef84debcf7d3be2",
-  "branch": "chore/release-final-attestation-claim-20261002",
-  "state": "IMPLEMENTING",
+  "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
+  "branch": "chore/release-final-attestation-20261002",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [
