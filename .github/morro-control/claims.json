@@ -25,12 +25,9 @@
         "apps/morro-digital-platform/tooling/payments-runtime-api.test.mjs",
         "tooling/ux/business-control-center-remediation.test.mjs"
       ],
-      "domains": [
-        "business-ux",
-        "control-center-ux"
-      ],
+      "domains": ["business-ux", "control-center-ux"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T12:00:00Z"
     }
   }
