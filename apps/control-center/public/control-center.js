@@ -504,6 +504,17 @@ async function renderUsers(userId) {
     userId ? `/users/${encodeURIComponent(userId)}` : "/users",
   );
   const users = userId ? [data.user] : (data.users ?? []);
+  const roleLabel = (role) =>
+    ({
+      PLATFORM_OWNER: "Responsável principal",
+      PLATFORM_ADMIN: "Administrador",
+      SUPPORT: "Atendimento",
+      AUDITOR: "Auditoria",
+      BUSINESS_OWNER: "Responsável pelo negócio",
+      BUSINESS_MANAGER: "Gestor do negócio",
+      BUSINESS_VIEWER: "Consulta do negócio",
+      AFFILIATE: "Afiliado",
+    })[role] ?? "Perfil personalizado";
 
   if (!userId && users.length === 0) {
     content.innerHTML = `
@@ -521,10 +532,10 @@ async function renderUsers(userId) {
           <tr>
             <th>Usuário</th>
             <th>Estado</th>
-            <th>Papel efetivo</th>
-            <th>Role configurado</th>
+            <th>Perfil</th>
+            <th>Perfil configurado</th>
             <th>Empresas</th>
-            <th>Capabilities</th>
+            <th>Permissões</th>
           </tr>
         </thead>
         <tbody>
@@ -539,12 +550,10 @@ async function renderUsers(userId) {
                   }</strong><br><small>${escapeHtml(user.id)}</small></td>
                   <td>${statusBadge(user.status ?? "active")}</td>
                   <td>
-                    <span class="badge">${escapeHtml(user.canonicalRole)}</span>
-                    <br><small>${escapeHtml(user.role)}</small>
+                    <span class="badge">${escapeHtml(roleLabel(user.canonicalRole))}</span>
                   </td>
                   <td>
-                    ${escapeHtml(user.configuredCanonicalRole ?? user.canonicalRole)}
-                    <br><small>${escapeHtml(user.configuredRole ?? user.role)}</small>
+                    ${escapeHtml(roleLabel(user.configuredCanonicalRole ?? user.canonicalRole))}
                   </td>
                   <td>${
                     (user.businessIds ?? [])
@@ -2964,39 +2973,123 @@ async function renderOrders(orderId) {
 
 async function renderFinancial(paymentId) {
   if (!paymentId) {
+    const periodEnd = new Date();
+    const periodStart = new Date(periodEnd.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const from = periodStart.toISOString();
+    const to = periodEnd.toISOString();
+    const summaryResult = await api(
+      `/financial/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    ).catch((error) => ({ data: null, error }));
+    const summary = summaryResult.data ?? null;
+    const paymentRows = summary?.payments ?? [];
+    const reconciliationRows = summary?.reconciliation ?? [];
+    const confirmedRows = paymentRows.filter((row) => row.status === "confirmed");
+    const pendingRows = paymentRows.filter((row) => row.status === "pending");
+    const totalCount = paymentRows.reduce((total, row) => total + Number(row.count || 0), 0);
+    const confirmedCount = confirmedRows.reduce(
+      (total, row) => total + Number(row.count || 0),
+      0,
+    );
+    const pendingCount = pendingRows.reduce(
+      (total, row) => total + Number(row.count || 0),
+      0,
+    );
+    const openFindingCount = reconciliationRows
+      .filter((row) => row.state !== "resolved")
+      .reduce((total, row) => total + Number(row.count || 0), 0);
+    const formatSummaryAmounts = (rows) => {
+      const byCurrency = new Map();
+      for (const row of rows) {
+        const currency = String(row.currency || "BRL");
+        byCurrency.set(
+          currency,
+          (byCurrency.get(currency) ?? 0) + Number(row.amountMinor || 0),
+        );
+      }
+      return (
+        [...byCurrency.entries()]
+          .map(([currency, minorUnits]) =>
+            formatMinorUnits({ currency, minorUnits }),
+          )
+          .join(" · ") || "—"
+      );
+    };
+    const periodLabel = summary
+      ? `${new Date(summary.period.from).toLocaleDateString("pt-BR")} a ${new Date(
+          summary.period.to,
+        ).toLocaleDateString("pt-BR")}`
+      : "Últimos 30 dias";
+
     content.innerHTML = `
-      <div class="grid two-col">
-        <section class="card section-card">
-          <div class="section-title">
-            <h2>Consultar pagamento</h2>
-            <span class="badge">Financeiro</span>
-          </div>
-          <form id="payment-lookup-form" class="form-grid">
-            <label>
-              Identificador do pagamento
-              <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
-            </label>
-            <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
-          </form>
-        </section>
-        <section class="card section-card">
-          <div class="section-title">
-            <h2>Consultar ledger</h2>
-            <span class="badge">Somente consulta</span>
-          </div>
-          <form id="ledger-lookup-form" class="form-grid">
-            <label>
-              Referência do lançamento
-              <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
-            </label>
-            <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
-          </form>
-          <div id="ledger-result" style="margin-top:14px"></div>
-        </section>
+      <div class="section-title">
+        <div>
+          <h2>Resumo financeiro</h2>
+          <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
+        </div>
       </div>
-      <div class="callout" style="margin-top:16px">
-        Nenhuma tela do Control Center permite editar saldo, posting ou estado financeiro arbitrariamente.
-      </div>`;
+      ${summary
+        ? `<div class="grid stats">
+            <article class="card stat">
+              <span class="stat-label">Movimentações</span>
+              <strong class="stat-value">${escapeHtml(totalCount)}</strong>
+              <small>registros no período</small>
+            </article>
+            <article class="card stat">
+              <span class="stat-label">Confirmados</span>
+              <strong class="stat-value">${escapeHtml(confirmedCount)}</strong>
+              <small>${escapeHtml(formatSummaryAmounts(confirmedRows))}</small>
+            </article>
+            <article class="card stat">
+              <span class="stat-label">Pendentes</span>
+              <strong class="stat-value">${escapeHtml(pendingCount)}</strong>
+              <small>${escapeHtml(formatSummaryAmounts(pendingRows))}</small>
+            </article>
+            <article class="card stat">
+              <span class="stat-label">Conciliação</span>
+              <strong class="stat-value">${escapeHtml(openFindingCount)}</strong>
+              <small>pendência(s) aberta(s)</small>
+            </article>
+          </div>`
+        : `<section class="card empty-surface" data-empty-state="unavailable">
+            <h2>Resumo financeiro indisponível</h2>
+            <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
+          </section>`}
+
+      <details class="technical-details">
+        <summary>Consultas avançadas</summary>
+        <div class="grid two-col" style="margin-top:14px">
+          <section class="card section-card">
+            <div class="section-title">
+              <h2>Consultar pagamento</h2>
+              <span class="badge">Financeiro</span>
+            </div>
+            <form id="payment-lookup-form" class="form-grid">
+              <label>
+                Identificador do pagamento
+                <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
+              </label>
+              <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
+            </form>
+          </section>
+          <section class="card section-card">
+            <div class="section-title">
+              <h2>Consultar lançamento</h2>
+              <span class="badge">Somente consulta</span>
+            </div>
+            <form id="ledger-lookup-form" class="form-grid">
+              <label>
+                Referência do lançamento
+                <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
+              </label>
+              <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
+            </form>
+            <div id="ledger-result" style="margin-top:14px"></div>
+          </section>
+        </div>
+        <div class="callout" style="margin-top:16px">
+          Consultas avançadas não permitem alterar saldo ou estado financeiro diretamente.
+        </div>
+      </details>`;
 
     document
       .querySelector("#payment-lookup-form")
@@ -3023,10 +3116,10 @@ async function renderFinancial(paymentId) {
           const ledger = response.data;
           result.innerHTML = `
             <div class="module-list">
-              <div class="module-row"><span>Transaction ID</span><strong>${escapeHtml(ledger.id)}</strong></div>
+              <div class="module-row"><span>ID da transação</span><strong>${escapeHtml(ledger.id)}</strong></div>
               <div class="module-row"><span>Referência do lançamento</span><span>${escapeHtml(ledger.externalKey)}</span></div>
               <div class="module-row"><span>Ocorrido em</span><span>${escapeHtml(ledger.occurredAt)}</span></div>
-              <div class="module-row"><span>Postings</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
+              <div class="module-row"><span>Lançamentos</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
             </div>`;
         } catch (error) {
           result.textContent = error.body?.error || error.message;
