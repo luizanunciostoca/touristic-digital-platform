@@ -77,6 +77,26 @@ function fixture() {
       tenantId: id === "rcf_admin_00000001" ? "business-admin-0001" : null,
       paymentId: id === "rcf_admin_00000001" ? "pay_admin_0001" : null,
     })),
+    adminFinancialSummary: vi.fn(async ({ from, to }) => ({
+      status: from && to ? "found" : "invalid",
+      data:
+        from && to
+          ? {
+              period: { from, to },
+              payments: [
+                {
+                  status: "confirmed",
+                  currency: "BRL",
+                  count: 2,
+                  amountMinor: 12500,
+                },
+              ],
+              reconciliation: [
+                { state: "open", severity: "warning", count: 1 },
+              ],
+            }
+          : null,
+    })),
     adminFindLedger: vi.fn(async (key) => ({
       status: key === "payment_approved_pay_admin_0001" ? "found" : "not_found",
       data:
@@ -369,6 +389,31 @@ describe("Control Center Financial owner adapter", () => {
     });
     expect(ledgerResponse.statusCode).toBe(200);
     expect(JSON.parse(ledgerResponse.payload).data.id).toBe("ltx_admin_0001");
+
+    const summaryResponse = responseCapture();
+    await adapter.handle({
+      request: request(),
+      response: summaryResponse,
+      requestUrl: new URL(
+        "http://localhost/api/admin/v1/financial/summary?from=2026-09-01T00:00:00.000Z&to=2026-10-01T00:00:00.000Z",
+      ),
+    });
+    expect(summaryResponse.statusCode).toBe(200);
+    expect(JSON.parse(summaryResponse.payload).data).toMatchObject({
+      payments: [
+        {
+          status: "confirmed",
+          currency: "BRL",
+          count: 2,
+          amountMinor: 12500,
+        },
+      ],
+      reconciliation: [{ state: "open", severity: "warning", count: 1 }],
+    });
+    expect(paymentsApi.adminFinancialSummary).toHaveBeenCalledWith({
+      from: "2026-09-01T00:00:00.000Z",
+      to: "2026-10-01T00:00:00.000Z",
+    });
   });
 
   it("delegates reconciliation reads to the canonical Payments route", async () => {

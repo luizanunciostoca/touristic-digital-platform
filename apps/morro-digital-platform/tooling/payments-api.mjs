@@ -998,6 +998,95 @@ export function createAuditedCheckoutProvider(provider, audit = () => {}) {
   });
 }
 
+const financialAdminSummaryMaxWindowMs = 93 * 24 * 60 * 60 * 1000;
+
+function normalizeFinancialAdminSummaryRange(input = {}) {
+  const from = new Date(String(input.from ?? ""));
+  const to = new Date(String(input.to ?? ""));
+  if (
+    Number.isNaN(from.getTime()) ||
+    Number.isNaN(to.getTime()) ||
+    from.getTime() >= to.getTime() ||
+    to.getTime() - from.getTime() > financialAdminSummaryMaxWindowMs
+  ) {
+    return null;
+  }
+  return Object.freeze({
+    from: from.toISOString(),
+    to: to.toISOString(),
+  });
+}
+
+function safeAggregateNumber(value, code) {
+  const normalized = Number(value);
+  if (!Number.isSafeInteger(normalized) || normalized < 0) {
+    throw new Error(code);
+  }
+  return normalized;
+}
+
+function createFinancialAdminSummaryReader(pool) {
+  return Object.freeze({
+    async read(rangeInput) {
+      const range = normalizeFinancialAdminSummaryRange(rangeInput);
+      if (!range) throw new Error("FINANCIAL_INVALID_ADMIN_SUMMARY_RANGE");
+      const params = [new Date(range.from), new Date(range.to)];
+      const [paymentRows] = await pool.execute(
+        `SELECT status,
+                currency,
+                COUNT(*) AS payment_count,
+                COALESCE(SUM(amount_minor), 0) AS amount_minor
+         FROM financial_payments
+         WHERE created_at >= ? AND created_at < ?
+         GROUP BY status, currency
+         ORDER BY status, currency`,
+        params,
+      );
+      const [reconciliationRows] = await pool.execute(
+        `SELECT state,
+                severity,
+                COUNT(*) AS finding_count
+         FROM financial_reconciliation_findings
+         WHERE last_seen_at >= ? AND last_seen_at < ?
+         GROUP BY state, severity
+         ORDER BY state, severity`,
+        params,
+      );
+      return Object.freeze({
+        period: range,
+        payments: Object.freeze(
+          paymentRows.map((row) =>
+            Object.freeze({
+              status: String(row.status),
+              currency: String(row.currency),
+              count: safeAggregateNumber(
+                row.payment_count,
+                "FINANCIAL_ADMIN_SUMMARY_COUNT_UNSAFE",
+              ),
+              amountMinor: safeAggregateNumber(
+                row.amount_minor,
+                "FINANCIAL_ADMIN_SUMMARY_AMOUNT_UNSAFE",
+              ),
+            }),
+          ),
+        ),
+        reconciliation: Object.freeze(
+          reconciliationRows.map((row) =>
+            Object.freeze({
+              state: String(row.state),
+              severity: String(row.severity),
+              count: safeAggregateNumber(
+                row.finding_count,
+                "FINANCIAL_ADMIN_SUMMARY_FINDING_COUNT_UNSAFE",
+              ),
+            }),
+          ),
+        ),
+      });
+    },
+  });
+}
+
 export function createPaymentsApi({
   authApi,
   getEnvironmentValue = (key) => process.env[key] ?? "",
@@ -1310,6 +1399,7 @@ export function createPaymentsApi({
           ledger,
           checkoutAccess,
           reconciliation: reconciliationRepository,
+          summary: createFinancialAdminSummaryReader(financialPool),
         }),
         pools,
       });
@@ -1456,6 +1546,23 @@ export function createPaymentsApi({
     }
   }
 
+  async function adminFinancialSummary(input) {
+    const range = normalizeFinancialAdminSummaryRange(input);
+    if (!range) {
+      return Object.freeze({ status: "invalid", data: null });
+    }
+    const reader = runtime?.adminRead?.summary;
+    if (!reader || typeof reader.read !== "function") {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+    try {
+      const data = await reader.read(range);
+      return Object.freeze({ status: "found", data });
+    } catch {
+      return Object.freeze({ status: "unavailable", data: null });
+    }
+  }
+
   async function adminFindLedger(externalKeyInput) {
     const externalKey =
       typeof externalKeyInput === "string" ? externalKeyInput.trim() : "";
@@ -1500,6 +1607,7 @@ export function createPaymentsApi({
     adminFindPayment,
     adminResolvePaymentTenant,
     adminResolveFindingTenant,
+    adminFinancialSummary,
     adminFindLedger,
     async handle(request, response, requestUrl) {
       const correlationId =

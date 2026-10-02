@@ -273,6 +273,24 @@ describe("M139/M141 payments API runtime boundary", () => {
             );
           },
         },
+        summary: {
+          read(range) {
+            return Promise.resolve({
+              period: range,
+              payments: [
+                {
+                  status: "confirmed",
+                  currency: "BRL",
+                  count: 2,
+                  amountMinor: 12500,
+                },
+              ],
+              reconciliation: [
+                { state: "open", severity: "warning", count: 1 },
+              ],
+            });
+          },
+        },
         ledger: {
           findByExternalKey(key) {
             if (key === "bad key") {
@@ -344,6 +362,31 @@ describe("M139/M141 payments API runtime boundary", () => {
       tenantId: null,
       paymentId: null,
     });
+
+    await expect(
+      api.adminFinancialSummary({
+        from: "2026-09-01T00:00:00.000Z",
+        to: "2026-10-01T00:00:00.000Z",
+      }),
+    ).resolves.toMatchObject({
+      status: "found",
+      data: {
+        payments: [
+          {
+            status: "confirmed",
+            currency: "BRL",
+            count: 2,
+            amountMinor: 12500,
+          },
+        ],
+      },
+    });
+    await expect(
+      api.adminFinancialSummary({
+        from: "2026-10-01T00:00:00.000Z",
+        to: "2026-09-01T00:00:00.000Z",
+      }),
+    ).resolves.toEqual({ status: "invalid", data: null });
 
     await expect(
       api.adminFindLedger("payment_approved_pay_admin_0001"),

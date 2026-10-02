@@ -143,10 +143,11 @@
             </div>
             <div
               class="live-indicator"
-              title="Indicador preservado da baseline; dados live ainda não migrados"
+              data-state="unavailable"
+              title="A atualização de visitantes não está disponível no momento."
             >
-              <span class="live-dot"></span>
-              <span>Visitantes ao vivo: indisponível</span>
+              <span class="live-dot" aria-hidden="true"></span>
+              <span>Visitantes ao vivo indisponíveis</span>
             </div>
           </header>
 
@@ -154,13 +155,10 @@
             <div class="insight-banner">
               <div>
                 <span class="eyebrow">Insight do dia</span>
-                <h2>
-                  Seu perfil empresarial já está conectado ao novo boundary
-                  protegido.
-                </h2>
+                <h2>Seu perfil está conectado ao Morro Digital.</h2>
                 <p>
-                  Analytics, previsão e métricas serão ativados somente quando
-                  seus endpoints V2 forem migrados.
+                  Continue cuidando do perfil e das ofertas. Indicadores que ainda
+                  não têm dados aparecem claramente como indisponíveis.
                 </p>
               </div>
               <button class="button" type="button" data-dashboard-view="offers">
@@ -171,28 +169,28 @@
             <div class="metric-grid">
               <article class="metric-card">
                 <span>Alcance total</span><strong>—</strong
-                ><small>Endpoint ainda não migrado</small>
+                ><small>Dados ainda indisponíveis</small>
               </article>
               <article class="metric-card">
                 <span>Rotas ativas</span><strong>—</strong
-                ><small>Endpoint ainda não migrado</small>
+                ><small>Dados ainda indisponíveis</small>
               </article>
               <article class="metric-card">
                 <span>Recomendações IA</span><strong>—</strong
-                ><small>Endpoint ainda não migrado</small>
+                ><small>Dados ainda indisponíveis</small>
               </article>
               <article class="metric-card">
                 <span>Conversões</span><strong>—</strong
-                ><small>Endpoint ainda não migrado</small>
+                ><small>Dados ainda indisponíveis</small>
               </article>
             </div>
 
             <div class="content-grid">
               <article class="panel-card">
-                <h3>Perfil protegido</h3>
+                <h3>Resumo do perfil</h3>
                 <p>
-                  Dados abaixo são carregados do recurso Business autenticado
-                  entregue em M50/M51.
+                  Confira como as principais informações do seu negócio estão
+                  cadastradas.
                 </p>
                 <dl class="profile-summary">
                   <div>
@@ -212,8 +210,8 @@
               <article class="panel-card unavailable-panel">
                 <h3>Performance e previsão</h3>
                 <p>
-                  Dados analíticos indisponíveis até a migração dos endpoints V1
-                  correspondentes.
+                  Os indicadores de desempenho ainda não estão disponíveis para
+                  este negócio.
                 </p>
               </article>
             </div>
@@ -222,31 +220,28 @@
           <section class="view" data-view-panel="performance">
             <div class="empty-state">
               <h2>Performance</h2>
-              <p>Endpoint analítico ainda não migrado para V2.</p>
+              <p>Os dados de performance ainda não estão disponíveis.</p>
             </div>
           </section>
           <section class="view" data-view-panel="audience">
             <div class="empty-state">
               <h2>Audiência</h2>
-              <p>Dados de audiência ainda não migrados para V2.</p>
+              <p>Os dados de audiência ainda não estão disponíveis.</p>
             </div>
           </section>
           <section class="view" data-view-panel="offers">
             <div class="empty-state">
               <h2>Ofertas</h2>
               <p>
-                Execução de ofertas permanece fora deste milestone até o
-                contrato correspondente ser migrado.
+                Você ainda não tem ofertas disponíveis nesta área. Use “Criar
+                oferta” quando a função estiver habilitada para o negócio.
               </p>
             </div>
           </section>
           <section class="view" data-view-panel="promotions">
             <div class="empty-state">
               <h2>Promoções</h2>
-              <p>
-                Promoções são preservadas como domínio, mas a superfície
-                completa ainda será migrada.
-              </p>
+              <p>Promoções ainda não estão disponíveis para este negócio.</p>
             </div>
           </section>
 
