@@ -55,6 +55,22 @@ const STEPS = Object.freeze([
     ]),
   }),
   Object.freeze({
+    name: "legacy-commercial-review-transition-apply",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
+      "--apply",
+    ]),
+  }),
+  Object.freeze({
+    name: "legacy-commercial-review-transition-verify",
+    command: process.execPath,
+    args: Object.freeze([
+      "apps/morro-digital-platform/tooling/legacy-commercial-review-transition.mjs",
+      "--verify",
+    ]),
+  }),
+  Object.freeze({
     name: "legacy-commercial-cutover-audit-pre-batch",
     command: process.execPath,
     args: Object.freeze([
