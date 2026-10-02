@@ -59,6 +59,51 @@ function workflowRunBlock(stepName) {
   );
 }
 
+const bindingStepName =
+  "Prove source identity, canonical bindings, and provision isolated DR worker";
+
+function workflowFunction(stepName, functionName) {
+  const block = workflowRunBlock(stepName);
+  const match = new RegExp(
+    `${functionName}\\(\\) \\{[\\s\\S]*?\\n\\}`,
+    "u",
+  ).exec(block);
+  assert.ok(match, `missing workflow function: ${functionName}`);
+  return match[0];
+}
+
+function runBindingValidator({ key, database, status, value }) {
+  const functionSource = workflowFunction(
+    bindingStepName,
+    "validate_application_binding",
+  );
+  return spawnSync("bash", [], {
+    input:
+      "set -euo pipefail\n" +
+      'MYSQL_SERVICE_NAME="morro-digital-v2-production-mysql"\n' +
+      functionSource +
+      '\nvalidate_application_binding "$KEY" "$DATABASE" "$STATUS" "$VALUE"\n',
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      PATH: process.env.PATH ?? "",
+      KEY: key,
+      DATABASE: database,
+      STATUS: status,
+      VALUE: value,
+    },
+  });
+}
+
+function applicationBindingMappings() {
+  const block = workflowRunBlock(bindingStepName);
+  return [
+    ...block.matchAll(
+      /^[ \t]+([A-Z][A-Z0-9_]*_DATABASE_URL):(morro_[a-z0-9_]+)[ \t]*\\?[ \t]*$/gmu,
+    ),
+  ].map((match) => [match[1], match[2]]);
+}
+
 test("DR canonical manifest exactly matches production bootstrap authority", () => {
   const actual = manifestRows();
   const authority = readFileSync(authorityPath, "utf8");
@@ -257,7 +302,7 @@ test("DR worker image uses pinned and remediated MySQL runtime inputs", () => {
 
 test("modified DR workflow run blocks are syntactically valid", () => {
   for (const stepName of [
-    "Prove source identity, no cutover, and provision isolated DR worker",
+    "Prove source identity, canonical bindings, and provision isolated DR worker",
     "Execute isolated logical backup and restore drill",
     "Cleanup isolated DR resources",
   ]) {
@@ -266,6 +311,101 @@ test("modified DR workflow run blocks are syntactically valid", () => {
       encoding: "utf8",
     });
     assert.equal(syntax.status, 0, `${stepName}: ${syntax.stderr}`);
+  }
+});
+
+test("DR application binding proof covers all canonical bindings and failure branches", () => {
+  const expectedMappings = [
+    ["AUTH_DATABASE_URL", "morro_auth"],
+    ["CONTROL_CENTER_AUDIT_DATABASE_URL", "morro_audit"],
+    ["DESTINATIONS_DATABASE_URL", "morro_destinations"],
+    ["CONTENT_DATABASE_URL", "morro_content"],
+    ["BUSINESS_DATABASE_URL", "morro_business"],
+    ["ORDERING_DATABASE_URL", "morro_ordering"],
+    ["FINANCIAL_DATABASE_URL", "morro_financial"],
+    ["TICKETING_DATABASE_URL", "morro_ticketing"],
+    ["NOTIFICATIONS_DATABASE_URL", "morro_notifications"],
+    ["AFFILIATES_DATABASE_URL", "morro_affiliates"],
+    ["ANALYTICS_DATABASE_URL", "morro_analytics"],
+    ["CRM_DATABASE_URL", "morro_crm"],
+    ["COMMERCE_DATABASE_URL", "morro_commerce"],
+  ];
+  assert.deepEqual(applicationBindingMappings(), expectedMappings);
+
+  for (const [key, database] of expectedMappings) {
+    const valid = runBindingValidator({
+      key,
+      database,
+      status: "200",
+      value: `mysql://${database}_runtime:p%40ssword@morro-digital-v2-production-mysql:3306/${database}`,
+    });
+    assert.equal(valid.status, 0, `${key}: ${valid.stderr}`);
+  }
+
+  const invalidCases = [
+    {
+      label: "empty password",
+      status: "200",
+      value:
+        "mysql://morro_auth_runtime:@morro-digital-v2-production-mysql:3306/morro_auth",
+      message: "binding invalid",
+    },
+    {
+      label: "wrong user",
+      status: "200",
+      value:
+        "mysql://wrong_runtime:secret@morro-digital-v2-production-mysql:3306/morro_auth",
+      message: "binding invalid",
+    },
+    {
+      label: "wrong host",
+      status: "200",
+      value: "mysql://morro_auth_runtime:secret@legacy-db:3306/morro_auth",
+      message: "binding invalid",
+    },
+    {
+      label: "wrong port",
+      status: "200",
+      value:
+        "mysql://morro_auth_runtime:secret@morro-digital-v2-production-mysql:3307/morro_auth",
+      message: "binding invalid",
+    },
+    {
+      label: "wrong schema",
+      status: "200",
+      value:
+        "mysql://morro_auth_runtime:secret@morro-digital-v2-production-mysql:3306/morro_business",
+      message: "binding invalid",
+    },
+    {
+      label: "malformed URL",
+      status: "200",
+      value: "not-a-mysql-url",
+      message: "binding invalid",
+    },
+    {
+      label: "missing binding",
+      status: "404",
+      value: "",
+      message: "binding missing",
+    },
+    {
+      label: "unexpected Render response",
+      status: "500",
+      value: "",
+      message: "Unexpected Render env lookup HTTP 500",
+    },
+  ];
+
+  for (const item of invalidCases) {
+    const result = runBindingValidator({
+      key: "AUTH_DATABASE_URL",
+      database: "morro_auth",
+      status: item.status,
+      value: item.value,
+    });
+    assert.notEqual(result.status, 0, item.label);
+    assert.match(result.stderr, new RegExp(item.message, "u"), item.label);
   }
 });
 
@@ -284,8 +424,10 @@ test("DR workflow never delegates GitHub credentials or deletes the source servi
     "DR_WORKER_SERVICE_NAME",
     "AUTH_DATABASE_URL:morro_auth",
     "COMMERCE_DATABASE_URL:morro_commerce",
-    'expected_user="${database}_runtime"',
-    '"mysql://${expected_user}:"*"@${MYSQL_SERVICE_NAME}:3306/${database}") ;;',
+    "DATABASE_BINDING_SCHEMA",
+    "DATABASE_BINDING_URL",
+    "buildDatabaseUrl",
+    "decodeURIComponent(parsed.password)",
     "Application canonical database binding invalid in $key",
     "Application canonical database binding missing in $key",
     '.serviceDetails.runtime == "image"',

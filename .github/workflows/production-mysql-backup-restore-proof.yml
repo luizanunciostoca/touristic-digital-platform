@@ -104,7 +104,7 @@ jobs:
           test -n "$PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1"
           test "${#PRODUCTION_MYSQL_DR_ENCRYPTION_KEY_V1}" -ge 32
 
-      - name: Prove source identity, no cutover, and provision isolated DR worker
+      - name: Prove source identity, canonical bindings, and provision isolated DR worker
         id: provision
         env:
           TOOL_SHA: ${{ steps.identity.outputs.tool_sha }}
@@ -227,6 +227,35 @@ jobs:
              ((.imagePath // "") | test("^ghcr\\.io/luizanunciostoca/morro-digital-v2@sha256:[0-9a-f]{64}$"))' \
             /tmp/app-service.json >/dev/null
 
+          validate_application_binding() {
+            local key="$1"
+            local database="$2"
+            local status="$3"
+            local value="$4"
+
+            case "$status" in
+              200)
+                if [ -z "$value" ]; then
+                  echo "Application canonical database binding invalid in $key" >&2
+                  return 1
+                fi
+                if ! DATABASE_BINDING_SCHEMA="$database" DATABASE_BINDING_URL="$value" \
+                  node --input-type=module -e 'import { buildDatabaseUrl } from "./tooling/render/production-canonical-db-cutover.mjs"; const database=process.env.DATABASE_BINDING_SCHEMA ?? ""; const value=process.env.DATABASE_BINDING_URL ?? ""; const host="morro-digital-v2-production-mysql"; const expectedUser=`${database}_runtime`; let parsed; let password; try { parsed=new URL(value); password=decodeURIComponent(parsed.password); } catch { process.exit(1); } if (parsed.protocol !== "mysql:" || parsed.hostname !== host || parsed.port !== "3306" || parsed.username !== expectedUser || parsed.pathname !== `/${database}` || parsed.search !== "" || parsed.hash !== "" || !password) process.exit(1); let canonical; try { canonical=buildDatabaseUrl({host, port:3306, database, user:expectedUser, password}); } catch { process.exit(1); } if (canonical !== parsed.toString()) process.exit(1);'; then
+                  echo "Application canonical database binding invalid in $key" >&2
+                  return 1
+                fi
+                ;;
+              404)
+                echo "Application canonical database binding missing in $key" >&2
+                return 1
+                ;;
+              *)
+                echo "Unexpected Render env lookup HTTP $status for $key" >&2
+                return 1
+                ;;
+            esac
+          }
+
           for spec in \
             AUTH_DATABASE_URL:morro_auth \
             CONTROL_CENTER_AUDIT_DATABASE_URL:morro_audit \
@@ -244,34 +273,17 @@ jobs:
           do
             key="${spec%%:*}"
             database="${spec#*:}"
-            expected_user="${database}_runtime"
             status="$(curl --silent --show-error \
               --output /tmp/env-value.json \
               --write-out '%{http_code}' \
               --header "$auth" \
               --header "Accept: application/json" \
               "$api/services/$app_service_id/env-vars/$key")"
-            case "$status" in
-              200)
-                value="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
-                test -n "$value"
-                case "$value" in
-                  "mysql://${expected_user}:"*"@${MYSQL_SERVICE_NAME}:3306/${database}") ;;
-                  *)
-                    echo "Application canonical database binding invalid in $key" >&2
-                    exit 1
-                    ;;
-                esac
-                ;;
-              404)
-                echo "Application canonical database binding missing in $key" >&2
-                exit 1
-                ;;
-              *)
-                echo "Unexpected Render env lookup HTTP $status for $key" >&2
-                exit 1
-                ;;
-            esac
+            value=""
+            if [ "$status" = "200" ]; then
+              value="$(jq -r '.value // .envVar.value // empty' /tmp/env-value.json)"
+            fi
+            validate_application_binding "$key" "$database" "$status" "$value"
           done
 
           jq -n             --arg tool "$TOOL_SHA"             --arg source "$SOURCE_SHA"             --arg host "$MYSQL_SERVICE_NAME"             --arg worker "$dr_service_name"             '[
