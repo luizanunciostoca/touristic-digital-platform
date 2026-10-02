@@ -3111,7 +3111,7 @@ async function renderFinancial(paymentId) {
             </article>
           </div>`
           : `<section class="card empty-surface" data-empty-state="unavailable">
-            <h2 aria-label="Financeiro">Resumo financeiro indisponível</h2>
+            <h2>Resumo financeiro indisponível</h2>
             <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
           </section>`
       }
