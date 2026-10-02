@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-RUNTIME-PARITY-TICKETING-003",
+  "objective": "restore-staging-production-runtime-parity-enable-ticketing-persistence-publish-canonical-place-data-and-promote-one-immutable-image",
+  "baseSha": "ea1ae4cfba718ab2abbb623fea81829fbf298d01",
+  "branch": "chore/runtime-parity-ticketing-claim-v3-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-TICKETING-003.json",
+      "render.staging.yaml",
+      "render.yaml",
+      "tooling/render/with-staging-mysql-env.mjs",
+      "tooling/render/reconcile-staging-mysql-domains.mjs",
+      "tooling/render/mysql-staging/01-init-databases.sh",
+      "tooling/render/mysql-staging/backup-restore-drill.sh",
+      "tooling/render/mysql-staging/backup-restore-drill.contract.mjs",
+      "tooling/render/with-staging-mysql-env.test.mjs",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/check-render-production-mysql-blueprint.mjs",
+      "tooling/quality/render-production-mysql-blueprint.test.mjs",
+      "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs",
+      "tooling/render/production-runtime-data-predeploy.test.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-runtime-guard.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-place-backfill.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-media-backfill.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-description-backfill.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-cutover-audit.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": [
+      "platform-authz"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof",
+    "production-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 5,
+      "maxSeconds": 1200
+    },
+    "commands": [
+      {
+        "id": "staging-ticketing-domain-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/with-staging-mysql-env.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      },
+      {
+        "id": "staging-blueprint-proof",
+        "argv": [
+          "node",
+          "tooling/quality/check-render-staging-blueprint.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "production-blueprint-proof",
+        "argv": [
+          "node",
+          "tooling/quality/check-render-production-mysql-blueprint.mjs"
+        ],
+        "timeoutSeconds": 180
+      },
+      {
+        "id": "production-data-predeploy-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/production-runtime-data-predeploy.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "release-target-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "staging-runtime-proof",
+      "production-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
