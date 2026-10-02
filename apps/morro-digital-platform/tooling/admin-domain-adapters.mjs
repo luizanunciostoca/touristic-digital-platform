@@ -1096,6 +1096,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
     !paymentsApi?.adminFindPayment ||
     !paymentsApi?.adminResolvePaymentTenant ||
     !paymentsApi?.adminResolveFindingTenant ||
+    !paymentsApi?.adminFinancialSummary ||
     !paymentsApi?.adminFindLedger
   ) {
     throw new Error("FINANCIAL_ADMIN_OWNER_BOUNDARY_REQUIRED");
@@ -1140,6 +1141,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
     coverage: Object.freeze([
       "orders-by-id",
       "payments-by-id",
+      "financial-summary",
       "ledger-by-external-key",
       "reconciliation-findings",
       "reconciliation-run",
@@ -1176,7 +1178,7 @@ export function createFinancialAdminAdapter(paymentsApi) {
       return Object.freeze(results);
     },
 
-    async handle({ request, response, requestUrl }) {
+    async handle({ request, response, requestUrl, effectiveUser }) {
       const orderMatch = /^\/api\/admin\/v1\/orders\/([A-Za-z0-9_-]+)$/u.exec(
         requestUrl.pathname,
       );
@@ -1198,6 +1200,27 @@ export function createFinancialAdminAdapter(paymentsApi) {
           response,
           await paymentsApi.adminFindPayment(paymentMatch[1]),
           "PAYMENT_NOT_FOUND",
+        );
+        return;
+      }
+
+      if (
+        request.method === "GET" &&
+        requestUrl.pathname === `${adminPrefix}/financial/summary`
+      ) {
+        if (effectiveUser) {
+          sendJson(response, 403, {
+            error: "FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE",
+          });
+          return;
+        }
+        await ownerRead(
+          response,
+          await paymentsApi.adminFinancialSummary({
+            from: requestUrl.searchParams.get("from"),
+            to: requestUrl.searchParams.get("to"),
+          }),
+          "FINANCIAL_SUMMARY_NOT_FOUND",
         );
         return;
       }

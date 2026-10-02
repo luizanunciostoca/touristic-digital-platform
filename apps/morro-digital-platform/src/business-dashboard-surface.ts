@@ -14,6 +14,7 @@ import {
 } from "./business-profile-view.js";
 import {
   createBusinessContextController,
+  morroProModulePolicies,
   morroProModules,
   resolveMorroProModuleAccess,
   type BusinessContextController,
@@ -74,27 +75,25 @@ function setText(document: Document, id: string, value: string): void {
 
 const moduleDescriptions: Readonly<Record<MorroProModule, string>> =
   Object.freeze({
-    dashboard: "Visão geral do seu negócio na Morro Digital.",
-    profile:
-      "Edite os dados públicos do negócio usando o Business/Place canônico.",
-    location:
-      "Gerencie a localização conforme a política geográfica e de publicação.",
-    photos:
-      "Gerencie fotos vinculadas ao Place através da autoridade de mídia.",
-    products:
-      "Gerencie produtos vinculados explicitamente ao negócio e aos Places.",
-    offers: "Crie e acompanhe ofertas autorizadas do negócio.",
-    menu: "Gerencie cardápio estruturado quando esta capacidade estiver disponível.",
-    reservations: "Acompanhe reservas quando habilitadas para este Place.",
-    ticketing: "Acesse ticketing e check-in quando habilitados.",
-    financial:
-      "Consulte projeções financeiras autorizadas em modo somente leitura.",
-    content: "Gerencie conteúdo conforme sua role e capabilities.",
-    preview: "Visualize a presença pública antes da publicação governada.",
-    team: "Gerencie o acesso da equipe dentro do escopo deste negócio.",
-    settings:
-      "Ajuste preferências do Morro Pro sem receber capacidades de plataforma.",
+    dashboard: "Visão geral do seu negócio no Morro Digital.",
+    profile: "Edite as informações públicas do seu negócio.",
+    location: "Confira e atualize a localização exibida aos visitantes.",
+    photos: "Organize as fotos que representam seu negócio.",
+    products: "Gerencie os produtos disponíveis para seus clientes.",
+    offers: "Crie e acompanhe ofertas do seu negócio.",
+    menu: "Organize o cardápio quando este recurso estiver disponível.",
+    reservations: "Acompanhe as reservas quando o recurso estiver habilitado.",
+    ticketing: "Acompanhe ingressos e check-in quando disponíveis.",
+    financial: "Consulte o resumo financeiro disponível para sua operação.",
+    content: "Organize o conteúdo publicado para visitantes.",
+    preview: "Veja como seu negócio aparece antes da publicação.",
+    team: "Gerencie quem pode trabalhar neste negócio.",
+    settings: "Ajuste as preferências do seu negócio.",
   });
+
+const moduleLabels = new Map(
+  morroProModulePolicies.map((policy) => [policy.id, policy.label] as const),
+);
 
 function ensureMorroProPanels(document: Document): void {
   const profilePanel = document.querySelector<HTMLElement>(
@@ -111,15 +110,26 @@ function ensureMorroProPanels(document: Document): void {
     section.className = "view";
     section.dataset.viewPanel = moduleId;
     section.innerHTML = `
-      <div class="empty-state">
+      <div class="empty-state" data-empty-state="not-enabled">
+        <span class="eyebrow">Ainda não disponível</span>
         <h2></h2>
         <p></p>
+        <small>Você pode continuar usando os recursos já disponíveis no painel. Para revisar os dados do negócio ou pedir orientação, abra o perfil.</small>
+        <button type="button" class="secondary-button" data-module-help>Abrir perfil e orientações</button>
       </div>
     `;
-    const access = section.querySelector("h2");
+    const heading = section.querySelector("h2");
     const description = section.querySelector("p");
-    if (access) access.textContent = moduleId;
+    if (heading)
+      heading.textContent = moduleLabels.get(moduleId) ?? "Recurso do negócio";
     if (description) description.textContent = moduleDescriptions[moduleId];
+    section
+      .querySelector<HTMLButtonElement>("[data-module-help]")
+      ?.addEventListener("click", () => {
+        document
+          .querySelector<HTMLButtonElement>('[data-dashboard-view="profile"]')
+          ?.click();
+      });
     main.append(section);
   }
 }
@@ -143,7 +153,7 @@ function renderMorroProNavigation(
       "aria-label",
       moduleAccess.mutable
         ? moduleAccess.label
-        : `${moduleAccess.label} — somente leitura`,
+        : `${moduleAccess.label} — consulta`,
     );
     button.addEventListener("click", () => activate(moduleAccess.id));
     nav.append(button);
@@ -1208,7 +1218,7 @@ export async function mountBusinessDashboardSurface(
         .forEach((control) => {
           control.disabled = true;
         });
-      status.textContent = "Seu acesso ao perfil é somente leitura.";
+      status.textContent = "Você pode consultar o perfil, mas não editá-lo.";
     }
     const photoAccess = accessByModule.get("photos");
     mediaSurface.form.dataset.mutable = String(photoAccess?.mutable === true);
@@ -1222,7 +1232,7 @@ export async function mountBusinessDashboardSurface(
         });
       mediaSurface.status.textContent =
         photoAccess?.visible === true
-          ? "Seu acesso a Fotos é somente leitura."
+          ? "Você pode consultar as fotos, mas não editá-las."
           : "";
     }
 
@@ -1255,7 +1265,7 @@ export async function mountBusinessDashboardSurface(
       }
       statusElement.textContent =
         moduleAccess?.visible === true
-          ? "Seu acesso a este módulo é somente leitura."
+          ? "Você pode consultar este recurso, mas não editá-lo."
           : "";
     }
 

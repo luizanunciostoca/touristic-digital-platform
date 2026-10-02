@@ -273,6 +273,8 @@ describe("M139/M141 payments API runtime boundary", () => {
             );
           },
         },
+        // prettier-ignore
+        summary: { read: (range) => Promise.resolve({ period: range, payments: [{ status: "confirmed", currency: "BRL", count: 2, amountMinor: 12500 }], reconciliation: [{ state: "open", severity: "warning", count: 1 }] }) },
         ledger: {
           findByExternalKey(key) {
             if (key === "bad key") {
@@ -345,6 +347,16 @@ describe("M139/M141 payments API runtime boundary", () => {
       paymentId: null,
     });
 
+    const summary = await api.adminFinancialSummary({
+      from: "2026-09-01T00:00:00.000Z",
+      to: "2026-10-01T00:00:00.000Z",
+    });
+    expect(summary).toMatchObject({ status: "found" });
+    // prettier-ignore
+    expect(summary.data.payments[0]).toMatchObject({ status: "confirmed", currency: "BRL", count: 2, amountMinor: 12500 });
+    // prettier-ignore
+    await expect(api.adminFinancialSummary({ from: "2026-10-01T00:00:00.000Z", to: "2026-09-01T00:00:00.000Z" })).resolves.toEqual({ status: "invalid", data: null });
+
     await expect(
       api.adminFindLedger("payment_approved_pay_admin_0001"),
     ).resolves.toMatchObject({
@@ -355,6 +367,29 @@ describe("M139/M141 payments API runtime boundary", () => {
       status: "invalid",
       data: null,
     });
+  });
+
+  it("fails closed when the financial summary owner is unavailable", async () => {
+    const range = {
+      from: "2026-09-01T00:00:00.000Z",
+      to: "2026-10-01T00:00:00.000Z",
+    };
+    const unavailable = { status: "unavailable", data: null };
+    for (const adminRead of [
+      {
+        summary: {
+          read() {
+            throw new Error("FINANCIAL_SUMMARY_OWNER_UNAVAILABLE");
+          },
+        },
+      },
+      {},
+    ]) {
+      const api = createPaymentsApi({ adminRead, audit: () => undefined });
+      await expect(api.adminFinancialSummary(range)).resolves.toEqual(
+        unavailable,
+      );
+    }
   });
 
   it("parses bounded JSON and propagates a server correlation ID", async () => {

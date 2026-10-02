@@ -139,6 +139,10 @@ export function createPaymentsApi(options = {}) {
       return core.adminFindLedger(externalKey);
     },
 
+    adminFinancialSummary(input) {
+      return core.adminFinancialSummary(input);
+    },
+
     async handle(request, response, requestUrl) {
       if (subscription.matches(requestUrl.pathname)) {
         await subscription.handle(request, response, requestUrl);

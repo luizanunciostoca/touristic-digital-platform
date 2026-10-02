@@ -187,8 +187,24 @@ button {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #22c55e;
-  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.12);
+  background: #64748b;
+  box-shadow: 0 0 0 5px rgba(100, 116, 139, 0.12);
+}
+
+.live-indicator[data-state="available"] .live-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.12);
+}
+
+.live-indicator[data-state="partial"] .live-dot {
+  background: #d97706;
+  box-shadow: 0 0 0 5px rgba(217, 119, 6, 0.12);
+}
+
+.live-indicator[data-state="unavailable"] .live-dot,
+.live-indicator[data-state="unknown"] .live-dot {
+  background: #64748b;
+  box-shadow: 0 0 0 5px rgba(100, 116, 139, 0.12);
 }
 
 .view {
@@ -299,6 +315,15 @@ button {
   display: grid;
   align-content: center;
   justify-items: start;
+}
+.empty-state[data-empty-state="unavailable"] {
+  border-style: dashed;
+}
+.empty-state[data-empty-state="not-enabled"] {
+  background: #f8fafc;
+}
+:root[data-theme="dark"] .empty-state[data-empty-state="not-enabled"] {
+  background: #0b1220;
 }
 .empty-state p {
   color: #64748b;

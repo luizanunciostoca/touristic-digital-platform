@@ -5,8 +5,8 @@
     "MD-UX-BUSINESS-CONTROL-REMEDIATION-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/ux-business-control-remediation-claim-v2-20261001",
-      "baseSha": "e1222d0aaffca8f32c2e38f43ccb83f9ba3a9e9a",
+      "branch": "fix/ux-business-control-remediation-585-20261002",
+      "baseSha": "23419b73fbaad0fa3173552d0dbf2d379bb7412b",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -27,7 +27,7 @@
       ],
       "domains": ["business-ux", "control-center-ux"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T12:00:00Z"
     }
   }

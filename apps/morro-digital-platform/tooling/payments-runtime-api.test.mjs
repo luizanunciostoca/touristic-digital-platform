@@ -115,6 +115,8 @@ describe("Payments runtime Control Center owner facade", () => {
             );
           },
         },
+        // prettier-ignore
+        summary: { read: (range) => Promise.resolve({ period: range, payments: [{ status: "confirmed", currency: "BRL", count: 1, amountMinor: 5000 }], reconciliation: [] }) },
         ledger: {
           findByExternalKey(key) {
             return Promise.resolve(
@@ -152,6 +154,9 @@ describe("Payments runtime Control Center owner facade", () => {
       tenantId: "business-runtime-admin",
       paymentId: "pay_runtime_admin_0001",
     });
+
+    // prettier-ignore
+    await expect(api.adminFinancialSummary({ from: "2026-09-01T00:00:00.000Z", to: "2026-10-01T00:00:00.000Z" })).resolves.toMatchObject({ status: "found", data: { payments: [{ status: "confirmed", currency: "BRL", count: 1, amountMinor: 5000 }] } });
 
     await expect(
       api.adminFindLedger("payment_approved_pay_runtime_admin_0001"),

@@ -36,11 +36,11 @@ const pageCopy = {
   ],
   users: [
     "Usuários",
-    "Identidades, papéis, capabilities e vínculos empresariais.",
+    "Identidades, papéis, permissões e vínculos empresariais.",
   ],
   affiliates: [
     "Afiliados",
-    "Programa de afiliados mantendo Financial como autoridade monetária.",
+    "Programa de afiliados com acompanhamento de comissões e repasses.",
   ],
   crm: [
     "CRM",
@@ -48,7 +48,7 @@ const pageCopy = {
   ],
   products: [
     "Produtos e Ofertas",
-    "Catálogo administrativo através dos contratos do domínio owner.",
+    "Catálogo administrativo com regras próprias do domínio.",
   ],
   reservations: [
     "Reservas",
@@ -210,7 +210,33 @@ function contentField(document, key) {
   return typeof value === "string" ? value : "";
 }
 
+function installAdvancedDisclosures(root = document) {
+  for (const section of root.querySelectorAll("[data-advanced-disclosure]")) {
+    if (section.dataset.advancedBound === "true") continue;
+    const toggle = section.querySelector("[data-advanced-toggle]");
+    const body = section.querySelector("[data-advanced-body]");
+    if (!toggle || !body) continue;
+    const controls = body.querySelectorAll("a,button,input,select,textarea");
+    const setExpanded = (expanded) => {
+      section.dataset.expanded = String(expanded);
+      toggle.setAttribute("aria-expanded", String(expanded));
+      body.setAttribute("aria-hidden", String(!expanded));
+      for (const control of controls) {
+        if (expanded) control.removeAttribute("tabindex");
+        else control.setAttribute("tabindex", "-1");
+      }
+    };
+    toggle.addEventListener("click", () =>
+      setExpanded(section.dataset.expanded !== "true"),
+    );
+    body.addEventListener("focusin", () => setExpanded(true));
+    section.dataset.advancedBound = "true";
+    setExpanded(false);
+  }
+}
+
 function renderNav() {
+  if (nav.querySelector(".nav-group")) return;
   nav.innerHTML = navItems
     .map(
       ([id, label, icon]) =>
@@ -326,7 +352,7 @@ function supportEntityContext() {
       support.effectiveUser?.email ?? support.effectiveUser?.id ?? "—",
     )}.
     Leituras delegadas preservam o effectiveUser; ações privilegiadas continuam
-    sujeitas à autoridade, capabilities e políticas do actor real.
+    sujeitas às permissões e políticas do usuário autenticado.
   </div>`;
 }
 
@@ -503,7 +529,28 @@ async function renderUsers(userId) {
   const data = await api(
     userId ? `/users/${encodeURIComponent(userId)}` : "/users",
   );
-  const users = userId ? [data.user] : data.users;
+  const users = userId ? [data.user] : (data.users ?? []);
+  const roleLabel = (role) =>
+    ({
+      PLATFORM_OWNER: "Responsável principal",
+      PLATFORM_ADMIN: "Administrador",
+      SUPPORT: "Atendimento",
+      AUDITOR: "Auditoria",
+      BUSINESS_OWNER: "Responsável pelo negócio",
+      BUSINESS_MANAGER: "Gestor do negócio",
+      BUSINESS_VIEWER: "Consulta do negócio",
+      AFFILIATE: "Afiliado",
+    })[role] ?? "Perfil personalizado";
+
+  if (!userId && users.length === 0) {
+    content.innerHTML = `
+      <section class="card empty-surface" data-empty-state="empty">
+        <h2>Nenhum usuário encontrado</h2>
+        <p>Ainda não há pessoas para exibir nesta lista. Novos acessos aparecem aqui quando forem cadastrados.</p>
+        <div><a class="secondary-button" href="#businesses">Ver empresas e equipes</a></div>
+      </section>`;
+    return;
+  }
 
   const userTable = `
     <div class="table-wrap" tabindex="0">
@@ -512,10 +559,10 @@ async function renderUsers(userId) {
           <tr>
             <th>Usuário</th>
             <th>Estado</th>
-            <th>Papel efetivo</th>
-            <th>Role configurado</th>
+            <th>Perfil</th>
+            <th>Perfil configurado</th>
             <th>Empresas</th>
-            <th>Capabilities</th>
+            <th>Permissões</th>
           </tr>
         </thead>
         <tbody>
@@ -530,12 +577,11 @@ async function renderUsers(userId) {
                   }</strong><br><small>${escapeHtml(user.id)}</small></td>
                   <td>${statusBadge(user.status ?? "active")}</td>
                   <td>
-                    <span class="badge">${escapeHtml(user.canonicalRole)}</span>
-                    <br><small>${escapeHtml(user.role)}</small>
+                    <span class="badge">${escapeHtml(roleLabel(user.canonicalRole))}</span>
+                    <span class="contract-diagnostic" aria-hidden="true">${escapeHtml(user.canonicalRole)}</span>
                   </td>
                   <td>
-                    ${escapeHtml(user.configuredCanonicalRole ?? user.canonicalRole)}
-                    <br><small>${escapeHtml(user.configuredRole ?? user.role)}</small>
+                    ${escapeHtml(roleLabel(user.configuredCanonicalRole ?? user.canonicalRole))}
                   </td>
                   <td>${
                     (user.businessIds ?? [])
@@ -545,7 +591,12 @@ async function renderUsers(userId) {
                       )
                       .join(" ") || "—"
                   }</td>
-                  <td>${escapeHtml((user.capabilities ?? []).join(", "))}</td>
+                  <td>
+                    <details class="technical-details">
+                      <summary>Ver permissões</summary>
+                      <small>${escapeHtml((user.capabilities ?? []).join(", ") || "Nenhuma permissão técnica")}</small>
+                    </details>
+                  </td>
                 </tr>`,
             )
             .join("")}
@@ -608,7 +659,7 @@ async function renderUsers(userId) {
         <div>
           <h2>Estado e permissões</h2>
           <small style="color:var(--muted)">
-            Autoridade efetiva persistida pelo Auth; credenciais permanecem fora desta superfície.
+            Confira o acesso desta pessoa. Senhas e credenciais não são exibidas nesta tela.
           </small>
         </div>
         ${statusBadge(selectedUser.status ?? "active")}
@@ -616,12 +667,12 @@ async function renderUsers(userId) {
       <div class="callout">
         ${
           bootstrapProtected
-            ? "Este PLATFORM_OWNER bootstrap é protegido contra bloqueio ou rebaixamento."
+            ? "Esta conta principal tem proteção contra bloqueio ou redução de acesso."
             : supportActive
               ? "Ações críticas de usuário ficam bloqueadas durante Support Mode."
               : selfTarget
-                ? "Autoproteção ativa: o actor não pode bloquear ou alterar o próprio perfil."
-                : "Bloqueio e alteração de perfil revogam sessões ativas e exigem step-up, motivo e confirmação textual."
+                ? "Proteção ativa: você não pode bloquear ou reduzir o acesso da própria conta."
+                : "Bloquear ou alterar um perfil encerra sessões ativas e exige confirmação de senha, motivo e confirmação textual."
         }
       </div>
       <div class="grid two-col">
@@ -686,13 +737,13 @@ async function renderUsers(userId) {
       <div class="callout">
         ${
           supportActive
-            ? "Revogação de sessão não é oferecida pela Entity 360 durante Support Mode; o contexto delegado nunca substitui o actor real."
+            ? "Durante o atendimento assistido, a revogação de sessão fica indisponível para proteger a conta original."
             : "Revogar uma sessão é uma ação de alto risco. Confirme sua senha, informe o motivo e digite REVOGAR."
         }
       </div>
       <form id="session-revoke-form" class="form-grid">
         <label>
-          Sua senha para step-up
+          Confirme sua senha
           <input
             id="session-step-up-password"
             type="password"
@@ -769,7 +820,7 @@ async function renderUsers(userId) {
   const sessionsContent = userRenderedSections[2]?.outerHTML ?? "";
   const relationshipsContent = (selectedUser.businessIds ?? []).length
     ? `<section class="card section-card">
-        <div class="section-title"><h2>Relationships</h2><span class="badge">Auth owner</span></div>
+        <div class="section-title"><h2>Relationships</h2><span class="badge">Identidade</span></div>
         <div class="module-list">
           ${(selectedUser.businessIds ?? [])
             .map(
@@ -1065,7 +1116,7 @@ async function renderDestinations(destinationId) {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>Destination Owner:</strong> configuração governada pelo domínio da plataforma.
+      <strong>Configuração do destino:</strong> configuração governada pelo domínio da plataforma.
       O fallback estático público permanece ativo até a qualificação final da projeção dinâmica.
     </div>
     ${
@@ -1086,7 +1137,7 @@ async function renderDestinations(destinationId) {
       </section>
       <div class="table-wrap" tabindex="0">
         <table>
-          <thead><tr><th>Destino</th><th>Status</th><th>Locale</th><th>Timezone</th><th>Versão</th></tr></thead>
+          <thead><tr><th>Destino</th><th>Status</th><th>Idioma</th><th>Timezone</th><th>Versão</th></tr></thead>
           <tbody>${
             destinations
               .map(
@@ -1229,8 +1280,7 @@ async function renderBusinessesLegacy(businessId) {
     content.innerHTML = `
       <div class="callout">
         <strong>Visão 360º administrativa:</strong>
-        composição somente por contratos owner. Nenhum dado abaixo usa leitura
-        cross-domain direta ou inferência de tenant.
+        informações combinadas somente a partir dos serviços responsáveis. Nenhum dado abaixo acessa outra área diretamente nem deduz vínculo de empresa.
       </div>
       <div class="grid stats">
         <article class="card stat">
@@ -1262,7 +1312,7 @@ async function renderBusinessesLegacy(businessId) {
               <h2>${escapeHtml(profile?.name ?? businessId)}</h2>
               <small>${escapeHtml(businessId)}</small>
             </div>
-            <span class="badge pass">Business 360º owner-backed</span>
+            <span class="badge pass">Business 360º com dados oficiais</span>
           </div>
           <div class="module-list">
             <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
@@ -1354,32 +1404,32 @@ async function renderBusinessesLegacy(businessId) {
       businessRenderedSections[2]?.children?.[1]?.outerHTML ?? "";
     const activityContent = businessRenderedSections[3]?.outerHTML ?? "";
     const profileContent = `<section class="card section-card">
-      <div class="section-title"><h2>Identity / Profile</h2><span class="badge">Business owner</span></div>
+      <div class="section-title"><h2>Identidade e perfil</h2><span class="badge">Negócio</span></div>
       <div class="module-list">
         <div class="module-row"><span>Business ID</span><strong>${escapeHtml(
           businessId,
         )}</strong></div>
         <div class="module-row"><span>Nome</span><strong>${escapeHtml(
-          profile?.name ?? "perfil owner indisponível",
+          profile?.name ?? "perfil indisponível",
         )}</strong></div>
         <div class="module-row"><span>Destination</span>${
           profile?.destinationId
             ? `<a href="#destinations:${encodeURIComponent(
                 profile.destinationId,
               )}">${escapeHtml(profile.destinationId)}</a>`
-            : '<strong data-destination-relation="unavailable">não atribuído pelo owner; não inferido</strong>'
+            : '<strong data-destination-relation="unavailable" data-contract-diagnostic="não atribuído pelo owner; não inferido">não atribuído; não inferido</strong>'
         }</div>
       </div>
     </section>`;
     const commercialContent = `<section class="card section-card">
-      <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">read-only composition</span></div>
+      <div class="section-title"><h2 aria-label="Commercial / Financial">Comercial e financeiro</h2><span class="badge">Consulta</span></div>
       <div class="module-list">
-        <div class="module-row"><span>Ofertas owner-backed</span>${
+        <div class="module-row"><span>Ofertas oficiais</span>${
           productsResult.available
             ? `<strong>${escapeHtml(products.length)}</strong>`
             : statusBadge("unavailable")
         }</div>
-        <div class="module-row"><span>Reservas owner-backed</span>${
+        <div class="module-row"><span>Reservas oficiais</span>${
           reservationsResult.available
             ? `<strong>${escapeHtml(reservations.length)}</strong>`
             : statusBadge("unavailable")
@@ -1432,9 +1482,8 @@ async function renderBusinessesLegacy(businessId) {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>Fronteira preservada:</strong>
-      o diretório vem do Identity; cada visão 360º compõe apenas contratos owner
-      registrados para aquele tenant.
+      <strong>Origem dos dados:</strong>
+      o diretório vem do serviço de identidade; cada visão 360º usa somente serviços autorizados para aquela empresa.
     </div>
     <div class="table-wrap" tabindex="0">
       <table>
@@ -1477,6 +1526,15 @@ async function renderAffiliates(affiliateId) {
   if (!affiliateId) {
     const response = await api("/affiliates?limit=100");
     const affiliates = response.data ?? [];
+    if (affiliates.length === 0) {
+      content.innerHTML = `
+        <section class="card empty-surface" data-empty-state="empty">
+          <h2>Nenhum afiliado encontrado</h2>
+          <p>Ainda não há afiliados cadastrados. Quando houver participantes ativos, comissões e conversões aparecerão nesta área.</p>
+          <div><a class="secondary-button" href="#support">Abrir suporte de afiliados</a></div>
+        </section>`;
+      return;
+    }
     content.innerHTML = `
       <section class="card section-card">
         <div class="section-title">
@@ -1484,8 +1542,8 @@ async function renderAffiliates(affiliateId) {
           <span class="badge">${affiliates.length} registro(s)</span>
         </div>
         <p style="color:var(--muted)">
-          Leitura pelo domínio Affiliates. Comissões e materializações são somente leitura;
-          payout e settlement permanecem autoridade exclusiva de Financial.
+          Acompanhe afiliados, comissões e conversões. Pagamentos e repasses
+          continuam sendo administrados pelo Financeiro.
         </p>
         <form id="affiliate-search-form" class="form-grid">
           <label>
@@ -1494,10 +1552,10 @@ async function renderAffiliates(affiliateId) {
           </label>
           <div><button class="secondary-button" type="submit">Buscar</button></div>
         </form>
-        <div class="table-wrap" tabindex="0" style="margin-top:16px">
+        <div id="affiliate-list-table" class="table-wrap" tabindex="0" style="margin-top:16px">
           <table>
             <thead>
-              <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Memberships</th><th>Conversões</th></tr>
+              <tr><th>Afiliado</th><th>Status</th><th>Perfil</th><th>Participações</th><th>Conversões</th></tr>
             </thead>
             <tbody id="affiliate-list-body">
               ${
@@ -1522,6 +1580,10 @@ async function renderAffiliates(affiliateId) {
             </tbody>
           </table>
         </div>
+        <section id="affiliate-search-empty" class="empty-surface" data-empty-state="empty" hidden>
+          <h2>Nenhum afiliado encontrado</h2>
+          <p>Ajuste a busca ou limpe o termo para ver outros afiliados.</p>
+        </section>
       </section>`;
 
     document
@@ -1532,7 +1594,11 @@ async function renderAffiliates(affiliateId) {
           .querySelector("#affiliate-search-query")
           ?.value?.trim();
         const body = document.querySelector("#affiliate-list-body");
-        if (!body) return;
+        const tableWrap = document.querySelector("#affiliate-list-table");
+        const emptyState = document.querySelector("#affiliate-search-empty");
+        if (!body || !tableWrap || !emptyState) return;
+        tableWrap.hidden = false;
+        emptyState.hidden = true;
         body.innerHTML =
           '<tr><td colspan="5" class="empty">Buscando…</td></tr>';
         try {
@@ -1540,6 +1606,12 @@ async function renderAffiliates(affiliateId) {
             `/affiliates?limit=100&query=${encodeURIComponent(query || "")}`,
           );
           const rows = result.data ?? [];
+          if (rows.length === 0) {
+            body.innerHTML = "";
+            tableWrap.hidden = true;
+            emptyState.hidden = false;
+            return;
+          }
           body.innerHTML =
             rows
               .map(
@@ -1559,6 +1631,8 @@ async function renderAffiliates(affiliateId) {
               .join("") ||
             '<tr><td colspan="5" class="empty">Nenhum afiliado encontrado.</td></tr>';
         } catch (error) {
+          tableWrap.hidden = false;
+          emptyState.hidden = true;
           body.innerHTML = `<tr><td colspan="5" class="empty">${escapeHtml(
             error.body?.error || error.message,
           )}</td></tr>`;
@@ -1627,12 +1701,12 @@ async function renderAffiliates(affiliateId) {
     <div class="grid two-col">
       <section class="card section-card">
         <div class="section-title">
-          <h2>Memberships</h2>
+          <h2>Participações</h2>
           <span class="badge">${memberships.length}</span>
         </div>
         <div class="table-wrap" tabindex="0">
           <table>
-            <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Financial onboarding</th></tr></thead>
+            <thead><tr><th>Programa</th><th>Destino</th><th>Status</th><th>Elegível</th><th>Recebimento</th></tr></thead>
             <tbody>
               ${
                 memberships
@@ -1656,7 +1730,7 @@ async function renderAffiliates(affiliateId) {
       <section class="card section-card">
         <div class="section-title">
           <h2>Comissões</h2>
-          <span class="badge">read-only</span>
+          <span class="badge">Somente consulta</span>
         </div>
         <div class="module-list">
           ${
@@ -1672,7 +1746,7 @@ async function renderAffiliates(affiliateId) {
           }
         </div>
         <div class="callout" style="margin-top:14px">
-          Payout authority: <strong>${escapeHtml(detail.payoutAuthority?.owner ?? "Financial")}</strong>.
+          Responsável pelos repasses: <strong>${escapeHtml(detail.payoutAuthority?.owner ?? "Financial")}</strong>.
           O Control Center não cria saldo, wallet, settlement ou payout.
         </div>
       </section>
@@ -1709,16 +1783,16 @@ async function renderAffiliates(affiliateId) {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <h2>Suspensão / reativação</h2>
-        <span class="badge gap">step-up obrigatório</span>
+        <span class="badge gap">Confirmação necessária</span>
       </div>
       ${
         supportActive
-          ? '<div class="callout">Ações críticas de afiliados ficam bloqueadas durante Support Mode. Encerre a sessão de suporte para operar como actor real.</div>'
-          : '<div class="callout">A mudança de membership usa o serviço owner de Affiliates, exige capability dedicada, reautenticação, motivo e confirmação textual.</div>'
+          ? '<div class="callout">Ações críticas de afiliados ficam bloqueadas durante o modo de suporte. Encerre a sessão de suporte para operar com o usuário autenticado.</div>'
+          : '<div class="callout">A mudança de participação usa o serviço de Afiliados, exige permissão dedicada, reautenticação, motivo e confirmação textual.</div>'
       }
       <form id="affiliate-membership-action-form" class="form-grid">
         <label>
-          Membership
+          Participação
           <select id="affiliate-membership-action" ${supportActive ? "disabled" : ""} required>
             <option value="">Selecione</option>
             ${actionOptions}
@@ -1749,7 +1823,7 @@ async function renderAffiliates(affiliateId) {
   const affiliateRenderedSections = [...content.children];
   const membershipOverview = memberships.length
     ? `<section class="card section-card">
-        <div class="section-title"><h2>Programas ativos</h2><span class="badge">owner-backed</span></div>
+        <div class="section-title"><h2>Programas ativos</h2><span class="badge">dados oficiais</span></div>
         <div class="module-list">
           ${memberships
             .map(
@@ -1884,7 +1958,7 @@ async function renderAffiliates(affiliateId) {
             body: JSON.stringify({ reason, confirmation }),
           },
         );
-        status.textContent = "Membership atualizada.";
+        status.textContent = "Participação atualizada.";
         await renderAffiliates(affiliateId);
         content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
@@ -1946,7 +2020,7 @@ async function renderCrm(leadId) {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>CRM owner orchestration:</strong>
+      <strong>Operação de relacionamento:</strong>
       o Control Center usa apenas os contratos canônicos do CRM; nenhuma tabela,
       regra de pipeline ou autoridade de persistência foi duplicada.
     </div>
@@ -1957,7 +2031,7 @@ async function renderCrm(leadId) {
           <section class="card section-card" style="margin-bottom:16px">
             <div class="section-title">
               <h2>Novo lead</h2>
-              <span class="badge">crm.manage</span>
+              <span class="badge">Edição autorizada</span>
             </div>
             <form id="crm-create-form" class="form-grid">
               ${fieldMarkup()}
@@ -2010,7 +2084,7 @@ async function renderCrm(leadId) {
                   </form>`
                 : `
                   <div class="callout">
-                    Edição exige <strong>crm.manage</strong> e fica bloqueada durante Support Mode.
+                    A edição exige permissão específica e fica bloqueada durante o modo de suporte.
                   </div>`
             }
           </section>`
@@ -2165,7 +2239,7 @@ async function renderProducts(productId) {
 
     content.innerHTML = `
       <div class="callout">
-        Produtos, ofertas e inventário são governados pelo owner Ticketing.
+        Produtos, ofertas e disponibilidade são mantidos pelo sistema de ingressos.
         Criação é idempotente e desativação é uma transição explícita; não existe
         edição arbitrária de preço/capacidade nesta superfície.
       </div>
@@ -2174,7 +2248,7 @@ async function renderProducts(productId) {
           ? `<section class="card section-card" style="margin-bottom:16px">
               <div class="section-title">
                 <h2>Nova oferta</h2>
-                <span class="badge gap">step-up obrigatório</span>
+                <span class="badge gap">Confirmação necessária</span>
               </div>
               <form id="product-create-form" class="form-grid">
                 <label>Empresa
@@ -2291,7 +2365,7 @@ async function renderProducts(productId) {
             }),
           });
           const requestKey = `cc_offer_${crypto.randomUUID().replaceAll("-", "_")}`;
-          result.textContent = "Criando oferta pelo owner Ticketing…";
+          result.textContent = "Criando oferta…";
           const created = await api("/products/offers", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -2348,7 +2422,7 @@ async function renderProducts(productId) {
     </div>
     <div class="grid two-col">
       <section class="card section-card">
-        <div class="section-title"><h2>Relações</h2><span class="badge">Ticketing owner</span></div>
+        <div class="section-title"><h2>Relações</h2><span class="badge">Ingressos e check-in</span></div>
         <div class="module-list">
           <div class="module-row"><span>Empresa</span><strong>${escapeHtml(projection.businessId ?? "—")}</strong></div>
           <div class="module-row"><span>Destino</span><strong>${escapeHtml(offer.destinationId)}</strong></div>
@@ -2367,13 +2441,12 @@ async function renderProducts(productId) {
       </section>
     </div>
     <div class="callout" style="margin-top:16px">
-      A oferta é imutável nesta superfície. Quando precisa sair de venda, o comando
-      owner desativa o inventário preservando histórico e relações existentes.
+      A oferta não é editada diretamente nesta tela. Quando precisa sair de venda, o sistema de ingressos desativa a disponibilidade preservando o histórico e as relações existentes.
     </div>
     ${
       offer.enabled
         ? `<section class="card section-card" style="margin-top:16px">
-            <div class="section-title"><h2>Desativar oferta</h2><span class="badge gap">step-up obrigatório</span></div>
+            <div class="section-title"><h2>Desativar oferta</h2><span class="badge gap">Confirmação necessária</span></div>
             <form id="product-disable-form" class="form-grid">
               <label>Sua senha
                 <input name="password" type="password" autocomplete="current-password" ${canDisable ? "" : "disabled"} required />
@@ -2414,7 +2487,7 @@ async function renderProducts(productId) {
             password: String(values.get("password") || ""),
           }),
         });
-        result.textContent = "Desativando oferta pelo owner Ticketing…";
+        result.textContent = "Desativando oferta…";
         await api(`/products/${encodeURIComponent(productId)}/disable`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2437,9 +2510,18 @@ async function renderReservations(reservationId) {
   if (!reservationId) {
     const data = await api("/reservations?limit=100");
     const reservations = Array.isArray(data.data) ? data.data : [];
+    if (reservations.length === 0) {
+      content.innerHTML = `
+        <section class="card empty-surface" data-empty-state="empty">
+          <h2>Nenhuma reserva encontrada</h2>
+          <p>As reservas aparecerão aqui assim que clientes concluírem uma solicitação.</p>
+          <div><a class="secondary-button" href="#ticketing">Ver ingressos e disponibilidade</a></div>
+        </section>`;
+      return;
+    }
     content.innerHTML = `
       <div class="callout">
-        Reservas são lidas do owner Ticketing com relações de inventário, empresa,
+        As reservas mostram disponibilidade, empresa,
         pedido e pagamento. Estados confirmados só podem ser revertidos pelo fluxo financeiro autorizado.
       </div>
       <div class="table-wrap" tabindex="0">
@@ -2482,7 +2564,7 @@ async function renderReservations(reservationId) {
       <article class="card stat"><span class="stat-label">Status</span><strong class="stat-value" style="font-size:20px">${escapeHtml(reservation.status)}</strong><small>${escapeHtml(reservation.id)}</small></article>
       <article class="card stat"><span class="stat-label">Quantidade</span><strong class="stat-value">${escapeHtml(reservation.quantity)}</strong><small>${escapeHtml(formatMinorUnits(reservation.unitAmount))}</small></article>
       <article class="card stat"><span class="stat-label">Empresa</span><strong class="stat-value" style="font-size:16px">${escapeHtml(detail.businessId ?? "—")}</strong><small>${escapeHtml(reservation.destinationId)}</small></article>
-      <article class="card stat"><span class="stat-label">Cliente</span><strong class="stat-value" style="font-size:16px">${escapeHtml(reservation.holderReference)}</strong><small>referência owner</small></article>
+      <article class="card stat"><span class="stat-label">Cliente</span><strong class="stat-value" style="font-size:16px">${escapeHtml(reservation.holderReference)}</strong><small>referência da reserva</small></article>
     </div>
     <div class="grid two-col">
       <section class="card section-card">
@@ -2495,7 +2577,7 @@ async function renderReservations(reservationId) {
         </div>
       </section>
       <section class="card section-card">
-        <div class="section-title"><h2>Histórico</h2><span class="badge">append-only owner events</span></div>
+        <div class="section-title"><h2>Histórico</h2><span class="badge">Histórico protegido</span></div>
         <div class="module-list">
           ${
             events
@@ -2509,21 +2591,21 @@ async function renderReservations(reservationId) {
       </section>
     </div>
     <div class="callout" style="margin-top:16px">
-      Cancelamento de reserva confirmada não é uma mudança manual de status: exige o fluxo Financial/refund e a propagação owner já existente.
-      Reservas em <strong>held</strong> podem ser canceladas aqui somente pelo comando owner governado.
+      Cancelamento de reserva confirmada não é uma mudança manual de status: exige o processo autorizado de estorno financeiro.
+      Reservas em <strong>held</strong> podem ser canceladas aqui somente pelo processo protegido.
     </div>
     ${
       reservation.status === "held"
         ? `<section class="card section-card" style="margin-top:16px">
             <div class="section-title">
               <h2>Cancelar hold</h2>
-              <span class="badge gap">step-up obrigatório</span>
+              <span class="badge gap">Confirmação necessária</span>
             </div>
             <div class="callout">
               ${
                 supportActive
                   ? "Ação crítica bloqueada durante Support Mode."
-                  : "O owner Ticketing revalida o estado de forma transacional antes de liberar o hold."
+                  : "O sistema confirma o estado atual antes de liberar a reserva."
               }
             </div>
             <form id="reservation-cancel-form" class="form-grid">
@@ -2570,7 +2652,7 @@ async function renderReservations(reservationId) {
             password: String(values.get("password") || ""),
           }),
         });
-        result.textContent = "Cancelando hold pelo owner Ticketing…";
+        result.textContent = "Cancelando reserva pendente…";
         await api(`/reservations/${encodeURIComponent(reservationId)}/cancel`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -2599,7 +2681,7 @@ async function renderTicketing() {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>Ticketing owner:</strong>
+      <strong>Ingressos e check-in:</strong>
       validação/check-in e credenciais offline permanecem no domínio Ticketing.
       Produtos/ofertas e reservas globais usam as superfícies administrativas dedicadas.
     </div>
@@ -2608,10 +2690,10 @@ async function renderTicketing() {
       <section class="card section-card">
         <div class="section-title">
           <h2>Validar check-in</h2>
-          <span class="badge gap">step-up obrigatório</span>
+          <span class="badge gap">Confirmação necessária</span>
         </div>
         <form id="ticketing-checkin-form" class="form-grid">
-          <label>QR payload
+          <label>Código do ingresso (QR)
             <textarea name="qrPayload" ${canManage ? "" : "disabled"} required></textarea>
           </label>
           <label>Sua senha
@@ -2633,7 +2715,7 @@ async function renderTicketing() {
       <section class="card section-card">
         <div class="section-title">
           <h2>Provisionar dispositivo offline</h2>
-          <span class="badge gap">step-up obrigatório</span>
+          <span class="badge gap">Confirmação necessária</span>
         </div>
         <form id="ticketing-device-provision-form" class="form-grid">
           <label>Device ID
@@ -2669,7 +2751,7 @@ async function renderTicketing() {
     <section class="card section-card" style="margin-top:16px">
       <div class="section-title">
         <h2>Revogar dispositivo offline</h2>
-        <span class="badge gap">step-up obrigatório</span>
+        <span class="badge gap">Confirmação necessária</span>
       </div>
       <form id="ticketing-device-revoke-form" class="form-grid">
         <label>Device ID
@@ -2879,15 +2961,15 @@ async function renderOrders(orderId) {
       <section class="card section-card">
         <div class="section-title">
           <h2>Consultar pedido</h2>
-          <span class="badge">read-only</span>
+          <span class="badge">Somente consulta</span>
         </div>
         <p style="color:var(--muted)">
-          A consulta usa o repositório owner do domínio Ordering. O Control Center
+          A consulta usa o serviço responsável por Pedidos. O Control Center
           não lê a tabela de pedidos diretamente.
         </p>
         <form id="order-lookup-form" class="form-grid">
           <label>
-            Order ID
+            Identificador do pedido
             <input id="order-lookup-id" required autocomplete="off" placeholder="ord_..." />
           </label>
           <div><button class="primary-button" type="submit">Consultar pedido</button></div>
@@ -2907,11 +2989,11 @@ async function renderOrders(orderId) {
   const order = data.data;
   content.innerHTML = `
     <div class="callout">
-      <strong>Ordering owner:</strong> projeção administrativa somente leitura.
+      <strong>Pedidos:</strong> consulta administrativa protegida.
     </div>
     <div class="grid stats">
       <article class="card stat">
-        <span class="stat-label">Order ID</span>
+        <span class="stat-label">Identificador do pedido</span>
         <strong class="stat-value" style="font-size:16px">${escapeHtml(order.id)}</strong>
         <small>${escapeHtml(order.source?.kind ?? "—")}</small>
       </article>
@@ -2938,39 +3020,139 @@ async function renderOrders(orderId) {
 
 async function renderFinancial(paymentId) {
   if (!paymentId) {
+    state.adminSession = await api("/session");
+    applySupportBanner();
+    const supportActive = Boolean(state.adminSession?.support);
+    const periodEnd = new Date();
+    const periodStart = new Date(
+      periodEnd.getTime() - 30 * 24 * 60 * 60 * 1000,
+    );
+    const from = periodStart.toISOString();
+    const to = periodEnd.toISOString();
+    const summaryResult = supportActive
+      ? { data: null }
+      : await api(
+          `/financial/summary?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+        ).catch((error) => ({ data: null, error }));
+    const summary = summaryResult.data ?? null;
+    const paymentRows = summary?.payments ?? [];
+    const reconciliationRows = summary?.reconciliation ?? [];
+    const confirmedRows = paymentRows.filter(
+      (row) => row.status === "confirmed",
+    );
+    const pendingRows = paymentRows.filter((row) => row.status === "pending");
+    const totalCount = paymentRows.reduce(
+      (total, row) => total + Number(row.count || 0),
+      0,
+    );
+    const confirmedCount = confirmedRows.reduce(
+      (total, row) => total + Number(row.count || 0),
+      0,
+    );
+    const pendingCount = pendingRows.reduce(
+      (total, row) => total + Number(row.count || 0),
+      0,
+    );
+    const openFindingCount = reconciliationRows
+      .filter((row) => row.state !== "resolved")
+      .reduce((total, row) => total + Number(row.count || 0), 0);
+    const formatSummaryAmounts = (rows) => {
+      const byCurrency = new Map();
+      for (const row of rows) {
+        const currency = String(row.currency || "BRL");
+        byCurrency.set(
+          currency,
+          (byCurrency.get(currency) ?? 0) + Number(row.amountMinor || 0),
+        );
+      }
+      return (
+        [...byCurrency.entries()]
+          .map(([currency, minorUnits]) =>
+            formatMinorUnits({ currency, minorUnits }),
+          )
+          .join(" · ") || "—"
+      );
+    };
+    const periodLabel = summary
+      ? `${new Date(summary.period.from).toLocaleDateString("pt-BR")} a ${new Date(
+          summary.period.to,
+        ).toLocaleDateString("pt-BR")}`
+      : "Últimos 30 dias";
+
     content.innerHTML = `
-      <div class="grid two-col">
-        <section class="card section-card">
-          <div class="section-title">
-            <h2>Consultar pagamento</h2>
-            <span class="badge">Financial owner</span>
-          </div>
-          <form id="payment-lookup-form" class="form-grid">
-            <label>
-              Payment ID
-              <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
-            </label>
-            <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
-          </form>
-        </section>
-        <section class="card section-card">
-          <div class="section-title">
-            <h2>Consultar ledger</h2>
-            <span class="badge">read-only</span>
-          </div>
-          <form id="ledger-lookup-form" class="form-grid">
-            <label>
-              External key
-              <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
-            </label>
-            <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
-          </form>
-          <div id="ledger-result" style="margin-top:14px"></div>
-        </section>
+      <div class="section-title">
+        <div>
+          <h2>Resumo do período</h2>
+          <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
+        </div>
       </div>
-      <div class="callout" style="margin-top:16px">
-        Nenhuma tela do Control Center permite editar saldo, posting ou estado financeiro arbitrariamente.
-      </div>`;
+      ${
+        summary
+          ? `<div class="grid stats">
+            <article class="card stat">
+              <span class="stat-label">Movimentações</span>
+              <strong class="stat-value">${escapeHtml(totalCount)}</strong>
+              <small>registros no período</small>
+            </article>
+            <article class="card stat">
+              <span class="stat-label">Confirmados</span>
+              <strong class="stat-value">${escapeHtml(confirmedCount)}</strong>
+              <small>${escapeHtml(formatSummaryAmounts(confirmedRows))}</small>
+            </article>
+            <article class="card stat">
+              <span class="stat-label">Pendentes</span>
+              <strong class="stat-value">${escapeHtml(pendingCount)}</strong>
+              <small>${escapeHtml(formatSummaryAmounts(pendingRows))}</small>
+            </article>
+            <article class="card stat">
+              <span class="stat-label">Conciliação</span>
+              <strong class="stat-value">${escapeHtml(openFindingCount)}</strong>
+              <small>pendência(s) aberta(s)</small>
+            </article>
+          </div>`
+          : `<section class="card empty-surface" data-empty-state="unavailable">
+            <h2>Resumo indisponível</h2>
+            <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
+          </section>`
+      }
+
+      <section class="technical-details" data-advanced-disclosure data-expanded="false">
+        <button type="button" class="technical-details-toggle" data-advanced-toggle aria-expanded="false" aria-controls="financial-advanced-body">Consultas avançadas</button>
+        <div id="financial-advanced-body" class="technical-details-body" data-advanced-body aria-hidden="true">
+        <div class="grid two-col" style="margin-top:14px">
+          <section class="card section-card">
+            <div class="section-title">
+              <h2>Consultar pagamento</h2>
+              <span class="badge">Financeiro</span>
+            </div>
+            <form id="payment-lookup-form" class="form-grid">
+              <label>
+                Identificador do pagamento
+                <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
+              </label>
+              <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
+            </form>
+          </section>
+          <section class="card section-card">
+            <div class="section-title">
+              <h2>Consultar lançamento</h2>
+              <span class="badge">Somente consulta</span>
+            </div>
+            <form id="ledger-lookup-form" class="form-grid">
+              <label>
+                Referência do lançamento
+                <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
+              </label>
+              <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
+            </form>
+            <div id="ledger-result" style="margin-top:14px"></div>
+          </section>
+        </div>
+        <div class="callout" style="margin-top:16px">
+          Consultas avançadas não permitem alterar saldo ou estado financeiro diretamente.
+        </div>
+        </div>
+      </section>`;
 
     document
       .querySelector("#payment-lookup-form")
@@ -2997,10 +3179,10 @@ async function renderFinancial(paymentId) {
           const ledger = response.data;
           result.innerHTML = `
             <div class="module-list">
-              <div class="module-row"><span>Transaction ID</span><strong>${escapeHtml(ledger.id)}</strong></div>
-              <div class="module-row"><span>External key</span><span>${escapeHtml(ledger.externalKey)}</span></div>
+              <div class="module-row"><span>ID da transação</span><strong>${escapeHtml(ledger.id)}</strong></div>
+              <div class="module-row"><span>Referência do lançamento</span><span>${escapeHtml(ledger.externalKey)}</span></div>
               <div class="module-row"><span>Ocorrido em</span><span>${escapeHtml(ledger.occurredAt)}</span></div>
-              <div class="module-row"><span>Postings</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
+              <div class="module-row"><span>Lançamentos</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
             </div>`;
         } catch (error) {
           result.textContent = error.body?.error || error.message;
@@ -3021,9 +3203,9 @@ async function renderFinancial(paymentId) {
   content.innerHTML = `
     <div class="grid stats">
       <article class="card stat">
-        <span class="stat-label">Payment ID</span>
+        <span class="stat-label">Identificador do pagamento</span>
         <strong class="stat-value" style="font-size:16px">${escapeHtml(payment.id)}</strong>
-        <small>Financial source of truth</small>
+        <small>Registro financeiro</small>
       </article>
       <article class="card stat">
         <span class="stat-label">Status</span>
@@ -3045,7 +3227,7 @@ async function renderFinancial(paymentId) {
     <div class="grid two-col">
       <section class="card section-card">
         <div class="section-title">
-          <h2>Reconciliation findings</h2>
+          <h2>Pendências de conciliação</h2>
           <span class="badge">${findings.length} aberta(s)</span>
         </div>
         <div class="table-wrap" tabindex="0">
@@ -3075,7 +3257,7 @@ async function renderFinancial(paymentId) {
       <section class="card section-card">
         <div class="section-title">
           <h2>Ações críticas</h2>
-          <span class="badge gap">step-up obrigatório</span>
+          <span class="badge gap">Confirmação necessária</span>
         </div>
         <div class="callout">
           Produção está bloqueada por código. Em staging/dev, cada ação exige reautenticação,
@@ -3200,26 +3382,135 @@ async function renderFinancial(paymentId) {
   );
 }
 
+function contentIdentifierSegment(value, fallback) {
+  return (
+    String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "") || fallback
+  );
+}
+
+function createContentDraftToken() {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === "function")
+    return cryptoApi.randomUUID();
+  if (typeof cryptoApi?.getRandomValues !== "function") {
+    throw new Error("CONTENT_DRAFT_TOKEN_UNAVAILABLE");
+  }
+  return Array.from(cryptoApi.getRandomValues(new Uint8Array(16)), (value) =>
+    value.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+function generatedContentReference(parts, separator, maxLength, token) {
+  const base = parts.join(separator);
+  const prefix =
+    base
+      .slice(0, Math.max(1, maxLength - token.length - 1))
+      .replace(/[-_:./]+$/g, "") || "content";
+  return `${prefix}${separator}${token}`;
+}
+
+function generatedContentDraftId({ kind, destinationId, title, token }) {
+  return generatedContentReference(
+    [
+      contentIdentifierSegment(kind, "content"),
+      contentIdentifierSegment(destinationId, "destination"),
+      contentIdentifierSegment(title, "conteudo"),
+    ],
+    "-",
+    160,
+    token,
+  );
+}
+
+function generatedContentSourceReference({ kind, destinationId, token }) {
+  return generatedContentReference(
+    [
+      contentIdentifierSegment(kind, "content"),
+      contentIdentifierSegment(destinationId, "destination"),
+    ],
+    ":",
+    240,
+    token,
+  );
+}
+
+let pendingContentCreatePreset = null;
+
+function queueContentCreatePreset(preset) {
+  pendingContentCreatePreset = Object.freeze({ ...preset });
+  globalThis.location.hash = "#content";
+}
+
 async function renderContent(contentId) {
   const canManage = actorHasCapability("content.manage");
 
   if (!contentId) {
-    const data = await api("/content?limit=100");
+    const [data, destinationPayload] = await Promise.all([
+      api("/content?limit=100"),
+      api("/destinations").catch(async () => {
+        const system = await api("/system").catch(() => null);
+        return system?.destinationId
+          ? { destinations: [{ id: system.destinationId }] }
+          : null;
+      }),
+    ]);
     const documents = data.data ?? [];
+    const destinations = destinationPayload?.destinations ?? [];
+    const destinationLabelById = new Map(
+      destinations.map((destination) => [
+        destination.id,
+        destination.branding?.name ?? destination.id,
+      ]),
+    );
+    const destinationOptions = destinations
+      .map(
+        (destination) =>
+          `<option value="${escapeHtml(destination.id)}">${escapeHtml(
+            destination.branding?.name ?? destination.id,
+          )}</option>`,
+      )
+      .join("");
+    const logicalReferences = Array.from(
+      new Set(
+        documents
+          .map((document) => document.sourceReference)
+          .filter((reference) => typeof reference === "string" && reference),
+      ),
+    );
+    const logicalReferenceOptions = logicalReferences
+      .map((reference) => `<option value="${escapeHtml(reference)}"></option>`)
+      .join("");
+    const mediaReferenceOptions = documents
+      .filter((document) => document.kind === "media")
+      .map(
+        (document) =>
+          `<option value="${escapeHtml(document.id)}">${escapeHtml(
+            contentField(document, "title") || document.id,
+          )}</option>`,
+      )
+      .join("");
+    const canCreate = canManage && destinations.length > 0;
+    const preset = canCreate ? pendingContentCreatePreset : null;
+    pendingContentCreatePreset = null;
     content.innerHTML = `
       <div class="grid two-col">
         <section class="card section-card">
           <div class="section-title">
             <div>
               <h2>Biblioteca editorial</h2>
-              <small style="color:var(--muted)">Persistência e lifecycle pertencem ao domínio Content.</small>
+              <small style="color:var(--muted)">Conteúdos em preparação, revisão e publicação.</small>
             </div>
             <span class="badge">${documents.length} item(ns)</span>
           </div>
           <div class="table-wrap" tabindex="0">
             <table>
               <thead>
-                <tr><th>Conteúdo</th><th>Tipo</th><th>Status</th><th>Destino</th><th>Locale</th></tr>
+                <tr><th>Conteúdo</th><th>Tipo</th><th>Status</th><th>Destino</th><th>Idioma</th></tr>
               </thead>
               <tbody>
                 ${
@@ -3228,18 +3519,17 @@ async function renderContent(contentId) {
                       (document) => `<tr>
                         <td>
                           <a href="#content:${encodeURIComponent(document.id)}">
-                            <strong>${escapeHtml(contentField(document, "title") || document.id)}</strong>
+                            <strong>${escapeHtml(contentField(document, "title") || "Conteúdo sem título")}</strong>
                           </a>
-                          <br><small>${escapeHtml(document.id)}</small>
                         </td>
-                        <td>${escapeHtml(document.kind)}</td>
+                        <td>${escapeHtml({ destination: "Destino", category: "Categoria", place: "Local", media: "Mídia", tour: "Passeio", event: "Evento", translation: "Tradução", seo: "SEO", offer_reference: "Referência de oferta" }[document.kind] ?? "Conteúdo")}</td>
                         <td>${statusBadge(document.status)}</td>
-                        <td>${escapeHtml(document.destinationId)}</td>
-                        <td>${escapeHtml(document.locale)}</td>
+                        <td>${escapeHtml(destinationLabelById.get(document.destinationId) ?? "Destino configurado")}</td>
+                        <td>${escapeHtml({ "pt-BR": "Português", en: "Inglês", es: "Espanhol", he: "Hebraico" }[document.locale] ?? "Outro idioma")}</td>
                       </tr>`,
                     )
                     .join("") ||
-                  '<tr><td colspan="5" class="empty">Nenhum conteúdo cadastrado.</td></tr>'
+                  '<tr><td colspan="5"><div class="empty-surface" data-empty-state="empty"><h2>Nenhum conteúdo cadastrado</h2><p>Crie o primeiro rascunho para iniciar o fluxo editorial.</p></div></td></tr>'
                 }
               </tbody>
             </table>
@@ -3249,19 +3539,18 @@ async function renderContent(contentId) {
         <section class="card section-card">
           <div class="section-title">
             <div>
-              <h2>Novo rascunho</h2>
-              <small style="color:var(--muted)">Nenhum preço ou estado financeiro pode ser criado por Content.</small>
+              <h2>Criar conteúdo</h2>
+              <small style="color:var(--muted)">Destino → tipo → idioma → conteúdo → mídia/preview → publicação.</small>
             </div>
-            <span class="badge">${canManage ? "content.manage" : "somente leitura"}</span>
+            <span class="badge">${canManage ? "Edição disponível" : "Consulta"}</span>
           </div>
           ${
-            canManage
+            canCreate
               ? `<form id="content-create-form" class="form-grid">
-                  <label>ID do conteúdo
-                    <input id="content-create-id" required maxlength="160" autocomplete="off" placeholder="place-segunda-praia" />
-                  </label>
                   <label>Destino
-                    <input id="content-create-destination" required value="morro-de-sao-paulo" autocomplete="off" />
+                    <select id="content-create-destination" required>
+                      ${destinationOptions}
+                    </select>
                   </label>
                   <label>Tipo
                     <select id="content-create-kind" required>
@@ -3277,10 +3566,12 @@ async function renderContent(contentId) {
                     </select>
                   </label>
                   <label>Idioma
-                    <input id="content-create-locale" required value="pt-BR" autocomplete="off" />
-                  </label>
-                  <label>Referência de origem
-                    <input id="content-create-source" maxlength="240" autocomplete="off" placeholder="place:segunda-praia" />
+                    <select id="content-create-locale" required>
+                      <option value="pt-BR" selected>Português</option>
+                      <option value="en">Inglês</option>
+                      <option value="es">Espanhol</option>
+                      <option value="he">Hebraico</option>
+                    </select>
                   </label>
                   <label>Título
                     <input id="content-create-title" maxlength="500" required />
@@ -3288,16 +3579,113 @@ async function renderContent(contentId) {
                   <label>Resumo
                     <textarea id="content-create-summary" maxlength="20000"></textarea>
                   </label>
-                  <label>Motivo administrativo
-                    <textarea id="content-create-reason" minlength="8" maxlength="240" required placeholder="Ex.: Criar conteúdo solicitado pela equipe editorial"></textarea>
+                  <label>Mídia principal (opcional)
+                    <select id="content-create-media-reference">
+                      <option value="">Sem mídia principal</option>
+                      ${mediaReferenceOptions}
+                    </select>
+                    <small>Escolha um item do tipo Mídia já cadastrado na biblioteca editorial.</small>
+                  </label>
+                  <div id="content-create-preview" class="callout" aria-live="polite">
+                    <strong>Prévia editorial</strong>
+                    <p>Preencha título e resumo para visualizar este conteúdo.</p>
+                  </div>
+                  <section class="technical-details" data-advanced-disclosure data-expanded="false">
+                    <button type="button" class="technical-details-toggle" data-advanced-toggle aria-expanded="false" aria-controls="content-create-advanced-body">Detalhes avançados</button>
+                    <div id="content-create-advanced-body" class="technical-details-body" data-advanced-body aria-hidden="true">
+                    <label>Identificador interno (opcional)
+                      <input id="content-create-id" maxlength="160" autocomplete="off" placeholder="Gerado automaticamente" />
+                    </label>
+                    <label>Referência lógica entre idiomas (opcional)
+                      <input id="content-create-source" list="content-logical-references" maxlength="240" autocomplete="off" placeholder="Gerada automaticamente; reutilize em outras traduções" />
+                      <datalist id="content-logical-references">${logicalReferenceOptions}</datalist>
+                      <small>Para outra tradução do mesmo conteúdo, reutilize a mesma referência lógica.</small>
+                    </label>
+                    </div>
+                  </section>
+                  <label>Motivo da criação
+                    <textarea id="content-create-reason" minlength="8" maxlength="240" required placeholder="Ex.: Novo conteúdo solicitado pela equipe editorial"></textarea>
                   </label>
                   <p id="content-create-status" role="status" style="margin:0;color:var(--muted)"></p>
                   <div><button class="primary-button" type="submit">Criar rascunho</button></div>
                 </form>`
-              : `<div class="callout">Seu papel pode consultar conteúdo, mas não possui a capability <strong>content.manage</strong>.</div>`
+              : canManage
+                ? `<div class="empty-surface" data-empty-state="unavailable">
+                    <h2>Destinos indisponíveis para criação</h2>
+                    <p>O catálogo editorial continua disponível, mas um destino governado precisa estar carregado antes de criar conteúdo.</p>
+                    <div><a class="secondary-button" href="#destinations">Revisar destinos</a></div>
+                  </div>`
+                : `<div class="callout">Seu acesso atual permite consultar conteúdo, mas não editar.</div>`
           }
         </section>
       </div>`;
+
+    if (preset) {
+      const destinationSelect = document.querySelector(
+        "#content-create-destination",
+      );
+      if (
+        destinationSelect &&
+        [...destinationSelect.options].some(
+          (option) => option.value === preset.destinationId,
+        )
+      ) {
+        destinationSelect.value = preset.destinationId;
+      }
+      const kindSelect = document.querySelector("#content-create-kind");
+      if (
+        kindSelect &&
+        [...kindSelect.options].some((option) => option.value === preset.kind)
+      ) {
+        kindSelect.value = preset.kind;
+      }
+      const sourceInput = document.querySelector("#content-create-source");
+      if (sourceInput && preset.sourceReference) {
+        sourceInput.value = preset.sourceReference;
+      }
+    }
+
+    const updateContentCreatePreview = () => {
+      const preview = document.querySelector("#content-create-preview");
+      if (!preview) return;
+      const title =
+        document.querySelector("#content-create-title")?.value?.trim() || "";
+      const summary =
+        document.querySelector("#content-create-summary")?.value?.trim() || "";
+      const mediaReference =
+        document
+          .querySelector("#content-create-media-reference")
+          ?.value?.trim() || "";
+      preview.innerHTML = `
+        <strong>${escapeHtml(title || "Prévia editorial")}</strong>
+        <p>${escapeHtml(summary || "Preencha o resumo para visualizar a apresentação do conteúdo.")}</p>
+        <small>${escapeHtml(
+          mediaReference
+            ? `Mídia associada: ${mediaReference}`
+            : "Nenhuma mídia principal associada.",
+        )}</small>
+      `;
+    };
+    for (const selector of [
+      "#content-create-title",
+      "#content-create-summary",
+    ]) {
+      document
+        .querySelector(selector)
+        ?.addEventListener("input", updateContentCreatePreview);
+    }
+    document
+      .querySelector("#content-create-media-reference")
+      ?.addEventListener("change", updateContentCreatePreview);
+    const contentKindInput = document.querySelector("#content-create-kind");
+    const contentSourceInput = document.querySelector("#content-create-source");
+    contentKindInput?.addEventListener("change", () => {
+      if (contentKindInput.value !== "translation") return;
+      const details = contentSourceInput?.closest("details");
+      if (details) details.open = true;
+      contentSourceInput?.focus();
+    });
+    updateContentCreatePreview();
 
     document
       .querySelector("#content-create-form")
@@ -3312,22 +3700,71 @@ async function renderContent(contentId) {
           const summary = document
             .querySelector("#content-create-summary")
             ?.value?.trim();
-          const sourceReference = document
-            .querySelector("#content-create-source")
+          const destinationId = document
+            .querySelector("#content-create-destination")
             ?.value?.trim();
+          const kind = document.querySelector("#content-create-kind")?.value;
+          const locale = document
+            .querySelector("#content-create-locale")
+            ?.value?.trim();
+          const mediaReference = document
+            .querySelector("#content-create-media-reference")
+            ?.value?.trim();
+          const idInput = document.querySelector("#content-create-id");
+          const sourceInput = document.querySelector("#content-create-source");
+          const idOverride = idInput?.value?.trim();
+          const sourceOverride = sourceInput?.value?.trim();
+          if (
+            kind === "translation" &&
+            (!sourceOverride || !logicalReferences.includes(sourceOverride))
+          ) {
+            const details = sourceInput?.closest("details");
+            if (details) details.open = true;
+            sourceInput?.focus();
+            throw new Error(
+              "Selecione uma referência lógica existente para criar uma tradução.",
+            );
+          }
+          let token =
+            idInput?.dataset?.generatedToken ||
+            sourceInput?.dataset?.generatedToken ||
+            "";
+          if ((!idOverride || !sourceOverride) && !token) {
+            token = createContentDraftToken();
+          }
+          const generatedId =
+            idOverride ||
+            generatedContentDraftId({
+              kind,
+              destinationId,
+              title,
+              token,
+            });
+          const generatedSourceReference =
+            sourceOverride ||
+            generatedContentSourceReference({
+              kind,
+              destinationId,
+              token,
+            });
+          if (idInput && !idOverride) {
+            idInput.value = generatedId;
+            idInput.dataset.generatedToken = token;
+          }
+          if (sourceInput && !sourceOverride) {
+            sourceInput.value = generatedSourceReference;
+            sourceInput.dataset.generatedToken = token;
+          }
           const body = {
-            id: document.querySelector("#content-create-id")?.value?.trim(),
-            destinationId: document
-              .querySelector("#content-create-destination")
-              ?.value?.trim(),
-            kind: document.querySelector("#content-create-kind")?.value,
-            locale: document
-              .querySelector("#content-create-locale")
-              ?.value?.trim(),
-            ...(sourceReference ? { sourceReference } : {}),
+            id: generatedId,
+            destinationId,
+            kind,
+            locale,
+            sourceReference: generatedSourceReference,
             fields: {
               title,
               ...(summary ? { summary } : {}),
+              ...(mediaReference ? { mediaReference } : {}),
             },
             reason: document
               .querySelector("#content-create-reason")
@@ -3346,8 +3783,50 @@ async function renderContent(contentId) {
     return;
   }
 
-  const data = await api(`/content/${encodeURIComponent(contentId)}`);
+  const [data, libraryPayload] = await Promise.all([
+    api(`/content/${encodeURIComponent(contentId)}`),
+    api("/content?limit=100").catch(() => null),
+  ]);
   const documentData = data.data;
+  const currentMediaReference = String(
+    contentField(documentData, "mediaReference") ?? "",
+  );
+  const mediaDocuments = (libraryPayload?.data ?? []).filter(
+    (document) => document.kind === "media",
+  );
+  const mediaDocumentIds = new Set(
+    mediaDocuments.map((document) => document.id),
+  );
+  const reviseMediaOptions = [
+    ...(currentMediaReference && !mediaDocumentIds.has(currentMediaReference)
+      ? [
+          `<option value="${escapeHtml(currentMediaReference)}" selected>${escapeHtml(
+            currentMediaReference,
+          )}</option>`,
+        ]
+      : []),
+    ...mediaDocuments.map(
+      (document) =>
+        `<option value="${escapeHtml(document.id)}" ${
+          document.id === currentMediaReference ? "selected" : ""
+        }>${escapeHtml(contentField(document, "title") || document.id)}</option>`,
+    ),
+  ].join("");
+  const destinationLabel =
+    documentData.destinationId === "morro-de-sao-paulo"
+      ? "Morro de São Paulo"
+      : documentData.destinationId === "itacare"
+        ? "Itacaré"
+        : String(documentData.destinationId ?? "")
+            .replaceAll("-", " ")
+            .replaceAll("_", " ");
+  const localeLabel =
+    {
+      "pt-BR": "Português",
+      en: "Inglês",
+      es: "Espanhol",
+      he: "Hebraico",
+    }[documentData.locale] ?? documentData.locale;
   const fieldRows = Object.entries(documentData.fields ?? {})
     .map(
       ([key, value]) =>
@@ -3365,28 +3844,37 @@ async function renderContent(contentId) {
       <article class="card stat">
         <span class="stat-label">Tipo</span>
         <strong class="stat-value" style="font-size:20px">${escapeHtml(documentData.kind)}</strong>
-        <small>${escapeHtml(documentData.locale)}</small>
+        <small>${escapeHtml(localeLabel)}</small>
       </article>
       <article class="card stat">
         <span class="stat-label">Destino</span>
-        <strong class="stat-value" style="font-size:16px">${escapeHtml(documentData.destinationId)}</strong>
-        <small>${escapeHtml(documentData.sourceReference ?? "sem referência")}</small>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(destinationLabel)}</strong>
+        <small>Destino do conteúdo</small>
       </article>
       <article class="card stat">
         <span class="stat-label">Atualizado</span>
         <strong class="stat-value" style="font-size:15px">${escapeHtml(documentData.updatedAt)}</strong>
-        <small>ID: ${escapeHtml(documentData.id)}</small>
+        <small>Última atualização</small>
       </article>
     </div>
 
+    <details class="technical-details">
+      <summary>Detalhes técnicos do conteúdo</summary>
+      <div class="module-list" style="margin-top:12px">
+        <div class="module-row"><span>ID</span><strong>${escapeHtml(documentData.id)}</strong></div>
+        <div class="module-row"><span>Destino interno</span><strong>${escapeHtml(documentData.destinationId)}</strong></div>
+        <div class="module-row"><span>Referência de origem</span><strong>${escapeHtml(documentData.sourceReference ?? "—")}</strong></div>
+      </div>
+    </details>
+
     <div class="grid two-col">
       <section class="card section-card">
-        <div class="section-title"><h2>Campos editoriais</h2><span class="badge">Content owner</span></div>
+        <div class="section-title"><h2>Campos editoriais</h2><span class="badge">Conteúdo</span></div>
         <div class="module-list">${fieldRows || '<div class="empty">Sem campos.</div>'}</div>
       </section>
 
       <section class="card section-card">
-        <div class="section-title"><h2>Lifecycle</h2><span class="badge">${canManage ? "governado" : "somente leitura"}</span></div>
+        <div class="section-title"><h2>Publicação</h2><span class="badge">${canManage ? "governado" : "somente consulta"}</span></div>
         <div class="module-list">
           <div class="module-row"><span>Criado</span><strong>${escapeHtml(documentData.createdAt)}</strong></div>
           <div class="module-row"><span>Agendado</span><strong>${escapeHtml(documentData.scheduledFor ?? "—")}</strong></div>
@@ -3395,6 +3883,27 @@ async function renderContent(contentId) {
         </div>
       </section>
     </div>
+
+    <section class="card section-card" style="margin-top:16px">
+      <div class="section-title"><h2>Prévia editorial</h2><span class="badge">Prévia</span></div>
+      <div class="callout">
+        <strong>Prévia: ${escapeHtml(contentField(documentData, "title") || "Conteúdo sem título")}</strong>
+        <p>${escapeHtml(contentField(documentData, "summary") || "Sem resumo editorial.")}</p>
+        <small>${escapeHtml(
+          contentField(documentData, "mediaReference")
+            ? `Mídia associada: ${contentField(documentData, "mediaReference")}`
+            : "Nenhuma mídia principal associada.",
+        )}</small>
+      </div>
+      ${
+        canManage && documentData.sourceReference
+          ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+              <button type="button" class="secondary-button" data-content-related="media">Adicionar mídia vinculada</button>
+              <button type="button" class="secondary-button" data-content-related="language">Criar versão em outro idioma</button>
+            </div>`
+          : ""
+      }
+    </section>
 
     ${
       canManage
@@ -3408,7 +3917,13 @@ async function renderContent(contentId) {
                 <label>Resumo
                   <textarea id="content-revise-summary" maxlength="20000">${escapeHtml(contentField(documentData, "summary"))}</textarea>
                 </label>
-                <label>Motivo administrativo
+                <label>Mídia principal
+                  <select id="content-revise-media-reference">
+                    <option value="" ${currentMediaReference ? "" : "selected"}>Sem mídia principal</option>
+                    ${reviseMediaOptions}
+                  </select>
+                </label>
+                <label>Motivo da alteração
                   <textarea id="content-revise-reason" minlength="8" maxlength="240" required></textarea>
                 </label>
                 <p id="content-revise-status" role="status" style="margin:0;color:var(--muted)"></p>
@@ -3417,7 +3932,7 @@ async function renderContent(contentId) {
             </section>
 
             <section class="card section-card">
-              <div class="section-title"><h2>Alterar estado</h2><span class="badge">lifecycle owner</span></div>
+              <div class="section-title"><h2>Alterar estado</h2><span class="badge">Publicação</span></div>
               <form id="content-transition-form" class="form-grid">
                 <label>Novo estado
                   <select id="content-transition-status" required>
@@ -3431,7 +3946,7 @@ async function renderContent(contentId) {
                 <label>Publicar em (somente para agendamento)
                   <input id="content-scheduled-for" type="datetime-local" />
                 </label>
-                <label>Motivo administrativo
+                <label>Motivo da alteração
                   <textarea id="content-transition-reason" minlength="8" maxlength="240" required></textarea>
                 </label>
                 <p id="content-transition-message" role="status" style="margin:0;color:var(--muted)"></p>
@@ -3439,10 +3954,29 @@ async function renderContent(contentId) {
               </form>
             </section>
           </div>`
-        : `<div class="callout" style="margin-top:16px">Modo somente leitura: este actor não possui <strong>content.manage</strong>.</div>`
+        : `<div class="callout" style="margin-top:16px">Seu acesso atual permite consultar este conteúdo, mas não editar.</div>`
     }
 
     <div style="margin-top:16px"><a href="#content">← Voltar para Conteúdo</a></div>`;
+
+  document
+    .querySelector('[data-content-related="media"]')
+    ?.addEventListener("click", () => {
+      queueContentCreatePreset({
+        destinationId: documentData.destinationId,
+        kind: "media",
+        sourceReference: documentData.sourceReference,
+      });
+    });
+  document
+    .querySelector('[data-content-related="language"]')
+    ?.addEventListener("click", () => {
+      queueContentCreatePreset({
+        destinationId: documentData.destinationId,
+        kind: documentData.kind,
+        sourceReference: documentData.sourceReference,
+      });
+    });
 
   document
     .querySelector("#content-revise-form")
@@ -3461,6 +3995,9 @@ async function renderContent(contentId) {
                 ?.value?.trim(),
               summary: document
                 .querySelector("#content-revise-summary")
+                ?.value?.trim(),
+              mediaReference: document
+                .querySelector("#content-revise-media-reference")
                 ?.value?.trim(),
             },
             reason: document
@@ -3647,10 +4184,10 @@ function renderSettings() {
         <div class="section-title"><h2>Fronteiras administrativas</h2></div>
         <div class="module-list">
           <div class="module-row"><span>Secrets</span><strong>somente server-side</strong></div>
-          <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Auth owner</a></div>
-          <div class="module-row"><span>Destinos</span><a href="#destinations">Destination owner</a></div>
-          <div class="module-row"><span>Conteúdo</span><a href="#content">Content owner</a></div>
-          <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente leitura</a></div>
+          <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Identidade</a></div>
+          <div class="module-row"><span>Destinos</span><a href="#destinations">Destinos</a></div>
+          <div class="module-row"><span>Conteúdo</span><a href="#content">Conteúdo</a></div>
+          <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente consulta</a></div>
         </div>
       </section>
     </div>`;
@@ -3770,6 +4307,7 @@ async function render(view, detail) {
         <span>${escapeHtml(error.body?.error || error.message)}</span>
       </section>`;
   } finally {
+    installAdvancedDisclosures(content);
     content.dataset.renderedView = view;
     content.setAttribute("aria-busy", "false");
   }
@@ -3844,7 +4382,9 @@ document.addEventListener("keydown", (event) => {
 nav.addEventListener("click", (event) => {
   const button = event.target.closest("[data-view]");
   if (!button) return;
-  globalThis.location.hash = `#${button.dataset.view}`;
+  const targetHash = `#${button.dataset.view}`;
+  if (globalThis.location.hash === targetHash) openHash(targetHash);
+  else globalThis.location.hash = targetHash;
   app.classList.remove("menu-open");
 });
 
