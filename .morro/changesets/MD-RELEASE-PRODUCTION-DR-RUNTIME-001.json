@@ -1,8 +1,8 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-PRODUCTION-DR-RUNTIME-001",
-  "baseSha": "75e8c5ecd7d2b80fa997cc94542d206e16562fe1",
-  "branch": "chore/production-dr-runtime-claim-20261002",
+  "baseSha": "b2c2e5677f6a97c2966720a40bcea1a2da81dab8",
+  "branch": "fix/production-dr-runtime-image-proof-20261002",
   "state": "IMPLEMENTING",
   "risk": "high",
   "owns": {

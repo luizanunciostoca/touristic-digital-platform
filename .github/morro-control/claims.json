@@ -5,8 +5,8 @@
     "MD-RELEASE-PRODUCTION-DR-RUNTIME-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/production-dr-runtime-claim-20261002",
-      "baseSha": "75e8c5ecd7d2b80fa997cc94542d206e16562fe1",
+      "branch": "fix/production-dr-runtime-image-proof-20261002",
+      "baseSha": "b2c2e5677f6a97c2966720a40bcea1a2da81dab8",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
