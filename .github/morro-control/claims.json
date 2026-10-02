@@ -35,6 +35,28 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T18:00:00Z"
+    },
+    "MD-UX-PLACE-V2-RUNTIME-INTEGRATION-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "feat/place-v2-runtime-integration-claim-20261002",
+      "baseSha": "56e86246baf01a34e4ea18e4b539291e7571432e",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-UX-PLACE-V2-RUNTIME-INTEGRATION-001.json",
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+        "apps/morro-digital-platform/src/map/explore-locations-control.test.ts"
+      ],
+      "domains": [
+        "map",
+        "places",
+        "assistant",
+        "tourist-experience"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T18:00:00Z"
     }
   }
 }
