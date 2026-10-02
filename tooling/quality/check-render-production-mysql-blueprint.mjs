@@ -368,7 +368,7 @@ for (const [domain] of domains) {
 
 requireText(
   webService,
-  "preDeployCommand: 'env EXPECTED_SHA=\"${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}\" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs'",
+  "preDeployCommand: 'env EXPECTED_SHA=\"${MORRO_RELEASE_SHA:-$RENDER_GIT_COMMIT}\" node apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs && node apps/morro-digital-platform/tooling/payments-migrate.mjs && node apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs'",
 );
 requireText(webService, "- key: MORRO_DATABASE_SCHEMA_MODE");
 requireText(webService, "value: external", "external runtime schema mode");
