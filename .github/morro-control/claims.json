@@ -5,8 +5,8 @@
     "MD-BUSINESS-LOCATION-SELF-SERVICE-INTEGRATION-002": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "feat/business-location-self-service-v2-impl-20261002",
-      "baseSha": "a89d49fba6208d5c23fb818beb63067053634195",
+      "branch": "test/business-location-self-service-v2-proof-20261002",
+      "baseSha": "2840c8a79cc182c3157078b20a679920e9c7950b",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",

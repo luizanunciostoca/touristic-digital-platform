@@ -258,6 +258,105 @@ describe("M51 Business dashboard browser client", () => {
     ).toBe(false);
   });
 
+  it("uses Auth secureFetch for governed location read, search and explicit confirmation", async () => {
+    const location = {
+      placeId: "place-toca",
+      businessId: "toca-do-morcego",
+      destinationId: "morro-de-sao-paulo",
+      name: "Toca do Morcego",
+      publicationState: "draft",
+      location: {
+        latitude: -13.3766,
+        longitude: -38.9172,
+        address: "Morro de São Paulo",
+        area: "Centro",
+        source: "mapbox",
+        externalProvider: "mapbox",
+        externalPlaceId: "mbx.toca",
+        verifiedAt: "2026-10-02T10:00:00.000Z",
+        verifiedBy: "owner-1",
+      },
+    };
+    const candidate = {
+      candidateId: "mapbox:mbx.toca:-13.3766:-38.9172",
+      confirmationToken: "reviewed-candidate-token",
+      source: "mapbox",
+      name: "Toca do Morcego",
+      address: "Morro de São Paulo",
+      category: "nightlife",
+      latitude: -13.3766,
+      longitude: -38.9172,
+      distanceMeters: 100,
+      confidence: 0.9,
+      eligible: true,
+      rejectionReason: null,
+    };
+    const fixture = authFixture(session(), [
+      new Response(JSON.stringify({ data: location }), { status: 200 }),
+      new Response(JSON.stringify({ data: [candidate] }), { status: 200 }),
+      new Response(JSON.stringify({ data: location }), { status: 200 }),
+      new Response(JSON.stringify({ data: location }), { status: 200 }),
+    ]);
+    const client = createBusinessDashboardClient(fixture.authClient);
+
+    await expect(client.loadLocation("toca-do-morcego")).resolves.toEqual(
+      location,
+    );
+    await expect(
+      client.searchLocationCandidates("toca-do-morcego", "Toca"),
+    ).resolves.toEqual([candidate]);
+    await client.confirmLocationCandidate(
+      "toca-do-morcego",
+      "Toca",
+      candidate.candidateId,
+      candidate.confirmationToken,
+    );
+    await client.saveLocationSelection("toca-do-morcego", {
+      latitude: -13.3766,
+      longitude: -38.9172,
+      address: "Morro de São Paulo",
+      area: "Centro",
+      source: "manual",
+    });
+
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      1,
+      "/api/business/toca-do-morcego/location",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/business/toca-do-morcego/location/candidates?q=Toca",
+      expect.objectContaining({ method: "GET", cache: "no-store" }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      3,
+      "/api/business/toca-do-morcego/location/confirm",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          query: "Toca",
+          candidateId: candidate.candidateId,
+          confirmationToken: candidate.confirmationToken,
+        }),
+      }),
+    );
+    expect(fixture.secureFetch).toHaveBeenNthCalledWith(
+      4,
+      "/api/business/toca-do-morcego/location",
+      expect.objectContaining({
+        method: "PUT",
+        body: JSON.stringify({
+          latitude: -13.3766,
+          longitude: -38.9172,
+          address: "Morro de São Paulo",
+          area: "Centro",
+          source: "manual",
+        }),
+      }),
+    );
+  });
+
   it("fails closed when no authenticated Business scope can be selected", async () => {
     const fixture = authFixture(session("owner", []), []);
     const client = createBusinessDashboardClient(fixture.authClient);

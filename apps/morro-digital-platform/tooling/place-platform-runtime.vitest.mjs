@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 
-function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
+function fixture({
+  row = null,
+  duplicate = false,
+  publishedRow = null,
+  publishedRows = [],
+} = {}) {
   const executed = [];
   const transaction = { committed: false, rolledBack: false };
   const execute = vi.fn(async (sql, params = []) => {
@@ -15,6 +20,13 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
     executed.push({ sql, params });
     if (sql.includes("INSERT INTO business_entities") && duplicate) {
       throw new Error("ER_DUP_ENTRY");
+    }
+    if (
+      sql.includes("WHERE destination_id = ?") &&
+      sql.includes("published_revision IS NOT NULL") &&
+      sql.includes("published_place_json IS NOT NULL")
+    ) {
+      return [publishedRows];
     }
     if (sql.includes("FROM business_places WHERE business_id")) {
       return [row ? [row] : []];
@@ -312,6 +324,212 @@ describe("Business CMS persisted runtime invariants", () => {
     expect(response.body).not.toContain("Novo draft");
     expect(executed[0].sql).toContain("published_revision IS NOT NULL");
     expect(executed[0].sql).toContain("publication_state NOT IN");
+    await runtime.stop();
+  });
+
+  it("exposes only the own editable Place plus published destination Places for discovery", async () => {
+    const own = {
+      id: "place-business-a",
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+      name: "Empresa A",
+      categoryId: "attractions",
+      location: {
+        latitude: -13.38,
+        longitude: -38.91,
+        address: "Centro",
+        area: "Centro",
+        source: "manual",
+        externalProvider: null,
+        externalPlaceId: null,
+        verifiedAt: null,
+        verifiedBy: null,
+      },
+      capabilities: { enabled: ["directions"] },
+      visibility: "public",
+      publicationState: "draft",
+    };
+    const other = {
+      ...own,
+      id: "place-business-b",
+      businessId: "business-b",
+      name: "Empresa B",
+      location: {
+        ...own.location,
+        latitude: -13.381,
+        longitude: -38.912,
+      },
+    };
+    const row = {
+      place_id: own.id,
+      business_id: own.businessId,
+      destination_id: own.destinationId,
+      publication_state: "published",
+      editable_place_json: JSON.stringify(own),
+      editable_revision: 1,
+      editable_revision_id: own.id + ":r1",
+      editable_revision_json: JSON.stringify({
+        placeId: own.id,
+        businessId: own.businessId,
+        destinationId: own.destinationId,
+      }),
+      updated_at: new Date(),
+      updated_by: "owner-a",
+    };
+    const privateOther = {
+      ...other,
+      id: "place-business-private",
+      businessId: "business-private",
+      name: "Empresa Privada",
+      visibility: "private",
+    };
+    const publishedRows = [
+      {
+        place_id: other.id,
+        business_id: other.businessId,
+        destination_id: other.destinationId,
+        publication_state: "published",
+        published_place_json: JSON.stringify(other),
+        published_revision: 2,
+        published_revision_id: other.id + ":r2",
+        published_revision_json: JSON.stringify({
+          placeId: other.id,
+          businessId: other.businessId,
+          destinationId: other.destinationId,
+        }),
+        updated_at: new Date(),
+        updated_by: "platform-admin",
+      },
+      {
+        place_id: privateOther.id,
+        business_id: privateOther.businessId,
+        destination_id: privateOther.destinationId,
+        publication_state: "published",
+        published_place_json: JSON.stringify(privateOther),
+        published_revision: 2,
+        published_revision_id: privateOther.id + ":r2",
+        published_revision_json: JSON.stringify({
+          placeId: privateOther.id,
+          businessId: privateOther.businessId,
+          destinationId: privateOther.destinationId,
+        }),
+        updated_at: new Date(),
+        updated_by: "platform-admin",
+      },
+    ];
+    const { runtime, executed } = fixture({ row, publishedRows });
+    expect(await runtime.start()).toBe(true);
+
+    await expect(
+      runtime.getBusinessLocationPlace("business-a"),
+    ).resolves.toMatchObject({
+      id: "place-business-a",
+      businessId: "business-a",
+    });
+
+    const places = await runtime.listLocationDiscoveryPlaces(
+      "business-a",
+      "morro-de-sao-paulo",
+    );
+    expect(places.map((place) => place.id)).toEqual([
+      "place-business-a",
+      "place-business-b",
+    ]);
+    expect(
+      executed.some(
+        ({ sql }) =>
+          sql.includes("published_revision IS NOT NULL") &&
+          sql.includes("published_place_json IS NOT NULL"),
+      ),
+    ).toBe(true);
+
+    await expect(
+      runtime.listLocationDiscoveryPlaces("business-a", "itacare"),
+    ).rejects.toThrow("CROSS_DESTINATION_LOCATION_READ");
+    await runtime.stop();
+  });
+
+  it("preserves governed source/provider metadata in the editable location revision without auto-publishing", async () => {
+    const place = {
+      id: "place-business-a",
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+      name: "Empresa A",
+      categoryId: "attractions",
+      description: "",
+      shortDescription: "",
+      location: {
+        latitude: -13.38,
+        longitude: -38.91,
+        address: "Centro",
+        area: "Centro",
+        source: "manual",
+        externalProvider: null,
+        externalPlaceId: null,
+        verifiedAt: null,
+        verifiedBy: null,
+      },
+      contact: {},
+      capabilities: { enabled: ["directions"] },
+      visibility: "public",
+    };
+    const row = {
+      place_id: place.id,
+      business_id: place.businessId,
+      destination_id: place.destinationId,
+      category_id: place.categoryId,
+      publication_state: "draft",
+      editable_place_json: JSON.stringify(place),
+      editable_revision: 1,
+      editable_revision_id: place.id + ":r1",
+      editable_revision_json: JSON.stringify({
+        placeId: place.id,
+        businessId: place.businessId,
+        destinationId: place.destinationId,
+        categoryId: place.categoryId,
+      }),
+      updated_at: new Date(),
+      updated_by: "owner-a",
+    };
+    const { runtime, executed } = fixture({ row });
+    expect(await runtime.start()).toBe(true);
+
+    const sessionNow = Math.floor(Date.now() / 1000);
+    await runtime.updateLocation(
+      {
+        subject: "owner-a",
+        email: "owner-a@example.invalid",
+        role: "BUSINESS_OWNER",
+        businessIds: ["business-a"],
+        issuedAt: sessionNow - 60,
+        expiresAt: sessionNow + 3600,
+        sessionId: "business-location-update-test",
+      },
+      "business-a",
+      {
+        latitude: -13.3766,
+        longitude: -38.9172,
+        address: "Morro de São Paulo",
+        area: "Centro",
+        source: "mapbox",
+        externalProvider: "mapbox",
+        externalPlaceId: "mbx.toca",
+      },
+    );
+
+    const revisionWrite = executed.find(({ sql }) =>
+      sql.includes("editable_place_json = ?"),
+    );
+    expect(revisionWrite).toBeTruthy();
+    const persistedPlace = JSON.parse(revisionWrite.params[4]);
+    expect(persistedPlace.location).toMatchObject({
+      source: "mapbox",
+      externalProvider: "mapbox",
+      externalPlaceId: "mbx.toca",
+      verifiedBy: "owner-a",
+    });
+    expect(revisionWrite.sql).not.toContain("published_place_json =");
+    expect(row.publication_state).toBe("draft");
     await runtime.stop();
   });
 });
