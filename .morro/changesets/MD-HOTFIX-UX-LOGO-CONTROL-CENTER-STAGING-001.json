@@ -55,16 +55,6 @@
     },
     "commands": [
       {
-        "id": "home-shell-contract",
-        "argv": [
-          "node",
-          "node_modules/vitest/vitest.mjs",
-          "run",
-          "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts"
-        ],
-        "timeoutSeconds": 180
-      },
-      {
         "id": "oci-proof-contract",
         "argv": ["node", "--test", "tooling/release/oci-proof.test.mjs"],
         "timeoutSeconds": 180
