@@ -5,7 +5,7 @@
   "baseSha": "f1a311e6063a95c78396ead1fc96505d15086a2f",
   "branch": "chore/runtime-parity-ticketing-claim-20261002",
   "state": "IMPLEMENTING",
-  "risk": "high",
+  "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
     "paths": [
