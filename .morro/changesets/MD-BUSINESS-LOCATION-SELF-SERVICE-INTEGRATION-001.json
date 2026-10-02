@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-BUSINESS-LOCATION-SELF-SERVICE-INTEGRATION-001",
   "objective": "bind-wave-b-location-discovery-to-morro-pro-self-service",
-  "baseSha": "5d59e251dd86b2d471b5bffe01f472e1cff4a790",
-  "branch": "feat/business-location-self-service-claim-20261002",
-  "state": "IMPLEMENTING",
+  "baseSha": "ea1ae4cfba718ab2abbb623fea81829fbf298d01",
+  "branch": "chore/business-location-self-service-001-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
