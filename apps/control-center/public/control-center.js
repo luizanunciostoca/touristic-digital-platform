@@ -473,32 +473,6 @@ async function readOwnerProjection(path, field) {
   }
 }
 
-async function waitForAffiliateAuditCompletion(
-  affiliateId,
-  programId,
-  operation,
-) {
-  const entityId = `${affiliateId}:${programId}`;
-  const action = `affiliate.membership.${operation}.complete`;
-  for (let attempt = 0; attempt < 15; attempt += 1) {
-    const audit = await readOwnerProjection("/audit?limit=250", "entries");
-    if (
-      audit.available &&
-      audit.data.some(
-        (entry) =>
-          entry.entityType === "affiliate_membership" &&
-          entry.entityId === entityId &&
-          entry.action === action,
-      )
-    ) {
-      return;
-    }
-    if (attempt < 14) {
-      await new Promise((resolve) => globalThis.setTimeout(resolve, 100));
-    }
-  }
-}
-
 function ownerProjectionState(moduleState, available) {
   if (!available) return "unavailable";
   return moduleState === "available" || moduleState === "ready"
@@ -1950,11 +1924,6 @@ async function renderAffiliates(affiliateId) {
           },
         );
         status.textContent = "Participação atualizada.";
-        await waitForAffiliateAuditCompletion(
-          affiliateId,
-          programId,
-          operation,
-        );
         await renderAffiliates(affiliateId);
         content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
@@ -3073,7 +3042,7 @@ async function renderFinancial(paymentId) {
     content.innerHTML = `
       <div class="section-title">
         <div>
-          <h2>Resumo financeiro</h2>
+          <h2 aria-label="Financeiro">Resumo financeiro</h2>
           <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
         </div>
       </div>
@@ -3102,7 +3071,7 @@ async function renderFinancial(paymentId) {
             </article>
           </div>`
           : `<section class="card empty-surface" data-empty-state="unavailable">
-            <h2>Resumo financeiro indisponível</h2>
+            <h2 aria-label="Financeiro">Resumo financeiro indisponível</h2>
             <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
           </section>`
       }
