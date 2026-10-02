@@ -203,29 +203,22 @@ export async function executeLegacyCommercialPlaceBackfill({
     if (!runtime)
       throw new Error("LEGACY_COMMERCIAL_BACKFILL_RUNTIME_REQUIRED");
 
-    await runtime.createDraft(
-      actor,
-      {
-        businessId: mapping.businessId,
-        placeId: mapping.placeId,
-        destinationId: mapping.destinationId,
-        categoryId: mapping.categoryId,
-        name: mapping.legacyName,
-        shortDescription: "",
-        capabilities: ["directions", "photos"],
-      },
-    );
-    await runtime.updateLocation(
-      actor,
-      mapping.businessId,
-      {
-        latitude: source.latitude,
-        longitude: source.longitude,
-        address: "",
-        area: source.area ?? "",
-        source: "manual",
-      },
-    );
+    await runtime.createDraft(actor, {
+      businessId: mapping.businessId,
+      placeId: mapping.placeId,
+      destinationId: mapping.destinationId,
+      categoryId: mapping.categoryId,
+      name: mapping.legacyName,
+      shortDescription: "",
+      capabilities: ["directions", "photos"],
+    });
+    await runtime.updateLocation(actor, mapping.businessId, {
+      latitude: source.latitude,
+      longitude: source.longitude,
+      address: "",
+      area: source.area ?? "",
+      source: "manual",
+    });
     await saveMapping(pool, mapping, now);
     summary.createdDrafts += 1;
     summary.mappingsInserted += 1;
