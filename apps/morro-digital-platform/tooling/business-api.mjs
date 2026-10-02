@@ -303,9 +303,12 @@ export function createBusinessApi({
     });
     const repository = Object.freeze({
       async getById(placeId) {
-        const current =
-          await runtime.getBusinessLocationPlace(access.businessId);
-        return current && String(current.id) === String(placeId) ? current : null;
+        const current = await runtime.getBusinessLocationPlace(
+          access.businessId,
+        );
+        return current && String(current.id) === String(placeId)
+          ? current
+          : null;
       },
       async listByDestination(destinationId) {
         return runtime.listLocationDiscoveryPlaces(
@@ -326,8 +329,7 @@ export function createBusinessApi({
           access.businessId,
           nextPlace.location,
         );
-        const saved =
-          await runtime.getBusinessLocationPlace(access.businessId);
+        const saved = await runtime.getBusinessLocationPlace(access.businessId);
         if (!saved) throw new Error("PLACE_NOT_FOUND");
         return saved;
       },

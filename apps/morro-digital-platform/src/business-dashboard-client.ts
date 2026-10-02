@@ -280,10 +280,7 @@ function businessProfileUrl(businessIdInput: unknown): string {
   return `/api/business/${encodeURIComponent(businessId)}/profile`;
 }
 
-function businessLocationUrl(
-  businessIdInput: unknown,
-  suffix = "",
-): string {
+function businessLocationUrl(businessIdInput: unknown, suffix = ""): string {
   const businessId = normalizeBusinessId(businessIdInput);
   if (!businessId) throw new Error("INVALID_BUSINESS_ID");
   return `/api/business/${encodeURIComponent(businessId)}/location${suffix}`;
