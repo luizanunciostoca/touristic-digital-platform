@@ -62,9 +62,8 @@
       {
         "id": "home-shell-contract",
         "argv": [
-          "pnpm",
-          "exec",
-          "vitest",
+          "node",
+          "node_modules/vitest/vitest.mjs",
           "run",
           "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts"
         ],
