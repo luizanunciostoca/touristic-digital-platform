@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "feat/business-location-self-service-v2-acquire-r2-20261002",
-      "baseSha": "d01329f4ed45070635fd738950157c9eb658dd75",
+      "baseSha": "a89d49fba6208d5c23fb818beb63067053634195",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -25,7 +25,7 @@
       ],
       "domains": ["business", "places", "map", "morro-pro"],
       "risk": "P1",
-      "status": "IMPLEMENTING",
+      "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-03T05:00:00Z"
     }
   }

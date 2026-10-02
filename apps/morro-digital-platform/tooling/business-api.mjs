@@ -1,4 +1,8 @@
-import { capabilitiesForRole, hasAuthCapability } from "@touristic/auth";
+import {
+  capabilitiesForRole,
+  hasAuthCapability,
+  requiresBusinessScope,
+} from "@touristic/auth";
 import { createAuthorizedBusinessProfileService } from "@touristic/business";
 
 const businessProfilePattern = /^\/api\/business\/([^/]+)\/profile$/u;
@@ -303,9 +307,12 @@ export function createBusinessApi({
     });
     const repository = Object.freeze({
       async getById(placeId) {
-        const current =
-          await runtime.getBusinessLocationPlace(access.businessId);
-        return current && String(current.id) === String(placeId) ? current : null;
+        const current = await runtime.getBusinessLocationPlace(
+          access.businessId,
+        );
+        return current && String(current.id) === String(placeId)
+          ? current
+          : null;
       },
       async listByDestination(destinationId) {
         return runtime.listLocationDiscoveryPlaces(
@@ -326,8 +333,7 @@ export function createBusinessApi({
           access.businessId,
           nextPlace.location,
         );
-        const saved =
-          await runtime.getBusinessLocationPlace(access.businessId);
+        const saved = await runtime.getBusinessLocationPlace(access.businessId);
         if (!saved) throw new Error("PLACE_NOT_FOUND");
         return saved;
       },
@@ -398,6 +404,10 @@ export function createBusinessApi({
           },
         );
         if (!access) return;
+        if (!requiresBusinessScope(access.session.role)) {
+          json(response, 403, { error: "MORRO_PRO_ROLE_DENIED" });
+          return;
+        }
 
         try {
           const { adapter, place, scope } = await createLocationContext(access);

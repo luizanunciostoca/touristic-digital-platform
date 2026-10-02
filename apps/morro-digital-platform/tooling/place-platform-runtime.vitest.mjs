@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createPlacePlatformRuntime } from "./place-platform-runtime.mjs";
 
-function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
+function fixture({
+  row = null,
+  duplicate = false,
+  publishedRow = null,
+  publishedRows = [],
+} = {}) {
   const executed = [];
   const transaction = { committed: false, rolledBack: false };
   const execute = vi.fn(async (sql, params = []) => {
@@ -18,6 +23,13 @@ function fixture({ row = null, duplicate = false, publishedRow = null } = {}) {
     }
     if (sql.includes("FROM business_places WHERE business_id")) {
       return [row ? [row] : []];
+    }
+    if (
+      sql.includes("WHERE destination_id = ?") &&
+      sql.includes("published_revision IS NOT NULL") &&
+      sql.includes("LIMIT 500")
+    ) {
+      return [publishedRows];
     }
     if (
       sql.includes("SELECT * FROM business_places WHERE place_id = ? LIMIT 1")
@@ -312,6 +324,161 @@ describe("Business CMS persisted runtime invariants", () => {
     expect(response.body).not.toContain("Novo draft");
     expect(executed[0].sql).toContain("published_revision IS NOT NULL");
     expect(executed[0].sql).toContain("publication_state NOT IN");
+    await runtime.stop();
+  });
+
+  it("exposes only the current business editable Place plus published destination peers for discovery", async () => {
+    const own = {
+      id: "place-business-a",
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+      name: "Empresa A",
+      categoryId: "attractions",
+      location: {
+        latitude: -13.38,
+        longitude: -38.91,
+        address: "Centro",
+        area: "Centro",
+        source: "manual",
+      },
+      capabilities: { enabled: ["directions"] },
+      visibility: "public",
+    };
+    const other = {
+      ...own,
+      id: "place-business-b",
+      businessId: "business-b",
+      name: "Empresa B",
+    };
+    const row = {
+      place_id: own.id,
+      business_id: own.businessId,
+      destination_id: own.destinationId,
+      publication_state: "draft",
+      editable_place_json: JSON.stringify(own),
+      editable_revision: 2,
+      editable_revision_id: own.id + ":r2",
+      editable_revision_json: JSON.stringify({ placeId: own.id }),
+      updated_at: new Date(),
+      updated_by: "owner-a",
+      created_at: new Date(),
+    };
+    const publishedRows = [
+      {
+        ...row,
+        place_id: own.id,
+        published_revision: 1,
+        published_revision_id: own.id + ":r1",
+        published_place_json: JSON.stringify(own),
+        published_revision_json: JSON.stringify({ placeId: own.id }),
+      },
+      {
+        ...row,
+        place_id: other.id,
+        business_id: other.businessId,
+        published_revision: 1,
+        published_revision_id: other.id + ":r1",
+        published_place_json: JSON.stringify(other),
+        published_revision_json: JSON.stringify({ placeId: other.id }),
+      },
+    ];
+    const { runtime } = fixture({ row, publishedRows });
+    expect(await runtime.start()).toBe(true);
+
+    const places = await runtime.listLocationDiscoveryPlaces(
+      "business-a",
+      "morro-de-sao-paulo",
+    );
+
+    expect(places.map((entry) => entry.id)).toEqual([
+      "place-business-a",
+      "place-business-b",
+    ]);
+    await expect(
+      runtime.listLocationDiscoveryPlaces("business-a", "itacare"),
+    ).rejects.toThrow("CROSS_DESTINATION_LOCATION_READ");
+    await runtime.stop();
+  });
+
+  it("persists confirmed provider metadata in the editable Place revision", async () => {
+    const place = {
+      id: "place-business-a",
+      businessId: "business-a",
+      destinationId: "morro-de-sao-paulo",
+      categoryId: "attractions",
+      name: "Empresa A",
+      location: {
+        latitude: -13.38,
+        longitude: -38.91,
+        address: "Centro",
+        area: "Centro",
+        source: "manual",
+        externalProvider: null,
+        externalPlaceId: null,
+      },
+      capabilities: { enabled: ["directions"] },
+      contact: {
+        phone: null,
+        whatsapp: null,
+        email: null,
+        website: null,
+      },
+      openingHours: null,
+      visibility: "public",
+    };
+    const row = {
+      place_id: place.id,
+      business_id: place.businessId,
+      destination_id: place.destinationId,
+      publication_state: "draft",
+      editable_place_json: JSON.stringify(place),
+      editable_revision: 1,
+      editable_revision_id: place.id + ":r1",
+      editable_revision_json: JSON.stringify({
+        placeId: place.id,
+        businessId: place.businessId,
+        destinationId: place.destinationId,
+      }),
+      updated_at: new Date(),
+      updated_by: "owner-a",
+      created_at: new Date(),
+    };
+    const { runtime, executed } = fixture({ row });
+    expect(await runtime.start()).toBe(true);
+
+    const now = Math.floor(Date.now() / 1000);
+    await runtime.updateLocation(
+      {
+        subject: "owner-a",
+        email: "owner-a@example.invalid",
+        role: "BUSINESS_OWNER",
+        businessIds: ["business-a"],
+        issuedAt: now - 60,
+        expiresAt: now + 3600,
+        sessionId: "location-provider-metadata-test",
+      },
+      "business-a",
+      {
+        latitude: -13.3766,
+        longitude: -38.9172,
+        address: "Morro de São Paulo",
+        area: "Centro",
+        source: "mapbox",
+        externalProvider: "mapbox",
+        externalPlaceId: "mbx.toca",
+      },
+    );
+
+    const revisionWrite = executed.find(({ sql }) =>
+      sql.includes("editable_place_json = ?"),
+    );
+    expect(revisionWrite).toBeTruthy();
+    const editablePlace = JSON.parse(revisionWrite.params[4]);
+    expect(editablePlace.location).toMatchObject({
+      source: "mapbox",
+      externalProvider: "mapbox",
+      externalPlaceId: "mbx.toca",
+    });
     await runtime.stop();
   });
 });

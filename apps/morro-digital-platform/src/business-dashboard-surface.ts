@@ -75,7 +75,6 @@ function setText(document: Document, id: string, value: string): void {
   requiredElement(document, id).textContent = value || "—";
 }
 
-
 interface LocationSurface {
   readonly current: HTMLElement;
   readonly status: HTMLElement;
@@ -118,8 +117,8 @@ function createLocationSurface(document: Document): LocationSurface {
       <article class="panel-card">
         <h2>Coordenadas manuais ou do dispositivo</h2>
         <form id="morro-pro-location-manual-form">
-          <label>Latitude<input id="morro-pro-location-latitude" name="latitude" inputmode="decimal" required /></label>
-          <label>Longitude<input id="morro-pro-location-longitude" name="longitude" inputmode="decimal" required /></label>
+          <label>Latitude<input id="morro-pro-location-latitude" name="latitude" type="number" step="any" min="-90" max="90" inputmode="decimal" required /></label>
+          <label>Longitude<input id="morro-pro-location-longitude" name="longitude" type="number" step="any" min="-180" max="180" inputmode="decimal" required /></label>
           <label>Endereço<input id="morro-pro-location-address" name="address" maxlength="500" /></label>
           <label>Área<input id="morro-pro-location-area" name="area" maxlength="160" /></label>
           <button class="button" type="submit">Salvar localização</button>
@@ -130,15 +129,39 @@ function createLocationSurface(document: Document): LocationSurface {
   return Object.freeze({
     current: requiredElement(document, "morro-pro-location-current"),
     status: requiredElement(document, "morro-pro-location-status"),
-    searchForm: requiredElement<HTMLFormElement>(document, "morro-pro-location-search-form"),
-    searchInput: requiredElement<HTMLInputElement>(document, "morro-pro-location-search"),
+    searchForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-location-search-form",
+    ),
+    searchInput: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-search",
+    ),
     results: requiredElement(document, "morro-pro-location-results"),
-    manualForm: requiredElement<HTMLFormElement>(document, "morro-pro-location-manual-form"),
-    latitude: requiredElement<HTMLInputElement>(document, "morro-pro-location-latitude"),
-    longitude: requiredElement<HTMLInputElement>(document, "morro-pro-location-longitude"),
-    address: requiredElement<HTMLInputElement>(document, "morro-pro-location-address"),
-    area: requiredElement<HTMLInputElement>(document, "morro-pro-location-area"),
-    deviceButton: requiredElement<HTMLButtonElement>(document, "morro-pro-location-device"),
+    manualForm: requiredElement<HTMLFormElement>(
+      document,
+      "morro-pro-location-manual-form",
+    ),
+    latitude: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-latitude",
+    ),
+    longitude: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-longitude",
+    ),
+    address: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-address",
+    ),
+    area: requiredElement<HTMLInputElement>(
+      document,
+      "morro-pro-location-area",
+    ),
+    deviceButton: requiredElement<HTMLButtonElement>(
+      document,
+      "morro-pro-location-device",
+    ),
   });
 }
 
@@ -159,7 +182,11 @@ function renderCurrentLocation(
   value: MorroProLocation | null,
 ): void {
   surface.current.replaceChildren();
-  if (!value || value.location.latitude === null || value.location.longitude === null) {
+  if (
+    !value ||
+    value.location.latitude === null ||
+    value.location.longitude === null
+  ) {
     const empty = document.createElement("p");
     empty.textContent = "Localização ainda não confirmada.";
     surface.current.append(empty);
@@ -172,11 +199,9 @@ function renderCurrentLocation(
     [value.location.address, value.location.area].filter(Boolean).join(" · ") ||
     "Endereço não informado";
   const coordinates = document.createElement("p");
-  coordinates.textContent =
-    `${value.location.latitude.toFixed(6)}, ${value.location.longitude.toFixed(6)} · ${locationSourceLabel(value.location.source)}`;
+  coordinates.textContent = `${value.location.latitude.toFixed(6)}, ${value.location.longitude.toFixed(6)} · ${locationSourceLabel(value.location.source)}`;
   const map = document.createElement("a");
-  map.href =
-    `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(value.location.latitude))}&mlon=${encodeURIComponent(String(value.location.longitude))}#map=18/${encodeURIComponent(String(value.location.latitude))}/${encodeURIComponent(String(value.location.longitude))}`;
+  map.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(value.location.latitude))}&mlon=${encodeURIComponent(String(value.location.longitude))}#map=18/${encodeURIComponent(String(value.location.latitude))}/${encodeURIComponent(String(value.location.longitude))}`;
   map.target = "_blank";
   map.rel = "noreferrer";
   map.textContent = "Ver no mapa";
@@ -215,8 +240,7 @@ function renderLocationCandidates(
       ? `${Math.max(0, candidate.distanceMeters)} m do centro do destino`
       : "Fora do limite permitido do destino";
     const map = document.createElement("a");
-    map.href =
-      `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(candidate.latitude))}&mlon=${encodeURIComponent(String(candidate.longitude))}#map=18/${encodeURIComponent(String(candidate.latitude))}/${encodeURIComponent(String(candidate.longitude))}`;
+    map.href = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(String(candidate.latitude))}&mlon=${encodeURIComponent(String(candidate.longitude))}#map=18/${encodeURIComponent(String(candidate.latitude))}/${encodeURIComponent(String(candidate.longitude))}`;
     map.target = "_blank";
     map.rel = "noreferrer";
     map.textContent = "Ver no mapa";
@@ -993,7 +1017,6 @@ export async function mountBusinessDashboardSurface(
     descriptionInput.value = safeProfile.description;
   }
 
-
   async function reloadLocation(signal?: AbortSignal): Promise<void> {
     if (!businessId) return;
     const request = contextController?.request();
@@ -1103,7 +1126,6 @@ export async function mountBusinessDashboardSurface(
     }
   }
 
-
   locationSurface.searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const query = locationSurface.searchInput.value.trim();
@@ -1128,9 +1150,12 @@ export async function mountBusinessDashboardSurface(
       })
       .catch((error: unknown) => {
         if (request && !contextController?.isCurrent(request)) return;
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         locationSurface.status.textContent =
-          error instanceof Error ? error.message : "Falha ao buscar localização.";
+          error instanceof Error
+            ? error.message
+            : "Falha ao buscar localização.";
       });
   });
 
@@ -1163,7 +1188,9 @@ export async function mountBusinessDashboardSurface(
       .catch((error: unknown) => {
         if (request && !contextController?.isCurrent(request)) return;
         locationSurface.status.textContent =
-          error instanceof Error ? error.message : "Falha ao salvar localização.";
+          error instanceof Error
+            ? error.message
+            : "Falha ao salvar localização.";
       });
   });
 
@@ -1525,9 +1552,7 @@ export async function mountBusinessDashboardSurface(
     locationSurface.manualForm.dataset.mutable = String(locationMutable);
     locationSurface.manualForm.dataset.locationSource = "manual";
     locationSurface.manualForm
-      .querySelectorAll<
-        HTMLInputElement | HTMLButtonElement
-      >("input, button")
+      .querySelectorAll<HTMLInputElement | HTMLButtonElement>("input, button")
       .forEach((control) => {
         control.disabled = !locationMutable;
       });
@@ -1593,7 +1618,8 @@ export async function mountBusinessDashboardSurface(
         const request = contextController?.request();
         void reloadLocation(request?.signal).catch((error: unknown) => {
           if (request && !contextController?.isCurrent(request)) return;
-          if (error instanceof DOMException && error.name === "AbortError") return;
+          if (error instanceof DOMException && error.name === "AbortError")
+            return;
           locationSurface.status.textContent =
             error instanceof Error
               ? error.message
