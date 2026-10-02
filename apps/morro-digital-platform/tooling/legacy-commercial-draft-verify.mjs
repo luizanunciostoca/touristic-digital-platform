@@ -1,6 +1,6 @@
 import { verifyLegacyCommercialDraftBackfill } from "./legacy-commercial-draft-verify-core.mjs";
 
-const STAGING_SERVICE = "morro-digital-v2-staging";
+import { resolveLegacyCommercialRuntimeScope } from "./legacy-commercial-runtime-guard.mjs";
 
 async function loadMysqlClient() {
   const module = await import("mysql2/promise");
@@ -12,11 +12,10 @@ export async function runLegacyCommercialDraftVerify({
   mysqlClient,
   mysqlClientLoader = loadMysqlClient,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_COMMERCIAL_DRAFT_VERIFY_SERVICE_DENIED");
-  }
+  resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_COMMERCIAL_DRAFT_VERIFY_SERVICE_DENIED",
+  );
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
   if (!databaseUrl) throw new Error("BUSINESS_DATABASE_URL_REQUIRED");
 
