@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-HOTFIX-UX-LOGO-SAFARI-BACKGROUND-001",
+  "objective": "remove-legacy-header-gradient-behind-discover-brand-mark-on-mobile-safari",
+  "baseSha": "029457c28f40420615010e08f2d0cba355c70419",
+  "branch": "chore/hotfix-logo-safari-background-claim-20261002",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-HOTFIX-UX-LOGO-SAFARI-BACKGROUND-001.json",
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
+      "tooling/release/oci-proof.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "logo-safari-chrome-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/release/oci-proof.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
