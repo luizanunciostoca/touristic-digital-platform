@@ -3424,15 +3424,15 @@ async function renderContent(contentId) {
   if (!contentId) {
     const [data, destinationPayload] = await Promise.all([
       api("/content?limit=100"),
-      api("/destinations").catch(() => null),
+      api("/destinations").catch(async () => {
+        const system = await api("/system").catch(() => null);
+        return system?.destinationId
+          ? { destinations: [{ id: system.destinationId }] }
+          : null;
+      }),
     ]);
     const documents = data.data ?? [];
-    const fallbackDestinationId = state.dashboard?.health?.destinationId;
-    const destinations = destinationPayload?.destinations?.length
-      ? destinationPayload.destinations
-      : fallbackDestinationId
-        ? [{ id: fallbackDestinationId }]
-        : [];
+    const destinations = destinationPayload?.destinations ?? [];
     const destinationLabelById = new Map(
       destinations.map((destination) => [
         destination.id,
@@ -3612,13 +3612,6 @@ async function renderContent(contentId) {
       const sourceInput = document.querySelector("#content-create-source");
       if (sourceInput && preset.sourceReference) {
         sourceInput.value = preset.sourceReference;
-      }
-      const titleInput = document.querySelector("#content-create-title");
-      if (titleInput && preset.originTitle) {
-        titleInput.placeholder =
-          preset.kind === "media"
-            ? `Mídia de ${preset.originTitle}`
-            : `Nova versão de ${preset.originTitle}`;
       }
     }
 
@@ -3943,7 +3936,6 @@ async function renderContent(contentId) {
         destinationId: documentData.destinationId,
         kind: "media",
         sourceReference: documentData.sourceReference,
-        originTitle: contentField(documentData, "title"),
       });
     });
   document
@@ -3953,7 +3945,6 @@ async function renderContent(contentId) {
         destinationId: documentData.destinationId,
         kind: documentData.kind,
         sourceReference: documentData.sourceReference,
-        originTitle: contentField(documentData, "title"),
       });
     });
 

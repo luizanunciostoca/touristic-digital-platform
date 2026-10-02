@@ -630,6 +630,17 @@ html[data-theme="dark"] .form-grid textarea:disabled {
   color: var(--muted);
   font-weight: 700;
 }
+.technical-details:not([open]) > :not(summary) {
+  display: block;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.technical-details:not([open]):focus-within > :not(summary) {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
+}
 
 .contract-diagnostic {
   position: absolute;
