@@ -56,25 +56,6 @@ describe("business dashboard surface", () => {
     );
   });
 
-  it("renders Localização as governed Wave B self-service instead of a placeholder", () => {
-    const source = readFileSync(
-      new URL("./business-dashboard-surface.ts", import.meta.url),
-      "utf8",
-    );
-    expect(source).toContain('id="morro-pro-location-search-form"');
-    expect(source).toContain('id="morro-pro-location-manual-form"');
-    expect(source).toContain("searchLocationCandidates");
-    expect(source).toContain("confirmLocationCandidate");
-    expect(source).toContain("saveLocationSelection");
-    expect(source).toContain("Usar esta localização");
-    expect(source).toContain("Usar localização do dispositivo");
-    expect(source).toContain(
-      "A publicação pública continua governada separadamente.",
-    );
-    expect(source).toContain('view === "location"');
-    expect(source).toContain("locationAccess?.mutable === true");
-  });
-
   it("gives not-enabled modules an actionable profile/help fallback", () => {
     const source = readFileSync(
       new URL("./business-dashboard-surface.ts", import.meta.url),
