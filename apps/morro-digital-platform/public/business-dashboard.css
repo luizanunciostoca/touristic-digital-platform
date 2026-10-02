@@ -316,6 +316,15 @@ button {
   align-content: center;
   justify-items: start;
 }
+.empty-state[data-empty-state="unavailable"] {
+  border-style: dashed;
+}
+.empty-state[data-empty-state="not-enabled"] {
+  background: #f8fafc;
+}
+:root[data-theme="dark"] .empty-state[data-empty-state="not-enabled"] {
+  background: #0b1220;
+}
 .empty-state p {
   color: #64748b;
   max-width: 650px;

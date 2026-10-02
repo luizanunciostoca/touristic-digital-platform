@@ -577,6 +577,27 @@ tr:last-child td {
 .form-grid [aria-invalid="true"] {
   border-color: #b91c1c;
 }
+
+html[data-theme="dark"] .form-grid input,
+html[data-theme="dark"] .form-grid select,
+html[data-theme="dark"] .form-grid textarea {
+  background: #0f172a;
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+html[data-theme="dark"] .form-grid input[readonly],
+html[data-theme="dark"] .form-grid textarea[readonly] {
+  background: #111827;
+}
+
+html[data-theme="dark"] .form-grid input:disabled,
+html[data-theme="dark"] .form-grid select:disabled,
+html[data-theme="dark"] .form-grid textarea:disabled {
+  color: #94a3b8;
+  opacity: 0.72;
+}
+
 .empty-surface {
   display: grid;
   gap: 10px;

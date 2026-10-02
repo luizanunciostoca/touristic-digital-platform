@@ -40,7 +40,7 @@ const pageCopy = {
   ],
   affiliates: [
     "Afiliados",
-    "Programa de afiliados mantendo Financial como autoridade monetária.",
+    "Programa de afiliados com acompanhamento de comissões e repasses.",
   ],
   crm: [
     "CRM",
@@ -521,6 +521,7 @@ async function renderUsers(userId) {
       <section class="card empty-surface" data-empty-state="empty">
         <h2>Nenhum usuário encontrado</h2>
         <p>Ainda não há pessoas para exibir nesta lista. Novos acessos aparecem aqui quando forem cadastrados.</p>
+        <div><a class="secondary-button" href="#businesses">Ver empresas e equipes</a></div>
       </section>`;
     return;
   }
@@ -792,7 +793,7 @@ async function renderUsers(userId) {
   const sessionsContent = userRenderedSections[2]?.outerHTML ?? "";
   const relationshipsContent = (selectedUser.businessIds ?? []).length
     ? `<section class="card section-card">
-        <div class="section-title"><h2>Relationships</h2><span class="badge">Auth owner</span></div>
+        <div class="section-title"><h2>Relationships</h2><span class="badge">Identidade</span></div>
         <div class="module-list">
           ${(selectedUser.businessIds ?? [])
             .map(
@@ -1088,7 +1089,7 @@ async function renderDestinations(destinationId) {
 
   content.innerHTML = `
     <div class="callout">
-      <strong>Destination Owner:</strong> configuração governada pelo domínio da plataforma.
+      <strong>Configuração do destino:</strong> configuração governada pelo domínio da plataforma.
       O fallback estático público permanece ativo até a qualificação final da projeção dinâmica.
     </div>
     ${
@@ -1285,7 +1286,7 @@ async function renderBusinessesLegacy(businessId) {
               <h2>${escapeHtml(profile?.name ?? businessId)}</h2>
               <small>${escapeHtml(businessId)}</small>
             </div>
-            <span class="badge pass">Business 360º owner-backed</span>
+            <span class="badge pass">Business 360º com dados oficiais</span>
           </div>
           <div class="module-list">
             <div class="module-row"><span>Perfil</span>${statusBadge(profile ? "available" : "partial")}</div>
@@ -1397,12 +1398,12 @@ async function renderBusinessesLegacy(businessId) {
     const commercialContent = `<section class="card section-card">
       <div class="section-title"><h2>Commercial / Financial</h2><span class="badge">Somente consulta composition</span></div>
       <div class="module-list">
-        <div class="module-row"><span>Ofertas owner-backed</span>${
+        <div class="module-row"><span>Ofertas oficiais</span>${
           productsResult.available
             ? `<strong>${escapeHtml(products.length)}</strong>`
             : statusBadge("unavailable")
         }</div>
-        <div class="module-row"><span>Reservas owner-backed</span>${
+        <div class="module-row"><span>Reservas oficiais</span>${
           reservationsResult.available
             ? `<strong>${escapeHtml(reservations.length)}</strong>`
             : statusBadge("unavailable")
@@ -1505,6 +1506,7 @@ async function renderAffiliates(affiliateId) {
         <section class="card empty-surface" data-empty-state="empty">
           <h2>Nenhum afiliado encontrado</h2>
           <p>Ainda não há afiliados cadastrados. Quando houver participantes ativos, comissões e conversões aparecerão nesta área.</p>
+          <div><a class="secondary-button" href="#support">Abrir suporte de afiliados</a></div>
         </section>`;
       return;
     }
@@ -1571,6 +1573,13 @@ async function renderAffiliates(affiliateId) {
             `/affiliates?limit=100&query=${encodeURIComponent(query || "")}`,
           );
           const rows = result.data ?? [];
+          if (rows.length === 0) {
+            const tableWrap = body.closest(".table-wrap");
+            if (tableWrap) {
+              tableWrap.innerHTML = '<section class="empty-surface" data-empty-state="empty"><h2>Nenhum afiliado encontrado</h2><p>Ajuste a busca ou limpe o termo para ver outros afiliados.</p></section>';
+            }
+            return;
+          }
           body.innerHTML =
             rows
               .map(
@@ -1780,7 +1789,7 @@ async function renderAffiliates(affiliateId) {
   const affiliateRenderedSections = [...content.children];
   const membershipOverview = memberships.length
     ? `<section class="card section-card">
-        <div class="section-title"><h2>Programas ativos</h2><span class="badge">owner-backed</span></div>
+        <div class="section-title"><h2>Programas ativos</h2><span class="badge">dados oficiais</span></div>
         <div class="module-list">
           ${memberships
             .map(
@@ -3060,7 +3069,7 @@ async function renderFinancial(paymentId) {
             <p>Não foi possível carregar o resumo deste período. As consultas avançadas continuam disponíveis abaixo.</p>
           </section>`}
 
-      <details class="technical-details">
+      <details class="technical-details" open>
         <summary>Consultas avançadas</summary>
         <div class="grid two-col" style="margin-top:14px">
           <section class="card section-card">
@@ -3373,19 +3382,19 @@ async function renderContent(contentId) {
         <section class="card section-card">
           <div class="section-title">
             <div>
-              <h2>Novo rascunho</h2>
-              <small style="color:var(--muted)">Nenhum preço ou estado financeiro pode ser criado por Content.</small>
+              <h2>Criar conteúdo</h2>
+              <small style="color:var(--muted)">Destino → tipo → idioma → conteúdo → mídia/preview → publicação.</small>
             </div>
-            <span class="badge">${canManage ? "content.manage" : "somente leitura"}</span>
+            <span class="badge">${canManage ? "Edição disponível" : "Consulta"}</span>
           </div>
           ${
             canManage
               ? `<form id="content-create-form" class="form-grid">
-                  <label>ID do conteúdo
-                    <input id="content-create-id" required maxlength="160" autocomplete="off" placeholder="place-segunda-praia" />
-                  </label>
                   <label>Destino
-                    <input id="content-create-destination" required value="morro-de-sao-paulo" autocomplete="off" />
+                    <select id="content-create-destination" required>
+                      <option value="morro-de-sao-paulo" selected>Morro de São Paulo</option>
+                      <option value="itacare">Itacaré</option>
+                    </select>
                   </label>
                   <label>Tipo
                     <select id="content-create-kind" required>
@@ -3401,10 +3410,12 @@ async function renderContent(contentId) {
                     </select>
                   </label>
                   <label>Idioma
-                    <input id="content-create-locale" required value="pt-BR" autocomplete="off" />
-                  </label>
-                  <label>Referência de origem
-                    <input id="content-create-source" maxlength="240" autocomplete="off" placeholder="place:segunda-praia" />
+                    <select id="content-create-locale" required>
+                      <option value="pt-BR" selected>Português</option>
+                      <option value="en">Inglês</option>
+                      <option value="es">Espanhol</option>
+                      <option value="he">Hebraico</option>
+                    </select>
                   </label>
                   <label>Título
                     <input id="content-create-title" maxlength="500" required />
@@ -3412,8 +3423,20 @@ async function renderContent(contentId) {
                   <label>Resumo
                     <textarea id="content-create-summary" maxlength="20000"></textarea>
                   </label>
-                  <label>Motivo administrativo
-                    <textarea id="content-create-reason" minlength="8" maxlength="240" required placeholder="Ex.: Criar conteúdo solicitado pela equipe editorial"></textarea>
+                  <div class="callout">
+                    <strong>Próximas etapas:</strong> revise a mídia e a prévia antes da publicação governada.
+                  </div>
+                  <details class="technical-details" open>
+                    <summary>Detalhes avançados</summary>
+                    <label>Identificador interno (opcional)
+                      <input id="content-create-id" maxlength="160" autocomplete="off" placeholder="Gerado automaticamente" />
+                    </label>
+                    <label>Referência de origem (opcional)
+                      <input id="content-create-source" maxlength="240" autocomplete="off" placeholder="Gerada automaticamente" />
+                    </label>
+                  </details>
+                  <label>Motivo da criação
+                    <textarea id="content-create-reason" minlength="8" maxlength="240" required placeholder="Ex.: Novo conteúdo solicitado pela equipe editorial"></textarea>
                   </label>
                   <p id="content-create-status" role="status" style="margin:0;color:var(--muted)"></p>
                   <div><button class="primary-button" type="submit">Criar rascunho</button></div>
@@ -3436,19 +3459,46 @@ async function renderContent(contentId) {
           const summary = document
             .querySelector("#content-create-summary")
             ?.value?.trim();
-          const sourceReference = document
+          const destinationId = document
+            .querySelector("#content-create-destination")
+            ?.value?.trim();
+          const kind = document.querySelector("#content-create-kind")?.value;
+          const locale = document
+            .querySelector("#content-create-locale")
+            ?.value?.trim();
+          const slug = String(title ?? "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 80);
+          const generatedId = [
+            kind || "content",
+            destinationId || "destination",
+            slug || "conteudo",
+          ]
+            .join("-")
+            .slice(0, 160);
+          const generatedSourceReference = [
+            kind || "content",
+            destinationId || "destination",
+            slug || "conteudo",
+          ]
+            .join(":")
+            .slice(0, 240);
+          const idOverride = document
+            .querySelector("#content-create-id")
+            ?.value?.trim();
+          const sourceOverride = document
             .querySelector("#content-create-source")
             ?.value?.trim();
           const body = {
-            id: document.querySelector("#content-create-id")?.value?.trim(),
-            destinationId: document
-              .querySelector("#content-create-destination")
-              ?.value?.trim(),
-            kind: document.querySelector("#content-create-kind")?.value,
-            locale: document
-              .querySelector("#content-create-locale")
-              ?.value?.trim(),
-            ...(sourceReference ? { sourceReference } : {}),
+            id: idOverride || generatedId,
+            destinationId,
+            kind,
+            locale,
+            sourceReference: sourceOverride || generatedSourceReference,
             fields: {
               title,
               ...(summary ? { summary } : {}),
@@ -3472,6 +3522,21 @@ async function renderContent(contentId) {
 
   const data = await api(`/content/${encodeURIComponent(contentId)}`);
   const documentData = data.data;
+  const destinationLabel =
+    documentData.destinationId === "morro-de-sao-paulo"
+      ? "Morro de São Paulo"
+      : documentData.destinationId === "itacare"
+        ? "Itacaré"
+        : String(documentData.destinationId ?? "")
+            .replaceAll("-", " ")
+            .replaceAll("_", " ");
+  const localeLabel =
+    {
+      "pt-BR": "Português",
+      en: "Inglês",
+      es: "Espanhol",
+      he: "Hebraico",
+    }[documentData.locale] ?? documentData.locale;
   const fieldRows = Object.entries(documentData.fields ?? {})
     .map(
       ([key, value]) =>
@@ -3489,19 +3554,28 @@ async function renderContent(contentId) {
       <article class="card stat">
         <span class="stat-label">Tipo</span>
         <strong class="stat-value" style="font-size:20px">${escapeHtml(documentData.kind)}</strong>
-        <small>${escapeHtml(documentData.locale)}</small>
+        <small>${escapeHtml(localeLabel)}</small>
       </article>
       <article class="card stat">
         <span class="stat-label">Destino</span>
-        <strong class="stat-value" style="font-size:16px">${escapeHtml(documentData.destinationId)}</strong>
-        <small>${escapeHtml(documentData.sourceReference ?? "sem referência")}</small>
+        <strong class="stat-value" style="font-size:16px">${escapeHtml(destinationLabel)}</strong>
+        <small>Destino do conteúdo</small>
       </article>
       <article class="card stat">
         <span class="stat-label">Atualizado</span>
         <strong class="stat-value" style="font-size:15px">${escapeHtml(documentData.updatedAt)}</strong>
-        <small>ID: ${escapeHtml(documentData.id)}</small>
+        <small>Última atualização</small>
       </article>
     </div>
+
+    <details class="technical-details">
+      <summary>Detalhes técnicos do conteúdo</summary>
+      <div class="module-list" style="margin-top:12px">
+        <div class="module-row"><span>ID</span><strong>${escapeHtml(documentData.id)}</strong></div>
+        <div class="module-row"><span>Destino interno</span><strong>${escapeHtml(documentData.destinationId)}</strong></div>
+        <div class="module-row"><span>Referência de origem</span><strong>${escapeHtml(documentData.sourceReference ?? "—")}</strong></div>
+      </div>
+    </details>
 
     <div class="grid two-col">
       <section class="card section-card">
@@ -3771,7 +3845,7 @@ function renderSettings() {
         <div class="section-title"><h2>Fronteiras administrativas</h2></div>
         <div class="module-list">
           <div class="module-row"><span>Secrets</span><strong>somente server-side</strong></div>
-          <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Auth owner</a></div>
+          <div class="module-row"><span>Roles e bloqueios</span><a href="#users">Identidade</a></div>
           <div class="module-row"><span>Destinos</span><a href="#destinations">Destinos</a></div>
           <div class="module-row"><span>Conteúdo</span><a href="#content">Conteúdo</a></div>
           <div class="module-row"><span>Saúde do sistema</span><a href="#system">somente leitura</a></div>

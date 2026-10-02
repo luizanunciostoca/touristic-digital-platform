@@ -119,7 +119,7 @@ function ensureMorroProPanels(document: Document): void {
     `;
     const heading = section.querySelector("h2");
     const description = section.querySelector("p");
-    if (heading) heading.textContent = moduleLabels.get(moduleId) ?? moduleId;
+    if (heading) heading.textContent = moduleLabels.get(moduleId) ?? "Recurso do negócio";
     if (description) description.textContent = moduleDescriptions[moduleId];
     main.append(section);
   }
@@ -1209,7 +1209,7 @@ export async function mountBusinessDashboardSurface(
         .forEach((control) => {
           control.disabled = true;
         });
-      status.textContent = "Seu acesso ao perfil é somente leitura.";
+      status.textContent = "Você pode consultar o perfil, mas não editá-lo.";
     }
     const photoAccess = accessByModule.get("photos");
     mediaSurface.form.dataset.mutable = String(photoAccess?.mutable === true);
@@ -1223,7 +1223,7 @@ export async function mountBusinessDashboardSurface(
         });
       mediaSurface.status.textContent =
         photoAccess?.visible === true
-          ? "Seu acesso a Fotos é somente leitura."
+          ? "Você pode consultar as fotos, mas não editá-las."
           : "";
     }
 
@@ -1256,7 +1256,7 @@ export async function mountBusinessDashboardSurface(
       }
       statusElement.textContent =
         moduleAccess?.visible === true
-          ? "Seu acesso a este módulo é somente leitura."
+          ? "Você pode consultar este recurso, mas não editá-lo."
           : "";
     }
 
