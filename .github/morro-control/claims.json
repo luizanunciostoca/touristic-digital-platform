@@ -32,7 +32,7 @@
         "staging",
         "production"
       ],
-      "risk": "P1",
+      "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T18:00:00Z"
     }
