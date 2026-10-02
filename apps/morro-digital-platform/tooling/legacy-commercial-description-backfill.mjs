@@ -7,7 +7,10 @@ import {
   bootstrapLegacyCommercialDescription,
 } from "./legacy-commercial-description-backfill-core.mjs";
 
-const STAGING_SERVICE = "morro-digital-v2-staging";
+import {
+  legacyCommercialMigrationActor,
+  resolveLegacyCommercialRuntimeScope,
+} from "./legacy-commercial-runtime-guard.mjs";
 const SOURCE_SYSTEM = "morro-v1-search-catalog";
 const SOURCE_KIND = "derived-canonical-name-category-destination";
 
@@ -31,18 +34,6 @@ function parsePlace(row) {
 
 function digest(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
-}
-
-function actor() {
-  return Object.freeze({
-    subject: "staging-legacy-commercial-description-backfill",
-    email: "staging-legacy-commercial-description-backfill@example.invalid",
-    role: "PLATFORM_OWNER",
-    businessIds: Object.freeze([]),
-    issuedAt: Math.floor(Date.now() / 1000) - 60,
-    expiresAt: Math.floor(Date.now() / 1000) + 3600,
-    sessionId: "staging-legacy-commercial-description-backfill",
-  });
 }
 
 async function queryRows(pool) {
@@ -130,11 +121,10 @@ export async function runLegacyCommercialDescriptionBackfill({
   runtimeFactory,
   runtimeLoader = loadPlacePlatformRuntime,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_DESCRIPTION_BACKFILL_SERVICE_DENIED");
-  }
+  const runtimeScope = resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_DESCRIPTION_BACKFILL_SERVICE_DENIED",
+  );
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
   const contentDatabaseUrl = String(
     environment.CONTENT_DATABASE_URL ?? "",
@@ -189,7 +179,10 @@ export async function runLegacyCommercialDescriptionBackfill({
     let updated = 0;
     let markersInserted = 0;
     let existingMigrations = 0;
-    const session = actor();
+    const session = legacyCommercialMigrationActor(
+      runtimeScope,
+      "description-backfill",
+    );
 
     for (const row of rows) {
       const place = parsePlace(row);
