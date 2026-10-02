@@ -15,13 +15,13 @@ test("UX585 business/control remediation contract", () => {
   has(bh,/data-empty-state="empty"/u,/data-empty-state="unavailable"/u,/data-empty-state="not-enabled"/u,/data-state="unavailable"/u);
   assert.match(bc,/\.live-indicator\[data-state="unavailable"\] \.live-dot,[\s\S]*?background:\s*#64748b/u);
   has(css,/\.form-grid input,/u,/min-height:\s*44px/u,/focus-visible/u,/aria-invalid/u,/html\[data-theme="dark"\]/u,/:focus-within > :not\(summary\)/u);
-  has(cc,/Nenhum usuário encontrado/u,/Nenhum afiliado encontrado/u,/Nenhuma reserva encontrada/u,/id="affiliate-search-empty"/u,/Resumo financeiro<\/h2>/u,/<summary>Consultas avançadas<\/summary>/u,/state\.adminSession = await api\("\/session"\)/u,/targetHash/u);
+  has(cc,/Nenhum usuário encontrado/u,/Nenhum afiliado encontrado/u,/Nenhuma reserva encontrada/u,/id="affiliate-search-empty"/u,/Resumo financeiro<\/h2>/u,/data-advanced-toggle[^>]*>Consultas avançadas<\/button>/u,/state\.adminSession = await api\("\/session"\)/u,/targetHash/u,/data-advanced-disclosure/u,/body\.addEventListener\("focusin"/u);
   assert.doesNotMatch(cc,/<details class="technical-details" open>/u);
   has(ad,/\/financial\/summary/u,/paymentsApi\.adminFinancialSummary/u,/FINANCIAL_SUMMARY_SUPPORT_SCOPE_UNAVAILABLE/u);
   const projection=pa.slice(pa.indexOf("function createFinancialAdminSummaryReader"),pa.indexOf("export function createPaymentsApi"));
   has(projection,/FROM financial_payments/u,/FROM financial_reconciliation_findings/u); assert.doesNotMatch(projection,/audit|localStorage|client/iu);
   const logical=cc.slice(cc.indexOf("function generatedContentSourceReference"),cc.indexOf("let pendingContentCreatePreset"));
-  assert.match(cc,/id="content-create-destination"[\s\S]*id="content-create-kind"[\s\S]*id="content-create-locale"[\s\S]*id="content-create-title"[\s\S]*id="content-create-summary"[\s\S]*<summary>Detalhes avançados<\/summary>[\s\S]*id="content-create-id"[\s\S]*id="content-create-source"/u);
+  assert.match(cc,/id="content-create-destination"[\s\S]*id="content-create-kind"[\s\S]*id="content-create-locale"[\s\S]*id="content-create-title"[\s\S]*id="content-create-summary"[\s\S]*data-advanced-toggle[^>]*>Detalhes avançados<\/button>[\s\S]*id="content-create-id"[\s\S]*id="content-create-source"/u);
   has(cc,/api\("\/destinations"\)/u,/createContentDraftToken/u,/idInput\.value = generatedId/u,/sourceInput\.value = generatedSourceReference/u,/logicalReferences\.includes\(sourceOverride\)/u,/id="content-create-media-reference"/u,/id="content-revise-media-reference"/u,/id="content-create-preview"/u,/pendingContentCreatePreset/u);
   assert.doesNotMatch(logical,/\btitle\b|\blocale\b/u); assert.doesNotMatch(cc,/CRM owner orchestration|Financial owner|append-only owner events|step-up obrigatório|QR payload|External key|Payment ID/u);
 });

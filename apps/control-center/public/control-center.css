@@ -625,10 +625,36 @@ html[data-theme="dark"] .form-grid textarea:disabled {
   border-top: 1px solid var(--line);
   padding-top: 14px;
 }
-.technical-details > summary {
+.technical-details > summary,
+.technical-details-toggle {
   cursor: pointer;
   color: var(--muted);
   font-weight: 700;
+}
+
+.technical-details-toggle {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+}
+
+.technical-details-body {
+  display: grid;
+  gap: 10px;
+}
+
+.technical-details[data-expanded="false"] .technical-details-body {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.technical-details[data-expanded="true"] .technical-details-body {
+  position: static;
+  opacity: 1;
+  pointer-events: auto;
 }
 .technical-details:not([open]) > :not(summary) {
   display: block;

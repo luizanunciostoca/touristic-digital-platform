@@ -210,6 +210,31 @@ function contentField(document, key) {
   return typeof value === "string" ? value : "";
 }
 
+function installAdvancedDisclosures(root = document) {
+  for (const section of root.querySelectorAll("[data-advanced-disclosure]")) {
+    if (section.dataset.advancedBound === "true") continue;
+    const toggle = section.querySelector("[data-advanced-toggle]");
+    const body = section.querySelector("[data-advanced-body]");
+    if (!toggle || !body) continue;
+    const controls = body.querySelectorAll("a,button,input,select,textarea");
+    const setExpanded = (expanded) => {
+      section.dataset.expanded = String(expanded);
+      toggle.setAttribute("aria-expanded", String(expanded));
+      body.setAttribute("aria-hidden", String(!expanded));
+      for (const control of controls) {
+        if (expanded) control.removeAttribute("tabindex");
+        else control.setAttribute("tabindex", "-1");
+      }
+    };
+    toggle.addEventListener("click", () =>
+      setExpanded(section.dataset.expanded !== "true"),
+    );
+    body.addEventListener("focusin", () => setExpanded(true));
+    section.dataset.advancedBound = "true";
+    setExpanded(false);
+  }
+}
+
 function renderNav() {
   nav.innerHTML = navItems
     .map(
@@ -3056,11 +3081,7 @@ async function renderFinancial(paymentId) {
     content.innerHTML = `
       <div class="section-title">
         <div>
-          ${
-            summary
-              ? '<h2 aria-label="Financeiro">Resumo financeiro</h2>'
-              : '<strong class="section-heading">Resumo financeiro</strong>'
-          }
+          <h2>Resumo financeiro</h2>
           <small style="color:var(--muted)">${escapeHtml(periodLabel)} · dados somente para consulta</small>
         </div>
       </div>
@@ -3094,24 +3115,19 @@ async function renderFinancial(paymentId) {
           </section>`
       }
 
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px">
-        <input id="payment-lookup-id" class="contract-browser-bridge-control" aria-hidden="true" tabindex="-1" autocomplete="off" />
-        <input id="ledger-lookup-key" class="contract-browser-bridge-control" aria-hidden="true" tabindex="-1" autocomplete="off" />
-        <button id="payment-lookup-launcher" class="secondary-button" type="button">Abrir pagamento</button>
-        <button id="ledger-lookup-launcher" class="secondary-button" type="button">Consultar lançamento</button>
-      </div>
-      <details id="financial-advanced-details" class="technical-details">
-        <summary>Consultas avançadas</summary>
+      <section class="technical-details" data-advanced-disclosure data-expanded="false">
+        <button type="button" class="technical-details-toggle" data-advanced-toggle aria-expanded="false" aria-controls="financial-advanced-body">Consultas avançadas</button>
+        <div id="financial-advanced-body" class="technical-details-body" data-advanced-body aria-hidden="true">
         <div class="grid two-col" style="margin-top:14px">
           <section class="card section-card">
             <div class="section-title">
               <h2>Consultar pagamento</h2>
               <span class="badge">Financeiro</span>
             </div>
-            <form id="payment-lookup-form-advanced" class="form-grid">
+            <form id="payment-lookup-form" class="form-grid">
               <label>
                 Identificador do pagamento
-                <input id="payment-lookup-id-advanced" required autocomplete="off" placeholder="pay_..." />
+                <input id="payment-lookup-id" required autocomplete="off" placeholder="pay_..." />
               </label>
               <div><button class="primary-button" type="submit">Abrir pagamento</button></div>
             </form>
@@ -3121,10 +3137,10 @@ async function renderFinancial(paymentId) {
               <h2>Consultar lançamento</h2>
               <span class="badge">Somente consulta</span>
             </div>
-            <form id="ledger-lookup-form-advanced" class="form-grid">
+            <form id="ledger-lookup-form" class="form-grid">
               <label>
                 Referência do lançamento
-                <input id="ledger-lookup-key-advanced" required autocomplete="off" placeholder="payment_approved_..." />
+                <input id="ledger-lookup-key" required autocomplete="off" placeholder="payment_approved_..." />
               </label>
               <div><button class="secondary-button" type="submit">Consultar lançamento</button></div>
             </form>
@@ -3134,75 +3150,42 @@ async function renderFinancial(paymentId) {
         <div class="callout" style="margin-top:16px">
           Consultas avançadas não permitem alterar saldo ou estado financeiro diretamente.
         </div>
-      </details>`;
+        </div>
+      </section>`;
 
-    const advancedDetails = document.querySelector(
-      "#financial-advanced-details",
-    );
-    const paymentBridge = document.querySelector("#payment-lookup-id");
-    const paymentAdvanced = document.querySelector(
-      "#payment-lookup-id-advanced",
-    );
-    const openPayment = () => {
-      const id = (paymentBridge?.value || paymentAdvanced?.value)?.trim();
-      if (!id) {
-        if (advancedDetails) advancedDetails.open = true;
-        paymentAdvanced?.focus();
-        return;
-      }
-      globalThis.location.hash = `#financial:${encodeURIComponent(id)}`;
-    };
     document
-      .querySelector("#payment-lookup-launcher")
-      ?.addEventListener("click", openPayment);
-    document
-      .querySelector("#payment-lookup-form-advanced")
+      .querySelector("#payment-lookup-form")
       ?.addEventListener("submit", (event) => {
         event.preventDefault();
-        if (paymentBridge && paymentAdvanced) {
-          paymentBridge.value = paymentAdvanced.value;
+        const id = document.querySelector("#payment-lookup-id")?.value?.trim();
+        if (id) {
+          globalThis.location.hash = `#financial:${encodeURIComponent(id)}`;
         }
-        openPayment();
       });
 
-    const ledgerBridge = document.querySelector("#ledger-lookup-key");
-    const ledgerAdvanced = document.querySelector("#ledger-lookup-key-advanced");
-    const lookupLedger = async () => {
-      const key = (ledgerBridge?.value || ledgerAdvanced?.value)?.trim();
-      if (advancedDetails) advancedDetails.open = true;
-      if (!key) {
-        ledgerAdvanced?.focus();
-        return;
-      }
-      if (ledgerAdvanced) ledgerAdvanced.value = key;
-      const result = document.querySelector("#ledger-result");
-      if (!result) return;
-      result.textContent = "Consultando…";
-      try {
-        const response = await api(`/financial/ledger/${encodeURIComponent(key)}`);
-        const ledger = response.data;
-        result.innerHTML = `
-          <div class="module-list">
-            <div class="module-row"><span>ID da transação</span><strong>${escapeHtml(ledger.id)}</strong></div>
-            <div class="module-row"><span>Referência do lançamento</span><span>${escapeHtml(ledger.externalKey)}</span></div>
-            <div class="module-row"><span>Ocorrido em</span><span>${escapeHtml(ledger.occurredAt)}</span></div>
-            <div class="module-row"><span>Lançamentos</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
-          </div>`;
-      } catch (error) {
-        result.textContent = error.body?.error || error.message;
-      }
-    };
     document
-      .querySelector("#ledger-lookup-launcher")
-      ?.addEventListener("click", lookupLedger);
-    document
-      .querySelector("#ledger-lookup-form-advanced")
-      ?.addEventListener("submit", (event) => {
+      .querySelector("#ledger-lookup-form")
+      ?.addEventListener("submit", async (event) => {
         event.preventDefault();
-        if (ledgerBridge && ledgerAdvanced) {
-          ledgerBridge.value = ledgerAdvanced.value;
+        const key = document.querySelector("#ledger-lookup-key")?.value?.trim();
+        const result = document.querySelector("#ledger-result");
+        if (!key || !result) return;
+        result.textContent = "Consultando…";
+        try {
+          const response = await api(
+            `/financial/ledger/${encodeURIComponent(key)}`,
+          );
+          const ledger = response.data;
+          result.innerHTML = `
+            <div class="module-list">
+              <div class="module-row"><span>ID da transação</span><strong>${escapeHtml(ledger.id)}</strong></div>
+              <div class="module-row"><span>Referência do lançamento</span><span>${escapeHtml(ledger.externalKey)}</span></div>
+              <div class="module-row"><span>Ocorrido em</span><span>${escapeHtml(ledger.occurredAt)}</span></div>
+              <div class="module-row"><span>Lançamentos</span><span>${escapeHtml(ledger.postings?.length ?? 0)}</span></div>
+            </div>`;
+        } catch (error) {
+          result.textContent = error.body?.error || error.message;
         }
-        void lookupLedger();
       });
     return;
   }
@@ -3606,18 +3589,19 @@ async function renderContent(contentId) {
                     <strong>Prévia editorial</strong>
                     <p>Preencha título e resumo para visualizar este conteúdo.</p>
                   </div>
-                  <input id="content-create-id" class="contract-browser-bridge-control" aria-hidden="true" tabindex="-1" autocomplete="off" />
-                  <details class="technical-details">
-                    <summary>Detalhes avançados</summary>
+                  <section class="technical-details" data-advanced-disclosure data-expanded="false">
+                    <button type="button" class="technical-details-toggle" data-advanced-toggle aria-expanded="false" aria-controls="content-create-advanced-body">Detalhes avançados</button>
+                    <div id="content-create-advanced-body" class="technical-details-body" data-advanced-body aria-hidden="true">
                     <label>Identificador interno (opcional)
-                      <input id="content-create-id-advanced" maxlength="160" autocomplete="off" placeholder="Gerado automaticamente" />
+                      <input id="content-create-id" maxlength="160" autocomplete="off" placeholder="Gerado automaticamente" />
                     </label>
                     <label>Referência lógica entre idiomas (opcional)
                       <input id="content-create-source" list="content-logical-references" maxlength="240" autocomplete="off" placeholder="Gerada automaticamente; reutilize em outras traduções" />
                       <datalist id="content-logical-references">${logicalReferenceOptions}</datalist>
                       <small>Para outra tradução do mesmo conteúdo, reutilize a mesma referência lógica.</small>
                     </label>
-                  </details>
+                    </div>
+                  </section>
                   <label>Motivo da criação
                     <textarea id="content-create-reason" minlength="8" maxlength="240" required placeholder="Ex.: Novo conteúdo solicitado pela equipe editorial"></textarea>
                   </label>
@@ -3659,14 +3643,6 @@ async function renderContent(contentId) {
         sourceInput.value = preset.sourceReference;
       }
     }
-
-    const contentIdBridge = document.querySelector("#content-create-id");
-    const contentIdAdvanced = document.querySelector(
-      "#content-create-id-advanced",
-    );
-    contentIdAdvanced?.addEventListener("input", () => {
-      if (contentIdBridge) contentIdBridge.value = contentIdAdvanced.value;
-    });
 
     const updateContentCreatePreview = () => {
       const preview = document.querySelector("#content-create-preview");
@@ -3773,7 +3749,6 @@ async function renderContent(contentId) {
           if (idInput && !idOverride) {
             idInput.value = generatedId;
             idInput.dataset.generatedToken = token;
-            if (contentIdAdvanced) contentIdAdvanced.value = generatedId;
           }
           if (sourceInput && !sourceOverride) {
             sourceInput.value = generatedSourceReference;
@@ -4331,6 +4306,7 @@ async function render(view, detail) {
         <span>${escapeHtml(error.body?.error || error.message)}</span>
       </section>`;
   } finally {
+    installAdvancedDisclosures(content);
     content.dataset.renderedView = view;
     content.setAttribute("aria-busy", "false");
   }
