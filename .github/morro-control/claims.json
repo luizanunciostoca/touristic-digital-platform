@@ -35,7 +35,8 @@
         "apps/morro-digital-platform/src/morro-pro-business-management.ts",
         "apps/morro-digital-platform/public/business-dashboard.css",
         "apps/morro-digital-platform/public/business-dashboard.html",
-        "apps/morro-digital-platform/public/explore-locations.css"
+        "apps/morro-digital-platform/public/explore-locations.css",
+        "tooling/quality/capability-convergence-contract.test.mjs"
       ],
       "domains": [
         "architecture",
