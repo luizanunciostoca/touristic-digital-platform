@@ -13,7 +13,30 @@
         ".morro/changesets/MD-RELEASE-FINAL-ATTESTATION-001.json",
         ".github/morro-control/release-state.json"
       ],
-      "domains": ["release-governance"],
+      "domains": [
+        "release-governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T15:00:00Z"
+    },
+    "MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
+      "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
+      "paths": [
+        ".morro/changesets/MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001.json",
+        "Dockerfile",
+        "apps/morro-digital-platform/public/tourist-shell-v2.css",
+        "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
+        "tooling/release/oci-proof.test.mjs"
+      ],
+      "domains": [
+        "ux",
+        "control-center",
+        "release-runtime"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-02T15:00:00Z"
