@@ -10,15 +10,20 @@
       ".github/morro-control/claims.json",
       ".github/morro-control/events.ndjson",
       ".morro/changesets/MD-UX-BUSINESS-CONTROL-REMEDIATION-001.json",
-      "apps/morro-digital-platform/public/business-dashboard.html",
-      "apps/morro-digital-platform/public/business-dashboard.css",
-      "apps/morro-digital-platform/src/business-dashboard-surface.ts",
-      "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
       "apps/control-center/public/control-center.css",
       "apps/control-center/public/control-center.js",
+      "apps/morro-digital-platform/public/business-dashboard.css",
+      "apps/morro-digital-platform/public/business-dashboard.html",
+      "apps/morro-digital-platform/src/business-dashboard-surface.test.ts",
+      "apps/morro-digital-platform/src/business-dashboard-surface.ts",
+      "apps/morro-digital-platform/tooling/admin-domain-adapters.mjs",
+      "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs",
       "tooling/ux/business-control-center-remediation.test.mjs"
     ],
-    "contracts": ["TDP-BUSINESS-UX", "TDP-CONTROL-CENTER-UX"]
+    "contracts": [
+      "TDP-BUSINESS-UX",
+      "TDP-CONTROL-CENTER-UX"
+    ]
   },
   "reads": {
     "contracts": [
@@ -26,12 +31,17 @@
       "TDP-TENANT-BOUNDARY",
       "TDP-FINANCIAL-AUTHORITY",
       "TDP-TICKETING-AUTHORITY",
-      "TDP-CONTENT-AUTHORITY"
+      "TDP-CONTENT-AUTHORITY",
+      "TDP-FINANCIAL-OWNER-PROJECTION"
     ]
   },
   "produces": {
-    "events": ["UX_REMEDIATION_PROVEN"],
-    "routes": []
+    "events": [
+      "UX_REMEDIATION_PROVEN"
+    ],
+    "routes": [
+      "GET /api/admin/v1/financial/summary"
+    ]
   },
   "database": {
     "tables": []
@@ -39,7 +49,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-UX-TOURIST-REMEDIATION-001"],
+  "dependencies": [
+    "MD-UX-TOURIST-REMEDIATION-001"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -81,7 +93,8 @@
         "argv": [
           "node",
           "--test",
-          "tooling/ux/business-control-center-remediation.test.mjs"
+          "tooling/ux/business-control-center-remediation.test.mjs",
+          "apps/morro-digital-platform/tooling/admin-domain-adapters.test.mjs"
         ],
         "timeoutSeconds": 180
       }
