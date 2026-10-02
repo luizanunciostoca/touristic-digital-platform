@@ -29,6 +29,22 @@
       "risk": "P1",
       "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-02T12:00:00Z"
+    },
+    "MD-DIAG-UX585-SHELL-ERROR-002": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "diag/ux585-shell-stack-v2-20261002",
+      "baseSha": "0d34c5a7538c5d1d594bea803cf990dfec4830bd",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-DIAG-UX585-SHELL-ERROR-002.json",
+        "apps/morro-digital-platform/tooling/control-center-shell-v1-browser-contract.cjs"
+      ],
+      "domains": ["control-center-ux"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T15:00:00Z"
     }
   }
 }
