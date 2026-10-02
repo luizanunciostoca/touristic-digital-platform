@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-RELEASE-FINAL-ATTESTATION-001",
-  "baseSha": "914f68815eb17c99f48a340304d0ef09d5e453d7",
-  "branch": "chore/release-final-attestation-20261002",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "e07534d351a33b6b7ec2231d2cde74b95d8808d9",
+  "branch": "chore/release-final-attestation-retirement-20261002",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
@@ -18,7 +18,11 @@
     "contracts": []
   },
   "produces": {
-    "events": ["RELEASE_CERTIFIED", "STAGING_ACCEPTED", "PRODUCTION_ACCEPTED"],
+    "events": [
+      "RELEASE_CERTIFIED",
+      "STAGING_ACCEPTED",
+      "PRODUCTION_ACCEPTED"
+    ],
     "routes": []
   },
   "database": {
@@ -44,7 +48,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
