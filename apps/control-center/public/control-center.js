@@ -473,6 +473,32 @@ async function readOwnerProjection(path, field) {
   }
 }
 
+async function waitForAffiliateAuditCompletion(
+  affiliateId,
+  programId,
+  operation,
+) {
+  const entityId = `${affiliateId}:${programId}`;
+  const action = `affiliate.membership.${operation}.complete`;
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    const audit = await readOwnerProjection("/audit?limit=250", "entries");
+    if (
+      audit.available &&
+      audit.data.some(
+        (entry) =>
+          entry.entityType === "affiliate_membership" &&
+          entry.entityId === entityId &&
+          entry.action === action,
+      )
+    ) {
+      return;
+    }
+    if (attempt < 14) {
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 100));
+    }
+  }
+}
+
 function ownerProjectionState(moduleState, available) {
   if (!available) return "unavailable";
   return moduleState === "available" || moduleState === "ready"
@@ -1395,7 +1421,7 @@ async function renderBusinessesLegacy(businessId) {
       </div>
     </section>`;
     const commercialContent = `<section class="card section-card">
-      <div class="section-title"><h2>Comercial e financeiro</h2><span class="badge">Consulta</span></div>
+      <div class="section-title"><h2 aria-label="Commercial / Financial">Comercial e financeiro</h2><span class="badge">Consulta</span></div>
       <div class="module-list">
         <div class="module-row"><span>Ofertas oficiais</span>${
           productsResult.available
@@ -1923,7 +1949,12 @@ async function renderAffiliates(affiliateId) {
             body: JSON.stringify({ reason, confirmation }),
           },
         );
-        status.textContent = "Membership atualizada.";
+        status.textContent = "Participação atualizada.";
+        await waitForAffiliateAuditCompletion(
+          affiliateId,
+          programId,
+          operation,
+        );
         await renderAffiliates(affiliateId);
         content.querySelector('[data-entity-tab="relationships"]')?.click();
       } catch (error) {
