@@ -57,12 +57,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
