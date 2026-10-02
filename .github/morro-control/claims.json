@@ -1,5 +1,25 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/hotfix-logo-control-center-staging-claim-20261002",
+      "baseSha": "640f6d5d0309b4557bc4c65884c32af21806e30e",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-HOTFIX-UX-LOGO-CONTROL-CENTER-STAGING-001.json",
+        "Dockerfile",
+        "apps/morro-digital-platform/public/tourist-shell-v2.css",
+        "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
+        "tooling/release/oci-proof.test.mjs"
+      ],
+      "domains": ["ux", "control-center", "release-runtime"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-02T15:00:00Z"
+    }
+  }
 }
