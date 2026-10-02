@@ -13,7 +13,8 @@
       ".github/morro-control/events.ndjson",
       ".morro/changesets/MD-HOTFIX-UX-LOGO-SAFARI-BACKGROUND-001.json",
       "apps/morro-digital-platform/public/tourist-shell-v2.css",
-      "tooling/release/oci-proof.test.mjs"
+      "tooling/release/oci-proof.test.mjs",
+      "apps/morro-digital-platform/tooling/wave-g-webkit-safari-smoke.mjs"
     ],
     "contracts": []
   },
@@ -36,7 +37,8 @@
     "secrets",
     "integration",
     "automated-independent-proof",
-    "exact-head-identity"
+    "exact-head-identity",
+    "webkit-safari-runtime-proof"
   ],
   "requiredCapabilities": [
     "github:read",
@@ -61,7 +63,8 @@
     ],
     "requiredRemoteEvidence": [
       "automated-independent-proof",
-      "exact-head-identity"
+      "exact-head-identity",
+      "webkit-safari-runtime-proof"
     ]
   },
   "stopAt": "REMOTE_PROVEN"
