@@ -55,18 +55,14 @@
     },
     "enterpriseOs": {
       "type": "google-drive-live",
-      "root": "TOURISTIC DIGITAL PLATFORM — DOCUMENTAÇÃO CENTRAL",
       "entry": "AI_START_HERE",
       "authorityMatrix": "SOURCE_OF_TRUTH_MATRIX",
-      "registry": "TDP_REGISTRO_CANONICO_DOCUMENTAL_V1",
-      "role": "documentation-business-process-navigation-authority"
+      "registry": "TDP_REGISTRO_CANONICO_DOCUMENTAL_V1"
     }
   },
   "rules": [
     "recency-alone-does-not-override-domain-authority",
     "runtime-proves-executed-state-not-intended-contract",
-    "memory-is-context-not-authority",
-    "enterprise-os-cannot-override-executable-engineering-governance",
-    "external-provider-state-must-come-from-producer"
+    "memory-is-context-not-authority"
   ]
 }

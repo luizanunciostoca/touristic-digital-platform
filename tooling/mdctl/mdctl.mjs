@@ -96,8 +96,6 @@ export function attachLiveSchedulerState(observed, liveWork, policy) {
       objective: item.changeSet?.objective ?? null,
       state: item.changeSet?.state ?? null,
       trustAuthority: item.trust?.authority ?? null,
-      trustWorkflowRunId: item.trust?.workflowRunId ?? null,
-      trustHeadSha: item.trust?.headSha ?? null,
       invalid: item.invalid ?? null,
     })),
   };

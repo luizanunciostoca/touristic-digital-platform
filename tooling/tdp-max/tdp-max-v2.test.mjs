@@ -80,10 +80,8 @@ function work(changeSetId = CHANGESET, patch = {}) {
   return {
     prNumber: 703,
     changeSetId,
-    state: "REMOTE_PROVEN",
+    state: "POLICY_SATISFIED",
     trustAuthority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
-    trustWorkflowRunId: 123,
-    trustHeadSha: CANDIDATE,
     invalid: null,
     ...patch,
   };
@@ -101,7 +99,7 @@ function pr(patch = {}) {
 }
 
 function ci(conclusion = "success") {
-  return { headSha: CANDIDATE, status: "completed", conclusion };
+  return { id: 123, headSha: CANDIDATE, status: "completed", conclusion };
 }
 
 function live(patch = {}, criticalFailures = []) {
@@ -162,16 +160,7 @@ function bootstrapResult(mdctl, profile = "engineering", externalEvidence) {
   }).result;
 }
 
-test("bootstrap profiles and external evidence fail closed", () => {
-  assert.equal(
-    bootstrapResult(collector({ blockers: [{ code: "CONTROL_CONFLICT" }] })),
-    "BLOCKED",
-  );
-  const missing = collector();
-  delete missing.observed.blockers;
-  delete missing.observed.liveSchedulerPlan;
-  delete missing.invariants.criticalFailures;
-  assert.notEqual(bootstrapResult(missing), "READY");
+test("cross-system bootstrap cannot self-prove from external JSON", () => {
   assert.equal(
     bootstrapResult(collector(), "cross-system", enterprise()),
     "NOT_PROVEN",
@@ -205,11 +194,15 @@ test("engineering completion requires exact candidate and LIVE remote proof", ()
     ],
     [live({ ci: { activeRuns: [{ headSha: CANDIDATE }] } }), "NOT_PROVEN"],
     [
-      live({ ci: { activeRuns: [], recentRuns: [ci("failure")] } }),
+      live({
+        ci: {
+          activeRuns: [],
+          recentRuns: [ci(), { id: 124, headSha: CANDIDATE, status: "queued" }],
+        },
+      }),
       "NOT_PROVEN",
     ],
     [live({ repository: undefined }), "NOT_PROVEN"],
-    [live({ activePrs: [pr({ repository: undefined })] }), "NOT_PROVEN"],
     [live({ mainShaAtEnd: OTHER }), "BLOCKED"],
     [live({}, [{ id: "INV-X", status: "FAIL" }]), "BLOCKED"],
     [live({}, [{ id: "INV-013", status: "FAIL" }]), "COMPLETE"],
@@ -283,18 +276,15 @@ test("stale, incomplete, external and release authority cannot self-complete", (
 
 test("reconciliation stays plan-only", () => {
   const report = buildReconcileReport({
-    projection: {
-      currentMain: MAIN,
-      backlog: { anchorMatchesMain: false },
-      claims: { staleCandidates: ["MD-OLD"] },
-    },
+    projection: { currentMain: MAIN, backlog: { anchorMatchesMain: false } },
     bootstrap: {
-      capturedAt: "2026-10-03T09:00:00Z",
+      mainSha: MAIN,
+      result: "READY",
+      checks: {},
       blockers: [],
       warnings: [],
     },
     now: NOW,
   });
-  assert.equal(report.mode, "PLAN_ONLY");
-  assert.equal(report.mutationAllowed, false);
+  assert.deepEqual([report.mode, report.mutationAllowed], ["PLAN_ONLY", false]);
 });

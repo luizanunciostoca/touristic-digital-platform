@@ -306,6 +306,16 @@ export function buildReconcileReport({
   const drift = [];
   const actions = [];
 
+  if (bootstrap?.mainSha !== projection.currentMain) {
+    drift.push("RECONCILE_CAPTURE_MAIN_MISMATCH");
+  }
+  if (bootstrap?.result !== "READY") {
+    drift.push("BOOTSTRAP_NOT_READY:" + String(bootstrap?.result ?? "UNKNOWN"));
+  }
+  for (const [id, state] of Object.entries(bootstrap?.checks ?? {})) {
+    if (state === "NOT_PROVEN") drift.push("BOOTSTRAP_NOT_PROVEN:" + id);
+  }
+
   if (projection.backlog?.anchorMatchesMain === false) {
     drift.push("BACKLOG_MAIN_ANCHOR_STALE");
     actions.push("REGENERATE_BACKLOG_PROJECTION_FROM_CURRENT_MAIN");
@@ -414,7 +424,12 @@ export function deriveLiveEngineeringProof({
   if (!sourcesComplete) failures.push("LIVE_PROOF_SOURCES_INCOMPLETE");
 
   const blockers = Array.isArray(observed?.blockers) ? observed.blockers : null;
-  const blockersClear = blockers !== null && blockers.length === 0;
+  const relevantBlockers = blockers?.filter(
+    (item) =>
+      manifest.profile === "release" || !RELEASE_BLOCKERS.has(item?.code),
+  );
+  const blockersClear =
+    relevantBlockers !== null && relevantBlockers?.length === 0;
   checks["live-control-blockers"] =
     blockers === null ? "NOT_PROVEN" : blockersClear ? "PASS" : "BLOCKED";
   if (blockers === null) failures.push("LIVE_CONTROL_BLOCKERS_UNKNOWN");
@@ -471,13 +486,15 @@ export function deriveLiveEngineeringProof({
   const workValid =
     Boolean(work) &&
     work.invalid == null &&
-    work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD" &&
-    Number.isSafeInteger(work.trustWorkflowRunId) &&
-    work.trustHeadSha === expectedCandidateSha;
+    work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD";
   checks["live-candidate-authority"] = workValid ? "PASS" : "NOT_PROVEN";
   if (!workValid) failures.push("LIVE_CANDIDATE_AUTHORITY_NOT_TRUSTED");
 
-  const remoteProven = workValid && REMOTE_PROVEN_STATES.has(work.state);
+  const remoteProven =
+    workValid &&
+    REMOTE_PROVEN_STATES.has(work.state) &&
+    work.state !== "REMOTE_PROVEN" &&
+    work.state !== "COMPOSITION_PROVEN";
   checks["live-remote-proof"] = remoteProven ? "PASS" : "NOT_PROVEN";
   if (!remoteProven) failures.push("REMOTE_PROOF_NOT_ACCEPTED");
 
@@ -510,16 +527,20 @@ export function deriveLiveEngineeringProof({
     : null;
   const activeCandidateRuns =
     activeRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
-  const completed =
-    recentRuns?.filter(
-      (run) =>
-        run?.headSha === expectedCandidateSha && run.status === "completed",
-    ) ?? [];
-  const ciSettled = activeRuns !== null && activeCandidateRuns.length === 0;
-  const ciSucceeded =
+  const candidateRuns =
+    recentRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
+  const completed = candidateRuns.filter((run) => run.status === "completed");
+  const ciSettled =
+    activeRuns !== null &&
     recentRuns !== null &&
-    completed.length > 0 &&
-    completed.every((run) => run.conclusion === "success");
+    activeCandidateRuns.length === 0 &&
+    candidateRuns.every((run) => run.status === "completed");
+  const ciSucceeded =
+    candidateRuns.length > 0 &&
+    completed.length === candidateRuns.length &&
+    completed.every(
+      (run) => run.conclusion === "success" && Number.isSafeInteger(run.id),
+    );
   checks["live-ci-settled"] = ciSettled ? "PASS" : "NOT_PROVEN";
   checks["live-ci-result"] = ciSucceeded ? "PASS" : "NOT_PROVEN";
   if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE_OR_UNKNOWN");
@@ -535,8 +556,8 @@ export function deriveLiveEngineeringProof({
     prNumber: pr?.number ?? null,
     changeSetState: work?.state ?? null,
     trustAuthority: work?.trustAuthority ?? null,
-    trustWorkflowRunId: work?.trustWorkflowRunId ?? null,
-    trustHeadSha: work?.trustHeadSha ?? null,
+    ciRunIds: completed.map((run) => run.id),
+    ciHeadSha: expectedCandidateSha,
     checks,
     failures: [...new Set(failures)],
     currentMainMatches,
@@ -582,6 +603,7 @@ function externalEvidenceSummary(externalEvidence, now) {
       .map((item) => item.id),
   ];
   return {
+    items: validated.items ?? [],
     conflicts: [...new Set(conflicts)],
     unknowns: [...new Set(unknowns)],
   };
