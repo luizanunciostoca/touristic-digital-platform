@@ -22,23 +22,61 @@
     "metrics"
   ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "incidentId": { "type": "string", "minLength": 1 },
-    "occurrenceId": { "type": "string", "minLength": 1 },
-    "fingerprint": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "schemaVersion": {
+      "const": 1
+    },
+    "incidentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occurrenceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
     "rootCauseFingerprint": {
       "type": ["string", "null"],
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
-    "failureClass": { "type": "string", "minLength": 1 },
-    "severity": { "enum": ["low", "medium", "high", "critical"] },
-    "operation": { "type": ["string", "null"] },
-    "domain": { "type": "string", "minLength": 1 },
-    "environment": { "type": "string", "minLength": 1 },
-    "expected": { "type": "string" },
-    "observed": { "type": "string" },
-    "sources": { "type": "array", "items": { "type": "object" } },
-    "evidenceRefs": { "type": "array", "items": { "type": "string" } },
+    "failureClass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "operation": {
+      "type": ["string", "null"]
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environment": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected": {
+      "type": "string"
+    },
+    "observed": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
     "state": {
       "enum": [
         "OBSERVED",
@@ -55,11 +93,23 @@
         "SUPERSEDED"
       ]
     },
-    "rootCause": { "type": ["string", "null"] },
-    "preventionState": { "type": "string" },
-    "guardId": { "type": ["string", "null"] },
-    "firstOccurrence": { "type": "string", "format": "date-time" },
-    "lastOccurrence": { "type": "string", "format": "date-time" },
+    "rootCause": {
+      "type": ["string", "null"]
+    },
+    "preventionState": {
+      "type": "string"
+    },
+    "guardId": {
+      "type": ["string", "null"]
+    },
+    "firstOccurrence": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lastOccurrence": {
+      "type": "string",
+      "format": "date-time"
+    },
     "metrics": {
       "type": "object",
       "required": [
@@ -69,13 +119,33 @@
         "falsePositiveCount"
       ],
       "properties": {
-        "occurrencesBeforeGuard": { "type": "integer", "minimum": 0 },
-        "occurrencesAfterGuard": { "type": "integer", "minimum": 0 },
-        "preventedCount": { "type": "integer", "minimum": 0 },
-        "falsePositiveCount": { "type": "integer", "minimum": 0 },
-        "lastGuardTrigger": { "type": ["string", "null"] },
-        "meanTimeToRootCause": { "type": ["number", "null"], "minimum": 0 },
-        "meanTimeToPrevention": { "type": ["number", "null"], "minimum": 0 },
+        "occurrencesBeforeGuard": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occurrencesAfterGuard": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "preventedCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "falsePositiveCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastGuardTrigger": {
+          "type": ["string", "null"]
+        },
+        "meanTimeToRootCause": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "meanTimeToPrevention": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
         "guardEffectiveness": {
           "enum": [
             "EFFECTIVE",
@@ -86,6 +156,35 @@
           ]
         }
       }
+    },
+    "occurrenceIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recurrenceAfterGuard": {
+      "type": "boolean"
+    },
+    "guardActivationAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "guardRevision": {
+      "type": ["string", "null"]
+    },
+    "proofReference": {
+      "type": ["string", "null"]
+    },
+    "materialOutcome": {
+      "type": ["string", "null"]
+    },
+    "retry": {
+      "type": ["object", "null"]
     }
   }
 }

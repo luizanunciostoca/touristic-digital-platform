@@ -13,11 +13,14 @@ export const detectors = {
     ),
   DIRTY_SHARED_WORKTREE: ({ observation: o }) =>
     pass(o.worktreeDirty === true, o.worktreeDirty == null),
-  STALE_CLAIM: ({ observation: o }) =>
-    pass(
-      Date.parse(o.claimExpiresAt) <= Date.parse(o.now),
-      !o.claimExpiresAt || !o.now,
-    ),
+  STALE_CLAIM: ({ observation: o }) => {
+    const expiry = Date.parse(o.claimExpiresAt),
+      now = Date.parse(o.now);
+    return pass(
+      expiry <= now,
+      !Number.isFinite(expiry) || !Number.isFinite(now),
+    );
+  },
   FALSE_CI_GREEN: ({ observation: o }) =>
     pass(o.ciGreen === true && o.semanticProof !== true, o.ciGreen == null),
   NO_JOBS_RUN: ({ observation: o }) =>
@@ -71,11 +74,14 @@ export const detectors = {
     ),
   REMOTE_RESULT_FALSE_POSITIVE: ({ observation: o }) =>
     pass(o.remoteExit === 0 && o.postcondition !== true, o.remoteExit == null),
-  STALE_DR_PROOF: ({ observation: o }) =>
-    pass(
-      Date.parse(o.drProofAt) < Date.parse(o.lastDrInvalidationAt),
-      !o.drProofAt || !o.lastDrInvalidationAt,
-    ),
+  STALE_DR_PROOF: ({ observation: o }) => {
+    const proof = Date.parse(o.drProofAt),
+      invalidated = Date.parse(o.lastDrInvalidationAt);
+    return pass(
+      proof < invalidated,
+      !Number.isFinite(proof) || !Number.isFinite(invalidated),
+    );
+  },
   TECHNICALLY_READY_NOT_AUTHORIZED: ({ observation: o }) =>
     pass(
       o.technicallyReady === true && o.authorized !== true,

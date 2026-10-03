@@ -101,8 +101,12 @@ export function promoteGuard(incident, proof) {
     "candidateBinding",
     "freshness",
     "validatorRevision",
+    "guardId",
+    "activatedAt",
   ])
     if (!proof?.[key]) throw new Error("GUARD_PROMOTION_PROOF_MISSING:" + key);
+  if (!Number.isFinite(Date.parse(proof.activatedAt)))
+    throw new Error("GUARD_ACTIVATION_TIMESTAMP_INVALID");
   return {
     ...incident,
     state: "ACTIVE_GUARD",
@@ -114,7 +118,7 @@ export function promoteGuard(incident, proof) {
 }
 export function closeIncident(incident, outcome) {
   if (!outcome?.materialOutcome) throw new Error("NO_SILENT_FAILURE");
-  if (!TERMINAL.has(outcome.state) && outcome.state !== "ACTIVE_GUARD")
+  if (!TERMINAL.has(outcome.state))
     throw new Error("INCIDENT_FINAL_STATE_REQUIRED");
   return {
     ...incident,

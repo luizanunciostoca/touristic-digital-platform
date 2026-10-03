@@ -138,3 +138,39 @@ test("all canonical anti-recurrence classes have executable detectors", async ()
       ["PASS", "BLOCK", "NOT_PROVEN"].includes(detector({ observation: {} })),
     );
 });
+
+test("active guard cannot bypass promotion and malformed timestamps fail closed", async () => {
+  assert.throws(() =>
+    closeIncident(
+      { state: "OBSERVED" },
+      { state: "ACTIVE_GUARD", materialOutcome: "done" },
+    ),
+  );
+  assert.throws(() =>
+    promoteGuard(
+      { ...base, state: "PREVENTION_PROVEN", rootCause: "x" },
+      {
+        regressionTest: "t",
+        independentProof: "p",
+        candidateBinding: "sha",
+        freshness: "fresh",
+        validatorRevision: "v1",
+        guardId: "AR-X",
+        activatedAt: "bad",
+      },
+    ),
+  );
+  const { detectors } = await import("./detectors.mjs");
+  assert.equal(
+    detectors.STALE_CLAIM({
+      observation: { claimExpiresAt: "bad", now: "bad" },
+    }),
+    "NOT_PROVEN",
+  );
+  assert.equal(
+    detectors.STALE_DR_PROOF({
+      observation: { drProofAt: "bad", lastDrInvalidationAt: "bad" },
+    }),
+    "NOT_PROVEN",
+  );
+});
