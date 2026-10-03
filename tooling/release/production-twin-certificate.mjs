@@ -67,6 +67,7 @@ export function productionTwinCertificateMatches(evidence, expected) {
     evidence?.image?.immutable === true &&
     evidence?.productionSample?.schemaCount === 13 &&
     evidence?.productionSample?.totalTables === 95 &&
+    evidence?.productionSample?.businessTables === 15 &&
     evidence?.twin?.runtimePredeploy?.status === "pass" &&
     evidence?.twin?.runtimePredeploy?.domainCount === 13 &&
     evidence?.twin?.runtimePredeploy?.totalTables === 95 &&
