@@ -51,20 +51,14 @@ function evidence(overrides = {}) {
       runId: identity.imageRunId,
       immutable: true,
     },
-    productionSample: { schemaCount: 13, totalTables: 95 },
+    productionSample: { schemaCount: 13, totalTables: 91 },
     twin: {
       noEgress: true,
       runtimeProbe: "docker-exec-loopback",
       syntheticReleaseIdentity: true,
       healthyReadiness: true,
-      runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 95 },
+      runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 91 },
       paymentsPredeploy: { status: "pass", checkoutMode: "test" },
-      ticketing: {
-        featureEnabled: true,
-        readiness: "pass",
-        inventoryHttpStatus: 200,
-        inventoryCount: 0,
-      },
     },
     persistence: {
       write: "stored",
@@ -125,12 +119,6 @@ test("rejects certificates that weaken isolation or safety boundaries", () => {
     },
     (value) => {
       value.twin.healthyReadiness = false;
-    },
-    (value) => {
-      value.twin.ticketing.readiness = "fail";
-    },
-    (value) => {
-      value.twin.ticketing.featureEnabled = false;
     },
   ];
 
@@ -194,13 +182,6 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "MORRO_RELEASE_VERSION=$expected_sha",
     "MORRO_DEPLOYMENT_ID=production-twin-",
     "COMMERCE_FEATURE_ENABLED=true",
-    "TICKETING_FEATURE_ENABLED=true",
-    "TICKETING_SIGNING_SECRET=twin-ticketing-signing-secret-",
-    'name == "ticketing-runtime" and .status == "pass"',
-    "/api/ticketing/v1/inventory",
-    "TWIN_TICKETING_INVENTORY_EVIDENCE_INVALID",
-    "ticketing:{",
-    "inventoryHttpStatus:200",
     "TWIN_RELEASE_IDENTITY_INVALID",
     "TWIN_APP_READINESS_DEGRADED",
     '.status == "healthy"',
@@ -248,7 +229,6 @@ test("production twin executor is syntactically valid and no-egress", () => {
     "MERCADO_PAGO_CHECKOUT_MODE=production",
     "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=true",
     "PAYMENTS_SUBSCRIPTIONS_ENABLED=true",
-    "TICKETING_FEATURE_ENABLED=false",
     "-p 127.0.0.1:18080:3000",
     "http://127.0.0.1:18080",
     'cat "$work_root/write.json" >&2',
