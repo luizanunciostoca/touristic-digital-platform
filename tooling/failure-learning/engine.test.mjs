@@ -52,11 +52,12 @@ test("guard promotion requires prevention proof", () => {
     { ...base, state: "PREVENTION_PROVEN", rootCause: "missing preflight" },
     {
       guardId: "AR-022",
-      regressionTest: "t",
-      independentProof: "p",
-      candidateBinding: "sha",
-      freshness: "fresh",
-      validatorRevision: "v1",
+      regressionTest:
+        "https://github.com/o/r/blob/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/tooling/failure-learning/engine.test.mjs",
+      independentProof: "https://github.com/o/r/actions/runs/123",
+      candidateBinding: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      freshness: "FRESH",
+      validatorRevision: "sha256:" + "b".repeat(64),
       activatedAt: "2026-10-03T11:00:00Z",
     },
   );
@@ -239,4 +240,47 @@ test("occurrence replay conflict, metadata overwrite and out-of-order history ar
   assert.equal(z.recurrenceAfterGuard, true);
   assert.equal(z.firstOccurrence, "2026-10-03T10:00:00Z");
   assert.equal(z.lastOccurrence, "2026-10-03T12:30:00Z");
+});
+
+test("guard proof identities and executor positive auth are fail closed", async () => {
+  const valid = {
+    regressionTest:
+      "https://github.com/o/r/blob/" +
+      "a".repeat(40) +
+      "/tooling/failure-learning/engine.test.mjs",
+    independentProof: "https://github.com/o/r/actions/runs/123",
+    candidateBinding: "a".repeat(40),
+    freshness: "FRESH",
+    validatorRevision: "sha256:" + "b".repeat(64),
+    guardId: "AR-X",
+    activatedAt: "2026-10-03T11:00:00Z",
+  };
+  const incident = { ...base, state: "PREVENTION_PROVEN", rootCause: "x" };
+  for (const key of [
+    "regressionTest",
+    "independentProof",
+    "candidateBinding",
+    "freshness",
+    "validatorRevision",
+  ])
+    assert.throws(() =>
+      promoteGuard(incident, { ...valid, [key]: "placeholder" }),
+    );
+  const { codexAuthPreflight, authorizeDispatch } =
+    await import("./executor-preflight.mjs");
+  assert.equal(
+    codexAuthPreflight(() => ({ status: 0, stdout: "", stderr: "" }))
+      .authenticated,
+    false,
+  );
+  assert.equal(
+    authorizeDispatch(
+      codexAuthPreflight(() => ({
+        status: 0,
+        stdout: "Logged in",
+        stderr: "",
+      })),
+    ).result,
+    "PASS",
+  );
 });

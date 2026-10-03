@@ -4,7 +4,10 @@ export function codexAuthPreflight(run = spawnSync) {
   const evidence = String(r.stdout ?? "") + "\n" + String(r.stderr ?? "");
   return {
     executor: "codex",
-    authenticated: r.status === 0 && !/not logged in/i.test(evidence),
+    authenticated:
+      r.status === 0 &&
+      /logged in|authenticated/i.test(evidence) &&
+      !/not logged in|unauthenticated/i.test(evidence),
     status: r.status,
     evidence: evidence.trim(),
   };
