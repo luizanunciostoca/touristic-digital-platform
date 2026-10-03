@@ -160,9 +160,9 @@ function hasEnterpriseAuthority(authorityMap) {
   const value = authorityMap?.authorities?.enterpriseOs;
   return Boolean(
     authorityMap?.mode === "projection" &&
-      value?.type === "google-drive-live" &&
-      value?.entry === "AI_START_HERE" &&
-      value?.authorityMatrix === "SOURCE_OF_TRUTH_MATRIX",
+    value?.type === "google-drive-live" &&
+    value?.entry === "AI_START_HERE" &&
+    value?.authorityMatrix === "SOURCE_OF_TRUTH_MATRIX",
   );
 }
 
