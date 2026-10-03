@@ -36,15 +36,22 @@ test("production data predeploy keeps the governed 72-place convergence sequence
 });
 
 test("production data predeploy fails closed outside the private owner worker", () => {
-  const result = spawnSync(process.execPath, [sourcePath], {
+  const modulePath =
+    "./apps/" +
+    "morro-digital-platform/tooling/production-runtime-data-predeploy.mjs";
+  const program = [
+    `import(${JSON.stringify(modulePath)})`,
+    '.then((module) => module.runProductionRuntimeDataPredeploy({ environment: { RENDER_SERVICE_NAME: "morro-digital-v2" }, runners: {} }))',
+    '.then(() => { process.exitCode = 9; })',
+    '.catch((error) => { process.stderr.write(String(error?.message ?? error)); process.exitCode = 1; });',
+  ].join("");
+
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", program], {
     encoding: "utf8",
-    env: {
-      ...process.env,
-      RENDER_SERVICE_NAME: "morro-digital-v2",
-    },
+    env: process.env,
   });
 
-  assert.notEqual(result.status, 0);
+  assert.equal(result.status, 1);
   assert.match(
     result.stderr,
     /PRODUCTION_RUNTIME_DATA_PREDEPLOY_SERVICE_DENIED/u,
