@@ -1,27 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-RELEASE-RUNTIME-PARITY-TWIN-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/runtime-parity-release-twin-001-20261003",
-      "baseSha": "f54887e373f2818d821f097c331e8e67fb05d567",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-TWIN-001.json",
-        ".github/workflows/production-mysql-backup-restore-proof.yml",
-        ".github/workflows/production-mysql-canonical-bootstrap.yml",
-        ".github/workflows/production-oci-promotion.yml",
-        "tooling/release/production-twin-certification.sh",
-        "tooling/release/production-twin-certificate.mjs",
-        "tooling/quality/production-twin-certification-contract.test.mjs"
-      ],
-      "domains": ["release", "database", "dr", "production"],
-      "risk": "P0",
-      "status": "LOCAL_PROVEN",
-      "expiresAt": "2026-10-03T08:00:00Z"
-    }
-  }
+  "claims": {}
 }
