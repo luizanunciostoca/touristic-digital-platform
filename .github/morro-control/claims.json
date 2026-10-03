@@ -5,8 +5,8 @@
     "MD-TDP-MAX-002": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/tdp-max-002-acquire-20261003",
-      "baseSha": "05a292c4800e907d69a53ef8c0bbd2f56ef0f4e6",
+      "branch": "infra/tdp-max-002-impl-20261003",
+      "baseSha": "7fac51f1a3c1309cead0a0dc663800a503160b21",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -18,7 +18,7 @@
       "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-03T15:23:21Z"
+      "expiresAt": "2026-10-03T15:32:05Z"
     }
   }
 }
