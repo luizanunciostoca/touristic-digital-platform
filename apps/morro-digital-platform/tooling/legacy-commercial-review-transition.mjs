@@ -121,12 +121,16 @@ async function loadMarkers(pool) {
 }
 
 function validateMarker(marker, row) {
+  const expectedRevision =
+    String(row.publication_state) === "published"
+      ? Number(row.published_revision)
+      : Number(row.editable_revision);
   if (
     String(marker.source_system) !== SOURCE_SYSTEM ||
     String(marker.source_key) !== String(row.source_key) ||
     String(marker.business_id) !== String(row.business_id) ||
     String(marker.place_id) !== String(row.place_id) ||
-    Number(marker.editable_revision) !== Number(row.editable_revision)
+    Number(marker.editable_revision) !== expectedRevision
   ) {
     throw new Error("LEGACY_REVIEW_TRANSITION_MARKER_DRIFT");
   }
