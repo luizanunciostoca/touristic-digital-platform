@@ -83,7 +83,7 @@
         "argv": [
           "node",
           "--test",
-          "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.test.mjs"
+          "tooling/render/production-runtime-data-predeploy.test.mjs"
         ],
         "timeoutSeconds": 300
       },
