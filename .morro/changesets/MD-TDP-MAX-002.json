@@ -31,9 +31,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-TDP-MAX-001"
-  ],
+  "dependencies": ["MD-TDP-MAX-001"],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -56,12 +54,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
@@ -71,20 +64,12 @@
     "commands": [
       {
         "id": "tdp-max-contract",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/tdp-max/validate-config.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/tdp-max/validate-config.test.mjs"],
         "timeoutSeconds": 300
       },
       {
         "id": "tdp-max-v2-contract",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/tdp-max/tdp-max-v2.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/tdp-max/tdp-max-v2.test.mjs"],
         "timeoutSeconds": 300
       }
     ],
