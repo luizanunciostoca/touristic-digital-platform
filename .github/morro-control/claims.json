@@ -15,8 +15,7 @@
         "render.yaml",
         "tooling/render/**",
         "tooling/quality/**",
-        "apps/morro-digital-platform/tooling/**",
-        "tooling/release/**"
+        "apps/morro-digital-platform/tooling/**"
       ],
       "domains": [
         "release",
