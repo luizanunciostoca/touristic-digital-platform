@@ -116,6 +116,16 @@ function emit(value, failed = false) {
 }
 
 function run(options) {
+  const originMatch = runGit("remote", "get-url", "origin").match(
+    /^(?:https:\/\/github\.com\/|git@github\.com:)([^/\s]+\/[^/\s]+?)(?:\.git)?$/u,
+  );
+  assert.ok(originMatch, "TDP_MAX_GITHUB_ORIGIN_REQUIRED");
+  const expectedRepository = originMatch[1];
+  assert.equal(
+    options.repository,
+    expectedRepository,
+    "TDP_MAX_REPOSITORY_OVERRIDE",
+  );
   if (options.command === "bootstrap") {
     const { report } = bootstrap(options);
     return emit(report, ["BLOCKED", "NOT_PROVEN"].includes(report.result));
@@ -145,15 +155,6 @@ function run(options) {
     "TDP_MAX_GIT_HEAD_INVALID",
   );
   assert.ok(expectedBranch, "TDP_MAX_GIT_BRANCH_REQUIRED");
-  const originUrl = runGit("remote", "get-url", "origin");
-  const expectedRepository = originUrl
-    .replace(/^.*github\.com[:/]/u, "")
-    .replace(/\.git$/u, "");
-  assert.equal(
-    options.repository,
-    expectedRepository,
-    "TDP_MAX_REPOSITORY_OVERRIDE",
-  );
   validateEvidenceManifest(manifest);
   const report = evaluateFinalGate({
     manifest,

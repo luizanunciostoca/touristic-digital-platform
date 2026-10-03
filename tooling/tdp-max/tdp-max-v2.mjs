@@ -2,16 +2,11 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
 const SHA = /^[0-9a-f]{40}$/u;
-const EVIDENCE_STATUSES = new Set([
-  "VERIFIED",
-  "INFERRED",
-  "UNKNOWN",
-  "STALE",
-  "HISTORICAL",
-  "SUPERSEDED",
-  "CONFLICT",
-  "N/A",
-]);
+const EVIDENCE_STATUSES = new Set(
+  "VERIFIED INFERRED UNKNOWN STALE HISTORICAL SUPERSEDED CONFLICT N/A".split(
+    " ",
+  ),
+);
 const PROFILES = new Set(["engineering", "cross-system", "release"]);
 const RELEASE_BLOCKERS = new Set([
   "RUNTIME_NOT_CONFIGURED",
@@ -226,8 +221,7 @@ export function buildBootstrapReport({
 
   const enterprise = enterpriseEvidence(external);
   if (profile === "cross-system") {
-    checks["enterprise-os-live"] =
-      enterprise?.status === "VERIFIED" ? "PASS" : "NOT_PROVEN";
+    checks["enterprise-os-live"] = "NOT_PROVEN";
   } else if (enterprise) {
     checks["enterprise-os-live"] =
       enterprise.status === "VERIFIED" ? "PASS" : "WARN";
@@ -509,26 +503,37 @@ export function deriveLiveEngineeringProof({
   const activeRuns = Array.isArray(observed?.ci?.activeRuns)
     ? observed.ci.activeRuns
     : null;
+  const recentRuns = Array.isArray(observed?.ci?.recentRuns)
+    ? observed.ci.recentRuns
+    : null;
   const activeCandidateRuns =
-    activeRuns?.filter((run) => run?.headSha === manifest?.candidateSha) ?? [];
+    activeRuns?.filter((run) => run?.headSha === expectedCandidateSha) ?? [];
+  const completed =
+    recentRuns?.filter(
+      (run) =>
+        run?.headSha === expectedCandidateSha && run.status === "completed",
+    ) ?? [];
   const ciSettled = activeRuns !== null && activeCandidateRuns.length === 0;
-  checks["live-ci-settled"] =
-    activeRuns === null ? "NOT_PROVEN" : ciSettled ? "PASS" : "NOT_PROVEN";
-  if (activeRuns === null) failures.push("CANDIDATE_CI_STATE_UNKNOWN");
-  else if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE");
+  const ciSucceeded =
+    recentRuns !== null &&
+    completed.some((run) => run.conclusion === "success") &&
+    !completed.some((run) =>
+      ["failure", "cancelled", "timed_out", "action_required"].includes(
+        run.conclusion,
+      ),
+    );
+  checks["live-ci-settled"] = ciSettled ? "PASS" : "NOT_PROVEN";
+  checks["live-ci-result"] = ciSucceeded ? "PASS" : "NOT_PROVEN";
+  if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE_OR_UNKNOWN");
+  if (!ciSucceeded) failures.push("CANDIDATE_CI_RESULT_NOT_PROVEN");
 
   const controlsClear = blockersClear && schedulerClear && invariantsClear;
 
   return {
     schemaVersion: 1,
     kind: "TDP_MAX_LIVE_ENGINEERING_PROOF_V1",
-    capturedAt: observed?.generatedAt ?? null,
     repository: observed?.repository ?? null,
     mainSha: observed?.mainSha ?? null,
-    candidateSha: manifest?.candidateSha ?? null,
-    expectedCandidateSha: expectedCandidateSha ?? null,
-    expectedBranch: expectedBranch ?? null,
-    changeSetId: manifest?.changeSetId ?? null,
     prNumber: pr?.number ?? null,
     changeSetState: work?.state ?? null,
     trustAuthority: work?.trustAuthority ?? null,
@@ -549,13 +554,14 @@ export function deriveLiveEngineeringProof({
       workValid &&
       remoteProven &&
       invariantsClear &&
-      ciSettled,
+      ciSettled &&
+      ciSucceeded,
   };
 }
 
 function externalEvidenceSummary(externalEvidence, now) {
   if (!externalEvidence) {
-    return { conflicts: [], unknowns: [], enterpriseStatus: "MISSING" };
+    return { conflicts: [], unknowns: [] };
   }
   const validated = validateExternalEvidenceBundle(externalEvidence, now);
   const conflicts = [
@@ -577,7 +583,6 @@ function externalEvidenceSummary(externalEvidence, now) {
   return {
     conflicts: [...new Set(conflicts)],
     unknowns: [...new Set(unknowns)],
-    enterpriseStatus: enterpriseEvidence(validated)?.status ?? "MISSING",
   };
 }
 

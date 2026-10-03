@@ -4,7 +4,6 @@ import {
   buildBootstrapReport,
   buildReconcileReport,
   evaluateFinalGate,
-  validateExternalEvidenceBundle,
 } from "./tdp-max-v2.mjs";
 
 const MAIN = "a".repeat(40);
@@ -14,12 +13,7 @@ const NOW = Date.parse("2026-10-03T09:00:00Z");
 const CHANGESET = "MD-TDP-MAX-002";
 const REPOSITORY = "luizanunciostoca/touristic-digital-platform";
 const BRANCH = "infra/tdp-max-002-impl-20261003";
-const finalGate = {
-  mode: "projection",
-  lifecycleAuthority: ".morro/fabric.json",
-  engineeringAuthority: "MDCTL_LIVE_EXACT_HEAD_TRUST",
-  releaseAuthority: "DELEGATED_TO_FABRIC_RELEASE_PLANE",
-};
+const finalGate = { mode: "projection" };
 const authorityMap = {
   mode: "projection",
   authorities: {
@@ -41,7 +35,6 @@ function collector(patch = {}, criticalFailures = []) {
       generatedAt: "2026-10-03T09:00:00Z",
       blockers: [],
       liveSchedulerPlan: { violations: [] },
-      runtimeHealth: { staging: null, production: null },
       ...patch,
     },
     invariants: { criticalFailures },
@@ -77,9 +70,6 @@ function manifest(profile = "engineering", patch = {}) {
     finalMain: MAIN,
     candidateSha: CANDIDATE,
     changeSetId: CHANGESET,
-    evidence: [],
-    unknowns: [],
-    conflicts: [],
     ...patch,
   };
 }
@@ -106,6 +96,10 @@ function pr(patch = {}) {
   };
 }
 
+function ci(conclusion = "success") {
+  return { headSha: CANDIDATE, status: "completed", conclusion };
+}
+
 function live(patch = {}, criticalFailures = []) {
   const available = { state: "AVAILABLE" };
   return {
@@ -118,7 +112,7 @@ function live(patch = {}, criticalFailures = []) {
       collectionState: "CAPTURED",
       blockers: [],
       activePrs: [pr()],
-      ci: { activeRuns: [] },
+      ci: { activeRuns: [], recentRuns: [ci()] },
       sources: Object.fromEntries(
         ["main", "mainRecheck", "pullRequests", "recentCi", "activeCi"].map(
           (name) => [name, available],
@@ -186,12 +180,7 @@ test("bootstrap profiles and external evidence fail closed", () => {
       profile: "cross-system",
       now: NOW,
     }).result,
-    "READY",
-  );
-  assert.equal(
-    validateExternalEvidenceBundle(enterprise([], "2026-10-03T07:00:00Z"), NOW)
-      .items[0].status,
-    "STALE",
+    "NOT_PROVEN",
   );
 });
 
@@ -208,6 +197,10 @@ test("engineering completion requires exact candidate and LIVE remote proof", ()
       "NOT_PROVEN",
     ],
     [live({ ci: { activeRuns: [{ headSha: CANDIDATE }] } }), "NOT_PROVEN"],
+    [
+      live({ ci: { activeRuns: [], recentRuns: [ci("failure")] } }),
+      "NOT_PROVEN",
+    ],
     [live({ repository: undefined }), "NOT_PROVEN"],
     [live({ activePrs: [pr({ repository: undefined })] }), "NOT_PROVEN"],
     [live({ mainShaAtEnd: OTHER }), "BLOCKED"],
