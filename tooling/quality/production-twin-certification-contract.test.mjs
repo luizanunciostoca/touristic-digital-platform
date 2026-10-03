@@ -51,13 +51,13 @@ function evidence(overrides = {}) {
       runId: identity.imageRunId,
       immutable: true,
     },
-    productionSample: { schemaCount: 13, totalTables: 91 },
+    productionSample: { schemaCount: 13, totalTables: 95, businessTables: 15 },
     twin: {
       noEgress: true,
       runtimeProbe: "docker-exec-loopback",
       syntheticReleaseIdentity: true,
       healthyReadiness: true,
-      runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 91 },
+      runtimePredeploy: { status: "pass", domainCount: 13, totalTables: 95 },
       paymentsPredeploy: { status: "pass", checkoutMode: "test" },
     },
     persistence: {
@@ -107,6 +107,9 @@ test("rejects certificates that weaken isolation or safety boundaries", () => {
   const mutations = [
     (value) => {
       value.safety.railwayTouched = true;
+    },
+    (value) => {
+      value.productionSample.businessTables = 14;
     },
     (value) => {
       value.twin.noEgress = false;

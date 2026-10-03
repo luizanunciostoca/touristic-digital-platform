@@ -236,7 +236,7 @@ jobs:
                  .bootstrap.expectedSha == $sha and
                  .bootstrap.idempotent == true and
                  .bootstrap.runs == 2 and
-                 .bootstrap.totalTables == 91'                 "$evidence" >/dev/null 2>&1
+                 .bootstrap.totalTables == 95'                 "$evidence" >/dev/null 2>&1
               then
                 bootstrap_run_id="$candidate_run"
                 break
@@ -268,7 +268,7 @@ jobs:
                .bootstrap.expectedSha == $sha and
                .bootstrap.idempotent == true and
                .bootstrap.runs == 2 and
-               .bootstrap.totalTables == 91'               "$evidence" >/dev/null
+               .bootstrap.totalTables == 95'               "$evidence" >/dev/null
           fi
 
           staging_run_id="$(
@@ -317,10 +317,10 @@ jobs:
              .toolSha == $sha and
              .sourceSha == $sha and
              .source.schemaCount == 13 and
-             .source.totalTables == 91 and
+             .source.totalTables == 95 and
              .source.stableDuringBackup == true and
              .restore.schemaCount == 13 and
-             .restore.totalTables == 91 and
+             .restore.totalTables == 95 and
              .restore.rowCountsMatch == true and
              .restore.checksumsMatch == true and
              .restore.leastPrivilegeReadback == true'             "$dr_evidence" >/dev/null
@@ -513,9 +513,9 @@ jobs:
              .runId == $run and
              .sourceSha == $sha and
              .source.schemaCount == 13 and
-             .source.totalTables == 91 and
+             .source.totalTables == 95 and
              .restore.schemaCount == 13 and
-             .restore.totalTables == 91 and
+             .restore.totalTables == 95 and
              .restore.rowCountsMatch == true and
              .restore.checksumsMatch == true and
              .restore.leastPrivilegeReadback == true'             "$evidence" >/dev/null

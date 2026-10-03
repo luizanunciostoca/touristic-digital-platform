@@ -66,10 +66,11 @@ export function productionTwinCertificateMatches(evidence, expected) {
     text(evidence?.image?.runId) === identity.imageRunId &&
     evidence?.image?.immutable === true &&
     evidence?.productionSample?.schemaCount === 13 &&
-    evidence?.productionSample?.totalTables === 91 &&
+    evidence?.productionSample?.totalTables === 95 &&
+    evidence?.productionSample?.businessTables === 15 &&
     evidence?.twin?.runtimePredeploy?.status === "pass" &&
     evidence?.twin?.runtimePredeploy?.domainCount === 13 &&
-    evidence?.twin?.runtimePredeploy?.totalTables === 91 &&
+    evidence?.twin?.runtimePredeploy?.totalTables === 95 &&
     evidence?.twin?.paymentsPredeploy?.status === "pass" &&
     evidence?.twin?.paymentsPredeploy?.checkoutMode === "test" &&
     evidence?.twin?.noEgress === true &&

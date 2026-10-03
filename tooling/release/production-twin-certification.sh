@@ -133,10 +133,11 @@ jq -e   --arg sha "$expected_sha"   --arg run "$dr_run_id" '
     .toolSha == $sha and
     .sourceSha == $sha and
     .source.schemaCount == 13 and
-    .source.totalTables == 91 and
+    .source.totalTables == 95 and
     .source.stableDuringBackup == true and
     .restore.schemaCount == 13 and
-    .restore.totalTables == 91 and
+    .restore.totalTables == 95 and
+    .restore.businessTables == 15 and
     .restore.rowCountsMatch == true and
     .restore.checksumsMatch == true and
     .restore.leastPrivilegeReadback == true
@@ -174,7 +175,8 @@ docker exec -i "$mysql_container"   mysql --user=root --password="$root_password
 
 schema_count="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   -e "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME LIKE 'morro\\_%' ESCAPE '\\\\';")"
 table_count="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA LIKE 'morro\\_%' ESCAPE '\\\\' AND TABLE_TYPE='BASE TABLE';")"
-[[ "$schema_count" == "13" && "$table_count" == "91" ]] || fail "TWIN_DATABASE_INVENTORY_INVALID"
+business_table_count="$(docker exec "$mysql_container" mysql   --user=root --password="$root_password" --batch --skip-column-names   -e "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='morro_business' AND TABLE_TYPE='BASE TABLE';")"
+[[ "$schema_count" == "13" && "$table_count" == "95" && "$business_table_count" == "15" ]] || fail "TWIN_DATABASE_INVENTORY_INVALID"
 
 : >"$env_file"
 printf '%s\n'   "NODE_ENV=production"   "HOST=0.0.0.0"   "PORT=3000"   "RENDER_SERVICE_NAME=morro-digital-v2"   "EXPECTED_SHA=$expected_sha"   "MORRO_RELEASE_SHA=$expected_sha"   "MORRO_RELEASE_VERSION=$expected_sha"   "MORRO_DEPLOYMENT_ID=production-twin-${GITHUB_RUN_ID:-local}"   "MORRO_RELEASE_IMAGE_RUN_ID=$image_run_id"   "MORRO_DATABASE_SCHEMA_MODE=external"   "COMMERCE_FEATURE_ENABLED=true"   "DASHBOARD_AUTH_SECRET=twin-dashboard-auth-secret-0123456789abcdef"   "DASHBOARD_AUTH_ORIGIN=https://twin.morro.invalid"   "DASHBOARD_ADMIN_GLOBAL_BYPASS_CONFIRMED=false"   "DASHBOARD_SESSION_TTL_SECONDS=28800"   "CONTROL_CENTER_SUPPORT_SECRET=twin-control-support-secret-0123456789abcdef"   "CONTROL_CENTER_STEP_UP_SECRET=twin-control-step-up-secret-0123456789abcdef"   "ANALYTICS_FEATURE_ENABLED=true"   "ANALYTICS_RETENTION_DAYS=90"   "NOTIFICATIONS_FEATURE_ENABLED=false"   "TICKETING_FEATURE_ENABLED=false"   "TICKETING_OFFLINE_PROVISIONING_SECRET=twin-ticketing-offline-secret-0123456789abcdef"   "ORDERING_PRICING_CATALOG_JSON={\"version\":\"production-twin-v1\",\"plans\":[{\"id\":\"growth\",\"name\":\"Growth\",\"minorUnits\":5000,\"currency\":\"BRL\"}]}"   "PAYMENTS_DESTINATION_ID=morro-de-sao-paulo"   "PAYMENTS_STATUS_TOKEN_SECRET=twin-payment-status-secret-0123456789abcdef"   "PAYMENTS_HANDOFF_SECRET=twin-payment-handoff-secret-0123456789abcdef"   "PAYMENTS_RETURN_URL_ORIGINS=https://twin.morro.invalid"   "PAYMENTS_PROVIDER_MODE=mercado_pago"   "MERCADO_PAGO_CHECKOUT_MODE=test"   "MERCADO_PAGO_TEST_CREDENTIALS_CONFIRMED=true"   "MERCADO_PAGO_PRODUCTION_CREDENTIALS_CONFIRMED=false"   "MERCADO_PAGO_CHECKOUT_ORIGINS=https://sandbox.mercadopago.com"   "V1_PAYMENT_PROVIDER_API_URL=https://api.mercadopago.com"   "MERCADO_PAGO_ACCESS_TOKEN=TEST-TWIN-ACCESS-TOKEN-0123456789abcdef0123456789"   "MERCADO_PAGO_WEBHOOK_SECRET=twin-webhook-secret-0123456789abcdef"   "VITE_MERCADO_PAGO_PUBLIC_KEY=TEST-TWINPUBLICKEY1234567890"   "PAYMENTS_SUBSCRIPTIONS_ENABLED=false"   "PAYMENTS_WEBHOOK_URL=https://twin.morro.invalid/api/payments/v1/webhooks/sandbox"   "PAYMENTS_WEBHOOK_TOLERANCE_SECONDS=300"   "PAYMENTS_PROVIDER_TIMEOUT_MS=8000"   "PAYMENTS_PROVIDER_MAX_ATTEMPTS=2"   "PAYMENTS_PROVIDER_RETRY_BASE_MS=100"   "PAYMENTS_RUNTIME_REPLICA_COUNT=1"   "PAYMENTS_RATE_LIMIT_DISTRIBUTED_STORE_CONFIGURED=false"   "OPENAI_PROVIDER_HARD_LIMIT_CONFIRMED=false"   >"$env_file"
@@ -204,7 +206,7 @@ jq -e '
   .contract == "MORRO-PRODUCTION-RUNTIME-DATABASE-PREDEPLOY" and
   .status == "pass" and
   .domainCount == 13 and
-  .totalTables == 91 and
+  .totalTables == 95 and
   .schemaMode == "external"
 ' "$work_root/runtime-predeploy.json" >/dev/null || fail "TWIN_RUNTIME_PREDEPLOY_INVALID"
 
@@ -409,7 +411,8 @@ jq -n   --arg expectedSha "$expected_sha"   --arg treeSha "$tree_sha"   --arg im
       encryptedSha256:$drEncryptedSha,
       plaintextSha256:$drPlainSha,
       schemaCount:13,
-      totalTables:91
+      totalTables:95,
+      businessTables:15
     },
     twin:{
       mysqlImage:$mysqlImage,

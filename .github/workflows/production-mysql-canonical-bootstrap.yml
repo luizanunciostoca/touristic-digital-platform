@@ -362,7 +362,7 @@ jobs:
             .canonicalDestination == "morro-de-sao-paulo" and
             .idempotent == true and
             .runs == 2 and
-            .totalTables == 91 and
+            .totalTables == 95 and
             (.domains | length) == 13 and
             all(.domains[];
               .tableCount > 0 and
@@ -370,7 +370,7 @@ jobs:
               .scopes == .scopePolicy
             ) and
             ([.domains[] | select(.domain == "destinations")][0].canonicalDestinationCount == 1) and
-            ([.domains[] | select(.domain == "business")][0].tableCount == 12) and
+            ([.domains[] | select(.domain == "business")][0].tableCount == 15) and
             ([.domains[] | select(.domain == "financial")][0].tableCount == 14)
           ' /tmp/bootstrap-evidence.json >/dev/null
 

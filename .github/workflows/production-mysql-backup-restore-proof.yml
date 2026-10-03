@@ -533,11 +533,11 @@ jobs:
             .toolSha == $tool and
             .sourceSha == $source and
             .source.schemaCount == 13 and
-            .source.totalTables == 91 and
+            .source.totalTables == 95 and
             .source.stableDuringBackup == true and
             .restore.schemaCount == 13 and
-            .restore.totalTables == 91 and
-            .restore.businessTables == 12 and
+            .restore.totalTables == 95 and
+            .restore.businessTables == 15 and
             .restore.financialTables == 14 and
             .restore.canonicalDestinationCount == 1 and
             .restore.rowCountsMatch == true and
