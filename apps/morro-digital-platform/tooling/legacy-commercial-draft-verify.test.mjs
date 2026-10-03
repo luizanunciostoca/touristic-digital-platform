@@ -351,10 +351,10 @@ describe("legacy commercial lifecycle verifier", () => {
     );
   });
 
-  it("denies execution outside canonical runtime services", async () => {
+  it("denies execution outside canonical runtimes", async () => {
     await expect(
       runLegacyCommercialDraftVerify({
-        environment: { RENDER_SERVICE_NAME: "morro-digital-production" },
+        environment: { RENDER_SERVICE_NAME: "morro-digital-preview" },
         mysqlClient: { createPool: vi.fn() },
       }),
     ).rejects.toThrow(/LEGACY_COMMERCIAL_DRAFT_VERIFY_SERVICE_DENIED/u);

@@ -119,6 +119,61 @@ describe("legacy commercial review transition", () => {
     });
   });
 
+  it("verifies already-published rows idempotently without rewrites", async () => {
+    const published = rows("published", 3).map((row) => ({
+      ...row,
+      published_revision: 3,
+    }));
+    const database = fakeDatabase(published);
+    database.state.markers = published.map((row) => ({
+      source_system: row.source_system,
+      source_key: row.source_key,
+      business_id: row.business_id,
+      place_id: row.place_id,
+      editable_revision: row.published_revision,
+    }));
+
+    const result = await runLegacyCommercialReviewTransition({
+      environment: environment(),
+      argv: ["--verify"],
+      mysqlClient: { createPool: vi.fn(() => database.pool) },
+    });
+
+    expect(result).toEqual({
+      total: 72,
+      wouldReview: 0,
+      existingReview: 72,
+      existingMigrations: 72,
+      reviewed: 0,
+      markersInserted: 0,
+    });
+  });
+
+  it("accepts post-publication draft edits against the published review marker", async () => {
+    const edited = rows("draft", 4).map((row) => ({
+      ...row,
+      published_revision: 3,
+    }));
+    const database = fakeDatabase(edited);
+    database.state.markers = edited.map((row) => ({
+      source_system: row.source_system,
+      source_key: row.source_key,
+      business_id: row.business_id,
+      place_id: row.place_id,
+      editable_revision: 3,
+    }));
+
+    const result = await runLegacyCommercialReviewTransition({
+      environment: environment(),
+      argv: ["--verify"],
+      mysqlClient: { createPool: vi.fn(() => database.pool) },
+    });
+
+    expect(result.wouldReview).toBe(0);
+    expect(result.existingReview).toBe(72);
+    expect(result.existingMigrations).toBe(72);
+  });
+
   it("fails closed on stale marker revision", async () => {
     const database = fakeDatabase(rows("review", 4));
     database.state.markers = rows("review", 3).map((row) => ({
@@ -137,12 +192,12 @@ describe("legacy commercial review transition", () => {
     ).rejects.toThrow(/LEGACY_REVIEW_TRANSITION_MARKER_DRIFT/u);
   });
 
-  it("fails closed outside canonical runtime services", async () => {
+  it("fails closed outside canonical staging", async () => {
     await expect(
       runLegacyCommercialReviewTransition({
         environment: {
           ...environment(),
-          RENDER_SERVICE_NAME: "morro-digital-production",
+          RENDER_SERVICE_NAME: "morro-digital-v2",
         },
         mysqlClient: { createPool: vi.fn() },
       }),

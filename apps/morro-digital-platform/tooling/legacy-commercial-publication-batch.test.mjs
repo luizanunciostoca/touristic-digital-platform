@@ -231,11 +231,11 @@ describe("legacy commercial publication batch", () => {
     ).rejects.toThrow(/LEGACY_PUBLICATION_BATCH_REVIEW_REVISION_DRIFT/u);
   });
 
-  it("denies execution outside canonical runtime services", async () => {
+  it("denies execution outside canonical runtimes", async () => {
     await expect(
       runLegacyCommercialPublicationBatch({
         environment: {
-          RENDER_SERVICE_NAME: "morro-digital-production",
+          RENDER_SERVICE_NAME: "morro-digital-preview",
           BUSINESS_DATABASE_URL: "mysql://business",
           CONTENT_DATABASE_URL: "mysql://content",
         },

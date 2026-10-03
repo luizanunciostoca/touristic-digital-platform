@@ -274,11 +274,11 @@ describe("legacy commercial media backfill", () => {
     ).rejects.toThrow(/LEGACY_MEDIA_LATE_MIGRATION_DENIED/u);
   });
 
-  it("denies CLI execution outside canonical runtime services", async () => {
+  it("denies CLI execution outside canonical runtimes", async () => {
     await expect(
       runLegacyCommercialMediaBackfill({
         environment: {
-          RENDER_SERVICE_NAME: "morro-digital-production",
+          RENDER_SERVICE_NAME: "morro-digital-preview",
           BUSINESS_DATABASE_URL: "mysql://business",
           CONTENT_DATABASE_URL: "mysql://content",
         },

@@ -185,11 +185,11 @@ describe("legacy commercial cutover auditor", () => {
     );
   });
 
-  it("denies CLI execution outside canonical runtime services", async () => {
+  it("denies CLI execution outside canonical runtimes", async () => {
     await expect(
       runLegacyCommercialCutoverAudit({
         environment: {
-          RENDER_SERVICE_NAME: "morro-digital-production",
+          RENDER_SERVICE_NAME: "morro-digital-v2",
           BUSINESS_DATABASE_URL: "mysql://business",
           CONTENT_DATABASE_URL: "mysql://content",
         },
