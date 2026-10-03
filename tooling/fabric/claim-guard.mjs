@@ -95,7 +95,12 @@ function parseExpiry(value) {
   return timestamp;
 }
 
-export function findClaimCollisions(registry, claimId, now = Date.now()) {
+export function findClaimCollisions(
+  registry,
+  claimId,
+  now = Date.now(),
+  { ignoreExactPaths = [] } = {},
+) {
   assert.equal(
     registry?.registryAuthority,
     "ORCHESTRATOR",
@@ -109,6 +114,8 @@ export function findClaimCollisions(registry, claimId, now = Date.now()) {
   const current = registry.claims[claimId];
   assert.ok(current, "ACTIVE_CLAIM_MISSING");
 
+  const ignored = new Set(ignoreExactPaths);
+  for (const path of ignored) assertSupportedPattern(path);
   const collisions = [];
   for (const [otherId, other] of Object.entries(registry.claims)) {
     if (otherId === claimId) continue;
@@ -121,7 +128,10 @@ export function findClaimCollisions(registry, claimId, now = Date.now()) {
 
     for (const left of current.paths ?? []) {
       for (const right of other.paths ?? []) {
-        if (patternsOverlap(left, right)) {
+        if (
+          patternsOverlap(left, right) &&
+          !(left === right && ignored.has(left))
+        ) {
           collisions.push({
             otherId,
             kind: "path",
@@ -145,6 +155,7 @@ export function validateClaimContext({
   now = Date.now(),
   authority = "WORKER",
   isAncestor = () => true,
+  collisionIgnoreExactPaths = [],
 }) {
   assert.equal(
     registry?.registryAuthority,
@@ -211,7 +222,9 @@ export function validateClaimContext({
     "CURRENT_BASE_NOT_ANCESTOR_OF_BRANCH_HEAD",
   );
 
-  const collisions = findClaimCollisions(registry, manifest.id, now);
+  const collisions = findClaimCollisions(registry, manifest.id, now, {
+    ignoreExactPaths: collisionIgnoreExactPaths,
+  });
   assert.deepEqual(collisions, [], "CLAIM_OVERLAP_DETECTED");
 
   // Registry maintenance is serialized by the orchestrator, not exclusively

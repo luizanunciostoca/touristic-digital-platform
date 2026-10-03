@@ -622,6 +622,83 @@ test("claim acquisition accepts exactly one bounded orchestrator claim", () => {
   assert.equal(result.trustAuthority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
 });
 
+test("claim acquisition permits only mandatory bookkeeping overlap with a surviving claim", () => {
+  const input = acquisitionInput();
+  const existingManifest = manifest({
+    id: "MD-EXISTING",
+    branch: "feat/existing",
+    objective: "existing-objective",
+    owns: {
+      paths: [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        "apps/existing/index.ts",
+      ],
+      contracts: [],
+    },
+    produces: { events: ["EXISTING_UPDATED"], routes: ["/existing"] },
+    database: { tables: ["existing_records"] },
+    auth: { capabilities: ["existing:write"] },
+  });
+  const existing = claim(existingManifest, {
+    status: "IMPLEMENTING",
+    paths: [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      "apps/existing/index.ts",
+    ],
+  });
+  input.canonicalRegistry.claims["MD-EXISTING"] = existing;
+  input.registry.claims["MD-EXISTING"] = structuredClone(existing);
+  input.liveItems.push({
+    prNumber: 11,
+    openPr: true,
+    writerActive: true,
+    invalid: null,
+    changeSet: {
+      ...existingManifest,
+      owns: { paths: existing.paths, contracts: [] },
+    },
+  });
+  const result = evaluateClaimAcquisitionMergeGate(input);
+  assert.equal(result.decision, "POLICY_SATISFIED");
+  assert.equal(result.mode, "CLAIM_ACQUISITION");
+});
+
+test("claim acquisition never ignores non-path semantic collisions", () => {
+  const input = acquisitionInput();
+  const existingManifest = manifest({
+    id: "MD-EXISTING-SEMANTIC",
+    branch: "feat/existing-semantic",
+    objective: "existing-semantic-objective",
+    owns: {
+      paths: [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        "apps/existing-semantic/index.ts",
+      ],
+      contracts: [],
+    },
+  });
+  const existing = claim(existingManifest, {
+    status: "IMPLEMENTING",
+    paths: existingManifest.owns.paths,
+  });
+  input.canonicalRegistry.claims[existingManifest.id] = existing;
+  input.registry.claims[existingManifest.id] = structuredClone(existing);
+  input.liveItems.push({
+    prNumber: 12,
+    openPr: true,
+    writerActive: true,
+    invalid: null,
+    changeSet: existingManifest,
+  });
+  assert.throws(
+    () => evaluateClaimAcquisitionMergeGate(input),
+    /MERGE_GATE_SEMANTIC_COLLISION/u,
+  );
+});
+
 test("claim acquisition rejects added claims plus surviving claim mutation", () => {
   const canonical = {
     registryAuthority: "ORCHESTRATOR",

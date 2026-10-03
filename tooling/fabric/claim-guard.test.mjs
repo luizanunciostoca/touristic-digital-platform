@@ -988,3 +988,60 @@ test("handoff rejects a divergent candidate even with valid manifests and identi
     rmSync(repo.parent, { recursive: true, force: true });
   }
 });
+
+test("claim collision ignore is exact-path only and explicit", () => {
+  const registry = {
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      "MD-NEW": {
+        status: "IMPLEMENTING",
+        branch: "fix/new",
+        expiresAt: "2099-01-01T00:00:00Z",
+        paths: [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+          "tooling/fabric/new.mjs",
+        ],
+      },
+      "MD-EXISTING": {
+        status: "IMPLEMENTING",
+        branch: "feat/existing",
+        expiresAt: "2099-01-01T00:00:00Z",
+        paths: [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+          "tooling/fabric/existing.mjs",
+        ],
+      },
+    },
+  };
+  assert.equal(findClaimCollisions(registry, "MD-NEW").length, 2);
+  assert.deepEqual(
+    findClaimCollisions(
+      registry,
+      "MD-NEW",
+      Date.parse("2026-10-03T00:00:00Z"),
+      {
+        ignoreExactPaths: [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+        ],
+      },
+    ),
+    [],
+  );
+  registry.claims["MD-EXISTING"].paths.push("tooling/fabric/**");
+  assert.ok(
+    findClaimCollisions(
+      registry,
+      "MD-NEW",
+      Date.parse("2026-10-03T00:00:00Z"),
+      {
+        ignoreExactPaths: [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+        ],
+      },
+    ).some((x) => x.kind === "path" && x.value.includes("tooling/fabric")),
+  );
+});
