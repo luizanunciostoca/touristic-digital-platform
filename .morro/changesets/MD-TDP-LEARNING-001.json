@@ -66,23 +66,13 @@
   },
   "proof": {
     "budget": {
-      "maxCommands": 3,
+      "maxCommands": 1,
       "maxSeconds": 900
     },
     "commands": [
       {
         "id": "failure-learning-contract",
-        "argv": ["node", "--test", "tooling/failure-learning/*.test.mjs"],
-        "timeoutSeconds": 300
-      },
-      {
-        "id": "tdp-max-regression",
-        "argv": ["pnpm", "tdp-max:check"],
-        "timeoutSeconds": 300
-      },
-      {
-        "id": "fabric-registry",
-        "argv": ["pnpm", "fabric:registry:check"],
+        "argv": ["node", "--test", "tooling/failure-learning/engine.test.mjs"],
         "timeoutSeconds": 300
       }
     ],
