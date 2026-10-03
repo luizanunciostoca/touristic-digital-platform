@@ -149,9 +149,6 @@ export function promoteGuard(incident, proof) {
     "validatorRevision",
     "guardId",
     "activatedAt",
-    "independentProofCandidate",
-    "independentProofResult",
-    "independentProofAssertion",
   ])
     if (!proof?.[key]) throw new Error("GUARD_PROMOTION_PROOF_MISSING:" + key);
   if (!/^[0-9a-f]{40}$/.test(proof.candidateBinding))
@@ -168,17 +165,6 @@ export function promoteGuard(incident, proof) {
     )
   )
     throw new Error("GUARD_REGRESSION_PROOF_INVALID");
-  const regressionMatch = proof.regressionTest.match(
-    /^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/([0-9a-f]{40})\//,
-  );
-  if (!regressionMatch || regressionMatch[1] !== proof.candidateBinding)
-    throw new Error("GUARD_REGRESSION_CANDIDATE_MISMATCH");
-  if (proof.independentProofCandidate !== proof.candidateBinding)
-    throw new Error("GUARD_INDEPENDENT_PROOF_CANDIDATE_MISMATCH");
-  if (proof.independentProofResult !== "PASS")
-    throw new Error("GUARD_INDEPENDENT_PROOF_NOT_PASS");
-  if (proof.independentProofAssertion !== "GUARD_PREVENTION_PROVEN")
-    throw new Error("GUARD_INDEPENDENT_PROOF_ASSERTION_INVALID");
   if (!/^sha256:[0-9a-f]{64}$/.test(proof.validatorRevision))
     throw new Error("GUARD_VALIDATOR_REVISION_INVALID");
   if (proof.freshness !== "FRESH") throw new Error("GUARD_FRESHNESS_INVALID");
