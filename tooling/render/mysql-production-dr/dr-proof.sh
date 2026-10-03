@@ -429,7 +429,7 @@ cmp -s "$source_counts" "$restore_counts" || fail "RESTORE_ROW_COUNT_MISMATCH"
 
 business_tables="$(awk -F '\t' '$1=="morro_business" {n++} END {print n+0}' "$expected_tables")"
 financial_tables="$(awk -F '\t' '$1=="morro_financial" {n++} END {print n+0}' "$expected_tables")"
-[[ "$business_tables" == 12 && "$financial_tables" == 14 ]] || fail "DOMAIN_TABLE_COUNT_INVALID"
+[[ "$business_tables" == 15 && "$financial_tables" == 14 ]] || fail "DOMAIN_TABLE_COUNT_INVALID"
 
 validation_completed_epoch="$(date +%s)"
 validation_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
