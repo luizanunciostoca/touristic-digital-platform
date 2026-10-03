@@ -234,12 +234,9 @@ jobs:
             "tooling/fabric/claim-guard.test.mjs"
             "tooling/mdctl/merge-gate.mjs"
           )
-          mapfile -t expected < <(printf '%s
-' "${expected[@]}" | sort)
+          mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
           test "${#changed[@]}" -eq "${#expected[@]}"
-          diff -u <(printf '%s
-' "${expected[@]}") <(printf '%s
-' "${changed[@]}")
+          diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${changed[@]}")
           node --test candidate/tooling/fabric/claim-guard.test.mjs candidate/tooling/control-state/mdctl-merge-gate.test.mjs
 
   retirement-proof:
