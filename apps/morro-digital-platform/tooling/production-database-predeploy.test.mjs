@@ -54,6 +54,12 @@ function dependencies(events) {
     businessMedia: {
       applyMediaPublicationSnapshotSchema: mark("business-media"),
     },
+    legacyMarkers: {
+      applyLegacyCommercialContentMarkerSchemas: mark("content-legacy-markers"),
+      applyLegacyCommercialBusinessMarkerSchemas: mark(
+        "business-legacy-markers",
+      ),
+    },
     ordering: {
       applyOrderingM151Schema: mark("ordering-m151"),
       applyOrderingTicketingReservationSchema: mark("ordering-ticketing"),
@@ -184,7 +190,7 @@ test("canonical map covers thirteen bounded domains with materialized tables", (
   assert.equal(
     canonicalProductionDomains.find((domain) => domain.name === "business")
       .expectedTables.length,
-    12,
+    15,
   );
   assert.ok(
     canonicalProductionDomains
@@ -220,6 +226,8 @@ test("runs every canonical applier, validates structure, seeds once, and closes 
     "business-place",
     "business-catalog",
     "business-media",
+    "content-legacy-markers",
+    "business-legacy-markers",
     "ordering-m151",
     "ordering-ticketing",
     "ordering-restaurant",

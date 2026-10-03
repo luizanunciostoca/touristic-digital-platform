@@ -7,6 +7,39 @@ const COMMERCIAL_CATEGORIES = new Set([
   "nightlife",
 ]);
 
+export function resolveLegacyCommercialRuntimeScope(
+  environment = process.env,
+  deniedCode = "LEGACY_COMMERCIAL_SERVICE_DENIED",
+) {
+  const service = String(environment.RENDER_SERVICE_NAME ?? "").trim();
+  if (service === "morro-digital-v2-staging") {
+    return Object.freeze({ service, environment: "staging" });
+  }
+  if (
+    service === "morro-digital-v2-production-db-bootstrap" &&
+    String(environment.PRODUCTION_CANONICAL_PLACE_BOOTSTRAP_ENABLED ?? "")
+      .trim()
+      .toLowerCase() === "true"
+  ) {
+    return Object.freeze({ service, environment: "production" });
+  }
+  throw new Error(deniedCode);
+}
+
+export function createLegacyCommercialActor(scope, operation) {
+  const prefix = scope.environment + "-legacy-commercial-" + operation;
+  const now = Math.floor(Date.now() / 1000);
+  return Object.freeze({
+    subject: prefix,
+    email: prefix + "@example.invalid",
+    role: "PLATFORM_OWNER",
+    businessIds: Object.freeze([]),
+    issuedAt: now - 60,
+    expiresAt: now + 3600,
+    sessionId: prefix,
+  });
+}
+
 function migrationSlug(value) {
   return String(value)
     .normalize("NFD")
@@ -138,6 +171,15 @@ export async function executeLegacyCommercialPlaceBackfill({
   mappings,
   catalog,
   now = () => new Date(),
+  actor = Object.freeze({
+    subject: "staging-legacy-commercial-backfill",
+    email: "staging-legacy-commercial-backfill@example.invalid",
+    role: "PLATFORM_OWNER",
+    businessIds: Object.freeze([]),
+    issuedAt: Math.floor(Date.now() / 1000) - 60,
+    expiresAt: Math.floor(Date.now() / 1000) + 3600,
+    sessionId: "staging-legacy-commercial-backfill",
+  }),
 }) {
   validateLegacyCommercialMappings(mappings);
   const sources = catalogIndex(catalog);
@@ -189,45 +231,22 @@ export async function executeLegacyCommercialPlaceBackfill({
     if (!runtime)
       throw new Error("LEGACY_COMMERCIAL_BACKFILL_RUNTIME_REQUIRED");
 
-    await runtime.createDraft(
-      {
-        subject: "staging-legacy-commercial-backfill",
-        email: "staging-legacy-commercial-backfill@example.invalid",
-        role: "PLATFORM_OWNER",
-        businessIds: Object.freeze([]),
-        issuedAt: Math.floor(Date.now() / 1000) - 60,
-        expiresAt: Math.floor(Date.now() / 1000) + 3600,
-        sessionId: "staging-legacy-commercial-backfill",
-      },
-      {
-        businessId: mapping.businessId,
-        placeId: mapping.placeId,
-        destinationId: mapping.destinationId,
-        categoryId: mapping.categoryId,
-        name: mapping.legacyName,
-        shortDescription: "",
-        capabilities: ["directions", "photos"],
-      },
-    );
-    await runtime.updateLocation(
-      {
-        subject: "staging-legacy-commercial-backfill",
-        email: "staging-legacy-commercial-backfill@example.invalid",
-        role: "PLATFORM_OWNER",
-        businessIds: Object.freeze([]),
-        issuedAt: Math.floor(Date.now() / 1000) - 60,
-        expiresAt: Math.floor(Date.now() / 1000) + 3600,
-        sessionId: "staging-legacy-commercial-backfill",
-      },
-      mapping.businessId,
-      {
-        latitude: source.latitude,
-        longitude: source.longitude,
-        address: "",
-        area: source.area ?? "",
-        source: "manual",
-      },
-    );
+    await runtime.createDraft(actor, {
+      businessId: mapping.businessId,
+      placeId: mapping.placeId,
+      destinationId: mapping.destinationId,
+      categoryId: mapping.categoryId,
+      name: mapping.legacyName,
+      shortDescription: "",
+      capabilities: ["directions", "photos"],
+    });
+    await runtime.updateLocation(actor, mapping.businessId, {
+      latitude: source.latitude,
+      longitude: source.longitude,
+      address: "",
+      area: source.area ?? "",
+      source: "manual",
+    });
     await saveMapping(pool, mapping, now);
     summary.createdDrafts += 1;
     summary.mappingsInserted += 1;

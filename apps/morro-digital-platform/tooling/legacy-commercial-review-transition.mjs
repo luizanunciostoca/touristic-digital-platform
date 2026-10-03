@@ -1,7 +1,10 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import {
+  createLegacyCommercialActor,
+  resolveLegacyCommercialRuntimeScope,
+} from "./legacy-commercial-place-backfill-core.mjs";
 
-const STAGING_SERVICE = "morro-digital-v2-staging";
 const SOURCE_SYSTEM = "morro-v1-search-catalog";
 const EXPECTED_TOTAL = 72;
 
@@ -15,19 +18,6 @@ async function loadPlacePlatformRuntime() {
     .href;
   const module = await import(/* @vite-ignore */ moduleUrl);
   return module.createPlacePlatformRuntime;
-}
-
-function actor() {
-  const now = Math.floor(Date.now() / 1000);
-  return Object.freeze({
-    subject: "staging-legacy-commercial-review-transition",
-    email: "staging-legacy-commercial-review-transition@example.invalid",
-    role: "PLATFORM_OWNER",
-    businessIds: Object.freeze([]),
-    issuedAt: now - 60,
-    expiresAt: now + 3600,
-    sessionId: "staging-legacy-commercial-review-transition",
-  });
 }
 
 async function queryRows(pool) {
@@ -75,11 +65,23 @@ function validateScope(rows) {
     if (!Number.isSafeInteger(revision) || revision < 1) {
       throw new Error("LEGACY_REVIEW_TRANSITION_REVISION_INVALID");
     }
-    if (row.published_revision != null) {
-      throw new Error("LEGACY_REVIEW_TRANSITION_PUBLISHED_REVISION_DENIED");
-    }
-    if (!["draft", "review"].includes(String(row.publication_state))) {
-      throw new Error("LEGACY_REVIEW_TRANSITION_STATE_INVALID");
+    const state = String(row.publication_state);
+    if (state === "published") {
+      const publishedRevision = Number(row.published_revision);
+      if (
+        !Number.isSafeInteger(publishedRevision) ||
+        publishedRevision < 1 ||
+        publishedRevision > revision
+      ) {
+        throw new Error("LEGACY_REVIEW_TRANSITION_PUBLISHED_REVISION_INVALID");
+      }
+    } else {
+      if (row.published_revision != null) {
+        throw new Error("LEGACY_REVIEW_TRANSITION_PUBLISHED_REVISION_DENIED");
+      }
+      if (!["draft", "review"].includes(state)) {
+        throw new Error("LEGACY_REVIEW_TRANSITION_STATE_INVALID");
+      }
     }
     sourceKeys.add(sourceKey);
     businesses.add(businessId);
@@ -173,11 +175,10 @@ export async function runLegacyCommercialReviewTransition({
   runtimeFactory,
   runtimeLoader = loadPlacePlatformRuntime,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_REVIEW_TRANSITION_SERVICE_DENIED");
-  }
+  const runtimeScope = resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_REVIEW_TRANSITION_SERVICE_DENIED",
+  );
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
   const contentDatabaseUrl = String(
     environment.CONTENT_DATABASE_URL ?? "",
@@ -232,7 +233,10 @@ export async function runLegacyCommercialReviewTransition({
 
     let reviewed = 0;
     let markersInserted = 0;
-    const session = actor();
+    const session = createLegacyCommercialActor(
+      runtimeScope,
+      "review-transition",
+    );
 
     for (const row of rows) {
       const key = String(row.source_key);
@@ -245,6 +249,8 @@ export async function runLegacyCommercialReviewTransition({
         throw new Error("LEGACY_REVIEW_TRANSITION_MARKER_MISSING");
       } else if (state === "review") {
         throw new Error("LEGACY_REVIEW_TRANSITION_UNOWNED_REVIEW_STATE");
+      } else if (state === "published") {
+        throw new Error("LEGACY_REVIEW_TRANSITION_PUBLISHED_MARKER_MISSING");
       } else {
         await insertMarker(pool, row);
         markersInserted += 1;

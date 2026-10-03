@@ -1,5 +1,7 @@
 import mysql from "mysql2/promise";
 
+import { runProductionRuntimeDataPredeploy } from "./production-runtime-data-predeploy.mjs";
+
 const CONTRACT = "MORRO-PRODUCTION-MYSQL-CANONICAL-BOOTSTRAP";
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
 
@@ -36,6 +38,7 @@ export const canonicalProductionDomains = Object.freeze([
       "content_documents",
       "media_assets",
       "place_media",
+      "legacy_place_media_migrations",
     ]),
   }),
   Object.freeze({
@@ -55,6 +58,9 @@ export const canonicalProductionDomains = Object.freeze([
       "catalog_menu_items",
       "catalog_public_snapshots",
       "place_media_public_snapshots",
+      "legacy_place_description_migrations",
+      "legacy_place_review_migrations",
+      "legacy_place_publication_migrations",
     ]),
   }),
   Object.freeze({
@@ -198,6 +204,7 @@ export const canonicalProductionScopePolicy = Object.freeze({
     content_documents: "destination",
     media_assets: "business",
     place_media: "global",
+    legacy_place_media_migrations: "business",
   }),
   business: Object.freeze({
     business_entities: "global",
@@ -212,6 +219,9 @@ export const canonicalProductionScopePolicy = Object.freeze({
     catalog_menu_items: "business",
     catalog_public_snapshots: "business",
     place_media_public_snapshots: "business",
+    legacy_place_description_migrations: "business",
+    legacy_place_review_migrations: "business",
+    legacy_place_publication_migrations: "business",
   }),
   ordering: Object.freeze({
     ordering_orders: "global",
@@ -385,6 +395,7 @@ async function loadDependencies() {
     businessPlaces,
     businessCatalog,
     businessMedia,
+    legacyMarkers,
   ] = await Promise.all([
     import(serviceUrl("auth")),
     import(serviceUrl("analytics", "control-center-audit.js")),
@@ -403,6 +414,7 @@ async function loadDependencies() {
     import("./place-platform-runtime.mjs"),
     import("./catalog-platform-runtime.mjs"),
     import("./media-publication-snapshot.mjs"),
+    import("./legacy-commercial-marker-schema.mjs"),
   ]);
 
   return Object.freeze({
@@ -423,6 +435,7 @@ async function loadDependencies() {
     businessPlaces,
     businessCatalog,
     businessMedia,
+    legacyMarkers,
   });
 }
 
@@ -451,11 +464,17 @@ async function applyDomainSchema(domain, pool, dependencies) {
     }
     case "content":
       await dependencies.content.applyContentM156Schema(pool);
+      await dependencies.legacyMarkers.applyLegacyCommercialContentMarkerSchemas(
+        pool,
+      );
       break;
     case "business":
       await dependencies.businessPlaces.applyPlacePlatformSchema(pool);
       await dependencies.businessCatalog.applyCatalogSchema(pool);
       await dependencies.businessMedia.applyMediaPublicationSnapshotSchema(
+        pool,
+      );
+      await dependencies.legacyMarkers.applyLegacyCommercialBusinessMarkerSchemas(
         pool,
       );
       break;
@@ -724,11 +743,16 @@ async function runCli() {
     }
   }
 
+  const runtimeData = verifyIdempotent
+    ? await runProductionRuntimeDataPredeploy()
+    : null;
+
   process.stdout.write(
     `${JSON.stringify({
       ...first,
       idempotent: verifyIdempotent,
       runs: verifyIdempotent ? 2 : 1,
+      ...(runtimeData ? { runtimeData } : {}),
     })}\n`,
   );
 }

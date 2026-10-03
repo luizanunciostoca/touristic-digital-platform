@@ -140,13 +140,13 @@ test("DR canonical manifest exactly matches production bootstrap authority", () 
     }
   }
 
-  assert.equal(actual.length, 91);
+  assert.equal(actual.length, 95);
   assert.equal(new Set(actual.map(([schema]) => schema)).size, 13);
   assert.equal(
     new Set(actual.map(([schema, table]) => `${schema}.${table}`)).size,
-    91,
+    95,
   );
-  assert.equal(expected.length, 91);
+  assert.equal(expected.length, 95);
   assert.equal(new Set(expected.map(([schema]) => schema)).size, 13);
   assert.deepEqual(actual, expected);
 });

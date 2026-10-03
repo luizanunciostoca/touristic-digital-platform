@@ -1,9 +1,9 @@
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { resolveLegacyCommercialRuntimeScope } from "./legacy-commercial-place-backfill-core.mjs";
 
 import { assessLegacyCommercialCutover } from "./legacy-commercial-cutover-audit-core.mjs";
 
-const STAGING_SERVICE = "morro-digital-v2-staging";
 const SOURCE_SYSTEM = "morro-v1-search-catalog";
 
 async function loadMysqlClient() {
@@ -16,11 +16,10 @@ export async function runLegacyCommercialCutoverAudit({
   mysqlClient,
   mysqlClientLoader = loadMysqlClient,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_CUTOVER_AUDIT_SERVICE_DENIED");
-  }
+  resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_CUTOVER_AUDIT_SERVICE_DENIED",
+  );
   const businessDatabaseUrl = String(
     environment.BUSINESS_DATABASE_URL ?? "",
   ).trim();

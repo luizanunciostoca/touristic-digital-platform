@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
-
 import mysql from "mysql2/promise";
-import { executeLegacyCommercialPlaceBackfill } from "./legacy-commercial-place-backfill-core.mjs";
-
-const STAGING_SERVICE = "morro-digital-v2-staging";
+import {
+  createLegacyCommercialActor,
+  executeLegacyCommercialPlaceBackfill,
+  resolveLegacyCommercialRuntimeScope,
+} from "./legacy-commercial-place-backfill-core.mjs";
 
 function loadMappings() {
   const parsed = JSON.parse(
@@ -48,11 +49,10 @@ export async function runLegacyCommercialPlaceBackfill({
   searchCatalogLoader = loadSearchCatalog,
   runtimeModuleLoader = loadPlaceRuntimeModule,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_COMMERCIAL_BACKFILL_SERVICE_DENIED");
-  }
+  const runtimeScope = resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_COMMERCIAL_BACKFILL_SERVICE_DENIED",
+  );
   const databaseUrl = String(environment.BUSINESS_DATABASE_URL ?? "").trim();
   const contentDatabaseUrl = String(
     environment.CONTENT_DATABASE_URL ?? "",
@@ -87,6 +87,7 @@ export async function runLegacyCommercialPlaceBackfill({
       apply,
       mappings,
       catalog: resolvedCatalog,
+      actor: createLegacyCommercialActor(runtimeScope, "place-backfill"),
     });
   } finally {
     if (runtime) await runtime.stop().catch(() => {});

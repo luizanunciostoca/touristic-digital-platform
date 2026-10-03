@@ -9,6 +9,7 @@ morro_destinations	destinations	destination
 morro_content	content_documents	destination
 morro_content	media_assets	business
 morro_content	place_media	global
+morro_content	legacy_place_media_migrations	business
 morro_business	business_entities	global
 morro_business	business_destinations	destination+business
 morro_business	business_places	destination+business
@@ -21,6 +22,9 @@ morro_business	catalog_menu_categories	business
 morro_business	catalog_menu_items	business
 morro_business	catalog_public_snapshots	business
 morro_business	place_media_public_snapshots	business
+morro_business	legacy_place_description_migrations	business
+morro_business	legacy_place_review_migrations	business
+morro_business	legacy_place_publication_migrations	business
 morro_ordering	ordering_orders	global
 morro_ordering	ordering_checkout_access	destination+tenant
 morro_ordering	ordering_subscriptions	global

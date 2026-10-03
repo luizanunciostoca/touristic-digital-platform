@@ -43,6 +43,9 @@ function fixture(overrides = {}) {
     STAGING_NOTIFICATIONS_DATABASE_NAME: "morro_notifications_staging",
     STAGING_NOTIFICATIONS_DATABASE_USER: "morro_notifications",
     STAGING_NOTIFICATIONS_DATABASE_PASSWORD: "notifications+/=safe-password",
+    STAGING_TICKETING_DATABASE_NAME: "morro_ticketing_staging",
+    STAGING_TICKETING_DATABASE_USER: "morro_ticketing",
+    STAGING_TICKETING_DATABASE_PASSWORD: "ticketing+/=safe-password",
     ...overrides,
   };
 }
@@ -81,6 +84,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
     "FINANCIAL_DATABASE_URL",
     "NOTIFICATIONS_DATABASE_URL",
     "ORDERING_DATABASE_URL",
+    "TICKETING_DATABASE_URL",
   ]);
   assert.equal(
     derived.CONTROL_CENTER_AUDIT_DATABASE_URL,
@@ -98,7 +102,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   const names = Object.values(derived).map((value) =>
     new URL(value).pathname.slice(1),
   );
-  assert.equal(new Set(names).size, 9);
+  assert.equal(new Set(names).size, 10);
 
   const commerce = new URL(derived.COMMERCE_DATABASE_URL);
   assert.equal(decodeURIComponent(commerce.username), "morro_commerce");
@@ -552,23 +556,24 @@ test("reconciles all staging schemas without exposing credentials", async () => 
     "commerce",
     "destinations",
     "notifications",
+    "ticketing",
   ]);
   assert.equal(ended, true);
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE DATABASE")).length,
-    9,
+    10,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE USER")).length,
-    9,
+    10,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("ALTER USER")).length,
-    9,
+    10,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("GRANT ALL PRIVILEGES")).length,
-    9,
+    10,
   );
   assert.equal(queries.at(-1)?.[0], "FLUSH PRIVILEGES");
   assert.equal(JSON.stringify(queries).includes("root-secret"), false);
