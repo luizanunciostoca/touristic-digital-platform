@@ -4,7 +4,7 @@
   "objective": "align-release-twin-contracts-with-95-table-canonical-production-schema",
   "baseSha": "f54887e373f2818d821f097c331e8e67fb05d567",
   "branch": "fix/runtime-parity-release-twin-001-20261003",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
@@ -22,7 +22,9 @@
     "contracts": []
   },
   "reads": {
-    "contracts": ["platform-authz"]
+    "contracts": [
+      "platform-authz"
+    ]
   },
   "produces": {
     "events": [],
@@ -40,8 +42,7 @@
     "affected-tests",
     "integration",
     "automated-independent-proof",
-    "exact-head-identity",
-    "release-target-governance"
+    "exact-head-identity"
   ],
   "requiredCapabilities": [
     "github:read",
@@ -50,11 +51,16 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
-      "maxCommands": 2,
+      "maxCommands": 3,
       "maxSeconds": 900
     },
     "commands": [
@@ -75,12 +81,20 @@
           "tooling/quality/production-mysql-dr-contract.test.mjs"
         ],
         "timeoutSeconds": 300
+      },
+      {
+        "id": "release-target-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
       }
     ],
     "requiredRemoteEvidence": [
       "automated-independent-proof",
-      "exact-head-identity",
-      "release-target-governance"
+      "exact-head-identity"
     ]
   },
   "stopAt": "REMOTE_PROVEN"
