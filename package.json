@@ -18,7 +18,7 @@
     "environment:check": "node tooling/quality/check-environment-reconciliation.mjs && node tooling/quality/check-render-production-mysql-blueprint.mjs && node --test tooling/quality/render-production-mysql-blueprint.test.mjs tooling/quality/production-twin-certification-contract.test.mjs tooling/quality/runtime-schema-mode-propagation.test.mjs tooling/render/with-production-mysql-env.test.mjs tooling/render/production-canonical-db-cutover.test.mjs apps/morro-digital-platform/tooling/database-schema-mode.test.mjs apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
     "release:readiness:check": "node tooling/quality/check-release-readiness.mjs && node --test apps/morro-digital-platform/tooling/payments-production-cutover-guard.contract.mjs",
     "secret-patterns:check": "node tooling/quality/check-secret-patterns.mjs",
-    "ci:governance:check": "node tooling/quality/check-ci-governance.mjs",
+    "ci:governance:check": "node tooling/quality/check-ci-governance.mjs && pnpm tdp-max:check",
     "ci:supply-chain": "node tooling/quality/check-workflow-supply-chain.mjs",
     "ci:supply-chain:strict": "node tooling/quality/check-workflow-supply-chain.mjs --strict",
     "design-system:inventory": "node tooling/design-system/inventory-v1-css.mjs",
@@ -60,7 +60,8 @@
     "mdctl": "node tooling/mdctl/mdctl.mjs",
     "mdctl:bootstrap": "node tooling/mdctl/mdctl.mjs bootstrap",
     "mdctl:invariants": "node tooling/mdctl/mdctl.mjs invariants",
-    "mdctl:task": "node tooling/mdctl/mdctl.mjs task"
+    "mdctl:task": "node tooling/mdctl/mdctl.mjs task",
+    "tdp-max:check": "node tooling/tdp-max/validate-config.mjs && node --test tooling/tdp-max/validate-config.test.mjs"
   },
   "pnpm": {
     "overrides": {
