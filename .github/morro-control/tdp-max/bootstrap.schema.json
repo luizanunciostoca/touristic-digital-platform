@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://morro.digital/schemas/tdp-max/bootstrap.schema.json",
+  "title": "TDP-MAX bootstrap snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "claimId",
+    "observedMainSha",
+    "capturedAt",
+    "workspace",
+    "authorities",
+    "transport"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "taskId": { "type": "string", "minLength": 1 },
+    "claimId": { "type": "string", "pattern": "^MD-[A-Z0-9-]+$" },
+    "observedMainSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "capturedAt": { "type": "string", "format": "date-time" },
+    "workspace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exactBaseSha", "isolated"],
+      "properties": {
+        "exactBaseSha": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "isolated": { "const": true }
+      }
+    },
+    "authorities": {
+      "type": "object",
+      "required": ["lifecycle", "ownership", "riskProof"]
+    },
+    "transport": {
+      "type": "object",
+      "required": ["source", "observedAt"]
+    }
+  }
+}

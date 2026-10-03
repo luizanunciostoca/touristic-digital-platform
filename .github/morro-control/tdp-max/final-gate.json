@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "TDP_MAX_FINAL_GATE",
+  "completionState": "COMPLETE",
+  "requires": {
+    "exactHeadIntegration": true,
+    "semanticProof": true,
+    "independentProof": true,
+    "mergedReadback": true,
+    "lifecycleReconciliation": true
+  },
+  "productionPublication": false,
+  "nonCompleteStates": ["PARTIAL", "BLOCKED", "NOT_PROVEN"]
+}

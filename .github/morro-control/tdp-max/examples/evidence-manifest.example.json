@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "baseSha": "1111111111111111111111111111111111111111",
+  "candidateSha": "2222222222222222222222222222222222222222",
+  "validatorSha": "3333333333333333333333333333333333333333",
+  "exactHead": true,
+  "environment": {
+    "target": "isolated-termux-worktree",
+    "observedAt": "2026-10-03T05:02:21Z"
+  },
+  "checks": [
+    {
+      "id": "tdp-max-config",
+      "status": "PASS",
+      "authority": "DETERMINISTIC_VALIDATOR",
+      "inputSha": "2222222222222222222222222222222222222222"
+    }
+  ]
+}

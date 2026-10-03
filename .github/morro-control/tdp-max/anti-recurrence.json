@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "kind": "TDP_MAX_ANTI_RECURRENCE",
+  "controls": [
+    { "id": "stale-head", "enabled": true },
+    { "id": "false-ci-green", "enabled": true },
+    { "id": "wrong-runtime-target", "enabled": true },
+    { "id": "ai-as-authority", "enabled": true },
+    { "id": "termux-transport-misclassification", "enabled": true },
+    { "id": "stale-dr-proof", "enabled": true }
+  ]
+}

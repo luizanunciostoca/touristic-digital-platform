@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "kind": "TDP_MAX_AUTHORITY_MAP",
+  "controlArchitecture": "CONTROL_PLANE_V3_2",
+  "projectionRole": "GUARD_ONLY",
+  "canonicalFiles": {
+    "lifecycle": ".morro/fabric.json",
+    "ownership": ".morro/ownership.json",
+    "riskProof": ".morro/risk-policy.json",
+    "engineeringPolicy": ["AGENTS.md", "CONSTITUTION.md"]
+  },
+  "termuxContract": {
+    "repository": "luizanunciostoca/morro-termux-control",
+    "path": "CHATGPT-START-HERE.md",
+    "liveReadRequired": true
+  },
+  "automatedReviewMustRemainAdvisory": true
+}

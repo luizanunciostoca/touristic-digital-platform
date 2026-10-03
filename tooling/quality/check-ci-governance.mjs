@@ -1,5 +1,6 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
+import { validateTdpMaxConfig } from "../tdp-max/validate-config.mjs";
 
 const root = process.cwd();
 const workflowsDir = resolve(root, ".github/workflows");
@@ -55,6 +56,7 @@ for (const scriptName of [
   "build",
   "platform:contracts:check",
   "ci:governance:check",
+  "tdp-max:check",
   "release:target-governance:check",
   "migration:dry-run",
   "release:identity:smoke",
@@ -66,6 +68,8 @@ for (const scriptName of [
     fail(`package.json is missing script ${scriptName}`);
   }
 }
+
+await validateTdpMaxConfig(root);
 
 const quality = workflowSources.get("quality.yml");
 if (!quality) fail("quality.yml is missing");
