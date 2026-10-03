@@ -12,7 +12,6 @@ import {
   validateExternalEvidenceBundle,
 } from "./tdp-max-v2.mjs";
 
-const DEFAULT_REPOSITORY = "luizanunciostoca/touristic-digital-platform";
 const COMMANDS = new Set(["bootstrap", "status", "reconcile", "final-gate"]);
 const FLAGS = {
   "--profile": "profile",
@@ -35,7 +34,7 @@ function parseArgs(argv) {
     command,
     profile: command === "final-gate" ? null : "engineering",
     objective: command,
-    repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_REPOSITORY,
+    repository: process.env.GITHUB_REPOSITORY ?? null,
     externalEvidence: null,
     manifest: null,
     stagingUrl: process.env.MORRO_STAGING_URL ?? null,
@@ -117,15 +116,18 @@ function emit(value, failed = false) {
 
 function run(options) {
   const originMatch = runGit("remote", "get-url", "origin").match(
-    /^(?:https:\/\/github\.com\/|git@github\.com:)([^/\s]+\/[^/\s]+?)(?:\.git)?$/u,
+    /^(?:https:\/\/github\.com\/|git@github\.com:)([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?$/u,
   );
   assert.ok(originMatch, "TDP_MAX_GITHUB_ORIGIN_REQUIRED");
   const expectedRepository = originMatch[1];
-  assert.equal(
-    options.repository,
-    expectedRepository,
-    "TDP_MAX_REPOSITORY_OVERRIDE",
-  );
+  if (options.repository) {
+    assert.equal(
+      options.repository,
+      expectedRepository,
+      "TDP_MAX_REPOSITORY_OVERRIDE",
+    );
+  }
+  options.repository = expectedRepository;
   if (options.command === "bootstrap") {
     const { report } = bootstrap(options);
     return emit(report, ["BLOCKED", "NOT_PROVEN"].includes(report.result));
