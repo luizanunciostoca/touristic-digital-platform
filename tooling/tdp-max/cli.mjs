@@ -28,7 +28,7 @@ function parseArgs(argv) {
   );
   const options = {
     command,
-    profile: "engineering",
+    profile: command === "final-gate" ? null : "engineering",
     objective: command,
     repository: process.env.GITHUB_REPOSITORY ?? DEFAULT_REPOSITORY,
     externalEvidence: null,
@@ -144,6 +144,7 @@ async function runFinalGate(options) {
     finalGate,
     liveStatus,
     externalEvidence,
+    requestedProfile: options.profile,
   });
   process.stdout.write(JSON.stringify(report, null, 2) + "\n");
   if (report.taskVerdict !== "COMPLETE") process.exitCode = 2;

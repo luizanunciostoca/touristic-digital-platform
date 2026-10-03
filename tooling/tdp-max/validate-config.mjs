@@ -265,6 +265,16 @@ export async function validateTdpMaxConfig() {
     "DELEGATED_TO_FABRIC_RELEASE_PLANE",
     "TDP_MAX_RELEASE_AUTHORITY_DELEGATION",
   );
+  assert.equal(
+    finalGate.crossSystemVerdictCeiling,
+    "NOT_PROVEN",
+    "TDP_MAX_CROSS_SYSTEM_LOCAL_CEILING",
+  );
+  assert.equal(
+    finalGate.externalAuthorityDecisionAuthority,
+    "ORCHESTRATOR_CONNECTOR_READBACK",
+    "TDP_MAX_EXTERNAL_AUTHORITY_DELEGATION",
+  );
   equalSet(
     finalGate.requiredForComplete,
     requiredFinalGates,

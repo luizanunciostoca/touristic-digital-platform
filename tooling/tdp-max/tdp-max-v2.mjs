@@ -463,10 +463,22 @@ function findCandidateWork(observed, manifest, pr) {
   );
 }
 
-export function deriveLiveEngineeringProof({ liveStatus, manifest }) {
+export function deriveLiveEngineeringProof({
+  liveStatus,
+  manifest,
+  now = Date.now(),
+}) {
   const observed = liveStatus?.observed;
   const checks = {};
   const failures = [];
+
+  const generatedAt = Date.parse(observed?.generatedAt ?? "");
+  const snapshotFresh =
+    Number.isFinite(generatedAt) &&
+    generatedAt <= now + 300000 &&
+    now - generatedAt <= 600000;
+  checks["live-snapshot-fresh"] = snapshotFresh ? "PASS" : "NOT_PROVEN";
+  if (!snapshotFresh) failures.push("LIVE_SNAPSHOT_STALE_OR_UNKNOWN");
 
   const mainStable =
     liveStatus?.kind === "TDP_MDCTL_BOOTSTRAP" &&
@@ -485,6 +497,22 @@ export function deriveLiveEngineeringProof({ liveStatus, manifest }) {
   checks["live-proof-sources"] = sourcesComplete ? "PASS" : "NOT_PROVEN";
   if (!sourcesComplete) failures.push("LIVE_PROOF_SOURCES_INCOMPLETE");
 
+  const blockers = Array.isArray(observed?.blockers) ? observed.blockers : null;
+  const blockersClear = blockers !== null && blockers.length === 0;
+  checks["live-control-blockers"] =
+    blockers === null ? "NOT_PROVEN" : blockersClear ? "PASS" : "BLOCKED";
+  if (blockers === null) failures.push("LIVE_CONTROL_BLOCKERS_UNKNOWN");
+  else if (!blockersClear) failures.push("LIVE_CONTROL_BLOCKERS_PRESENT");
+
+  const violations = Array.isArray(observed?.liveSchedulerPlan?.violations)
+    ? observed.liveSchedulerPlan.violations
+    : null;
+  const schedulerClear = violations !== null && violations.length === 0;
+  checks["live-scheduler"] =
+    violations === null ? "NOT_PROVEN" : schedulerClear ? "PASS" : "BLOCKED";
+  if (violations === null) failures.push("LIVE_SCHEDULER_UNKNOWN");
+  else if (!schedulerClear) failures.push("LIVE_SCHEDULER_VIOLATIONS");
+
   const currentMainMatches =
     mainStable && manifest?.finalMain === observed.mainSha;
   checks["manifest-main-binding"] = currentMainMatches ? "PASS" : "BLOCKED";
@@ -494,7 +522,8 @@ export function deriveLiveEngineeringProof({ liveStatus, manifest }) {
   const exactCandidate =
     Boolean(pr) &&
     pr.headSha === manifest.candidateSha &&
-    pr.baseSha === observed?.mainSha;
+    pr.baseSha === observed?.mainSha &&
+    pr.repository === observed?.repository;
   checks["live-candidate-exact-head"] = exactCandidate ? "PASS" : "NOT_PROVEN";
   if (!exactCandidate) failures.push("LIVE_EXACT_HEAD_NOT_PROVEN");
 
@@ -517,20 +546,35 @@ export function deriveLiveEngineeringProof({ liveStatus, manifest }) {
     : null;
   const invariantsClear =
     criticalFailures !== null && criticalFailures.length === 0;
-  checks["live-critical-invariants"] = invariantsClear ? "PASS" : "BLOCKED";
-  if (!invariantsClear) failures.push("LIVE_CRITICAL_INVARIANTS_UNRESOLVED");
+  checks["live-critical-invariants"] =
+    criticalFailures === null
+      ? "NOT_PROVEN"
+      : invariantsClear
+        ? "PASS"
+        : "BLOCKED";
+  if (criticalFailures === null) failures.push("LIVE_INVARIANTS_UNKNOWN");
+  else if (!invariantsClear) {
+    failures.push("LIVE_CRITICAL_INVARIANTS_UNRESOLVED");
+  }
 
-  const activeCandidateRuns = (observed?.ci?.activeRuns ?? []).filter(
-    (run) => run?.headSha === manifest?.candidateSha,
-  );
-  const ciSettled =
-    Array.isArray(observed?.ci?.activeRuns) && activeCandidateRuns.length === 0;
-  checks["live-ci-settled"] = ciSettled ? "PASS" : "NOT_PROVEN";
-  if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE_OR_UNKNOWN");
+  const activeRuns = Array.isArray(observed?.ci?.activeRuns)
+    ? observed.ci.activeRuns
+    : null;
+  const activeCandidateRuns =
+    activeRuns?.filter((run) => run?.headSha === manifest?.candidateSha) ?? [];
+  const ciSettled = activeRuns !== null && activeCandidateRuns.length === 0;
+  checks["live-ci-settled"] =
+    activeRuns === null ? "NOT_PROVEN" : ciSettled ? "PASS" : "NOT_PROVEN";
+  if (activeRuns === null) failures.push("CANDIDATE_CI_STATE_UNKNOWN");
+  else if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE");
+
+  const controlsClear = blockersClear && schedulerClear && invariantsClear;
 
   return {
     schemaVersion: 1,
     kind: "TDP_MAX_LIVE_ENGINEERING_PROOF_V1",
+    capturedAt: observed?.generatedAt ?? null,
+    repository: observed?.repository ?? null,
     mainSha: observed?.mainSha ?? null,
     candidateSha: manifest?.candidateSha ?? null,
     changeSetId: manifest?.changeSetId ?? null,
@@ -542,9 +586,13 @@ export function deriveLiveEngineeringProof({ liveStatus, manifest }) {
     currentMainMatches,
     exactCandidate,
     remoteProven,
+    controlsClear,
     proven:
+      snapshotFresh &&
       mainStable &&
       sourcesComplete &&
+      blockersClear &&
+      schedulerClear &&
       currentMainMatches &&
       exactCandidate &&
       workValid &&
@@ -554,13 +602,53 @@ export function deriveLiveEngineeringProof({ liveStatus, manifest }) {
   };
 }
 
-function enterpriseAuthorityProven(externalEvidence) {
-  const item = externalEvidence?.items?.find(
-    (candidate) =>
-      candidate?.id === "enterprise-os-live" ||
-      candidate?.domain === "enterprise-os",
-  );
-  return item?.status === "VERIFIED";
+function externalEvidenceSummary(externalEvidence, now) {
+  if (!externalEvidence) {
+    return {
+      supplied: false,
+      freshEnterpriseAssertion: false,
+      authoritative: false,
+      conflicts: [],
+      unknowns: [],
+      status: "MISSING",
+    };
+  }
+  const validated = validateExternalEvidenceBundle(externalEvidence, now);
+  const item = enterpriseEvidence(validated);
+  const conflicts = [
+    ...(validated.conflicts ?? []),
+    ...(validated.items ?? [])
+      .filter((candidate) => candidate.status === "CONFLICT")
+      .map((candidate) => candidate.id),
+  ];
+  const unknowns = [
+    ...(validated.unknowns ?? []),
+    ...(validated.items ?? [])
+      .filter((candidate) =>
+        ["UNKNOWN", "STALE", "INFERRED", "HISTORICAL", "SUPERSEDED"].includes(
+          candidate.status,
+        ),
+      )
+      .map((candidate) => candidate.id),
+  ];
+  const freshEnterpriseAssertion =
+    item?.status === "VERIFIED" &&
+    conflicts.length === 0 &&
+    unknowns.length === 0;
+  return {
+    supplied: true,
+    freshEnterpriseAssertion,
+    authoritative: false,
+    conflicts: [...new Set(conflicts)],
+    unknowns: [...new Set(unknowns)],
+    status: freshEnterpriseAssertion
+      ? "FRESH_ASSERTION_PRESENT_NOT_AUTHORITATIVE"
+      : conflicts.length > 0
+        ? "CONFLICT"
+        : unknowns.length > 0
+          ? "NOT_PROVEN"
+          : "MISSING_ENTERPRISE_ASSERTION",
+  };
 }
 
 export function evaluateFinalGate({
@@ -568,9 +656,17 @@ export function evaluateFinalGate({
   finalGate,
   liveStatus,
   externalEvidence = null,
+  requestedProfile = null,
+  now = Date.now(),
 }) {
   assert.equal(finalGate?.mode, "projection", "TDP_MAX_FINAL_MODE_INVALID");
   assert.ok(PROFILES.has(manifest?.profile), "TDP_MAX_FINAL_PROFILE_INVALID");
+  if (requestedProfile != null) {
+    assert.ok(
+      PROFILES.has(requestedProfile),
+      "TDP_MAX_FINAL_REQUESTED_PROFILE_INVALID",
+    );
+  }
   assert.ok(
     typeof manifest?.changeSetId === "string" &&
       manifest.changeSetId.length > 0,
@@ -582,49 +678,80 @@ export function evaluateFinalGate({
     "TDP_MAX_FINAL_CANDIDATE_REQUIRED",
   );
 
-  const liveProof = deriveLiveEngineeringProof({ liveStatus, manifest });
-  const conflicts = Array.isArray(manifest?.conflicts)
+  const profileMismatch =
+    requestedProfile != null && requestedProfile !== manifest.profile;
+  const liveProof = deriveLiveEngineeringProof({
+    liveStatus,
+    manifest,
+    now,
+  });
+  const manifestConflicts = Array.isArray(manifest?.conflicts)
     ? manifest.conflicts
     : [];
-  const unknowns = Array.isArray(manifest?.unknowns) ? manifest.unknowns : [];
+  const manifestUnknowns = Array.isArray(manifest?.unknowns)
+    ? manifest.unknowns
+    : [];
+  const external = externalEvidenceSummary(externalEvidence, now);
 
   const enterpriseRequired = manifest.profile === "cross-system";
-  const enterpriseProven = enterpriseRequired
-    ? enterpriseAuthorityProven(externalEvidence)
-    : true;
+  const releaseDelegated = manifest.profile === "release";
+  const externalAuthorityDelegated = enterpriseRequired;
 
-  const blockingFailures = liveProof.failures.filter(
-    (failure) =>
-      failure === "FINAL_MAIN_MOVED_OR_UNBOUND" ||
-      failure === "LIVE_CRITICAL_INVARIANTS_UNRESOLVED",
+  const blockingFailures = liveProof.failures.filter((failure) =>
+    [
+      "FINAL_MAIN_MOVED_OR_UNBOUND",
+      "LIVE_CRITICAL_INVARIANTS_UNRESOLVED",
+      "LIVE_CONTROL_BLOCKERS_PRESENT",
+      "LIVE_SCHEDULER_VIOLATIONS",
+    ].includes(failure),
   );
 
+  if (profileMismatch) blockingFailures.push("REQUESTED_PROFILE_MISMATCH");
+  if (external.conflicts.length > 0) {
+    blockingFailures.push("EXTERNAL_EVIDENCE_CONFLICT");
+  }
+
   let capabilityState = "OBSERVED";
-  if (liveProof.exactCandidate && liveProof.currentMainMatches) {
+  if (
+    liveProof.exactCandidate &&
+    liveProof.currentMainMatches &&
+    liveProof.controlsClear
+  ) {
     capabilityState = "IMPLEMENTED";
   }
   if (
     liveProof.exactCandidate &&
     liveProof.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD" &&
-    liveProof.currentMainMatches
+    liveProof.currentMainMatches &&
+    liveProof.controlsClear
   ) {
     capabilityState = "INTEGRATED";
   }
-  if (liveProof.proven && enterpriseProven && conflicts.length === 0) {
+  if (
+    liveProof.proven &&
+    !enterpriseRequired &&
+    !releaseDelegated &&
+    manifestConflicts.length === 0 &&
+    manifestUnknowns.length === 0
+  ) {
     capabilityState = "PROVEN";
   }
 
-  const releaseDelegated = manifest.profile === "release";
   const technicallyReady =
     liveProof.proven &&
-    enterpriseProven &&
-    conflicts.length === 0 &&
-    unknowns.length === 0;
+    manifestConflicts.length === 0 &&
+    manifestUnknowns.length === 0 &&
+    external.conflicts.length === 0 &&
+    !profileMismatch;
 
   let taskVerdict = "NOT_PROVEN";
-  if (blockingFailures.length > 0 || conflicts.length > 0) {
+  if (
+    blockingFailures.length > 0 ||
+    manifestConflicts.length > 0 ||
+    external.conflicts.length > 0
+  ) {
     taskVerdict = "BLOCKED";
-  } else if (releaseDelegated) {
+  } else if (releaseDelegated || externalAuthorityDelegated) {
     taskVerdict = "NOT_PROVEN";
   } else if (technicallyReady) {
     taskVerdict = "COMPLETE";
@@ -637,13 +764,18 @@ export function evaluateFinalGate({
     lifecycleAuthority: finalGate.lifecycleAuthority,
     releaseAuthority: finalGate.releaseAuthority,
     profile: manifest.profile,
+    requestedProfile,
+    profileMismatch,
     currentMainSha: liveProof.mainSha,
     candidateSha: manifest.candidateSha,
     changeSetId: manifest.changeSetId,
     liveProof,
     enterpriseAuthority: {
       required: enterpriseRequired,
-      proven: enterpriseProven,
+      delegated: externalAuthorityDelegated,
+      localEvidence: external,
+      proven: false,
+      decisionAuthority: "ORCHESTRATOR_CONNECTOR_READBACK",
     },
     ignoredManifestAuthorityClaims: [
       "semantic-ci-proven",
@@ -658,6 +790,7 @@ export function evaluateFinalGate({
     capabilityState,
     authorizationState: releaseDelegated ? "NOT_AUTHORIZED" : "NOT_APPLICABLE",
     releaseDelegated,
+    externalAuthorityDelegated,
     releaseDecisionAllowed: false,
   };
 }

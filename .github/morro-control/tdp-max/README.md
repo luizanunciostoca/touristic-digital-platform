@@ -12,6 +12,9 @@ Canonical authorities:
 - engineering policy: `AGENTS.md` and `CONSTITUTION.md`
 - Termux operations: LIVE `luizanunciostoca/morro-termux-control/CHATGPT-START-HERE.md`
 - runtime: live provider/runtime evidence
+- Enterprise OS navigation/document authority: Google Drive LIVE via `AI_START_HERE` + `SOURCE_OF_TRUTH_MATRIX`
+
+`tdp-max:final-gate` can complete only engineering proof derived from LIVE `mdctl` exact-head trust. Cross-system evidence supplied as a file is treated as contextual/freshness input but is never final authority; cross-system completion is delegated to connector/provider readback accepted by the orchestrator. Release decisions are delegated to the Fabric release plane and remain outside TDP-MAX.
 
 Mutable operational state (SHA, branch, PR, issue, PID, heartbeat, claim, worktree,
 deploy, runtime identity, transport preference) must never be frozen into this policy.

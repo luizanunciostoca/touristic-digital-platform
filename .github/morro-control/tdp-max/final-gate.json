@@ -30,5 +30,7 @@
   "maxLocalCapabilityState": "PROVEN",
   "releaseProfileVerdictCeiling": "NOT_PROVEN",
   "mutationAuthority": "NONE",
-  "releaseDecisionAuthority": "NONE"
+  "releaseDecisionAuthority": "NONE",
+  "crossSystemVerdictCeiling": "NOT_PROVEN",
+  "externalAuthorityDecisionAuthority": "ORCHESTRATOR_CONNECTOR_READBACK"
 }

@@ -110,6 +110,9 @@ function liveStatus({
   invalid = null,
   activeRuns = [],
   criticalFailures = [],
+  blockers = [],
+  violations = [],
+  generatedAt = "2026-10-03T08:59:30Z",
   omitSource = null,
 } = {}) {
   const sources = {
@@ -125,15 +128,20 @@ function liveStatus({
     kind: "TDP_MDCTL_BOOTSTRAP",
     controlPlaneVersion: "3.2",
     observed: {
+      repository: "luizanunciostoca/touristic-digital-platform",
+      generatedAt,
       mainSha,
       mainShaAtEnd,
       collectionState: "CAPTURED",
+      blockers,
+      liveSchedulerPlan: { violations },
       activePrs: [
         {
           number: 703,
           branch: "infra/tdp-max-002-impl-20261003",
           headSha: candidateSha,
           baseSha: MAIN,
+          repository: "luizanunciostoca/touristic-digital-platform",
           draft: true,
         },
       ],
@@ -224,6 +232,7 @@ test("LIVE proof requires exact candidate trust and REMOTE_PROVEN state", () => 
   const proof = deriveLiveEngineeringProof({
     liveStatus: liveStatus(),
     manifest: manifest(),
+    now: NOW,
   });
   assert.equal(proof.proven, true);
   assert.equal(proof.exactCandidate, true);
@@ -250,6 +259,7 @@ test("self-authored evidence cannot manufacture proof", () => {
     manifest: m,
     finalGate,
     liveStatus: liveStatus({ state: "LOCAL_PROVEN" }),
+    now: NOW,
   });
   assert.equal(report.taskVerdict, "NOT_PROVEN");
 });
@@ -260,6 +270,7 @@ test("candidate mismatch, authority divergence and active CI fail closed", () =>
       manifest: manifest(),
       finalGate,
       liveStatus: liveStatus({ candidateSha: OTHER }),
+      now: NOW,
     }).taskVerdict,
     "NOT_PROVEN",
   );
@@ -270,6 +281,7 @@ test("candidate mismatch, authority divergence and active CI fail closed", () =>
       liveStatus: liveStatus({
         invalid: "CHANGESET_AUTHORITY_DIVERGED_FROM_MAIN",
       }),
+      now: NOW,
     }).taskVerdict,
     "NOT_PROVEN",
   );
@@ -280,6 +292,7 @@ test("candidate mismatch, authority divergence and active CI fail closed", () =>
       liveStatus: liveStatus({
         activeRuns: [{ headSha: CANDIDATE, status: "in_progress" }],
       }),
+      now: NOW,
     }).taskVerdict,
     "NOT_PROVEN",
   );
@@ -291,6 +304,7 @@ test("main movement and critical invariant failures block", () => {
       manifest: manifest(),
       finalGate,
       liveStatus: liveStatus({ mainShaAtEnd: OTHER }),
+      now: NOW,
     }).taskVerdict,
     "BLOCKED",
   );
@@ -301,6 +315,7 @@ test("main movement and critical invariant failures block", () => {
       liveStatus: liveStatus({
         criticalFailures: [{ id: "INV-X", status: "FAIL" }],
       }),
+      now: NOW,
     }).taskVerdict,
     "BLOCKED",
   );
@@ -311,6 +326,7 @@ test("missing mdctl proof source is NOT_PROVEN", () => {
     manifest: manifest(),
     finalGate,
     liveStatus: liveStatus({ omitSource: "recentCi" }),
+    now: NOW,
   });
   assert.equal(report.taskVerdict, "NOT_PROVEN");
 });
@@ -320,6 +336,7 @@ test("engineering final gate completes only from LIVE proof", () => {
     manifest: manifest(),
     finalGate,
     liveStatus: liveStatus(),
+    now: NOW,
   });
   assert.equal(report.taskVerdict, "COMPLETE");
   assert.equal(report.capabilityState, "PROVEN");
@@ -331,6 +348,7 @@ test("cross-system final gate additionally requires Enterprise OS evidence", () 
     manifest: manifest({ profile: "cross-system" }),
     finalGate,
     liveStatus: liveStatus(),
+    now: NOW,
   });
   assert.equal(missing.taskVerdict, "NOT_PROVEN");
   const proven = evaluateFinalGate({
@@ -338,8 +356,14 @@ test("cross-system final gate additionally requires Enterprise OS evidence", () 
     finalGate,
     liveStatus: liveStatus(),
     externalEvidence: validateExternalEvidenceBundle(enterpriseBundle(), NOW),
+    now: NOW,
   });
-  assert.equal(proven.taskVerdict, "COMPLETE");
+  assert.equal(proven.taskVerdict, "NOT_PROVEN");
+  assert.equal(
+    proven.enterpriseAuthority.localEvidence.freshEnterpriseAssertion,
+    true,
+  );
+  assert.equal(proven.enterpriseAuthority.proven, false);
 });
 
 test("release profile delegates release authority", () => {
@@ -347,10 +371,88 @@ test("release profile delegates release authority", () => {
     manifest: manifest({ profile: "release" }),
     finalGate,
     liveStatus: liveStatus(),
+    now: NOW,
   });
   assert.equal(report.taskVerdict, "NOT_PROVEN");
   assert.equal(report.releaseDelegated, true);
   assert.equal(report.releaseDecisionAllowed, false);
+});
+
+test("cross-system local evidence never becomes final authority", () => {
+  const report = evaluateFinalGate({
+    manifest: manifest({ profile: "cross-system" }),
+    finalGate,
+    liveStatus: liveStatus(),
+    externalEvidence: enterpriseBundle(),
+    requestedProfile: "cross-system",
+    now: NOW,
+  });
+  assert.equal(report.taskVerdict, "NOT_PROVEN");
+  assert.equal(report.enterpriseAuthority.delegated, true);
+  assert.equal(report.enterpriseAuthority.proven, false);
+  assert.equal(
+    report.enterpriseAuthority.decisionAuthority,
+    "ORCHESTRATOR_CONNECTOR_READBACK",
+  );
+});
+
+test("external conflicts block cross-system final gate", () => {
+  const bundle = enterpriseBundle();
+  bundle.conflicts = ["drive-authority-conflict"];
+  const report = evaluateFinalGate({
+    manifest: manifest({ profile: "cross-system" }),
+    finalGate,
+    liveStatus: liveStatus(),
+    externalEvidence: bundle,
+    requestedProfile: "cross-system",
+    now: NOW,
+  });
+  assert.equal(report.taskVerdict, "BLOCKED");
+});
+
+test("requested profile mismatch blocks final gate", () => {
+  const report = evaluateFinalGate({
+    manifest: manifest({ profile: "engineering" }),
+    finalGate,
+    liveStatus: liveStatus(),
+    requestedProfile: "cross-system",
+    now: NOW,
+  });
+  assert.equal(report.profileMismatch, true);
+  assert.equal(report.taskVerdict, "BLOCKED");
+});
+
+test("LIVE blockers and scheduler violations block final completion", () => {
+  const blocker = evaluateFinalGate({
+    manifest: manifest(),
+    finalGate,
+    liveStatus: liveStatus({
+      blockers: [{ code: "CONTROL_CONFLICT", subject: "x" }],
+    }),
+    now: NOW,
+  });
+  assert.equal(blocker.taskVerdict, "BLOCKED");
+
+  const scheduler = evaluateFinalGate({
+    manifest: manifest(),
+    finalGate,
+    liveStatus: liveStatus({
+      violations: [{ code: "LIVE_WORK_ITEM_INVALID", prNumber: 703 }],
+    }),
+    now: NOW,
+  });
+  assert.equal(scheduler.taskVerdict, "BLOCKED");
+});
+
+test("stale LIVE snapshot cannot prove completion", () => {
+  const report = evaluateFinalGate({
+    manifest: manifest(),
+    finalGate,
+    liveStatus: liveStatus({ generatedAt: "2026-10-03T08:30:00Z" }),
+    now: NOW,
+  });
+  assert.equal(report.taskVerdict, "NOT_PROVEN");
+  assert.equal(report.liveProof.checks["live-snapshot-fresh"], "NOT_PROVEN");
 });
 
 test("reconciliation is plan-only", () => {
