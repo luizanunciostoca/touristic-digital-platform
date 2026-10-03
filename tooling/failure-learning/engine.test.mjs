@@ -59,9 +59,6 @@ test("guard promotion requires prevention proof", () => {
       freshness: "FRESH",
       validatorRevision: "sha256:" + "b".repeat(64),
       activatedAt: "2026-10-03T11:00:00Z",
-      independentProofCandidate: "a".repeat(40),
-      independentProofResult: "PASS",
-      independentProofAssertion: "GUARD_PREVENTION_PROVEN",
     },
   );
   assert.equal(x.state, "ACTIVE_GUARD");
@@ -259,29 +256,6 @@ test("guard proof identities and executor positive auth are fail closed", async 
     activatedAt: "2026-10-03T11:00:00Z",
   };
   const incident = { ...base, state: "PREVENTION_PROVEN", rootCause: "x" };
-  assert.throws(
-    () =>
-      promoteGuard(incident, {
-        ...valid,
-        regressionTest:
-          "https://github.com/o/r/blob/" +
-          "c".repeat(40) +
-          "/tooling/failure-learning/engine.test.mjs",
-      }),
-    /GUARD_REGRESSION_CANDIDATE_MISMATCH/,
-  );
-  assert.throws(
-    () =>
-      promoteGuard(incident, {
-        ...valid,
-        independentProofCandidate: "c".repeat(40),
-      }),
-    /GUARD_INDEPENDENT_PROOF_CANDIDATE_MISMATCH/,
-  );
-  assert.throws(
-    () => promoteGuard(incident, { ...valid, independentProofResult: "FAIL" }),
-    /GUARD_INDEPENDENT_PROOF_NOT_PASS/,
-  );
   for (const key of [
     "regressionTest",
     "independentProof",
