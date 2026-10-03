@@ -51,7 +51,7 @@ function evidence(overrides = {}) {
       runId: identity.imageRunId,
       immutable: true,
     },
-    productionSample: { schemaCount: 13, totalTables: 95 },
+    productionSample: { schemaCount: 13, totalTables: 95, businessTables: 15 },
     twin: {
       noEgress: true,
       runtimeProbe: "docker-exec-loopback",
@@ -107,6 +107,9 @@ test("rejects certificates that weaken isolation or safety boundaries", () => {
   const mutations = [
     (value) => {
       value.safety.railwayTouched = true;
+    },
+    (value) => {
+      value.productionSample.businessTables = 14;
     },
     (value) => {
       value.twin.noEgress = false;
