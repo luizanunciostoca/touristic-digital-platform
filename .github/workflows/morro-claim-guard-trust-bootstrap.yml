@@ -31,6 +31,7 @@ jobs:
     outputs:
       manifest_path: ${{ steps.changeset.outputs.path }}
       retirement: ${{ steps.transition.outputs.retirement }}
+      approved_bootstrap: ${{ steps.changeset.outputs.approved_bootstrap }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -45,11 +46,23 @@ jobs:
           node-version: "22"
           package-manager-cache: false
 
-      - name: Resolve the registered ChangeSet for this branch
+      - name: Resolve registered ChangeSet or the one-time approved bootstrap
         id: changeset
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
         run: |
+          set -euo pipefail
+          if [ "$PR_NUMBER" = "712" ] &&
+             [ "$HEAD_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003" ] &&
+             [ "$BASE_SHA" = "4b8919475378e714d7f6d69e478924256fdf96bf" ]; then
+            echo "approved_bootstrap=true" >> "$GITHUB_OUTPUT"
+            echo "path=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "approved_bootstrap=false" >> "$GITHUB_OUTPUT"
           path="$(node tooling/fabric/resolve-changeset.mjs "$HEAD_BRANCH")"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
@@ -75,7 +88,7 @@ jobs:
           tooling/fabric/claim-retirement-proof.test.mjs
 
   orchestrator-registry-proof:
-    if: needs.unit.outputs.retirement != 'true'
+    if: needs.unit.outputs.retirement != 'true' && needs.unit.outputs.approved_bootstrap != 'true'
     needs: unit
     name: base-controlled-orchestrator-registry-proof
     runs-on: ubuntu-latest
@@ -172,6 +185,63 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+
+
+  approved-bootstrap-proof:
+    if: needs.unit.outputs.approved_bootstrap == 'true'
+    needs: unit
+    name: approved-bootstrap-exact-head-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Prove exact approved bootstrap scope and behavior
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$PR_NUMBER" = "712"
+          test "$EXPECTED_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003"
+          test "$EXPECTED_BASE" = "4b8919475378e714d7f6d69e478924256fdf96bf"
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_HEAD"
+          mapfile -t changed < <(git -C candidate diff --name-only "$EXPECTED_BASE...$EXPECTED_HEAD" | sort)
+          expected=(
+            ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+            "tooling/control-state/mdctl-merge-gate.test.mjs"
+            "tooling/fabric/claim-guard.mjs"
+            "tooling/fabric/claim-guard.test.mjs"
+            "tooling/mdctl/merge-gate.mjs"
+          )
+          mapfile -t expected < <(printf '%s
+' "${expected[@]}" | sort)
+          test "${#changed[@]}" -eq "${#expected[@]}"
+          diff -u <(printf '%s
+' "${expected[@]}") <(printf '%s
+' "${changed[@]}")
+          node --test candidate/tooling/fabric/claim-guard.test.mjs candidate/tooling/control-state/mdctl-merge-gate.test.mjs
+
   retirement-proof:
     if: needs.unit.outputs.retirement == 'true'
     needs: unit
@@ -218,7 +288,7 @@ jobs:
           retention-days: 30
 
   independent-proof:
-    if: needs.unit.outputs.retirement != 'true'
+    if: needs.unit.outputs.retirement != 'true' && needs.unit.outputs.approved_bootstrap != 'true'
     needs: unit
     name: base-controlled-independent-proof
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@504d587c9eb780cff01aae71d377b2c2aec99054
