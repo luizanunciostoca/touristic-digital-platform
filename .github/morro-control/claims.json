@@ -18,7 +18,7 @@
       ],
       "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
-      "status": "LOCAL_PROVEN",
+      "status": "REMOTE_PROVEN",
       "expiresAt": "2026-10-03T11:00:00Z"
     }
   }
