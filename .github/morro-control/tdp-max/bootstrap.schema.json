@@ -35,22 +35,11 @@
       "type": "object",
       "minProperties": 1,
       "additionalProperties": {
-        "enum": [
-          "PASS",
-          "WARN",
-          "N/A",
-          "BLOCKED",
-          "NOT_PROVEN"
-        ]
+        "enum": ["PASS", "WARN", "N/A", "BLOCKED", "NOT_PROVEN"]
       }
     },
     "result": {
-      "enum": [
-        "READY",
-        "READY_WITH_WARNINGS",
-        "BLOCKED",
-        "NOT_PROVEN"
-      ]
+      "enum": ["READY", "READY_WITH_WARNINGS", "BLOCKED", "NOT_PROVEN"]
     },
     "notes": {
       "type": "array",

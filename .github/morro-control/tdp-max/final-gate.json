@@ -46,10 +46,5 @@
       "when": "production-changed"
     }
   ],
-  "verdicts": [
-    "COMPLETE",
-    "PARTIAL",
-    "BLOCKED",
-    "NOT_PROVEN"
-  ]
+  "verdicts": ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"]
 }

@@ -30,41 +30,24 @@
       "pattern": "^[0-9a-f]{40}$"
     },
     "candidateSha": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "pattern": "^[0-9a-f]{40}$"
     },
     "artifactDigest": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "claimId": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "changeSetId": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "evidence": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "id",
-          "kind",
-          "status",
-          "source"
-        ],
+        "required": ["id", "kind", "status", "source"],
         "properties": {
           "id": {
             "type": "string"
@@ -88,22 +71,13 @@
             "type": "string"
           },
           "sha": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "environment": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           },
           "details": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         }
       }
@@ -121,12 +95,7 @@
       }
     },
     "verdict": {
-      "enum": [
-        "COMPLETE",
-        "PARTIAL",
-        "BLOCKED",
-        "NOT_PROVEN"
-      ]
+      "enum": ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"]
     }
   }
 }

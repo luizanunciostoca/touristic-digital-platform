@@ -4,6 +4,7 @@ TDP-MAX is a versioned policy and guard projection for ChatGPT/operator executio
 It does **not** replace Control Plane V3.2 or create a parallel lifecycle authority.
 
 Canonical authorities:
+
 - lifecycle: `.morro/fabric.json`
 - ownership: `.morro/ownership.json`
 - risk/proof selection: `.morro/risk-policy.json`
