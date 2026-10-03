@@ -14,7 +14,8 @@
       ".morro/changesets/MD-TDP-MAX-002.json",
       ".github/morro-control/tdp-max/**",
       "tooling/tdp-max/**",
-      "package.json"
+      "package.json",
+      "tooling/mdctl/mdctl.mjs"
     ],
     "contracts": []
   },

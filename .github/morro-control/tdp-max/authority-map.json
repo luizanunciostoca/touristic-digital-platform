@@ -60,11 +60,6 @@
       "authorityMatrix": "SOURCE_OF_TRUTH_MATRIX",
       "registry": "TDP_REGISTRO_CANONICO_DOCUMENTAL_V1",
       "role": "documentation-business-process-navigation-authority"
-    },
-    "externalProviders": {
-      "type": "producer-specific-live",
-      "resolver": "SOURCE_OF_TRUTH_MATRIX",
-      "rule": "provider-produced-state-outranks-derived-documentation"
     }
   },
   "rules": [

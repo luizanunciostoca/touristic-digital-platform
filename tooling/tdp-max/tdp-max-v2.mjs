@@ -116,9 +116,7 @@ export function buildBootstrapReport({
   assert.ok(observed && typeof observed === "object", "TDP_MAX_MDCTL_REQUIRED");
   assert.match(observed.mainSha ?? "", SHA, "TDP_MAX_MAIN_SHA_INVALID");
 
-  const external = externalEvidence
-    ? validateExternalEvidenceBundle(externalEvidence, now)
-    : null;
+  const external = externalEvidenceSummary(externalEvidence, now);
   const blockers = [];
   const warnings = [];
   const checks = {};
@@ -304,9 +302,7 @@ export function buildReconcileReport({
     SHA,
     "TDP_MAX_RECONCILE_MAIN_INVALID",
   );
-  const external = externalEvidence
-    ? validateExternalEvidenceBundle(externalEvidence, now)
-    : null;
+  const external = externalEvidenceSummary(externalEvidence, now);
   const drift = [];
   const actions = [];
 
@@ -326,9 +322,10 @@ export function buildReconcileReport({
       actions.push("RECAPTURE_RELEASE_STATE_BEFORE_RELEASE_MUTATION");
     }
   }
-  for (const conflict of external?.conflicts ?? []) {
+  for (const conflict of external.conflicts)
     drift.push("EXTERNAL_CONFLICT:" + conflict);
-  }
+  for (const unknown of external.unknowns)
+    drift.push("EXTERNAL_UNKNOWN:" + unknown);
 
   return {
     schemaVersion: 1,
@@ -474,7 +471,9 @@ export function deriveLiveEngineeringProof({
   const workValid =
     Boolean(work) &&
     work.invalid == null &&
-    work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD";
+    work.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD" &&
+    Number.isSafeInteger(work.trustWorkflowRunId) &&
+    work.trustHeadSha === expectedCandidateSha;
   checks["live-candidate-authority"] = workValid ? "PASS" : "NOT_PROVEN";
   if (!workValid) failures.push("LIVE_CANDIDATE_AUTHORITY_NOT_TRUSTED");
 
@@ -485,7 +484,10 @@ export function deriveLiveEngineeringProof({
   const criticalFailures = Array.isArray(
     liveStatus?.invariants?.criticalFailures,
   )
-    ? liveStatus.invariants.criticalFailures
+    ? liveStatus.invariants.criticalFailures.filter(
+        (item) =>
+          manifest.profile === "release" || !RELEASE_INVARIANTS.has(item?.id),
+      )
     : null;
   const invariantsClear =
     criticalFailures !== null && criticalFailures.length === 0;
@@ -533,6 +535,8 @@ export function deriveLiveEngineeringProof({
     prNumber: pr?.number ?? null,
     changeSetState: work?.state ?? null,
     trustAuthority: work?.trustAuthority ?? null,
+    trustWorkflowRunId: work?.trustWorkflowRunId ?? null,
+    trustHeadSha: work?.trustHeadSha ?? null,
     checks,
     failures: [...new Set(failures)],
     currentMainMatches,

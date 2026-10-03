@@ -31,9 +31,6 @@ PID, heartbeat, claim, worktree, deploy, runtime identity or transport preferenc
 - Build once and promote the same immutable certified artifact for release.
 - Technically Ready != Authorized to Release.
 - COMPLETE requires sufficient current proof; otherwise PARTIAL, BLOCKED or NOT PROVEN.
-- Engineering completion is derived only from LIVE `mdctl` exact-head trust and settled remote proof.
-- Caller-supplied external evidence is contextual only. Cross-system completion requires connector/provider readback accepted by the orchestrator and cannot be minted by a local JSON file.
-- Release authority remains exclusively delegated to the Fabric release plane; TDP-MAX never authorizes production.
 
 ## Execution
 

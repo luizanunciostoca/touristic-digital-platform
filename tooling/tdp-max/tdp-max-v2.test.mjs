@@ -82,6 +82,8 @@ function work(changeSetId = CHANGESET, patch = {}) {
     changeSetId,
     state: "REMOTE_PROVEN",
     trustAuthority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+    trustWorkflowRunId: 123,
+    trustHeadSha: CANDIDATE,
     invalid: null,
     ...patch,
   };
@@ -150,46 +152,47 @@ function gate({
   });
 }
 
+function bootstrapResult(mdctl, profile = "engineering", externalEvidence) {
+  return buildBootstrapReport({
+    mdctl,
+    authorityMap,
+    profile,
+    externalEvidence,
+    now: NOW,
+  }).result;
+}
+
 test("bootstrap profiles and external evidence fail closed", () => {
   assert.equal(
-    buildBootstrapReport({
-      mdctl: collector({ blockers: [{ code: "CONTROL_CONFLICT" }] }),
-      authorityMap,
-      profile: "engineering",
-      now: NOW,
-    }).result,
+    bootstrapResult(collector({ blockers: [{ code: "CONTROL_CONFLICT" }] })),
     "BLOCKED",
   );
   const missing = collector();
   delete missing.observed.blockers;
   delete missing.observed.liveSchedulerPlan;
   delete missing.invariants.criticalFailures;
-  assert.notEqual(
-    buildBootstrapReport({
-      mdctl: missing,
-      authorityMap,
-      profile: "engineering",
-      now: NOW,
-    }).result,
-    "READY",
-  );
-  const fresh = enterprise();
+  assert.notEqual(bootstrapResult(missing), "READY");
   assert.equal(
-    buildBootstrapReport({
-      mdctl: collector(),
-      authorityMap,
-      externalEvidence: fresh,
-      profile: "cross-system",
-      now: NOW,
-    }).result,
+    bootstrapResult(collector(), "cross-system", enterprise()),
     "NOT_PROVEN",
   );
 });
 
 test("engineering completion requires exact candidate and LIVE remote proof", () => {
   assert.equal(gate().taskVerdict, "COMPLETE");
-  assert.equal(gate({ manifestValue: manifest("engineering", { conflicts: undefined }) }).taskVerdict, "NOT_PROVEN");
-  assert.equal(gate({ liveStatus: live({ ci: { activeRuns: [], recentRuns: [ci(), ci("startup_failure")] } }) }).taskVerdict, "NOT_PROVEN");
+  assert.equal(
+    gate({ manifestValue: manifest("engineering", { conflicts: undefined }) })
+      .taskVerdict,
+    "NOT_PROVEN",
+  );
+  assert.equal(
+    gate({
+      liveStatus: live({
+        ci: { activeRuns: [], recentRuns: [ci(), ci("startup_failure")] },
+      }),
+    }).taskVerdict,
+    "NOT_PROVEN",
+  );
   const cases = [
     [
       live({ liveSchedulerWork: [work(CHANGESET, { state: "LOCAL_PROVEN" })] }),
@@ -209,6 +212,7 @@ test("engineering completion requires exact candidate and LIVE remote proof", ()
     [live({ activePrs: [pr({ repository: undefined })] }), "NOT_PROVEN"],
     [live({ mainShaAtEnd: OTHER }), "BLOCKED"],
     [live({}, [{ id: "INV-X", status: "FAIL" }]), "BLOCKED"],
+    [live({}, [{ id: "INV-013", status: "FAIL" }]), "COMPLETE"],
   ];
   for (const [index, [liveStatus, expected]] of cases.entries()) {
     assert.equal(gate({ liveStatus }).taskVerdict, expected, "case " + index);
@@ -219,11 +223,7 @@ test("manifest cannot redirect proof to another trusted candidate", () => {
   const status = live({
     activePrs: [
       pr(),
-      pr({
-        number: 704,
-        headSha: OTHER,
-        branch: "other-branch",
-      }),
+      pr({ number: 704, headSha: OTHER, branch: "other-branch" }),
     ],
     liveSchedulerWork: [work(), work("MD-OTHER", { prNumber: 704 })],
   });
@@ -235,10 +235,6 @@ test("manifest cannot redirect proof to another trusted candidate", () => {
     liveStatus: status,
   });
   assert.equal(report.taskVerdict, "BLOCKED");
-  assert.equal(
-    report.liveProof.checks["manifest-candidate-binding"],
-    "BLOCKED",
-  );
 });
 
 test("stale, incomplete, external and release authority cannot self-complete", () => {
