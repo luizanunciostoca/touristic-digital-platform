@@ -22,7 +22,9 @@
     "contracts": []
   },
   "reads": {
-    "contracts": ["platform-authz"]
+    "contracts": [
+      "platform-authz"
+    ]
   },
   "produces": {
     "events": [],
@@ -49,11 +51,16 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
-      "maxCommands": 3,
+      "maxCommands": 2,
       "maxSeconds": 900
     },
     "commands": [
@@ -74,20 +81,12 @@
           "tooling/quality/production-mysql-dr-contract.test.mjs"
         ],
         "timeoutSeconds": 300
-      },
-      {
-        "id": "release-target-proof",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/quality/release-target-governance.test.mjs"
-        ],
-        "timeoutSeconds": 300
       }
     ],
     "requiredRemoteEvidence": [
       "automated-independent-proof",
-      "exact-head-identity"
+      "exact-head-identity",
+      "release-target-governance"
     ]
   },
   "stopAt": "REMOTE_PROVEN"
