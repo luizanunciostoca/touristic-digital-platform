@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "mode": "projection",
+  "authorities": {
+    "sourceCode": {
+      "type": "github-main",
+      "repository": "luizanunciostoca/touristic-digital-platform"
+    },
+    "engineeringPolicy": {
+      "type": "repo-file",
+      "path": "AGENTS.md"
+    },
+    "constitution": {
+      "type": "repo-file",
+      "path": "CONSTITUTION.md"
+    },
+    "lifecycle": {
+      "type": "repo-file",
+      "path": ".morro/fabric.json"
+    },
+    "ownership": {
+      "type": "repo-file",
+      "path": ".morro/ownership.json"
+    },
+    "risk": {
+      "type": "repo-file",
+      "path": ".morro/risk-policy.json"
+    },
+    "claims": {
+      "type": "repo-file",
+      "path": ".github/morro-control/claims.json"
+    },
+    "changesets": {
+      "type": "repo-directory",
+      "path": ".morro/changesets"
+    },
+    "termuxOperations": {
+      "type": "external-live-file",
+      "repository": "luizanunciostoca/morro-termux-control",
+      "path": "CHATGPT-START-HERE.md"
+    },
+    "runtime": {
+      "type": "live-provider",
+      "provider": "render"
+    },
+    "persistentData": {
+      "type": "runtime-readback",
+      "provider": "canonical-database"
+    },
+    "ci": {
+      "type": "github-actions-live"
+    },
+    "release": {
+      "type": "repo-and-runtime-evidence"
+    }
+  },
+  "rules": [
+    "recency-alone-does-not-override-domain-authority",
+    "runtime-proves-executed-state-not-intended-contract",
+    "memory-is-context-not-authority"
+  ]
+}
