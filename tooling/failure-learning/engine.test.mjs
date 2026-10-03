@@ -198,3 +198,45 @@ test("invalid occurrence time and named AI authority fail closed", async () => {
       "BLOCK",
     );
 });
+
+test("occurrence replay conflict, metadata overwrite and out-of-order history are safe", () => {
+  let x = recordOccurrence(null, {
+    ...base,
+    occurrenceId: "a",
+    observedAt: "2026-10-03T12:00:00Z",
+  });
+  assert.throws(
+    () =>
+      recordOccurrence(x, {
+        ...base,
+        occurrenceId: "a",
+        observedAt: "2026-10-03T13:00:00Z",
+      }),
+    /OCCURRENCE_REPLAY_CONFLICT/,
+  );
+  x = {
+    ...x,
+    state: "ACTIVE_GUARD",
+    guardId: "AR-X",
+    guardActivationAt: "2026-10-03T11:00:00Z",
+    proofReference: "proof",
+  };
+  let y = recordOccurrence(x, {
+    ...base,
+    occurrenceId: "b",
+    observedAt: "2026-10-03T12:30:00Z",
+    guardActivationAt: "2099-01-01T00:00:00Z",
+    guardId: "evil",
+  });
+  assert.equal(y.guardId, "AR-X");
+  assert.equal(y.guardActivationAt, "2026-10-03T11:00:00Z");
+  assert.equal(y.recurrenceAfterGuard, true);
+  let z = recordOccurrence(y, {
+    ...base,
+    occurrenceId: "c",
+    observedAt: "2026-10-03T10:00:00Z",
+  });
+  assert.equal(z.recurrenceAfterGuard, true);
+  assert.equal(z.firstOccurrence, "2026-10-03T10:00:00Z");
+  assert.equal(z.lastOccurrence, "2026-10-03T12:30:00Z");
+});

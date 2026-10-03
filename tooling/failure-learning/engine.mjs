@@ -49,17 +49,27 @@ export function rootCauseFingerprint(input) {
   );
 }
 export function recordOccurrence(existing, occurrence) {
-  if (existing?.occurrenceIds?.includes(occurrence.occurrenceId))
-    return existing;
   const fp = fingerprint(occurrence);
-  if (existing && existing.fingerprint !== fp)
-    throw new Error("INCIDENT_FINGERPRINT_MISMATCH");
-  const activation = existing?.guardActivationAt
-    ? Date.parse(existing.guardActivationAt)
-    : null;
   const occurred = Date.parse(occurrence.observedAt);
   if (!Number.isFinite(occurred))
     throw new Error("OCCURRENCE_TIMESTAMP_INVALID");
+  if (existing && existing.fingerprint !== fp)
+    throw new Error("INCIDENT_FINGERPRINT_MISMATCH");
+  if (existing?.occurrenceIds?.includes(occurrence.occurrenceId)) {
+    const known = existing.occurrences?.find(
+      (x) => x.occurrenceId === occurrence.occurrenceId,
+    );
+    if (
+      !known ||
+      known.fingerprint !== fp ||
+      known.observedAt !== occurrence.observedAt
+    )
+      throw new Error("OCCURRENCE_REPLAY_CONFLICT");
+    return existing;
+  }
+  const activation = existing?.guardActivationAt
+    ? Date.parse(existing.guardActivationAt)
+    : null;
   if (existing?.state === "ACTIVE_GUARD" && !Number.isFinite(activation))
     throw new Error("GUARD_ACTIVATION_TIMESTAMP_INVALID");
   const after = Number.isFinite(activation) && occurred >= activation;
@@ -75,22 +85,48 @@ export function recordOccurrence(existing, occurrence) {
     metrics.occurrencesAfterGuard++;
     metrics.guardEffectiveness = "INEFFECTIVE";
   } else metrics.occurrencesBeforeGuard++;
+  const oldFirst = Date.parse(existing?.firstOccurrence ?? "");
+  const oldLast = Date.parse(existing?.lastOccurrence ?? "");
+  const occurrenceRecord = {
+    occurrenceId: occurrence.occurrenceId,
+    observedAt: occurrence.observedAt,
+    fingerprint: fp,
+  };
+  const mutable = { ...occurrence };
+  for (const key of [
+    "guardId",
+    "guardRevision",
+    "guardActivationAt",
+    "proofReference",
+    "state",
+    "metrics",
+    "recurrenceAfterGuard",
+    "occurrenceIds",
+    "occurrences",
+    "firstOccurrence",
+    "lastOccurrence",
+  ])
+    delete mutable[key];
   return {
     ...existing,
-    ...occurrence,
+    ...mutable,
     fingerprint: fp,
     occurrenceIds: [
       ...(existing?.occurrenceIds ?? []),
       occurrence.occurrenceId,
     ],
-    firstOccurrence: existing?.firstOccurrence ?? occurrence.observedAt,
+    occurrences: [...(existing?.occurrences ?? []), occurrenceRecord],
+    firstOccurrence:
+      !Number.isFinite(oldFirst) || occurred < oldFirst
+        ? occurrence.observedAt
+        : existing.firstOccurrence,
     lastOccurrence:
-      Math.max(Date.parse(existing?.lastOccurrence ?? 0), occurred) === occurred
+      !Number.isFinite(oldLast) || occurred > oldLast
         ? occurrence.observedAt
         : existing.lastOccurrence,
     metrics,
     state: after ? "ROOT_CAUSE_CONFIRMED" : (existing?.state ?? "OBSERVED"),
-    recurrenceAfterGuard: after,
+    recurrenceAfterGuard: Boolean(existing?.recurrenceAfterGuard) || after,
   };
 }
 export function promoteGuard(incident, proof) {
