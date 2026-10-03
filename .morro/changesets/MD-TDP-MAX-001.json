@@ -51,12 +51,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
@@ -66,11 +61,7 @@
     "commands": [
       {
         "id": "tdp-max-contract",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/tdp-max/validate-config.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/tdp-max/validate-config.test.mjs"],
         "timeoutSeconds": 300
       },
       {
