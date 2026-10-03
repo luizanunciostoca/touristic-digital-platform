@@ -546,6 +546,7 @@ export function deriveLiveEngineeringProof({
       blockersClear &&
       schedulerClear &&
       currentMainMatches &&
+      manifestCandidateMatches &&
       exactCandidate &&
       workValid &&
       remoteProven &&
