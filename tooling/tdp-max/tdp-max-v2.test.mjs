@@ -246,13 +246,12 @@ test("external/release authority remains delegated", () => {
     }).taskVerdict,
     "NOT_PROVEN",
   );
-  assert.equal(
-    gate({
-      profile: "cross-system",
-      externalEvidence: enterprise(["drive-conflict"]),
-    }).taskVerdict,
-    "BLOCKED",
-  );
+  const conflicted = gate({
+    profile: "cross-system",
+    externalEvidence: enterprise(["drive-conflict"]),
+  });
+  assert.equal(conflicted.taskVerdict, "BLOCKED");
+  assert.notEqual(conflicted.capabilityState, "PROVEN");
   assert.equal(
     gate({
       liveStatus: live({

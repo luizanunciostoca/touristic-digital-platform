@@ -604,12 +604,10 @@ export function evaluateFinalGate({
     "TDP_MAX_FINAL_REPOSITORY_REQUIRED",
   );
   assert.ok(PROFILES.has(manifest?.profile), "TDP_MAX_FINAL_PROFILE_INVALID");
-  if (requestedProfile != null) {
-    assert.ok(
-      PROFILES.has(requestedProfile),
-      "TDP_MAX_FINAL_REQUESTED_PROFILE_INVALID",
-    );
-  }
+  assert.ok(
+    PROFILES.has(requestedProfile),
+    "TDP_MAX_FINAL_REQUESTED_PROFILE_INVALID",
+  );
   assert.ok(
     typeof manifest?.changeSetId === "string" &&
       manifest.changeSetId.length > 0,
@@ -621,8 +619,7 @@ export function evaluateFinalGate({
     "TDP_MAX_FINAL_CANDIDATE_REQUIRED",
   );
 
-  const profileMismatch =
-    requestedProfile != null && requestedProfile !== manifest.profile;
+  const profileMismatch = requestedProfile !== manifest.profile;
   const liveProof = deriveLiveEngineeringProof({
     liveStatus,
     manifest,
@@ -676,7 +673,9 @@ export function evaluateFinalGate({
     !enterpriseRequired &&
     !releaseDelegated &&
     manifestConflicts.length === 0 &&
-    manifestUnknowns.length === 0
+    manifestUnknowns.length === 0 &&
+    external.conflicts.length === 0 &&
+    !profileMismatch
   ) {
     capabilityState = "PROVEN";
   }
