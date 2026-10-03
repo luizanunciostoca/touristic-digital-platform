@@ -1,5 +1,25 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-TDP-MAX-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/tdp-max-001-acquire-20261003",
+      "baseSha": "0fb2894fd64288bd17046c62da16337aa10f06ad",
+      "paths": [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        ".morro/changesets/MD-TDP-MAX-001.json",
+        ".github/morro-control/tdp-max/**",
+        "tooling/tdp-max/**",
+        "tooling/quality/check-ci-governance.mjs",
+        "package.json"
+      ],
+      "domains": ["ci-release", "control-plane", "governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-03T11:00:00Z"
+    }
+  }
 }
