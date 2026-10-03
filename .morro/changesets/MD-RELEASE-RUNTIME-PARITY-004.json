@@ -2,8 +2,8 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-RUNTIME-PARITY-004",
   "objective": "restore-runtime-parity-ticketing-canonical-places-and-publish-certified-release",
-  "baseSha": "cc9c7a27739291443be2066a9a60c2672d1ec00f",
-  "branch": "chore/runtime-parity-release-004-acquire-20261002",
+  "baseSha": "22b07ff7a965ffc0cfe29b3b1663402effd61ce4",
+  "branch": "chore/runtime-parity-release-004-scope-20261003",
   "state": "IMPLEMENTING",
   "risk": "critical",
   "scope": "PLATFORM",
@@ -16,12 +16,15 @@
       "render.yaml",
       "tooling/render/**",
       "tooling/quality/**",
-      "apps/morro-digital-platform/tooling/**"
+      "apps/morro-digital-platform/tooling/**",
+      "tooling/release/**"
     ],
     "contracts": []
   },
   "reads": {
-    "contracts": ["platform-authz"]
+    "contracts": [
+      "platform-authz"
+    ]
   },
   "produces": {
     "events": [],
@@ -51,7 +54,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
