@@ -70,18 +70,9 @@
             "type": "string",
             "minLength": 1
           },
-          "scope": {
-            "type": ["string", "null"]
-          },
-          "environment": {
-            "type": ["string", "null"]
-          },
           "assertion": {
             "type": "string",
             "minLength": 1
-          },
-          "details": {
-            "type": ["string", "null"]
           }
         }
       }

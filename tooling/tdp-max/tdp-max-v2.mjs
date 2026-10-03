@@ -275,10 +275,6 @@ export function buildBootstrapReport({
     blockers: [...new Set(blockers)],
     warnings: [...new Set(warnings)],
     result,
-    notes: [
-      "TDP-MAX is a projection over Control Plane V3.2; mdctl remains the LIVE engineering collector.",
-      "Release-only drift is a warning outside the release profile and remains a blocker for release.",
-    ],
   };
 }
 
@@ -354,31 +350,28 @@ export function buildReconcileReport({
   };
 }
 
-const REMOTE_PROVEN_STATES = new Set([
-  "REMOTE_PROVEN",
-  "COMPOSITION_PROVEN",
-  "POLICY_SATISFIED",
-  "MERGE_READY",
-  "MERGED",
-  "POST_MERGE_PROVEN",
-  "RELEASE_CANDIDATE",
-  "STAGING_PROVEN",
-  "CERTIFIED",
-  "RELEASED",
-  "PRODUCTION_VERIFIED",
-]);
+const REMOTE_PROVEN_STATES = new Set(
+  "REMOTE_PROVEN COMPOSITION_PROVEN POLICY_SATISFIED MERGE_READY MERGED POST_MERGE_PROVEN RELEASE_CANDIDATE STAGING_PROVEN CERTIFIED RELEASED PRODUCTION_VERIFIED".split(
+    " ",
+  ),
+);
 
 function sourceAvailable(observed, name) {
   return observed?.sources?.[name]?.state === "AVAILABLE";
 }
 
-function findCandidatePr(observed, manifest) {
-  if (!manifest?.candidateSha || !manifest?.changeSetId) return null;
-  return (
-    (observed?.activePrs ?? []).find(
-      (pr) => pr?.headSha === manifest.candidateSha,
-    ) ?? null
+function findCandidatePr(
+  observed,
+  { expectedRepository, expectedCandidateSha, expectedBranch },
+) {
+  const matches = (observed?.activePrs ?? []).filter(
+    (pr) =>
+      pr?.repository === expectedRepository &&
+      pr?.headSha === expectedCandidateSha &&
+      pr?.branch === expectedBranch &&
+      pr?.baseSha === observed?.mainSha,
   );
+  return matches.length === 1 ? matches[0] : null;
 }
 
 function findCandidateWork(observed, manifest, pr) {
@@ -396,6 +389,8 @@ export function deriveLiveEngineeringProof({
   liveStatus,
   manifest,
   expectedRepository,
+  expectedCandidateSha,
+  expectedBranch,
   now = Date.now(),
 }) {
   const observed = liveStatus?.observed;
@@ -455,13 +450,29 @@ export function deriveLiveEngineeringProof({
   checks["live-repository-binding"] = repositoryBound ? "PASS" : "NOT_PROVEN";
   if (!repositoryBound) failures.push("LIVE_REPOSITORY_NOT_PROVEN");
 
-  const pr = findCandidatePr(observed, manifest);
-  const exactCandidate =
+  const manifestCandidateMatches =
+    manifest.candidateSha === expectedCandidateSha;
+  checks["manifest-candidate-binding"] = manifestCandidateMatches
+    ? "PASS"
+    : "BLOCKED";
+  if (!manifestCandidateMatches) failures.push("MANIFEST_CANDIDATE_MISMATCH");
+
+  const workspaceCandidateBound =
     repositoryBound &&
-    Boolean(pr) &&
-    pr.headSha === manifest.candidateSha &&
-    pr.baseSha === observed.mainSha &&
-    pr.repository === expectedRepository;
+    SHA.test(expectedCandidateSha ?? "") &&
+    typeof expectedBranch === "string" &&
+    expectedBranch.length > 0;
+  checks["workspace-candidate-binding"] = workspaceCandidateBound
+    ? "PASS"
+    : "NOT_PROVEN";
+  if (!workspaceCandidateBound) failures.push("WORKSPACE_CANDIDATE_NOT_PROVEN");
+
+  const pr = findCandidatePr(observed, {
+    expectedRepository,
+    expectedCandidateSha,
+    expectedBranch,
+  });
+  const exactCandidate = workspaceCandidateBound && Boolean(pr);
   checks["live-candidate-exact-head"] = exactCandidate ? "PASS" : "NOT_PROVEN";
   if (!exactCandidate) failures.push("LIVE_EXACT_HEAD_NOT_PROVEN");
 
@@ -515,6 +526,8 @@ export function deriveLiveEngineeringProof({
     repository: observed?.repository ?? null,
     mainSha: observed?.mainSha ?? null,
     candidateSha: manifest?.candidateSha ?? null,
+    expectedCandidateSha: expectedCandidateSha ?? null,
+    expectedBranch: expectedBranch ?? null,
     changeSetId: manifest?.changeSetId ?? null,
     prNumber: pr?.number ?? null,
     changeSetState: work?.state ?? null,
@@ -542,50 +555,29 @@ export function deriveLiveEngineeringProof({
 
 function externalEvidenceSummary(externalEvidence, now) {
   if (!externalEvidence) {
-    return {
-      supplied: false,
-      freshEnterpriseAssertion: false,
-      authoritative: false,
-      conflicts: [],
-      unknowns: [],
-      status: "MISSING",
-    };
+    return { conflicts: [], unknowns: [], enterpriseStatus: "MISSING" };
   }
   const validated = validateExternalEvidenceBundle(externalEvidence, now);
-  const item = enterpriseEvidence(validated);
   const conflicts = [
     ...(validated.conflicts ?? []),
     ...(validated.items ?? [])
-      .filter((candidate) => candidate.status === "CONFLICT")
-      .map((candidate) => candidate.id),
+      .filter((item) => item.status === "CONFLICT")
+      .map((item) => item.id),
   ];
   const unknowns = [
     ...(validated.unknowns ?? []),
     ...(validated.items ?? [])
-      .filter((candidate) =>
+      .filter((item) =>
         ["UNKNOWN", "STALE", "INFERRED", "HISTORICAL", "SUPERSEDED"].includes(
-          candidate.status,
+          item.status,
         ),
       )
-      .map((candidate) => candidate.id),
+      .map((item) => item.id),
   ];
-  const freshEnterpriseAssertion =
-    item?.status === "VERIFIED" &&
-    conflicts.length === 0 &&
-    unknowns.length === 0;
   return {
-    supplied: true,
-    freshEnterpriseAssertion,
-    authoritative: false,
     conflicts: [...new Set(conflicts)],
     unknowns: [...new Set(unknowns)],
-    status: freshEnterpriseAssertion
-      ? "FRESH_ASSERTION_PRESENT_NOT_AUTHORITATIVE"
-      : conflicts.length > 0
-        ? "CONFLICT"
-        : unknowns.length > 0
-          ? "NOT_PROVEN"
-          : "MISSING_ENTERPRISE_ASSERTION",
+    enterpriseStatus: enterpriseEvidence(validated)?.status ?? "MISSING",
   };
 }
 
@@ -596,12 +588,23 @@ export function evaluateFinalGate({
   externalEvidence = null,
   requestedProfile = null,
   expectedRepository,
+  expectedCandidateSha,
+  expectedBranch,
   now = Date.now(),
 }) {
   assert.equal(finalGate?.mode, "projection", "TDP_MAX_FINAL_MODE_INVALID");
   assert.ok(
     typeof expectedRepository === "string" && expectedRepository.length > 0,
     "TDP_MAX_FINAL_REPOSITORY_REQUIRED",
+  );
+  assert.match(
+    expectedCandidateSha ?? "",
+    SHA,
+    "TDP_MAX_FINAL_EXPECTED_CANDIDATE_REQUIRED",
+  );
+  assert.ok(
+    typeof expectedBranch === "string" && expectedBranch.length > 0,
+    "TDP_MAX_FINAL_EXPECTED_BRANCH_REQUIRED",
   );
   assert.ok(PROFILES.has(manifest?.profile), "TDP_MAX_FINAL_PROFILE_INVALID");
   assert.ok(
@@ -624,6 +627,8 @@ export function evaluateFinalGate({
     liveStatus,
     manifest,
     expectedRepository,
+    expectedCandidateSha,
+    expectedBranch,
     now,
   });
   const manifestConflicts = Array.isArray(manifest?.conflicts)
@@ -644,6 +649,7 @@ export function evaluateFinalGate({
       "LIVE_CRITICAL_INVARIANTS_UNRESOLVED",
       "LIVE_CONTROL_BLOCKERS_PRESENT",
       "LIVE_SCHEDULER_VIOLATIONS",
+      "MANIFEST_CANDIDATE_MISMATCH",
     ].includes(failure),
   );
 
@@ -652,53 +658,39 @@ export function evaluateFinalGate({
     blockingFailures.push("EXTERNAL_EVIDENCE_CONFLICT");
   }
 
-  let capabilityState = "OBSERVED";
-  if (
-    liveProof.exactCandidate &&
-    liveProof.currentMainMatches &&
-    liveProof.controlsClear
-  ) {
-    capabilityState = "IMPLEMENTED";
-  }
-  if (
-    liveProof.exactCandidate &&
-    liveProof.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD" &&
-    liveProof.currentMainMatches &&
-    liveProof.controlsClear
-  ) {
-    capabilityState = "INTEGRATED";
-  }
-  if (
-    liveProof.proven &&
-    !enterpriseRequired &&
-    !releaseDelegated &&
-    manifestConflicts.length === 0 &&
-    manifestUnknowns.length === 0 &&
-    external.conflicts.length === 0 &&
-    !profileMismatch
-  ) {
-    capabilityState = "PROVEN";
-  }
-
-  const technicallyReady =
-    liveProof.proven &&
+  const noTaskConflict =
     manifestConflicts.length === 0 &&
     manifestUnknowns.length === 0 &&
     external.conflicts.length === 0 &&
     !profileMismatch;
+  const implemented =
+    liveProof.exactCandidate &&
+    liveProof.currentMainMatches &&
+    liveProof.controlsClear;
+  const integrated =
+    implemented &&
+    liveProof.trustAuthority === "TRUSTED_CLAIM_GUARD_EXACT_HEAD";
+  const technicallyReady = liveProof.proven && noTaskConflict;
 
-  let taskVerdict = "NOT_PROVEN";
-  if (
+  const capabilityState =
+    technicallyReady && !enterpriseRequired && !releaseDelegated
+      ? "PROVEN"
+      : integrated
+        ? "INTEGRATED"
+        : implemented
+          ? "IMPLEMENTED"
+          : "OBSERVED";
+
+  const taskVerdict =
     blockingFailures.length > 0 ||
     manifestConflicts.length > 0 ||
     external.conflicts.length > 0
-  ) {
-    taskVerdict = "BLOCKED";
-  } else if (releaseDelegated || externalAuthorityDelegated) {
-    taskVerdict = "NOT_PROVEN";
-  } else if (technicallyReady) {
-    taskVerdict = "COMPLETE";
-  }
+      ? "BLOCKED"
+      : releaseDelegated || externalAuthorityDelegated
+        ? "NOT_PROVEN"
+        : technicallyReady
+          ? "COMPLETE"
+          : "NOT_PROVEN";
 
   return {
     schemaVersion: 1,
@@ -720,14 +712,6 @@ export function evaluateFinalGate({
       proven: false,
       decisionAuthority: "ORCHESTRATOR_CONNECTOR_READBACK",
     },
-    ignoredManifestAuthorityClaims: [
-      "semantic-ci-proven",
-      "exact-head-proven",
-      "lifecycle-reconciled",
-      "independent-challenge-passed",
-      "release-authorization",
-      "production-verification",
-    ],
     technicallyReady,
     taskVerdict,
     capabilityState,

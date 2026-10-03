@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { readFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
 import { validateEvidenceManifest } from "./validate-config.mjs";
 import {
   buildBootstrapReport,
@@ -13,19 +12,25 @@ import {
   validateExternalEvidenceBundle,
 } from "./tdp-max-v2.mjs";
 
-const execute = promisify(execFile);
 const DEFAULT_REPOSITORY = "luizanunciostoca/touristic-digital-platform";
+const COMMANDS = new Set(["bootstrap", "status", "reconcile", "final-gate"]);
+const FLAGS = {
+  "--profile": "profile",
+  "--objective": "objective",
+  "--repo": "repository",
+  "--external-evidence": "externalEvidence",
+  "--manifest": "manifest",
+  "--staging-url": "stagingUrl",
+  "--production-url": "productionUrl",
+};
 
-async function readJson(path) {
-  return JSON.parse(await readFile(resolve(process.cwd(), path), "utf8"));
+function readJson(path) {
+  return JSON.parse(readFileSync(resolve(process.cwd(), path), "utf8"));
 }
 
 function parseArgs(argv) {
   const command = argv[0];
-  assert.ok(
-    ["bootstrap", "status", "reconcile", "final-gate"].includes(command),
-    "TDP_MAX_COMMAND_INVALID",
-  );
+  assert.ok(COMMANDS.has(command), "TDP_MAX_COMMAND_INVALID");
   const options = {
     command,
     profile: command === "final-gate" ? null : "engineering",
@@ -36,28 +41,38 @@ function parseArgs(argv) {
     stagingUrl: process.env.MORRO_STAGING_URL ?? null,
     productionUrl: process.env.MORRO_PRODUCTION_URL ?? null,
   };
-  for (let index = 1; index < argv.length; index += 1) {
-    const key = argv[index];
-    if (key === "--") continue;
-    const value = argv[index + 1];
+  for (let i = 1; i < argv.length; i += 2) {
+    if (argv[i] === "--") {
+      i -= 1;
+      continue;
+    }
+    const field = FLAGS[argv[i]];
+    const value = argv[i + 1];
+    assert.ok(field, "TDP_MAX_ARGUMENT_INVALID:" + argv[i]);
     assert.ok(
       value && !value.startsWith("--"),
       "TDP_MAX_ARGUMENT_VALUE_REQUIRED",
     );
-    index += 1;
-    if (key === "--profile") options.profile = value;
-    else if (key === "--objective") options.objective = value;
-    else if (key === "--repo") options.repository = value;
-    else if (key === "--external-evidence") options.externalEvidence = value;
-    else if (key === "--manifest") options.manifest = value;
-    else if (key === "--staging-url") options.stagingUrl = value;
-    else if (key === "--production-url") options.productionUrl = value;
-    else throw new Error("TDP_MAX_ARGUMENT_INVALID:" + key);
+    options[field] = value;
   }
   return options;
 }
 
-async function runMdctl(command, options) {
+function execute(file, args, timeout = 120000) {
+  return execFileSync(file, args, {
+    cwd: process.cwd(),
+    env: process.env,
+    encoding: "utf8",
+    timeout,
+    maxBuffer: 32 * 1024 * 1024,
+  }).trim();
+}
+
+function runGit(...args) {
+  return execute("git", args, 30000);
+}
+
+function runMdctl(command, options) {
   const args = [
     "tooling/mdctl/mdctl.mjs",
     command,
@@ -70,96 +85,83 @@ async function runMdctl(command, options) {
     if (options.productionUrl)
       args.push("--production-url", options.productionUrl);
   }
-  const { stdout } = await execute(process.execPath, args, {
-    cwd: process.cwd(),
-    env: process.env,
-    encoding: "utf8",
-    timeout: 120000,
-    maxBuffer: 32 * 1024 * 1024,
-  });
-  return JSON.parse(stdout);
+  return JSON.parse(execute(process.execPath, args));
 }
 
-async function loadExternal(path) {
-  if (!path) return null;
-  return validateExternalEvidenceBundle(await readJson(path));
+function loadExternal(path) {
+  return path ? validateExternalEvidenceBundle(readJson(path)) : null;
 }
 
-async function bootstrap(options, mdctlCommand = "bootstrap") {
-  const [mdctl, authorityMap, externalEvidence] = await Promise.all([
-    runMdctl(mdctlCommand, options),
-    readJson(".github/morro-control/tdp-max/authority-map.json"),
-    loadExternal(options.externalEvidence),
-  ]);
-  const report = buildBootstrapReport({
+function bootstrap(options, command = "bootstrap") {
+  const mdctl = runMdctl(command, options);
+  const externalEvidence = loadExternal(options.externalEvidence);
+  return {
     mdctl,
-    authorityMap,
     externalEvidence,
-    profile: options.profile,
-    objective: options.objective,
-  });
-  return { report, mdctl, externalEvidence };
+    report: buildBootstrapReport({
+      mdctl,
+      externalEvidence,
+      authorityMap: readJson(
+        ".github/morro-control/tdp-max/authority-map.json",
+      ),
+      profile: options.profile,
+      objective: options.objective,
+    }),
+  };
 }
 
-async function runBootstrap(options) {
-  const { report } = await bootstrap(options, "bootstrap");
-  process.stdout.write(JSON.stringify(report, null, 2) + "\n");
-  if (["BLOCKED", "NOT_PROVEN"].includes(report.result)) process.exitCode = 2;
+function emit(value, failed = false) {
+  process.stdout.write(JSON.stringify(value, null, 2) + "\n");
+  if (failed) process.exitCode = 2;
 }
 
-async function runStatus(options) {
-  const { report, mdctl } = await bootstrap(options, "status");
-  process.stdout.write(
-    JSON.stringify(buildStatusReport({ bootstrap: report, mdctl }), null, 2) +
-      "\n",
-  );
-}
+function run(options) {
+  if (options.command === "bootstrap") {
+    const { report } = bootstrap(options);
+    return emit(report, ["BLOCKED", "NOT_PROVEN"].includes(report.result));
+  }
+  if (options.command === "status") {
+    const { report, mdctl } = bootstrap(options, "status");
+    return emit(buildStatusReport({ bootstrap: report, mdctl }));
+  }
+  if (options.command === "reconcile") {
+    const boot = bootstrap(options, "status");
+    return emit(
+      buildReconcileReport({
+        projection: runMdctl("reconcile", options),
+        bootstrap: boot.report,
+        externalEvidence: boot.externalEvidence,
+      }),
+    );
+  }
 
-async function runReconcile(options) {
-  const [projection, boot] = await Promise.all([
-    runMdctl("reconcile", options),
-    bootstrap(options, "status"),
-  ]);
-  const report = buildReconcileReport({
-    projection,
-    bootstrap: boot.report,
-    externalEvidence: boot.externalEvidence,
-  });
-  process.stdout.write(JSON.stringify(report, null, 2) + "\n");
-}
-
-async function runFinalGate(options) {
   assert.ok(options.manifest, "TDP_MAX_FINAL_MANIFEST_REQUIRED");
-  const [manifest, finalGate, liveStatus, externalEvidence] = await Promise.all(
-    [
-      readJson(options.manifest),
-      readJson(".github/morro-control/tdp-max/final-gate.json"),
-      runMdctl("status", options),
-      loadExternal(options.externalEvidence),
-    ],
+  const manifest = readJson(options.manifest);
+  const expectedCandidateSha = runGit("rev-parse", "HEAD");
+  const expectedBranch = runGit("branch", "--show-current");
+  assert.match(
+    expectedCandidateSha,
+    /^[0-9a-f]{40}$/u,
+    "TDP_MAX_GIT_HEAD_INVALID",
   );
+  assert.ok(expectedBranch, "TDP_MAX_GIT_BRANCH_REQUIRED");
   validateEvidenceManifest(manifest);
   const report = evaluateFinalGate({
     manifest,
-    finalGate,
-    liveStatus,
-    externalEvidence,
+    liveStatus: runMdctl("status", options),
+    finalGate: readJson(".github/morro-control/tdp-max/final-gate.json"),
+    externalEvidence: loadExternal(options.externalEvidence),
     requestedProfile: options.profile,
     expectedRepository: options.repository,
+    expectedCandidateSha,
+    expectedBranch,
   });
-  process.stdout.write(JSON.stringify(report, null, 2) + "\n");
-  if (report.taskVerdict !== "COMPLETE") process.exitCode = 2;
+  return emit(report, report.taskVerdict !== "COMPLETE");
 }
 
-async function main() {
-  const options = parseArgs(process.argv.slice(2));
-  if (options.command === "bootstrap") return runBootstrap(options);
-  if (options.command === "status") return runStatus(options);
-  if (options.command === "reconcile") return runReconcile(options);
-  return runFinalGate(options);
-}
-
-main().catch((error) => {
+try {
+  run(parseArgs(process.argv.slice(2)));
+} catch (error) {
   console.error("TDP_MAX_V2_FAILED:" + String(error?.message ?? error));
   process.exitCode = 1;
-});
+}
