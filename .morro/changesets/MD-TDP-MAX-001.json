@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TDP-MAX-001",
+  "objective": "integrate-canonical-tdp-max-policy-and-anti-recurrence-guards",
+  "baseSha": "0fb2894fd64288bd17046c62da16337aa10f06ad",
+  "branch": "infra/tdp-max-001-acquire-20261003",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-TDP-MAX-001.json",
+      ".github/morro-control/tdp-max/**",
+      "tooling/tdp-max/**",
+      "tooling/quality/check-ci-governance.mjs",
+      "package.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "tdp-max-config",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/tdp-max/validate-config.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "ci-governance-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
