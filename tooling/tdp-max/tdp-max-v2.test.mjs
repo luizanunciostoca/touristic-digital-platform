@@ -12,6 +12,7 @@ const CANDIDATE = "b".repeat(40);
 const OTHER = "c".repeat(40);
 const NOW = Date.parse("2026-10-03T09:00:00Z");
 const CHANGESET = "MD-TDP-MAX-002";
+const REPOSITORY = "luizanunciostoca/touristic-digital-platform";
 const finalGate = {
   mode: "projection",
   lifecycleAuthority: ".morro/fabric.json",
@@ -85,13 +86,21 @@ function live(patch = {}, criticalFailures = []) {
   return {
     kind: "TDP_MDCTL_BOOTSTRAP",
     observed: {
+      repository: REPOSITORY,
       snapshotStartedAt: "2026-10-03T08:59:30Z",
       generatedAt: "2026-10-03T09:00:00Z",
       mainSha: MAIN,
       mainShaAtEnd: MAIN,
       collectionState: "CAPTURED",
       blockers: [],
-      activePrs: [{ number: 703, headSha: CANDIDATE, baseSha: MAIN }],
+      activePrs: [
+        {
+          number: 703,
+          headSha: CANDIDATE,
+          baseSha: MAIN,
+          repository: REPOSITORY,
+        },
+      ],
       ci: { activeRuns: [] },
       sources: Object.fromEntries(
         ["main", "mainRecheck", "pullRequests", "recentCi", "activeCi"].map(
@@ -126,6 +135,7 @@ function gate({
     liveStatus,
     externalEvidence,
     requestedProfile,
+    expectedRepository: REPOSITORY,
     now: NOW,
   });
 }
@@ -201,6 +211,13 @@ test("engineering completion requires LIVE exact-head remote proof", () => {
       "NOT_PROVEN",
     ],
     [live({ ci: { activeRuns: [{ headSha: CANDIDATE }] } }), "NOT_PROVEN"],
+    [live({ repository: undefined }), "NOT_PROVEN"],
+    [
+      live({
+        activePrs: [{ number: 703, headSha: CANDIDATE, baseSha: MAIN }],
+      }),
+      "NOT_PROVEN",
+    ],
     [live({ mainShaAtEnd: OTHER }), "BLOCKED"],
     [live({}, [{ id: "INV-X", status: "FAIL" }]), "BLOCKED"],
   ];

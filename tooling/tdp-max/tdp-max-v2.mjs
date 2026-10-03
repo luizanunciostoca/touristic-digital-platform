@@ -395,6 +395,7 @@ function findCandidateWork(observed, manifest, pr) {
 export function deriveLiveEngineeringProof({
   liveStatus,
   manifest,
+  expectedRepository,
   now = Date.now(),
 }) {
   const observed = liveStatus?.observed;
@@ -447,12 +448,20 @@ export function deriveLiveEngineeringProof({
   checks["manifest-main-binding"] = currentMainMatches ? "PASS" : "BLOCKED";
   if (!currentMainMatches) failures.push("FINAL_MAIN_MOVED_OR_UNBOUND");
 
+  const repositoryBound =
+    typeof expectedRepository === "string" &&
+    expectedRepository.length > 0 &&
+    observed?.repository === expectedRepository;
+  checks["live-repository-binding"] = repositoryBound ? "PASS" : "NOT_PROVEN";
+  if (!repositoryBound) failures.push("LIVE_REPOSITORY_NOT_PROVEN");
+
   const pr = findCandidatePr(observed, manifest);
   const exactCandidate =
+    repositoryBound &&
     Boolean(pr) &&
     pr.headSha === manifest.candidateSha &&
-    pr.baseSha === observed?.mainSha &&
-    pr.repository === observed?.repository;
+    pr.baseSha === observed.mainSha &&
+    pr.repository === expectedRepository;
   checks["live-candidate-exact-head"] = exactCandidate ? "PASS" : "NOT_PROVEN";
   if (!exactCandidate) failures.push("LIVE_EXACT_HEAD_NOT_PROVEN");
 
@@ -586,9 +595,14 @@ export function evaluateFinalGate({
   liveStatus,
   externalEvidence = null,
   requestedProfile = null,
+  expectedRepository,
   now = Date.now(),
 }) {
   assert.equal(finalGate?.mode, "projection", "TDP_MAX_FINAL_MODE_INVALID");
+  assert.ok(
+    typeof expectedRepository === "string" && expectedRepository.length > 0,
+    "TDP_MAX_FINAL_REPOSITORY_REQUIRED",
+  );
   assert.ok(PROFILES.has(manifest?.profile), "TDP_MAX_FINAL_PROFILE_INVALID");
   if (requestedProfile != null) {
     assert.ok(
@@ -612,6 +626,7 @@ export function evaluateFinalGate({
   const liveProof = deriveLiveEngineeringProof({
     liveStatus,
     manifest,
+    expectedRepository,
     now,
   });
   const manifestConflicts = Array.isArray(manifest?.conflicts)

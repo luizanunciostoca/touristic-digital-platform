@@ -145,6 +145,7 @@ async function runFinalGate(options) {
     liveStatus,
     externalEvidence,
     requestedProfile: options.profile,
+    expectedRepository: options.repository,
   });
   process.stdout.write(JSON.stringify(report, null, 2) + "\n");
   if (report.taskVerdict !== "COMPLETE") process.exitCode = 2;
