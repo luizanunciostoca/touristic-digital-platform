@@ -55,6 +55,7 @@ for (const scriptName of [
   "build",
   "platform:contracts:check",
   "ci:governance:check",
+  "tdp-max:check",
   "release:target-governance:check",
   "migration:dry-run",
   "release:identity:smoke",

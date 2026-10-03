@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "mode": "projection",
+  "lifecycleAuthority": ".morro/fabric.json",
+  "requiredForComplete": [
+    "objective-satisfied",
+    "semantic-ci-proven",
+    "exact-head-proven",
+    "external-writes-read-back",
+    "critical-unknowns-zero",
+    "conflicts-zero",
+    "lifecycle-reconciled",
+    "independent-challenge-passed"
+  ],
+  "conditional": [
+    {
+      "gate": "root-cause-proven",
+      "when": "remediation"
+    },
+    {
+      "gate": "artifact-identity",
+      "when": "release-or-runtime-impact"
+    },
+    {
+      "gate": "staging-acceptance",
+      "when": "release-or-runtime-impact"
+    },
+    {
+      "gate": "database-readback",
+      "when": "persistent-data-impact"
+    },
+    {
+      "gate": "rollback-proof",
+      "when": "high-or-critical-risk"
+    },
+    {
+      "gate": "dr-proof",
+      "when": "dr-required"
+    },
+    {
+      "gate": "release-authorization",
+      "when": "production-promotion-required"
+    },
+    {
+      "gate": "production-verification",
+      "when": "production-changed"
+    }
+  ],
+  "verdicts": ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"]
+}

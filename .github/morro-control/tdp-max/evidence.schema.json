@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP-MAX Evidence Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "objective",
+    "initialMain",
+    "finalMain",
+    "evidence",
+    "unknowns",
+    "conflicts",
+    "verdict"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "initialMain": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "finalMain": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "candidateSha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "artifactDigest": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "claimId": {
+      "type": ["string", "null"]
+    },
+    "changeSetId": {
+      "type": ["string", "null"]
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "status", "source"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "VERIFIED",
+              "INFERRED",
+              "UNKNOWN",
+              "STALE",
+              "HISTORICAL",
+              "SUPERSEDED",
+              "CONFLICT",
+              "N/A"
+            ]
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "environment": {
+            "type": ["string", "null"]
+          },
+          "details": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verdict": {
+      "enum": ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "COMPLETE"
+          }
+        },
+        "required": ["verdict"]
+      },
+      "then": {
+        "required": ["candidateSha"],
+        "properties": {
+          "candidateSha": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "unknowns": {
+            "maxItems": 0
+          },
+          "conflicts": {
+            "maxItems": 0
+          },
+          "evidence": {
+            "minItems": 1,
+            "items": {
+              "properties": {
+                "status": {
+                  "enum": ["VERIFIED", "N/A"]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

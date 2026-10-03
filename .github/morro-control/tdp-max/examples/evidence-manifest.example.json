@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "objective": "example-only",
+  "initialMain": "0000000000000000000000000000000000000000",
+  "finalMain": "0000000000000000000000000000000000000000",
+  "candidateSha": null,
+  "artifactDigest": null,
+  "claimId": null,
+  "changeSetId": null,
+  "evidence": [
+    {
+      "id": "bootstrap",
+      "kind": "governance",
+      "status": "VERIFIED",
+      "source": "example",
+      "sha": null,
+      "environment": null,
+      "details": "Example only"
+    }
+  ],
+  "unknowns": [],
+  "conflicts": [],
+  "verdict": "PARTIAL"
+}
