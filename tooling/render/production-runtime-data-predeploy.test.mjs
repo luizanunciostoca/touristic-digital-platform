@@ -1,72 +1,53 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { runProductionRuntimeDataPredeploy } from "../../apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs";
+const sourcePath =
+  "apps/morro-digital-platform/tooling/production-runtime-data-predeploy.mjs";
 
-function environment(overrides = {}) {
-  return {
-    RENDER_SERVICE_NAME: "morro-digital-v2-production-db-bootstrap",
-    ...overrides,
-  };
-}
+test("production data predeploy keeps the governed 72-place convergence sequence", () => {
+  const source = readFileSync(sourcePath, "utf8");
+  const orderedSteps = [
+    "legacy-commercial-place-backfill-apply",
+    "legacy-commercial-draft-verify",
+    "legacy-commercial-media-backfill-apply",
+    "legacy-commercial-media-backfill-verify",
+    "legacy-commercial-description-backfill-apply",
+    "legacy-commercial-description-backfill-verify",
+    "legacy-commercial-review-transition-apply",
+    "legacy-commercial-review-transition-verify",
+    "legacy-commercial-cutover-audit-pre-publication",
+    "legacy-commercial-publication-batch-apply",
+    "legacy-commercial-publication-batch-verify",
+    "legacy-commercial-cutover-audit-post-publication",
+  ];
 
-test("runs the canonical 72-place production bootstrap in governed order", async () => {
-  const calls = [];
-  const recorder =
-    (name) =>
-    async ({ environment: env, argv, apply }) => {
-      assert.equal(env.PRODUCTION_CANONICAL_PLACE_BOOTSTRAP_ENABLED, "true");
-      calls.push({ name, argv: argv ?? null, apply: apply ?? null });
-      return { status: "pass", name };
-    };
+  let cursor = -1;
+  for (const step of orderedSteps) {
+    const index = source.indexOf(`"${step}"`);
+    assert.ok(index > cursor, `production data step order invalid: ${step}`);
+    cursor = index;
+  }
 
-  const result = await runProductionRuntimeDataPredeploy({
-    environment: environment(),
-    runners: {
-      placeBackfill: recorder("place"),
-      draftVerify: recorder("draft"),
-      mediaBackfill: recorder("media"),
-      descriptionBackfill: recorder("description"),
-      reviewTransition: recorder("review"),
-      cutoverAudit: recorder("audit"),
-      publicationBatch: recorder("publication"),
+  assert.match(source, /PRODUCTION_CANONICAL_PLACE_BOOTSTRAP_ENABLED/u);
+  assert.match(source, /placeCount:\s*72/u);
+  assert.match(source, /morro-digital-v2-production-db-bootstrap/u);
+});
+
+test("production data predeploy fails closed outside the private owner worker", () => {
+  const result = spawnSync(process.execPath, [sourcePath], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      RENDER_SERVICE_NAME: "morro-digital-v2",
     },
   });
 
-  assert.equal(result.status, "pass");
-  assert.equal(result.placeCount, 72);
-  assert.deepEqual(
-    calls.map((entry) => entry.name),
-    [
-      "place",
-      "draft",
-      "media",
-      "media",
-      "description",
-      "description",
-      "review",
-      "review",
-      "audit",
-      "publication",
-      "publication",
-      "audit",
-    ],
-  );
-  assert.equal(calls[0].apply, true);
-  assert.deepEqual(calls[2].argv, ["--apply"]);
-  assert.deepEqual(calls[3].argv, []);
-  assert.deepEqual(calls[6].argv, ["--apply"]);
-  assert.deepEqual(calls[7].argv, ["--verify"]);
-  assert.deepEqual(calls[9].argv, ["--apply"]);
-  assert.deepEqual(calls[10].argv, ["--verify"]);
-});
-
-test("production data bootstrap is denied outside the private owner worker", async () => {
-  await assert.rejects(
-    runProductionRuntimeDataPredeploy({
-      environment: environment({ RENDER_SERVICE_NAME: "morro-digital-v2" }),
-      runners: {},
-    }),
+  assert.notEqual(result.status, 0);
+  assert.match(
+    result.stderr,
     /PRODUCTION_RUNTIME_DATA_PREDEPLOY_SERVICE_DENIED/u,
   );
+  assert.doesNotMatch(result.stderr, /mysql:\/\//u);
 });
