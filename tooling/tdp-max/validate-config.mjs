@@ -117,6 +117,9 @@ export async function validateTdpMaxConfig() {
   const evidence = await json(
     ".github/morro-control/tdp-max/evidence.schema.json",
   );
+  const externalEvidence = await json(
+    ".github/morro-control/tdp-max/external-evidence.schema.json",
+  );
   const finalGate = await json(".github/morro-control/tdp-max/final-gate.json");
   const fabric = await json(".morro/fabric.json");
   const pkg = await json("package.json");
@@ -157,6 +160,16 @@ export async function validateTdpMaxConfig() {
     authority.authorities.termuxOperations?.path,
     "CHATGPT-START-HERE.md",
     "TDP_MAX_TERMUX_LIVE_AUTHORITY",
+  );
+  assert.equal(
+    authority.authorities.enterpriseOs?.type,
+    "google-drive-live",
+    "TDP_MAX_ENTERPRISE_OS_AUTHORITY_TYPE",
+  );
+  assert.equal(
+    authority.authorities.enterpriseOs?.entry,
+    "AI_START_HERE",
+    "TDP_MAX_ENTERPRISE_OS_ENTRY",
   );
 
   const requiredFailures = [
@@ -225,25 +238,13 @@ export async function validateTdpMaxConfig() {
   );
 
   const requiredFinalGates = [
-    "objective-satisfied",
-    "semantic-ci-proven",
-    "exact-head-proven",
-    "external-writes-read-back",
+    "live-main-stable",
+    "live-candidate-exact-head",
+    "live-remote-proof",
     "critical-unknowns-zero",
     "conflicts-zero",
-    "lifecycle-reconciled",
-    "independent-challenge-passed",
   ];
-  const requiredConditionalGates = [
-    "root-cause-proven",
-    "artifact-identity",
-    "staging-acceptance",
-    "database-readback",
-    "rollback-proof",
-    "dr-proof",
-    "release-authorization",
-    "production-verification",
-  ];
+  const requiredConditionalGates = ["enterprise-authority-live"];
   assert.equal(
     finalGate.lifecycleAuthority,
     ".morro/fabric.json",
@@ -253,6 +254,26 @@ export async function validateTdpMaxConfig() {
     finalGate.mode,
     "projection",
     "TDP_MAX_FINAL_GATE_PARALLEL_CONTROL",
+  );
+  assert.equal(
+    finalGate.engineeringAuthority,
+    "MDCTL_LIVE_EXACT_HEAD_TRUST",
+    "TDP_MAX_ENGINEERING_AUTHORITY",
+  );
+  assert.equal(
+    finalGate.releaseAuthority,
+    "DELEGATED_TO_FABRIC_RELEASE_PLANE",
+    "TDP_MAX_RELEASE_AUTHORITY_DELEGATION",
+  );
+  assert.equal(
+    finalGate.crossSystemVerdictCeiling,
+    "NOT_PROVEN",
+    "TDP_MAX_CROSS_SYSTEM_LOCAL_CEILING",
+  );
+  assert.equal(
+    finalGate.externalAuthorityDecisionAuthority,
+    "ORCHESTRATOR_CONNECTOR_READBACK",
+    "TDP_MAX_EXTERNAL_AUTHORITY_DELEGATION",
   );
   equalSet(
     finalGate.requiredForComplete,
@@ -270,6 +291,14 @@ export async function validateTdpMaxConfig() {
     "TDP_MAX_FINAL_GATE_VERDICTS",
   );
   assert.ok(
+    externalEvidence.properties.items.items.required.includes("producer") &&
+      externalEvidence.properties.items.items.required.includes(
+        "freshnessSeconds",
+      ),
+    "TDP_MAX_EXTERNAL_EVIDENCE_PROVENANCE",
+  );
+
+  assert.ok(
     Array.isArray(fabric.states) &&
       fabric.states.includes("PRODUCTION_VERIFIED"),
     "TDP_MAX_FABRIC_LIFECYCLE_INVALID",
@@ -279,6 +308,22 @@ export async function validateTdpMaxConfig() {
     typeof pkg.scripts?.["tdp-max:check"],
     "string",
     "TDP_MAX_PACKAGE_SCRIPT_MISSING",
+  );
+  for (const name of [
+    "tdp-max:bootstrap",
+    "tdp-max:status",
+    "tdp-max:reconcile",
+    "tdp-max:final-gate",
+  ]) {
+    assert.equal(
+      typeof pkg.scripts?.[name],
+      "string",
+      "TDP_MAX_PACKAGE_SCRIPT_MISSING:" + name,
+    );
+  }
+  assert.ok(
+    pkg.scripts["tdp-max:check"].includes("tdp-max-v2.test.mjs"),
+    "TDP_MAX_V2_TEST_NOT_IN_CHECK",
   );
   assert.ok(
     pkg.scripts["ci:governance:check"]?.includes("pnpm tdp-max:check"),

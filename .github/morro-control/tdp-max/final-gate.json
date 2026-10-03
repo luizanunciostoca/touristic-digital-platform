@@ -2,49 +2,35 @@
   "schemaVersion": 1,
   "mode": "projection",
   "lifecycleAuthority": ".morro/fabric.json",
+  "engineeringAuthority": "MDCTL_LIVE_EXACT_HEAD_TRUST",
+  "releaseAuthority": "DELEGATED_TO_FABRIC_RELEASE_PLANE",
   "requiredForComplete": [
-    "objective-satisfied",
-    "semantic-ci-proven",
-    "exact-head-proven",
-    "external-writes-read-back",
+    "live-main-stable",
+    "live-candidate-exact-head",
+    "live-remote-proof",
     "critical-unknowns-zero",
-    "conflicts-zero",
-    "lifecycle-reconciled",
-    "independent-challenge-passed"
+    "conflicts-zero"
   ],
   "conditional": [
     {
-      "gate": "root-cause-proven",
-      "when": "remediation"
-    },
-    {
-      "gate": "artifact-identity",
-      "when": "release-or-runtime-impact"
-    },
-    {
-      "gate": "staging-acceptance",
-      "when": "release-or-runtime-impact"
-    },
-    {
-      "gate": "database-readback",
-      "when": "persistent-data-impact"
-    },
-    {
-      "gate": "rollback-proof",
-      "when": "high-or-critical-risk"
-    },
-    {
-      "gate": "dr-proof",
-      "when": "dr-required"
-    },
-    {
-      "gate": "release-authorization",
-      "when": "production-promotion-required"
-    },
-    {
-      "gate": "production-verification",
-      "when": "production-changed"
+      "gate": "enterprise-authority-live",
+      "when": "cross-system-profile"
     }
   ],
-  "verdicts": ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"]
+  "verdicts": ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"],
+  "capabilityStates": [
+    "OBSERVED",
+    "IMPLEMENTED",
+    "INTEGRATED",
+    "PROVEN",
+    "RUNTIME_PROVEN",
+    "PRODUCTION_VERIFIED"
+  ],
+  "authorizationStates": ["NOT_APPLICABLE", "NOT_AUTHORIZED", "AUTHORIZED"],
+  "maxLocalCapabilityState": "PROVEN",
+  "releaseProfileVerdictCeiling": "NOT_PROVEN",
+  "mutationAuthority": "NONE",
+  "releaseDecisionAuthority": "NONE",
+  "crossSystemVerdictCeiling": "NOT_PROVEN",
+  "externalAuthorityDecisionAuthority": "ORCHESTRATOR_CONNECTOR_READBACK"
 }

@@ -5,6 +5,7 @@
   "additionalProperties": false,
   "required": [
     "schemaVersion",
+    "profile",
     "objective",
     "initialMain",
     "finalMain",
@@ -16,6 +17,9 @@
   "properties": {
     "schemaVersion": {
       "const": 1
+    },
+    "profile": {
+      "enum": ["engineering", "cross-system", "release"]
     },
     "objective": {
       "type": "string",

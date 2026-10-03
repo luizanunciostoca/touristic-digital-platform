@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP-MAX External Evidence Bundle",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "capturedAt", "items", "unknowns", "conflicts"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "domain",
+          "source",
+          "producer",
+          "status",
+          "observedAt",
+          "freshnessSeconds",
+          "identity",
+          "assertion"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source": {
+            "type": "string",
+            "minLength": 1
+          },
+          "producer": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "VERIFIED",
+              "INFERRED",
+              "UNKNOWN",
+              "STALE",
+              "HISTORICAL",
+              "SUPERSEDED",
+              "CONFLICT",
+              "N/A"
+            ]
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "freshnessSeconds": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 604800
+          },
+          "identity": {
+            "type": "string",
+            "minLength": 1
+          },
+          "assertion": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -46,6 +46,24 @@
       "items": {
         "type": "string"
       }
+    },
+    "kind": {
+      "const": "TDP_MAX_BOOTSTRAP_V2"
+    },
+    "profile": {
+      "enum": ["engineering", "cross-system", "release"]
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "allOf": [
