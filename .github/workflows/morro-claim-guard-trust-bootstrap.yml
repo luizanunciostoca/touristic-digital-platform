@@ -237,7 +237,7 @@ jobs:
           mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
           test "${#changed[@]}" -eq "${#expected[@]}"
           diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${changed[@]}")
-          node --test candidate/tooling/fabric/claim-guard.test.mjs candidate/tooling/control-state/mdctl-merge-gate.test.mjs
+          (cd candidate && node --test tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs)
 
   retirement-proof:
     if: needs.unit.outputs.retirement == 'true'
