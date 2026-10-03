@@ -35,11 +35,22 @@
       "type": "object",
       "minProperties": 1,
       "additionalProperties": {
-        "enum": ["PASS", "WARN", "N/A", "BLOCKED", "NOT_PROVEN"]
+        "enum": [
+          "PASS",
+          "WARN",
+          "N/A",
+          "BLOCKED",
+          "NOT_PROVEN"
+        ]
       }
     },
     "result": {
-      "enum": ["READY", "READY_WITH_WARNINGS", "BLOCKED", "NOT_PROVEN"]
+      "enum": [
+        "READY",
+        "READY_WITH_WARNINGS",
+        "BLOCKED",
+        "NOT_PROVEN"
+      ]
     },
     "notes": {
       "type": "array",
@@ -47,5 +58,56 @@
         "type": "string"
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "const": "READY"
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "then": {
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "enum": [
+                "PASS",
+                "N/A"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result": {
+            "const": "READY_WITH_WARNINGS"
+          }
+        },
+        "required": [
+          "result"
+        ]
+      },
+      "then": {
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "enum": [
+                "PASS",
+                "WARN",
+                "N/A"
+              ]
+            }
+          }
+        }
+      }
+    }
+  ]
 }
