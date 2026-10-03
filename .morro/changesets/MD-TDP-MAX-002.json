@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TDP-MAX-002",
   "objective": "integrate-tdp-max-v2-live-bootstrap-reconciliation-and-enterprise-authority",
-  "baseSha": "7fac51f1a3c1309cead0a0dc663800a503160b21",
-  "branch": "infra/tdp-max-002-impl-20261003",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "c63f6d0a02b803f7904f3d4b2b382aadc64a356b",
+  "branch": "chore/tdp-max-002-retirement-20261003",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
