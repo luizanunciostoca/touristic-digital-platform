@@ -42,14 +42,18 @@ test("production data predeploy fails closed outside the private owner worker", 
   const program = [
     `import(${JSON.stringify(modulePath)})`,
     '.then((module) => module.runProductionRuntimeDataPredeploy({ environment: { RENDER_SERVICE_NAME: "morro-digital-v2" }, runners: {} }))',
-    '.then(() => { process.exitCode = 9; })',
-    '.catch((error) => { process.stderr.write(String(error?.message ?? error)); process.exitCode = 1; });',
+    ".then(() => { process.exitCode = 9; })",
+    ".catch((error) => { process.stderr.write(String(error?.message ?? error)); process.exitCode = 1; });",
   ].join("");
 
-  const result = spawnSync(process.execPath, ["--input-type=module", "-e", program], {
-    encoding: "utf8",
-    env: process.env,
-  });
+  const result = spawnSync(
+    process.execPath,
+    ["--input-type=module", "-e", program],
+    {
+      encoding: "utf8",
+      env: process.env,
+    },
+  );
 
   assert.equal(result.status, 1);
   assert.match(
