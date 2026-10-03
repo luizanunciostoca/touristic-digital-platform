@@ -4,7 +4,7 @@
   "objective": "integrate-tdp-max-canonical-policy-and-anti-recurrence-guards",
   "baseSha": "25107906c47d0c4b6cf09072a17ee14f2c8b2f75",
   "branch": "fix/tdp-max-001-impl-20261003",
-  "state": "REMOTE_PROVEN",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
@@ -51,7 +51,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
@@ -61,7 +66,11 @@
     "commands": [
       {
         "id": "tdp-max-contract",
-        "argv": ["node", "--test", "tooling/tdp-max/validate-config.test.mjs"],
+        "argv": [
+          "node",
+          "--test",
+          "tooling/tdp-max/validate-config.test.mjs"
+        ],
         "timeoutSeconds": 300
       },
       {
