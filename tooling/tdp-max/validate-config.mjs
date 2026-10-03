@@ -120,8 +120,7 @@ export function validateTdpMaxDocuments(documents) {
   );
 
   requireValue(
-    evidenceSchema.$schema ===
-      "https://json-schema.org/draft/2020-12/schema" &&
+    evidenceSchema.$schema === "https://json-schema.org/draft/2020-12/schema" &&
       evidenceSchema.additionalProperties === false &&
       hasAll(evidenceSchema.required ?? [], [
         "baseSha",

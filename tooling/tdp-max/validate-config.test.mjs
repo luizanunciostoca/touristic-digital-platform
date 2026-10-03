@@ -60,9 +60,7 @@ test("AI-as-authority regression is rejected", () => {
 test("Termux transport misclassification regression is rejected", () => {
   assert.throws(
     () =>
-      validateTdpMaxDocuments(
-        disable("termux-transport-misclassification"),
-      ),
+      validateTdpMaxDocuments(disable("termux-transport-misclassification")),
     /CONTROL_SET/u,
   );
 });

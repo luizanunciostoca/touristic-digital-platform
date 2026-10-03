@@ -3,6 +3,7 @@
 TDP-MAX extends the existing Control Plane V3.2 as a validation layer.
 
 Canonical files remain unchanged in authority:
+
 - `.morro/fabric.json`
 - `.morro/ownership.json`
 - `.morro/risk-policy.json`
