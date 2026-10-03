@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-RELEASE-RUNTIME-PARITY-TWIN-001",
+  "objective": "align-release-twin-contracts-with-95-table-canonical-production-schema",
+  "baseSha": "e90bb11590efa15bfe097233ffff9c08d227853b",
+  "branch": "chore/runtime-parity-release-twin-001-20261003",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-RELEASE-RUNTIME-PARITY-TWIN-001.json",
+      ".github/workflows/production-mysql-backup-restore-proof.yml",
+      ".github/workflows/production-mysql-canonical-bootstrap.yml",
+      ".github/workflows/production-oci-promotion.yml",
+      "tooling/release/production-twin-certification.sh",
+      "tooling/release/production-twin-certificate.mjs",
+      "tooling/quality/production-twin-certification-contract.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "affected-tests",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 3,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "production-twin-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/production-twin-certification-contract.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "production-dr-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/production-mysql-dr-contract.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "release-target-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/release-target-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
