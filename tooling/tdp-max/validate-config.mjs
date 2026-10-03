@@ -194,6 +194,7 @@ export async function validateTdpMaxConfig() {
     "REMOTE_RESULT_FALSE_POSITIVE",
     "STALE_DR_PROOF",
     "TECHNICALLY_READY_NOT_AUTHORIZED",
+    "EXECUTOR_AUTH_UNAVAILABLE",
   ];
   assert.equal(anti.schemaVersion, 1, "TDP_MAX_ANTI_SCHEMA");
   const observedClasses = anti.failures?.map((item) => item.class) ?? [];
