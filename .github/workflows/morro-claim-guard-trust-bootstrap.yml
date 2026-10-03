@@ -185,8 +185,6 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-
-
   approved-bootstrap-proof:
     if: needs.unit.outputs.approved_bootstrap == 'true'
     needs: unit
