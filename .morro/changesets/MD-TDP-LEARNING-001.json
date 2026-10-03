@@ -15,8 +15,7 @@
       ".github/morro-control/tdp-max/anti-recurrence.json",
       ".github/morro-control/failures/**",
       "tooling/failure-learning/**",
-      "package.json",
-      "tooling/tdp-max/validate-config.mjs"
+      "package.json"
     ],
     "contracts": []
   },

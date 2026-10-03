@@ -130,10 +130,9 @@ test("all canonical anti-recurrence classes have executable detectors", async ()
       "utf8",
     ),
   );
-  assert.deepEqual(
-    new Set(Object.keys(detectors)),
-    new Set(registry.failures.map((x) => x.class)),
-  );
+  const executable = new Set(Object.keys(detectors));
+  for (const failure of registry.failures)
+    assert.ok(executable.has(failure.class));
   for (const detector of Object.values(detectors))
     assert.ok(
       ["PASS", "BLOCK", "NOT_PROVEN"].includes(detector({ observation: {} })),

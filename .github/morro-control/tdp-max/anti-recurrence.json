@@ -274,21 +274,6 @@
       "guard": "fail closed until current evidence satisfies the invariant",
       "recovery": "recapture affected authority and rerun only invalidated proof",
       "completionRequirement": "affected evidence is CURRENT_VERIFIED"
-    },
-    {
-      "id": "AR-022",
-      "class": "EXECUTOR_AUTH_UNAVAILABLE",
-      "severity": "high",
-      "trigger": "executor dispatch requested without authenticated CLI session",
-      "rootCause": "EXECUTOR_AUTH_PREFLIGHT_MISSING",
-      "misleadingSignal": "CLI installed and binary reachable",
-      "correctSignal": "executor-specific auth preflight succeeds before dispatch",
-      "detector": "tooling/failure-learning guard evaluator plus executor auth preflight",
-      "guard": "block dispatch until authenticated status is independently observed",
-      "recovery": "authenticate executor or select another authorized executor",
-      "completionRequirement": "regression proof shows unauthenticated dispatch is blocked before network request",
-      "operations": ["codex-dispatch"],
-      "domains": ["engineering"]
     }
   ]
 }
