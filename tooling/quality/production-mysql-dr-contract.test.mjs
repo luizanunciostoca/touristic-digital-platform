@@ -179,6 +179,7 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "HANDLED_FAILURE_EXIT=86",
     "UNHANDLED_COMMAND_FAILURE",
     '"stage":"%s"',
+    '[[ "$business_tables" == 15 && "$financial_tables" == 14 ]] || fail "DOMAIN_TABLE_COUNT_INVALID"',
   ]) {
     assert.ok(
       source.includes(required),
