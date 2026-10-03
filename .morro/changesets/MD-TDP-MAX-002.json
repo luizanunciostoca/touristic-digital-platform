@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TDP-MAX-002",
+  "objective": "integrate-tdp-max-v2-live-bootstrap-reconciliation-and-enterprise-authority",
+  "baseSha": "05a292c4800e907d69a53ef8c0bbd2f56ef0f4e6",
+  "branch": "infra/tdp-max-002-acquire-20261003",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-TDP-MAX-002.json",
+      ".github/morro-control/tdp-max/**",
+      "tooling/tdp-max/**",
+      "package.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-TDP-MAX-001"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "live-bootstrap",
+    "reconciliation",
+    "final-gate",
+    "enterprise-authority",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "tdp-max-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/tdp-max/validate-config.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "tdp-max-v2-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/tdp-max/tdp-max-v2.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
