@@ -121,3 +121,21 @@ test("codex dispatch preflight blocks installed but unauthenticated executor", a
     rootCause: "EXECUTOR_AUTH_PREFLIGHT_MISSING",
   });
 });
+test("all canonical anti-recurrence classes have executable detectors", async () => {
+  const { detectors } = await import("./detectors.mjs");
+  const { readFile } = await import("node:fs/promises");
+  const registry = JSON.parse(
+    await readFile(
+      ".github/morro-control/tdp-max/anti-recurrence.json",
+      "utf8",
+    ),
+  );
+  assert.deepEqual(
+    new Set(Object.keys(detectors)),
+    new Set(registry.failures.map((x) => x.class)),
+  );
+  for (const detector of Object.values(detectors))
+    assert.ok(
+      ["PASS", "BLOCK", "NOT_PROVEN"].includes(detector({ observation: {} })),
+    );
+});
