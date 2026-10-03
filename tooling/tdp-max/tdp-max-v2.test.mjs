@@ -70,6 +70,8 @@ function manifest(profile = "engineering", patch = {}) {
     finalMain: MAIN,
     candidateSha: CANDIDATE,
     changeSetId: CHANGESET,
+    conflicts: [],
+    unknowns: [],
     ...patch,
   };
 }
@@ -186,6 +188,8 @@ test("bootstrap profiles and external evidence fail closed", () => {
 
 test("engineering completion requires exact candidate and LIVE remote proof", () => {
   assert.equal(gate().taskVerdict, "COMPLETE");
+  assert.equal(gate({ manifestValue: manifest("engineering", { conflicts: undefined }) }).taskVerdict, "NOT_PROVEN");
+  assert.equal(gate({ liveStatus: live({ ci: { activeRuns: [], recentRuns: [ci(), ci("startup_failure")] } }) }).taskVerdict, "NOT_PROVEN");
   const cases = [
     [
       live({ liveSchedulerWork: [work(CHANGESET, { state: "LOCAL_PROVEN" })] }),

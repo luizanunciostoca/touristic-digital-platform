@@ -516,12 +516,8 @@ export function deriveLiveEngineeringProof({
   const ciSettled = activeRuns !== null && activeCandidateRuns.length === 0;
   const ciSucceeded =
     recentRuns !== null &&
-    completed.some((run) => run.conclusion === "success") &&
-    !completed.some((run) =>
-      ["failure", "cancelled", "timed_out", "action_required"].includes(
-        run.conclusion,
-      ),
-    );
+    completed.length > 0 &&
+    completed.every((run) => run.conclusion === "success");
   checks["live-ci-settled"] = ciSettled ? "PASS" : "NOT_PROVEN";
   checks["live-ci-result"] = ciSucceeded ? "PASS" : "NOT_PROVEN";
   if (!ciSettled) failures.push("CANDIDATE_CI_STILL_ACTIVE_OR_UNKNOWN");
@@ -636,12 +632,10 @@ export function evaluateFinalGate({
     expectedBranch,
     now,
   });
-  const manifestConflicts = Array.isArray(manifest?.conflicts)
-    ? manifest.conflicts
-    : [];
-  const manifestUnknowns = Array.isArray(manifest?.unknowns)
-    ? manifest.unknowns
-    : [];
+  const manifestEvidenceCollected =
+    Array.isArray(manifest?.conflicts) && Array.isArray(manifest?.unknowns);
+  const manifestConflicts = manifestEvidenceCollected ? manifest.conflicts : [];
+  const manifestUnknowns = manifestEvidenceCollected ? manifest.unknowns : [];
   const external = externalEvidenceSummary(externalEvidence, now);
 
   const enterpriseRequired = manifest.profile === "cross-system";
@@ -664,6 +658,7 @@ export function evaluateFinalGate({
   }
 
   const noTaskConflict =
+    manifestEvidenceCollected &&
     manifestConflicts.length === 0 &&
     manifestUnknowns.length === 0 &&
     external.conflicts.length === 0 &&
