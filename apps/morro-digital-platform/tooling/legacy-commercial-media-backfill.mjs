@@ -1,10 +1,9 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { resolveLegacyCommercialRuntimeScope } from "./legacy-commercial-place-backfill-core.mjs";
 
 import { executeLegacyCommercialMediaBackfill } from "./legacy-commercial-media-backfill-core.mjs";
-
-const STAGING_SERVICE = "morro-digital-v2-staging";
 
 async function loadMysqlClient() {
   const module = await import("mysql2/promise");
@@ -41,11 +40,10 @@ export async function runLegacyCommercialMediaBackfill({
   contentSchemaLoader = loadContentSchemaApplier,
   manifest,
 } = {}) {
-  if (
-    String(environment.RENDER_SERVICE_NAME ?? "").trim() !== STAGING_SERVICE
-  ) {
-    throw new Error("LEGACY_MEDIA_BACKFILL_SERVICE_DENIED");
-  }
+  resolveLegacyCommercialRuntimeScope(
+    environment,
+    "LEGACY_MEDIA_BACKFILL_SERVICE_DENIED",
+  );
 
   const businessDatabaseUrl = String(
     environment.BUSINESS_DATABASE_URL ?? "",

@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-RUNTIME-PARITY-004",
   "objective": "restore-runtime-parity-ticketing-canonical-places-and-publish-certified-release",
-  "baseSha": "cc9c7a27739291443be2066a9a60c2672d1ec00f",
-  "branch": "chore/runtime-parity-release-004-acquire-20261002",
-  "state": "IMPLEMENTING",
+  "baseSha": "22b07ff7a965ffc0cfe29b3b1663402effd61ce4",
+  "branch": "fix/runtime-parity-release-004-impl-20261002",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

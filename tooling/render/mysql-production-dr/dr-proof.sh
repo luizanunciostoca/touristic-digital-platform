@@ -9,7 +9,7 @@ CONTRACT_VERSION=1
 MANIFEST="/opt/morro-dr/canonical-manifest.tsv"
 SOURCE_HOST="${SOURCE_MYSQL_HOST:-morro-digital-v2-production-mysql}"
 SOURCE_PORT="${SOURCE_MYSQL_PORT:-3306}"
-EXPECTED_TABLES=91
+EXPECTED_TABLES=95
 EXPECTED_SCHEMAS=13
 WORK_ROOT="${DR_WORK_ROOT:-/tmp/morro-production-mysql-dr}"
 RESTORE_PORT=3307
@@ -131,7 +131,7 @@ run_restore_readback() {
     .status == "pass" and
     .schemaOwners == 13 and
     .crossDomainDenied == 156 and
-    .totalTables == 91
+    .totalTables == 95
   ' >/dev/null || fail "RESTORE_LEAST_PRIVILEGE_READBACK_FAILED"
 }
 
@@ -429,7 +429,7 @@ cmp -s "$source_counts" "$restore_counts" || fail "RESTORE_ROW_COUNT_MISMATCH"
 
 business_tables="$(awk -F '\t' '$1=="morro_business" {n++} END {print n+0}' "$expected_tables")"
 financial_tables="$(awk -F '\t' '$1=="morro_financial" {n++} END {print n+0}' "$expected_tables")"
-[[ "$business_tables" == 12 && "$financial_tables" == 14 ]] || fail "DOMAIN_TABLE_COUNT_INVALID"
+[[ "$business_tables" == 15 && "$financial_tables" == 14 ]] || fail "DOMAIN_TABLE_COUNT_INVALID"
 
 validation_completed_epoch="$(date +%s)"
 validation_completed_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -485,9 +485,9 @@ jq -nc \
   '{
     contract:$contract,contractVersion:$contractVersion,status:"pass",
     toolSha:$toolSha,sourceSha:$sourceSha,
-    source:{service:"morro-digital-v2-production-mysql",schemaCount:13,totalTables:91,stableDuringBackup:true,allCanonicalTablesInnoDb:true,routines:0,events:0,canonicalDestinationCount:1},
+    source:{service:"morro-digital-v2-production-mysql",schemaCount:13,totalTables:95,stableDuringBackup:true,allCanonicalTablesInnoDb:true,routines:0,events:0,canonicalDestinationCount:1},
     backup:{format:"mysqldump-logical",consistency:"least-privilege single-transaction per schema plus pre/post checksum and metadata stability",startedAt:$backupStartedAt,completedAt:$backupCompletedAt,durationSeconds:$backupDurationSeconds,plaintextBytes:$plainBytes,plaintextSha256:$plainSha256,encryption:"gzip+AES-256-CBC/PBKDF2-SHA256/200000",encryptionKeyId:$encryptionKeyId,encryptedBytes:$encryptedBytes,encryptedSha256:$encryptedSha256,payloadChunks:$payloadChunks},
-    restore:{target:"ephemeral-render-one-off-job-local-mysql-8.4",persistentDisk:false,startedAt:$restoreStartedAt,importCompletedAt:$restoreCompletedAt,validationCompletedAt:$validationCompletedAt,restoreDurationSeconds:$restoreDurationSeconds,observedRtoSeconds:$observedRtoSeconds,schemaCount:13,totalTables:91,businessTables:12,financialTables:14,canonicalDestinationCount:1,rowCountsMatch:true,checksumsMatch:true,columnsMatch:true,primaryKeysMatch:true,indexesMatch:true,foreignKeysMatch:true,triggersMatch:true,leastPrivilegeReadback:true,schemaOwners:$restoreSchemaOwners,crossDomainDenied:$restoreCrossDomainDenied,primaryKeyEntries:$primaryKeyEntries,foreignKeyEntries:$foreignKeyEntries,indexEntries:$indexEntries,triggerEntries:$triggerEntries},
-    scopePolicy:{verified:true,manifestSha256:$manifestSha256,canonicalRows:91},
+    restore:{target:"ephemeral-render-one-off-job-local-mysql-8.4",persistentDisk:false,startedAt:$restoreStartedAt,importCompletedAt:$restoreCompletedAt,validationCompletedAt:$validationCompletedAt,restoreDurationSeconds:$restoreDurationSeconds,observedRtoSeconds:$observedRtoSeconds,schemaCount:13,totalTables:95,businessTables:15,financialTables:14,canonicalDestinationCount:1,rowCountsMatch:true,checksumsMatch:true,columnsMatch:true,primaryKeysMatch:true,indexesMatch:true,foreignKeysMatch:true,triggersMatch:true,leastPrivilegeReadback:true,schemaOwners:$restoreSchemaOwners,crossDomainDenied:$restoreCrossDomainDenied,primaryKeyEntries:$primaryKeyEntries,foreignKeyEntries:$foreignKeyEntries,indexEntries:$indexEntries,triggerEntries:$triggerEntries},
+    scopePolicy:{verified:true,manifestSha256:$manifestSha256,canonicalRows:95},
     rpo:{productionMeasured:false,reason:"PRE_CUTOVER_SOURCE_STABLE_DURING_BACKUP"}
   }'

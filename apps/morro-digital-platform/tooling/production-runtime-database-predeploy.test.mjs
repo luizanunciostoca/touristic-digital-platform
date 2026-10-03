@@ -134,7 +134,7 @@ test("validates all thirteen runtime identities without DDL", async () => {
   });
   assert.equal(result.status, "pass");
   assert.equal(result.domainCount, 13);
-  assert.equal(result.totalTables, 91);
+  assert.equal(result.totalTables, 95);
   assert.equal(closed.length, 13);
   assert.ok(
     result.domains.every((item) => item.runtimeUser.endsWith("_runtime")),

@@ -15,6 +15,7 @@ const databaseDomains = Object.freeze([
   ["COMMERCE", "COMMERCE_DATABASE_URL"],
   ["DESTINATIONS", "DESTINATIONS_DATABASE_URL"],
   ["NOTIFICATIONS", "NOTIFICATIONS_DATABASE_URL"],
+  ["TICKETING", "TICKETING_DATABASE_URL"],
 ]);
 const providerAcceptanceRunner = fileURLToPath(
   new URL("./payments-provider-acceptance-runner.mjs", import.meta.url),

@@ -452,6 +452,12 @@ services:
       - key: PAYMENTS_HANDOFF_SECRET
         generateValue: true
       # Server-only signing key; preserve existing values when syncing.
+      - key: TICKETING_FEATURE_ENABLED
+        value: "false"
+      - key: TICKETING_SIGNING_SECRET
+        generateValue: true
+      - key: TICKETING_FINANCIAL_POLL_INTERVAL_MS
+        value: "1000"
       - key: TICKETING_OFFLINE_PROVISIONING_SECRET
         generateValue: true
       - key: PAYMENTS_STATUS_TOKEN_TTL_SECONDS

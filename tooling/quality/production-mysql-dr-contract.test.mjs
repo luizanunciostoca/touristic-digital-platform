@@ -140,13 +140,13 @@ test("DR canonical manifest exactly matches production bootstrap authority", () 
     }
   }
 
-  assert.equal(actual.length, 91);
+  assert.equal(actual.length, 95);
   assert.equal(new Set(actual.map(([schema]) => schema)).size, 13);
   assert.equal(
     new Set(actual.map(([schema, table]) => `${schema}.${table}`)).size,
-    91,
+    95,
   );
-  assert.equal(expected.length, 91);
+  assert.equal(expected.length, 95);
   assert.equal(new Set(expected.map(([schema]) => schema)).size, 13);
   assert.deepEqual(actual, expected);
 });
@@ -179,6 +179,7 @@ test("DR executor is syntactically valid and fails closed around production", ()
     "HANDLED_FAILURE_EXIT=86",
     "UNHANDLED_COMMAND_FAILURE",
     '"stage":"%s"',
+    '[[ "$business_tables" == 15 && "$financial_tables" == 14 ]] || fail "DOMAIN_TABLE_COUNT_INVALID"',
   ]) {
     assert.ok(
       source.includes(required),
