@@ -72,6 +72,11 @@ export function productionTwinCertificateMatches(evidence, expected) {
     evidence?.twin?.runtimePredeploy?.totalTables === 95 &&
     evidence?.twin?.paymentsPredeploy?.status === "pass" &&
     evidence?.twin?.paymentsPredeploy?.checkoutMode === "test" &&
+    evidence?.twin?.ticketing?.featureEnabled === true &&
+    evidence?.twin?.ticketing?.readiness === "pass" &&
+    evidence?.twin?.ticketing?.inventoryHttpStatus === 200 &&
+    Number.isInteger(evidence?.twin?.ticketing?.inventoryCount) &&
+    evidence.twin.ticketing.inventoryCount >= 0 &&
     evidence?.twin?.noEgress === true &&
     evidence?.twin?.runtimeProbe === "docker-exec-loopback" &&
     evidence?.twin?.syntheticReleaseIdentity === true &&
