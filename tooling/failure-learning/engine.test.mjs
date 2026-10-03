@@ -284,3 +284,46 @@ test("guard proof identities and executor positive auth are fail closed", async 
     "PASS",
   );
 });
+
+test("occurrence evidence is immutable history and cannot overwrite incident lifecycle", () => {
+  let x = recordOccurrence(
+    {
+      incidentId: "INC-1",
+      rootCause: "confirmed",
+      rootCauseFingerprint: "sha256:" + "a".repeat(64),
+      preventionState: "PROVEN",
+      fingerprint: fingerprint(base),
+      occurrenceIds: [],
+      occurrences: [],
+      metrics: {},
+      state: "ROOT_CAUSE_CONFIRMED",
+    },
+    {
+      ...base,
+      occurrenceId: "e1",
+      observedAt: "2026-10-03T12:00:00Z",
+      severity: "high",
+      sources: [{ producer: "github" }],
+      evidenceRefs: ["run:1"],
+      rootCause: null,
+      incidentId: "EVIL",
+    },
+  );
+  assert.equal(x.incidentId, "INC-1");
+  assert.equal(x.rootCause, "confirmed");
+  assert.equal(x.preventionState, "PROVEN");
+  assert.equal(x.occurrences[0].severity, "high");
+  assert.deepEqual(x.occurrences[0].evidenceRefs, ["run:1"]);
+  assert.throws(
+    () =>
+      recordOccurrence(x, {
+        ...base,
+        occurrenceId: "e1",
+        observedAt: "2026-10-03T12:00:00Z",
+        severity: "low",
+        sources: [{ producer: "github" }],
+        evidenceRefs: ["run:1"],
+      }),
+    /OCCURRENCE_REPLAY_CONFLICT/,
+  );
+});

@@ -203,6 +203,28 @@
           "fingerprint": {
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "severity": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "critical", null]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "retry": {
+            "type": ["object", "null"]
+          },
+          "materialOutcome": {
+            "type": ["string", "null"]
           }
         }
       }

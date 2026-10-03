@@ -62,7 +62,17 @@ export function recordOccurrence(existing, occurrence) {
     if (
       !known ||
       known.fingerprint !== fp ||
-      known.observedAt !== occurrence.observedAt
+      known.observedAt !== occurrence.observedAt ||
+      JSON.stringify(known.severity ?? null) !==
+        JSON.stringify(occurrence.severity ?? null) ||
+      JSON.stringify(known.sources ?? []) !==
+        JSON.stringify(occurrence.sources ?? []) ||
+      JSON.stringify(known.evidenceRefs ?? []) !==
+        JSON.stringify(occurrence.evidenceRefs ?? []) ||
+      JSON.stringify(known.retry ?? null) !==
+        JSON.stringify(occurrence.retry ?? null) ||
+      JSON.stringify(known.materialOutcome ?? null) !==
+        JSON.stringify(occurrence.materialOutcome ?? null)
     )
       throw new Error("OCCURRENCE_REPLAY_CONFLICT");
     return existing;
@@ -91,25 +101,24 @@ export function recordOccurrence(existing, occurrence) {
     occurrenceId: occurrence.occurrenceId,
     observedAt: occurrence.observedAt,
     fingerprint: fp,
+    severity: occurrence.severity ?? null,
+    sources: occurrence.sources ?? [],
+    evidenceRefs: occurrence.evidenceRefs ?? [],
+    retry: occurrence.retry ?? null,
+    materialOutcome: occurrence.materialOutcome ?? null,
   };
-  const mutable = { ...occurrence };
+  const occurrenceOwned = {};
   for (const key of [
-    "guardId",
-    "guardRevision",
-    "guardActivationAt",
-    "proofReference",
-    "state",
-    "metrics",
-    "recurrenceAfterGuard",
-    "occurrenceIds",
-    "occurrences",
-    "firstOccurrence",
-    "lastOccurrence",
+    "severity",
+    "sources",
+    "evidenceRefs",
+    "retry",
+    "materialOutcome",
   ])
-    delete mutable[key];
+    if (Object.hasOwn(occurrence, key)) occurrenceOwned[key] = occurrence[key];
   return {
     ...existing,
-    ...mutable,
+    ...occurrenceOwned,
     fingerprint: fp,
     occurrenceIds: [
       ...(existing?.occurrenceIds ?? []),
