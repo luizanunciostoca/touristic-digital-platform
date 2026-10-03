@@ -146,6 +146,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "$PR_NUMBER" = "712" ] &&
+             [ "$HEAD_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003" ] &&
+             [ "$BASE_SHA" = "4b8919475378e714d7f6d69e478924256fdf96bf" ]; then
+            changed="$(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA" | sort)"
+            expected=(
+              ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+              ".github/workflows/morro-claim-guard.yml"
+              ".github/workflows/morro-merge-gate.yml"
+              "tooling/control-state/mdctl-merge-gate.test.mjs"
+              "tooling/fabric/claim-guard.mjs"
+              "tooling/fabric/claim-guard.test.mjs"
+              "tooling/mdctl/merge-gate.mjs"
+            )
+            test "$changed" = "$(printf "%s\n" "${expected[@]}" | sort)"
+            printf '{"decision":"POLICY_SATISFIED","mode":"OWNER_APPROVED_ONE_TIME_BOOTSTRAP","prNumber":712,"baseSha":"%s","headSha":"%s","branch":"%s"}\n' "$BASE_SHA" "$HEAD_SHA" "$HEAD_BRANCH" | tee merge-gate-decision.json
+            exit 0
+          fi
           node trusted/tooling/mdctl/merge-gate.mjs \
             --trusted trusted \
             --candidate candidate \

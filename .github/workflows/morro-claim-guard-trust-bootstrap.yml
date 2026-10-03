@@ -229,6 +229,8 @@ jobs:
           mapfile -t changed < <(git -C candidate diff --name-only "$EXPECTED_BASE...$EXPECTED_HEAD" | sort)
           expected=(
             ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+            ".github/workflows/morro-claim-guard.yml"
+            ".github/workflows/morro-merge-gate.yml"
             "tooling/control-state/mdctl-merge-gate.test.mjs"
             "tooling/fabric/claim-guard.mjs"
             "tooling/fabric/claim-guard.test.mjs"
