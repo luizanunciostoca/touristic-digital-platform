@@ -160,6 +160,31 @@ describe("legacy commercial review transition", () => {
     expect(verified.existingMigrations).toBe(72);
   });
 
+  it("replays a published snapshot when editable revision advanced later", async () => {
+    const publishedRows = rows("published", 5).map((row) => ({
+      ...row,
+      published_revision: 4,
+    }));
+    const database = fakeDatabase(publishedRows);
+    database.state.markers = publishedRows.map((row) => ({
+      source_system: row.source_system,
+      source_key: row.source_key,
+      business_id: row.business_id,
+      place_id: row.place_id,
+      editable_revision: row.published_revision,
+    }));
+    const mysqlClient = { createPool: vi.fn(() => database.pool) };
+
+    const verified = await runLegacyCommercialReviewTransition({
+      environment: environment(),
+      argv: ["--verify"],
+      mysqlClient,
+    });
+
+    expect(verified.existingReview).toBe(72);
+    expect(verified.existingMigrations).toBe(72);
+  });
+
   it("fails closed on stale marker revision", async () => {
     const database = fakeDatabase(rows("review", 4));
     database.state.markers = rows("review", 3).map((row) => ({
