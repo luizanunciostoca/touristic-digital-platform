@@ -19,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
   pull-requests: read
 
 concurrency:
@@ -50,14 +51,19 @@ jobs:
         id: changeset
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
           if [ "$PR_NUMBER" = "712" ] &&
              [ "$HEAD_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003" ] &&
              [ "$BASE_SHA" = "4b8919475378e714d7f6d69e478924256fdf96bf" ]; then
+            approval="$(gh api "repos/$REPOSITORY/issues/711/comments?per_page=100" --paginate --jq '.[].body' | grep -Fx "APPROVED_BOOTSTRAP_HEAD:$HEAD_SHA" || true)"
+            test "$approval" = "APPROVED_BOOTSTRAP_HEAD:$HEAD_SHA"
             echo "approved_bootstrap=true" >> "$GITHUB_OUTPUT"
             echo "path=" >> "$GITHUB_OUTPUT"
             exit 0

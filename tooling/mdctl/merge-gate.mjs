@@ -562,10 +562,7 @@ export function evaluateClaimAcquisitionMergeGate({
     now,
     authority: "ORCHESTRATOR",
     isAncestor: ancestor,
-    collisionIgnoreExactPaths: [
-      ".github/morro-control/claims.json",
-      ".github/morro-control/events.ndjson",
-    ],
+    allowSerializedAcquisitionBookkeeping: true,
   });
 
   assert.equal(

@@ -95,11 +95,16 @@ function parseExpiry(value) {
   return timestamp;
 }
 
+const SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS = new Set([
+  ".github/morro-control/claims.json",
+  ".github/morro-control/events.ndjson",
+]);
+
 export function findClaimCollisions(
   registry,
   claimId,
   now = Date.now(),
-  { ignoreExactPaths = [] } = {},
+  { allowSerializedAcquisitionBookkeeping = false, authority = "WORKER" } = {},
 ) {
   assert.equal(
     registry?.registryAuthority,
@@ -114,8 +119,13 @@ export function findClaimCollisions(
   const current = registry.claims[claimId];
   assert.ok(current, "ACTIVE_CLAIM_MISSING");
 
-  const ignored = new Set(ignoreExactPaths);
-  for (const path of ignored) assertSupportedPattern(path);
+  if (allowSerializedAcquisitionBookkeeping) {
+    assert.equal(
+      authority,
+      "ORCHESTRATOR",
+      "CLAIM_COLLISION_EXEMPTION_REQUIRES_ORCHESTRATOR",
+    );
+  }
   const collisions = [];
   for (const [otherId, other] of Object.entries(registry.claims)) {
     if (otherId === claimId) continue;
@@ -130,7 +140,11 @@ export function findClaimCollisions(
       for (const right of other.paths ?? []) {
         if (
           patternsOverlap(left, right) &&
-          !(left === right && ignored.has(left))
+          !(
+            allowSerializedAcquisitionBookkeeping &&
+            left === right &&
+            SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS.has(left)
+          )
         ) {
           collisions.push({
             otherId,
@@ -155,7 +169,7 @@ export function validateClaimContext({
   now = Date.now(),
   authority = "WORKER",
   isAncestor = () => true,
-  collisionIgnoreExactPaths = [],
+  allowSerializedAcquisitionBookkeeping = false,
 }) {
   assert.equal(
     registry?.registryAuthority,
@@ -223,7 +237,8 @@ export function validateClaimContext({
   );
 
   const collisions = findClaimCollisions(registry, manifest.id, now, {
-    ignoreExactPaths: collisionIgnoreExactPaths,
+    allowSerializedAcquisitionBookkeeping,
+    authority,
   });
   assert.deepEqual(collisions, [], "CLAIM_OVERLAP_DETECTED");
 

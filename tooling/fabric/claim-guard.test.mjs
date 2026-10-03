@@ -1022,10 +1022,8 @@ test("claim collision ignore is exact-path only and explicit", () => {
       "MD-NEW",
       Date.parse("2026-10-03T00:00:00Z"),
       {
-        ignoreExactPaths: [
-          ".github/morro-control/claims.json",
-          ".github/morro-control/events.ndjson",
-        ],
+        allowSerializedAcquisitionBookkeeping: true,
+        authority: "ORCHESTRATOR",
       },
     ),
     [],
@@ -1037,11 +1035,19 @@ test("claim collision ignore is exact-path only and explicit", () => {
       "MD-NEW",
       Date.parse("2026-10-03T00:00:00Z"),
       {
-        ignoreExactPaths: [
-          ".github/morro-control/claims.json",
-          ".github/morro-control/events.ndjson",
-        ],
+        allowSerializedAcquisitionBookkeeping: true,
+        authority: "ORCHESTRATOR",
       },
     ).some((x) => x.kind === "path" && x.value.includes("tooling/fabric")),
+  );
+  assert.throws(
+    () =>
+      findClaimCollisions(
+        registry,
+        "MD-NEW",
+        Date.parse("2026-10-03T00:00:00Z"),
+        { allowSerializedAcquisitionBookkeeping: true, authority: "WORKER" },
+      ),
+    /CLAIM_COLLISION_EXEMPTION_REQUIRES_ORCHESTRATOR/u,
   );
 });
