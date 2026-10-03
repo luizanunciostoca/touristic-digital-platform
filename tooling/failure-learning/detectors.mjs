@@ -27,8 +27,14 @@ export const detectors = {
     pass(o.requiredJobs === 0, o.requiredJobs == null),
   SKIPPED_AS_PASS: ({ observation: o }) =>
     pass((o.skippedRequired ?? 0) > 0, o.skippedRequired == null),
-  AI_AS_AUTHORITY: ({ observation: o }) =>
-    pass(o.finalAuthority === "AI", o.finalAuthority == null),
+  AI_AS_AUTHORITY: ({ observation: o }) => {
+    if (o.finalAuthority == null) return "NOT_PROVEN";
+    return ["AI", "CHATGPT", "COPILOT", "CODEX"].includes(
+      String(o.finalAuthority).toUpperCase(),
+    )
+      ? "BLOCK"
+      : "PASS";
+  },
   ASSUMED_TOOL_PERMISSION: ({ observation: o }) =>
     pass(
       o.toolAvailable === true && o.permissionVerified !== true,

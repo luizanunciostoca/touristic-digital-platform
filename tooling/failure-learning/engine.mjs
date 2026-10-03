@@ -58,10 +58,11 @@ export function recordOccurrence(existing, occurrence) {
     ? Date.parse(existing.guardActivationAt)
     : null;
   const occurred = Date.parse(occurrence.observedAt);
-  const after =
-    Number.isFinite(activation) &&
-    Number.isFinite(occurred) &&
-    occurred >= activation;
+  if (!Number.isFinite(occurred))
+    throw new Error("OCCURRENCE_TIMESTAMP_INVALID");
+  if (existing?.state === "ACTIVE_GUARD" && !Number.isFinite(activation))
+    throw new Error("GUARD_ACTIVATION_TIMESTAMP_INVALID");
+  const after = Number.isFinite(activation) && occurred >= activation;
   const metrics = {
     occurrencesBeforeGuard: 0,
     occurrencesAfterGuard: 0,

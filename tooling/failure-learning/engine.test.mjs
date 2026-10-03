@@ -174,3 +174,27 @@ test("active guard cannot bypass promotion and malformed timestamps fail closed"
     "NOT_PROVEN",
   );
 });
+
+test("invalid occurrence time and named AI authority fail closed", async () => {
+  assert.throws(
+    () =>
+      recordOccurrence(
+        {
+          ...base,
+          fingerprint: fingerprint(base),
+          state: "ACTIVE_GUARD",
+          guardActivationAt: "2026-10-03T11:00:00Z",
+          occurrenceIds: [],
+          metrics: {},
+        },
+        { ...base, occurrenceId: "bad-time", observedAt: "bad" },
+      ),
+    /OCCURRENCE_TIMESTAMP_INVALID/,
+  );
+  const { detectors } = await import("./detectors.mjs");
+  for (const authority of ["AI", "ai", "CHATGPT", "COPILOT", "CODEX"])
+    assert.equal(
+      detectors.AI_AS_AUTHORITY({ observation: { finalAuthority: authority } }),
+      "BLOCK",
+    );
+});
