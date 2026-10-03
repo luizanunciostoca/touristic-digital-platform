@@ -662,6 +662,7 @@ export function evaluateFinalGate({
     manifestConflicts.length === 0 &&
     manifestUnknowns.length === 0 &&
     external.conflicts.length === 0 &&
+    external.unknowns.length === 0 &&
     !profileMismatch;
   const implemented =
     liveProof.exactCandidate &&

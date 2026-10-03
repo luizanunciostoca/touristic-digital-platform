@@ -267,6 +267,9 @@ test("stale, incomplete, external and release authority cannot self-complete", (
   });
   assert.equal(conflict.taskVerdict, "BLOCKED");
   assert.notEqual(conflict.capabilityState, "PROVEN");
+  const unknown = enterprise();
+  unknown.unknowns = ["drive-unknown"];
+  assert.equal(gate({ externalEvidence: unknown }).taskVerdict, "NOT_PROVEN");
   assert.equal(
     gate({
       requestedProfile: "cross-system",

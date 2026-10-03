@@ -145,6 +145,15 @@ function run(options) {
     "TDP_MAX_GIT_HEAD_INVALID",
   );
   assert.ok(expectedBranch, "TDP_MAX_GIT_BRANCH_REQUIRED");
+  const originUrl = runGit("remote", "get-url", "origin");
+  const expectedRepository = originUrl
+    .replace(/^.*github\.com[:/]/u, "")
+    .replace(/\.git$/u, "");
+  assert.equal(
+    options.repository,
+    expectedRepository,
+    "TDP_MAX_REPOSITORY_OVERRIDE",
+  );
   validateEvidenceManifest(manifest);
   const report = evaluateFinalGate({
     manifest,
@@ -152,7 +161,7 @@ function run(options) {
     finalGate: readJson(".github/morro-control/tdp-max/final-gate.json"),
     externalEvidence: loadExternal(options.externalEvidence),
     requestedProfile: options.profile,
-    expectedRepository: options.repository,
+    expectedRepository,
     expectedCandidateSha,
     expectedBranch,
   });
