@@ -142,6 +142,23 @@ export function promoteGuard(incident, proof) {
     "activatedAt",
   ])
     if (!proof?.[key]) throw new Error("GUARD_PROMOTION_PROOF_MISSING:" + key);
+  if (!/^[0-9a-f]{40}$/.test(proof.candidateBinding))
+    throw new Error("GUARD_CANDIDATE_BINDING_INVALID");
+  if (
+    !/^https:\/\/github\.com\/[^/]+\/[^/]+\/actions\/runs\/\d+/.test(
+      proof.independentProof,
+    )
+  )
+    throw new Error("GUARD_INDEPENDENT_PROOF_INVALID");
+  if (
+    !/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[0-9a-f]{40}\//.test(
+      proof.regressionTest,
+    )
+  )
+    throw new Error("GUARD_REGRESSION_PROOF_INVALID");
+  if (!/^sha256:[0-9a-f]{64}$/.test(proof.validatorRevision))
+    throw new Error("GUARD_VALIDATOR_REVISION_INVALID");
+  if (proof.freshness !== "FRESH") throw new Error("GUARD_FRESHNESS_INVALID");
   if (!Number.isFinite(Date.parse(proof.activatedAt)))
     throw new Error("GUARD_ACTIVATION_TIMESTAMP_INVALID");
   return {
