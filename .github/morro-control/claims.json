@@ -18,12 +18,7 @@
         "tooling/release/production-twin-certificate.mjs",
         "tooling/quality/production-twin-certification-contract.test.mjs"
       ],
-      "domains": [
-        "release",
-        "database",
-        "dr",
-        "production"
-      ],
+      "domains": ["release", "database", "dr", "production"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-03T08:00:00Z"
