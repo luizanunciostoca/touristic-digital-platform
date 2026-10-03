@@ -22,9 +22,7 @@
     "contracts": []
   },
   "reads": {
-    "contracts": [
-      "platform-authz"
-    ]
+    "contracts": ["platform-authz"]
   },
   "produces": {
     "events": [],
@@ -54,12 +52,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
