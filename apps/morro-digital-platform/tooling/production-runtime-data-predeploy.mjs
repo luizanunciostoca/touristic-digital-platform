@@ -81,7 +81,7 @@ export async function runProductionRuntimeDataPredeploy({
       argv: ["--verify"],
     }),
   );
-  await execute("legacy-comercial-review-transition-apply", () =>
+  await execute("legacy-commercial-review-transition-apply", () =>
     run.reviewTransition({
       environment: scopedEnvironment,
       argv: ["--apply"],
@@ -108,7 +108,7 @@ export async function runProductionRuntimeDataPredeploy({
       argv: ["--verify"],
     }),
   );
-  await execute("legacy-comercial-cutover-audit-post-publication", () =>
+  await execute("legacy-commercial-cutover-audit-post-publication", () =>
     run.cutoverAudit({ environment: scopedEnvironment }),
   );
 
