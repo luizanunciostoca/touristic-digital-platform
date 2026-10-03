@@ -41,18 +41,42 @@ test("COMPLETE requires exact candidate, evidence, zero unknowns and zero confli
     finalMain: SHA,
     candidateSha: SHA,
     artifactDigest: null,
-    evidence: [{ id: "exact-head", kind: "git", status: "VERIFIED", source: "github", sha: SHA }],
+    evidence: [
+      {
+        id: "exact-head",
+        kind: "git",
+        status: "VERIFIED",
+        source: "github",
+        sha: SHA,
+      },
+    ],
     unknowns: [],
     conflicts: [],
     verdict: "COMPLETE",
   };
   validateEvidenceManifest(base);
-  assert.throws(() => validateEvidenceManifest({ ...base, candidateSha: null }), /CANDIDATE_REQUIRED/u);
-  assert.throws(() => validateEvidenceManifest({ ...base, evidence: [] }), /EVIDENCE_REQUIRED/u);
-  assert.throws(() => validateEvidenceManifest({ ...base, unknowns: ["x"] }), /COMPLETE_UNKNOWNS/u);
-  assert.throws(() => validateEvidenceManifest({ ...base, conflicts: ["x"] }), /COMPLETE_CONFLICTS/u);
   assert.throws(
-    () => validateEvidenceManifest({ ...base, evidence: [{ ...base.evidence[0], status: "STALE" }] }),
+    () => validateEvidenceManifest({ ...base, candidateSha: null }),
+    /CANDIDATE_REQUIRED/u,
+  );
+  assert.throws(
+    () => validateEvidenceManifest({ ...base, evidence: [] }),
+    /EVIDENCE_REQUIRED/u,
+  );
+  assert.throws(
+    () => validateEvidenceManifest({ ...base, unknowns: ["x"] }),
+    /COMPLETE_UNKNOWNS/u,
+  );
+  assert.throws(
+    () => validateEvidenceManifest({ ...base, conflicts: ["x"] }),
+    /COMPLETE_CONFLICTS/u,
+  );
+  assert.throws(
+    () =>
+      validateEvidenceManifest({
+        ...base,
+        evidence: [{ ...base.evidence[0], status: "STALE" }],
+      }),
     /UNVERIFIED_EVIDENCE/u,
   );
 });
@@ -81,7 +105,15 @@ test("evidence identities require immutable digest and exact SHA formats", () =>
         finalMain: SHA,
         candidateSha: SHA,
         artifactDigest: null,
-        evidence: [{ id: "x", kind: "git", status: "VERIFIED", source: "github", sha: "main" }],
+        evidence: [
+          {
+            id: "x",
+            kind: "git",
+            status: "VERIFIED",
+            source: "github",
+            sha: "main",
+          },
+        ],
         unknowns: [],
         conflicts: [],
         verdict: "PARTIAL",

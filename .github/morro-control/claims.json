@@ -16,11 +16,7 @@
         "tooling/quality/check-ci-governance.mjs",
         "package.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "LOCAL_PROVEN",
       "expiresAt": "2026-10-03T11:00:00Z"

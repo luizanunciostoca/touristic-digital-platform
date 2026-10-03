@@ -17,23 +17,38 @@ async function json(path) {
 }
 
 function equalSet(actual, expected, code) {
-  assert.deepEqual([...new Set(actual)].sort(), [...new Set(expected)].sort(), code);
+  assert.deepEqual(
+    [...new Set(actual)].sort(),
+    [...new Set(expected)].sort(),
+    code,
+  );
 }
 
 export function validateBootstrapReport(report) {
   assert.equal(report?.schemaVersion, 1, "TDP_MAX_BOOTSTRAP_SCHEMA");
   assert.match(report?.mainSha ?? "", SHA, "TDP_MAX_BOOTSTRAP_SHA");
-  assert.ok(report?.checks && typeof report.checks === "object", "TDP_MAX_BOOTSTRAP_CHECKS");
+  assert.ok(
+    report?.checks && typeof report.checks === "object",
+    "TDP_MAX_BOOTSTRAP_CHECKS",
+  );
   const values = Object.values(report.checks);
   assert.ok(values.length > 0, "TDP_MAX_BOOTSTRAP_CHECKS_EMPTY");
   if (report.result === "READY") {
-    assert.ok(values.every((v) => ["PASS", "N/A"].includes(v)), "TDP_MAX_FALSE_READY");
+    assert.ok(
+      values.every((v) => ["PASS", "N/A"].includes(v)),
+      "TDP_MAX_FALSE_READY",
+    );
   }
   if (report.result === "READY_WITH_WARNINGS") {
-    assert.ok(values.every((v) => ["PASS", "WARN", "N/A"].includes(v)), "TDP_MAX_FALSE_READY_WARNING");
+    assert.ok(
+      values.every((v) => ["PASS", "WARN", "N/A"].includes(v)),
+      "TDP_MAX_FALSE_READY_WARNING",
+    );
   }
   assert.ok(
-    ["READY", "READY_WITH_WARNINGS", "BLOCKED", "NOT_PROVEN"].includes(report.result),
+    ["READY", "READY_WITH_WARNINGS", "BLOCKED", "NOT_PROVEN"].includes(
+      report.result,
+    ),
     "TDP_MAX_BOOTSTRAP_RESULT",
   );
   return report;
@@ -41,29 +56,49 @@ export function validateBootstrapReport(report) {
 
 export function validateEvidenceManifest(manifest) {
   assert.equal(manifest?.schemaVersion, 1, "TDP_MAX_EVIDENCE_SCHEMA");
-  assert.match(manifest?.initialMain ?? "", SHA, "TDP_MAX_EVIDENCE_INITIAL_SHA");
+  assert.match(
+    manifest?.initialMain ?? "",
+    SHA,
+    "TDP_MAX_EVIDENCE_INITIAL_SHA",
+  );
   assert.match(manifest?.finalMain ?? "", SHA, "TDP_MAX_EVIDENCE_FINAL_SHA");
   if (manifest?.candidateSha != null)
     assert.match(manifest.candidateSha, SHA, "TDP_MAX_EVIDENCE_CANDIDATE_SHA");
   if (manifest?.artifactDigest != null)
-    assert.match(manifest.artifactDigest, DIGEST, "TDP_MAX_EVIDENCE_ARTIFACT_DIGEST");
+    assert.match(
+      manifest.artifactDigest,
+      DIGEST,
+      "TDP_MAX_EVIDENCE_ARTIFACT_DIGEST",
+    );
   assert.ok(Array.isArray(manifest?.evidence), "TDP_MAX_EVIDENCE_ITEMS");
   for (const item of manifest.evidence) {
-    if (item?.sha != null) assert.match(item.sha, SHA, "TDP_MAX_EVIDENCE_ITEM_SHA");
+    if (item?.sha != null)
+      assert.match(item.sha, SHA, "TDP_MAX_EVIDENCE_ITEM_SHA");
   }
   assert.ok(Array.isArray(manifest?.unknowns), "TDP_MAX_EVIDENCE_UNKNOWNS");
   assert.ok(Array.isArray(manifest?.conflicts), "TDP_MAX_EVIDENCE_CONFLICTS");
   assert.ok(
-    ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"].includes(manifest?.verdict),
+    ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"].includes(
+      manifest?.verdict,
+    ),
     "TDP_MAX_EVIDENCE_VERDICT",
   );
   if (manifest.verdict === "COMPLETE") {
-    assert.match(manifest.candidateSha ?? "", SHA, "TDP_MAX_COMPLETE_CANDIDATE_REQUIRED");
+    assert.match(
+      manifest.candidateSha ?? "",
+      SHA,
+      "TDP_MAX_COMPLETE_CANDIDATE_REQUIRED",
+    );
     assert.equal(manifest.unknowns.length, 0, "TDP_MAX_COMPLETE_UNKNOWNS");
     assert.equal(manifest.conflicts.length, 0, "TDP_MAX_COMPLETE_CONFLICTS");
-    assert.ok(manifest.evidence.length > 0, "TDP_MAX_COMPLETE_EVIDENCE_REQUIRED");
     assert.ok(
-      manifest.evidence.every((item) => ["VERIFIED", "N/A"].includes(item.status)),
+      manifest.evidence.length > 0,
+      "TDP_MAX_COMPLETE_EVIDENCE_REQUIRED",
+    );
+    assert.ok(
+      manifest.evidence.every((item) =>
+        ["VERIFIED", "N/A"].includes(item.status),
+      ),
       "TDP_MAX_COMPLETE_UNVERIFIED_EVIDENCE",
     );
   }
@@ -72,10 +107,16 @@ export function validateEvidenceManifest(manifest) {
 
 export async function validateTdpMaxConfig() {
   const policy = await text(".github/morro-control/tdp-max/POLICY.md");
-  const authority = await json(".github/morro-control/tdp-max/authority-map.json");
+  const authority = await json(
+    ".github/morro-control/tdp-max/authority-map.json",
+  );
   const anti = await json(".github/morro-control/tdp-max/anti-recurrence.json");
-  const bootstrap = await json(".github/morro-control/tdp-max/bootstrap.schema.json");
-  const evidence = await json(".github/morro-control/tdp-max/evidence.schema.json");
+  const bootstrap = await json(
+    ".github/morro-control/tdp-max/bootstrap.schema.json",
+  );
+  const evidence = await json(
+    ".github/morro-control/tdp-max/evidence.schema.json",
+  );
   const finalGate = await json(".github/morro-control/tdp-max/final-gate.json");
   const fabric = await json(".morro/fabric.json");
   const pkg = await json("package.json");
@@ -102,9 +143,21 @@ export async function validateTdpMaxConfig() {
     assert.ok(policy.includes(marker), `TDP_MAX_POLICY_MISSING:${marker}`);
 
   assert.equal(authority.schemaVersion, 1, "TDP_MAX_AUTHORITY_SCHEMA");
-  assert.equal(authority.mode, "projection", "TDP_MAX_AUTHORITY_PARALLEL_CONTROL");
-  assert.equal(authority.authorities.lifecycle?.path, ".morro/fabric.json", "TDP_MAX_FABRIC_AUTHORITY");
-  assert.equal(authority.authorities.termuxOperations?.path, "CHATGPT-START-HERE.md", "TDP_MAX_TERMUX_LIVE_AUTHORITY");
+  assert.equal(
+    authority.mode,
+    "projection",
+    "TDP_MAX_AUTHORITY_PARALLEL_CONTROL",
+  );
+  assert.equal(
+    authority.authorities.lifecycle?.path,
+    ".morro/fabric.json",
+    "TDP_MAX_FABRIC_AUTHORITY",
+  );
+  assert.equal(
+    authority.authorities.termuxOperations?.path,
+    "CHATGPT-START-HERE.md",
+    "TDP_MAX_TERMUX_LIVE_AUTHORITY",
+  );
 
   const requiredFailures = [
     "STALE_HEAD",
@@ -132,7 +185,11 @@ export async function validateTdpMaxConfig() {
   assert.equal(anti.schemaVersion, 1, "TDP_MAX_ANTI_SCHEMA");
   const observedClasses = anti.failures?.map((item) => item.class) ?? [];
   equalSet(observedClasses, requiredFailures, "TDP_MAX_ANTI_CLASS_SET");
-  assert.equal(new Set(observedClasses).size, observedClasses.length, "TDP_MAX_ANTI_DUPLICATE_CLASS");
+  assert.equal(
+    new Set(observedClasses).size,
+    observedClasses.length,
+    "TDP_MAX_ANTI_DUPLICATE_CLASS",
+  );
   const ids = anti.failures.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length, "TDP_MAX_ANTI_DUPLICATE_ID");
 
@@ -141,7 +198,11 @@ export async function validateTdpMaxConfig() {
     ["READY", "READY_WITH_WARNINGS", "BLOCKED", "NOT_PROVEN"],
     "TDP_MAX_BOOTSTRAP_VERDICTS",
   );
-  assert.equal(bootstrap.allOf?.length, 2, "TDP_MAX_BOOTSTRAP_CONSISTENCY_RULES");
+  assert.equal(
+    bootstrap.allOf?.length,
+    2,
+    "TDP_MAX_BOOTSTRAP_CONSISTENCY_RULES",
+  );
   assert.deepEqual(
     evidence.properties.verdict.enum,
     ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"],
@@ -157,7 +218,11 @@ export async function validateTdpMaxConfig() {
     "^[0-9a-f]{40}$",
     "TDP_MAX_EVIDENCE_SHA_PATTERN",
   );
-  assert.equal(evidence.allOf?.length, 1, "TDP_MAX_COMPLETE_CONDITIONAL_REQUIRED");
+  assert.equal(
+    evidence.allOf?.length,
+    1,
+    "TDP_MAX_COMPLETE_CONDITIONAL_REQUIRED",
+  );
 
   const requiredFinalGates = [
     "objective-satisfied",
@@ -179,21 +244,42 @@ export async function validateTdpMaxConfig() {
     "release-authorization",
     "production-verification",
   ];
-  assert.equal(finalGate.lifecycleAuthority, ".morro/fabric.json", "TDP_MAX_FINAL_GATE_FABRIC");
-  assert.equal(finalGate.mode, "projection", "TDP_MAX_FINAL_GATE_PARALLEL_CONTROL");
-  equalSet(finalGate.requiredForComplete, requiredFinalGates, "TDP_MAX_FINAL_GATE_REQUIRED_SET");
-  equalSet(finalGate.conditional?.map((item) => item.gate) ?? [], requiredConditionalGates, "TDP_MAX_FINAL_GATE_CONDITIONAL_SET");
+  assert.equal(
+    finalGate.lifecycleAuthority,
+    ".morro/fabric.json",
+    "TDP_MAX_FINAL_GATE_FABRIC",
+  );
+  assert.equal(
+    finalGate.mode,
+    "projection",
+    "TDP_MAX_FINAL_GATE_PARALLEL_CONTROL",
+  );
+  equalSet(
+    finalGate.requiredForComplete,
+    requiredFinalGates,
+    "TDP_MAX_FINAL_GATE_REQUIRED_SET",
+  );
+  equalSet(
+    finalGate.conditional?.map((item) => item.gate) ?? [],
+    requiredConditionalGates,
+    "TDP_MAX_FINAL_GATE_CONDITIONAL_SET",
+  );
   assert.deepEqual(
     finalGate.verdicts,
     ["COMPLETE", "PARTIAL", "BLOCKED", "NOT_PROVEN"],
     "TDP_MAX_FINAL_GATE_VERDICTS",
   );
   assert.ok(
-    Array.isArray(fabric.states) && fabric.states.includes("PRODUCTION_VERIFIED"),
+    Array.isArray(fabric.states) &&
+      fabric.states.includes("PRODUCTION_VERIFIED"),
     "TDP_MAX_FABRIC_LIFECYCLE_INVALID",
   );
 
-  assert.equal(typeof pkg.scripts?.["tdp-max:check"], "string", "TDP_MAX_PACKAGE_SCRIPT_MISSING");
+  assert.equal(
+    typeof pkg.scripts?.["tdp-max:check"],
+    "string",
+    "TDP_MAX_PACKAGE_SCRIPT_MISSING",
+  );
   assert.ok(
     pkg.scripts["ci:governance:check"]?.includes("pnpm tdp-max:check"),
     "TDP_MAX_NOT_IN_GOVERNANCE_PATH",
