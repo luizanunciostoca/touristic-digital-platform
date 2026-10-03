@@ -11,9 +11,10 @@ const source = readFileSync(
 );
 
 test("production data predeploy remains fail-closed and ordered", () => {
+  assert.match(source, /const PRODUCTION_SERVICE = "morro-digital-v2";/u);
   assert.match(
     source,
-    /RENDER_SERVICE_NAME[\s\S]*morro-digital-v2[\s\S]*PRODUCTION_RUNTIME_DATA_PREDEPLOY_SERVICE_DENIED/u,
+    /RENDER_SERVICE_NAME[\s\S]*PRODUCTION_SERVICE[\s\S]*PRODUCTION_RUNTIME_DATA_PREDEPLOY_SERVICE_DENIED/u,
   );
 
   const steps = [
