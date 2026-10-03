@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 
 const SHA = /^[0-9a-f]{40}$/u;
-const DIGEST = /^sha256:[0-9a-f]{64}$/u;
 const EVIDENCE_STATUSES = new Set([
   "VERIFIED",
   "INFERRED",
@@ -14,76 +13,6 @@ const EVIDENCE_STATUSES = new Set([
   "N/A",
 ]);
 const PROFILES = new Set(["engineering", "cross-system", "release"]);
-const REQUIRED_FINAL_GATES = [
-  "objective-satisfied",
-  "semantic-ci-proven",
-  "exact-head-proven",
-  "critical-unknowns-zero",
-  "conflicts-zero",
-  "lifecycle-reconciled",
-  "independent-challenge-passed",
-];
-const CONDITIONAL_FINAL_GATES = {
-  remediation: "root-cause-proven",
-  "external-writes-performed": "external-writes-read-back",
-  "release-or-runtime-impact": "artifact-identity",
-  "persistent-data-impact": "database-readback",
-  "high-or-critical-risk": "rollback-proof",
-  "dr-required": "dr-proof",
-  "production-promotion-required": "release-authorization",
-  "production-changed": "production-verification",
-  "enterprise-authority-required": "enterprise-authority-live",
-  "external-provider-impact": "provider-readback",
-};
-const EXTRA_RELEASE_GATE = {
-  gate: "staging-acceptance",
-  when: "release-or-runtime-impact",
-};
-const CANDIDATE_BOUND_GATES = [
-  "objective-satisfied",
-  "semantic-ci-proven",
-  "exact-head-proven",
-  "lifecycle-reconciled",
-  "independent-challenge-passed",
-  "root-cause-proven",
-  "external-writes-read-back",
-  "artifact-identity",
-  "staging-acceptance",
-  "database-readback",
-  "rollback-proof",
-  "dr-proof",
-  "enterprise-authority-live",
-  "provider-readback",
-];
-const ARTIFACT_BOUND_GATES = [
-  "artifact-identity",
-  "staging-acceptance",
-  "production-verification",
-];
-const TRUSTED_SOURCES = {
-  "objective-satisfied": ["TRUSTED_VALIDATOR"],
-  "semantic-ci-proven": ["GITHUB_ACTIONS"],
-  "exact-head-proven": ["GITHUB", "GITHUB_ACTIONS"],
-  "external-writes-read-back": [
-    "TARGET_PROVIDER",
-    "EXTERNAL_PROVIDER",
-    "RUNTIME_PROVIDER",
-    "DATABASE_RUNTIME",
-    "GOOGLE_DRIVE",
-  ],
-  "lifecycle-reconciled": ["GITHUB", "GITHUB_ACTIONS", "TRUSTED_VALIDATOR"],
-  "independent-challenge-passed": ["TRUSTED_VALIDATOR"],
-  "root-cause-proven": ["TRUSTED_VALIDATOR"],
-  "artifact-identity": ["OCI_REGISTRY", "GITHUB_ACTIONS"],
-  "staging-acceptance": ["RUNTIME_PROVIDER", "TRUSTED_VALIDATOR"],
-  "database-readback": ["DATABASE_RUNTIME", "TRUSTED_VALIDATOR"],
-  "rollback-proof": ["GITHUB_ACTIONS", "TRUSTED_VALIDATOR"],
-  "dr-proof": ["TRUSTED_VALIDATOR"],
-  "release-authorization": ["OWNER_GATE", "CANONICAL_RELEASE_POLICY"],
-  "production-verification": ["RUNTIME_PROVIDER"],
-  "enterprise-authority-live": ["GOOGLE_DRIVE"],
-  "provider-readback": ["EXTERNAL_PROVIDER"],
-};
 const RELEASE_BLOCKERS = new Set([
   "RUNTIME_NOT_CONFIGURED",
   "RUNTIME_UNHEALTHY_OR_UNVERIFIED",
