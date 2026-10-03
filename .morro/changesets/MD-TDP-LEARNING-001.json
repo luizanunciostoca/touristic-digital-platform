@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TDP-LEARNING-001",
+  "objective": "closed-loop-failure-learning-and-executable-anti-recurrence-guards",
+  "baseSha": "99518539b6e894fa6145f0835a6f6e83ea0d1548",
+  "branch": "feat/closed-loop-failure-learning-20261003",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-TDP-LEARNING-001.json",
+      ".github/morro-control/tdp-max/anti-recurrence.json",
+      ".github/morro-control/failures/**",
+      "tooling/failure-learning/**",
+      "package.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-TDP-MAX-002"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "failure-schema",
+    "fingerprint-deduplication",
+    "guard-engine",
+    "regression-guards",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan",
+      "anti-recurrence"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 3,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "failure-learning-contract",
+        "argv": ["node", "--test", "tooling/failure-learning/*.test.mjs"],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "tdp-max-regression",
+        "argv": ["pnpm", "tdp-max:check"],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "fabric-registry",
+        "argv": ["pnpm", "fabric:registry:check"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
