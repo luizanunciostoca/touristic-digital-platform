@@ -22,7 +22,9 @@
     "contracts": []
   },
   "reads": {
-    "contracts": ["platform-authz"]
+    "contracts": [
+      "platform-authz"
+    ]
   },
   "produces": {
     "events": [],
@@ -40,7 +42,8 @@
     "affected-tests",
     "integration",
     "automated-independent-proof",
-    "exact-head-identity"
+    "exact-head-identity",
+    "release-target-governance"
   ],
   "requiredCapabilities": [
     "github:read",
@@ -49,7 +52,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
