@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP-MAX Bootstrap Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "capturedAt",
+    "objective",
+    "repository",
+    "mainSha",
+    "checks",
+    "result"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "capturedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repository": {
+      "const": "luizanunciostoca/touristic-digital-platform"
+    },
+    "mainSha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "checks": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "enum": [
+          "PASS",
+          "WARN",
+          "N/A",
+          "BLOCKED",
+          "NOT_PROVEN"
+        ]
+      }
+    },
+    "result": {
+      "enum": [
+        "READY",
+        "READY_WITH_WARNINGS",
+        "BLOCKED",
+        "NOT_PROVEN"
+      ]
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
