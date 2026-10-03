@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-RELEASE-RUNTIME-PARITY-TWIN-001",
   "objective": "align-release-twin-contracts-with-95-table-canonical-production-schema",
-  "baseSha": "f54887e373f2818d821f097c331e8e67fb05d567",
-  "branch": "fix/runtime-parity-release-twin-001-20261003",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "ebf8521abe12ccf0370e202013a3cfc5e7521b7d",
+  "branch": "chore/runtime-parity-release-twin-001-retirement-20261003",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
