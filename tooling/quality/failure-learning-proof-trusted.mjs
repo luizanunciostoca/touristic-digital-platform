@@ -1,29 +1,46 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { cpSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  lstatSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
 
 export const REPOSITORY = "luizanunciostoca/touristic-digital-platform";
-export const WORKFLOW_PATH = ".github/workflows/failure-learning-independent-proof.yml";
+export const WORKFLOW_PATH =
+  ".github/workflows/failure-learning-independent-proof.yml";
 export const WORKFLOW_NAME = "Failure Learning Independent Proof";
 export const JOB_NAME = "trusted-failure-learning-proof";
 export const ASSERTION = "GUARD_PREVENTION_PROVEN";
-export const ACTIVATION_PATH = ".github/morro-control/failures/guard-activations.json";
+export const ACTIVATION_PATH =
+  ".github/morro-control/failures/guard-activations.json";
 const SHA = /^[0-9a-f]{40}$/u;
 const RUN_ID = /^[1-9][0-9]*$/u;
 const RUN_ATTEMPT = /^[1-9][0-9]*$/u;
 
 function git(root, ...args) {
-  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  return execFileSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+  }).trim();
 }
 function isAncestor(root, base, head) {
   try {
-    execFileSync("git", ["-C", root, "merge-base", "--is-ancestor", base, head], {
-      stdio: "ignore",
-    });
+    execFileSync(
+      "git",
+      ["-C", root, "merge-base", "--is-ancestor", base, head],
+      {
+        stdio: "ignore",
+      },
+    );
     return true;
   } catch {
     return false;
@@ -55,20 +72,58 @@ function errorCode(error) {
 
 export function trustedContext(env = process.env) {
   assert.equal(env.GITHUB_ACTIONS, "true", "TRUSTED_CONTEXT_ACTIONS_REQUIRED");
-  assert.equal(env.GITHUB_EVENT_NAME, "pull_request", "TRUSTED_CONTEXT_EVENT_INVALID");
-  assert.equal(env.GITHUB_REPOSITORY, REPOSITORY, "TRUSTED_CONTEXT_REPOSITORY_INVALID");
-  assert.equal(env.GITHUB_WORKFLOW, WORKFLOW_NAME, "TRUSTED_CONTEXT_WORKFLOW_INVALID");
+  assert.equal(
+    env.GITHUB_EVENT_NAME,
+    "pull_request",
+    "TRUSTED_CONTEXT_EVENT_INVALID",
+  );
+  assert.equal(
+    env.GITHUB_REPOSITORY,
+    REPOSITORY,
+    "TRUSTED_CONTEXT_REPOSITORY_INVALID",
+  );
+  assert.equal(
+    env.GITHUB_WORKFLOW,
+    WORKFLOW_NAME,
+    "TRUSTED_CONTEXT_WORKFLOW_INVALID",
+  );
   assert.equal(env.GITHUB_JOB, JOB_NAME, "TRUSTED_CONTEXT_JOB_INVALID");
-  assert.match(env.GITHUB_RUN_ID ?? "", RUN_ID, "TRUSTED_CONTEXT_RUN_ID_INVALID");
-  assert.match(env.GITHUB_RUN_ATTEMPT ?? "", RUN_ATTEMPT, "TRUSTED_CONTEXT_RUN_ATTEMPT_INVALID");
+  assert.match(
+    env.GITHUB_RUN_ID ?? "",
+    RUN_ID,
+    "TRUSTED_CONTEXT_RUN_ID_INVALID",
+  );
+  assert.match(
+    env.GITHUB_RUN_ATTEMPT ?? "",
+    RUN_ATTEMPT,
+    "TRUSTED_CONTEXT_RUN_ATTEMPT_INVALID",
+  );
   assert.ok(
-    String(env.GITHUB_WORKFLOW_REF ?? "").startsWith(REPOSITORY + "/" + WORKFLOW_PATH + "@"),
+    String(env.GITHUB_WORKFLOW_REF ?? "").startsWith(
+      REPOSITORY + "/" + WORKFLOW_PATH + "@",
+    ),
     "TRUSTED_CONTEXT_WORKFLOW_REF_INVALID",
   );
-  assert.match(env.EXPECTED_CANDIDATE_SHA ?? "", SHA, "TRUSTED_CONTEXT_CANDIDATE_INVALID");
-  assert.match(env.EXPECTED_BASE_SHA ?? "", SHA, "TRUSTED_CONTEXT_BASE_INVALID");
-  assert.match(env.TRUSTED_VALIDATOR_SHA ?? "", SHA, "TRUSTED_CONTEXT_VALIDATOR_SHA_INVALID");
-  assert.match(env.TRUSTED_VALIDATOR_TREE_SHA ?? "", SHA, "TRUSTED_CONTEXT_VALIDATOR_TREE_INVALID");
+  assert.match(
+    env.EXPECTED_CANDIDATE_SHA ?? "",
+    SHA,
+    "TRUSTED_CONTEXT_CANDIDATE_INVALID",
+  );
+  assert.match(
+    env.EXPECTED_BASE_SHA ?? "",
+    SHA,
+    "TRUSTED_CONTEXT_BASE_INVALID",
+  );
+  assert.match(
+    env.TRUSTED_VALIDATOR_SHA ?? "",
+    SHA,
+    "TRUSTED_CONTEXT_VALIDATOR_SHA_INVALID",
+  );
+  assert.match(
+    env.TRUSTED_VALIDATOR_TREE_SHA ?? "",
+    SHA,
+    "TRUSTED_CONTEXT_VALIDATOR_TREE_INVALID",
+  );
   assert.equal(
     env.TRUSTED_VALIDATOR_SHA,
     env.EXPECTED_BASE_SHA,
@@ -120,13 +175,22 @@ export function validateCandidateContract(root, context) {
     isAncestor(candidateRoot, context.baseSha, context.candidateSha),
     "CANDIDATE_BASE_NOT_ANCESTOR",
   );
-  const manifest = readJson(
-    candidateRoot,
-    context.manifestPath,
+  const manifest = readJson(candidateRoot, context.manifestPath);
+  assert.equal(
+    manifest.id,
+    "MD-TDP-LEARNING-001",
+    "LEARNING_CHANGESET_REQUIRED",
   );
-  assert.equal(manifest.id, "MD-TDP-LEARNING-001", "LEARNING_CHANGESET_REQUIRED");
-  assert.equal(manifest.baseSha, context.baseSha, "LEARNING_CHANGESET_BASE_MISMATCH");
-  assert.equal(manifest.branch, context.branch, "LEARNING_CHANGESET_BRANCH_MISMATCH");
+  assert.equal(
+    manifest.baseSha,
+    context.baseSha,
+    "LEARNING_CHANGESET_BASE_MISMATCH",
+  );
+  assert.equal(
+    manifest.branch,
+    context.branch,
+    "LEARNING_CHANGESET_BRANCH_MISMATCH",
+  );
   assert.ok(
     manifest.owns?.paths?.includes("tooling/failure-learning/**"),
     "LEARNING_ENGINE_OWNERSHIP_REQUIRED",
@@ -156,9 +220,20 @@ export function validateCandidateContract(root, context) {
     requireRegularFile(candidateRoot, path, "LEARNING_CANDIDATE");
   }
   const activation = readJson(candidateRoot, ACTIVATION_PATH);
-  assert.equal(activation.schemaVersion, 1, "ACTIVATION_REGISTRY_SCHEMA_INVALID");
-  assert.equal(activation.authority, "ORCHESTRATOR", "ACTIVATION_REGISTRY_AUTHORITY_INVALID");
-  assert.ok(Array.isArray(activation.activations), "ACTIVATION_REGISTRY_ITEMS_INVALID");
+  assert.equal(
+    activation.schemaVersion,
+    1,
+    "ACTIVATION_REGISTRY_SCHEMA_INVALID",
+  );
+  assert.equal(
+    activation.authority,
+    "ORCHESTRATOR",
+    "ACTIVATION_REGISTRY_AUTHORITY_INVALID",
+  );
+  assert.ok(
+    Array.isArray(activation.activations),
+    "ACTIVATION_REGISTRY_ITEMS_INVALID",
+  );
   assert.equal(
     activation.activations.length,
     0,
@@ -168,7 +243,11 @@ export function validateCandidateContract(root, context) {
 }
 
 export function buildGuardProof(context, validatorRevision, activatedAt) {
-  assert.match(validatorRevision, /^sha256:[0-9a-f]{64}$/u, "VALIDATOR_REVISION_INVALID");
+  assert.match(
+    validatorRevision,
+    /^sha256:[0-9a-f]{64}$/u,
+    "VALIDATOR_REVISION_INVALID",
+  );
   return Object.freeze({
     guardId: "AR-001",
     regressionTest:
@@ -178,10 +257,7 @@ export function buildGuardProof(context, validatorRevision, activatedAt) {
       context.candidateSha +
       "/tooling/failure-learning/engine.test.mjs",
     independentProof:
-      "https://github.com/" +
-      REPOSITORY +
-      "/actions/runs/" +
-      context.runId,
+      "https://github.com/" + REPOSITORY + "/actions/runs/" + context.runId,
     independentProofCandidateSha: context.candidateSha,
     candidateBinding: context.candidateSha,
     freshness: "FRESH",
@@ -218,7 +294,9 @@ export function buildActivationRecord(proof) {
 
 async function loadEngine(root, nonce) {
   const path = resolve(root, "tooling/failure-learning/engine.mjs");
-  return import(pathToFileURL(path).href + "?trusted=" + encodeURIComponent(nonce));
+  return import(
+    pathToFileURL(path).href + "?trusted=" + encodeURIComponent(nonce)
+  );
 }
 function incidentFor(engine, observedAt = "2026-10-04T05:00:00Z") {
   const occurrence = {
@@ -253,13 +331,20 @@ function incidentFor(engine, observedAt = "2026-10-04T05:00:00Z") {
   };
 }
 
-export async function runTrustedSemanticProbe(candidateRoot, context, validatorRevision) {
+export async function runTrustedSemanticProbe(
+  candidateRoot,
+  context,
+  validatorRevision,
+) {
   const proof = buildGuardProof(
     context,
     validatorRevision,
     "2026-10-04T05:01:00Z",
   );
-  const engine = await loadEngine(candidateRoot, "negative-" + context.candidateSha);
+  const engine = await loadEngine(
+    candidateRoot,
+    "negative-" + context.candidateSha,
+  );
   const { occurrence, incident } = incidentFor(engine);
 
   assert.throws(
@@ -311,7 +396,10 @@ export async function runTrustedSemanticProbe(candidateRoot, context, validatorR
       ) + "\n",
     );
 
-    const fixtureEngine = await loadEngine(fixture, "positive-" + context.candidateSha);
+    const fixtureEngine = await loadEngine(
+      fixture,
+      "positive-" + context.candidateSha,
+    );
     const positive = incidentFor(fixtureEngine);
     const active = fixtureEngine.promoteGuard(positive.incident, proof);
     assert.equal(active.state, "ACTIVE_GUARD", "CANONICAL_ACTIVATION_REQUIRED");

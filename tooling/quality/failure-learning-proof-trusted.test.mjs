@@ -21,7 +21,9 @@ import {
 } from "./failure-learning-proof-trusted.mjs";
 
 function git(root, ...args) {
-  return execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  return execFileSync("git", ["-C", root, ...args], {
+    encoding: "utf8",
+  }).trim();
 }
 function write(root, path, content) {
   const target = resolve(root, path);
@@ -153,25 +155,58 @@ function fixture(t, { secure = true, selfActivate = false } = {}) {
     state: "IMPLEMENTING",
     risk: "high",
     scope: "PLATFORM",
-    owns: { paths: ["tooling/failure-learning/**", ".github/morro-control/failures/**", manifestPath], contracts: [] },
+    owns: {
+      paths: [
+        "tooling/failure-learning/**",
+        ".github/morro-control/failures/**",
+        manifestPath,
+      ],
+      contracts: [],
+    },
     reads: { contracts: [] },
     produces: { events: [], routes: [] },
     database: { tables: [] },
     auth: { capabilities: [] },
     dependencies: [],
-    requiredEvidence: ["source-authentication", "guard-specific-semantic-proof", "canonical-activation", "automated-independent-proof", "exact-head-identity"],
+    requiredEvidence: [
+      "source-authentication",
+      "guard-specific-semantic-proof",
+      "canonical-activation",
+      "automated-independent-proof",
+      "exact-head-identity",
+    ],
     requiredCapabilities: ["github:read"],
     contextPack: { maxBytes: 65536, include: ["changeset"] },
     proof: {
       budget: { maxCommands: 1, maxSeconds: 300 },
-      commands: [{ id: "learning", argv: ["node", "--test", "tooling/failure-learning/engine.test.mjs"], timeoutSeconds: 300 }],
-      requiredRemoteEvidence: ["source-authentication", "guard-specific-semantic-proof", "canonical-activation", "automated-independent-proof", "exact-head-identity"],
+      commands: [
+        {
+          id: "learning",
+          argv: ["node", "--test", "tooling/failure-learning/engine.test.mjs"],
+          timeoutSeconds: 300,
+        },
+      ],
+      requiredRemoteEvidence: [
+        "source-authentication",
+        "guard-specific-semantic-proof",
+        "canonical-activation",
+        "automated-independent-proof",
+        "exact-head-identity",
+      ],
     },
     stopAt: "REMOTE_PROVEN",
   };
   write(root, manifestPath, JSON.stringify(manifest, null, 2) + "\n");
-  write(root, "tooling/failure-learning/engine.mjs", secure ? secureEngineSource() : insecureEngineSource());
-  write(root, "tooling/failure-learning/activation-authority.mjs", "export const authority = \"ORCHESTRATOR\";\n");
+  write(
+    root,
+    "tooling/failure-learning/engine.mjs",
+    secure ? secureEngineSource() : insecureEngineSource(),
+  );
+  write(
+    root,
+    "tooling/failure-learning/activation-authority.mjs",
+    'export const authority = "ORCHESTRATOR";\n',
+  );
   write(root, "tooling/failure-learning/engine.test.mjs", "export {};\n");
   const activation = {
     schemaVersion: 1,
@@ -194,7 +229,8 @@ function envFor(f) {
     GITHUB_JOB: JOB_NAME,
     GITHUB_RUN_ID: "42",
     GITHUB_RUN_ATTEMPT: "1",
-    GITHUB_WORKFLOW_REF: REPOSITORY + "/" + WORKFLOW_PATH + "@refs/pull/1/merge",
+    GITHUB_WORKFLOW_REF:
+      REPOSITORY + "/" + WORKFLOW_PATH + "@refs/pull/1/merge",
     EXPECTED_CANDIDATE_SHA: f.candidate,
     EXPECTED_BASE_SHA: f.base,
     EXPECTED_BRANCH: "infra/learning",
@@ -218,7 +254,8 @@ test("trusted context rejects source substitutions", () => {
     GITHUB_JOB: JOB_NAME,
     GITHUB_RUN_ID: "42",
     GITHUB_RUN_ATTEMPT: "1",
-    GITHUB_WORKFLOW_REF: REPOSITORY + "/" + WORKFLOW_PATH + "@refs/pull/1/merge",
+    GITHUB_WORKFLOW_REF:
+      REPOSITORY + "/" + WORKFLOW_PATH + "@refs/pull/1/merge",
     EXPECTED_CANDIDATE_SHA: f.candidate,
     EXPECTED_BASE_SHA: f.base,
     EXPECTED_BRANCH: "infra/learning",
@@ -233,7 +270,8 @@ test("trusted context rejects source substitutions", () => {
     { GITHUB_RUN_ID: "0" },
     { GITHUB_RUN_ATTEMPT: "00" },
     { TRUSTED_VALIDATOR_SHA: "d".repeat(40) },
-  ]) assert.throws(() => trustedContext({ ...valid, ...patch }));
+  ])
+    assert.throws(() => trustedContext({ ...valid, ...patch }));
 });
 
 test("proof record binds candidate, validator, run and semantic assertion", () => {
@@ -247,7 +285,11 @@ test("proof record binds candidate, validator, run and semantic assertion", () =
     job: JOB_NAME,
     assertion: ASSERTION,
   };
-  const proof = buildGuardProof(context, "sha256:" + "c".repeat(64), "2026-10-04T05:01:00Z");
+  const proof = buildGuardProof(
+    context,
+    "sha256:" + "c".repeat(64),
+    "2026-10-04T05:01:00Z",
+  );
   const activation = buildActivationRecord(proof);
   assert.equal(activation.candidateSha, context.candidateSha);
   assert.equal(activation.runAttempt, 1);
@@ -259,7 +301,11 @@ test("trusted semantic probe accepts only canonical activation behavior", async 
   const f = fixture(t);
   const context = trustedContext(envFor(f));
   validateCandidateContract(f.root, context);
-  const result = await runTrustedSemanticProbe(f.root, context, currentValidatorRevision());
+  const result = await runTrustedSemanticProbe(
+    f.root,
+    context,
+    currentValidatorRevision(),
+  );
   assert.equal(result.activation.state, "ACTIVE_GUARD");
   assert.equal(result.activation.candidateSha, f.candidate);
 });
