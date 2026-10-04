@@ -1133,9 +1133,25 @@ function createAcquisitionRunGateFixture({
     "acquisition-gate@example.invalid",
   ]);
 
+  const learningManifest = manifest({
+    id: "MD-TDP-LEARNING-001",
+    objective: "closed-loop-failure-learning-fixture",
+    branch: "feat/closed-loop-failure-learning-fixture",
+    baseSha: OLD_BASE,
+    owns: {
+      paths: ["tooling/failure-learning/**"],
+      contracts: ["FAILURE-LEARNING-FIXTURE"],
+    },
+    produces: { events: ["FAILURE_LEARNING_FIXTURE_UPDATED"], routes: [] },
+    database: { tables: [] },
+    auth: { capabilities: [] },
+  });
   const survivors = persistentOnly
-    ? JSON.parse(readFileSync(".github/morro-control/claims.json", "utf8"))
-        .claims
+    ? {
+        "MD-TDP-LEARNING-001": claim(learningManifest, {
+          status: "IMPLEMENTING",
+        }),
+      }
     : {};
   writeFixtureJson(source, ".github/morro-control/claims.json", {
     registryAuthority: "ORCHESTRATOR",
