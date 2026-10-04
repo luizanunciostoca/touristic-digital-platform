@@ -478,6 +478,7 @@ jobs:
             ".github/workflows/morro-merge-gate.yml"
             ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json"
             "tooling/control-state/mdctl-scheduler.test.mjs"
+            "tooling/control-state/mdctl-merge-gate.test.mjs"
             "tooling/control-state/trust-root-reconciliation.test.mjs"
             "tooling/mdctl/scheduler-live.mjs"
           )
@@ -489,16 +490,113 @@ jobs:
           cp candidate/tooling/mdctl/scheduler-live.mjs "$proof_root/tooling/mdctl/scheduler-live.mjs"
           (cd "$proof_root" && node --test --test-reporter=tap tooling/control-state/mdctl-scheduler.test.mjs tooling/control-state/trust-root-reconciliation.test.mjs) | tee trusted-baseline-with-candidate-scheduler.tap
           grep -Fq "# fail 0" trusted-baseline-with-candidate-scheduler.tap
-      - name: Prove new exact-head reanchor regressions
-        shell: bash
-        run: |
-          set -euo pipefail
-          (cd candidate && node --test --test-reporter=tap tooling/control-state/mdctl-scheduler.test.mjs tooling/control-state/trust-root-reconciliation.test.mjs) | tee scheduler-reanchor-candidate.tap
-          grep -Fq "live collector accepts exact trusted reanchor bookkeeping only" scheduler-reanchor-candidate.tap
-          grep -Fq "live collector rejects reanchor bookkeeping without exact-head trusted proof" scheduler-reanchor-candidate.tap
-          grep -Fq "live collector never widens trusted reanchor bookkeeping to extra paths" scheduler-reanchor-candidate.tap
-          grep -Fq "live collector rejects semantic authority mutation even during reanchor" scheduler-reanchor-candidate.tap
-          grep -Fq "# fail 0" scheduler-reanchor-candidate.tap
+          PROOF_ROOT="$proof_root" EXPECTED_MAIN="$EXPECTED_BASE" node --input-type=module <<'NODE' | tee scheduler-reanchor-helper-proof.json
+          import assert from "node:assert/strict";
+          import { pathToFileURL } from "node:url";
+          const root = process.env.PROOF_ROOT;
+          const mainSha = process.env.EXPECTED_MAIN;
+          const { trustedReanchorTransientPaths } = await import(
+            pathToFileURL(root + "/tooling/mdctl/scheduler-live.mjs").href
+          );
+          const oldBase = "a".repeat(40);
+          const canonicalClaim = {
+            owner: "CHATGPT-PRO-CONTROL",
+            reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+            branch: "feat/proof",
+            baseSha: oldBase,
+            paths: ["tooling/proof/**"],
+            domains: ["control-plane"],
+            risk: "P1",
+            status: "IMPLEMENTING",
+            expiresAt: "2099-01-01T00:00:00Z",
+          };
+          const candidateClaim = { ...canonicalClaim, baseSha: mainSha };
+          const canonicalChangeSet = {
+            id: "MD-PROOF",
+            objective: "proof",
+            risk: "high",
+            scope: "PLATFORM",
+            branch: "feat/proof",
+            baseSha: oldBase,
+            state: "IMPLEMENTING",
+            owns: { paths: ["tooling/proof/**"], contracts: [] },
+            reads: { contracts: [] },
+            produces: { events: [], routes: [] },
+            database: { tables: [] },
+            auth: { capabilities: [] },
+            dependencies: [],
+            requiredEvidence: ["exact-head-identity"],
+            requiredCapabilities: ["github:read"],
+            contextPack: { maxBytes: 65536, include: ["changeset"] },
+            proof: {
+              budget: { maxCommands: 1, maxSeconds: 60 },
+              commands: [{ id: "proof", argv: ["node", "--test"], timeoutSeconds: 30 }],
+              requiredRemoteEvidence: ["exact-head-identity"],
+            },
+            stopAt: "REMOTE_PROVEN",
+          };
+          const candidateChangeSet = {
+            ...structuredClone(canonicalChangeSet),
+            baseSha: mainSha,
+            state: "LOCAL_PROVEN",
+          };
+          const trusted = {
+            trusted: true,
+            authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+          };
+          const input = {
+            canonicalClaim,
+            candidateClaim,
+            canonicalChangeSet,
+            candidateChangeSet,
+            mainSha,
+            registryChanged: true,
+            trust: trusted,
+          };
+          const exact = [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+          ];
+          assert.deepEqual(trustedReanchorTransientPaths(input), exact);
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              trust: { trusted: false, authority: "UNTRUSTED" },
+            }),
+            [],
+          );
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              candidateChangeSet: {
+                ...candidateChangeSet,
+                auth: { capabilities: ["platform:admin"] },
+              },
+            }),
+            [],
+          );
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              candidateClaim: { ...candidateClaim, branch: "feat/other" },
+            }),
+            [],
+          );
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              registryChanged: false,
+            }),
+            [],
+          );
+          console.log(JSON.stringify({
+            contract: "TDP_SCHEDULER_REANCHOR_HELPER_PROOF",
+            status: "PASS",
+            exactTransientPaths: exact,
+            negatives: 4,
+          }));
+          NODE
+          grep -Fq '"status":"PASS"' scheduler-reanchor-helper-proof.json
           grep -Fq 'trust?.authority !== "TRUSTED_CLAIM_GUARD_EXACT_HEAD"' candidate/tooling/mdctl/scheduler-live.mjs
           grep -Fq '".github/morro-control/claims.json"' candidate/tooling/mdctl/scheduler-live.mjs
           grep -Fq '".github/morro-control/events.ndjson"' candidate/tooling/mdctl/scheduler-live.mjs
@@ -509,7 +607,7 @@ jobs:
           name: scheduler-reanchor-bootstrap-${{ github.event.pull_request.head.sha }}
           path: |
             trusted-baseline-with-candidate-scheduler.tap
-            scheduler-reanchor-candidate.tap
+            scheduler-reanchor-helper-proof.json
           if-no-files-found: error
           retention-days: 30
   retirement-proof:
