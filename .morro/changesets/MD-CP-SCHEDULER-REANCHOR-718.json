@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-SCHEDULER-REANCHOR-718",
+  "objective": "align-live-scheduler-with-certified-reanchor-transition",
+  "baseSha": "d006a94aecfb7a70f9829acdc14ff5a22a142201",
+  "branch": "fix/scheduler-reanchor-bootstrap-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/workflows/morro-merge-gate.yml",
+      ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json",
+      "tooling/mdctl/scheduler-live.mjs",
+      "tooling/control-state/mdctl-scheduler.test.mjs",
+      "tooling/control-state/trust-root-reconciliation.test.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs"
+    ],
+    "contracts": ["TDP-SCHEDULER-TRUST-VERIFICATION", "TDP-MERGE-GATE"]
+  },
+  "reads": {
+    "contracts": ["GITHUB-CURRENT-MAIN", "TDP-CONTROL-PLANE-V3.2-AUTHORITY"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "trusted-reanchor-classification"
+  ],
+  "requiredCapabilities": ["github:read", "evidence:write:task-local"],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "scheduler-reanchor-bootstrap",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-scheduler.test.mjs",
+          "tooling/control-state/trust-root-reconciliation.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

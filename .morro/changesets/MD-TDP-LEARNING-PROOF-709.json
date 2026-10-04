@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TDP-LEARNING-PROOF-709",
   "objective": "authenticate-independent-failure-learning-proof-and-canonical-activation",
-  "baseSha": "d006a94aecfb7a70f9829acdc14ff5a22a142201",
+  "baseSha": "00349786aac3a881494da5d5cca60eb6ce334edd",
   "branch": "infra/failure-learning-proof-709-20261004",
-  "state": "LOCAL_PROVEN",
+  "state": "IMPLEMENTING",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

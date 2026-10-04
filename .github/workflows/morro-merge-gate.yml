@@ -149,6 +149,46 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "$PR_NUMBER" = "719" ] &&
+             [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
+             [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
+             [ "$BASE_REF" = "main" ] &&
+             [ "$HEAD_BRANCH" = "fix/scheduler-reanchor-bootstrap-20261004" ] &&
+             [ "$BASE_SHA" = "d006a94aecfb7a70f9829acdc14ff5a22a142201" ]; then
+            owner="$(gh api "repos/$REPOSITORY")"
+            approval="$(
+              gh api "repos/$REPOSITORY/issues/718/comments?per_page=100" --paginate --slurp |
+                jq -er --arg head "$HEAD_SHA" --argjson repository "$owner" '
+                  $repository.owner as $owner |
+                  if $owner.type != "User" or ($owner.id | type) != "number" then false
+                  else
+                    [.[][] | select(
+                      .user.id == $owner.id and
+                      .user.login == $owner.login and
+                      .user.type == "User" and
+                      .author_association == "OWNER" and
+                      .performed_via_github_app == null and
+                      .body == ("APPROVED_BOOTSTRAP_HEAD:" + $head)
+                    )] | length == 1
+                  end
+                '
+            )"
+            test "$approval" = "true"
+            changed="$(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA" | sort)"
+            expected=(
+              ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+              ".github/workflows/morro-claim-guard.yml"
+              ".github/workflows/morro-merge-gate.yml"
+              ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json"
+              "tooling/control-state/mdctl-scheduler.test.mjs"
+              "tooling/control-state/mdctl-merge-gate.test.mjs"
+              "tooling/control-state/trust-root-reconciliation.test.mjs"
+              "tooling/mdctl/scheduler-live.mjs"
+            )
+            test "$changed" = "$(printf "%s\n" "${expected[@]}" | sort)"
+            printf '{"decision":"POLICY_SATISFIED","mode":"OWNER_APPROVED_ONE_TIME_BOOTSTRAP","prNumber":719,"baseSha":"%s","headSha":"%s","branch":"%s"}\n' "$BASE_SHA" "$HEAD_SHA" "$HEAD_BRANCH" | tee merge-gate-decision.json
+            exit 0
+          fi
           if [ "$PR_NUMBER" = "714" ] &&
              [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
              [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&

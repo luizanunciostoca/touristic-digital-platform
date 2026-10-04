@@ -7,6 +7,12 @@ on:
       - ".github/workflows/morro-claim-guard-trusted.yml"
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
       - ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json"
+      - ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json"
+      - ".github/workflows/morro-merge-gate.yml"
+      - "tooling/mdctl/scheduler-live.mjs"
+      - "tooling/control-state/mdctl-scheduler.test.mjs"
+      - "tooling/control-state/mdctl-merge-gate.test.mjs"
+      - "tooling/control-state/trust-root-reconciliation.test.mjs"
       - ".morro/changesets/MD-CP-003-TRUST.json"
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
       - ".morro/changesets/MD-CP-003-HOOKS.json"
@@ -62,6 +68,47 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "$PR_NUMBER" = "719" ] &&
+             [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
+             [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
+             [ "$BASE_REF" = "main" ] &&
+             [ "$HEAD_BRANCH" = "fix/scheduler-reanchor-bootstrap-20261004" ] &&
+             [ "$BASE_SHA" = "d006a94aecfb7a70f9829acdc14ff5a22a142201" ]; then
+            owner="$(gh api "repos/$REPOSITORY")"
+            approval="$(
+              gh api "repos/$REPOSITORY/issues/718/comments?per_page=100" --paginate --slurp |
+                jq -er --arg head "$HEAD_SHA" --argjson repository "$owner" '
+                  $repository.owner as $owner |
+                  if $owner.type != "User" or ($owner.id | type) != "number" then false
+                  else
+                    [.[][] | select(
+                      .user.id == $owner.id and
+                      .user.login == $owner.login and
+                      .user.type == "User" and
+                      .author_association == "OWNER" and
+                      .performed_via_github_app == null and
+                      .body == ("APPROVED_BOOTSTRAP_HEAD:" + $head)
+                    )] | length == 1
+                  end
+                '
+            )"
+            test "$approval" = "true"
+            changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA" | sort)"
+            expected=(
+              ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+              ".github/workflows/morro-claim-guard.yml"
+              ".github/workflows/morro-merge-gate.yml"
+              ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json"
+              "tooling/control-state/mdctl-merge-gate.test.mjs"
+              "tooling/control-state/mdctl-scheduler.test.mjs"
+              "tooling/control-state/trust-root-reconciliation.test.mjs"
+              "tooling/mdctl/scheduler-live.mjs"
+            )
+            test "$changed" = "$(printf "%s\n" "${expected[@]}" | sort)"
+            echo "approved_bootstrap=true" >> "$GITHUB_OUTPUT"
+            echo "path=.morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [ "$PR_NUMBER" = "714" ] &&
              [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
              [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
@@ -399,6 +446,190 @@ jobs:
           path: claim-lifecycle-baseline/
           if-no-files-found: error
 
+  scheduler-reanchor-bootstrap-proof:
+    if: ${{ always() && (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 719 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/scheduler-reanchor-bootstrap-20261004' && github.event.pull_request.base.sha == 'd006a94aecfb7a70f9829acdc14ff5a22a142201') }}
+    needs: unit
+    name: base-controlled-scheduler-reanchor-proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+      - name: Prove exact bootstrap scope and trusted baseline compatibility
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$EXPECTED_BRANCH" = "fix/scheduler-reanchor-bootstrap-20261004"
+          test "$EXPECTED_BASE" = "d006a94aecfb7a70f9829acdc14ff5a22a142201"
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_HEAD"
+          mapfile -t changed < <(git -C candidate diff --name-only "$EXPECTED_BASE...$EXPECTED_HEAD" | sort)
+          expected=(
+            ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+            ".github/workflows/morro-claim-guard.yml"
+            ".github/workflows/morro-merge-gate.yml"
+            ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json"
+            "tooling/control-state/mdctl-scheduler.test.mjs"
+            "tooling/control-state/mdctl-merge-gate.test.mjs"
+            "tooling/control-state/trust-root-reconciliation.test.mjs"
+            "tooling/mdctl/scheduler-live.mjs"
+          )
+          mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
+          diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${changed[@]}")
+          proof_root="$(mktemp -d)"
+          trap 'rm -rf "$proof_root"' EXIT
+          git -C trusted archive "$EXPECTED_BASE" | tar -x -C "$proof_root"
+          cp candidate/tooling/mdctl/scheduler-live.mjs "$proof_root/tooling/mdctl/scheduler-live.mjs"
+          (cd "$proof_root" && node --test --test-reporter=tap tooling/control-state/mdctl-scheduler.test.mjs tooling/control-state/trust-root-reconciliation.test.mjs) | tee trusted-baseline-with-candidate-scheduler.tap
+          grep -Fq "# fail 0" trusted-baseline-with-candidate-scheduler.tap
+          test "$(git -C candidate hash-object tooling/control-state/mdctl-scheduler.test.mjs)" = "dfbc1e963db34e5cbeba74601d88fa14ae9be05a"
+          cp candidate/tooling/control-state/mdctl-scheduler.test.mjs "$proof_root/tooling/control-state/mdctl-scheduler.test.mjs"
+          (cd "$proof_root" && node --test --test-reporter=tap tooling/control-state/mdctl-scheduler.test.mjs tooling/control-state/trust-root-reconciliation.test.mjs) | tee trusted-reanchor-integration.tap
+          grep -Fq "live collector accepts exact trusted reanchor bookkeeping only" trusted-reanchor-integration.tap
+          grep -Fq "live collector rejects reanchor bookkeeping without exact-head trusted proof" trusted-reanchor-integration.tap
+          grep -Fq "live collector never widens trusted reanchor bookkeeping to extra paths" trusted-reanchor-integration.tap
+          grep -Fq "live collector rejects survivor mutation during certified reanchor" trusted-reanchor-integration.tap
+          grep -Fq "# fail 0" trusted-reanchor-integration.tap
+          PROOF_ROOT="$proof_root" EXPECTED_MAIN="$EXPECTED_BASE" node --input-type=module <<'NODE' | tee scheduler-reanchor-helper-proof.json
+          import assert from "node:assert/strict";
+          import { pathToFileURL } from "node:url";
+          const root = process.env.PROOF_ROOT;
+          const mainSha = process.env.EXPECTED_MAIN;
+          const { trustedReanchorTransientPaths } = await import(
+            pathToFileURL(root + "/tooling/mdctl/scheduler-live.mjs").href
+          );
+          const oldBase = "a".repeat(40);
+          const canonicalClaim = {
+            owner: "CHATGPT-PRO-CONTROL",
+            reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+            branch: "feat/proof",
+            baseSha: oldBase,
+            paths: ["tooling/proof/**"],
+            domains: ["control-plane"],
+            risk: "P1",
+            status: "IMPLEMENTING",
+            expiresAt: "2099-01-01T00:00:00Z",
+          };
+          const candidateClaim = { ...canonicalClaim, baseSha: mainSha };
+          const canonicalChangeSet = {
+            id: "MD-PROOF",
+            objective: "proof",
+            risk: "high",
+            scope: "PLATFORM",
+            branch: "feat/proof",
+            baseSha: oldBase,
+            state: "IMPLEMENTING",
+            owns: { paths: ["tooling/proof/**"], contracts: [] },
+            reads: { contracts: [] },
+            produces: { events: [], routes: [] },
+            database: { tables: [] },
+            auth: { capabilities: [] },
+            dependencies: [],
+            requiredEvidence: ["exact-head-identity"],
+            requiredCapabilities: ["github:read"],
+            contextPack: { maxBytes: 65536, include: ["changeset"] },
+            proof: {
+              budget: { maxCommands: 1, maxSeconds: 60 },
+              commands: [{ id: "proof", argv: ["node", "--test"], timeoutSeconds: 30 }],
+              requiredRemoteEvidence: ["exact-head-identity"],
+            },
+            stopAt: "REMOTE_PROVEN",
+          };
+          const candidateChangeSet = {
+            ...structuredClone(canonicalChangeSet),
+            baseSha: mainSha,
+            state: "LOCAL_PROVEN",
+          };
+          const trusted = {
+            trusted: true,
+            authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+          };
+          const input = {
+            canonicalClaim,
+            candidateClaim,
+            canonicalChangeSet,
+            candidateChangeSet,
+            mainSha,
+            registryChanged: true,
+            trust: trusted,
+          };
+          const exact = [
+            ".github/morro-control/claims.json",
+            ".github/morro-control/events.ndjson",
+          ];
+          assert.deepEqual(trustedReanchorTransientPaths(input), exact);
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              trust: { trusted: false, authority: "UNTRUSTED" },
+            }),
+            [],
+          );
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              candidateChangeSet: {
+                ...candidateChangeSet,
+                auth: { capabilities: ["platform:admin"] },
+              },
+            }),
+            [],
+          );
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              candidateClaim: { ...candidateClaim, branch: "feat/other" },
+            }),
+            [],
+          );
+          assert.deepEqual(
+            trustedReanchorTransientPaths({
+              ...input,
+              registryChanged: false,
+            }),
+            [],
+          );
+          console.log(JSON.stringify({
+            contract: "TDP_SCHEDULER_REANCHOR_HELPER_PROOF",
+            status: "PASS",
+            exactTransientPaths: exact,
+            negatives: 4,
+          }));
+          NODE
+          grep -Fq '"status":"PASS"' scheduler-reanchor-helper-proof.json
+          grep -Fq 'trust?.authority !== "TRUSTED_CLAIM_GUARD_EXACT_HEAD"' candidate/tooling/mdctl/scheduler-live.mjs
+          grep -Fq '".github/morro-control/claims.json"' candidate/tooling/mdctl/scheduler-live.mjs
+          grep -Fq '".github/morro-control/events.ndjson"' candidate/tooling/mdctl/scheduler-live.mjs
+      - name: Upload scheduler reanchor bootstrap proof
+        if: always()
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: scheduler-reanchor-bootstrap-${{ github.event.pull_request.head.sha }}
+          path: |
+            trusted-baseline-with-candidate-scheduler.tap
+            scheduler-reanchor-helper-proof.json
+          if-no-files-found: error
+          retention-days: 30
   retirement-proof:
     if: needs.unit.outputs.retirement == 'true'
     needs: unit
