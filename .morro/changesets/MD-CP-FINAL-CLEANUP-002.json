@@ -17,15 +17,10 @@
       "tooling/mdctl/merge-gate.mjs",
       "tooling/control-state/mdctl-merge-gate.test.mjs"
     ],
-    "contracts": [
-      "TDP-MAX-ANTI-RECURRENCE",
-      "CLAIM-RETIREMENT-MERGE-GATE"
-    ]
+    "contracts": ["TDP-MAX-ANTI-RECURRENCE", "CLAIM-RETIREMENT-MERGE-GATE"]
   },
   "reads": {
-    "contracts": [
-      "MORRO-CLAIM-RETIREMENT-PROOF"
-    ]
+    "contracts": ["MORRO-CLAIM-RETIREMENT-PROOF"]
   },
   "produces": {
     "events": [],
