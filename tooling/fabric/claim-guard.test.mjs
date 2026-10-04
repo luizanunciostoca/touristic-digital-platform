@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
+  readFileSync,
   mkdirSync,
   mkdtempSync,
   rmSync,
@@ -988,3 +989,324 @@ test("handoff rejects a divergent candidate even with valid manifests and identi
     rmSync(repo.parent, { recursive: true, force: true });
   }
 });
+
+test("claim collision ignore is exact-path only and explicit", () => {
+  const registry = {
+    registryAuthority: "ORCHESTRATOR",
+    claims: {
+      "MD-NEW": {
+        status: "IMPLEMENTING",
+        branch: "fix/new",
+        expiresAt: "2099-01-01T00:00:00Z",
+        paths: [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+          "tooling/fabric/new.mjs",
+        ],
+      },
+      "MD-EXISTING": {
+        status: "IMPLEMENTING",
+        branch: "feat/existing",
+        expiresAt: "2099-01-01T00:00:00Z",
+        paths: [
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+          "tooling/fabric/existing.mjs",
+        ],
+      },
+    },
+  };
+  assert.equal(findClaimCollisions(registry, "MD-NEW").length, 2);
+  assert.deepEqual(
+    findClaimCollisions(
+      registry,
+      "MD-NEW",
+      Date.parse("2026-10-03T00:00:00Z"),
+      {
+        allowSerializedAcquisitionBookkeeping: true,
+        authority: "ORCHESTRATOR",
+      },
+    ),
+    [],
+  );
+  registry.claims["MD-EXISTING"].paths.push("tooling/fabric/**");
+  assert.ok(
+    findClaimCollisions(
+      registry,
+      "MD-NEW",
+      Date.parse("2026-10-03T00:00:00Z"),
+      {
+        allowSerializedAcquisitionBookkeeping: true,
+        authority: "ORCHESTRATOR",
+      },
+    ).some((x) => x.kind === "path" && x.value.includes("tooling/fabric")),
+  );
+  assert.throws(
+    () =>
+      findClaimCollisions(
+        registry,
+        "MD-NEW",
+        Date.parse("2026-10-03T00:00:00Z"),
+        { allowSerializedAcquisitionBookkeeping: true, authority: "WORKER" },
+      ),
+    /CLAIM_COLLISION_EXEMPTION_REQUIRES_ORCHESTRATOR/u,
+  );
+});
+
+// Invoke the actual workflow CLI: component-only collision tests missed this path.
+function acquisitionCliFixture(scenario) {
+  const root = mkdtempSync(resolve(tmpdir(), "claim-acquisition-cli-"));
+  const registryPath = ".github/morro-control/claims.json";
+  const ledgerPath = ".github/morro-control/events.ndjson";
+  const manifestPath = ".morro/changesets/MD-CLI-ACQUISITION.json";
+  const branch = "test/cli-acquisition";
+  const survivor = {
+    owner: "OTHER-SESSION",
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    branch: "test/survivor",
+    baseSha: "a".repeat(40),
+    paths: [registryPath, ledgerPath, "tooling/failure-learning/**"],
+    domains: ["ci-release"],
+    risk: "P1",
+    status: "IMPLEMENTING",
+    expiresAt: "2099-01-01T00:00:00Z",
+  };
+  const registry = {
+    schemaVersion: 1,
+    registryAuthority: "ORCHESTRATOR",
+    claims: { "MD-SURVIVOR": survivor },
+  };
+  if (scenario === "same branch") survivor.branch = branch;
+  if (scenario === "real overlap")
+    survivor.paths.push("tooling/quality/cli-owned.mjs");
+  if (scenario === "recursive overlap")
+    survivor.paths.push(".github/morro-control/**");
+  const originalEvent = {
+    schemaVersion: 1,
+    eventId: "evt-prior",
+    eventType: "MERGED",
+    observedAt: "2026-10-01T00:00:00Z",
+    actor: "ORCHESTRATOR",
+    entity: "MD-PRIOR",
+    sourceSha: "a".repeat(40),
+    payloadVersion: 1,
+    payload: {},
+  };
+  const originalLedger = JSON.stringify(originalEvent) + "\n";
+  git(root, ["init", "-q", "-b", branch]);
+  git(root, ["config", "user.name", "CLI Regression"]);
+  git(root, ["config", "user.email", "cli@example.invalid"]);
+  writeJson(root, registryPath, registry);
+  writeFileSync(resolve(root, ledgerPath), originalLedger);
+  if (scenario === "manifest already exists")
+    writeJson(root, manifestPath, { old: true });
+  if (scenario === "rename origin")
+    writeFileSync(resolve(root, "unowned.txt"), "old\n");
+  git(root, ["add", "."]);
+  git(root, ["commit", "-qm", "base"]);
+  const base = git(root, ["rev-parse", "HEAD"]);
+  const manifest = JSON.parse(
+    readFileSync(
+      resolve(process.cwd(), ".morro/changesets/MD-TDP-LEARNING-001.json"),
+      "utf8",
+    ),
+  );
+  Object.assign(manifest, {
+    id: "MD-CLI-ACQUISITION",
+    objective: "prove-cli-acquisition",
+    baseSha: base,
+    branch,
+    state: "IMPLEMENTING",
+    dependencies: [],
+  });
+  manifest.owns = {
+    paths: [
+      registryPath,
+      ledgerPath,
+      manifestPath,
+      "tooling/quality/cli-owned.mjs",
+    ],
+    contracts: [],
+  };
+  const claim = {
+    ...survivor,
+    owner: "CHATGPT-PRO-CONTROL",
+    branch,
+    baseSha: base,
+    paths: [...manifest.owns.paths],
+  };
+  registry.claims[manifest.id] = claim;
+  const event = { ...originalEvent, entity: manifest.id, sourceSha: base };
+  const created = {
+    ...event,
+    eventId: "evt-cli-created",
+    eventType: "CHANGESET_CREATED",
+    payload: { branch, objective: manifest.objective },
+  };
+  const acquired = {
+    ...event,
+    eventId: "evt-cli-acquired",
+    eventType: "CLAIM_ACQUIRED",
+    payload: { branch, risk: claim.risk, expiresAt: claim.expiresAt },
+  };
+  let history = originalLedger;
+  let events = [created, acquired];
+  if (scenario === "survivor paths") survivor.paths = [];
+  if (scenario === "survivor expiry")
+    survivor.expiresAt = "2098-01-01T00:00:00Z";
+  if (scenario === "survivor status") survivor.status = "MERGED";
+  if (scenario === "remove survivor") delete registry.claims["MD-SURVIVOR"];
+  if (scenario === "extra claim")
+    registry.claims["MD-EXTRA"] = { ...claim, branch: "extra" };
+  if (scenario === "registry metadata") registry.extra = true;
+  if (scenario === "registry authority") registry.registryAuthority = "WORKER";
+  if (scenario === "claim owner") claim.owner = "OTHER";
+  if (scenario === "claim reviewer") claim.reviewer = "SELF";
+  if (scenario === "claim status") claim.status = "LOCAL_PROVEN";
+  if (scenario === "claim paths") claim.paths = [manifestPath];
+  if (scenario === "claim base") claim.baseSha = "a".repeat(40);
+  if (scenario === "manifest state") manifest.state = "LOCAL_PROVEN";
+  if (scenario === "manifest base") manifest.baseSha = "a".repeat(40);
+  if (scenario === "manifest branch") manifest.branch = "wrong";
+  if (scenario === "ledger rewrite")
+    history =
+      JSON.stringify({ ...originalEvent, payload: { rewritten: true } }) + "\n";
+  if (scenario === "ledger whitespace")
+    history = JSON.stringify(originalEvent, null, 2) + "\n";
+  if (scenario === "event duplicate") acquired.eventId = created.eventId;
+  if (scenario === "event reorder") events.reverse();
+  if (scenario === "event actor") created.actor = "WORKER";
+  if (scenario === "event base") created.sourceSha = "a".repeat(40);
+  if (scenario === "event branch") acquired.payload.branch = "wrong";
+  if (scenario === "event expiry")
+    acquired.payload.expiresAt = "2098-01-01T00:00:00Z";
+  if (scenario === "extra event")
+    events.push({ ...acquired, eventId: "evt-extra" });
+  if (scenario === "event malformed") delete acquired.eventId;
+  writeJson(root, registryPath, registry);
+  writeJson(root, manifestPath, manifest);
+  writeFileSync(
+    resolve(root, ledgerPath),
+    history + events.map((e) => JSON.stringify(e)).join("\n") + "\n",
+  );
+  if (scenario === "implementation write") {
+    mkdirSync(resolve(root, "tooling/quality"), { recursive: true });
+    writeFileSync(
+      resolve(root, "tooling/quality/cli-owned.mjs"),
+      "export default 1;\n",
+    );
+  }
+  if (scenario === "rename origin") rmSync(resolve(root, "unowned.txt"));
+  if (scenario === "manifest symlink") {
+    rmSync(resolve(root, manifestPath));
+    symlinkSync(resolve(root, registryPath), resolve(root, manifestPath));
+  }
+  if (scenario === "ledger symlink") {
+    rmSync(resolve(root, ledgerPath));
+    symlinkSync(resolve(root, registryPath), resolve(root, ledgerPath));
+  }
+  if (scenario === "executable manifest")
+    execFileSync("chmod", ["+x", resolve(root, manifestPath)]);
+  git(root, ["add", "."]);
+  git(root, ["commit", "-qm", "candidate acquisition"]);
+  const head = git(root, ["rev-parse", "HEAD"]);
+  const env = {
+    ...process.env,
+    EXPECTED_CANDIDATE_SHA: head,
+    EXPECTED_BASE_SHA: base,
+    EXPECTED_BRANCH: branch,
+    MANIFEST_PATH: manifestPath,
+    CLAIM_GUARD_AUTHORITY: "ORCHESTRATOR",
+  };
+  if (scenario === "worker") env.CLAIM_GUARD_AUTHORITY = "WORKER";
+  if (scenario === "integrator") env.CLAIM_GUARD_AUTHORITY = "INTEGRATOR";
+  if (scenario === "wrong head") env.EXPECTED_CANDIDATE_SHA = base;
+  if (scenario === "wrong base") env.EXPECTED_BASE_SHA = "a".repeat(40);
+  if (scenario === "wrong branch") env.EXPECTED_BRANCH = "wrong";
+  if (scenario === "alternate registry")
+    env.CLAIM_REGISTRY_PATH =
+      ".github/morro-control/../morro-control/claims.json";
+  if (scenario === "existing claim") env.EXPECTED_BASE_SHA = head;
+  return { root, env, head, base, registryPath, ledgerPath, manifestPath };
+}
+
+for (const scenario of [
+  "valid",
+  "worker",
+  "integrator",
+  "same branch",
+  "real overlap",
+  "recursive overlap",
+  "survivor paths",
+  "survivor expiry",
+  "survivor status",
+  "remove survivor",
+  "extra claim",
+  "registry metadata",
+  "registry authority",
+  "claim owner",
+  "claim reviewer",
+  "claim status",
+  "claim paths",
+  "claim base",
+  "manifest state",
+  "manifest base",
+  "manifest branch",
+  "manifest already exists",
+  "ledger rewrite",
+  "ledger whitespace",
+  "event duplicate",
+  "event reorder",
+  "event actor",
+  "event base",
+  "event branch",
+  "event expiry",
+  "event malformed",
+  "extra event",
+  "implementation write",
+  "rename origin",
+  "manifest symlink",
+  "ledger symlink",
+  "executable manifest",
+  "wrong head",
+  "wrong base",
+  "wrong branch",
+  "alternate registry",
+  "existing claim",
+]) {
+  test(`real CLI acquisition: ${scenario}`, () => {
+    const f = acquisitionCliFixture(scenario);
+    try {
+      const run = spawnSync(
+        process.execPath,
+        [resolve(process.cwd(), "tooling/fabric/claim-guard.mjs"), f.root],
+        { env: f.env, encoding: "utf8" },
+      );
+      if (scenario === "valid") {
+        assert.equal(run.status, 0, run.stderr);
+        const proof = JSON.parse(run.stdout);
+        assert.equal(proof.status, "pass");
+        assert.equal(proof.authority, "ORCHESTRATOR");
+        assert.equal(proof.exactHead, f.head);
+        assert.equal(proof.currentBaseSha, f.base);
+        assert.equal(proof.collisions, 0);
+        assert.deepEqual(
+          proof.changedFiles,
+          [f.registryPath, f.ledgerPath, f.manifestPath].sort(),
+        );
+      } else {
+        assert.equal(run.status, 1, `${scenario} unexpectedly accepted`);
+        assert.match(run.stderr, /MORRO_CLAIM_GUARD_FAILED:/u);
+        assert.doesNotMatch(run.stderr, /UNEXPECTED_CLAIM_GUARD_ERROR/u);
+        assert.equal(run.stdout, "");
+      }
+      assert.equal(
+        git(f.root, ["status", "--porcelain"]),
+        "",
+        "CLI must not mutate candidate",
+      );
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
+  });
+}

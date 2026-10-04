@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
+import { detectors as canonicalDetectors } from "./detectors.mjs";
 import crypto from "node:crypto";
 const TERMINAL = new Set([
   "TRANSIENT_RESOLVED",
@@ -19,6 +22,7 @@ export const STATES = new Set([
   "SUPERSEDED",
 ]);
 const stable = (value) => JSON.stringify(value, Object.keys(value).sort());
+const clone = (value) => (value == null ? value : structuredClone(value));
 export function fingerprint(input) {
   const identity = {
     failureClass: input.failureClass,
@@ -49,12 +53,28 @@ export function rootCauseFingerprint(input) {
   );
 }
 export function recordOccurrence(existing, occurrence) {
+  if (
+    !occurrence ||
+    typeof occurrence.occurrenceId !== "string" ||
+    !occurrence.occurrenceId.trim()
+  )
+    throw new Error("OCCURRENCE_ID_REQUIRED");
+
   const fp = fingerprint(occurrence);
   const occurred = Date.parse(occurrence.observedAt);
   if (!Number.isFinite(occurred))
     throw new Error("OCCURRENCE_TIMESTAMP_INVALID");
   if (existing && existing.fingerprint !== fp)
     throw new Error("INCIDENT_FINGERPRINT_MISMATCH");
+  const activationAt = existing?.guardActivationAt;
+  const activation =
+    typeof activationAt === "string" ? Date.parse(activationAt) : NaN;
+  // Replay is idempotent only after persisted guard metadata is validated.
+  if (
+    (existing?.state === "ACTIVE_GUARD" || activationAt != null) &&
+    !Number.isFinite(activation)
+  )
+    throw new Error("GUARD_ACTIVATION_TIMESTAMP_INVALID");
   if (existing?.occurrenceIds?.includes(occurrence.occurrenceId)) {
     const known = existing.occurrences?.find(
       (x) => x.occurrenceId === occurrence.occurrenceId,
@@ -77,11 +97,6 @@ export function recordOccurrence(existing, occurrence) {
       throw new Error("OCCURRENCE_REPLAY_CONFLICT");
     return existing;
   }
-  const activation = existing?.guardActivationAt
-    ? Date.parse(existing.guardActivationAt)
-    : null;
-  if (existing?.state === "ACTIVE_GUARD" && !Number.isFinite(activation))
-    throw new Error("GUARD_ACTIVATION_TIMESTAMP_INVALID");
   const after = Number.isFinite(activation) && occurred >= activation;
   const metrics = {
     occurrencesBeforeGuard: 0,
@@ -102,9 +117,9 @@ export function recordOccurrence(existing, occurrence) {
     observedAt: occurrence.observedAt,
     fingerprint: fp,
     severity: occurrence.severity ?? null,
-    sources: occurrence.sources ?? [],
-    evidenceRefs: occurrence.evidenceRefs ?? [],
-    retry: occurrence.retry ?? null,
+    sources: clone(occurrence.sources ?? []),
+    evidenceRefs: clone(occurrence.evidenceRefs ?? []),
+    retry: clone(occurrence.retry ?? null),
     materialOutcome: occurrence.materialOutcome ?? null,
   };
   const occurrenceOwned = {};
@@ -115,9 +130,37 @@ export function recordOccurrence(existing, occurrence) {
     "retry",
     "materialOutcome",
   ])
-    if (Object.hasOwn(occurrence, key)) occurrenceOwned[key] = occurrence[key];
+    if (Object.hasOwn(occurrence, key))
+      occurrenceOwned[key] = clone(occurrence[key]);
+  const initial = existing ?? {
+    schemaVersion: 1,
+    incidentId: occurrence.incidentId,
+    occurrenceId: occurrence.occurrenceId,
+    failureClass: occurrence.failureClass,
+    severity: occurrence.severity,
+    operation: occurrence.operation ?? null,
+    domain: occurrence.domain,
+    environment: occurrence.environment,
+    expected: occurrence.expected,
+    observed: occurrence.observed,
+    sources: clone(occurrence.sources ?? []),
+    evidenceRefs: clone(occurrence.evidenceRefs ?? []),
+    state: "OBSERVED",
+    rootCause: null,
+    rootCauseFingerprint: null,
+    preventionState: "NONE",
+  };
+  for (const key of [
+    "incidentId",
+    "failureClass",
+    "domain",
+    "environment",
+    "expected",
+    "observed",
+  ])
+    if (!initial[key]) throw new Error("INCIDENT_IDENTITY_REQUIRED:" + key);
   return {
-    ...existing,
+    ...initial,
     ...occurrenceOwned,
     fingerprint: fp,
     occurrenceIds: [
@@ -159,12 +202,54 @@ export function promoteGuard(incident, proof) {
     )
   )
     throw new Error("GUARD_INDEPENDENT_PROOF_INVALID");
-  if (
-    !/^https:\/\/github\.com\/[^/]+\/[^/]+\/blob\/[0-9a-f]{40}\//.test(
-      proof.regressionTest,
+  let runUrl, testUrl;
+  try {
+    runUrl = new URL(proof.independentProof);
+    testUrl = new URL(proof.regressionTest);
+  } catch {
+    throw new Error("GUARD_PROOF_URL_INVALID");
+  }
+  for (const [url, original] of [
+    [runUrl, proof.independentProof],
+    [testUrl, proof.regressionTest],
+  ]) {
+    if (
+      url.origin !== "https://github.com" ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash ||
+      url.href !== original ||
+      url.pathname.includes("%")
     )
+      throw new Error("GUARD_PROOF_URL_INVALID");
+  }
+  const runParts = runUrl.pathname.split("/").slice(1);
+  const testParts = testUrl.pathname.split("/").slice(1);
+  const repo = "luizanunciostoca/touristic-digital-platform";
+  if (
+    runParts.slice(0, 2).join("/") !== repo ||
+    testParts.slice(0, 2).join("/") !== repo
   )
-    throw new Error("GUARD_REGRESSION_PROOF_INVALID");
+    throw new Error("GUARD_PROOF_REPOSITORY_MISMATCH");
+  if (
+    runParts.length !== 5 ||
+    runParts[2] !== "actions" ||
+    runParts[3] !== "runs" ||
+    !/^[1-9][0-9]*$/.test(runParts[4]) ||
+    testParts[2] !== "blob" ||
+    testParts.length < 5 ||
+    testParts.slice(4).some((p) => !p)
+  )
+    throw new Error("GUARD_PROOF_URL_INVALID");
+  const regressionSha = proof.regressionTest.match(
+    /\/blob\/([0-9a-f]{40})\//,
+  )?.[1];
+  if (!regressionSha) throw new Error("GUARD_REGRESSION_PROOF_INVALID");
+  if (regressionSha !== proof.candidateBinding)
+    throw new Error("GUARD_PROOF_BINDING_MISMATCH");
+  if (proof.independentProofCandidateSha !== proof.candidateBinding)
+    throw new Error("GUARD_INDEPENDENT_PROOF_BINDING_MISMATCH");
   if (!/^sha256:[0-9a-f]{64}$/.test(proof.validatorRevision))
     throw new Error("GUARD_VALIDATOR_REVISION_INVALID");
   if (proof.freshness !== "FRESH") throw new Error("GUARD_FRESHNESS_INVALID");
@@ -177,6 +262,8 @@ export function promoteGuard(incident, proof) {
     guardRevision: proof.validatorRevision,
     guardActivationAt: proof.activatedAt,
     proofReference: proof.independentProof,
+    candidateBinding: proof.candidateBinding,
+    regressionTestReference: proof.regressionTest,
   };
 }
 export function closeIncident(incident, outcome) {
@@ -197,7 +284,24 @@ export function evaluateGuards({
   registry,
   observation = {},
 }) {
-  const applicable = registry.filter(
+  const canonical = JSON.parse(
+    readFileSync(
+      new URL(
+        "../../.github/morro-control/tdp-max/anti-recurrence.json",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  ).failures;
+  if (registry !== undefined && !isDeepStrictEqual(registry, canonical))
+    throw new Error("GUARD_REGISTRY_OVERRIDE_FORBIDDEN");
+  if (!Array.isArray(canonical) || canonical.length === 0)
+    throw new Error("CANONICAL_GUARD_REGISTRY_INVALID");
+  detectors ??= canonicalDetectors;
+  for (const [name, detector] of Object.entries(detectors))
+    if (detector !== canonicalDetectors[name])
+      throw new Error("GUARD_DETECTOR_OVERRIDE_FORBIDDEN");
+  const applicable = canonical.filter(
     (g) =>
       (g.operations ?? ["*"]).includes("*") ||
       (g.operations ?? []).includes(operation) ||

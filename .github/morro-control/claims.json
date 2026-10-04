@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/tdp-learning-001-impl-20261003",
-      "baseSha": "4b8919475378e714d7f6d69e478924256fdf96bf",
+      "baseSha": "de6c1637abc98e4e86e9c575ac0aaeb00a99551c",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",
@@ -18,7 +18,7 @@
       ],
       "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
-      "status": "LOCAL_PROVEN",
+      "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
     }
   }

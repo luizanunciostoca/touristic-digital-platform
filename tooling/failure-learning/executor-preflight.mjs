@@ -7,7 +7,7 @@ export function codexAuthPreflight(run = spawnSync) {
     authenticated:
       r.status === 0 &&
       /logged in|authenticated/i.test(evidence) &&
-      !/not logged in|unauthenticated/i.test(evidence),
+      !/not logged in|not authenticated|unauthenticated/i.test(evidence),
     status: r.status,
     evidence: evidence.trim(),
   };

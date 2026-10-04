@@ -3,6 +3,8 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { validateChangeSetV2 } from "../mdctl/changeset-v2.mjs";
+import { parseAuthorityLedger } from "../mdctl/event-ledger.mjs";
 
 const ACTIVE_CLAIM_STATUSES = new Set([
   "CLAIMED",
@@ -33,6 +35,267 @@ const AUTHORITY_STATES = new Map([
 
 const AUTHORITIES = new Set(AUTHORITY_STATES.keys());
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
+
+export function addedClaimIds(canonicalRegistry, candidateRegistry) {
+  assert.equal(
+    canonicalRegistry?.registryAuthority,
+    "ORCHESTRATOR",
+    "MERGE_GATE_ACQUISITION_CANONICAL_REGISTRY_INVALID",
+  );
+  assert.equal(
+    candidateRegistry?.registryAuthority,
+    "ORCHESTRATOR",
+    "MERGE_GATE_ACQUISITION_CANDIDATE_REGISTRY_INVALID",
+  );
+  assert.ok(
+    canonicalRegistry.claims &&
+      typeof canonicalRegistry.claims === "object" &&
+      !Array.isArray(canonicalRegistry.claims),
+    "MERGE_GATE_ACQUISITION_CANONICAL_CLAIMS_INVALID",
+  );
+  assert.ok(
+    candidateRegistry.claims &&
+      typeof candidateRegistry.claims === "object" &&
+      !Array.isArray(candidateRegistry.claims),
+    "MERGE_GATE_ACQUISITION_CANDIDATE_CLAIMS_INVALID",
+  );
+  return Object.keys(candidateRegistry.claims)
+    .filter((id) => !(id in canonicalRegistry.claims))
+    .sort();
+}
+
+export function assertAcquisitionClaimKeyset(
+  canonicalRegistry,
+  candidateRegistry,
+  claimId,
+) {
+  addedClaimIds(canonicalRegistry, candidateRegistry);
+  assert.deepEqual(
+    { ...candidateRegistry, claims: null },
+    { ...canonicalRegistry, claims: null },
+    "MERGE_GATE_ACQUISITION_REGISTRY_METADATA_MUTATED",
+  );
+  const canonicalIds = Object.keys(canonicalRegistry?.claims ?? {}).sort();
+  const candidateIds = Object.keys(candidateRegistry?.claims ?? {}).sort();
+  assert.equal(
+    Object.hasOwn(canonicalRegistry?.claims ?? {}, claimId),
+    false,
+    "MERGE_GATE_ACQUISITION_CLAIM_ALREADY_CANONICAL",
+  );
+  assert.deepEqual(
+    candidateIds,
+    [...canonicalIds, claimId].sort(),
+    "MERGE_GATE_ACQUISITION_CLAIM_KEYSET_INVALID",
+  );
+  for (const id of canonicalIds) {
+    assert.deepEqual(
+      candidateRegistry.claims[id],
+      canonicalRegistry.claims[id],
+      "MERGE_GATE_ACQUISITION_SURVIVING_CLAIM_MUTATION_FORBIDDEN",
+    );
+  }
+}
+
+export function validateClaimAcquisitionEvents({
+  canonicalEvents,
+  events,
+  claimId,
+  claim,
+  manifest,
+  branch,
+  baseSha,
+}) {
+  assert.ok(
+    Array.isArray(canonicalEvents),
+    "MERGE_GATE_ACQUISITION_CANONICAL_EVENTS_INVALID",
+  );
+  assert.ok(Array.isArray(events), "MERGE_GATE_ACQUISITION_EVENTS_INVALID");
+  assert.equal(
+    events.length,
+    canonicalEvents.length + 2,
+    "MERGE_GATE_ACQUISITION_EVENT_COUNT_INVALID",
+  );
+  assert.deepEqual(
+    events.slice(0, canonicalEvents.length),
+    canonicalEvents,
+    "MERGE_GATE_ACQUISITION_LEDGER_HISTORY_MUTATED",
+  );
+
+  const [created, acquired] = events.slice(canonicalEvents.length);
+  assert.equal(
+    created?.eventType,
+    "CHANGESET_CREATED",
+    "MERGE_GATE_ACQUISITION_CHANGESET_EVENT_INVALID",
+  );
+  assert.equal(
+    acquired?.eventType,
+    "CLAIM_ACQUIRED",
+    "MERGE_GATE_ACQUISITION_CLAIM_EVENT_INVALID",
+  );
+  for (const event of [created, acquired]) {
+    assert.equal(
+      event?.entity,
+      claimId,
+      "MERGE_GATE_ACQUISITION_EVENT_ENTITY_MISMATCH",
+    );
+    assert.equal(
+      event?.actor,
+      "ORCHESTRATOR",
+      "MERGE_GATE_ACQUISITION_EVENT_ACTOR_INVALID",
+    );
+    assert.equal(
+      event?.sourceSha,
+      baseSha,
+      "MERGE_GATE_ACQUISITION_EVENT_BASE_MISMATCH",
+    );
+    assert.equal(
+      event?.payload?.branch,
+      branch,
+      "MERGE_GATE_ACQUISITION_EVENT_BRANCH_MISMATCH",
+    );
+  }
+  assert.equal(
+    acquired?.payload?.expiresAt,
+    claim.expiresAt,
+    "MERGE_GATE_ACQUISITION_EVENT_EXPIRY_MISMATCH",
+  );
+  assert.equal(
+    acquired?.payload?.risk,
+    claim.risk,
+    "MERGE_GATE_ACQUISITION_EVENT_RISK_MISMATCH",
+  );
+  assert.equal(
+    created?.payload?.objective,
+    manifest.objective,
+    "MERGE_GATE_ACQUISITION_EVENT_OBJECTIVE_MISMATCH",
+  );
+  return { acquired, created };
+}
+
+export function validateClaimAcquisitionTransition({
+  manifest,
+  registry,
+  canonicalRegistry,
+  claimId,
+  canonicalEvents,
+  events,
+  branch,
+  baseSha,
+  headSha,
+  authorizationPaths,
+  changedFileCount,
+}) {
+  validateChangeSetV2(manifest);
+  assert.ok(manifest.objective, "MERGE_GATE_ACQUISITION_OBJECTIVE_REQUIRED");
+  assert.match(
+    manifest.objective,
+    /^[a-z0-9][a-z0-9._/-]{2,159}$/u,
+    "MERGE_GATE_ACQUISITION_OBJECTIVE_INVALID",
+  );
+  assert.equal(
+    manifest.id,
+    claimId,
+    "MERGE_GATE_ACQUISITION_CHANGESET_ID_MISMATCH",
+  );
+  assert.equal(
+    manifest.state,
+    "IMPLEMENTING",
+    "MERGE_GATE_ACQUISITION_STATE_INVALID",
+  );
+  assert.equal(
+    manifest.baseSha,
+    baseSha,
+    "MERGE_GATE_ACQUISITION_BASE_MISMATCH",
+  );
+  assert.equal(
+    manifest.branch,
+    branch,
+    "MERGE_GATE_ACQUISITION_BRANCH_MISMATCH",
+  );
+  assert.match(
+    baseSha ?? "",
+    SHA_PATTERN,
+    "MERGE_GATE_ACQUISITION_BASE_INVALID",
+  );
+  assert.match(
+    headSha ?? "",
+    SHA_PATTERN,
+    "MERGE_GATE_ACQUISITION_HEAD_INVALID",
+  );
+
+  assertAcquisitionClaimKeyset(canonicalRegistry, registry, claimId);
+  const claim = registry.claims[claimId];
+  assert.ok(claim, "MERGE_GATE_ACQUISITION_CLAIM_MISSING");
+  assert.equal(
+    claim.owner,
+    "CHATGPT-PRO-CONTROL",
+    "MERGE_GATE_ACQUISITION_OWNER_INVALID",
+  );
+  assert.equal(
+    claim.reviewer,
+    "AUTOMATED-INDEPENDENT-PROOF",
+    "MERGE_GATE_ACQUISITION_REVIEWER_INVALID",
+  );
+  assert.equal(
+    claim.status,
+    "IMPLEMENTING",
+    "MERGE_GATE_ACQUISITION_CLAIM_STATUS_INVALID",
+  );
+  assert.equal(
+    claim.baseSha,
+    baseSha,
+    "MERGE_GATE_ACQUISITION_CLAIM_BASE_MISMATCH",
+  );
+  assert.equal(
+    claim.branch,
+    branch,
+    "MERGE_GATE_ACQUISITION_CLAIM_BRANCH_MISMATCH",
+  );
+  assert.deepEqual(
+    [...claim.paths].sort(),
+    [...manifest.owns.paths].sort(),
+    "MERGE_GATE_ACQUISITION_CLAIM_PATHS_MISMATCH",
+  );
+
+  for (const required of [
+    "automated-independent-proof",
+    "exact-head-identity",
+  ]) {
+    assert.ok(
+      manifest.proof.requiredRemoteEvidence.includes(required),
+      "MERGE_GATE_REMOTE_EVIDENCE_REQUIRED:" + required,
+    );
+  }
+
+  validateClaimAcquisitionEvents({
+    canonicalEvents,
+    events,
+    claimId,
+    claim,
+    manifest,
+    branch,
+    baseSha,
+  });
+
+  const manifestPath = ".morro/changesets/" + claimId + ".json";
+  const expectedPaths = [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    manifestPath,
+  ].sort();
+  assert.deepEqual(
+    [...authorizationPaths].sort(),
+    expectedPaths,
+    "MERGE_GATE_ACQUISITION_SCOPE_INVALID",
+  );
+  assert.equal(
+    changedFileCount,
+    expectedPaths.length,
+    "MERGE_GATE_ACQUISITION_FILE_COUNT_INVALID",
+  );
+
+  return { claimId, manifestPath };
+}
 
 export function assertSupportedPattern(pattern) {
   assert.equal(typeof pattern, "string", "CLAIM_PATTERN_INVALID");
@@ -95,7 +358,17 @@ function parseExpiry(value) {
   return timestamp;
 }
 
-export function findClaimCollisions(registry, claimId, now = Date.now()) {
+const SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS = new Set([
+  ".github/morro-control/claims.json",
+  ".github/morro-control/events.ndjson",
+]);
+
+export function findClaimCollisions(
+  registry,
+  claimId,
+  now = Date.now(),
+  { allowSerializedAcquisitionBookkeeping = false, authority = "WORKER" } = {},
+) {
   assert.equal(
     registry?.registryAuthority,
     "ORCHESTRATOR",
@@ -109,6 +382,13 @@ export function findClaimCollisions(registry, claimId, now = Date.now()) {
   const current = registry.claims[claimId];
   assert.ok(current, "ACTIVE_CLAIM_MISSING");
 
+  if (allowSerializedAcquisitionBookkeeping) {
+    assert.equal(
+      authority,
+      "ORCHESTRATOR",
+      "CLAIM_COLLISION_EXEMPTION_REQUIRES_ORCHESTRATOR",
+    );
+  }
   const collisions = [];
   for (const [otherId, other] of Object.entries(registry.claims)) {
     if (otherId === claimId) continue;
@@ -121,7 +401,14 @@ export function findClaimCollisions(registry, claimId, now = Date.now()) {
 
     for (const left of current.paths ?? []) {
       for (const right of other.paths ?? []) {
-        if (patternsOverlap(left, right)) {
+        if (
+          patternsOverlap(left, right) &&
+          !(
+            allowSerializedAcquisitionBookkeeping &&
+            left === right &&
+            SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS.has(left)
+          )
+        ) {
           collisions.push({
             otherId,
             kind: "path",
@@ -145,6 +432,7 @@ export function validateClaimContext({
   now = Date.now(),
   authority = "WORKER",
   isAncestor = () => true,
+  allowSerializedAcquisitionBookkeeping = false,
 }) {
   assert.equal(
     registry?.registryAuthority,
@@ -211,7 +499,10 @@ export function validateClaimContext({
     "CURRENT_BASE_NOT_ANCESTOR_OF_BRANCH_HEAD",
   );
 
-  const collisions = findClaimCollisions(registry, manifest.id, now);
+  const collisions = findClaimCollisions(registry, manifest.id, now, {
+    allowSerializedAcquisitionBookkeeping,
+    authority,
+  });
   assert.deepEqual(collisions, [], "CLAIM_OVERLAP_DETECTED");
 
   // Registry maintenance is serialized by the orchestrator, not exclusively
@@ -673,10 +964,95 @@ export function buildClaimGuardProof(root, env = process.env) {
   ]);
   const changedFiles = changedRaw ? changedRaw.split("\n").filter(Boolean) : [];
 
+  // Only an exact, new acquisition may opt into serialized bookkeeping.
+  // Derive eligibility from committed base/candidate data, never from an env toggle.
+  let acquisition = false;
+  const canonicalRegistryPath = ".github/morro-control/claims.json";
+  const ledgerPath = ".github/morro-control/events.ndjson";
+  if (
+    authority === "ORCHESTRATOR" &&
+    changedFiles.includes(canonicalRegistryPath)
+  ) {
+    assert.equal(
+      registryPath,
+      canonicalRegistryPath,
+      "ACQUISITION_REGISTRY_PATH_INVALID",
+    );
+    const canonicalRegistry = JSON.parse(
+      git(targetRoot, ["show", `${expectedBase}:${canonicalRegistryPath}`]),
+    );
+    if (!Object.hasOwn(canonicalRegistry.claims ?? {}, manifest.id)) {
+      const canonicalManifestPath = `.morro/changesets/${manifest.id}.json`;
+      assert.equal(
+        manifestPath,
+        canonicalManifestPath,
+        "ACQUISITION_MANIFEST_PATH_INVALID",
+      );
+      const expectedChanges = [
+        `M\t${canonicalRegistryPath}`,
+        `M\t${ledgerPath}`,
+        `A\t${canonicalManifestPath}`,
+      ].sort();
+      const actualChanges = git(targetRoot, [
+        "diff",
+        "--no-renames",
+        "--name-status",
+        `${expectedBase}...${headSha}`,
+      ])
+        .split("\n")
+        .sort();
+      assert.deepEqual(
+        actualChanges,
+        expectedChanges,
+        "ACQUISITION_EXACT_FILE_TRANSITION_REQUIRED",
+      );
+      for (const path of [
+        canonicalRegistryPath,
+        ledgerPath,
+        canonicalManifestPath,
+      ]) {
+        const entry = git(targetRoot, ["ls-tree", headSha, "--", path]);
+        assert.ok(
+          entry.startsWith("100644 blob ") && entry.endsWith(`\t${path}`),
+          "ACQUISITION_REGULAR_FILE_REQUIRED",
+        );
+      }
+      // Preserve historical bytes as well as validated event semantics.
+      const canonicalLedger = execFileSync(
+        "git",
+        ["-C", targetRoot, "show", `${expectedBase}:${ledgerPath}`],
+        { encoding: "utf8" },
+      );
+      const candidateLedger = readFileSync(
+        resolveCandidatePath(targetRoot, ledgerPath),
+        "utf8",
+      );
+      assert.ok(
+        candidateLedger.startsWith(canonicalLedger),
+        "ACQUISITION_LEDGER_BYTES_MUTATED",
+      );
+      validateClaimAcquisitionTransition({
+        manifest,
+        registry,
+        canonicalRegistry,
+        claimId: manifest.id,
+        canonicalEvents: parseAuthorityLedger(canonicalLedger),
+        events: parseAuthorityLedger(candidateLedger),
+        branch: expectedBranch,
+        baseSha: expectedBase,
+        headSha,
+        authorizationPaths: changedFiles,
+        changedFileCount: changedFiles.length,
+      });
+      acquisition = true;
+    }
+  }
+
   const claim = validateClaimContext({
     registry,
     manifest,
     branch: expectedBranch,
+    allowSerializedAcquisitionBookkeeping: acquisition,
     currentBaseSha: expectedBase,
     branchHeadSha: headSha,
     changedFiles,

@@ -1,6 +1,6 @@
 const pass = (condition, unknown = false) =>
   unknown ? "NOT_PROVEN" : condition ? "BLOCK" : "PASS";
-export const detectors = {
+const rawDetectors = {
   STALE_HEAD: ({ observation: o }) =>
     pass(
       o.expectedHead !== o.observedHead,
@@ -30,7 +30,7 @@ export const detectors = {
   AI_AS_AUTHORITY: ({ observation: o }) => {
     if (o.finalAuthority == null) return "NOT_PROVEN";
     return ["AI", "CHATGPT", "COPILOT", "CODEX"].includes(
-      String(o.finalAuthority).toUpperCase(),
+      String(o.finalAuthority).trim().toUpperCase(),
     )
       ? "BLOCK"
       : "PASS";
@@ -99,3 +99,88 @@ export const detectors = {
       o.executorInstalled == null,
     ),
 };
+
+// Validate observation types before predicates; JavaScript coercion is not proof.
+const shapes = {
+  STALE_HEAD: { expectedHead: "sha", observedHead: "sha" },
+  STALE_BASE: { expectedBase: "sha", observedBase: "sha" },
+  DIRTY_SHARED_WORKTREE: { worktreeDirty: "boolean" },
+  STALE_CLAIM: { claimExpiresAt: "timestamp", now: "timestamp" },
+  FALSE_CI_GREEN: { ciGreen: "boolean", semanticProof: "?boolean" },
+  NO_JOBS_RUN: { requiredJobs: "count" },
+  SKIPPED_AS_PASS: { skippedRequired: "count" },
+  AI_AS_AUTHORITY: { finalAuthority: "text" },
+  ASSUMED_TOOL_PERMISSION: {
+    toolAvailable: "boolean",
+    permissionVerified: "?boolean",
+  },
+  WRONG_RENDER_TARGET: {
+    expectedRenderTarget: "text",
+    observedRenderTarget: "text",
+  },
+  WRONG_ARTIFACT: { expectedArtifact: "text", observedArtifact: "text" },
+  DEPLOY_NOT_LIVE: { deployTriggered: "boolean", runtimeLive: "?boolean" },
+  DATABASE_OOM: { databaseOom: "boolean" },
+  SCHEMA_DRIFT: { expectedSchema: "text", observedSchema: "text" },
+  DUPLICATE_IMPLEMENTATION: { implementationCount: "count" },
+  DUPLICATE_WORKFLOW: { workflowCount: "count" },
+  MONOLITHIC_REMOTE_JOB: {
+    remoteJobSteps: "count",
+    maxRemoteJobSteps: "positiveCount",
+  },
+  REMOTE_TRANSPORT_MISCLASSIFIED: {
+    transportFailure: "boolean",
+    hostUnreachable: "?boolean",
+    alternateTransportHealthy: "?boolean",
+  },
+  REMOTE_RESULT_FALSE_POSITIVE: {
+    remoteExit: "count",
+    postcondition: "?boolean",
+  },
+  STALE_DR_PROOF: { drProofAt: "timestamp", lastDrInvalidationAt: "timestamp" },
+  TECHNICALLY_READY_NOT_AUTHORIZED: {
+    technicallyReady: "boolean",
+    authorized: "?boolean",
+  },
+  EXECUTOR_AUTH_UNAVAILABLE: {
+    executorInstalled: "boolean",
+    executorAuthenticated: "?boolean",
+  },
+};
+function valid(value, type) {
+  if (type === "boolean") return typeof value === "boolean";
+  if (type === "count" || type === "positiveCount")
+    return (
+      Number.isSafeInteger(value) && value >= (type === "positiveCount" ? 1 : 0)
+    );
+  if (typeof value !== "string" || !value.trim()) return false;
+  if (type === "sha") return /^[0-9a-f]{40}$/.test(value);
+  if (type === "timestamp") return Number.isFinite(Date.parse(value));
+  return type === "text";
+}
+export const detectors = Object.freeze(
+  Object.fromEntries(
+    Object.entries(rawDetectors).map(([name, detector]) => [
+      name,
+      (input) => {
+        try {
+          const o = input?.observation;
+          if (!o || typeof o !== "object" || Array.isArray(o))
+            return "NOT_PROVEN";
+          for (const [key, shape] of Object.entries(shapes[name])) {
+            const optional = shape.startsWith("?");
+            if (!Object.hasOwn(o, key)) {
+              if (optional) continue;
+              return "NOT_PROVEN";
+            }
+            if (!valid(o[key], optional ? shape.slice(1) : shape))
+              return "NOT_PROVEN";
+          }
+          return detector(input);
+        } catch {
+          return "NOT_PROVEN";
+        }
+      },
+    ]),
+  ),
+);
