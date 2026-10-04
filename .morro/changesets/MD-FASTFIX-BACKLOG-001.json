@@ -3,7 +3,7 @@
   "id": "MD-FASTFIX-BACKLOG-001",
   "objective": "reconcile-fastfix-backlog-dag-and-projection-freshness",
   "baseSha": "0aa87dd85f6c301a880b7401fa52f3552867bb71",
-  "branch": "infra/fastfix-backlog-reconcile-impl-20261004",
+  "branch": "chore/fastfix-backlog-reconcile-20261004",
   "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
