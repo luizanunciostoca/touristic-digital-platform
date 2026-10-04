@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-SERIALIZED-CONTROL-TRANSITION-001",
   "objective": "avoid-self-contaminating-operational-tests-on-serialized-control-transitions",
-  "baseSha": "44e6a96387bd8b7e6725bd896b95ef1762ecc8ec",
+  "baseSha": "2466f1d481137e8a18829c7d82b49fa8c28eb964",
   "branch": "fix/ci-serialized-control-transition-20261004",
-  "state": "LOCAL_PROVEN",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
@@ -16,10 +16,15 @@
       "tooling/ci/impact-analyzer.test.mjs",
       "tooling/quality/ci-scheduler-governance.test.mjs"
     ],
-    "contracts": ["CI-IMPACT-CLASSIFICATION", "QUALITY-OPERATIONAL-SELECTION"]
+    "contracts": [
+      "CI-IMPACT-CLASSIFICATION",
+      "QUALITY-OPERATIONAL-SELECTION"
+    ]
   },
   "reads": {
-    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE"
+    ]
   },
   "produces": {
     "events": [],
