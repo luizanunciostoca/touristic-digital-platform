@@ -25,9 +25,7 @@
     ]
   },
   "reads": {
-    "contracts": [
-      "MORRO-FABRIC-LIFECYCLE"
-    ]
+    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
   },
   "produces": {
     "events": [],

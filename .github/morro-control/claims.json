@@ -17,11 +17,7 @@
         ".github/workflows/ci-impact.yml",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:30:00Z"
