@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TDP-LEARNING-PROOF-709-R2",
+  "objective": "harden-base-controlled-failure-learning-proof-plane",
+  "baseSha": "00349786aac3a881494da5d5cca60eb6ce334edd",
+  "branch": "infra/failure-learning-proof-709-r2-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TDP-LEARNING-PROOF-709-R2.json",
+      "tooling/quality/failure-learning-proof-trusted.mjs",
+      "tooling/quality/failure-learning-proof-trusted.test.mjs",
+      ".github/workflows/failure-learning-independent-proof.yml"
+    ],
+    "contracts": [
+      "TDP-FAILURE-LEARNING-TRUSTED-PROOF"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-MAX-EXTERNAL-EVIDENCE-FRESHNESS"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "source-authentication",
+    "guard-specific-semantic-proof",
+    "canonical-activation",
+    "isolated-candidate-execution",
+    "freshness-expiry",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "failure-learning-trusted-proof-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/failure-learning-proof-trusted.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "source-authentication",
+      "guard-specific-semantic-proof",
+      "canonical-activation",
+      "isolated-candidate-execution",
+      "freshness-expiry",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
