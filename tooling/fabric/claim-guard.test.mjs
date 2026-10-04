@@ -1266,6 +1266,85 @@ function acquisitionCliFixture(scenario, persistentOnly = false) {
   };
 }
 
+for (const patterns of [
+  [".github/morro-control/claims.json"],
+  [".github/morro-control/events.ndjson"],
+  [".github/morro-control/claims.json", ".github/morro-control/events.ndjson"],
+  [".github/morro-control/**"],
+  [".github/**"],
+]) {
+  test(`CLI and independent proof reject new persistent bookkeeping: ${patterns.join(",")}`, () => {
+    const f = acquisitionCliFixture("valid", true);
+    try {
+      f.manifest.owns.paths.push(...patterns);
+      f.registry.claims[f.manifest.id].paths = [...f.manifest.owns.paths];
+      writeJson(f.root, f.manifestPath, f.manifest);
+      writeJson(f.root, f.registryPath, f.registry);
+      git(f.root, ["add", "."]);
+      git(f.root, ["commit", "-qm", "forbidden new persistent ownership"]);
+      f.env.EXPECTED_CANDIDATE_SHA = git(f.root, ["rev-parse", "HEAD"]);
+      const result = spawnSync(
+        process.execPath,
+        [resolve(process.cwd(), "tooling/fabric/claim-guard.mjs"), f.root],
+        { env: f.env, encoding: "utf8" },
+      );
+      assert.equal(result.status, 1);
+      assert.match(
+        result.stderr,
+        /ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN/u,
+      );
+      // The generic proof must validate a new acquisition even if its unsafe
+      // manifest declares the bookkeeping files to be owned.
+      assert.throws(
+        () =>
+          buildIndependentProof(f.root, f.manifestPath, {
+            ...f.env,
+            TRUSTED_REMOTE_PROOF: "1",
+            GITHUB_ACTIONS: "true",
+            GITHUB_RUN_ID: "42",
+            TRUSTED_VALIDATOR_SHA: f.base,
+            TRUSTED_VALIDATOR_TREE_SHA: git(f.root, [
+              "rev-parse",
+              `${f.base}^{tree}`,
+            ]),
+          }),
+        /ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN/u,
+      );
+    } finally {
+      rmSync(f.root, { recursive: true, force: true });
+    }
+  });
+}
+
+test("already-canonical legacy claim retains ordinary implementation ownership", () => {
+  const f = acquisitionCliFixture("valid", false);
+  try {
+    delete f.registry.claims["MD-SURVIVOR"];
+    writeJson(f.root, f.registryPath, f.registry);
+    git(f.root, ["add", "."]);
+    git(f.root, ["commit", "-qm", "fixture canonical legacy claim"]);
+    const base = git(f.root, ["rev-parse", "HEAD"]);
+    mkdirSync(resolve(f.root, "tooling/quality"), { recursive: true });
+    writeFileSync(
+      resolve(f.root, "tooling/quality/cli-owned.mjs"),
+      "export default 1;\n",
+    );
+    git(f.root, ["add", "."]);
+    git(f.root, ["commit", "-qm", "legacy ordinary implementation"]);
+    const proof = buildClaimGuardProof(f.root, {
+      ...f.env,
+      EXPECTED_BASE_SHA: base,
+      EXPECTED_CANDIDATE_SHA: git(f.root, ["rev-parse", "HEAD"]),
+    });
+    assert.equal(proof.acquisition, false);
+    assert.equal(proof.reanchor, false);
+    assert.deepEqual(proof.transientOrchestratorPaths, []);
+    assert.ok(f.registry.claims[f.manifest.id].paths.includes(f.registryPath));
+  } finally {
+    rmSync(f.root, { recursive: true, force: true });
+  }
+});
+
 const acquisitionScenarios = [
   "valid",
   "worker",
@@ -1321,8 +1400,8 @@ for (const persistentOnly of [false, true]) {
           { env: f.env, encoding: "utf8" },
         );
         if (
-          scenario === "valid" ||
-          (persistentOnly && scenario === "existing claim")
+          persistentOnly &&
+          (scenario === "valid" || scenario === "existing claim")
         ) {
           assert.equal(run.status, 0, run.stderr);
           const proof = JSON.parse(run.stdout);
@@ -1340,6 +1419,11 @@ for (const persistentOnly of [false, true]) {
         } else {
           assert.equal(run.status, 1, `${scenario} unexpectedly accepted`);
           assert.match(run.stderr, /MORRO_CLAIM_GUARD_FAILED:/u);
+          if (!persistentOnly && scenario === "valid")
+            assert.match(
+              run.stderr,
+              /ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN/u,
+            );
           assert.doesNotMatch(run.stderr, /UNEXPECTED_CLAIM_GUARD_ERROR/u);
           assert.equal(run.stdout, "");
         }

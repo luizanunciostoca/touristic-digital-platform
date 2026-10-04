@@ -271,20 +271,133 @@ jobs:
           mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
           test "${#changed[@]}" -eq "${#expected[@]}"
           diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${changed[@]}")
-          # Baseline regression assertions and all unchanged dependencies come from
-          # the trusted base. Only the three implementation modules are replaced.
-          # This is baseline coverage, not certification of the new exception.
+          # Base assertions are retained with a hash-bound, explicit fixture migration.
+          # Original control, unmigrated RED and the complete migrated PASS are retained.
           proof_root="$(mktemp -d)"
+          evidence_root="$GITHUB_WORKSPACE/claim-lifecycle-baseline"
+          mkdir -p "$evidence_root"
           trap 'rm -rf "$proof_root"' EXIT
           git -C trusted archive "$EXPECTED_BASE" | tar -x -C "$proof_root"
+          tests=(tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs tooling/quality/independent-proof-trusted.test.mjs)
+          run_tests() { (cd "$proof_root" && node --test "${tests[@]}") > "$evidence_root/$1" 2>&1; }
+          run_tests baseline-control.tap
           for module in tooling/fabric/claim-guard.mjs tooling/mdctl/merge-gate.mjs tooling/quality/independent-proof-trusted.mjs; do
             test "$(git -C candidate ls-tree "$EXPECTED_HEAD" -- "$module" | awk '{print $1}')" = "100644"
             git -C candidate show "$EXPECTED_HEAD:$module" > "$proof_root/$module"
           done
-          (
-            cd "$proof_root"
-            node --test tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs tooling/quality/independent-proof-trusted.test.mjs
-          )
+          if run_tests baseline-unmigrated.tap; then
+            echo "BASELINE_UNSAFE_ACQUISITION_STILL_ACCEPTED" >&2
+            exit 1
+          fi
+          python3 - "$proof_root" "$evidence_root" <<'PY_MIGRATE'
+          #!/usr/bin/env python3
+          """Exact, auditable test-fixture migration for main de6c1637; archive copies only."""
+          import argparse, difflib, hashlib, json, pathlib, re
+          BASE='de6c1637abc98e4e86e9c575ac0aaeb00a99551c'
+          EXPECTED={
+           'tooling/fabric/claim-guard.test.mjs':'ffa7f2ff59ea747b5f6aa44d7d1911af5403299d903a1709ba44fc721ccb30d0',
+           'tooling/control-state/mdctl-merge-gate.test.mjs':'43b1bc48195ccdb7e74be3762b8a8ded16bf1a20bba75a5ffebfb893336ac851',
+          }
+          parser=argparse.ArgumentParser();parser.add_argument('archive_root',type=pathlib.Path);parser.add_argument('evidence_root',type=pathlib.Path);args=parser.parse_args()
+          root=args.archive_root.resolve();out=args.evidence_root.resolve()
+          assert root.is_dir() and not (root/'.git').exists(),'ARCHIVE_COPY_REQUIRED'
+          assert root!=out and root not in out.parents,'EVIDENCE_MUST_BE_OUTSIDE_ARCHIVE'
+          out.mkdir(parents=True,exist_ok=True)
+          old={p:(root/p).read_text() for p in EXPECTED}
+          for p,h in EXPECTED.items():assert hashlib.sha256(old[p].encode()).hexdigest()==h,'BASE_PREIMAGE_MISMATCH:'+p
+          new=dict(old);edits=[]
+          def replace(path,label,before,after):
+           assert new[path].count(before)==1,'EXACTLY_ONE_PREIMAGE_REQUIRED:'+label
+           new[path]=new[path].replace(before,after,1);edits.append({'file':path,'change':label,'replacements':1})
+          g='tooling/fabric/claim-guard.test.mjs';m='tooling/control-state/mdctl-merge-gate.test.mjs'
+          replace(g,'acquisition CLI fixture owns only persistent implementation',
+          '''  manifest.owns = {
+              paths: [
+                registryPath,
+                ledgerPath,
+                manifestPath,
+                "tooling/quality/cli-owned.mjs",
+              ],
+              contracts: [],
+            };''',
+          '''  manifest.owns = {
+              paths: [manifestPath, "tooling/quality/cli-owned.mjs"],
+              contracts: [],
+            };''')
+          replace(g,'already-canonical disjoint claim is valid',
+          '''      if (scenario === "valid") {''',
+          '''      if (scenario === "valid" || scenario === "existing claim") {''')
+          replace(g,'already-canonical proof uses its actual requested base',
+          '''        assert.equal(proof.currentBaseSha, f.base);''',
+          '''        assert.equal(proof.currentBaseSha, f.env.EXPECTED_BASE_SHA);''')
+          replace(g,'already-canonical fixture has no changed files',
+          '''          [f.registryPath, f.ledgerPath, f.manifestPath].sort(),''',
+          '''          scenario === "existing claim"
+                      ? []
+                      : [f.registryPath, f.ledgerPath, f.manifestPath].sort(),''')
+          for variable,anchor,label in [
+           ('candidate','  const currentClaim = claim(candidate, { status: "IMPLEMENTING" });','pure acquisition factory keeps metadata transient'),
+           ('candidateManifest','  const candidateClaim = claim(candidateManifest, { status: "IMPLEMENTING" });','Git acquisition factory keeps metadata transient'),
+          ]:
+           insertion=f'''  {variable}.owns.paths = {variable}.owns.paths.filter(
+              (path) =>
+                ![
+                  ".github/morro-control/claims.json",
+                  ".github/morro-control/events.ndjson",
+                ].includes(path),
+            );
+          '''
+           replace(m,label,anchor,insertion+anchor)
+          assert len(edits)==6,'EXACT_SIX_EDITS_REQUIRED'
+          report={'baseSha':BASE,'purpose':'Explicit fixture-only contract migration; source assertions retained except the documented already-canonical disjoint-claim expectation.','edits':edits,'files':[]}
+          patch=[]
+          for p in EXPECTED:
+           # No test definitions/names removed, and no skip/todo/only marker introduced.
+           tests=lambda s:re.findall(r'^test\((.*)$',s,re.M)
+           assert tests(old[p])==tests(new[p]),'TEST_DEFINITIONS_CHANGED:'+p
+           marks=lambda s:re.findall(r'\btest\.(?:skip|todo|only)\b',s)
+           assert marks(old[p])==marks(new[p]),'TEST_SELECTION_CHANGED:'+p
+           patch.extend(difflib.unified_diff(old[p].splitlines(True),new[p].splitlines(True),fromfile='a/'+p,tofile='b/'+p,n=5))
+           report['files'].append({'path':p,'preimageSha256':EXPECTED[p],'postimageSha256':hashlib.sha256(new[p].encode()).hexdigest(),'testDeclarations':len(tests(new[p]))})
+          # Write only after every preimage/count/invariant was checked.
+          for p in EXPECTED:(root/p).write_text(new[p])
+          patch_text=''.join(patch);(out/'migration.patch').write_text(patch_text)
+          report['patchSha256']=hashlib.sha256(patch_text.encode()).hexdigest()
+          (out/'migration.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report))
+          PY_MIGRATE
+          run_tests baseline-migrated.tap
+          python3 - "$evidence_root" <<'PY_VERIFY'
+          import json, pathlib, re, sys
+          root=pathlib.Path(sys.argv[1])
+          expected={
+            "claim acquisition accepts exactly one bounded orchestrator claim",
+            "claim acquisition permits only mandatory bookkeeping overlap with a surviving claim",
+            "claim acquisition never ignores non-path semantic collisions",
+            "claim acquisition rejects authority, event, scope and trust weakening",
+            "claim acquisition preserves invalid concurrent fail-closed behavior",
+            "claim acquisition enforces active PR and global writer limits",
+            "claim acquisition enforces semantic collision and exact trust binding",
+            "runMergeGate routes one new claim through trusted acquisition mode",
+            "real CLI acquisition: valid",
+          }
+          for name, failures in [("baseline-control.tap",0),("baseline-unmigrated.tap",9),("baseline-migrated.tap",0)]:
+            tap=(root/name).read_text()
+            counts={k:int(v) for k,v in re.findall(r'^# (tests|pass|fail|cancelled|skipped|todo) (\d+)$',tap,re.M)}
+            assert counts=={"tests":139,"pass":139-failures,"fail":failures,"cancelled":0,"skipped":0,"todo":0}, "BASELINE_COUNTS_MISMATCH"
+            if failures:
+              blocks=re.findall(r'^not ok \d+ - ([^\n]+)\n([\s\S]*?)(?=^(?:ok|not ok) \d+ -|\Z)',tap,re.M)
+              assert len(blocks)==9 and {n for n,_ in blocks}==expected, "BASELINE_UNEXPECTED_CONTRACT_DELTA"
+              assert all("ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN" in body for _,body in blocks), "BASELINE_WRONG_REJECTION"
+          print(json.dumps({"baselineControl":139,"explicitContractDeltas":9,"migratedBaselinePassed":139,"skipped":0}))
+          PY_VERIFY
+
+      - name: Upload explicit baseline contract migration evidence
+        if: always()
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: claim-lifecycle-baseline-${{ github.event.pull_request.head.sha }}
+          path: claim-lifecycle-baseline/
+          if-no-files-found: error
 
   retirement-proof:
     if: needs.unit.outputs.retirement == 'true'

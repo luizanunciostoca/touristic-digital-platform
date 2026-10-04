@@ -432,6 +432,14 @@ export function validateClaimAcquisitionTransition({
     "MERGE_GATE_ACQUISITION_FILE_COUNT_INVALID",
   );
 
+  // Existing canonical claims retain their authority. A new acquisition must
+  // never reserve the shared bookkeeping files, including through an ancestor.
+  for (const path of SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS)
+    assert.ok(
+      !claim.paths.some((pattern) => pathOwned(path, pattern)),
+      "ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN",
+    );
+
   return {
     claimId,
     manifestPath,

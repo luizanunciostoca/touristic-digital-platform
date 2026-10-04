@@ -216,7 +216,20 @@ export function buildIndependentProof(root, manifestPath, env = process.env) {
   const unowned = changedFiles.filter(
     (path) => !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
   );
-  if (unowned.length) {
+  const registryPath = ".github/morro-control/claims.json";
+  let newAcquisition = false;
+  if (changedFiles.includes(registryPath)) {
+    const before = JSON.parse(
+      git(targetRoot, ["show", `${expectedBase}:${registryPath}`]),
+    );
+    const after = JSON.parse(
+      git(targetRoot, ["show", `${headSha}:${registryPath}`]),
+    );
+    newAcquisition =
+      !Object.hasOwn(before.claims ?? {}, manifest.id) &&
+      Object.hasOwn(after.claims ?? {}, manifest.id);
+  }
+  if (unowned.length || newAcquisition) {
     // Derive authorization from the committed transition through the trusted
     // CLI implementation. No caller flag, callback or candidate code is used.
     const claimProof = buildClaimGuardProof(targetRoot, {
@@ -226,10 +239,11 @@ export function buildIndependentProof(root, manifestPath, env = process.env) {
       MANIFEST_PATH: manifestPath,
       CLAIM_GUARD_AUTHORITY: "ORCHESTRATOR",
     });
-    assert.ok(
-      claimProof.acquisition || claimProof.reanchor,
-      "INDEPENDENT_BOOKKEEPING_TRANSITION_REQUIRED",
-    );
+    if (unowned.length)
+      assert.ok(
+        claimProof.acquisition || claimProof.reanchor,
+        "INDEPENDENT_BOOKKEEPING_TRANSITION_REQUIRED",
+      );
     transientOrchestratorPaths = claimProof.transientOrchestratorPaths;
   }
   const manifestProof = validateManifestAndFiles(

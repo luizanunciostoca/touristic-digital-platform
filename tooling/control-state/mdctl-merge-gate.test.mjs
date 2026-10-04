@@ -507,6 +507,13 @@ function acquisitionInput(overrides = {}) {
       baseSha: BASE,
       branch: BRANCH,
     });
+  candidate.owns.paths = candidate.owns.paths.filter(
+    (path) =>
+      ![
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+      ].includes(path),
+  );
   const currentClaim = claim(candidate, { status: "IMPLEMENTING" });
   const registry = overrides.registry ?? {
     registryAuthority: "ORCHESTRATOR",
@@ -622,6 +629,24 @@ test("claim acquisition accepts exactly one bounded orchestrator claim", () => {
   assert.equal(result.changeSetId, "MD-GATED");
   assert.equal(result.trustAuthority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
 });
+
+for (const patterns of [
+  [".github/morro-control/claims.json"],
+  [".github/morro-control/events.ndjson"],
+  [".github/morro-control/claims.json", ".github/morro-control/events.ndjson"],
+  [".github/morro-control/**"],
+  [".github/**"],
+]) {
+  test(`new acquisition rejects persistent bookkeeping ownership: ${patterns.join(",")}`, () => {
+    const input = acquisitionInput();
+    input.manifest.owns.paths.push(...patterns);
+    input.registry.claims[input.claimId].paths = [...input.manifest.owns.paths];
+    assert.throws(
+      () => evaluateClaimAcquisitionMergeGate(input),
+      /ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN/u,
+    );
+  });
+}
 
 test("claim acquisition permits only mandatory bookkeeping overlap with a surviving claim", () => {
   const input = acquisitionInput();
@@ -1094,7 +1119,7 @@ test("merge gate fails closed on any invalid concurrent live PR", () => {
 
 function createAcquisitionRunGateFixture({
   invalidLedgerEvent = false,
-  persistentOnly = false,
+  persistentOnly = true,
 } = {}) {
   const root = mkdtempSync(join(tmpdir(), "morro-acquisition-gate-"));
   const source = join(root, "source");
@@ -2065,5 +2090,115 @@ test("runMergeGate certifies acquisition then exact-base implementation with a s
     );
   } finally {
     rmSync(f.root, { recursive: true, force: true });
+  }
+});
+
+function baselinePython(label) {
+  const source = readFileSync(
+    join(process.cwd(), bootstrapWorkflows[0]),
+    "utf8",
+  );
+  return source
+    .split(`<<'${label}'\n`)[1]
+    .split(`          ${label}\n`)[0]
+    .split("\n")
+    .map((line) => (line.startsWith("          ") ? line.slice(10) : line))
+    .join("\n");
+}
+
+test("baseline migration checks exact source and retains every test declaration", () => {
+  const root = mkdtempSync(join(tmpdir(), "baseline-migration-test-"));
+  try {
+    const archive = join(root, "archive"),
+      evidence = join(root, "evidence");
+    for (const path of [
+      "tooling/fabric/claim-guard.test.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+    ]) {
+      mkdirSync(join(archive, path, ".."), { recursive: true });
+      writeFileSync(
+        join(archive, path),
+        execFileSync("git", [
+          "show",
+          `de6c1637abc98e4e86e9c575ac0aaeb00a99551c:${path}`,
+        ]),
+      );
+    }
+    const run = () =>
+      execFileSync("python3", ["-", archive, evidence], {
+        input: baselinePython("PY_MIGRATE"),
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+    const report = JSON.parse(run());
+    assert.equal(report.edits.length, 6);
+    assert.equal(
+      report.patchSha256,
+      "8503d0c7778cfb3ddaead7477e1368d7d972c2db97907be473d30bd2636d52ee",
+    );
+    assert.throws(run, /BASE_PREIMAGE_MISMATCH/u);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("baseline verifier rejects extra failures, wrong reasons, skips and empty evidence", () => {
+  const root = mkdtempSync(join(tmpdir(), "baseline-verifier-test-"));
+  const names = [
+    "claim acquisition accepts exactly one bounded orchestrator claim",
+    "claim acquisition permits only mandatory bookkeeping overlap with a surviving claim",
+    "claim acquisition never ignores non-path semantic collisions",
+    "claim acquisition rejects authority, event, scope and trust weakening",
+    "claim acquisition preserves invalid concurrent fail-closed behavior",
+    "claim acquisition enforces active PR and global writer limits",
+    "claim acquisition enforces semantic collision and exact trust binding",
+    "runMergeGate routes one new claim through trusted acquisition mode",
+    "real CLI acquisition: valid",
+  ];
+  const summary = (failures) =>
+    `# tests 139\n# pass ${139 - failures}\n# fail ${failures}\n# cancelled 0\n# skipped 0\n# todo 0\n`;
+  const delta =
+    names
+      .map(
+        (name, i) =>
+          `not ok ${i + 1} - ${name}\n  error: ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN\n`,
+      )
+      .join("") + summary(9);
+  const initial = {
+    "baseline-control.tap": summary(0),
+    "baseline-unmigrated.tap": delta,
+    "baseline-migrated.tap": summary(0),
+  };
+  const run = (values) => {
+    for (const [name, content] of Object.entries(values))
+      writeFileSync(join(root, name), content);
+    return execFileSync("python3", ["-", root], {
+      input: baselinePython("PY_VERIFY"),
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  };
+  try {
+    assert.equal(JSON.parse(run(initial)).migratedBaselinePassed, 139);
+    for (const changed of [
+      { "baseline-migrated.tap": summary(0).replace("skipped 0", "skipped 1") },
+      {
+        "baseline-unmigrated.tap": delta.replace(
+          names[0],
+          "unexpected regression",
+        ),
+      },
+      {
+        "baseline-unmigrated.tap": delta.replace(
+          "ACQUISITION_PERSISTENT_BOOKKEEPING_FORBIDDEN",
+          "UNRELATED_FAILURE",
+        ),
+      },
+      { "baseline-unmigrated.tap": summary(0) },
+      { "baseline-control.tap": "" },
+    ])
+      assert.throws(() => run({ ...initial, ...changed }), /BASELINE_/u);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
