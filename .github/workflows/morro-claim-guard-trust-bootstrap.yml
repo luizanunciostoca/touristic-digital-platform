@@ -93,6 +93,18 @@ jobs:
                 '
             )"
             test "$approval" = "true"
+            changed="$(git diff --name-only "$BASE_SHA...$HEAD_SHA" | sort)"
+            expected=(
+              ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+              ".github/workflows/morro-claim-guard.yml"
+              ".github/workflows/morro-merge-gate.yml"
+              ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json"
+              "tooling/control-state/mdctl-merge-gate.test.mjs"
+              "tooling/control-state/mdctl-scheduler.test.mjs"
+              "tooling/control-state/trust-root-reconciliation.test.mjs"
+              "tooling/mdctl/scheduler-live.mjs"
+            )
+            test "$changed" = "$(printf "%s\n" "${expected[@]}" | sort)"
             echo "approved_bootstrap=true" >> "$GITHUB_OUTPUT"
             echo "path=.morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json" >> "$GITHUB_OUTPUT"
             exit 0
