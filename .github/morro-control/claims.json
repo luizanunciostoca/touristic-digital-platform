@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/fastfix-001-semantic-ci-impact-r2-20261004",
-      "baseSha": "fd2e47ca7ff21f8552737300155dbd107d3a5fb0",
+      "baseSha": "59804bb053581011c49a31605b685f7547f37440",
       "paths": [
         ".morro/changesets/MD-FASTFIX-001.json",
         "tooling/ci/impact-analyzer.mjs",

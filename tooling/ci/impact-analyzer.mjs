@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { isDeepStrictEqual } from "node:util";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 
@@ -10,6 +11,40 @@ const manifest = JSON.parse(
 const riskRank = new Map(
   manifest.riskOrder.map((risk, index) => [risk, index]),
 );
+
+const PACKAGE_DEPENDENCY_KEYS = new Set([
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+  "overrides",
+  "workspaces",
+  "pnpm",
+]);
+const PACKAGE_ENVIRONMENT_KEYS = new Set([
+  "engines",
+  "packageManager",
+  "os",
+  "cpu",
+]);
+const PACKAGE_METADATA_KEYS = new Set([
+  "name",
+  "version",
+  "private",
+  "description",
+  "license",
+  "repository",
+  "keywords",
+  "author",
+  "homepage",
+]);
+const PACKAGE_CHANGE_KINDS = new Set([
+  "dependencies",
+  "environment",
+  "scripts",
+  "metadata",
+  "unknown",
+]);
 
 function git(...args) {
   return execFileSync("git", args, { encoding: "utf8" }).trim();
@@ -45,6 +80,59 @@ function changedFiles(base, head) {
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
+function isPackageJson(file) {
+  return file === "package.json" || file.endsWith("/package.json");
+}
+
+function jsonAt(ref, file) {
+  return JSON.parse(git("show", ref + ":" + file));
+}
+
+export function classifyPackageJsonChange(before, after) {
+  if (
+    !before ||
+    !after ||
+    typeof before !== "object" ||
+    typeof after !== "object" ||
+    Array.isArray(before) ||
+    Array.isArray(after)
+  ) {
+    return "unknown";
+  }
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  const changed = [...keys].filter(
+    (key) => !isDeepStrictEqual(before[key], after[key]),
+  );
+  if (changed.length === 0) return "metadata";
+  if (changed.some((key) => PACKAGE_DEPENDENCY_KEYS.has(key)))
+    return "dependencies";
+  if (changed.some((key) => PACKAGE_ENVIRONMENT_KEYS.has(key)))
+    return "environment";
+  if (
+    changed.includes("scripts") &&
+    changed.every((key) => key === "scripts" || PACKAGE_METADATA_KEYS.has(key))
+  ) {
+    return "scripts";
+  }
+  if (changed.every((key) => PACKAGE_METADATA_KEYS.has(key))) return "metadata";
+  return "unknown";
+}
+
+function collectPackageJsonChanges(files, base, head) {
+  const result = {};
+  for (const file of files.filter(isPackageJson)) {
+    try {
+      result[file] = classifyPackageJsonChange(
+        jsonAt(base, file),
+        jsonAt(head, file),
+      );
+    } catch {
+      result[file] = "unknown";
+    }
+  }
+  return result;
+}
+
 export function isSerializedControlTransition(files) {
   const required = new Set([
     ".github/morro-control/claims.json",
@@ -68,7 +156,12 @@ function highestRisk(current, next) {
 
 export function analyzeFiles(
   files,
-  { base = null, head = "HEAD", releaseCandidate = false } = {},
+  {
+    base = null,
+    head = "HEAD",
+    releaseCandidate = false,
+    packageJsonChanges = {},
+  } = {},
 ) {
   const domains = [];
   const suites = new Set();
@@ -80,10 +173,10 @@ export function analyzeFiles(
   let needsDependencyAudit = false;
   let needsFullSecurity = false;
 
-  for (const [name, config] of Object.entries(manifest.domains)) {
-    if (!files.some((file) => domainMatches(file, config))) {
-      continue;
-    }
+  const addDomain = (name) => {
+    if (domains.includes(name)) return;
+    const config = manifest.domains[name];
+    if (!config) throw new Error("Unknown impact domain: " + name);
     domains.push(name);
     risk = highestRisk(risk, config.risk);
     config.suites.forEach((suite) => suites.add(suite));
@@ -92,14 +185,39 @@ export function analyzeFiles(
     needsDatabase ||= Boolean(config.needsDatabase);
     needsDependencyAudit ||= Boolean(config.needsDependencyAudit);
     needsFullSecurity ||= Boolean(config.needsFullSecurity);
+  };
+
+  for (const [name, config] of Object.entries(manifest.domains)) {
+    const affected = files.some((file) => {
+      if (name === "dependencies" && isPackageJson(file)) {
+        const semantic = packageJsonChanges[file];
+        if (
+          semantic &&
+          PACKAGE_CHANGE_KINDS.has(semantic) &&
+          !["dependencies", "unknown"].includes(semantic)
+        ) {
+          return false;
+        }
+      }
+      return domainMatches(file, config);
+    });
+    if (affected) addDomain(name);
   }
 
-  const unknownFiles = files.filter(
-    (file) =>
-      !Object.values(manifest.domains).some((config) =>
-        domainMatches(file, config),
-      ),
-  );
+  for (const [file, semantic] of Object.entries(packageJsonChanges)) {
+    if (!files.includes(file) || !isPackageJson(file)) continue;
+    if (!PACKAGE_CHANGE_KINDS.has(semantic)) continue;
+    if (semantic === "scripts") addDomain("package-scripts");
+    else if (semantic === "environment") addDomain("package-environment");
+    else if (semantic === "metadata") addDomain("package-metadata");
+  }
+
+  const unknownFiles = files.filter((file) => {
+    if (isPackageJson(file) && packageJsonChanges[file]) return false;
+    return !Object.values(manifest.domains).some((config) =>
+      domainMatches(file, config),
+    );
+  });
   const needsFullRegression =
     releaseCandidate ||
     unknownFiles.length > 0 ||
@@ -128,6 +246,7 @@ export function analyzeFiles(
     needsFullRegression,
     nonRuntime,
     serializedControlTransitionOnly,
+    packageJsonChanges,
     unknownFiles,
     failClosedReason:
       unknownFiles.length > 0
@@ -147,10 +266,12 @@ if (invokedDirectly) {
   let report;
   try {
     if (!base) throw new Error("CI impact base ref is required");
-    report = analyzeFiles(changedFiles(base, head), {
+    const files = changedFiles(base, head);
+    report = analyzeFiles(files, {
       base,
       head,
       releaseCandidate: process.env.CI_RELEASE_CANDIDATE === "true",
+      packageJsonChanges: collectPackageJsonChanges(files, base, head),
     });
   } catch (error) {
     report = {
@@ -169,6 +290,7 @@ if (invokedDirectly) {
       needsFullRegression: true,
       nonRuntime: false,
       serializedControlTransitionOnly: false,
+      packageJsonChanges: {},
       unknownFiles: [],
       failClosedReason: error instanceof Error ? error.message : String(error),
     };

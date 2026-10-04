@@ -48,7 +48,32 @@ jobs:
           test "$base_sha" = "$GITHUB_SHA"
 
           files="$(gh api --paginate "repos/$REPOSITORY/pulls/$pr_number/files?per_page=100" --jq '.[].filename')"
-          if grep -Eq '^(tooling/failure-learning/|\.github/morro-control/failures/|\.github/morro-control/tdp-max/anti-recurrence\.json$|\.morro/changesets/MD-TDP-LEARNING-001\.json$|package\.json$)' <<<"$files"; then
+          direct_relevant=false
+          shared_relevant=false
+          claim_matches_failure_learning=false
+
+          if grep -Eq '^(tooling/failure-learning/|\.github/morro-control/failures/)' <<<"$files"; then
+            direct_relevant=true
+          fi
+          if grep -Eq '^(\.github/morro-control/tdp-max/anti-recurrence\.json$|\.morro/changesets/MD-TDP-LEARNING[^/]*\.json$|package\.json$)' <<<"$files"; then
+            shared_relevant=true
+          fi
+
+          if [ "$shared_relevant" = true ]; then
+            claims_json="$(gh api "repos/$REPOSITORY/contents/.github/morro-control/claims.json?ref=$candidate_sha" --jq -r '.content' | base64 --decode)"
+            if jq -e --arg branch "$branch" '
+              .claims
+              | to_entries
+              | any(
+                  .value.branch == $branch and
+                  (.value.paths | any(. == "tooling/failure-learning/**"))
+                )
+            ' <<<"$claims_json" >/dev/null; then
+              claim_matches_failure_learning=true
+            fi
+          fi
+
+          if [ "$direct_relevant" = true ] || { [ "$shared_relevant" = true ] && [ "$claim_matches_failure_learning" = true ]; }; then
             relevant=true
           else
             relevant=false

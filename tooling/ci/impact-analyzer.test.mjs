@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
-import { analyzeFiles } from "./impact-analyzer.mjs";
+import { readFileSync } from "node:fs";
+import { analyzeFiles, classifyPackageJsonChange } from "./impact-analyzer.mjs";
 
 test("documentation skips product regression without treating runnable docs as prose", () => {
   const docs = analyzeFiles(["README.md", "docs/operations/release.md"]);
@@ -109,4 +110,100 @@ test("serialized claim transitions are classified separately from ordinary gover
   ]) {
     assert.equal(analyzeFiles(files).serializedControlTransitionOnly, false);
   }
+});
+
+test("control-plane and CI tooling stay non-runtime without product fan-out", () => {
+  for (const file of [
+    "tooling/ci/impact-analyzer.mjs",
+    "tooling/control-state/status.mjs",
+    "tooling/mdctl/reconcile.mjs",
+    "tooling/tdp-max/tdp-max-v2.mjs",
+    "tooling/failure-learning/engine.mjs",
+  ]) {
+    const result = analyzeFiles([file]);
+    assert.equal(result.risk, "HIGH", file);
+    assert.equal(result.nonRuntime, true, file);
+    assert.equal(result.needsFullRegression, false, file);
+    assert.equal(result.needsBrowser, false, file);
+    assert.equal(result.needsVisual, false, file);
+    assert.equal(result.needsDatabase, false, file);
+    assert.equal(result.needsDependencyAudit, false, file);
+    assert.equal(result.needsFullSecurity, false, file);
+  }
+});
+
+test("package.json scripts do not impersonate dependency changes", () => {
+  const before = {
+    name: "tdp",
+    private: true,
+    scripts: { test: "node --test" },
+    dependencies: { react: "1.0.0" },
+  };
+  const scriptsAfter = {
+    ...before,
+    scripts: {
+      ...before.scripts,
+      "failure-learning:check": "node tooling/check.mjs",
+    },
+  };
+  const dependenciesAfter = {
+    ...before,
+    dependencies: { react: "2.0.0" },
+  };
+  const environmentAfter = {
+    ...before,
+    engines: { node: ">=22" },
+  };
+
+  assert.equal(classifyPackageJsonChange(before, scriptsAfter), "scripts");
+  assert.equal(
+    classifyPackageJsonChange(before, dependenciesAfter),
+    "dependencies",
+  );
+  assert.equal(
+    classifyPackageJsonChange(before, environmentAfter),
+    "environment",
+  );
+
+  const scripts = analyzeFiles(["package.json"], {
+    packageJsonChanges: { "package.json": "scripts" },
+  });
+  assert.deepEqual(scripts.domains, ["package-scripts"]);
+  assert.equal(scripts.risk, "HIGH");
+  assert.equal(scripts.nonRuntime, true);
+  assert.equal(scripts.needsFullRegression, false);
+  assert.equal(scripts.needsDependencyAudit, false);
+  assert.equal(scripts.needsFullSecurity, false);
+
+  const dependencies = analyzeFiles(["package.json"], {
+    packageJsonChanges: { "package.json": "dependencies" },
+  });
+  assert.ok(dependencies.domains.includes("dependencies"));
+  assert.equal(dependencies.risk, "CRITICAL");
+  assert.equal(dependencies.needsFullRegression, true);
+  assert.equal(dependencies.needsDependencyAudit, true);
+
+  const environment = analyzeFiles(["package.json"], {
+    packageJsonChanges: { "package.json": "environment" },
+  });
+  assert.deepEqual(environment.domains, ["package-environment"]);
+  assert.equal(environment.risk, "HIGH");
+  assert.equal(environment.nonRuntime, false);
+  assert.equal(environment.needsFullRegression, false);
+});
+
+test("Failure Learning shared triggers require a matching Failure Learning claim", () => {
+  const workflow = readFileSync(
+    ".github/workflows/failure-learning-independent-proof.yml",
+    "utf8",
+  );
+  assert.ok(workflow.includes("claim_matches_failure_learning=false"));
+  assert.ok(
+    workflow.includes('.value.paths | any(. == "tooling/failure-learning/**")'),
+  );
+  assert.ok(
+    workflow.includes(
+      '[ "$shared_relevant" = true ] && [ "$claim_matches_failure_learning" = true ]',
+    ),
+  );
 });
