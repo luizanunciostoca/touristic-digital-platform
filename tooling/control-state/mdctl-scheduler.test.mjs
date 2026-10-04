@@ -507,6 +507,18 @@ function createLiveApi(options = {}) {
       branch: "feat/extra",
     };
   }
+  if (options.survivorMutation) {
+    const survivor = {
+      ...canonicalClaim,
+      branch: "feat/survivor",
+      paths: ["packages/survivor/**"],
+    };
+    canonicalClaims["MD-SURVIVOR"] = survivor;
+    candidateClaims["MD-SURVIVOR"] = {
+      ...survivor,
+      risk: "P0",
+    };
+  }
   const canonicalRegistry = {
     registryAuthority: "ORCHESTRATOR",
     claims: canonicalClaims,
@@ -1016,6 +1028,22 @@ test("live collector rejects semantic authority mutation even during reanchor", 
     "AUTHORITY_DRIFT_REJECTS_BEFORE_TRANSIENT_CLASSIFICATION",
   );
   assert.equal(live.items[0].writerActive, false);
+});
+
+test("live collector rejects survivor mutation during certified reanchor", async () => {
+  const fixture = createLiveApi({
+    certifiedReanchor: true,
+    survivorMutation: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  const item = live.items[0];
+  assert.equal(item.invalid, "CLAIM_REGISTRY_MULTIPLE_MUTATIONS");
+  assert.equal(item.writerActive, false);
+  assert.equal(item.ready, false);
+  assert.equal(item.transientOrchestratorPaths, undefined);
 });
 
 test("live collector rejects head movement during capture", async () => {
