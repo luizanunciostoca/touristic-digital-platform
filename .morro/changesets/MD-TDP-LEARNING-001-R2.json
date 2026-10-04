@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TDP-LEARNING-001-R2",
   "objective": "closed-loop-failure-learning-and-executable-anti-recurrence-guards",
-  "baseSha": "76538ff5324da3fcacf1ace9d77e772cb2794f4a",
+  "baseSha": "433fdf37369daa064de711a438897d3e5d180ef2",
   "branch": "infra/tdp-learning-001-r2-20261004",
-  "state": "LOCAL_PROVEN",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
