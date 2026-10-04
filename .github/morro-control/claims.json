@@ -16,7 +16,11 @@
         "tooling/failure-learning/**",
         "package.json"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -32,26 +36,14 @@
         "tooling/quality/failure-learning-proof-trusted.test.mjs",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
-    },
-    "MD-TDP-LEARNING-PROOF-709-R2": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/failure-learning-proof-709-r2-20261004",
-      "baseSha": "4215fc481f12cbb95e8097458761ef2e130211ed",
-      "paths": [
-        ".morro/changesets/MD-TDP-LEARNING-PROOF-709-R2.json",
-        "tooling/quality/failure-learning-proof-trusted.mjs",
-        "tooling/quality/failure-learning-proof-trusted.test.mjs",
-        ".github/workflows/failure-learning-independent-proof.yml"
-      ],
-      "domains": ["ci-release", "control-plane", "governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-04T20:00:00Z"
     }
   }
 }
