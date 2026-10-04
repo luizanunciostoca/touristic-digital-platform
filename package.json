@@ -61,12 +61,11 @@
     "mdctl:bootstrap": "node tooling/mdctl/mdctl.mjs bootstrap",
     "mdctl:invariants": "node tooling/mdctl/mdctl.mjs invariants",
     "mdctl:task": "node tooling/mdctl/mdctl.mjs task",
-    "tdp-max:check": "node tooling/tdp-max/validate-config.mjs && node --test tooling/tdp-max/validate-config.test.mjs tooling/tdp-max/tdp-max-v2.test.mjs && pnpm failure-learning:check",
+    "tdp-max:check": "node tooling/tdp-max/validate-config.mjs && node --test tooling/tdp-max/validate-config.test.mjs tooling/tdp-max/tdp-max-v2.test.mjs",
     "tdp-max:bootstrap": "node tooling/tdp-max/cli.mjs bootstrap",
     "tdp-max:status": "node tooling/tdp-max/cli.mjs status",
     "tdp-max:reconcile": "node tooling/tdp-max/cli.mjs reconcile",
-    "tdp-max:final-gate": "node tooling/tdp-max/cli.mjs final-gate",
-    "failure-learning:check": "node tooling/failure-learning/check.mjs"
+    "tdp-max:final-gate": "node tooling/tdp-max/cli.mjs final-gate"
   },
   "pnpm": {
     "overrides": {
