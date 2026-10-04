@@ -52,6 +52,7 @@
       "pathPrefixes": [
         ".github/workflows/",
         "tooling/quality/",
+        "tooling/ci/",
         "tooling/fabric/",
         ".morro/",
         ".github/morro-control/",
