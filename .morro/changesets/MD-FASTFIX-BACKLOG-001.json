@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-BACKLOG-001",
+  "objective": "reconcile-fastfix-backlog-and-dag-projection",
+  "baseSha": "e5add03680af0bf9f6ba39f5c125f5fd099ad073",
+  "branch": "chore/fastfix-backlog-reconcile-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-BACKLOG-001.json",
+      ".github/morro-control/backlog.json",
+      ".github/morro-control/dependency-graph.json",
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson"
+    ],
+    "contracts": [
+      "TDP-CONTROL-PROJECTION"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-MDCTL-LIVE-RECONCILIATION"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "control-projection-reconcile",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-scheduler.test.mjs",
+          "tooling/tdp-max/tdp-max-v2.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
