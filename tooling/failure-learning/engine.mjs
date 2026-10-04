@@ -267,8 +267,7 @@ export function promoteGuard(incident, proof) {
   const runMatch = proof.independentProof.match(
     /^https:\/\/github\.com\/luizanunciostoca\/touristic-digital-platform\/actions\/runs\/([1-9][0-9]*)$/u,
   );
-  if (!regressionMatch || !runMatch)
-    throw new Error("GUARD_PROOF_URL_INVALID");
+  if (!regressionMatch || !runMatch) throw new Error("GUARD_PROOF_URL_INVALID");
   const regressionSha = regressionMatch[1];
   if (regressionSha !== proof.candidateBinding)
     throw new Error("GUARD_PROOF_BINDING_MISMATCH");
