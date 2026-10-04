@@ -76,6 +76,9 @@
       }
     ],
     "requiredRemoteEvidence": [
+      "source-authentication",
+      "guard-specific-semantic-proof",
+      "canonical-activation",
       "automated-independent-proof",
       "exact-head-identity"
     ]
