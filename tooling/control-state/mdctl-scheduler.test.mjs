@@ -444,9 +444,10 @@ function liveClaim(manifest, overrides = {}) {
 function createLiveApi(options = {}) {
   const canonicalManifest = changeSet(LIVE_ID, "live-scheduler", {
     baseSha: options.authorityBlobsIdentical ? LIVE_MAIN : "a".repeat(40),
-    branch: options.authorityBlobsIdentical
-      ? LIVE_BRANCH
-      : "authority/live-scheduler",
+    branch:
+      options.authorityBlobsIdentical || options.certifiedReanchor
+        ? LIVE_BRANCH
+        : "authority/live-scheduler",
     state: "LOCAL_PROVEN",
   });
   const candidateManifest = changeSet(LIVE_ID, "live-scheduler", {
@@ -623,6 +624,22 @@ function createLiveApi(options = {}) {
           ...files[1],
           filename: ".github/workflows/morro-agent-profiles.yml",
         };
+      }
+      if (options.certifiedReanchor) {
+        files[0] = {
+          ...files[0],
+          filename: ".github/morro-control/claims.json",
+        };
+        files[1] = {
+          ...files[1],
+          filename: ".github/morro-control/events.ndjson",
+        };
+        if (options.reanchorExtraOutsideScope) {
+          files[2] = {
+            ...files[2],
+            filename: "packages/other/outside.mjs",
+          };
+        }
       }
       if (options.fileOutsideScope) {
         files[0] = {
@@ -927,6 +944,73 @@ test("live collector paginates, binds trusted exact-head proof and preserves sta
   assert.equal(item.trust.trusted, true);
   assert.equal(item.trust.authority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
   assert.equal(item.trust.workflowRunId, 99);
+});
+
+test("live collector accepts exact trusted reanchor bookkeeping only", async () => {
+  const fixture = createLiveApi({ certifiedReanchor: true });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+    now: Date.parse("2026-10-01T12:30:00Z"),
+  });
+  const item = live.items[0];
+  assert.equal(item.invalid, null, JSON.stringify(item));
+  assert.equal(item.trust.trusted, true);
+  assert.equal(item.trust.authority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
+  assert.deepEqual(item.transientOrchestratorPaths, [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+  ]);
+  assert.equal(item.writerActive, true);
+});
+
+test("live collector rejects reanchor bookkeeping without exact-head trusted proof", async () => {
+  const fixture = createLiveApi({
+    certifiedReanchor: true,
+    latestTrustRunFails: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  const item = live.items[0];
+  assert.equal(item.invalid, "TRUSTED_CLAIM_GUARD_RUN_NOT_SUCCESS");
+  assert.deepEqual(item.transientOrchestratorPaths, []);
+  assert.equal(item.writerActive, false);
+});
+
+test("live collector never widens trusted reanchor bookkeeping to extra paths", async () => {
+  const fixture = createLiveApi({
+    certifiedReanchor: true,
+    reanchorExtraOutsideScope: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  const item = live.items[0];
+  assert.equal(
+    item.invalid,
+    "CANONICAL_CLAIM_PATH_VIOLATION:packages/other/outside.mjs",
+  );
+  assert.deepEqual(item.transientOrchestratorPaths, [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+  ]);
+  assert.equal(item.writerActive, false);
+});
+
+test("live collector rejects semantic authority mutation even during reanchor", async () => {
+  const fixture = createLiveApi({
+    certifiedReanchor: true,
+    authorityWiden: true,
+  });
+  const live = await collectLivePullWork({
+    repository: "example/repo",
+    api: fixture.api,
+  });
+  assert.match(live.items[0].invalid, /AUTHORITY_DIVERGED_FROM_MAIN/u);
+  assert.deepEqual(live.items[0].transientOrchestratorPaths, []);
 });
 
 test("live collector rejects head movement during capture", async () => {
