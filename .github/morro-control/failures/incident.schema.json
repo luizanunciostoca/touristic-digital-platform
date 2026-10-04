@@ -38,10 +38,7 @@
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "rootCauseFingerprint": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "failureClass": {
@@ -49,18 +46,10 @@
       "minLength": 1
     },
     "severity": {
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ]
+      "enum": ["low", "medium", "high", "critical"]
     },
     "operation": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "domain": {
       "type": "string",
@@ -105,19 +94,13 @@
       ]
     },
     "rootCause": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "preventionState": {
       "type": "string"
     },
     "guardId": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "firstOccurrence": {
       "type": "string",
@@ -153,23 +136,14 @@
           "minimum": 0
         },
         "lastGuardTrigger": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": ["string", "null"]
         },
         "meanTimeToRootCause": {
-          "type": [
-            "number",
-            "null"
-          ],
+          "type": ["number", "null"],
           "minimum": 0
         },
         "meanTimeToPrevention": {
-          "type": [
-            "number",
-            "null"
-          ],
+          "type": ["number", "null"],
           "minimum": 0
         },
         "guardEffectiveness": {
@@ -197,46 +171,27 @@
       "type": "boolean"
     },
     "guardActivationAt": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "format": "date-time"
     },
     "guardRevision": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "proofReference": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "materialOutcome": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "retry": {
-      "type": [
-        "object",
-        "null"
-      ]
+      "type": ["object", "null"]
     },
     "occurrences": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "occurrenceId",
-          "observedAt",
-          "fingerprint"
-        ],
+        "required": ["occurrenceId", "observedAt", "fingerprint"],
         "properties": {
           "occurrenceId": {
             "type": "string"
@@ -250,17 +205,8 @@
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "severity": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "enum": [
-              "low",
-              "medium",
-              "high",
-              "critical",
-              null
-            ]
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "critical", null]
           },
           "sources": {
             "type": "array",
@@ -275,38 +221,23 @@
             }
           },
           "retry": {
-            "type": [
-              "object",
-              "null"
-            ]
+            "type": ["object", "null"]
           },
           "materialOutcome": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": ["string", "null"]
           }
         }
       }
     },
     "candidateBinding": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": ["string", "null"],
       "pattern": "^[0-9a-f]{40}$"
     },
     "regressionTestReference": {
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": ["string", "null"]
     },
     "guardProof": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": ["object", "null"],
       "additionalProperties": false,
       "required": [
         "guardId",

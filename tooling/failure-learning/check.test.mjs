@@ -19,10 +19,7 @@ test("suite certification rejects empty, skipped, todo and failed executions", (
       ["test.skip('proof', () => {});", 1],
       ["test.todo('proof');", 1],
       ["test('proof', () => { throw Error('regression'); });", 1],
-      [
-        "test('proof', { timeout: 25 }, () => new Promise(() => {}));",
-        1,
-      ],
+      ["test('proof', { timeout: 25 }, () => new Promise(() => {}));", 1],
     ]) {
       writeFileSync(fixture, "import test from 'node:test';\n" + body);
       writeFileSync(
