@@ -1676,7 +1676,7 @@ const bootstrapWorkflows = [
 for (const workflow of bootstrapWorkflows) {
   test(`bootstrap approval authenticates provider identity and target: ${workflow}`, () => {
     const source = readFileSync(join(process.cwd(), workflow), "utf8");
-    const start = source.indexOf('          if [ "$PR_NUMBER" = "712" ]');
+    const start = source.indexOf('          if [ "$PR_NUMBER" = "713" ]');
     const endLine = source.indexOf('            test "$approval"', start);
     assert.ok(start >= 0 && endLine > start, "BOOTSTRAP_PREDICATE_MISSING");
     const predicate = source.slice(start, source.indexOf("\n", endLine));
@@ -1748,7 +1748,14 @@ fi
       ["wrong base ref", [[comment]], false, { BASE_REF: "other" }],
       ["wrong base sha", [[comment]], false, { BASE_SHA: "e".repeat(40) }],
       ["ordinary branch", [[comment]], false, { HEAD_BRANCH: "fix/unclaimed" }],
-      ["wrong PR", [[comment]], false, { PR_NUMBER: "713" }],
+      ["wrong PR", [[comment]], false, { PR_NUMBER: "714" }],
+      ["consumed bootstrap PR", [[comment]], false, { PR_NUMBER: "712" }],
+      [
+        "consumed bootstrap base",
+        [[comment]],
+        false,
+        { BASE_SHA: "4b8919475378e714d7f6d69e478924256fdf96bf" },
+      ],
       ["API unavailable", [[comment]], false, { API_FAILURE: "1" }],
     ];
     try {
@@ -1770,10 +1777,9 @@ fi
                 FIXTURE_OWNER: join(root, "owner.json"),
                 FIXTURE_COMMENTS: join(root, "comments.json"),
                 HEAD_SHA: sha,
-                BASE_SHA: "4b8919475378e714d7f6d69e478924256fdf96bf",
-                HEAD_BRANCH:
-                  "fix/claim-acquisition-bookkeeping-bootstrap-20261003",
-                PR_NUMBER: "712",
+                BASE_SHA: "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb",
+                HEAD_BRANCH: "fix/claim-acquisition-cli-bootstrap-20261004",
+                PR_NUMBER: "713",
                 REPOSITORY: repo,
                 HEAD_REPOSITORY: repo,
                 BASE_REF: "main",
@@ -1838,14 +1844,14 @@ test("bootstrap proof routing stays exact and never requires owner approval to g
       repository: "luizanunciostoca/touristic-digital-platform",
       event: {
         pull_request: {
-          number: 712,
+          number: 713,
           head: {
-            ref: "fix/claim-acquisition-bookkeeping-bootstrap-20261003",
+            ref: "fix/claim-acquisition-cli-bootstrap-20261004",
             repo: { full_name: "luizanunciostoca/touristic-digital-platform" },
           },
           base: {
             ref: "main",
-            sha: "4b8919475378e714d7f6d69e478924256fdf96bf",
+            sha: "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb",
           },
         },
       },
@@ -1869,7 +1875,7 @@ test("bootstrap proof routing stays exact and never requires owner approval to g
   assert.equal(
     eligible({
       modify: (g) => {
-        g.event.pull_request.number = 713;
+        g.event.pull_request.number = 714;
       },
     }),
     false,
@@ -1902,16 +1908,18 @@ test("bootstrap proof routing stays exact and never requires owner approval to g
     eligible({
       result: "success",
       modify: (g) => {
-        g.event.pull_request.number = 713;
+        g.event.pull_request.number = 714;
       },
     }),
     true,
     "ORDINARY_REGISTERED_ROUTE_PRESERVED",
   );
-  assert.match(section, /MD-CP-CLAIM-ACQ-711\.json/u);
+  assert.match(section, /MD-CP-CLAIM-ACQ-CLI-711\.json/u);
   for (const name of bootstrapWorkflows) {
     const body = readFileSync(join(process.cwd(), name), "utf8");
-    assert.ok(body.includes('".morro/changesets/MD-CP-CLAIM-ACQ-711.json"'));
+    assert.ok(
+      body.includes('".morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json"'),
+    );
     assert.ok(
       body.includes('test "$approval" = "true"'),
       "OWNER_GATE_RETAINED",
