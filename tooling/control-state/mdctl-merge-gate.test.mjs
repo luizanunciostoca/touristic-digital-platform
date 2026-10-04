@@ -25,6 +25,13 @@ import {
   runMergeGate,
 } from "../mdctl/merge-gate.mjs";
 
+import {
+  collectClaimRetirementEvidence,
+  validateClaimRetirements,
+  validateCandidateRetirementManifest,
+} from "../fabric/claim-retirement-proof.mjs";
+import { evaluateDependenciesAtMain } from "../mdctl/scheduler-live.mjs";
+
 const BASE = "b".repeat(40);
 const HEAD = "c".repeat(40);
 const OLD_BASE = "a".repeat(40);
@@ -1558,14 +1565,116 @@ test("retirement gate accepts one canonically proven merged claim release", () =
   assert.equal(result.retirementReason, "MERGED_PR");
 });
 
-test("retirement gate accepts canonically proven expired and orphaned releases", () => {
+test("retirement gate accepts expired and orphaned releases only for already merged work", () => {
   for (const reason of ["EXPIRED", "ORPHANED"]) {
     const result = evaluateRetirementMergeGate(
-      retirementInput({ retirementProof: retirementProof({ reason }) }),
+      retirementInput({
+        canonicalManifest: manifest({
+          branch: OLD_BRANCH,
+          baseSha: OLD_BASE,
+          state: "MERGED",
+        }),
+        retirementProof: retirementProof({ reason }),
+      }),
     );
     assert.equal(result.decision, "POLICY_SATISFIED");
     assert.equal(result.retirementReason, reason);
   }
+});
+
+test("expired and orphaned claims cannot promote any pre-merge implementation state", () => {
+  for (const reason of ["EXPIRED", "ORPHANED"]) {
+    for (const state of [
+      "IMPLEMENTING",
+      "LOCAL_PROVEN",
+      "REMOTE_PROVEN",
+      "COMPOSITION_PROVEN",
+      "POLICY_SATISFIED",
+      "MERGE_READY",
+    ]) {
+      assert.throws(
+        () =>
+          evaluateRetirementMergeGate(
+            retirementInput({
+              canonicalManifest: manifest({
+                branch: OLD_BRANCH,
+                baseSha: OLD_BASE,
+                state,
+              }),
+              retirementProof: retirementProof({ reason }),
+            }),
+          ),
+        /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+      );
+    }
+  }
+});
+
+test("expired unimplemented retirement cannot promote a scheduler dependency", async () => {
+  const id = "MD-GATED";
+  const now = Date.parse("2026-10-04T00:00:00Z");
+  const expiredClaim = {
+    branch: OLD_BRANCH,
+    baseSha: OLD_BASE,
+    status: "IMPLEMENTING",
+    expiresAt: "2026-10-03T00:00:00Z",
+  };
+  let providerCalls = 0;
+  const retirement = await collectClaimRetirementEvidence(id, expiredClaim, {
+    repository: "owner/repo",
+    expectedBaseSha: BASE,
+    now,
+    fetchImpl: async () => {
+      providerCalls += 1;
+      throw new Error("no implementation exists");
+    },
+  });
+  const validated = validateClaimRetirements({
+    baseRegistry: {
+      registryAuthority: "ORCHESTRATOR",
+      claims: { [id]: expiredClaim },
+    },
+    candidateRegistry: { registryAuthority: "ORCHESTRATOR", claims: {} },
+    evidenceById: { [id]: retirement },
+    now,
+  });
+  const input = retirementInput({
+    canonicalManifest: manifest({
+      branch: OLD_BRANCH,
+      baseSha: OLD_BASE,
+      state: "IMPLEMENTING",
+    }),
+    retirementProof: {
+      ...retirementProof(),
+      retirements: validated.retirements,
+    },
+  });
+  validateCandidateRetirementManifest(input.manifest, {
+    claimId: id,
+    expectedBaseSha: BASE,
+  });
+  assert.equal(retirement.reason, "EXPIRED");
+  assert.equal(providerCalls, 0);
+  const dependent = manifest({ id: "MD-DEPENDENT", dependencies: [id] });
+  const dependenciesFor = (value) =>
+    evaluateDependenciesAtMain({
+      changeSet: dependent,
+      repository: "owner/repo",
+      mainSha: BASE,
+      api: async () => ({
+        encoding: "base64",
+        content: Buffer.from(JSON.stringify(value)).toString("base64"),
+      }),
+    });
+  assert.equal(
+    (await dependenciesFor(input.canonicalManifest)).satisfied,
+    false,
+  );
+  assert.equal((await dependenciesFor(input.manifest)).satisfied, true);
+  assert.throws(
+    () => evaluateRetirementMergeGate(input),
+    /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+  );
 });
 
 test("retirement gate rejects unsupported retirement reasons", () => {

@@ -273,6 +273,15 @@ export function evaluateRetirementMergeGate({
     RETIREMENT_REASONS.has(retirementProof.retirements[0]?.reason),
     "MERGE_GATE_RETIREMENT_REASON_INVALID",
   );
+  // Expiry and orphanhood prove only that a claim may be released. They do
+  // not prove implementation, which the scheduler consumes via MERGED.
+  if (retirementProof.retirements[0].reason !== "MERGED_PR") {
+    assert.equal(
+      canonicalManifest.state,
+      "MERGED",
+      "MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN",
+    );
+  }
 
   return {
     schemaVersion: 1,
