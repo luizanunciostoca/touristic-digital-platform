@@ -19,15 +19,10 @@
       "tooling/fabric/claim-retirement-proof.mjs",
       "tooling/fabric/claim-retirement-proof.test.mjs"
     ],
-    "contracts": [
-      "TDP-MAX-ANTI-RECURRENCE",
-      "CLAIM-RETIREMENT-PROOF"
-    ]
+    "contracts": ["TDP-MAX-ANTI-RECURRENCE", "CLAIM-RETIREMENT-PROOF"]
   },
   "reads": {
-    "contracts": [
-      "MORRO-FABRIC-LIFECYCLE"
-    ]
+    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
   },
   "produces": {
     "events": [],
