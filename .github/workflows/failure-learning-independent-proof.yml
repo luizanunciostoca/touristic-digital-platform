@@ -1,0 +1,129 @@
+name: Failure Learning Independent Proof
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tooling/failure-learning/**"
+      - ".github/morro-control/failures/**"
+      - ".github/morro-control/tdp-max/anti-recurrence.json"
+      - ".morro/changesets/MD-TDP-LEARNING-001.json"
+      - "package.json"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: failure-learning-independent-proof-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  trusted-failure-learning-proof:
+    name: trusted-failure-learning-proof
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Reject fork candidates
+        env:
+          BASE_REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$HEAD_REPOSITORY" = "$BASE_REPOSITORY"
+
+      - name: Checkout trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Resolve failure-learning ChangeSet
+        id: manifest
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          claim_id="$(jq -r --arg branch "$HEAD_BRANCH" '.claims | to_entries | map(select(.value.branch == $branch and (.value.paths | any(. == "tooling/failure-learning/**")))) | if length == 1 then .[0].key else empty end' candidate/.github/morro-control/claims.json)"
+          test -n "$claim_id"
+          manifest_path=".morro/changesets/$claim_id.json"
+          test -f "candidate/$manifest_path"
+          test "$(jq -r '.id' "candidate/$manifest_path")" = "$claim_id"
+          echo "manifest_path=$manifest_path" >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact identities
+        env:
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_CANDIDATE_SHA"
+          git -C candidate merge-base --is-ancestor "$EXPECTED_BASE_SHA" "$EXPECTED_CANDIDATE_SHA"
+          test -z "$(git -C candidate status --porcelain --untracked-files=all)"
+
+      - name: Test trusted validator
+        run: node --test trusted/tooling/quality/failure-learning-proof-trusted.test.mjs
+
+      - name: Execute base-controlled semantic proof
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_BRANCH: ${{ github.event.pull_request.head.ref }}
+          MANIFEST_PATH: ${{ steps.manifest.outputs.manifest_path }}
+          TRUSTED_VALIDATOR_SHA: ${{ github.event.pull_request.base.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export TRUSTED_VALIDATOR_TREE_SHA="$(git -C trusted rev-parse 'HEAD^{tree}')"
+          node trusted/tooling/quality/failure-learning-proof-trusted.mjs candidate "$MANIFEST_PATH" > failure-learning-independent-proof.json
+
+      - name: Require all semantic assertions
+        env:
+          EXPECTED_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e --arg candidate "$EXPECTED_CANDIDATE_SHA" --arg base "$EXPECTED_BASE_SHA" --arg run "$EXPECTED_RUN_ID" --argjson attempt "$EXPECTED_RUN_ATTEMPT" '
+            .contract == "TDP_FAILURE_LEARNING_INDEPENDENT_PROOF" and
+            .status == "pass" and
+            .authority == "BASE_CONTROLLED_TRUSTED_VALIDATOR" and
+            .candidateSha == $candidate and
+            .baseSha == $base and
+            .runId == $run and
+            .runAttempt == $attempt and
+            .assertions.sourceAuthentication == "PASS" and
+            .assertions.guardSpecificSemanticProof == "PASS" and
+            .assertions.canonicalActivation == "PASS" and
+            .activationState == "PROVEN_NOT_ACTIVATED" and
+            .activationTemplate.activatedAt == null
+          ' failure-learning-independent-proof.json >/dev/null
+
+      - name: Upload exact-head semantic proof
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: failure-learning-independent-proof-${{ github.event.pull_request.head.sha }}
+          path: failure-learning-independent-proof.json
+          if-no-files-found: error
+          retention-days: 30
