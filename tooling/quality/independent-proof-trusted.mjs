@@ -3,6 +3,7 @@ import { execFileSync } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildClaimGuardProof } from "../fabric/claim-guard.mjs";
 
 const PROOF_STATES = new Set([
   "REMOTE_PROVEN",
@@ -211,9 +212,31 @@ export function buildIndependentProof(root, manifestPath, env = process.env) {
   ]);
   const changedFiles = changedRaw ? changedRaw.split("\n") : [];
   const proofContext = trustedRemoteProofContext(env);
-  const manifestProof = validateManifestAndFiles(manifest, changedFiles, {
-    proofContext,
-  });
+  let transientOrchestratorPaths = [];
+  const unowned = changedFiles.filter(
+    (path) => !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
+  );
+  if (unowned.length) {
+    // Derive authorization from the committed transition through the trusted
+    // CLI implementation. No caller flag, callback or candidate code is used.
+    const claimProof = buildClaimGuardProof(targetRoot, {
+      EXPECTED_CANDIDATE_SHA: expectedHead,
+      EXPECTED_BASE_SHA: expectedBase,
+      EXPECTED_BRANCH: manifest.branch,
+      MANIFEST_PATH: manifestPath,
+      CLAIM_GUARD_AUTHORITY: "ORCHESTRATOR",
+    });
+    assert.ok(
+      claimProof.acquisition || claimProof.reanchor,
+      "INDEPENDENT_BOOKKEEPING_TRANSITION_REQUIRED",
+    );
+    transientOrchestratorPaths = claimProof.transientOrchestratorPaths;
+  }
+  const manifestProof = validateManifestAndFiles(
+    manifest,
+    changedFiles.filter((path) => !transientOrchestratorPaths.includes(path)),
+    { proofContext },
+  );
 
   return {
     contract: "MORRO-AUTOMATED-INDEPENDENT-PROOF",
@@ -227,6 +250,8 @@ export function buildIndependentProof(root, manifestPath, env = process.env) {
     trustedValidatorSha,
     trustedValidatorTreeSha,
     ...manifestProof,
+    changedFiles,
+    transientOrchestratorPaths,
   };
 }
 

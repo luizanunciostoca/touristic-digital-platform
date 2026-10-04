@@ -14,6 +14,7 @@ import test from "node:test";
 import {
   assertSupportedPattern,
   buildClaimGuardProof,
+  buildClaimReanchorProof,
   buildClaimHandoffProof,
   findClaimCollisions,
   pathOwned,
@@ -23,6 +24,7 @@ import {
   validateClaimHandoff,
 } from "./claim-guard.mjs";
 import { buildIndependentProof } from "../quality/independent-proof-trusted.mjs";
+import { evaluateMergeGate } from "../mdctl/merge-gate.mjs";
 
 const BASE_SHA = "a".repeat(40);
 const CURRENT_BASE_SHA = "b".repeat(40);
@@ -1054,7 +1056,7 @@ test("claim collision ignore is exact-path only and explicit", () => {
 });
 
 // Invoke the actual workflow CLI: component-only collision tests missed this path.
-function acquisitionCliFixture(scenario) {
+function acquisitionCliFixture(scenario, persistentOnly = false) {
   const root = mkdtempSync(resolve(tmpdir(), "claim-acquisition-cli-"));
   const registryPath = ".github/morro-control/claims.json";
   const ledgerPath = ".github/morro-control/events.ndjson";
@@ -1096,6 +1098,26 @@ function acquisitionCliFixture(scenario) {
   git(root, ["init", "-q", "-b", branch]);
   git(root, ["config", "user.name", "CLI Regression"]);
   git(root, ["config", "user.email", "cli@example.invalid"]);
+  if (persistentOnly) {
+    git(root, ["commit", "--allow-empty", "-qm", "fixture ancestry"]);
+    survivor.baseSha = git(root, ["rev-parse", "HEAD"]);
+    survivor.paths.push(".morro/changesets/MD-SURVIVOR.json");
+    const survivingManifest = JSON.parse(
+      readFileSync(
+        resolve(process.cwd(), ".morro/changesets/MD-TDP-LEARNING-001.json"),
+        "utf8",
+      ),
+    );
+    Object.assign(survivingManifest, {
+      id: "MD-SURVIVOR",
+      branch: survivor.branch,
+      baseSha: survivor.baseSha,
+      objective: "preserved-learning-work",
+      dependencies: [],
+      owns: { paths: [...survivor.paths], contracts: [] },
+    });
+    writeJson(root, ".morro/changesets/MD-SURVIVOR.json", survivingManifest);
+  }
   writeJson(root, registryPath, registry);
   writeFileSync(resolve(root, ledgerPath), originalLedger);
   if (scenario === "manifest already exists")
@@ -1128,6 +1150,10 @@ function acquisitionCliFixture(scenario) {
     ],
     contracts: [],
   };
+  if (persistentOnly)
+    manifest.owns.paths = manifest.owns.paths.filter(
+      (path) => ![registryPath, ledgerPath].includes(path),
+    );
   const claim = {
     ...survivor,
     owner: "CHATGPT-PRO-CONTROL",
@@ -1227,10 +1253,20 @@ function acquisitionCliFixture(scenario) {
     env.CLAIM_REGISTRY_PATH =
       ".github/morro-control/../morro-control/claims.json";
   if (scenario === "existing claim") env.EXPECTED_BASE_SHA = head;
-  return { root, env, head, base, registryPath, ledgerPath, manifestPath };
+  return {
+    root,
+    env,
+    head,
+    base,
+    registryPath,
+    ledgerPath,
+    manifestPath,
+    manifest,
+    registry,
+  };
 }
 
-for (const scenario of [
+const acquisitionScenarios = [
   "valid",
   "worker",
   "integrator",
@@ -1273,38 +1309,347 @@ for (const scenario of [
   "wrong branch",
   "alternate registry",
   "existing claim",
+];
+for (const persistentOnly of [false, true]) {
+  for (const scenario of acquisitionScenarios) {
+    test(`real CLI acquisition (persistentOnly=${persistentOnly}): ${scenario}`, () => {
+      const f = acquisitionCliFixture(scenario, persistentOnly);
+      try {
+        const run = spawnSync(
+          process.execPath,
+          [resolve(process.cwd(), "tooling/fabric/claim-guard.mjs"), f.root],
+          { env: f.env, encoding: "utf8" },
+        );
+        if (
+          scenario === "valid" ||
+          (persistentOnly && scenario === "existing claim")
+        ) {
+          assert.equal(run.status, 0, run.stderr);
+          const proof = JSON.parse(run.stdout);
+          assert.equal(proof.status, "pass");
+          assert.equal(proof.authority, "ORCHESTRATOR");
+          assert.equal(proof.exactHead, f.head);
+          assert.equal(proof.currentBaseSha, f.env.EXPECTED_BASE_SHA);
+          assert.equal(proof.collisions, 0);
+          assert.deepEqual(
+            proof.changedFiles,
+            scenario === "existing claim"
+              ? []
+              : [f.registryPath, f.ledgerPath, f.manifestPath].sort(),
+          );
+        } else {
+          assert.equal(run.status, 1, `${scenario} unexpectedly accepted`);
+          assert.match(run.stderr, /MORRO_CLAIM_GUARD_FAILED:/u);
+          assert.doesNotMatch(run.stderr, /UNEXPECTED_CLAIM_GUARD_ERROR/u);
+          assert.equal(run.stdout, "");
+        }
+        assert.equal(
+          git(f.root, ["status", "--porcelain"]),
+          "",
+          "CLI must not mutate candidate",
+        );
+      } finally {
+        rmSync(f.root, { recursive: true, force: true });
+      }
+    });
+  }
+}
+
+test("persistent-only acquisition permits disjoint implementation and preserved learning resumption", () => {
+  const f = acquisitionCliFixture("valid", true);
+  const invoke = (env) =>
+    spawnSync(
+      process.execPath,
+      [resolve(process.cwd(), "tooling/fabric/claim-guard.mjs"), f.root],
+      { env: { ...f.env, ...env }, encoding: "utf8" },
+    );
+  try {
+    const before = readFileSync(resolve(f.root, f.registryPath), "utf8");
+    const acquisition = invoke({});
+    assert.equal(acquisition.status, 0, acquisition.stderr);
+    assert.equal(JSON.parse(acquisition.stdout).acquisition, true);
+    const independent = buildIndependentProof(f.root, f.manifestPath, {
+      ...f.env,
+      TRUSTED_REMOTE_PROOF: "1",
+      GITHUB_ACTIONS: "true",
+      GITHUB_RUN_ID: "42",
+      TRUSTED_VALIDATOR_SHA: f.base,
+      TRUSTED_VALIDATOR_TREE_SHA: git(f.root, [
+        "rev-parse",
+        `${f.base}^{tree}`,
+      ]),
+    });
+    assert.deepEqual(
+      independent.transientOrchestratorPaths.sort(),
+      [f.registryPath, f.ledgerPath].sort(),
+    );
+    assert.deepEqual(f.registry.claims[f.manifest.id].paths, [
+      f.manifestPath,
+      "tooling/quality/cli-owned.mjs",
+    ]);
+    mkdirSync(resolve(f.root, "tooling/quality"), { recursive: true });
+    writeFileSync(
+      resolve(f.root, "tooling/quality/cli-owned.mjs"),
+      "export default 1;\n",
+    );
+    git(f.root, ["add", "."]);
+    git(f.root, ["commit", "-qm", "disjoint implementation"]);
+    let head = git(f.root, ["rev-parse", "HEAD"]);
+    for (const authority of ["WORKER", "ORCHESTRATOR"]) {
+      const result = invoke({
+        EXPECTED_BASE_SHA: f.head,
+        EXPECTED_CANDIDATE_SHA: head,
+        CLAIM_GUARD_AUTHORITY: authority,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(JSON.parse(result.stdout).acquisition, false);
+      assert.deepEqual(
+        JSON.parse(result.stdout).transientOrchestratorPaths,
+        [],
+      );
+    }
+    assert.equal(readFileSync(resolve(f.root, f.registryPath), "utf8"), before);
+    mkdirSync(resolve(f.root, "tooling/failure-learning"), { recursive: true });
+    writeFileSync(
+      resolve(f.root, "tooling/failure-learning/resumed.mjs"),
+      "export default 2;\n",
+    );
+    git(f.root, ["add", "."]);
+    git(f.root, ["commit", "-qm", "resume learning"]);
+    const result = invoke({
+      EXPECTED_BASE_SHA: head,
+      EXPECTED_CANDIDATE_SHA: git(f.root, ["rev-parse", "HEAD"]),
+      EXPECTED_BRANCH: "test/survivor",
+      MANIFEST_PATH: ".morro/changesets/MD-SURVIVOR.json",
+      CLAIM_GUARD_AUTHORITY: "WORKER",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(readFileSync(resolve(f.root, f.registryPath), "utf8"), before);
+    // Bookkeeping access must not leak into ordinary worker writes.
+    writeFileSync(
+      resolve(f.root, f.ledgerPath),
+      readFileSync(resolve(f.root, f.ledgerPath), "utf8") + "{}\n",
+    );
+    git(f.root, ["add", "."]);
+    git(f.root, ["commit", "-qm", "unowned ledger write"]);
+    for (const authority of ["WORKER", "ORCHESTRATOR"]) {
+      const rejected = invoke({
+        EXPECTED_BASE_SHA: f.head,
+        EXPECTED_CANDIDATE_SHA: git(f.root, ["rev-parse", "HEAD"]),
+        CLAIM_GUARD_AUTHORITY: authority,
+      });
+      assert.equal(rejected.status, 1);
+      assert.match(rejected.stderr, /CLAIM_PATH_VIOLATION/);
+    }
+  } finally {
+    rmSync(f.root, { recursive: true, force: true });
+  }
+});
+
+function reanchorCliFixture(scenario) {
+  const f = acquisitionCliFixture("valid", true);
+  f.canonicalRegistry = structuredClone(f.registry);
+  f.canonicalManifest = structuredClone(f.manifest);
+  f.manifest.baseSha = f.head;
+  f.manifest.state = "LOCAL_PROVEN";
+  const current = f.registry.claims[f.manifest.id];
+  current.baseSha = f.head;
+  const survivor = f.registry.claims["MD-SURVIVOR"];
+  if (scenario === "owner") current.owner = "OTHER";
+  if (scenario === "reviewer") current.reviewer = "SELF";
+  if (scenario === "expiry") current.expiresAt = "2098-01-01T00:00:00Z";
+  if (scenario === "status") current.status = "LOCAL_PROVEN";
+  if (scenario === "branch") current.branch = "other";
+  if (scenario === "scope") current.paths.push("tooling/other/**");
+  if (scenario === "survivor") survivor.status = "MERGED";
+  if (scenario === "remove survivor") delete f.registry.claims["MD-SURVIVOR"];
+  if (scenario === "extra claim")
+    f.registry.claims["MD-EXTRA"] = { ...current };
+  if (scenario === "registry metadata") f.registry.extra = true;
+  if (scenario === "manifest authority") f.manifest.requiredEvidence = ["fake"];
+  if (scenario === "manifest base") f.manifest.baseSha = f.base;
+  const event = {
+    schemaVersion: 1,
+    eventId: "evt-bounded-reanchor",
+    eventType: "CLAIM_RENEWED",
+    observedAt: "2026-10-04T00:00:00Z",
+    actor: "ORCHESTRATOR",
+    entity: f.manifest.id,
+    sourceSha: f.head,
+    payloadVersion: 1,
+    payload: {
+      currentBaseSha: f.head,
+      currentBranch: f.manifest.branch,
+      authorityScopeChanged: false,
+    },
+  };
+  if (scenario === "event actor") event.actor = "WORKER";
+  if (scenario === "event type") event.eventType = "MERGED";
+  if (scenario === "event identity") event.entity = "MD-SURVIVOR";
+  if (scenario === "event source") event.sourceSha = f.base;
+  if (scenario === "event base") event.payload.currentBaseSha = f.base;
+  if (scenario === "event branch") event.payload.currentBranch = "wrong";
+  if (scenario === "event scope") event.payload.authorityScopeChanged = true;
+  if (scenario === "duplicate event") event.eventId = "evt-cli-acquired";
+  let ledger = readFileSync(resolve(f.root, f.ledgerPath), "utf8");
+  if (scenario === "ledger bytes") ledger = " " + ledger;
+  if (scenario !== "missing event") ledger += JSON.stringify(event) + "\n";
+  if (scenario === "extra event")
+    ledger += JSON.stringify({ ...event, eventId: "evt-extra" }) + "\n";
+  writeJson(f.root, f.registryPath, f.registry);
+  writeJson(f.root, f.manifestPath, f.manifest);
+  writeFileSync(resolve(f.root, f.ledgerPath), ledger);
+  mkdirSync(resolve(f.root, "tooling/quality"), { recursive: true });
+  writeFileSync(
+    resolve(f.root, "tooling/quality/cli-owned.mjs"),
+    "export default 1;\n",
+  );
+  if (scenario === "unowned implementation")
+    writeFileSync(resolve(f.root, "outside.mjs"), "export default 2;\n");
+  if (scenario === "manifest mode")
+    execFileSync("chmod", ["+x", resolve(f.root, f.manifestPath)]);
+  git(f.root, ["add", "."]);
+  git(f.root, ["commit", "-qm", "implementation with exact base"]);
+  f.implementationHead = git(f.root, ["rev-parse", "HEAD"]);
+  f.env = {
+    ...f.env,
+    EXPECTED_BASE_SHA: f.head,
+    EXPECTED_CANDIDATE_SHA: f.implementationHead,
+  };
+  if (scenario === "worker") f.env.CLAIM_GUARD_AUTHORITY = "WORKER";
+  return f;
+}
+
+for (const scenario of [
+  "valid",
+  "worker",
+  "owner",
+  "reviewer",
+  "expiry",
+  "status",
+  "branch",
+  "scope",
+  "survivor",
+  "remove survivor",
+  "extra claim",
+  "registry metadata",
+  "manifest authority",
+  "manifest base",
+  "event actor",
+  "event type",
+  "event identity",
+  "event source",
+  "event base",
+  "event branch",
+  "event scope",
+  "duplicate event",
+  "ledger bytes",
+  "missing event",
+  "extra event",
+  "unowned implementation",
+  "manifest mode",
 ]) {
-  test(`real CLI acquisition: ${scenario}`, () => {
-    const f = acquisitionCliFixture(scenario);
+  test(`real CLI and independent proof reanchor: ${scenario}`, () => {
+    const f = reanchorCliFixture(scenario);
     try {
-      const run = spawnSync(
+      const result = spawnSync(
         process.execPath,
         [resolve(process.cwd(), "tooling/fabric/claim-guard.mjs"), f.root],
         { env: f.env, encoding: "utf8" },
       );
+      const proof = () =>
+        buildIndependentProof(f.root, f.manifestPath, {
+          ...f.env,
+          TRUSTED_REMOTE_PROOF: "1",
+          GITHUB_ACTIONS: "true",
+          GITHUB_RUN_ID: "42",
+          TRUSTED_VALIDATOR_SHA: f.head,
+          TRUSTED_VALIDATOR_TREE_SHA: git(f.root, [
+            "rev-parse",
+            `${f.head}^{tree}`,
+          ]),
+        });
       if (scenario === "valid") {
-        assert.equal(run.status, 0, run.stderr);
-        const proof = JSON.parse(run.stdout);
-        assert.equal(proof.status, "pass");
-        assert.equal(proof.authority, "ORCHESTRATOR");
-        assert.equal(proof.exactHead, f.head);
-        assert.equal(proof.currentBaseSha, f.base);
-        assert.equal(proof.collisions, 0);
+        assert.equal(result.status, 0, result.stderr);
+        const checked = JSON.parse(result.stdout);
+        assert.equal(checked.acquisition, false);
+        assert.equal(checked.reanchor, true);
         assert.deepEqual(
-          proof.changedFiles,
-          [f.registryPath, f.ledgerPath, f.manifestPath].sort(),
+          proof().transientOrchestratorPaths.sort(),
+          [f.registryPath, f.ledgerPath].sort(),
+        );
+        assert.deepEqual(
+          f.registry.claims["MD-SURVIVOR"],
+          f.canonicalRegistry.claims["MD-SURVIVOR"],
+        );
+        const reanchorProof = buildClaimReanchorProof(f.root, {
+          baseSha: f.head,
+          headSha: f.implementationHead,
+          manifestPath: f.manifestPath,
+        });
+        const gateInput = {
+          manifest: f.manifest,
+          canonicalManifest: f.canonicalManifest,
+          registry: f.registry,
+          canonicalRegistry: f.canonicalRegistry,
+          branch: f.manifest.branch,
+          baseSha: f.head,
+          headSha: f.implementationHead,
+          authorizationPaths: checked.changedFiles,
+          changedFileCount: checked.changedFiles.length,
+          changedLines: 100,
+          currentPrNumber: 10,
+          liveItems: [
+            {
+              prNumber: 10,
+              openPr: true,
+              writerActive: true,
+              headSha: f.implementationHead,
+              changeSet: f.manifest,
+              invalid: null,
+              trust: {
+                trusted: true,
+                authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+              },
+            },
+          ],
+          dependenciesSatisfied: true,
+          unresolvedReviewThreads: 0,
+          reanchorProof,
+          ancestor: (a, b) => {
+            try {
+              git(f.root, ["merge-base", "--is-ancestor", a, b]);
+              return true;
+            } catch {
+              return false;
+            }
+          },
+        };
+        assert.equal(evaluateMergeGate(gateInput).decision, "POLICY_SATISFIED");
+        assert.throws(
+          () =>
+            evaluateMergeGate({
+              ...gateInput,
+              reanchorProof: { ...reanchorProof },
+            }),
+          /REANCHOR_CERTIFICATE_UNVERIFIED/,
+        );
+        assert.throws(
+          () => evaluateMergeGate({ ...gateInput, headSha: f.head }),
+          /REANCHOR_CERTIFICATE_IDENTITY_MISMATCH/,
+        );
+        const changedRegistry = structuredClone(f.registry);
+        changedRegistry.uncommittedMetadata = "not-covered-by-certificate";
+        assert.throws(
+          () => evaluateMergeGate({ ...gateInput, registry: changedRegistry }),
+          /REANCHOR_CERTIFICATE_CONTENT_MISMATCH/,
         );
       } else {
-        assert.equal(run.status, 1, `${scenario} unexpectedly accepted`);
-        assert.match(run.stderr, /MORRO_CLAIM_GUARD_FAILED:/u);
-        assert.doesNotMatch(run.stderr, /UNEXPECTED_CLAIM_GUARD_ERROR/u);
-        assert.equal(run.stdout, "");
+        assert.equal(result.status, 1, `${scenario} accepted`);
+        assert.match(result.stderr, /MORRO_CLAIM_GUARD_FAILED:/);
+        if (scenario !== "worker") assert.throws(proof);
       }
-      assert.equal(
-        git(f.root, ["status", "--porcelain"]),
-        "",
-        "CLI must not mutate candidate",
-      );
+      assert.equal(git(f.root, ["status", "--porcelain"]), "");
     } finally {
       rmSync(f.root, { recursive: true, force: true });
     }

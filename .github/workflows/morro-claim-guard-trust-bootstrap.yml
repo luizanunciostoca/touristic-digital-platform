@@ -6,7 +6,7 @@ on:
     paths:
       - ".github/workflows/morro-claim-guard-trusted.yml"
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
-      - ".morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json"
+      - ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json"
       - ".morro/changesets/MD-CP-003-TRUST.json"
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
       - ".morro/changesets/MD-CP-003-HOOKS.json"
@@ -62,12 +62,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$PR_NUMBER" = "713" ] &&
+          if [ "$PR_NUMBER" = "714" ] &&
              [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
              [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
              [ "$BASE_REF" = "main" ] &&
-             [ "$HEAD_BRANCH" = "fix/claim-acquisition-cli-bootstrap-20261004" ] &&
-             [ "$BASE_SHA" = "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb" ]; then
+             [ "$HEAD_BRANCH" = "fix/claim-lifecycle-bootstrap-20261004" ] &&
+             [ "$BASE_SHA" = "de6c1637abc98e4e86e9c575ac0aaeb00a99551c" ]; then
             owner="$(gh api "repos/$REPOSITORY")"
             approval="$(
               gh api "repos/$REPOSITORY/issues/711/comments?per_page=100" --paginate --slurp |
@@ -88,7 +88,7 @@ jobs:
             )"
             test "$approval" = "true"
             echo "approved_bootstrap=true" >> "$GITHUB_OUTPUT"
-            echo "path=.morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json" >> "$GITHUB_OUTPUT"
+            echo "path=.morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "approved_bootstrap=false" >> "$GITHUB_OUTPUT"
@@ -115,6 +115,7 @@ jobs:
           node --test
           tooling/fabric/claim-guard.test.mjs
           tooling/fabric/claim-retirement-proof.test.mjs
+          tooling/quality/independent-proof-trusted.test.mjs
 
   orchestrator-registry-proof:
     if: needs.unit.outputs.retirement != 'true' && needs.unit.outputs.approved_bootstrap != 'true'
@@ -216,7 +217,7 @@ jobs:
 
   approved-bootstrap-proof:
     # Read-only baseline proof must be available before exact-head owner approval.
-    if: ${{ always() && (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 713 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-acquisition-cli-bootstrap-20261004' && github.event.pull_request.base.sha == '2ad095e4eb17bed9023a8aa6c1473b1f9c902feb') }}
+    if: ${{ always() && (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 714 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-lifecycle-bootstrap-20261004' && github.event.pull_request.base.sha == 'de6c1637abc98e4e86e9c575ac0aaeb00a99551c') }}
     needs: unit
     name: approved-bootstrap-exact-head-proof
     runs-on: ubuntu-latest
@@ -249,9 +250,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$PR_NUMBER" = "713"
-          test "$EXPECTED_BRANCH" = "fix/claim-acquisition-cli-bootstrap-20261004"
-          test "$EXPECTED_BASE" = "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb"
+          test "$PR_NUMBER" = "714"
+          test "$EXPECTED_BRANCH" = "fix/claim-lifecycle-bootstrap-20261004"
+          test "$EXPECTED_BASE" = "de6c1637abc98e4e86e9c575ac0aaeb00a99551c"
           test "$(git -C trusted rev-parse HEAD)" = "$EXPECTED_BASE"
           test "$(git -C candidate rev-parse HEAD)" = "$EXPECTED_HEAD"
           mapfile -t changed < <(git -C candidate diff --name-only "$EXPECTED_BASE...$EXPECTED_HEAD" | sort)
@@ -259,28 +260,30 @@ jobs:
             ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
             ".github/workflows/morro-claim-guard.yml"
             ".github/workflows/morro-merge-gate.yml"
-            ".morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json"
+            ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json"
             "tooling/control-state/mdctl-merge-gate.test.mjs"
             "tooling/fabric/claim-guard.mjs"
             "tooling/fabric/claim-guard.test.mjs"
             "tooling/mdctl/merge-gate.mjs"
+            "tooling/quality/independent-proof-trusted.mjs"
+            "tooling/quality/independent-proof-trusted.test.mjs"
           )
           mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
           test "${#changed[@]}" -eq "${#expected[@]}"
           diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${changed[@]}")
           # Baseline regression assertions and all unchanged dependencies come from
-          # the trusted base. Only the two implementation modules are replaced.
+          # the trusted base. Only the three implementation modules are replaced.
           # This is baseline coverage, not certification of the new exception.
           proof_root="$(mktemp -d)"
           trap 'rm -rf "$proof_root"' EXIT
           git -C trusted archive "$EXPECTED_BASE" | tar -x -C "$proof_root"
-          for module in tooling/fabric/claim-guard.mjs tooling/mdctl/merge-gate.mjs; do
+          for module in tooling/fabric/claim-guard.mjs tooling/mdctl/merge-gate.mjs tooling/quality/independent-proof-trusted.mjs; do
             test "$(git -C candidate ls-tree "$EXPECTED_HEAD" -- "$module" | awk '{print $1}')" = "100644"
             git -C candidate show "$EXPECTED_HEAD:$module" > "$proof_root/$module"
           done
           (
             cd "$proof_root"
-            node --test tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs
+            node --test tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs tooling/quality/independent-proof-trusted.test.mjs
           )
 
   retirement-proof:
@@ -330,14 +333,14 @@ jobs:
 
   independent-proof:
     # Proof may run before approval, but cannot waive the failing approval gate.
-    if: ${{ always() && needs.unit.outputs.retirement != 'true' && (needs.unit.result == 'success' || (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 713 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-acquisition-cli-bootstrap-20261004' && github.event.pull_request.base.sha == '2ad095e4eb17bed9023a8aa6c1473b1f9c902feb')) }}
+    if: ${{ always() && needs.unit.outputs.retirement != 'true' && (needs.unit.result == 'success' || (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 714 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-lifecycle-bootstrap-20261004' && github.event.pull_request.base.sha == 'de6c1637abc98e4e86e9c575ac0aaeb00a99551c')) }}
     needs: unit
     name: base-controlled-independent-proof
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@504d587c9eb780cff01aae71d377b2c2aec99054
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: ${{ (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 713 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-acquisition-cli-bootstrap-20261004' && github.event.pull_request.base.sha == '2ad095e4eb17bed9023a8aa6c1473b1f9c902feb') && '.morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json' || needs.unit.outputs.manifest_path }}
+      manifest_path: ${{ (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 714 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-lifecycle-bootstrap-20261004' && github.event.pull_request.base.sha == 'de6c1637abc98e4e86e9c575ac0aaeb00a99551c') && '.morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json' || needs.unit.outputs.manifest_path }}
     permissions:
       contents: read
 

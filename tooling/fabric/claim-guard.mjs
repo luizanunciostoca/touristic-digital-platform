@@ -35,6 +35,144 @@ const AUTHORITY_STATES = new Map([
 
 const AUTHORITIES = new Set(AUTHORITY_STATES.keys());
 const SHA_PATTERN = /^[0-9a-f]{40}$/u;
+const reanchorCertificates = new WeakMap();
+
+// Registry maintenance is an orchestrator capability, not persistent worker
+// ownership. Issue an in-process certificate only from an exact Git transition.
+export function buildClaimReanchorProof(
+  root,
+  { baseSha, headSha, manifestPath },
+) {
+  assert.match(baseSha ?? "", SHA_PATTERN, "REANCHOR_BASE_INVALID");
+  assert.match(headSha ?? "", SHA_PATTERN, "REANCHOR_HEAD_INVALID");
+  assert.match(
+    manifestPath ?? "",
+    /^\.morro\/changesets\/MD-[A-Z0-9-]+\.json$/u,
+    "REANCHOR_MANIFEST_PATH_INVALID",
+  );
+  assert.equal(
+    git(root, ["rev-parse", "HEAD"]),
+    headSha,
+    "REANCHOR_HEAD_MISMATCH",
+  );
+  assert.equal(
+    git(root, ["status", "--porcelain", "--untracked-files=all"]),
+    "",
+    "REANCHOR_DIRTY_WORKTREE",
+  );
+  assert.ok(
+    isGitAncestor(root, baseSha, headSha),
+    "REANCHOR_BASE_NOT_ANCESTOR",
+  );
+  const registryPath = ".github/morro-control/claims.json";
+  const ledgerPath = ".github/morro-control/events.ndjson";
+  const read = (sha, path) =>
+    execFileSync("git", ["-C", root, "show", `${sha}:${path}`], {
+      encoding: "utf8",
+    });
+  const canonical = JSON.parse(read(baseSha, registryPath));
+  const candidate = JSON.parse(read(headSha, registryPath));
+  const previous = JSON.parse(read(baseSha, manifestPath));
+  const manifest = JSON.parse(read(headSha, manifestPath));
+  validateChangeSetV2(previous);
+  validateChangeSetV2(manifest);
+  assert.equal(
+    manifestPath,
+    `.morro/changesets/${manifest.id}.json`,
+    "REANCHOR_MANIFEST_ID_MISMATCH",
+  );
+  assert.equal(previous.id, manifest.id, "REANCHOR_ID_CHANGED");
+  const claim = canonical.claims?.[manifest.id];
+  assert.ok(claim, "REANCHOR_CANONICAL_CLAIM_REQUIRED");
+  assert.equal(
+    canonical.registryAuthority,
+    "ORCHESTRATOR",
+    "REANCHOR_AUTHORITY_INVALID",
+  );
+  assert.equal(
+    claim.baseSha,
+    previous.baseSha,
+    "REANCHOR_CANONICAL_BASE_MISMATCH",
+  );
+  assert.equal(
+    claim.branch,
+    previous.branch,
+    "REANCHOR_CANONICAL_BRANCH_MISMATCH",
+  );
+  assert.deepEqual(
+    [...claim.paths].sort(),
+    [...previous.owns.paths].sort(),
+    "REANCHOR_CANONICAL_PATHS_MISMATCH",
+  );
+  assert.ok(
+    isGitAncestor(root, claim.baseSha, baseSha),
+    "REANCHOR_CANONICAL_BASE_NOT_ANCESTOR",
+  );
+  assert.notEqual(claim.baseSha, baseSha, "REANCHOR_BASE_UNCHANGED");
+  assert.equal(manifest.baseSha, baseSha, "REANCHOR_EXACT_BASE_REQUIRED");
+  assert.deepEqual(
+    candidate,
+    {
+      ...canonical,
+      claims: { ...canonical.claims, [manifest.id]: { ...claim, baseSha } },
+    },
+    "REANCHOR_ONLY_TARGET_BASE_MAY_CHANGE",
+  );
+  assert.deepEqual(
+    { ...manifest, baseSha: previous.baseSha, state: previous.state },
+    previous,
+    "REANCHOR_MANIFEST_AUTHORITY_CHANGED",
+  );
+  for (const path of [registryPath, ledgerPath])
+    assert.ok(
+      !claim.paths.some((pattern) => pathOwned(path, pattern)),
+      "REANCHOR_REQUIRES_PERSISTENT_ONLY_CLAIM",
+    );
+  for (const sha of [baseSha, headSha])
+    for (const path of [registryPath, ledgerPath, manifestPath])
+      assert.ok(
+        git(root, ["ls-tree", sha, "--", path]).startsWith("100644 blob "),
+        "REANCHOR_REGULAR_FILE_REQUIRED",
+      );
+  const oldLedger = read(baseSha, ledgerPath),
+    ledger = read(headSha, ledgerPath);
+  assert.ok(ledger.startsWith(oldLedger), "REANCHOR_LEDGER_BYTES_MUTATED");
+  const oldEvents = parseAuthorityLedger(oldLedger),
+    events = parseAuthorityLedger(ledger);
+  assert.equal(
+    events.length,
+    oldEvents.length + 1,
+    "REANCHOR_EVENT_COUNT_INVALID",
+  );
+  const event = events.at(-1);
+  assert.equal(event.eventType, "CLAIM_RENEWED", "REANCHOR_EVENT_TYPE_INVALID");
+  assert.equal(event.actor, "ORCHESTRATOR", "REANCHOR_EVENT_ACTOR_INVALID");
+  assert.equal(event.entity, manifest.id, "REANCHOR_EVENT_ENTITY_INVALID");
+  assert.equal(event.sourceSha, baseSha, "REANCHOR_EVENT_SOURCE_INVALID");
+  assert.equal(
+    event.payload.currentBaseSha,
+    baseSha,
+    "REANCHOR_EVENT_BASE_INVALID",
+  );
+  assert.equal(
+    event.payload.currentBranch,
+    manifest.branch,
+    "REANCHOR_EVENT_BRANCH_INVALID",
+  );
+  assert.equal(
+    event.payload.authorityScopeChanged,
+    false,
+    "REANCHOR_EVENT_SCOPE_INVALID",
+  );
+  const certificate = Object.freeze({
+    claimId: manifest.id,
+    baseSha,
+    headSha,
+    branch: manifest.branch,
+  });
+  reanchorCertificates.set(certificate, { registry: candidate, manifest });
+  return certificate;
+}
 
 export function addedClaimIds(canonicalRegistry, candidateRegistry) {
   assert.equal(
@@ -294,7 +432,11 @@ export function validateClaimAcquisitionTransition({
     "MERGE_GATE_ACQUISITION_FILE_COUNT_INVALID",
   );
 
-  return { claimId, manifestPath };
+  return {
+    claimId,
+    manifestPath,
+    transientOrchestratorPaths: [...SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS],
+  };
 }
 
 export function assertSupportedPattern(pattern) {
@@ -433,6 +575,7 @@ export function validateClaimContext({
   authority = "WORKER",
   isAncestor = () => true,
   allowSerializedAcquisitionBookkeeping = false,
+  reanchorProof,
 }) {
   assert.equal(
     registry?.registryAuthority,
@@ -499,8 +642,44 @@ export function validateClaimContext({
     "CURRENT_BASE_NOT_ANCESTOR_OF_BRANCH_HEAD",
   );
 
-  const collisions = findClaimCollisions(registry, manifest.id, now, {
-    allowSerializedAcquisitionBookkeeping,
+  // Acquisition authorizes two serialized writes, without reserving them in
+  // the new claim. Include those writes only while checking this transition.
+  if (reanchorProof !== undefined) {
+    assert.ok(
+      reanchorCertificates.has(reanchorProof),
+      "REANCHOR_CERTIFICATE_UNVERIFIED",
+    );
+    assert.deepEqual(
+      reanchorCertificates.get(reanchorProof),
+      { registry, manifest },
+      "REANCHOR_CERTIFICATE_CONTENT_MISMATCH",
+    );
+    assert.deepEqual(
+      reanchorProof,
+      {
+        claimId: manifest.id,
+        baseSha: currentBaseSha,
+        headSha: branchHeadSha,
+        branch,
+      },
+      "REANCHOR_CERTIFICATE_IDENTITY_MISMATCH",
+    );
+    assert.equal(authority, "ORCHESTRATOR", "REANCHOR_REQUIRES_ORCHESTRATOR");
+  }
+  const serializedBookkeeping =
+    allowSerializedAcquisitionBookkeeping || reanchorProof !== undefined;
+  const acquisitionPaths = serializedBookkeeping
+    ? [...SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS]
+    : [];
+  const collisionRegistry = {
+    ...registry,
+    claims: {
+      ...registry.claims,
+      [manifest.id]: { ...claim, paths: [...claim.paths, ...acquisitionPaths] },
+    },
+  };
+  const collisions = findClaimCollisions(collisionRegistry, manifest.id, now, {
+    allowSerializedAcquisitionBookkeeping: serializedBookkeeping,
     authority,
   });
   assert.deepEqual(collisions, [], "CLAIM_OVERLAP_DETECTED");
@@ -516,7 +695,8 @@ export function validateClaimContext({
       "WORKER_CLAIM_REGISTRY_MUTATION_FORBIDDEN",
     );
     assert.ok(
-      manifest.owns.paths.includes(registryPath),
+      acquisitionPaths.includes(registryPath) ||
+        manifest.owns.paths.includes(registryPath),
       "ORCHESTRATOR_CLAIM_REGISTRY_OWNERSHIP_REQUIRED",
     );
   }
@@ -524,12 +704,15 @@ export function validateClaimContext({
   const unauthorizedByClaim = changedFiles.filter(
     (path) =>
       !(maintainsRegistry && path === registryPath) &&
+      !acquisitionPaths.includes(path) &&
       !claim.paths.some((pattern) => pathOwned(path, pattern)),
   );
   assert.deepEqual(unauthorizedByClaim, [], "CLAIM_PATH_VIOLATION");
 
   const unauthorizedByManifest = changedFiles.filter(
-    (path) => !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
+    (path) =>
+      !acquisitionPaths.includes(path) &&
+      !manifest.owns.paths.some((pattern) => pathOwned(path, pattern)),
   );
   assert.deepEqual(unauthorizedByManifest, [], "CHANGESET_OWNERSHIP_VIOLATION");
 
@@ -964,9 +1147,10 @@ export function buildClaimGuardProof(root, env = process.env) {
   ]);
   const changedFiles = changedRaw ? changedRaw.split("\n").filter(Boolean) : [];
 
-  // Only an exact, new acquisition may opt into serialized bookkeeping.
+  // Only an exact acquisition or bounded base renewal may use bookkeeping.
   // Derive eligibility from committed base/candidate data, never from an env toggle.
   let acquisition = false;
+  let reanchorProof;
   const canonicalRegistryPath = ".github/morro-control/claims.json";
   const ledgerPath = ".github/morro-control/events.ndjson";
   if (
@@ -1045,6 +1229,16 @@ export function buildClaimGuardProof(root, env = process.env) {
         changedFileCount: changedFiles.length,
       });
       acquisition = true;
+    } else if (
+      !manifest.owns.paths.some((pattern) =>
+        pathOwned(canonicalRegistryPath, pattern),
+      )
+    ) {
+      reanchorProof = buildClaimReanchorProof(targetRoot, {
+        baseSha: expectedBase,
+        headSha,
+        manifestPath,
+      });
     }
   }
 
@@ -1053,6 +1247,7 @@ export function buildClaimGuardProof(root, env = process.env) {
     manifest,
     branch: expectedBranch,
     allowSerializedAcquisitionBookkeeping: acquisition,
+    reanchorProof,
     currentBaseSha: expectedBase,
     branchHeadSha: headSha,
     changedFiles,
@@ -1067,6 +1262,12 @@ export function buildClaimGuardProof(root, env = process.env) {
     failClosed: true,
     exactHead: headSha,
     treeSha,
+    acquisition,
+    reanchor: reanchorProof !== undefined,
+    transientOrchestratorPaths:
+      acquisition || reanchorProof !== undefined
+        ? [...SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS]
+        : [],
     ...claim,
   };
 }

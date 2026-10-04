@@ -1092,7 +1092,10 @@ test("merge gate fails closed on any invalid concurrent live PR", () => {
   );
 });
 
-function createAcquisitionRunGateFixture({ invalidLedgerEvent = false } = {}) {
+function createAcquisitionRunGateFixture({
+  invalidLedgerEvent = false,
+  persistentOnly = false,
+} = {}) {
   const root = mkdtempSync(join(tmpdir(), "morro-acquisition-gate-"));
   const source = join(root, "source");
   mkdirSync(source, { recursive: true });
@@ -1104,9 +1107,13 @@ function createAcquisitionRunGateFixture({ invalidLedgerEvent = false } = {}) {
     "acquisition-gate@example.invalid",
   ]);
 
+  const survivors = persistentOnly
+    ? JSON.parse(readFileSync(".github/morro-control/claims.json", "utf8"))
+        .claims
+    : {};
   writeFixtureJson(source, ".github/morro-control/claims.json", {
     registryAuthority: "ORCHESTRATOR",
-    claims: {},
+    claims: survivors,
   });
   mkdirSync(join(source, ".github", "morro-control"), { recursive: true });
   const canonicalEvent = {
@@ -1150,6 +1157,14 @@ function createAcquisitionRunGateFixture({ invalidLedgerEvent = false } = {}) {
     branch: BRANCH,
     baseSha,
   });
+  if (persistentOnly)
+    candidateManifest.owns.paths = candidateManifest.owns.paths.filter(
+      (path) =>
+        ![
+          ".github/morro-control/claims.json",
+          ".github/morro-control/events.ndjson",
+        ].includes(path),
+    );
   const candidateClaim = claim(candidateManifest, { status: "IMPLEMENTING" });
   writeFixtureJson(
     source,
@@ -1159,6 +1174,7 @@ function createAcquisitionRunGateFixture({ invalidLedgerEvent = false } = {}) {
   writeFixtureJson(source, ".github/morro-control/claims.json", {
     registryAuthority: "ORCHESTRATOR",
     claims: {
+      ...survivors,
       [candidateManifest.id]: candidateClaim,
     },
   });
@@ -1676,7 +1692,7 @@ const bootstrapWorkflows = [
 for (const workflow of bootstrapWorkflows) {
   test(`bootstrap approval authenticates provider identity and target: ${workflow}`, () => {
     const source = readFileSync(join(process.cwd(), workflow), "utf8");
-    const start = source.indexOf('          if [ "$PR_NUMBER" = "713" ]');
+    const start = source.indexOf('          if [ "$PR_NUMBER" = "714" ]');
     const endLine = source.indexOf('            test "$approval"', start);
     assert.ok(start >= 0 && endLine > start, "BOOTSTRAP_PREDICATE_MISSING");
     const predicate = source.slice(start, source.indexOf("\n", endLine));
@@ -1748,8 +1764,8 @@ fi
       ["wrong base ref", [[comment]], false, { BASE_REF: "other" }],
       ["wrong base sha", [[comment]], false, { BASE_SHA: "e".repeat(40) }],
       ["ordinary branch", [[comment]], false, { HEAD_BRANCH: "fix/unclaimed" }],
-      ["wrong PR", [[comment]], false, { PR_NUMBER: "714" }],
-      ["consumed bootstrap PR", [[comment]], false, { PR_NUMBER: "712" }],
+      ["wrong PR", [[comment]], false, { PR_NUMBER: "715" }],
+      ["consumed bootstrap PR", [[comment]], false, { PR_NUMBER: "713" }],
       [
         "consumed bootstrap base",
         [[comment]],
@@ -1777,9 +1793,9 @@ fi
                 FIXTURE_OWNER: join(root, "owner.json"),
                 FIXTURE_COMMENTS: join(root, "comments.json"),
                 HEAD_SHA: sha,
-                BASE_SHA: "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb",
-                HEAD_BRANCH: "fix/claim-acquisition-cli-bootstrap-20261004",
-                PR_NUMBER: "713",
+                BASE_SHA: "de6c1637abc98e4e86e9c575ac0aaeb00a99551c",
+                HEAD_BRANCH: "fix/claim-lifecycle-bootstrap-20261004",
+                PR_NUMBER: "714",
                 REPOSITORY: repo,
                 HEAD_REPOSITORY: repo,
                 BASE_REF: "main",
@@ -1825,8 +1841,30 @@ test("bootstrap retains pinned independent gate and base-sourced regression asse
   assert.doesNotMatch(bootstrap, /cd candidate && node --test/u);
   assert.match(
     bootstrap,
-    /for module in tooling\/fabric\/claim-guard\.mjs tooling\/mdctl\/merge-gate\.mjs;/u,
+    /for module in tooling\/fabric\/claim-guard\.mjs tooling\/mdctl\/merge-gate\.mjs tooling\/quality\/independent-proof-trusted\.mjs;/u,
   );
+});
+
+test("all bootstrap scope checks match the ten-path authorized manifest", () => {
+  const manifest = JSON.parse(
+    readFileSync(
+      join(process.cwd(), ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json"),
+      "utf8",
+    ),
+  );
+  assert.equal(manifest.owns.paths.length, 10);
+  for (const path of bootstrapWorkflows) {
+    const source = readFileSync(join(process.cwd(), path), "utf8");
+    const scope = source.match(/expected=\(([\s\S]*?)\n\s*\)/u)?.[1];
+    assert.ok(scope, path);
+    const paths = [...scope.matchAll(/"([^"]+)"/gu)].map((match) => match[1]);
+    assert.deepEqual(paths.sort(), [...manifest.owns.paths].sort(), path);
+  }
+  const merge = readFileSync(
+    join(process.cwd(), ".github/workflows/morro-merge-gate.yml"),
+    "utf8",
+  );
+  assert.match(merge, /"prNumber":714/u);
 });
 
 test("bootstrap proof routing stays exact and never requires owner approval to gather evidence", () => {
@@ -1844,14 +1882,14 @@ test("bootstrap proof routing stays exact and never requires owner approval to g
       repository: "luizanunciostoca/touristic-digital-platform",
       event: {
         pull_request: {
-          number: 713,
+          number: 714,
           head: {
-            ref: "fix/claim-acquisition-cli-bootstrap-20261004",
+            ref: "fix/claim-lifecycle-bootstrap-20261004",
             repo: { full_name: "luizanunciostoca/touristic-digital-platform" },
           },
           base: {
             ref: "main",
-            sha: "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb",
+            sha: "de6c1637abc98e4e86e9c575ac0aaeb00a99551c",
           },
         },
       },
@@ -1875,7 +1913,7 @@ test("bootstrap proof routing stays exact and never requires owner approval to g
   assert.equal(
     eligible({
       modify: (g) => {
-        g.event.pull_request.number = 714;
+        g.event.pull_request.number = 715;
       },
     }),
     false,
@@ -1908,21 +1946,124 @@ test("bootstrap proof routing stays exact and never requires owner approval to g
     eligible({
       result: "success",
       modify: (g) => {
-        g.event.pull_request.number = 714;
+        g.event.pull_request.number = 715;
       },
     }),
     true,
     "ORDINARY_REGISTERED_ROUTE_PRESERVED",
   );
-  assert.match(section, /MD-CP-CLAIM-ACQ-CLI-711\.json/u);
+  assert.match(section, /MD-CP-CLAIM-LIFECYCLE-711\.json/u);
   for (const name of bootstrapWorkflows) {
     const body = readFileSync(join(process.cwd(), name), "utf8");
     assert.ok(
-      body.includes('".morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json"'),
+      body.includes('".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json"'),
     );
     assert.ok(
       body.includes('test "$approval" = "true"'),
       "OWNER_GATE_RETAINED",
     );
+  }
+});
+
+test("runMergeGate certifies acquisition then exact-base implementation with a surviving learning claim", async () => {
+  const f = createAcquisitionRunGateFixture({ persistentOnly: true });
+  const registryPath = ".github/morro-control/claims.json";
+  const ledgerPath = ".github/morro-control/events.ndjson";
+  const manifestPath = ".morro/changesets/MD-GATED.json";
+  const run = (api = gateApiFor(f)) =>
+    runMergeGate({
+      trustedDir: f.trustedDir,
+      candidateDir: f.candidateDir,
+      repository: "example/repo",
+      prNumber: 10,
+      headSha: f.headSha,
+      baseSha: f.baseSha,
+      branch: BRANCH,
+      api,
+      reviewThreadCounter: async () => 0,
+      liveCollector: gateLiveCollector(f),
+      dependencyEvaluator: async () => ({ satisfied: true, unresolved: [] }),
+      trustEvidenceVerifier: async () => ({
+        trusted: true,
+        authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD",
+        headSha: f.headSha,
+      }),
+    });
+  try {
+    assert.equal((await run()).mode, "CLAIM_ACQUISITION");
+    const acquired = f.headSha;
+    gitFixture(f.trustedDir, ["checkout", "-q", "--detach", acquired]);
+    const registry = JSON.parse(
+      readFileSync(join(f.candidateDir, registryPath), "utf8"),
+    );
+    const survivor = structuredClone(registry.claims["MD-TDP-LEARNING-001"]);
+    registry.claims["MD-GATED"].baseSha = acquired;
+    f.candidateManifest.baseSha = acquired;
+    f.candidateManifest.state = "LOCAL_PROVEN";
+    writeFixtureJson(f.candidateDir, registryPath, registry);
+    writeFixtureJson(f.candidateDir, manifestPath, f.candidateManifest);
+    writeFileSync(
+      join(f.candidateDir, ledgerPath),
+      readFileSync(join(f.candidateDir, ledgerPath), "utf8") +
+        JSON.stringify({
+          schemaVersion: 1,
+          eventId: "evt-gate-reanchor",
+          eventType: "CLAIM_RENEWED",
+          observedAt: "2026-10-04T00:00:00Z",
+          actor: "ORCHESTRATOR",
+          entity: "MD-GATED",
+          sourceSha: acquired,
+          payloadVersion: 1,
+          payload: {
+            currentBaseSha: acquired,
+            currentBranch: BRANCH,
+            authorityScopeChanged: false,
+          },
+        }) +
+        "\n",
+    );
+    mkdirSync(join(f.candidateDir, "tooling/mdctl"), { recursive: true });
+    writeFileSync(
+      join(f.candidateDir, "tooling/mdctl/implementation.mjs"),
+      "export default 1;\n",
+    );
+    gitFixture(f.candidateDir, ["config", "user.name", "Lifecycle Proof"]);
+    gitFixture(f.candidateDir, [
+      "config",
+      "user.email",
+      "lifecycle@example.invalid",
+    ]);
+    gitFixture(f.candidateDir, ["add", "."]);
+    gitFixture(f.candidateDir, [
+      "commit",
+      "-qm",
+      "implementation on exact acquired base",
+    ]);
+    f.baseSha = acquired;
+    f.headSha = gitFixture(f.candidateDir, ["rev-parse", "HEAD"]);
+    f.diff = diffEvidence({
+      candidateDir: f.candidateDir,
+      baseSha: f.baseSha,
+      headSha: f.headSha,
+    });
+    const result = await run();
+    assert.equal(result.decision, "POLICY_SATISFIED");
+    assert.equal(
+      result.mode,
+      undefined,
+      "ordinary policy, not acquisition mode",
+    );
+    assert.equal(result.exactBaseSha, acquired);
+    assert.deepEqual(
+      JSON.parse(readFileSync(join(f.candidateDir, registryPath), "utf8"))
+        .claims["MD-TDP-LEARNING-001"],
+      survivor,
+    );
+    await assert.rejects(
+      () => run(gateApiFor(f, { moveMainAfterFirstRead: true })),
+      /MERGE_GATE_MAIN_MOVED_DURING_PROOF/,
+    );
+  } finally {
+    rmSync(f.root, { recursive: true, force: true });
   }
 });
