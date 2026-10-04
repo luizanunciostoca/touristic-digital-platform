@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
@@ -360,4 +360,34 @@ test("final proof is parent-authored, fresh and never activates production", asy
     Date.parse(proof.expiresAt),
     Date.parse(proof.observedAt) + proof.freshnessSeconds * 1000,
   );
+});
+
+test("workflow trust root is base-controlled and never executes candidate directly", () => {
+  const workflow = readFileSync(
+    resolve(
+      import.meta.dirname,
+      "../../.github/workflows/failure-learning-independent-proof.yml",
+    ),
+    "utf8",
+  );
+  assert.match(workflow, /^\s*workflow_run:/mu);
+  assert.match(workflow, /Trusted Claim Guard Bootstrap/u);
+  assert.doesNotMatch(workflow, /pull_request_target/u);
+  assert.match(
+    workflow,
+    /ref: \$\{\{ steps\.pr\.outputs\.base_sha \}\}/u,
+  );
+  assert.match(
+    workflow,
+    /ref: \$\{\{ steps\.pr\.outputs\.candidate_sha \}\}/u,
+  );
+  assert.equal(
+    [...workflow.matchAll(/persist-credentials:\s*false/gu)].length,
+    2,
+  );
+  assert.match(
+    workflow,
+    /node trusted\/tooling\/quality\/failure-learning-proof-trusted\.mjs candidate/u,
+  );
+  assert.doesNotMatch(workflow, /node\s+candidate\//u);
 });

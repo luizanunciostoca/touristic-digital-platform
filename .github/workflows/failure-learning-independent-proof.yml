@@ -1,0 +1,188 @@
+name: Failure Learning Independent Proof
+
+on:
+  workflow_run:
+    workflows: ["Trusted Claim Guard Bootstrap"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+concurrency:
+  group: failure-learning-independent-proof-${{ github.event.workflow_run.id }}-${{ github.event.workflow_run.run_attempt }}
+  cancel-in-progress: true
+
+jobs:
+  trusted-failure-learning-proof:
+    name: trusted-failure-learning-proof
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Resolve exact pull request identity
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          UPSTREAM_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          UPSTREAM_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          pr_number="$(jq -r '.workflow_run.pull_requests | if length == 1 then .[0].number else empty end' "$GITHUB_EVENT_PATH")"
+          test -n "$pr_number"
+          gh api "repos/$REPOSITORY/pulls/$pr_number" > pr.json
+          test "$(jq -r '.state' pr.json)" = "open"
+          test "$(jq -r '.base.ref' pr.json)" = "main"
+          test "$(jq -r '.base.repo.full_name' pr.json)" = "$REPOSITORY"
+          test "$(jq -r '.head.repo.full_name' pr.json)" = "$REPOSITORY"
+          candidate_sha="$(jq -r '.head.sha' pr.json)"
+          base_sha="$(jq -r '.base.sha' pr.json)"
+          branch="$(jq -r '.head.ref' pr.json)"
+          test "$candidate_sha" = "$UPSTREAM_HEAD_SHA"
+          test "$branch" = "$UPSTREAM_HEAD_BRANCH"
+          test "$base_sha" = "$GITHUB_SHA"
+
+          files="$(gh api --paginate "repos/$REPOSITORY/pulls/$pr_number/files?per_page=100" --jq '.[].filename')"
+          if grep -Eq '^(tooling/failure-learning/|\.github/morro-control/failures/|\.github/morro-control/tdp-max/anti-recurrence\.json$|\.morro/changesets/MD-TDP-LEARNING-001\.json$|package\.json$)' <<<"$files"; then
+            relevant=true
+          else
+            relevant=false
+          fi
+
+          {
+            echo "pr_number=$pr_number"
+            echo "candidate_sha=$candidate_sha"
+            echo "base_sha=$base_sha"
+            echo "branch=$branch"
+            echo "relevant=$relevant"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Checkout trusted base
+        if: steps.pr.outputs.relevant == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ steps.pr.outputs.base_sha }}
+          path: trusted
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Checkout candidate as data
+        if: steps.pr.outputs.relevant == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ steps.pr.outputs.candidate_sha }}
+          path: candidate
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Node
+        if: steps.pr.outputs.relevant == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+          package-manager-cache: false
+
+      - name: Resolve Failure Learning ChangeSet
+        if: steps.pr.outputs.relevant == 'true'
+        id: manifest
+        env:
+          HEAD_BRANCH: ${{ steps.pr.outputs.branch }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          claim_id="$(jq -r --arg branch "$HEAD_BRANCH" '
+            .claims
+            | to_entries
+            | map(select(
+                .value.branch == $branch and
+                (.value.paths | any(. == "tooling/failure-learning/**"))
+              ))
+            | if length == 1 then .[0].key else empty end
+          ' candidate/.github/morro-control/claims.json)"
+          test -n "$claim_id"
+          manifest_path=".morro/changesets/$claim_id.json"
+          test -f "candidate/$manifest_path"
+          test "$(jq -r '.id' "candidate/$manifest_path")" = "$claim_id"
+          echo "manifest_path=$manifest_path" >> "$GITHUB_OUTPUT"
+
+      - name: Verify exact identities
+        if: steps.pr.outputs.relevant == 'true'
+        env:
+          BASE_SHA: ${{ steps.pr.outputs.base_sha }}
+          CANDIDATE_SHA: ${{ steps.pr.outputs.candidate_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C trusted rev-parse HEAD)" = "$BASE_SHA"
+          test "$(git -C candidate rev-parse HEAD)" = "$CANDIDATE_SHA"
+          git -C candidate merge-base --is-ancestor "$BASE_SHA" "$CANDIDATE_SHA"
+          test -z "$(git -C candidate status --porcelain --untracked-files=all)"
+
+      - name: Test trusted validator
+        if: steps.pr.outputs.relevant == 'true'
+        run: node --experimental-vm-modules --test trusted/tooling/quality/failure-learning-proof-trusted.test.mjs
+
+      - name: Execute base-controlled semantic proof
+        if: steps.pr.outputs.relevant == 'true'
+        env:
+          EXPECTED_REPOSITORY: ${{ github.repository }}
+          EXPECTED_BASE_REPOSITORY: ${{ github.repository }}
+          EXPECTED_HEAD_REPOSITORY: ${{ github.repository }}
+          EXPECTED_WORKFLOW: ${{ github.workflow }}
+          EXPECTED_JOB: ${{ github.job }}
+          EXPECTED_RUN_ID: ${{ github.run_id }}
+          EXPECTED_RUN_ATTEMPT: ${{ github.run_attempt }}
+          EXPECTED_WORKFLOW_REF: ${{ github.workflow_ref }}
+          EXPECTED_CANDIDATE_SHA: ${{ steps.pr.outputs.candidate_sha }}
+          EVENT_CANDIDATE_SHA: ${{ steps.pr.outputs.candidate_sha }}
+          EXPECTED_BASE_SHA: ${{ steps.pr.outputs.base_sha }}
+          EVENT_BASE_SHA: ${{ steps.pr.outputs.base_sha }}
+          EXPECTED_BRANCH: ${{ steps.pr.outputs.branch }}
+          EVENT_BRANCH: ${{ steps.pr.outputs.branch }}
+          EXPECTED_BASE_BRANCH: main
+          MANIFEST_PATH: ${{ steps.manifest.outputs.manifest_path }}
+          TRUSTED_VALIDATOR_SHA: ${{ steps.pr.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          export TRUSTED_VALIDATOR_TREE_SHA="$(git -C trusted rev-parse 'HEAD^{tree}')"
+          node trusted/tooling/quality/failure-learning-proof-trusted.mjs candidate "$MANIFEST_PATH" > failure-learning-independent-proof.json
+
+      - name: Require semantic assertions
+        if: steps.pr.outputs.relevant == 'true'
+        env:
+          CANDIDATE_SHA: ${{ steps.pr.outputs.candidate_sha }}
+          BASE_SHA: ${{ steps.pr.outputs.base_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e --arg candidate "$CANDIDATE_SHA" --arg base "$BASE_SHA" --arg run "$RUN_ID" --argjson attempt "$RUN_ATTEMPT" '
+            .contract == "TDP_FAILURE_LEARNING_INDEPENDENT_PROOF" and
+            .status == "pass" and
+            .authority == "BASE_CONTROLLED_TRUSTED_VALIDATOR" and
+            .candidateSha == $candidate and
+            .baseSha == $base and
+            .runId == $run and
+            .runAttempt == $attempt and
+            .assertions.sourceAuthentication == "PASS" and
+            .assertions.guardSpecificSemanticProof == "PASS" and
+            .assertions.canonicalActivation == "PASS" and
+            .activationState == "PROVEN_NOT_ACTIVATED" and
+            .activationTemplate.activatedAt == null
+          ' failure-learning-independent-proof.json >/dev/null
+
+      - name: Upload exact-head semantic proof
+        if: steps.pr.outputs.relevant == 'true'
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: failure-learning-independent-proof-${{ steps.pr.outputs.candidate_sha }}
+          path: failure-learning-independent-proof.json
+          if-no-files-found: error
+          retention-days: 30
