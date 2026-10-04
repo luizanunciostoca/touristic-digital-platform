@@ -1,22 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-TDP-LEARNING-PROOF-709": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "infra/failure-learning-proof-709-20261004",
-      "baseSha": "804407a8c4dacbfde402400281f322350deaade4",
-      "paths": [
-        ".morro/changesets/MD-TDP-LEARNING-PROOF-709.json",
-        "tooling/quality/failure-learning-proof-trusted.mjs",
-        "tooling/quality/failure-learning-proof-trusted.test.mjs",
-        ".github/workflows/failure-learning-independent-proof.yml"
-      ],
-      "domains": ["ci-release", "control-plane", "governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-04T12:00:00Z"
-    }
-  }
+  "claims": {}
 }
