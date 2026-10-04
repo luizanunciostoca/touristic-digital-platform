@@ -16,7 +16,11 @@
         "tooling/failure-learning/**",
         "package.json"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -32,7 +36,30 @@
         "tooling/quality/failure-learning-proof-trusted.test.mjs",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-04T12:00:00Z"
+    },
+    "MD-CP-MERGE-GATE-REANCHOR-716": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/merge-gate-reanchor-716-20261004",
+      "baseSha": "d006a94aecfb7a70f9829acdc14ff5a22a142201",
+      "paths": [
+        ".morro/changesets/MD-CP-MERGE-GATE-REANCHOR-716.json",
+        "tooling/mdctl/merge-gate.mjs",
+        "tooling/control-state/mdctl-merge-gate.test.mjs"
+      ],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
