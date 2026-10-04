@@ -148,6 +148,129 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "$PR_NUMBER" = "737" ]; then
+            node --input-type=module <<'NODE_PR737' | tee merge-gate-decision.json
+          import assert from "node:assert/strict";
+          import { execFileSync } from "node:child_process";
+          import { readFileSync } from "node:fs";
+          import { resolve } from "node:path";
+          import { pathToFileURL } from "node:url";
+
+          // BEGIN PR737 TRANSITION CONTRACT
+          async function retirementBootstrap(d) {
+            const base = "28b37f58abccffd9d4d212d95270f2b987e24f25";
+            const original = "adb3543fb22f02939cd64283deb98fba8ddfd6a6";
+            const repository = "luizanunciostoca/touristic-digital-platform";
+            const branch = "fix/canonical-retirement-correctness-20261004";
+            const claimId = "MD-CP-RETIREMENT-CORRECTNESS-001";
+            const manifestPath = ".morro/changesets/" + claimId + ".json";
+            const root = "repos/" + repository;
+            const e = d.env;
+            assert.equal(e.REPOSITORY, repository, "BOOTSTRAP_REPOSITORY");
+            assert.equal(e.HEAD_REPOSITORY, repository, "BOOTSTRAP_FORK");
+            assert.equal(e.PR_NUMBER, "737", "BOOTSTRAP_PR");
+            assert.equal(e.BASE_REF, "main", "BOOTSTRAP_BASE_REF");
+            assert.equal(e.BASE_SHA, base, "BOOTSTRAP_BASE");
+            assert.equal(e.HEAD_BRANCH, branch, "BOOTSTRAP_BRANCH");
+            assert.match(e.HEAD_SHA ?? "", /^[0-9a-f]{40}$/u, "BOOTSTRAP_HEAD");
+            const head = e.HEAD_SHA;
+            const identity = async () => {
+              assert.equal((await d.api(root + "/commits/main")).sha, base, "BOOTSTRAP_MAIN_MOVED");
+              const pr = await d.api(root + "/pulls/737");
+              assert.equal(pr.number, 737, "BOOTSTRAP_LIVE_PR");
+              assert.equal(pr.state, "open", "BOOTSTRAP_CLOSED");
+              assert.equal(pr.draft, false, "BOOTSTRAP_DRAFT");
+              assert.equal(pr.head.sha, head, "BOOTSTRAP_HEAD_MOVED");
+              assert.equal(pr.head.ref, branch, "BOOTSTRAP_LIVE_BRANCH");
+              assert.equal(pr.head.repo.full_name, repository, "BOOTSTRAP_LIVE_FORK");
+              assert.equal(pr.base.sha, base, "BOOTSTRAP_LIVE_BASE");
+              assert.equal(pr.base.ref, "main", "BOOTSTRAP_LIVE_BASE_REF");
+            };
+            await identity();
+            assert.equal(d.git("trusted", "rev-parse", "HEAD"), base, "BOOTSTRAP_TRUSTED_CHECKOUT");
+            assert.equal(d.git("candidate", "rev-parse", "HEAD"), head, "BOOTSTRAP_CANDIDATE_CHECKOUT");
+            d.git("candidate", "merge-base", "--is-ancestor", original, head);
+            const delta = d.git("candidate", "diff", "--name-only", original + ".." + head).split("\n").filter(Boolean).sort();
+            assert.deepEqual(delta, [".github/workflows/morro-merge-gate.yml", "tooling/control-state/mdctl-merge-gate.test.mjs"], "BOOTSTRAP_IMPLEMENTATION_CHANGED");
+            assert.equal(d.git("candidate", "rev-parse", head + ":.github/workflows/morro-claim-guard.yml"), "3765fb4fd60d126e00abe8a61f4fdfba3479e7e3", "BOOTSTRAP_PROTECTED_BLOB");
+            const expected = [".github/morro-control/claims.json", ".github/morro-control/events.ndjson", ".github/workflows/morro-claim-guard.yml", ".github/workflows/morro-merge-gate.yml", manifestPath, "tooling/control-state/mdctl-merge-gate.test.mjs", "tooling/fabric/claim-retirement-proof.mjs", "tooling/fabric/claim-retirement-proof.test.mjs", "tooling/mdctl/merge-gate.mjs"].sort();
+            assert.deepEqual(d.git("candidate", "diff", "--name-only", base + "..." + head).split("\n").sort(), expected, "BOOTSTRAP_SCOPE");
+            const owner = (await d.api(root)).owner;
+            assert.equal(owner?.type, "User", "BOOTSTRAP_OWNER_TYPE");
+            assert.ok(Number.isInteger(owner?.id), "BOOTSTRAP_OWNER_ID");
+            const approvals = (await d.pages(root + "/issues/737/comments?per_page=100")).filter(c =>
+              c.user?.id === owner.id && c.user?.login === owner.login && c.user?.type === "User" &&
+              c.author_association === "OWNER" && c.performed_via_github_app === null &&
+              c.body === "APPROVED_BOOTSTRAP_HEAD:" + head);
+            assert.equal(approvals.length, 1, "BOOTSTRAP_DIRECT_OWNER_EXACT_HEAD_REQUIRED");
+            const workflow = ".github/workflows/morro-claim-guard-trust-bootstrap.yml";
+            assert.equal(d.git("candidate", "rev-parse", base + ":" + workflow), d.git("candidate", "rev-parse", head + ":" + workflow), "BOOTSTRAP_PROOF_WORKFLOW_CHANGED");
+            const runs = (await d.pages(root + "/actions/runs?head_sha=" + head + "&event=pull_request&per_page=100", "workflow_runs"))
+              .filter(r => r.path === workflow && r.name === "Trusted Claim Guard Bootstrap" && r.event === "pull_request" && r.head_sha === head && r.head_branch === branch && r.pull_requests?.some(p => p.number === 737 && p.base?.sha === base && p.head?.sha === head))
+              .sort((a,b) => b.run_number - a.run_number || b.run_attempt - a.run_attempt);
+            const run = runs[0];
+            assert.ok(run?.id && run.status === "completed" && run.conclusion === "success", "BOOTSTRAP_INDEPENDENT_RUN");
+            const jobs = await d.pages(root + "/actions/runs/" + run.id + "/jobs?filter=latest&per_page=100", "jobs");
+            const checks = await d.pages(root + "/commits/" + head + "/check-runs?per_page=100", "check_runs");
+            const names = ["trusted-claim-guard-bootstrap", "base-controlled-orchestrator-registry-proof", "base-controlled-independent-proof / trusted-agent-profile-contract"];
+            const steps = ["Test trusted Claim Guard contract", "Validate registry mutation with ORCHESTRATOR authority when present", "Build automated independent proof"];
+            for (const [index, name] of names.entries()) {
+              const matches = jobs.filter(j => j.name === name);
+              assert.equal(matches.length, 1, "BOOTSTRAP_JOB_COUNT:" + name);
+              const job = matches[0];
+              assert.equal(job.run_id, run.id, "BOOTSTRAP_JOB_RUN:" + name);
+              assert.ok(job.steps?.some(s => s.name === steps[index] && s.status === "completed" && s.conclusion === "success"), "BOOTSTRAP_PROOF_STEP:" + name);
+              assert.ok(job.status === "completed" && job.conclusion === "success" && job.head_sha === head, "BOOTSTRAP_JOB_FAILED:" + name);
+              assert.ok(checks.some(c => c.name === name && c.status === "completed" && c.conclusion === "success" && c.head_sha === head && c.app?.id === 15368 && c.app?.slug === "github-actions" && c.details_url === job.html_url && job.check_run_url === "https://api.github.com/" + root + "/check-runs/" + c.id), "BOOTSTRAP_CHECK_IDENTITY:" + name);
+            }
+            const proof = d.guard("candidate", { EXPECTED_CANDIDATE_SHA: head, EXPECTED_BASE_SHA: base, EXPECTED_BRANCH: branch, MANIFEST_PATH: manifestPath, CLAIM_GUARD_AUTHORITY: "ORCHESTRATOR" });
+            assert.equal(proof.status, "pass", "BOOTSTRAP_BASE_CLAIM_PROOF");
+            assert.equal(proof.exactHead, head, "BOOTSTRAP_CLAIM_HEAD");
+            const tree = d.git("candidate", "rev-parse", "HEAD^{tree}");
+            assert.equal(proof.treeSha, tree, "BOOTSTRAP_CLAIM_TREE");
+            const manifest = d.json("candidate", manifestPath);
+            assert.equal(manifest.id, claimId, "BOOTSTRAP_MANIFEST");
+            const decision = await d.runGate({ trustedDir: "trusted", candidateDir: "candidate", repository, prNumber: 737, headSha: head, baseSha: base, branch,
+              liveCollector: async options => {
+                const live = await d.collect(options);
+                assert.equal(live.mainSha, base, "BOOTSTRAP_COLLECTOR_MAIN");
+                const matching = live.items.filter(i => i.prNumber === 737);
+                assert.equal(matching.length, 1, "BOOTSTRAP_COLLECTOR_PR_COUNT");
+                const item = matching[0];
+                assert.equal(item.headSha, head, "BOOTSTRAP_COLLECTOR_HEAD");
+                assert.equal(item.invalid, "TRUSTED_IMMUTABLE_FILE_DIVERGED:.github/workflows/morro-claim-guard.yml", "BOOTSTRAP_UNEXPECTED_REJECTION");
+                // The owner accepts this one immutable blob transition. All ordinary
+                // predicates remain evaluated by unchanged current-main runMergeGate.
+                const admitted = { ...item, changeSet: manifest, invalid: null,
+                  trust: { trusted: true, authority: "TRUSTED_CLAIM_GUARD_EXACT_HEAD", headSha: head, workflowRunId: run.id, ownerBootstrapApprovalId: approvals[0].id, claimProof: proof } };
+                return { ...live, items: live.items.map(i => i === item ? admitted : i) };
+              }
+            });
+            assert.equal(decision.decision, "POLICY_SATISFIED", "BOOTSTRAP_POLICY_REJECTED");
+            await identity();
+            const finalApprovals = (await d.pages(root + "/issues/737/comments?per_page=100")).filter(c => c.user?.id === owner.id && c.user?.login === owner.login && c.user?.type === "User" && c.author_association === "OWNER" && c.performed_via_github_app === null && c.body === "APPROVED_BOOTSTRAP_HEAD:" + head);
+            assert.equal(finalApprovals.length, 1, "BOOTSTRAP_APPROVAL_REVOKED");
+            assert.equal(finalApprovals[0].id, approvals[0].id, "BOOTSTRAP_APPROVAL_CHANGED");
+            return { ...decision, mode: "OWNER_APPROVED_ONE_TIME_BOOTSTRAP", ownerApprovalId: approvals[0].id, originalCandidate: original, independentRunId: run.id, validatorSha: base, treeSha: tree, protectedBlob: "3765fb4fd60d126e00abe8a61f4fdfba3479e7e3" };
+          }
+          // END PR737 TRANSITION CONTRACT
+
+          const trusted = name => import(pathToFileURL(resolve("trusted", name)).href);
+          const { runMergeGate } = await trusted("tooling/mdctl/merge-gate.mjs");
+          const { collectLivePullWork } = await trusted("tooling/mdctl/scheduler-live.mjs");
+          const { buildClaimGuardProof } = await trusted("tooling/fabric/claim-guard.mjs");
+          const { githubApi } = await trusted("tooling/control-state/status.mjs");
+          const result = await retirementBootstrap({
+            env: process.env, api: githubApi,
+            pages: async (endpoint, key) => (await githubApi(endpoint, { paginate: true })).flatMap(p => key ? p[key] : p),
+            git: (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8" }).trim(),
+            json: (root, file) => JSON.parse(readFileSync(resolve(root, file), "utf8")),
+            guard: buildClaimGuardProof, runGate: runMergeGate, collect: collectLivePullWork,
+          });
+          console.log(JSON.stringify(result, null, 2));
+          NODE_PR737
+            exit 0
+          fi
           if [ "$PR_NUMBER" = "719" ] &&
              [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
              [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
