@@ -10,7 +10,11 @@
       "paths": [
         ".morro/changesets/MD-FASTFIX-BACKLOG-001.json",
         ".github/morro-control/backlog.json",
-        ".github/morro-control/dependency-graph.json"
+        ".github/morro-control/dependency-graph.json",
+        "tooling/mdctl/reconcile.mjs",
+        "tooling/control-state/mdctl-scheduler.test.mjs",
+        "tooling/tdp-max/tdp-max-v2.mjs",
+        "tooling/tdp-max/tdp-max-v2.test.mjs"
       ],
       "domains": [
         "ci-release",
