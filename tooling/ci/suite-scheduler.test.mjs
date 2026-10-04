@@ -167,6 +167,7 @@ test("incomplete analyzer reports cannot narrow managed suite selection", () => 
     "needsFullSecurity",
     "needsFullRegression",
     "nonRuntime",
+    "packageJsonChanges",
   ]) {
     const malformed = structuredClone(complete);
     delete malformed[field];
@@ -224,16 +225,17 @@ test("new domain mapping cannot narrow shared auth, dependencies, migrations or 
     assert.deepEqual(selectSuites(report), all, file);
   }
 });
-test("workspace and observed-state tooling retains deterministic gates without browser fan-out", () => {
-  for (const file of [
-    "tooling/workspace/workspace.mjs",
-    "tooling/control-state/status.mjs",
-  ]) {
-    const report = analyzeFiles([file]);
-    assert.equal(report.nonRuntime, true);
-    assert.equal(report.needsFullSecurity, true);
-    assert.deepEqual(selectSuites(report), []);
-  }
+test("workspace and observed-state tooling retain deterministic gates without browser fan-out", () => {
+  const workspace = analyzeFiles(["tooling/workspace/workspace.mjs"]);
+  assert.equal(workspace.nonRuntime, true);
+  assert.equal(workspace.needsFullSecurity, true);
+  assert.deepEqual(selectSuites(workspace), []);
+
+  const controlState = analyzeFiles(["tooling/control-state/status.mjs"]);
+  assert.equal(controlState.nonRuntime, true);
+  assert.equal(controlState.needsFullSecurity, false);
+  assert.equal(controlState.needsFullRegression, false);
+  assert.deepEqual(selectSuites(controlState), []);
 });
 
 test("uncovered managed runtime files force full coverage even beside a covered change", () => {
@@ -335,5 +337,35 @@ test("inconsistent classification cannot suppress unknown or critical file cover
     const report = analyzeFiles(["docs/overview.md"]);
     report.files = [file];
     assert.deepEqual(selectSuites(report), all, file);
+  }
+});
+
+test("script-only package changes preserve semantic fast-lane selection", () => {
+  const report = analyzeFiles(["package.json"], {
+    packageJsonChanges: { "package.json": "scripts" },
+  });
+  assert.equal(report.nonRuntime, true);
+  assert.equal(report.needsFullRegression, false);
+  assert.deepEqual(selectSuites(report), []);
+});
+
+test("dependency package changes still select full managed coverage", () => {
+  const report = analyzeFiles(["package.json"], {
+    packageJsonChanges: { "package.json": "dependencies" },
+  });
+  assert.equal(report.needsFullRegression, true);
+  assert.deepEqual(selectSuites(report), all);
+});
+
+test("control-plane tooling does not select managed runtime suites", () => {
+  for (const file of [
+    "tooling/ci/impact-analyzer.mjs",
+    "tooling/mdctl/reconcile.mjs",
+    "tooling/tdp-max/tdp-max-v2.mjs",
+  ]) {
+    const report = analyzeFiles([file]);
+    assert.equal(report.nonRuntime, true, file);
+    assert.equal(report.needsFullRegression, false, file);
+    assert.deepEqual(selectSuites(report), [], file);
   }
 });

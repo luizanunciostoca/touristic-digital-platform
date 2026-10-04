@@ -50,6 +50,9 @@ export function isCompleteImpactReport(report) {
     Array.isArray(report.suites) &&
     Array.isArray(report.domains) &&
     Array.isArray(report.unknownFiles) &&
+    report.packageJsonChanges &&
+    typeof report.packageJsonChanges === "object" &&
+    !Array.isArray(report.packageJsonChanges) &&
     impactManifest.riskOrder.includes(report.risk) &&
     reportBooleanFields.every((field) => typeof report[field] === "boolean") &&
     (report.failClosedReason === null ||
@@ -63,7 +66,18 @@ export function isCompleteImpactReport(report) {
     report.suites.every(
       (suite) => typeof suite === "string" && knownReportSuites.has(suite),
     ) &&
-    report.unknownFiles.every((file) => typeof file === "string"),
+    report.unknownFiles.every((file) => typeof file === "string") &&
+    Object.entries(report.packageJsonChanges).every(
+      ([file, kind]) =>
+        typeof file === "string" &&
+        [
+          "dependencies",
+          "environment",
+          "scripts",
+          "metadata",
+          "unknown",
+        ].includes(kind),
+    ),
   );
 }
 
@@ -80,7 +94,10 @@ export function selectSuites(report, manifest = suiteManifest) {
   // Evaluate each newly managed runtime file independently: a covered file
   // in the same PR must never mask a second file with unknown suite coverage.
   for (const file of report.files) {
-    const fileImpact = analyzeFiles([file]);
+    const semantic = report.packageJsonChanges[file];
+    const fileImpact = analyzeFiles([file], {
+      packageJsonChanges: semantic ? { [file]: semantic } : {},
+    });
     if (fileImpact.needsFullRegression || fileImpact.unknownFiles.length > 0)
       return all;
     const requiresCoverage = fileImpact.domains.some(
@@ -101,9 +118,17 @@ export function selectSuites(report, manifest = suiteManifest) {
       (suite) =>
         report.suites.includes(suite.workflow) ||
         suite.paths.length === 0 ||
-        report.files.some((file) =>
-          suite.paths.some((pattern) => matchesPath(file, pattern)),
-        ),
+        report.files.some((file) => {
+          const semantic = report.packageJsonChanges[file];
+          if (
+            (file === "package.json" || file.endsWith("/package.json")) &&
+            semantic &&
+            !["dependencies", "unknown"].includes(semantic)
+          ) {
+            return false;
+          }
+          return suite.paths.some((pattern) => matchesPath(file, pattern));
+        }),
     )
     .map((suite) => suite.workflow);
 }

@@ -98,13 +98,43 @@
       "needsDependencyAudit": true,
       "needsFullSecurity": true
     },
+    "package-scripts": {
+      "paths": [],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [],
+      "nonRuntime": true,
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "package-environment": {
+      "paths": [],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "package-metadata": {
+      "paths": [],
+      "risk": "LOW",
+      "dependsOn": [],
+      "suites": [],
+      "nonRuntime": true,
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
     "cicd": {
-      "paths": [
-        ".github/workflows/",
-        "tooling/ci/",
-        "tooling/quality/",
-        ".github/actions/"
-      ],
+      "paths": [".github/workflows/", "tooling/quality/", ".github/actions/"],
       "risk": "CRITICAL",
       "dependsOn": ["release-governance", "security"],
       "suites": ["security-scanning.yml"],
@@ -113,6 +143,18 @@
       "needsDatabase": false,
       "needsDependencyAudit": false,
       "needsFullSecurity": true
+    },
+    "ci-tooling": {
+      "paths": ["tooling/ci/"],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [],
+      "nonRuntime": true,
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     },
     "database": {
       "paths": [
@@ -155,14 +197,30 @@
         ".github/copilot-instructions.md",
         ".github/pull_request_template.md",
         "tooling/fabric/",
-        "tooling/workspace/",
-        "tooling/control-state/"
+        "tooling/workspace/"
       ],
       "risk": "HIGH",
       "dependsOn": [],
       "suites": [],
       "nonRuntime": true,
       "needsFullSecurity": true
+    },
+    "control-plane": {
+      "paths": [
+        "tooling/control-state/",
+        "tooling/mdctl/",
+        "tooling/tdp-max/",
+        "tooling/failure-learning/"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [],
+      "nonRuntime": true,
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     },
     "business": {
       "paths": [
