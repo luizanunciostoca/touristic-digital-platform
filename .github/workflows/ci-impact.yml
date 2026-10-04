@@ -24,6 +24,8 @@ on:
         value: ${{ jobs.impact.outputs.needs_full_regression }}
       non_runtime:
         value: ${{ jobs.impact.outputs.non_runtime }}
+      serialized_control_transition_only:
+        value: ${{ jobs.impact.outputs.serialized_control_transition_only }}
       scheduled_suites:
         value: ${{ jobs.impact.outputs.scheduled_suites }}
 
@@ -48,6 +50,7 @@ jobs:
       needs_full_security: ${{ steps.impact.outputs.needs_full_security }}
       needs_full_regression: ${{ steps.impact.outputs.needs_full_regression }}
       non_runtime: ${{ steps.impact.outputs.non_runtime }}
+      serialized_control_transition_only: ${{ steps.impact.outputs.serialized_control_transition_only }}
       scheduled_suites: ${{ steps.schedule.outputs.scheduled_suites }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -96,6 +96,7 @@ jobs:
       - name: Validate CI selection and candidate identity
         run: node --test tooling/ci/*.test.mjs tooling/quality/ci-scheduler-governance.test.mjs
       - name: Validate operational tooling contracts
+        if: needs.impact.outputs.serialized_control_transition_only != 'true'
         shell: bash
         run: |
           node --input-type=module <<'NODE'

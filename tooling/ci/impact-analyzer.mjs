@@ -45,6 +45,21 @@ function changedFiles(base, head) {
   return output ? output.split("\n").filter(Boolean) : [];
 }
 
+export function isSerializedControlTransition(files) {
+  const required = new Set([
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+  ]);
+  const manifests = files.filter((file) =>
+    /^\.morro\/changesets\/MD-[A-Z0-9-]+\.json$/u.test(file),
+  );
+  return (
+    files.length === 3 &&
+    manifests.length === 1 &&
+    [...required].every((file) => files.includes(file))
+  );
+}
+
 function highestRisk(current, next) {
   return (riskRank.get(next) ?? 999) > (riskRank.get(current) ?? -1)
     ? next
@@ -57,6 +72,7 @@ export function analyzeFiles(
 ) {
   const domains = [];
   const suites = new Set();
+  const serializedControlTransitionOnly = isSerializedControlTransition(files);
   let risk = "LOW";
   let needsBrowser = false;
   let needsVisual = false;
@@ -111,6 +127,7 @@ export function analyzeFiles(
     needsFullSecurity: needsFullRegression || needsFullSecurity,
     needsFullRegression,
     nonRuntime,
+    serializedControlTransitionOnly,
     unknownFiles,
     failClosedReason:
       unknownFiles.length > 0
@@ -151,6 +168,7 @@ if (invokedDirectly) {
       needsFullSecurity: true,
       needsFullRegression: true,
       nonRuntime: false,
+      serializedControlTransitionOnly: false,
       unknownFiles: [],
       failClosedReason: error instanceof Error ? error.message : String(error),
     };
@@ -170,6 +188,9 @@ if (invokedDirectly) {
       needs_full_security: String(report.needsFullSecurity),
       needs_full_regression: String(report.needsFullRegression),
       non_runtime: String(report.nonRuntime),
+      serialized_control_transition_only: String(
+        report.serializedControlTransitionOnly,
+      ),
     })) {
       appendFileSync(process.env.GITHUB_OUTPUT, `${key}=${value}\n`);
     }

@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-SERIALIZED-CONTROL-TRANSITION-001",
   "objective": "avoid-self-contaminating-operational-tests-on-serialized-control-transitions",
-  "baseSha": "112c1654cd5ed947a89e670f35ed5ae5efd4ebe7",
+  "baseSha": "44e6a96387bd8b7e6725bd896b95ef1762ecc8ec",
   "branch": "fix/ci-serialized-control-transition-20261004",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

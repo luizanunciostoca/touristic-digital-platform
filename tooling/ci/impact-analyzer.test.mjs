@@ -85,3 +85,28 @@ test("unresolvable Git identities fail closed at the CLI boundary", () => {
   assert.equal(result.needsFullRegression, true);
   assert.equal(result.needsDatabase, true);
 });
+
+test("serialized claim transitions are classified separately from ordinary governance changes", () => {
+  const transition = analyzeFiles([
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    ".morro/changesets/MD-EXAMPLE-001.json",
+  ]);
+  assert.equal(transition.serializedControlTransitionOnly, true);
+
+  for (const files of [
+    [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+    ],
+    [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-EXAMPLE-001.json",
+      "tooling/mdctl/merge-gate.mjs",
+    ],
+    [".github/morro-control/claims.json", "README.md", "docs/x.md"],
+  ]) {
+    assert.equal(analyzeFiles(files).serializedControlTransitionOnly, false);
+  }
+});

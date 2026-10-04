@@ -111,3 +111,21 @@ test("draft transitions cannot rerun unchanged Quality candidates", () => {
   assert.ok(quality.includes("types: [opened, synchronize, reopened]"));
   assert.doesNotMatch(quality, /ready_for_review|converted_to_draft/);
 });
+
+test("serialized control transitions skip only self-referential operational tooling contracts", () => {
+  const impact = read(".github/workflows/ci-impact.yml");
+  assert.ok(impact.includes("serialized_control_transition_only:"));
+  assert.ok(
+    quality.includes(
+      "if: needs.impact.outputs.serialized_control_transition_only != 'true'",
+    ),
+  );
+  assert.match(
+    quality,
+    /- name: Validate governance contracts\n\s+if: needs\.impact\.outputs\.non_runtime == 'true'/u,
+  );
+  assert.doesNotMatch(
+    quality,
+    /- name: Check formatting\n\s+if: needs\.impact\.outputs\.serialized_control_transition_only/u,
+  );
+});
