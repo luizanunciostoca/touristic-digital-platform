@@ -4,7 +4,7 @@
   "objective": "avoid-self-contaminating-operational-tests-on-serialized-control-transitions",
   "baseSha": "44e6a96387bd8b7e6725bd896b95ef1762ecc8ec",
   "branch": "fix/ci-serialized-control-transition-20261004",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
