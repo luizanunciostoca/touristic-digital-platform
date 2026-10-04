@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 import test from "node:test";
@@ -373,14 +379,8 @@ test("workflow trust root is base-controlled and never executes candidate direct
   assert.match(workflow, /^\s*workflow_run:/mu);
   assert.match(workflow, /Trusted Claim Guard Bootstrap/u);
   assert.doesNotMatch(workflow, /pull_request_target/u);
-  assert.match(
-    workflow,
-    /ref: \$\{\{ steps\.pr\.outputs\.base_sha \}\}/u,
-  );
-  assert.match(
-    workflow,
-    /ref: \$\{\{ steps\.pr\.outputs\.candidate_sha \}\}/u,
-  );
+  assert.match(workflow, /ref: \$\{\{ steps\.pr\.outputs\.base_sha \}\}/u);
+  assert.match(workflow, /ref: \$\{\{ steps\.pr\.outputs\.candidate_sha \}\}/u);
   assert.equal(
     [...workflow.matchAll(/persist-credentials:\s*false/gu)].length,
     2,
