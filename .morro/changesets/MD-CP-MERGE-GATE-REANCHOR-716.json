@@ -13,15 +13,10 @@
       "tooling/mdctl/merge-gate.mjs",
       "tooling/control-state/mdctl-merge-gate.test.mjs"
     ],
-    "contracts": [
-      "TDP-MERGE-GATE-REANCHOR-COMPATIBILITY"
-    ]
+    "contracts": ["TDP-MERGE-GATE-REANCHOR-COMPATIBILITY"]
   },
   "reads": {
-    "contracts": [
-      "GITHUB-CURRENT-MAIN",
-      "TDP-CONTROL-PLANE-V3.2-AUTHORITY"
-    ]
+    "contracts": ["GITHUB-CURRENT-MAIN", "TDP-CONTROL-PLANE-V3.2-AUTHORITY"]
   },
   "produces": {
     "events": [],
