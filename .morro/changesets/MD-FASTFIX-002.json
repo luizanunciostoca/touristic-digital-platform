@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-002",
+  "objective": "bugfix-fast-affected-quality-and-conditional-deep-suites",
+  "baseSha": "73d5ee892a5f78db2659e66630aa0cf6e7f8129b",
+  "branch": "fix/fastfix-002-affected-quality-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-002.json",
+      ".github/workflows/ci-impact.yml",
+      ".github/workflows/quality.yml",
+      ".github/workflows/security-scanning.yml",
+      "tooling/quality/ci-scheduler-governance.test.mjs"
+    ],
+    "contracts": [
+      "BUGFIX-FAST-QUALITY",
+      "CI-IMPACT-BASE",
+      "SECURITY-SCAN-SELECTION"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "CI-IMPACT-CLASSIFICATION",
+      "CI-SUITE-SELECTION"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-FASTFIX-001"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "ci-selection",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "bugfix-fast-quality",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/ci-scheduler-governance.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs",
+          "tooling/ci/suite-scheduler.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
