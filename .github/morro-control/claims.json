@@ -2,25 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-TDP-LEARNING-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "feat/closed-loop-failure-learning-20261003",
-      "baseSha": "99518539b6e894fa6145f0835a6f6e83ea0d1548",
-      "paths": [
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson",
-        ".morro/changesets/MD-TDP-LEARNING-001.json",
-        ".github/morro-control/tdp-max/anti-recurrence.json",
-        ".github/morro-control/failures/**",
-        "tooling/failure-learning/**",
-        "package.json"
-      ],
-      "domains": ["ci-release", "control-plane", "governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-04T12:00:00Z"
-    },
     "MD-TDP-LEARNING-PROOF-709": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
