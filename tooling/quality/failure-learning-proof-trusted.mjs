@@ -518,15 +518,13 @@ function runSandbox(payload) {
   );
   const result = spawnSync(
     process.execPath,
-    ["--experimental-vm-modules", scriptPath, "--sandbox-child"],
+    ["--no-warnings", "--experimental-vm-modules", scriptPath, "--sandbox-child"],
     {
       input,
       encoding: "utf8",
       timeout: SANDBOX_TIMEOUT_MS,
       maxBuffer: SANDBOX_MAX_BUFFER,
-      env: {
-        NODE_NO_WARNINGS: "1",
-      },
+      env: {},
     },
   );
   assert.equal(result.error, undefined, "SANDBOX_CHILD_EXECUTION_FAILED");
@@ -685,8 +683,8 @@ function parseSandboxInput(text) {
 
 async function sandboxChildMain() {
   assert.deepEqual(
-    Object.keys(process.env).sort(),
-    ["NODE_NO_WARNINGS"],
+    Object.keys(process.env),
+    [],
     "SANDBOX_CHILD_ENV_NOT_SCRUBBED",
   );
   let input = "";
