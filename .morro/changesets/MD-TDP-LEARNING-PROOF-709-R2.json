@@ -14,14 +14,10 @@
       "tooling/quality/failure-learning-proof-trusted.test.mjs",
       ".github/workflows/failure-learning-independent-proof.yml"
     ],
-    "contracts": [
-      "TDP-FAILURE-LEARNING-TRUSTED-PROOF"
-    ]
+    "contracts": ["TDP-FAILURE-LEARNING-TRUSTED-PROOF"]
   },
   "reads": {
-    "contracts": [
-      "TDP-MAX-EXTERNAL-EVIDENCE-FRESHNESS"
-    ]
+    "contracts": ["TDP-MAX-EXTERNAL-EVIDENCE-FRESHNESS"]
   },
   "produces": {
     "events": [],
