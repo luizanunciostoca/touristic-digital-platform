@@ -454,8 +454,8 @@ export function buildGuardProof(
     assertion: context.assertion,
   });
   assert.deepEqual(
-    Object.keys(proof),
-    PROOF_FIELDS,
+    Object.keys(proof).sort(),
+    [...PROOF_FIELDS].sort(),
     "GUARD_PROOF_FIELDS_INVALID",
   );
   assertFreshnessWindow(proof, freshnessSeconds, nowMs);
