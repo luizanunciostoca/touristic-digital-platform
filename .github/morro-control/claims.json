@@ -1,5 +1,30 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-FASTFIX-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/fastfix-001-semantic-ci-impact-r2-20261004",
+      "baseSha": "fd2e47ca7ff21f8552737300155dbd107d3a5fb0",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-001.json",
+        "tooling/ci/impact-analyzer.mjs",
+        "tooling/ci/impact-analyzer.test.mjs",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/suite-scheduler.mjs",
+        "tooling/ci/suite-scheduler.test.mjs",
+        ".github/workflows/ci-impact.yml",
+        ".github/workflows/failure-learning-independent-proof.yml"
+      ],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T23:30:00Z"
+    }
+  }
 }
