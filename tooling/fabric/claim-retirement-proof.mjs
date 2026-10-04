@@ -365,7 +365,9 @@ async function mergedEvidence(claim, repository, expectedBaseSha, options) {
       (pr) =>
         pr?.state === "closed" &&
         pr?.head?.ref === claim.branch &&
+        pr?.head?.repo?.full_name === repository &&
         pr?.base?.ref === "main" &&
+        pr?.base?.repo?.full_name === repository &&
         Number.isInteger(pr?.number) &&
         Number.isFinite(Date.parse(pr?.merged_at)) &&
         SHA.test(pr?.merge_commit_sha ?? ""),

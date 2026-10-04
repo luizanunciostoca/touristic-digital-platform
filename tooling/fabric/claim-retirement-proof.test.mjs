@@ -330,8 +330,8 @@ test("canonical collector proves merged PR ancestry through GitHub", async () =>
             state: "closed",
             merged_at: "2026-09-27T00:00:00Z",
             merge_commit_sha: MERGE,
-            head: { ref: "infra/example" },
-            base: { ref: "main" },
+            head: { ref: "infra/example", repo: { full_name: "owner/repo" } },
+            base: { ref: "main", repo: { full_name: "owner/repo" } },
           },
         ],
       ],
@@ -395,7 +395,10 @@ test("PR targeting another base branch prevents orphan classification", async ()
                 state: "closed",
                 merged_at: null,
                 merge_commit_sha: null,
-                head: { ref: "infra/example" },
+                head: {
+                  ref: "infra/example",
+                  repo: { full_name: "owner/repo" },
+                },
                 base: { ref: "release-candidate" },
               },
             ],
@@ -423,8 +426,11 @@ test("unmerged closed PR is not treated as orphan evidence", async () => {
                 state: "closed",
                 merged_at: null,
                 merge_commit_sha: null,
-                head: { ref: "infra/example" },
-                base: { ref: "main" },
+                head: {
+                  ref: "infra/example",
+                  repo: { full_name: "owner/repo" },
+                },
+                base: { ref: "main", repo: { full_name: "owner/repo" } },
               },
             ],
           ],
@@ -444,8 +450,8 @@ function mergedRoutes(files) {
           state: "closed",
           merged_at: "2026-09-27T00:00:00Z",
           merge_commit_sha: MERGE,
-          head: { ref: "infra/example" },
-          base: { ref: "main" },
+          head: { ref: "infra/example", repo: { full_name: "owner/repo" } },
+          base: { ref: "main", repo: { full_name: "owner/repo" } },
         },
       ],
     ],
@@ -762,4 +768,92 @@ test("material retirement ledger binds completion and release to the actual merg
     () => validateRetirementEvents({ ...input, candidateText: ledger(events) }),
     /CLAIM_RETIREMENT_EVENT_PR_INVALID/u,
   );
+});
+
+test("material merge evidence rejects same-owner forks and missing repository identity", async () => {
+  for (const override of [
+    { head: { ref: "infra/example", repo: { full_name: "owner/fork" } } },
+    { base: { ref: "main", repo: { full_name: "owner/other" } } },
+    { head: { ref: "infra/example" } },
+    { base: { ref: "main" } },
+  ]) {
+    const routes = mergedRoutes([
+      { filename: "tooling/example.mjs", status: "modified" },
+    ]);
+    const material = { ...routes[0][1][0], ...override };
+    const acquisition = {
+      ...routes[0][1][0],
+      number: 124,
+      merged_at: "2026-09-28T00:00:00Z",
+    };
+    routes[0][1] = [acquisition, material];
+    routes.push([
+      "/pulls/124/files?",
+      [{ filename: ".morro/changesets/MD-ONE.json", status: "added" }],
+    ]);
+    const observed = [];
+    const fetchFixture = fakeFetch(routes);
+    const evidence = await collectClaimRetirementEvidence(
+      "MD-ONE",
+      claim({ expiresAt: "2026-09-29T00:00:00Z" }),
+      {
+        repository: "owner/repo",
+        expectedBaseSha: BASE,
+        token: "test-token",
+        now: Date.parse("2026-10-04T00:00:00Z"),
+        fetchImpl: async (url) => {
+          observed.push(String(url));
+          return fetchFixture(url);
+        },
+      },
+    );
+    assert.equal(evidence.reason, "EXPIRED");
+    assert.equal(evidence.prNumber, undefined);
+    assert.equal(
+      observed.some((url) => url.includes("/pulls/123/files?")),
+      false,
+    );
+  }
+});
+
+test("foreign material PR cannot complete an active claim or shadow an older canonical merge", async () => {
+  const routes = mergedRoutes([
+    { filename: "tooling/example.mjs", status: "modified" },
+  ]);
+  const canonical = routes[0][1][0];
+  const foreign = {
+    ...canonical,
+    number: 124,
+    merged_at: "2026-09-28T00:00:00Z",
+    head: { ref: "infra/example", repo: { full_name: "owner/fork" } },
+  };
+  const options = {
+    repository: "owner/repo",
+    expectedBaseSha: BASE,
+    token: "test-token",
+    now: Date.parse("2026-10-04T00:00:00Z"),
+  };
+  const active = claim({ expiresAt: "2099-01-01T00:00:00Z" });
+  for (const value of [
+    foreign,
+    { ...canonical, head: { ref: "infra/example", repo: null } },
+    { ...canonical, base: { ref: "main", repo: null } },
+  ]) {
+    routes[0][1] = [value];
+    await assert.rejects(
+      () =>
+        collectClaimRetirementEvidence("MD-ONE", active, {
+          ...options,
+          fetchImpl: fakeFetch(routes),
+        }),
+      /CLAIM_RETIREMENT_NO_CANONICAL_EVIDENCE/u,
+    );
+  }
+  routes[0][1] = [foreign, canonical];
+  const evidence = await collectClaimRetirementEvidence("MD-ONE", active, {
+    ...options,
+    fetchImpl: fakeFetch(routes),
+  });
+  assert.equal(evidence.reason, "MERGED_PR");
+  assert.equal(evidence.prNumber, canonical.number);
 });
