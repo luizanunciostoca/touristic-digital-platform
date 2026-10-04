@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-BACKLOG-001",
   "objective": "reconcile-fastfix-backlog-dag-and-projection-freshness",
-  "baseSha": "0aa87dd85f6c301a880b7401fa52f3552867bb71",
-  "branch": "chore/fastfix-backlog-reconcile-20261004",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "c2a189b5839169f5f15d6cafd2667ba46b616dcd",
+  "branch": "infra/retire-fastfix-backlog-001-20261004",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
