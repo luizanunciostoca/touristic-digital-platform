@@ -1,20 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-FASTFIX-OWNERSHIP-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/fastfix-ci-tooling-ownership-20261004",
-      "baseSha": "679ad1795c63defa43660db93f8ac06b05823c95",
-      "paths": [
-        ".morro/changesets/MD-FASTFIX-OWNERSHIP-001.json",
-        ".morro/ownership.json"
-      ],
-      "domains": ["ci-release", "control-plane", "governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-05T23:00:00Z"
-    }
-  }
+  "claims": {}
 }
