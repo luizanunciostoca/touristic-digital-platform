@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-TDP-LEARNING-PROOF-709-R2",
   "objective": "harden-base-controlled-failure-learning-proof-plane",
-  "baseSha": "00349786aac3a881494da5d5cca60eb6ce334edd",
+  "baseSha": "a206cdb80dc3f784ed264126bcb95ac9fe8ca714",
   "branch": "infra/failure-learning-proof-709-r2-20261004",
   "state": "IMPLEMENTING",
   "risk": "high",
