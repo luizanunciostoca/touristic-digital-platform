@@ -378,6 +378,24 @@ test("freshness window uses the canonical engineering snapshot limit", () => {
   assert.throws(() =>
     assertFreshnessWindow(proof, freshnessSeconds, now + 600_001),
   );
+
+  const futureObservedAt = new Date(now + 1000).toISOString();
+  assert.throws(
+    () =>
+      assertFreshnessWindow(
+        {
+          ...proof,
+          observedAt: futureObservedAt,
+          activatedAt: futureObservedAt,
+          expiresAt: new Date(
+            now + 1000 + freshnessSeconds * 1000,
+          ).toISOString(),
+        },
+        freshnessSeconds,
+        now,
+      ),
+    /GUARD_OBSERVATION_IN_FUTURE/u,
+  );
 });
 
 test("activation record binds every freshness and run field", () => {
@@ -421,22 +439,24 @@ test("semantic probe rejects self-activation and binds AR-001 exact-head behavio
     exactHead: "PASS",
     staleHead: "BLOCK",
     rejectedMutations: [
+      "guardId",
       "candidateSha",
       "candidateBinding",
-      "independentProofCandidateSha",
       "regressionTest",
       "independentProof",
+      "independentProofCandidateSha",
+      "freshness",
+      "freshnessSeconds",
+      "observedAt",
+      "expiresAt",
+      "validatorRevision",
+      "activatedAt",
+      "repository",
       "runId",
       "runAttempt",
-      "validatorRevision",
-      "repository",
       "workflow",
       "job",
       "assertion",
-      "observedAt",
-      "freshnessSeconds",
-      "expiresAt",
-      "activatedAt",
     ],
     persistedActivationMutationRejected: true,
   });
@@ -449,6 +469,13 @@ test("candidate self-activation is rejected before sandbox execution", (t) => {
     () => validateCandidateContract(f.root, context),
     /CANDIDATE_SELF_ACTIVATION_FORBIDDEN/u,
   );
+});
+
+test("missing candidate proof source fails closed", (t) => {
+  const f = fixture(t);
+  rmSync(resolve(f.root, "tooling/failure-learning/engine.mjs"));
+  const context = trustedContext(envFor(f));
+  assert.throws(() => validateCandidateContract(f.root, context));
 });
 
 test("hostile candidate cannot access the parent or forge a proof", async (t) => {

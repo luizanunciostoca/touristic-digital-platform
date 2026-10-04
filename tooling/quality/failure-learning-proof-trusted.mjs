@@ -40,24 +40,7 @@ const PROOF_FIELDS = [
   "job",
   "assertion",
 ];
-const MUTATION_FIELDS = [
-  "candidateSha",
-  "candidateBinding",
-  "independentProofCandidateSha",
-  "regressionTest",
-  "independentProof",
-  "runId",
-  "runAttempt",
-  "validatorRevision",
-  "repository",
-  "workflow",
-  "job",
-  "assertion",
-  "observedAt",
-  "freshnessSeconds",
-  "expiresAt",
-  "activatedAt",
-];
+const MUTATION_FIELDS = [...PROOF_FIELDS];
 const SANDBOX_TIMEOUT_MS = 5000;
 const SANDBOX_MAX_BUFFER = 1024 * 1024;
 const CANDIDATE_SOURCE_MAX_BYTES = 128 * 1024;
@@ -479,6 +462,11 @@ export function buildGuardProof(
     job: context.job,
     assertion: context.assertion,
   });
+  assert.deepEqual(
+    Object.keys(proof),
+    PROOF_FIELDS,
+    "GUARD_PROOF_FIELDS_INVALID",
+  );
   assertFreshnessWindow(proof, freshnessSeconds, nowMs);
   return proof;
 }
