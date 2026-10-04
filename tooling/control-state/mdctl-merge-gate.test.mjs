@@ -1871,7 +1871,18 @@ test("bootstrap retains pinned independent gate and base-sourced regression asse
   );
 });
 
-test("all bootstrap scope checks match the ten-path authorized manifest", () => {
+function bootstrapScopeForPr(source, prNumber) {
+  const marker = `[ "$PR_NUMBER" = "${prNumber}" ]`;
+  const offset = source.indexOf(marker);
+  assert.ok(offset >= 0, "BOOTSTRAP_MARKER_MISSING:" + prNumber);
+  const scope = source
+    .slice(offset)
+    .match(/expected=\(([\s\S]*?)\n\s*\)/u)?.[1];
+  assert.ok(scope, "BOOTSTRAP_SCOPE_MISSING:" + prNumber);
+  return [...scope.matchAll(/"([^"]+)"/gu)].map((match) => match[1]);
+}
+
+test("claim lifecycle bootstrap keeps its exact ten-path authorized manifest", () => {
   const manifest = JSON.parse(
     readFileSync(
       join(process.cwd(), ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json"),
@@ -1881,16 +1892,55 @@ test("all bootstrap scope checks match the ten-path authorized manifest", () => 
   assert.equal(manifest.owns.paths.length, 10);
   for (const path of bootstrapWorkflows) {
     const source = readFileSync(join(process.cwd(), path), "utf8");
-    const scope = source.match(/expected=\(([\s\S]*?)\n\s*\)/u)?.[1];
-    assert.ok(scope, path);
-    const paths = [...scope.matchAll(/"([^"]+)"/gu)].map((match) => match[1]);
-    assert.deepEqual(paths.sort(), [...manifest.owns.paths].sort(), path);
+    assert.deepEqual(
+      bootstrapScopeForPr(source, 714).sort(),
+      [...manifest.owns.paths].sort(),
+      path,
+    );
   }
   const merge = readFileSync(
     join(process.cwd(), ".github/workflows/morro-merge-gate.yml"),
     "utf8",
   );
   assert.match(merge, /"prNumber":714/u);
+});
+
+test("scheduler reanchor bootstrap keeps its exact eight-path authorized manifest", () => {
+  const manifest = JSON.parse(
+    readFileSync(
+      join(
+        process.cwd(),
+        ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json",
+      ),
+      "utf8",
+    ),
+  );
+  assert.equal(manifest.owns.paths.length, 8);
+  for (const path of bootstrapWorkflows) {
+    const source = readFileSync(join(process.cwd(), path), "utf8");
+    assert.deepEqual(
+      bootstrapScopeForPr(source, 719).sort(),
+      [...manifest.owns.paths].sort(),
+      path,
+    );
+    assert.match(source, /issues\/718\/comments\?per_page=100/u);
+    assert.match(source, /APPROVED_BOOTSTRAP_HEAD:/u);
+  }
+  const bootstrap = readFileSync(
+    join(process.cwd(), ".github/workflows/morro-claim-guard-trust-bootstrap.yml"),
+    "utf8",
+  );
+  const proof = bootstrap
+    .split("  scheduler-reanchor-bootstrap-proof:\n")[1]
+    .split("  retirement-proof:\n")[0];
+  assert.ok(proof);
+  assert.doesNotMatch(proof, /cd candidate && node --test/u);
+  assert.match(proof, /trustedReanchorTransientPaths/u);
+  const merge = readFileSync(
+    join(process.cwd(), ".github/workflows/morro-merge-gate.yml"),
+    "utf8",
+  );
+  assert.match(merge, /"prNumber":719/u);
 });
 
 test("bootstrap proof routing stays exact and never requires owner approval to gather evidence", () => {
