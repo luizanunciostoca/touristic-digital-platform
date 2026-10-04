@@ -24,9 +24,7 @@
     ]
   },
   "reads": {
-    "contracts": [
-      "MORRO-SCHEDULER-DEPENDENCY-STATE"
-    ]
+    "contracts": ["MORRO-SCHEDULER-DEPENDENCY-STATE"]
   },
   "produces": {
     "events": [],
@@ -38,9 +36,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-CP-FINAL-CLEANUP-002"
-  ],
+  "dependencies": ["MD-CP-FINAL-CLEANUP-002"],
   "requiredEvidence": [
     "format",
     "secrets",
