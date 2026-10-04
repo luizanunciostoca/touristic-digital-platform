@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-CLAIM-LIFECYCLE-711",
+  "objective": "bounded-711-acquisition-to-implementation-lifecycle",
+  "baseSha": "de6c1637abc98e4e86e9c575ac0aaeb00a99551c",
+  "branch": "fix/claim-lifecycle-bootstrap-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/workflows/morro-merge-gate.yml",
+      ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json",
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+      "tooling/quality/independent-proof-trusted.mjs",
+      "tooling/quality/independent-proof-trusted.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "claim-lifecycle-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/control-state/mdctl-merge-gate.test.mjs",
+          "tooling/quality/independent-proof-trusted.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

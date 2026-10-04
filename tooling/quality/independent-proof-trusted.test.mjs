@@ -69,6 +69,23 @@ test("proof rejects an unowned write", () => {
   );
 });
 
+test("caller-declared bookkeeping permission never authorizes an unowned write", () => {
+  for (const asserted of [
+    { acquisition: true },
+    { reanchor: true, verified: true },
+    { transientOrchestratorPaths: [".github/morro-control/claims.json"] },
+  ])
+    assert.throws(
+      () =>
+        validateManifestAndFiles(
+          manifest,
+          [".github/morro-control/claims.json"],
+          asserted,
+        ),
+      /CHANGESET_OWNERSHIP_VIOLATION/,
+    );
+});
+
 test("proof rejects unsupported wildcard ownership", () => {
   const widened = structuredClone(manifest);
   widened.owns.paths = [".github/*/unsafe.yml"];
