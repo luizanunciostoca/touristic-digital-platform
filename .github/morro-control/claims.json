@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/fastfix-backlog-reconcile-20261004",
-      "baseSha": "e5add03680af0bf9f6ba39f5c125f5fd099ad073",
+      "baseSha": "0aa87dd85f6c301a880b7401fa52f3552867bb71",
       "paths": [
         ".morro/changesets/MD-FASTFIX-BACKLOG-001.json",
         ".github/morro-control/backlog.json",

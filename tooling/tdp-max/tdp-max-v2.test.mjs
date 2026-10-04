@@ -274,9 +274,42 @@ test("stale, incomplete, external and release authority cannot self-complete", (
   assert.equal(release.releaseDecisionAllowed, false);
 });
 
-test("reconciliation stays plan-only", () => {
+test("reconciliation treats backlog anchor as provenance and accepts engineering warnings", () => {
   const report = buildReconcileReport({
-    projection: { currentMain: MAIN, backlog: { anchorMatchesMain: false } },
+    projection: {
+      currentMain: MAIN,
+      backlog: {
+        versionedAnchor: OTHER,
+        versionedAnchorValid: true,
+        anchorMatchesMain: false,
+      },
+      claims: { staleCandidates: [] },
+    },
+    bootstrap: {
+      mainSha: MAIN,
+      result: "READY_WITH_WARNINGS",
+      checks: {},
+      blockers: [],
+      warnings: ["RUNTIME_NOT_CONFIGURED:staging"],
+    },
+    now: NOW,
+  });
+  assert.deepEqual([report.mode, report.mutationAllowed], ["PLAN_ONLY", false]);
+  assert.deepEqual(report.drift, []);
+  assert.deepEqual(report.actions, []);
+});
+
+test("reconciliation requests regeneration only for invalid backlog provenance", () => {
+  const report = buildReconcileReport({
+    projection: {
+      currentMain: MAIN,
+      backlog: {
+        versionedAnchor: null,
+        versionedAnchorValid: false,
+        anchorMatchesMain: false,
+      },
+      claims: { staleCandidates: [] },
+    },
     bootstrap: {
       mainSha: MAIN,
       result: "READY",
@@ -286,5 +319,8 @@ test("reconciliation stays plan-only", () => {
     },
     now: NOW,
   });
-  assert.deepEqual([report.mode, report.mutationAllowed], ["PLAN_ONLY", false]);
+  assert.ok(report.drift.includes("BACKLOG_PROVENANCE_INVALID"));
+  assert.deepEqual(report.actions, [
+    "REGENERATE_BACKLOG_PROJECTION_FROM_CURRENT_MAIN",
+  ]);
 });

@@ -58,7 +58,9 @@ export function buildLiveProjection({
     backlog: {
       source: "VERSIONED_DESIRED_STATE",
       versionedAnchor: backlog?.updatedFromMainSha ?? null,
+      versionedAnchorValid: SHA.test(backlog?.updatedFromMainSha ?? ""),
       anchorMatchesMain: backlog?.updatedFromMainSha === mainSha,
+      anchorSemantics: "SOURCE_PROVENANCE_NOT_CURRENT_MAIN_LOCK",
       items: Array.isArray(backlog?.items) ? backlog.items : [],
     },
     claims: {
