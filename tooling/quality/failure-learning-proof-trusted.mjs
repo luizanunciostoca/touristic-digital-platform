@@ -337,10 +337,15 @@ export function validateCandidateContract(root, context) {
   );
   requireRegularFile(candidateRoot, context.manifestPath, "CANDIDATE_MANIFEST");
   const manifest = readJson(candidateRoot, context.manifestPath);
-  assert.equal(
-    manifest.id,
-    "MD-TDP-LEARNING-001",
+  assert.match(
+    manifest.id ?? "",
+    /^MD-TDP-LEARNING-001(?:-R[1-9][0-9]*)?$/u,
     "LEARNING_CHANGESET_REQUIRED",
+  );
+  assert.equal(
+    context.manifestPath,
+    ".morro/changesets/" + manifest.id + ".json",
+    "LEARNING_CHANGESET_PATH_MISMATCH",
   );
   assert.equal(
     manifest.baseSha,

@@ -41,7 +41,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/failure-learning-proof-709-r2-20261004",
-      "baseSha": "08231fb927dac004bc767f5154db28d54f7ed199",
+      "baseSha": "4215fc481f12cbb95e8097458761ef2e130211ed",
       "paths": [
         ".morro/changesets/MD-TDP-LEARNING-PROOF-709-R2.json",
         "tooling/quality/failure-learning-proof-trusted.mjs",
