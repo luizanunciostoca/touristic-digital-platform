@@ -16,11 +16,7 @@
         "tooling/tdp-max/tdp-max-v2.mjs",
         "tooling/tdp-max/tdp-max-v2.test.mjs"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T21:30:00Z"

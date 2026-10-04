@@ -1718,6 +1718,11 @@ test("reconcile projection replaces stale main assumptions with observed main", 
   });
   assert.equal(projection.currentMain, mainSha);
   assert.equal(projection.backlog.anchorMatchesMain, false);
+  assert.equal(projection.backlog.versionedAnchorValid, true);
+  assert.equal(
+    projection.backlog.anchorSemantics,
+    "SOURCE_PROVENANCE_NOT_CURRENT_MAIN_LOCK",
+  );
   assert.deepEqual(projection.claims.staleCandidates, ["MD-OLD"]);
   assert.equal(
     projection.claims.items.find((item) => item.id === "MD-A").liveState,

@@ -4,7 +4,7 @@
   "objective": "reconcile-fastfix-backlog-dag-and-projection-freshness",
   "baseSha": "0aa87dd85f6c301a880b7401fa52f3552867bb71",
   "branch": "infra/fastfix-backlog-reconcile-impl-20261004",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
@@ -17,14 +17,10 @@
       "tooling/tdp-max/tdp-max-v2.mjs",
       "tooling/tdp-max/tdp-max-v2.test.mjs"
     ],
-    "contracts": [
-      "TDP-CONTROL-PROJECTION"
-    ]
+    "contracts": ["TDP-CONTROL-PROJECTION"]
   },
   "reads": {
-    "contracts": [
-      "TDP-MDCTL-LIVE-RECONCILIATION"
-    ]
+    "contracts": ["TDP-MDCTL-LIVE-RECONCILIATION"]
   },
   "produces": {
     "events": [],

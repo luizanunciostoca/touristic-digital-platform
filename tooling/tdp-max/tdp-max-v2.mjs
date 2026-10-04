@@ -309,15 +309,19 @@ export function buildReconcileReport({
   if (bootstrap?.mainSha !== projection.currentMain) {
     drift.push("RECONCILE_CAPTURE_MAIN_MISMATCH");
   }
-  if (bootstrap?.result !== "READY") {
+  if (!["READY", "READY_WITH_WARNINGS"].includes(bootstrap?.result)) {
     drift.push("BOOTSTRAP_NOT_READY:" + String(bootstrap?.result ?? "UNKNOWN"));
   }
   for (const [id, state] of Object.entries(bootstrap?.checks ?? {})) {
     if (state === "NOT_PROVEN") drift.push("BOOTSTRAP_NOT_PROVEN:" + id);
   }
 
-  if (projection.backlog?.anchorMatchesMain === false) {
-    drift.push("BACKLOG_MAIN_ANCHOR_STALE");
+  const backlogAnchorValid =
+    typeof projection.backlog?.versionedAnchorValid === "boolean"
+      ? projection.backlog.versionedAnchorValid
+      : SHA.test(projection.backlog?.versionedAnchor ?? "");
+  if (!backlogAnchorValid) {
+    drift.push("BACKLOG_PROVENANCE_INVALID");
     actions.push("REGENERATE_BACKLOG_PROJECTION_FROM_CURRENT_MAIN");
   }
   for (const id of projection.claims?.staleCandidates ?? []) {
