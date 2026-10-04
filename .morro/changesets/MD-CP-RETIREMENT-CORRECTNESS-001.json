@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-RETIREMENT-CORRECTNESS-001",
+  "objective": "preserve-unfinished-state-on-claim-release-and-require-material-merge-evidence",
+  "baseSha": "8f3b919cd9c49fe4398b01ef92e47839bfb0caad",
+  "branch": "fix/canonical-retirement-correctness-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CP-RETIREMENT-CORRECTNESS-001.json",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/workflows/morro-merge-gate.yml"
+    ],
+    "contracts": [
+      "MORRO-CLAIM-RETIREMENT-PROOF",
+      "CLAIM-RETIREMENT-MERGE-GATE",
+      "CLAIM-RETIREMENT-TRUSTED-ROUTING"
+    ]
+  },
+  "reads": {
+    "contracts": ["MORRO-SCHEDULER-DEPENDENCY-STATE"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-CP-FINAL-CLEANUP-002"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "material-merge-vs-acquisition-regression",
+    "expired-implemented-regression",
+    "unfinished-dependency-preserved",
+    "trusted-retirement-routing",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "retirement-correctness",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-retirement-proof.test.mjs",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
