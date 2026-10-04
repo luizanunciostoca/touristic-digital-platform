@@ -173,7 +173,11 @@ export function trustedContext(env = process.env) {
     /^[A-Za-z0-9._/-]+$/u,
     "TRUSTED_CONTEXT_BRANCH_INVALID",
   );
-  assert.equal(env.GITHUB_REF, "refs/heads/main", "TRUSTED_CONTEXT_REF_INVALID");
+  assert.equal(
+    env.GITHUB_REF,
+    "refs/heads/main",
+    "TRUSTED_CONTEXT_REF_INVALID",
+  );
   const workflowRef =
     REPOSITORY +
     "/" +
@@ -520,7 +524,12 @@ function runSandbox(payload) {
   );
   const result = spawnSync(
     process.execPath,
-    ["--no-warnings", "--experimental-vm-modules", scriptPath, "--sandbox-child"],
+    [
+      "--no-warnings",
+      "--experimental-vm-modules",
+      scriptPath,
+      "--sandbox-child",
+    ],
     {
       input,
       encoding: "utf8",
