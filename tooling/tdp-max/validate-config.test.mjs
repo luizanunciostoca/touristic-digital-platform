@@ -201,6 +201,25 @@ test("production promotion cannot use technical readiness as authorization", () 
   );
 });
 
+test("executor dispatch fails closed when authentication is unavailable", () => {
+  assert.deepEqual(
+    evaluateAntiRecurrence({
+      executorDispatchSelected: true,
+      executorInstalled: true,
+      executorAuthenticated: false,
+    }),
+    ["EXECUTOR_AUTH_UNAVAILABLE"],
+  );
+  assert.deepEqual(
+    evaluateAntiRecurrence({
+      executorDispatchSelected: true,
+      executorInstalled: true,
+      executorAuthenticated: true,
+    }),
+    [],
+  );
+});
+
 test("remote success requires exit zero and postcondition", () => {
   assert.deepEqual(
     evaluateAntiRecurrence({

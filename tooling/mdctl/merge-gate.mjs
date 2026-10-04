@@ -50,6 +50,7 @@ const REQUIRED_REMOTE_EVIDENCE = Object.freeze([
   "automated-independent-proof",
   "exact-head-identity",
 ]);
+const RETIREMENT_REASONS = new Set(["MERGED_PR", "EXPIRED", "ORPHANED"]);
 
 function git(cwd, ...args) {
   return execFileSync("git", args, {
@@ -136,18 +137,18 @@ export async function buildMergedRetirementProof(
   trustedDir,
   candidateDir,
   env,
-  { proofBuilder = buildClaimRetirementProof } = {},
+  { proofBuilder = buildClaimRetirementProof, now = Date.now() } = {},
 ) {
-  const proof = await proofBuilder(trustedDir, candidateDir, env, { now: 0 });
+  assert.ok(Number.isFinite(now), "MERGE_GATE_RETIREMENT_NOW_INVALID");
+  const proof = await proofBuilder(trustedDir, candidateDir, env, { now });
   assert.equal(
     proof?.retirements?.length,
     1,
     "MERGE_GATE_RETIREMENT_EVIDENCE_COUNT_INVALID",
   );
-  assert.equal(
-    proof.retirements[0]?.reason,
-    "MERGED_PR",
-    "MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED",
+  assert.ok(
+    RETIREMENT_REASONS.has(proof.retirements[0]?.reason),
+    "MERGE_GATE_RETIREMENT_REASON_INVALID",
   );
   return proof;
 }
@@ -268,9 +269,8 @@ export function evaluateRetirementMergeGate({
     claimId,
     "MERGE_GATE_RETIREMENT_EVIDENCE_ID_INVALID",
   );
-  assert.equal(
-    retirementProof.retirements[0]?.reason,
-    "MERGED_PR",
+  assert.ok(
+    RETIREMENT_REASONS.has(retirementProof.retirements[0]?.reason),
     "MERGE_GATE_RETIREMENT_REASON_INVALID",
   );
 

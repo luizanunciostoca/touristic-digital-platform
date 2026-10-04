@@ -1418,7 +1418,11 @@ test("runMergeGate rejects moved main and mismatched PR head identity", async ()
   }
 });
 
-function retirementProof({ headSha = HEAD, baseSha = BASE } = {}) {
+function retirementProof({
+  headSha = HEAD,
+  baseSha = BASE,
+  reason = "MERGED_PR",
+} = {}) {
   return {
     contract: "MORRO-CLAIM-RETIREMENT-PROOF",
     status: "pass",
@@ -1429,7 +1433,7 @@ function retirementProof({ headSha = HEAD, baseSha = BASE } = {}) {
     retirements: [
       {
         id: "MD-GATED",
-        reason: "MERGED_PR",
+        reason,
         branch: OLD_BRANCH,
         baseSha: OLD_BASE,
         prNumber: 9,
@@ -1495,22 +1499,25 @@ test("retirement keyset rejects removal plus claim addition", () => {
   );
 });
 
-test("merged retirement proof is time-stable and rejects expiry-only evidence", async () => {
-  let observedNow = null;
-  const merged = retirementProof();
-  const value = await buildMergedRetirementProof(
-    "trusted",
-    "candidate",
-    {},
-    {
-      proofBuilder: async (_trusted, _candidate, _env, options) => {
-        observedNow = options.now;
-        return merged;
+test("retirement proof forwards trusted time and accepts only canonical reasons", async () => {
+  for (const reason of ["MERGED_PR", "EXPIRED", "ORPHANED"]) {
+    let observedNow = null;
+    const expected = retirementProof({ reason });
+    const value = await buildMergedRetirementProof(
+      "trusted",
+      "candidate",
+      {},
+      {
+        now: 12345,
+        proofBuilder: async (_trusted, _candidate, _env, options) => {
+          observedNow = options.now;
+          return expected;
+        },
       },
-    },
-  );
-  assert.equal(observedNow, 0);
-  assert.equal(value.retirements[0].reason, "MERGED_PR");
+    );
+    assert.equal(observedNow, 12345);
+    assert.equal(value.retirements[0].reason, reason);
+  }
 
   await assert.rejects(
     buildMergedRetirementProof(
@@ -1518,13 +1525,11 @@ test("merged retirement proof is time-stable and rejects expiry-only evidence", 
       "candidate",
       {},
       {
-        proofBuilder: async () => ({
-          ...merged,
-          retirements: [{ ...merged.retirements[0], reason: "EXPIRED" }],
-        }),
+        now: 12345,
+        proofBuilder: async () => retirementProof({ reason: "CALLER_ASSERTED" }),
       },
     ),
-    /MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED/u,
+    /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
   );
 });
 
@@ -1534,6 +1539,28 @@ test("retirement gate accepts one canonically proven merged claim release", () =
   assert.equal(result.mode, "CLAIM_RETIREMENT");
   assert.equal(result.changeSetId, "MD-GATED");
   assert.equal(result.retirementReason, "MERGED_PR");
+});
+
+test("retirement gate accepts canonically proven expired and orphaned releases", () => {
+  for (const reason of ["EXPIRED", "ORPHANED"]) {
+    const result = evaluateRetirementMergeGate(
+      retirementInput({ retirementProof: retirementProof({ reason }) }),
+    );
+    assert.equal(result.decision, "POLICY_SATISFIED");
+    assert.equal(result.retirementReason, reason);
+  }
+});
+
+test("retirement gate rejects unsupported retirement reasons", () => {
+  assert.throws(
+    () =>
+      evaluateRetirementMergeGate(
+        retirementInput({
+          retirementProof: retirementProof({ reason: "CALLER_ASSERTED" }),
+        }),
+      ),
+    /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
+  );
 });
 
 test("retirement gate rejects authority mutation while closing the ChangeSet", () => {

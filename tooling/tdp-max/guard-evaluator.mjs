@@ -81,6 +81,12 @@ export function evaluateAntiRecurrence(input = {}) {
     detected.add("REMOTE_RESULT_FALSE_POSITIVE");
 
   if (
+    input.executorDispatchSelected === true &&
+    input.executorAuthenticated !== true
+  )
+    detected.add("EXECUTOR_AUTH_UNAVAILABLE");
+
+  if (
     input.attemptedProductionPromotion === true &&
     input.technicallyReady === true &&
     input.authorizedToRelease !== true
