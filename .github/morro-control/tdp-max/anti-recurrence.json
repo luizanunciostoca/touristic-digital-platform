@@ -274,19 +274,6 @@
       "guard": "fail closed until current evidence satisfies the invariant",
       "recovery": "recapture affected authority and rerun only invalidated proof",
       "completionRequirement": "affected evidence is CURRENT_VERIFIED"
-    },
-    {
-      "id": "AR-022",
-      "class": "EXECUTOR_AUTH_UNAVAILABLE",
-      "severity": "high",
-      "trigger": "executor dispatch is selected while authentication readiness is unavailable",
-      "rootCause": "executor installation or binary availability was treated as authentication readiness",
-      "misleadingSignal": "executor binary exists or version command succeeds",
-      "correctSignal": "explicit authenticated preflight succeeds immediately before dispatch",
-      "detector": "tooling/failure-learning/detectors.mjs / EXECUTOR_AUTH_UNAVAILABLE",
-      "guard": "block dispatch unless the selected executor is both installed and explicitly authenticated",
-      "recovery": "authenticate the executor or select another authorized healthy executor, then rerun preflight",
-      "completionRequirement": "executor auth preflight returns PASS and exact-head regression proof is CURRENT_VERIFIED"
     }
   ]
 }
