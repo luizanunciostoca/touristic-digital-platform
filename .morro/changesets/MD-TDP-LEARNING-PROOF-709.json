@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TDP-LEARNING-PROOF-709",
+  "objective": "authenticate-independent-failure-learning-proof-and-canonical-activation",
+  "baseSha": "804407a8c4dacbfde402400281f322350deaade4",
+  "branch": "infra/failure-learning-proof-709-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TDP-LEARNING-PROOF-709.json",
+      "tooling/quality/failure-learning-proof-trusted.mjs",
+      "tooling/quality/failure-learning-proof-trusted.test.mjs",
+      ".github/workflows/failure-learning-independent-proof.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "source-authentication",
+    "guard-specific-semantic-proof",
+    "canonical-activation",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "failure-learning-trusted-proof-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/failure-learning-proof-trusted.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "source-authentication",
+      "guard-specific-semantic-proof",
+      "canonical-activation",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
