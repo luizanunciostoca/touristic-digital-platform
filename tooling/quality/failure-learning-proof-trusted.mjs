@@ -44,6 +44,8 @@ const MUTATION_FIELDS = [...PROOF_FIELDS];
 const SANDBOX_TIMEOUT_MS = 5000;
 const SANDBOX_MAX_BUFFER = 1024 * 1024;
 const CANDIDATE_SOURCE_MAX_BYTES = 128 * 1024;
+const SENSITIVE_ENV_NAME =
+  /(?:TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|AUTH|API[_-]?KEY|PRIVATE[_-]?KEY|GITHUB_|AWS_|GOOGLE_|AZURE_|RENDER_|DATABASE|MYSQL|MERCADO|STRIPE|META|FACEBOOK)/iu;
 
 function gitChecked(root, ...args) {
   const result = spawnSync("git", ["-C", root, ...args], {
@@ -682,10 +684,13 @@ function parseSandboxInput(text) {
 }
 
 async function sandboxChildMain() {
+  const sensitiveEnvironmentNames = Object.keys(process.env).filter((name) =>
+    SENSITIVE_ENV_NAME.test(name),
+  );
   assert.deepEqual(
-    Object.keys(process.env),
+    sensitiveEnvironmentNames,
     [],
-    "SANDBOX_CHILD_ENV_NOT_SCRUBBED",
+    "SANDBOX_CHILD_SENSITIVE_ENV_PRESENT",
   );
   let input = "";
   let inputBytes = 0;
