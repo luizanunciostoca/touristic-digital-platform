@@ -8,7 +8,6 @@ export async function certifyFiles(files) {
   const provenFiles = new Set();
   let summary;
   for await (const event of run({ files })) {
-    if (event.type === "test:fail") console.error(event.data.name);
     if (event.type === "test:summary") {
       summary = event.data;
       if (summary.file && summary.counts.tests > 0)
@@ -16,6 +15,7 @@ export async function certifyFiles(files) {
     }
   }
   const counts = summary?.counts;
+  console.log(JSON.stringify({ contract: "FAILURE_LEARNING_SUITE", counts }));
   if (
     !summary?.success ||
     !counts?.tests ||
@@ -36,14 +36,8 @@ if (
     .filter((name) => name.endsWith(".test.mjs"))
     .sort()
     .map((name) => resolve(directory, name));
-  certifyFiles(files).then(
-    (counts) =>
-      console.log(
-        JSON.stringify({ contract: "FAILURE_LEARNING_SUITE", counts }),
-      ),
-    (error) => {
-      console.error(error.message);
-      process.exitCode = 1;
-    },
-  );
+  certifyFiles(files).catch(() => {
+    console.error("FAILURE_LEARNING_SUITE_REJECTED");
+    process.exitCode = 1;
+  });
 }
