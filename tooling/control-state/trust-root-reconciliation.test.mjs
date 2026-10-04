@@ -45,3 +45,29 @@ test("scheduler freezes immutable roots and verifies routed trust evidence", asy
     /authority: "BASE_CONTROLLED_TRUST_ROOT_RECONCILIATION"/,
   );
 });
+
+test("scheduler reanchor admission stays exact-head trusted and bounded", async () => {
+  const scheduler = await read("tooling/mdctl/scheduler-live.mjs");
+  assert.match(scheduler, /trustedReanchorTransientPaths/);
+  assert.match(
+    scheduler,
+    /trust\?\.authority !== "TRUSTED_CLAIM_GUARD_EXACT_HEAD"/,
+  );
+  assert.match(
+    scheduler,
+    /candidateClaim\?\.baseSha !== mainSha/,
+  );
+  assert.match(
+    scheduler,
+    /candidateChangeSet\?\.baseSha !== mainSha/,
+  );
+  assert.match(
+    scheduler,
+    /"\.github\/morro-control\/claims\.json"/,
+  );
+  assert.match(
+    scheduler,
+    /"\.github\/morro-control\/events\.ndjson"/,
+  );
+  assert.doesNotMatch(scheduler, /allowUntrustedReanchor|callerTransientPaths/);
+});
