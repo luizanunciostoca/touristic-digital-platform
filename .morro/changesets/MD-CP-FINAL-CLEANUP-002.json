@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-FINAL-CLEANUP-002",
+  "objective": "final-control-plane-retirement-and-executor-auth-prevention",
+  "baseSha": "c2394cd1c476c392ce42bd0aaff6ae5ac031ce2e",
+  "branch": "infra/control-plane-final-cleanup-v2-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CP-FINAL-CLEANUP-002.json",
+      ".github/morro-control/tdp-max/anti-recurrence.json",
+      "tooling/tdp-max/guard-evaluator.mjs",
+      "tooling/tdp-max/validate-config.mjs",
+      "tooling/tdp-max/validate-config.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs"
+    ],
+    "contracts": [
+      "CLAIM-RETIREMENT-PROOF",
+      "TDP-MAX-ANTI-RECURRENCE"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE",
+      "FAILURE-LEARNING-DETECTORS"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "expired-retirement",
+    "orphan-retirement",
+    "merged-retirement-regression",
+    "executor-auth-guard",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "final-control-plane-cleanup",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-retirement-proof.test.mjs",
+          "tooling/control-state/mdctl-merge-gate.test.mjs",
+          "tooling/tdp-max/validate-config.test.mjs"
+        ],
+        "timeoutSeconds": 420
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
