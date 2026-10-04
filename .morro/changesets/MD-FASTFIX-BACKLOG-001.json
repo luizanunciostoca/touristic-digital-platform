@@ -11,9 +11,7 @@
     "paths": [
       ".morro/changesets/MD-FASTFIX-BACKLOG-001.json",
       ".github/morro-control/backlog.json",
-      ".github/morro-control/dependency-graph.json",
-      ".github/morro-control/claims.json",
-      ".github/morro-control/events.ndjson"
+      ".github/morro-control/dependency-graph.json"
     ],
     "contracts": [
       "TDP-CONTROL-PROJECTION"
@@ -43,6 +41,7 @@
     "affected-tests",
     "build",
     "integration",
+    "automated-independent-proof",
     "exact-head-identity"
   ],
   "requiredCapabilities": [
@@ -78,6 +77,7 @@
       }
     ],
     "requiredRemoteEvidence": [
+      "automated-independent-proof",
       "exact-head-identity"
     ]
   },
