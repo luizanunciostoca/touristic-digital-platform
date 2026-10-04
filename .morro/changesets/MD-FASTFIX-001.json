@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-001",
   "objective": "semantic-ci-impact-classification-and-false-trigger-elimination",
-  "baseSha": "59804bb053581011c49a31605b685f7547f37440",
-  "branch": "fix/fastfix-001-semantic-ci-impact-r2-20261004",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "f24ecac94f4cead6aecbf5fe1766ab46d813f2a7",
+  "branch": "infra/retire-fastfix-001-20261004",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
