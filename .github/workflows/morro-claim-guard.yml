@@ -16,6 +16,8 @@ on:
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
       - "tooling/fabric/claim-guard.mjs"
       - "tooling/fabric/claim-guard.test.mjs"
+      - "tooling/fabric/claim-retirement-proof.mjs"
+      - "tooling/fabric/claim-retirement-proof.test.mjs"
   merge_group:
 
 permissions:
@@ -47,6 +49,7 @@ jobs:
         run: >-
           node --test
           tooling/fabric/claim-guard.test.mjs
+          tooling/fabric/claim-retirement-proof.test.mjs
           .github/hooks/morro-pretool-guard.test.mjs
 
       - name: Build candidate Claim Guard proof
