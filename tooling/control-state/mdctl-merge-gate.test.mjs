@@ -1542,7 +1542,8 @@ test("retirement proof forwards trusted time and accepts only canonical reasons"
       {},
       {
         now: 12345,
-        proofBuilder: async () => retirementProof({ reason: "CALLER_ASSERTED" }),
+        proofBuilder: async () =>
+          retirementProof({ reason: "CALLER_ASSERTED" }),
       },
     ),
     /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
