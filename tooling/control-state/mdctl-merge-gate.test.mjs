@@ -1927,7 +1927,10 @@ test("scheduler reanchor bootstrap keeps its exact eight-path authorized manifes
     assert.match(source, /APPROVED_BOOTSTRAP_HEAD:/u);
   }
   const bootstrap = readFileSync(
-    join(process.cwd(), ".github/workflows/morro-claim-guard-trust-bootstrap.yml"),
+    join(
+      process.cwd(),
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+    ),
     "utf8",
   );
   const proof = bootstrap

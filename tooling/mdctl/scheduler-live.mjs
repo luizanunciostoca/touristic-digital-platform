@@ -364,9 +364,7 @@ export function trustedReanchorTransientPaths({
     ...candidateClaim,
     baseSha: canonicalClaim.baseSha,
   };
-  if (
-    canonicalJson(claimWithoutReanchor) !== canonicalJson(canonicalClaim)
-  ) {
+  if (canonicalJson(claimWithoutReanchor) !== canonicalJson(canonicalClaim)) {
     return [];
   }
 

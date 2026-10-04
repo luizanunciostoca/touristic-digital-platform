@@ -53,21 +53,9 @@ test("scheduler reanchor admission stays exact-head trusted and bounded", async 
     scheduler,
     /trust\?\.authority !== "TRUSTED_CLAIM_GUARD_EXACT_HEAD"/,
   );
-  assert.match(
-    scheduler,
-    /candidateClaim\?\.baseSha !== mainSha/,
-  );
-  assert.match(
-    scheduler,
-    /candidateChangeSet\?\.baseSha !== mainSha/,
-  );
-  assert.match(
-    scheduler,
-    /"\.github\/morro-control\/claims\.json"/,
-  );
-  assert.match(
-    scheduler,
-    /"\.github\/morro-control\/events\.ndjson"/,
-  );
+  assert.match(scheduler, /candidateClaim\?\.baseSha !== mainSha/);
+  assert.match(scheduler, /candidateChangeSet\?\.baseSha !== mainSha/);
+  assert.match(scheduler, /"\.github\/morro-control\/claims\.json"/);
+  assert.match(scheduler, /"\.github\/morro-control\/events\.ndjson"/);
   assert.doesNotMatch(scheduler, /allowUntrustedReanchor|callerTransientPaths/);
 });

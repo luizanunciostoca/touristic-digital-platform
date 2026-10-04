@@ -18,16 +18,10 @@
       "tooling/control-state/trust-root-reconciliation.test.mjs",
       "tooling/control-state/mdctl-merge-gate.test.mjs"
     ],
-    "contracts": [
-      "TDP-SCHEDULER-TRUST-VERIFICATION",
-      "TDP-MERGE-GATE"
-    ]
+    "contracts": ["TDP-SCHEDULER-TRUST-VERIFICATION", "TDP-MERGE-GATE"]
   },
   "reads": {
-    "contracts": [
-      "GITHUB-CURRENT-MAIN",
-      "TDP-CONTROL-PLANE-V3.2-AUTHORITY"
-    ]
+    "contracts": ["GITHUB-CURRENT-MAIN", "TDP-CONTROL-PLANE-V3.2-AUTHORITY"]
   },
   "produces": {
     "events": [],
@@ -52,10 +46,7 @@
     "exact-head-identity",
     "trusted-reanchor-classification"
   ],
-  "requiredCapabilities": [
-    "github:read",
-    "evidence:write:task-local"
-  ],
+  "requiredCapabilities": ["github:read", "evidence:write:task-local"],
   "contextPack": {
     "maxBytes": 131072,
     "include": [
