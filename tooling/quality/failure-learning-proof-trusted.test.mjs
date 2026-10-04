@@ -79,7 +79,11 @@ export function evaluateGuards(){return [{id:"AR-001",class:"STALE_HEAD",result:
 }
 function fixture(
   t,
-  { secure = true, selfActivate = false, changeSetId = "MD-TDP-LEARNING-001" } = {},
+  {
+    secure = true,
+    selfActivate = false,
+    changeSetId = "MD-TDP-LEARNING-001",
+  } = {},
 ) {
   const root = mkdtempSync(resolve(tmpdir(), "tdp-learning-proof-test-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
@@ -220,13 +224,19 @@ test("trusted context requires exact base-controlled workflow_run identity", () 
 test("candidate contract accepts governed Failure Learning successors and rejects unrelated ids", (t) => {
   const successor = fixture(t, { changeSetId: "MD-TDP-LEARNING-001-R2" });
   assert.doesNotThrow(() =>
-    validateCandidateContract(successor.root, trustedContext(envFor(successor))),
+    validateCandidateContract(
+      successor.root,
+      trustedContext(envFor(successor)),
+    ),
   );
 
   const unrelated = fixture(t, { changeSetId: "MD-TDP-LEARNING-PROOF-709-R2" });
   assert.throws(
     () =>
-      validateCandidateContract(unrelated.root, trustedContext(envFor(unrelated))),
+      validateCandidateContract(
+        unrelated.root,
+        trustedContext(envFor(unrelated)),
+      ),
     /LEARNING_CHANGESET_REQUIRED/u,
   );
 });
