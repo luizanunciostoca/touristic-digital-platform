@@ -16,15 +16,10 @@
       "tooling/ci/impact-analyzer.test.mjs",
       "tooling/quality/ci-scheduler-governance.test.mjs"
     ],
-    "contracts": [
-      "CI-IMPACT-CLASSIFICATION",
-      "QUALITY-OPERATIONAL-SELECTION"
-    ]
+    "contracts": ["CI-IMPACT-CLASSIFICATION", "QUALITY-OPERATIONAL-SELECTION"]
   },
   "reads": {
-    "contracts": [
-      "MORRO-FABRIC-LIFECYCLE"
-    ]
+    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
   },
   "produces": {
     "events": [],
