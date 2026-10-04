@@ -16,11 +16,7 @@
         "tooling/failure-learning/**",
         "package.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -36,11 +32,7 @@
         "tooling/quality/failure-learning-proof-trusted.test.mjs",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -56,11 +48,7 @@
         "tooling/quality/failure-learning-proof-trusted.test.mjs",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T20:00:00Z"
