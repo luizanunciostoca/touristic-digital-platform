@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-CP-FINAL-CLEANUP-002",
   "objective": "finalize-control-plane-retirement-and-executor-auth-prevention",
-  "baseSha": "c2394cd1c476c392ce42bd0aaff6ae5ac031ce2e",
+  "baseSha": "88e6399a92eca1d0c02364101be918e1f4f89627",
   "branch": "infra/control-plane-final-cleanup-r2-20261004",
   "state": "IMPLEMENTING",
   "risk": "high",
