@@ -324,13 +324,81 @@ async function pullFiles({ api, root, prNumber }) {
   return normalized;
 }
 
-function changedFileCoverageError(files, claim, changeSet) {
+const SERIALIZED_REANCHOR_BOOKKEEPING_PATHS = Object.freeze([
+  ".github/morro-control/claims.json",
+  ".github/morro-control/events.ndjson",
+]);
+
+export function trustedReanchorTransientPaths({
+  canonicalClaim,
+  candidateClaim,
+  canonicalChangeSet,
+  candidateChangeSet,
+  mainSha,
+  registryChanged,
+  trust,
+}) {
+  if (
+    registryChanged !== true ||
+    trust?.trusted !== true ||
+    trust?.authority !== "TRUSTED_CLAIM_GUARD_EXACT_HEAD"
+  ) {
+    return [];
+  }
+  if (
+    candidateClaim?.baseSha !== mainSha ||
+    candidateChangeSet?.baseSha !== mainSha ||
+    canonicalClaim?.baseSha === mainSha ||
+    canonicalChangeSet?.baseSha === mainSha
+  ) {
+    return [];
+  }
+  if (
+    candidateClaim?.branch !== canonicalClaim?.branch ||
+    candidateChangeSet?.branch !== canonicalChangeSet?.branch
+  ) {
+    return [];
+  }
+
+  const claimWithoutReanchor = {
+    ...candidateClaim,
+    baseSha: canonicalClaim.baseSha,
+  };
+  if (
+    canonicalJson(claimWithoutReanchor) !== canonicalJson(canonicalClaim)
+  ) {
+    return [];
+  }
+
+  const changeSetWithoutReanchor = {
+    ...candidateChangeSet,
+    baseSha: canonicalChangeSet.baseSha,
+    state: canonicalChangeSet.state,
+  };
+  if (
+    canonicalJson(changeSetWithoutReanchor) !==
+    canonicalJson(canonicalChangeSet)
+  ) {
+    return [];
+  }
+
+  return [...SERIALIZED_REANCHOR_BOOKKEEPING_PATHS];
+}
+
+function changedFileCoverageError(
+  files,
+  claim,
+  changeSet,
+  transientOrchestratorPaths = [],
+) {
+  const transient = new Set(transientOrchestratorPaths);
   for (const file of files) {
     const paths =
       file.status === "renamed"
         ? [file.previousFilename, file.filename]
         : [file.filename];
     for (const pathname of paths) {
+      if (transient.has(pathname)) continue;
       if (!claim.paths.some((pattern) => pathOwned(pathname, pattern))) {
         return "CANONICAL_CLAIM_PATH_VIOLATION:" + pathname;
       }
@@ -978,9 +1046,6 @@ export async function collectLivePullWork({
     } catch {
       if (!invalid) invalid = "PR_FILES_UNAVAILABLE";
     }
-    if (!invalid) {
-      invalid = changedFileCoverageError(files, canonicalClaim, changeSet);
-    }
 
     const candidateRegistrySha = contentSha(
       candidateRegistryLoaded.response,
@@ -1013,6 +1078,26 @@ export async function collectLivePullWork({
         api,
       });
       if (!trust.trusted && !invalid) invalid = trust.reason;
+    }
+
+    const transientOrchestratorPaths = !invalid
+      ? trustedReanchorTransientPaths({
+          canonicalClaim,
+          candidateClaim: claim,
+          canonicalChangeSet: canonicalManifestLoaded.value,
+          candidateChangeSet: changeSet,
+          mainSha,
+          registryChanged,
+          trust,
+        })
+      : [];
+    if (!invalid) {
+      invalid = changedFileCoverageError(
+        files,
+        canonicalClaim,
+        changeSet,
+        transientOrchestratorPaths,
+      );
     }
 
     const drift = await compareBaseToMain({
@@ -1063,6 +1148,7 @@ export async function collectLivePullWork({
       changeSet,
       trust,
       registryChanged,
+      transientOrchestratorPaths,
       priority: claim?.priority ?? claim?.risk ?? "P2",
       writerActive:
         trustedForAdmission && policy.writerStates.includes(changeSet.state),
