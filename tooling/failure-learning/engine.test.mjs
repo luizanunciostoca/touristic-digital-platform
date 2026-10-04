@@ -118,9 +118,8 @@ test("critical missing detector fails closed and caller cannot override", () => 
   assert.equal(r[0].result, "NOT_PROVEN");
 });
 test("codex dispatch preflight blocks installed but unauthenticated executor", async () => {
-  const { codexAuthPreflight, authorizeDispatch } = await import(
-    "./executor-preflight.mjs"
-  );
+  const { codexAuthPreflight, authorizeDispatch } =
+    await import("./executor-preflight.mjs");
   const fake = () => ({ status: 0, stdout: "Not logged in\n", stderr: "" });
   const p = codexAuthPreflight(fake);
   assert.equal(p.authenticated, false);
@@ -276,9 +275,8 @@ test("guard proof identities and executor positive auth are fail closed", async 
     assert.throws(() =>
       promoteGuard(incident, { ...valid, [key]: "placeholder" }),
     );
-  const { codexAuthPreflight, authorizeDispatch } = await import(
-    "./executor-preflight.mjs"
-  );
+  const { codexAuthPreflight, authorizeDispatch } =
+    await import("./executor-preflight.mjs");
   assert.equal(
     codexAuthPreflight(() => ({ status: 0, stdout: "", stderr: "" }))
       .authenticated,
