@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  issues: read
   pull-requests: read
 
 concurrency:
@@ -99,10 +100,54 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         shell: bash
         run: |
           set -euo pipefail
           changed="$(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          if [ "$PR_NUMBER" = "712" ] &&
+             [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
+             [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
+             [ "$BASE_REF" = "main" ] &&
+             [ "$HEAD_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003" ] &&
+             [ "$BASE_SHA" = "4b8919475378e714d7f6d69e478924256fdf96bf" ]; then
+            owner="$(gh api "repos/$REPOSITORY")"
+            approval="$(
+              gh api "repos/$REPOSITORY/issues/711/comments?per_page=100" --paginate --slurp |
+                jq -er --arg head "$HEAD_SHA" --argjson repository "$owner" '
+                  $repository.owner as $owner |
+                  if $owner.type != "User" or ($owner.id | type) != "number" then false
+                  else
+                    [.[][] | select(
+                      .user.id == $owner.id and
+                      .user.login == $owner.login and
+                      .user.type == "User" and
+                      .author_association == "OWNER" and
+                      .performed_via_github_app == null and
+                      .body == ("APPROVED_BOOTSTRAP_HEAD:" + $head)
+                    )] | length == 1
+                  end
+                '
+            )"
+            test "$approval" = "true"
+            expected=(
+              ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+              ".github/workflows/morro-claim-guard.yml"
+              ".github/workflows/morro-merge-gate.yml"
+              ".morro/changesets/MD-CP-CLAIM-ACQ-711.json"
+              "tooling/control-state/mdctl-merge-gate.test.mjs"
+              "tooling/fabric/claim-guard.mjs"
+              "tooling/fabric/claim-guard.test.mjs"
+              "tooling/mdctl/merge-gate.mjs"
+            )
+            test "$(printf "%s\n" "$changed" | sort)" = "$(printf "%s\n" "${expected[@]}" | sort)"
+            echo "required=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if grep -Fxq '.github/workflows/morro-claim-guard.yml' <<<"$changed"; then
             echo "required=false" >> "$GITHUB_OUTPUT"
             exit 0

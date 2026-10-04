@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
+  chmodSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -620,6 +621,83 @@ test("claim acquisition accepts exactly one bounded orchestrator claim", () => {
   assert.equal(result.mode, "CLAIM_ACQUISITION");
   assert.equal(result.changeSetId, "MD-GATED");
   assert.equal(result.trustAuthority, "TRUSTED_CLAIM_GUARD_EXACT_HEAD");
+});
+
+test("claim acquisition permits only mandatory bookkeeping overlap with a surviving claim", () => {
+  const input = acquisitionInput();
+  const existingManifest = manifest({
+    id: "MD-EXISTING",
+    branch: "feat/existing",
+    objective: "existing-objective",
+    owns: {
+      paths: [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        "apps/existing/index.ts",
+      ],
+      contracts: [],
+    },
+    produces: { events: ["EXISTING_UPDATED"], routes: ["/existing"] },
+    database: { tables: ["existing_records"] },
+    auth: { capabilities: ["existing:write"] },
+  });
+  const existing = claim(existingManifest, {
+    status: "IMPLEMENTING",
+    paths: [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      "apps/existing/index.ts",
+    ],
+  });
+  input.canonicalRegistry.claims["MD-EXISTING"] = existing;
+  input.registry.claims["MD-EXISTING"] = structuredClone(existing);
+  input.liveItems.push({
+    prNumber: 11,
+    openPr: true,
+    writerActive: true,
+    invalid: null,
+    changeSet: {
+      ...existingManifest,
+      owns: { paths: existing.paths, contracts: [] },
+    },
+  });
+  const result = evaluateClaimAcquisitionMergeGate(input);
+  assert.equal(result.decision, "POLICY_SATISFIED");
+  assert.equal(result.mode, "CLAIM_ACQUISITION");
+});
+
+test("claim acquisition never ignores non-path semantic collisions", () => {
+  const input = acquisitionInput();
+  const existingManifest = manifest({
+    id: "MD-EXISTING-SEMANTIC",
+    branch: "feat/existing-semantic",
+    objective: "existing-semantic-objective",
+    owns: {
+      paths: [
+        ".github/morro-control/claims.json",
+        ".github/morro-control/events.ndjson",
+        "apps/existing-semantic/index.ts",
+      ],
+      contracts: [],
+    },
+  });
+  const existing = claim(existingManifest, {
+    status: "IMPLEMENTING",
+    paths: existingManifest.owns.paths,
+  });
+  input.canonicalRegistry.claims[existingManifest.id] = existing;
+  input.registry.claims[existingManifest.id] = structuredClone(existing);
+  input.liveItems.push({
+    prNumber: 12,
+    openPr: true,
+    writerActive: true,
+    invalid: null,
+    changeSet: existingManifest,
+  });
+  assert.throws(
+    () => evaluateClaimAcquisitionMergeGate(input),
+    /MERGE_GATE_SEMANTIC_COLLISION/u,
+  );
 });
 
 test("claim acquisition rejects added claims plus surviving claim mutation", () => {
@@ -1585,5 +1663,258 @@ test("runMergeGate routes a proven claim removal through retirement mode", async
     assert.equal(result.mode, "CLAIM_RETIREMENT");
   } finally {
     rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+// Execute the workflow's actual shell predicate; fixtures replace only GitHub responses.
+const bootstrapWorkflows = [
+  ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+  ".github/workflows/morro-claim-guard.yml",
+  ".github/workflows/morro-merge-gate.yml",
+];
+
+for (const workflow of bootstrapWorkflows) {
+  test(`bootstrap approval authenticates provider identity and target: ${workflow}`, () => {
+    const source = readFileSync(join(process.cwd(), workflow), "utf8");
+    const start = source.indexOf('          if [ "$PR_NUMBER" = "712" ]');
+    const endLine = source.indexOf('            test "$approval"', start);
+    assert.ok(start >= 0 && endLine > start, "BOOTSTRAP_PREDICATE_MISSING");
+    const predicate = source.slice(start, source.indexOf("\n", endLine));
+    const root = mkdtempSync(join(tmpdir(), "bootstrap-approval-"));
+    const repo = "luizanunciostoca/touristic-digital-platform";
+    const sha = "d".repeat(40);
+    const owner = { login: "luizanunciostoca", id: 318748875, type: "User" };
+    const comment = {
+      body: `APPROVED_BOOTSTRAP_HEAD:${sha}`,
+      user: owner,
+      author_association: "OWNER",
+      performed_via_github_app: null,
+    };
+    const gh = join(root, "gh");
+    writeFileSync(
+      gh,
+      `#!/bin/bash
+set -eu
+if [ "\${API_FAILURE:-0}" = 1 ]; then exit 1; fi
+if [ "$2" = "repos/${repo}" ]; then cat "$FIXTURE_OWNER"; exit 0; fi
+if [[ " $* " == *" --jq "* ]]; then
+  jq -r 'add | .[].body' "$FIXTURE_COMMENTS"
+else
+  cat "$FIXTURE_COMMENTS"
+fi
+`,
+    );
+    chmodSync(gh, 0o700);
+    const cases = [
+      ["exact owner", [[comment]], true],
+      ["missing approval", [[]], false],
+      [
+        "non-owner",
+        [[{ ...comment, user: { ...owner, login: "contributor", id: 123 } }]],
+        false,
+      ],
+      [
+        "same login wrong id",
+        [[{ ...comment, user: { ...owner, id: 123 } }]],
+        false,
+      ],
+      [
+        "same id wrong login",
+        [[{ ...comment, user: { ...owner, login: "contributor" } }]],
+        false,
+      ],
+      ["bot", [[{ ...comment, user: { ...owner, type: "Bot" } }]], false],
+      [
+        "non-owner association",
+        [[{ ...comment, author_association: "MEMBER" }]],
+        false,
+      ],
+      [
+        "app-issued",
+        [[{ ...comment, performed_via_github_app: { id: 1 } }]],
+        false,
+      ],
+      [
+        "wrong head",
+        [[{ ...comment, body: `APPROVED_BOOTSTRAP_HEAD:${"e".repeat(40)}` }]],
+        false,
+      ],
+      ["quoted marker", [[{ ...comment, body: `> ${comment.body}` }]], false],
+      ["revoked by edit", [[{ ...comment, body: "REVOKED" }]], false],
+      ["owner on later page", [[], [comment]], true],
+      ["duplicate exact approvals", [[comment], [comment]], false],
+      ["wrong repository", [[comment]], false, { REPOSITORY: "other/repo" }],
+      ["fork", [[comment]], false, { HEAD_REPOSITORY: "other/repo" }],
+      ["wrong base ref", [[comment]], false, { BASE_REF: "other" }],
+      ["wrong base sha", [[comment]], false, { BASE_SHA: "e".repeat(40) }],
+      ["ordinary branch", [[comment]], false, { HEAD_BRANCH: "fix/unclaimed" }],
+      ["wrong PR", [[comment]], false, { PR_NUMBER: "713" }],
+      ["API unavailable", [[comment]], false, { API_FAILURE: "1" }],
+    ];
+    try {
+      writeFileSync(join(root, "owner.json"), JSON.stringify({ owner }));
+      for (const [label, comments, expected, extra = {}] of cases) {
+        writeFileSync(join(root, "comments.json"), JSON.stringify(comments));
+        let accepted = false;
+        try {
+          execFileSync(
+            "bash",
+            [
+              "-c",
+              `set -euo pipefail\naccepted=no\n${predicate}\naccepted=yes\nfi\ntest "$accepted" = yes`,
+            ],
+            {
+              env: {
+                ...process.env,
+                PATH: `${root}:${process.env.PATH}`,
+                FIXTURE_OWNER: join(root, "owner.json"),
+                FIXTURE_COMMENTS: join(root, "comments.json"),
+                HEAD_SHA: sha,
+                BASE_SHA: "4b8919475378e714d7f6d69e478924256fdf96bf",
+                HEAD_BRANCH:
+                  "fix/claim-acquisition-bookkeeping-bootstrap-20261003",
+                PR_NUMBER: "712",
+                REPOSITORY: repo,
+                HEAD_REPOSITORY: repo,
+                BASE_REF: "main",
+                ...extra,
+              },
+              stdio: "pipe",
+            },
+          );
+          accepted = true;
+        } catch {
+          accepted = false;
+        }
+        assert.equal(accepted, expected, `${workflow}: ${label}`);
+      }
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+}
+
+test("bootstrap retains pinned independent gate and base-sourced regression assertions", () => {
+  const source = readFileSync(
+    join(process.cwd(), bootstrapWorkflows[0]),
+    "utf8",
+  );
+  const independent = source
+    .split("  independent-proof:\n")[1]
+    .split("  claim-handoff-proof:\n")[0];
+  assert.match(
+    independent,
+    /always\(\) && needs\.unit\.outputs\.retirement != 'true'/u,
+  );
+  assert.doesNotMatch(independent, /approved_bootstrap/u);
+  assert.match(
+    independent,
+    /morro-agent-profiles-trusted\.yml@504d587c9eb780cff01aae71d377b2c2aec99054/u,
+  );
+  const bootstrap = source
+    .split("  approved-bootstrap-proof:\n")[1]
+    .split("  retirement-proof:\n")[0];
+  assert.match(bootstrap, /git -C trusted archive "\$EXPECTED_BASE"/u);
+  assert.match(bootstrap, /git -C candidate show "\$EXPECTED_HEAD:\$module"/u);
+  assert.doesNotMatch(bootstrap, /cd candidate && node --test/u);
+  assert.match(
+    bootstrap,
+    /for module in tooling\/fabric\/claim-guard\.mjs tooling\/mdctl\/merge-gate\.mjs;/u,
+  );
+});
+
+test("bootstrap proof routing stays exact and never requires owner approval to gather evidence", () => {
+  const source = readFileSync(
+    join(process.cwd(), bootstrapWorkflows[0]),
+    "utf8",
+  );
+  const section = source
+    .split("  independent-proof:\n")[1]
+    .split("  claim-handoff-proof:\n")[0];
+  const expression = section.match(/    if: \$\{\{ (.+) \}\}/u)?.[1];
+  assert.ok(expression);
+  function eligible(overrides = {}) {
+    const github = {
+      repository: "luizanunciostoca/touristic-digital-platform",
+      event: {
+        pull_request: {
+          number: 712,
+          head: {
+            ref: "fix/claim-acquisition-bookkeeping-bootstrap-20261003",
+            repo: { full_name: "luizanunciostoca/touristic-digital-platform" },
+          },
+          base: {
+            ref: "main",
+            sha: "4b8919475378e714d7f6d69e478924256fdf96bf",
+          },
+        },
+      },
+    };
+    overrides.modify?.(github);
+    const needs = {
+      unit: {
+        result: overrides.result ?? "failure",
+        outputs: { retirement: overrides.retirement ?? "", manifest_path: "" },
+      },
+    };
+    return Function(
+      "github",
+      "needs",
+      "always",
+      `return (${expression});`,
+    )(github, needs, () => true);
+  }
+  assert.equal(eligible(), true, "BOUNDED_PROOF_BEFORE_APPROVAL");
+  assert.equal(eligible({ retirement: "true" }), false);
+  assert.equal(
+    eligible({
+      modify: (g) => {
+        g.event.pull_request.number = 713;
+      },
+    }),
+    false,
+  );
+  assert.equal(
+    eligible({
+      modify: (g) => {
+        g.event.pull_request.head.ref = "fix/unclaimed";
+      },
+    }),
+    false,
+  );
+  assert.equal(
+    eligible({
+      modify: (g) => {
+        g.event.pull_request.head.repo.full_name = "other/repo";
+      },
+    }),
+    false,
+  );
+  assert.equal(
+    eligible({
+      modify: (g) => {
+        g.event.pull_request.base.sha = "e".repeat(40);
+      },
+    }),
+    false,
+  );
+  assert.equal(
+    eligible({
+      result: "success",
+      modify: (g) => {
+        g.event.pull_request.number = 713;
+      },
+    }),
+    true,
+    "ORDINARY_REGISTERED_ROUTE_PRESERVED",
+  );
+  assert.match(section, /MD-CP-CLAIM-ACQ-711\.json/u);
+  for (const name of bootstrapWorkflows) {
+    const body = readFileSync(join(process.cwd(), name), "utf8");
+    assert.ok(body.includes('".morro/changesets/MD-CP-CLAIM-ACQ-711.json"'));
+    assert.ok(
+      body.includes('test "$approval" = "true"'),
+      "OWNER_GATE_RETAINED",
+    );
   }
 });

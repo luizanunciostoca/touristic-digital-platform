@@ -95,7 +95,17 @@ function parseExpiry(value) {
   return timestamp;
 }
 
-export function findClaimCollisions(registry, claimId, now = Date.now()) {
+const SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS = new Set([
+  ".github/morro-control/claims.json",
+  ".github/morro-control/events.ndjson",
+]);
+
+export function findClaimCollisions(
+  registry,
+  claimId,
+  now = Date.now(),
+  { allowSerializedAcquisitionBookkeeping = false, authority = "WORKER" } = {},
+) {
   assert.equal(
     registry?.registryAuthority,
     "ORCHESTRATOR",
@@ -109,6 +119,13 @@ export function findClaimCollisions(registry, claimId, now = Date.now()) {
   const current = registry.claims[claimId];
   assert.ok(current, "ACTIVE_CLAIM_MISSING");
 
+  if (allowSerializedAcquisitionBookkeeping) {
+    assert.equal(
+      authority,
+      "ORCHESTRATOR",
+      "CLAIM_COLLISION_EXEMPTION_REQUIRES_ORCHESTRATOR",
+    );
+  }
   const collisions = [];
   for (const [otherId, other] of Object.entries(registry.claims)) {
     if (otherId === claimId) continue;
@@ -121,7 +138,14 @@ export function findClaimCollisions(registry, claimId, now = Date.now()) {
 
     for (const left of current.paths ?? []) {
       for (const right of other.paths ?? []) {
-        if (patternsOverlap(left, right)) {
+        if (
+          patternsOverlap(left, right) &&
+          !(
+            allowSerializedAcquisitionBookkeeping &&
+            left === right &&
+            SERIALIZED_ACQUISITION_BOOKKEEPING_PATHS.has(left)
+          )
+        ) {
           collisions.push({
             otherId,
             kind: "path",
@@ -145,6 +169,7 @@ export function validateClaimContext({
   now = Date.now(),
   authority = "WORKER",
   isAncestor = () => true,
+  allowSerializedAcquisitionBookkeeping = false,
 }) {
   assert.equal(
     registry?.registryAuthority,
@@ -211,7 +236,10 @@ export function validateClaimContext({
     "CURRENT_BASE_NOT_ANCESTOR_OF_BRANCH_HEAD",
   );
 
-  const collisions = findClaimCollisions(registry, manifest.id, now);
+  const collisions = findClaimCollisions(registry, manifest.id, now, {
+    allowSerializedAcquisitionBookkeeping,
+    authority,
+  });
   assert.deepEqual(collisions, [], "CLAIM_OVERLAP_DETECTED");
 
   // Registry maintenance is serialized by the orchestrator, not exclusively

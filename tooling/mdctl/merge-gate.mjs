@@ -562,6 +562,7 @@ export function evaluateClaimAcquisitionMergeGate({
     now,
     authority: "ORCHESTRATOR",
     isAncestor: ancestor,
+    allowSerializedAcquisitionBookkeeping: true,
   });
 
   assert.equal(
@@ -612,7 +613,18 @@ export function evaluateClaimAcquisitionMergeGate({
   const activeChangeSets = others
     .filter((item) => item?.writerActive === true && item?.changeSet)
     .map((item) => item.changeSet);
-  const collisions = findSemanticCollisions(manifest, activeChangeSets);
+  const acquisitionBookkeepingPaths = new Set([
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+  ]);
+  const collisions = findSemanticCollisions(manifest, activeChangeSets).filter(
+    (collision) =>
+      !(
+        collision.kind === "path" &&
+        acquisitionBookkeepingPaths.has(collision.value.split(" <-> ", 1)[0]) &&
+        collision.value.split(" <-> ")[0] === collision.value.split(" <-> ")[1]
+      ),
+  );
   assert.deepEqual(collisions, [], "MERGE_GATE_SEMANTIC_COLLISION");
 
   return {
