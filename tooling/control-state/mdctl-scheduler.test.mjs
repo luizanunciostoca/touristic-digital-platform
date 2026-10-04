@@ -1010,7 +1010,12 @@ test("live collector rejects semantic authority mutation even during reanchor", 
     api: fixture.api,
   });
   assert.match(live.items[0].invalid, /AUTHORITY_DIVERGED_FROM_MAIN/u);
-  assert.deepEqual(live.items[0].transientOrchestratorPaths, []);
+  assert.equal(
+    live.items[0].transientOrchestratorPaths,
+    undefined,
+    "AUTHORITY_DRIFT_REJECTS_BEFORE_TRANSIENT_CLASSIFICATION",
+  );
+  assert.equal(live.items[0].writerActive, false);
 });
 
 test("live collector rejects head movement during capture", async () => {
