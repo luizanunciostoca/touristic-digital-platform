@@ -6,6 +6,8 @@ import { join, resolve } from "node:path";
 import { githubApi } from "../control-state/status.mjs";
 import {
   validateClaimContext,
+  buildClaimReanchorProof,
+  pathOwned,
   addedClaimIds,
   assertAcquisitionClaimKeyset,
   validateClaimAcquisitionTransition,
@@ -310,7 +312,7 @@ export function evaluateClaimAcquisitionMergeGate({
   now = Date.now(),
   ancestor = () => true,
 }) {
-  validateClaimAcquisitionTransition({
+  const acquisition = validateClaimAcquisitionTransition({
     manifest,
     registry,
     canonicalRegistry,
@@ -433,6 +435,7 @@ export function evaluateClaimAcquisitionMergeGate({
     kind: "TDP_MERGE_GATE_DECISION",
     decision: "POLICY_SATISFIED",
     mode: "CLAIM_ACQUISITION",
+    transientOrchestratorPaths: acquisition.transientOrchestratorPaths,
     changeSetId: claimId,
     objective: manifest.objective,
     exactBaseSha: baseSha,
@@ -466,6 +469,7 @@ export function evaluateMergeGate({
   policy = DEFAULT_SCHEDULER_POLICY,
   now = Date.now(),
   ancestor = () => true,
+  reanchorProof,
 }) {
   validateChangeSetV2(manifest);
   validateChangeSetV2(canonicalManifest);
@@ -550,6 +554,7 @@ export function evaluateMergeGate({
     now,
     authority,
     isAncestor: ancestor,
+    reanchorProof,
   });
 
   const candidate = (liveItems ?? []).find(
@@ -889,6 +894,18 @@ export async function runMergeGate({
   const canonicalManifest = readJson(trustedDir, manifestPath);
   const manifest = readJson(candidateDir, manifestPath);
 
+  const reanchorProof =
+    diff.authorizationPaths.includes(".github/morro-control/claims.json") &&
+    !manifest.owns.paths.some((path) =>
+      pathOwned(".github/morro-control/claims.json", path),
+    )
+      ? buildClaimReanchorProof(candidateDir, {
+          baseSha,
+          headSha,
+          manifestPath,
+        })
+      : undefined;
+
   const live = await liveCollector({ repository, api, policy });
   assert.equal(live.mainSha, baseSha, "MERGE_GATE_LIVE_MAIN_MISMATCH");
   const dependencies = await dependencyEvaluator({
@@ -905,6 +922,7 @@ export async function runMergeGate({
   assert.equal(finalMain?.sha, baseSha, "MERGE_GATE_MAIN_MOVED_DURING_PROOF");
 
   return evaluateMergeGate({
+    reanchorProof,
     manifest,
     registry,
     canonicalManifest,

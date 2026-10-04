@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/tdp-learning-001-impl-20261003",
-      "baseSha": "de6c1637abc98e4e86e9c575ac0aaeb00a99551c",
+      "baseSha": "804407a8c4dacbfde402400281f322350deaade4",
       "paths": [
         ".github/morro-control/claims.json",
         ".github/morro-control/events.ndjson",

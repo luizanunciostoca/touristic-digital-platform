@@ -1,21 +1,24 @@
 {
   "schemaVersion": 2,
-  "id": "MD-TDP-LEARNING-001",
-  "objective": "closed-loop-failure-learning-and-executable-anti-recurrence-guards",
-  "baseSha": "804407a8c4dacbfde402400281f322350deaade4",
-  "branch": "infra/tdp-learning-001-impl-20261003",
+  "id": "MD-CP-CLAIM-LIFECYCLE-711",
+  "objective": "bounded-711-acquisition-to-implementation-lifecycle",
+  "baseSha": "de6c1637abc98e4e86e9c575ac0aaeb00a99551c",
+  "branch": "fix/claim-lifecycle-bootstrap-20261004",
   "state": "IMPLEMENTING",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
     "paths": [
-      ".github/morro-control/claims.json",
-      ".github/morro-control/events.ndjson",
-      ".morro/changesets/MD-TDP-LEARNING-001.json",
-      ".github/morro-control/tdp-max/anti-recurrence.json",
-      ".github/morro-control/failures/**",
-      "tooling/failure-learning/**",
-      "package.json"
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/workflows/morro-merge-gate.yml",
+      ".morro/changesets/MD-CP-CLAIM-LIFECYCLE-711.json",
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+      "tooling/quality/independent-proof-trusted.mjs",
+      "tooling/quality/independent-proof-trusted.test.mjs"
     ],
     "contracts": []
   },
@@ -32,7 +35,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-TDP-MAX-002"],
+  "dependencies": [],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -41,10 +44,6 @@
     "affected-tests",
     "build",
     "integration",
-    "failure-schema",
-    "fingerprint-deduplication",
-    "guard-engine",
-    "regression-guards",
     "automated-independent-proof",
     "exact-head-identity"
   ],
@@ -66,12 +65,18 @@
   "proof": {
     "budget": {
       "maxCommands": 1,
-      "maxSeconds": 900
+      "maxSeconds": 300
     },
     "commands": [
       {
-        "id": "failure-learning-contract",
-        "argv": ["node", "--test", "tooling/failure-learning/engine.test.mjs"],
+        "id": "claim-lifecycle-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/control-state/mdctl-merge-gate.test.mjs",
+          "tooling/quality/independent-proof-trusted.test.mjs"
+        ],
         "timeoutSeconds": 300
       }
     ],
