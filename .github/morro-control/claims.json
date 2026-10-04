@@ -16,7 +16,11 @@
         "tooling/failure-learning/**",
         "package.json"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -32,10 +36,37 @@
         "tooling/quality/failure-learning-proof-trusted.test.mjs",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
+    },
+    "MD-CP-FINAL-CLEANUP-002": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/control-plane-final-cleanup-r2-20261004",
+      "baseSha": "c2394cd1c476c392ce42bd0aaff6ae5ac031ce2e",
+      "paths": [
+        ".morro/changesets/MD-CP-FINAL-CLEANUP-002.json",
+        ".github/morro-control/tdp-max/anti-recurrence.json",
+        "tooling/tdp-max/guard-evaluator.mjs",
+        "tooling/tdp-max/validate-config.mjs",
+        "tooling/tdp-max/validate-config.test.mjs",
+        "tooling/mdctl/merge-gate.mjs",
+        "tooling/control-state/mdctl-merge-gate.test.mjs"
+      ],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-05T19:00:00Z"
     }
   }
 }
