@@ -77,7 +77,10 @@ export function promoteGuard(i){return {...i,state:"ACTIVE_GUARD"}}
 export function evaluateGuards(){return [{id:"AR-001",class:"STALE_HEAD",result:"PASS"}]}
 `;
 }
-function fixture(t, { secure = true, selfActivate = false } = {}) {
+function fixture(
+  t,
+  { secure = true, selfActivate = false, changeSetId = "MD-TDP-LEARNING-001" } = {},
+) {
   const root = mkdtempSync(resolve(tmpdir(), "tdp-learning-proof-test-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   git(root, "init", "-q", "-b", "infra/learning");
@@ -87,13 +90,13 @@ function fixture(t, { secure = true, selfActivate = false } = {}) {
   git(root, "add", ".");
   git(root, "commit", "-qm", "base");
   const base = git(root, "rev-parse", "HEAD");
-  const manifestPath = ".morro/changesets/MD-TDP-LEARNING-001.json";
+  const manifestPath = ".morro/changesets/" + changeSetId + ".json";
   write(
     root,
     manifestPath,
     JSON.stringify(
       {
-        id: "MD-TDP-LEARNING-001",
+        id: changeSetId,
         baseSha: base,
         branch: "infra/learning",
         owns: {
@@ -212,6 +215,20 @@ test("trusted context requires exact base-controlled workflow_run identity", () 
     { EXPECTED_BASE_BRANCH: "release" },
   ])
     assert.throws(() => trustedContext({ ...valid, ...patch }));
+});
+
+test("candidate contract accepts governed Failure Learning successors and rejects unrelated ids", (t) => {
+  const successor = fixture(t, { changeSetId: "MD-TDP-LEARNING-001-R2" });
+  assert.doesNotThrow(() =>
+    validateCandidateContract(successor.root, trustedContext(envFor(successor))),
+  );
+
+  const unrelated = fixture(t, { changeSetId: "MD-TDP-LEARNING-PROOF-709-R2" });
+  assert.throws(
+    () =>
+      validateCandidateContract(unrelated.root, trustedContext(envFor(unrelated))),
+    /LEARNING_CHANGESET_REQUIRED/u,
+  );
 });
 
 test("freshness uses canonical 600-second authority and rejects stale/future evidence", () => {
