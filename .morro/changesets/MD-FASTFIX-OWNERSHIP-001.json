@@ -12,14 +12,10 @@
       ".morro/changesets/MD-FASTFIX-OWNERSHIP-001.json",
       ".morro/ownership.json"
     ],
-    "contracts": [
-      "TDP-OWNERSHIP"
-    ]
+    "contracts": ["TDP-OWNERSHIP"]
   },
   "reads": {
-    "contracts": [
-      "CI-IMPACT-CLASSIFICATION"
-    ]
+    "contracts": ["CI-IMPACT-CLASSIFICATION"]
   },
   "produces": {
     "events": [],
@@ -50,12 +46,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
