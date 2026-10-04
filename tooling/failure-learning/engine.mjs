@@ -261,50 +261,15 @@ export function promoteGuard(incident, proof) {
     )
   )
     throw new Error("GUARD_INDEPENDENT_PROOF_INVALID");
-  let runUrl, testUrl;
-  try {
-    runUrl = new URL(proof.independentProof);
-    testUrl = new URL(proof.regressionTest);
-  } catch {
+  const regressionMatch = proof.regressionTest.match(
+    /^https:\/\/github\.com\/luizanunciostoca\/touristic-digital-platform\/blob\/([0-9a-f]{40})\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/u,
+  );
+  const runMatch = proof.independentProof.match(
+    /^https:\/\/github\.com\/luizanunciostoca\/touristic-digital-platform\/actions\/runs\/([1-9][0-9]*)$/u,
+  );
+  if (!regressionMatch || !runMatch)
     throw new Error("GUARD_PROOF_URL_INVALID");
-  }
-  for (const [url, original] of [
-    [runUrl, proof.independentProof],
-    [testUrl, proof.regressionTest],
-  ]) {
-    if (
-      url.origin !== "https://github.com" ||
-      url.username ||
-      url.password ||
-      url.search ||
-      url.hash ||
-      url.href !== original ||
-      url.pathname.includes("%")
-    )
-      throw new Error("GUARD_PROOF_URL_INVALID");
-  }
-  const runParts = runUrl.pathname.split("/").slice(1);
-  const testParts = testUrl.pathname.split("/").slice(1);
-  const repo = "luizanunciostoca/touristic-digital-platform";
-  if (
-    runParts.slice(0, 2).join("/") !== repo ||
-    testParts.slice(0, 2).join("/") !== repo
-  )
-    throw new Error("GUARD_PROOF_REPOSITORY_MISMATCH");
-  if (
-    runParts.length !== 5 ||
-    runParts[2] !== "actions" ||
-    runParts[3] !== "runs" ||
-    !/^[1-9][0-9]*$/.test(runParts[4]) ||
-    testParts[2] !== "blob" ||
-    testParts.length < 5 ||
-    testParts.slice(4).some((p) => !p)
-  )
-    throw new Error("GUARD_PROOF_URL_INVALID");
-  const regressionSha = proof.regressionTest.match(
-    /\/blob\/([0-9a-f]{40})\//,
-  )?.[1];
-  if (!regressionSha) throw new Error("GUARD_REGRESSION_PROOF_INVALID");
+  const regressionSha = regressionMatch[1];
   if (regressionSha !== proof.candidateBinding)
     throw new Error("GUARD_PROOF_BINDING_MISMATCH");
   if (proof.independentProofCandidateSha !== proof.candidateBinding)
