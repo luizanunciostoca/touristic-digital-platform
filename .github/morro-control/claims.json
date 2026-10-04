@@ -11,11 +11,7 @@
         ".morro/changesets/MD-FASTFIX-OWNERSHIP-001.json",
         ".morro/ownership.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "governance"
-      ],
+      "domains": ["ci-release", "control-plane", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T23:00:00Z"
