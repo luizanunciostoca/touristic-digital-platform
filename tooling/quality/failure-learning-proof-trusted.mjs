@@ -102,7 +102,7 @@ export function trustedContext(env = process.env) {
   assert.equal(env.GITHUB_ACTIONS, "true", "TRUSTED_CONTEXT_ACTIONS_REQUIRED");
   assert.equal(
     env.GITHUB_EVENT_NAME,
-    "pull_request_target",
+    "workflow_run",
     "TRUSTED_CONTEXT_EVENT_INVALID",
   );
   assert.equal(
@@ -161,9 +161,9 @@ export function trustedContext(env = process.env) {
     env.GITHUB_RUN_ATTEMPT,
     "TRUSTED_CONTEXT_EXPECTED_RUN_ATTEMPT_MISMATCH",
   );
-  assert.match(
-    env.EXPECTED_BASE_BRANCH ?? "",
-    /^[A-Za-z0-9._/-]+$/u,
+  assert.equal(
+    env.EXPECTED_BASE_BRANCH,
+    "main",
     "TRUSTED_CONTEXT_BASE_BRANCH_INVALID",
   );
   assert.match(
@@ -171,21 +171,7 @@ export function trustedContext(env = process.env) {
     /^[A-Za-z0-9._/-]+$/u,
     "TRUSTED_CONTEXT_BRANCH_INVALID",
   );
-  assert.equal(
-    env.GITHUB_BASE_REF,
-    env.EXPECTED_BASE_BRANCH,
-    "TRUSTED_CONTEXT_BASE_BRANCH_MISMATCH",
-  );
-  assert.equal(
-    env.GITHUB_HEAD_REF,
-    env.EXPECTED_BRANCH,
-    "TRUSTED_CONTEXT_HEAD_BRANCH_MISMATCH",
-  );
-  assert.equal(
-    env.GITHUB_REF,
-    "refs/heads/" + env.EXPECTED_BASE_BRANCH,
-    "TRUSTED_CONTEXT_REF_INVALID",
-  );
+  assert.equal(env.GITHUB_REF, "refs/heads/main", "TRUSTED_CONTEXT_REF_INVALID");
   const workflowRef =
     REPOSITORY +
     "/" +
@@ -226,6 +212,11 @@ export function trustedContext(env = process.env) {
     env.TRUSTED_VALIDATOR_SHA ?? "",
     SHA,
     "TRUSTED_CONTEXT_VALIDATOR_SHA_INVALID",
+  );
+  assert.equal(
+    env.GITHUB_SHA,
+    env.TRUSTED_VALIDATOR_SHA,
+    "TRUSTED_CONTEXT_GITHUB_SHA_MISMATCH",
   );
   assert.match(
     env.TRUSTED_VALIDATOR_TREE_SHA ?? "",

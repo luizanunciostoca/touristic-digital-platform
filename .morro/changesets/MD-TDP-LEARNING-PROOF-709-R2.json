@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "MD-TDP-LEARNING-PROOF-709-R2",
-  "objective": "harden-base-controlled-failure-learning-proof-plane",
+  "objective": "install-base-controlled-failure-learning-validator",
   "baseSha": "a206cdb80dc3f784ed264126bcb95ac9fe8ca714",
   "branch": "infra/failure-learning-proof-709-r2-20261004",
   "state": "IMPLEMENTING",
@@ -11,13 +11,16 @@
     "paths": [
       ".morro/changesets/MD-TDP-LEARNING-PROOF-709-R2.json",
       "tooling/quality/failure-learning-proof-trusted.mjs",
-      "tooling/quality/failure-learning-proof-trusted.test.mjs",
-      ".github/workflows/failure-learning-independent-proof.yml"
+      "tooling/quality/failure-learning-proof-trusted.test.mjs"
     ],
-    "contracts": ["TDP-FAILURE-LEARNING-TRUSTED-PROOF"]
+    "contracts": [
+      "TDP-FAILURE-LEARNING-TRUSTED-PROOF"
+    ]
   },
   "reads": {
-    "contracts": ["TDP-MAX-EXTERNAL-EVIDENCE-FRESHNESS"]
+    "contracts": [
+      "TDP-MAX-EXTERNAL-EVIDENCE-FRESHNESS"
+    ]
   },
   "produces": {
     "events": [],
