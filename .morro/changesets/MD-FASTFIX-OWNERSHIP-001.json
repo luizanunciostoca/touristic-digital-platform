@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-OWNERSHIP-001",
   "objective": "assign-ci-tooling-to-canonical-ci-release-owner",
-  "baseSha": "679ad1795c63defa43660db93f8ac06b05823c95",
-  "branch": "chore/fastfix-ci-tooling-ownership-20261004",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "104f131633c40abfc70e071dff83cbb74d6acb87",
+  "branch": "infra/retire-fastfix-ownership-001-20261004",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
