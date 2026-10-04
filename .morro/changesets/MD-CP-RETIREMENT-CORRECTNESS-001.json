@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CP-RETIREMENT-CORRECTNESS-001",
   "objective": "preserve-unfinished-state-on-claim-release-and-require-material-merge-evidence",
-  "baseSha": "28b37f58abccffd9d4d212d95270f2b987e24f25",
-  "branch": "fix/canonical-retirement-correctness-20261004",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "6c594f4ef1c22d8bb33e0ebd31f99820c9caa5e1",
+  "branch": "infra/retire-cp-retirement-correctness-001-20261004",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

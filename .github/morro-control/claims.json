@@ -36,25 +36,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
-    },
-    "MD-CP-RETIREMENT-CORRECTNESS-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/canonical-retirement-correctness-20261004",
-      "baseSha": "28b37f58abccffd9d4d212d95270f2b987e24f25",
-      "paths": [
-        ".morro/changesets/MD-CP-RETIREMENT-CORRECTNESS-001.json",
-        "tooling/fabric/claim-retirement-proof.mjs",
-        "tooling/fabric/claim-retirement-proof.test.mjs",
-        "tooling/mdctl/merge-gate.mjs",
-        "tooling/control-state/mdctl-merge-gate.test.mjs",
-        ".github/workflows/morro-claim-guard.yml",
-        ".github/workflows/morro-merge-gate.yml"
-      ],
-      "domains": ["ci-release", "control-plane", "governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-05T20:00:00Z"
     }
   }
 }
