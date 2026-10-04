@@ -502,6 +502,14 @@ jobs:
           cp candidate/tooling/mdctl/scheduler-live.mjs "$proof_root/tooling/mdctl/scheduler-live.mjs"
           (cd "$proof_root" && node --test --test-reporter=tap tooling/control-state/mdctl-scheduler.test.mjs tooling/control-state/trust-root-reconciliation.test.mjs) | tee trusted-baseline-with-candidate-scheduler.tap
           grep -Fq "# fail 0" trusted-baseline-with-candidate-scheduler.tap
+          test "$(git -C candidate hash-object tooling/control-state/mdctl-scheduler.test.mjs)" = "dfbc1e963db34e5cbeba74601d88fa14ae9be05a"
+          cp candidate/tooling/control-state/mdctl-scheduler.test.mjs "$proof_root/tooling/control-state/mdctl-scheduler.test.mjs"
+          (cd "$proof_root" && node --test --test-reporter=tap tooling/control-state/mdctl-scheduler.test.mjs tooling/control-state/trust-root-reconciliation.test.mjs) | tee trusted-reanchor-integration.tap
+          grep -Fq "live collector accepts exact trusted reanchor bookkeeping only" trusted-reanchor-integration.tap
+          grep -Fq "live collector rejects reanchor bookkeeping without exact-head trusted proof" trusted-reanchor-integration.tap
+          grep -Fq "live collector never widens trusted reanchor bookkeeping to extra paths" trusted-reanchor-integration.tap
+          grep -Fq "live collector rejects survivor mutation during certified reanchor" trusted-reanchor-integration.tap
+          grep -Fq "# fail 0" trusted-reanchor-integration.tap
           PROOF_ROOT="$proof_root" EXPECTED_MAIN="$EXPECTED_BASE" node --input-type=module <<'NODE' | tee scheduler-reanchor-helper-proof.json
           import assert from "node:assert/strict";
           import { pathToFileURL } from "node:url";
