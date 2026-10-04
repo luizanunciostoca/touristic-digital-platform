@@ -15,7 +15,8 @@
       ".morro/changesets/MD-CP-SCHEDULER-REANCHOR-718.json",
       "tooling/mdctl/scheduler-live.mjs",
       "tooling/control-state/mdctl-scheduler.test.mjs",
-      "tooling/control-state/trust-root-reconciliation.test.mjs"
+      "tooling/control-state/trust-root-reconciliation.test.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs"
     ],
     "contracts": [
       "TDP-SCHEDULER-TRUST-VERIFICATION",
