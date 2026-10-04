@@ -10,9 +10,7 @@
       "paths": [
         ".morro/changesets/MD-FASTFIX-BACKLOG-001.json",
         ".github/morro-control/backlog.json",
-        ".github/morro-control/dependency-graph.json",
-        ".github/morro-control/claims.json",
-        ".github/morro-control/events.ndjson"
+        ".github/morro-control/dependency-graph.json"
       ],
       "domains": [
         "ci-release",
