@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CI-SERIALIZED-CONTROL-TRANSITION-001",
+  "objective": "avoid-self-contaminating-operational-tests-on-serialized-control-transitions",
+  "baseSha": "112c1654cd5ed947a89e670f35ed5ae5efd4ebe7",
+  "branch": "fix/ci-serialized-control-transition-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CI-SERIALIZED-CONTROL-TRANSITION-001.json",
+      ".github/workflows/ci-impact.yml",
+      ".github/workflows/quality.yml",
+      "tooling/ci/impact-analyzer.mjs",
+      "tooling/ci/impact-analyzer.test.mjs",
+      "tooling/quality/ci-scheduler-governance.test.mjs"
+    ],
+    "contracts": ["CI-IMPACT-CLASSIFICATION", "QUALITY-OPERATIONAL-SELECTION"]
+  },
+  "reads": {
+    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "ci-selection",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "ci-control-transition",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/impact-analyzer.test.mjs",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
