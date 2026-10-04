@@ -16,6 +16,8 @@ on:
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
       - "tooling/fabric/claim-guard.mjs"
       - "tooling/fabric/claim-guard.test.mjs"
+      - "tooling/fabric/claim-retirement-proof.mjs"
+      - "tooling/fabric/claim-retirement-proof.test.mjs"
   merge_group:
 
 permissions:
@@ -47,6 +49,7 @@ jobs:
         run: >-
           node --test
           tooling/fabric/claim-guard.test.mjs
+          tooling/fabric/claim-retirement-proof.test.mjs
           .github/hooks/morro-pretool-guard.test.mjs
 
       - name: Build candidate Claim Guard proof
@@ -302,7 +305,7 @@ jobs:
           manifest="candidate/.morro/changesets/$claim_id.json"
           test -f "$manifest"
           test "$(jq -r '.id' "$manifest")" = "$claim_id"
-          test "$(jq -r '.state' "$manifest")" = "MERGED"
+          # State is checked against canonical evidence by the trusted proof below.
           test "$(jq -r '.baseSha' "$manifest")" = "$EXPECTED_BASE_SHA"
           test "$(jq -r '.branch' "$manifest")" = "$EXPECTED_BRANCH"
           echo "claim_id=$claim_id" >> "$GITHUB_OUTPUT"

@@ -3,6 +3,9 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { pathOwned } from "./claim-guard.mjs";
+import { validateChangeSetV2 } from "../mdctl/changeset-v2.mjs";
+import { parseAuthorityLedger } from "../mdctl/event-ledger.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 const CLAIM_ID = /^MD-[A-Z0-9-]+$/u;
@@ -51,7 +54,7 @@ export function assertCanonicalRetirementTransition(
 
 export function validateCandidateRetirementManifest(
   manifest,
-  { claimId, expectedBaseSha },
+  { claimId, expectedBaseSha, canonicalManifest, evidence },
 ) {
   assert.ok(
     manifest && typeof manifest === "object" && !Array.isArray(manifest),
@@ -59,9 +62,24 @@ export function validateCandidateRetirementManifest(
   );
   assert.equal(manifest.id, claimId, "CLAIM_RETIREMENT_MANIFEST_ID_MISMATCH");
   assert.equal(
+    canonicalManifest?.id,
+    claimId,
+    "CLAIM_RETIREMENT_CANONICAL_MANIFEST_INVALID",
+  );
+  assert.ok(
+    RETIREMENT_REASONS.has(evidence?.reason),
+    "CLAIM_RETIREMENT_REASON_INVALID",
+  );
+  assert.equal(
     manifest.state,
-    "MERGED",
-    "CLAIM_RETIREMENT_MANIFEST_NOT_MERGED",
+    evidence.reason === "MERGED_PR" ? "MERGED" : canonicalManifest.state,
+    "CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID",
+  );
+  const envelope = ({ baseSha, branch, state, ...authority }) => authority;
+  assert.deepEqual(
+    envelope(manifest),
+    envelope(canonicalManifest),
+    "CLAIM_RETIREMENT_AUTHORITY_DIVERGED",
   );
   assert.equal(
     manifest.baseSha,
@@ -123,6 +141,14 @@ export function validateClaimRetirements({
       assert.ok(expiresAt <= now, "CLAIM_RETIREMENT_NOT_EXPIRED");
     } else if (evidence.reason === "MERGED_PR") {
       assert.ok(
+        Array.isArray(evidence.materialPaths) &&
+          evidence.materialPaths.length > 0 &&
+          evidence.materialPaths.every((path) =>
+            isMaterialClaimPath(path, claim),
+          ),
+        "CLAIM_RETIREMENT_MATERIAL_IMPLEMENTATION_MISSING",
+      );
+      assert.ok(
         Number.isInteger(evidence.prNumber) && evidence.prNumber > 0,
         "CLAIM_RETIREMENT_PR_INVALID",
       );
@@ -166,6 +192,73 @@ export function validateClaimRetirements({
     removedClaims: removed,
     retirements,
   };
+}
+
+export function validateRetirementEvents({
+  canonicalText,
+  candidateText,
+  claimId,
+  expectedBaseSha,
+  evidence,
+}) {
+  assert.ok(
+    RETIREMENT_REASONS.has(evidence?.reason),
+    "CLAIM_RETIREMENT_REASON_INVALID",
+  );
+  assert.ok(
+    candidateText.startsWith(canonicalText),
+    "CLAIM_RETIREMENT_LEDGER_HISTORY_MUTATED",
+  );
+  const canonical = parseAuthorityLedger(canonicalText);
+  const candidate = parseAuthorityLedger(candidateText);
+  assert.deepEqual(
+    candidate.slice(0, canonical.length),
+    canonical,
+    "CLAIM_RETIREMENT_LEDGER_HISTORY_MUTATED",
+  );
+  const appended = candidate.slice(canonical.length);
+  const material = evidence.reason === "MERGED_PR";
+  assert.deepEqual(
+    appended.map((event) => event.eventType),
+    material ? ["MERGED", "CLAIM_RELEASED"] : ["CLAIM_RELEASED"],
+    "CLAIM_RETIREMENT_EVENT_TYPES_INVALID",
+  );
+  for (const event of appended) {
+    assert.equal(
+      event.entity,
+      claimId,
+      "CLAIM_RETIREMENT_EVENT_ENTITY_INVALID",
+    );
+    assert.equal(
+      event.actor,
+      "ORCHESTRATOR",
+      "CLAIM_RETIREMENT_EVENT_ACTOR_INVALID",
+    );
+    assert.equal(
+      event.sourceSha,
+      material ? evidence.mergeSha : expectedBaseSha,
+      "CLAIM_RETIREMENT_EVENT_SOURCE_INVALID",
+    );
+    if (material) {
+      assert.equal(
+        event.payload.pullRequest,
+        evidence.prNumber,
+        "CLAIM_RETIREMENT_EVENT_PR_INVALID",
+      );
+      assert.equal(
+        event.payload.mergeSha,
+        evidence.mergeSha,
+        "CLAIM_RETIREMENT_EVENT_MERGE_INVALID",
+      );
+    } else {
+      assert.equal(
+        event.payload.reason,
+        evidence.reason,
+        "CLAIM_RETIREMENT_EVENT_REASON_INVALID",
+      );
+    }
+  }
+  return appended;
 }
 
 function git(root, args) {
@@ -223,6 +316,48 @@ async function allPullRequests(repository, branch, options) {
   throw new Error("GITHUB_PULL_PAGINATION_LIMIT");
 }
 
+function isMaterialClaimPath(path, claim) {
+  return (
+    typeof path === "string" &&
+    ![
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+    ].includes(path) &&
+    !path.startsWith(".morro/changesets/") &&
+    (claim.paths ?? []).some((pattern) => pathOwned(path, pattern))
+  );
+}
+
+async function materialPathsForPull(repository, number, claim, options) {
+  const paths = [];
+  for (let page = 1; page <= 30; page += 1) {
+    const files = await githubJson(
+      "/repos/" +
+        repository +
+        "/pulls/" +
+        number +
+        "/files?per_page=100&page=" +
+        page,
+      options,
+    );
+    assert.ok(Array.isArray(files), "GITHUB_PULL_FILES_RESPONSE_INVALID");
+    for (const file of files) {
+      assert.equal(
+        typeof file?.filename,
+        "string",
+        "GITHUB_PULL_FILE_PATH_INVALID",
+      );
+      for (const path of [file.filename, file.previous_filename].filter(
+        Boolean,
+      )) {
+        if (isMaterialClaimPath(path, claim)) paths.push(path);
+      }
+    }
+    if (files.length < 100) return [...new Set(paths)].sort();
+  }
+  throw new Error("GITHUB_PULL_FILES_PAGINATION_LIMIT");
+}
+
 async function mergedEvidence(claim, repository, expectedBaseSha, options) {
   const pulls = await allPullRequests(repository, claim.branch, options);
   const merged = pulls
@@ -230,41 +365,56 @@ async function mergedEvidence(claim, repository, expectedBaseSha, options) {
       (pr) =>
         pr?.state === "closed" &&
         pr?.head?.ref === claim.branch &&
+        pr?.head?.repo?.full_name === repository &&
         pr?.base?.ref === "main" &&
+        pr?.base?.repo?.full_name === repository &&
         Number.isInteger(pr?.number) &&
         Number.isFinite(Date.parse(pr?.merged_at)) &&
         SHA.test(pr?.merge_commit_sha ?? ""),
     )
-    .sort((a, b) => Date.parse(b.merged_at) - Date.parse(a.merged_at))[0];
+    .sort((a, b) => Date.parse(b.merged_at) - Date.parse(a.merged_at));
 
-  if (!merged) return { pulls, evidence: null };
-
-  const mergeSha = merged.merge_commit_sha;
-  let ancestor = mergeSha === expectedBaseSha;
-  if (!ancestor) {
-    const compare = await githubJson(
-      `/repos/${repository}/compare/${mergeSha}...${expectedBaseSha}`,
+  for (const pr of merged) {
+    const materialPaths = await materialPathsForPull(
+      repository,
+      pr.number,
+      claim,
       options,
     );
-    ancestor =
-      ["ahead", "identical"].includes(compare?.status) &&
-      compare?.base_commit?.sha === mergeSha &&
-      compare?.merge_base_commit?.sha === mergeSha;
+    if (materialPaths.length === 0) continue;
+    const mergeSha = pr.merge_commit_sha;
+    let ancestor = mergeSha === expectedBaseSha;
+    if (!ancestor) {
+      const compare = await githubJson(
+        "/repos/" +
+          repository +
+          "/compare/" +
+          mergeSha +
+          "..." +
+          expectedBaseSha,
+        options,
+      );
+      ancestor =
+        ["ahead", "identical"].includes(compare?.status) &&
+        compare?.base_commit?.sha === mergeSha &&
+        compare?.merge_base_commit?.sha === mergeSha;
+    }
+    assert.equal(ancestor, true, "CLAIM_RETIREMENT_MERGE_NOT_ANCESTOR");
+    return {
+      pulls,
+      evidence: {
+        id: null,
+        reason: "MERGED_PR",
+        branch: claim.branch,
+        baseSha: claim.baseSha,
+        prNumber: pr.number,
+        mergeSha,
+        mergeShaAncestorOfBase: true,
+        materialPaths,
+      },
+    };
   }
-  assert.equal(ancestor, true, "CLAIM_RETIREMENT_MERGE_NOT_ANCESTOR");
-
-  return {
-    pulls,
-    evidence: {
-      id: null,
-      reason: "MERGED_PR",
-      branch: claim.branch,
-      baseSha: claim.baseSha,
-      prNumber: merged.number,
-      mergeSha,
-      mergeShaAncestorOfBase: true,
-    },
-  };
+  return { pulls, evidence: null };
 }
 
 async function orphanEvidence(claim, repository, pulls, options) {
@@ -301,6 +451,15 @@ export async function collectClaimRetirementEvidence(
     "GITHUB_REPOSITORY_INVALID",
   );
 
+  const options = { token, fetchImpl };
+  const merged = await mergedEvidence(
+    claim,
+    repository,
+    expectedBaseSha,
+    options,
+  );
+  if (merged.evidence) return { ...merged.evidence, id: claimId };
+
   const expiresAt = Date.parse(claim?.expiresAt);
   if (Number.isFinite(expiresAt) && expiresAt <= now) {
     return {
@@ -310,15 +469,6 @@ export async function collectClaimRetirementEvidence(
       baseSha: claim.baseSha,
     };
   }
-
-  const options = { token, fetchImpl };
-  const merged = await mergedEvidence(
-    claim,
-    repository,
-    expectedBaseSha,
-    options,
-  );
-  if (merged.evidence) return { ...merged.evidence, id: claimId };
 
   const orphan = await orphanEvidence(claim, repository, merged.pulls, options);
   if (orphan) return { ...orphan, id: claimId };
@@ -374,10 +524,14 @@ export async function buildClaimRetirementProof(
         "utf8",
       ),
     );
-    validateCandidateRetirementManifest(candidateManifest, {
-      claimId: id,
-      expectedBaseSha,
-    });
+    const canonicalManifest = JSON.parse(
+      readFileSync(
+        resolve(baseRoot, ".morro", "changesets", id + ".json"),
+        "utf8",
+      ),
+    );
+    validateChangeSetV2(candidateManifest);
+    validateChangeSetV2(canonicalManifest);
     const evidence = await collectClaimRetirementEvidence(id, claim, {
       repository,
       expectedBaseSha,
@@ -417,6 +571,25 @@ export async function buildClaimRetirementProof(
       evidence.historicalManifestMatches = true;
     }
 
+    validateCandidateRetirementManifest(candidateManifest, {
+      claimId: id,
+      expectedBaseSha,
+      canonicalManifest,
+      evidence,
+    });
+    validateRetirementEvents({
+      canonicalText: readFileSync(
+        resolve(baseRoot, ".github/morro-control/events.ndjson"),
+        "utf8",
+      ),
+      candidateText: readFileSync(
+        resolve(targetRoot, ".github/morro-control/events.ndjson"),
+        "utf8",
+      ),
+      claimId: id,
+      expectedBaseSha,
+      evidence,
+    });
     evidenceById[id] = evidence;
   }
 

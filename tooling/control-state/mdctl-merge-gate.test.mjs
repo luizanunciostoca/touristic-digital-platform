@@ -27,6 +27,7 @@ import {
 
 import {
   collectClaimRetirementEvidence,
+  buildClaimRetirementProof,
   validateClaimRetirements,
   validateCandidateRetirementManifest,
 } from "../fabric/claim-retirement-proof.mjs";
@@ -1565,7 +1566,7 @@ test("retirement gate accepts one canonically proven merged claim release", () =
   assert.equal(result.retirementReason, "MERGED_PR");
 });
 
-test("retirement gate accepts expired and orphaned releases only for already merged work", () => {
+test("retirement gate preserves already merged work during administrative release", () => {
   for (const reason of ["EXPIRED", "ORPHANED"]) {
     const result = evaluateRetirementMergeGate(
       retirementInput({
@@ -1604,7 +1605,7 @@ test("expired and orphaned claims cannot promote any pre-merge implementation st
               retirementProof: retirementProof({ reason }),
             }),
           ),
-        /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+        /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
       );
     }
   }
@@ -1624,9 +1625,10 @@ test("expired unimplemented retirement cannot promote a scheduler dependency", a
     repository: "owner/repo",
     expectedBaseSha: BASE,
     now,
+    token: "test-token",
     fetchImpl: async () => {
       providerCalls += 1;
-      throw new Error("no implementation exists");
+      return new Response(JSON.stringify([]), { status: 200 });
     },
   });
   const validated = validateClaimRetirements({
@@ -1649,12 +1651,18 @@ test("expired unimplemented retirement cannot promote a scheduler dependency", a
       retirements: validated.retirements,
     },
   });
-  validateCandidateRetirementManifest(input.manifest, {
-    claimId: id,
-    expectedBaseSha: BASE,
-  });
+  assert.throws(
+    () =>
+      validateCandidateRetirementManifest(input.manifest, {
+        claimId: id,
+        expectedBaseSha: BASE,
+        canonicalManifest: input.canonicalManifest,
+        evidence: retirement,
+      }),
+    /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
+  );
   assert.equal(retirement.reason, "EXPIRED");
-  assert.equal(providerCalls, 0);
+  assert.equal(providerCalls, 1);
   const dependent = manifest({ id: "MD-DEPENDENT", dependencies: [id] });
   const dependenciesFor = (value) =>
     evaluateDependenciesAtMain({
@@ -1673,8 +1681,14 @@ test("expired unimplemented retirement cannot promote a scheduler dependency", a
   assert.equal((await dependenciesFor(input.manifest)).satisfied, true);
   assert.throws(
     () => evaluateRetirementMergeGate(input),
-    /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+    /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
   );
+  const preserved = { ...input.manifest, state: input.canonicalManifest.state };
+  assert.equal(
+    evaluateRetirementMergeGate({ ...input, manifest: preserved }).decision,
+    "POLICY_SATISFIED",
+  );
+  assert.equal((await dependenciesFor(preserved)).satisfied, false);
 });
 
 test("retirement gate rejects unsupported retirement reasons", () => {
@@ -1728,7 +1742,10 @@ test("retirement gate rejects extra files outside the three governance records",
   );
 });
 
-function createRetirementRunGateFixture() {
+function createRetirementRunGateFixture({
+  state = "MERGED",
+  expired = false,
+} = {}) {
   const root = mkdtempSync(join(tmpdir(), "morro-retirement-gate-"));
   const source = join(root, "source");
   mkdirSync(source, { recursive: true });
@@ -1748,7 +1765,10 @@ function createRetirementRunGateFixture() {
   const canonicalRegistry = {
     registryAuthority: "ORCHESTRATOR",
     claims: {
-      [canonicalManifest.id]: claim(canonicalManifest),
+      [canonicalManifest.id]: claim(
+        canonicalManifest,
+        expired ? { expiresAt: "2026-01-01T00:00:00Z" } : {},
+      ),
     },
   };
   writeFixtureJson(
@@ -1779,9 +1799,22 @@ function createRetirementRunGateFixture() {
     slotReleaseStates: ["MERGE_READY", "MERGED"],
   });
   mkdirSync(join(source, ".github", "morro-control"), { recursive: true });
+  const event = (eventType, sourceSha, payload = {}) => ({
+    schemaVersion: 1,
+    eventId: "evt-retirement-fixture-" + eventType.toLowerCase(),
+    eventType,
+    observedAt: "2026-01-02T00:00:00Z",
+    actor: "ORCHESTRATOR",
+    entity: canonicalManifest.id,
+    sourceSha,
+    payloadVersion: 1,
+    payload,
+  });
+  const canonicalLedger =
+    JSON.stringify(event("CHANGESET_CREATED", OLD_BASE)) + "\n";
   writeFileSync(
-    join(source, ".github", "morro-control", "events.ndjson"),
-    '{"event":"base"}\n',
+    join(source, ".github/morro-control/events.ndjson"),
+    canonicalLedger,
   );
   gitFixture(source, ["add", "."]);
   gitFixture(source, ["commit", "-qm", "trusted retirement base"]);
@@ -1790,7 +1823,7 @@ function createRetirementRunGateFixture() {
   const candidateManifest = manifest({
     branch: BRANCH,
     baseSha,
-    state: "MERGED",
+    state,
   });
   writeFixtureJson(
     source,
@@ -1801,9 +1834,18 @@ function createRetirementRunGateFixture() {
     registryAuthority: "ORCHESTRATOR",
     claims: {},
   });
+  const appended = expired
+    ? [event("CLAIM_RELEASED", baseSha, { reason: "EXPIRED" })]
+    : ["MERGED", "CLAIM_RELEASED"].map((type) =>
+        event(type, "d".repeat(40), {
+          pullRequest: 9,
+          mergeSha: "d".repeat(40),
+        }),
+      );
   writeFileSync(
-    join(source, ".github", "morro-control", "events.ndjson"),
-    '{"event":"base"}\n{"event":"retired"}\n',
+    join(source, ".github/morro-control/events.ndjson"),
+    canonicalLedger +
+      appended.map((value) => JSON.stringify(value) + "\n").join(""),
   );
   gitFixture(source, ["add", "."]);
   gitFixture(source, ["commit", "-qm", "retire claim"]);
@@ -2415,5 +2457,525 @@ test("baseline verifier rejects extra failures, wrong reasons, skips and empty e
       assert.throws(() => run({ ...initial, ...changed }), /BASELINE_/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("actual canonical proof and merge gate release unfinished work without completion", async () => {
+  const fixture = createRetirementRunGateFixture({
+    state: "LOCAL_PROVEN",
+    expired: true,
+  });
+  try {
+    const proofBuilder = (trusted, candidate, env) =>
+      buildClaimRetirementProof(
+        trusted,
+        candidate,
+        { ...env, GITHUB_TOKEN: "fixture-token" },
+        {
+          now: Date.parse("2026-10-04T00:00:00Z"),
+          fetchImpl: async () => new Response("[]", { status: 200 }),
+        },
+      );
+    const result = await runMergeGate({
+      trustedDir: fixture.trustedDir,
+      candidateDir: fixture.candidateDir,
+      repository: "example/repo",
+      prNumber: 10,
+      headSha: fixture.headSha,
+      baseSha: fixture.baseSha,
+      branch: BRANCH,
+      api: gateApiFor(fixture),
+      reviewThreadCounter: () => 0,
+      retirementProofBuilder: proofBuilder,
+    });
+    assert.equal(result.decision, "POLICY_SATISFIED");
+    assert.equal(result.retirementReason, "EXPIRED");
+    const options = {
+      EXPECTED_BASE_SHA: fixture.baseSha,
+      EXPECTED_CANDIDATE_SHA: fixture.headSha,
+      GITHUB_REPOSITORY: "example/repo",
+    };
+    assert.equal(
+      (await proofBuilder(fixture.trustedDir, fixture.candidateDir, options))
+        .retirements[0].reason,
+      "EXPIRED",
+    );
+    const file = join(fixture.candidateDir, ".morro/changesets/MD-GATED.json");
+    const forged = { ...fixture.candidateManifest, state: "MERGED" };
+    writeFileSync(file, JSON.stringify(forged, null, 2) + "\n");
+    gitFixture(fixture.candidateDir, ["config", "user.name", "Fixture"]);
+    gitFixture(fixture.candidateDir, [
+      "config",
+      "user.email",
+      "fixture@example.invalid",
+    ]);
+    gitFixture(fixture.candidateDir, ["add", "."]);
+    gitFixture(fixture.candidateDir, [
+      "commit",
+      "-qm",
+      "attempt false promotion",
+    ]);
+    await assert.rejects(
+      proofBuilder(fixture.trustedDir, fixture.candidateDir, {
+        ...options,
+        EXPECTED_CANDIDATE_SHA: gitFixture(fixture.candidateDir, [
+          "rev-parse",
+          "HEAD",
+        ]),
+      }),
+      /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
+    );
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("both workflow classifiers route unfinished release into trusted canonical proof", () => {
+  const fixture = createRetirementRunGateFixture({
+    state: "LOCAL_PROVEN",
+    expired: true,
+  });
+  try {
+    for (const [file, step] of [
+      [
+        ".github/workflows/morro-claim-guard.yml",
+        "Classify exact retirement from trusted base",
+      ],
+      [
+        ".github/workflows/morro-merge-gate.yml",
+        "Detect canonical claim retirement",
+      ],
+    ]) {
+      const source = readFileSync(file, "utf8");
+      const section = source
+        .split("      - name: " + step + "\n")[1]
+        ?.split("\n      - name:")[0];
+      assert.ok(section, "WORKFLOW_STEP_MISSING:" + step);
+      const run = section.split("        run: |\n")[1];
+      assert.ok(run, "WORKFLOW_SCRIPT_MISSING:" + step);
+      // Relocate only scratch files: Termux does not have a writable /tmp.
+      const script = run
+        .split("\n")
+        .map((line) => (line.startsWith("          ") ? line.slice(10) : line))
+        .join("\n")
+        .replaceAll(
+          "/tmp/base-survivors.json",
+          join(fixture.root, "base-survivors.json"),
+        )
+        .replaceAll(
+          "/tmp/candidate-registry.json",
+          join(fixture.root, "candidate-registry.json"),
+        );
+      const output = join(fixture.root, "workflow-output");
+      writeFileSync(output, "");
+      execFileSync("bash", ["-c", script], {
+        cwd: fixture.root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GITHUB_OUTPUT: output,
+          EXPECTED_BASE_SHA: fixture.baseSha,
+          EXPECTED_CANDIDATE_SHA: fixture.headSha,
+          EXPECTED_BRANCH: BRANCH,
+          BASE_SHA: fixture.baseSha,
+          HEAD_BRANCH: BRANCH,
+        },
+      });
+      assert.match(readFileSync(output, "utf8"), /^eligible=true$/mu, file);
+    }
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+function retirementBootstrapContract() {
+  const workflow = readFileSync(
+    ".github/workflows/morro-merge-gate.yml",
+    "utf8",
+  );
+  const source = workflow
+    .split("// BEGIN PR737 TRANSITION CONTRACT\n")[1]
+    ?.split("// END PR737 TRANSITION CONTRACT")[0];
+  assert.ok(source, "PR737_TRANSITION_CONTRACT_MISSING");
+  return new Function("assert", source + "\nreturn retirementBootstrap;")(
+    assert,
+  );
+}
+
+function retirementBootstrapFixture() {
+  const base = "28b37f58abccffd9d4d212d95270f2b987e24f25";
+  const original = "adb3543fb22f02939cd64283deb98fba8ddfd6a6";
+  const head = "c".repeat(40);
+  const tree = "d".repeat(40);
+  const repository = "luizanunciostoca/touristic-digital-platform";
+  const branch = "fix/canonical-retirement-correctness-20261004";
+  const manifestPath =
+    ".morro/changesets/MD-CP-RETIREMENT-CORRECTNESS-001.json";
+  const owner = { id: 318748875, login: "luizanunciostoca", type: "User" };
+  const pr = {
+    number: 737,
+    state: "open",
+    draft: false,
+    head: { sha: head, ref: branch, repo: { full_name: repository } },
+    base: { sha: base, ref: "main" },
+  };
+  const approval = {
+    id: 123,
+    user: { ...owner },
+    author_association: "OWNER",
+    performed_via_github_app: null,
+    body: "APPROVED_BOOTSTRAP_HEAD:" + head,
+  };
+  const run = {
+    id: 456,
+    run_number: 5,
+    run_attempt: 1,
+    path: ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+    name: "Trusted Claim Guard Bootstrap",
+    event: "pull_request",
+    head_sha: head,
+    head_branch: branch,
+    pull_requests: [pr],
+    status: "completed",
+    conclusion: "success",
+  };
+  const jobs = [
+    "trusted-claim-guard-bootstrap",
+    "base-controlled-orchestrator-registry-proof",
+    "base-controlled-independent-proof / trusted-agent-profile-contract",
+  ].map((name, i) => ({
+    name,
+    run_id: 456,
+    check_run_url:
+      "https://api.github.com/repos/" + repository + "/check-runs/" + (900 + i),
+    steps: [
+      {
+        name: [
+          "Test trusted Claim Guard contract",
+          "Validate registry mutation with ORCHESTRATOR authority when present",
+          "Build automated independent proof",
+        ][i],
+        status: "completed",
+        conclusion: "success",
+      },
+    ],
+    head_sha: head,
+    status: "completed",
+    conclusion: "success",
+    html_url: "https://github.com/jobs/" + i,
+  }));
+  const checks = jobs.map((j, i) => ({
+    ...j,
+    id: 900 + i,
+    details_url: j.html_url,
+    app: { id: 15368, slug: "github-actions" },
+  }));
+  const item = {
+    prNumber: 737,
+    openPr: true,
+    headSha: head,
+    invalid:
+      "TRUSTED_IMMUTABLE_FILE_DIVERGED:.github/workflows/morro-claim-guard.yml",
+  };
+  const other = {
+    prNumber: 738,
+    openPr: true,
+    headSha: "e".repeat(40),
+    invalid: "OTHER_MUST_STAY_INVALID",
+  };
+  const manifest = { id: "MD-CP-RETIREMENT-CORRECTNESS-001" };
+  let policyCalls = 0;
+  const d = {
+    env: {
+      REPOSITORY: repository,
+      HEAD_REPOSITORY: repository,
+      PR_NUMBER: "737",
+      BASE_REF: "main",
+      BASE_SHA: base,
+      HEAD_BRANCH: branch,
+      HEAD_SHA: head,
+    },
+    api: async (endpoint) =>
+      endpoint.endsWith("/commits/main")
+        ? { sha: base }
+        : endpoint.endsWith("/pulls/737")
+          ? pr
+          : { owner },
+    pages: async (endpoint, key) =>
+      key === "workflow_runs"
+        ? [run]
+        : key === "jobs"
+          ? jobs
+          : key === "check_runs"
+            ? checks
+            : [approval],
+    git: (cwd, ...args) => {
+      if (args[0] === "merge-base") {
+        assert.deepEqual(args, ["merge-base", "--is-ancestor", original, head]);
+        return "";
+      }
+      if (args[0] === "diff")
+        return args[2].startsWith(original)
+          ? ".github/workflows/morro-merge-gate.yml\ntooling/control-state/mdctl-merge-gate.test.mjs"
+          : [
+              ".github/morro-control/claims.json",
+              ".github/morro-control/events.ndjson",
+              ".github/workflows/morro-claim-guard.yml",
+              ".github/workflows/morro-merge-gate.yml",
+              manifestPath,
+              "tooling/control-state/mdctl-merge-gate.test.mjs",
+              "tooling/fabric/claim-retirement-proof.mjs",
+              "tooling/fabric/claim-retirement-proof.test.mjs",
+              "tooling/mdctl/merge-gate.mjs",
+            ].join("\n");
+      if (args[1] === "HEAD") return cwd === "trusted" ? base : head;
+      if (args[1] === "HEAD^{tree}") return tree;
+      if (args[1].endsWith(":.github/workflows/morro-claim-guard.yml"))
+        return "3765fb4fd60d126e00abe8a61f4fdfba3479e7e3";
+      return "f".repeat(40);
+    },
+    json: () => manifest,
+    guard: (_root, env) => {
+      assert.equal(env.EXPECTED_CANDIDATE_SHA, head);
+      assert.equal(env.CLAIM_GUARD_AUTHORITY, "ORCHESTRATOR");
+      return { status: "pass", exactHead: head, treeSha: tree };
+    },
+    collect: async () => ({ mainSha: base, items: [item, other] }),
+    runGate: async (options) => {
+      policyCalls++;
+      assert.equal(options.baseSha, base);
+      assert.equal(options.headSha, head);
+      const live = await options.liveCollector({});
+      assert.equal(live.items[1], other, "UNRELATED_ITEM_WAS_REWRITTEN");
+      assert.equal(live.items[0].changeSet, manifest);
+      assert.equal(live.items[0].trust.ownerBootstrapApprovalId, approval.id);
+      return { decision: "POLICY_SATISFIED" };
+    },
+  };
+  return {
+    d,
+    pr,
+    approval,
+    owner,
+    run,
+    jobs,
+    checks,
+    item,
+    head,
+    base,
+    policyCalls: () => policyCalls,
+  };
+}
+
+test("PR737 protected transition executes its actual workflow contract and retains ordinary policy", async () => {
+  const f = retirementBootstrapFixture();
+  const result = await retirementBootstrapContract()(f.d);
+  assert.equal(result.mode, "OWNER_APPROVED_ONE_TIME_BOOTSTRAP");
+  assert.equal(result.ownerApprovalId, 123);
+  assert.equal(result.independentRunId, 456);
+  assert.equal(f.policyCalls(), 1);
+});
+
+test("PR737 protected transition fails closed for authorization, identity, proof and policy violations", async () => {
+  const bad = "a".repeat(40);
+  const scalarCases = [
+    ["wrong PR", "d.env.PR_NUMBER", "738"],
+    ["wrong repository", "d.env.REPOSITORY", "other/repo"],
+    ["fork", "d.env.HEAD_REPOSITORY", "other/repo"],
+    ["wrong branch", "d.env.HEAD_BRANCH", "other"],
+    ["consumed base", "d.env.BASE_SHA", bad],
+    ["moved head", "pr.head.sha", bad],
+    ["closed PR", "pr.state", "closed"],
+    ["draft PR", "pr.draft", true],
+    ["wrong owner id", "approval.user.id", 9],
+    ["app approval", "approval.performed_via_github_app", { id: 1 }],
+    ["non-owner", "approval.author_association", "COLLABORATOR"],
+    ["stale approval", "approval.body", "APPROVED_BOOTSTRAP_HEAD:" + bad],
+    ["run failed", "run.conclusion", "failure"],
+    ["run wrong head", "run.head_sha", bad],
+    ["job wrong run", "jobs.2.run_id", 999],
+    ["step skipped", "jobs.2.steps.0.conclusion", "skipped"],
+    ["wrong check id", "checks.2.id", 999],
+    ["job skipped", "jobs.2.conclusion", "skipped"],
+    ["wrong job URL", "checks.2.details_url", "https://invalid.test/job"],
+    ["wrong app", "checks.2.app.id", 9],
+    ["other rejection", "item.invalid", "CLAIM_COLLISION"],
+  ];
+  const cases = scalarCases.map(([name, path, value]) => [
+    name,
+    (f) => {
+      const keys = path.split(".");
+      const last = keys.pop();
+      keys.reduce((object, key) => object[key], f)[last] = value;
+    },
+  ]);
+  cases.push(
+    [
+      "missing approval",
+      (f) => {
+        const p = f.d.pages;
+        f.d.pages = (e, k) => (k ? p(e, k) : []);
+      },
+    ],
+    [
+      "duplicate approval",
+      (f) => {
+        const p = f.d.pages;
+        f.d.pages = (e, k) => (k ? p(e, k) : [f.approval, f.approval]);
+      },
+    ],
+    [
+      "changed implementation",
+      (f) => {
+        const g = f.d.git;
+        f.d.git = (c, ...a) =>
+          a[0] === "diff" ? g(c, ...a) + "\nextra/path" : g(c, ...a);
+      },
+    ],
+    [
+      "wrong protected blob",
+      (f) => {
+        const g = f.d.git;
+        f.d.git = (c, ...a) =>
+          a[1]?.endsWith(":.github/workflows/morro-claim-guard.yml")
+            ? bad
+            : g(c, ...a);
+      },
+    ],
+    [
+      "expired claim",
+      (f) => {
+        f.d.guard = () => {
+          throw new Error("CLAIM_EXPIRED");
+        };
+      },
+    ],
+    [
+      "ordinary policy rejects",
+      (f) => {
+        f.d.runGate = () => {
+          throw new Error("MERGE_GATE_SEMANTIC_COLLISION");
+        };
+      },
+    ],
+    [
+      "approval revoked",
+      (f) => {
+        const p = f.d.pages;
+        let n = 0;
+        f.d.pages = (e, k) => (!k && ++n === 2 ? [] : p(e, k));
+      },
+    ],
+    [
+      "main moves",
+      (f) => {
+        const api = f.d.api;
+        let n = 0;
+        f.d.api = (e) =>
+          e.endsWith("/commits/main") && ++n === 2 ? { sha: bad } : api(e);
+      },
+    ],
+  );
+  for (const [name, mutate] of cases) {
+    const f = retirementBootstrapFixture();
+    mutate(f);
+    await assert.rejects(
+      () => retirementBootstrapContract()(f.d),
+      undefined,
+      name,
+    );
+  }
+});
+
+test("PR737 adapter preserves real merge policy", async () => {
+  for (const scenario of [
+    { name: "eligible" },
+    {
+      name: "unrelated invalid item",
+      other: {
+        prNumber: 738,
+        openPr: true,
+        invalid: "OTHER_MUST_STAY_INVALID",
+      },
+      error: /MERGE_GATE_LIVE_WORK_ITEM_INVALID/u,
+    },
+    {
+      name: "unresolved dependency",
+      policy: {
+        dependenciesSatisfied: false,
+        unresolvedDependencies: ["MD-DEPENDENCY"],
+      },
+      error: /MERGE_GATE_DEPENDENCIES_UNRESOLVED/u,
+    },
+    {
+      name: "semantic collision",
+      collision: true,
+      error: /MERGE_GATE_SEMANTIC_COLLISION/u,
+    },
+    {
+      name: "unresolved review",
+      policy: { unresolvedReviewThreads: 1 },
+      error: /MERGE_GATE_UNRESOLVED_REVIEW_THREADS/u,
+    },
+    { name: "expired claim", expired: true, error: /CLAIM_EXPIRED/u },
+  ]) {
+    const f = retirementBootstrapFixture();
+    const candidate = manifest({
+      id: "MD-CP-RETIREMENT-CORRECTNESS-001",
+      baseSha: f.base,
+      branch: f.d.env.HEAD_BRANCH,
+    });
+    const registry = {
+      registryAuthority: "ORCHESTRATOR",
+      claims: {
+        [candidate.id]: claim(
+          candidate,
+          scenario.expired ? { expiresAt: "2020-01-01T00:00:00Z" } : {},
+        ),
+      },
+    };
+    const others = scenario.collision
+      ? [
+          {
+            prNumber: 738,
+            openPr: true,
+            writerActive: true,
+            headSha: "e".repeat(40),
+            invalid: null,
+            changeSet: manifest({
+              id: "MD-OTHER",
+              branch: "feat/other",
+              objective: candidate.objective,
+              owns: { paths: ["other/**"], contracts: [] },
+            }),
+          },
+        ]
+      : scenario.other
+        ? [scenario.other]
+        : [];
+    f.d.json = () => candidate;
+    f.d.collect = async () => ({ mainSha: f.base, items: [f.item, ...others] });
+    f.d.runGate = async (options) => {
+      const live = await options.liveCollector({});
+      for (let i = 0; i < others.length; i++)
+        assert.equal(live.items[i + 1], others[i]);
+      return evaluateMergeGate({
+        ...input({
+          manifest: candidate,
+          canonicalManifest: candidate,
+          registry,
+          canonicalRegistry: registry,
+          baseSha: f.base,
+          headSha: f.head,
+          currentPrNumber: 737,
+        }),
+        liveItems: live.items,
+        ...scenario.policy,
+      });
+    };
+    const execute = () => retirementBootstrapContract()(f.d);
+    if (scenario.error)
+      await assert.rejects(execute, scenario.error, scenario.name);
+    else assert.equal((await execute()).decision, "POLICY_SATISFIED");
   }
 });

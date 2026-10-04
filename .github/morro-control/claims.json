@@ -41,7 +41,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/canonical-retirement-correctness-20261004",
-      "baseSha": "8f3b919cd9c49fe4398b01ef92e47839bfb0caad",
+      "baseSha": "28b37f58abccffd9d4d212d95270f2b987e24f25",
       "paths": [
         ".morro/changesets/MD-CP-RETIREMENT-CORRECTNESS-001.json",
         "tooling/fabric/claim-retirement-proof.mjs",
