@@ -25,6 +25,13 @@ import {
   runMergeGate,
 } from "../mdctl/merge-gate.mjs";
 
+import {
+  collectClaimRetirementEvidence,
+  validateClaimRetirements,
+  validateCandidateRetirementManifest,
+} from "../fabric/claim-retirement-proof.mjs";
+import { evaluateDependenciesAtMain } from "../mdctl/scheduler-live.mjs";
+
 const BASE = "b".repeat(40);
 const HEAD = "c".repeat(40);
 const OLD_BASE = "a".repeat(40);
@@ -1133,9 +1140,25 @@ function createAcquisitionRunGateFixture({
     "acquisition-gate@example.invalid",
   ]);
 
+  const learningManifest = manifest({
+    id: "MD-TDP-LEARNING-001",
+    objective: "closed-loop-failure-learning-fixture",
+    branch: "feat/closed-loop-failure-learning-fixture",
+    baseSha: OLD_BASE,
+    owns: {
+      paths: ["tooling/failure-learning/**"],
+      contracts: ["FAILURE-LEARNING-FIXTURE"],
+    },
+    produces: { events: ["FAILURE_LEARNING_FIXTURE_UPDATED"], routes: [] },
+    database: { tables: [] },
+    auth: { capabilities: [] },
+  });
   const survivors = persistentOnly
-    ? JSON.parse(readFileSync(".github/morro-control/claims.json", "utf8"))
-        .claims
+    ? {
+        "MD-TDP-LEARNING-001": claim(learningManifest, {
+          status: "IMPLEMENTING",
+        }),
+      }
     : {};
   writeFixtureJson(source, ".github/morro-control/claims.json", {
     registryAuthority: "ORCHESTRATOR",
@@ -1418,7 +1441,11 @@ test("runMergeGate rejects moved main and mismatched PR head identity", async ()
   }
 });
 
-function retirementProof({ headSha = HEAD, baseSha = BASE } = {}) {
+function retirementProof({
+  headSha = HEAD,
+  baseSha = BASE,
+  reason = "MERGED_PR",
+} = {}) {
   return {
     contract: "MORRO-CLAIM-RETIREMENT-PROOF",
     status: "pass",
@@ -1429,7 +1456,7 @@ function retirementProof({ headSha = HEAD, baseSha = BASE } = {}) {
     retirements: [
       {
         id: "MD-GATED",
-        reason: "MERGED_PR",
+        reason,
         branch: OLD_BRANCH,
         baseSha: OLD_BASE,
         prNumber: 9,
@@ -1495,22 +1522,25 @@ test("retirement keyset rejects removal plus claim addition", () => {
   );
 });
 
-test("merged retirement proof is time-stable and rejects expiry-only evidence", async () => {
-  let observedNow = null;
-  const merged = retirementProof();
-  const value = await buildMergedRetirementProof(
-    "trusted",
-    "candidate",
-    {},
-    {
-      proofBuilder: async (_trusted, _candidate, _env, options) => {
-        observedNow = options.now;
-        return merged;
+test("retirement proof forwards trusted time and accepts only canonical reasons", async () => {
+  for (const reason of ["MERGED_PR", "EXPIRED", "ORPHANED"]) {
+    let observedNow = null;
+    const expected = retirementProof({ reason });
+    const value = await buildMergedRetirementProof(
+      "trusted",
+      "candidate",
+      {},
+      {
+        now: 12345,
+        proofBuilder: async (_trusted, _candidate, _env, options) => {
+          observedNow = options.now;
+          return expected;
+        },
       },
-    },
-  );
-  assert.equal(observedNow, 0);
-  assert.equal(value.retirements[0].reason, "MERGED_PR");
+    );
+    assert.equal(observedNow, 12345);
+    assert.equal(value.retirements[0].reason, reason);
+  }
 
   await assert.rejects(
     buildMergedRetirementProof(
@@ -1518,13 +1548,12 @@ test("merged retirement proof is time-stable and rejects expiry-only evidence", 
       "candidate",
       {},
       {
-        proofBuilder: async () => ({
-          ...merged,
-          retirements: [{ ...merged.retirements[0], reason: "EXPIRED" }],
-        }),
+        now: 12345,
+        proofBuilder: async () =>
+          retirementProof({ reason: "CALLER_ASSERTED" }),
       },
     ),
-    /MERGE_GATE_RETIREMENT_MERGED_EVIDENCE_REQUIRED/u,
+    /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
   );
 });
 
@@ -1534,6 +1563,130 @@ test("retirement gate accepts one canonically proven merged claim release", () =
   assert.equal(result.mode, "CLAIM_RETIREMENT");
   assert.equal(result.changeSetId, "MD-GATED");
   assert.equal(result.retirementReason, "MERGED_PR");
+});
+
+test("retirement gate accepts expired and orphaned releases only for already merged work", () => {
+  for (const reason of ["EXPIRED", "ORPHANED"]) {
+    const result = evaluateRetirementMergeGate(
+      retirementInput({
+        canonicalManifest: manifest({
+          branch: OLD_BRANCH,
+          baseSha: OLD_BASE,
+          state: "MERGED",
+        }),
+        retirementProof: retirementProof({ reason }),
+      }),
+    );
+    assert.equal(result.decision, "POLICY_SATISFIED");
+    assert.equal(result.retirementReason, reason);
+  }
+});
+
+test("expired and orphaned claims cannot promote any pre-merge implementation state", () => {
+  for (const reason of ["EXPIRED", "ORPHANED"]) {
+    for (const state of [
+      "IMPLEMENTING",
+      "LOCAL_PROVEN",
+      "REMOTE_PROVEN",
+      "COMPOSITION_PROVEN",
+      "POLICY_SATISFIED",
+      "MERGE_READY",
+    ]) {
+      assert.throws(
+        () =>
+          evaluateRetirementMergeGate(
+            retirementInput({
+              canonicalManifest: manifest({
+                branch: OLD_BRANCH,
+                baseSha: OLD_BASE,
+                state,
+              }),
+              retirementProof: retirementProof({ reason }),
+            }),
+          ),
+        /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+      );
+    }
+  }
+});
+
+test("expired unimplemented retirement cannot promote a scheduler dependency", async () => {
+  const id = "MD-GATED";
+  const now = Date.parse("2026-10-04T00:00:00Z");
+  const expiredClaim = {
+    branch: OLD_BRANCH,
+    baseSha: OLD_BASE,
+    status: "IMPLEMENTING",
+    expiresAt: "2026-10-03T00:00:00Z",
+  };
+  let providerCalls = 0;
+  const retirement = await collectClaimRetirementEvidence(id, expiredClaim, {
+    repository: "owner/repo",
+    expectedBaseSha: BASE,
+    now,
+    fetchImpl: async () => {
+      providerCalls += 1;
+      throw new Error("no implementation exists");
+    },
+  });
+  const validated = validateClaimRetirements({
+    baseRegistry: {
+      registryAuthority: "ORCHESTRATOR",
+      claims: { [id]: expiredClaim },
+    },
+    candidateRegistry: { registryAuthority: "ORCHESTRATOR", claims: {} },
+    evidenceById: { [id]: retirement },
+    now,
+  });
+  const input = retirementInput({
+    canonicalManifest: manifest({
+      branch: OLD_BRANCH,
+      baseSha: OLD_BASE,
+      state: "IMPLEMENTING",
+    }),
+    retirementProof: {
+      ...retirementProof(),
+      retirements: validated.retirements,
+    },
+  });
+  validateCandidateRetirementManifest(input.manifest, {
+    claimId: id,
+    expectedBaseSha: BASE,
+  });
+  assert.equal(retirement.reason, "EXPIRED");
+  assert.equal(providerCalls, 0);
+  const dependent = manifest({ id: "MD-DEPENDENT", dependencies: [id] });
+  const dependenciesFor = (value) =>
+    evaluateDependenciesAtMain({
+      changeSet: dependent,
+      repository: "owner/repo",
+      mainSha: BASE,
+      api: async () => ({
+        encoding: "base64",
+        content: Buffer.from(JSON.stringify(value)).toString("base64"),
+      }),
+    });
+  assert.equal(
+    (await dependenciesFor(input.canonicalManifest)).satisfied,
+    false,
+  );
+  assert.equal((await dependenciesFor(input.manifest)).satisfied, true);
+  assert.throws(
+    () => evaluateRetirementMergeGate(input),
+    /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+  );
+});
+
+test("retirement gate rejects unsupported retirement reasons", () => {
+  assert.throws(
+    () =>
+      evaluateRetirementMergeGate(
+        retirementInput({
+          retirementProof: retirementProof({ reason: "CALLER_ASSERTED" }),
+        }),
+      ),
+    /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
+  );
 });
 
 test("retirement gate rejects authority mutation while closing the ChangeSet", () => {
