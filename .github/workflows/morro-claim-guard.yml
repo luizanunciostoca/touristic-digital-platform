@@ -302,7 +302,7 @@ jobs:
           manifest="candidate/.morro/changesets/$claim_id.json"
           test -f "$manifest"
           test "$(jq -r '.id' "$manifest")" = "$claim_id"
-          test "$(jq -r '.state' "$manifest")" = "MERGED"
+          # State is checked against canonical evidence by the trusted proof below.
           test "$(jq -r '.baseSha' "$manifest")" = "$EXPECTED_BASE_SHA"
           test "$(jq -r '.branch' "$manifest")" = "$EXPECTED_BRANCH"
           echo "claim_id=$claim_id" >> "$GITHUB_OUTPUT"

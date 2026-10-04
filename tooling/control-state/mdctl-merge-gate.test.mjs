@@ -27,6 +27,7 @@ import {
 
 import {
   collectClaimRetirementEvidence,
+  buildClaimRetirementProof,
   validateClaimRetirements,
   validateCandidateRetirementManifest,
 } from "../fabric/claim-retirement-proof.mjs";
@@ -1565,7 +1566,7 @@ test("retirement gate accepts one canonically proven merged claim release", () =
   assert.equal(result.retirementReason, "MERGED_PR");
 });
 
-test("retirement gate accepts expired and orphaned releases only for already merged work", () => {
+test("retirement gate preserves already merged work during administrative release", () => {
   for (const reason of ["EXPIRED", "ORPHANED"]) {
     const result = evaluateRetirementMergeGate(
       retirementInput({
@@ -1604,7 +1605,7 @@ test("expired and orphaned claims cannot promote any pre-merge implementation st
               retirementProof: retirementProof({ reason }),
             }),
           ),
-        /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+        /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
       );
     }
   }
@@ -1624,9 +1625,10 @@ test("expired unimplemented retirement cannot promote a scheduler dependency", a
     repository: "owner/repo",
     expectedBaseSha: BASE,
     now,
+    token: "test-token",
     fetchImpl: async () => {
       providerCalls += 1;
-      throw new Error("no implementation exists");
+      return new Response(JSON.stringify([]), { status: 200 });
     },
   });
   const validated = validateClaimRetirements({
@@ -1649,12 +1651,18 @@ test("expired unimplemented retirement cannot promote a scheduler dependency", a
       retirements: validated.retirements,
     },
   });
-  validateCandidateRetirementManifest(input.manifest, {
-    claimId: id,
-    expectedBaseSha: BASE,
-  });
+  assert.throws(
+    () =>
+      validateCandidateRetirementManifest(input.manifest, {
+        claimId: id,
+        expectedBaseSha: BASE,
+        canonicalManifest: input.canonicalManifest,
+        evidence: retirement,
+      }),
+    /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
+  );
   assert.equal(retirement.reason, "EXPIRED");
-  assert.equal(providerCalls, 0);
+  assert.equal(providerCalls, 1);
   const dependent = manifest({ id: "MD-DEPENDENT", dependencies: [id] });
   const dependenciesFor = (value) =>
     evaluateDependenciesAtMain({
@@ -1673,8 +1681,14 @@ test("expired unimplemented retirement cannot promote a scheduler dependency", a
   assert.equal((await dependenciesFor(input.manifest)).satisfied, true);
   assert.throws(
     () => evaluateRetirementMergeGate(input),
-    /MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN/u,
+    /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
   );
+  const preserved = { ...input.manifest, state: input.canonicalManifest.state };
+  assert.equal(
+    evaluateRetirementMergeGate({ ...input, manifest: preserved }).decision,
+    "POLICY_SATISFIED",
+  );
+  assert.equal((await dependenciesFor(preserved)).satisfied, false);
 });
 
 test("retirement gate rejects unsupported retirement reasons", () => {
@@ -1728,7 +1742,10 @@ test("retirement gate rejects extra files outside the three governance records",
   );
 });
 
-function createRetirementRunGateFixture() {
+function createRetirementRunGateFixture({
+  state = "MERGED",
+  expired = false,
+} = {}) {
   const root = mkdtempSync(join(tmpdir(), "morro-retirement-gate-"));
   const source = join(root, "source");
   mkdirSync(source, { recursive: true });
@@ -1748,7 +1765,10 @@ function createRetirementRunGateFixture() {
   const canonicalRegistry = {
     registryAuthority: "ORCHESTRATOR",
     claims: {
-      [canonicalManifest.id]: claim(canonicalManifest),
+      [canonicalManifest.id]: claim(
+        canonicalManifest,
+        expired ? { expiresAt: "2026-01-01T00:00:00Z" } : {},
+      ),
     },
   };
   writeFixtureJson(
@@ -1779,9 +1799,22 @@ function createRetirementRunGateFixture() {
     slotReleaseStates: ["MERGE_READY", "MERGED"],
   });
   mkdirSync(join(source, ".github", "morro-control"), { recursive: true });
+  const event = (eventType, sourceSha, payload = {}) => ({
+    schemaVersion: 1,
+    eventId: "evt-retirement-fixture-" + eventType.toLowerCase(),
+    eventType,
+    observedAt: "2026-01-02T00:00:00Z",
+    actor: "ORCHESTRATOR",
+    entity: canonicalManifest.id,
+    sourceSha,
+    payloadVersion: 1,
+    payload,
+  });
+  const canonicalLedger =
+    JSON.stringify(event("CHANGESET_CREATED", OLD_BASE)) + "\n";
   writeFileSync(
-    join(source, ".github", "morro-control", "events.ndjson"),
-    '{"event":"base"}\n',
+    join(source, ".github/morro-control/events.ndjson"),
+    canonicalLedger,
   );
   gitFixture(source, ["add", "."]);
   gitFixture(source, ["commit", "-qm", "trusted retirement base"]);
@@ -1790,7 +1823,7 @@ function createRetirementRunGateFixture() {
   const candidateManifest = manifest({
     branch: BRANCH,
     baseSha,
-    state: "MERGED",
+    state,
   });
   writeFixtureJson(
     source,
@@ -1801,9 +1834,18 @@ function createRetirementRunGateFixture() {
     registryAuthority: "ORCHESTRATOR",
     claims: {},
   });
+  const appended = expired
+    ? [event("CLAIM_RELEASED", baseSha, { reason: "EXPIRED" })]
+    : ["MERGED", "CLAIM_RELEASED"].map((type) =>
+        event(type, "d".repeat(40), {
+          pullRequest: 9,
+          mergeSha: "d".repeat(40),
+        }),
+      );
   writeFileSync(
-    join(source, ".github", "morro-control", "events.ndjson"),
-    '{"event":"base"}\n{"event":"retired"}\n',
+    join(source, ".github/morro-control/events.ndjson"),
+    canonicalLedger +
+      appended.map((value) => JSON.stringify(value) + "\n").join(""),
   );
   gitFixture(source, ["add", "."]);
   gitFixture(source, ["commit", "-qm", "retire claim"]);
@@ -2415,5 +2457,133 @@ test("baseline verifier rejects extra failures, wrong reasons, skips and empty e
       assert.throws(() => run({ ...initial, ...changed }), /BASELINE_/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("actual canonical proof and merge gate release unfinished work without completion", async () => {
+  const fixture = createRetirementRunGateFixture({
+    state: "LOCAL_PROVEN",
+    expired: true,
+  });
+  try {
+    const proofBuilder = (trusted, candidate, env) =>
+      buildClaimRetirementProof(
+        trusted,
+        candidate,
+        { ...env, GITHUB_TOKEN: "fixture-token" },
+        {
+          now: Date.parse("2026-10-04T00:00:00Z"),
+          fetchImpl: async () => new Response("[]", { status: 200 }),
+        },
+      );
+    const result = await runMergeGate({
+      trustedDir: fixture.trustedDir,
+      candidateDir: fixture.candidateDir,
+      repository: "example/repo",
+      prNumber: 10,
+      headSha: fixture.headSha,
+      baseSha: fixture.baseSha,
+      branch: BRANCH,
+      api: gateApiFor(fixture),
+      reviewThreadCounter: () => 0,
+      retirementProofBuilder: proofBuilder,
+    });
+    assert.equal(result.decision, "POLICY_SATISFIED");
+    assert.equal(result.retirementReason, "EXPIRED");
+    const options = {
+      EXPECTED_BASE_SHA: fixture.baseSha,
+      EXPECTED_CANDIDATE_SHA: fixture.headSha,
+      GITHUB_REPOSITORY: "example/repo",
+    };
+    assert.equal(
+      (await proofBuilder(fixture.trustedDir, fixture.candidateDir, options))
+        .retirements[0].reason,
+      "EXPIRED",
+    );
+    const file = join(fixture.candidateDir, ".morro/changesets/MD-GATED.json");
+    const forged = { ...fixture.candidateManifest, state: "MERGED" };
+    writeFileSync(file, JSON.stringify(forged, null, 2) + "\n");
+    gitFixture(fixture.candidateDir, ["config", "user.name", "Fixture"]);
+    gitFixture(fixture.candidateDir, [
+      "config",
+      "user.email",
+      "fixture@example.invalid",
+    ]);
+    gitFixture(fixture.candidateDir, ["add", "."]);
+    gitFixture(fixture.candidateDir, [
+      "commit",
+      "-qm",
+      "attempt false promotion",
+    ]);
+    await assert.rejects(
+      proofBuilder(fixture.trustedDir, fixture.candidateDir, {
+        ...options,
+        EXPECTED_CANDIDATE_SHA: gitFixture(fixture.candidateDir, [
+          "rev-parse",
+          "HEAD",
+        ]),
+      }),
+      /CLAIM_RETIREMENT_IMPLEMENTATION_STATE_INVALID/u,
+    );
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("both workflow classifiers route unfinished release into trusted canonical proof", () => {
+  const fixture = createRetirementRunGateFixture({
+    state: "LOCAL_PROVEN",
+    expired: true,
+  });
+  try {
+    for (const [file, step] of [
+      [
+        ".github/workflows/morro-claim-guard.yml",
+        "Classify exact retirement from trusted base",
+      ],
+      [
+        ".github/workflows/morro-merge-gate.yml",
+        "Detect canonical claim retirement",
+      ],
+    ]) {
+      const source = readFileSync(file, "utf8");
+      const section = source
+        .split("      - name: " + step + "\n")[1]
+        ?.split("\n      - name:")[0];
+      assert.ok(section, "WORKFLOW_STEP_MISSING:" + step);
+      const run = section.split("        run: |\n")[1];
+      assert.ok(run, "WORKFLOW_SCRIPT_MISSING:" + step);
+      // Relocate only scratch files: Termux does not have a writable /tmp.
+      const script = run
+        .split("\n")
+        .map((line) => (line.startsWith("          ") ? line.slice(10) : line))
+        .join("\n")
+        .replaceAll(
+          "/tmp/base-survivors.json",
+          join(fixture.root, "base-survivors.json"),
+        )
+        .replaceAll(
+          "/tmp/candidate-registry.json",
+          join(fixture.root, "candidate-registry.json"),
+        );
+      const output = join(fixture.root, "workflow-output");
+      writeFileSync(output, "");
+      execFileSync("bash", ["-c", script], {
+        cwd: fixture.root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GITHUB_OUTPUT: output,
+          EXPECTED_BASE_SHA: fixture.baseSha,
+          EXPECTED_CANDIDATE_SHA: fixture.headSha,
+          EXPECTED_BRANCH: BRANCH,
+          BASE_SHA: fixture.baseSha,
+          HEAD_BRANCH: BRANCH,
+        },
+      });
+      assert.match(readFileSync(output, "utf8"), /^eligible=true$/mu, file);
+    }
+  } finally {
+    rmSync(fixture.root, { recursive: true, force: true });
   }
 });

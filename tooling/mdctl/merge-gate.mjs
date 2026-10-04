@@ -19,6 +19,7 @@ export {
 } from "../fabric/claim-guard.mjs";
 import {
   buildClaimRetirementProof,
+  validateCandidateRetirementManifest,
   removedClaimIds,
 } from "../fabric/claim-retirement-proof.mjs";
 import { canonicalJson, validateChangeSetV2 } from "./changeset-v2.mjs";
@@ -175,7 +176,6 @@ export function evaluateRetirementMergeGate({
     claimId,
     "MERGE_GATE_RETIREMENT_CANONICAL_ID_MISMATCH",
   );
-  assert.equal(manifest.state, "MERGED", "MERGE_GATE_RETIREMENT_STATE_INVALID");
   assert.equal(
     manifest.baseSha,
     baseSha,
@@ -273,15 +273,12 @@ export function evaluateRetirementMergeGate({
     RETIREMENT_REASONS.has(retirementProof.retirements[0]?.reason),
     "MERGE_GATE_RETIREMENT_REASON_INVALID",
   );
-  // Expiry and orphanhood prove only that a claim may be released. They do
-  // not prove implementation, which the scheduler consumes via MERGED.
-  if (retirementProof.retirements[0].reason !== "MERGED_PR") {
-    assert.equal(
-      canonicalManifest.state,
-      "MERGED",
-      "MERGE_GATE_RETIREMENT_IMPLEMENTATION_UNPROVEN",
-    );
-  }
+  validateCandidateRetirementManifest(manifest, {
+    claimId,
+    expectedBaseSha: baseSha,
+    canonicalManifest,
+    evidence: retirementProof.retirements[0],
+  });
 
   return {
     schemaVersion: 1,

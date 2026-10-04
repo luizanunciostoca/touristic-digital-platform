@@ -91,7 +91,6 @@ jobs:
               const manifest = JSON.parse(fs.readFileSync(file, "utf8"));
               eligible =
                 manifest.id === removed[0] &&
-                manifest.state === "MERGED" &&
                 manifest.baseSha === baseSha &&
                 manifest.branch === branch;
             }
