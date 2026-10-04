@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-001",
+  "objective": "semantic-ci-impact-classification-and-false-trigger-elimination",
+  "baseSha": "79f56efd749583973be8505bae9763eb9042f067",
+  "branch": "fix/fastfix-001-semantic-ci-impact-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-001.json",
+      "tooling/ci/impact-analyzer.mjs",
+      "tooling/ci/impact-analyzer.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/suite-scheduler.mjs",
+      "tooling/ci/suite-scheduler.test.mjs",
+      ".github/workflows/ci-impact.yml",
+      ".github/workflows/failure-learning-independent-proof.yml"
+    ],
+    "contracts": [
+      "CI-IMPACT-CLASSIFICATION",
+      "CI-SUITE-SELECTION",
+      "FAILURE-LEARNING-WORKFLOW-ROUTING"
+    ]
+  },
+  "reads": {
+    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "ci-selection",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "fastfix-ci-impact",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/impact-analyzer.test.mjs",
+          "tooling/ci/suite-scheduler.test.mjs",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
