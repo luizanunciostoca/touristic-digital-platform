@@ -109,12 +109,12 @@ jobs:
         run: |
           set -euo pipefail
           changed="$(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA")"
-          if [ "$PR_NUMBER" = "712" ] &&
+          if [ "$PR_NUMBER" = "713" ] &&
              [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
              [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
              [ "$BASE_REF" = "main" ] &&
-             [ "$HEAD_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003" ] &&
-             [ "$BASE_SHA" = "4b8919475378e714d7f6d69e478924256fdf96bf" ]; then
+             [ "$HEAD_BRANCH" = "fix/claim-acquisition-cli-bootstrap-20261004" ] &&
+             [ "$BASE_SHA" = "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb" ]; then
             owner="$(gh api "repos/$REPOSITORY")"
             approval="$(
               gh api "repos/$REPOSITORY/issues/711/comments?per_page=100" --paginate --slurp |
@@ -138,7 +138,7 @@ jobs:
               ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
               ".github/workflows/morro-claim-guard.yml"
               ".github/workflows/morro-merge-gate.yml"
-              ".morro/changesets/MD-CP-CLAIM-ACQ-711.json"
+              ".morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json"
               "tooling/control-state/mdctl-merge-gate.test.mjs"
               "tooling/fabric/claim-guard.mjs"
               "tooling/fabric/claim-guard.test.mjs"

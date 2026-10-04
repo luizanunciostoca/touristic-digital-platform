@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CP-CLAIM-ACQ-CLI-711",
+  "objective": "bounded-711-acquisition-cli-transition-proof",
+  "baseSha": "2ad095e4eb17bed9023a8aa6c1473b1f9c902feb",
+  "branch": "fix/claim-acquisition-cli-bootstrap-20261004",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      ".github/workflows/morro-claim-guard.yml",
+      ".github/workflows/morro-merge-gate.yml",
+      "tooling/control-state/mdctl-merge-gate.test.mjs",
+      "tooling/fabric/claim-guard.mjs",
+      "tooling/fabric/claim-guard.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      ".morro/changesets/MD-CP-CLAIM-ACQ-CLI-711.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "claim-acquisition-bootstrap-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/claim-guard.test.mjs",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
