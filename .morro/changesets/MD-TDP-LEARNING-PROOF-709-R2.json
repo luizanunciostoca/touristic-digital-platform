@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TDP-LEARNING-PROOF-709-R2",
   "objective": "harden-base-controlled-failure-learning-proof-plane",
-  "baseSha": "4215fc481f12cbb95e8097458761ef2e130211ed",
+  "baseSha": "446c932faaccebe14968d223ac866558c660a43b",
   "branch": "infra/failure-learning-proof-709-r2-20261004",
-  "state": "LOCAL_PROVEN",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
