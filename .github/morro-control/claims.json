@@ -14,10 +14,7 @@
         ".github/workflows/security-scanning.yml",
         "tooling/quality/ci-scheduler-governance.test.mjs"
       ],
-      "domains": [
-        "ci-release",
-        "governance"
-      ],
+      "domains": ["ci-release", "governance"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T00:30:00Z"

@@ -22,10 +22,7 @@
     ]
   },
   "reads": {
-    "contracts": [
-      "CI-IMPACT-CLASSIFICATION",
-      "CI-SUITE-SELECTION"
-    ]
+    "contracts": ["CI-IMPACT-CLASSIFICATION", "CI-SUITE-SELECTION"]
   },
   "produces": {
     "events": [],
@@ -37,9 +34,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-FASTFIX-001"
-  ],
+  "dependencies": ["MD-FASTFIX-001"],
   "requiredEvidence": [
     "format",
     "secrets",
