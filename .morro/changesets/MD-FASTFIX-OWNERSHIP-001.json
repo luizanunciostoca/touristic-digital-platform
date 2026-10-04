@@ -12,10 +12,14 @@
       ".morro/changesets/MD-FASTFIX-OWNERSHIP-001.json",
       ".morro/ownership.json"
     ],
-    "contracts": ["TDP-OWNERSHIP"]
+    "contracts": [
+      "TDP-OWNERSHIP"
+    ]
   },
   "reads": {
-    "contracts": ["CI-IMPACT-CLASSIFICATION"]
+    "contracts": [
+      "CI-IMPACT-CLASSIFICATION"
+    ]
   },
   "produces": {
     "events": [],
@@ -46,7 +50,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
@@ -55,14 +64,13 @@
     },
     "commands": [
       {
-        "id": "ownership-json",
+        "id": "ownership-contract",
         "argv": [
           "node",
-          "--input-type=module",
-          "--eval",
-          "import fs from 'node:fs'; JSON.parse(fs.readFileSync('.morro/ownership.json','utf8')); console.log('ownership-json: PASS')"
+          "--test",
+          "tooling/fabric/validate-changeset.test.mjs"
         ],
-        "timeoutSeconds": 60
+        "timeoutSeconds": 120
       }
     ],
     "requiredRemoteEvidence": [
