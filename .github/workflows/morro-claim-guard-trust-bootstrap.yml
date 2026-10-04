@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/morro-claim-guard-trusted.yml"
       - ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
+      - ".morro/changesets/MD-CP-CLAIM-ACQ-711.json"
       - ".morro/changesets/MD-CP-003-TRUST.json"
       - ".morro/changesets/MD-CP-003-TRUST-RECON.json"
       - ".morro/changesets/MD-CP-003-HOOKS.json"
@@ -56,16 +57,38 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
         shell: bash
         run: |
           set -euo pipefail
           if [ "$PR_NUMBER" = "712" ] &&
+             [ "$REPOSITORY" = "luizanunciostoca/touristic-digital-platform" ] &&
+             [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] &&
+             [ "$BASE_REF" = "main" ] &&
              [ "$HEAD_BRANCH" = "fix/claim-acquisition-bookkeeping-bootstrap-20261003" ] &&
              [ "$BASE_SHA" = "4b8919475378e714d7f6d69e478924256fdf96bf" ]; then
-            approval="$(gh api "repos/$REPOSITORY/issues/711/comments?per_page=100" --paginate --jq '.[].body' | grep -Fx "APPROVED_BOOTSTRAP_HEAD:$HEAD_SHA" || true)"
-            test "$approval" = "APPROVED_BOOTSTRAP_HEAD:$HEAD_SHA"
+            owner="$(gh api "repos/$REPOSITORY")"
+            approval="$(
+              gh api "repos/$REPOSITORY/issues/711/comments?per_page=100" --paginate --slurp |
+                jq -er --arg head "$HEAD_SHA" --argjson repository "$owner" '
+                  $repository.owner as $owner |
+                  if $owner.type != "User" or ($owner.id | type) != "number" then false
+                  else
+                    [.[][] | select(
+                      .user.id == $owner.id and
+                      .user.login == $owner.login and
+                      .user.type == "User" and
+                      .author_association == "OWNER" and
+                      .performed_via_github_app == null and
+                      .body == ("APPROVED_BOOTSTRAP_HEAD:" + $head)
+                    )] | length == 1
+                  end
+                '
+            )"
+            test "$approval" = "true"
             echo "approved_bootstrap=true" >> "$GITHUB_OUTPUT"
-            echo "path=" >> "$GITHUB_OUTPUT"
+            echo "path=.morro/changesets/MD-CP-CLAIM-ACQ-711.json" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           echo "approved_bootstrap=false" >> "$GITHUB_OUTPUT"
@@ -192,7 +215,8 @@ jobs:
           retention-days: 30
 
   approved-bootstrap-proof:
-    if: needs.unit.outputs.approved_bootstrap == 'true'
+    # Read-only baseline proof must be available before exact-head owner approval.
+    if: ${{ always() && (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 712 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-acquisition-bookkeeping-bootstrap-20261003' && github.event.pull_request.base.sha == '4b8919475378e714d7f6d69e478924256fdf96bf') }}
     needs: unit
     name: approved-bootstrap-exact-head-proof
     runs-on: ubuntu-latest
@@ -235,6 +259,7 @@ jobs:
             ".github/workflows/morro-claim-guard-trust-bootstrap.yml"
             ".github/workflows/morro-claim-guard.yml"
             ".github/workflows/morro-merge-gate.yml"
+            ".morro/changesets/MD-CP-CLAIM-ACQ-711.json"
             "tooling/control-state/mdctl-merge-gate.test.mjs"
             "tooling/fabric/claim-guard.mjs"
             "tooling/fabric/claim-guard.test.mjs"
@@ -243,7 +268,20 @@ jobs:
           mapfile -t expected < <(printf '%s\n' "${expected[@]}" | sort)
           test "${#changed[@]}" -eq "${#expected[@]}"
           diff -u <(printf '%s\n' "${expected[@]}") <(printf '%s\n' "${changed[@]}")
-          (cd candidate && node --test tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs)
+          # Baseline regression assertions and all unchanged dependencies come from
+          # the trusted base. Only the two implementation modules are replaced.
+          # This is baseline coverage, not certification of the new exception.
+          proof_root="$(mktemp -d)"
+          trap 'rm -rf "$proof_root"' EXIT
+          git -C trusted archive "$EXPECTED_BASE" | tar -x -C "$proof_root"
+          for module in tooling/fabric/claim-guard.mjs tooling/mdctl/merge-gate.mjs; do
+            test "$(git -C candidate ls-tree "$EXPECTED_HEAD" -- "$module" | awk '{print $1}')" = "100644"
+            git -C candidate show "$EXPECTED_HEAD:$module" > "$proof_root/$module"
+          done
+          (
+            cd "$proof_root"
+            node --test tooling/fabric/claim-guard.test.mjs tooling/control-state/mdctl-merge-gate.test.mjs
+          )
 
   retirement-proof:
     if: needs.unit.outputs.retirement == 'true'
@@ -291,14 +329,15 @@ jobs:
           retention-days: 30
 
   independent-proof:
-    if: needs.unit.outputs.retirement != 'true' && needs.unit.outputs.approved_bootstrap != 'true'
+    # Proof may run before approval, but cannot waive the failing approval gate.
+    if: ${{ always() && needs.unit.outputs.retirement != 'true' && (needs.unit.result == 'success' || (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 712 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-acquisition-bookkeeping-bootstrap-20261003' && github.event.pull_request.base.sha == '4b8919475378e714d7f6d69e478924256fdf96bf')) }}
     needs: unit
     name: base-controlled-independent-proof
     uses: luizanunciostoca/touristic-digital-platform/.github/workflows/morro-agent-profiles-trusted.yml@504d587c9eb780cff01aae71d377b2c2aec99054
     with:
       candidate_sha: ${{ github.event.pull_request.head.sha }}
       base_sha: ${{ github.event.pull_request.base.sha }}
-      manifest_path: ${{ needs.unit.outputs.manifest_path }}
+      manifest_path: ${{ (github.repository == 'luizanunciostoca/touristic-digital-platform' && github.event.pull_request.number == 712 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'fix/claim-acquisition-bookkeeping-bootstrap-20261003' && github.event.pull_request.base.sha == '4b8919475378e714d7f6d69e478924256fdf96bf') && '.morro/changesets/MD-CP-CLAIM-ACQ-711.json' || needs.unit.outputs.manifest_path }}
     permissions:
       contents: read
 
