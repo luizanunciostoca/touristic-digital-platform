@@ -17,16 +17,10 @@
       "tooling/mdctl/merge-gate.mjs",
       "tooling/control-state/mdctl-merge-gate.test.mjs"
     ],
-    "contracts": [
-      "CLAIM-RETIREMENT-PROOF",
-      "TDP-MAX-ANTI-RECURRENCE"
-    ]
+    "contracts": ["CLAIM-RETIREMENT-PROOF", "TDP-MAX-ANTI-RECURRENCE"]
   },
   "reads": {
-    "contracts": [
-      "MORRO-FABRIC-LIFECYCLE",
-      "FAILURE-LEARNING-DETECTORS"
-    ]
+    "contracts": ["MORRO-FABRIC-LIFECYCLE", "FAILURE-LEARNING-DETECTORS"]
   },
   "produces": {
     "events": [],
