@@ -1,0 +1,336 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP Failure Incident",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "incidentId",
+    "occurrenceId",
+    "fingerprint",
+    "failureClass",
+    "severity",
+    "domain",
+    "environment",
+    "expected",
+    "observed",
+    "sources",
+    "state",
+    "preventionState",
+    "firstOccurrence",
+    "lastOccurrence",
+    "metrics"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "incidentId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "occurrenceId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "fingerprint": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rootCauseFingerprint": {
+      "type": ["string", "null"],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "failureClass": {
+      "type": "string",
+      "minLength": 1
+    },
+    "severity": {
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "operation": {
+      "type": ["string", "null"]
+    },
+    "domain": {
+      "type": "string",
+      "minLength": 1
+    },
+    "environment": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected": {
+      "type": "string"
+    },
+    "observed": {
+      "type": "string"
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "state": {
+      "enum": [
+        "OBSERVED",
+        "REPRODUCED",
+        "ROOT_CAUSE_CONFIRMED",
+        "PREVENTION_PROPOSED",
+        "PREVENTION_IMPLEMENTED",
+        "PREVENTION_PROVEN",
+        "ACTIVE_GUARD",
+        "TRANSIENT_RESOLVED",
+        "BLOCKED",
+        "UNKNOWN_REQUIRES_INVESTIGATION",
+        "FALSE_POSITIVE",
+        "SUPERSEDED"
+      ]
+    },
+    "rootCause": {
+      "type": ["string", "null"]
+    },
+    "preventionState": {
+      "type": "string"
+    },
+    "guardId": {
+      "type": ["string", "null"]
+    },
+    "firstOccurrence": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lastOccurrence": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "occurrencesBeforeGuard",
+        "occurrencesAfterGuard",
+        "preventedCount",
+        "falsePositiveCount"
+      ],
+      "properties": {
+        "occurrencesBeforeGuard": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occurrencesAfterGuard": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "preventedCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "falsePositiveCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastGuardTrigger": {
+          "type": ["string", "null"]
+        },
+        "meanTimeToRootCause": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "meanTimeToPrevention": {
+          "type": ["number", "null"],
+          "minimum": 0
+        },
+        "guardEffectiveness": {
+          "enum": [
+            "EFFECTIVE",
+            "PARTIALLY_EFFECTIVE",
+            "INEFFECTIVE",
+            "OBSOLETE",
+            "UNKNOWN"
+          ]
+        }
+      }
+    },
+    "occurrenceIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recurrenceAfterGuard": {
+      "type": "boolean"
+    },
+    "guardActivationAt": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "guardRevision": {
+      "type": ["string", "null"]
+    },
+    "proofReference": {
+      "type": ["string", "null"]
+    },
+    "materialOutcome": {
+      "type": ["string", "null"]
+    },
+    "retry": {
+      "type": ["object", "null"]
+    },
+    "occurrences": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["occurrenceId", "observedAt", "fingerprint"],
+        "properties": {
+          "occurrenceId": {
+            "type": "string"
+          },
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "severity": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "critical", null]
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "retry": {
+            "type": ["object", "null"]
+          },
+          "materialOutcome": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "candidateBinding": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "regressionTestReference": {
+      "type": ["string", "null"]
+    },
+    "guardProof": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": [
+        "guardId",
+        "candidateSha",
+        "candidateBinding",
+        "regressionTest",
+        "independentProof",
+        "independentProofCandidateSha",
+        "freshness",
+        "freshnessSeconds",
+        "observedAt",
+        "expiresAt",
+        "validatorRevision",
+        "activatedAt",
+        "repository",
+        "runId",
+        "runAttempt",
+        "workflow",
+        "job",
+        "assertion"
+      ],
+      "properties": {
+        "guardId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidateSha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "candidateBinding": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "regressionTest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independentProof": {
+          "type": "string",
+          "minLength": 1
+        },
+        "independentProofCandidateSha": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "freshness": {
+          "const": "FRESH"
+        },
+        "freshnessSeconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "validatorRevision": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "activatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "repository": {
+          "const": "luizanunciostoca/touristic-digital-platform"
+        },
+        "runId": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]*$"
+        },
+        "runAttempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "workflow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "job": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assertion": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
