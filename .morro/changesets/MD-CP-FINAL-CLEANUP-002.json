@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CP-FINAL-CLEANUP-002",
   "objective": "finalize-control-plane-retirement-and-executor-auth-prevention",
-  "baseSha": "88e6399a92eca1d0c02364101be918e1f4f89627",
-  "branch": "infra/control-plane-final-cleanup-r2-20261004",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "5d23b3d3348aa5b392ca299e487b16de6b2b2961",
+  "branch": "infra/retire-cp-final-cleanup-002-20261004",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
