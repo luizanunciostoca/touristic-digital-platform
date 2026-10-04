@@ -14,15 +14,18 @@
       "tooling/tdp-max/guard-evaluator.mjs",
       "tooling/tdp-max/validate-config.mjs",
       "tooling/tdp-max/validate-config.test.mjs",
-      "tooling/mdctl/merge-gate.mjs",
-      "tooling/control-state/mdctl-merge-gate.test.mjs",
       "tooling/fabric/claim-retirement-proof.mjs",
       "tooling/fabric/claim-retirement-proof.test.mjs"
     ],
-    "contracts": ["TDP-MAX-ANTI-RECURRENCE", "CLAIM-RETIREMENT-PROOF"]
+    "contracts": [
+      "TDP-MAX-ANTI-RECURRENCE",
+      "CLAIM-RETIREMENT-PROOF"
+    ]
   },
   "reads": {
-    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE"
+    ]
   },
   "produces": {
     "events": [],
@@ -43,8 +46,7 @@
     "affected-tests",
     "build",
     "integration",
-    "retirement-proof-expired",
-    "retirement-proof-orphaned",
+    "retirement-proof-superseded-merged",
     "executor-auth-guard",
     "automated-independent-proof",
     "exact-head-identity"
@@ -76,7 +78,6 @@
           "node",
           "--test",
           "tooling/fabric/claim-retirement-proof.test.mjs",
-          "tooling/control-state/mdctl-merge-gate.test.mjs",
           "tooling/tdp-max/validate-config.test.mjs"
         ],
         "timeoutSeconds": 600

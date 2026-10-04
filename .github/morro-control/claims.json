@@ -16,7 +16,11 @@
         "tooling/failure-learning/**",
         "package.json"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -32,7 +36,11 @@
         "tooling/quality/failure-learning-proof-trusted.test.mjs",
         ".github/workflows/failure-learning-independent-proof.yml"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
@@ -48,12 +56,14 @@
         "tooling/tdp-max/guard-evaluator.mjs",
         "tooling/tdp-max/validate-config.mjs",
         "tooling/tdp-max/validate-config.test.mjs",
-        "tooling/mdctl/merge-gate.mjs",
-        "tooling/control-state/mdctl-merge-gate.test.mjs",
         "tooling/fabric/claim-retirement-proof.mjs",
         "tooling/fabric/claim-retirement-proof.test.mjs"
       ],
-      "domains": ["ci-release", "control-plane", "governance"],
+      "domains": [
+        "ci-release",
+        "control-plane",
+        "governance"
+      ],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-05T18:00:00Z"
