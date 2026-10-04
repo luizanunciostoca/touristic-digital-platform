@@ -36,24 +36,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-04T12:00:00Z"
-    },
-    "MD-CI-SERIALIZED-CONTROL-TRANSITION-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ci-serialized-control-transition-20261004",
-      "baseSha": "44e6a96387bd8b7e6725bd896b95ef1762ecc8ec",
-      "paths": [
-        ".morro/changesets/MD-CI-SERIALIZED-CONTROL-TRANSITION-001.json",
-        ".github/workflows/ci-impact.yml",
-        ".github/workflows/quality.yml",
-        "tooling/ci/impact-analyzer.mjs",
-        "tooling/ci/impact-analyzer.test.mjs",
-        "tooling/quality/ci-scheduler-governance.test.mjs"
-      ],
-      "domains": ["ci-release", "control-plane", "governance"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-05T18:00:00Z"
     }
   }
 }
