@@ -15,6 +15,7 @@ import {
   buildClaimReanchor,
   buildClaimRetirement,
   completeMergedRetirementEvidence,
+  prepareClaimLifecycleMutation,
   runClaimCli,
 } from "../mdctl/claim-lifecycle.mjs";
 
@@ -146,6 +147,7 @@ test("claim CLI binds exact base and rejects noncanonical paths", async (t) => {
   });
   const writeManifest = (value, path = manifestPath) =>
     writeFileSync(join(root, path), JSON.stringify(value, null, 2) + "\n");
+  const prepareMutation = async () => ({ formattedFiles: [] });
 
   writeManifest({ ...cliManifest, baseSha: "f".repeat(40) });
   await assert.rejects(
@@ -158,12 +160,56 @@ test("claim CLI binds exact base and rejects noncanonical paths", async (t) => {
         "--domains",
         "ci-release",
       ],
-      { root, now: () => NOW },
+      { root, now: () => NOW, prepareMutation },
     ),
     /CLAIM_ACQUIRE_HEAD_MUST_EQUAL_BASE/u,
   );
 
   writeManifest(cliManifest);
+  const beforePrepareFailure = {
+    registry: readFileSync(
+      join(root, ".github/morro-control/claims.json"),
+      "utf8",
+    ),
+    manifest: readFileSync(join(root, manifestPath), "utf8"),
+    ledger: readFileSync(
+      join(root, ".github/morro-control/events.ndjson"),
+      "utf8",
+    ),
+  };
+  await assert.rejects(
+    runClaimCli(
+      [
+        "acquire",
+        manifestPath,
+        "--expires-at",
+        EXPIRY,
+        "--domains",
+        "ci-release",
+      ],
+      {
+        root,
+        now: () => NOW,
+        prepareMutation: async () => {
+          throw new Error("CLAIM_LIFECYCLE_PREPARE_FAILED");
+        },
+      },
+    ),
+    /CLAIM_LIFECYCLE_PREPARE_FAILED/u,
+  );
+  assert.equal(
+    readFileSync(join(root, ".github/morro-control/claims.json"), "utf8"),
+    beforePrepareFailure.registry,
+  );
+  assert.equal(
+    readFileSync(join(root, manifestPath), "utf8"),
+    beforePrepareFailure.manifest,
+  );
+  assert.equal(
+    readFileSync(join(root, ".github/morro-control/events.ndjson"), "utf8"),
+    beforePrepareFailure.ledger,
+  );
+
   const acquired = await runClaimCli(
     [
       "acquire",
@@ -173,7 +219,7 @@ test("claim CLI binds exact base and rejects noncanonical paths", async (t) => {
       "--domains",
       "ci-release",
     ],
-    { root, now: () => NOW },
+    { root, now: () => NOW, prepareMutation },
   );
   assert.equal(acquired.action, "acquire");
 
@@ -188,6 +234,7 @@ test("claim CLI binds exact base and rejects noncanonical paths", async (t) => {
     runClaimCli(["reanchor", "outside.json", "--base-sha", nextBaseSha], {
       root,
       now: () => "2026-10-05T06:21:00.000Z",
+      prepareMutation,
     }),
     /CLAIM_CANONICAL_MANIFEST_REQUIRED/u,
   );
@@ -195,7 +242,11 @@ test("claim CLI binds exact base and rejects noncanonical paths", async (t) => {
 
   const reanchored = await runClaimCli(
     ["reanchor", manifestPath, "--base-sha", nextBaseSha],
-    { root, now: () => "2026-10-05T06:21:00.000Z" },
+    {
+      root,
+      now: () => "2026-10-05T06:21:00.000Z",
+      prepareMutation,
+    },
   );
   assert.equal(reanchored.action, "reanchor");
   const currentRegistry = JSON.parse(
@@ -399,5 +450,48 @@ test("expired retirement releases without promoting state", () => {
   assert.deepEqual(
     value.events.map((event) => event.eventType),
     ["CLAIM_RELEASED"],
+  );
+});
+
+test("claim lifecycle PREPARE formats canonical JSON and diff-checks before handoff", () => {
+  const calls = [];
+  const result = prepareClaimLifecycleMutation({
+    root: "/repo",
+    paths: [
+      "/repo/.github/morro-control/claims.json",
+      "/repo/.morro/changesets/MD-X.json",
+      "/repo/.github/morro-control/events.ndjson",
+    ],
+    run: (command, args) => {
+      calls.push({ command, args });
+      return { status: 0, stdout: "", stderr: "" };
+    },
+  });
+  assert.deepEqual(result.formattedFiles, [
+    ".github/morro-control/claims.json",
+    ".morro/changesets/MD-X.json",
+  ]);
+  assert.equal(calls[0].command, "pnpm");
+  assert.deepEqual(calls[0].args.slice(0, 4), [
+    "exec",
+    "prettier",
+    "--write",
+    "--ignore-unknown",
+  ]);
+  assert.deepEqual(calls[1], {
+    command: "git",
+    args: ["-C", "/repo", "diff", "--check"],
+  });
+});
+
+test("claim lifecycle PREPARE fails closed when formatter fails", () => {
+  assert.throws(
+    () =>
+      prepareClaimLifecycleMutation({
+        root: "/repo",
+        paths: ["/repo/.github/morro-control/claims.json"],
+        run: () => ({ status: 1, stdout: "", stderr: "formatter failed" }),
+      }),
+    /CLAIM_LIFECYCLE_PREPARE_FAILED/u,
   );
 });

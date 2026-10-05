@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { findClaimCollisions, pathOwned } from "../fabric/claim-guard.mjs";
@@ -387,6 +387,46 @@ function git(root, ...args) {
   }).trim();
 }
 
+export function prepareClaimLifecycleMutation({
+  root,
+  paths,
+  run = spawnSync,
+}) {
+  const targets = [...new Set(paths ?? [])].filter((path) =>
+    String(path).endsWith(".json"),
+  );
+  assert.ok(targets.length > 0, "CLAIM_LIFECYCLE_PREPARE_TARGETS_REQUIRED");
+  const prettier = run(
+    "pnpm",
+    ["exec", "prettier", "--write", "--ignore-unknown", ...targets],
+    {
+      cwd: root,
+      encoding: "utf8",
+      timeout: 120000,
+      maxBuffer: 8 * 1024 * 1024,
+    },
+  );
+  assert.equal(
+    prettier?.error,
+    undefined,
+    "CLAIM_LIFECYCLE_PREPARE_UNAVAILABLE",
+  );
+  assert.equal(prettier?.status, 0, "CLAIM_LIFECYCLE_PREPARE_FAILED");
+  const diffCheck = run("git", ["-C", root, "diff", "--check"], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 30000,
+    maxBuffer: 2 * 1024 * 1024,
+  });
+  assert.equal(diffCheck?.error, undefined, "CLAIM_LIFECYCLE_DIFF_UNAVAILABLE");
+  assert.equal(diffCheck?.status, 0, "CLAIM_LIFECYCLE_DIFF_CHECK_FAILED");
+  return {
+    formattedFiles: targets.map((path) =>
+      relative(resolve(root), resolve(path)).replaceAll(sep, "/"),
+    ),
+  };
+}
+
 function canonicalManifestRelative(root, manifestPath, claimId) {
   const manifestRelative = relative(resolve(root), manifestPath).replaceAll(
     sep,
@@ -454,6 +494,7 @@ export async function runClaimCli(
       "luizanunciostoca/touristic-digital-platform",
     token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN ?? "",
     fetchImpl = fetch,
+    prepareMutation = prepareClaimLifecycleMutation,
   } = {},
 ) {
   const action = args[0];
@@ -471,14 +512,16 @@ export async function runClaimCli(
     : resolve(root, manifestArg);
   const registryPath = resolve(root, ".github/morro-control/claims.json");
   const ledgerPath = resolve(root, ".github/morro-control/events.ndjson");
-  const manifest = validateChangeSetV2(await readJson(manifestPath));
+  const manifestText = await readFile(manifestPath, "utf8");
+  const registryText = await readFile(registryPath, "utf8");
+  const ledgerText = await readFile(ledgerPath, "utf8");
+  const manifest = validateChangeSetV2(JSON.parse(manifestText));
   const manifestRelative = canonicalManifestRelative(
     root,
     manifestPath,
     manifest.id,
   );
-  const registry = assertRegistry(await readJson(registryPath));
-  const ledgerText = await readFile(ledgerPath, "utf8");
+  const registry = assertRegistry(JSON.parse(registryText));
   const observedAt = iso(now(), "CLAIM_TIME_INVALID");
   const branch = git(root, "branch", "--show-current");
   const status = git(root, "status", "--porcelain=v1", "--untracked-files=all");
@@ -579,6 +622,11 @@ export async function runClaimCli(
     );
   }
   await writeAtomic(ledgerPath, transition.ledgerText);
+  const prepared = await prepareMutation({
+    root,
+    action,
+    paths: [registryPath, manifestPath],
+  });
   return {
     action,
     changeSetId: manifest.id,
@@ -587,6 +635,7 @@ export async function runClaimCli(
     baseSha: transition.manifest.baseSha,
     eventTypes: transition.events.map((event) => event.eventType),
     evidenceReason: transition.evidence?.reason ?? null,
+    preparedFiles: prepared?.formattedFiles ?? [],
     authority: "LOCAL_TRANSITION_REQUIRES_INDEPENDENT_GIT_PROOF",
   };
 }
