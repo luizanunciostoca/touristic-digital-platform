@@ -611,22 +611,30 @@ export async function runClaimCli(
     });
   }
 
-  await writeAtomic(
-    registryPath,
-    JSON.stringify(transition.registry, null, 2) + "\n",
-  );
-  if (transition.manifest !== manifest) {
+  let prepared;
+  try {
     await writeAtomic(
-      manifestPath,
-      JSON.stringify(transition.manifest, null, 2) + "\n",
+      registryPath,
+      JSON.stringify(transition.registry, null, 2) + "\n",
     );
+    if (transition.manifest !== manifest) {
+      await writeAtomic(
+        manifestPath,
+        JSON.stringify(transition.manifest, null, 2) + "\n",
+      );
+    }
+    await writeAtomic(ledgerPath, transition.ledgerText);
+    prepared = await prepareMutation({
+      root,
+      action,
+      paths: [registryPath, manifestPath],
+    });
+  } catch (error) {
+    await writeAtomic(registryPath, registryText);
+    await writeAtomic(manifestPath, manifestText);
+    await writeAtomic(ledgerPath, ledgerText);
+    throw error;
   }
-  await writeAtomic(ledgerPath, transition.ledgerText);
-  const prepared = await prepareMutation({
-    root,
-    action,
-    paths: [registryPath, manifestPath],
-  });
   return {
     action,
     changeSetId: manifest.id,
