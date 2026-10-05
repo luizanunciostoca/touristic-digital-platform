@@ -98,6 +98,51 @@ const rawDetectors = {
       o.executorInstalled === true && o.executorAuthenticated !== true,
       o.executorInstalled == null,
     ),
+  PRE_PUSH_ADMISSION_BYPASS: ({ observation: o }) =>
+    pass(
+      o.pushAttempted === true && o.admissionPassed !== true,
+      o.pushAttempted == null,
+    ),
+  PREMATURE_PR_READY: ({ observation: o }) =>
+    pass(
+      o.prReadyAttempted === true && o.remoteProofPassed !== true,
+      o.prReadyAttempted == null,
+    ),
+  CANDIDATE_MUTATED_AFTER_CERTIFICATION: ({ observation: o }) =>
+    pass(
+      o.certifiedCandidateSha !== o.currentCandidateSha,
+      o.certifiedCandidateSha == null || o.currentCandidateSha == null,
+    ),
+  STALE_REVIEW_RECONCILIATION: ({ observation: o }) =>
+    pass(
+      o.reviewFindingsCorrected === true && o.unresolvedReviewThreads > 0,
+      o.reviewFindingsCorrected == null || o.unresolvedReviewThreads == null,
+    ),
+  REMOTE_CI_USED_AS_LOCAL_LINTER: ({ observation: o }) =>
+    pass(
+      ["FORMAT_FAILURE", "DIFF_CHECK_FAILURE"].includes(o.remoteFailureClass) &&
+        o.localAdmissionRan !== true,
+      o.remoteFailureClass == null,
+    ),
+  WORKSPACE_BOOTSTRAP_INCOMPLETE: ({ observation: o }) =>
+    pass(
+      o.workerExecutionStarted === true && o.workspaceExecutable !== true,
+      o.workerExecutionStarted == null,
+    ),
+  CONTROL_PROJECTION_DRIFT: ({ observation: o }) =>
+    pass(
+      o.projectionDriftDetected === true && o.projectionReconciled !== true,
+      o.projectionDriftDetected == null,
+    ),
+  PARTIAL_REVIEW_FIX_LOOP: ({ observation: o }) =>
+    pass(
+      o.pushAttempted === true &&
+        o.reviewFindingsTotal > 1 &&
+        o.reviewFindingsRemaining > 0,
+      o.pushAttempted == null ||
+        o.reviewFindingsTotal == null ||
+        o.reviewFindingsRemaining == null,
+    ),
 };
 
 // Validate observation types before predicates; JavaScript coercion is not proof.
@@ -145,6 +190,39 @@ const shapes = {
   EXECUTOR_AUTH_UNAVAILABLE: {
     executorInstalled: "boolean",
     executorAuthenticated: "?boolean",
+  },
+  PRE_PUSH_ADMISSION_BYPASS: {
+    pushAttempted: "boolean",
+    admissionPassed: "?boolean",
+  },
+  PREMATURE_PR_READY: {
+    prReadyAttempted: "boolean",
+    remoteProofPassed: "?boolean",
+  },
+  CANDIDATE_MUTATED_AFTER_CERTIFICATION: {
+    certifiedCandidateSha: "sha",
+    currentCandidateSha: "sha",
+  },
+  STALE_REVIEW_RECONCILIATION: {
+    reviewFindingsCorrected: "boolean",
+    unresolvedReviewThreads: "count",
+  },
+  REMOTE_CI_USED_AS_LOCAL_LINTER: {
+    remoteFailureClass: "text",
+    localAdmissionRan: "?boolean",
+  },
+  WORKSPACE_BOOTSTRAP_INCOMPLETE: {
+    workerExecutionStarted: "boolean",
+    workspaceExecutable: "?boolean",
+  },
+  CONTROL_PROJECTION_DRIFT: {
+    projectionDriftDetected: "boolean",
+    projectionReconciled: "?boolean",
+  },
+  PARTIAL_REVIEW_FIX_LOOP: {
+    pushAttempted: "boolean",
+    reviewFindingsTotal: "count",
+    reviewFindingsRemaining: "count",
   },
 };
 function valid(value, type) {

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { patternsOverlap } from "../fabric/claim-guard.mjs";
+import { selectAuthorizedExecutor } from "../failure-learning/executor-preflight.mjs";
 import { validateChangeSetV2 } from "./changeset-v2.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
@@ -414,6 +415,99 @@ export function buildSchedulerPlan({
     blocked,
     violations,
     dispatchAllowed: violations.length === 0 && granted.length > 0,
+  };
+}
+
+export function buildWorkerDispatchPlan({
+  schedulerPlan,
+  workspaceByChangeSet = {},
+  executorsByChangeSet = {},
+  projectionSafe = true,
+}) {
+  assert.equal(
+    schedulerPlan?.kind,
+    "TDP_SCHEDULER_PLAN",
+    "DISPATCH_SCHEDULER_PLAN_INVALID",
+  );
+  assert.match(
+    schedulerPlan.exactMainSha ?? "",
+    SHA,
+    "DISPATCH_EXACT_MAIN_INVALID",
+  );
+  const dispatches = [];
+  const blocked = [...(schedulerPlan.blocked ?? [])];
+
+  if (projectionSafe !== true) {
+    return {
+      schemaVersion: 1,
+      kind: "TDP_WORKER_DISPATCH_PLAN",
+      exactMainSha: schedulerPlan.exactMainSha,
+      dispatches,
+      blocked: [...blocked, { id: null, code: "CONTROL_PROJECTION_DRIFT" }],
+      violations: [...(schedulerPlan.violations ?? [])],
+      dispatchAllowed: false,
+    };
+  }
+
+  if ((schedulerPlan.violations ?? []).length > 0) {
+    return {
+      schemaVersion: 1,
+      kind: "TDP_WORKER_DISPATCH_PLAN",
+      exactMainSha: schedulerPlan.exactMainSha,
+      dispatches,
+      blocked,
+      violations: schedulerPlan.violations,
+      dispatchAllowed: false,
+    };
+  }
+
+  for (const grant of schedulerPlan.grants ?? []) {
+    const workspace = workspaceByChangeSet[grant.id];
+    if (
+      workspace?.ready !== true ||
+      workspace?.exactBaseSha !== grant.exactBaseSha ||
+      typeof workspace?.path !== "string" ||
+      !workspace.path
+    ) {
+      blocked.push({
+        id: grant.id,
+        code: "WORKSPACE_BOOTSTRAP_INCOMPLETE",
+      });
+      continue;
+    }
+    const selection = selectAuthorizedExecutor(
+      executorsByChangeSet[grant.id] ?? [],
+    );
+    if (selection.result !== "PASS") {
+      blocked.push({
+        id: grant.id,
+        code: "EXECUTOR_UNAVAILABLE",
+        rootCause: selection.rootCause,
+        attempts: selection.attempts,
+      });
+      continue;
+    }
+    dispatches.push({
+      changeSetId: grant.id,
+      objective: grant.objective,
+      exactBaseSha: grant.exactBaseSha,
+      workspace: {
+        path: workspace.path,
+        runtime: workspace.runtime ?? null,
+      },
+      executor: selection.executor,
+      fallbackUsed: selection.fallbackUsed,
+    });
+  }
+
+  return {
+    schemaVersion: 1,
+    kind: "TDP_WORKER_DISPATCH_PLAN",
+    exactMainSha: schedulerPlan.exactMainSha,
+    dispatches,
+    blocked,
+    violations: [],
+    dispatchAllowed: dispatches.length > 0,
   };
 }
 

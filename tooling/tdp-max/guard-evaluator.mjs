@@ -93,5 +93,54 @@ export function evaluateAntiRecurrence(input = {}) {
   )
     detected.add("TECHNICALLY_READY_NOT_AUTHORIZED");
 
+  if (input.pushAttempted === true && input.admissionPassed !== true)
+    detected.add("PRE_PUSH_ADMISSION_BYPASS");
+
+  if (input.prReadyAttempted === true && input.remoteProofPassed !== true)
+    detected.add("PREMATURE_PR_READY");
+
+  if (
+    input.certifiedCandidateSha &&
+    input.currentCandidateSha &&
+    input.certifiedCandidateSha !== input.currentCandidateSha
+  )
+    detected.add("CANDIDATE_MUTATED_AFTER_CERTIFICATION");
+
+  if (
+    input.reviewFindingsCorrected === true &&
+    Number.isInteger(input.unresolvedReviewThreads) &&
+    input.unresolvedReviewThreads > 0
+  )
+    detected.add("STALE_REVIEW_RECONCILIATION");
+
+  if (
+    ["FORMAT_FAILURE", "DIFF_CHECK_FAILURE"].includes(
+      String(input.remoteFailureClass ?? ""),
+    ) &&
+    input.localAdmissionRan !== true
+  )
+    detected.add("REMOTE_CI_USED_AS_LOCAL_LINTER");
+
+  if (
+    input.workerExecutionStarted === true &&
+    input.workspaceExecutable !== true
+  )
+    detected.add("WORKSPACE_BOOTSTRAP_INCOMPLETE");
+
+  if (
+    input.projectionDriftDetected === true &&
+    input.projectionReconciled !== true
+  )
+    detected.add("CONTROL_PROJECTION_DRIFT");
+
+  if (
+    input.pushAttempted === true &&
+    Number.isInteger(input.reviewFindingsTotal) &&
+    input.reviewFindingsTotal > 1 &&
+    Number.isInteger(input.reviewFindingsRemaining) &&
+    input.reviewFindingsRemaining > 0
+  )
+    detected.add("PARTIAL_REVIEW_FIX_LOOP");
+
   return [...detected].sort();
 }

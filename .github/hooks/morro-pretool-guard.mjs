@@ -350,17 +350,32 @@ function loadManifestForBranch(root, branch) {
   return matches[0];
 }
 
+export function chooseVerifiedMain(remoteSha, localRepresentations) {
+  assert.match(remoteSha ?? "", SHA_PATTERN, "CURRENT_MAIN_REMOTE_INVALID");
+  const matching = localRepresentations.filter(
+    (entry) => entry?.sha === remoteSha,
+  );
+  assert.ok(matching.length > 0, "CURRENT_MAIN_LOCAL_STALE");
+  return remoteSha;
+}
+
 function resolveCurrentBaseSha(root) {
-  for (const ref of ["origin/main", "main"]) {
+  const remoteLine = git(root, [
+    "ls-remote",
+    "--exit-code",
+    "origin",
+    "refs/heads/main",
+  ]);
+  const remoteSha = remoteLine.split(/\s+/u)[0];
+  const localRepresentations = [];
+  for (const ref of ["refs/heads/main", "refs/remotes/origin/main"]) {
     try {
-      const sha = git(root, ["rev-parse", ref]);
-      if (SHA_PATTERN.test(sha)) return sha;
+      localRepresentations.push({ ref, sha: git(root, ["rev-parse", ref]) });
     } catch {
-      // Continue to the next local representation of current main.
+      // A local representation may be absent, but one must match live remote.
     }
   }
-
-  throw new Error("CURRENT_MAIN_SHA_UNAVAILABLE");
+  return chooseVerifiedMain(remoteSha, localRepresentations);
 }
 
 function changedWorktreeFiles(root) {
@@ -375,6 +390,14 @@ function changedWorktreeFiles(root) {
     for (const path of raw.split("\n").filter(Boolean)) paths.add(path);
   }
   return [...paths];
+}
+
+function runAdmission(root) {
+  execFileSync(
+    process.execPath,
+    [resolve(root, "tooling/ci/local-fast-gate.mjs"), "--admission"],
+    { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
 }
 
 export function authorityForManifestState(state) {
@@ -473,12 +496,19 @@ export function evaluatePreToolUse(payload, runtime = {}) {
       };
     }
 
-    if (
-      parseGitInvocations(command).some(
-        ({ subcommand }) => subcommand === "commit" || subcommand === "push",
-      )
-    ) {
+    const invocations = parseGitInvocations(command);
+    if (invocations.some(({ subcommand }) => subcommand === "commit")) {
       validate(runtime.changedFiles ?? changedWorktreeFiles(root));
+    }
+    if (invocations.some(({ subcommand }) => subcommand === "push")) {
+      try {
+        (runtime.runAdmission ?? (() => runAdmission(root)))();
+      } catch {
+        return {
+          permissionDecision: "deny",
+          permissionDecisionReason: "PRE_PUSH_ADMISSION_FAILED",
+        };
+      }
     }
 
     return { permissionDecision: "allow" };

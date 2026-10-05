@@ -9,7 +9,16 @@
     "live-candidate-exact-head",
     "live-remote-proof",
     "critical-unknowns-zero",
-    "conflicts-zero"
+    "conflicts-zero",
+    "ownership-coverage",
+    "local-admission",
+    "candidate-invalidation",
+    "review-reconciliation",
+    "workspace-bootstrap",
+    "executor-fallback",
+    "anti-recurrence-proof",
+    "unresolved-review-threads-zero",
+    "post-merge-reconciliation"
   ],
   "conditional": [
     {

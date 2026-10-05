@@ -27,7 +27,7 @@ jobs:
 
   core-quality:
     needs: impact
-    if: always()
+    if: needs.impact.result == 'success'
     name: Core Quality
     runs-on: ubuntu-latest
     timeout-minutes: 25

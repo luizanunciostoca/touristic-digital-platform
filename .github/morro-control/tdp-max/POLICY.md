@@ -34,9 +34,22 @@ PID, heartbeat, claim, worktree, deploy, runtime identity or transport preferenc
 
 ## Execution
 
-RECAPTURE → DIAGNOSE → PLAN → CLAIM → ISOLATE → IMPLEMENT → TEST →
-ADVERSARIAL TEST → READBACK → EXACT-HEAD → INDEPENDENT PROOF →
-INTEGRATE → RECAPTURE AFFECTED STATE.
+RECAPTURE → DIAGNOSE → PLAN → CLAIM → ISOLATE → REPRODUCE → IMPLEMENT →
+PREPARE → LOCAL ADMISSION → DRAFT REVIEW → BATCH FIX FINDINGS → CERTIFY →
+FREEZE HEAD → AFFECTED REMOTE PROOF → REVIEW RECONCILIATION → MERGE GATE →
+INTEGRATE → POST-MERGE READBACK → CLAIM RETIREMENT → RECONCILE.
+
+## FastFix efficiency contract
+
+- Do not use remote CI to discover formatting, diff-check, stale-base, claim or workspace errors that local admission can determine.
+- PREPARE may mutate deterministic local formatting/preparation; CERTIFY must start and finish with a clean worktree.
+- Keep implementation PRs Draft while the candidate is still changing.
+- Complete an independent review, collect all known findings, then fix/disposition them as one batch before the next candidate push when possible.
+- After certification, freeze the candidate SHA/tree. Any new commit invalidates dependent evidence and returns the task to the appropriate earlier stage.
+- Resolve review findings only with regression/readback evidence; before merge-ready, provider readback must show zero unresolved blocking findings.
+- Rerun only evidence invalidated by the changed state. A PR metadata transition may invalidate review/merge-gate evidence without invalidating code-quality evidence.
+- Post-merge closure includes exact-main readback, applicable post-merge proof, claim retirement, projection reconciliation and bounded workspace cleanup before dependent work is dispatched.
+- Track avoidable remote CI rounds as engineering waste; safety and semantic proof must never be weakened to improve the metric.
 
 ## Stop-the-line
 
