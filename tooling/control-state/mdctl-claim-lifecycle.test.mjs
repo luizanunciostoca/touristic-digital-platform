@@ -114,7 +114,7 @@ function acquire(overrides = {}) {
   });
 }
 
-test("mdctl claim CLI acquires on exact base, rejects noncanonical paths, and reanchors", async (t) => {
+test("claim CLI binds exact base and rejects noncanonical paths", async (t) => {
   const root = mkdtempSync(join(tmpdir(), "fastfix-claim-cli-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const git = (...args) =>
@@ -150,7 +150,14 @@ test("mdctl claim CLI acquires on exact base, rejects noncanonical paths, and re
   writeManifest({ ...cliManifest, baseSha: "f".repeat(40) });
   await assert.rejects(
     runClaimCli(
-      ["acquire", manifestPath, "--expires-at", EXPIRY, "--domains", "ci-release"],
+      [
+        "acquire",
+        manifestPath,
+        "--expires-at",
+        EXPIRY,
+        "--domains",
+        "ci-release",
+      ],
       { root, now: () => NOW },
     ),
     /CLAIM_ACQUIRE_HEAD_MUST_EQUAL_BASE/u,
@@ -158,7 +165,14 @@ test("mdctl claim CLI acquires on exact base, rejects noncanonical paths, and re
 
   writeManifest(cliManifest);
   const acquired = await runClaimCli(
-    ["acquire", manifestPath, "--expires-at", EXPIRY, "--domains", "ci-release"],
+    [
+      "acquire",
+      manifestPath,
+      "--expires-at",
+      EXPIRY,
+      "--domains",
+      "ci-release",
+    ],
     { root, now: () => NOW },
   );
   assert.equal(acquired.action, "acquire");
@@ -198,7 +212,7 @@ test("mdctl claim CLI acquires on exact base, rejects noncanonical paths, and re
   );
 });
 
-test("merged retirement evidence completes ancestry and historical identity", () => {
+test("merged retirement binds ancestry and historical identity", () => {
   const calls = [];
   const completed = completeMergedRetirementEvidence({
     root: "/fixture",
@@ -241,7 +255,7 @@ test("merged retirement evidence completes ancestry and historical identity", ()
   );
 });
 
-test("acquisition is bounded and emits exactly creation plus acquisition", () => {
+test("acquisition emits exactly creation plus acquisition", () => {
   const value = acquire();
   assert.equal(value.claim.baseSha, BASE);
   assert.deepEqual(value.claim.paths, manifest().owns.paths);
@@ -252,7 +266,7 @@ test("acquisition is bounded and emits exactly creation plus acquisition", () =>
   assert.equal(value.registry.claims["MD-FASTFIX-TEST"].risk, "P1");
 });
 
-test("acquisition rejects overlap, bookkeeping ownership, and invalid domains", () => {
+test("acquisition rejects overlap, bookkeeping, and bad domains", () => {
   assert.throws(
     () =>
       acquire({
@@ -279,11 +293,14 @@ test("acquisition rejects overlap, bookkeeping ownership, and invalid domains", 
     /PERSISTENT_BOOKKEEPING_FORBIDDEN/u,
   );
   for (const domains of [undefined, ["ci-release", "ci-release"]]) {
-    assert.throws(() => acquire({ domains }), /CLAIM_ACQUIRE_DOMAINS_REQUIRED/u);
+    assert.throws(
+      () => acquire({ domains }),
+      /CLAIM_ACQUIRE_DOMAINS_REQUIRED/u,
+    );
   }
 });
 
-test("reanchors keep implementation state and produce unique renewal identities", () => {
+test("reanchors keep state and use unique renewal identities", () => {
   const acquired = acquire();
   const first = buildClaimReanchor({
     registry: acquired.registry,
@@ -301,11 +318,14 @@ test("reanchors keep implementation state and produce unique renewal identities"
   });
   assert.equal(first.manifest.state, "IMPLEMENTING");
   assert.equal(first.claim.baseSha, NEXT);
-  assert.deepEqual(first.events.map((event) => event.eventType), ["CLAIM_RENEWED"]);
+  assert.deepEqual(
+    first.events.map((event) => event.eventType),
+    ["CLAIM_RENEWED"],
+  );
   assert.notEqual(first.events[0].eventId, second.events[0].eventId);
 });
 
-test("merged retirement requires material merged evidence before MERGED", () => {
+test("merged retirement requires material evidence before MERGED", () => {
   const acquired = acquire();
   const value = buildClaimRetirement({
     registry: acquired.registry,
@@ -347,7 +367,7 @@ test("merged retirement requires material merged evidence before MERGED", () => 
   );
 });
 
-test("expired retirement releases claim without promoting implementation state", () => {
+test("expired retirement releases without promoting state", () => {
   const survivor = activeClaim({
     owner: "OTHER",
     branch: "fix/survivor",
