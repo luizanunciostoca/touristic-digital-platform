@@ -26,7 +26,8 @@ export function runAffectedQuality(baseSha, tasks = DEFAULT_TASKS) {
 }
 
 const invokedDirectly =
-  process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 
 if (invokedDirectly) {
   const baseSha = process.argv[2] || process.env.CI_IMPACT_BASE;
