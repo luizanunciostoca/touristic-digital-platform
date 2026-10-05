@@ -227,6 +227,11 @@ export function analyzeFiles(
     !needsFullRegression &&
     domains.length > 0 &&
     domains.every((name) => manifest.domains[name].nonRuntime === true);
+  const qualityProfile = nonRuntime
+    ? "NON_RUNTIME"
+    : needsFullRegression
+      ? "DEEP_PROOF"
+      : "BUGFIX_FAST";
 
   return {
     base,
@@ -245,6 +250,7 @@ export function analyzeFiles(
     needsFullSecurity: needsFullRegression || needsFullSecurity,
     needsFullRegression,
     nonRuntime,
+    qualityProfile,
     serializedControlTransitionOnly,
     packageJsonChanges,
     unknownFiles,
@@ -289,6 +295,7 @@ if (invokedDirectly) {
       needsFullSecurity: true,
       needsFullRegression: true,
       nonRuntime: false,
+      qualityProfile: "DEEP_PROOF",
       serializedControlTransitionOnly: false,
       packageJsonChanges: {},
       unknownFiles: [],
@@ -310,6 +317,7 @@ if (invokedDirectly) {
       needs_full_security: String(report.needsFullSecurity),
       needs_full_regression: String(report.needsFullRegression),
       non_runtime: String(report.nonRuntime),
+      quality_profile: report.qualityProfile,
       serialized_control_transition_only: String(
         report.serializedControlTransitionOnly,
       ),
