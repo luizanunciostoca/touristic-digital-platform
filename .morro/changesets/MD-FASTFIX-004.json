@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-004",
+  "objective": "complete-ownership-worker-dispatch-and-fastfix-operational-hardening",
+  "baseSha": "9795625e0ad164002a5e4a53e91496a4d07eabb5",
+  "branch": "chore/fastfix-004-claim-20261005",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-004.json",
+      ".morro/ownership.json",
+      ".morro/fabric.json",
+      "AGENTS.md",
+      ".github/morro-control/tdp-max/POLICY.md",
+      ".github/morro-control/tdp-max/anti-recurrence.json",
+      ".github/morro-control/tdp-max/final-gate.json",
+      ".github/agents/**",
+      ".github/hooks/**",
+      ".github/workflows/quality.yml",
+      "tooling/tdp-max/**",
+      "tooling/failure-learning/**",
+      "tooling/ci/local-fast-gate.mjs",
+      "tooling/ci/local-fast-gate.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/mdctl/**",
+      "tooling/workspace/**",
+      "tooling/control-state/**",
+      "package.json"
+    ],
+    "contracts": [
+      "TDP-FASTFIX-ADMISSION",
+      "TDP-CANDIDATE-CERTIFICATION",
+      "TDP-WORKER-DISPATCH",
+      "TDP-ANTI-RECURRENCE"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE",
+      "CI-IMPACT-CLASSIFICATION",
+      "TDP-CLAIM-LIFECYCLE"
+    ]
+  },
+  "produces": {
+    "events": ["CLAIM_ACQUIRED", "CLAIM_RENEWED", "CLAIM_RELEASED"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-FASTFIX-003"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "ownership-coverage",
+    "admission-gate",
+    "candidate-invalidation",
+    "review-reconciliation",
+    "workspace-bootstrap",
+    "executor-fallback",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "fastfix-004-control",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/local-fast-gate.test.mjs",
+          "tooling/tdp-max/validate-config.test.mjs",
+          "tooling/failure-learning/engine.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
