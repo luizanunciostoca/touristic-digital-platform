@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-005",
+  "objective": "prove-three-real-fastfix-canaries-and-freeze-control-plane-v3.2",
+  "baseSha": "4e875fce296e951bdb29993303f093c5e0e3d98b",
+  "branch": "fix/fastfix-005-review-gates-20261005",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-005.json",
+      ".github/morro-control/backlog.json",
+      "tooling/tdp-max/**",
+      "tooling/control-state/**",
+      "tooling/workspace/**",
+      "tooling/failure-learning/**",
+      "tooling/mdctl/**",
+      "package.json"
+    ],
+    "contracts": [
+      "TDP-FASTFIX-CANARY",
+      "TDP-CONTROL-PLANE-V3.2-FREEZE"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE",
+      "TDP-FASTFIX-ADMISSION",
+      "TDP-WORKER-DISPATCH",
+      "TDP-ANTI-RECURRENCE"
+    ]
+  },
+  "produces": {
+    "events": [
+      "CLAIM_ACQUIRED",
+      "CLAIM_RENEWED",
+      "CLAIM_RELEASED"
+    ],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-FASTFIX-004"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "three-real-canaries",
+    "local-admission",
+    "candidate-freeze",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "post-merge-reconciliation",
+    "control-plane-v3-2-freeze"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "fastfix-005-canaries",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/tdp-max/fastfix-canary.test.mjs",
+          "tooling/control-state/mdctl-reconcile.test.mjs",
+          "tooling/failure-learning/executor-preflight.test.mjs",
+          "tooling/workspace/morro-workspace.test.mjs"
+        ],
+        "timeoutSeconds": 900
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
