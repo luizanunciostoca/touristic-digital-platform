@@ -53,6 +53,9 @@ export function isCompleteImpactReport(report) {
     report.packageJsonChanges &&
     typeof report.packageJsonChanges === "object" &&
     !Array.isArray(report.packageJsonChanges) &&
+    ["NON_RUNTIME", "BUGFIX_FAST", "DEEP_PROOF"].includes(
+      report.qualityProfile,
+    ) &&
     impactManifest.riskOrder.includes(report.risk) &&
     reportBooleanFields.every((field) => typeof report[field] === "boolean") &&
     (report.failClosedReason === null ||
