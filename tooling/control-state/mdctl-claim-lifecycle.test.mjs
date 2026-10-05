@@ -14,6 +14,7 @@ import {
   buildClaimAcquisition,
   buildClaimReanchor,
   buildClaimRetirement,
+  completeMergedRetirementEvidence,
   runClaimCli,
 } from "../mdctl/claim-lifecycle.mjs";
 
@@ -165,6 +166,91 @@ test("mdctl claim CLI performs acquire then exact-head reanchor in a real git wo
   assert.match(
     readFileSync(join(root, ".github/morro-control/events.ndjson"), "utf8"),
     /"CLAIM_RENEWED"/u,
+  );
+});
+
+test("merged retirement evidence is completed from local ancestry and historical manifest", () => {
+  const claim = {
+    owner: "CHATGPT-PRO-CONTROL",
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    branch: manifest().branch,
+    baseSha: BASE,
+    paths: manifest().owns.paths,
+    domains: ["ci-release"],
+    risk: "P1",
+    status: "IMPLEMENTING",
+    expiresAt: EXPIRY,
+  };
+  const calls = [];
+  const completed = completeMergedRetirementEvidence({
+    root: "/fixture",
+    manifest: manifest(),
+    claim,
+    evidence: {
+      id: "MD-FASTFIX-TEST",
+      reason: "MERGED_PR",
+      branch: claim.branch,
+      baseSha: claim.baseSha,
+      prNumber: 900,
+      mergeSha: MERGE,
+      mergeShaAncestorOfBase: true,
+      materialPaths: ["tooling/ci/local-fast-gate.mjs"],
+    },
+    gitImpl: (_root, ...args) => {
+      calls.push(args);
+      if (args[0] === "merge-base") return "";
+      if (args[0] === "show")
+        return JSON.stringify({
+          id: "MD-FASTFIX-TEST",
+          branch: claim.branch,
+          baseSha: claim.baseSha,
+        });
+      throw new Error("UNEXPECTED_GIT_CALL");
+    },
+  });
+  assert.equal(completed.claimBaseAncestorOfMerge, true);
+  assert.equal(completed.historicalManifestMatches, true);
+  assert.deepEqual(calls[0], ["merge-base", "--is-ancestor", BASE, MERGE]);
+});
+
+test("merged retirement evidence rejects a mismatched historical manifest", () => {
+  const claim = {
+    owner: "CHATGPT-PRO-CONTROL",
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    branch: manifest().branch,
+    baseSha: BASE,
+    paths: manifest().owns.paths,
+    domains: ["ci-release"],
+    risk: "P1",
+    status: "IMPLEMENTING",
+    expiresAt: EXPIRY,
+  };
+  assert.throws(
+    () =>
+      completeMergedRetirementEvidence({
+        root: "/fixture",
+        manifest: manifest(),
+        claim,
+        evidence: {
+          id: "MD-FASTFIX-TEST",
+          reason: "MERGED_PR",
+          branch: claim.branch,
+          baseSha: claim.baseSha,
+          prNumber: 900,
+          mergeSha: MERGE,
+          mergeShaAncestorOfBase: true,
+          materialPaths: ["tooling/ci/local-fast-gate.mjs"],
+        },
+        gitImpl: (_root, ...args) =>
+          args[0] === "show"
+            ? JSON.stringify({
+                id: "MD-FASTFIX-TEST",
+                branch: "wrong/branch",
+                baseSha: BASE,
+              })
+            : "",
+      }),
+    /CLAIM_RETIRE_HISTORICAL_MANIFEST_MISMATCH/u,
   );
 });
 

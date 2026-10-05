@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { analyzeFiles } from "./impact-analyzer.mjs";
 import { buildAffectedTurboArgs } from "./affected-quality.mjs";
-import { fastGatePlan } from "./local-fast-gate.mjs";
+import { fastGatePlan, nonRuntimeTests } from "./local-fast-gate.mjs";
 
 const BASE = "a".repeat(40);
 
@@ -62,6 +62,22 @@ test("plan-only mode cannot bypass classification blocking", () => {
   const block = source.indexOf('if (plan.mode === "CLASSIFICATION_BLOCK")');
   const planOnly = source.indexOf('if (process.argv.includes("--plan"))');
   assert.ok(block >= 0 && planOnly >= 0 && block < planOnly);
+});
+
+test("deletion-only impact remains visible to the Fast Gate", () => {
+  const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
+  assert.match(source, /--diff-filter=ACDMRTUXB/u);
+});
+
+test("non-runtime control-plane and governance coverage includes canonical test trees", () => {
+  const control = nonRuntimeTests(["control-plane"]);
+  assert.ok(control.some((file) => file.startsWith("tooling/tdp-max/")));
+  assert.ok(
+    control.some((file) => file.startsWith("tooling/failure-learning/")),
+  );
+
+  const governance = nonRuntimeTests(["governance"]);
+  assert.ok(governance.some((file) => file.startsWith("tooling/workspace/")));
 });
 
 test("local fast gate has no second workspace dependency graph", () => {

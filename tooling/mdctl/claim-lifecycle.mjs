@@ -387,6 +387,64 @@ function git(root, ...args) {
   }).trim();
 }
 
+function canonicalManifestRelative(root, manifestPath, claimId) {
+  const manifestRelative = relative(resolve(root), manifestPath).replaceAll(
+    sep,
+    "/",
+  );
+  assert.equal(
+    manifestRelative,
+    ".morro/changesets/" + claimId + ".json",
+    "CLAIM_CANONICAL_MANIFEST_REQUIRED",
+  );
+  return manifestRelative;
+}
+
+export function completeMergedRetirementEvidence({
+  root,
+  manifest,
+  claim,
+  evidence,
+  gitImpl = git,
+}) {
+  if (evidence?.reason !== "MERGED_PR") return evidence;
+  assert.match(evidence.mergeSha ?? "", SHA, "CLAIM_RETIRE_MERGE_SHA_INVALID");
+  gitImpl(
+    root,
+    "merge-base",
+    "--is-ancestor",
+    claim.baseSha,
+    evidence.mergeSha,
+  );
+  const historical = JSON.parse(
+    gitImpl(
+      root,
+      "show",
+      evidence.mergeSha + ":.morro/changesets/" + manifest.id + ".json",
+    ),
+  );
+  assert.equal(
+    historical?.id,
+    manifest.id,
+    "CLAIM_RETIRE_HISTORICAL_MANIFEST_MISMATCH",
+  );
+  assert.equal(
+    historical?.branch,
+    claim.branch,
+    "CLAIM_RETIRE_HISTORICAL_MANIFEST_MISMATCH",
+  );
+  assert.equal(
+    historical?.baseSha,
+    claim.baseSha,
+    "CLAIM_RETIRE_HISTORICAL_MANIFEST_MISMATCH",
+  );
+  return {
+    ...evidence,
+    claimBaseAncestorOfMerge: true,
+    historicalManifestMatches: true,
+  };
+}
+
 export async function runClaimCli(
   args,
   {
@@ -414,21 +472,17 @@ export async function runClaimCli(
   const registryPath = resolve(root, ".github/morro-control/claims.json");
   const ledgerPath = resolve(root, ".github/morro-control/events.ndjson");
   const manifest = validateChangeSetV2(await readJson(manifestPath));
+  const manifestRelative = canonicalManifestRelative(
+    root,
+    manifestPath,
+    manifest.id,
+  );
   const registry = assertRegistry(await readJson(registryPath));
   const ledgerText = await readFile(ledgerPath, "utf8");
   const observedAt = iso(now(), "CLAIM_TIME_INVALID");
   const branch = git(root, "branch", "--show-current");
   const status = git(root, "status", "--porcelain=v1", "--untracked-files=all");
   if (action === "acquire") {
-    const manifestRelative = relative(resolve(root), manifestPath).replaceAll(
-      sep,
-      "/",
-    );
-    assert.equal(
-      manifestRelative,
-      ".morro/changesets/" + manifest.id + ".json",
-      "CLAIM_ACQUIRE_CANONICAL_MANIFEST_REQUIRED",
-    );
     const dirtyPaths = status
       ? status
           .split("\n")
@@ -490,12 +544,18 @@ export async function runClaimCli(
     );
     const claim = registry.claims[manifest.id];
     assert.ok(claim, "CLAIM_RETIRE_ACTIVE_CLAIM_REQUIRED");
-    const evidence = await collectClaimRetirementEvidence(manifest.id, claim, {
+    let evidence = await collectClaimRetirementEvidence(manifest.id, claim, {
       repository,
       expectedBaseSha: baseSha,
       now: Date.parse(observedAt),
       token,
       fetchImpl,
+    });
+    evidence = completeMergedRetirementEvidence({
+      root,
+      manifest,
+      claim,
+      evidence,
     });
     transition = buildClaimRetirement({
       registry,

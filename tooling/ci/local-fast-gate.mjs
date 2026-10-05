@@ -24,7 +24,7 @@ function changedFiles(baseSha, head = "HEAD") {
     [
       "diff",
       "--name-only",
-      "--diff-filter=ACMRTUXB",
+      "--diff-filter=ACDMRTUXB",
       "-z",
       baseSha + "..." + head,
     ],
@@ -121,7 +121,7 @@ function affectedFormat(files) {
   }
 }
 
-function nonRuntimeTests(domains) {
+export function nonRuntimeTests(domains) {
   const patterns = new Set();
   if (
     domains.some((domain) =>
@@ -131,10 +131,16 @@ function nonRuntimeTests(domains) {
     patterns.add("tooling/ci/*.test.mjs");
     patterns.add("tooling/control-state/*.test.mjs");
   }
+  if (domains.includes("control-plane")) {
+    patterns.add("tooling/mdctl/*.test.mjs");
+    patterns.add("tooling/tdp-max/*.test.mjs");
+    patterns.add("tooling/failure-learning/*.test.mjs");
+  }
   if (
     domains.some((domain) => ["governance", "control-plane"].includes(domain))
   ) {
     patterns.add("tooling/fabric/*.test.mjs");
+    patterns.add("tooling/workspace/*.test.mjs");
     patterns.add(".github/agents/*.test.mjs");
     patterns.add(".github/hooks/*.test.mjs");
   }
