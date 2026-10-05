@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-003",
+  "objective": "automate-claim-lifecycle-and-consolidate-tdp-fast-gate",
+  "baseSha": "327be1efabe63479e1911c7bbe9d2be91300c396",
+  "branch": "chore/fastfix-003-claim-20261005",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-003.json",
+      "tooling/ci/local-fast-gate.mjs",
+      "tooling/ci/local-fast-gate.test.mjs",
+      "tooling/mdctl/claim-lifecycle.mjs",
+      "tooling/mdctl/mdctl.mjs",
+      "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
+      "package.json"
+    ],
+    "contracts": ["TDP-CLAIM-LIFECYCLE", "TDP-FAST-GATE"]
+  },
+  "reads": {
+    "contracts": ["MORRO-FABRIC-LIFECYCLE", "CI-IMPACT-CLASSIFICATION"]
+  },
+  "produces": {
+    "events": ["CLAIM_ACQUIRED", "CLAIM_RENEWED", "CLAIM_RELEASED"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-FASTFIX-002"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "claim-lifecycle",
+    "fast-gate",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "fastfix-003-control",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/local-fast-gate.test.mjs",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
+          "tooling/fabric/claim-guard.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
