@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-002",
   "objective": "bugfix-fast-affected-quality-and-async-broad-suites",
-  "baseSha": "b0594090468f233dc9081b8b7368a11cd7928bd1",
-  "branch": "fix/fastfix-002-bugfix-fast-quality-20261005",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "33aad32f3bc4635c6b5089fd51dfd6c14301d7f9",
+  "branch": "infra/retire-fastfix-002-20261005-r1",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
@@ -22,7 +22,9 @@
     ]
   },
   "reads": {
-    "contracts": ["MORRO-FABRIC-LIFECYCLE"]
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE"
+    ]
   },
   "produces": {
     "events": [],
@@ -34,7 +36,9 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": ["MD-FASTFIX-001"],
+  "dependencies": [
+    "MD-FASTFIX-001"
+  ],
   "requiredEvidence": [
     "format",
     "secrets",
