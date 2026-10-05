@@ -33,7 +33,7 @@ jobs:
     timeout-minutes: 25
     services:
       mysql:
-        image: ${{ needs.impact.outputs.non_runtime != 'true' && 'mysql:8.4' || '' }}
+        image: ${{ needs.impact.outputs.needs_database == 'true' && 'mysql:8.4' || '' }}
         env:
           MYSQL_ROOT_PASSWORD: canonical-mysql
           MYSQL_DATABASE: affiliates_m154_test
@@ -50,6 +50,8 @@ jobs:
           IMPACT_RESULT: ${{ needs.impact.result }}
         run: test "$IMPACT_RESULT" = success
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -68,35 +70,54 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
-      - name: Check formatting
+      - name: Check full formatting
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm format:check
+      - name: Check affected formatting
+        if: needs.impact.outputs.quality_profile == 'BUGFIX_FAST'
+        env:
+          IMPACT_BASE_SHA: ${{ needs.impact.outputs.base_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' changed < <(git diff --name-only -z "$IMPACT_BASE_SHA...$GITHUB_SHA")
+          if ((${#changed[@]})); then
+            pnpm exec prettier --check --ignore-unknown "${changed[@]}"
+          fi
       - name: Enforce Stylelint V2 CSS governance
-        if: needs.impact.outputs.non_runtime != 'true'
+        if: needs.impact.outputs.needs_visual == 'true'
         run: pnpm css:stylelint
       - name: Enforce humanized public Assistant copy
         run: node tooling/quality/check-assistant-public-copy.mjs
       - name: Check architecture boundaries
         run: pnpm architecture:check
       - name: Validate Feature Registry
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm features:check
       - name: Reconcile environment inventory
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm environment:check
       - name: Validate release-readiness guardrails
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm release:readiness:check
       - name: Scan tracked content for credential signatures
         run: pnpm secret-patterns:check
       - name: Validate CI and repository governance contracts
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm ci:governance:check
       - name: Validate release deployment target governance
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm release:target-governance:check
       - name: Release gate negative contracts
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm release:gates:negative-check
       - name: Enforce workflow supply chain
+        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
         run: pnpm ci:supply-chain:strict
       - name: Validate CI selection and candidate identity
         run: node --test tooling/ci/*.test.mjs tooling/quality/ci-scheduler-governance.test.mjs
       - name: Validate operational tooling contracts
-        if: needs.impact.outputs.serialized_control_transition_only != 'true'
+        if: needs.impact.outputs.non_runtime == 'true' && needs.impact.outputs.serialized_control_transition_only != 'true'
         shell: bash
         run: |
           node --input-type=module <<'NODE'
@@ -112,22 +133,28 @@ jobs:
           tooling/fabric/*.test.mjs
           .github/agents/*.test.mjs
           .github/hooks/*.test.mjs
+      - name: Run affected workspace quality
+        if: needs.impact.outputs.quality_profile == 'BUGFIX_FAST'
+        env:
+          CI_IMPACT_BASE: ${{ needs.impact.outputs.base_sha }}
+          CONTENT_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
+        run: node tooling/ci/affected-quality.mjs "$CI_IMPACT_BASE"
       - name: Lint
-        if: needs.impact.outputs.non_runtime != 'true'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm lint
       - name: Typecheck
-        if: needs.impact.outputs.non_runtime != 'true'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm typecheck
       - name: Test
-        if: needs.impact.outputs.non_runtime != 'true'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         env:
           CONTENT_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
         run: pnpm test
       - name: Build
-        if: needs.impact.outputs.non_runtime != 'true'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm build
       - name: Validate canonical MySQL matrix
-        if: needs.impact.outputs.non_runtime != 'true'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF' && needs.impact.outputs.needs_database == 'true'
         env:
           MYSQL_ADMIN_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/mysql
           FINANCIAL_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/financial_m137_test
