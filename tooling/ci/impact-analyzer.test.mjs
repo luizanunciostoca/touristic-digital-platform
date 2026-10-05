@@ -129,6 +129,7 @@ test("control-plane and CI tooling stay non-runtime without product fan-out", ()
     assert.equal(result.needsDatabase, false, file);
     assert.equal(result.needsDependencyAudit, false, file);
     assert.equal(result.needsFullSecurity, false, file);
+    assert.equal(result.qualityProfile, "NON_RUNTIME", file);
   }
 });
 
@@ -174,6 +175,7 @@ test("package.json scripts do not impersonate dependency changes", () => {
   assert.equal(scripts.needsFullRegression, false);
   assert.equal(scripts.needsDependencyAudit, false);
   assert.equal(scripts.needsFullSecurity, false);
+  assert.equal(scripts.qualityProfile, "NON_RUNTIME");
 
   const dependencies = analyzeFiles(["package.json"], {
     packageJsonChanges: { "package.json": "dependencies" },
@@ -182,6 +184,7 @@ test("package.json scripts do not impersonate dependency changes", () => {
   assert.equal(dependencies.risk, "CRITICAL");
   assert.equal(dependencies.needsFullRegression, true);
   assert.equal(dependencies.needsDependencyAudit, true);
+  assert.equal(dependencies.qualityProfile, "DEEP_PROOF");
 
   const environment = analyzeFiles(["package.json"], {
     packageJsonChanges: { "package.json": "environment" },
@@ -190,6 +193,7 @@ test("package.json scripts do not impersonate dependency changes", () => {
   assert.equal(environment.risk, "HIGH");
   assert.equal(environment.nonRuntime, false);
   assert.equal(environment.needsFullRegression, false);
+  assert.equal(environment.qualityProfile, "BUGFIX_FAST");
 });
 
 test("Failure Learning shared triggers require a matching Failure Learning claim", () => {
@@ -206,4 +210,17 @@ test("Failure Learning shared triggers require a matching Failure Learning claim
       '[ "$shared_relevant" = true ] && [ "$claim_matches_failure_learning" = true ]',
     ),
   );
+});
+
+
+test("ordinary runtime changes use BUGFIX_FAST while unknown changes stay deep", () => {
+  const runtime = analyzeFiles([
+    "apps/morro-digital-platform/src/navigation/router.ts",
+  ]);
+  assert.equal(runtime.qualityProfile, "BUGFIX_FAST");
+  assert.equal(runtime.needsFullRegression, false);
+
+  const unknown = analyzeFiles(["unmapped/runtime.ts"]);
+  assert.equal(unknown.qualityProfile, "DEEP_PROOF");
+  assert.equal(unknown.needsFullRegression, true);
 });
