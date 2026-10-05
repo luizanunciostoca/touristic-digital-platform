@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-004",
   "objective": "complete-ownership-worker-dispatch-and-fastfix-operational-hardening",
-  "baseSha": "77eed8b4464cfba014870c66d80945535939348a",
-  "branch": "chore/fastfix-004-claim-20261005",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "d39f9c769183f0d1e34fb05aece3e13e148cfa9e",
+  "branch": "infra/retire-fastfix-004-20261005",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
