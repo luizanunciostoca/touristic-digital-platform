@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   workflow_call:
     outputs:
+      base_sha:
+        value: ${{ jobs.impact.outputs.base_sha }}
+      quality_profile:
+        value: ${{ jobs.impact.outputs.quality_profile }}
       risk:
         value: ${{ jobs.impact.outputs.risk }}
       domains:
@@ -40,6 +44,8 @@ jobs:
   impact:
     runs-on: ubuntu-24.04
     outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+      quality_profile: ${{ steps.impact.outputs.quality_profile }}
       risk: ${{ steps.impact.outputs.risk }}
       domains: ${{ steps.impact.outputs.domains }}
       suites: ${{ steps.impact.outputs.suites }}
