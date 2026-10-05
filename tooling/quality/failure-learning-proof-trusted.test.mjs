@@ -418,3 +418,35 @@ test("workflow trust root is base-controlled and never executes candidate direct
   );
   assert.doesNotMatch(workflow, /node\s+candidate\//u);
 });
+
+test("workflow resolves post-merge source identity without weakening relevant proof", () => {
+  const workflow = readFileSync(
+    resolve(
+      import.meta.dirname,
+      "../../.github/workflows/failure-learning-independent-proof.yml",
+    ),
+    "utf8",
+  );
+  for (const snippet of [
+    "workflow_run.pull_requests | length",
+    "commits/$UPSTREAM_HEAD_SHA/pulls?per_page=100",
+    ".head.sha == $sha",
+    ".head.ref == $branch",
+    ".head.repo.full_name == $repo",
+    "compare/$merge_commit_sha...$GITHUB_SHA",
+    'if [ "$relevant" = true ]; then',
+  ]) {
+    assert.ok(workflow.includes(snippet), "missing workflow guard: " + snippet);
+  }
+  assert.doesNotMatch(
+    workflow,
+    /test "\$\(jq -r '\.state' pr\.json\)" = "open"/u,
+  );
+  const relevance = workflow.indexOf('if [ "$relevant" = true ]; then');
+  const exactOpen = workflow.indexOf('test "$pr_state" = "open"', relevance);
+  const exactBase = workflow.indexOf(
+    'test "$base_sha" = "$GITHUB_SHA"',
+    relevance,
+  );
+  assert.ok(relevance >= 0 && exactOpen > relevance && exactBase > exactOpen);
+});
