@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { analyzeFiles } from "./impact-analyzer.mjs";
+import { buildAffectedTurboArgs } from "./affected-quality.mjs";
+import { readFileSync } from "node:fs";
 import {
   buildQualityProof,
   isCompleteImpactReport,
@@ -168,6 +170,7 @@ test("incomplete analyzer reports cannot narrow managed suite selection", () => 
     "needsFullRegression",
     "nonRuntime",
     "packageJsonChanges",
+    "qualityProfile",
   ]) {
     const malformed = structuredClone(complete);
     delete malformed[field];
@@ -368,4 +371,45 @@ test("control-plane tooling does not select managed runtime suites", () => {
     assert.equal(report.needsFullRegression, false, file);
     assert.deepEqual(selectSuites(report), [], file);
   }
+});
+
+
+test("affected quality uses exact-base Turbo dependents filter", () => {
+  const base = "a".repeat(40);
+  assert.deepEqual(buildAffectedTurboArgs(base), [
+    "exec",
+    "turbo",
+    "run",
+    "lint",
+    "typecheck",
+    "test",
+    "build",
+    "--filter=...[" + base + "]",
+  ]);
+  assert.throws(() => buildAffectedTurboArgs("main"), /BASE_SHA_INVALID/u);
+});
+
+test("Quality workflow uses BUGFIX_FAST affected gates and conditional database", () => {
+  const workflow = readFileSync(".github/workflows/quality.yml", "utf8");
+  assert.ok(workflow.includes("quality_profile == 'BUGFIX_FAST'"));
+  assert.ok(
+    workflow.includes('node tooling/ci/affected-quality.mjs "$CI_IMPACT_BASE"'),
+  );
+  assert.ok(workflow.includes("needs_database == 'true' && 'mysql:8.4'"));
+  assert.ok(
+    workflow.includes(
+      "quality_profile == 'DEEP_PROOF' && needs.impact.outputs.needs_database == 'true'",
+    ),
+  );
+});
+
+test("broad Security Scanning is asynchronous to pull-request bugfixes", () => {
+  const workflow = readFileSync(
+    ".github/workflows/security-scanning.yml",
+    "utf8",
+  );
+  assert.doesNotMatch(workflow, /^  pull_request:/mu);
+  assert.match(workflow, /^  push:/mu);
+  assert.match(workflow, /^  schedule:/mu);
+  assert.match(workflow, /^  workflow_dispatch:/mu);
 });
