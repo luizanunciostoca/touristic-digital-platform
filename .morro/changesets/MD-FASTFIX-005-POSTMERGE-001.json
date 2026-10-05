@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-005-POSTMERGE-001",
   "objective": "fix-failure-learning-workflow-run-post-merge-identity",
-  "baseSha": "ca8ad1baa5d11bf0f768fdcf557e2f199875d33a",
+  "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
   "branch": "fix/fastfix-005-postmerge-workflow-identity-20261005",
   "state": "IMPLEMENTING",
   "risk": "high",
