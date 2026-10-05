@@ -547,6 +547,54 @@ export async function collectTaskGitIdentity(root, baseSha) {
   };
 }
 
+export function evidenceInvalidationPlan({
+  certifiedCandidateSha,
+  certifiedTreeSha,
+  currentCandidateSha,
+  currentTreeSha,
+  reviewStateChanged = false,
+}) {
+  for (const [name, value] of Object.entries({
+    certifiedCandidateSha,
+    certifiedTreeSha,
+    currentCandidateSha,
+    currentTreeSha,
+  })) {
+    assert.match(value ?? "", SHA, "EVIDENCE_IDENTITY_INVALID:" + name);
+  }
+  const candidateChanged =
+    certifiedCandidateSha !== currentCandidateSha ||
+    certifiedTreeSha !== currentTreeSha;
+  if (candidateChanged) {
+    return {
+      state: "CANDIDATE_INVALIDATED",
+      candidateChanged: true,
+      invalidated: [
+        "admission",
+        "certification",
+        "local-proof",
+        "affected-remote-proof",
+        "independent-proof",
+        "exact-head-identity",
+        "review-reconciliation",
+        "merge-gate",
+      ],
+    };
+  }
+  if (reviewStateChanged) {
+    return {
+      state: "REVIEW_EVIDENCE_INVALIDATED",
+      candidateChanged: false,
+      invalidated: ["review-reconciliation", "merge-gate"],
+    };
+  }
+  return {
+    state: "EVIDENCE_REMAINS_FRESH",
+    candidateChanged: false,
+    invalidated: [],
+  };
+}
+
 export function assertTaskIdentityStable(before, after) {
   assert.equal(after?.branch, before?.branch, "TASK_BRANCH_MOVED_DURING_TEST");
   assert.equal(after?.headSha, before?.headSha, "TASK_HEAD_MOVED_DURING_TEST");

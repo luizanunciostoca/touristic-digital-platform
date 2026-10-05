@@ -61,7 +61,13 @@
         ".github/agents/",
         ".github/hooks/",
         ".github/pull_request_template.md",
-        "AGENTS.md"
+        "AGENTS.md",
+        "tooling/mdctl/",
+        "tooling/tdp-max/",
+        "tooling/failure-learning/",
+        "tooling/workspace/",
+        "tooling/control-state/",
+        "package.json"
       ],
       "contracts": []
     }

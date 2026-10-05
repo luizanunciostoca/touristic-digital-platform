@@ -56,15 +56,22 @@ A capability closes only when implementation is complete, integration is complet
 ## Agent workflow
 
 1. Recapture current `main` and relevant runtime state.
-2. Resolve dependencies and risk.
-3. Claim before write.
-4. Work on an isolated branch/worktree.
-5. Produce focused implementation and evidence.
-6. Run affected deterministic gates.
-7. Obtain independent review/proof.
-8. Integrate only on exact current `main`.
-9. Promote the same immutable artifact.
-10. Verify staging/production and recalculate the DAG.
+2. Resolve dependencies, ownership and risk; claim before write.
+3. Create an isolated exact-base workspace and prove its execution environment before worker execution.
+4. Reproduce the defect and confirm root cause before patching.
+5. Run PREPARE for deterministic fixes such as formatting, then commit the candidate.
+6. Run local ADMISSION/CERTIFY on a clean worktree before any remote proof.
+7. Open or keep the PR as Draft while implementation or review correction is still changing the candidate.
+8. Obtain one complete independent review, collect all findings and correct/disposition them as a batch.
+9. Re-certify, freeze the exact candidate HEAD/tree and invalidate dependent evidence if it changes.
+10. Run only the affected remote proof required for that frozen candidate.
+11. Reconcile provider review state; zero unresolved blocking findings is required before merge-ready.
+12. Integrate only on exact current `main`.
+13. Perform provider readback, exact-main post-merge proof, claim retirement and projection reconciliation before dependent dispatch.
+14. Promote the same immutable artifact through release environments when applicable.
+15. Verify staging/production and recalculate the DAG.
+
+GitHub Actions is remote proof, not a formatting or trial-and-error loop. Known deterministic local failures must not be intentionally pushed. A new candidate commit invalidates only evidence that depends on the previous candidate identity.
 
 ## Memory
 

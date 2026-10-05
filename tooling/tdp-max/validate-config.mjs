@@ -195,6 +195,14 @@ export async function validateTdpMaxConfig() {
     "STALE_DR_PROOF",
     "TECHNICALLY_READY_NOT_AUTHORIZED",
     "EXECUTOR_AUTH_UNAVAILABLE",
+    "PRE_PUSH_ADMISSION_BYPASS",
+    "PREMATURE_PR_READY",
+    "CANDIDATE_MUTATED_AFTER_CERTIFICATION",
+    "STALE_REVIEW_RECONCILIATION",
+    "REMOTE_CI_USED_AS_LOCAL_LINTER",
+    "WORKSPACE_BOOTSTRAP_INCOMPLETE",
+    "CONTROL_PROJECTION_DRIFT",
+    "PARTIAL_REVIEW_FIX_LOOP",
   ];
   assert.equal(anti.schemaVersion, 1, "TDP_MAX_ANTI_SCHEMA");
   const observedClasses = anti.failures?.map((item) => item.class) ?? [];
@@ -244,6 +252,15 @@ export async function validateTdpMaxConfig() {
     "live-remote-proof",
     "critical-unknowns-zero",
     "conflicts-zero",
+    "ownership-coverage",
+    "local-admission",
+    "candidate-invalidation",
+    "review-reconciliation",
+    "workspace-bootstrap",
+    "executor-fallback",
+    "anti-recurrence-proof",
+    "unresolved-review-threads-zero",
+    "post-merge-reconciliation",
   ];
   const requiredConditionalGates = ["enterprise-authority-live"];
   assert.equal(

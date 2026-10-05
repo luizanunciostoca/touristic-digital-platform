@@ -60,14 +60,22 @@
     "control-projection-terminal-main-recheck",
     "critical-evidence-candidate-binding",
     "capability-lease-secondary-to-claim",
-    "context-pack-candidate-binding"
+    "context-pack-candidate-binding",
+    "local-admission-before-remote-proof",
+    "candidate-mutation-invalidates-dependent-evidence",
+    "review-findings-zero-before-merge-ready",
+    "workspace-bootstrap-before-worker-execution",
+    "post-merge-reconciliation-before-dependent-dispatch"
   ],
-  "branchPrefixes": ["agent/", "feat/", "fix/", "infra/", "wave/"],
+  "branchPrefixes": ["agent/", "feat/", "fix/", "infra/", "wave/", "chore/"],
   "pullRequestPolicy": {
     "developAsDraft": true,
     "readyOnlyAfterRemoteProof": true,
     "preferSmallSemanticChanges": true,
-    "autoMergeOnlyAfterMergeReady": true
+    "autoMergeOnlyAfterMergeReady": true,
+    "freezeHeadAfterCertification": true,
+    "batchReviewFixesBeforeRemoteProof": true,
+    "rerunOnlyInvalidatedProof": true
   },
   "rollout": {
     "registryEnforcement": "shadow-until-first-wave-closes",

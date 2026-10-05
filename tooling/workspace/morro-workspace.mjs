@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { lstatSync, mkdirSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, parse, resolve, sep } from "node:path";
+import { dirname, join, parse, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const CANONICAL_REMOTE =
   "https://github.com/luizanunciostoca/touristic-digital-platform.git";
-const MAIN_REF = "refs/remotes/origin/main";
-const FETCH_REFSPEC = "+refs/heads/main:refs/remotes/origin/main";
+const MAIN_REF = "refs/heads/main";
+const FETCH_REFSPEC = "+refs/heads/main:refs/heads/main";
 
 export function diagnosticCode(cause) {
   const message =
@@ -37,7 +37,7 @@ function git(args, { allowFailure = false } = {}) {
 function options(input = {}) {
   const home = input.home ?? homedir();
   return {
-    bare: input.bare ?? join(home, "morro-repo.git"),
+    bare: input.bare ?? join(home, "repos", "touristic-digital-platform.git"),
     root: input.root ?? join(home, "worktrees"),
     remote: input.remote ?? CANONICAL_REMOTE,
   };
@@ -164,6 +164,7 @@ export function bootstrap(expectedMain, input = {}) {
       `Remote main moved: ${remoteHead}; recapture before bootstrap`,
     );
   if (!pathExists(config.bare)) {
+    mkdirSync(dirname(config.bare), { recursive: true });
     git(["init", "--bare", "--initial-branch=main", config.bare]);
     git(["--git-dir", config.bare, "remote", "add", "origin", config.remote]);
     git([
@@ -206,7 +207,7 @@ export function createTask(taskId, branch, expectedMain, input = {}) {
   if (!/^[a-z0-9][a-z0-9-]{0,79}$/.test(taskId ?? ""))
     throw new Error("Invalid task ID");
   if (
-    !/^(agent|feat|fix|infra|wave)\/[a-zA-Z0-9][a-zA-Z0-9/_-]*$/.test(
+    !/^(agent|chore|feat|fix|infra|wave)\/[a-zA-Z0-9][a-zA-Z0-9/_-]*$/.test(
       branch ?? "",
     )
   )
@@ -251,6 +252,216 @@ export function createTask(taskId, branch, expectedMain, input = {}) {
   // A task always starts at the explicit verified ref; bare HEAD is never its source.
   git(["--git-dir", config.bare, "worktree", "add", "-b", branch, path, sha]);
   return { taskId, branch, path, mainSha: sha };
+}
+
+function runtimeSpawn(runtime, cwd, command, args, run = spawnSync) {
+  const options = {
+    cwd,
+    encoding: "utf8",
+    timeout: 120000,
+    maxBuffer: 16 * 1024 * 1024,
+  };
+  if (runtime === "native") return run(command, args, options);
+  if (runtime === "debian-proot") {
+    return run(
+      "proot-distro",
+      [
+        "login",
+        "debian",
+        "--",
+        "bash",
+        "-lc",
+        'cd "$1"; shift; exec "$@"',
+        "_",
+        cwd,
+        command,
+        ...args,
+      ],
+      options,
+    );
+  }
+  throw new Error("WORKSPACE_RUNTIME_INVALID");
+}
+
+function successful(result) {
+  return result && result.status === 0 && !result.error;
+}
+
+function requiredNodeMajor(root) {
+  const value = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const match = /^(\d+)\.x$/u.exec(value?.engines?.node ?? "");
+  if (!match) throw new Error("WORKSPACE_NODE_ENGINE_UNSUPPORTED");
+  return Number(match[1]);
+}
+
+export function probeWorkspaceRuntime(
+  root,
+  runtime,
+  { run = spawnSync, includeWorkspaceTools = true } = {},
+) {
+  directoryOnly(root);
+  const requiredMajor = requiredNodeMajor(root);
+  const node = runtimeSpawn(runtime, root, "node", ["--version"], run);
+  const pnpm = runtimeSpawn(runtime, root, "pnpm", ["--version"], run);
+  const nodeVersion = String(node?.stdout ?? "").trim();
+  const nodeMajor = Number(/^v?(\d+)\./u.exec(nodeVersion)?.[1] ?? NaN);
+  const commands = {
+    node: successful(node) && nodeMajor === requiredMajor,
+    pnpm: successful(pnpm),
+  };
+  if (includeWorkspaceTools) {
+    const prettier = runtimeSpawn(
+      runtime,
+      root,
+      "pnpm",
+      ["exec", "prettier", "--version"],
+      run,
+    );
+    const turbo = runtimeSpawn(
+      runtime,
+      root,
+      "pnpm",
+      ["exec", "turbo", "--version"],
+      run,
+    );
+    commands.prettier = successful(prettier);
+    commands.turbo = successful(turbo);
+  }
+  return {
+    runtime,
+    ready: Object.values(commands).every(Boolean),
+    requiredNodeMajor: requiredMajor,
+    nodeVersion,
+    commands,
+  };
+}
+
+export function chooseWorkspaceRuntime(probes) {
+  if (!Array.isArray(probes) || probes.length === 0)
+    throw new Error("WORKSPACE_RUNTIME_PROBES_REQUIRED");
+  const ready = probes.find((probe) => probe?.ready === true);
+  if (!ready) {
+    return {
+      result: "BLOCK",
+      failureClass: "WORKTREE_FAILURE",
+      rootCause: "WORKSPACE_BOOTSTRAP_INCOMPLETE",
+      probes,
+    };
+  }
+  return {
+    result: "PASS",
+    runtime: ready.runtime,
+    fallbackUsed: probes.indexOf(ready) > 0,
+    probe: ready,
+  };
+}
+
+export function prepareTaskWorkspace(
+  root,
+  exactBaseSha,
+  { run = spawnSync, installIfMissing = true } = {},
+) {
+  requireSha(exactBaseSha);
+  directoryOnly(root);
+  const headSha = git(["-C", root, "rev-parse", "HEAD"]).stdout;
+  const branch = git(["-C", root, "branch", "--show-current"]).stdout;
+  const status = git([
+    "-C",
+    root,
+    "status",
+    "--porcelain=v1",
+    "--untracked-files=normal",
+  ]).stdout;
+  const baseIsAncestor =
+    git(["-C", root, "merge-base", "--is-ancestor", exactBaseSha, headSha], {
+      allowFailure: true,
+    }).code === 0;
+  if (!baseIsAncestor) throw new Error("WORKSPACE_EXACT_BASE_NOT_ANCESTOR");
+  if (headSha != exactBaseSha) {
+    return {
+      ready: false,
+      exactBaseSha,
+      headSha,
+      branch,
+      reason: "WORKSPACE_NOT_AT_EXACT_BASE",
+    };
+  }
+  if (status) {
+    return {
+      ready: false,
+      exactBaseSha,
+      headSha,
+      branch,
+      reason: "WORKSPACE_NOT_CLEAN",
+    };
+  }
+
+  let installedDependencies = pathExists(join(root, "node_modules"));
+  if (!installedDependencies) {
+    if (!installIfMissing) {
+      return {
+        ready: false,
+        exactBaseSha,
+        headSha,
+        branch,
+        reason: "DEPENDENCIES_MISSING",
+      };
+    }
+    const core = chooseWorkspaceRuntime(
+      ["native", "debian-proot"].map((runtime) =>
+        probeWorkspaceRuntime(root, runtime, {
+          run,
+          includeWorkspaceTools: false,
+        }),
+      ),
+    );
+    if (core.result !== "PASS") {
+      return {
+        ready: false,
+        exactBaseSha,
+        headSha,
+        branch,
+        reason: core.rootCause,
+        runtimeSelection: core,
+      };
+    }
+    const install = runtimeSpawn(
+      core.runtime,
+      root,
+      "pnpm",
+      ["install", "--frozen-lockfile", "--prefer-offline"],
+      run,
+    );
+    if (!successful(install)) {
+      return {
+        ready: false,
+        exactBaseSha,
+        headSha,
+        branch,
+        reason: "DEPENDENCY_BOOTSTRAP_FAILED",
+        runtimeSelection: core,
+      };
+    }
+    installedDependencies = true;
+  }
+
+  const runtimeSelection = chooseWorkspaceRuntime(
+    ["native", "debian-proot"].map((runtime) =>
+      probeWorkspaceRuntime(root, runtime, { run }),
+    ),
+  );
+  return {
+    ready: runtimeSelection.result === "PASS",
+    exactBaseSha,
+    headSha,
+    branch,
+    dependenciesReady: installedDependencies,
+    runtime:
+      runtimeSelection.result === "PASS" ? runtimeSelection.runtime : null,
+    fallbackUsed:
+      runtimeSelection.result === "PASS" ? runtimeSelection.fallbackUsed : null,
+    runtimeSelection,
+  };
 }
 
 export function inventory(input = {}) {
@@ -341,8 +552,10 @@ function main(argv) {
   if (command === "bootstrap" && args.length === 1) return bootstrap(args[0]);
   if (command === "create" && args.length === 3) return createTask(...args);
   if (command === "inventory" && args.length === 0) return inventory();
+  if (command === "ready" && args.length === 2)
+    return prepareTaskWorkspace(args[0], args[1]);
   throw new Error(
-    "Usage: morro-workspace.mjs bootstrap <main-sha> | create <task-id> <branch> <main-sha> | inventory",
+    "Usage: morro-workspace.mjs bootstrap <main-sha> | create <task-id> <branch> <main-sha> | inventory | ready <worktree> <main-sha>",
   );
 }
 
