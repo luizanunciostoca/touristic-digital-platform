@@ -65,19 +65,64 @@ function manifest(overrides = {}) {
   };
 }
 
-function registry(claims = {}) {
-  return { schemaVersion: 1, registryAuthority: "ORCHESTRATOR", claims };
+const registry = (claims = {}) => ({
+  schemaVersion: 1,
+  registryAuthority: "ORCHESTRATOR",
+  claims,
+});
+
+function activeClaim(overrides = {}) {
+  const value = manifest();
+  return {
+    owner: "CHATGPT-PRO-CONTROL",
+    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
+    branch: value.branch,
+    baseSha: BASE,
+    paths: value.owns.paths,
+    domains: ["ci-release"],
+    risk: "P1",
+    status: "IMPLEMENTING",
+    expiresAt: EXPIRY,
+    ...overrides,
+  };
 }
 
-test("mdctl claim CLI performs acquire then exact-head reanchor in a real git worktree", async (t) => {
+function mergedEvidence(overrides = {}) {
+  const claim = activeClaim();
+  return {
+    id: "MD-FASTFIX-TEST",
+    reason: "MERGED_PR",
+    branch: claim.branch,
+    baseSha: claim.baseSha,
+    prNumber: 900,
+    mergeSha: MERGE,
+    mergeShaAncestorOfBase: true,
+    materialPaths: ["tooling/ci/local-fast-gate.mjs"],
+    ...overrides,
+  };
+}
+
+function acquire(overrides = {}) {
+  return buildClaimAcquisition({
+    registry: registry(),
+    ledgerText: "",
+    manifest: manifest(),
+    expiresAt: EXPIRY,
+    observedAt: NOW,
+    domains: ["ci-release"],
+    ...overrides,
+  });
+}
+
+test("mdctl claim CLI acquires on exact base, rejects noncanonical paths, and reanchors", async (t) => {
   const root = mkdtempSync(join(tmpdir(), "fastfix-claim-cli-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const runGit = (...args) =>
+  const git = (...args) =>
     execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
 
-  runGit("init", "-q", "-b", "fix/fastfix-cli");
-  runGit("config", "user.name", "FASTFIX Test");
-  runGit("config", "user.email", "fastfix@example.test");
+  git("init", "-q", "-b", "fix/fastfix-cli");
+  git("config", "user.name", "FASTFIX Test");
+  git("config", "user.email", "fastfix@example.test");
   mkdirSync(join(root, ".github/morro-control"), { recursive: true });
   mkdirSync(join(root, ".morro/changesets"), { recursive: true });
   writeFileSync(
@@ -86,76 +131,60 @@ test("mdctl claim CLI performs acquire then exact-head reanchor in a real git wo
   );
   writeFileSync(join(root, ".github/morro-control/events.ndjson"), "");
   writeFileSync(join(root, "README.md"), "fixture\n");
-  runGit("add", ".");
-  runGit("commit", "-qm", "base");
-  const baseSha = runGit("rev-parse", "HEAD");
+  git("add", ".");
+  git("commit", "-qm", "base");
+  const baseSha = git("rev-parse", "HEAD");
+  const manifestPath = ".morro/changesets/MD-FASTFIX-CLI.json";
   const cliManifest = manifest({
     id: "MD-FASTFIX-CLI",
     baseSha,
     branch: "fix/fastfix-cli",
     owns: {
-      paths: [
-        ".morro/changesets/MD-FASTFIX-CLI.json",
-        "tooling/ci/local-fast-gate.mjs",
-      ],
+      paths: [manifestPath, "tooling/ci/local-fast-gate.mjs"],
       contracts: ["TDP-FAST-GATE"],
     },
   });
-  const manifestPath = ".morro/changesets/MD-FASTFIX-CLI.json";
-  writeFileSync(
-    join(root, manifestPath),
-    JSON.stringify(cliManifest, null, 2) + "\n",
-  );
+  const writeManifest = (value, path = manifestPath) =>
+    writeFileSync(join(root, path), JSON.stringify(value, null, 2) + "\n");
 
-  writeFileSync(
-    join(root, manifestPath),
-    JSON.stringify({ ...cliManifest, baseSha: "f".repeat(40) }, null, 2) + "\n",
-  );
+  writeManifest({ ...cliManifest, baseSha: "f".repeat(40) });
   await assert.rejects(
     runClaimCli(
-      [
-        "acquire",
-        manifestPath,
-        "--expires-at",
-        EXPIRY,
-        "--domains",
-        "ci-release",
-      ],
+      ["acquire", manifestPath, "--expires-at", EXPIRY, "--domains", "ci-release"],
       { root, now: () => NOW },
     ),
     /CLAIM_ACQUIRE_HEAD_MUST_EQUAL_BASE/u,
   );
-  writeFileSync(
-    join(root, manifestPath),
-    JSON.stringify(cliManifest, null, 2) + "\n",
-  );
 
+  writeManifest(cliManifest);
   const acquired = await runClaimCli(
-    [
-      "acquire",
-      manifestPath,
-      "--expires-at",
-      EXPIRY,
-      "--domains",
-      "ci-release",
-    ],
+    ["acquire", manifestPath, "--expires-at", EXPIRY, "--domains", "ci-release"],
     { root, now: () => NOW },
   );
   assert.equal(acquired.action, "acquire");
-  let currentRegistry = JSON.parse(
-    readFileSync(join(root, ".github/morro-control/claims.json"), "utf8"),
-  );
-  assert.equal(currentRegistry.claims["MD-FASTFIX-CLI"].baseSha, baseSha);
 
-  runGit("add", ".");
-  runGit("commit", "-qm", "acquire");
-  const nextBaseSha = runGit("rev-parse", "HEAD");
+  git("add", ".");
+  git("commit", "-qm", "acquire");
+  const nextBaseSha = git("rev-parse", "HEAD");
+  writeManifest(
+    JSON.parse(readFileSync(join(root, manifestPath), "utf8")),
+    "outside.json",
+  );
+  await assert.rejects(
+    runClaimCli(["reanchor", "outside.json", "--base-sha", nextBaseSha], {
+      root,
+      now: () => "2026-10-05T06:21:00.000Z",
+    }),
+    /CLAIM_CANONICAL_MANIFEST_REQUIRED/u,
+  );
+  rmSync(join(root, "outside.json"));
+
   const reanchored = await runClaimCli(
     ["reanchor", manifestPath, "--base-sha", nextBaseSha],
     { root, now: () => "2026-10-05T06:21:00.000Z" },
   );
   assert.equal(reanchored.action, "reanchor");
-  currentRegistry = JSON.parse(
+  const currentRegistry = JSON.parse(
     readFileSync(join(root, ".github/morro-control/claims.json"), "utf8"),
   );
   const currentManifest = JSON.parse(
@@ -169,41 +198,21 @@ test("mdctl claim CLI performs acquire then exact-head reanchor in a real git wo
   );
 });
 
-test("merged retirement evidence is completed from local ancestry and historical manifest", () => {
-  const claim = {
-    owner: "CHATGPT-PRO-CONTROL",
-    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
-    branch: manifest().branch,
-    baseSha: BASE,
-    paths: manifest().owns.paths,
-    domains: ["ci-release"],
-    risk: "P1",
-    status: "IMPLEMENTING",
-    expiresAt: EXPIRY,
-  };
+test("merged retirement evidence completes ancestry and historical identity", () => {
   const calls = [];
   const completed = completeMergedRetirementEvidence({
     root: "/fixture",
     manifest: manifest(),
-    claim,
-    evidence: {
-      id: "MD-FASTFIX-TEST",
-      reason: "MERGED_PR",
-      branch: claim.branch,
-      baseSha: claim.baseSha,
-      prNumber: 900,
-      mergeSha: MERGE,
-      mergeShaAncestorOfBase: true,
-      materialPaths: ["tooling/ci/local-fast-gate.mjs"],
-    },
+    claim: activeClaim(),
+    evidence: mergedEvidence(),
     gitImpl: (_root, ...args) => {
       calls.push(args);
       if (args[0] === "merge-base") return "";
       if (args[0] === "show")
         return JSON.stringify({
           id: "MD-FASTFIX-TEST",
-          branch: claim.branch,
-          baseSha: claim.baseSha,
+          branch: manifest().branch,
+          baseSha: BASE,
         });
       throw new Error("UNEXPECTED_GIT_CALL");
     },
@@ -211,36 +220,14 @@ test("merged retirement evidence is completed from local ancestry and historical
   assert.equal(completed.claimBaseAncestorOfMerge, true);
   assert.equal(completed.historicalManifestMatches, true);
   assert.deepEqual(calls[0], ["merge-base", "--is-ancestor", BASE, MERGE]);
-});
 
-test("merged retirement evidence rejects a mismatched historical manifest", () => {
-  const claim = {
-    owner: "CHATGPT-PRO-CONTROL",
-    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
-    branch: manifest().branch,
-    baseSha: BASE,
-    paths: manifest().owns.paths,
-    domains: ["ci-release"],
-    risk: "P1",
-    status: "IMPLEMENTING",
-    expiresAt: EXPIRY,
-  };
   assert.throws(
     () =>
       completeMergedRetirementEvidence({
         root: "/fixture",
         manifest: manifest(),
-        claim,
-        evidence: {
-          id: "MD-FASTFIX-TEST",
-          reason: "MERGED_PR",
-          branch: claim.branch,
-          baseSha: claim.baseSha,
-          prNumber: 900,
-          mergeSha: MERGE,
-          mergeShaAncestorOfBase: true,
-          materialPaths: ["tooling/ci/local-fast-gate.mjs"],
-        },
+        claim: activeClaim(),
+        evidence: mergedEvidence(),
         gitImpl: (_root, ...args) =>
           args[0] === "show"
             ? JSON.stringify({
@@ -254,15 +241,8 @@ test("merged retirement evidence rejects a mismatched historical manifest", () =
   );
 });
 
-test("acquisition produces one bounded claim and exactly two authority events", () => {
-  const value = buildClaimAcquisition({
-    registry: registry(),
-    ledgerText: "",
-    manifest: manifest(),
-    expiresAt: EXPIRY,
-    observedAt: NOW,
-    domains: ["ci-release"],
-  });
+test("acquisition is bounded and emits exactly creation plus acquisition", () => {
+  const value = acquire();
   assert.equal(value.claim.baseSha, BASE);
   assert.deepEqual(value.claim.paths, manifest().owns.paths);
   assert.deepEqual(
@@ -272,84 +252,39 @@ test("acquisition produces one bounded claim and exactly two authority events", 
   assert.equal(value.registry.claims["MD-FASTFIX-TEST"].risk, "P1");
 });
 
-test("acquisition rejects overlap and persistent bookkeeping ownership", () => {
-  const existing = {
-    owner: "OTHER",
-    reviewer: "AUTOMATED-INDEPENDENT-PROOF",
-    branch: "fix/other",
-    baseSha: BASE,
-    paths: ["tooling/ci/**"],
-    domains: ["ci-release"],
-    risk: "P1",
-    status: "IMPLEMENTING",
-    expiresAt: EXPIRY,
-  };
+test("acquisition rejects overlap, bookkeeping ownership, and invalid domains", () => {
   assert.throws(
     () =>
-      buildClaimAcquisition({
-        registry: registry({ "MD-OTHER": existing }),
-        ledgerText: "",
-        manifest: manifest(),
-        expiresAt: EXPIRY,
-        observedAt: NOW,
-        domains: ["ci-release"],
+      acquire({
+        registry: registry({
+          "MD-OTHER": activeClaim({
+            owner: "OTHER",
+            branch: "fix/other",
+            paths: ["tooling/ci/**"],
+          }),
+        }),
       }),
     /CLAIM_ACQUIRE_COLLISION/u,
   );
   assert.throws(
     () =>
-      buildClaimAcquisition({
-        registry: registry(),
-        ledgerText: "",
+      acquire({
         manifest: manifest({
           owns: {
             paths: [".github/morro-control/claims.json"],
             contracts: [],
           },
         }),
-        expiresAt: EXPIRY,
-        observedAt: NOW,
-        domains: ["ci-release"],
       }),
     /PERSISTENT_BOOKKEEPING_FORBIDDEN/u,
   );
+  for (const domains of [undefined, ["ci-release", "ci-release"]]) {
+    assert.throws(() => acquire({ domains }), /CLAIM_ACQUIRE_DOMAINS_REQUIRED/u);
+  }
 });
 
-test("acquisition requires explicit non-duplicated domains", () => {
-  assert.throws(
-    () =>
-      buildClaimAcquisition({
-        registry: registry(),
-        ledgerText: "",
-        manifest: manifest(),
-        expiresAt: EXPIRY,
-        observedAt: NOW,
-      }),
-    /CLAIM_ACQUIRE_DOMAINS_REQUIRED/u,
-  );
-  assert.throws(
-    () =>
-      buildClaimAcquisition({
-        registry: registry(),
-        ledgerText: "",
-        manifest: manifest(),
-        expiresAt: EXPIRY,
-        observedAt: NOW,
-        domains: ["ci-release", "ci-release"],
-      }),
-    /CLAIM_ACQUIRE_DOMAINS_REQUIRED/u,
-  );
-});
-
-test("repeated reanchors at one timestamp remain event-id unique", () => {
-  const acquired = buildClaimAcquisition({
-    registry: registry(),
-    ledgerText: "",
-    manifest: manifest(),
-    domains: ["ci-release"],
-    expiresAt: EXPIRY,
-    observedAt: NOW,
-  });
+test("reanchors keep implementation state and produce unique renewal identities", () => {
+  const acquired = acquire();
   const first = buildClaimReanchor({
     registry: acquired.registry,
     ledgerText: acquired.ledgerText,
@@ -364,84 +299,34 @@ test("repeated reanchors at one timestamp remain event-id unique", () => {
     newBaseSha: "e".repeat(40),
     observedAt: "2026-10-05T06:21:00.000Z",
   });
+  assert.equal(first.manifest.state, "IMPLEMENTING");
+  assert.equal(first.claim.baseSha, NEXT);
+  assert.deepEqual(first.events.map((event) => event.eventType), ["CLAIM_RENEWED"]);
   assert.notEqual(first.events[0].eventId, second.events[0].eventId);
-  assert.equal(second.manifest.baseSha, "e".repeat(40));
 });
 
-test("reanchor changes only base identity and emits one renewal", () => {
-  const acquired = buildClaimAcquisition({
-    registry: registry(),
-    ledgerText: "",
-    manifest: manifest(),
-    expiresAt: EXPIRY,
-    observedAt: NOW,
-    domains: ["ci-release"],
-  });
-  const value = buildClaimReanchor({
-    registry: acquired.registry,
-    ledgerText: acquired.ledgerText,
-    manifest: acquired.manifest,
-    newBaseSha: NEXT,
-    observedAt: "2026-10-05T06:21:00.000Z",
-  });
-  assert.equal(value.manifest.baseSha, NEXT);
-  assert.equal(value.manifest.branch, manifest().branch);
-  assert.equal(value.manifest.state, "IMPLEMENTING");
-  assert.equal(value.claim.baseSha, NEXT);
-  assert.deepEqual(
-    value.events.map((event) => event.eventType),
-    ["CLAIM_RENEWED"],
-  );
-});
-
-test("merged retirement removes target with material merged evidence", () => {
-  const acquired = buildClaimAcquisition({
-    registry: registry(),
-    ledgerText: "",
-    manifest: manifest(),
-    expiresAt: EXPIRY,
-    observedAt: NOW,
-    domains: ["ci-release"],
-  });
-  const evidence = {
-    id: "MD-FASTFIX-TEST",
-    reason: "MERGED_PR",
-    branch: manifest().branch,
-    baseSha: BASE,
-    prNumber: 900,
-    mergeSha: MERGE,
-    mergeShaAncestorOfBase: true,
-    claimBaseAncestorOfMerge: true,
-    historicalManifestMatches: true,
-    materialPaths: ["tooling/ci/local-fast-gate.mjs"],
-  };
+test("merged retirement requires material merged evidence before MERGED", () => {
+  const acquired = acquire();
   const value = buildClaimRetirement({
     registry: acquired.registry,
     ledgerText: acquired.ledgerText,
     manifest: acquired.manifest,
-    evidence,
+    evidence: {
+      ...mergedEvidence(),
+      claimBaseAncestorOfMerge: true,
+      historicalManifestMatches: true,
+    },
     retirementBaseSha: MERGE,
     retirementBranch: "infra/retire-fastfix-test",
     observedAt: "2026-10-05T06:22:00.000Z",
   });
   assert.equal(value.registry.claims["MD-FASTFIX-TEST"], undefined);
   assert.equal(value.manifest.state, "MERGED");
-  assert.equal(value.manifest.baseSha, MERGE);
   assert.deepEqual(
     value.events.map((event) => event.eventType),
     ["MERGED", "CLAIM_RELEASED"],
   );
-});
 
-test("retirement cannot mark unimplemented work merged without merged evidence", () => {
-  const acquired = buildClaimAcquisition({
-    registry: registry(),
-    ledgerText: "",
-    manifest: manifest(),
-    expiresAt: EXPIRY,
-    observedAt: NOW,
-    domains: ["ci-release"],
-  });
   assert.throws(
     () =>
       buildClaimRetirement({
@@ -462,47 +347,35 @@ test("retirement cannot mark unimplemented work merged without merged evidence",
   );
 });
 
-test("expired retirement preserves implementation state and surviving claims", () => {
-  const acquired = buildClaimAcquisition({
-    registry: registry({
-      "MD-SURVIVOR": {
-        owner: "OTHER",
-        reviewer: "AUTOMATED-INDEPENDENT-PROOF",
-        branch: "fix/survivor",
-        baseSha: BASE,
-        paths: ["docs/**"],
-        domains: ["docs"],
-        risk: "P3",
-        status: "IMPLEMENTING",
-        expiresAt: "2026-10-07T00:00:00.000Z",
-      },
-    }),
-    ledgerText: "",
-    manifest: manifest(),
-    expiresAt: "2026-10-05T06:21:00.000Z",
-    observedAt: NOW,
-    domains: ["ci-release"],
+test("expired retirement releases claim without promoting implementation state", () => {
+  const survivor = activeClaim({
+    owner: "OTHER",
+    branch: "fix/survivor",
+    paths: ["docs/**"],
+    domains: ["docs"],
+    risk: "P3",
+    expiresAt: "2026-10-07T00:00:00.000Z",
   });
-  const evidence = {
-    id: "MD-FASTFIX-TEST",
-    reason: "EXPIRED",
-    branch: manifest().branch,
-    baseSha: BASE,
-  };
+  const acquired = acquire({
+    registry: registry({ "MD-SURVIVOR": survivor }),
+    expiresAt: "2026-10-05T06:21:00.000Z",
+  });
   const value = buildClaimRetirement({
     registry: acquired.registry,
     ledgerText: acquired.ledgerText,
     manifest: acquired.manifest,
-    evidence,
+    evidence: {
+      id: "MD-FASTFIX-TEST",
+      reason: "EXPIRED",
+      branch: manifest().branch,
+      baseSha: BASE,
+    },
     retirementBaseSha: NEXT,
     retirementBranch: "infra/retire-fastfix-test",
     observedAt: "2026-10-05T06:22:00.000Z",
   });
   assert.equal(value.manifest.state, "IMPLEMENTING");
-  assert.deepEqual(
-    value.registry.claims["MD-SURVIVOR"],
-    acquired.registry.claims["MD-SURVIVOR"],
-  );
+  assert.deepEqual(value.registry.claims["MD-SURVIVOR"], survivor);
   assert.deepEqual(
     value.events.map((event) => event.eventType),
     ["CLAIM_RELEASED"],
