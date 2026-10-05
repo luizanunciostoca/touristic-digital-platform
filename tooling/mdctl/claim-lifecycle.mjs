@@ -440,6 +440,11 @@ export async function runClaimCli(
       [manifestRelative],
       "CLAIM_ACQUIRE_WORKTREE_SCOPE_INVALID",
     );
+    assert.equal(
+      git(root, "rev-parse", "HEAD"),
+      manifest.baseSha,
+      "CLAIM_ACQUIRE_HEAD_MUST_EQUAL_BASE",
+    );
   } else {
     assert.equal(status, "", "CLAIM_LIFECYCLE_WORKTREE_DIRTY");
   }

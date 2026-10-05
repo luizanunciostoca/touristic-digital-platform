@@ -106,6 +106,29 @@ test("mdctl claim CLI performs acquire then exact-head reanchor in a real git wo
     JSON.stringify(cliManifest, null, 2) + "\n",
   );
 
+  writeFileSync(
+    join(root, manifestPath),
+    JSON.stringify({ ...cliManifest, baseSha: "f".repeat(40) }, null, 2) + "\n",
+  );
+  await assert.rejects(
+    runClaimCli(
+      [
+        "acquire",
+        manifestPath,
+        "--expires-at",
+        EXPIRY,
+        "--domains",
+        "ci-release",
+      ],
+      { root, now: () => NOW },
+    ),
+    /CLAIM_ACQUIRE_HEAD_MUST_EQUAL_BASE/u,
+  );
+  writeFileSync(
+    join(root, manifestPath),
+    JSON.stringify(cliManifest, null, 2) + "\n",
+  );
+
   const acquired = await runClaimCli(
     [
       "acquire",
