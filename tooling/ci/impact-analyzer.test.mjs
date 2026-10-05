@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { analyzeFiles, classifyPackageJsonChange } from "./impact-analyzer.mjs";
+import {
+  analyzeFiles,
+  classifyPackageJsonChange,
+  classifyQualityProfile,
+} from "./impact-analyzer.mjs";
 
 test("documentation skips product regression without treating runnable docs as prose", () => {
   const docs = analyzeFiles(["README.md", "docs/operations/release.md"]);
@@ -14,7 +18,10 @@ test("documentation skips product regression without treating runnable docs as p
     "needsDatabase",
   ])
     assert.equal(docs[key], false);
-  assert.equal(analyzeFiles(["docs/executable.mjs"]).needsFullRegression, true);
+  const executableDocs = analyzeFiles(["docs/executable.mjs"]);
+  assert.equal(executableDocs.classificationBlocked, true);
+  assert.equal(executableDocs.needsFullRegression, false);
+  assert.equal(executableDocs.qualityProfile, "CLASSIFICATION_BLOCK");
 });
 
 test("governance retains deterministic security validation without product browser regression", () => {
@@ -57,21 +64,31 @@ test("nested database migrations are not missed by directory glob matching", () 
   }
 });
 
-test("unknown paths, mixed product changes, CI changes and release candidates cannot use the fast lane", () => {
+test("unknown paths block classification without broad suite fan-out", () => {
   for (const files of [
     ["unmapped/runtime.ts"],
     ["README.md", "unmapped/runtime.ts"],
-    [".github/workflows/quality.yml"],
     [],
   ]) {
     const result = analyzeFiles(files);
     assert.equal(result.nonRuntime, false);
-    assert.equal(result.needsFullRegression, true);
-    assert.equal(result.needsVisual, true);
+    assert.equal(result.classificationBlocked, true);
+    assert.equal(result.needsFullRegression, false);
+    assert.equal(result.needsBrowser, false);
+    assert.equal(result.needsVisual, false);
+    assert.equal(result.needsDatabase, false);
+    assert.equal(result.needsDependencyAudit, false);
+    assert.equal(result.needsFullSecurity, false);
+    assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
   }
+  const ci = analyzeFiles([".github/workflows/quality.yml"]);
+  assert.equal(ci.classificationBlocked, false);
+  assert.equal(ci.needsFullRegression, true);
+  assert.equal(ci.qualityProfile, "DEEP_PROOF");
   const candidate = analyzeFiles(["README.md"], { releaseCandidate: true });
   assert.equal(candidate.nonRuntime, false);
   assert.equal(candidate.needsFullRegression, true);
+  assert.equal(candidate.qualityProfile, "DEEP_PROOF");
 });
 
 test("unresolvable Git identities fail closed at the CLI boundary", () => {
@@ -83,8 +100,10 @@ test("unresolvable Git identities fail closed at the CLI boundary", () => {
     ),
   );
   assert.equal(result.nonRuntime, false);
-  assert.equal(result.needsFullRegression, true);
-  assert.equal(result.needsDatabase, true);
+  assert.equal(result.classificationBlocked, true);
+  assert.equal(result.needsFullRegression, false);
+  assert.equal(result.needsDatabase, false);
+  assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
 });
 
 test("serialized claim transitions are classified separately from ordinary governance changes", () => {
@@ -129,6 +148,7 @@ test("control-plane and CI tooling stay non-runtime without product fan-out", ()
     assert.equal(result.needsDatabase, false, file);
     assert.equal(result.needsDependencyAudit, false, file);
     assert.equal(result.needsFullSecurity, false, file);
+    assert.equal(result.qualityProfile, "NON_RUNTIME", file);
   }
 });
 
@@ -174,6 +194,7 @@ test("package.json scripts do not impersonate dependency changes", () => {
   assert.equal(scripts.needsFullRegression, false);
   assert.equal(scripts.needsDependencyAudit, false);
   assert.equal(scripts.needsFullSecurity, false);
+  assert.equal(scripts.qualityProfile, "NON_RUNTIME");
 
   const dependencies = analyzeFiles(["package.json"], {
     packageJsonChanges: { "package.json": "dependencies" },
@@ -182,6 +203,7 @@ test("package.json scripts do not impersonate dependency changes", () => {
   assert.equal(dependencies.risk, "CRITICAL");
   assert.equal(dependencies.needsFullRegression, true);
   assert.equal(dependencies.needsDependencyAudit, true);
+  assert.equal(dependencies.qualityProfile, "DEEP_PROOF");
 
   const environment = analyzeFiles(["package.json"], {
     packageJsonChanges: { "package.json": "environment" },
@@ -190,6 +212,7 @@ test("package.json scripts do not impersonate dependency changes", () => {
   assert.equal(environment.risk, "HIGH");
   assert.equal(environment.nonRuntime, false);
   assert.equal(environment.needsFullRegression, false);
+  assert.equal(environment.qualityProfile, "BUGFIX_FAST");
 });
 
 test("Failure Learning shared triggers require a matching Failure Learning claim", () => {
@@ -206,4 +229,31 @@ test("Failure Learning shared triggers require a matching Failure Learning claim
       '[ "$shared_relevant" = true ] && [ "$claim_matches_failure_learning" = true ]',
     ),
   );
+});
+
+test("runtime impact resolves explicit fast profiles while unknown changes block", () => {
+  const ui = analyzeFiles([
+    "apps/morro-digital-platform/src/navigation/router.ts",
+  ]);
+  assert.equal(ui.qualityProfile, "UI_BUGFIX_FAST");
+  assert.equal(ui.needsBrowser, true);
+  assert.equal(ui.needsDatabase, false);
+  assert.equal(ui.needsFullRegression, false);
+
+  const db = analyzeFiles(["packages/business/src/catalog.ts"]);
+  assert.equal(db.qualityProfile, "DB_BUGFIX_FAST");
+  assert.equal(db.needsDatabase, true);
+  assert.equal(db.needsBrowser, true);
+  assert.equal(db.needsFullRegression, false);
+
+  assert.equal(
+    classifyQualityProfile({ needsContract: true }),
+    "CONTRACT_BUGFIX",
+  );
+  assert.equal(classifyQualityProfile({}), "BUGFIX_FAST");
+
+  const unknown = analyzeFiles(["unmapped/runtime.ts"]);
+  assert.equal(unknown.qualityProfile, "CLASSIFICATION_BLOCK");
+  assert.equal(unknown.classificationBlocked, true);
+  assert.equal(unknown.needsFullRegression, false);
 });

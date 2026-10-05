@@ -36,6 +36,7 @@ const reportBooleanFields = [
   "needsDependencyAudit",
   "needsFullSecurity",
   "needsFullRegression",
+  "classificationBlocked",
   "nonRuntime",
 ];
 
@@ -53,6 +54,15 @@ export function isCompleteImpactReport(report) {
     report.packageJsonChanges &&
     typeof report.packageJsonChanges === "object" &&
     !Array.isArray(report.packageJsonChanges) &&
+    [
+      "NON_RUNTIME",
+      "BUGFIX_FAST",
+      "UI_BUGFIX_FAST",
+      "DB_BUGFIX_FAST",
+      "CONTRACT_BUGFIX",
+      "DEEP_PROOF",
+      "CLASSIFICATION_BLOCK",
+    ].includes(report.qualityProfile) &&
     impactManifest.riskOrder.includes(report.risk) &&
     reportBooleanFields.every((field) => typeof report[field] === "boolean") &&
     (report.failClosedReason === null ||
@@ -83,14 +93,15 @@ export function isCompleteImpactReport(report) {
 
 export function selectSuites(report, manifest = suiteManifest) {
   const all = manifest.suites.map((suite) => suite.workflow);
+  if (!isCompleteImpactReport(report)) return all;
   if (
-    !isCompleteImpactReport(report) ||
-    report.needsFullRegression ||
+    report.classificationBlocked ||
     report.unknownFiles.length > 0 ||
     report.failClosedReason ||
     report.files.length === 0
   )
-    return all;
+    return [];
+  if (report.needsFullRegression) return all;
   // Evaluate each newly managed runtime file independently: a covered file
   // in the same PR must never mask a second file with unknown suite coverage.
   for (const file of report.files) {
@@ -98,20 +109,20 @@ export function selectSuites(report, manifest = suiteManifest) {
     const fileImpact = analyzeFiles([file], {
       packageJsonChanges: semantic ? { [file]: semantic } : {},
     });
-    if (fileImpact.needsFullRegression || fileImpact.unknownFiles.length > 0)
-      return all;
+    if (fileImpact.classificationBlocked || fileImpact.unknownFiles.length > 0)
+      return [];
+    if (fileImpact.needsFullRegression) return all;
     const requiresCoverage = fileImpact.domains.some(
       (domain) => impactManifest.domains[domain]?.requiresScheduledSuite,
     );
-    if (
-      requiresCoverage &&
-      !manifest.suites.some(
-        (suite) =>
-          fileImpact.suites.includes(suite.workflow) ||
-          suite.paths.some((pattern) => matchesPath(file, pattern)),
-      )
-    )
-      return all;
+    const centrallyCovered = manifest.suites.some(
+      (suite) =>
+        fileImpact.suites.includes(suite.workflow) ||
+        suite.paths.some((pattern) => matchesPath(file, pattern)),
+    );
+    if (requiresCoverage && !centrallyCovered) {
+      throw new Error(`CI_SUITE_COVERAGE_UNPROVEN:${file}`);
+    }
   }
   return manifest.suites
     .filter(
@@ -246,6 +257,7 @@ if (
     const evidence = {
       sourceHead: report.head,
       failClosed:
+        report.classificationBlocked ||
         report.needsFullRegression ||
         selected.length === suiteManifest.suites.length,
       selected,

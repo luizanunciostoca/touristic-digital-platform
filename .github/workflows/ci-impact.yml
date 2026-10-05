@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   workflow_call:
     outputs:
+      base_sha:
+        value: ${{ jobs.impact.outputs.base_sha }}
+      quality_profile:
+        value: ${{ jobs.impact.outputs.quality_profile }}
       risk:
         value: ${{ jobs.impact.outputs.risk }}
       domains:
@@ -22,6 +26,8 @@ on:
         value: ${{ jobs.impact.outputs.needs_full_security }}
       needs_full_regression:
         value: ${{ jobs.impact.outputs.needs_full_regression }}
+      classification_blocked:
+        value: ${{ jobs.impact.outputs.classification_blocked }}
       non_runtime:
         value: ${{ jobs.impact.outputs.non_runtime }}
       serialized_control_transition_only:
@@ -40,6 +46,8 @@ jobs:
   impact:
     runs-on: ubuntu-24.04
     outputs:
+      base_sha: ${{ steps.base.outputs.sha }}
+      quality_profile: ${{ steps.impact.outputs.quality_profile }}
       risk: ${{ steps.impact.outputs.risk }}
       domains: ${{ steps.impact.outputs.domains }}
       suites: ${{ steps.impact.outputs.suites }}
@@ -49,6 +57,7 @@ jobs:
       needs_dependency_audit: ${{ steps.impact.outputs.needs_dependency_audit }}
       needs_full_security: ${{ steps.impact.outputs.needs_full_security }}
       needs_full_regression: ${{ steps.impact.outputs.needs_full_regression }}
+      classification_blocked: ${{ steps.impact.outputs.classification_blocked }}
       non_runtime: ${{ steps.impact.outputs.non_runtime }}
       serialized_control_transition_only: ${{ steps.impact.outputs.serialized_control_transition_only }}
       scheduled_suites: ${{ steps.schedule.outputs.scheduled_suites }}
@@ -92,3 +101,9 @@ jobs:
             ci-suite-plan.json
           if-no-files-found: error
           retention-days: 30
+      - name: Reject unclassified changed paths
+        if: steps.impact.outputs.classification_blocked == 'true'
+        shell: bash
+        run: |
+          echo "::error::CI impact classification is blocked. Map every changed path before retrying."
+          exit 1

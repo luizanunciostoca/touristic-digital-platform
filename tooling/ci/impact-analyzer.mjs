@@ -154,6 +154,23 @@ function highestRisk(current, next) {
     : current;
 }
 
+export function classifyQualityProfile({
+  classificationBlocked = false,
+  nonRuntime = false,
+  needsFullRegression = false,
+  needsBrowser = false,
+  needsDatabase = false,
+  needsContract = false,
+} = {}) {
+  if (classificationBlocked) return "CLASSIFICATION_BLOCK";
+  if (nonRuntime) return "NON_RUNTIME";
+  if (needsFullRegression) return "DEEP_PROOF";
+  if (needsDatabase) return "DB_BUGFIX_FAST";
+  if (needsBrowser) return "UI_BUGFIX_FAST";
+  if (needsContract) return "CONTRACT_BUGFIX";
+  return "BUGFIX_FAST";
+}
+
 export function analyzeFiles(
   files,
   {
@@ -218,33 +235,57 @@ export function analyzeFiles(
       domainMatches(file, config),
     );
   });
+  const classificationBlocked = unknownFiles.length > 0 || domains.length === 0;
   const needsFullRegression =
-    releaseCandidate ||
-    unknownFiles.length > 0 ||
-    risk === "CRITICAL" ||
-    domains.length === 0;
+    !classificationBlocked && (releaseCandidate || risk === "CRITICAL");
   const nonRuntime =
+    !classificationBlocked &&
     !needsFullRegression &&
-    domains.length > 0 &&
     domains.every((name) => manifest.domains[name].nonRuntime === true);
+  const needsContract =
+    !classificationBlocked &&
+    !needsFullRegression &&
+    suites.size > 0 &&
+    !needsBrowser &&
+    !needsDatabase;
+  const qualityProfile = classifyQualityProfile({
+    classificationBlocked,
+    nonRuntime,
+    needsFullRegression,
+    needsBrowser,
+    needsDatabase,
+    needsContract,
+  });
 
   return {
     base,
     head,
     files,
-    risk: needsFullRegression && unknownFiles.length > 0 ? "CRITICAL" : risk,
+    risk: classificationBlocked ? "CRITICAL" : risk,
     domains,
     suites: [...suites].sort(),
-    needsBrowser: needsFullRegression || needsBrowser,
-    needsVisual: needsFullRegression || needsVisual,
-    needsDatabase: needsFullRegression || needsDatabase,
-    needsContainer: files.some((file) =>
-      /(^|\/)(Dockerfile|docker-compose)/u.test(file),
-    ),
-    needsDependencyAudit: needsFullRegression || needsDependencyAudit,
-    needsFullSecurity: needsFullRegression || needsFullSecurity,
+    needsBrowser: classificationBlocked
+      ? false
+      : needsFullRegression || needsBrowser,
+    needsVisual: classificationBlocked
+      ? false
+      : needsFullRegression || needsVisual,
+    needsDatabase: classificationBlocked
+      ? false
+      : needsFullRegression || needsDatabase,
+    needsContainer:
+      !classificationBlocked &&
+      files.some((file) => /(^|\/)(Dockerfile|docker-compose)/u.test(file)),
+    needsDependencyAudit: classificationBlocked
+      ? false
+      : needsFullRegression || needsDependencyAudit,
+    needsFullSecurity: classificationBlocked
+      ? false
+      : needsFullRegression || needsFullSecurity,
     needsFullRegression,
+    classificationBlocked,
     nonRuntime,
+    qualityProfile,
     serializedControlTransitionOnly,
     packageJsonChanges,
     unknownFiles,
@@ -281,14 +322,16 @@ if (invokedDirectly) {
       risk: "CRITICAL",
       domains: [],
       suites: [],
-      needsBrowser: true,
-      needsVisual: true,
-      needsDatabase: true,
-      needsContainer: true,
-      needsDependencyAudit: true,
-      needsFullSecurity: true,
-      needsFullRegression: true,
+      needsBrowser: false,
+      needsVisual: false,
+      needsDatabase: false,
+      needsContainer: false,
+      needsDependencyAudit: false,
+      needsFullSecurity: false,
+      needsFullRegression: false,
+      classificationBlocked: true,
       nonRuntime: false,
+      qualityProfile: "CLASSIFICATION_BLOCK",
       serializedControlTransitionOnly: false,
       packageJsonChanges: {},
       unknownFiles: [],
@@ -309,7 +352,9 @@ if (invokedDirectly) {
       needs_dependency_audit: String(report.needsDependencyAudit),
       needs_full_security: String(report.needsFullSecurity),
       needs_full_regression: String(report.needsFullRegression),
+      classification_blocked: String(report.classificationBlocked),
       non_runtime: String(report.nonRuntime),
+      quality_profile: report.qualityProfile,
       serialized_control_transition_only: String(
         report.serializedControlTransitionOnly,
       ),
