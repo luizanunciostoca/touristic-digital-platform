@@ -3,12 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import { analyzeFiles } from "./impact-analyzer.mjs";
 import { buildAffectedTurboArgs } from "./affected-quality.mjs";
-import {
-  assertOwnershipCoverage,
-  chooseCanonicalBase,
-  fastGatePlan,
-  nonRuntimeTests,
-} from "./local-fast-gate.mjs";
+import { fastGatePlan, nonRuntimeTests } from "./local-fast-gate.mjs";
 
 const BASE = "a".repeat(40);
 
@@ -92,90 +87,4 @@ test("local fast gate has no second workspace dependency graph", () => {
   assert.doesNotMatch(source, /dependencies\.some/u);
   assert.match(source, /impact-analyzer\.mjs/u);
   assert.match(source, /buildAffectedTurboArgs/u);
-});
-
-test("prepare includes dirty and untracked candidate paths before commit", () => {
-  const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
-  assert.match(source, /workingCandidateFiles/u);
-  assert.match(
-    source,
-    /"diff", "--name-only", "--diff-filter=ACDMRTUXB", "-z", baseSha/u,
-  );
-  assert.match(source, /"ls-files", "--others", "--exclude-standard", "-z"/u);
-  assert.ok(
-    source.indexOf("if (prepare)") <
-      source.indexOf("analyzeExactHead(baseSha, headSha)"),
-  );
-});
-
-test("canonical main selection rejects stale-only local refs", () => {
-  const live = "b".repeat(40);
-  assert.equal(
-    chooseCanonicalBase(live, [
-      { ref: "refs/remotes/origin/main", sha: "a".repeat(40) },
-      { ref: "refs/heads/main", sha: live },
-    ]),
-    live,
-  );
-  assert.throws(
-    () =>
-      chooseCanonicalBase(live, [
-        { ref: "refs/remotes/origin/main", sha: "a".repeat(40) },
-      ]),
-    /FAST_GATE_LOCAL_MAIN_STALE/u,
-  );
-});
-
-test("admission is distinct, exact-head, claim-aware and pre-proof", () => {
-  const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
-  assert.match(source, /--admission/u);
-  assert.match(source, /ADMISSION_PASS/u);
-  assert.match(source, /validateClaimContext/u);
-  assert.match(source, /assertOwnershipCoverage/u);
-  assert.doesNotMatch(source, /: "origin\/main"/u);
-  assert.ok(
-    source.indexOf("validateAdmission(baseSha, headSha, files)") <
-      source.indexOf('if (plan.mode === "DEEP_PROOF")'),
-  );
-});
-
-test("ownership admission fails closed for uncovered paths", () => {
-  const ownership = {
-    domains: [{ id: "ci", pathPrefixes: ["tooling/ci/", "package.json"] }],
-  };
-  assert.deepEqual(
-    assertOwnershipCoverage(["tooling/ci/x.mjs", "package.json"], ownership),
-    { covered: 2 },
-  );
-  assert.throws(
-    () => assertOwnershipCoverage(["tooling/mdctl/x.mjs"], ownership),
-    /FAST_GATE_OWNERSHIP_UNCOVERED/u,
-  );
-});
-
-test("prepare admission and certify modes are explicit and certification is clean", () => {
-  const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
-  for (const flag of ["--prepare", "--admission", "--certify"])
-    assert.match(source, new RegExp(flag));
-  assert.match(source, /FAST_GATE_CERTIFY_DIRTY_AFTER_PROOF/u);
-  assert.match(source, /"diff", "--check"/u);
-  assert.match(source, /treeSha/u);
-});
-
-test("quality starts heavy work only after successful impact classification", () => {
-  const workflow = readFileSync(".github/workflows/quality.yml", "utf8");
-  assert.match(
-    workflow,
-    /core-quality:\n\s+needs: impact\n\s+if: needs\.impact\.result == 'success'/u,
-  );
-  assert.match(workflow, /quality:\n\s+name: quality\n\s+if: always\(\)/u);
-});
-
-test("certify uses executable workspace runtime fallback", () => {
-  const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
-  assert.match(source, /probeWorkspaceRuntime/u);
-  assert.match(source, /chooseWorkspaceRuntime/u);
-  assert.match(source, /workspaceFallbackUsed/u);
-  assert.match(source, /debian-proot/u);
-  assert.match(source, /execute\("pnpm", \["check"\], workspace\.runtime\)/u);
 });

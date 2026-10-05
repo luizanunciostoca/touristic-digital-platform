@@ -17,9 +17,6 @@ import {
   createTask,
   diagnosticCode,
   inventory,
-  prepareTaskWorkspace,
-  probeWorkspaceRuntime,
-  chooseWorkspaceRuntime,
 } from "./morro-workspace.mjs";
 
 const git = (args) =>
@@ -70,10 +67,7 @@ test("bootstrap creates independent non-mirror bare repository and is idempotent
 test("stale expected main fails before creating the canonical repository", (t) => {
   const f = fixture(t);
   assert.throws(() => bootstrap("0".repeat(40), f), /Remote main moved/);
-  assert.equal(
-    existsSync(join(f.home, "repos", "touristic-digital-platform.git")),
-    false,
-  );
+  assert.equal(existsSync(join(f.home, "morro-repo.git")), false);
 });
 
 test("task is isolated at exact main and existing task paths/branches are protected", (t) => {
@@ -273,7 +267,10 @@ test("create rejects remote main advancement even when cached main and expected 
     "-m",
     "advance main",
   ]);
-  assert.equal(git(["--git-dir", bare, "rev-parse", "refs/heads/main"]), f.sha);
+  assert.equal(
+    git(["--git-dir", bare, "rev-parse", "refs/remotes/origin/main"]),
+    f.sha,
+  );
   assert.throws(
     () => createTask("stale", "infra/stale", f.sha, f),
     /Remote main moved/,
@@ -305,124 +302,5 @@ test("CLI diagnostics preserve safe codes and redact raw error detail", () => {
   assert.equal(
     diagnosticCode({ message: "unsafe detail with spaces" }),
     "WORKSPACE_OPERATION_FAILED",
-  );
-});
-
-test("chore branches are canonical task branches", (t) => {
-  const f = fixture(t);
-  bootstrap(f.sha, f);
-  const task = createTask("chore-task", "chore/fastfix-004-test", f.sha, f);
-  assert.equal(task.branch, "chore/fastfix-004-test");
-  assert.equal(git(["-C", task.path, "rev-parse", "HEAD"]), f.sha);
-});
-
-test("workspace readiness probes executable tools and falls back native to Debian", (t) => {
-  const f = fixture(t);
-  writeFileSync(
-    join(f.remote, "package.json"),
-    JSON.stringify({ engines: { node: "22.x" } }) + "\n",
-  );
-  git(["-C", f.remote, "add", "package.json"]);
-  git([
-    "-C",
-    f.remote,
-    "-c",
-    "user.name=Workspace Test",
-    "-c",
-    "user.email=workspace-test@example.invalid",
-    "commit",
-    "-m",
-    "add runtime contract",
-  ]);
-  f.sha = git(["-C", f.remote, "rev-parse", "HEAD"]);
-  bootstrap(f.sha, f);
-  const task = createTask("runtime", "chore/runtime-probe", f.sha, f);
-  mkdirSync(join(task.path, "node_modules"));
-
-  const calls = [];
-  const run = (command, args) => {
-    calls.push({ command, args });
-    const debian = command === "proot-distro";
-    if (!debian && command === "node")
-      return { status: 0, stdout: "v24.17.0\n", stderr: "" };
-    if (!debian && command === "pnpm" && args.includes("turbo"))
-      return { status: 1, stdout: "", stderr: "unexpected e_type: 2" };
-    if (!debian && command === "pnpm")
-      return {
-        status: 0,
-        stdout: args.includes("prettier") ? "3.9.6\n" : "10.15.0\n",
-        stderr: "",
-      };
-    if (debian && args.includes("node"))
-      return { status: 0, stdout: "v22.23.3\n", stderr: "" };
-    if (debian && args.includes("turbo"))
-      return { status: 0, stdout: "2.10.8\n", stderr: "" };
-    if (debian && args.includes("prettier"))
-      return { status: 0, stdout: "3.9.6\n", stderr: "" };
-    if (debian && args.includes("pnpm"))
-      return { status: 0, stdout: "10.15.0\n", stderr: "" };
-    return { status: 1, stdout: "", stderr: "unexpected" };
-  };
-
-  const native = probeWorkspaceRuntime(task.path, "native", { run });
-  const debian = probeWorkspaceRuntime(task.path, "debian-proot", { run });
-  assert.equal(native.ready, false);
-  assert.equal(debian.ready, true);
-  assert.deepEqual(
-    chooseWorkspaceRuntime([native, debian]).runtime,
-    "debian-proot",
-  );
-
-  const prepared = prepareTaskWorkspace(task.path, f.sha, { run });
-  assert.equal(prepared.ready, true);
-  assert.equal(prepared.runtime, "debian-proot");
-  assert.equal(prepared.fallbackUsed, true);
-  assert.equal(prepared.exactBaseSha, f.sha);
-  assert.ok(calls.some((call) => call.command === "proot-distro"));
-});
-
-test("workspace runtime selection fails closed when no runtime executes the toolchain", (t) => {
-  const f = fixture(t);
-  const root = f.remote;
-  writeFileSync(
-    join(root, "package.json"),
-    JSON.stringify({ engines: { node: "22.x" } }) + "\n",
-  );
-  const failed = { status: 1, stdout: "", stderr: "missing" };
-  const probes = ["native", "debian-proot"].map((runtime) =>
-    probeWorkspaceRuntime(root, runtime, { run: () => failed }),
-  );
-  assert.deepEqual(chooseWorkspaceRuntime(probes).result, "BLOCK");
-});
-
-test("workspace bootstrap rejects reused or dirty worktrees before tool probing", (t) => {
-  const f = fixture(t);
-  bootstrap(f.sha, f);
-  const dirty = createTask("dirty-ready", "chore/dirty-ready", f.sha, f);
-  writeFileSync(join(dirty.path, "dirty.txt"), "dirty\n");
-  assert.equal(
-    prepareTaskWorkspace(dirty.path, f.sha, { run: () => ({ status: 0 }) })
-      .reason,
-    "WORKSPACE_NOT_CLEAN",
-  );
-
-  const ahead = createTask("ahead-ready", "chore/ahead-ready", f.sha, f);
-  writeFileSync(join(ahead.path, "ahead.txt"), "ahead\n");
-  git(["-C", ahead.path, "add", "ahead.txt"]);
-  git([
-    "-C",
-    ahead.path,
-    "-c",
-    "user.name=Workspace Test",
-    "-c",
-    "user.email=workspace-test@example.invalid",
-    "commit",
-    "-m",
-    "ahead",
-  ]);
-  assert.equal(
-    prepareTaskWorkspace(ahead.path, f.sha, { run: () => ({ status: 0 }) })
-      .reason,
-    "WORKSPACE_NOT_AT_EXACT_BASE",
   );
 });

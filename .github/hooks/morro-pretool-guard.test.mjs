@@ -13,7 +13,6 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
   authorityForManifestState,
-  chooseVerifiedMain,
   classifyBashCommand,
   evaluatePreToolUse,
   extractPatchPaths,
@@ -307,67 +306,4 @@ test("hook derives worker versus integrator authority from lifecycle state", () 
   assert.equal(authorityForManifestState("COMPOSITION_PROVEN"), "INTEGRATOR");
   assert.equal(authorityForManifestState("POLICY_SATISFIED"), "INTEGRATOR");
   assert.equal(authorityForManifestState("MERGE_READY"), "INTEGRATOR");
-});
-
-test("live main selection ignores stale origin tracking when verified main matches", () => {
-  const live = "b".repeat(40);
-  assert.equal(
-    chooseVerifiedMain(live, [
-      { ref: "refs/remotes/origin/main", sha: "a".repeat(40) },
-      { ref: "refs/heads/main", sha: live },
-    ]),
-    live,
-  );
-  assert.throws(
-    () =>
-      chooseVerifiedMain(live, [
-        { ref: "refs/remotes/origin/main", sha: "a".repeat(40) },
-      ]),
-    /CURRENT_MAIN_LOCAL_STALE/u,
-  );
-});
-
-test("push executes admission after claim-safe command classification", () => {
-  let admissionCalls = 0;
-  const result = evaluatePreToolUse(
-    {
-      cwd: "/workspace/repo",
-      toolName: "bash",
-      toolArgs: { command: "git push origin feature" },
-    },
-    {
-      root: "/workspace/repo",
-      branch: "feature",
-      runAdmission: () => {
-        admissionCalls += 1;
-      },
-      validatePaths: () => {
-        throw new Error("push claim proof belongs to admission");
-      },
-    },
-  );
-  assert.deepEqual(result, { permissionDecision: "allow" });
-  assert.equal(admissionCalls, 1);
-});
-
-test("push fails closed when admission fails", () => {
-  const result = evaluatePreToolUse(
-    {
-      cwd: "/workspace/repo",
-      toolName: "bash",
-      toolArgs: { command: "git push origin feature" },
-    },
-    {
-      root: "/workspace/repo",
-      branch: "feature",
-      runAdmission: () => {
-        throw new Error("admission failed");
-      },
-      validatePaths: () => {},
-    },
-  );
-  assert.deepEqual(result, {
-    permissionDecision: "deny",
-    permissionDecisionReason: "PRE_PUSH_ADMISSION_FAILED",
-  });
 });

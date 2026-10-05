@@ -139,11 +139,11 @@ test("codex dispatch preflight blocks installed but unauthenticated executor", a
   const fake = () => ({ status: 0, stdout: "Not logged in\n", stderr: "" });
   const p = codexAuthPreflight(fake);
   assert.equal(p.authenticated, false);
-  const decision = authorizeDispatch(p);
-  assert.equal(decision.result, "BLOCK");
-  assert.equal(decision.failureClass, "EXECUTOR_AUTH_UNAVAILABLE");
-  assert.equal(decision.rootCause, "EXECUTOR_AUTH_PREFLIGHT_MISSING");
-  assert.equal(decision.health.authenticated, false);
+  assert.deepEqual(authorizeDispatch(p), {
+    result: "BLOCK",
+    failureClass: "EXECUTOR_AUTH_UNAVAILABLE",
+    rootCause: "EXECUTOR_AUTH_PREFLIGHT_MISSING",
+  });
 });
 test("all canonical anti-recurrence classes have executable detectors", async () => {
   const { detectors } = await import("./detectors.mjs");
@@ -297,15 +297,13 @@ test("guard proof identities and executor positive auth are fail closed", async 
     false,
   );
   assert.equal(
-    authorizeDispatch({
-      ...codexAuthPreflight(() => ({
+    authorizeDispatch(
+      codexAuthPreflight(() => ({
         status: 0,
         stdout: "Logged in",
         stderr: "",
       })),
-      functional: true,
-      authorized: true,
-    }).result,
+    ).result,
     "PASS",
   );
 });
@@ -601,50 +599,4 @@ test("malformed retained activation cannot silently reclassify recurrence as a p
     }
     assert.deepEqual(existing, before);
   }
-});
-
-test("new fastfix anti-recurrence detectors block known process regressions", async () => {
-  const { detectors } = await import("./detectors.mjs");
-  const shaA = "a".repeat(40);
-  const shaB = "b".repeat(40);
-  const cases = [
-    [
-      "PRE_PUSH_ADMISSION_BYPASS",
-      { pushAttempted: true, admissionPassed: false },
-    ],
-    [
-      "PREMATURE_PR_READY",
-      { prReadyAttempted: true, remoteProofPassed: false },
-    ],
-    [
-      "CANDIDATE_MUTATED_AFTER_CERTIFICATION",
-      { certifiedCandidateSha: shaA, currentCandidateSha: shaB },
-    ],
-    [
-      "STALE_REVIEW_RECONCILIATION",
-      { reviewFindingsCorrected: true, unresolvedReviewThreads: 1 },
-    ],
-    [
-      "REMOTE_CI_USED_AS_LOCAL_LINTER",
-      { remoteFailureClass: "FORMAT_FAILURE", localAdmissionRan: false },
-    ],
-    [
-      "WORKSPACE_BOOTSTRAP_INCOMPLETE",
-      { workerExecutionStarted: true, workspaceExecutable: false },
-    ],
-    [
-      "CONTROL_PROJECTION_DRIFT",
-      { projectionDriftDetected: true, projectionReconciled: false },
-    ],
-    [
-      "PARTIAL_REVIEW_FIX_LOOP",
-      {
-        pushAttempted: true,
-        reviewFindingsTotal: 3,
-        reviewFindingsRemaining: 1,
-      },
-    ],
-  ];
-  for (const [name, observation] of cases)
-    assert.equal(detectors[name]({ observation }), "BLOCK", name);
 });

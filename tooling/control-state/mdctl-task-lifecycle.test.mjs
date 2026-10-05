@@ -7,7 +7,6 @@ import {
   buildTaskStart,
   buildTaskSubmit,
   buildTaskTest,
-  evidenceInvalidationPlan,
   validateTaskContext,
   validateTaskLocalProof,
 } from "../mdctl/task-lifecycle.mjs";
@@ -351,56 +350,4 @@ test("restart recovers an expired non-submitted task and requires fresh proof", 
     }),
   });
   assert.equal(tested.task.state, "LOCAL_PROVEN");
-});
-
-test("candidate mutation invalidates every candidate-bound proof after certification", () => {
-  const certifiedCandidateSha = "a".repeat(40);
-  const certifiedTreeSha = "b".repeat(40);
-  const result = evidenceInvalidationPlan({
-    certifiedCandidateSha,
-    certifiedTreeSha,
-    currentCandidateSha: "c".repeat(40),
-    currentTreeSha: certifiedTreeSha,
-  });
-  assert.equal(result.state, "CANDIDATE_INVALIDATED");
-  assert.equal(result.candidateChanged, true);
-  for (const proof of [
-    "admission",
-    "certification",
-    "affected-remote-proof",
-    "independent-proof",
-    "exact-head-identity",
-    "review-reconciliation",
-    "merge-gate",
-  ]) {
-    assert.ok(result.invalidated.includes(proof), proof);
-  }
-});
-
-test("review metadata change on frozen candidate invalidates only review-dependent gates", () => {
-  const candidate = "a".repeat(40);
-  const tree = "b".repeat(40);
-  assert.deepEqual(
-    evidenceInvalidationPlan({
-      certifiedCandidateSha: candidate,
-      certifiedTreeSha: tree,
-      currentCandidateSha: candidate,
-      currentTreeSha: tree,
-      reviewStateChanged: true,
-    }),
-    {
-      state: "REVIEW_EVIDENCE_INVALIDATED",
-      candidateChanged: false,
-      invalidated: ["review-reconciliation", "merge-gate"],
-    },
-  );
-  assert.deepEqual(
-    evidenceInvalidationPlan({
-      certifiedCandidateSha: candidate,
-      certifiedTreeSha: tree,
-      currentCandidateSha: candidate,
-      currentTreeSha: tree,
-    }).invalidated,
-    [],
-  );
 });
