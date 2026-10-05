@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-005",
   "objective": "prove-three-real-fastfix-canaries-and-freeze-control-plane-v3.2",
-  "baseSha": "4e875fce296e951bdb29993303f093c5e0e3d98b",
+  "baseSha": "5292b612b00fe2aa1bba387cf778a3e1d2abfd8a",
   "branch": "fix/fastfix-005-review-gates-20261005",
   "state": "IMPLEMENTING",
   "risk": "high",
