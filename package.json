@@ -58,6 +58,8 @@
     "fabric:release-attestation": "node tooling/fabric/build-release-attestation.mjs",
     "release:target-governance:check": "node --test tooling/quality/release-target-governance.test.mjs",
     "mdctl": "node tooling/mdctl/mdctl.mjs",
+    "mdctl:claim": "node tooling/mdctl/mdctl.mjs claim",
+    "fast:gate": "node tooling/ci/local-fast-gate.mjs",
     "mdctl:bootstrap": "node tooling/mdctl/mdctl.mjs bootstrap",
     "mdctl:invariants": "node tooling/mdctl/mdctl.mjs invariants",
     "mdctl:task": "node tooling/mdctl/mdctl.mjs task",

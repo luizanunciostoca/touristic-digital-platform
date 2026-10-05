@@ -14,6 +14,7 @@ import {
   renderInvariantReport,
 } from "./invariants.mjs";
 import { runTaskCli } from "./task-lifecycle.mjs";
+import { runClaimCli } from "./claim-lifecycle.mjs";
 import {
   buildIntegrationQueue,
   buildSchedulerPlan,
@@ -213,6 +214,12 @@ export function buildPlan(state) {
 }
 
 async function main(argv) {
+  if (argv[0] === "claim") {
+    const result = await runClaimCli(argv.slice(1));
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
   if (argv[0] === "task") {
     const result = await runTaskCli(argv.slice(1));
     console.log(JSON.stringify(result, null, 2));
