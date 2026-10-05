@@ -28,11 +28,7 @@
         "tooling/control-state/**",
         "package.json"
       ],
-      "domains": [
-        "ci-release",
-        "control-plane",
-        "automation"
-      ],
+      "domains": ["ci-release", "control-plane", "automation"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T08:13:28.839Z"
