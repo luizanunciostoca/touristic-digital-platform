@@ -69,7 +69,8 @@
     "failure-learning:check": "node tooling/failure-learning/check.mjs",
     "fastfix:prepare": "node tooling/ci/local-fast-gate.mjs --prepare",
     "fastfix:admission": "node tooling/ci/local-fast-gate.mjs --admission",
-    "fastfix:certify": "node tooling/ci/local-fast-gate.mjs --certify"
+    "fastfix:certify": "node tooling/ci/local-fast-gate.mjs --certify",
+    "fastfix:canary": "node --test tooling/tdp-max/fastfix-canary.test.mjs"
   },
   "pnpm": {
     "overrides": {
