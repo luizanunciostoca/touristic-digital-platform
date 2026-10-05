@@ -32,14 +32,21 @@ export function evaluateFastfixCanaries(evidence) {
     result(
       "acquisition-admission-format",
       acquisition.remoteFormatFailureObserved === true &&
+        Number.isInteger(acquisition.remoteRunId) &&
+        acquisition.remoteRunId > 0 &&
+        acquisition.remoteFailureStep === "Check affected formatting" &&
         acquisition.lifecyclePrepareEnforced === true &&
-        acquisition.localPreparePassed === true,
+        acquisition.localPreparePassed === true &&
+        acquisition.rollbackOnPrepareFailureProven === true,
       acquisition,
       "PRE_PUSH_ADMISSION_BYPASS",
     ),
     result(
       "workspace-runtime-fallback",
       workspace.nativeReady === false &&
+        /unexpected e_type: 2/u.test(
+          String(workspace.nativeFailureSignature ?? ""),
+        ) &&
         workspace.fallbackReady === true &&
         workspace.selectedRuntime === "debian-proot" &&
         workspace.fallbackUsed === true,
@@ -50,6 +57,7 @@ export function evaluateFastfixCanaries(evidence) {
       "executor-functional-fallback",
       executor.preferredExecutor === "codex" &&
         executor.preferredFunctional === false &&
+        ["TIMEOUT", "USAGE_LIMIT"].includes(executor.failureReason) &&
         executor.selectedExecutor === "chatgpt-control" &&
         executor.fallbackUsed === true &&
         executor.reviewerImplementationAuthorized === false,

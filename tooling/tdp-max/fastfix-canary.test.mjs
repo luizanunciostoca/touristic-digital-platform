@@ -10,11 +10,15 @@ function evidence(overrides = {}) {
   return {
     acquisition: {
       remoteFormatFailureObserved: true,
+      remoteRunId: 37345750073,
+      remoteFailureStep: "Check affected formatting",
       lifecyclePrepareEnforced: true,
       localPreparePassed: true,
+      rollbackOnPrepareFailureProven: true,
     },
     workspace: {
       nativeReady: false,
+      nativeFailureSignature: "unexpected e_type: 2",
       fallbackReady: true,
       selectedRuntime: "debian-proot",
       fallbackUsed: true,
@@ -22,6 +26,7 @@ function evidence(overrides = {}) {
     executor: {
       preferredExecutor: "codex",
       preferredFunctional: false,
+      failureReason: "TIMEOUT",
       selectedExecutor: "chatgpt-control",
       fallbackUsed: true,
       reviewerImplementationAuthorized: false,
@@ -43,13 +48,23 @@ test("the three real FASTFIX canary contracts pass only with corrective controls
 test("each FASTFIX canary fails closed when its preventive control is absent", () => {
   const cases = [
     [
-      { acquisition: { remoteFormatFailureObserved: true } },
+      {
+        acquisition: {
+          remoteFormatFailureObserved: true,
+          remoteRunId: 37345750073,
+          remoteFailureStep: "Check affected formatting",
+          lifecyclePrepareEnforced: false,
+          localPreparePassed: false,
+          rollbackOnPrepareFailureProven: false,
+        },
+      },
       "PRE_PUSH_ADMISSION_BYPASS",
     ],
     [
       {
         workspace: {
           nativeReady: false,
+          nativeFailureSignature: "unexpected e_type: 2",
           fallbackReady: false,
           selectedRuntime: null,
           fallbackUsed: false,
@@ -62,6 +77,7 @@ test("each FASTFIX canary fails closed when its preventive control is absent", (
         executor: {
           preferredExecutor: "codex",
           preferredFunctional: false,
+          failureReason: "TIMEOUT",
           selectedExecutor: "copilot-reviewer",
           fallbackUsed: true,
           reviewerImplementationAuthorized: true,
