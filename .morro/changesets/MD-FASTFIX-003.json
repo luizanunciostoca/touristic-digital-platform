@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-003",
   "objective": "automate-claim-lifecycle-and-consolidate-tdp-fast-gate",
-  "baseSha": "327be1efabe63479e1911c7bbe9d2be91300c396",
+  "baseSha": "601498aa71bc085ff73abb93f3e5a1f63f60e92c",
   "branch": "chore/fastfix-003-claim-20261005",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
