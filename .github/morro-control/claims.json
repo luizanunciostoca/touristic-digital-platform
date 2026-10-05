@@ -1,5 +1,26 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-FASTFIX-005": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/fastfix-005-review-gates-20261005",
+      "baseSha": "4e875fce296e951bdb29993303f093c5e0e3d98b",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-005.json",
+        ".github/morro-control/backlog.json",
+        "tooling/tdp-max/**",
+        "tooling/control-state/**",
+        "tooling/workspace/**",
+        "tooling/failure-learning/**",
+        "tooling/mdctl/**",
+        "package.json"
+      ],
+      "domains": ["control-plane", "ci-release", "automation"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T17:03:25.000Z"
+    }
+  }
 }
