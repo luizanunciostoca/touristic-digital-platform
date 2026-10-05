@@ -57,9 +57,9 @@
       "priority": "P1",
       "domain": "control-plane",
       "state": "READY",
-      "implementation": "IN_PROGRESS",
+      "implementation": "COMPLETE",
       "integration": "MISSING",
-      "proof": "MISSING",
+      "proof": "PARTIAL",
       "dependencies": ["MD-FASTFIX-004"],
       "risk": "HIGH"
     },
