@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "controlPlaneVersion": "3.2",
-  "updatedFromMainSha": "5292b612b00fe2aa1bba387cf778a3e1d2abfd8a",
+  "updatedFromMainSha": "e464e94f09ab144f0b4e4c07002becc573b5b250",
   "items": [
     {
       "id": "MD-FASTFIX-001",
@@ -56,10 +56,10 @@
       "title": "Run three real bug canaries and freeze Control Plane V3.2",
       "priority": "P1",
       "domain": "control-plane",
-      "state": "READY",
+      "state": "MERGED",
       "implementation": "COMPLETE",
-      "integration": "MISSING",
-      "proof": "PARTIAL",
+      "integration": "COMPLETE",
+      "proof": "COMPLETE",
       "dependencies": ["MD-FASTFIX-004"],
       "risk": "HIGH"
     },
