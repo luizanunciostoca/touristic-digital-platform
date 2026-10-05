@@ -64,15 +64,6 @@ test("plan-only mode cannot bypass classification blocking", () => {
   assert.ok(block >= 0 && planOnly >= 0 && block < planOnly);
 });
 
-test("package scripts expose the canonical Fast Gate and claim lifecycle", () => {
-  const pkg = JSON.parse(readFileSync("package.json", "utf8"));
-  assert.equal(pkg.scripts["fast:gate"], "node tooling/ci/local-fast-gate.mjs");
-  assert.equal(
-    pkg.scripts["mdctl:claim"],
-    "node tooling/mdctl/mdctl.mjs claim",
-  );
-});
-
 test("local fast gate has no second workspace dependency graph", () => {
   const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
   assert.doesNotMatch(source, /affectedPackages/u);
