@@ -66,7 +66,9 @@
         "packages/ordering/",
         "services/ordering/",
         "packages/ticketing/",
-        "services/ticketing/"
+        "services/ticketing/",
+        "apps/morro-digital-platform/src/payments-",
+        "apps/morro-digital-platform/tooling/payments-"
       ],
       "risk": "CRITICAL",
       "dependsOn": ["assistant-conversation", "commerce", "security"],
@@ -221,6 +223,17 @@
       "needsDatabase": false,
       "needsDependencyAudit": false,
       "needsFullSecurity": false
+    },
+    "auth": {
+      "paths": ["packages/auth/", "services/auth/"],
+      "risk": "HIGH",
+      "dependsOn": ["security"],
+      "suites": [],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
     },
     "business": {
       "paths": [

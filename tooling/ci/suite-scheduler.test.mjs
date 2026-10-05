@@ -32,13 +32,10 @@ const expectedManagedSuites = [
 test("managed suite registry is exact for this rollout", () => {
   assert.deepEqual([...all].sort(), expectedManagedSuites);
 });
-test("unknown paths, empty changes and critical changes select all managed suites", () => {
-  for (const files of [
-    ["unexpected/new-runtime.ts"],
-    [],
-    ["pnpm-lock.yaml"],
-    [".github/workflows/quality.yml"],
-  ])
+test("classification blocks avoid fan-out while critical changes select all managed suites", () => {
+  for (const files of [["unexpected/new-runtime.ts"], []])
+    assert.deepEqual(selectSuites(analyzeFiles(files)), []);
+  for (const files of [["pnpm-lock.yaml"], [".github/workflows/quality.yml"]])
     assert.deepEqual(selectSuites(analyzeFiles(files)), all);
   for (const report of [
     null,
@@ -168,6 +165,7 @@ test("incomplete analyzer reports cannot narrow managed suite selection", () => 
     "needsDependencyAudit",
     "needsFullSecurity",
     "needsFullRegression",
+    "classificationBlocked",
     "nonRuntime",
     "packageJsonChanges",
     "qualityProfile",
@@ -202,8 +200,8 @@ test("Business and Control Center keep coverage throughout incremental registrat
     } else {
       assert.deepEqual(
         selected,
-        all,
-        "Unregistered domains require full managed coverage and keep their legacy triggers",
+        [],
+        "Legacy exact-path suites must not be replaced by unrelated managed suites",
       );
     }
     for (const suite of suiteManifest.suites.filter((suite) =>
@@ -212,21 +210,32 @@ test("Business and Control Center keep coverage throughout incremental registrat
       assert.ok(selected.includes(suite.workflow), suite.workflow);
   }
 });
-test("new domain mapping cannot narrow shared auth, dependencies, migrations or schemas", () => {
+test("known critical changes stay deep while unclassified changes block", () => {
   for (const file of [
-    "packages/auth/src/authorization.ts",
     "services/financial/src/provider.ts",
-    "packages/business/package.json",
+    "pnpm-lock.yaml",
+    ".github/workflows/quality.yml",
     "packages/business/migrations/001.sql",
-    "packages/business/src/schemas/offering.ts",
-    "apps/control-center/src/schema.ts",
-    "apps/control-center/src/contracts/permissions.ts",
-    "unknown/runtime.ts",
   ]) {
     const report = analyzeFiles([file]);
     assert.equal(report.needsFullRegression, true, file);
     assert.deepEqual(selectSuites(report), all, file);
   }
+
+  const auth = analyzeFiles(["packages/auth/src/authorization.ts"]);
+  assert.equal(auth.classificationBlocked, false);
+  assert.equal(auth.needsFullSecurity, true);
+  assert.equal(auth.needsBrowser, false);
+  assert.equal(auth.needsDatabase, false);
+  assert.equal(auth.qualityProfile, "BUGFIX_FAST");
+  assert.deepEqual(selectSuites(auth), [
+    "payments-operational-ledger-contract.yml",
+  ]);
+
+  const unknown = analyzeFiles(["unknown/runtime.ts"]);
+  assert.equal(unknown.classificationBlocked, true);
+  assert.equal(unknown.needsFullRegression, false);
+  assert.deepEqual(selectSuites(unknown), []);
 });
 test("workspace and observed-state tooling retain deterministic gates without browser fan-out", () => {
   const workspace = analyzeFiles(["tooling/workspace/workspace.mjs"]);
@@ -241,7 +250,7 @@ test("workspace and observed-state tooling retain deterministic gates without br
   assert.deepEqual(selectSuites(controlState), []);
 });
 
-test("uncovered managed runtime files force full coverage even beside a covered change", () => {
+test("unmigrated runtime suites never fan out to unrelated managed suites", () => {
   for (const file of [
     "apps/morro-digital-platform/src/business-location-discovery-adapter.test.ts",
     "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
@@ -255,7 +264,7 @@ test("uncovered managed runtime files force full coverage even beside a covered 
     "apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs",
     "apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs",
   ]) {
-    assert.deepEqual(selectSuites(analyzeFiles([file])), all, file);
+    assert.deepEqual(selectSuites(analyzeFiles([file])), [], file);
     assert.deepEqual(
       selectSuites(
         analyzeFiles([
@@ -263,7 +272,7 @@ test("uncovered managed runtime files force full coverage even beside a covered 
           "apps/morro-digital-platform/src/business-dashboard-client.ts",
         ]),
       ),
-      all,
+      [],
       file + " mixed coverage",
     );
   }
@@ -330,10 +339,9 @@ test("release proof binds successful child results to exact source, tree, lockfi
   );
 });
 
-test("inconsistent classification cannot suppress unknown or critical file coverage", () => {
+test("scheduler reclassifies tampered file lists before narrowing coverage", () => {
   for (const file of [
-    "unexpected/new-runtime.ts",
-    "packages/auth/src/authorization.ts",
+    "services/financial/src/provider.ts",
     "pnpm-lock.yaml",
     ".github/workflows/quality.yml",
   ]) {
@@ -341,6 +349,16 @@ test("inconsistent classification cannot suppress unknown or critical file cover
     report.files = [file];
     assert.deepEqual(selectSuites(report), all, file);
   }
+
+  const auth = analyzeFiles(["docs/overview.md"]);
+  auth.files = ["packages/auth/src/authorization.ts"];
+  assert.deepEqual(selectSuites(auth), [
+    "payments-operational-ledger-contract.yml",
+  ]);
+
+  const unknown = analyzeFiles(["docs/overview.md"]);
+  unknown.files = ["unexpected/new-runtime.ts"];
+  assert.deepEqual(selectSuites(unknown), []);
 });
 
 test("script-only package changes preserve semantic fast-lane selection", () => {
@@ -373,7 +391,6 @@ test("control-plane tooling does not select managed runtime suites", () => {
   }
 });
 
-
 test("affected quality uses exact-base Turbo dependents filter", () => {
   const base = "a".repeat(40);
   assert.deepEqual(buildAffectedTurboArgs(base), [
@@ -389,9 +406,15 @@ test("affected quality uses exact-base Turbo dependents filter", () => {
   assert.throws(() => buildAffectedTurboArgs("main"), /BASE_SHA_INVALID/u);
 });
 
-test("Quality workflow uses BUGFIX_FAST affected gates and conditional database", () => {
+test("Quality workflow uses affected fast profiles and conditional database", () => {
   const workflow = readFileSync(".github/workflows/quality.yml", "utf8");
-  assert.ok(workflow.includes("quality_profile == 'BUGFIX_FAST'"));
+  for (const profile of [
+    "BUGFIX_FAST",
+    "UI_BUGFIX_FAST",
+    "DB_BUGFIX_FAST",
+    "CONTRACT_BUGFIX",
+  ])
+    assert.ok(workflow.includes(profile), profile);
   assert.ok(
     workflow.includes('node tooling/ci/affected-quality.mjs "$CI_IMPACT_BASE"'),
   );

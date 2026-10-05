@@ -1,7 +1,7 @@
 {
   "version": 1,
   "baselineSha": "ea43c1ba55fe60fa0ba7a61134ecacd1159f1e44",
-  "description": "Managed CI suites. Path coverage preserves the union of original PR/push triggers. Critical, unknown or empty impact selects all managed suites. Remaining workflows retain their own triggers during this compatibility migration.",
+  "description": "Managed CI suites. Path coverage preserves the union of original PR/push triggers. Known critical impact selects all managed suites; unclassified paths fail closed at classification without unrelated suite fan-out. Remaining workflows retain their own triggers during this compatibility migration.",
   "suites": [
     {
       "workflow": "payments-operational-ledger-contract.yml",

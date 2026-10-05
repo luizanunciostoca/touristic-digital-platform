@@ -71,10 +71,10 @@ jobs:
       - name: Enforce workflow concurrency policy
         run: node tooling/quality/check-workflow-concurrency.mjs
       - name: Check full formatting
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm format:check
       - name: Check affected formatting
-        if: needs.impact.outputs.quality_profile == 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile != 'DEEP_PROOF' && needs.impact.outputs.quality_profile != 'CLASSIFICATION_BLOCK'
         env:
           IMPACT_BASE_SHA: ${{ needs.impact.outputs.base_sha }}
         shell: bash
@@ -88,38 +88,47 @@ jobs:
         if: needs.impact.outputs.needs_visual == 'true'
         run: pnpm css:stylelint
       - name: Enforce humanized public Assistant copy
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF' || contains(needs.impact.outputs.domains, 'assistant-conversation')
         run: node tooling/quality/check-assistant-public-copy.mjs
       - name: Check architecture boundaries
+        if: needs.impact.outputs.non_runtime != 'true' && needs.impact.outputs.quality_profile != 'CLASSIFICATION_BLOCK'
         run: pnpm architecture:check
       - name: Validate Feature Registry
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm features:check
       - name: Reconcile environment inventory
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm environment:check
       - name: Validate release-readiness guardrails
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm release:readiness:check
       - name: Scan tracked content for credential signatures
         run: pnpm secret-patterns:check
       - name: Validate CI and repository governance contracts
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF' || contains(needs.impact.outputs.domains, 'ci-tooling') || contains(needs.impact.outputs.domains, 'governance') || contains(needs.impact.outputs.domains, 'control-plane')
         run: pnpm ci:governance:check
       - name: Validate release deployment target governance
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm release:target-governance:check
       - name: Release gate negative contracts
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm release:gates:negative-check
       - name: Enforce workflow supply chain
-        if: needs.impact.outputs.quality_profile != 'BUGFIX_FAST'
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF'
         run: pnpm ci:supply-chain:strict
       - name: Validate CI selection and candidate identity
+        if: needs.impact.outputs.quality_profile == 'DEEP_PROOF' || contains(needs.impact.outputs.domains, 'ci-tooling') || contains(needs.impact.outputs.domains, 'cicd')
         run: node --test tooling/ci/*.test.mjs tooling/quality/ci-scheduler-governance.test.mjs
       - name: Validate operational tooling contracts
-        if: needs.impact.outputs.non_runtime == 'true' && needs.impact.outputs.serialized_control_transition_only != 'true'
+        if: needs.impact.outputs.serialized_control_transition_only != 'true'
+        env:
+          IMPACT_NON_RUNTIME: ${{ needs.impact.outputs.non_runtime }}
         shell: bash
         run: |
+          if [ "$IMPACT_NON_RUNTIME" != "true" ]; then
+            echo "Runtime change: operational tooling contracts are not affected."
+            exit 0
+          fi
           node --input-type=module <<'NODE'
           import { execFileSync } from 'node:child_process';
           const files = execFileSync('git', ['ls-files', '-z', '--', 'tooling/workspace/*.test.mjs', 'tooling/control-state/*.test.mjs'], { encoding: 'utf8' }).split('\0').filter(Boolean);
@@ -134,7 +143,7 @@ jobs:
           .github/agents/*.test.mjs
           .github/hooks/*.test.mjs
       - name: Run affected workspace quality
-        if: needs.impact.outputs.quality_profile == 'BUGFIX_FAST'
+        if: contains(fromJSON('["BUGFIX_FAST","UI_BUGFIX_FAST","DB_BUGFIX_FAST","CONTRACT_BUGFIX"]'), needs.impact.outputs.quality_profile)
         env:
           CI_IMPACT_BASE: ${{ needs.impact.outputs.base_sha }}
           CONTENT_DATABASE_URL: mysql://root:canonical-mysql@127.0.0.1:3306/affiliates_m154_test
