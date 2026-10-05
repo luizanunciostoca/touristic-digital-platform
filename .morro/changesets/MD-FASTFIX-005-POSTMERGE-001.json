@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-005-POSTMERGE-001",
+  "objective": "fix-failure-learning-workflow-run-post-merge-identity",
+  "baseSha": "ca8ad1baa5d11bf0f768fdcf557e2f199875d33a",
+  "branch": "fix/fastfix-005-postmerge-workflow-identity-20261005",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-005-POSTMERGE-001.json",
+      ".github/workflows/failure-learning-independent-proof.yml",
+      "tooling/quality/failure-learning-proof-trusted.test.mjs"
+    ],
+    "contracts": ["TDP-FAILURE-LEARNING-TRUSTED-PROOF"]
+  },
+  "reads": {
+    "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
+  },
+  "produces": {
+    "events": ["CLAIM_ACQUIRED", "CLAIM_RENEWED", "CLAIM_RELEASED"],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-FASTFIX-005"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
+    "commands": [
+      {
+        "id": "failure-learning-postmerge-identity",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/failure-learning-proof-trusted.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

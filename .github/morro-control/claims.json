@@ -1,5 +1,21 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-FASTFIX-005-POSTMERGE-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/fastfix-005-postmerge-workflow-identity-20261005",
+      "baseSha": "ca8ad1baa5d11bf0f768fdcf557e2f199875d33a",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-005-POSTMERGE-001.json",
+        ".github/workflows/failure-learning-independent-proof.yml",
+        "tooling/quality/failure-learning-proof-trusted.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T18:00:00.000Z"
+    }
+  }
 }
