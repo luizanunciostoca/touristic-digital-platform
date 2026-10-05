@@ -1,5 +1,25 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-FASTFIX-003": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/fastfix-003-claim-20261005",
+      "baseSha": "327be1efabe63479e1911c7bbe9d2be91300c396",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-003.json",
+        "tooling/ci/local-fast-gate.mjs",
+        "tooling/ci/local-fast-gate.test.mjs",
+        "tooling/mdctl/claim-lifecycle.mjs",
+        "tooling/mdctl/mdctl.mjs",
+        "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
+        "package.json"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T06:05:39Z"
+    }
+  }
 }
