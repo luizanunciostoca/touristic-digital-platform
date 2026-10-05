@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -d '' changed < <(git diff --name-only -z "$IMPACT_BASE_SHA...$GITHUB_SHA")
+          mapfile -d '' changed < <(git diff --name-only --diff-filter=ACMRTUXB -z "$IMPACT_BASE_SHA...$GITHUB_SHA")
           if ((${#changed[@]})); then
             pnpm exec prettier --check --ignore-unknown "${changed[@]}"
           fi

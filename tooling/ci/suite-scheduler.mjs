@@ -112,9 +112,17 @@ export function selectSuites(report, manifest = suiteManifest) {
     if (fileImpact.classificationBlocked || fileImpact.unknownFiles.length > 0)
       return [];
     if (fileImpact.needsFullRegression) return all;
-    // Runtime domains that have not yet migrated into the central reusable-suite
-    // registry keep their precise legacy path-triggered workflows. Never replace
-    // missing central coverage with unrelated managed suites.
+    const requiresCoverage = fileImpact.domains.some(
+      (domain) => impactManifest.domains[domain]?.requiresScheduledSuite,
+    );
+    const centrallyCovered = manifest.suites.some(
+      (suite) =>
+        fileImpact.suites.includes(suite.workflow) ||
+        suite.paths.some((pattern) => matchesPath(file, pattern)),
+    );
+    if (requiresCoverage && !centrallyCovered) {
+      throw new Error(`CI_SUITE_COVERAGE_UNPROVEN:${file}`);
+    }
   }
   return manifest.suites
     .filter(

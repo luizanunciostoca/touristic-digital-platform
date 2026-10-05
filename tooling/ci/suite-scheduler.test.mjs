@@ -177,7 +177,7 @@ test("incomplete analyzer reports cannot narrow managed suite selection", () => 
   }
 });
 
-test("Business and Control Center keep coverage throughout incremental registration", () => {
+test("Business and Control Center fail closed until central or legacy coverage is proven", () => {
   for (const [file, expected] of [
     [
       "apps/morro-digital-platform/src/business-dashboard-client.ts",
@@ -189,19 +189,19 @@ test("Business and Control Center keep coverage throughout incremental registrat
     ],
   ]) {
     const report = analyzeFiles([file]);
-    const selected = selectSuites(report);
     assert.equal(report.risk, "HIGH");
     assert.equal(report.nonRuntime, false);
     assert.equal(report.needsFullRegression, false);
     assert.equal(report.needsFullSecurity, true);
+    const selected = all.includes(expected) ? selectSuites(report) : null;
     if (all.includes(expected)) {
       assert.ok(selected.includes(expected));
       assert.ok(selected.length > 0 && selected.length < all.length);
     } else {
-      assert.deepEqual(
-        selected,
-        [],
-        "Legacy exact-path suites must not be replaced by unrelated managed suites",
+      assert.throws(
+        () => selectSuites(report),
+        /CI_SUITE_COVERAGE_UNPROVEN/u,
+        "Unproven legacy coverage must block instead of selecting unrelated suites",
       );
     }
     for (const suite of suiteManifest.suites.filter((suite) =>
@@ -250,7 +250,7 @@ test("workspace and observed-state tooling retain deterministic gates without br
   assert.deepEqual(selectSuites(controlState), []);
 });
 
-test("unmigrated runtime suites never fan out to unrelated managed suites", () => {
+test("unmigrated runtime coverage fails closed without unrelated fan-out", () => {
   for (const file of [
     "apps/morro-digital-platform/src/business-location-discovery-adapter.test.ts",
     "apps/morro-digital-platform/src/business-location-discovery-adapter.ts",
@@ -264,15 +264,20 @@ test("unmigrated runtime suites never fan out to unrelated managed suites", () =
     "apps/morro-digital-platform/tooling/control-center-ticketing-browser-contract.mjs",
     "apps/morro-digital-platform/tooling/control-center-users-browser-contract.mjs",
   ]) {
-    assert.deepEqual(selectSuites(analyzeFiles([file])), [], file);
-    assert.deepEqual(
-      selectSuites(
-        analyzeFiles([
-          file,
-          "apps/morro-digital-platform/src/business-dashboard-client.ts",
-        ]),
-      ),
-      [],
+    assert.throws(
+      () => selectSuites(analyzeFiles([file])),
+      /CI_SUITE_COVERAGE_UNPROVEN/u,
+      file,
+    );
+    assert.throws(
+      () =>
+        selectSuites(
+          analyzeFiles([
+            file,
+            "apps/morro-digital-platform/src/business-dashboard-client.ts",
+          ]),
+        ),
+      /CI_SUITE_COVERAGE_UNPROVEN/u,
       file + " mixed coverage",
     );
   }
@@ -404,6 +409,15 @@ test("affected quality uses exact-base Turbo dependents filter", () => {
     "--filter=...[" + base + "]",
   ]);
   assert.throws(() => buildAffectedTurboArgs("main"), /BASE_SHA_INVALID/u);
+});
+
+test("affected formatting excludes deleted paths", () => {
+  const workflow = readFileSync(".github/workflows/quality.yml", "utf8");
+  assert.ok(
+    workflow.includes(
+      'git diff --name-only --diff-filter=ACMRTUXB -z "$IMPACT_BASE_SHA...$GITHUB_SHA"',
+    ),
+  );
 });
 
 test("Quality workflow uses affected fast profiles and conditional database", () => {
