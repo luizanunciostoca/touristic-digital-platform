@@ -33,10 +33,33 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pr_number="$(jq -r '.workflow_run.pull_requests | if length == 1 then .[0].number else empty end' "$GITHUB_EVENT_PATH")"
+          payload_count="$(jq -r '.workflow_run.pull_requests | length' "$GITHUB_EVENT_PATH")"
+          case "$payload_count" in
+            0)
+              gh api "repos/$REPOSITORY/commits/$UPSTREAM_HEAD_SHA/pulls?per_page=100" > associated-prs.json
+              pr_number="$(jq -r --arg sha "$UPSTREAM_HEAD_SHA" --arg branch "$UPSTREAM_HEAD_BRANCH" --arg repo "$REPOSITORY" '
+                map(select(
+                  .head.sha == $sha and
+                  .head.ref == $branch and
+                  .head.repo.full_name == $repo and
+                  .base.ref == "main" and
+                  .base.repo.full_name == $repo
+                ))
+                | if length == 1 then .[0].number else empty end
+              ' associated-prs.json)"
+              ;;
+            1)
+              pr_number="$(jq -r '.workflow_run.pull_requests[0].number' "$GITHUB_EVENT_PATH")"
+              ;;
+            *)
+              exit 1
+              ;;
+          esac
           test -n "$pr_number"
           gh api "repos/$REPOSITORY/pulls/$pr_number" > pr.json
-          test "$(jq -r '.state' pr.json)" = "open"
+          pr_state="$(jq -r '.state' pr.json)"
+          merged_at="$(jq -r '.merged_at // empty' pr.json)"
+          merge_commit_sha="$(jq -r '.merge_commit_sha // empty' pr.json)"
           test "$(jq -r '.base.ref' pr.json)" = "main"
           test "$(jq -r '.base.repo.full_name' pr.json)" = "$REPOSITORY"
           test "$(jq -r '.head.repo.full_name' pr.json)" = "$REPOSITORY"
@@ -45,7 +68,19 @@ jobs:
           branch="$(jq -r '.head.ref' pr.json)"
           test "$candidate_sha" = "$UPSTREAM_HEAD_SHA"
           test "$branch" = "$UPSTREAM_HEAD_BRANCH"
-          test "$base_sha" = "$GITHUB_SHA"
+
+          if [ "$pr_state" = "open" ]; then
+            test "$base_sha" = "$GITHUB_SHA"
+          elif [ "$pr_state" = "closed" ] && [ -n "$merged_at" ]; then
+            test -n "$merge_commit_sha"
+            comparison_status="$(gh api "repos/$REPOSITORY/compare/$merge_commit_sha...$GITHUB_SHA" --jq '.status')"
+            case "$comparison_status" in
+              identical|ahead) ;;
+              *) exit 1 ;;
+            esac
+          else
+            exit 1
+          fi
 
           files="$(gh api --paginate "repos/$REPOSITORY/pulls/$pr_number/files?per_page=100" --jq '.[].filename')"
           direct_relevant=false
@@ -77,6 +112,11 @@ jobs:
             relevant=true
           else
             relevant=false
+          fi
+
+          if [ "$relevant" = true ]; then
+            test "$pr_state" = "open"
+            test "$base_sha" = "$GITHUB_SHA"
           fi
 
           {
