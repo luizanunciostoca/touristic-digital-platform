@@ -68,7 +68,8 @@
         "tooling/workspace/",
         "tooling/control-state/",
         ".gitignore",
-        "package.json"
+        "package.json",
+        "pnpm-lock.yaml"
       ],
       "contracts": []
     }
