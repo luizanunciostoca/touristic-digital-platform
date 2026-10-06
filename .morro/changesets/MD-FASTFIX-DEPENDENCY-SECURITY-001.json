@@ -4,7 +4,7 @@
   "objective": "upgrade-vulnerable-source-map-js-and-establish-lockfile-ownership",
   "baseSha": "9fe78135bca837ebc1e791637accbd36cccb3434",
   "branch": "fix/security-source-map-js-1-2-2-v2-20261006",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
