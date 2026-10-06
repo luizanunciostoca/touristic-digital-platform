@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-CERTIFY-HYGIENE-001",
+  "objective": "fix-fastfix-certify-deterministic-generated-artifact-hygiene",
+  "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
+  "branch": "chore/fastfix-certify-hygiene-claim-v3-20261006",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-CERTIFY-HYGIENE-001.json",
+      "tooling/ci/local-fast-gate.mjs",
+      "tooling/ci/local-fast-gate.test.mjs"
+    ],
+    "contracts": ["TDP-FASTFIX-CERTIFY-CLEAN-WORKTREE"]
+  },
+  "reads": {
+    "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
+  },
+  "produces": {
+    "events": ["CLAIM_ACQUIRED", "CLAIM_RENEWED", "CLAIM_RELEASED"],
+    "routes": []
+  },
+  "database": { "tables": [] },
+  "auth": { "capabilities": [] },
+  "dependencies": ["MD-FASTFIX-005"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": { "maxCommands": 1, "maxSeconds": 600 },
+    "commands": [
+      {
+        "id": "fastfix-certify-generated-artifact-hygiene",
+        "argv": ["node", "--test", "tooling/ci/local-fast-gate.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
