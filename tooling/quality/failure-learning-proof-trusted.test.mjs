@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
+  chmodSync,
   mkdtempSync,
   mkdirSync,
   readFileSync,
@@ -449,4 +450,229 @@ test("workflow resolves post-merge source identity without weakening relevant pr
     relevance,
   );
   assert.ok(relevance >= 0 && exactOpen > relevance && exactBase > exactOpen);
+});
+
+function resolveIdentityStepScript() {
+  const workflow = readFileSync(
+    resolve(
+      import.meta.dirname,
+      "../../.github/workflows/failure-learning-independent-proof.yml",
+    ),
+    "utf8",
+  );
+  const lines = workflow.split("\n");
+  const step = lines.findIndex(
+    (line) => line.trim() === "- name: Resolve exact pull request identity",
+  );
+  assert.ok(step >= 0, "IDENTITY_STEP_MISSING");
+  const run = lines.findIndex(
+    (line, index) => index > step && line.trim() === "run: |",
+  );
+  assert.ok(run > step, "IDENTITY_RUN_BLOCK_MISSING");
+  const body = [];
+  for (let index = run + 1; index < lines.length; index++) {
+    const line = lines[index];
+    if (/^\s{6}- name:/u.test(line)) break;
+    body.push(line.startsWith("          ") ? line.slice(10) : line);
+  }
+  return body.join("\n");
+}
+
+function identityPr({
+  number = 764,
+  state = "closed",
+  mergedAt = "2026-10-05T17:54:39Z",
+  mergeCommitSha = "c".repeat(40),
+  headSha = "b".repeat(40),
+  headBranch = "infra/retire-fastfix-005-20261005",
+  baseSha = "a".repeat(40),
+} = {}) {
+  return {
+    number,
+    state,
+    merged_at: mergedAt,
+    merge_commit_sha: mergeCommitSha,
+    head: {
+      sha: headSha,
+      ref: headBranch,
+      repo: { full_name: REPOSITORY },
+    },
+    base: {
+      sha: baseSha,
+      ref: "main",
+      repo: { full_name: REPOSITORY },
+    },
+  };
+}
+
+function runIdentityResolver(
+  t,
+  {
+    payloadPullRequests = [],
+    associatedPullRequests = [],
+    pr = identityPr(),
+    compareStatus = "ahead",
+    files = ["docs/retirement.md"],
+  } = {},
+) {
+  const root = mkdtempSync(resolve(tmpdir(), "tdp-workflow-identity-test-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const bin = resolve(root, "bin");
+  mkdirSync(bin, { recursive: true });
+  const gh = resolve(bin, "gh");
+  writeFileSync(
+    gh,
+    [
+      "#!/usr/bin/env node",
+      "const args = process.argv.slice(2);",
+      'const endpoint = args.find((arg) => arg.startsWith("repos/")) ?? "";',
+      'if (endpoint.includes("/commits/") && endpoint.includes("/pulls?")) {',
+      "  process.stdout.write(process.env.MOCK_ASSOCIATED_PRS);",
+      '} else if (endpoint.includes("/compare/")) {',
+      '  process.stdout.write(process.env.MOCK_COMPARE_STATUS + "\\n");',
+      '} else if (endpoint.includes("/files?")) {',
+      "  process.stdout.write(process.env.MOCK_FILES);",
+      "} else if (/\\/pulls\\/\\d+$/.test(endpoint)) {",
+      "  process.stdout.write(process.env.MOCK_PR_JSON);",
+      "} else {",
+      '  process.stderr.write("UNEXPECTED_GH_ENDPOINT:" + endpoint + "\\n");',
+      "  process.exit(97);",
+      "}",
+      "",
+    ].join("\n"),
+  );
+  chmodSync(gh, 0o755);
+  const eventPath = resolve(root, "event.json");
+  const outputPath = resolve(root, "output.txt");
+  writeFileSync(
+    eventPath,
+    JSON.stringify({
+      workflow_run: {
+        pull_requests: payloadPullRequests,
+      },
+    }),
+  );
+  writeFileSync(outputPath, "");
+  const shellScript = [
+    'gh() { node "$MOCK_GH" "$@"; }',
+    resolveIdentityStepScript(),
+  ].join("\n");
+  const result = spawnSync("bash", ["-c", shellScript], {
+    cwd: root,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      PATH: bin + ":" + process.env.PATH,
+      MOCK_GH: gh,
+      GITHUB_EVENT_PATH: eventPath,
+      GITHUB_OUTPUT: outputPath,
+      REPOSITORY,
+      UPSTREAM_HEAD_SHA: pr.head.sha,
+      UPSTREAM_HEAD_BRANCH: pr.head.ref,
+      GITHUB_SHA: pr.base.sha,
+      MOCK_ASSOCIATED_PRS: JSON.stringify(associatedPullRequests),
+      MOCK_PR_JSON: JSON.stringify(pr),
+      MOCK_COMPARE_STATUS: compareStatus,
+      MOCK_FILES: files.join("\n") + "\n",
+    },
+  });
+  return {
+    ...result,
+    outputs: readFileSync(outputPath, "utf8"),
+  };
+}
+
+test("post-merge resolver behavior is fail-closed for association cardinality and ancestry", async (t) => {
+  await t.test("zero fallback associations is rejected", (t) => {
+    const pr = identityPr();
+    const result = runIdentityResolver(t, {
+      associatedPullRequests: [],
+      pr,
+    });
+    assert.notEqual(result.status, 0);
+  });
+
+  await t.test(
+    "one exact merged association with ahead ancestry is accepted as irrelevant",
+    (t) => {
+      const pr = identityPr();
+      const result = runIdentityResolver(t, {
+        associatedPullRequests: [pr],
+        pr,
+        compareStatus: "ahead",
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.outputs, /^pr_number=764$/mu);
+      assert.match(result.outputs, /^relevant=false$/mu);
+    },
+  );
+
+  await t.test("multiple exact fallback associations is rejected", (t) => {
+    const pr = identityPr();
+    const duplicate = { ...pr, number: 765 };
+    const result = runIdentityResolver(t, {
+      associatedPullRequests: [pr, duplicate],
+      pr,
+    });
+    assert.notEqual(result.status, 0);
+  });
+
+  await t.test("identical merged ancestry is accepted", (t) => {
+    const pr = identityPr();
+    const result = runIdentityResolver(t, {
+      associatedPullRequests: [pr],
+      pr,
+      compareStatus: "identical",
+    });
+    assert.equal(result.status, 0, result.stderr);
+  });
+
+  await t.test("behind merged ancestry is rejected", (t) => {
+    const pr = identityPr();
+    const result = runIdentityResolver(t, {
+      associatedPullRequests: [pr],
+      pr,
+      compareStatus: "behind",
+    });
+    assert.notEqual(result.status, 0);
+  });
+
+  await t.test("closed unmerged source is rejected", (t) => {
+    const pr = identityPr({ mergedAt: null, mergeCommitSha: null });
+    const result = runIdentityResolver(t, {
+      associatedPullRequests: [pr],
+      pr,
+    });
+    assert.notEqual(result.status, 0);
+  });
+
+  await t.test(
+    "one payload PR follows the normal open exact-base path",
+    (t) => {
+      const pr = identityPr({
+        state: "open",
+        mergedAt: null,
+        mergeCommitSha: null,
+      });
+      const result = runIdentityResolver(t, {
+        payloadPullRequests: [{ number: pr.number }],
+        pr,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.outputs, /^pr_number=764$/mu);
+    },
+  );
+
+  await t.test("multiple payload PR identities are rejected", (t) => {
+    const pr = identityPr({
+      state: "open",
+      mergedAt: null,
+      mergeCommitSha: null,
+    });
+    const result = runIdentityResolver(t, {
+      payloadPullRequests: [{ number: 764 }, { number: 765 }],
+      pr,
+    });
+    assert.notEqual(result.status, 0);
+  });
 });
