@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-BUILD-HYGIENE-001",
   "objective": "keep-deterministic-generated-runtime-bundle-out-of-git-dirty-state",
-  "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
+  "baseSha": "73b195b03ea3c243a1ed6e9d395d167ff32e061a",
   "branch": "fix/fastfix-build-hygiene-20261006",
   "state": "IMPLEMENTING",
   "risk": "high",
