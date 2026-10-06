@@ -15,9 +15,7 @@
         "packages/geospatial/src/routing-policy.test.ts",
         "tooling/geospatial/routing-policy-promotion.contract.mjs"
       ],
-      "domains": [
-        "map"
-      ],
+      "domains": ["map"],
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T03:52:02.788Z"

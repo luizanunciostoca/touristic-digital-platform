@@ -16,16 +16,10 @@
       "packages/geospatial/src/routing-policy.test.ts",
       "tooling/geospatial/routing-policy-promotion.contract.mjs"
     ],
-    "contracts": [
-      "GEOSPATIAL-ROUTING-POLICY",
-      "GEOSPATIAL-PROVIDER-STRATEGY"
-    ]
+    "contracts": ["GEOSPATIAL-ROUTING-POLICY", "GEOSPATIAL-PROVIDER-STRATEGY"]
   },
   "reads": {
-    "contracts": [
-      "TDP-LAB-WAVE5-ROUTING-POLICY-PROOF",
-      "TDP-CONTROL-PLANE-V3.2"
-    ]
+    "contracts": ["TDP-LAB-WAVE5-ROUTING-POLICY-PROOF", "TDP-CONTROL-PLANE-V3.2"]
   },
   "produces": {
     "events": [],
