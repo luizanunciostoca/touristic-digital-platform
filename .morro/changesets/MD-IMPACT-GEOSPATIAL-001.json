@@ -72,7 +72,12 @@
     "commands": [
       {
         "id": "geospatial-impact-classification",
-        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/impact-analyzer.test.mjs",
+          "tooling/ci/local-fast-gate.test.mjs"
+        ],
         "timeoutSeconds": 300
       }
     ],
