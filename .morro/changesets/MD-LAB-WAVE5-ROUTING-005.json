@@ -19,7 +19,10 @@
     "contracts": ["GEOSPATIAL-ROUTING-POLICY", "GEOSPATIAL-PROVIDER-STRATEGY"]
   },
   "reads": {
-    "contracts": [\n      "TDP-LAB-WAVE5-ROUTING-POLICY-PROOF",\n      "TDP-CONTROL-PLANE-V3.2"\n    ]
+    "contracts": [
+      "TDP-LAB-WAVE5-ROUTING-POLICY-PROOF",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
   },
   "produces": {
     "events": [],
