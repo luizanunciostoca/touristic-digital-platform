@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-IMPACT-GEOSPATIAL-001",
   "objective": "classify-geospatial-routing-impact-fail-closed",
-  "baseSha": "48ca08db3ad3cceac1e7a07e987c68b21fea909a",
-  "branch": "fix/geospatial-impact-classification-20261006",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "626b801cc6eb633566cc9922b2e7904d61970cfc",
+  "branch": "chore/retire-impact-geospatial-20261006",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
