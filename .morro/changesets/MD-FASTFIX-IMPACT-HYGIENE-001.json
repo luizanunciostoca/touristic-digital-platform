@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-IMPACT-HYGIENE-001",
   "objective": "classify-root-gitignore-as-ci-tooling-for-fail-closed-impact-analysis",
-  "baseSha": "e725461e37df9fc56c5f218a401423aebb1fde1e",
-  "branch": "fix/impact-gitignore-classification-20261006",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "1da6f5274fc8cb2e447fa5c3a60f54b39c19cac7",
+  "branch": "infra/retire-fastfix-impact-hygiene-final-20261006",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
