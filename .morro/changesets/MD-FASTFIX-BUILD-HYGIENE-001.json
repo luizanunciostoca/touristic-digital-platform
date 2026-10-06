@@ -20,7 +20,7 @@
     "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
   },
   "produces": {
-    "events": ["CLAIM_ACQUIRED", "CLAIM_RENEWED", "CLAIM_RELEASED"],
+    "events": [],
     "routes": []
   },
   "database": {
