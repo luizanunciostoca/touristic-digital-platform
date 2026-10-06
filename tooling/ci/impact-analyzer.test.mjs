@@ -273,3 +273,20 @@ test("runtime impact resolves explicit fast profiles while unknown changes block
   assert.equal(unknown.classificationBlocked, true);
   assert.equal(unknown.needsFullRegression, false);
 });
+
+test("Wave 5 geospatial routing paths are classified fail-closed without broad fallback", () => {
+  const result = analyzeFiles([
+    "apps/morro-digital-platform/src/config/destination.test.ts",
+    "packages/geospatial/src/index.ts",
+    "packages/geospatial/src/routing-policy.test.ts",
+    "tooling/geospatial/routing-policy-promotion.contract.mjs",
+  ]);
+  assert.equal(result.classificationBlocked, false);
+  assert.ok(result.domains.includes("geospatial-routing"));
+  assert.equal(result.risk, "HIGH");
+  assert.equal(result.needsBrowser, true);
+  assert.equal(result.needsDatabase, false);
+  assert.equal(result.needsFullRegression, false);
+  assert.ok(result.suites.includes("navigation-turn-by-turn-parity.yml"));
+  assert.ok(result.suites.includes("navigation-accessibility-baseline.yml"));
+});
