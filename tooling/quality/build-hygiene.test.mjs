@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -58,6 +58,18 @@ test("deterministic legacy bundle is generated without dirtying Git", async () =
       { encoding: "utf8" },
     ).trim();
     assert.match(ignoredBy, /^\.gitignore:/u);
+
+    const tracked = spawnSync(
+      "git",
+      ["ls-files", "--error-unmatch", "--", bundlePath],
+      { encoding: "utf8" },
+    );
+    assert.equal(
+      tracked.status,
+      1,
+      "legacy bundle must remain outside the Git index",
+    );
+    assert.equal(tracked.stdout.trim(), "");
 
     const dirty = execFileSync(
       "git",
