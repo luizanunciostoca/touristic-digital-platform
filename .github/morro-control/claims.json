@@ -32,6 +32,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T03:00:00.000Z"
+    },
+    "MD-FASTFIX-IMPACT-HYGIENE-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/impact-gitignore-classification-20261006",
+      "baseSha": "73b195b03ea3c243a1ed6e9d395d167ff32e061a",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-IMPACT-HYGIENE-001.json",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T04:00:00.000Z"
     }
   }
 }
