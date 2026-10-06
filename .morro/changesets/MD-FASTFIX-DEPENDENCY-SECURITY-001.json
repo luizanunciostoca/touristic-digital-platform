@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-DEPENDENCY-SECURITY-001",
   "objective": "upgrade-vulnerable-source-map-js-and-establish-lockfile-ownership",
-  "baseSha": "8618395810a4f432e5fcab86fe16ec1f34a68111",
+  "baseSha": "9fe78135bca837ebc1e791637accbd36cccb3434",
   "branch": "fix/security-source-map-js-1-2-2-v2-20261006",
   "state": "IMPLEMENTING",
   "risk": "critical",
