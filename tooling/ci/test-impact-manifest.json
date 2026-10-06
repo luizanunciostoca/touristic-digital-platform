@@ -295,6 +295,25 @@
       "needsDependencyAudit": false,
       "needsFullSecurity": true,
       "requiresScheduledSuite": true
+    },
+    "geospatial-routing": {
+      "paths": [
+        "packages/geospatial/src/index.ts",
+        "packages/geospatial/src/routing-",
+        "tooling/geospatial/",
+        "apps/morro-digital-platform/src/config/destination.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": ["navigation", "map", "geolocation", "shell"],
+      "suites": [
+        "navigation-turn-by-turn-parity.yml",
+        "navigation-accessibility-baseline.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     }
   }
 }
