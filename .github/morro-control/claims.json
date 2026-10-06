@@ -16,6 +16,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T18:00:00.000Z"
+    },
+    "MD-FASTFIX-BUILD-HYGIENE-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/fastfix-build-hygiene-20261006",
+      "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
+      "paths": [
+        ".gitignore",
+        ".morro/ownership.json",
+        "tooling/quality/build-hygiene.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T03:00:00.000Z"
     }
   }
 }
