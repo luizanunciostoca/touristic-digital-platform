@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-IMPACT-HYGIENE-001",
+  "objective": "classify-root-gitignore-as-ci-tooling-for-fail-closed-impact-analysis",
+  "baseSha": "73b195b03ea3c243a1ed6e9d395d167ff32e061a",
+  "branch": "fix/impact-gitignore-classification-20261006",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-IMPACT-HYGIENE-001.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs"
+    ],
+    "contracts": ["TDP-IMPACT-CLASSIFICATION"]
+  },
+  "reads": {
+    "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-FASTFIX-BUILD-HYGIENE-001"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "impact-gitignore-regression",
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
