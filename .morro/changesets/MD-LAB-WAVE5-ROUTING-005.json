@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-LAB-WAVE5-ROUTING-005",
+  "objective": "promote-lab-wave5-routing-policy-to-product-main",
+  "baseSha": "8bab6a4e182c063645b38d4cfed9fdc6a67d607d",
+  "branch": "wave/product-wave5-routing-policy-20261006",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-LAB-WAVE5-ROUTING-005.json",
+      "apps/morro-digital-platform/src/config/destination.test.ts",
+      "docs/adr/0003-geospatial-provider-strategy.md",
+      "packages/geospatial/src/index.ts",
+      "packages/geospatial/src/routing-policy.test.ts",
+      "tooling/geospatial/routing-policy-promotion.contract.mjs"
+    ],
+    "contracts": ["GEOSPATIAL-ROUTING-POLICY", "GEOSPATIAL-PROVIDER-STRATEGY"]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-LAB-WAVE5-ROUTING-POLICY-PROOF",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "wave5-routing-policy-promotion",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/geospatial/routing-policy-promotion.contract.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

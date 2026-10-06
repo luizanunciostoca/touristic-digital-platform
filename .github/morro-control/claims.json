@@ -1,5 +1,24 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-LAB-WAVE5-ROUTING-005": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "wave/product-wave5-routing-policy-20261006",
+      "baseSha": "8bab6a4e182c063645b38d4cfed9fdc6a67d607d",
+      "paths": [
+        ".morro/changesets/MD-LAB-WAVE5-ROUTING-005.json",
+        "apps/morro-digital-platform/src/config/destination.test.ts",
+        "docs/adr/0003-geospatial-provider-strategy.md",
+        "packages/geospatial/src/index.ts",
+        "packages/geospatial/src/routing-policy.test.ts",
+        "tooling/geospatial/routing-policy-promotion.contract.mjs"
+      ],
+      "domains": ["map"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T03:52:02.788Z"
+    }
+  }
 }
