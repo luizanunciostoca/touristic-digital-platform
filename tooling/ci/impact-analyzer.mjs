@@ -56,8 +56,14 @@ function normalizeGlob(value) {
 
 function matches(path, rule) {
   const normalized = normalizeGlob(rule);
-  if (!normalized.includes("*"))
-    return path === normalized || path.startsWith(normalized);
+  if (!normalized.includes("*")) {
+    if (normalized.endsWith("/")) return path.startsWith(normalized);
+    const leaf = normalized.slice(normalized.lastIndexOf("/") + 1);
+    const fileLiteral = leaf.includes(".");
+    return fileLiteral
+      ? path === normalized
+      : path === normalized || path.startsWith(normalized);
+  }
   const escaped = normalized.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
   const pattern = escaped
     .replaceAll("**", "\0")
