@@ -13,15 +13,10 @@
       "tooling/ci/impact-analyzer.mjs",
       "tooling/ci/impact-analyzer-exact-path.test.mjs"
     ],
-    "contracts": [
-      "TDP-IMPACT-CLASSIFICATION"
-    ]
+    "contracts": ["TDP-IMPACT-CLASSIFICATION"]
   },
   "reads": {
-    "contracts": [
-      "TDP-FASTFIX-CANARY",
-      "TDP-CONTROL-PLANE-V3.2-FREEZE"
-    ]
+    "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
   },
   "produces": {
     "events": [],
@@ -33,9 +28,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-FASTFIX-005"
-  ],
+  "dependencies": ["MD-FASTFIX-005"],
   "requiredEvidence": [
     "format",
     "secrets",
