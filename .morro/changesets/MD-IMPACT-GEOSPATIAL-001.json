@@ -11,7 +11,9 @@
     "paths": [
       ".morro/changesets/MD-IMPACT-GEOSPATIAL-001.json",
       "tooling/ci/test-impact-manifest.json",
-      "tooling/ci/impact-analyzer.test.mjs"
+      "tooling/ci/impact-analyzer.test.mjs",
+      "tooling/ci/local-fast-gate.mjs",
+      "tooling/ci/local-fast-gate.test.mjs"
     ],
     "contracts": [
       "TDP-CI-IMPACT-SELECTION",
@@ -24,9 +26,16 @@
       "TDP-CONTROL-PLANE-V3.2"
     ]
   },
-  "produces": { "events": [], "routes": [] },
-  "database": { "tables": [] },
-  "auth": { "capabilities": [] },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
   "dependencies": [],
   "requiredEvidence": [
     "format",
@@ -56,7 +65,10 @@
     ]
   },
   "proof": {
-    "budget": { "maxCommands": 1, "maxSeconds": 600 },
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 600
+    },
     "commands": [
       {
         "id": "geospatial-impact-classification",
