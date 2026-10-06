@@ -16,6 +16,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-06T18:00:00.000Z"
+    },
+    "MD-FASTFIX-CERTIFY-HYGIENE-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/fastfix-certify-hygiene-claim-v4-20261006",
+      "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-CERTIFY-HYGIENE-001.json",
+        "tooling/ci/local-fast-gate.mjs",
+        "tooling/ci/local-fast-gate.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-06T18:00:00.000Z"
     }
   }
 }
