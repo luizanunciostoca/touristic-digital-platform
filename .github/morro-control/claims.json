@@ -47,6 +47,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T04:00:00.000Z"
+    },
+    "MD-FASTFIX-IMPACT-MATCHER-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/impact-exact-literal-matcher-20261006",
+      "baseSha": "b1181e6e80b2924cbcb1e004ee4b2587a6c1322c",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-IMPACT-MATCHER-001.json",
+        "tooling/ci/impact-analyzer.mjs",
+        "tooling/ci/impact-analyzer-exact-path.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T05:00:00.000Z"
     }
   }
 }
