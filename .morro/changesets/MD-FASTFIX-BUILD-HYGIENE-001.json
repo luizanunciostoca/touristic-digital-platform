@@ -9,6 +9,7 @@
   "scope": "PLATFORM",
   "owns": {
     "paths": [
+      ".morro/changesets/MD-FASTFIX-BUILD-HYGIENE-001.json",
       ".gitignore",
       ".morro/ownership.json",
       "tooling/quality/build-hygiene.test.mjs"

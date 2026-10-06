@@ -23,6 +23,7 @@
       "branch": "fix/fastfix-build-hygiene-20261006",
       "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
       "paths": [
+        ".morro/changesets/MD-FASTFIX-BUILD-HYGIENE-001.json",
         ".gitignore",
         ".morro/ownership.json",
         "tooling/quality/build-hygiene.test.mjs"
