@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-IMPACT-MATCHER-001",
   "objective": "make-literal-impact-rules-exact-while-preserving-directory-prefix-semantics",
-  "baseSha": "07d4189245dbe391e2c824d5b21a100441cb633e",
-  "branch": "fix/impact-exact-literal-matcher-20261006",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "52c656b21072f8c620449b4863d5b178bd0c7aa6",
+  "branch": "infra/retire-fastfix-impact-matcher-20261006",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
