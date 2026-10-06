@@ -4,7 +4,7 @@
   "objective": "classify-geospatial-routing-impact-fail-closed",
   "baseSha": "48ca08db3ad3cceac1e7a07e987c68b21fea909a",
   "branch": "fix/geospatial-impact-classification-20261006",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
