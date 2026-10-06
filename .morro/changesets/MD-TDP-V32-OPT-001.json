@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TDP-V32-OPT-001",
+  "objective": "optimize-v32-authority-reconciliation-risk-evidence-and-failure-learning",
+  "baseSha": "e7cf067f5f010bcc6ac8608db5ea7202b39368c3",
+  "branch": "infra/tdp-v32-opt-001-20261006",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TDP-V32-OPT-001.json",
+      ".morro/risk-policy.json",
+      ".github/morro-control/tdp-max/**",
+      ".github/morro-control/backlog.json",
+      ".github/morro-control/dependency-graph.json",
+      "tooling/fabric/**",
+      "tooling/mdctl/**",
+      "tooling/control-state/**",
+      "tooling/failure-learning/**",
+      "tooling/tdp-max/**"
+    ],
+    "contracts": [
+      "MORRO-FABRIC-LIFECYCLE",
+      "TDP-CONTROL-PLANE-V3.2",
+      "TDP-ANTI-RECURRENCE"
+    ]
+  },
+  "reads": {
+    "contracts": ["TDP-WORKER-DISPATCH", "TDP-FASTFIX-ADMISSION"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-FASTFIX-005"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "risk-policy-coverage",
+    "projection-reconciliation",
+    "change-envelope",
+    "machine-readable-mission-state",
+    "claim-candidate-separation",
+    "evidence-dependency-graph",
+    "anti-recurrence",
+    "local-admission",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "post-merge-reconciliation"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 131072,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 3,
+      "maxSeconds": 1200
+    },
+    "commands": [
+      {
+        "id": "v32-reconciliation-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/v32-protocol-conformance.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      },
+      {
+        "id": "tdp-max-contract",
+        "argv": ["node", "--test", "tooling/tdp-max/validate-config.test.mjs"],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "failure-learning-contract",
+        "argv": ["node", "--test", "tooling/failure-learning/engine.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
