@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-IMPACT-MATCHER-001",
   "objective": "make-literal-impact-rules-exact-while-preserving-directory-prefix-semantics",
-  "baseSha": "b1181e6e80b2924cbcb1e004ee4b2587a6c1322c",
+  "baseSha": "07d4189245dbe391e2c824d5b21a100441cb633e",
   "branch": "fix/impact-exact-literal-matcher-20261006",
   "state": "IMPLEMENTING",
   "risk": "high",
