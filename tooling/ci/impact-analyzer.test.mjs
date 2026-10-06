@@ -152,6 +152,22 @@ test("control-plane and CI tooling stay non-runtime without product fan-out", ()
   }
 });
 
+test("root gitignore is non-runtime CI tooling while unknown paths remain blocked", () => {
+  const gitignore = analyzeFiles([".gitignore"]);
+  assert.ok(gitignore.domains.includes("ci-tooling"));
+  assert.equal(gitignore.risk, "HIGH");
+  assert.equal(gitignore.nonRuntime, true);
+  assert.equal(gitignore.classificationBlocked, false);
+  assert.equal(gitignore.needsFullRegression, false);
+  assert.equal(gitignore.needsBrowser, false);
+  assert.equal(gitignore.needsDatabase, false);
+  assert.equal(gitignore.qualityProfile, "NON_RUNTIME");
+
+  const unknown = analyzeFiles(["unmapped/runtime.ts"]);
+  assert.equal(unknown.classificationBlocked, true);
+  assert.equal(unknown.qualityProfile, "CLASSIFICATION_BLOCK");
+});
+
 test("package.json scripts do not impersonate dependency changes", () => {
   const before = {
     name: "tdp",

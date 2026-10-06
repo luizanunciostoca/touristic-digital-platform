@@ -147,7 +147,7 @@
       "needsFullSecurity": true
     },
     "ci-tooling": {
-      "paths": ["tooling/ci/"],
+      "paths": ["tooling/ci/", ".gitignore"],
       "risk": "HIGH",
       "dependsOn": [],
       "suites": [],

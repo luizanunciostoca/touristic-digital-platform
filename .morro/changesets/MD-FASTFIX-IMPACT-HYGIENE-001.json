@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FASTFIX-IMPACT-HYGIENE-001",
   "objective": "classify-root-gitignore-as-ci-tooling-for-fail-closed-impact-analysis",
-  "baseSha": "73b195b03ea3c243a1ed6e9d395d167ff32e061a",
+  "baseSha": "e725461e37df9fc56c5f218a401423aebb1fde1e",
   "branch": "fix/impact-gitignore-classification-20261006",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
