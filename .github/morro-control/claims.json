@@ -1,5 +1,23 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-FASTFIX-DEPENDENCY-SECURITY-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/security-source-map-js-1-2-2-v2-20261006",
+      "baseSha": "8618395810a4f432e5fcab86fe16ec1f34a68111",
+      "paths": [
+        ".morro/changesets/MD-FASTFIX-DEPENDENCY-SECURITY-001.json",
+        ".morro/ownership.json",
+        "package.json",
+        "pnpm-lock.yaml",
+        "tooling/quality/dependency-security-remediation.test.mjs"
+      ],
+      "domains": ["ci-release", "control-plane"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T03:00:00.000Z"
+    }
+  }
 }

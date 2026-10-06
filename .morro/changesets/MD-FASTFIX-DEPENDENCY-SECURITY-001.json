@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FASTFIX-DEPENDENCY-SECURITY-001",
+  "objective": "upgrade-vulnerable-source-map-js-and-establish-lockfile-ownership",
+  "baseSha": "8618395810a4f432e5fcab86fe16ec1f34a68111",
+  "branch": "fix/security-source-map-js-1-2-2-v2-20261006",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FASTFIX-DEPENDENCY-SECURITY-001.json",
+      ".morro/ownership.json",
+      "package.json",
+      "pnpm-lock.yaml",
+      "tooling/quality/dependency-security-remediation.test.mjs"
+    ],
+    "contracts": ["TDP-DEPENDENCY-SECURITY", "TDP-OWNERSHIP"]
+  },
+  "reads": {
+    "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-FASTFIX-005"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "dependency-audit",
+    "full-quality",
+    "full-security",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "dependency-security-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/dependency-security-remediation.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "dependency-audit",
+      "full-security"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
