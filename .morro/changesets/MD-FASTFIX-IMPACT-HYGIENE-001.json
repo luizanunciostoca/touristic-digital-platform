@@ -13,15 +13,10 @@
       "tooling/ci/test-impact-manifest.json",
       "tooling/ci/impact-analyzer.test.mjs"
     ],
-    "contracts": [
-      "TDP-IMPACT-CLASSIFICATION"
-    ]
+    "contracts": ["TDP-IMPACT-CLASSIFICATION"]
   },
   "reads": {
-    "contracts": [
-      "TDP-FASTFIX-CANARY",
-      "TDP-CONTROL-PLANE-V3.2-FREEZE"
-    ]
+    "contracts": ["TDP-FASTFIX-CANARY", "TDP-CONTROL-PLANE-V3.2-FREEZE"]
   },
   "produces": {
     "events": [],
@@ -33,9 +28,7 @@
   "auth": {
     "capabilities": []
   },
-  "dependencies": [
-    "MD-FASTFIX-005"
-  ],
+  "dependencies": ["MD-FASTFIX-005"],
   "requiredEvidence": [
     "format",
     "secrets",
@@ -66,11 +59,7 @@
     "commands": [
       {
         "id": "impact-gitignore-regression",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/ci/impact-analyzer.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
         "timeoutSeconds": 180
       }
     ],
