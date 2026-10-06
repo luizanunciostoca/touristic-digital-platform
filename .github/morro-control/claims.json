@@ -21,7 +21,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/fastfix-build-hygiene-20261006",
-      "baseSha": "f76d360e911ad1086c378d0166d63c1cafbe5289",
+      "baseSha": "547b60b6eaa56983a4a95d5c3745d2581d8868aa",
       "paths": [
         ".morro/changesets/MD-FASTFIX-BUILD-HYGIENE-001.json",
         ".gitignore",
