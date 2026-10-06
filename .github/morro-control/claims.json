@@ -37,7 +37,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/impact-gitignore-classification-20261006",
-      "baseSha": "73b195b03ea3c243a1ed6e9d395d167ff32e061a",
+      "baseSha": "e725461e37df9fc56c5f218a401423aebb1fde1e",
       "paths": [
         ".morro/changesets/MD-FASTFIX-IMPACT-HYGIENE-001.json",
         "tooling/ci/test-impact-manifest.json",
