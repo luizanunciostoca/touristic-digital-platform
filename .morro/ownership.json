@@ -67,6 +67,7 @@
         "tooling/failure-learning/",
         "tooling/workspace/",
         "tooling/control-state/",
+        ".gitignore",
         "package.json"
       ],
       "contracts": []
