@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TRUSTED-CLAIM-TRIGGER-001",
+  "objective": "ensure-trusted-claim-guard-runs-for-every-pull-request",
+  "baseSha": "d758a9ab0b7632ef0ecc69a27059183dc83e658e",
+  "branch": "fix/trusted-claim-guard-all-prs-20261007",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TRUSTED-CLAIM-TRIGGER-001.json",
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+      "tooling/control-state/mdctl-merge-gate.test.mjs"
+    ],
+    "contracts": ["TDP-TRUSTED-CLAIM-GUARD-TRIGGER"]
+  },
+  "reads": {
+    "contracts": ["TDP-MERGE-GATE", "TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "contracts", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "trusted-claim-trigger-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-merge-gate.test.mjs"
+        ],
+        "timeoutSeconds": 240
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
