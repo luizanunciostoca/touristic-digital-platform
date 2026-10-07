@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-OWNERSHIP-GEOSPATIAL-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/geospatial-routing-ownership-20261007",
-      "baseSha": "dbc17f59ef14105518f61e5083288546470eddcf",
-      "paths": [
-        ".morro/changesets/MD-OWNERSHIP-GEOSPATIAL-001.json",
-        ".morro/ownership.json",
-        "tooling/ci/local-fast-gate.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-07T05:30:00.000Z"
-    },
     "MD-TRUSTED-CLAIM-TRIGGER-001": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
