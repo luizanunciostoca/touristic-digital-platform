@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TDP-FL-RECURRENCE-001",
   "objective": "fix-failure-learning-gh-api-jq-recurrence",
-  "baseSha": "60e8013d16546b856e63921f3699dbcc60efa5e7",
+  "baseSha": "a27ead53c597516a6c89d68bba75077a25d1334b",
   "branch": "fix/failure-learning-gh-api-jq-recurrence-20261007",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
