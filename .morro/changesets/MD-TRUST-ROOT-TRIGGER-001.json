@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TRUST-ROOT-TRIGGER-001",
+  "objective": "allow-contract-bound-bootstrap-trigger-only-reconciliation",
+  "baseSha": "2ea156a19bc9110f85431f2f86395a2e6449e118",
+  "branch": "fix/trust-root-trigger-only-reconciliation-20261007",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TRUST-ROOT-TRIGGER-001.json",
+      ".github/workflows/morro-claim-guard.yml",
+      "tooling/control-state/trust-root-reconciliation.test.mjs"
+    ],
+    "contracts": ["TDP-TRUST-ROOT-RECONCILIATION"]
+  },
+  "reads": {
+    "contracts": ["TDP-TRUSTED-CLAIM-GUARD-TRIGGER", "TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "contracts", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "trigger-only-trust-root-reconciliation",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/trust-root-reconciliation.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
