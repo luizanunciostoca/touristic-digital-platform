@@ -95,7 +95,7 @@ jobs:
           fi
 
           if [ "$shared_relevant" = true ]; then
-            claims_json="$(gh api "repos/$REPOSITORY/contents/.github/morro-control/claims.json?ref=$candidate_sha" --jq -r '.content' | base64 --decode)"
+            claims_json="$(gh api "repos/$REPOSITORY/contents/.github/morro-control/claims.json?ref=$candidate_sha" --jq '.content' | base64 --decode)"
             if jq -e --arg branch "$branch" '
               .claims
               | to_entries

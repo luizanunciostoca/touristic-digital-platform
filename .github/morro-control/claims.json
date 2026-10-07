@@ -24,7 +24,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/failure-learning-gh-api-jq-recurrence-20261007",
-      "baseSha": "60e8013d16546b856e63921f3699dbcc60efa5e7",
+      "baseSha": "a27ead53c597516a6c89d68bba75077a25d1334b",
       "paths": [
         ".morro/changesets/MD-TDP-FL-RECURRENCE-001.json",
         ".github/workflows/failure-learning-independent-proof.yml",

@@ -443,6 +443,12 @@ test("workflow resolves post-merge source identity without weakening relevant pr
     workflow,
     /test "\$\(jq -r '\.state' pr\.json\)" = "open"/u,
   );
+  assert.doesNotMatch(workflow, /--jq\s+-r/u);
+  assert.ok(
+    workflow.includes(
+      "contents/.github/morro-control/claims.json?ref=$candidate_sha\" --jq '.content'",
+    ),
+  );
   const relevance = workflow.indexOf('if [ "$relevant" = true ]; then');
   const exactOpen = workflow.indexOf('test "$pr_state" = "open"', relevance);
   const exactBase = workflow.indexOf(
