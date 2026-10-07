@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TRUST-ROOT-BOOTSTRAP-002",
+  "objective": "add-generic-base-controlled-immutable-trust-root-bootstrap-admission",
+  "baseSha": "835256be1a3a08b8e1930dfddcd28acd8632b8db",
+  "branch": "fix/trust-root-bootstrap-generic-20261007",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TRUST-ROOT-BOOTSTRAP-002.json",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/mdctl/trust-root-bootstrap.mjs",
+      "tooling/control-state/mdctl-scheduler.test.mjs"
+    ],
+    "contracts": ["TDP-MERGE-GATE", "TDP-TRUST-ROOT-BOOTSTRAP"]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-TRUST-ROOT-RECONCILIATION",
+      "TDP-TRUSTED-CLAIM-GUARD-TRIGGER",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "contracts", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "trust-root-bootstrap-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-scheduler.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
