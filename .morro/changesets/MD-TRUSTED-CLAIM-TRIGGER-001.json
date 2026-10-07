@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-TRUSTED-CLAIM-TRIGGER-001",
   "objective": "ensure-trusted-claim-guard-runs-for-every-pull-request",
-  "baseSha": "d758a9ab0b7632ef0ecc69a27059183dc83e658e",
+  "baseSha": "135f03f14cff5e4b183db7a36ed821383e4d21cd",
   "branch": "fix/trusted-claim-guard-all-prs-20261007",
   "state": "IMPLEMENTING",
   "risk": "high",
