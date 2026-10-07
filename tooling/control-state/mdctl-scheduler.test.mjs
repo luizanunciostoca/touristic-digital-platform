@@ -1692,11 +1692,13 @@ test("reconcile projection replaces stale main assumptions with observed main", 
           status: "IMPLEMENTING",
           branch: "feat/md-a",
           baseSha: "a".repeat(40),
+          expiresAt: "2099-01-01T00:00:00Z",
         },
         "MD-OLD": {
           status: "IMPLEMENTING",
           branch: "feat/old",
           baseSha: "a".repeat(40),
+          expiresAt: "2099-01-01T00:00:00Z",
         },
       },
     },
@@ -1726,8 +1728,12 @@ test("reconcile projection replaces stale main assumptions with observed main", 
   );
   assert.deepEqual(projection.claims.staleCandidates, ["MD-OLD"]);
   assert.equal(
-    projection.claims.items.find((item) => item.id === "MD-A").liveState,
-    "OPEN_PR",
+    projection.claims.items.find((item) => item.id === "MD-A").missionState,
+    "ACTIVE_WORK",
+  );
+  assert.equal(
+    projection.claims.items.find((item) => item.id === "MD-OLD").missionState,
+    "ORPHANED",
   );
   assert.equal(projection.release.currentMain, mainSha);
 });
