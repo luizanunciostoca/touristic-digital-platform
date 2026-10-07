@@ -19,21 +19,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T03:52:02.788Z"
-    },
-    "MD-TDP-FL-RECURRENCE-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/failure-learning-gh-api-jq-recurrence-20261007",
-      "baseSha": "a27ead53c597516a6c89d68bba75077a25d1334b",
-      "paths": [
-        ".morro/changesets/MD-TDP-FL-RECURRENCE-001.json",
-        ".github/workflows/failure-learning-independent-proof.yml",
-        "tooling/quality/failure-learning-proof-trusted.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-07T06:00:00.000Z"
     }
   }
 }
