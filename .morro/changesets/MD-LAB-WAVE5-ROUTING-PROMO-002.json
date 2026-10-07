@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-LAB-WAVE5-ROUTING-PROMO-002",
   "objective": "promote-lab-wave5-routing-policy-to-current-product-main",
-  "baseSha": "47bb69ba6bf8b57886b38268a442822f60a7403c",
-  "branch": "wave/product-wave5-routing-policy-r2-20261007",
-  "state": "IMPLEMENTING",
+  "baseSha": "8f50ae65f287dae3efa4a99594cd98b05473b8d8",
+  "branch": "wave/product-wave5-routing-policy-clean-r2-20261007",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
