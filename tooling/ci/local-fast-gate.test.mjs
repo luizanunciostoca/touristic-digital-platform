@@ -139,6 +139,23 @@ test("admission is distinct, exact-head, claim-aware and pre-proof", () => {
   );
 });
 
+test("canonical ownership covers Wave 5 geospatial routing paths", () => {
+  const ownership = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  assert.deepEqual(
+    assertOwnershipCoverage(
+      [
+        "apps/morro-digital-platform/src/config/destination.test.ts",
+        "docs/adr/0003-geospatial-provider-strategy.md",
+        "packages/geospatial/src/index.ts",
+        "packages/geospatial/src/routing-policy.test.ts",
+        "tooling/geospatial/routing-policy-promotion.contract.mjs",
+      ],
+      ownership,
+    ),
+    { covered: 5 },
+  );
+});
+
 test("ownership admission fails closed for uncovered paths", () => {
   const ownership = {
     domains: [{ id: "ci", pathPrefixes: ["tooling/ci/", "package.json"] }],

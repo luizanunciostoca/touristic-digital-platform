@@ -48,6 +48,16 @@
       "contracts": []
     },
     {
+      "id": "geospatial-routing",
+      "pathPrefixes": [
+        "packages/geospatial/",
+        "tooling/geospatial/",
+        "apps/morro-digital-platform/src/config/destination.test.ts",
+        "docs/adr/0003-geospatial-provider-strategy.md"
+      ],
+      "contracts": []
+    },
+    {
       "id": "ci-release",
       "pathPrefixes": [
         ".github/workflows/",
