@@ -1,22 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-TRUST-ROOT-BOOTSTRAP-002": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/trust-root-bootstrap-generic-20261007",
-      "baseSha": "835256be1a3a08b8e1930dfddcd28acd8632b8db",
-      "paths": [
-        ".morro/changesets/MD-TRUST-ROOT-BOOTSTRAP-002.json",
-        "tooling/mdctl/merge-gate.mjs",
-        "tooling/mdctl/trust-root-bootstrap.mjs",
-        "tooling/control-state/mdctl-scheduler.test.mjs"
-      ],
-      "domains": ["trust-bootstrap"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-07T14:00:00.000Z"
-    }
-  }
+  "claims": {}
 }
