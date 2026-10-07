@@ -13,10 +13,7 @@
       ".morro/ownership.json",
       "tooling/ci/local-fast-gate.test.mjs"
     ],
-    "contracts": [
-      "TDP-OWNERSHIP",
-      "TDP-FASTFIX-ADMISSION"
-    ]
+    "contracts": ["TDP-OWNERSHIP", "TDP-FASTFIX-ADMISSION"]
   },
   "reads": {
     "contracts": [
@@ -50,12 +47,7 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": [
-      "changeset",
-      "git-identity",
-      "ownership",
-      "proof-plan"
-    ]
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
   },
   "proof": {
     "budget": {
@@ -65,11 +57,7 @@
     "commands": [
       {
         "id": "geospatial-ownership-regression",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/ci/local-fast-gate.test.mjs"
-        ],
+        "argv": ["node", "--test", "tooling/ci/local-fast-gate.test.mjs"],
         "timeoutSeconds": 180
       }
     ],
