@@ -10,8 +10,8 @@ Mapa, localização e navegação são capacidades centrais da plataforma. A V1 
 ## Decisão
 
 1. Mapbox permanece como provider principal de mapa.
-2. Mapbox Directions permanece como roteamento primário.
-3. OpenRouteService é o fallback de roteamento.
+2. OpenRouteService permanece como roteamento primário via proxy same-origin server-side.
+3. Mapbox Directions permanece como fallback de roteamento somente nos erros elegíveis definidos pelo contrato de Navigation.
 4. Leaflet permanece como contingência e compatibilidade controlada.
 5. Aplicações não acessam SDKs ou APIs dos providers diretamente; usam contratos de `@touristic/geospatial`.
 6. Chaves, limites, timeouts, telemetria, cache e fallback são tratados por adapters.
@@ -26,7 +26,8 @@ Mapa, localização e navegação são capacidades centrais da plataforma. A V1 
 
 ### Positivas
 
-- Preservação da experiência atual.
+- Preservação da experiência atual e da baseline V1 recertificada.
+- Chave ORS permanece fora do browser por meio do proxy same-origin.
 - Fallbacks testáveis e substituição futura controlada.
 - Métricas e custos centralizados.
 
