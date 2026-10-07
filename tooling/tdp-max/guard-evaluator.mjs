@@ -142,5 +142,60 @@ export function evaluateAntiRecurrence(input = {}) {
   )
     detected.add("PARTIAL_REVIEW_FIX_LOOP");
 
+  const extra = [
+    [
+      "ACTIVE_CLAIM_IDLE_WITH_HEALTHY_EXECUTOR",
+      input.activeClaim === true &&
+        input.workerStarted === false &&
+        input.executorHealthy === true,
+    ],
+    [
+      "METADATA_ONLY_CODE_PROOF_RERUN",
+      input.metadataOnly === true && input.codeProofRerun === true,
+    ],
+    [
+      "STALE_RUN_CONTINUED_AFTER_HEAD_ADVANCE",
+      input.runHead &&
+        input.currentHead &&
+        input.runHead !== input.currentHead &&
+        input.expensiveProofContinued === true,
+    ],
+    [
+      "LATE_CLAIM_SCOPE_EXPANSION",
+      input.writeStarted === true &&
+        input.scopeExpanded === true &&
+        input.envelopeUpdatedBeforeWrite !== true,
+    ],
+    [
+      "EVIDENCE_OVER_INVALIDATION",
+      input.semanticIntersection === false &&
+        Number.isInteger(input.invalidatedEvidenceCount) &&
+        input.invalidatedEvidenceCount > 0,
+    ],
+    [
+      "UNNECESSARY_REANCHOR",
+      input.mainAdvanced === true &&
+        input.semanticIntersection === false &&
+        input.claimReanchored === true,
+    ],
+    [
+      "DISPATCH_NOT_READ_BACK",
+      input.dispatchAttempted === true && input.workerStartReadback !== true,
+    ],
+    [
+      "PROJECTION_STALE_USED_FOR_SCHEDULING",
+      input.projectionStale === true && input.schedulingUsedProjection === true,
+    ],
+    [
+      "TRANSPORT_AUTHORITY_CONFLICT",
+      input.contractTransport &&
+        input.runtimeTransport &&
+        input.contractTransport !== input.runtimeTransport &&
+        input.transportConflictResolved !== true,
+    ],
+    ["RISK_POLICY_COVERAGE_GAP", input.riskPolicyCoverageComplete === false],
+  ];
+  for (const [name, condition] of extra) if (condition) detected.add(name);
+
   return [...detected].sort();
 }

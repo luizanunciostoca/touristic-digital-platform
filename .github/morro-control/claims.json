@@ -24,7 +24,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "infra/tdp-v32-opt-001-20261006",
-      "baseSha": "e7cf067f5f010bcc6ac8608db5ea7202b39368c3",
+      "baseSha": "bf8b7ad7a42cd0bce5aeb7aaec741666a64d979c",
       "paths": [
         ".morro/changesets/MD-TDP-V32-OPT-001.json",
         ".morro/risk-policy.json",

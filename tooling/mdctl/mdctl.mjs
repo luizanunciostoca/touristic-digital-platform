@@ -26,6 +26,10 @@ import {
 } from "./scheduler-live.mjs";
 import { validateChangeSetV2 } from "./changeset-v2.mjs";
 import { runReconcileCli } from "./reconcile.mjs";
+import {
+  buildDispatchRequest,
+  verifyDispatchReadback,
+} from "./dispatch-runtime.mjs";
 
 function parseOptions(args, env = process.env) {
   const explicit = args[0] && !args[0].startsWith("--");
@@ -229,6 +233,36 @@ async function main(argv) {
   if (argv[0] === "reconcile") {
     const result = await runReconcileCli(argv.slice(1));
     console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  if (argv[0] === "mission") {
+    const result = await runReconcileCli(argv.slice(1));
+    console.log(JSON.stringify(result.missionState, null, 2));
+    return;
+  }
+
+  if (argv[0] === "dispatch-request") {
+    const inputPath = argv[1];
+    if (!inputPath || argv.length !== 2)
+      throw new Error("DISPATCH_REQUEST_INPUT_REQUIRED");
+    const input = JSON.parse(await readFile(resolve(inputPath), "utf8"));
+    console.log(JSON.stringify(buildDispatchRequest(input), null, 2));
+    return;
+  }
+
+  if (argv[0] === "dispatch-readback") {
+    const requestPath = argv[1];
+    const readbackPath = argv[2];
+    if (!requestPath || !readbackPath || argv.length !== 3)
+      throw new Error("DISPATCH_READBACK_INPUT_REQUIRED");
+    const [request, readback] = await Promise.all([
+      readFile(resolve(requestPath), "utf8").then(JSON.parse),
+      readFile(resolve(readbackPath), "utf8").then(JSON.parse),
+    ]);
+    console.log(
+      JSON.stringify(verifyDispatchReadback(request, readback), null, 2),
+    );
     return;
   }
 

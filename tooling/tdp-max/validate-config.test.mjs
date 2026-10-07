@@ -5,6 +5,7 @@ import { evaluateAntiRecurrence } from "./guard-evaluator.mjs";
 import {
   validateBootstrapReport,
   validateEvidenceManifest,
+  validateRiskCoverage,
 } from "./validate-config.mjs";
 
 const SHA = "a".repeat(40);
@@ -17,6 +18,39 @@ test("validator accepts the canonical TDP-MAX projection", () => {
   );
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.match(result.stdout, /TDP_MAX_CONFIG_VALID/u);
+});
+
+test("control-plane ownership must have an explicit high-or-critical risk floor", () => {
+  const ownership = {
+    domains: [
+      {
+        id: "ci-release",
+        pathPrefixes: [
+          "tooling/ci/",
+          "tooling/mdctl/",
+          "tooling/tdp-max/",
+          "tooling/control-state/",
+          "tooling/failure-learning/",
+          "tooling/workspace/",
+          ".github/morro-control/",
+          ".github/workflows/",
+        ],
+      },
+    ],
+  };
+  const riskPolicy = {
+    highPaths: ownership.domains[0].pathPrefixes,
+    criticalPaths: [],
+  };
+  assert.equal(validateRiskCoverage({ riskPolicy, ownership }).paths, 8);
+  assert.throws(
+    () =>
+      validateRiskCoverage({
+        riskPolicy: { ...riskPolicy, highPaths: riskPolicy.highPaths.slice(1) },
+        ownership,
+      }),
+    /RISK_POLICY_COVERAGE_GAP/,
+  );
 });
 
 test("bootstrap READY rejects blocked and not-proven checks", () => {

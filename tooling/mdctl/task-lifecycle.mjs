@@ -16,6 +16,7 @@ import {
   changeSetDigest,
   validateChangeSetV2,
 } from "./changeset-v2.mjs";
+import { planEvidenceReuse } from "./evidence-graph.mjs";
 
 const execute = promisify(execFile);
 const SHA = /^[0-9a-f]{40}$/u;
@@ -553,6 +554,8 @@ export function evidenceInvalidationPlan({
   currentCandidateSha,
   currentTreeSha,
   reviewStateChanged = false,
+  evidenceNodes = null,
+  mutationDependencies = [],
 }) {
   for (const [name, value] of Object.entries({
     certifiedCandidateSha,
@@ -565,6 +568,23 @@ export function evidenceInvalidationPlan({
   const candidateChanged =
     certifiedCandidateSha !== currentCandidateSha ||
     certifiedTreeSha !== currentTreeSha;
+  if (candidateChanged && Array.isArray(evidenceNodes)) {
+    const reuse = planEvidenceReuse(evidenceNodes, {
+      kind: "CANDIDATE_MUTATION",
+      id: currentCandidateSha,
+      dependencies: mutationDependencies,
+    });
+    return {
+      state:
+        reuse.invalidated.length > 0
+          ? "CANDIDATE_INVALIDATED"
+          : "EVIDENCE_REMAINS_FRESH",
+      candidateChanged: true,
+      invalidated: reuse.invalidated.map((item) => item.id),
+      preserved: reuse.preserved.map((item) => item.id),
+      evidence: [...reuse.preserved, ...reuse.invalidated],
+    };
+  }
   if (candidateChanged) {
     return {
       state: "CANDIDATE_INVALIDATED",
