@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-OWNERSHIP-GEOSPATIAL-002",
   "objective": "recompose-wave5-geospatial-routing-ownership-on-current-main",
-  "baseSha": "49f6aadb065d96983bbb7dfaf377658b35d84b2c",
-  "branch": "fix/geospatial-routing-ownership-v2-20261007",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "4a7994294d18bf7d626c2fb917d41c4359ce3f3b",
+  "branch": "chore/retire-merged-geospatial-ownership-002-20261007",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
@@ -13,7 +13,10 @@
       ".morro/ownership.json",
       "tooling/ci/local-fast-gate.test.mjs"
     ],
-    "contracts": ["TDP-OWNERSHIP", "TDP-FASTFIX-ADMISSION"]
+    "contracts": [
+      "TDP-OWNERSHIP",
+      "TDP-FASTFIX-ADMISSION"
+    ]
   },
   "reads": {
     "contracts": [
@@ -47,7 +50,12 @@
   ],
   "contextPack": {
     "maxBytes": 65536,
-    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "proof-plan"
+    ]
   },
   "proof": {
     "budget": {
@@ -57,7 +65,11 @@
     "commands": [
       {
         "id": "geospatial-ownership-regression",
-        "argv": ["node", "--test", "tooling/ci/local-fast-gate.test.mjs"],
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/local-fast-gate.test.mjs"
+        ],
         "timeoutSeconds": 180
       }
     ],
