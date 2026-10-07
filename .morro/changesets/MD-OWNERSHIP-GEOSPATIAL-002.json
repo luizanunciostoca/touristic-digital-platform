@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-OWNERSHIP-GEOSPATIAL-002",
   "objective": "recompose-wave5-geospatial-routing-ownership-on-current-main",
-  "baseSha": "d74ed0ad769fcfe1e29388c7a0e02f090ca2a162",
+  "baseSha": "49f6aadb065d96983bbb7dfaf377658b35d84b2c",
   "branch": "fix/geospatial-routing-ownership-v2-20261007",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
