@@ -10,8 +10,8 @@ export interface GeospatialPolicy {
 
 export const defaultGeospatialPolicy: GeospatialPolicy = {
   mapProvider: "mapbox",
-  routingPrimary: "mapbox-directions",
-  routingFallback: "openrouteservice",
+  routingPrimary: "openrouteservice",
+  routingFallback: "mapbox-directions",
   legacyFallbackEnabled: true,
 };
 

@@ -15,10 +15,10 @@ describe("Morro de São Paulo destination configuration", () => {
   it("preserves the geospatial provider policy from V1", () => {
     expect(morroDeSaoPauloGeospatialPolicy.mapProvider).toBe("mapbox");
     expect(morroDeSaoPauloGeospatialPolicy.routingPrimary).toBe(
-      "mapbox-directions",
+      "openrouteservice",
     );
     expect(morroDeSaoPauloGeospatialPolicy.routingFallback).toBe(
-      "openrouteservice",
+      "mapbox-directions",
     );
     expect(morroDeSaoPauloGeospatialPolicy.legacyFallbackEnabled).toBe(true);
   });
