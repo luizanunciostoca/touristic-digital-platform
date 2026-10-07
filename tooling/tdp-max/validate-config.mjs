@@ -7,6 +7,16 @@ import { fileURLToPath } from "node:url";
 const root = process.cwd();
 const SHA = /^[0-9a-f]{40}$/u;
 const DIGEST = /^sha256:[0-9a-f]{64}$/u;
+const CONTROL_RISK_PATHS = Object.freeze([
+  "tooling/ci/",
+  "tooling/mdctl/",
+  "tooling/tdp-max/",
+  "tooling/control-state/",
+  "tooling/failure-learning/",
+  "tooling/workspace/",
+  ".github/morro-control/",
+  ".github/workflows/",
+]);
 
 async function text(path) {
   return readFile(resolve(root, path), "utf8");
@@ -22,6 +32,32 @@ function equalSet(actual, expected, code) {
     [...new Set(expected)].sort(),
     code,
   );
+}
+
+export function validateRiskCoverage({ riskPolicy, ownership }) {
+  const covered = [
+    ...(riskPolicy?.criticalPaths ?? []),
+    ...(riskPolicy?.highPaths ?? []),
+  ];
+  const ciRelease = (ownership?.domains ?? []).find(
+    (domain) => domain.id === "ci-release",
+  );
+  assert.ok(ciRelease, "TDP_MAX_CI_RELEASE_OWNERSHIP_MISSING");
+  for (const path of CONTROL_RISK_PATHS) {
+    assert.ok(
+      (ciRelease.pathPrefixes ?? []).some(
+        (prefix) => path.startsWith(prefix) || prefix.startsWith(path),
+      ),
+      "TDP_MAX_OWNERSHIP_COVERAGE_GAP:" + path,
+    );
+    assert.ok(
+      covered.some(
+        (prefix) => path.startsWith(prefix) || prefix.startsWith(path),
+      ),
+      "TDP_MAX_RISK_POLICY_COVERAGE_GAP:" + path,
+    );
+  }
+  return { paths: CONTROL_RISK_PATHS.length };
 }
 
 export function validateBootstrapReport(report) {
@@ -122,6 +158,11 @@ export async function validateTdpMaxConfig() {
   );
   const finalGate = await json(".github/morro-control/tdp-max/final-gate.json");
   const fabric = await json(".morro/fabric.json");
+  const riskPolicy = await json(".morro/risk-policy.json");
+  const ownership = await json(".morro/ownership.json");
+  const evidenceGraph = await json(
+    ".github/morro-control/tdp-max/evidence-graph.schema.json",
+  );
   const pkg = await json("package.json");
 
   for (const forbidden of [
@@ -203,6 +244,16 @@ export async function validateTdpMaxConfig() {
     "WORKSPACE_BOOTSTRAP_INCOMPLETE",
     "CONTROL_PROJECTION_DRIFT",
     "PARTIAL_REVIEW_FIX_LOOP",
+    "ACTIVE_CLAIM_IDLE_WITH_HEALTHY_EXECUTOR",
+    "METADATA_ONLY_CODE_PROOF_RERUN",
+    "STALE_RUN_CONTINUED_AFTER_HEAD_ADVANCE",
+    "LATE_CLAIM_SCOPE_EXPANSION",
+    "EVIDENCE_OVER_INVALIDATION",
+    "UNNECESSARY_REANCHOR",
+    "DISPATCH_NOT_READ_BACK",
+    "PROJECTION_STALE_USED_FOR_SCHEDULING",
+    "TRANSPORT_AUTHORITY_CONFLICT",
+    "RISK_POLICY_COVERAGE_GAP",
   ];
   assert.equal(anti.schemaVersion, 1, "TDP_MAX_ANTI_SCHEMA");
   const observedClasses = anti.failures?.map((item) => item.class) ?? [];
@@ -214,6 +265,17 @@ export async function validateTdpMaxConfig() {
   );
   const ids = anti.failures.map((item) => item.id);
   assert.equal(new Set(ids).size, ids.length, "TDP_MAX_ANTI_DUPLICATE_ID");
+  validateRiskCoverage({ riskPolicy, ownership });
+  assert.deepEqual(
+    evidenceGraph.properties.nodes.items.properties.type.enum,
+    ["CODE_BOUND", "STATE_BOUND", "RUNTIME_BOUND", "EXTERNAL_BOUND"],
+    "TDP_MAX_EVIDENCE_GRAPH_TYPES",
+  );
+  assert.deepEqual(
+    evidenceGraph.properties.nodes.items.properties.status.enum,
+    ["PASS", "FAIL", "NOT_RUN", "SKIPPED", "SUPERSEDED"],
+    "TDP_MAX_EVIDENCE_GRAPH_STATUSES",
+  );
 
   assert.deepEqual(
     bootstrap.properties.result.enum,

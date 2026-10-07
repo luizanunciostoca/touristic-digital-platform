@@ -145,6 +145,65 @@ const rawDetectors = {
     ),
 };
 
+const extraRules = {
+  ACTIVE_CLAIM_IDLE_WITH_HEALTHY_EXECUTOR: [
+    {
+      activeClaim: "boolean",
+      workerStarted: "boolean",
+      executorHealthy: "boolean",
+    },
+    (o) => o.activeClaim && !o.workerStarted && o.executorHealthy,
+  ],
+  METADATA_ONLY_CODE_PROOF_RERUN: [
+    { metadataOnly: "boolean", codeProofRerun: "boolean" },
+    (o) => o.metadataOnly && o.codeProofRerun,
+  ],
+  STALE_RUN_CONTINUED_AFTER_HEAD_ADVANCE: [
+    { runHead: "sha", currentHead: "sha", expensiveProofContinued: "boolean" },
+    (o) => o.runHead !== o.currentHead && o.expensiveProofContinued,
+  ],
+  LATE_CLAIM_SCOPE_EXPANSION: [
+    {
+      writeStarted: "boolean",
+      scopeExpanded: "boolean",
+      envelopeUpdatedBeforeWrite: "boolean",
+    },
+    (o) => o.writeStarted && o.scopeExpanded && !o.envelopeUpdatedBeforeWrite,
+  ],
+  EVIDENCE_OVER_INVALIDATION: [
+    { semanticIntersection: "boolean", invalidatedEvidenceCount: "count" },
+    (o) => !o.semanticIntersection && o.invalidatedEvidenceCount > 0,
+  ],
+  UNNECESSARY_REANCHOR: [
+    {
+      mainAdvanced: "boolean",
+      semanticIntersection: "boolean",
+      claimReanchored: "boolean",
+    },
+    (o) => o.mainAdvanced && !o.semanticIntersection && o.claimReanchored,
+  ],
+  DISPATCH_NOT_READ_BACK: [
+    { dispatchAttempted: "boolean", workerStartReadback: "boolean" },
+    (o) => o.dispatchAttempted && !o.workerStartReadback,
+  ],
+  PROJECTION_STALE_USED_FOR_SCHEDULING: [
+    { projectionStale: "boolean", schedulingUsedProjection: "boolean" },
+    (o) => o.projectionStale && o.schedulingUsedProjection,
+  ],
+  TRANSPORT_AUTHORITY_CONFLICT: [
+    {
+      contractTransport: "text",
+      runtimeTransport: "text",
+      conflictResolved: "boolean",
+    },
+    (o) => o.contractTransport !== o.runtimeTransport && !o.conflictResolved,
+  ],
+  RISK_POLICY_COVERAGE_GAP: [
+    { riskPolicyCoverageComplete: "boolean" },
+    (o) => !o.riskPolicyCoverageComplete,
+  ],
+};
+
 // Validate observation types before predicates; JavaScript coercion is not proof.
 const shapes = {
   STALE_HEAD: { expectedHead: "sha", observedHead: "sha" },
@@ -225,6 +284,11 @@ const shapes = {
     reviewFindingsRemaining: "count",
   },
 };
+
+for (const [name, [shape, predicate]] of Object.entries(extraRules)) {
+  rawDetectors[name] = ({ observation }) => pass(predicate(observation));
+  shapes[name] = shape;
+}
 function valid(value, type) {
   if (type === "boolean") return typeof value === "boolean";
   if (type === "count" || type === "positiveCount")

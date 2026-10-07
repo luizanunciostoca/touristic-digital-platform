@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TDP-MAX Evidence Dependency Graph",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "nodes"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "TDP_EVIDENCE_DEPENDENCY_GRAPH" },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "type",
+          "status",
+          "assertion",
+          "source",
+          "validatorRevision",
+          "toolchain",
+          "dependencies",
+          "observedAt",
+          "freshnessSeconds"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "type": {
+            "enum": [
+              "CODE_BOUND",
+              "STATE_BOUND",
+              "RUNTIME_BOUND",
+              "EXTERNAL_BOUND"
+            ]
+          },
+          "status": {
+            "enum": ["PASS", "FAIL", "NOT_RUN", "SKIPPED", "SUPERSEDED"]
+          },
+          "assertion": { "type": "string", "minLength": 1 },
+          "source": { "type": "string", "minLength": 1 },
+          "candidateSha": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "treeSha": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9a-f]{40}$"
+          },
+          "validatorRevision": { "type": "string", "minLength": 1 },
+          "environment": { "type": ["string", "null"] },
+          "toolchain": { "type": "string", "minLength": 1 },
+          "dependencies": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "observedAt": { "type": "string", "format": "date-time" },
+          "freshnessSeconds": { "type": "integer", "minimum": 0 },
+          "supersededBy": { "type": ["string", "null"] }
+        }
+      }
+    }
+  }
+}

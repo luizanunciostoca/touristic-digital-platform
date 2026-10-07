@@ -1,77 +1,55 @@
 import assert from "node:assert/strict";
 import { pathOwned } from "../fabric/claim-guard.mjs";
 import { validateChangeSetV2 } from "./changeset-v2.mjs";
-
-const WEIGHT = { low: 1, medium: 2, high: 3, critical: 4 };
-
-function pathRisk(path, policy) {
-  if ((policy.criticalPaths ?? []).some((prefix) => path.includes(prefix)))
-    return "critical";
-  if ((policy.highPaths ?? []).some((prefix) => path.includes(prefix)))
-    return "high";
-  if (
-    (policy.lowExtensions ?? []).some((extension) => path.endsWith(extension))
-  )
-    return "low";
-  return "medium";
-}
-
-function maximumRisk(values) {
-  return values.reduce(
-    (best, value) => (WEIGHT[value] > WEIGHT[best] ? value : best),
-    "low",
-  );
-}
-
-export function buildChangeEnvelope({
-  rootCause,
-  semanticImpact,
-  probablePaths,
-  contracts = [],
-  entities = [],
-  dependencies = [],
-  tests = [],
-  build = [],
-  proofPlan = [],
-  changeSet,
-  ownership,
-  riskPolicy,
-}) {
-  assert.equal(
-    typeof rootCause,
-    "string",
-    "CHANGE_ENVELOPE_ROOT_CAUSE_REQUIRED",
-  );
-  assert.ok(rootCause.trim(), "CHANGE_ENVELOPE_ROOT_CAUSE_REQUIRED");
-  assert.equal(
-    typeof semanticImpact,
-    "string",
-    "CHANGE_ENVELOPE_IMPACT_REQUIRED",
-  );
-  assert.ok(semanticImpact.trim(), "CHANGE_ENVELOPE_IMPACT_REQUIRED");
-  validateChangeSetV2(changeSet);
+const weight = { low: 1, medium: 2, high: 3, critical: 4 },
+  highest = (xs) => xs.reduce((a, b) => (weight[b] > weight[a] ? b : a), "low");
+const riskForPath = (path, policy) =>
+  (policy.criticalPaths ?? []).some((x) => path.includes(x))
+    ? "critical"
+    : (policy.highPaths ?? []).some((x) => path.includes(x))
+      ? "high"
+      : (policy.lowExtensions ?? []).some((x) => path.endsWith(x))
+        ? "low"
+        : "medium";
+export function buildChangeEnvelope(input) {
+  const {
+    rootCause,
+    semanticImpact,
+    probablePaths,
+    contracts = [],
+    entities = [],
+    dependencies = [],
+    tests = [],
+    build = [],
+    proofPlan = [],
+    changeSet,
+    ownership,
+    riskPolicy,
+  } = input;
   assert.ok(
-    Array.isArray(probablePaths) && probablePaths.length > 0,
-    "CHANGE_ENVELOPE_PATHS_REQUIRED",
+    rootCause?.trim() && semanticImpact?.trim() && probablePaths?.length,
+    "CHANGE_ENVELOPE_INPUT_REQUIRED",
   );
-  const outsideClaim = probablePaths.filter(
-    (path) => !changeSet.owns.paths.some((pattern) => pathOwned(path, pattern)),
-  );
+  validateChangeSetV2(changeSet);
   assert.deepEqual(
-    outsideClaim,
+    probablePaths.filter(
+      (path) =>
+        !changeSet.owns.paths.some((pattern) => pathOwned(path, pattern)),
+    ),
     [],
     "CHANGE_ENVELOPE_SCOPE_EXPANSION_REQUIRED",
   );
-  const domains = (ownership?.domains ?? [])
+  const ownershipDomains = (ownership?.domains ?? [])
     .filter((domain) =>
       probablePaths.some((path) =>
         (domain.pathPrefixes ?? []).some((prefix) => path.startsWith(prefix)),
       ),
     )
     .map((domain) => domain.id);
-  assert.ok(domains.length > 0, "CHANGE_ENVELOPE_OWNERSHIP_UNMAPPED");
-  const pathRisks = probablePaths.map((path) => pathRisk(path, riskPolicy));
-  const riskFloor = maximumRisk([changeSet.risk, ...pathRisks]);
+  assert.ok(ownershipDomains.length, "CHANGE_ENVELOPE_OWNERSHIP_UNMAPPED");
+  const semantic = contracts
+    .map((contract) => riskPolicy.semanticRiskFloor?.[contract])
+    .filter(Boolean);
   return {
     schemaVersion: 1,
     kind: "TDP_CHANGE_ENVELOPE",
@@ -85,13 +63,16 @@ export function buildChangeEnvelope({
     tests: [...tests],
     build: [...build],
     proofPlan: [...proofPlan],
-    ownershipDomains: [...new Set(domains)].sort(),
+    ownershipDomains: [...new Set(ownershipDomains)].sort(),
     declaredRisk: changeSet.risk,
-    riskFloor,
+    riskFloor: highest([
+      changeSet.risk,
+      ...probablePaths.map((path) => riskForPath(path, riskPolicy)),
+      ...semantic,
+    ]),
     scopeExpansionRequired: false,
   };
 }
-
 export function assertScopeExpansionAuthorized({
   currentEnvelope,
   requestedPaths,
@@ -99,10 +80,20 @@ export function assertScopeExpansionAuthorized({
 }) {
   assert.ok(currentEnvelope?.changeSetId, "CHANGE_ENVELOPE_REQUIRED");
   validateChangeSetV2(expandedChangeSet);
-  const unowned = requestedPaths.filter(
-    (path) =>
-      !expandedChangeSet.owns.paths.some((pattern) => pathOwned(path, pattern)),
+  assert.equal(
+    expandedChangeSet.id,
+    currentEnvelope.changeSetId,
+    "CHANGE_ENVELOPE_CHANGESET_MISMATCH",
   );
-  assert.deepEqual(unowned, [], "CHANGE_ENVELOPE_EXPANSION_UNCLAIMED");
+  assert.deepEqual(
+    requestedPaths.filter(
+      (path) =>
+        !expandedChangeSet.owns.paths.some((pattern) =>
+          pathOwned(path, pattern),
+        ),
+    ),
+    [],
+    "CHANGE_ENVELOPE_EXPANSION_UNCLAIMED",
+  );
   return true;
 }
