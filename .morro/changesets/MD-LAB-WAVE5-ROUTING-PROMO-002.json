@@ -4,7 +4,7 @@
   "objective": "promote-lab-wave5-routing-policy-to-current-product-main",
   "baseSha": "8f50ae65f287dae3efa4a99594cd98b05473b8d8",
   "branch": "wave/product-wave5-routing-policy-r2-20261007",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
