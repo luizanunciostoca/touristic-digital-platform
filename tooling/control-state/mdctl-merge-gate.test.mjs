@@ -39,6 +39,27 @@ const OLD_BASE = "a".repeat(40);
 const BRANCH = "feat/gated";
 const OLD_BRANCH = "feat/previous";
 
+test("trusted claim guard bootstrap runs for every pull request without path filtering", () => {
+  const source = readFileSync(
+    join(
+      process.cwd(),
+      ".github/workflows/morro-claim-guard-trust-bootstrap.yml",
+    ),
+    "utf8",
+  );
+  const trigger = source.slice(
+    source.indexOf("on:\n"),
+    source.indexOf("\npermissions:"),
+  );
+  assert.match(trigger, /^  pull_request:\n/mu);
+  assert.match(
+    trigger,
+    /^    types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]$/mu,
+  );
+  assert.doesNotMatch(trigger, /^    paths:/mu);
+  assert.doesNotMatch(trigger, /^    paths-ignore:/mu);
+});
+
 test("merge-gate workflow shares the required context across PR and merge-group events", () => {
   const source = readFileSync(
     join(process.cwd(), ".github/workflows/morro-merge-gate.yml"),
