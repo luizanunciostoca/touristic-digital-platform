@@ -19,6 +19,28 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-07T03:52:02.788Z"
+    },
+    "MD-TDP-V32-OPT-001": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "infra/tdp-v32-opt-001-20261006",
+      "baseSha": "e7cf067f5f010bcc6ac8608db5ea7202b39368c3",
+      "paths": [
+        ".morro/changesets/MD-TDP-V32-OPT-001.json",
+        ".morro/risk-policy.json",
+        ".github/morro-control/tdp-max/**",
+        ".github/morro-control/backlog.json",
+        ".github/morro-control/dependency-graph.json",
+        "tooling/fabric/**",
+        "tooling/mdctl/**",
+        "tooling/control-state/**",
+        "tooling/failure-learning/**",
+        "tooling/tdp-max/**"
+      ],
+      "domains": ["ci-release", "control-plane", "governance"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-07T08:00:00.000Z"
     }
   }
 }
