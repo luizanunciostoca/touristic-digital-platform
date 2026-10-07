@@ -9,17 +9,14 @@
   "scope": "PLATFORM",
   "owns": {
     "paths": [
-      ".morro/changesets/MD-LAB-WAVE5-ROUTING-005.json",
+      ".morro/changesets/MD-LAB-WAVE5-ROUTING-006.json",
       "apps/morro-digital-platform/src/config/destination.test.ts",
       "docs/adr/0003-geospatial-provider-strategy.md",
       "packages/geospatial/src/index.ts",
       "packages/geospatial/src/routing-policy.test.ts",
       "tooling/geospatial/routing-policy-promotion.contract.mjs"
     ],
-    "contracts": [
-      "GEOSPATIAL-ROUTING-POLICY",
-      "GEOSPATIAL-PROVIDER-STRATEGY"
-    ]
+    "contracts": ["GEOSPATIAL-ROUTING-POLICY", "GEOSPATIAL-PROVIDER-STRATEGY"]
   },
   "reads": {
     "contracts": [
