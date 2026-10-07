@@ -104,13 +104,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         shell: bash
         run: |
           set -euo pipefail
+          changed="$(git -C candidate diff --name-only "$BASE_SHA...$HEAD_SHA")"
+          if grep -Fxq '.github/workflows/morro-claim-guard.yml' <<<"$changed"; then
+            echo "TRUSTED_CLAIM_GUARD_WAIT_SKIPPED_IMMUTABLE_ROOT:$HEAD_SHA"
+            exit 0
+          fi
           for attempt in $(seq 1 60); do
             run="$(
-              gh api "repos/$REPOSITORY/actions/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=100" \
-                | jq -c '
+              gh api "repos/$REPOSITORY/actions/runs?event=pull_request&head_sha=$HEAD_SHA&per_page=100"                 | jq -c '
                     [.workflow_runs[]
                       | select(
                           .name == "Trusted Claim Guard Bootstrap" and

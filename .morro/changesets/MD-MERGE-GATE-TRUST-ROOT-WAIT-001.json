@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MERGE-GATE-TRUST-ROOT-WAIT-001",
   "objective": "fail-fast-merge-gate-wait-for-immutable-trust-root-candidates",
-  "baseSha": "514642f625a44d8b25363a4d162c132b70f84139",
+  "baseSha": "27a1f6cd2087f9c0f582774c11bb77d0cfd63cd0",
   "branch": "fix/merge-gate-trust-root-wait-20261007",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
