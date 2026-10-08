@@ -14,7 +14,7 @@
         "services/ticketing/src/verified-financial-result-processor.test.ts"
       ],
       "domains": ["ticketing"],
-      "risk": "P2",
+      "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-09T03:00:00.000Z"
     }
