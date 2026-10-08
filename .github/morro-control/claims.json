@@ -1,5 +1,22 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-TICKETING-FINANCIAL-DIAG-819": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-ticketing-financial-diagnostics-819",
+      "baseSha": "d4e97ccd77df0a469f35f1c2eea28cd6c4275408",
+      "paths": [
+        ".morro/changesets/MD-TICKETING-FINANCIAL-DIAG-819.json",
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "services/ticketing/src/verified-financial-result-processor.ts",
+        "services/ticketing/src/verified-financial-result-processor.test.ts"
+      ],
+      "domains": ["ticketing"],
+      "risk": "P2",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-09T03:00:00.000Z"
+    }
+  }
 }
