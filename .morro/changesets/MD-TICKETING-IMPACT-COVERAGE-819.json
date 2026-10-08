@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-TICKETING-IMPACT-COVERAGE-819",
   "objective": "cover-exact-ticketing-financial-runtime-in-critical-ci-impact-map",
-  "baseSha": "cc94d443b03251d974bbcf23f9f0693a629bea29",
+  "baseSha": "1aa972bcb1eef3455e689db001753fb6f8ac643e",
   "branch": "chore/ticketing-impact-coverage-819-20261008",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
