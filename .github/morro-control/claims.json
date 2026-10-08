@@ -17,6 +17,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-09T03:00:00.000Z"
+    },
+    "MD-TICKETING-IMPACT-COVERAGE-819": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/ticketing-impact-coverage-819-20261008",
+      "baseSha": "cc94d443b03251d974bbcf23f9f0693a629bea29",
+      "paths": [
+        ".morro/changesets/MD-TICKETING-IMPACT-COVERAGE-819.json",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer-exact-path.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-09T12:00:00.000Z"
     }
   }
 }

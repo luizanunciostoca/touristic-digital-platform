@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TICKETING-IMPACT-COVERAGE-819",
+  "objective": "cover-exact-ticketing-financial-runtime-in-critical-ci-impact-map",
+  "baseSha": "cc94d443b03251d974bbcf23f9f0693a629bea29",
+  "branch": "chore/ticketing-impact-coverage-819-20261008",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TICKETING-IMPACT-COVERAGE-819.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer-exact-path.test.mjs"
+    ],
+    "contracts": ["TDP-TICKETING-CRITICAL-IMPACT-MAPPING"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ticketing-impact-classification",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/impact-analyzer-exact-path.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
