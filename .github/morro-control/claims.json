@@ -36,7 +36,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/manual28-auth-foundation-20261008",
-      "baseSha": "529d86f4a64c2329aaef5fa4008db5ae1727022b",
+      "baseSha": "89695cf4b5e0f07e1885617ba384a7aa693c343d",
       "paths": [
         ".morro/changesets/MD-MANUAL28-AUTH-FOUNDATION-001.json",
         "packages/auth/src/index.ts",
