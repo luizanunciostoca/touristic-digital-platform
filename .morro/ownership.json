@@ -19,7 +19,8 @@
       "pathPrefixes": [
         "packages/ticketing/",
         "services/ticketing/",
-        "tooling/ticketing/"
+        "tooling/ticketing/",
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs"
       ],
       "contracts": ["ticket-fulfillment"]
     },
