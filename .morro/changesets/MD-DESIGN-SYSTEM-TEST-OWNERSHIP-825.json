@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-DESIGN-SYSTEM-TEST-OWNERSHIP-825",
   "objective": "map-design-system-test-package-config-to-canonical-ci-release-owner",
-  "baseSha": "25ed3898f77625cf5b0f5eda2a163c52ea55f7df",
+  "baseSha": "7bef8f88ffc8a9eea26d4ebfcac97b33e404f3c3",
   "branch": "chore/design-system-test-ownership-825-20261008",
   "state": "IMPLEMENTING",
   "risk": "high",
