@@ -1,3 +1,4 @@
+import { matchesOwnershipPath } from "../fabric/ownership-path.mjs";
 import assert from "node:assert/strict";
 import { pathOwned } from "../fabric/claim-guard.mjs";
 import { validateChangeSetV2 } from "./changeset-v2.mjs";
@@ -42,7 +43,9 @@ export function buildChangeEnvelope(input) {
   const ownershipDomains = (ownership?.domains ?? [])
     .filter((domain) =>
       probablePaths.some((path) =>
-        (domain.pathPrefixes ?? []).some((prefix) => path.startsWith(prefix)),
+        (domain.pathPrefixes ?? []).some((prefix) =>
+          matchesOwnershipPath(path, prefix),
+        ),
       ),
     )
     .map((domain) => domain.id);

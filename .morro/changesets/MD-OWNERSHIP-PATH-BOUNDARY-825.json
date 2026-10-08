@@ -66,12 +66,8 @@
     },
     "commands": [
       {
-        "id": "design-system-test-ownership-claim",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
-        ],
+        "id": "ownership-boundary-regression",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
         "timeoutSeconds": 600
       }
     ],
