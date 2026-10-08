@@ -31,6 +31,25 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-09T06:00:00.000Z"
+    },
+    "MD-OWNERSHIP-PATH-BOUNDARY-825": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/ownership-path-boundary-825-20261008",
+      "baseSha": "7bef8f88ffc8a9eea26d4ebfcac97b33e404f3c3",
+      "paths": [
+        ".morro/changesets/MD-OWNERSHIP-PATH-BOUNDARY-825.json",
+        "tooling/fabric/ownership-path.mjs",
+        "tooling/fabric/ownership-path.test.mjs",
+        "tooling/fabric/plan-change.mjs",
+        "tooling/fabric/compute-impact.mjs",
+        "tooling/mdctl/change-envelope.mjs",
+        "tooling/ci/local-fast-gate.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-09T08:00:00.000Z"
     }
   }
 }
