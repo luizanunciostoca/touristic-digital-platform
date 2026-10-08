@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-MANUAL28-AUTH-FOUNDATION-001",
   "objective": "manual28-opaque-passwords-unique-principals-support-revocation",
-  "baseSha": "89695cf4b5e0f07e1885617ba384a7aa693c343d",
-  "branch": "fix/manual28-auth-foundation-20261008",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "d18d7a2227b242ee92432e309ba38efda1c243b6",
+  "branch": "chore/retire-manual28-credentials-d18d7a2227b2",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
