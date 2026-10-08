@@ -17,6 +17,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-09T03:00:00.000Z"
+    },
+    "MD-DESIGN-SYSTEM-TEST-OWNERSHIP-825": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/design-system-test-ownership-825-20261008",
+      "baseSha": "25ed3898f77625cf5b0f5eda2a163c52ea55f7df",
+      "paths": [
+        ".morro/changesets/MD-DESIGN-SYSTEM-TEST-OWNERSHIP-825.json",
+        ".morro/ownership.json"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-09T06:00:00.000Z"
     }
   }
 }
