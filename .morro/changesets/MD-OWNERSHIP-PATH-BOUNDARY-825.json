@@ -4,7 +4,7 @@
   "objective": "restore-exact-ownership-boundaries-across-planning-and-admission",
   "baseSha": "7bef8f88ffc8a9eea26d4ebfcac97b33e404f3c3",
   "branch": "fix/ownership-path-boundary-825-20261008",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
@@ -66,12 +66,8 @@
     },
     "commands": [
       {
-        "id": "design-system-test-ownership-claim",
-        "argv": [
-          "node",
-          "--test",
-          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
-        ],
+        "id": "ownership-boundary-regression",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
         "timeoutSeconds": 600
       }
     ],
