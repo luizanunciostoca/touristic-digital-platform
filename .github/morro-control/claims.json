@@ -22,7 +22,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/ticketing-impact-coverage-819-20261008",
-      "baseSha": "cc94d443b03251d974bbcf23f9f0693a629bea29",
+      "baseSha": "1aa972bcb1eef3455e689db001753fb6f8ac643e",
       "paths": [
         ".morro/changesets/MD-TICKETING-IMPACT-COVERAGE-819.json",
         "tooling/ci/test-impact-manifest.json",
