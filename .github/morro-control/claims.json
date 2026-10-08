@@ -17,20 +17,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-09T03:00:00.000Z"
-    },
-    "MD-TICKETING-OWNERSHIP-COVERAGE-819": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/ticketing-ownership-coverage-819",
-      "baseSha": "00d70d99661a0593d6702633298c99bae51c5047",
-      "paths": [
-        ".morro/changesets/MD-TICKETING-OWNERSHIP-COVERAGE-819.json",
-        ".morro/ownership.json"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-09T03:00:00.000Z"
     }
   }
 }
