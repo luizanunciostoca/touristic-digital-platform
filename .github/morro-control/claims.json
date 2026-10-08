@@ -31,23 +31,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-09T03:00:00.000Z"
-    },
-    "MD-MANUAL28-AUTH-FOUNDATION-001": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/manual28-auth-foundation-20261008",
-      "baseSha": "89695cf4b5e0f07e1885617ba384a7aa693c343d",
-      "paths": [
-        ".morro/changesets/MD-MANUAL28-AUTH-FOUNDATION-001.json",
-        "packages/auth/src/index.ts",
-        "packages/auth/src/index.test.ts",
-        "services/auth/src/credentials.ts",
-        "services/auth/src/credentials.test.ts"
-      ],
-      "domains": ["auth"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-09T03:00:00.000Z"
     }
   }
 }
