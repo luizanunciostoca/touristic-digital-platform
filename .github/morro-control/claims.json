@@ -22,7 +22,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "chore/design-system-test-ownership-825-20261008",
-      "baseSha": "25ed3898f77625cf5b0f5eda2a163c52ea55f7df",
+      "baseSha": "7bef8f88ffc8a9eea26d4ebfcac97b33e404f3c3",
       "paths": [
         ".morro/changesets/MD-DESIGN-SYSTEM-TEST-OWNERSHIP-825.json",
         ".morro/ownership.json"
