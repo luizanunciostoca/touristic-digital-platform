@@ -218,60 +218,6 @@ describe("M47 auth core", () => {
     });
   });
 
-  it("allows only SUPPORT session revocation through the read-only mutation gate", () => {
-    const support = { ...activeSession, role: "SUPPORT" as const };
-    expect(
-      authorizeBusinessAccess(support, "toca-do-morcego", {
-        mutation: true,
-        nowEpochSeconds: activeNow,
-      }),
-    ).toMatchObject({ allowed: false, reason: "read_only_role" });
-    expect(
-      authorizeCapability(support, "users.sessions.revoke", {
-        mutation: true,
-        nowEpochSeconds: activeNow,
-        businessId: activeSession.businessIds[0],
-      }),
-    ).toMatchObject({ allowed: true });
-    expect(
-      authorizeCapability(support, "users.read", {
-        mutation: true,
-        nowEpochSeconds: activeNow,
-      }),
-    ).toMatchObject({ allowed: false, reason: "read_only_role" });
-    expect(
-      authorizeCapability(support, "financial.refund", {
-        mutation: true,
-        nowEpochSeconds: activeNow,
-      }),
-    ).toMatchObject({ allowed: false, reason: "capability_denied" });
-    expect(
-      authorizeCapability(support, "users.sessions.revoke", {
-        mutation: true,
-        nowEpochSeconds: support.expiresAt,
-      }),
-    ).toMatchObject({ allowed: false, reason: "session_expired" });
-    expect(
-      authorizeCapability(support, "users.sessions.revoke", {
-        mutation: true,
-        nowEpochSeconds: activeNow,
-        businessId: "invalid business",
-      }),
-    ).toMatchObject({ allowed: false, reason: "invalid_business_id" });
-    for (const role of ["viewer", "AUDITOR", "owner"] as const) {
-      expect(
-        authorizeCapability(
-          { ...activeSession, role },
-          "users.sessions.revoke",
-          {
-            mutation: true,
-            nowEpochSeconds: activeNow,
-          },
-        ),
-      ).toMatchObject({ allowed: false, reason: "capability_denied" });
-    }
-  });
-
   it("requires authentication before evaluating tenant input", () => {
     expect(
       authorizeBusinessAccess(null, "invalid business", {
