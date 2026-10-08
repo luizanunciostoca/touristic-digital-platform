@@ -31,7 +31,7 @@ function preparedPatchDigest() {
   const paths = Object.keys(EXPECTED_BLOBS).sort();
   const patch = execFileSync(
     "git",
-    ["diff", "--binary", LAB_SOURCE_PIN, "--", ...paths],
+    ["diff", "--binary", "--abbrev=8", LAB_SOURCE_PIN, "--", ...paths],
     { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 },
   );
   return createHash("sha256").update(patch).digest("hex");
