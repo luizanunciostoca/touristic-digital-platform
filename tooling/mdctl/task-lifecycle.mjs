@@ -517,6 +517,7 @@ export function buildTaskCorrection({
   claimRegistry,
   identity,
   isAncestor,
+  readCandidateDiff,
   now = () => new Date().toISOString(),
   ttlSeconds = 1800,
   idFactory = randomUUID,
@@ -675,13 +676,46 @@ export function buildTaskCorrection({
     [...successor.owns.paths].sort(),
     "TASK_CORRECTION_CLAIM_SCOPE_MISMATCH",
   );
+  // This pure API trusts the caller's authenticated Git reader, just as it
+  // trusts isAncestor. The callback must read the exact Git diff, not a
+  // caller-supplied list or an empty fallback; it grants no execution authority.
+  assert.equal(
+    typeof readCandidateDiff,
+    "function",
+    "TASK_CORRECTION_DIFF_READER_REQUIRED",
+  );
+  const diffIdentity = Object.freeze({
+    baseSha: successor.baseSha,
+    headSha: identity?.headSha,
+    treeSha: identity?.treeSha,
+  });
+  const candidateDiff = readCandidateDiff(diffIdentity);
+  assert.ok(candidateDiff, "TASK_CORRECTION_DIFF_REQUIRED");
+  for (const key of ["baseSha", "headSha", "treeSha"]) {
+    assert.equal(
+      candidateDiff[key],
+      diffIdentity[key],
+      "TASK_CORRECTION_DIFF_IDENTITY_MISMATCH:" + key,
+    );
+  }
+  const changedFiles = candidateDiff.changedFiles;
+  assert.ok(
+    Array.isArray(changedFiles) &&
+      changedFiles.every((path) => typeof path === "string" && path.length > 0),
+    "TASK_CORRECTION_DIFF_PATHS_INVALID",
+  );
+  assert.equal(
+    new Set(changedFiles).size,
+    changedFiles.length,
+    "TASK_CORRECTION_DIFF_PATHS_DUPLICATE",
+  );
   validateClaimContext({
     registry: claimRegistry,
     manifest: successor,
     branch: identity?.branch,
     currentBaseSha: successor.baseSha,
     branchHeadSha: identity?.headSha,
-    changedFiles: [],
+    changedFiles,
     now: Date.parse(timestamp),
     authority: "WORKER",
     isAncestor,

@@ -309,3 +309,53 @@ for (const path of [MAN, REG, LED]) {
     );
   });
 }
+
+for (const kind of ["acquisition", "worker"]) {
+  for (const path of [MAN, LED, ".morro/ownership.json"]) {
+    test(`${kind} rejects Git-unbound hidden input ${path}`, async (t) => {
+      const f = setup(t, true);
+      let base = f.base;
+      let head = f.head;
+      if (kind === "worker") {
+        base = head;
+        f.put("tooling/ci/local-fast-gate.mjs", "export {};\n");
+        head = f.commit();
+      }
+      await validateAdmission(base, head, changedFiles(base), options);
+      const original = readFileSync(join(f.root, path), "utf8");
+      // Commit invalid bytes; hide restored valid bytes from git status.
+      f.put(path, "{}\n");
+      head = f.commit();
+      f.git("update-index", "--skip-worktree", "--", path);
+      writeFileSync(join(f.root, path), original);
+      assert.equal(f.git("status", "--porcelain", "--untracked-files=all"), "");
+      await assert.rejects(
+        validateAdmission(base, head, changedFiles(base), options),
+        /FAST_GATE_INPUT_CONTENT_MISMATCH/,
+      );
+    });
+    test(`${kind} rejects symlink input ${path}`, async (t) => {
+      const f = setup(t, true);
+      let base = f.base;
+      let head = f.head;
+      if (kind === "worker") {
+        base = head;
+        f.put("tooling/ci/local-fast-gate.mjs", "export {};\n");
+        head = f.commit();
+      }
+      await validateAdmission(base, head, changedFiles(base), options);
+      const external = mkdtempSync(join(tmpdir(), "tdp-admission-input-"));
+      t.after(() => rmSync(external, { recursive: true, force: true }));
+      const target = join(external, "input");
+      writeFileSync(target, readFileSync(join(f.root, path)));
+      rmSync(join(f.root, path));
+      symlinkSync(target, join(f.root, path));
+      head = f.commit();
+      assert.equal(f.git("status", "--porcelain", "--untracked-files=all"), "");
+      await assert.rejects(
+        validateAdmission(base, head, changedFiles(base), options),
+        /FAST_GATE_INPUT_NOT_REGULAR/,
+      );
+    });
+  }
+}

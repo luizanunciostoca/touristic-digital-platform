@@ -119,6 +119,11 @@ async function fixture() {
       headSha: "d".repeat(40),
     },
     isAncestor: () => true,
+    // Deterministic fixture for the trusted Git reader, not runtime evidence.
+    readCandidateDiff: (identity) => ({
+      ...identity,
+      changedFiles: ["tooling/mdctl/correction.mjs"],
+    }),
     now: "2026-10-01T09:10:00Z",
     idFactory,
   };
@@ -248,3 +253,54 @@ for (const [name, paths] of [
     );
     assert.deepEqual(f.leaseRegistry, before);
   });
+
+for (const [name, mutate, code] of [
+  ["missing reader", (f) => delete f.readCandidateDiff, /DIFF_READER_REQUIRED/],
+  [
+    "missing result",
+    (f) => (f.readCandidateDiff = () => null),
+    /DIFF_REQUIRED/,
+  ],
+  ...["baseSha", "headSha", "treeSha"].map((key) => [
+    `stale ${key}`,
+    (f) => {
+      const read = f.readCandidateDiff;
+      f.readCandidateDiff = (identity) => ({
+        ...read(identity),
+        [key]: "f".repeat(40),
+      });
+    },
+    /DIFF_IDENTITY_MISMATCH/,
+  ]),
+  [
+    "out-of-scope candidate",
+    (f) =>
+      (f.readCandidateDiff = (identity) => ({
+        ...identity,
+        changedFiles: ["services/financial/unclaimed.ts"],
+      })),
+    /CLAIM_PATH_VIOLATION/,
+  ],
+  [
+    "missing paths",
+    (f) => (f.readCandidateDiff = (identity) => ({ ...identity })),
+    /DIFF_PATHS_INVALID/,
+  ],
+  [
+    "duplicate paths",
+    (f) =>
+      (f.readCandidateDiff = (identity) => ({
+        ...identity,
+        changedFiles: ["tooling/mdctl/a.mjs", "tooling/mdctl/a.mjs"],
+      })),
+    /DIFF_PATHS_DUPLICATE/,
+  ],
+]) {
+  test(`correction rejects ${name} without proposing leases`, async () => {
+    const f = await fixture();
+    mutate(f);
+    const before = structuredClone({ task: f.task, leases: f.leaseRegistry });
+    assert.throws(() => buildTaskCorrection(f), code);
+    assert.deepEqual({ task: f.task, leases: f.leaseRegistry }, before);
+  });
+}

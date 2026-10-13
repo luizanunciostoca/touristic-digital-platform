@@ -414,6 +414,11 @@ export async function validateAdmission(
   assert.equal(matching.length, 1, "FAST_GATE_ACTIVE_CLAIM_RESOLUTION_FAILED");
   const [claimId] = matching[0];
   const manifestPath = `.morro/changesets/${claimId}.json`;
+  // All delegated worktree reads must describe the exact candidate blobs.
+  // Acquisition introduces its manifest, so it need not exist in the base.
+  for (const path of [manifestPath, ledgerPath, ".morro/ownership.json"]) {
+    assertGitBoundInput(path, headSha, true);
+  }
   const manifest = json(manifestPath);
   const authority =
     files.includes(registryPath) || files.includes(ledgerPath)

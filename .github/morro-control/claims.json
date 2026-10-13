@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/local-admission-recovery-837-20261013",
-      "baseSha": "b4f16c8e4db2a52a710a6520e7233ca0e9fd3636",
+      "baseSha": "3a09fc5d122e734d026c0c1f2b48197d8ddd6c71",
       "paths": [
         ".morro/changesets/MD-LOCAL-ADMISSION-RECOVERY-837.json",
         "tooling/ci/local-fast-gate.mjs",
