@@ -159,7 +159,7 @@ jobs:
           output: trivy-application-vulnerabilities.json
       - name: Upload application vulnerability evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sec07-application-vulnerabilities-${{ github.run_id }}
           path: trivy-application-vulnerabilities.json
@@ -200,7 +200,7 @@ jobs:
           output: trivy-mysql-vulnerabilities.json
       - name: Upload MySQL vulnerability evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sec07-mysql-vulnerabilities-${{ github.run_id }}
           path: trivy-mysql-vulnerabilities.json
@@ -241,7 +241,7 @@ jobs:
           output: trivy-production-mysql-vulnerabilities.json
       - name: Upload production MySQL vulnerability evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: production-mysql-vulnerabilities-${{ github.run_id }}
           path: trivy-production-mysql-vulnerabilities.json
@@ -276,7 +276,7 @@ jobs:
           output: trivy-production-mysql-dr-vulnerabilities.json
       - name: Upload production MySQL DR vulnerability evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: production-mysql-dr-vulnerabilities-${{ github.run_id }}
           path: trivy-production-mysql-dr-vulnerabilities.json

@@ -371,7 +371,7 @@ jobs:
 
       - name: Upload PR merge-gate decision
         if: always() && github.event_name == 'pull_request'
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: morro-merge-gate-${{ github.event.pull_request.head.sha }}
           path: merge-gate-decision.json
@@ -405,7 +405,7 @@ jobs:
 
       - name: Upload merge-group decision
         if: always() && github.event_name == 'merge_group'
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: morro-merge-group-gate-${{ github.sha }}
           path: merge-group-decision.json
