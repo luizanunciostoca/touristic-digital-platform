@@ -9,6 +9,7 @@ import {
   assertRequiredCapabilityLeases,
   createLeaseRegistry,
   releaseCapabilityLeases,
+  validateLeaseRegistry,
 } from "./capability-leases.mjs";
 import { buildContextPack, validateContextPack } from "./context-pack.mjs";
 import {
@@ -16,6 +17,7 @@ import {
   changeSetDigest,
   validateChangeSetV2,
 } from "./changeset-v2.mjs";
+import { validateClaimContext } from "../fabric/claim-guard.mjs";
 import { planEvidenceReuse } from "./evidence-graph.mjs";
 
 const execute = promisify(execFile);
@@ -500,6 +502,222 @@ export function buildTaskSubmit({
     },
     handoff,
     leaseRegistry: releasedRegistry,
+  };
+}
+
+// Pure preparation API. The caller must authenticate the registry and Git
+// identities, reserve execution, and persist atomically before running work.
+// This does not reopen or overwrite the submitted task or its receipt.
+export function buildTaskCorrection({
+  task,
+  changeSet,
+  handoff,
+  successor,
+  leaseRegistry,
+  claimRegistry,
+  identity,
+  isAncestor,
+  now = () => new Date().toISOString(),
+  ttlSeconds = 1800,
+  idFactory = randomUUID,
+}) {
+  validateChangeSetV2(changeSet);
+  validateChangeSetV2(successor);
+  validateLeaseRegistry(leaseRegistry);
+  assert.equal(task?.state, "SUBMITTED", "TASK_CORRECTION_REQUIRES_SUBMITTED");
+  assert.equal(task.changeSetId, changeSet.id, "TASK_CHANGESET_MISMATCH");
+  assert.equal(
+    task.changeSetDigest,
+    changeSetDigest(changeSet),
+    "TASK_CHANGESET_DIGEST_MISMATCH",
+  );
+  assert.equal(task.branch, changeSet.branch, "TASK_BRANCH_MISMATCH");
+  assert.equal(task.baseSha, changeSet.baseSha, "TASK_BASE_MISMATCH");
+  validateTaskLocalProof({ proof: task.localProof, task, changeSet });
+  const expectedPayload = {
+    schemaVersion: 1,
+    kind: "TDP_TASK_HANDOFF",
+    changeSetId: changeSet.id,
+    changeSetDigest: task.changeSetDigest,
+    owner: task.owner,
+    branch: task.branch,
+    baseSha: task.baseSha,
+    candidateSha: task.candidateSha,
+    treeSha: task.treeSha,
+    contextPackDigest: task.contextPackDigest,
+    localProofDigest: task.localProof.digest,
+    requiredRemoteEvidence: changeSet.proof.requiredRemoteEvidence,
+    nextState: "REMOTE_PROVEN",
+    authority: "WORKER_SUBMISSION_NOT_REMOTE_PROOF",
+    generatedAt: task.submittedAt,
+  };
+  const expectedHandoff = {
+    ...expectedPayload,
+    digest: digest(expectedPayload),
+  };
+  assert.deepEqual(
+    handoff,
+    expectedHandoff,
+    "TASK_CORRECTION_HANDOFF_MISMATCH",
+  );
+  assert.equal(
+    task.handoffDigest,
+    handoff.digest,
+    "TASK_CORRECTION_HANDOFF_DIGEST_MISMATCH",
+  );
+  const timestamp = resolveNow(now);
+  assert.ok(
+    Date.parse(timestamp) >= Date.parse(task.submittedAt),
+    "TASK_CORRECTION_TIME_REVERSED",
+  );
+  assert.ok(
+    Array.isArray(task.leaseIds) && task.leaseIds.length > 0,
+    "TASK_CORRECTION_LEASES_REQUIRED",
+  );
+  assert.equal(
+    task.taskId,
+    "task-" + changeSet.id,
+    "TASK_CORRECTION_TASK_ID_MISMATCH",
+  );
+  assert.equal(
+    new Set(task.leaseIds).size,
+    task.leaseIds.length,
+    "TASK_CORRECTION_DUPLICATE_LEASE",
+  );
+  assert.deepEqual(
+    task.leaseIds.map((id) => leaseRegistry.leases[id]?.capability).sort(),
+    [...changeSet.requiredCapabilities].sort(),
+    "TASK_CORRECTION_CAPABILITIES_MISMATCH",
+  );
+  assert.ok(
+    !Object.values(leaseRegistry.leases).some(
+      (lease) => lease.changeSetId === changeSet.id && lease.state === "ACTIVE",
+    ),
+    "TASK_CORRECTION_LEASE_NOT_RELEASED",
+  );
+  for (const id of task.leaseIds) {
+    const lease = leaseRegistry.leases[id];
+    assert.equal(
+      lease?.state,
+      "RELEASED",
+      "TASK_CORRECTION_LEASE_NOT_RELEASED",
+    );
+    assert.equal(
+      lease.changeSetId,
+      changeSet.id,
+      "TASK_CORRECTION_LEASE_CHANGESET_MISMATCH",
+    );
+    assert.equal(
+      lease.owner,
+      task.owner,
+      "TASK_CORRECTION_LEASE_OWNER_MISMATCH",
+    );
+    assert.equal(
+      lease.branch,
+      task.branch,
+      "TASK_CORRECTION_LEASE_BRANCH_MISMATCH",
+    );
+    assert.equal(
+      lease.scope,
+      changeSet.scope,
+      "TASK_CORRECTION_LEASE_SCOPE_MISMATCH",
+    );
+  }
+  assert.notEqual(
+    successor.id,
+    changeSet.id,
+    "TASK_CORRECTION_NEW_ID_REQUIRED",
+  );
+  assert.notEqual(
+    successor.branch,
+    changeSet.branch,
+    "TASK_CORRECTION_NEW_BRANCH_REQUIRED",
+  );
+  assert.equal(
+    successor.state,
+    "IMPLEMENTING",
+    "TASK_CORRECTION_STATE_INVALID",
+  );
+  assert.deepEqual(
+    [...successor.dependencies].sort(),
+    [...new Set([...changeSet.dependencies, changeSet.id])].sort(),
+    "TASK_CORRECTION_DEPENDENCY_MISMATCH",
+  );
+  const envelope = ({ id, baseSha, branch, state, dependencies, ...rest }) =>
+    rest;
+  const expectedEnvelope = structuredClone(envelope(changeSet));
+  expectedEnvelope.owns.paths = expectedEnvelope.owns.paths.map((path) =>
+    path === `.morro/changesets/${changeSet.id}.json`
+      ? `.morro/changesets/${successor.id}.json`
+      : path,
+  );
+  assert.deepEqual(
+    envelope(successor),
+    expectedEnvelope,
+    "TASK_CORRECTION_AUTHORITY_CHANGED",
+  );
+  assert.equal(
+    typeof isAncestor,
+    "function",
+    "TASK_CORRECTION_ANCESTRY_REQUIRED",
+  );
+  assert.ok(
+    isAncestor(changeSet.baseSha, successor.baseSha),
+    "TASK_CORRECTION_BASE_REGRESSED",
+  );
+  assert.equal(
+    claimRegistry?.claims?.[successor.id]?.owner,
+    task.owner,
+    "TASK_CORRECTION_CLAIM_OWNER_MISMATCH",
+  );
+  assert.deepEqual(
+    [...(claimRegistry.claims[successor.id].paths ?? [])].sort(),
+    [...successor.owns.paths].sort(),
+    "TASK_CORRECTION_CLAIM_SCOPE_MISMATCH",
+  );
+  validateClaimContext({
+    registry: claimRegistry,
+    manifest: successor,
+    branch: identity?.branch,
+    currentBaseSha: successor.baseSha,
+    branchHeadSha: identity?.headSha,
+    changedFiles: [],
+    now: Date.parse(timestamp),
+    authority: "WORKER",
+    isAncestor,
+  });
+  const started = buildTaskStart({
+    changeSet: successor,
+    owner: task.owner,
+    identity,
+    leaseRegistry,
+    now: timestamp,
+    ttlSeconds,
+    idFactory,
+  });
+  assert.ok(
+    started.task.leaseIds.every((id) => !task.leaseIds.includes(id)),
+    "TASK_CORRECTION_LEASE_REUSE_FORBIDDEN",
+  );
+  for (const id of task.leaseIds) {
+    assert.deepEqual(
+      started.leaseRegistry.leases[id],
+      leaseRegistry.leases[id],
+      "TASK_CORRECTION_PREDECESSOR_LEASE_CHANGED",
+    );
+  }
+  return {
+    ...started,
+    task: {
+      ...started.task,
+      supersedes: {
+        taskId: task.taskId,
+        changeSetId: task.changeSetId,
+        candidateSha: task.candidateSha,
+        handoffDigest: task.handoffDigest,
+      },
+    },
+    authority: "LOCAL_CORRECTION_PROPOSAL_NOT_EXECUTION_RESERVATION",
   };
 }
 

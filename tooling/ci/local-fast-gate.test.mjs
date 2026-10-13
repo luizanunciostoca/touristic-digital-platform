@@ -130,7 +130,7 @@ test("admission is distinct, exact-head, claim-aware and pre-proof", () => {
   const source = readFileSync("tooling/ci/local-fast-gate.mjs", "utf8");
   assert.match(source, /--admission/u);
   assert.match(source, /ADMISSION_PASS/u);
-  assert.match(source, /validateClaimContext/u);
+  assert.match(source, /buildClaimGuardProof/u);
   assert.match(source, /assertOwnershipCoverage/u);
   assert.doesNotMatch(source, /: "origin\/main"/u);
   assert.ok(
