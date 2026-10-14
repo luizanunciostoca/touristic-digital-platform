@@ -17,6 +17,64 @@ import {
   classifyQualityProfile,
 } from "./impact-analyzer.mjs";
 
+const markerProofFile =
+  "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs";
+
+function runLegacyMarkerProof({
+  root = process.cwd(),
+  markerProof = markerProofFile,
+} = {}) {
+  if (!existsSync(join(root, markerProof))) {
+    const historicalSha = execFileSync(
+      "git",
+      ["-C", root, "log", "--format=%H", "-1", "HEAD", "--", markerProof],
+      { encoding: "utf8" },
+    ).trim();
+    assert.equal(historicalSha, "", "LEGACY_PUBLICATION_MARKER_TEST_DELETED");
+    console.log("LEGACY_MARKER_PROOF_NOT_RUN_IMPLEMENTATION_ABSENT");
+    return "NOT_RUN";
+  }
+  // Node's parent test runner sets NODE_TEST_CONTEXT; an inherited value
+  // causes a nested --test invocation to skip tests while exiting zero.
+  const independentEnv = Object.fromEntries(
+    Object.entries(process.env).filter(([key]) => key !== "NODE_TEST_CONTEXT"),
+  );
+  const proof = spawnSync(
+    process.execPath,
+    ["--test", "--test-reporter=tap", markerProof],
+    {
+      cwd: root,
+      encoding: "utf8",
+      env: independentEnv,
+      timeout: 45000,
+    },
+  );
+  assert.equal(
+    proof.status,
+    0,
+    "LEGACY_PUBLICATION_MARKER_REGRESSION: " +
+      String(proof.stdout || "") +
+      String(proof.stderr || ""),
+  );
+  assert.match(
+    String(proof.stdout || ""),
+    /# tests 1(?:\r?\n|$)/u,
+    "LEGACY_MARKER_PROOF_NO_EXECUTED_TEST",
+  );
+  assert.match(
+    String(proof.stdout || ""),
+    /# pass 1(?:\r?\n|$)/u,
+    "LEGACY_MARKER_PROOF_NO_PASSING_ASSERTION",
+  );
+  assert.match(
+    String(proof.stdout || ""),
+    /# fail 0(?:\r?\n|$)/u,
+    "LEGACY_MARKER_PROOF_HAS_FAILURE",
+  );
+  console.log("LEGACY_MARKER_PROOF_RECURRENT_PASS");
+  return "PASS";
+}
+
 test("documentation skips product regression without treating runnable docs as prose", () => {
   const docs = analyzeFiles(["README.md", "docs/operations/release.md"]);
   assert.equal(docs.nonRuntime, true);
@@ -86,30 +144,53 @@ test("legacy staging verifier selects critical DB and recurrent marker proof", (
   const unrelated = analyzeFiles([core + "x"]);
   assert.equal(unrelated.classificationBlocked, true);
 
-  const markerProof =
+  assert.ok(["PASS", "NOT_RUN"].includes(runLegacyMarkerProof()));
+});
+
+test("legacy marker proof fixture rejects failed tests and historical deletion", () => {
+  const root = mkdtempSync(join(tmpdir(), "tdp-marker-proof-"));
+  const file =
     "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs";
-  if (!existsSync(markerProof)) {
-    const history = execFileSync(
-      "git",
-      ["log", "--format=%H", "-1", "HEAD", "--", markerProof],
-      { encoding: "utf8" },
-    ).trim();
-    assert.equal(history, "", "LEGACY_PUBLICATION_MARKER_TEST_DELETED");
-    console.log("LEGACY_MARKER_PROOF_NOT_RUN_IMPLEMENTATION_ABSENT");
-    return;
+  const full = join(root, file);
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: root, encoding: "utf8" });
+  try {
+    git("init", "-q");
+    git("config", "user.name", "Morro Fixture");
+    git("config", "user.email", "fixture@example.invalid");
+    writeFileSync(join(root, "README.md"), "first commit\n");
+    git("add", ".");
+    git("commit", "-qm", "first");
+    assert.equal(runLegacyMarkerProof({ root, markerProof: file }), "NOT_RUN");
+
+    mkdirSync(dirname(full), { recursive: true });
+    writeFileSync(
+      full,
+      'import test from "node:test"; import assert from "node:assert/strict"; test("positive", () => assert.equal(2, 2));\n',
+    );
+    git("add", ".");
+    git("commit", "-qm", "add regression");
+    assert.equal(runLegacyMarkerProof({ root, markerProof: file }), "PASS");
+
+    writeFileSync(
+      full,
+      'import test from "node:test"; import assert from "node:assert/strict"; test("negative", () => assert.fail("fixture failure"));\n',
+    );
+    assert.throws(
+      () => runLegacyMarkerProof({ root, markerProof: file }),
+      /LEGACY_PUBLICATION_MARKER_REGRESSION/u,
+    );
+
+    git("checkout", "--", file);
+    git("rm", "-q", "--", file);
+    git("commit", "-qm", "delete regression");
+    assert.throws(
+      () => runLegacyMarkerProof({ root, markerProof: file }),
+      /LEGACY_PUBLICATION_MARKER_TEST_DELETED/u,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
-  const proof = spawnSync(process.execPath, ["--test", markerProof], {
-    encoding: "utf8",
-    timeout: 45000,
-  });
-  assert.equal(
-    proof.status,
-    0,
-    "LEGACY_PUBLICATION_MARKER_REGRESSION: " +
-      String(proof.stdout || "") +
-      String(proof.stderr || ""),
-  );
-  console.log("LEGACY_MARKER_PROOF_RECURRENT_PASS");
 });
 
 test("unknown paths block classification without broad suite fan-out", () => {
