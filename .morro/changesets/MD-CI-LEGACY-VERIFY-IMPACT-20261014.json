@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CI-LEGACY-VERIFY-IMPACT-20261014",
+  "objective": "map-unclassified-staging-legacy-verifier-to-explicit-ci-impact",
+  "baseSha": "89ff1e5c346869779ac0bd9306e2c6494aa6af4d",
+  "branch": "fix/ci-legacy-verifier-impact-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CI-LEGACY-VERIFY-IMPACT-20261014.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs"
+    ],
+    "contracts": ["LEGACY-VERIFIER-CI-IMPACT"]
+  },
+  "reads": {
+    "contracts": [
+      "STAGING-LEGACY-COMMERCIAL-VERIFIER",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "affected-tests",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "integration"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "legacy-impact-regression",
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
