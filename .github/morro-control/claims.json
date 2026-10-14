@@ -67,7 +67,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-ticketing-startup-diagnostic-20261014",
-      "baseSha": "1be1ca3a399075f1e9daeee533356b68b5be59bd",
+      "baseSha": "521ab5a2aa99f303b75d3511e8aa8cf371c31924",
       "paths": [
         ".morro/changesets/MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014.json",
         "apps/morro-digital-platform/tooling/ticketing-api.mjs",
