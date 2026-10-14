@@ -37,6 +37,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T16:17:41.118Z"
+    },
+    "MD-CRM-CI-TRIGGERS-865": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/crm-ci-workflow-triggers-865-20261014",
+      "baseSha": "f217dba0f5f5f4a0e904a515ba45fd33a70d08e9",
+      "paths": [
+        ".morro/changesets/MD-CRM-CI-TRIGGERS-865.json",
+        ".github/workflows/crm-equivalence-browser-contract.yml",
+        ".github/workflows/crm-lead-detail-browser-contract.yml",
+        ".github/workflows/crm-platform-auth-integration-contract.yml"
+      ],
+      "domains": ["ci-workflow"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T16:43:29.802Z"
     }
   }
 }
