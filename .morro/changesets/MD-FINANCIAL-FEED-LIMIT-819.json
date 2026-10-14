@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-FINANCIAL-FEED-LIMIT-819",
   "objective": "repair-confirmed-financial-feed-limit-and-reuse-safe-ticketing-diagnostics",
-  "baseSha": "c4f2f52de14b751dc688f1e3250af838c8e5a43e",
+  "baseSha": "b84f50c4c8d1f4e8adf61d85ba45a304024a296c",
   "branch": "fix/financial-feed-limit-819-20261014",
   "state": "IMPLEMENTING",
   "risk": "critical",

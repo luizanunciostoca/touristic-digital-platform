@@ -63,6 +63,8 @@ export class MySqlVerifiedPaymentResultFeed implements VerifiedPaymentResultFeed
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 500) {
       throw new Error("FINANCIAL_PAYMENT_RESULT_FEED_LIMIT_INVALID");
     }
+    // Bind the validated integer as decimal text for prepared LIMIT compatibility.
+    const queryLimit = String(limit);
     const [rows] = cursor
       ? await this.pool.execute<ResultRow[]>(
           `SELECT result_id, provider_event_id, payment_id, order_reference,
@@ -76,7 +78,7 @@ export class MySqlVerifiedPaymentResultFeed implements VerifiedPaymentResultFeed
             new Date(cursor.recordedAt),
             new Date(cursor.recordedAt),
             cursor.resultId,
-            limit,
+            queryLimit,
           ],
         )
       : await this.pool.execute<ResultRow[]>(
@@ -86,7 +88,7 @@ export class MySqlVerifiedPaymentResultFeed implements VerifiedPaymentResultFeed
            FROM financial_payment_results
            ORDER BY recorded_at ASC, result_id ASC
            LIMIT ?`,
-          [limit],
+          [queryLimit],
         );
     return Object.freeze(rows.map(fromRow));
   }
