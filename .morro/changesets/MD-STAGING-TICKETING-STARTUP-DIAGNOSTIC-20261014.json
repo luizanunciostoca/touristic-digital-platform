@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014",
+  "objective": "classify-redacted-staging-ticketing-startup-failure-without-secret-disclosure",
+  "baseSha": "1be1ca3a399075f1e9daeee533356b68b5be59bd",
+  "branch": "fix/staging-ticketing-startup-diagnostic-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014.json",
+      "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+    ],
+    "contracts": ["TICKETING-STARTUP-FAILURE-CLASSIFICATION"]
+  },
+  "reads": {
+    "contracts": ["ticket-fulfillment", "STAGING-TICKETING-READYNESS"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "claim-lifecycle-readback",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration",
+      "staging-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
