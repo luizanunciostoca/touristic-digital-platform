@@ -1,23 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-DESIGN-SYSTEM-REPEATABILITY-825": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/design-system-repeatability-825-20261014",
-      "baseSha": "da9cc2b17a4a5e07c107e6f568c7a622e585caa2",
-      "paths": [
-        ".morro/changesets/MD-DESIGN-SYSTEM-REPEATABILITY-825.json",
-        ".morro/ownership.json",
-        "packages/design-system/package.json",
-        "package.json",
-        "tooling/quality/design-system-repeatability.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T07:34:40.121Z"
-    }
-  }
+  "claims": {}
 }
