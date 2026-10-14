@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-BATCH-WORKFLOW-TRIGGER-20261014",
+  "objective": "close-staging-legacy-publication-workflow-trigger-coverage",
+  "baseSha": "3e24a02f1df1b0536f3ab3f821f516dfca553241",
+  "branch": "fix/staging-batch-workflow-trigger-20261014",
+  "state": "LOCAL_PROVEN",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-BATCH-WORKFLOW-TRIGGER-20261014.json",
+      ".github/workflows/render-staging-blueprint-contract.yml",
+      "tooling/quality/staging-batch-workflow-trigger-contract.test.mjs"
+    ],
+    "contracts": ["STAGING-BATCH-WORKFLOW-TRIGGER"]
+  },
+  "reads": {
+    "contracts": ["LEGACY-BATCH-CI-IMPACT", "RENDER-STAGING-BLUEPRINT-CONTRACT"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "affected-tests",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "staging-batch-workflow-trigger-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/staging-batch-workflow-trigger-contract.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "claim-lifecycle-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
