@@ -320,15 +320,11 @@
     "crm-browser": {
       "risk": "HIGH",
       "paths": [
-        "apps/admin-crm/",
+        "apps/admin-crm/public/",
         "tooling/crm/",
-        "apps/morro-digital-platform/src/crm-"
+        "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts"
       ],
-      "suites": [
-        "crm-equivalence-browser-contract.yml",
-        "crm-lead-detail-browser-contract.yml",
-        "crm-platform-auth-integration-contract.yml"
-      ],
+      "suites": ["crm-equivalence-browser-contract.yml"],
       "needsBrowser": true,
       "needsVisual": true,
       "needsDatabase": false
@@ -338,7 +334,7 @@
       "paths": [
         "packages/crm/",
         "services/crm/",
-        "apps/morro-digital-platform/tooling/crm-"
+        "apps/morro-digital-platform/tooling/crm-api.mjs"
       ],
       "suites": ["crm-platform-auth-integration-contract.yml"],
       "needsBrowser": false,
@@ -347,7 +343,17 @@
     },
     "staging-infra": {
       "risk": "CRITICAL",
-      "paths": ["render.staging.yaml", "tooling/render/"],
+      "paths": [
+        "render.staging.yaml",
+        "tooling/render/reconcile-staging-mysql-domains.mjs",
+        "tooling/render/mysql-staging/",
+        "tooling/render/with-staging-mysql-env.mjs",
+        "tooling/render/with-staging-mysql-env.test.mjs",
+        "tooling/render/wait-for-staging-mysql.mjs",
+        "tooling/render/wait-for-staging-mysql.test.mjs",
+        "tooling/render/payments-provider-acceptance-runner.mjs",
+        "tooling/render/payments-provider-acceptance-runner.test.mjs"
+      ],
       "suites": ["render-staging-blueprint-contract.yml"],
       "needsBrowser": false,
       "needsVisual": false,
@@ -360,6 +366,28 @@
         "crm-equivalence-browser-contract.yml",
         "control-center-browser-contract.yml"
       ],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": false
+    },
+    "crm-lead-detail-browser": {
+      "risk": "HIGH",
+      "paths": [
+        "apps/admin-crm/public/lead-detail.html",
+        "apps/admin-crm/public/lead-detail.js",
+        "apps/admin-crm/public/lead-detail-links.js",
+        "apps/admin-crm/public/index.html",
+        "apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts"
+      ],
+      "suites": ["crm-lead-detail-browser-contract.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false
+    },
+    "crm-browser-tooling-auth": {
+      "risk": "HIGH",
+      "paths": ["tooling/crm/"],
+      "suites": ["crm-platform-auth-integration-contract.yml"],
       "needsBrowser": true,
       "needsVisual": false,
       "needsDatabase": false
