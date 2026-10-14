@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-LEGACY-BATCH-IMPACT-20261014",
   "objective": "classify-staging-legacy-publication-batch-ci-impact",
-  "baseSha": "fe0a6b3a15cc123c7d3b2b12d14d712b4c3ed565",
+  "baseSha": "66b8b3fce250dbe3dcee7bcdc05e583f4c4f0692",
   "branch": "fix/ci-legacy-batch-impact-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

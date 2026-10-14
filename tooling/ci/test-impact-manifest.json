@@ -347,6 +347,8 @@
         "render.staging.yaml",
         "tooling/render/reconcile-staging-mysql-domains.mjs",
         "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.test.mjs",
         "tooling/render/mysql-staging/",
         "tooling/render/staging-crm-credentials.mjs",
         "tooling/render/staging-crm-credentials.test.mjs",

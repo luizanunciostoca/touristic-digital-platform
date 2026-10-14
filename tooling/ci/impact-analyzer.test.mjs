@@ -131,6 +131,30 @@ test("nested database migrations are not missed by directory glob matching", () 
   }
 });
 
+test("staging legacy publication batch scripts select critical database and release proof", () => {
+  for (const file of [
+    "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
+    "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.test.mjs",
+  ]) {
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, false, file);
+    assert.equal(result.risk, "CRITICAL", file);
+    assert.ok(result.domains.includes("staging-infra"), file);
+    assert.ok(
+      result.suites.includes("render-staging-blueprint-contract.yml"),
+      file,
+    );
+    assert.equal(result.needsDatabase, true, file);
+    assert.equal(result.needsFullRegression, true, file);
+    const unknown = analyzeFiles([file + "x"]);
+    assert.equal(
+      unknown.classificationBlocked,
+      true,
+      "unmapped sibling must remain fail closed",
+    );
+  }
+});
+
 test("legacy staging verifier selects critical DB and recurrent marker proof", () => {
   const core =
     "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs";
