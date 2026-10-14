@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "id": "MD-CRM-HTML-ACCESS-865",
-  "objective": "restore-canonical-CRM-HTML-navigation-and-dashboard-auth-for-trials-referrals",
+  "objective": "restore-canonical-crm-html-navigation-and-dashboard-auth-for-trials-referrals",
   "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
   "branch": "fix/crm-html-access-865-20261014",
   "state": "IMPLEMENTING",
@@ -17,18 +17,12 @@
       "apps/admin-crm/public/follow-ups.html",
       "apps/admin-crm/public/settings.html",
       "apps/admin-crm/public/lead-detail.html",
-      "apps/morro-digital-platform/src/crm-html-access-regression.test.ts"
+      "tooling/crm/crm-html-access.test.mjs"
     ],
-    "contracts": [
-      "CRM-BROWSER-SESSION-CLIENT",
-      "CRM-HTML-PAGE-NAVIGATION"
-    ]
+    "contracts": ["CRM-BROWSER-SESSION-CLIENT", "CRM-HTML-PAGE-NAVIGATION"]
   },
   "reads": {
-    "contracts": [
-      "platform-authz",
-      "TDP-CONTROL-PLANE-V3.2"
-    ]
+    "contracts": ["platform-authz", "TDP-CONTROL-PLANE-V3.2"]
   },
   "produces": {
     "events": [],
@@ -74,20 +68,11 @@
     "commands": [
       {
         "id": "crm-html-ui-regression",
-        "argv": [
-          "pnpm",
-          "exec",
-          "vitest",
-          "run",
-          "apps/morro-digital-platform/src/crm-html-access-regression.test.ts"
-        ],
+        "argv": ["node", "--test", "tooling/crm/crm-html-access.test.mjs"],
         "timeoutSeconds": 600
       }
     ],
-    "requiredRemoteEvidence": [
-      "affected-tests",
-      "automated-independent-proof"
-    ]
+    "requiredRemoteEvidence": ["affected-tests", "automated-independent-proof"]
   },
   "stopAt": "REMOTE_PROVEN"
 }

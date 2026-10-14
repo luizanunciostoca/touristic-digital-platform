@@ -16,11 +16,9 @@
         "apps/admin-crm/public/follow-ups.html",
         "apps/admin-crm/public/settings.html",
         "apps/admin-crm/public/lead-detail.html",
-        "apps/morro-digital-platform/src/crm-html-access-regression.test.ts"
+        "tooling/crm/crm-html-access.test.mjs"
       ],
-      "domains": [
-        "crm"
-      ],
+      "domains": ["crm"],
       "risk": "P2",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T18:00:00.000Z"
