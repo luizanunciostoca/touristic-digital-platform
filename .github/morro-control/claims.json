@@ -1,26 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-FINANCIAL-FEED-LIMIT-819": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/financial-feed-limit-819-20261014",
-      "baseSha": "b84f50c4c8d1f4e8adf61d85ba45a304024a296c",
-      "paths": [
-        ".morro/changesets/MD-FINANCIAL-FEED-LIMIT-819.json",
-        "services/financial/src/mysql-verified-payment-result-feed.ts",
-        "services/financial/src/mysql-verified-payment-result-feed.test.ts",
-        "services/financial/src/mysql-integration.test.ts",
-        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
-        "services/ticketing/src/verified-financial-result-processor.ts",
-        "services/ticketing/src/verified-financial-result-processor.test.ts",
-        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
-      ],
-      "domains": ["payments", "ticketing", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T08:59:38.847Z"
-    }
-  }
+  "claims": {}
 }
