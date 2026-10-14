@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014",
   "objective": "repair-legacy-publication-batch-historical-marker-provenance",
-  "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
+  "baseSha": "fe0a6b3a15cc123c7d3b2b12d14d712b4c3ed565",
   "branch": "fix/staging-legacy-batch-provenance-20261014",
   "state": "IMPLEMENTING",
   "risk": "critical",

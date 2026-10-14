@@ -21,7 +21,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-legacy-batch-provenance-20261014",
-      "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
+      "baseSha": "fe0a6b3a15cc123c7d3b2b12d14d712b4c3ed565",
       "paths": [
         ".morro/changesets/MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014.json",
         "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
