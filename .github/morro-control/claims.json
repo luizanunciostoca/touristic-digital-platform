@@ -21,21 +21,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T08:59:38.847Z"
-    },
-    "MD-FINANCIAL-STARTUP-IMPACT-819": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/financial-startup-impact-819-20261014",
-      "baseSha": "5fbd0c22c97d35c765c4c1906ec8464a30d3658d",
-      "paths": [
-        ".morro/changesets/MD-FINANCIAL-STARTUP-IMPACT-819.json",
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T09:21:47.162Z"
     }
   }
 }
