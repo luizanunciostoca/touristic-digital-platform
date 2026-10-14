@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FINANCIAL-FEED-LIMIT-819",
+  "objective": "repair-confirmed-financial-feed-limit-and-reuse-safe-ticketing-diagnostics",
+  "baseSha": "c4f2f52de14b751dc688f1e3250af838c8e5a43e",
+  "branch": "fix/financial-feed-limit-819-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FINANCIAL-FEED-LIMIT-819.json",
+      "services/financial/src/mysql-verified-payment-result-feed.ts",
+      "services/financial/src/mysql-verified-payment-result-feed.test.ts",
+      "services/financial/src/mysql-integration.test.ts",
+      "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+      "services/ticketing/src/verified-financial-result-processor.ts",
+      "services/ticketing/src/verified-financial-result-processor.test.ts",
+      "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+    ],
+    "contracts": [
+      "FINANCIAL-VERIFIED-RESULT-FEED",
+      "TICKETING-FINANCIAL-RESULT-PROCESSOR"
+    ]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "financial-claim-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
