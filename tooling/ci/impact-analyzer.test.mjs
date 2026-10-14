@@ -319,3 +319,185 @@ test("Ticketing startup mapping stays exact", () => {
   assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
   assert.equal(result.needsFullRegression, false);
 });
+
+test("CRM HTML and browser regression files are explicitly classified without bypassing fail-closed", () => {
+  const paths = [
+    "apps/admin-crm/public/trials.js",
+    "apps/admin-crm/public/referrals.js",
+    "apps/admin-crm/public/trials.html",
+    "apps/admin-crm/public/follow-ups.html",
+    "tooling/crm/crm-html-access.test.mjs",
+  ];
+  const result = analyzeFiles(paths);
+  assert.deepEqual(result.unknownFiles, []);
+  assert.equal(result.classificationBlocked, false);
+  assert.ok(result.domains.includes("crm-browser"));
+  assert.equal(result.risk, "HIGH");
+  assert.equal(result.needsBrowser, true);
+  assert.equal(result.needsVisual, true);
+  assert.equal(result.needsDatabase, false);
+  assert.ok(result.suites.includes("crm-equivalence-browser-contract.yml"));
+});
+
+test("CRM persistence paths select database proof and staging infra selects critical proof", () => {
+  const backend = analyzeFiles([
+    "packages/crm/src/index.ts",
+    "services/crm/src/mysql-pool.ts",
+    "apps/morro-digital-platform/tooling/crm-api.mjs",
+  ]);
+  assert.equal(backend.classificationBlocked, false);
+  assert.deepEqual(backend.unknownFiles, []);
+  assert.ok(backend.domains.includes("crm-backend"));
+  assert.equal(backend.needsDatabase, true);
+  const infrastructure = analyzeFiles([
+    "render.staging.yaml",
+    "tooling/render/with-staging-mysql-env.mjs",
+    "tooling/render/reconcile-staging-mysql-domains.mjs",
+    "tooling/render/mysql-staging/01-init-databases.sh",
+  ]);
+  assert.equal(infrastructure.classificationBlocked, false);
+  assert.deepEqual(infrastructure.unknownFiles, []);
+  assert.equal(infrastructure.risk, "CRITICAL");
+  assert.equal(infrastructure.needsFullRegression, true);
+  assert.equal(infrastructure.needsDatabase, true);
+});
+
+test("HTML runtime server selects browser proof but nearby typo paths remain unknown", () => {
+  const server = analyzeFiles([
+    "apps/morro-digital-platform/tooling/dev-server.mjs",
+  ]);
+  assert.equal(server.classificationBlocked, false);
+  assert.ok(server.domains.includes("platform-html-server"));
+  assert.equal(server.needsBrowser, true);
+  for (const path of [
+    "apps/admin-crm-copy/public/trials.js",
+    "render.staging.yaml.bak",
+    "apps/morro-digital-platform/tooling/dev-server.mjs.bak",
+    "unmapped/runtime.ts",
+  ]) {
+    const unknown = analyzeFiles([path]);
+    assert.equal(unknown.classificationBlocked, true, path);
+    assert.deepEqual(unknown.unknownFiles, [path]);
+  }
+});
+
+test("CRM impact paths have verified direct browser and auth workflow triggers", () => {
+  const testedPath = "tooling/crm/crm-html-access.test.mjs";
+  const classified = analyzeFiles([testedPath]);
+  assert.equal(classified.classificationBlocked, false);
+  assert.ok(classified.domains.includes("crm-browser"));
+  assert.ok(classified.suites.includes("crm-equivalence-browser-contract.yml"));
+
+  for (const workflow of [
+    "crm-equivalence-browser-contract.yml",
+    "crm-lead-detail-browser-contract.yml",
+    "crm-platform-auth-integration-contract.yml",
+  ]) {
+    const source = readFileSync(".github/workflows/" + workflow, "utf8");
+    const triggerCount = source
+      .split("\n")
+      .filter((line) => line.trim() === '- "tooling/crm/**"').length;
+    assert.equal(triggerCount, 2, workflow + " must trigger on PR and main");
+    assert.ok(source.includes("pull_request:"), workflow);
+    assert.ok(source.includes("push:"), workflow);
+  }
+  const equivalence = readFileSync(
+    ".github/workflows/crm-equivalence-browser-contract.yml",
+    "utf8",
+  );
+  assert.ok(
+    equivalence.includes("node --test tooling/crm/crm-html-access.test.mjs"),
+    "equivalence workflow must run the actual authenticated CRM HTML test",
+  );
+  assert.ok(
+    equivalence.includes("CRM_BOOTSTRAP_EXCEPTION_EXACT_BASE_ONLY"),
+    "pre-test missing file exception must be precisely scoped",
+  );
+});
+
+test("CRM source classification is exact and does not claim untriggered browser tests", () => {
+  for (const [file, domain, suite] of [
+    [
+      "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts",
+      "crm-browser",
+      "crm-equivalence-browser-contract.yml",
+    ],
+    [
+      "apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts",
+      "crm-lead-detail-browser",
+      "crm-lead-detail-browser-contract.yml",
+    ],
+  ]) {
+    const x = analyzeFiles([file]);
+    assert.equal(x.classificationBlocked, false, file);
+    assert.ok(x.domains.includes(domain), file);
+    assert.ok(x.suites.includes(suite), file);
+  }
+  for (const file of [
+    "apps/morro-digital-platform/src/crm-trials-runtime-composition.test.ts",
+    "apps/morro-digital-platform/src/crm-unknown.test.ts",
+    "apps/morro-digital-platform/tooling/crm-fake.js",
+    "tooling/render/surprise-migration.mjs",
+  ]) {
+    const x = analyzeFiles([file]);
+    assert.equal(x.classificationBlocked, true, file);
+    assert.deepEqual(x.unknownFiles, [file]);
+  }
+});
+
+test("CRM HTML impact requires actual PR and push workflow path coverage", () => {
+  const manifest = JSON.parse(
+    readFileSync("tooling/ci/test-impact-manifest.json", "utf8"),
+  );
+  const cases = [
+    [
+      "crm-browser",
+      "apps/admin-crm/public/trials.js",
+      "crm-equivalence-browser-contract.yml",
+      '"apps/admin-crm/public/**"',
+    ],
+    [
+      "crm-browser",
+      "tooling/crm/crm-html-access.test.mjs",
+      "crm-equivalence-browser-contract.yml",
+      '"tooling/crm/**"',
+    ],
+    [
+      "crm-lead-detail-browser",
+      "apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts",
+      "crm-lead-detail-browser-contract.yml",
+      '"apps/morro-digital-platform/src/crm-lead-detail-contract.test.ts"',
+    ],
+    [
+      "crm-browser",
+      "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts",
+      "crm-equivalence-browser-contract.yml",
+      '"apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts"',
+    ],
+    [
+      "crm-backend",
+      "apps/morro-digital-platform/tooling/crm-api.mjs",
+      "crm-platform-auth-integration-contract.yml",
+      '"apps/morro-digital-platform/tooling/crm-api.mjs"',
+    ],
+  ];
+  for (const [domain, file, workflow, trigger] of cases) {
+    const a = analyzeFiles([file]);
+    assert.ok(a.domains.includes(domain), file);
+    assert.ok(a.suites.includes(workflow), file);
+    const text = readFileSync(".github/workflows/" + workflow, "utf8");
+    assert.ok(text.includes("pull_request:"), workflow);
+    assert.ok(text.includes("push:"), workflow);
+    assert.equal(
+      text.split("\n").filter((line) => line.trim() === "- " + trigger).length,
+      2,
+      workflow + ":" + file,
+    );
+  }
+  assert.equal(
+    manifest.domains["crm-browser"].paths.includes(
+      "apps/morro-digital-platform/src/crm-",
+    ),
+    false,
+  );
+});
