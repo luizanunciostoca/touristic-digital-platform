@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { matchesOwnershipPath } from "../fabric/ownership-path.mjs";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import {
@@ -286,10 +287,7 @@ export function assertOwnershipCoverage(files, ownership) {
     Array.isArray(domain?.pathPrefixes) ? domain.pathPrefixes : [],
   );
   const uncovered = files.filter(
-    (file) =>
-      !prefixes.some((prefix) =>
-        prefix.endsWith("/") ? file.startsWith(prefix) : file === prefix,
-      ),
+    (file) => !prefixes.some((prefix) => matchesOwnershipPath(file, prefix)),
   );
   assert.deepEqual(uncovered, [], "FAST_GATE_OWNERSHIP_UNCOVERED");
   return { covered: files.length };
