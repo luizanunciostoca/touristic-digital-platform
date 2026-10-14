@@ -14,6 +14,7 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/crm-platform-auth-integration-contract.yml"
+      - "tooling/crm/**"
   push:
     branches:
       - main
@@ -29,6 +30,7 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - ".github/workflows/crm-platform-auth-integration-contract.yml"
+      - "tooling/crm/**"
   workflow_dispatch:
 
 permissions:

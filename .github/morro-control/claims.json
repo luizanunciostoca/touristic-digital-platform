@@ -42,7 +42,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/crm-ci-workflow-triggers-865-20261014",
-      "baseSha": "f217dba0f5f5f4a0e904a515ba45fd33a70d08e9",
+      "baseSha": "43e4cf7aaefbc3be7a02f9df54946299943c281e",
       "paths": [
         ".morro/changesets/MD-CRM-CI-TRIGGERS-865.json",
         ".github/workflows/crm-equivalence-browser-contract.yml",
