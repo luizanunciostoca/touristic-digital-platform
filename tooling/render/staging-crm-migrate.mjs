@@ -12,6 +12,13 @@ const requiredTables = Object.freeze([
   "crm_storage_objects",
   "crm_commerce_customers",
   "crm_commerce_purchases",
+  "crm_checklist_items",
+  "crm_meetings",
+  "crm_proposals",
+  "crm_contracts",
+  "crm_follow_up_settings",
+  "crm_interactions",
+  "crm_audit_events",
 ]);
 
 function required(environment, name) {

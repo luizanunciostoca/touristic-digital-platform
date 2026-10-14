@@ -12,6 +12,24 @@ const base = {
   STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
   STAGING_MYSQL_ROOT_PASSWORD: "root-secret-0123456789abcdef",
 };
+const expectedMigratedTables = [
+  "crm_leads",
+  "crm_follow_ups",
+  "crm_trials",
+  "crm_referrals",
+  "crm_settings",
+  "crm_storage_objects",
+  "crm_commerce_customers",
+  "crm_commerce_purchases",
+  "crm_checklist_items",
+  "crm_meetings",
+  "crm_proposals",
+  "crm_contracts",
+  "crm_follow_up_settings",
+  "crm_interactions",
+  "crm_audit_events",
+];
+
 function fixture(changes = {}) {
   const identity = deriveStagingCrmDatabaseIdentity(base);
   const u = new URL("mysql://placeholder.invalid/");
@@ -106,18 +124,7 @@ test("schema migration is additive, verifies real owner and tables, closes pool"
         ];
       }
       if (sql.startsWith("SELECT TABLE_NAME")) {
-        return [
-          [
-            "crm_leads",
-            "crm_follow_ups",
-            "crm_trials",
-            "crm_referrals",
-            "crm_settings",
-            "crm_storage_objects",
-            "crm_commerce_customers",
-            "crm_commerce_purchases",
-          ].map((name) => ({ name })),
-        ];
+        return [expectedMigratedTables.map((name) => ({ name }))];
       }
       return [[]];
     },
@@ -144,6 +151,8 @@ test("schema migration is additive, verifies real owner and tables, closes pool"
   assert.equal(result.status, "pass");
   assert.equal(result.database, "morro_crm_staging");
   assert.equal(result.user, "morro_crm");
+  assert.deepEqual(result.verifiedTables, expectedMigratedTables);
+  assert.equal(result.tableCount, expectedMigratedTables.length);
   assert.deepEqual(calls, ["m155", "commerce"]);
   assert.equal(closed, true);
   assert.ok(queries.some((sql) => sql.startsWith("SELECT DATABASE()")));
@@ -153,7 +162,7 @@ test("schema migration is additive, verifies real owner and tables, closes pool"
 });
 
 test("schema readback and owner mismatch fail closed and always close", async () => {
-  for (const failure of ["owner", "tables"]) {
+  for (const failure of ["database", "owner", "tables"]) {
     let closed = false,
       applied = false;
     const pool = {
@@ -163,10 +172,11 @@ test("schema readback and owner mismatch fail closed and always close", async ()
             [
               {
                 database_name:
-                  failure === "owner"
+                  failure === "database"
                     ? "morro_auth_staging"
                     : "morro_crm_staging",
-                current_user_name: "morro_crm",
+                current_user_name:
+                  failure === "owner" ? "morro_auth" : "morro_crm",
               },
             ],
           ];
@@ -188,11 +198,11 @@ test("schema readback and owner mismatch fail closed and always close", async ()
     };
     await assert.rejects(
       runStagingCrmMigration(fixture(), { crm }),
-      failure === "owner"
-        ? /STAGING_CRM_DB_OWNER_MISMATCH/u
-        : /STAGING_CRM_SCHEMA_READBACK_FAILED/u,
+      failure === "tables"
+        ? /STAGING_CRM_SCHEMA_READBACK_FAILED/u
+        : /STAGING_CRM_DB_OWNER_MISMATCH/u,
     );
     assert.equal(closed, true);
-    if (failure === "owner") assert.equal(applied, false);
+    if (failure !== "tables") assert.equal(applied, false);
   }
 });
