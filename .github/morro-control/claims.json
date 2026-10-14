@@ -45,6 +45,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T20:43:19.923Z"
+    },
+    "MD-SEC-GOSU-GO-PATCH-882": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/sec-gosu-go-toolchain-882-20261014",
+      "baseSha": "8f7e4562e2fdd3bb2eafb2558df75d409f650062",
+      "paths": [
+        ".morro/changesets/MD-SEC-GOSU-GO-PATCH-882.json",
+        "tooling/render/mysql-staging/Dockerfile",
+        "tooling/render/mysql-production/Dockerfile",
+        "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+      ],
+      "domains": ["staging-security", "production-image-security"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T23:10:15.725Z"
     }
   }
 }
