@@ -36,6 +36,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T09:21:47.162Z"
+    },
+    "MD-TICKETING-STARTUP-BROWSER-ROUTING-819": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/ticketing-startup-browser-routing-819-20261014",
+      "baseSha": "088d99038305872b66859bd644a1d8fde3a72a16",
+      "paths": [
+        ".morro/changesets/MD-TICKETING-STARTUP-BROWSER-ROUTING-819.json",
+        ".github/workflows/payments-browser-checkout-contract.yml",
+        ".github/workflows/commerce-browser-regression.yml",
+        "tooling/ci/ticketing-startup-browser-routing.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T10:11:17.989Z"
     }
   }
 }

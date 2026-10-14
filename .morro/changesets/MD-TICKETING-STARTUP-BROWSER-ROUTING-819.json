@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-TICKETING-STARTUP-BROWSER-ROUTING-819",
+  "objective": "execute-browser-proof-for-ticketing-startup-regressions",
+  "baseSha": "088d99038305872b66859bd644a1d8fde3a72a16",
+  "branch": "fix/ticketing-startup-browser-routing-819-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-TICKETING-STARTUP-BROWSER-ROUTING-819.json",
+      ".github/workflows/payments-browser-checkout-contract.yml",
+      ".github/workflows/commerce-browser-regression.yml",
+      "tooling/ci/ticketing-startup-browser-routing.test.mjs"
+    ],
+    "contracts": ["CI-TICKETING-STARTUP-BROWSER-ROUTING"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2", "CI-IMPACT-TICKETING-STARTUP"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "browser-routing-governance",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/ci-scheduler-governance.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
