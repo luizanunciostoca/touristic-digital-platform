@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-CI-TRIGGERS-865",
+  "objective": "bind-real-crm-regression-paths-to-browser-and-auth-integration-ci",
+  "baseSha": "f217dba0f5f5f4a0e904a515ba45fd33a70d08e9",
+  "branch": "fix/crm-ci-workflow-triggers-865-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-CI-TRIGGERS-865.json",
+      ".github/workflows/crm-equivalence-browser-contract.yml",
+      ".github/workflows/crm-lead-detail-browser-contract.yml",
+      ".github/workflows/crm-platform-auth-integration-contract.yml"
+    ],
+    "contracts": ["CRM-BROWSER-WORKFLOW-TRIGGERS"]
+  },
+  "reads": {
+    "contracts": ["CI-CRM-IMPACT-CLASSIFICATION", "TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "crm-workflow-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
