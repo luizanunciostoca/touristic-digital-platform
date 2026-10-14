@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CRM-HTML-ACCESS-865",
   "objective": "restore-canonical-crm-html-navigation-and-dashboard-auth-for-trials-referrals",
-  "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
+  "baseSha": "4f4c3c90328e8ceae7dadc352707213b1dfedc61",
   "branch": "fix/crm-html-access-865-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

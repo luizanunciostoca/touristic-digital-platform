@@ -1,6 +1,15 @@
-import { createAuthBrowserClient } from "@touristic/auth-browser";
+import { createDashboardAuthClient } from "@touristic/auth-browser";
 
-const auth = createAuthBrowserClient({ loginPath: "/apps/dashboard/login.html" });
+const auth = createDashboardAuthClient({
+  fetchFn: window.fetch.bind(window),
+  storage: window.sessionStorage,
+  location: {
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    search: window.location.search,
+    replace: (url) => window.location.replace(url),
+  },
+});
 const sessionStatus = document.querySelector("#session-status");
 const status = document.querySelector("#referrals-status");
 const list = document.querySelector("#referrals-list");
@@ -220,11 +229,15 @@ createForm?.addEventListener("submit", (event) => {
 
 async function start() {
   try {
-    const session = await auth.requireSession({ returnTo: window.location.pathname });
-    if (!session) return;
+    await auth.getSession();
     sessionStatus.textContent = "Sessão autenticada. Lifecycle operacional.";
     await loadReferrals();
   } catch (error) {
+    if (error instanceof Error && error.message === "AUTH_REQUIRED") {
+      const current = window.location.pathname + window.location.search;
+      window.location.replace("/dashboard/login.html?return=" + encodeURIComponent(current));
+      return;
+    }
     const message = error instanceof Error ? error.message : "UNKNOWN_ERROR";
     status.textContent = `Falha ao carregar registros (${message}).`;
   }
