@@ -78,7 +78,11 @@
       },
       {
         "id": "claim-lifecycle-regression",
-        "argv": ["node", "--test", "tooling/mdctl/claim-lifecycle.test.mjs"],
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
         "timeoutSeconds": 300
       }
     ],
