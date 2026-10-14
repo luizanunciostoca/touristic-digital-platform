@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CI-STAGING-CRM-IMPACT-865",
+  "objective": "classify-staging-crm-migration-paths-with-actual-remote-proof",
+  "baseSha": "a1d1a2a652bca4a9da64c0d6a8f629853428f39f",
+  "branch": "fix/ci-staging-crm-impact-865-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CI-STAGING-CRM-IMPACT-865.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs",
+      ".github/workflows/render-staging-blueprint-contract.yml"
+    ],
+    "contracts": ["CI-STAGING-CRM-IMPACT-COVERAGE"]
+  },
+  "reads": {
+    "contracts": ["STAGING-CRM-ISOLATED-MYSQL", "TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "staging-crm-impact-regression",
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
