@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-HTML-ACCESS-865",
+  "objective": "restore-canonical-crm-html-navigation-and-dashboard-auth-for-trials-referrals",
+  "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
+  "branch": "fix/crm-html-access-865-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-HTML-ACCESS-865.json",
+      "apps/admin-crm/public/trials.js",
+      "apps/admin-crm/public/referrals.js",
+      "apps/admin-crm/public/trials.html",
+      "apps/admin-crm/public/referrals.html",
+      "apps/admin-crm/public/follow-ups.html",
+      "apps/admin-crm/public/settings.html",
+      "apps/admin-crm/public/lead-detail.html",
+      "tooling/crm/crm-html-access.test.mjs"
+    ],
+    "contracts": ["CRM-BROWSER-SESSION-CLIENT", "CRM-HTML-PAGE-NAVIGATION"]
+  },
+  "reads": {
+    "contracts": ["platform-authz", "TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "build",
+    "integration"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "crm-html-ui-regression",
+        "argv": ["node", "--test", "tooling/crm/crm-html-access.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "affected-tests",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
