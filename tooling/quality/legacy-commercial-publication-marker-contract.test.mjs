@@ -66,4 +66,33 @@ test("legacy publication marker provenance and safety invariants", () => {
   ]) {
     assert.match(source, invariant, "snapshot or 72-item cohort check missing");
   }
+  const batch = readFileSync(
+    "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
+    "utf8",
+  );
+  assert.match(
+    batch,
+    /reviewRevision <= editableRevision/u,
+    "review provenance may predate later edits or publications",
+  );
+  assert.match(
+    batch,
+    /markerRevision <= publishedRevision/u,
+    "publication migration marker must be bounded by current published revision",
+  );
+  assert.match(
+    batch,
+    /markerRevision === editableRevision/u,
+    "unpublished marker must be bound to exact editable revision",
+  );
+  assert.match(
+    batch,
+    /!markerRevisionMatches/u,
+    "marker drift remains fail closed",
+  );
+  assert.doesNotMatch(
+    batch,
+    /Number\(marker\.editable_revision\) !== markerRevision/u,
+    "migration marker must not require equality with a later published revision",
+  );
 });

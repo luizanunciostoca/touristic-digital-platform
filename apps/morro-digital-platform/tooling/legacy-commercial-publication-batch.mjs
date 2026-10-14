@@ -82,13 +82,16 @@ function validateRows(rows) {
     ) {
       throw new Error("LEGACY_PUBLICATION_BATCH_REVIEW_MARKER_DRIFT");
     }
-    const provenanceRevision = publishedRevision ?? editableRevision;
+    const reviewMarkerRevisionMatches =
+      publishedRevision == null
+        ? reviewRevision === editableRevision
+        : reviewRevision <= editableRevision;
     if (
       !Number.isSafeInteger(editableRevision) ||
       editableRevision < 1 ||
       !Number.isSafeInteger(reviewRevision) ||
       reviewRevision < 1 ||
-      reviewRevision !== provenanceRevision
+      !reviewMarkerRevisionMatches
     ) {
       throw new Error("LEGACY_PUBLICATION_BATCH_REVIEW_REVISION_DRIFT");
     }
@@ -149,16 +152,22 @@ async function loadMarkers(pool) {
 }
 
 function validateMarker(marker, row) {
-  const markerRevision =
-    row.published_revision == null
-      ? Number(row.editable_revision)
-      : Number(row.published_revision);
+  const markerRevision = Number(marker.editable_revision);
+  const editableRevision = Number(row.editable_revision);
+  const publishedRevision =
+    row.published_revision == null ? null : Number(row.published_revision);
+  const markerRevisionMatches =
+    publishedRevision == null
+      ? markerRevision === editableRevision
+      : Number.isSafeInteger(markerRevision) &&
+        markerRevision >= 1 &&
+        markerRevision <= publishedRevision;
   if (
     String(marker.source_system) !== SOURCE_SYSTEM ||
     String(marker.source_key) !== String(row.source_key) ||
     String(marker.business_id) !== String(row.business_id) ||
     String(marker.place_id) !== String(row.place_id) ||
-    Number(marker.editable_revision) !== markerRevision
+    !markerRevisionMatches
   ) {
     throw new Error("LEGACY_PUBLICATION_BATCH_MARKER_DRIFT");
   }
