@@ -501,3 +501,57 @@ test("CRM HTML impact requires actual PR and push workflow path coverage", () =>
     false,
   );
 });
+
+test("STAGING CRM exact file-to-suite coverage and triggered real proof", () => {
+  const paths = [
+    "tooling/render/staging-crm-credentials.mjs",
+    "tooling/render/staging-crm-credentials.test.mjs",
+    "tooling/render/staging-crm-migrate.mjs",
+    "tooling/render/staging-crm-migrate.test.mjs",
+  ];
+  const workflow = readFileSync(
+    ".github/workflows/render-staging-blueprint-contract.yml",
+    "utf8",
+  );
+  for (const path of paths) {
+    const report = analyzeFiles([path]);
+    assert.deepEqual(report.unknownFiles, [], path);
+    assert.equal(report.classificationBlocked, false, path);
+    assert.equal(report.risk, "CRITICAL", path);
+    assert.equal(report.needsDatabase, true, path);
+    assert.equal(report.needsFullRegression, true, path);
+    assert.ok(report.domains.includes("staging-infra"), path);
+    assert.ok(
+      report.suites.includes("render-staging-blueprint-contract.yml"),
+      path,
+    );
+    assert.ok(
+      workflow.includes("      - " + path),
+      path + " missing PR trigger",
+    );
+  }
+  assert.ok(workflow.includes("pull_request:"));
+  assert.ok(
+    workflow.includes(
+      "node --test tooling/render/staging-crm-credentials.test.mjs tooling/render/staging-crm-migrate.test.mjs",
+    ),
+    "remote contract must execute actual CRM owner/migration assertions",
+  );
+  assert.ok(
+    workflow.includes("STAGING_CRM_PERSISTENCE_INCOMPLETE"),
+    "partial fixture state must fail closed",
+  );
+  assert.ok(
+    workflow.includes("STAGING_CRM_PERSISTENCE_NOT_RUN_IMPLEMENTATION_ABSENT"),
+    "no implementation must report NOT_RUN, not a silent PASS",
+  );
+  for (const path of [
+    "tooling/render/staging-crm-unmapped.mjs",
+    "tooling/render/staging-crm-migrate.mjs.bak",
+    "tooling/render/staging-crm-credentials.test.mjsx",
+  ]) {
+    const report = analyzeFiles([path]);
+    assert.equal(report.classificationBlocked, true, path);
+    assert.deepEqual(report.unknownFiles, [path]);
+  }
+});
