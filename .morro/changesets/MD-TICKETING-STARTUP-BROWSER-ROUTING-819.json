@@ -71,7 +71,6 @@
         "argv": [
           "node",
           "--test",
-          "--test-reporter=tap",
           "tooling/quality/ci-scheduler-governance.test.mjs",
           "tooling/ci/ticketing-startup-browser-routing.test.mjs"
         ],
