@@ -1,25 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-OWNERSHIP-PATH-BOUNDARY-825-CORRECTION": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ownership-path-boundary-825-correction-20261014",
-      "baseSha": "9d3322242afed8c786330c9f6b46879d9ef7d5c2",
-      "paths": [
-        ".morro/changesets/MD-OWNERSHIP-PATH-BOUNDARY-825-CORRECTION.json",
-        "tooling/fabric/ownership-path.mjs",
-        "tooling/fabric/ownership-path.test.mjs",
-        "tooling/fabric/plan-change.mjs",
-        "tooling/fabric/compute-impact.mjs",
-        "tooling/mdctl/change-envelope.mjs",
-        "tooling/ci/local-fast-gate.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T03:47:40.557Z"
-    }
-  }
+  "claims": {}
 }

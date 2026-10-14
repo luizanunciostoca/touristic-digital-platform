@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-OWNERSHIP-PATH-BOUNDARY-825-CORRECTION",
   "objective": "restore-exact-ownership-boundaries-across-planning-and-admission",
-  "baseSha": "9d3322242afed8c786330c9f6b46879d9ef7d5c2",
-  "branch": "fix/ownership-path-boundary-825-correction-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "761e2a2a44c867929fd31e540bac8b9d201905b2",
+  "branch": "chore/retire-ownership-boundary-825-20261014",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
