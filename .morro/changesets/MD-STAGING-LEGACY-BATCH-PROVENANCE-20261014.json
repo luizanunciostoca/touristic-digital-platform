@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014",
+  "objective": "repair-legacy-publication-batch-historical-marker-provenance",
+  "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
+  "branch": "fix/staging-legacy-batch-provenance-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014.json",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
+      "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.test.mjs",
+      "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs"
+    ],
+    "contracts": ["LEGACY-COMMERCIAL-BATCH-PROVENANCE"]
+  },
+  "reads": {
+    "contracts": [
+      "BUSINESS-PLACE-PUBLICATION-LIFECYCLE",
+      "LEGACY-COMMERCIAL-PUBLICATION-MARKER"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": [
+      "business_places",
+      "legacy_place_review_migrations",
+      "legacy_place_publication_migrations"
+    ]
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "legacy-marker-source-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      },
+      {
+        "id": "claim-lifecycle-regression",
+        "argv": ["node", "--test", "tooling/mdctl/claim-lifecycle.test.mjs"],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration",
+      "staging-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
