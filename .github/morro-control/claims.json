@@ -21,6 +21,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T08:59:38.847Z"
+    },
+    "MD-APP-HANDLER-TEST-OWNERSHIP-819-826": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/app-handler-test-ownership-819-826-20261014",
+      "baseSha": "6e6d973cbc5a16646147a78e0df9cd46e5330175",
+      "paths": [
+        ".morro/changesets/MD-APP-HANDLER-TEST-OWNERSHIP-819-826.json",
+        ".morro/ownership.json",
+        "tooling/ci/local-fast-gate.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T12:23:51.063Z"
     }
   }
 }
