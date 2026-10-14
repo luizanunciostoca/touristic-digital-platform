@@ -115,7 +115,27 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
             url: page.url(),
           }),
         );
-        return action();
+        let deadline;
+        try {
+          return await Promise.race([
+            Promise.resolve().then(action),
+            new Promise((_, reject) => {
+              deadline = setTimeout(
+                () => reject(new Error("CRM_HTML_STAGE_DEADLINE:" + stage)),
+                12_000,
+              );
+            }),
+          ]);
+        } catch (error) {
+          const code = error instanceof Error ? error.name : "UNKNOWN";
+          console.error(
+            "CRM_HTML_BROWSER_STAGE_FAILED",
+            JSON.stringify({ page: record.page, stage, code }),
+          );
+          throw error;
+        } finally {
+          clearTimeout(deadline);
+        }
       };
       try {
         for (const pageName of ["trials", "referrals"]) {
@@ -143,6 +163,30 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
             }
           });
           page.on("pageerror", (error) => errors.push(error.message));
+          page.on("request", (request) => {
+            if (new URL(request.url()).pathname === "/api/crm/" + pageName) {
+              console.log(
+                "CRM_HTML_HTTP_REQUEST",
+                JSON.stringify({
+                  page: pageName,
+                  method: request.method(),
+                  path: "/api/crm/" + pageName,
+                }),
+              );
+            }
+          });
+          page.on("response", (response) => {
+            if (new URL(response.url()).pathname === "/api/crm/" + pageName) {
+              console.log(
+                "CRM_HTML_HTTP_RESPONSE",
+                JSON.stringify({
+                  page: pageName,
+                  method: response.request().method(),
+                  status: response.status(),
+                }),
+              );
+            }
+          });
           const record = {
             page: pageName,
             redirect: false,
@@ -236,11 +280,13 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               (req) =>
                 new URL(req.url()).pathname === route &&
                 req.method() === "POST",
+              { timeout: 12_000 },
             );
             const responsePromise = page.waitForResponse(
               (res) =>
                 new URL(res.url()).pathname === route &&
                 res.request().method() === "POST",
+              { timeout: 12_000 },
             );
             const readbackResponses = [];
             page.on("response", (res) => {
@@ -281,7 +327,12 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               response.ok(),
               pageName + " action rejected: HTTP " + response.status(),
             );
-            const json = await response.json();
+            const json = await bounded(
+              "parse-crm-mutation-body",
+              () => response.json(),
+              page,
+              record,
+            );
             assert.ok(json?.data, pageName + " action missing persisted data");
             const createdId = Number(json.data.id);
             assert.ok(
@@ -327,15 +378,21 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               page,
               record,
             );
-            const readbackBodies = await Promise.all(
-              readbackResponses.map(async (res) => {
-                if (!res.ok()) return null;
-                try {
-                  return await res.json();
-                } catch {
-                  return null;
-                }
-              }),
+            const readbackBodies = await bounded(
+              "parse-crm-persisted-get-bodies",
+              () =>
+                Promise.all(
+                  readbackResponses.map(async (res) => {
+                    if (!res.ok()) return null;
+                    try {
+                      return await res.json();
+                    } catch {
+                      return null;
+                    }
+                  }),
+                ),
+              page,
+              record,
             );
             assert.ok(
               readbackBodies.some(
