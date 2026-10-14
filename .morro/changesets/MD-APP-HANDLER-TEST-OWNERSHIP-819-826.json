@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-APP-HANDLER-TEST-OWNERSHIP-819-826",
+  "objective": "admit-exact-existing-financial-and-admin-handler-regressions",
+  "baseSha": "40615d7d194e2b06ac04c6e01725aafb009dfe5f",
+  "branch": "fix/app-handler-test-ownership-819-826-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-APP-HANDLER-TEST-OWNERSHIP-819-826.json",
+      ".morro/ownership.json",
+      "tooling/ci/local-fast-gate.test.mjs",
+      "tooling/ci/financial-ticketing-feed-regression.contract.mjs"
+    ],
+    "contracts": [
+      "APP-HANDLER-TEST-OWNERSHIP",
+      "FINANCIAL-TICKETING-FOCUSED-REGRESSIONS"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-CONTROL-PLANE-V3.2",
+      "FINANCIAL-VERIFIED-RESULT-FEED",
+      "platform-authz"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "exact-handler-test-ownership-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/ci/local-fast-gate.test.mjs",
+          "tooling/ci/financial-ticketing-feed-regression.contract.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
