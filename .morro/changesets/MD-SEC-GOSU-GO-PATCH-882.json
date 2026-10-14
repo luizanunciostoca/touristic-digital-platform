@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-SEC-GOSU-GO-PATCH-882",
   "objective": "patch-fixable-gosu-go-stdlib-high-cves-882",
-  "baseSha": "34adf77df9c11bdc6e52cf72c6d95b65b1e7fcf1",
-  "branch": "fix/sec-gosu-go-toolchain-882-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "14c0b11b3fe40093f887b1886ca231ba9e673904",
+  "branch": "chore/retire-gosu-staging-security-882-20261014",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
