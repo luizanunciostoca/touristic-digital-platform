@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-legacy-publication-marker-20261014",
-      "baseSha": "45ac2ec98aabd374eaf33e72b178ad9fe5eda0f4",
+      "baseSha": "8160c74ac247083f720c276e2f13d558663ef95c",
       "paths": [
         ".morro/changesets/MD-STAGING-LEGACY-VERIFY-20261014.json",
         "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs",
