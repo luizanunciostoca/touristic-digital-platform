@@ -26,6 +26,88 @@ export interface VerifiedFinancialResultProcessor {
   drain(limit?: number): Promise<{ readonly processed: number }>;
 }
 
+type FinancialProcessorStage =
+  | "cursor_load"
+  | "feed_list_after"
+  | "fulfillment_handle"
+  | "refund_handle"
+  | "cursor_save";
+
+const safeFailureCodes = new Set([
+  "ER_NO_SUCH_TABLE",
+  "ER_BAD_FIELD_ERROR",
+  "ER_TABLEACCESS_DENIED_ERROR",
+  "ER_DBACCESS_DENIED_ERROR",
+  "ER_ACCESS_DENIED_ERROR",
+  "ER_BAD_DB_ERROR",
+  "ER_PARSE_ERROR",
+  "ER_WRONG_ARGUMENTS",
+  "ER_LOCK_DEADLOCK",
+  "ER_LOCK_WAIT_TIMEOUT",
+  "ER_DUP_ENTRY",
+  "ER_BAD_NULL_ERROR",
+  "ER_DATA_TOO_LONG",
+  "ER_TRUNCATED_WRONG_VALUE",
+  "ER_NO_DEFAULT_FOR_FIELD",
+  "PROTOCOL_CONNECTION_LOST",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "TICKETING_FINANCIAL_CURSOR_INVALID",
+  "FINANCIAL_INVALID_DB_TIMESTAMP",
+  "FINANCIAL_INVALID_PERSISTED_PAYMENT_RESULT",
+  "UNKNOWN_FAILURE",
+]);
+
+function safeFinancialProcessorCode(error: unknown): string {
+  try {
+    const reportedCode =
+      error && typeof error === "object" && "code" in error
+        ? (error as { readonly code?: unknown }).code
+        : undefined;
+    if (
+      typeof reportedCode === "string" &&
+      safeFailureCodes.has(reportedCode)
+    ) {
+      return reportedCode;
+    }
+    const message = error instanceof Error ? error.message : undefined;
+    if (typeof message === "string" && safeFailureCodes.has(message)) {
+      return message;
+    }
+  } catch {
+    return "UNKNOWN_FAILURE";
+  }
+  return "UNKNOWN_FAILURE";
+}
+
+class TicketingFinancialStageFailure extends Error {
+  readonly stage: FinancialProcessorStage;
+  readonly diagnosticCode: string;
+
+  constructor(stage: FinancialProcessorStage, error: unknown) {
+    super("TICKETING_FINANCIAL_PROCESSOR_STAGE_FAILURE");
+    this.name = "TicketingFinancialStageFailure";
+    this.stage = stage;
+    this.diagnosticCode = safeFinancialProcessorCode(error);
+    // Never attach the original error as cause, message, or enumerable metadata:
+    // MySQL and domain errors can contain SQL, URLs, tokens, or personal data.
+  }
+}
+
+async function atStage<T>(
+  stage: FinancialProcessorStage,
+  operation: () => Promise<T>,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new TicketingFinancialStageFailure(stage, error);
+  }
+}
+
 export function createVerifiedFinancialResultProcessor(dependencies: {
   readonly feed: VerifiedFinancialResultFeedPort;
   readonly cursor: FinancialResultCursorRepositoryPort;
@@ -34,25 +116,35 @@ export function createVerifiedFinancialResultProcessor(dependencies: {
 }): VerifiedFinancialResultProcessor {
   const processor: VerifiedFinancialResultProcessor = {
     async drain(limit = 100) {
-      const current = await dependencies.cursor.load();
-      const results = await dependencies.feed.listAfter(current, limit);
+      const current = await atStage("cursor_load", () =>
+        dependencies.cursor.load(),
+      );
+      const results = await atStage("feed_list_after", () =>
+        dependencies.feed.listAfter(current, limit),
+      );
       let processed = 0;
       for (const result of results) {
         if (
           result.kind === "approved" &&
           result.paymentStatus === "confirmed"
         ) {
-          await dependencies.fulfillment.handle(result);
+          await atStage("fulfillment_handle", () =>
+            dependencies.fulfillment.handle(result),
+          );
         } else if (
           result.kind === "refunded" &&
           result.paymentStatus === "refunded"
         ) {
-          await dependencies.refunds.handle(result);
+          await atStage("refund_handle", () =>
+            dependencies.refunds.handle(result),
+          );
         }
-        await dependencies.cursor.save({
-          recordedAt: result.recordedAt,
-          resultId: result.resultId,
-        });
+        await atStage("cursor_save", () =>
+          dependencies.cursor.save({
+            recordedAt: result.recordedAt,
+            resultId: result.resultId,
+          }),
+        );
         processed += 1;
       }
       return Object.freeze({ processed });

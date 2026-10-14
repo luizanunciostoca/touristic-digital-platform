@@ -207,6 +207,62 @@ function syncErrorCode(error) {
   return /^[A-Za-z0-9_.:-]{1,160}$/u.test(raw) ? raw : "CRM_SYNC_FAILED";
 }
 
+const ticketingFinancialStages = new Set([
+  "cursor_load",
+  "feed_list_after",
+  "fulfillment_handle",
+  "refund_handle",
+  "cursor_save",
+]);
+const ticketingFinancialCodes = new Set([
+  "ER_NO_SUCH_TABLE",
+  "ER_BAD_FIELD_ERROR",
+  "ER_TABLEACCESS_DENIED_ERROR",
+  "ER_DBACCESS_DENIED_ERROR",
+  "ER_ACCESS_DENIED_ERROR",
+  "ER_BAD_DB_ERROR",
+  "ER_PARSE_ERROR",
+  "ER_WRONG_ARGUMENTS",
+  "ER_LOCK_DEADLOCK",
+  "ER_LOCK_WAIT_TIMEOUT",
+  "ER_DUP_ENTRY",
+  "ER_BAD_NULL_ERROR",
+  "ER_DATA_TOO_LONG",
+  "ER_TRUNCATED_WRONG_VALUE",
+  "ER_NO_DEFAULT_FOR_FIELD",
+  "PROTOCOL_CONNECTION_LOST",
+  "ECONNREFUSED",
+  "ECONNRESET",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "TICKETING_FINANCIAL_CURSOR_INVALID",
+  "FINANCIAL_INVALID_DB_TIMESTAMP",
+  "FINANCIAL_INVALID_PERSISTED_PAYMENT_RESULT",
+  "UNKNOWN_FAILURE",
+]);
+
+export function sanitizeTicketingFinancialFailure(error) {
+  try {
+    const source = error && typeof error === "object" ? error : {};
+    const stage = source.stage;
+    const code = source.diagnosticCode;
+
+    return Object.freeze({
+      stage:
+        typeof stage === "string" && ticketingFinancialStages.has(stage)
+          ? stage
+          : "unclassified",
+      code:
+        typeof code === "string" && ticketingFinancialCodes.has(code)
+          ? code
+          : "UNKNOWN_FAILURE",
+    });
+  } catch {
+    return Object.freeze({ stage: "unclassified", code: "UNKNOWN_FAILURE" });
+  }
+}
+
 export function createTicketingAuthorizationPort({ authApi }) {
   return Object.freeze({
     async authorize(request, { mutation, admin = false }) {
@@ -664,11 +720,14 @@ export function createTicketingApi({
         if (processing) return processing;
         processing = processor
           .drain(100)
-          .catch(() => {
+          .catch((error) => {
+            const diagnostic = sanitizeTicketingFinancialFailure(error);
             auditSafely(audit, {
               action: "ticketing.financial_results",
               result: "failure",
               reason: "processor_failure",
+              stage: diagnostic.stage,
+              code: diagnostic.code,
             });
           })
           .then(async () => {

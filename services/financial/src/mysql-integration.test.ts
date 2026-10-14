@@ -28,6 +28,7 @@ import {
   createVerifiedPaymentAccountingService,
   createVerifiedPaymentOutcomeService,
 } from "./index.js";
+import { MySqlVerifiedPaymentResultFeed } from "./mysql-verified-payment-result-feed.js";
 
 const databaseUrl = process.env.FINANCIAL_DATABASE_URL;
 const adminUrl = process.env.MYSQL_ADMIN_DATABASE_URL;
@@ -391,6 +392,36 @@ describeMySql.sequential("M137/M143 Financial MySQL integration", () => {
       [saved.id],
     );
     expect(Number(resultRows[0]?.total)).toBe(2);
+    // Exercise the real prepared feed against both cursor branches, including
+    // the equal recordedAt values produced by this fixture's fixed clock.
+    const feed = new MySqlVerifiedPaymentResultFeed(pool);
+    const allResults = await feed.listAfter(null, 500);
+    expect(allResults.map((result) => result.resultId).sort()).toEqual(
+      [approval.result.resultId, refund.result.resultId].sort(),
+    );
+    const firstPage = await feed.listAfter(null, 1);
+    expect(firstPage).toHaveLength(1);
+    const first = firstPage[0];
+    if (!first) throw new Error("FIRST_FEED_PAGE_MISSING");
+    const secondPage = await feed.listAfter(
+      { recordedAt: first.recordedAt, resultId: first.resultId },
+      1,
+    );
+    expect(secondPage).toHaveLength(1);
+    const second = secondPage[0];
+    if (!second) throw new Error("SECOND_FEED_PAGE_MISSING");
+    expect(first.recordedAt).toBe(second.recordedAt);
+    expect(first.resultId < second.resultId).toBe(true);
+    expect([first.resultId, second.resultId].sort()).toEqual(
+      allResults.map((result) => result.resultId).sort(),
+    );
+    await expect(
+      feed.listAfter(
+        { recordedAt: second.recordedAt, resultId: second.resultId },
+        1,
+      ),
+    ).resolves.toEqual([]);
+
     const [transactionRows] = await pool.query<RowDataPacket[]>(
       "SELECT COUNT(*) AS total FROM financial_ledger_transactions WHERE external_key LIKE 'payment_result_%'",
     );
