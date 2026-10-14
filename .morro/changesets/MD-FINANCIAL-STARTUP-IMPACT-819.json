@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FINANCIAL-STARTUP-IMPACT-819",
   "objective": "classify-ticketing-startup-regressions-as-critical-payments",
-  "baseSha": "f325ff79dd56b4db33044d5384e65c174fc7c643",
+  "baseSha": "5fbd0c22c97d35c765c4c1906ec8464a30d3658d",
   "branch": "fix/financial-startup-impact-819-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
