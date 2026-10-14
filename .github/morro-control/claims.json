@@ -2,27 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CRM-HTML-ACCESS-865": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/crm-html-access-865-20261014",
-      "baseSha": "4f4c3c90328e8ceae7dadc352707213b1dfedc61",
-      "paths": [
-        ".morro/changesets/MD-CRM-HTML-ACCESS-865.json",
-        "apps/admin-crm/public/trials.js",
-        "apps/admin-crm/public/referrals.js",
-        "apps/admin-crm/public/trials.html",
-        "apps/admin-crm/public/referrals.html",
-        "apps/admin-crm/public/follow-ups.html",
-        "apps/admin-crm/public/settings.html",
-        "apps/admin-crm/public/lead-detail.html",
-        "tooling/crm/crm-html-access.test.mjs"
-      ],
-      "domains": ["crm"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T18:00:00.000Z"
-    },
     "MD-SEC-GOSU-GO-PATCH-882": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
