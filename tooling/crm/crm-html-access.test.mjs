@@ -75,6 +75,8 @@ for (const page of ["trials", "referrals"]) {
     const formId =
       page === "trials" ? "trial-create-form" : "referral-create-form";
     assert.ok(html.includes(`#${formId} :is(input, button)`));
+    const listId = page === "trials" ? "trials-list" : "referrals-list";
+    assert.ok(html.includes(`#${listId} :is(input, button)`));
     assert.ok(html.includes("min-height: 44px"));
   });
 }
@@ -148,6 +150,8 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
             csrf: false,
             mutationStatus: null,
             minTouchHeight: null,
+            readback: false,
+            persistedId: null,
             pageErrors: 0,
             stage: "init",
             failures: [],
@@ -238,6 +242,15 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
                 new URL(res.url()).pathname === route &&
                 res.request().method() === "POST",
             );
+            const readbackResponses = [];
+            page.on("response", (res) => {
+              if (
+                new URL(res.url()).pathname === route &&
+                res.request().method() === "GET"
+              ) {
+                readbackResponses.push(res);
+              }
+            });
             await form
               .locator('[name="leadId"], [name="referrerLeadId"]')
               .fill(leadId);
@@ -270,6 +283,11 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
             );
             const json = await response.json();
             assert.ok(json?.data, pageName + " action missing persisted data");
+            const createdId = Number(json.data.id);
+            assert.ok(
+              Number.isSafeInteger(createdId) && createdId > 0,
+              pageName + " create response missing new record ID",
+            );
             const successId =
               pageName === "trials"
                 ? "#trial-create-status"
@@ -288,6 +306,66 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               page,
               record,
             );
+            const listSelector =
+              pageName === "trials" ? "#trials-list" : "#referrals-list";
+            const createdHeading =
+              (pageName === "trials" ? "Trial #" : "Registro #") + createdId;
+            await bounded(
+              "wait-for-persisted-record-readback",
+              () =>
+                page.waitForFunction(
+                  ({ listSelector, createdHeading }) =>
+                    Array.from(
+                      document.querySelectorAll(listSelector + " h2"),
+                    ).some(
+                      (heading) =>
+                        heading.textContent?.trim() === createdHeading,
+                    ),
+                  { listSelector, createdHeading },
+                  { timeout: 10_000 },
+                ),
+              page,
+              record,
+            );
+            const readbackBodies = await Promise.all(
+              readbackResponses.map(async (res) => {
+                if (!res.ok()) return null;
+                try {
+                  return await res.json();
+                } catch {
+                  return null;
+                }
+              }),
+            );
+            assert.ok(
+              readbackBodies.some(
+                (body) =>
+                  Array.isArray(body?.data) &&
+                  body.data.some((item) => Number(item.id) === createdId),
+              ),
+              pageName + " created record absent from real GET readback",
+            );
+            const listControls = await page
+              .locator(listSelector + " :is(input, button)")
+              .all();
+            const listHeights = await Promise.all(
+              listControls.map(
+                async (node) => (await node.boundingBox())?.height ?? 0,
+              ),
+            );
+            assert.ok(
+              listHeights.length > 0 &&
+                listHeights.every((height) => height >= 44),
+              pageName +
+                " rendered list touch target is too small: " +
+                JSON.stringify(listHeights),
+            );
+            record.minTouchHeight = Math.min(
+              record.minTouchHeight,
+              ...listHeights,
+            );
+            record.persistedId = createdId;
+            record.readback = true;
             record.pageErrors = errors.length;
             assert.deepEqual(errors, [], pageName + " JS errors");
             record.stage = "complete";
