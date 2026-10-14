@@ -72,7 +72,11 @@
         "timeoutSeconds": 600
       }
     ],
-    "requiredRemoteEvidence": ["affected-tests", "automated-independent-proof"]
+    "requiredRemoteEvidence": [
+      "affected-tests",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
   },
   "stopAt": "REMOTE_PROVEN"
 }
