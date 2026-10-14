@@ -22,6 +22,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T18:00:00.000Z"
+    },
+    "MD-CI-CRM-IMPACT-865": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/ci-crm-impact-865-20261014",
+      "baseSha": "d27eaa2eba484a8741e7da94df80a9c5f936027a",
+      "paths": [
+        ".morro/changesets/MD-CI-CRM-IMPACT-865.json",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T16:17:41.118Z"
     }
   }
 }

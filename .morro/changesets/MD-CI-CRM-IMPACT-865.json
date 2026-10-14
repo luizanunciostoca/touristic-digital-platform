@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CI-CRM-IMPACT-865",
+  "objective": "classify-crm-browser-and-crm-regression-paths-in-impact-analyzer",
+  "baseSha": "d27eaa2eba484a8741e7da94df80a9c5f936027a",
+  "branch": "fix/ci-crm-impact-865-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CI-CRM-IMPACT-865.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs"
+    ],
+    "contracts": ["CI-CRM-IMPACT-CLASSIFICATION"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ci-crm-impact-regression",
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
