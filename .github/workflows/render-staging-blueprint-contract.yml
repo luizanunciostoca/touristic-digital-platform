@@ -7,6 +7,11 @@ on:
       - render.staging.yaml
       - render.yaml
       - tooling/render/reconcile-staging-mysql-domains.mjs
+      - apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs
+      - apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.test.mjs
+      - apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs
+      - tooling/quality/legacy-commercial-publication-marker-contract.test.mjs
+      - tooling/quality/staging-batch-workflow-trigger-contract.test.mjs
       - docs/deployment/RENDER-STAGING-V2.md
       - docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md
       - tooling/render/mysql-staging/**
@@ -76,6 +81,8 @@ jobs:
             echo "STAGING_CRM_PERSISTENCE_ACTUAL_TESTS_PASS"
           fi
 
+      - name: Validate historical publication markers and staging CI trigger selection
+        run: node --test tooling/quality/legacy-commercial-publication-marker-contract.test.mjs tooling/quality/staging-batch-workflow-trigger-contract.test.mjs
       - name: Validate bounded staging MySQL readiness wait
         run: node --test tooling/render/wait-for-staging-mysql.test.mjs
       - name: Validate staging provider acceptance runner
