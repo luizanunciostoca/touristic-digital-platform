@@ -81,6 +81,14 @@ for (const page of ["trials", "referrals"]) {
   });
 }
 
+test("CRM browser acceptance binds the created referral to a separate authenticated GET", () => {
+  const browserProof = read("tooling/crm/crm-html-access.test.mjs");
+  assert.match(browserProof, /context\.request\.get\(origin \+ route/u);
+  assert.match(browserProof, /item\.referredName === referralMarker/u);
+  assert.match(browserProof, /independent-authenticated-crm-get/u);
+  assert.match(browserProof, /wait-for-persisted-record-readback/u);
+});
+
 // A real-browser acceptance run is explicitly invoked by the canonical
 // CRM Equivalence workflow only after its MySQL fixtures and HTTP server exist.
 // The ordinary Node unit suite never masquerades as browser proof.
@@ -288,22 +296,15 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
                 res.request().method() === "POST",
               { timeout: 12_000 },
             );
-            const readbackResponses = [];
-            page.on("response", (res) => {
-              if (
-                new URL(res.url()).pathname === route &&
-                res.request().method() === "GET"
-              ) {
-                readbackResponses.push(res);
-              }
-            });
             await form
               .locator('[name="leadId"], [name="referrerLeadId"]')
               .fill(leadId);
-            if (pageName === "referrals")
-              await form
-                .locator('[name="referredName"]')
-                .fill("Prova de indicação");
+            const referralMarker =
+              pageName === "referrals"
+                ? "Prova de indicação E2E-" + process.pid + "-" + Date.now()
+                : null;
+            if (referralMarker)
+              await form.locator('[name="referredName"]').fill(referralMarker);
             await bounded(
               "submit-crm-mutation",
               () => form.locator('button[type="submit"]').click(),
@@ -327,18 +328,24 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               response.ok(),
               pageName + " action rejected: HTTP " + response.status(),
             );
-            const json = await bounded(
-              "parse-crm-mutation-body",
-              () => response.json(),
-              page,
-              record,
-            );
-            assert.ok(json?.data, pageName + " action missing persisted data");
-            const createdId = Number(json.data.id);
-            assert.ok(
-              Number.isSafeInteger(createdId) && createdId > 0,
-              pageName + " create response missing new record ID",
-            );
+            // Browser POST response bodies can be held by Chromium despite a
+            // completed 200 and a successful application-side fetch. In that
+            // case, use a distinct authenticated GET to verify persistence.
+            let createdId = null;
+            if (pageName === "trials") {
+              const json = await bounded(
+                "parse-trial-mutation-body",
+                () => response.json(),
+                page,
+                record,
+              );
+              assert.ok(json?.data, "trials action missing persisted data");
+              createdId = Number(json.data.id);
+              assert.ok(
+                Number.isSafeInteger(createdId) && createdId > 0,
+                "trials creation missing new record ID",
+              );
+            }
             const successId =
               pageName === "trials"
                 ? "#trial-create-status"
@@ -356,6 +363,51 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
                 ),
               page,
               record,
+            );
+            const verifiedGet = await bounded(
+              "independent-authenticated-crm-get",
+              () => context.request.get(origin + route, { timeout: 10_000 }),
+              page,
+              record,
+            );
+            assert.equal(
+              verifiedGet.status(),
+              200,
+              pageName + " independent GET rejected",
+            );
+            const verifiedPayload = await bounded(
+              "parse-independent-crm-get",
+              () => verifiedGet.json(),
+              page,
+              record,
+            );
+            assert.ok(
+              Array.isArray(verifiedPayload?.data),
+              pageName + " independent GET missing list",
+            );
+            if (pageName === "referrals") {
+              const created = verifiedPayload.data.filter(
+                (item) =>
+                  item.referredName === referralMarker &&
+                  Number(item.referrerLeadId) === Number(leadId),
+              );
+              assert.equal(
+                created.length,
+                1,
+                "referrals unique created record missing from DB-backed GET",
+              );
+              createdId = Number(created[0].id);
+            } else {
+              assert.ok(
+                verifiedPayload.data.some(
+                  (item) => Number(item.id) === createdId,
+                ),
+                "trials created record missing from DB-backed GET",
+              );
+            }
+            assert.ok(
+              Number.isSafeInteger(createdId) && createdId > 0,
+              pageName + " missing persisted ID",
             );
             const listSelector =
               pageName === "trials" ? "#trials-list" : "#referrals-list";
@@ -377,30 +429,6 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
                 ),
               page,
               record,
-            );
-            const readbackBodies = await bounded(
-              "parse-crm-persisted-get-bodies",
-              () =>
-                Promise.all(
-                  readbackResponses.map(async (res) => {
-                    if (!res.ok()) return null;
-                    try {
-                      return await res.json();
-                    } catch {
-                      return null;
-                    }
-                  }),
-                ),
-              page,
-              record,
-            );
-            assert.ok(
-              readbackBodies.some(
-                (body) =>
-                  Array.isArray(body?.data) &&
-                  body.data.some((item) => Number(item.id) === createdId),
-              ),
-              pageName + " created record absent from real GET readback",
             );
             const listControls = await page
               .locator(listSelector + " :is(input, button)")
