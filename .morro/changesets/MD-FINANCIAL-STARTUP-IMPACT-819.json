@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-FINANCIAL-STARTUP-IMPACT-819",
+  "objective": "classify-ticketing-startup-regressions-as-critical-payments",
+  "baseSha": "f325ff79dd56b4db33044d5384e65c174fc7c643",
+  "branch": "fix/financial-startup-impact-819-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-FINANCIAL-STARTUP-IMPACT-819.json",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs"
+    ],
+    "contracts": ["CI-IMPACT-TICKETING-STARTUP"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ticketing-startup-impact-regression",
+        "argv": ["node", "--test", "tooling/ci/impact-analyzer.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
