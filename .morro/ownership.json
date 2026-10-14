@@ -80,7 +80,8 @@
         "tooling/control-state/",
         ".gitignore",
         "package.json",
-        "pnpm-lock.yaml"
+        "pnpm-lock.yaml",
+        "packages/design-system/package.json"
       ],
       "contracts": []
     }
