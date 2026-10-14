@@ -263,6 +263,72 @@ export function sanitizeTicketingFinancialFailure(error) {
   }
 }
 
+const ticketingStartupStages = new Set([
+  "preflight",
+  "module_load",
+  "credential_validation",
+  "database_pool",
+  "ticketing_schema",
+  "ordering_schema",
+  "financial_payment_probe",
+  "financial_result_probe",
+  "crm_bridge",
+  "service_setup",
+  "financial_drain",
+]);
+const ticketingStartupCodes = new Set([
+  ...ticketingFinancialCodes,
+  "ER_DUP_KEYNAME",
+  "ER_CANNOT_ADD_FOREIGN",
+  "ER_FK_DUP_NAME",
+  "ER_TABLE_EXISTS_ERROR",
+  "ER_SPECIFIC_ACCESS_DENIED_ERROR",
+  "TICKETING_AUTH_API_REQUIRED",
+  "TICKETING_FEATURE_ENABLED_INVALID",
+  "TICKETING_SIGNING_SECRET_REQUIRED",
+  "TICKETING_OFFLINE_PROVISIONING_SECRET_REQUIRED",
+  "PAYMENTS_HANDOFF_SECRET_REQUIRED",
+  "PAYMENTS_DESTINATION_ID_REQUIRED",
+  "MORRO_DATABASE_SCHEMA_MODE_INVALID",
+]);
+export function sanitizeTicketingStartupFailure(error, stage) {
+  let code = "UNKNOWN_FAILURE";
+  try {
+    const rawCode = error && typeof error === "object" ? error.code : null;
+    const rawMessage = error instanceof Error ? error.message : null;
+    if (typeof rawCode === "string" && ticketingStartupCodes.has(rawCode)) {
+      code = rawCode;
+    } else if (
+      typeof rawMessage === "string" &&
+      ticketingStartupCodes.has(rawMessage)
+    ) {
+      code = rawMessage;
+    }
+  } catch {
+    // Hostile error/proxy access is never logged.
+  }
+  return Object.freeze({
+    stage: ticketingStartupStages.has(stage) ? stage : "unclassified",
+    code,
+  });
+}
+
+// Preserve the first rejection selected by Promise.all: later concurrent
+// failures must never relabel its code with a different operation.
+export function createTicketingStartupFailureTracker() {
+  let firstFailureStage = null;
+  return Object.freeze({
+    track(promise, stage) {
+      return Promise.resolve(promise).catch((error) => {
+        if (firstFailureStage === null) firstFailureStage = stage;
+        throw error;
+      });
+    },
+    get firstFailureStage() {
+      return firstFailureStage;
+    },
+  });
+}
 export function createTicketingAuthorizationPort({ authApi }) {
   return Object.freeze({
     async authorize(request, { mutation, admin = false }) {
@@ -341,6 +407,8 @@ export function createTicketingApi({
     if (started || startAttempted) return started;
     startAttempted = true;
     const pools = [];
+    let startupStage = "preflight";
+    const startupFailureTracker = createTicketingStartupFailureTracker();
     try {
       if (!authApi) throw new Error("TICKETING_AUTH_API_REQUIRED");
       const environment = collectEnvironment(getEnvironmentValue);
@@ -368,6 +436,7 @@ export function createTicketingApi({
         return true;
       }
 
+      startupStage = "module_load";
       const [{ normalizeTicketSigningSecret }, ticketingRuntime] =
         await Promise.all([
           import("@touristic/ticketing"),
@@ -400,6 +469,7 @@ export function createTicketingApi({
         createVerifiedRefundTicketCancellationHandler,
       } = ticketingRuntime;
 
+      startupStage = "credential_validation";
       const signingSecret = normalizeTicketSigningSecret(
         environment.TICKETING_SIGNING_SECRET,
       );
@@ -418,27 +488,44 @@ export function createTicketingApi({
         throw new Error("PAYMENTS_DESTINATION_ID_REQUIRED");
       }
 
+      startupStage = "database_pool";
       const ticketingPool =
         createTicketingMySqlPoolFromEnvironment(environment);
       const orderingPool = createOrderingMySqlPoolFromEnvironment(environment);
       const financialPool =
         createFinancialMySqlPoolFromEnvironment(environment);
       pools.push(ticketingPool, orderingPool, financialPool);
+      // Keep startup checks concurrent; emit only allowlisted failure stages.
+      const traceStartupCheck = (promise, stage) =>
+        startupFailureTracker.track(promise, stage);
       await Promise.all([
         ...(shouldApplyRuntimeSchema(environment)
           ? [
-              applyTicketingPublicApiSchema(ticketingPool),
-              applyOrderingTicketingReservationSchema(orderingPool),
+              traceStartupCheck(
+                applyTicketingPublicApiSchema(ticketingPool),
+                "ticketing_schema",
+              ),
+              traceStartupCheck(
+                applyOrderingTicketingReservationSchema(orderingPool),
+                "ordering_schema",
+              ),
             ]
           : []),
-        financialPool.execute(
-          "SELECT payment_id FROM financial_payments LIMIT 1",
+        traceStartupCheck(
+          financialPool.execute(
+            "SELECT payment_id FROM financial_payments LIMIT 1",
+          ),
+          "financial_payment_probe",
         ),
-        financialPool.execute(
-          "SELECT result_id FROM financial_payment_results LIMIT 1",
+        traceStartupCheck(
+          financialPool.execute(
+            "SELECT result_id FROM financial_payment_results LIMIT 1",
+          ),
+          "financial_result_probe",
         ),
       ]);
 
+      startupStage = "crm_bridge";
       let crmCommerce = null;
       let crmRetryAttempt = 0;
       let crmRetryNotBefore = 0;
@@ -477,6 +564,7 @@ export function createTicketingApi({
       };
       await ensureCrmCommerce({ force: true });
 
+      startupStage = "service_setup";
       const reservations = new MySqlTicketReservationRepository(ticketingPool);
       const adminService = new TicketingAdminService(ticketingPool);
       const holders = new MySqlTicketHolderProfileRepository(ticketingPool);
@@ -746,6 +834,7 @@ export function createTicketingApi({
           });
         return processing;
       };
+      startupStage = "financial_drain";
       await drain();
       const processorTimer = setInterval(
         () => void drain(),
@@ -770,13 +859,19 @@ export function createTicketingApi({
         reason: "ready",
       });
       return true;
-    } catch {
+    } catch (error) {
+      const diagnosis = sanitizeTicketingStartupFailure(
+        error,
+        startupFailureTracker.firstFailureStage ?? startupStage,
+      );
       await Promise.allSettled(pools.map((pool) => pool.end()));
       runtime = null;
       auditSafely(audit, {
         action: "ticketing.runtime",
         result: "failure",
         reason: "configuration_or_persistence_unavailable",
+        startupStage: diagnosis.stage,
+        diagnosticCode: diagnosis.code,
       });
       return false;
     }

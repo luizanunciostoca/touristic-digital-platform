@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import {
   createTicketingApi,
   sanitizeTicketingFinancialFailure,
+  sanitizeTicketingStartupFailure,
+  createTicketingStartupFailureTracker,
 } from "./ticketing-api.mjs";
 
 function authApi() {
@@ -287,5 +289,131 @@ describe("ticketing financial audit diagnostics", () => {
       stage: "unclassified",
       code: "UNKNOWN_FAILURE",
     });
+  });
+});
+
+describe("staging Ticketing startup diagnostic classification", () => {
+  it.each([
+    ["financial_payment_probe", "ER_NO_SUCH_TABLE"],
+    ["ticketing_schema", "ER_DUP_KEYNAME"],
+    ["ordering_schema", "ER_TABLEACCESS_DENIED_ERROR"],
+    ["financial_result_probe", "ECONNREFUSED"],
+  ])(
+    "preserves only allowlisted startup stage %s and code %s",
+    (stage, code) => {
+      const diagnosis = sanitizeTicketingStartupFailure(
+        {
+          code,
+          message: "PRIVATE_SQL_CREDENTIAL_SENTINEL",
+          sql: "PRIVATE_SQL_CREDENTIAL_SENTINEL",
+        },
+        stage,
+      );
+      expect(diagnosis).toEqual({ stage, code });
+      expect(Object.isFrozen(diagnosis)).toBe(true);
+      expect(JSON.stringify(diagnosis)).not.toContain(
+        "PRIVATE_SQL_CREDENTIAL_SENTINEL",
+      );
+    },
+  );
+  it("redacts untrusted text, invalid stages and hostile error accessors", () => {
+    const sentinel = "PRIVATE_SQL_CREDENTIAL_SENTINEL";
+    const values = [
+      { code: sentinel, message: sentinel, password: sentinel },
+      {
+        get code() {
+          throw Error(sentinel);
+        },
+      },
+      new Error(sentinel),
+    ];
+    const { proxy, revoke } = Proxy.revocable({}, {});
+    revoke();
+    values.push(proxy);
+    for (const value of values) {
+      const diagnosis = sanitizeTicketingStartupFailure(value, sentinel);
+      expect(diagnosis).toEqual({
+        stage: "unclassified",
+        code: "UNKNOWN_FAILURE",
+      });
+      expect(JSON.stringify(diagnosis)).not.toContain(sentinel);
+    }
+  });
+  it("records guarded failure diagnostics without requiring dynamic server modules", async () => {
+    const audits = [];
+    const api = createTicketingApi({
+      authApi: authApi(),
+      getEnvironmentValue: (key) =>
+        key === "TICKETING_FEATURE_ENABLED"
+          ? "TRUE"
+          : "PRIVATE_SECRET_SENTINEL",
+      audit: (record) => audits.push(record),
+    });
+    await expect(api.start()).resolves.toBe(false);
+    expect(audits).toContainEqual(
+      expect.objectContaining({
+        action: "ticketing.runtime",
+        result: "failure",
+        reason: "configuration_or_persistence_unavailable",
+        startupStage: "preflight",
+        diagnosticCode: "TICKETING_FEATURE_ENABLED_INVALID",
+      }),
+    );
+    expect(JSON.stringify(audits)).not.toContain("PRIVATE_SECRET_SENTINEL");
+  });
+  it("categorizes trusted missing-signing-secret without revealing error contents", () => {
+    expect(
+      sanitizeTicketingStartupFailure(
+        new Error("TICKETING_SIGNING_SECRET_REQUIRED"),
+        "credential_validation",
+      ),
+    ).toEqual({
+      stage: "credential_validation",
+      code: "TICKETING_SIGNING_SECRET_REQUIRED",
+    });
+  });
+});
+
+describe("concurrent startup rejection provenance", () => {
+  it.each([
+    ["financial_payment_probe", "financial_result_probe"],
+    ["financial_result_probe", "financial_payment_probe"],
+  ])(
+    "binds the first rejection to its original %s stage before later %s fails",
+    async (firstStage, secondStage) => {
+      const tracker = createTicketingStartupFailureTracker();
+      const first = Object.assign(new Error("SQL_SECRET_SENTINEL"), {
+        code: "ER_NO_SUCH_TABLE",
+      });
+      const second = Object.assign(new Error("SQL_SECRET_SENTINEL"), {
+        code: "ER_ACCESS_DENIED_ERROR",
+      });
+      await expect(
+        Promise.all([
+          tracker.track(Promise.reject(first), firstStage),
+          tracker.track(Promise.reject(second), secondStage),
+        ]),
+      ).rejects.toBe(first);
+      expect(tracker.firstFailureStage).toBe(firstStage);
+      const diagnosis = sanitizeTicketingStartupFailure(
+        first,
+        tracker.firstFailureStage,
+      );
+      expect(diagnosis).toEqual({
+        stage: firstStage,
+        code: "ER_NO_SUCH_TABLE",
+      });
+      expect(JSON.stringify(diagnosis)).not.toContain("SQL_SECRET_SENTINEL");
+    },
+  );
+  it("tracks first failure even when a later rejection settles after it", async () => {
+    const tracker = createTicketingStartupFailureTracker();
+    const earlier = Promise.reject(new Error("early"));
+    const later = Promise.reject(new Error("later"));
+    await Promise.allSettled([
+      tracker.track(earlier, "ticketing_schema"),
+      tracker.track(later, "ordering_schema"),
+    ]);
+    expect(tracker.firstFailureStage).toBe("ticketing_schema");
   });
 });
