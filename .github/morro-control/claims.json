@@ -2,38 +2,25 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-DESIGN-SYSTEM-REPEATABILITY-825": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/design-system-repeatability-825-20261014",
-      "baseSha": "2a886352548c08171daf3ffdc477aa8f65a654e6",
-      "paths": [
-        ".morro/changesets/MD-DESIGN-SYSTEM-REPEATABILITY-825.json",
-        ".morro/ownership.json",
-        "packages/design-system/package.json",
-        "package.json",
-        "tooling/quality/design-system-repeatability.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T07:34:40.121Z"
-    },
     "MD-FINANCIAL-FEED-LIMIT-819": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/financial-feed-limit-819-20261014",
-      "baseSha": "da9cc2b17a4a5e07c107e6f568c7a622e585caa2",
+      "baseSha": "c4f2f52de14b751dc688f1e3250af838c8e5a43e",
       "paths": [
         ".morro/changesets/MD-FINANCIAL-FEED-LIMIT-819.json",
         "services/financial/src/mysql-verified-payment-result-feed.ts",
         "services/financial/src/mysql-verified-payment-result-feed.test.ts",
-        "services/financial/src/mysql-integration.test.ts"
+        "services/financial/src/mysql-integration.test.ts",
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "services/ticketing/src/verified-financial-result-processor.ts",
+        "services/ticketing/src/verified-financial-result-processor.test.ts",
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
       ],
-      "domains": ["payments", "ci-release"],
+      "domains": ["payments", "ticketing", "ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T08:01:48.826Z"
+      "expiresAt": "2026-10-14T08:59:38.847Z"
     }
   }
 }
