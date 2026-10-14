@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-CRM-IMPACT-865",
   "objective": "classify-crm-browser-and-crm-regression-paths-in-impact-analyzer",
-  "baseSha": "0c8adc82cd039d6ea89922012608b0426dcc5152",
-  "branch": "fix/ci-crm-impact-865-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "7012faadcf95109d789fd3c86d2f8242e138bd3d",
+  "branch": "chore/retire-ci-crm-impact-865-20261014",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
