@@ -71,7 +71,9 @@
         "argv": [
           "node",
           "--test",
-          "tooling/quality/ci-scheduler-governance.test.mjs"
+          "--test-reporter=tap",
+          "tooling/quality/ci-scheduler-governance.test.mjs",
+          "tooling/ci/ticketing-startup-browser-routing.test.mjs"
         ],
         "timeoutSeconds": 600
       }
