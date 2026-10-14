@@ -1,5 +1,21 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-STAGING-LEGACY-VERIFY-20261014": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-legacy-publication-marker-20261014",
+      "baseSha": "45ac2ec98aabd374eaf33e72b178ad9fe5eda0f4",
+      "paths": [
+        ".morro/changesets/MD-STAGING-LEGACY-VERIFY-20261014.json",
+        "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs",
+        "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs"
+      ],
+      "domains": ["business", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T23:39:28.657Z"
+    }
+  }
 }
