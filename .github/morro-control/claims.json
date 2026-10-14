@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/crm-html-access-865-20261014",
-      "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
+      "baseSha": "3d08c7d3bf4bcf4616c413a2646b3b396479bb3f",
       "paths": [
         ".morro/changesets/MD-CRM-HTML-ACCESS-865.json",
         "apps/admin-crm/public/trials.js",
