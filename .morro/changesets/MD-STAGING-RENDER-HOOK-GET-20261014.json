@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-RENDER-HOOK-GET-20261014",
+  "objective": "repair-render-staging-hook-http-500-with-supported-get",
+  "baseSha": "5c82d59383bda3546275ecc83a0ec9d194186144",
+  "branch": "fix/staging-render-hook-get-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-RENDER-HOOK-GET-20261014.json",
+      ".github/workflows/staging-render-promotion.yml",
+      "tooling/quality/staging-hook-get-contract.test.mjs"
+    ],
+    "contracts": ["RENDER-STAGING-HOOK-GET-20261014"]
+  },
+  "reads": {
+    "contracts": [
+      "RENDER-STAGING-TARGET-GOVERNANCE",
+      "RELEASE-EXACT-HEAD",
+      "RENDER-HOOK-API"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "staging-hook-http-get-contract",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/staging-hook-get-contract.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration",
+      "staging-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
