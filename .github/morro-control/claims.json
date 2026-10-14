@@ -16,6 +16,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-15T12:00:00.000Z"
+    },
+    "MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-legacy-batch-provenance-20261014",
+      "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
+      "paths": [
+        ".morro/changesets/MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014.json",
+        "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-publication-batch.test.mjs",
+        "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs"
+      ],
+      "domains": ["business", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-15T12:00:00.000Z"
     }
   }
 }
