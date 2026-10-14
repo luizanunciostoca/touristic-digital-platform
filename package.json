@@ -13,7 +13,7 @@
     "test": "turbo run test && vitest run tests/assistant-v1-baseline.test.ts",
     "typecheck": "turbo run typecheck",
     "architecture:check": "node tooling/architecture/check-dependencies.mjs && pnpm platform:contracts:check",
-    "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry válido:', ids.length, 'features')\"",
+    "features:check": "node -e \"const r=require('./docs/features/registry.json'); const ids=r.features.map(f=>f.id); if(new Set(ids).size!==ids.length) process.exit(1); if(r.features.some(f=>!/^FEATURE-\\d{4}$/.test(f.id))) process.exit(1); console.log('Feature Registry v\u00e1lido:', ids.length, 'features')\"",
     "platform:contracts:check": "node tooling/quality/check-platform-contracts.mjs",
     "environment:check": "node tooling/quality/check-environment-reconciliation.mjs && node tooling/quality/check-render-production-mysql-blueprint.mjs && node --test tooling/quality/render-production-mysql-blueprint.test.mjs tooling/quality/production-twin-certification-contract.test.mjs tooling/quality/runtime-schema-mode-propagation.test.mjs tooling/render/with-production-mysql-env.test.mjs tooling/render/production-canonical-db-cutover.test.mjs apps/morro-digital-platform/tooling/database-schema-mode.test.mjs apps/morro-digital-platform/tooling/production-database-predeploy.test.mjs apps/morro-digital-platform/tooling/production-runtime-database-predeploy.test.mjs",
     "release:readiness:check": "node tooling/quality/check-release-readiness.mjs && node --test apps/morro-digital-platform/tooling/payments-production-cutover-guard.contract.mjs",
@@ -38,7 +38,7 @@
     "affiliates:server:test": "pnpm --filter @touristic/affiliates-server test",
     "affiliates:server:build": "pnpm --filter @touristic/affiliates-server build",
     "affiliates:check": "pnpm affiliates:lint && pnpm affiliates:typecheck && pnpm affiliates:test && pnpm affiliates:build && pnpm affiliates:server:lint && pnpm affiliates:server:typecheck && pnpm affiliates:server:test && pnpm affiliates:server:build",
-    "check": "pnpm format:check && pnpm css:stylelint && pnpm architecture:check && pnpm features:check && pnpm environment:check && pnpm release:readiness:check && pnpm secret-patterns:check && pnpm ci:governance:check && pnpm release:target-governance:check && pnpm release:acceptance-manifest:check && pnpm release:gates:negative-check && pnpm ci:supply-chain:strict && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm affiliates:check",
+    "check": "pnpm format:check && pnpm css:stylelint && pnpm architecture:check && pnpm features:check && pnpm environment:check && pnpm release:readiness:check && pnpm secret-patterns:check && pnpm ci:governance:check && pnpm release:target-governance:check && pnpm release:acceptance-manifest:check && pnpm release:gates:negative-check && pnpm ci:supply-chain:strict && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm design-system:repeatability && pnpm affiliates:check",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "release:gates": "node tooling/quality/run-local-release-gates.mjs",
@@ -70,7 +70,8 @@
     "fastfix:prepare": "node tooling/ci/local-fast-gate.mjs --prepare",
     "fastfix:admission": "node tooling/ci/local-fast-gate.mjs --admission",
     "fastfix:certify": "node tooling/ci/local-fast-gate.mjs --certify",
-    "fastfix:canary": "node --test tooling/tdp-max/fastfix-canary.test.mjs"
+    "fastfix:canary": "node --test tooling/tdp-max/fastfix-canary.test.mjs",
+    "design-system:repeatability": "node tooling/quality/design-system-repeatability.test.mjs"
   },
   "pnpm": {
     "overrides": {

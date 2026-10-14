@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-DESIGN-SYSTEM-REPEATABILITY-825",
   "objective": "prevent-generated-design-system-tests-from-breaking-repeatable-quality-checks",
-  "baseSha": "2a886352548c08171daf3ffdc477aa8f65a654e6",
+  "baseSha": "da9cc2b17a4a5e07c107e6f568c7a622e585caa2",
   "branch": "fix/design-system-repeatability-825-20261014",
   "state": "IMPLEMENTING",
   "risk": "high",
