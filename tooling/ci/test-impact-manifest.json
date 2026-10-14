@@ -69,7 +69,8 @@
         "services/ticketing/",
         "apps/morro-digital-platform/src/payments-",
         "apps/morro-digital-platform/tooling/payments-",
-        "apps/morro-digital-platform/tooling/ticketing-api.mjs"
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
       ],
       "risk": "CRITICAL",
       "dependsOn": ["assistant-conversation", "commerce", "security"],

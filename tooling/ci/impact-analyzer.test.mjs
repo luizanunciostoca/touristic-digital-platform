@@ -290,3 +290,32 @@ test("Wave 5 geospatial routing paths are classified fail-closed without broad f
   assert.ok(result.suites.includes("navigation-turn-by-turn-parity.yml"));
   assert.ok(result.suites.includes("navigation-accessibility-baseline.yml"));
 });
+
+test("Ticketing startup diagnostics require critical payments proof", () => {
+  const result = analyzeFiles([
+    "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs",
+  ]);
+  assert.equal(result.classificationBlocked, false);
+  assert.deepEqual(result.unknownFiles, []);
+  assert.equal(result.risk, "CRITICAL");
+  assert.equal(result.qualityProfile, "DEEP_PROOF");
+  assert.ok(result.domains.includes("payments"));
+  assert.ok(result.suites.includes("payments-browser-checkout-contract.yml"));
+  assert.ok(result.suites.includes("commerce-browser-regression.yml"));
+  for (const key of [
+    "needsFullRegression",
+    "needsBrowser",
+    "needsDatabase",
+    "needsFullSecurity",
+  ])
+    assert.equal(result[key], true, key);
+});
+
+test("Ticketing startup mapping stays exact", () => {
+  const result = analyzeFiles([
+    "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs.unmapped",
+  ]);
+  assert.equal(result.classificationBlocked, true);
+  assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
+  assert.equal(result.needsFullRegression, false);
+});
