@@ -125,7 +125,13 @@ try {
       root,
     }),
   );
-} catch (error) {
-  console.error(JSON.stringify({ status: "FAIL", root, error: error.message }));
-  throw error;
+} catch {
+  console.error(
+    JSON.stringify({
+      status: "FAIL",
+      root,
+      code: "DESIGN_SYSTEM_REPEATABILITY_FAILED",
+    }),
+  );
+  process.exitCode = 1;
 }
