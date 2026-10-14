@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/commerce-browser-regression.yml"
+      - "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
       - "tests/visual-regression/ux-v2-manual-reference-matrix.json"
       - ".github/workflows/final-release-acceptance.yml"
       - "apps/morro-digital-platform/public/commerce.css"
