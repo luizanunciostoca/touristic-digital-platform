@@ -108,12 +108,15 @@ jobs:
           else
             # Bootstrap exception is bound to the exact pre-test main parent
             # and the single reviewed workflow PR / resulting merge.
-            test "$(git rev-parse HEAD^1)" = "43e4cf7aaefbc3be7a02f9df54946299943c281e" || exit 1
+            test "$(git rev-parse HEAD^1)" = "3d08c7d3bf4bcf4616c413a2646b3b396479bb3f" || exit 1
             if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
               test "$GITHUB_HEAD_REF" = "fix/crm-ci-workflow-triggers-865-20261014" || exit 1
+              jq -e --arg base "3d08c7d3bf4bcf4616c413a2646b3b396479bb3f" \
+                '(.pull_request.number == 875) and (.pull_request.base.sha == $base) and (.pull_request.head.ref == "fix/crm-ci-workflow-triggers-865-20261014") and (.pull_request.head.repo.full_name == "luizanunciostoca/touristic-digital-platform")' \
+                "$GITHUB_EVENT_PATH" >/dev/null
             elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
               test "$GITHUB_REF" = "refs/heads/main" || exit 1
-              git show -s --format=%B HEAD | grep -Fq "Merge pull request #871" || exit 1
+              git show -s --format=%B HEAD | grep -Fq "Merge pull request #875" || exit 1
             else
               echo "CRM_BROWSER_TEST_MISSING" >&2
               exit 1
@@ -234,6 +237,9 @@ jobs:
             test "$(git rev-parse HEAD^1)" = "3d08c7d3bf4bcf4616c413a2646b3b396479bb3f"
             if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
               test "$GITHUB_HEAD_REF" = "fix/crm-ci-workflow-triggers-865-20261014"
+              jq -e --arg base "3d08c7d3bf4bcf4616c413a2646b3b396479bb3f" \
+                '(.pull_request.number == 875) and (.pull_request.base.sha == $base) and (.pull_request.head.ref == "fix/crm-ci-workflow-triggers-865-20261014") and (.pull_request.head.repo.full_name == "luizanunciostoca/touristic-digital-platform")' \
+                "$GITHUB_EVENT_PATH" >/dev/null
             elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
               test "$GITHUB_REF" = "refs/heads/main"
               git show -s --format=%B HEAD | grep -Fq "fix/crm-ci-workflow-triggers-865-20261014"
