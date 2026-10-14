@@ -4,7 +4,7 @@
   "objective": "classify-staging-legacy-publication-batch-ci-impact",
   "baseSha": "06f497a87fc4f14033f66d32d63d6beeb3976ee9",
   "branch": "fix/ci-legacy-batch-impact-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
