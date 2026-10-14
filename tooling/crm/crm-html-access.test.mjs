@@ -68,3 +68,160 @@ test("CRM trial/referral mutation controls remain wired to real API owners", () 
     assert.ok(referrals.includes(endpoint), endpoint);
   }
 });
+
+for (const page of ["trials", "referrals"]) {
+  test(`${page}: new CRM form touch controls enforce at least 44px`, () => {
+    const html = read(`${crmPublic}${page}.html`);
+    const formId =
+      page === "trials" ? "trial-create-form" : "referral-create-form";
+    assert.ok(html.includes(`#${formId} :is(input, button)`));
+    assert.ok(html.includes("min-height: 44px"));
+  });
+}
+
+// A real-browser acceptance run is explicitly invoked by the canonical
+// CRM Equivalence workflow only after its MySQL fixtures and HTTP server exist.
+// The ordinary Node unit suite never masquerades as browser proof.
+if (process.env.CRM_HTML_BROWSER_E2E === "1") {
+  test(
+    "Chromium: Trials and Indicações redirect, login, CSRF writes, touch size and DB-backed readback",
+    { timeout: 120_000 },
+    async () => {
+      const { createRequire } = await import("node:module");
+      const { mkdirSync, writeFileSync } = await import("node:fs");
+      const require = createRequire(import.meta.url);
+      const { chromium } = require("/tmp/pw/node_modules/playwright");
+      const origin = "http://127.0.0.1:4192";
+      const leadId = readFileSync("/tmp/m141-lead-id.txt", "utf8").trim();
+      assert.match(leadId, /^[1-9][0-9]*$/u);
+
+      const evidence = {
+        contractVersion: 1,
+        type: "REAL_BROWSER_CRM_HTML",
+        pages: [],
+        result: "FAIL",
+      };
+      const browser = await chromium.launch({ headless: true });
+      try {
+        for (const pageName of ["trials", "referrals"]) {
+          const path = `/apps/admin-crm/public/${pageName}.html`;
+          const context = await browser.newContext({
+            viewport: { width: 390, height: 844 },
+          });
+          const page = await context.newPage();
+          const errors = [];
+          page.on("pageerror", (error) => errors.push(error.message));
+          const record = {
+            page: pageName,
+            redirect: false,
+            authenticated: false,
+            csrf: false,
+            mutationStatus: null,
+            minTouchHeight: null,
+            pageErrors: 0,
+          };
+          try {
+            await page.goto(origin + path, { waitUntil: "domcontentloaded" });
+            await page.waitForURL(
+              (url) =>
+                url.pathname === "/dashboard/login.html" &&
+                url.searchParams.get("return") === path,
+            );
+            record.redirect = true;
+            await page.locator("#email").fill("owner@example.com");
+            await page
+              .locator("#password")
+              .fill("correct horse battery staple");
+            await page.locator("#submit").click();
+            await page.waitForURL((url) => url.pathname === path);
+            await page.waitForFunction(() =>
+              document
+                .querySelector("#session-status")
+                ?.textContent?.includes("Sessão autenticada"),
+            );
+            record.authenticated = true;
+            const form = page.locator(
+              pageName === "trials"
+                ? "#trial-create-form"
+                : "#referral-create-form",
+            );
+            const controls = await form.locator("input, button").all();
+            const heights = await Promise.all(
+              controls.map(
+                async (node) => (await node.boundingBox())?.height ?? 0,
+              ),
+            );
+            assert.ok(
+              heights.length > 1 && heights.every((height) => height >= 44),
+              pageName +
+                " touch target is too small: " +
+                JSON.stringify(heights),
+            );
+            record.minTouchHeight = Math.min(...heights);
+            const route = `/api/crm/${pageName}`;
+            const requestPromise = page.waitForRequest(
+              (req) =>
+                new URL(req.url()).pathname === route &&
+                req.method() === "POST",
+            );
+            const responsePromise = page.waitForResponse(
+              (res) =>
+                new URL(res.url()).pathname === route &&
+                res.request().method() === "POST",
+            );
+            await form
+              .locator('[name="leadId"], [name="referrerLeadId"]')
+              .fill(leadId);
+            if (pageName === "referrals")
+              await form
+                .locator('[name="referredName"]')
+                .fill("Prova de indicação");
+            await form.locator('button[type="submit"]').click();
+            const [request, response] = await Promise.all([
+              requestPromise,
+              responsePromise,
+            ]);
+            const csrf = request.headers()["x-csrf-token"];
+            assert.ok(
+              typeof csrf === "string" && csrf.length >= 10,
+              pageName + " missing CSRF header",
+            );
+            record.csrf = true;
+            record.mutationStatus = response.status();
+            assert.ok(
+              response.ok(),
+              pageName + " action rejected: HTTP " + response.status(),
+            );
+            const json = await response.json();
+            assert.ok(json?.data, pageName + " action missing persisted data");
+            const successId =
+              pageName === "trials"
+                ? "#trial-create-status"
+                : "#referral-create-status";
+            await page.waitForFunction(
+              (id) =>
+                /criado com sucesso|Salvo\./u.test(
+                  document.querySelector(id)?.textContent || "",
+                ),
+              successId,
+            );
+            record.pageErrors = errors.length;
+            assert.deepEqual(errors, [], pageName + " JS errors");
+            evidence.pages.push(record);
+          } finally {
+            await context.close();
+          }
+        }
+        evidence.result = "PASS";
+      } finally {
+        mkdirSync("/tmp/crm-m141-evidence", { recursive: true });
+        writeFileSync(
+          "/tmp/crm-m141-evidence/crm-html-browser-evidence.json",
+          JSON.stringify(evidence, null, 2) + "\n",
+        );
+        await browser.close();
+      }
+      assert.equal(evidence.result, "PASS");
+    },
+  );
+}
