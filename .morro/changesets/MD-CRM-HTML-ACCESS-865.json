@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-HTML-ACCESS-865",
+  "objective": "restore-canonical-CRM-HTML-navigation-and-dashboard-auth-for-trials-referrals",
+  "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
+  "branch": "fix/crm-html-access-865-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "medium",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-HTML-ACCESS-865.json",
+      "apps/admin-crm/public/trials.js",
+      "apps/admin-crm/public/referrals.js",
+      "apps/admin-crm/public/trials.html",
+      "apps/admin-crm/public/referrals.html",
+      "apps/admin-crm/public/follow-ups.html",
+      "apps/admin-crm/public/settings.html",
+      "apps/admin-crm/public/lead-detail.html",
+      "apps/morro-digital-platform/src/crm-html-access-regression.test.ts"
+    ],
+    "contracts": [
+      "CRM-BROWSER-SESSION-CLIENT",
+      "CRM-HTML-PAGE-NAVIGATION"
+    ]
+  },
+  "reads": {
+    "contracts": [
+      "platform-authz",
+      "TDP-CONTROL-PLANE-V3.2"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 2,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "crm-html-ui-regression",
+        "argv": [
+          "pnpm",
+          "exec",
+          "vitest",
+          "run",
+          "apps/morro-digital-platform/src/crm-html-access-regression.test.ts"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "affected-tests",
+      "automated-independent-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
