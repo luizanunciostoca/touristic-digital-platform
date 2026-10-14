@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-CRM-DB-865",
+  "objective": "restore-staging-crm-isolated-mysql-persistence-and-runtime-proof",
+  "baseSha": "2b0855f373f7f29a5265e288a42daeaf697a654c",
+  "branch": "fix/staging-crm-db-865-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-CRM-DB-865.json",
+      "tooling/render/staging-crm-credentials.mjs",
+      "tooling/render/staging-crm-credentials.test.mjs",
+      "tooling/render/reconcile-staging-mysql-domains.mjs",
+      "tooling/render/with-staging-mysql-env.mjs",
+      "tooling/render/with-staging-mysql-env.test.mjs",
+      "tooling/render/staging-crm-migrate.mjs",
+      "tooling/render/staging-crm-migrate.test.mjs",
+      "tooling/quality/check-render-staging-blueprint.mjs",
+      "tooling/quality/render-staging-blueprint.test.mjs",
+      "render.staging.yaml"
+    ],
+    "contracts": ["STAGING-CRM-ISOLATED-MYSQL", "STAGING-CRM-SCHEMA-READBACK"]
+  },
+  "reads": {
+    "contracts": ["STAGING-MYSQL-RECONCILE", "CRM-SCHEMA-OWNERSHIP"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "staging-crm-isolation-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/render/with-staging-mysql-env.test.mjs",
+          "tooling/render/staging-crm-credentials.test.mjs",
+          "tooling/render/staging-crm-migrate.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "staging-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

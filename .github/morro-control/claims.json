@@ -22,6 +22,29 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T18:00:00.000Z"
+    },
+    "MD-STAGING-CRM-DB-865": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-crm-db-865-20261014",
+      "baseSha": "2b0855f373f7f29a5265e288a42daeaf697a654c",
+      "paths": [
+        ".morro/changesets/MD-STAGING-CRM-DB-865.json",
+        "tooling/render/staging-crm-credentials.mjs",
+        "tooling/render/staging-crm-credentials.test.mjs",
+        "tooling/render/reconcile-staging-mysql-domains.mjs",
+        "tooling/render/with-staging-mysql-env.mjs",
+        "tooling/render/with-staging-mysql-env.test.mjs",
+        "tooling/render/staging-crm-migrate.mjs",
+        "tooling/render/staging-crm-migrate.test.mjs",
+        "tooling/quality/check-render-staging-blueprint.mjs",
+        "tooling/quality/render-staging-blueprint.test.mjs",
+        "render.staging.yaml"
+      ],
+      "domains": ["staging-database"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T20:43:19.923Z"
     }
   }
 }
