@@ -1,3 +1,4 @@
+import { matchesOwnershipPath } from "./ownership-path.mjs";
 import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 
@@ -14,7 +15,9 @@ const files = raw ? raw.split("\n") : [];
 const domains = new Set();
 for (const domain of ownership.domains) {
   for (const file of files) {
-    if (domain.pathPrefixes?.some((prefix) => file.startsWith(prefix)))
+    if (
+      domain.pathPrefixes?.some((prefix) => matchesOwnershipPath(file, prefix))
+    )
       domains.add(domain.id);
   }
 }

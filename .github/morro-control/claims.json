@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ownership-path-boundary-825-correction-20261014",
-      "baseSha": "78253f4ae11c20152fe8b811a73140e1d3219799",
+      "baseSha": "9d3322242afed8c786330c9f6b46879d9ef7d5c2",
       "paths": [
         ".morro/changesets/MD-OWNERSHIP-PATH-BOUNDARY-825-CORRECTION.json",
         "tooling/fabric/ownership-path.mjs",
