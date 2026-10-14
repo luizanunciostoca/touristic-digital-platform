@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-STAGING-CRM-IMPACT-865",
   "objective": "classify-staging-crm-migration-paths-with-actual-remote-proof",
-  "baseSha": "a1d1a2a652bca4a9da64c0d6a8f629853428f39f",
+  "baseSha": "77ca332f06f53c0c59129a2fc5931ed2d02aa3a8",
   "branch": "fix/ci-staging-crm-impact-865-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

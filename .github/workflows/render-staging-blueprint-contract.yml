@@ -10,6 +10,10 @@ on:
       - docs/deployment/RENDER-STAGING-V2.md
       - docs/operations/MYSQL-BACKUP-RESTORE-DRILL.md
       - tooling/render/mysql-staging/**
+      - tooling/render/staging-crm-credentials.mjs
+      - tooling/render/staging-crm-credentials.test.mjs
+      - tooling/render/staging-crm-migrate.mjs
+      - tooling/render/staging-crm-migrate.test.mjs
       - tooling/render/with-staging-mysql-env.mjs
       - tooling/render/with-staging-mysql-env.test.mjs
       - tooling/render/wait-for-staging-mysql.mjs
@@ -34,6 +38,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -43,6 +49,33 @@ jobs:
         run: node --test tooling/quality/render-staging-blueprint.test.mjs
       - name: Validate staging MySQL URL derivation
         run: node --test tooling/render/with-staging-mysql-env.test.mjs
+      - name: Validate staging CRM owner isolation and schema migration when implemented
+        shell: bash
+        run: |
+          set -euo pipefail
+          paths=(
+            tooling/render/staging-crm-credentials.mjs
+            tooling/render/staging-crm-credentials.test.mjs
+            tooling/render/staging-crm-migrate.mjs
+            tooling/render/staging-crm-migrate.test.mjs
+          )
+          count=0
+          for path in "${paths[@]}"; do
+            if [ -e "$path" ]; then count=$((count + 1)); fi
+          done
+          if [ "$count" -eq 0 ]; then
+            # HEAD ancestry is the implementation marker; deletion cannot downgrade to NOT_RUN.
+            if [ -n "$(git log --format=%H -1 HEAD -- "${paths[@]}")" ]; then
+              echo "::error::STAGING_CRM_PERSISTENCE_DELETED"
+              exit 1
+            fi
+            echo "STAGING_CRM_PERSISTENCE_NOT_RUN_IMPLEMENTATION_ABSENT"
+          else
+            test "$count" -eq "${#paths[@]}" || { echo "::error::STAGING_CRM_PERSISTENCE_INCOMPLETE"; exit 1; }
+            node --test tooling/render/staging-crm-credentials.test.mjs tooling/render/staging-crm-migrate.test.mjs
+            echo "STAGING_CRM_PERSISTENCE_ACTUAL_TESTS_PASS"
+          fi
+
       - name: Validate bounded staging MySQL readiness wait
         run: node --test tooling/render/wait-for-staging-mysql.test.mjs
       - name: Validate staging provider acceptance runner
