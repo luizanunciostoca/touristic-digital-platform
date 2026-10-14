@@ -54,13 +54,16 @@ async function loadReviewMarkerSummary(pool) {
 }
 
 async function loadPublicationMarkerSummary(pool) {
+  // Publication-migration markers record a historical revision. Authorized
+  // subsequent republishes advance the current published revision without
+  // rewriting migration provenance. Future marker revisions remain drift.
   try {
     const [rows] = await pool.execute(
       `SELECT
          COUNT(*) AS publication_marker_count,
          SUM(CASE WHEN
            p.published_revision IS NOT NULL AND
-           pm.editable_revision = p.published_revision
+           pm.editable_revision <= p.published_revision
          THEN 1 ELSE 0 END) AS publication_marker_published_count,
          SUM(CASE WHEN
            p.published_revision IS NULL AND
@@ -74,7 +77,7 @@ async function loadPublicationMarkerSummary(pool) {
            pm.place_id <> m.place_id OR
            (
              p.published_revision IS NOT NULL AND
-             pm.editable_revision <> p.published_revision
+             pm.editable_revision > p.published_revision
            ) OR
            (
              p.published_revision IS NULL AND
