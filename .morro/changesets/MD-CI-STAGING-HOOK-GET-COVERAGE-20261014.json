@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CI-STAGING-HOOK-GET-COVERAGE-20261014",
+  "objective": "integrate-staging-get-hook-regression-into-required-quality",
+  "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
+  "branch": "fix/ci-staging-hook-get-coverage-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CI-STAGING-HOOK-GET-COVERAGE-20261014.json",
+      ".github/workflows/quality.yml",
+      "tooling/quality/staging-hook-get-ci-wiring.test.mjs"
+    ],
+    "contracts": ["CI-STAGING-HOOK-GET-COVERAGE-20261014"]
+  },
+  "reads": {
+    "contracts": [
+      "RENDER-STAGING-HOOK-GET-20261014",
+      "RELEASE-EXACT-HEAD",
+      "CI-QUALITY-REQUIRED"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "staging-hook-required-ci-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/quality/staging-hook-get-ci-wiring.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

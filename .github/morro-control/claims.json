@@ -16,6 +16,21 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-15T12:00:00.000Z"
+    },
+    "MD-CI-STAGING-HOOK-GET-COVERAGE-20261014": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/ci-staging-hook-get-coverage-20261014",
+      "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
+      "paths": [
+        ".morro/changesets/MD-CI-STAGING-HOOK-GET-COVERAGE-20261014.json",
+        ".github/workflows/quality.yml",
+        "tooling/quality/staging-hook-get-ci-wiring.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-15T12:00:00.000Z"
     }
   }
 }
