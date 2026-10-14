@@ -1,3 +1,5 @@
+import { deriveStagingCrmDatabaseIdentity } from "./staging-crm-credentials.mjs";
+
 const STAGING_SERVICE = "morro-digital-v2-staging";
 
 export const stagingDatabaseDomains = Object.freeze([
@@ -11,6 +13,7 @@ export const stagingDatabaseDomains = Object.freeze([
   "DESTINATIONS",
   "NOTIFICATIONS",
   "TICKETING",
+  "CRM",
 ]);
 
 function required(environment, name) {
@@ -52,17 +55,27 @@ export async function reconcileStagingMysqlDomains(
   const hostPort = parseHostPort(environment);
   const rootPassword = required(environment, "STAGING_MYSQL_ROOT_PASSWORD");
   const domains = stagingDatabaseDomains.map((domain) =>
-    Object.freeze({
-      domain,
-      database: identifier(environment, `STAGING_${domain}_DATABASE_NAME`),
-      user: identifier(environment, `STAGING_${domain}_DATABASE_USER`),
-      password: required(environment, `STAGING_${domain}_DATABASE_PASSWORD`),
-    }),
+    domain === "CRM"
+      ? deriveStagingCrmDatabaseIdentity(environment)
+      : Object.freeze({
+          domain,
+          database: identifier(environment, `STAGING_${domain}_DATABASE_NAME`),
+          user: identifier(environment, `STAGING_${domain}_DATABASE_USER`),
+          password: required(
+            environment,
+            `STAGING_${domain}_DATABASE_PASSWORD`,
+          ),
+        }),
   );
 
   const databaseNames = new Set(domains.map(({ database }) => database));
   if (databaseNames.size !== domains.length) {
     throw new Error("STAGING_DATABASE_OWNERSHIP_COLLISION");
+  }
+
+  const users = new Set(domains.map(({ user }) => user));
+  if (users.size !== domains.length) {
+    throw new Error("STAGING_DATABASE_USER_OWNERSHIP_COLLISION");
   }
 
   const client = mysqlClient ?? (await import("mysql2/promise")).default;

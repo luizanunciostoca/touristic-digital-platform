@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-CRM-DB-865",
   "objective": "restore-staging-crm-isolated-mysql-persistence-and-runtime-proof",
-  "baseSha": "2b0855f373f7f29a5265e288a42daeaf697a654c",
+  "baseSha": "a1d1a2a652bca4a9da64c0d6a8f629853428f39f",
   "branch": "fix/staging-crm-db-865-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
