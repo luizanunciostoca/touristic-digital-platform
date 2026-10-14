@@ -85,7 +85,7 @@ for (const page of ["trials", "referrals"]) {
 if (process.env.CRM_HTML_BROWSER_E2E === "1") {
   test(
     "Chromium: Trials and Indicações redirect, login, CSRF writes, touch size and DB-backed readback",
-    { timeout: 120_000 },
+    { timeout: 90_000 },
     async () => {
       const { createRequire } = await import("node:module");
       const { mkdirSync, writeFileSync } = await import("node:fs");
@@ -101,7 +101,20 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
         pages: [],
         result: "FAIL",
       };
+      mkdirSync("/tmp/crm-m141-evidence", { recursive: true });
       const browser = await chromium.launch({ headless: true });
+      const bounded = async (stage, action, page, record) => {
+        record.stage = stage;
+        console.log(
+          "CRM_HTML_BROWSER_STAGE",
+          JSON.stringify({
+            page: record.page,
+            stage,
+            url: page.url(),
+          }),
+        );
+        return action();
+      };
       try {
         for (const pageName of ["trials", "referrals"]) {
           const path = `/apps/admin-crm/public/${pageName}.html`;
@@ -109,7 +122,24 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
             viewport: { width: 390, height: 844 },
           });
           const page = await context.newPage();
+          page.setDefaultTimeout(10_000);
+          page.setDefaultNavigationTimeout(12_000);
           const errors = [];
+          const failures = [];
+          page.on("requestfailed", (request) =>
+            failures.push({
+              url: new URL(request.url()).pathname,
+              failure: request.failure()?.errorText ?? "FAILED",
+            }),
+          );
+          page.on("response", (response) => {
+            if (response.status() >= 400) {
+              failures.push({
+                url: new URL(response.url()).pathname,
+                status: response.status(),
+              });
+            }
+          });
           page.on("pageerror", (error) => errors.push(error.message));
           const record = {
             page: pageName,
@@ -119,25 +149,64 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
             mutationStatus: null,
             minTouchHeight: null,
             pageErrors: 0,
+            stage: "init",
+            failures: [],
           };
           try {
-            await page.goto(origin + path, { waitUntil: "domcontentloaded" });
-            await page.waitForURL(
-              (url) =>
-                url.pathname === "/dashboard/login.html" &&
-                url.searchParams.get("return") === path,
+            await bounded(
+              "navigate-unauthenticated",
+              () =>
+                page.goto(origin + path, {
+                  waitUntil: "domcontentloaded",
+                  timeout: 12_000,
+                }),
+              page,
+              record,
+            );
+            await bounded(
+              "wait-for-login-redirect",
+              () =>
+                page.waitForURL(
+                  (url) =>
+                    url.pathname === "/dashboard/login.html" &&
+                    url.searchParams.get("return") === path,
+                  { timeout: 10_000 },
+                ),
+              page,
+              record,
             );
             record.redirect = true;
             await page.locator("#email").fill("owner@example.com");
             await page
               .locator("#password")
               .fill("correct horse battery staple");
-            await page.locator("#submit").click();
-            await page.waitForURL((url) => url.pathname === path);
-            await page.waitForFunction(() =>
-              document
-                .querySelector("#session-status")
-                ?.textContent?.includes("Sessão autenticada"),
+            await bounded(
+              "submit-login",
+              () => page.locator("#submit").click(),
+              page,
+              record,
+            );
+            await bounded(
+              "wait-for-authenticated-return",
+              () =>
+                page.waitForURL((url) => url.pathname === path, {
+                  timeout: 12_000,
+                }),
+              page,
+              record,
+            );
+            await bounded(
+              "wait-for-session-status",
+              () =>
+                page.waitForFunction(
+                  () =>
+                    document
+                      .querySelector("#session-status")
+                      ?.textContent?.includes("Sessão autenticada"),
+                  { timeout: 10_000 },
+                ),
+              page,
+              record,
             );
             record.authenticated = true;
             const form = page.locator(
@@ -176,11 +245,18 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               await form
                 .locator('[name="referredName"]')
                 .fill("Prova de indicação");
-            await form.locator('button[type="submit"]').click();
-            const [request, response] = await Promise.all([
-              requestPromise,
-              responsePromise,
-            ]);
+            await bounded(
+              "submit-crm-mutation",
+              () => form.locator('button[type="submit"]').click(),
+              page,
+              record,
+            );
+            const [request, response] = await bounded(
+              "wait-for-crm-mutation-response",
+              () => Promise.all([requestPromise, responsePromise]),
+              page,
+              record,
+            );
             const csrf = request.headers()["x-csrf-token"];
             assert.ok(
               typeof csrf === "string" && csrf.length >= 10,
@@ -198,18 +274,46 @@ if (process.env.CRM_HTML_BROWSER_E2E === "1") {
               pageName === "trials"
                 ? "#trial-create-status"
                 : "#referral-create-status";
-            await page.waitForFunction(
-              (id) =>
-                /criado com sucesso|Salvo\./u.test(
-                  document.querySelector(id)?.textContent || "",
+            await bounded(
+              "wait-for-mutation-status",
+              () =>
+                page.waitForFunction(
+                  (id) =>
+                    /criado com sucesso|Salvo\./u.test(
+                      document.querySelector(id)?.textContent || "",
+                    ),
+                  successId,
+                  { timeout: 10_000 },
                 ),
-              successId,
+              page,
+              record,
             );
             record.pageErrors = errors.length;
             assert.deepEqual(errors, [], pageName + " JS errors");
+            record.stage = "complete";
+            record.failures = failures;
             evidence.pages.push(record);
+          } catch (error) {
+            record.url = page.url();
+            record.pageErrors = errors.length;
+            record.errors = errors.slice(0, 8);
+            record.failures = failures.slice(0, 12);
+            record.error =
+              error instanceof Error
+                ? error.message.slice(0, 350)
+                : "NON_ERROR";
+            evidence.pages.push(record);
+            console.error("CRM_HTML_BROWSER_FAILURE", JSON.stringify(record));
+            try {
+              await page.screenshot({
+                path: `/tmp/crm-m141-evidence/${pageName}-failure.png`,
+                fullPage: true,
+                timeout: 5_000,
+              });
+            } catch {}
+            throw error;
           } finally {
-            await context.close();
+            await context.close({ reason: "CRM browser proof finalization" });
           }
         }
         evidence.result = "PASS";
