@@ -1,5 +1,22 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {}
+  "claims": {
+    "MD-SUPPORT-SESSION-REVOCATION-826": {
+      "owner": "CHATGPT-WORK-PENDING-20261014",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/support-session-revocation-826-20261014",
+      "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
+      "paths": [
+        ".morro/changesets/MD-SUPPORT-SESSION-REVOCATION-826.json",
+        "packages/auth/src/index.ts",
+        "packages/auth/src/index.test.ts",
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+      ],
+      "domains": ["auth"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T14:39:24.353Z"
+    }
+  }
 }
