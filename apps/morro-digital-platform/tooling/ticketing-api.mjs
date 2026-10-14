@@ -313,6 +313,22 @@ export function sanitizeTicketingStartupFailure(error, stage) {
   });
 }
 
+// Preserve the first rejection selected by Promise.all: later concurrent
+// failures must never relabel its code with a different operation.
+export function createTicketingStartupFailureTracker() {
+  let firstFailureStage = null;
+  return Object.freeze({
+    track(promise, stage) {
+      return Promise.resolve(promise).catch((error) => {
+        if (firstFailureStage === null) firstFailureStage = stage;
+        throw error;
+      });
+    },
+    get firstFailureStage() {
+      return firstFailureStage;
+    },
+  });
+}
 export function createTicketingAuthorizationPort({ authApi }) {
   return Object.freeze({
     async authorize(request, { mutation, admin = false }) {
@@ -392,6 +408,7 @@ export function createTicketingApi({
     startAttempted = true;
     const pools = [];
     let startupStage = "preflight";
+    const startupFailureTracker = createTicketingStartupFailureTracker();
     try {
       if (!authApi) throw new Error("TICKETING_AUTH_API_REQUIRED");
       const environment = collectEnvironment(getEnvironmentValue);
@@ -480,10 +497,7 @@ export function createTicketingApi({
       pools.push(ticketingPool, orderingPool, financialPool);
       // Keep startup checks concurrent; emit only allowlisted failure stages.
       const traceStartupCheck = (promise, stage) =>
-        Promise.resolve(promise).catch((error) => {
-          startupStage = stage;
-          throw error;
-        });
+        startupFailureTracker.track(promise, stage);
       await Promise.all([
         ...(shouldApplyRuntimeSchema(environment)
           ? [
@@ -846,7 +860,10 @@ export function createTicketingApi({
       });
       return true;
     } catch (error) {
-      const diagnosis = sanitizeTicketingStartupFailure(error, startupStage);
+      const diagnosis = sanitizeTicketingStartupFailure(
+        error,
+        startupFailureTracker.firstFailureStage ?? startupStage,
+      );
       await Promise.allSettled(pools.map((pool) => pool.end()));
       runtime = null;
       auditSafely(audit, {

@@ -4,6 +4,7 @@ import {
   createTicketingApi,
   sanitizeTicketingFinancialFailure,
   sanitizeTicketingStartupFailure,
+  createTicketingStartupFailureTracker,
 } from "./ticketing-api.mjs";
 
 function authApi() {
@@ -370,5 +371,49 @@ describe("staging Ticketing startup diagnostic classification", () => {
       stage: "credential_validation",
       code: "TICKETING_SIGNING_SECRET_REQUIRED",
     });
+  });
+});
+
+describe("concurrent startup rejection provenance", () => {
+  it.each([
+    ["financial_payment_probe", "financial_result_probe"],
+    ["financial_result_probe", "financial_payment_probe"],
+  ])(
+    "binds the first rejection to its original %s stage before later %s fails",
+    async (firstStage, secondStage) => {
+      const tracker = createTicketingStartupFailureTracker();
+      const first = Object.assign(new Error("SQL_SECRET_SENTINEL"), {
+        code: "ER_NO_SUCH_TABLE",
+      });
+      const second = Object.assign(new Error("SQL_SECRET_SENTINEL"), {
+        code: "ER_ACCESS_DENIED_ERROR",
+      });
+      await expect(
+        Promise.all([
+          tracker.track(Promise.reject(first), firstStage),
+          tracker.track(Promise.reject(second), secondStage),
+        ]),
+      ).rejects.toBe(first);
+      expect(tracker.firstFailureStage).toBe(firstStage);
+      const diagnosis = sanitizeTicketingStartupFailure(
+        first,
+        tracker.firstFailureStage,
+      );
+      expect(diagnosis).toEqual({
+        stage: firstStage,
+        code: "ER_NO_SUCH_TABLE",
+      });
+      expect(JSON.stringify(diagnosis)).not.toContain("SQL_SECRET_SENTINEL");
+    },
+  );
+  it("tracks first failure even when a later rejection settles after it", async () => {
+    const tracker = createTicketingStartupFailureTracker();
+    const earlier = Promise.reject(new Error("early"));
+    const later = Promise.reject(new Error("later"));
+    await Promise.allSettled([
+      tracker.track(earlier, "ticketing_schema"),
+      tracker.track(later, "ordering_schema"),
+    ]);
+    expect(tracker.firstFailureStage).toBe("ticketing_schema");
   });
 });
