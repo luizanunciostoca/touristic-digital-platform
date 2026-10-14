@@ -19,7 +19,7 @@
         "tooling/crm/crm-html-access.test.mjs"
       ],
       "domains": ["crm"],
-      "risk": "P2",
+      "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T18:00:00.000Z"
     }

@@ -5,7 +5,7 @@
   "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
   "branch": "fix/crm-html-access-865-20261014",
   "state": "IMPLEMENTING",
-  "risk": "medium",
+  "risk": "high",
   "scope": "PLATFORM",
   "owns": {
     "paths": [
@@ -42,7 +42,9 @@
     "typecheck",
     "affected-tests",
     "automated-independent-proof",
-    "exact-head-identity"
+    "exact-head-identity",
+    "build",
+    "integration"
   ],
   "requiredCapabilities": [
     "github:read",
@@ -75,7 +77,8 @@
     "requiredRemoteEvidence": [
       "affected-tests",
       "automated-independent-proof",
-      "exact-head-identity"
+      "exact-head-identity",
+      "integration"
     ]
   },
   "stopAt": "REMOTE_PROVEN"
