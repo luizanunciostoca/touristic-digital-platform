@@ -47,6 +47,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-15T12:00:00.000Z"
+    },
+    "MD-STAGING-BATCH-WORKFLOW-TRIGGER-20261014": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-batch-workflow-trigger-20261014",
+      "baseSha": "06f497a87fc4f14033f66d32d63d6beeb3976ee9",
+      "paths": [
+        ".morro/changesets/MD-STAGING-BATCH-WORKFLOW-TRIGGER-20261014.json",
+        ".github/workflows/render-staging-blueprint-contract.yml",
+        "tooling/quality/staging-batch-workflow-trigger-contract.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-15T12:00:00.000Z"
     }
   }
 }
