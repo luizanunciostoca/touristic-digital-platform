@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import {
   analyzeFiles,
   classifyPackageJsonChange,
@@ -553,5 +561,84 @@ test("STAGING CRM exact file-to-suite coverage and triggered real proof", () => 
     const report = analyzeFiles([path]);
     assert.equal(report.classificationBlocked, true, path);
     assert.deepEqual(report.unknownFiles, [path]);
+  }
+});
+
+test("STAGING CRM historical deletion cannot be accepted as NOT_RUN", () => {
+  const yaml = readFileSync(
+    ".github/workflows/render-staging-blueprint-contract.yml",
+    "utf8",
+  );
+  assert.match(yaml, /fetch-depth: 0/);
+  const start = yaml.indexOf(
+    "      - name: Validate staging CRM owner isolation and schema migration when implemented",
+  );
+  const end = yaml.indexOf(
+    "      - name: Validate bounded staging MySQL readiness wait",
+    start,
+  );
+  assert.ok(start >= 0 && end > start);
+  const segment = yaml.slice(start, end).split("        run: |\n")[1];
+  assert.ok(segment);
+  const script = segment
+    .trimEnd()
+    .split("\n")
+    .map((line) => (line.startsWith("          ") ? line.slice(10) : line))
+    .join("\n");
+  assert.match(script, /git log --format=%H -1 HEAD/);
+  const paths = [
+    "tooling/render/staging-crm-credentials.mjs",
+    "tooling/render/staging-crm-credentials.test.mjs",
+    "tooling/render/staging-crm-migrate.mjs",
+    "tooling/render/staging-crm-migrate.test.mjs",
+  ];
+  const dir = mkdtempSync(join(tmpdir(), "tdp-crm-deletion-"));
+  const git = (...args) =>
+    execFileSync("git", args, { cwd: dir, encoding: "utf8" });
+  const check = () =>
+    spawnSync("bash", ["-c", script], {
+      cwd: dir,
+      encoding: "utf8",
+      timeout: 10000,
+    });
+  try {
+    git("init", "-q");
+    git("config", "user.name", "TDP Test");
+    git("config", "user.email", "tdp-test@example.invalid");
+    writeFileSync(join(dir, "README.md"), "bootstrap\n");
+    git("add", ".");
+    git("commit", "-qm", "bootstrap");
+    const absent = check();
+    assert.equal(absent.status, 0, absent.stderr);
+    assert.match(
+      absent.stdout,
+      /STAGING_CRM_PERSISTENCE_NOT_RUN_IMPLEMENTATION_ABSENT/,
+    );
+    for (const path of paths) {
+      mkdirSync(dirname(join(dir, path)), { recursive: true });
+      writeFileSync(join(dir, path), "implemented\n");
+    }
+    git("add", ".");
+    git("commit", "-qm", "implement");
+    for (const path of paths) rmSync(join(dir, path));
+    git("add", "-u");
+    git("commit", "-qm", "delete");
+    const deleted = check();
+    assert.notEqual(deleted.status, 0);
+    assert.match(
+      deleted.stdout + deleted.stderr,
+      /STAGING_CRM_PERSISTENCE_DELETED/,
+    );
+    writeFileSync(join(dir, paths[0]), "partial\n");
+    git("add", ".");
+    git("commit", "-qm", "partial");
+    const partial = check();
+    assert.notEqual(partial.status, 0);
+    assert.match(
+      partial.stdout + partial.stderr,
+      /STAGING_CRM_PERSISTENCE_INCOMPLETE/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
