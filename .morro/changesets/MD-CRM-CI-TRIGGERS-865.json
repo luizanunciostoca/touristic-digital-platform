@@ -64,11 +64,11 @@
     },
     "commands": [
       {
-        "id": "crm-workflow-governance-proof",
+        "id": "crm-workflow-regression",
         "argv": [
           "node",
           "--test",
-          "tooling/quality/ci-scheduler-governance.test.mjs"
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
         ],
         "timeoutSeconds": 600
       }
