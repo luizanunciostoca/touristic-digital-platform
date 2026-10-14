@@ -86,6 +86,8 @@ jobs:
           --health-retries=10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
       - uses: ./.github/actions/ci-bootstrap
         with:
           browser: "true"
@@ -99,12 +101,24 @@ jobs:
           pnpm --filter @touristic/crm-server typecheck
           pnpm --filter @touristic/crm-server test
           pnpm --filter @touristic/morro-digital-platform exec vitest run src/crm-m141-equivalence-contract.test.ts
-          # The workflow-claim PR predates this test file. Once the CRM fix
-          # adds it, every tooling/crm/** PR and push executes the real test.
+          # Assert the actual workflows, not just impact metadata.
+          node --input-type=module -e 'import assert from "node:assert/strict";import{readFileSync}from"node:fs";for(const name of ["crm-equivalence-browser-contract.yml","crm-lead-detail-browser-contract.yml","crm-platform-auth-integration-contract.yml"]){const v=readFileSync(".github/workflows/"+name,"utf8");assert.equal(v.split(String.fromCharCode(10)).filter(l=>l.trim()==="- "+String.fromCharCode(34)+"tooling/crm/**"+String.fromCharCode(34)).length,2,name)};console.log("CRM_TRIGGER_BOTH_EVENTS_VERIFIED");'
           if [ -f tooling/crm/crm-html-access.test.mjs ]; then
             node --test tooling/crm/crm-html-access.test.mjs
           else
-            echo 'CRM_HTML_REGRESSION_NOT_YET_PRESENT_ON_THIS_CANDIDATE'
+            # Bootstrap exception is bound to the exact pre-test main parent
+            # and the single reviewed workflow PR / resulting merge.
+            test "$(git rev-parse HEAD^1)" = "43e4cf7aaefbc3be7a02f9df54946299943c281e" || exit 1
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              test "$GITHUB_HEAD_REF" = "fix/crm-ci-workflow-triggers-865-20261014" || exit 1
+            elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+              test "$GITHUB_REF" = "refs/heads/main" || exit 1
+              git show -s --format=%B HEAD | grep -Fq "Merge pull request #871" || exit 1
+            else
+              echo "CRM_BROWSER_TEST_MISSING" >&2
+              exit 1
+            fi
+            echo "CRM_BOOTSTRAP_EXCEPTION_EXACT_BASE_ONLY"
           fi
 
       - name: Install deterministic Chromium
