@@ -1,14 +1,23 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import {
+  existsSync,
+  readFileSync,
+  mkdtempSync,
+  rmSync,
+  lstatSync,
+} from "node:fs";
+import { resolve, join } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { buildAffectedTurboArgs } from "./affected-quality.mjs";
+import { buildClaimGuardProof } from "../fabric/claim-guard.mjs";
 import {
-  buildClaimReanchorProof,
-  validateClaimContext,
-} from "../fabric/claim-guard.mjs";
+  removedClaimIds,
+  assertCanonicalRetirementTransition,
+  buildClaimRetirementProof,
+} from "../fabric/claim-retirement-proof.mjs";
 import {
   chooseWorkspaceRuntime,
   probeWorkspaceRuntime,
@@ -286,46 +295,145 @@ export function assertOwnershipCoverage(files, ownership) {
   return { covered: files.length };
 }
 
-function validateAdmission(baseSha, headSha, files) {
+function assertGitBoundInput(path, ref, verifyWorktree = false) {
+  const [metadata, trackedPath] = git("ls-tree", ref, "--", path).split("\t");
+  const entry = /^(100644|100755) blob ([0-9a-f]{40})$/u.exec(metadata);
+  assert.ok(
+    entry && trackedPath === path,
+    "FAST_GATE_INPUT_NOT_REGULAR:" + path,
+  );
+  if (verifyWorktree) {
+    let current = process.cwd();
+    for (const part of path.split("/")) {
+      current = join(current, part);
+      assert.equal(
+        lstatSync(current).isSymbolicLink(),
+        false,
+        "FAST_GATE_INPUT_SYMLINK:" + path,
+      );
+    }
+    assert.equal(
+      lstatSync(current).isFile(),
+      true,
+      "FAST_GATE_INPUT_NOT_REGULAR:" + path,
+    );
+    assert.equal(
+      git("hash-object", "--no-filters", "--", path),
+      entry[2],
+      "FAST_GATE_INPUT_CONTENT_MISMATCH:" + path,
+    );
+  }
+}
+
+export async function validateAdmission(
+  baseSha,
+  headSha,
+  files,
+  { env = process.env, fetchImpl = fetch, now = Date.now() } = {},
+) {
+  assert.match(baseSha ?? "", SHA, "FAST_GATE_BASE_SHA_INVALID");
+  assert.match(headSha ?? "", SHA, "FAST_GATE_HEAD_SHA_INVALID");
+  assert.equal(git("rev-parse", "HEAD"), headSha, "FAST_GATE_HEAD_MISMATCH");
+  assert.equal(
+    git("status", "--porcelain", "--untracked-files=all"),
+    "",
+    "FAST_GATE_EXACT_HEAD_REQUIRES_CLEAN_WORKTREE",
+  );
+  assert.ok(isGitAncestor(baseSha, headSha), "FAST_GATE_BASE_NOT_ANCESTOR");
+  assert.deepEqual(
+    [...files].sort(),
+    changedFiles(baseSha, headSha).sort(),
+    "FAST_GATE_CHANGED_FILES_MISMATCH",
+  );
   const branch = git("branch", "--show-current");
   assert.ok(branch && branch !== "main", "FAST_GATE_BRANCH_INVALID");
-  const registry = json(".github/morro-control/claims.json");
+  const registryPath = ".github/morro-control/claims.json";
+  const ledgerPath = ".github/morro-control/events.ndjson";
+  assertGitBoundInput(registryPath, headSha, true);
+  assertGitBoundInput(registryPath, baseSha);
+  const registry = json(registryPath);
+  const baseRegistry = JSON.parse(git("show", `${baseSha}:${registryPath}`));
+
+  // Retirement removes its claim by design. Resolve this transition before
+  // requiring an active claim on the candidate branch.
+  if (removedClaimIds(baseRegistry, registry).length > 0) {
+    const {
+      removed: [claimId],
+    } = assertCanonicalRetirementTransition(baseRegistry, registry);
+    const expected = structuredClone(baseRegistry);
+    delete expected.claims[claimId];
+    assert.deepEqual(
+      registry,
+      expected,
+      "FAST_GATE_RETIREMENT_REGISTRY_DIVERGED",
+    );
+    const manifestPath = `.morro/changesets/${claimId}.json`;
+    assert.deepEqual(
+      [...files].sort(),
+      [registryPath, ledgerPath, manifestPath].sort(),
+      "FAST_GATE_RETIREMENT_SCOPE_INVALID",
+    );
+    for (const path of [ledgerPath, manifestPath, ".morro/ownership.json"]) {
+      assertGitBoundInput(path, headSha, true);
+      assertGitBoundInput(path, baseSha);
+    }
+    assert.equal(
+      json(manifestPath).branch,
+      branch,
+      "FAST_GATE_RETIREMENT_BRANCH_MISMATCH",
+    );
+    const ownership = assertOwnershipCoverage(
+      files,
+      json(".morro/ownership.json"),
+    );
+    const temporary = mkdtempSync(join(tmpdir(), "tdp-retirement-base-"));
+    const trustedRoot = join(temporary, "trusted");
+    let attached = false;
+    try {
+      git("worktree", "add", "--quiet", "--detach", trustedRoot, baseSha);
+      attached = true;
+      const proof = await buildClaimRetirementProof(
+        trustedRoot,
+        process.cwd(),
+        {
+          ...env,
+          EXPECTED_BASE_SHA: baseSha,
+          EXPECTED_CANDIDATE_SHA: headSha,
+        },
+        { fetchImpl, now },
+      );
+      return { ...proof, claimId, retirement: true, ownership };
+    } finally {
+      if (attached) git("worktree", "remove", "--force", trustedRoot);
+      rmSync(temporary, { recursive: true, force: true });
+    }
+  }
   const matching = Object.entries(registry?.claims ?? {}).filter(
     ([, claim]) => claim?.branch === branch,
   );
   assert.equal(matching.length, 1, "FAST_GATE_ACTIVE_CLAIM_RESOLUTION_FAILED");
   const [claimId] = matching[0];
   const manifestPath = `.morro/changesets/${claimId}.json`;
-  const manifest = json(manifestPath);
-  let authority = [
-    "COMPOSITION_PROVEN",
-    "POLICY_SATISFIED",
-    "MERGE_READY",
-  ].includes(manifest.state)
-    ? "INTEGRATOR"
-    : "WORKER";
-  let reanchorProof;
-  const serializedReanchor =
-    files.includes(".github/morro-control/claims.json") &&
-    files.includes(".github/morro-control/events.ndjson");
-  if (serializedReanchor) {
-    reanchorProof = buildClaimReanchorProof(process.cwd(), {
-      baseSha,
-      headSha,
-      manifestPath,
-    });
-    authority = "ORCHESTRATOR";
+  // All delegated worktree reads must describe the exact candidate blobs.
+  // Acquisition introduces its manifest, so it need not exist in the base.
+  for (const path of [manifestPath, ledgerPath, ".morro/ownership.json"]) {
+    assertGitBoundInput(path, headSha, true);
   }
-  const claim = validateClaimContext({
-    registry,
-    manifest,
-    branch,
-    currentBaseSha: baseSha,
-    branchHeadSha: headSha,
-    changedFiles: files,
-    authority,
-    reanchorProof,
-    isAncestor: isGitAncestor,
+  const manifest = json(manifestPath);
+  const authority =
+    files.includes(registryPath) || files.includes(ledgerPath)
+      ? "ORCHESTRATOR"
+      : ["COMPOSITION_PROVEN", "POLICY_SATISFIED", "MERGE_READY"].includes(
+            manifest.state,
+          )
+        ? "INTEGRATOR"
+        : "WORKER";
+  const claim = buildClaimGuardProof(process.cwd(), {
+    EXPECTED_CANDIDATE_SHA: headSha,
+    EXPECTED_BASE_SHA: baseSha,
+    EXPECTED_BRANCH: branch,
+    MANIFEST_PATH: manifestPath,
+    CLAIM_GUARD_AUTHORITY: authority,
   });
   const ownership = assertOwnershipCoverage(
     files,
@@ -418,7 +526,7 @@ if (invokedDirectly) {
     }
     if (process.argv.includes("--plan")) process.exit(0);
 
-    const authority = validateAdmission(baseSha, headSha, files);
+    const authority = await validateAdmission(baseSha, headSha, files);
     const workspace = workspaceRuntime();
     affectedFormat(files, false, workspace.runtime);
     diffCheck(baseSha, headSha);
