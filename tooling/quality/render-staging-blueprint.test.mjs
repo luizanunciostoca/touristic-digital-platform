@@ -13,7 +13,6 @@ const fixtures = [
   "render.staging.yaml",
   "render.yaml",
   "tooling/render/reconcile-staging-mysql-domains.mjs",
-  "tooling/render/staging-crm-credentials.mjs",
   "tooling/render/mysql-staging/Dockerfile",
   "tooling/render/mysql-staging/morro-memory.cnf",
   "tooling/render/mysql-staging/01-init-databases.sh",

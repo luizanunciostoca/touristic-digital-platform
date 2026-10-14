@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { scryptSync } from "node:crypto";
 import test from "node:test";
-import { reconcileStagingMysqlDomains } from "./reconcile-staging-mysql-domains.mjs";
+import {
+  reconcileStagingMysqlDomains,
+  deriveStagingCrmDatabaseIdentity,
+  stagingCrmIdentity,
+} from "./reconcile-staging-mysql-domains.mjs";
 import {
   buildStagingControlCenterOwnerAuthEnvironment,
   buildStagingDatabaseEnvironment,
@@ -9,6 +13,9 @@ import {
   shouldStartStagingPaymentsProviderAcceptance,
   stagingControlCenterOwnerIdentity,
   stagingPaymentsAcceptanceIdentity,
+  isStagingCrmMigrationCommand,
+  runStagingCrmMigration,
+  validateStagingCrmConnectionIdentity,
 } from "./with-staging-mysql-env.mjs";
 
 const acceptancePayerEmail = "test_payer_1234567890@testuser.com";
@@ -610,4 +617,243 @@ test("denies database reconciliation outside canonical staging service", async (
     ),
     /STAGING_MYSQL_RECONCILE_SERVICE_DENIED/u,
   );
+});
+
+// Staging CRM owner isolation and migrations must run in the already managed
+// MySQL environment proof suite, not rely on unmapped test paths.
+const crmCredsEnv = {
+  RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+  STAGING_MYSQL_ROOT_PASSWORD: "root-secret-0123456789abcdef",
+};
+test("CRM derives a deterministic, independent staging-only MySQL user", () => {
+  const a = deriveStagingCrmDatabaseIdentity(crmCredsEnv);
+  const b = deriveStagingCrmDatabaseIdentity(crmCredsEnv);
+  assert.deepEqual(a, b);
+  assert.equal(a.domain, "CRM");
+  assert.equal(a.database, "morro_crm_staging");
+  assert.equal(a.user, "morro_crm");
+  assert.equal(stagingCrmIdentity.service, crmCredsEnv.RENDER_SERVICE_NAME);
+  assert.match(a.password, /^[a-f0-9]{64}$/u);
+  assert.ok(!a.password.includes(crmCredsEnv.STAGING_MYSQL_ROOT_PASSWORD));
+  assert.notEqual(
+    a.password,
+    deriveStagingCrmDatabaseIdentity({
+      ...crmCredsEnv,
+      STAGING_MYSQL_ROOT_PASSWORD: "another-root-secret-0123456789",
+    }).password,
+  );
+  assert.equal(Object.isFrozen(a), true);
+});
+
+test("CRM secret derivation fails closed for production/missing root identity", () => {
+  for (const environment of [
+    { ...crmCredsEnv, RENDER_SERVICE_NAME: "morro-digital-v2" },
+    { ...crmCredsEnv, RENDER_SERVICE_NAME: "morro-digital-v2-production" },
+    { ...crmCredsEnv, RENDER_SERVICE_NAME: "" },
+  ]) {
+    assert.throws(
+      () => deriveStagingCrmDatabaseIdentity(environment),
+      /STAGING_CRM_SERVICE_DENIED/u,
+    );
+  }
+  for (const secret of ["", "root-secret", "short"]) {
+    assert.throws(
+      () =>
+        deriveStagingCrmDatabaseIdentity({
+          ...crmCredsEnv,
+          STAGING_MYSQL_ROOT_PASSWORD: secret,
+        }),
+      /STAGING_CRM_ROOT_SECRET_INVALID/u,
+    );
+  }
+});
+
+const crmBase = {
+  RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+  STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
+  STAGING_MYSQL_ROOT_PASSWORD: "root-secret-0123456789abcdef",
+};
+function crmFixture(changes = {}) {
+  const identity = deriveStagingCrmDatabaseIdentity(crmBase);
+  const u = new URL("mysql://placeholder.invalid/");
+  u.host = crmBase.STAGING_MYSQL_HOSTPORT;
+  u.username = identity.user;
+  u.password = identity.password;
+  u.pathname = "/" + identity.database;
+  return { ...crmBase, CRM_DATABASE_URL: u.toString(), ...changes };
+}
+
+test("only exact staging predeploy command can apply CRM migrations", () => {
+  const f = crmFixture();
+  assert.equal(
+    isStagingCrmMigrationCommand(f, "node", [
+      "apps/morro-digital-platform/tooling/staging-predeploy.mjs",
+    ]),
+    true,
+  );
+  for (const [environment, command, args] of [
+    [f, "node", ["apps/morro-digital-platform/tooling/dev-server.mjs"]],
+    [
+      f,
+      "node",
+      ["apps/morro-digital-platform/tooling/staging-predeploy.mjs", "--other"],
+    ],
+    [
+      f,
+      "node",
+      [
+        "apps/morro-digital-platform/tooling/production-runtime-database-predeploy.mjs",
+      ],
+    ],
+    [
+      { ...f, RENDER_SERVICE_NAME: "morro-digital-v2" },
+      "node",
+      ["apps/morro-digital-platform/tooling/staging-predeploy.mjs"],
+    ],
+  ]) {
+    assert.equal(
+      isStagingCrmMigrationCommand(environment, command, args),
+      false,
+    );
+  }
+});
+
+test("migration validation refuses foreign DB/user/host and root credential changes", () => {
+  const f = crmFixture();
+  assert.equal(
+    validateStagingCrmConnectionIdentity(f).database,
+    "morro_crm_staging",
+  );
+  for (const changes of [
+    { CRM_DATABASE_URL: "mysql://root:bad@127.0.0.1:3306/morro_crm_staging" },
+    {
+      CRM_DATABASE_URL: f.CRM_DATABASE_URL.replace(
+        "morro_crm_staging",
+        "morro_auth_staging",
+      ),
+    },
+    { CRM_DATABASE_URL: f.CRM_DATABASE_URL.replace("morro_crm", "morro_auth") },
+    { STAGING_MYSQL_ROOT_PASSWORD: "changed-root-secret-0123456789" },
+  ]) {
+    assert.throws(
+      () => validateStagingCrmConnectionIdentity({ ...f, ...changes }),
+      /STAGING_CRM_URL_IDENTITY_MISMATCH/u,
+    );
+  }
+  assert.throws(
+    () =>
+      validateStagingCrmConnectionIdentity({
+        ...f,
+        RENDER_SERVICE_NAME: "morro-digital-v2",
+      }),
+    /STAGING_CRM_SERVICE_DENIED/u,
+  );
+});
+
+test("schema migration is additive, verifies real owner and tables, closes pool", async () => {
+  const queries = [];
+  let closed = false;
+  const pool = {
+    async query(sql) {
+      queries.push(sql);
+      if (sql.startsWith("SELECT DATABASE()")) {
+        return [
+          [
+            {
+              database_name: "morro_crm_staging",
+              current_user_name: "morro_crm",
+            },
+          ],
+        ];
+      }
+      if (sql.startsWith("SELECT TABLE_NAME")) {
+        return [
+          [
+            "crm_leads",
+            "crm_follow_ups",
+            "crm_trials",
+            "crm_referrals",
+            "crm_settings",
+            "crm_storage_objects",
+            "crm_commerce_customers",
+            "crm_commerce_purchases",
+          ].map((name) => ({ name })),
+        ];
+      }
+      return [[]];
+    },
+    async end() {
+      closed = true;
+    },
+  };
+  const calls = [];
+  const crm = {
+    createCrmMySqlPoolFromEnvironment(options) {
+      assert.equal(options.CRM_DATABASE_URL, crmFixture().CRM_DATABASE_URL);
+      return pool;
+    },
+    async applyCrmM155Schema(p) {
+      assert.equal(p, pool);
+      calls.push("m155");
+    },
+    async applyCrmCommerceSchema(p) {
+      assert.equal(p, pool);
+      calls.push("commerce");
+    },
+  };
+  const result = await runStagingCrmMigration(crmFixture(), { crm });
+  assert.equal(result.status, "pass");
+  assert.equal(result.database, "morro_crm_staging");
+  assert.equal(result.user, "morro_crm");
+  assert.deepEqual(calls, ["m155", "commerce"]);
+  assert.equal(closed, true);
+  assert.ok(queries.some((sql) => sql.startsWith("SELECT DATABASE()")));
+  assert.ok(queries.some((sql) => sql.startsWith("SELECT TABLE_NAME")));
+  assert.ok(queries.includes("SELECT id FROM crm_leads LIMIT 1"));
+  assert.equal(JSON.stringify(result).includes("root-secret"), false);
+});
+
+test("schema readback and owner mismatch fail closed and always close", async () => {
+  for (const failure of ["owner", "tables"]) {
+    let closed = false,
+      applied = false;
+    const pool = {
+      async query(sql) {
+        if (sql.startsWith("SELECT DATABASE()")) {
+          return [
+            [
+              {
+                database_name:
+                  failure === "owner"
+                    ? "morro_auth_staging"
+                    : "morro_crm_staging",
+                current_user_name: "morro_crm",
+              },
+            ],
+          ];
+        }
+        if (sql.startsWith("SELECT TABLE_NAME"))
+          return [[{ name: "crm_leads" }]];
+        return [[]];
+      },
+      async end() {
+        closed = true;
+      },
+    };
+    const crm = {
+      createCrmMySqlPoolFromEnvironment: () => pool,
+      async applyCrmM155Schema() {
+        applied = true;
+      },
+      async applyCrmCommerceSchema() {},
+    };
+    await assert.rejects(
+      runStagingCrmMigration(crmFixture(), { crm }),
+      failure === "owner"
+        ? /STAGING_CRM_DB_OWNER_MISMATCH/u
+        : /STAGING_CRM_SCHEMA_READBACK_FAILED/u,
+    );
+    assert.equal(closed, true);
+    if (failure === "owner") assert.equal(applied, false);
+  }
 });

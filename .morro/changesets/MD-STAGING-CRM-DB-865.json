@@ -73,8 +73,7 @@
           "node",
           "--test",
           "tooling/render/with-staging-mysql-env.test.mjs",
-          "tooling/render/staging-crm-credentials.test.mjs",
-          "tooling/render/staging-crm-migrate.test.mjs"
+          "tooling/quality/render-staging-blueprint.test.mjs"
         ],
         "timeoutSeconds": 600
       }
