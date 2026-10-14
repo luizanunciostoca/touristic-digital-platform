@@ -1,24 +1,5 @@
 {
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
-  "claims": {
-    "MD-LOCAL-ADMISSION-RECOVERY-837": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/local-admission-recovery-837-20261013",
-      "baseSha": "3a09fc5d122e734d026c0c1f2b48197d8ddd6c71",
-      "paths": [
-        ".morro/changesets/MD-LOCAL-ADMISSION-RECOVERY-837.json",
-        "tooling/ci/local-fast-gate.mjs",
-        "tooling/ci/local-fast-gate.test.mjs",
-        "tooling/ci/local-fast-gate-recovery.test.mjs",
-        "tooling/mdctl/task-lifecycle.mjs",
-        "tooling/control-state/mdctl-task-correction.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T01:34:17.051Z"
-    }
-  }
+  "claims": {}
 }
