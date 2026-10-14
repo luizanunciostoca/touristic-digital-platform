@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-OWNERSHIP-PATH-BOUNDARY-825-CORRECTION",
+  "objective": "restore-exact-ownership-boundaries-across-planning-and-admission",
+  "baseSha": "78253f4ae11c20152fe8b811a73140e1d3219799",
+  "branch": "fix/ownership-path-boundary-825-correction-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-OWNERSHIP-PATH-BOUNDARY-825-CORRECTION.json",
+      "tooling/fabric/ownership-path.mjs",
+      "tooling/fabric/ownership-path.test.mjs",
+      "tooling/fabric/plan-change.mjs",
+      "tooling/fabric/compute-impact.mjs",
+      "tooling/mdctl/change-envelope.mjs",
+      "tooling/ci/local-fast-gate.mjs"
+    ],
+    "contracts": ["TDP-OWNERSHIP-PATH-BOUNDARY"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ownership-boundary-regression",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
