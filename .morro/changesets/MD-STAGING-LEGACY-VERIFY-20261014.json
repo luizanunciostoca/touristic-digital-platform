@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-LEGACY-VERIFY-20261014",
   "objective": "fix-staging-legacy-commercial-publication-marker-lineage",
-  "baseSha": "8160c74ac247083f720c276e2f13d558663ef95c",
-  "branch": "fix/staging-legacy-publication-marker-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "abb9bee6f9b6703c8597f53a8aa3c3015acd07e7",
+  "branch": "chore/retire-staging-legacy-verify-20261014",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "DESTINATION:MORRO",
   "owns": {
