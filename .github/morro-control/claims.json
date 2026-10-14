@@ -21,7 +21,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ci-legacy-verifier-impact-20261014",
-      "baseSha": "89ff1e5c346869779ac0bd9306e2c6494aa6af4d",
+      "baseSha": "2390b3b9d179dc8a76ee2a5bd5df878560740f7b",
       "paths": [
         ".morro/changesets/MD-CI-LEGACY-VERIFY-IMPACT-20261014.json",
         "tooling/ci/test-impact-manifest.json",

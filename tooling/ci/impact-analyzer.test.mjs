@@ -5,6 +5,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  existsSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
@@ -70,6 +71,45 @@ test("nested database migrations are not missed by directory glob matching", () 
     assert.equal(result.needsDatabase, true);
     assert.equal(result.nonRuntime, false);
   }
+});
+
+test("legacy staging verifier selects critical DB and recurrent marker proof", () => {
+  const core =
+    "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs";
+  const result = analyzeFiles([core]);
+  assert.equal(result.classificationBlocked, false);
+  assert.equal(result.risk, "CRITICAL");
+  assert.ok(result.domains.includes("staging-infra"));
+  assert.ok(result.suites.includes("render-staging-blueprint-contract.yml"));
+  assert.equal(result.needsDatabase, true);
+  assert.equal(result.needsFullRegression, true);
+  const unrelated = analyzeFiles([core + "x"]);
+  assert.equal(unrelated.classificationBlocked, true);
+
+  const markerProof =
+    "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs";
+  if (!existsSync(markerProof)) {
+    const history = execFileSync(
+      "git",
+      ["log", "--format=%H", "-1", "HEAD", "--", markerProof],
+      { encoding: "utf8" },
+    ).trim();
+    assert.equal(history, "", "LEGACY_PUBLICATION_MARKER_TEST_DELETED");
+    console.log("LEGACY_MARKER_PROOF_NOT_RUN_IMPLEMENTATION_ABSENT");
+    return;
+  }
+  const proof = spawnSync(process.execPath, ["--test", markerProof], {
+    encoding: "utf8",
+    timeout: 45000,
+  });
+  assert.equal(
+    proof.status,
+    0,
+    "LEGACY_PUBLICATION_MARKER_REGRESSION: " +
+      String(proof.stdout || "") +
+      String(proof.stderr || ""),
+  );
+  console.log("LEGACY_MARKER_PROOF_RECURRENT_PASS");
 });
 
 test("unknown paths block classification without broad suite fan-out", () => {
