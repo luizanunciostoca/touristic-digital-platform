@@ -45,22 +45,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T20:43:19.923Z"
-    },
-    "MD-CI-STAGING-CRM-IMPACT-865": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ci-staging-crm-impact-865-20261014",
-      "baseSha": "77ca332f06f53c0c59129a2fc5931ed2d02aa3a8",
-      "paths": [
-        ".morro/changesets/MD-CI-STAGING-CRM-IMPACT-865.json",
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs",
-        ".github/workflows/render-staging-blueprint-contract.yml"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-14T21:03:31.994Z"
     }
   }
 }
