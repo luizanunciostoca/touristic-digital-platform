@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-APP-HANDLER-TEST-OWNERSHIP-819-826",
   "objective": "admit-exact-existing-financial-and-admin-handler-regressions",
-  "baseSha": "c6f503edf6fd666772a0512e423f49332e2b931c",
-  "branch": "fix/app-handler-test-ownership-819-826-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "fb8ae854c6cc1ef3f3cd6861317cac39a47b6e98",
+  "branch": "chore/retire-app-handler-test-ownership-819-826-20261014",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
