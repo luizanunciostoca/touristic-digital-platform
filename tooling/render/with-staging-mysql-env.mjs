@@ -3,6 +3,11 @@ import { randomBytes, scryptSync } from "node:crypto";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { reconcileStagingMysqlDomains } from "./reconcile-staging-mysql-domains.mjs";
+import { deriveStagingCrmDatabaseIdentity } from "./staging-crm-credentials.mjs";
+import {
+  isStagingCrmMigrationCommand,
+  runStagingCrmMigration,
+} from "./staging-crm-migrate.mjs";
 import { waitForStagingMysql } from "./wait-for-staging-mysql.mjs";
 
 const databaseDomains = Object.freeze([
@@ -16,6 +21,7 @@ const databaseDomains = Object.freeze([
   ["DESTINATIONS", "DESTINATIONS_DATABASE_URL"],
   ["NOTIFICATIONS", "NOTIFICATIONS_DATABASE_URL"],
   ["TICKETING", "TICKETING_DATABASE_URL"],
+  ["CRM", "CRM_DATABASE_URL"],
 ]);
 const providerAcceptanceRunner = fileURLToPath(
   new URL("./payments-provider-acceptance-runner.mjs", import.meta.url),
@@ -65,9 +71,18 @@ function parseHostPort(environment) {
 }
 
 function databaseUrl(environment, domain, hostPort) {
-  const database = required(environment, `STAGING_${domain}_DATABASE_NAME`);
-  const user = required(environment, `STAGING_${domain}_DATABASE_USER`);
-  const password = required(environment, `STAGING_${domain}_DATABASE_PASSWORD`);
+  const identity =
+    domain === "CRM"
+      ? deriveStagingCrmDatabaseIdentity(environment)
+      : {
+          database: required(environment, `STAGING_${domain}_DATABASE_NAME`),
+          user: required(environment, `STAGING_${domain}_DATABASE_USER`),
+          password: required(
+            environment,
+            `STAGING_${domain}_DATABASE_PASSWORD`,
+          ),
+        };
+  const { database, user, password } = identity;
   for (const [name, value] of [
     ["database", database],
     ["user", user],
@@ -475,67 +490,96 @@ if (isDirectInvocation()) {
               : "disabled",
         })}\n`,
       );
-      const child = spawn(command, args, {
-        env: childEnvironment,
-        stdio: "inherit",
-      });
-      let acceptanceChild = null;
+      let stagingCrmMigrationAccepted = true;
+      if (isStagingCrmMigrationCommand(childEnvironment, command, args)) {
+        try {
+          const migration = await runStagingCrmMigration(childEnvironment);
+          process.stdout.write(`${JSON.stringify(migration)}\n`);
+        } catch (error) {
+          const reason = safeDiagnosticCode(
+            error,
+            "STAGING_CRM_MIGRATION_INVALID",
+          );
+          process.stderr.write(
+            `${JSON.stringify({
+              contract: "STAGING-CRM-MYSQL-MIGRATION",
+              status: "fail",
+              reason,
+            })}\n`,
+          );
+          process.exitCode = 1;
+          stagingCrmMigrationAccepted = false;
+        }
+      }
 
-      if (
-        shouldStartStagingPaymentsProviderAcceptance(
-          childEnvironment,
-          command,
-          args,
-        )
-      ) {
-        acceptanceChild = spawn(process.execPath, [providerAcceptanceRunner], {
+      if (stagingCrmMigrationAccepted) {
+        const child = spawn(command, args, {
           env: childEnvironment,
           stdio: "inherit",
         });
-        acceptanceChild.on("error", (error) => {
-          const diagnostic = safeDiagnosticCode(error, "START_FAILED");
-          process.stderr.write(
-            `${JSON.stringify({
-              contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
-              status: "fail",
-              reason: `start_failed:${diagnostic}`.slice(0, 200),
-            })}\n`,
-          );
-        });
-        acceptanceChild.on("exit", (code, signal) => {
-          process.stdout.write(
-            `${JSON.stringify({
-              contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
-              status: signal || (code !== null && code !== 0) ? "fail" : "pass",
-              ...(signal ? { signal } : { exitCode: code ?? 1 }),
-            })}\n`,
-          );
-        });
-      }
+        let acceptanceChild = null;
 
-      for (const signal of ["SIGINT", "SIGTERM"]) {
-        process.on(signal, () => {
+        if (
+          shouldStartStagingPaymentsProviderAcceptance(
+            childEnvironment,
+            command,
+            args,
+          )
+        ) {
+          acceptanceChild = spawn(
+            process.execPath,
+            [providerAcceptanceRunner],
+            {
+              env: childEnvironment,
+              stdio: "inherit",
+            },
+          );
+          acceptanceChild.on("error", (error) => {
+            const diagnostic = safeDiagnosticCode(error, "START_FAILED");
+            process.stderr.write(
+              `${JSON.stringify({
+                contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
+                status: "fail",
+                reason: `start_failed:${diagnostic}`.slice(0, 200),
+              })}\n`,
+            );
+          });
+          acceptanceChild.on("exit", (code, signal) => {
+            process.stdout.write(
+              `${JSON.stringify({
+                contract: "PAYMENTS-PROVIDER-ACCEPTANCE-RUNNER",
+                status:
+                  signal || (code !== null && code !== 0) ? "fail" : "pass",
+                ...(signal ? { signal } : { exitCode: code ?? 1 }),
+              })}\n`,
+            );
+          });
+        }
+
+        for (const signal of ["SIGINT", "SIGTERM"]) {
+          process.on(signal, () => {
+            if (acceptanceChild && !acceptanceChild.killed) {
+              acceptanceChild.kill(signal);
+            }
+            if (!child.killed) child.kill(signal);
+          });
+        }
+
+        child.on("error", () => {
+          process.stderr.write("staging command failed to start\n");
+          process.exitCode = 1;
+        });
+        child.on("exit", (code, signal) => {
           if (acceptanceChild && !acceptanceChild.killed) {
-            acceptanceChild.kill(signal);
+            acceptanceChild.kill("SIGTERM");
           }
-          if (!child.killed) child.kill(signal);
+          if (signal) {
+            process.kill(process.pid, signal);
+            return;
+          }
+          process.exitCode = code ?? 1;
         });
       }
-
-      child.on("error", () => {
-        process.stderr.write("staging command failed to start\n");
-        process.exitCode = 1;
-      });
-      child.on("exit", (code, signal) => {
-        if (acceptanceChild && !acceptanceChild.killed) {
-          acceptanceChild.kill("SIGTERM");
-        }
-        if (signal) {
-          process.kill(process.pid, signal);
-          return;
-        }
-        process.exitCode = code ?? 1;
-      });
     }
   }
 }

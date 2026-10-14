@@ -13,6 +13,7 @@ const fixtures = [
   "render.staging.yaml",
   "render.yaml",
   "tooling/render/reconcile-staging-mysql-domains.mjs",
+  "tooling/render/staging-crm-credentials.mjs",
   "tooling/render/mysql-staging/Dockerfile",
   "tooling/render/mysql-staging/morro-memory.cnf",
   "tooling/render/mysql-staging/01-init-databases.sh",
@@ -206,3 +207,32 @@ for (const blueprint of ["render.staging.yaml", "render.yaml"]) {
     });
   }
 }
+
+test("staging CRM cannot drift to independently configured credentials", (t) => {
+  rejects(
+    check(t, (source) =>
+      source.replace(
+        "      - key: STAGING_AUTH_DATABASE_NAME",
+        "      - key: STAGING_CRM_DATABASE_NAME\n        value: conflicting\n      - key: STAGING_AUTH_DATABASE_NAME",
+      ),
+    ),
+    /Forbidden staging contract text: - key: STAGING_CRM_DATABASE_/u,
+  );
+});
+
+test("staging CRM predeploy migration must remain in the canonical wrapper", (t) => {
+  rejects(
+    check(t, (_source, directory) => {
+      const file = path.join(
+        directory,
+        "tooling/render/with-staging-mysql-env.mjs",
+      );
+      const content = fs.readFileSync(file, "utf8");
+      fs.writeFileSync(
+        file,
+        content.replaceAll("runStagingCrmMigration", "removedMigrator"),
+      );
+    }),
+    /Missing staging contract: runStagingCrmMigration/u,
+  );
+});

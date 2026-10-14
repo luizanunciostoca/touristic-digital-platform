@@ -15,6 +15,8 @@ const acceptancePayerEmail = "test_payer_1234567890@testuser.com";
 
 function fixture(overrides = {}) {
   return {
+    RENDER_SERVICE_NAME: "morro-digital-v2-staging",
+    STAGING_MYSQL_ROOT_PASSWORD: "root-secret-0123456789abcdef",
     STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
     STAGING_AUTH_DATABASE_NAME: "morro_auth_staging",
     STAGING_AUTH_DATABASE_USER: "morro_auth",
@@ -80,6 +82,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
     "COMMERCE_DATABASE_URL",
     "CONTENT_DATABASE_URL",
     "CONTROL_CENTER_AUDIT_DATABASE_URL",
+    "CRM_DATABASE_URL",
     "DESTINATIONS_DATABASE_URL",
     "FINANCIAL_DATABASE_URL",
     "NOTIFICATIONS_DATABASE_URL",
@@ -102,7 +105,7 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
   const names = Object.values(derived).map((value) =>
     new URL(value).pathname.slice(1),
   );
-  assert.equal(new Set(names).size, 10);
+  assert.equal(new Set(names).size, 11);
 
   const commerce = new URL(derived.COMMERCE_DATABASE_URL);
   assert.equal(decodeURIComponent(commerce.username), "morro_commerce");
@@ -111,6 +114,18 @@ test("derives isolated MySQL owners plus durable Control Center audit storage", 
     "commerce+/=safe-password",
   );
   assert.equal(commerce.pathname, "/morro_commerce_staging");
+
+  const crm = new URL(derived.CRM_DATABASE_URL);
+  assert.equal(crm.protocol, "mysql:");
+  assert.equal(crm.hostname, "morro-digital-v2-staging-mysql");
+  assert.equal(crm.pathname, "/morro_crm_staging");
+  assert.equal(decodeURIComponent(crm.username), "morro_crm");
+  assert.match(decodeURIComponent(crm.password), /^[a-f0-9]{64}$/u);
+  assert.notEqual(derived.CRM_DATABASE_URL, derived.AUTH_DATABASE_URL);
+  assert.equal(
+    JSON.stringify(derived).includes("root-secret-0123456789abcdef"),
+    false,
+  );
 });
 
 test("rejects non-private-host hostport shapes", () => {
@@ -523,7 +538,7 @@ test("reconciles all staging schemas without exposing credentials", async () => 
       assert.equal(options.host, "morro-digital-v2-staging-mysql");
       assert.equal(options.port, 3306);
       assert.equal(options.user, "root");
-      assert.equal(options.password, "root-secret");
+      assert.equal(options.password, "root-secret-0123456789abcdef");
       return {
         async query(sql, params = []) {
           queries.push([sql, params]);
@@ -557,23 +572,24 @@ test("reconciles all staging schemas without exposing credentials", async () => 
     "destinations",
     "notifications",
     "ticketing",
+    "crm",
   ]);
   assert.equal(ended, true);
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE DATABASE")).length,
-    10,
+    11,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("CREATE USER")).length,
-    10,
+    11,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("ALTER USER")).length,
-    10,
+    11,
   );
   assert.equal(
     queries.filter(([sql]) => sql.startsWith("GRANT ALL PRIVILEGES")).length,
-    10,
+    11,
   );
   assert.equal(queries.at(-1)?.[0], "FLUSH PRIVILEGES");
   assert.equal(JSON.stringify(queries).includes("root-secret"), false);
@@ -583,10 +599,8 @@ test("denies database reconciliation outside canonical staging service", async (
   await assert.rejects(
     reconcileStagingMysqlDomains(
       {
-        RENDER_SERVICE_NAME: "morro-digital-v2",
-        STAGING_MYSQL_HOSTPORT: "morro-digital-v2-staging-mysql:3306",
-        STAGING_MYSQL_ROOT_PASSWORD: "root-secret",
         ...fixture(),
+        RENDER_SERVICE_NAME: "morro-digital-v2",
       },
       {
         createConnection: async () => {
