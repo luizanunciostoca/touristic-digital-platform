@@ -206,3 +206,44 @@ test("certify uses executable workspace runtime fallback", () => {
   assert.match(source, /debian-proot/u);
   assert.match(source, /execute\("pnpm", \["check"\], workspace\.runtime\)/u);
 });
+
+for (const [id, file] of [
+  [
+    "ticketing",
+    "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs",
+  ],
+  ["auth", "apps/morro-digital-platform/tooling/admin-api.test.mjs"],
+]) {
+  test(id + " owns its exact existing app handler regression", () => {
+    const ownership = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+    const domain = ownership.domains.find((item) => item.id === id);
+    assert.ok(domain);
+    assert.ok(domain.pathPrefixes.includes(file));
+    assert.equal(
+      ownership.domains.filter((item) => item.pathPrefixes.includes(file))
+        .length,
+      1,
+    );
+    assert.deepEqual(assertOwnershipCoverage([file], { domains: [domain] }), {
+      covered: 1,
+    });
+  });
+  test(
+    id + " handler ownership does not grant neighboring or nested paths",
+    () => {
+      const ownership = JSON.parse(
+        readFileSync(".morro/ownership.json", "utf8"),
+      );
+      for (const neighbor of [
+        file + ".unmapped",
+        file + "/nested.mjs",
+        file.replace(".test.mjs", ".other.test.mjs"),
+      ]) {
+        assert.throws(
+          () => assertOwnershipCoverage([neighbor], ownership),
+          /FAST_GATE_OWNERSHIP_UNCOVERED/u,
+        );
+      }
+    },
+  );
+}

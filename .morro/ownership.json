@@ -20,7 +20,8 @@
         "packages/ticketing/",
         "services/ticketing/",
         "tooling/ticketing/",
-        "apps/morro-digital-platform/tooling/ticketing-api.mjs"
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
       ],
       "contracts": ["ticket-fulfillment"]
     },
@@ -40,7 +41,11 @@
     },
     {
       "id": "auth",
-      "pathPrefixes": ["packages/auth/", "services/auth/"],
+      "pathPrefixes": [
+        "packages/auth/",
+        "services/auth/",
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+      ],
       "contracts": ["platform-authz"]
     },
     {
