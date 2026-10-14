@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-LEGACY-VERIFY-IMPACT-20261014",
   "objective": "map-unclassified-staging-legacy-verifier-to-explicit-ci-impact",
-  "baseSha": "89ff1e5c346869779ac0bd9306e2c6494aa6af4d",
+  "baseSha": "2390b3b9d179dc8a76ee2a5bd5df878560740f7b",
   "branch": "fix/ci-legacy-verifier-impact-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

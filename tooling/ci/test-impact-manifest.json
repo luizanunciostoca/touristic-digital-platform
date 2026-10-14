@@ -346,6 +346,7 @@
       "paths": [
         "render.staging.yaml",
         "tooling/render/reconcile-staging-mysql-domains.mjs",
+        "apps/morro-digital-platform/tooling/legacy-commercial-draft-verify-core.mjs",
         "tooling/render/mysql-staging/",
         "tooling/render/staging-crm-credentials.mjs",
         "tooling/render/staging-crm-credentials.test.mjs",
