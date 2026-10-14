@@ -27,7 +27,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-crm-db-865-20261014",
-      "baseSha": "2b0855f373f7f29a5265e288a42daeaf697a654c",
+      "baseSha": "ea943b80afa346cc755cc4a6dcde78dd84817389",
       "paths": [
         ".morro/changesets/MD-STAGING-CRM-DB-865.json",
         "tooling/render/staging-crm-credentials.mjs",

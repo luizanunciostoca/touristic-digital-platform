@@ -1,6 +1,13 @@
 import fs from "node:fs";
 import { stagingDatabaseDomains } from "../render/reconcile-staging-mysql-domains.mjs";
 
+const providerBoundDomains = stagingDatabaseDomains.filter(
+  (domain) => domain !== "CRM",
+);
+if (!stagingDatabaseDomains.includes("CRM")) {
+  throw new Error("STAGING_CRM_DOMAIN_UNMAPPED");
+}
+
 const blueprint = fs.readFileSync(
   new URL("../../render.staging.yaml", import.meta.url),
   "utf8",
@@ -174,7 +181,7 @@ if (autoDeployDisabled !== 2) {
 
 for (const key of [
   "MYSQL_ROOT_PASSWORD",
-  ...stagingDatabaseDomains.map((domain) => `${domain}_DATABASE_PASSWORD`),
+  ...providerBoundDomains.map((domain) => `${domain}_DATABASE_PASSWORD`),
   "DASHBOARD_AUTH_SECRET",
   "PAYMENTS_STATUS_TOKEN_SECRET",
   "PAYMENTS_HANDOFF_SECRET",
@@ -209,7 +216,7 @@ for (const key of [
 
 for (const key of [
   "STAGING_MYSQL_HOSTPORT",
-  ...stagingDatabaseDomains.flatMap((domain) =>
+  ...providerBoundDomains.flatMap((domain) =>
     ["NAME", "USER", "PASSWORD"].map(
       (component) => `STAGING_${domain}_DATABASE_${component}`,
     ),
@@ -218,6 +225,21 @@ for (const key of [
 ]) {
   requireDirective(key, "fromService:");
   requireDirective(key, "name: morro-digital-v2-staging-mysql");
+}
+
+for (const required of [
+  "CRM_DATABASE_URL",
+  "deriveStagingCrmDatabaseIdentity",
+  "isStagingCrmMigrationCommand",
+  "runStagingCrmMigration",
+]) {
+  requireText(stagingMysqlWrapper, required);
+}
+for (const forbidden of [
+  "- key: STAGING_CRM_DATABASE_",
+  "- key: CRM_DATABASE_URL",
+]) {
+  forbidText(blueprint, forbidden);
 }
 
 requireDirective("STAGING_MYSQL_HOSTPORT", "property: hostport");
@@ -243,7 +265,7 @@ for (const [key, expected] of [
   requireDirective(key, expected);
 }
 
-for (const domain of stagingDatabaseDomains) {
+for (const domain of providerBoundDomains) {
   requireDirective(
     `${domain}_DATABASE_NAME`,
     `value: morro_${domain.toLowerCase()}_staging`,
