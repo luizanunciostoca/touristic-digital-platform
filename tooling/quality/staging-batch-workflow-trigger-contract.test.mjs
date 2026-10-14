@@ -58,3 +58,21 @@ test("staging workflow runs deterministic trigger and historical marker proofs",
     /- name: Reject missing or misbound staging database domains/u,
   );
 });
+
+test("staging CRM historical proof extraction must not swallow later CI steps", () => {
+  const start = workflowSource.indexOf(
+    "      - name: Validate staging CRM owner isolation and schema migration when implemented",
+  );
+  const end = workflowSource.indexOf(
+    "      - name: Validate bounded staging MySQL readiness wait",
+    start,
+  );
+  assert.ok(start >= 0 && end > start, "STAGING_CRM_PROOF_BOUNDARY_MISSING");
+  const section = workflowSource.slice(start, end);
+  assert.equal(
+    (section.match(/^      - name:/gmu) ?? []).length,
+    1,
+    "STAGING_CRM_PROOF_SWALLOWS_LATER_WORKFLOW_STEPS",
+  );
+  assert.match(section, /STAGING_CRM_PERSISTENCE_DELETED/u);
+});
