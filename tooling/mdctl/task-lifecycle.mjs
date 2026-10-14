@@ -639,6 +639,10 @@ export function buildTaskCorrection({
     "IMPLEMENTING",
     "TASK_CORRECTION_STATE_INVALID",
   );
+  assert.ok(
+    !changeSet.dependencies.includes(successor.id),
+    "TASK_CORRECTION_DEPENDENCY_CYCLE",
+  );
   assert.deepEqual(
     [...successor.dependencies].sort(),
     [...new Set([...changeSet.dependencies, changeSet.id])].sort(),

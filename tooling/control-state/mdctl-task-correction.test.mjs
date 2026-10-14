@@ -48,10 +48,11 @@ function changeSet() {
   };
 }
 
-async function fixture() {
+async function fixture(dependencies = []) {
   let n = 0;
   const idFactory = () => "correction-" + ++n;
   const manifest = changeSet();
+  manifest.dependencies = dependencies;
   const identity = {
     headSha: "b".repeat(40),
     treeSha: "c".repeat(40),
@@ -90,7 +91,7 @@ async function fixture() {
     ...structuredClone(manifest),
     id: "MD-TASK-CORRECTION",
     branch: "infra/task-correction",
-    dependencies: [manifest.id],
+    dependencies: [...manifest.dependencies, manifest.id],
   };
   const claimRegistry = {
     registryAuthority: "ORCHESTRATOR",
@@ -304,3 +305,29 @@ for (const [name, mutate, code] of [
     assert.deepEqual({ task: f.task, leases: f.leaseRegistry }, before);
   });
 }
+
+test("correction rejects successor already in predecessor dependencies", async () => {
+  const f = await fixture(["MD-TASK-CORRECTION"]);
+  const before = structuredClone({
+    task: f.task,
+    handoff: f.handoff,
+    leases: f.leaseRegistry,
+  });
+  assert.throws(
+    () => buildTaskCorrection(f),
+    /TASK_CORRECTION_DEPENDENCY_CYCLE/,
+  );
+  assert.deepEqual(
+    { task: f.task, handoff: f.handoff, leases: f.leaseRegistry },
+    before,
+  );
+});
+test("correction preserves unrelated predecessor dependencies", async () => {
+  const f = await fixture(["MD-EXISTING-DEPENDENCY"]);
+  const result = buildTaskCorrection(f);
+  assert.equal(result.task.state, "STARTED");
+  assert.deepEqual(f.successor.dependencies, [
+    "MD-EXISTING-DEPENDENCY",
+    f.changeSet.id,
+  ]);
+});
