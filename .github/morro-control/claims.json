@@ -3,7 +3,7 @@
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
     "MD-SUPPORT-SESSION-REVOCATION-826": {
-      "owner": "CHATGPT-WORK-PENDING-20261014",
+      "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/support-session-revocation-826-20261014",
       "baseSha": "682e297c2dac1a4306571b409f5e063fe71317c3",
