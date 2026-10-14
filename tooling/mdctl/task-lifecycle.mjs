@@ -645,7 +645,7 @@ export function buildTaskCorrection({
   );
   assert.deepEqual(
     [...successor.dependencies].sort(),
-    [...new Set([...changeSet.dependencies, changeSet.id])].sort(),
+    [...changeSet.dependencies].sort(),
     "TASK_CORRECTION_DEPENDENCY_MISMATCH",
   );
   const envelope = ({ id, baseSha, branch, state, dependencies, ...rest }) =>

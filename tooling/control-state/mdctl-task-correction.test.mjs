@@ -1,3 +1,4 @@
+import { evaluateDependenciesAtMain } from "../mdctl/scheduler-live.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -91,7 +92,7 @@ async function fixture(dependencies = []) {
     ...structuredClone(manifest),
     id: "MD-TASK-CORRECTION",
     branch: "infra/task-correction",
-    dependencies: [...manifest.dependencies, manifest.id],
+    dependencies: [...manifest.dependencies],
   };
   const claimRegistry = {
     registryAuthority: "ORCHESTRATOR",
@@ -196,8 +197,8 @@ for (const [name, mutate, code] of [
     /NEW_BRANCH_REQUIRED/,
   ],
   [
-    "missing dependency",
-    (f) => (f.successor.dependencies = []),
+    "unexpected dependency",
+    (f) => f.successor.dependencies.push("MD-UNRELATED"),
     /DEPENDENCY_MISMATCH/,
   ],
   [
@@ -326,8 +327,34 @@ test("correction preserves unrelated predecessor dependencies", async () => {
   const f = await fixture(["MD-EXISTING-DEPENDENCY"]);
   const result = buildTaskCorrection(f);
   assert.equal(result.task.state, "STARTED");
-  assert.deepEqual(f.successor.dependencies, [
-    "MD-EXISTING-DEPENDENCY",
-    f.changeSet.id,
-  ]);
+  assert.deepEqual(f.successor.dependencies, ["MD-EXISTING-DEPENDENCY"]);
+});
+
+test("correction lineage does not require the replaced task to merge", async () => {
+  const f = await fixture();
+  const result = buildTaskCorrection(f);
+  const dependencies = await evaluateDependenciesAtMain({
+    changeSet: f.successor,
+    mainSha: f.successor.baseSha,
+    cache: new Map([
+      [f.changeSet.id, { ...f.changeSet, state: "LOCAL_PROVEN" }],
+    ]),
+    api: async () => {
+      throw new Error("unexpected dependency request");
+    },
+  });
+  assert.deepEqual(dependencies, { satisfied: true, unresolved: [] });
+  assert.deepEqual(f.successor.dependencies, f.changeSet.dependencies);
+  assert.equal(result.task.supersedes.changeSetId, f.changeSet.id);
+  assert.equal(result.task.supersedes.handoffDigest, f.handoff.digest);
+});
+test("correction cannot drop an inherited execution dependency", async () => {
+  const f = await fixture(["MD-EXISTING-DEPENDENCY"]);
+  f.successor.dependencies = [];
+  const before = structuredClone({ task: f.task, leases: f.leaseRegistry });
+  assert.throws(
+    () => buildTaskCorrection(f),
+    /TASK_CORRECTION_DEPENDENCY_MISMATCH/,
+  );
+  assert.deepEqual({ task: f.task, leases: f.leaseRegistry }, before);
 });
