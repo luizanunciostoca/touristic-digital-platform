@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/sec-gosu-go-toolchain-882-20261014",
-      "baseSha": "8f7e4562e2fdd3bb2eafb2558df75d409f650062",
+      "baseSha": "34adf77df9c11bdc6e52cf72c6d95b65b1e7fcf1",
       "paths": [
         ".morro/changesets/MD-SEC-GOSU-GO-PATCH-882.json",
         "tooling/render/mysql-staging/Dockerfile",
