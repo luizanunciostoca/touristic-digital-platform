@@ -319,3 +319,64 @@ test("Ticketing startup mapping stays exact", () => {
   assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
   assert.equal(result.needsFullRegression, false);
 });
+
+test("CRM HTML and browser regression files are explicitly classified without bypassing fail-closed", () => {
+  const paths = [
+    "apps/admin-crm/public/trials.js",
+    "apps/admin-crm/public/referrals.js",
+    "apps/admin-crm/public/trials.html",
+    "apps/admin-crm/public/follow-ups.html",
+    "tooling/crm/crm-html-access.test.mjs",
+  ];
+  const result = analyzeFiles(paths);
+  assert.deepEqual(result.unknownFiles, []);
+  assert.equal(result.classificationBlocked, false);
+  assert.ok(result.domains.includes("crm-browser"));
+  assert.equal(result.risk, "HIGH");
+  assert.equal(result.needsBrowser, true);
+  assert.equal(result.needsVisual, true);
+  assert.equal(result.needsDatabase, false);
+  assert.ok(result.suites.includes("crm-equivalence-browser-contract.yml"));
+});
+
+test("CRM persistence paths select database proof and staging infra selects critical proof", () => {
+  const backend = analyzeFiles([
+    "packages/crm/src/index.ts",
+    "services/crm/src/mysql-pool.ts",
+    "apps/morro-digital-platform/tooling/crm-api.mjs",
+  ]);
+  assert.equal(backend.classificationBlocked, false);
+  assert.deepEqual(backend.unknownFiles, []);
+  assert.ok(backend.domains.includes("crm-backend"));
+  assert.equal(backend.needsDatabase, true);
+  const infrastructure = analyzeFiles([
+    "render.staging.yaml",
+    "tooling/render/with-staging-mysql-env.mjs",
+    "tooling/render/reconcile-staging-mysql-domains.mjs",
+    "tooling/render/mysql-staging/01-init-databases.sh",
+  ]);
+  assert.equal(infrastructure.classificationBlocked, false);
+  assert.deepEqual(infrastructure.unknownFiles, []);
+  assert.equal(infrastructure.risk, "CRITICAL");
+  assert.equal(infrastructure.needsFullRegression, true);
+  assert.equal(infrastructure.needsDatabase, true);
+});
+
+test("HTML runtime server selects browser proof but nearby typo paths remain unknown", () => {
+  const server = analyzeFiles([
+    "apps/morro-digital-platform/tooling/dev-server.mjs",
+  ]);
+  assert.equal(server.classificationBlocked, false);
+  assert.ok(server.domains.includes("platform-html-server"));
+  assert.equal(server.needsBrowser, true);
+  for (const path of [
+    "apps/admin-crm-copy/public/trials.js",
+    "render.staging.yaml.bak",
+    "apps/morro-digital-platform/tooling/dev-server.mjs.bak",
+    "unmapped/runtime.ts",
+  ]) {
+    const unknown = analyzeFiles([path]);
+    assert.equal(unknown.classificationBlocked, true, path);
+    assert.deepEqual(unknown.unknownFiles, [path]);
+  }
+});

@@ -316,6 +316,53 @@
       "needsDatabase": false,
       "needsDependencyAudit": false,
       "needsFullSecurity": false
+    },
+    "crm-browser": {
+      "risk": "HIGH",
+      "paths": [
+        "apps/admin-crm/",
+        "tooling/crm/",
+        "apps/morro-digital-platform/src/crm-"
+      ],
+      "suites": [
+        "crm-equivalence-browser-contract.yml",
+        "crm-lead-detail-browser-contract.yml",
+        "crm-platform-auth-integration-contract.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false
+    },
+    "crm-backend": {
+      "risk": "HIGH",
+      "paths": [
+        "packages/crm/",
+        "services/crm/",
+        "apps/morro-digital-platform/tooling/crm-"
+      ],
+      "suites": ["crm-platform-auth-integration-contract.yml"],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": true
+    },
+    "staging-infra": {
+      "risk": "CRITICAL",
+      "paths": ["render.staging.yaml", "tooling/render/"],
+      "suites": ["render-staging-blueprint-contract.yml"],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": true
+    },
+    "platform-html-server": {
+      "risk": "HIGH",
+      "paths": ["apps/morro-digital-platform/tooling/dev-server.mjs"],
+      "suites": [
+        "crm-equivalence-browser-contract.yml",
+        "control-center-browser-contract.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": false
     }
   }
 }

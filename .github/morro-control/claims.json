@@ -27,7 +27,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ci-crm-impact-865-20261014",
-      "baseSha": "d27eaa2eba484a8741e7da94df80a9c5f936027a",
+      "baseSha": "f217dba0f5f5f4a0e904a515ba45fd33a70d08e9",
       "paths": [
         ".morro/changesets/MD-CI-CRM-IMPACT-865.json",
         "tooling/ci/test-impact-manifest.json",
