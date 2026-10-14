@@ -208,6 +208,103 @@ describe("legacy commercial publication batch", () => {
     },
   );
 
+  it("replays a later published revision without rewriting historical migration markers", async () => {
+    const f = fixture();
+    for (const row of f.stateRows.slice(1)) {
+      row.publication_state = "published";
+      row.published_revision = 3;
+      f.markers().push(publicationMarker(row));
+    }
+    const republished = f.stateRows[10];
+    republished.editable_revision = 4;
+    republished.published_revision = 4;
+    republished.review_marker_revision = 3;
+
+    const runtimeFactory = vi.fn(() => {
+      throw new Error("MUST_NOT_REPUBLISH");
+    });
+    for (const argv of [["--apply"], ["--verify"]]) {
+      await expect(
+        runLegacyCommercialPublicationBatch({
+          environment: environment(),
+          argv,
+          mysqlClient: { createPool: vi.fn(() => f.pool) },
+          runtimeFactory,
+        }),
+      ).resolves.toMatchObject({
+        total: 72,
+        wouldPublish: 0,
+        existingPublished: 72,
+        existingMigrations: 72,
+        published: 0,
+        markersInserted: 0,
+      });
+    }
+    expect(runtimeFactory).not.toHaveBeenCalled();
+  });
+
+  it.each(["draft", "review"])(
+    "keeps an approved but unpublished post-publication %s edit private",
+    async (state) => {
+      const f = fixture();
+      for (const row of f.stateRows.slice(1)) {
+        row.publication_state = "published";
+        row.published_revision = 3;
+        f.markers().push(publicationMarker(row));
+      }
+      const edited = f.stateRows[10];
+      edited.publication_state = state;
+      edited.editable_revision = 4;
+      edited.published_revision = 3;
+      edited.review_marker_revision = 4;
+
+      const runtimeFactory = vi.fn(() => {
+        throw new Error("POST_PUBLISH_EDIT_MUST_NOT_REPUBLISH");
+      });
+      await expect(
+        runLegacyCommercialPublicationBatch({
+          environment: environment(),
+          argv: ["--apply"],
+          mysqlClient: { createPool: vi.fn(() => f.pool) },
+          runtimeFactory,
+        }),
+      ).resolves.toMatchObject({
+        total: 72,
+        wouldPublish: 0,
+        existingPublished: 72,
+        existingMigrations: 72,
+        published: 0,
+        markersInserted: 0,
+      });
+      expect(runtimeFactory).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a publication marker minted for an unissued future revision", async () => {
+    const f = fixture();
+    for (const row of f.stateRows.slice(1)) {
+      row.publication_state = "published";
+      row.published_revision = 3;
+      f.markers().push(publicationMarker(row));
+    }
+    const edited = f.stateRows[10];
+    edited.publication_state = "draft";
+    edited.editable_revision = 4;
+    edited.published_revision = 3;
+    edited.review_marker_revision = 4;
+    const futureMarker = f
+      .markers()
+      .find((m) => m.source_key === edited.source_key);
+    futureMarker.editable_revision = 4;
+    await expect(
+      runLegacyCommercialPublicationBatch({
+        environment: environment(),
+        argv: ["--verify"],
+        mysqlClient: { createPool: vi.fn(() => f.pool) },
+      }),
+    ).rejects.toThrow(/LEGACY_PUBLICATION_BATCH_MARKER_DRIFT/u);
+  });
+
   it("fails closed on an unowned published Place", async () => {
     const { pool } = fixture({ unownedPublished: true });
     await expect(
