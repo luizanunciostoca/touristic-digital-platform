@@ -18,6 +18,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-14T07:34:40.121Z"
+    },
+    "MD-FINANCIAL-FEED-LIMIT-819": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/financial-feed-limit-819-20261014",
+      "baseSha": "da9cc2b17a4a5e07c107e6f568c7a622e585caa2",
+      "paths": [
+        ".morro/changesets/MD-FINANCIAL-FEED-LIMIT-819.json",
+        "services/financial/src/mysql-verified-payment-result-feed.ts",
+        "services/financial/src/mysql-verified-payment-result-feed.test.ts",
+        "services/financial/src/mysql-integration.test.ts"
+      ],
+      "domains": ["payments", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-14T08:01:48.826Z"
     }
   }
 }
