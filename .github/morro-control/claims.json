@@ -41,7 +41,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ticketing-startup-browser-routing-819-20261014",
-      "baseSha": "40615d7d194e2b06ac04c6e01725aafb009dfe5f",
+      "baseSha": "088d99038305872b66859bd644a1d8fde3a72a16",
       "paths": [
         ".morro/changesets/MD-TICKETING-STARTUP-BROWSER-ROUTING-819.json",
         ".github/workflows/payments-browser-checkout-contract.yml",
