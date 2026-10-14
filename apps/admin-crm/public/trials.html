@@ -1,1 +1,44 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>CRM · Trials</title></head><body><main><p><a href="/apps/admin-crm/">← CRM</a></p><h1>Trials</h1><p id="session-status" role="status">Validando sessão…</p><section><h2>Novo trial</h2><form id="trial-create-form"><label>Lead ID<input name="leadId" type="number" min="1" step="1" required/></label><label>Duração (dias)<input name="durationDays" type="number" min="1" max="365" step="1" value="30" required/></label><label>Início<input name="startDate" type="date"/></label><button id="trial-create-submit" type="submit">Criar trial</button><span id="trial-create-status" role="status"></span></form></section><p id="trials-status" role="status">Carregando trials…</p><div id="trials-list"></div></main><script type="module" src="./trials.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CRM · Trials — Morro Digital</title>
+    <link rel="stylesheet" href="/apps/admin-crm/public/crm.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "@touristic/auth-browser": "/packages/auth-browser/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="content">
+      <p><a href="/apps/admin-crm/public/index.html#dashboard">← Voltar ao CRM</a></p>
+      <section class="hero" aria-labelledby="trials-title">
+        <span class="eyebrow">Administração · CRM</span>
+        <h1 id="trials-title">Trials</h1>
+        <p id="session-status" role="status">Validando sessão…</p>
+      </section>
+      <section class="lead-create-card" aria-labelledby="trial-create-title">
+        <h2 id="trial-create-title">Iniciar período de experiência</h2>
+        <form id="trial-create-form" class="lead-create-form">
+          <label>Lead ID <input name="leadId" type="number" min="1" step="1" required /></label>
+          <label>Duração (dias) <input name="durationDays" type="number" min="1" max="365" step="1" value="30" required /></label>
+          <label>Data de início <input name="startDate" type="date" /></label>
+          <div class="lead-create-actions">
+            <button id="trial-create-submit" type="submit">Criar trial</button>
+            <span id="trial-create-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+      <section class="lead-create-card" aria-labelledby="trials-list-title">
+        <h2 id="trials-list-title">Acompanhamento de trials</h2>
+        <p id="trials-status" class="leads-status" role="status">Carregando trials…</p>
+        <div id="trials-list" class="grid"></div>
+      </section>
+    </main>
+    <script type="module" src="/apps/admin-crm/public/trials.js"></script>
+  </body>
+</html>
