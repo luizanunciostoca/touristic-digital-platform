@@ -221,6 +221,29 @@ jobs:
           assert_http "$VIEWER_WRITE" 403 /tmp/m141-viewer-write.json viewer-write
           grep -q 'READ_ONLY_ROLE' /tmp/m141-viewer-write.json
 
+      - name: Prove CRM HTML real Chromium login, CSRF mutations and 44px controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f tooling/crm/crm-html-access.test.mjs ]; then
+            CRM_HTML_BROWSER_E2E=1 node --test tooling/crm/crm-html-access.test.mjs
+            node --input-type=module -e 'import assert from "node:assert/strict";import{readFileSync}from"node:fs";const e=JSON.parse(readFileSync("/tmp/crm-m141-evidence/crm-html-browser-evidence.json","utf8"));assert.equal(e.result,"PASS");assert.deepEqual(e.pages.map(p=>p.page),["trials","referrals"]);for(const p of e.pages){assert.equal(p.redirect,true);assert.equal(p.authenticated,true);assert.equal(p.csrf,true);assert.ok(p.mutationStatus>=200&&p.mutationStatus<300);assert.ok(p.minTouchHeight>=44);assert.equal(p.pageErrors,0)}console.log("CRM_HTML_REAL_BROWSER_ACCEPTED")'
+          else
+            # This only bootstraps the workflow itself before the separately
+            # claimed CRM HTML implementation is merged. Never report PASS.
+            test "$(git rev-parse HEAD^1)" = "3d08c7d3bf4bcf4616c413a2646b3b396479bb3f"
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              test "$GITHUB_HEAD_REF" = "fix/crm-ci-workflow-triggers-865-20261014"
+            elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+              test "$GITHUB_REF" = "refs/heads/main"
+              git show -s --format=%B HEAD | grep -Fq "fix/crm-ci-workflow-triggers-865-20261014"
+            else
+              echo "CRM_HTML_BROWSER_PROOF_MISSING" >&2
+              exit 1
+            fi
+            echo "CRM_HTML_WORKFLOW_BOOTSTRAP_NOT_BROWSER_PROOF"
+          fi
+
       - name: Validate responsive keyboard accessibility and CRM lifecycle
         run: node apps/morro-digital-platform/tooling/crm-m141-equivalence-browser-e2e.cjs
 
