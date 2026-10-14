@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/crm-lead-detail-browser-contract.yml"
+      - "tooling/crm/**"
       - "apps/admin-crm/public/index.html"
       - "apps/admin-crm/public/lead-detail.html"
       - "apps/admin-crm/public/lead-detail.js"
@@ -36,6 +37,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/crm-lead-detail-browser-contract.yml"
+      - "tooling/crm/**"
       - "apps/admin-crm/public/index.html"
       - "apps/admin-crm/public/lead-detail.html"
       - "apps/admin-crm/public/lead-detail.js"

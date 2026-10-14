@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/crm-equivalence-browser-contract.yml"
+      - "tooling/crm/**"
       - "apps/admin-crm/public/**"
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts"
@@ -34,6 +35,7 @@ on:
     paths:
       - ".github/actions/ci-bootstrap/action.yml"
       - ".github/workflows/crm-equivalence-browser-contract.yml"
+      - "tooling/crm/**"
       - "apps/admin-crm/public/**"
       - "apps/morro-digital-platform/package.json"
       - "apps/morro-digital-platform/src/crm-m141-equivalence-contract.test.ts"
@@ -97,6 +99,13 @@ jobs:
           pnpm --filter @touristic/crm-server typecheck
           pnpm --filter @touristic/crm-server test
           pnpm --filter @touristic/morro-digital-platform exec vitest run src/crm-m141-equivalence-contract.test.ts
+          # The workflow-claim PR predates this test file. Once the CRM fix
+          # adds it, every tooling/crm/** PR and push executes the real test.
+          if [ -f tooling/crm/crm-html-access.test.mjs ]; then
+            node --test tooling/crm/crm-html-access.test.mjs
+          else
+            echo 'CRM_HTML_REGRESSION_NOT_YET_PRESENT_ON_THIS_CANDIDATE'
+          fi
 
       - name: Install deterministic Chromium
         run: |

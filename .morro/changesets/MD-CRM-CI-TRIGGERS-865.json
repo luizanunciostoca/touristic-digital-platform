@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CRM-CI-TRIGGERS-865",
   "objective": "bind-real-crm-regression-paths-to-browser-and-auth-integration-ci",
-  "baseSha": "f217dba0f5f5f4a0e904a515ba45fd33a70d08e9",
+  "baseSha": "43e4cf7aaefbc3be7a02f9df54946299943c281e",
   "branch": "fix/crm-ci-workflow-triggers-865-20261014",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
