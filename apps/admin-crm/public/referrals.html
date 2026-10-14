@@ -1,1 +1,49 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>CRM · Indicações</title></head><body><main><p><a href="/apps/admin-crm/">← CRM</a></p><h1>Indicações</h1><p id="session-status" role="status">Validando sessão…</p><section><h2>Nova indicação</h2><form id="referral-create-form"><label>Lead indicador<input name="referrerLeadId" type="number" min="1" step="1" required/></label><label>Nome indicado<input name="referredName" required maxlength="255"/></label><button id="referral-create-submit" type="submit">Criar indicação</button><span id="referral-create-status" role="status"></span></form></section><p id="referrals-status" role="status">Carregando indicações…</p><div id="referrals-list"></div></main><script type="module" src="./referrals.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CRM · Indicações — Morro Digital</title>
+    <link rel="stylesheet" href="/apps/admin-crm/public/crm.css" />
+    <style>
+      /* Scoped until the shared CRM stylesheet is available to this claim. */
+      #referral-create-form :is(input, button) {
+        min-height: 44px;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "@touristic/auth-browser": "/packages/auth-browser/dist/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <main class="content">
+      <p><a href="/apps/admin-crm/public/index.html#dashboard">← Voltar ao CRM</a></p>
+      <section class="hero" aria-labelledby="referrals-title">
+        <span class="eyebrow">Administração · CRM</span>
+        <h1 id="referrals-title">Indicações</h1>
+        <p id="session-status" role="status">Validando sessão…</p>
+      </section>
+      <section class="lead-create-card" aria-labelledby="referral-create-title">
+        <h2 id="referral-create-title">Cadastrar indicação</h2>
+        <form id="referral-create-form" class="lead-create-form">
+          <label>Lead indicador <input name="referrerLeadId" type="number" min="1" step="1" required /></label>
+          <label>Nome indicado <input name="referredName" required maxlength="255" /></label>
+          <div class="lead-create-actions">
+            <button id="referral-create-submit" type="submit">Criar indicação</button>
+            <span id="referral-create-status" role="status"></span>
+          </div>
+        </form>
+      </section>
+      <section class="lead-create-card" aria-labelledby="referrals-list-title">
+        <h2 id="referrals-list-title">Acompanhamento de indicações</h2>
+        <p id="referrals-status" class="leads-status" role="status">Carregando indicações…</p>
+        <div id="referrals-list" class="grid"></div>
+      </section>
+    </main>
+    <script type="module" src="/apps/admin-crm/public/referrals.js"></script>
+  </body>
+</html>
