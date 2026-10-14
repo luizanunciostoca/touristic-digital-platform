@@ -139,7 +139,7 @@ jobs:
             separator='&'
           fi
           deploy_url="${RENDER_STAGING_DEPLOY_HOOK_URL}${separator}ref=${EXPECTED_SHA}"
-          http_status="$(curl --request POST --silent --show-error \
+          http_status="$(curl --request GET --silent --show-error \
             --output /tmp/render-staging-deploy-response.json \
             --write-out '%{http_code}' \
             "$deploy_url")"

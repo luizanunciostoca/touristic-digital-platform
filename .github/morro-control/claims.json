@@ -6,7 +6,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-render-hook-get-20261014",
-      "baseSha": "5c82d59383bda3546275ecc83a0ec9d194186144",
+      "baseSha": "f32b6a3d615422cb66829250fa3245287c351c9a",
       "paths": [
         ".morro/changesets/MD-STAGING-RENDER-HOOK-GET-20261014.json",
         ".github/workflows/staging-render-promotion.yml",
