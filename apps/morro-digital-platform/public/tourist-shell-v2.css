@@ -2192,40 +2192,60 @@ html[dir="rtl"]
   background: color-mix(in srgb, var(--md-color-surface-card) 68%, transparent);
 }
 
-/* Voice-first composer: text submission remains as a non-visual compatibility
- * surface for programmatic/runtime contracts, while voice is the only visible
- * primary entry point. */
-#assistant-input-area.md-assistant-composer.is-voice-first {
-  position: relative;
+/* Text and voice share the existing runtime and remain keyboard reachable. */
+#assistant-input-area.md-assistant-composer.is-text-voice
+  .md-assistant-entry-icon {
+  display: none;
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
-  :is(.md-assistant-compat-input, .md-assistant-compat-send) {
-  position: absolute !important;
-  top: 50%;
-  left: var(--md-space-3);
-  width: 1px !important;
-  min-width: 1px !important;
-  max-width: 1px !important;
-  height: 1px !important;
-  min-height: 1px !important;
-  max-height: 1px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  border: 0 !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  transform: translateY(-50%);
+#unified-assistant-dock
+  > #assistant-input-area.md-assistant-composer.is-text-voice
+  #assistantInput {
+  flex: 1 1 0;
+  min-width: 0;
+  width: 0;
+  min-height: 3rem;
+  height: 3rem;
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
-  .md-assistant-compat-send {
-  display: none !important;
-  pointer-events: none !important;
+#assistant-input-area.md-assistant-composer.is-text-voice #sendButton,
+#assistant-input-area.md-assistant-composer.is-text-voice
+  #voiceButton:not(.is-navigation-stop) {
+  display: inline-flex;
+  flex: 0 0 3rem;
+  align-items: center;
+  justify-content: center;
+  min-width: 3rem;
+  width: 3rem;
+  min-height: 3rem;
+  height: 3rem;
+  padding: 0;
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
+#assistant-input-area.md-assistant-composer.is-text-voice
+  #voiceButton:not(.is-navigation-stop) {
+  color: var(--md-color-brand-strong);
+  background: var(--md-color-surface-card);
+}
+
+#assistant-input-area.md-assistant-composer.is-text-voice
+  #voiceButton:not(.is-navigation-stop)
+  span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+#assistant-dialog-status.md-assistant-status {
+  margin: 0;
+  padding: var(--md-space-1) var(--md-space-3);
+  color: var(--md-color-text-secondary);
+  font-size: 0.875rem;
+}
+
+#assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta {
   display: inline-flex !important;
   min-width: 0;
@@ -2258,13 +2278,13 @@ html[dir="rtl"]
     filter var(--md-motion-duration-fast) var(--md-motion-ease-standard);
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
+#assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta
   i {
   font-size: 1.2em;
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
+#assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta:is(:hover, :focus-visible) {
   filter: brightness(1.04);
   box-shadow:
@@ -2272,18 +2292,18 @@ html[dir="rtl"]
     inset 0 1px 0 color-mix(in srgb, white 45%, transparent);
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
+#assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta:focus-visible {
   outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
   outline-offset: var(--md-focus-ring-offset);
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
+#assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta:active {
   transform: scale(var(--md-motion-scale-pressed));
 }
 
-#assistant-input-area.md-assistant-composer.is-voice-first
+#assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta.listening {
   box-shadow:
     0 0 0 0.25rem color-mix(in srgb, var(--md-color-brand) 22%, transparent),
@@ -2372,7 +2392,8 @@ html[dir="rtl"]
 }
 
 @media (max-height: 38rem) and (orientation: portrait) {
-  body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+  body[data-md-mode="discover"] #globe-map-control.md-map-control-stack,
+  body[data-md-mode="place"] #globe-map-control.md-map-control-stack {
     top: calc(var(--md-shell-top) + 4rem);
     right: var(--md-shell-gutter-end);
     bottom: auto;
@@ -2381,8 +2402,9 @@ html[dir="rtl"]
   }
 }
 
-@media (max-height: 34rem) and (orientation: landscape) {
-  body[data-md-mode="discover"] #globe-map-control.md-map-control-stack {
+@media (max-height: 38rem) and (orientation: landscape) {
+  body[data-md-mode="discover"] #globe-map-control.md-map-control-stack,
+  body[data-md-mode="place"] #globe-map-control.md-map-control-stack {
     right: calc(
       var(--md-shell-gutter-end) + min(24rem, 48vw) + var(--md-space-3)
     );
@@ -2436,8 +2458,8 @@ html[dir="rtl"]
   }
 
   #unified-assistant-dock
-    > #assistant-input-area.md-assistant-composer.is-voice-first
-    .md-assistant-voice-cta {
+    > #assistant-input-area.md-assistant-composer.is-text-voice
+    #voiceButton:not(.is-navigation-stop) {
     border: 1px solid ButtonText;
     background: Highlight;
     color: HighlightText;
@@ -2845,10 +2867,10 @@ html[dir="rtl"]
 }
 
 #unified-assistant-dock
-  > #assistant-input-area.md-assistant-composer.is-voice-first
+  > #assistant-input-area.md-assistant-composer.is-text-voice
   .md-assistant-voice-cta {
-  min-height: 2.75rem;
-  height: 2.75rem;
+  min-height: 3rem;
+  height: 3rem;
 }
 
 @media (max-width: 48rem) {

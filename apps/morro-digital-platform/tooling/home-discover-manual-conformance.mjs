@@ -273,12 +273,12 @@ async function assertPureDiscover(page, viewport) {
   );
   assert(
     state.composerState === "persistent" &&
-      !state.sendVisible &&
+      state.sendVisible &&
       state.voiceVisible &&
       state.voiceLabel === "Fale comigo" &&
       state.voiceRect &&
-      state.voiceRect.width >= 180 &&
-      state.voiceRect.height >= 44 &&
+      state.voiceRect.width >= 48 &&
+      state.voiceRect.height >= 48 &&
       !state.configInsideComposer &&
       state.unifiedComposition,
     "Assistant composer/navigation are not unified and persistently actionable",
@@ -396,13 +396,13 @@ async function verifyAssistantEntry(page) {
   await voice.waitFor({ state: "visible", timeout: 3000 });
   const target = await voice.boundingBox();
   assert(
-    target && target.width >= 180 && target.height >= 44,
-    "Voice-first Assistant CTA is below the approved target size",
+    target && target.width >= 48 && target.height >= 48,
+    "Text/voice Assistant control is below the approved target size",
     { target },
   );
   assert(
     (await voice.textContent())?.trim() === "Fale comigo",
-    "Voice-first Assistant CTA copy drifted",
+    "Text/voice Assistant control copy drifted",
   );
 
   const compatibility = await page.evaluate(() => {
@@ -416,11 +416,32 @@ async function verifyAssistantEntry(page) {
     };
   });
   assert(
-    compatibility.inputOpacity === "0" && compatibility.sendOpacity === "0",
-    "Text composer leaked into the visible voice-first UI",
+    compatibility.inputOpacity === "1" && compatibility.sendOpacity === "1",
+    "Text composer is not visible and available",
     compatibility,
   );
 
+  for (const selector of ["#assistantInput", "#sendButton", "#voiceButton"]) {
+    const control = page.locator(selector);
+    await control.waitFor({ state: "visible", timeout: 3000 });
+    const box = await control.boundingBox();
+    assert(
+      box && box.height >= 48 && box.width >= 48,
+      "Text/voice target too small",
+      { selector, box },
+    );
+    await control.focus();
+    assert(
+      await control.evaluate(
+        (node) =>
+          document.activeElement === node &&
+          node.getAttribute("aria-hidden") !== "true" &&
+          node.tabIndex >= 0,
+      ),
+      "Text/voice control is not keyboard accessible",
+      { selector },
+    );
+  }
   await voice.focus();
   await page
     .locator("#assistant-input-area.is-focused")

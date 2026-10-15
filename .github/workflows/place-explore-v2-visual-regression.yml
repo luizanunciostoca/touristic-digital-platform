@@ -483,6 +483,13 @@ jobs:
                     voiceLabel: voiceCta?.textContent?.trim() ?? null,
                     voiceWidth: voiceRect?.width ?? 0,
                     voiceHeight: voiceRect?.height ?? 0,
+                    textControls: ['assistantInput', 'sendButton'].map(id => {
+                      const node = document.getElementById(id);
+                      if (!(node instanceof HTMLElement)) return null;
+                      const rect = node.getBoundingClientRect();
+                      const style = getComputedStyle(node);
+                      return { width: rect.width, height: rect.height, visible: style.display !== 'none' && style.visibility !== 'hidden' && style.opacity === '1', interactive: style.pointerEvents !== 'none' && node.tabIndex >= 0 && node.getAttribute('aria-hidden') !== 'true' };
+                    }),
                     compatInputOpacity:
                       compatInput instanceof HTMLElement
                         ? getComputedStyle(compatInput).opacity
@@ -594,11 +601,12 @@ jobs:
                   detailState.selectedMarkerLabel !== 'Primeira Praia' ||
                   detailState.voiceLabel !== 'Fale comigo' ||
                   !detailState.voiceVisible ||
-                  detailState.voiceWidth < 180 ||
-                  detailState.voiceHeight < 44 ||
-                  detailState.compatInputOpacity !== '0' ||
-                  detailState.compatInputPointerEvents !== 'none' ||
-                  detailState.compatSendOpacity !== '0' ||
+                  detailState.textControls.some(control => !control || !control.visible || !control.interactive || control.width < 48 || control.height < 48) ||
+                  detailState.voiceWidth < 48 ||
+                  detailState.voiceHeight < 48 ||
+                  detailState.compatInputOpacity !== '1' ||
+                  detailState.compatInputPointerEvents === 'none' ||
+                  detailState.compatSendOpacity !== '1' ||
                   !detailState.bottomNavVisible ||
                   detailState.mapControls.some(control =>
                     !control.visible || control.width < 44 || control.height < 44

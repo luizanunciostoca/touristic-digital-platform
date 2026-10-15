@@ -48,7 +48,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/home-text-voice-entry-20261015",
-      "baseSha": "821cce7e84caf9e008be835884f127dd890103d3",
+      "baseSha": "b472658d1aba6ce03362f79918edbd0fcfc73c87",
       "paths": [
         ".morro/changesets/MD-HOME-TEXT-VOICE-ENTRY-20261015.json",
         "apps/morro-digital-platform/src/layouts/app-shell.ts",

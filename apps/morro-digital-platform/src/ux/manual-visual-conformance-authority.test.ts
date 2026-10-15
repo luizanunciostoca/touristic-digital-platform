@@ -139,8 +139,10 @@ describe("UX V2 manual visual conformance authority", () => {
       "#assistant-category-results-message.md-assistant-place-detail-message",
     );
     expect(workflow).toContain("detailState.voiceLabel !== 'Fale comigo'");
-    expect(workflow).toContain("detailState.voiceHeight < 44");
-    expect(workflow).toContain("detailState.compatInputOpacity !== '0'");
+    expect(workflow).toContain("detailState.voiceHeight < 48");
+    expect(workflow).toContain("detailState.textControls.some");
+    expect(workflow).toContain("!control.interactive");
+    expect(workflow).toContain("detailState.compatInputOpacity !== '1'");
     expect(workflow).toContain("MANUAL_CONFORMANCE_SEARCH_RESULT_GEOMETRY");
     expect(workflow).toContain(
       '#assistant-category-rail[data-rail-stage="places"]',
