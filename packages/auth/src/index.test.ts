@@ -218,6 +218,60 @@ describe("M47 auth core", () => {
     });
   });
 
+  it("allows only the SUPPORT session-revocation mutation and preserves scope and expiry checks", () => {
+    const support = { ...activeSession, role: "SUPPORT" as const };
+    const options = { mutation: true, nowEpochSeconds: activeNow };
+    expect(authorizeBusinessAccess(support, "hotel-1", options)).toMatchObject({
+      allowed: false,
+      reason: "read_only_role",
+    });
+    expect(
+      authorizeCapability(support, "users.sessions.revoke", options),
+    ).toMatchObject({ allowed: true });
+    for (const capability of [
+      "users.read",
+      "business.read",
+      "content.read",
+    ] as const) {
+      expect(authorizeCapability(support, capability, options)).toMatchObject({
+        allowed: false,
+        reason: "read_only_role",
+      });
+    }
+    for (const capability of [
+      "business.update",
+      "content.manage",
+      "users.manage",
+    ] as const) {
+      expect(authorizeCapability(support, capability, options).allowed).toBe(
+        false,
+      );
+    }
+    expect(
+      authorizeCapability(
+        { ...support, role: "AUDITOR" },
+        "users.sessions.revoke",
+        options,
+      ).allowed,
+    ).toBe(false);
+    expect(
+      authorizeCapability(null, "users.sessions.revoke", options).allowed,
+    ).toBe(false);
+    expect(
+      authorizeCapability(
+        { ...support, expiresAt: activeNow },
+        "users.sessions.revoke",
+        options,
+      ),
+    ).toMatchObject({ allowed: false, reason: "session_expired" });
+    expect(
+      authorizeCapability(support, "users.sessions.revoke", {
+        ...options,
+        businessId: "invalid business",
+      }),
+    ).toMatchObject({ allowed: false, reason: "invalid_business_id" });
+  });
+
   it("requires authentication before evaluating tenant input", () => {
     expect(
       authorizeBusinessAccess(null, "invalid business", {

@@ -456,7 +456,14 @@ export function authorizeCapability(
       businessId,
     });
   }
-  if (options.mutation && isReadOnlyAuthRole(session.role)) {
+  const supportSessionRevocation =
+    canonicalAuthRole(session.role) === "SUPPORT" &&
+    capability === "users.sessions.revoke";
+  if (
+    options.mutation &&
+    isReadOnlyAuthRole(session.role) &&
+    !supportSessionRevocation
+  ) {
     return Object.freeze({
       allowed: false,
       reason: "read_only_role",

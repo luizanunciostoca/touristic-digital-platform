@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { hashPassword } from "@touristic/auth-server";
+import { createAuthApi } from "./auth-api.mjs";
+
 import { createAdminApi } from "./admin-api.mjs";
 
 function responseRecorder() {
@@ -1947,5 +1950,335 @@ describe("Control Center generic domain mutation audit", () => {
       capability: "content.manage",
     });
     expect(called).toBe(false);
+  });
+});
+
+// Exercise the composed Auth and Admin handlers without authorization mocks.
+// Default runs use process-local security state. The explicit SQL variant also
+// proves revocation survives a fresh Auth handler and database connection.
+async function realSupportFixture(durable = false) {
+  if (durable) {
+    let database;
+    try {
+      database = new URL(process.env.MORRO_TEST_AUTH_DATABASE_URL);
+    } catch {
+      throw new Error("SUPPORT_REGRESSION_REQUIRES_DISPOSABLE_LOCAL_DATABASE");
+    }
+    if (
+      database.protocol !== "mysql:" ||
+      database.hostname !== "127.0.0.1" ||
+      database.search !== "" ||
+      database.hash !== "" ||
+      !/^\/auth_826[a-z0-9_]*$/u.test(database.pathname)
+    ) {
+      throw new Error("SUPPORT_REGRESSION_REQUIRES_DISPOSABLE_LOCAL_DATABASE");
+    }
+  }
+  const password = "support handler regression fixture";
+  const passwordHash = hashPassword(password, Buffer.alloc(16, 11));
+  const users = [
+    { id: "support", role: "SUPPORT", businessIds: [] },
+    { id: "target", role: "BUSINESS_OWNER", businessIds: ["tenant-a"] },
+    { id: "other", role: "BUSINESS_OWNER", businessIds: ["tenant-b"] },
+    { id: "auditor", role: "AUDITOR", businessIds: [] },
+  ].map((user) => ({
+    ...user,
+    email: `${user.id}@example.invalid`,
+    passwordHash,
+  }));
+  const getEnvironmentValue = (key) =>
+    ({
+      NODE_ENV: "development",
+      AUTH_DATABASE_URL: durable
+        ? process.env.MORRO_TEST_AUTH_DATABASE_URL
+        : "",
+      MORRO_DATABASE_SCHEMA_MODE: "apply",
+      DASHBOARD_AUTH_SECRET:
+        "support-handler-regression-secret-00000000000000000",
+      DASHBOARD_AUTH_ORIGIN: "http://localhost",
+      DASHBOARD_USERS_JSON: JSON.stringify(users),
+    })[key] ?? "";
+  const events = [];
+  const ownerCalls = [];
+  const auth = createAuthApi({ getEnvironmentValue });
+  await auth.start();
+  const admin = createAdminApi({
+    authApi: auth,
+    getEnvironmentValue,
+    platformOperations: {
+      healthSnapshot: () => ({ readiness: "ready", checks: [] }),
+      emit: (event) => events.push(event),
+    },
+    domainAdapters: {
+      content: { handle: async () => ownerCalls.push("content") },
+      businesses: { handle: async () => ownerCalls.push("businesses") },
+    },
+  });
+  async function call(
+    api,
+    path,
+    identity,
+    { method = "GET", headers = {}, body } = {},
+  ) {
+    const response = responseRecorder();
+    await api.handle(
+      request(path, {
+        method,
+        headers: {
+          host: "localhost",
+          origin: "http://localhost",
+          ...(identity ?? {}),
+          ...headers,
+        },
+        body,
+      }),
+      response,
+      api === admin ? new URL(path, "http://localhost") : path,
+    );
+    return { ...response, data: JSON.parse(response.body) };
+  }
+  async function login(id) {
+    const response = await call(auth, "/api/dashboard/auth/login", null, {
+      method: "POST",
+      body: { email: `${id}@example.invalid`, password },
+    });
+    expect(response.statusCode).toBe(200);
+    return {
+      cookie: String(response.headers.get("set-cookie")).split(";", 1)[0],
+      "x-csrf-token": response.data.csrfToken,
+    };
+  }
+  const support = await login("support");
+  const target = await login("target");
+  const other = await login("other");
+  const listed = await call(
+    admin,
+    "/api/admin/v1/users/target/sessions",
+    support,
+  );
+  expect(listed.statusCode).toBe(200);
+  expect(listed.data.sessions).toHaveLength(1);
+  const handle = listed.data.sessions[0].handle;
+  expect(handle).toMatch(/^[a-f0-9]{64}$/u);
+  expect(JSON.stringify(listed.data)).not.toContain("sessionId");
+  const step = await call(admin, "/api/admin/v1/step-up", support, {
+    method: "POST",
+    body: { password },
+  });
+  expect(step.statusCode).toBe(201);
+  const elevated = {
+    ...support,
+    cookie: `${support.cookie}; ${String(step.headers.get("set-cookie")).split(";", 1)[0]}`,
+  };
+  return {
+    auth,
+    admin,
+    call,
+    login,
+    support,
+    target,
+    other,
+    elevated,
+    handle,
+    events,
+    ownerCalls,
+    restartAuth: () => createAuthApi({ getEnvironmentValue }),
+    path: `/api/admin/v1/users/target/sessions/${handle}/revoke`,
+    body: {
+      reason: "Investigação autorizada da sessão de teste",
+      confirmation: "REVOGAR",
+    },
+  };
+}
+
+describe("SUPPORT revocation with real Auth and Admin composition", () => {
+  it.each([
+    "memory",
+    ...(process.env.MORRO_TEST_AUTH_DATABASE_URL ? ["sql"] : []),
+  ])(
+    "%s: revokes only the selected session, proves 200 to 401, and audits the actor and target",
+    async (storage) => {
+      const f = await realSupportFixture(storage === "sql");
+      try {
+        const session = (identity) =>
+          f.call(f.auth, "/api/dashboard/auth/session", identity);
+        const siblingSession = await f.login("target");
+        expect((await session(f.target)).statusCode).toBe(200);
+        const result = await f.call(f.admin, f.path, f.elevated, {
+          method: "POST",
+          body: f.body,
+        });
+        expect(result.statusCode).toBe(200);
+        expect(result.data).toMatchObject({
+          success: true,
+          userId: "target",
+          sessionHandle: f.handle,
+          alreadyRevoked: false,
+        });
+        const denied = await session(f.target);
+        expect(denied.statusCode).toBe(401);
+        expect(denied.data.error).toBe("AUTH_REQUIRED");
+        expect((await session(f.support)).statusCode).toBe(200);
+        expect((await session(f.other)).statusCode).toBe(200);
+        expect((await session(siblingSession)).statusCode).toBe(200);
+        const readback = await f.call(
+          f.admin,
+          "/api/admin/v1/users/target/sessions",
+          f.support,
+        );
+        const revokedSession = readback.data.sessions.find(
+          (entry) => entry.handle === f.handle,
+        );
+        expect(revokedSession).toMatchObject({
+          handle: f.handle,
+          active: false,
+        });
+        expect(revokedSession.revokedAt).not.toBeNull();
+        const audit = await f.call(f.admin, "/api/admin/v1/audit", f.support);
+        expect(audit.data.entries).toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({
+              action: "users.sessions.revoke.attempt",
+              actorUserId: "support",
+              effectiveUserId: "target",
+              entityId: f.handle,
+              result: "attempt",
+            }),
+            expect.objectContaining({
+              action: "users.sessions.revoke.complete",
+              actorUserId: "support",
+              effectiveUserId: "target",
+              entityId: f.handle,
+              result: "success",
+            }),
+          ]),
+        );
+        const auditText = JSON.stringify(audit.data);
+        expect(auditText).not.toContain(f.target.cookie.split("=")[1]);
+        expect(auditText).not.toContain(f.elevated["x-csrf-token"]);
+        if (storage === "sql") {
+          await f.auth.stop();
+          const restarted = f.restartAuth();
+          await restarted.start();
+          try {
+            const deniedAfterRestart = await f.call(
+              restarted,
+              "/api/dashboard/auth/session",
+              f.target,
+            );
+            expect(deniedAfterRestart.statusCode).toBe(401);
+            expect(deniedAfterRestart.data.error).toBe("AUTH_REQUIRED");
+            expect(
+              (
+                await f.call(
+                  restarted,
+                  "/api/dashboard/auth/session",
+                  f.support,
+                )
+              ).statusCode,
+            ).toBe(200);
+            expect(
+              (await restarted.listUserSessions("target")).find(
+                (entry) => entry.handle === f.handle,
+              ),
+            ).toMatchObject({ handle: f.handle, active: false });
+            expect(
+              (
+                await f.call(
+                  restarted,
+                  "/api/dashboard/auth/session",
+                  siblingSession,
+                )
+              ).statusCode,
+            ).toBe(200);
+          } finally {
+            await restarted.stop();
+          }
+        }
+      } finally {
+        await f.auth.stop();
+      }
+    },
+  );
+
+  it.each([
+    ["missing CSRF", 403, "INVALID_CSRF"],
+    ["foreign Origin", 403, "ORIGIN_DENIED"],
+    ["missing step-up", 403, "STEP_UP_REQUIRED"],
+    ["missing reason", 400, "REASON_REQUIRED"],
+    ["wrong confirmation", 400, "TEXT_CONFIRMATION_REQUIRED"],
+    ["another user's handle", 404, "SESSION_NOT_FOUND"],
+    ["foreign session step-up", 403, "STEP_UP_REQUIRED"],
+    ["business actor", 403, "ADMIN_SURFACE_DENIED"],
+    ["auditor actor", 403, "CAPABILITY_DENIED"],
+  ])(
+    "rejects %s without revoking the target",
+    async (scenario, status, error) => {
+      const f = await realSupportFixture();
+      try {
+        let identity = { ...f.elevated };
+        let path = f.path;
+        const body = { ...f.body };
+        if (scenario === "missing CSRF") delete identity["x-csrf-token"];
+        if (scenario === "foreign Origin")
+          identity.origin = "https://foreign.invalid";
+        if (scenario === "missing step-up") identity = f.support;
+        if (scenario === "missing reason") delete body.reason;
+        if (scenario === "wrong confirmation") body.confirmation = "WRONG";
+        if (scenario === "another user's handle")
+          path = path.replace("/users/target/", "/users/other/");
+        if (scenario === "foreign session step-up") {
+          const fresh = await f.login("support");
+          identity = {
+            ...fresh,
+            cookie: `${fresh.cookie}; ${f.elevated.cookie.split("; ")[1]}`,
+          };
+        }
+        if (scenario === "business actor") identity = f.target;
+        if (scenario === "auditor actor") identity = await f.login("auditor");
+        const denied = await f.call(f.admin, path, identity, {
+          method: "POST",
+          body,
+        });
+        expect(denied.statusCode).toBe(status);
+        expect(denied.data.error).toBe(error);
+        expect(
+          (await f.call(f.auth, "/api/dashboard/auth/session", f.target))
+            .statusCode,
+        ).toBe(200);
+        const listed = await f.call(
+          f.admin,
+          "/api/admin/v1/users/target/sessions",
+          f.support,
+        );
+        expect(listed.data.sessions[0]).toMatchObject({
+          handle: f.handle,
+          active: true,
+          revokedAt: null,
+        });
+      } finally {
+        await f.auth.stop();
+      }
+    },
+  );
+
+  it("keeps Business and Content mutations denied before owner effects", async () => {
+    const f = await realSupportFixture();
+    try {
+      for (const [path, method] of [
+        ["/api/admin/v1/businesses/tenant-a/profile", "PUT"],
+        ["/api/admin/v1/content/content-test-0001", "PATCH"],
+      ]) {
+        const result = await f.call(f.admin, path, f.elevated, {
+          method,
+          body: { ...f.body, fields: { title: "Forbidden" } },
+        });
+        expect(result.statusCode).toBe(403);
+        expect(result.data.error).toBe("CAPABILITY_DENIED");
+      }
+      expect(f.ownerCalls).toEqual([]);
+    } finally {
+      await f.auth.stop();
+    }
   });
 });
