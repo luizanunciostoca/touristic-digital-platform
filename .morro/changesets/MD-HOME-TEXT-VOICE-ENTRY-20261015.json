@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-HOME-TEXT-VOICE-ENTRY-20261015",
   "objective": "visible-text-voice-entry-with-race-safe-listening-state",
-  "baseSha": "821cce7e84caf9e008be835884f127dd890103d3",
+  "baseSha": "b472658d1aba6ce03362f79918edbd0fcfc73c87",
   "branch": "fix/home-text-voice-entry-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

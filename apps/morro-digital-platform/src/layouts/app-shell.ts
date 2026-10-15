@@ -131,7 +131,7 @@ export function createAppShellMarkup(): string {
         data-assistant-state="idle"
       >
         <button class="minimize-button md-icon-button" type="button" aria-label="Minimize assistant" data-i18n-aria="assistant_minimize">×</button>
-        <p id="assistant-dialog-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
+        <p id="assistant-dialog-status" class="md-assistant-status" role="status" aria-live="polite" aria-atomic="true">Assistente pronto.</p>
         <div class="messages-area md-assistant-messages" role="region" aria-label="Assistant conversation" aria-live="polite" aria-relevant="additions text">
           <div class="message assistant" data-message-type="standard" data-i18n="assistant_welcome_message">
             Bem-vindo ao Morro Digital!
@@ -217,20 +217,22 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         >›</button>
       </div>
 
-      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent is-voice-first" role="group" aria-label="Assistente por voz" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map" data-assistant-entry-mode="voice-first">
+      <div id="assistant-input-area" class="assistant-input-area md-assistant-composer md-card is-persistent is-text-voice" role="group" aria-label="Mensagem para o assistente" data-i18n-aria="assistant_input_label" data-home-assistant-entry="persistent" data-onboarding-target="assistant-composer" data-assistant-context-surface="map" data-assistant-entry-mode="text-voice">
         <span class="md-assistant-entry-icon" aria-hidden="true"><i class="fas fa-comment-dots"></i></span>
         <input
           type="text"
           id="assistantInput"
           class="md-assistant-compat-input"
-          aria-label="Entrada de texto de compatibilidade do assistente"
-          tabindex="-1"
-          aria-hidden="true"
+          aria-label="Mensagem para o assistente"
+          data-i18n-aria="assistant_input_label"
+          placeholder="Pergunte ao Morro Digital..."
+          data-i18n-placeholder="assistant_input_placeholder"
+          enterkeyhint="send"
           autocomplete="off"
         />
-        <button id="sendButton" class="md-assistant-compat-send" type="button" tabindex="-1" aria-hidden="true" aria-label="Enviar mensagem de compatibilidade"></button>
+        <button id="sendButton" class="md-assistant-compat-send" type="button" aria-label="Enviar mensagem" data-i18n-aria="assistant_send_label"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><path d="m5 12 14-8-4 16-4-7-6-1Z M11 13l8-9"/></svg></button>
         <button id="voiceButton" class="md-assistant-voice-cta" type="button" aria-label="Fale comigo" aria-pressed="false" data-i18n-aria="assistant_voice_label" data-onboarding-target="assistant-microphone" data-assistant-voice-affordance="microphone">
-          <i class="fas fa-microphone" aria-hidden="true"></i>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg>
           <span data-i18n="assistant_voice_label">Fale comigo</span>
         </button>
       </div>

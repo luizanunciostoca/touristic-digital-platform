@@ -1,6 +1,16 @@
 export const ASSISTANT_UI_STATE_EVENT = "morro:assistant-ui-state";
 
-export type AssistantUiState = "idle" | "loading" | "success" | "error";
+export type AssistantUiState =
+  "idle" | "listening" | "loading" | "success" | "error";
+
+/** Recognition ending must not clear a response already processing or complete. */
+export function assistantListeningUiState(
+  listening: boolean,
+  currentState: string | null,
+): AssistantUiState | null {
+  if (listening) return "listening";
+  return currentState === "listening" ? "idle" : null;
+}
 
 export interface AssistantUiStateDetail {
   readonly state: AssistantUiState;
@@ -32,24 +42,28 @@ export function assistantUiStateStatus(
   const copy = {
     pt: {
       idle: "Assistente pronto.",
+      listening: "Estou ouvindo...",
       loading: "Preparando resposta…",
       success: "Resposta pronta.",
       error: "Não foi possível concluir a resposta.",
     },
     en: {
       idle: "Assistant ready.",
+      listening: "I’m listening...",
       loading: "Preparing response…",
       success: "Response ready.",
       error: "The response could not be completed.",
     },
     es: {
       idle: "Asistente listo.",
+      listening: "Estoy escuchando...",
       loading: "Preparando respuesta…",
       success: "Respuesta lista.",
       error: "No se pudo completar la respuesta.",
     },
     he: {
       idle: "העוזר מוכן.",
+      listening: "אני מקשיב...",
       loading: "מכין תשובה…",
       success: "התשובה מוכנה.",
       error: "לא ניתן היה להשלים את התשובה.",

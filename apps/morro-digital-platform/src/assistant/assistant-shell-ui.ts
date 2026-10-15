@@ -122,6 +122,7 @@ export function installAssistantShellUi(
   const status = options.document.getElementById("assistant-dialog-status");
   const focusDelayMs = options.focusDelayMs ?? 100;
   let destroyed = false;
+  let currentState: AssistantUiState = "idle";
   let previousFocus: Element | null = null;
   let pendingFocusTimer: number | undefined;
 
@@ -134,18 +135,29 @@ export function installAssistantShellUi(
   const isVisible = (): boolean =>
     Boolean(assistant && !assistant.classList.contains("hidden"));
 
+  const syncStatusLocale = (): void => {
+    if (destroyed || !status) return;
+    status.textContent = assistantUiStateStatus(
+      currentState,
+      options.document.documentElement.lang,
+    );
+  };
   const setState = (state: AssistantUiState): void => {
-    if (!assistant) return;
+    if (destroyed || !assistant) return;
+    currentState = state;
     assistant.setAttribute("data-assistant-state", state);
     assistant.setAttribute("aria-busy", String(state === "loading"));
     syncAssistantLoadingSkeleton(options.document, state === "loading");
-    if (status) {
-      status.textContent = assistantUiStateStatus(
-        state,
-        options.document.documentElement.lang,
-      );
-    }
+    syncStatusLocale();
   };
+  const LocaleObserver = options.document.defaultView?.MutationObserver;
+  const localeObserver = LocaleObserver
+    ? new LocaleObserver(syncStatusLocale)
+    : null;
+  localeObserver?.observe(options.document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
 
   const restoreFocus = (): void => {
     const candidate =
@@ -264,6 +276,7 @@ export function installAssistantShellUi(
     if (!detail) return;
     if (
       detail.state !== "idle" &&
+      detail.state !== "listening" &&
       detail.state !== "loading" &&
       detail.state !== "success" &&
       detail.state !== "error"
@@ -310,6 +323,7 @@ export function installAssistantShellUi(
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
+      localeObserver?.disconnect();
       cancelPendingFocus();
       composer?.removeEventListener("focusin", onComposerFocusIn);
       composer?.removeAttribute("data-assistant-shell-ready");

@@ -57,7 +57,11 @@ import {
   resolveAssistantSpeechRecognitionConstructor,
 } from "./assistant-voice-input-adapter.js";
 import { installAssistantVoiceSettings } from "./assistant-voice-settings.js";
-import { dispatchAssistantUiState } from "./assistant-ui-state.js";
+import {
+  assistantListeningUiState,
+  assistantUiStateStatus,
+  dispatchAssistantUiState,
+} from "./assistant-ui-state.js";
 
 interface AssistantRuntimeEnvironmentGlobal {
   readonly __MORRO_RUNTIME_ENV__?: {
@@ -681,30 +685,28 @@ function voiceInputMessage(
   language: ReturnType<typeof normalizeAssistantVoiceLanguage>,
   state: "listening" | "unsupported" | "error",
 ): string {
+  if (state === "listening")
+    return assistantUiStateStatus("listening", language);
   const messages = {
     pt: {
-      listening: "Estou ouvindo...",
       unsupported:
         "Desculpe, seu navegador não suporta reconhecimento de voz. Por favor, digite sua pergunta.",
       error:
         "Desculpe, não consegui entender. Pode tentar novamente ou digitar sua pergunta?",
     },
     en: {
-      listening: "I'm listening...",
       unsupported:
         "Sorry, your browser does not support voice recognition. Please type your question.",
       error:
         "Sorry, I couldn't understand. Please try again or type your question.",
     },
     es: {
-      listening: "Estoy escuchando...",
       unsupported:
         "Lo siento, tu navegador no admite reconocimiento de voz. Escribe tu pregunta.",
       error:
         "Lo siento, no pude entender. Inténtalo de nuevo o escribe tu pregunta.",
     },
     he: {
-      listening: "אני מקשיב...",
       unsupported:
         "מצטערים, הדפדפן שלך אינו תומך בזיהוי קולי. אנא הקלד את השאלה.",
       error: "מצטערים, לא הצלחתי להבין. נסה שוב או הקלד את השאלה.",
@@ -890,6 +892,8 @@ export function installBrowserAssistantRuntime(
   const voiceButton = options.document.getElementById("voiceButton");
   let destroyed = false;
   let requestGeneration = 0;
+  let assistantUiGeneration = 0;
+  let assistantVoiceUiGeneration = -1;
   const dropStaleResponse = (): AssistantDialogResponse => {
     conversation.recordStaleResponseDropped();
     return supersededResponse();
@@ -1429,6 +1433,7 @@ export function installBrowserAssistantRuntime(
       );
     }
 
+    const uiGeneration = ++assistantUiGeneration;
     dispatchAssistantUiState(options.document, "loading");
     try {
       const response = await processInputTurn(
@@ -1438,13 +1443,17 @@ export function installBrowserAssistantRuntime(
         source,
         suppressOptionValues,
       );
-      dispatchAssistantUiState(
-        options.document,
-        response.metadata?.state === "superseded" ? "idle" : "success",
-      );
+      if (!destroyed && uiGeneration === assistantUiGeneration) {
+        dispatchAssistantUiState(
+          options.document,
+          response.metadata?.state === "superseded" ? "idle" : "success",
+        );
+      }
       return response;
     } catch (error) {
-      dispatchAssistantUiState(options.document, "error");
+      if (!destroyed && uiGeneration === assistantUiGeneration) {
+        dispatchAssistantUiState(options.document, "error");
+      }
       throw error;
     }
   };
@@ -1465,6 +1474,9 @@ export function installBrowserAssistantRuntime(
           void processInput(transcript, undefined, false, "voice");
         },
         onError: () => {
+          if (destroyed || assistantVoiceUiGeneration !== assistantUiGeneration)
+            return;
+          dispatchAssistantUiState(options.document, "error");
           appendStandardMessage(
             "assistant",
             voiceInputMessage(
@@ -1476,11 +1488,19 @@ export function installBrowserAssistantRuntime(
           );
         },
         onListeningChange: (listening) => {
+          if (listening) assistantVoiceUiGeneration = ++assistantUiGeneration;
           voiceButton?.classList.toggle("listening", listening);
           voiceButton?.setAttribute(
             "aria-pressed",
             listening ? "true" : "false",
           );
+          const state = assistantListeningUiState(
+            listening,
+            options.document
+              .getElementById("assistant-messages")
+              ?.getAttribute("data-assistant-state") ?? null,
+          );
+          if (state) dispatchAssistantUiState(options.document, state);
         },
       })
     : null;
@@ -1527,6 +1547,8 @@ export function installBrowserAssistantRuntime(
     if (destroyed) return;
     const language = voiceLanguage();
     if (!voiceInput) {
+      assistantUiGeneration += 1;
+      dispatchAssistantUiState(options.document, "error");
       appendStandardMessage(
         "assistant",
         voiceInputMessage(language, "unsupported"),
@@ -1538,6 +1560,7 @@ export function installBrowserAssistantRuntime(
       return;
     }
     voiceInput.setLanguage(language);
+    assistantVoiceUiGeneration = ++assistantUiGeneration;
     if (voiceInput.start()) {
       appendStandardMessage(
         "assistant",

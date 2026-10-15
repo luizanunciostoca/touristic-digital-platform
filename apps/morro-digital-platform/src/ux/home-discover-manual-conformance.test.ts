@@ -63,9 +63,9 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(shell).toContain("composeUnifiedAssistantDock");
     expect(shell).toContain('id = "unified-assistant-dock"');
     expect(composer).toContain("is-persistent");
-    expect(composer).toContain("is-voice-first");
+    expect(composer).toContain("is-text-voice");
     expect(composer).toContain('data-home-assistant-entry="persistent"');
-    expect(composer).toContain('data-assistant-entry-mode="voice-first"');
+    expect(composer).toContain('data-assistant-entry-mode="text-voice"');
     expect(composer).toContain('id="assistantInput"');
     expect(composer).toContain("md-assistant-compat-input");
     expect(composer).toContain('id="sendButton"');
@@ -73,9 +73,13 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(composer).toContain('id="voiceButton"');
     expect(composer).toContain("md-assistant-voice-cta");
     expect(composer).toContain(">Fale comigo</span>");
-    expect(composer).not.toContain(
-      'placeholder="Pergunte ao Morro Digital..."',
+    expect(composer).toContain('placeholder="Pergunte ao Morro Digital..."');
+    expect(composer).not.toContain('tabindex="-1"');
+    expect(composer).toContain('data-i18n-aria="assistant_send_label"');
+    expect(composer).toContain(
+      'data-i18n-placeholder="assistant_input_placeholder"',
     );
+    expect(composer).toContain('enterkeyhint="send"');
     expect(composer).not.toContain('id="configButton"');
     expect(shell.indexOf('id="configButton"')).toBeGreaterThan(composerEnd);
   });
@@ -207,4 +211,27 @@ describe("Home / Discover UX V2 manual conformance", () => {
       'Object.freeze({ selectors: ["#toggle-globe-view"] })',
     );
   });
+});
+
+describe("short viewport map controls", () => {
+  it.each([
+    ["38rem", "portrait"],
+    ["38rem", "landscape"],
+  ])(
+    "applies the %s %s layout to both discovery and selected Place",
+    async (height, orientation) => {
+      const css = await readRepository(
+        "apps/morro-digital-platform/public/tourist-shell-v2.css",
+      );
+      const media = `@media (max-height: ${height}) and (orientation: ${orientation})`;
+      const start = css.lastIndexOf(media);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const block = css.slice(start, css.indexOf("}", start));
+      for (const mode of ["discover", "place"]) {
+        expect(block).toContain(
+          `body[data-md-mode="${mode}"] #globe-map-control.md-map-control-stack`,
+        );
+      }
+    },
+  );
 });
