@@ -394,6 +394,8 @@ async function assertPureDiscover(page, viewport) {
 async function verifyManualNavigation(page) {
   const requests = [];
   let responseMode = "catalog";
+  let holdMap = false;
+  let releaseMap;
   const items = Array.from({ length: 25 }, (_, index) => ({
     id: `manual-proof-${index + 1}`,
     name: `Manual Praia ${String(index + 1).padStart(2, "0")}`,
@@ -410,6 +412,10 @@ async function verifyManualNavigation(page) {
       q: url.searchParams.has("q"),
     });
     if (responseMode === "offline") return route.abort("failed");
+    if (holdMap && !url.searchParams.get("cursor"))
+      await new Promise((resolve) => {
+        releaseMap = resolve;
+      });
     const second = url.searchParams.get("cursor") === "manual-second";
     return route.fulfill({
       status: 200,
@@ -510,10 +516,52 @@ async function verifyManualNavigation(page) {
       "Manual controls below48px",
       panelGeometry,
     );
+    await panel.locator('input[type="search"]').fill("Unsent draft");
+    await panel.locator("select").selectOption("restaurants");
+    await page.evaluate(() => {
+      document.documentElement.lang = "he-IL";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await panel.locator('input[type="search"]').inputValue()) ===
+        "Unsent draft" &&
+        (await panel.locator("select").inputValue()) === "restaurants",
+      "Locale erased unsubmitted draft",
+    );
+    assert(requests.length === 0, "Locale unexpectedly submitted draft");
+    await page.evaluate(() => {
+      document.documentElement.lang = "pt-BR";
+    });
+    await page.waitForTimeout(0);
     await panel.locator('input[type="search"]').fill("Manual");
     await panel.locator("select").selectOption("beaches");
+    holdMap = true;
     await panel.locator('button[type="submit"]').click();
+    const pendingDeadline = Date.now() + 8000;
+    while (!releaseMap && Date.now() < pendingDeadline)
+      await page.waitForTimeout(25);
+    assert(Boolean(releaseMap), "Held canonical search did not start");
+    await page.evaluate(() => {
+      document.documentElement.lang = "en-US";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await panel.locator('input[type="search"]').inputValue()) === "Manual" &&
+        (await panel.locator("select").inputValue()) === "beaches",
+      "Locale erased in-flight draft",
+    );
+    assert(
+      requests.length === 1 &&
+        (await status.textContent()).includes("Searching"),
+      "Locale restarted/cancelled in-flight search",
+    );
+    holdMap = false;
+    releaseMap();
     await waitCount(20);
+    await page.evaluate(() => {
+      document.documentElement.lang = "pt-BR";
+    });
+    await page.waitForTimeout(0);
     assert(
       (await status.textContent()).includes("1–20 / 25"),
       "Manual first page range incorrect",
@@ -555,6 +603,29 @@ async function verifyManualNavigation(page) {
         "Locale lost current page",
       );
     }
+    await panel
+      .locator('input[type="search"]')
+      .fill("Edited draft after results");
+    await panel.locator("select").selectOption("tours");
+    await page.evaluate(() => {
+      document.documentElement.lang = "he-IL";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await panel.locator('input[type="search"]').inputValue()) ===
+        "Edited draft after results" &&
+        (await panel.locator("select").inputValue()) === "tours",
+      "Locale replaced edited draft with submitted query",
+    );
+    assert(
+      (await status.textContent()).includes("21–25 / 25") &&
+        requests.length === 2,
+      "Locale changed submitted result page or resubmitted edits",
+    );
+    await page.evaluate(() => {
+      document.documentElement.lang = "pt-BR";
+    });
+    await page.waitForTimeout(0);
     await panel.locator('[data-manual-page="previous"]').click();
     await waitCount(20);
     assert(
@@ -654,6 +725,8 @@ async function verifyManualNavigation(page) {
       pagination: "20+5 of25",
       category: true,
       locales: 4,
+      localeDrafts:
+        "unsent/in-flight/edited-after-results preserved without resubmit",
       canonicalSelection: "manual-proof-25",
       delayedSelectionPreservesNewPanel: true,
       canonicalEmpty: true,
@@ -661,6 +734,7 @@ async function verifyManualNavigation(page) {
       assistantCommands: 0,
     };
   } finally {
+    releaseMap?.();
     releaseDetail?.();
     await page.unroute("**/api/places/v1/manual-proof-*", detailRoute);
     await page.unroute("**/api/places/v1/map?*", mapRoute);

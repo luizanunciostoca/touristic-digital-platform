@@ -345,6 +345,7 @@ export function installHomeDiscoverNavigation({
   let searchAbort: AbortController | undefined;
   let manualAction = "tours";
   let manualPanelGeneration = 0;
+  let refreshManualLocale: (() => void) | undefined;
   let manualSearchState:
     | {
         query: string;
@@ -357,6 +358,7 @@ export function installHomeDiscoverNavigation({
     MANUAL_COPY[normalizeLocale(document.documentElement.lang || "pt")];
   const closeManual = (restoreFocus = false): void => {
     manualPanelGeneration += 1;
+    refreshManualLocale = undefined;
     searchAbort?.abort();
     manualPanel.hidden = true;
     if (restoreFocus)
@@ -364,7 +366,7 @@ export function installHomeDiscoverNavigation({
         ?.querySelector<HTMLElement>(`[data-home-nav-action="${manualAction}"]`)
         ?.focus();
   };
-  const openManual = (action: string, preserveSearch = false): void => {
+  const openManual = (action: string): void => {
     closeProfile();
     closeManual();
     const panelGeneration = manualPanelGeneration;
@@ -373,9 +375,9 @@ export function installHomeDiscoverNavigation({
       panelGeneration === manualPanelGeneration &&
       !manualPanel.hidden;
     manualAction = action;
-    if (!preserveSearch) manualSearchState = undefined;
+    manualSearchState = undefined;
     setActive(action);
-    const copy = manualCopy();
+    let copy = manualCopy();
     manualPanel.replaceChildren();
     const heading = document.createElement("h2");
     heading.id = "home-manual-title";
@@ -389,6 +391,17 @@ export function installHomeDiscoverNavigation({
     };
     const status = document.createElement("p");
     status.setAttribute("role", "status");
+    let statusText: () => string = () => "";
+    const showStatus = (text: () => string): void => {
+      statusText = text;
+      status.textContent = text();
+    };
+    refreshManualLocale = () => {
+      copy = manualCopy();
+      heading.textContent = action === "saved" ? copy[12] : copy[0];
+      close.textContent = copy[7];
+      status.textContent = statusText();
+    };
     const list = document.createElement("ul");
     manualPanel.append(heading, close, status, list);
     manualPanel.hidden = false;
@@ -411,7 +424,7 @@ export function installHomeDiscoverNavigation({
         ));
       if (!panelIsCurrent()) return;
       if (selected) closeManual();
-      else status.textContent = copy[14];
+      else showStatus(() => copy[14]);
     };
     const addRow = (place: {
       name: string;
@@ -424,7 +437,7 @@ export function installHomeDiscoverNavigation({
       button.textContent = place.name;
       button.onclick = () => {
         void select(place).catch(() => {
-          if (panelIsCurrent()) status.textContent = copy[14];
+          if (panelIsCurrent()) showStatus(() => copy[14]);
         });
       };
       row.append(button);
@@ -442,7 +455,7 @@ export function installHomeDiscoverNavigation({
           .filter(
             (place) => typeof place.name === "string" && place.name.trim(),
           );
-        status.textContent = places.length ? copy[16] : copy[13];
+        showStatus(() => (places.length ? copy[16] : copy[13]));
         places.forEach((place) =>
           addRow({
             name: place.name,
@@ -450,7 +463,7 @@ export function installHomeDiscoverNavigation({
           }),
         );
       } catch {
-        status.textContent = copy[15];
+        showStatus(() => copy[15]);
       }
       close.focus();
       return;
@@ -485,6 +498,21 @@ export function installHomeDiscoverNavigation({
     pager.append(previous, next);
     pager.hidden = true;
     manualPanel.append(pager);
+    const refreshCommonLocale = refreshManualLocale;
+    // Keep the live draft DOM and in-flight request separate from submitted results.
+    // Locale changes relabel only: no re-open, abort, map redraw or submit.
+    refreshManualLocale = () => {
+      refreshCommonLocale();
+      input.setAttribute("aria-label", copy[1]);
+      input.placeholder = copy[1];
+      category.setAttribute("aria-label", copy[2]);
+      Array.from(category.options).forEach((option, index) => {
+        option.textContent = copy[index + 2] ?? copy[2];
+      });
+      submit.textContent = copy[6];
+      previous.textContent = copy[17];
+      next.textContent = copy[18];
+    };
     let pageGeneration = 0;
     const renderPage = async (
       page: number,
@@ -521,7 +549,10 @@ export function installHomeDiscoverNavigation({
         }));
       if (abort.signal.aborted || destroyed || generation !== pageGeneration)
         return;
-      status.textContent = `${state.snapshot.source === "local" ? copy[10] : copy[9]} · ${displayed.length ? start + 1 : 0}–${start + displayed.length} / ${valid.length}${displayed.length ? "" : ` · ${copy[11]}`}${ready ? "" : ` · ${copy[14]}`}`;
+      showStatus(
+        () =>
+          `${state.snapshot.source === "local" ? copy[10] : copy[9]} · ${displayed.length ? start + 1 : 0}–${start + displayed.length} / ${valid.length}${displayed.length ? "" : ` · ${copy[11]}`}${ready ? "" : ` · ${copy[14]}`}`,
+      );
       displayed.forEach(addRow);
       pager.hidden = valid.length <= 20;
       previous.disabled = state.page === 0;
@@ -532,7 +563,7 @@ export function installHomeDiscoverNavigation({
       if (!manualSearchState || !searchAbort) return;
       void renderPage(manualSearchState.page + delta, searchAbort, true).catch(
         () => {
-          status.textContent = copy[14];
+          showStatus(() => copy[14]);
         },
       );
     };
@@ -546,7 +577,7 @@ export function installHomeDiscoverNavigation({
       const query = input.value;
       const selectedCategory = category.value;
       manualSearchState = undefined;
-      status.textContent = copy[8];
+      showStatus(() => copy[8]);
       list.replaceChildren();
       pager.hidden = true;
       void searchPlaces(query, selectedCategory, abort.signal)
@@ -561,18 +592,9 @@ export function installHomeDiscoverNavigation({
           await renderPage(0, abort);
         })
         .catch(() => {
-          if (!abort.signal.aborted && !destroyed)
-            status.textContent = copy[14];
+          if (!abort.signal.aborted && !destroyed) showStatus(() => copy[14]);
         });
     };
-    if (preserveSearch && manualSearchState) {
-      input.value = manualSearchState.query;
-      category.value = manualSearchState.category;
-      searchAbort = new AbortController();
-      void renderPage(manualSearchState.page, searchAbort).catch(() => {
-        status.textContent = copy[14];
-      });
-    }
     input.focus();
   };
 
@@ -670,7 +692,7 @@ export function installHomeDiscoverNavigation({
 
   const localeObserver = new MutationObserver(() => {
     renderLocale();
-    if (!manualPanel.hidden) openManual(manualAction, true);
+    if (!manualPanel.hidden) refreshManualLocale?.();
   });
   localeObserver.observe(document.documentElement, {
     attributes: true,
