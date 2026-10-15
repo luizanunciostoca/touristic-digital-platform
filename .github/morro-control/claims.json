@@ -79,7 +79,7 @@
       "expiresAt": "2026-10-16T12:00:00.000Z"
     },
     "MD-SUPPORT-SESSION-REVOCATION-826": {
-      "owner": "CODEX-AUTH-826",
+      "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/support-revocation-826-20261015",
       "baseSha": "40028ddf4f47eceed6756df4d5494a1993259063",
