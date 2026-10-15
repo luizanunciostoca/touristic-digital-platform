@@ -4,6 +4,8 @@ import {
   createTicketingApi,
   sanitizeTicketingFinancialFailure,
   sanitizeTicketingStartupFailure,
+  isStagingOrderingSchemaReadbackService,
+  verifyStagingOrderingTicketingSchema,
   createTicketingStartupFailureTracker,
 } from "./ticketing-api.mjs";
 
@@ -415,5 +417,142 @@ describe("concurrent startup rejection provenance", () => {
       tracker.track(later, "ordering_schema"),
     ]);
     expect(tracker.firstFailureStage).toBe("ticketing_schema");
+  });
+});
+
+describe("staging Ordering schema readback without runtime DDL", () => {
+  const expectedSource =
+    "enum('business_onboarding','ticketing_reservation','restaurant_reservation')";
+  const requiredColumns = [
+    ["reservation_reference", "varchar(120)"],
+    ["order_id", "varchar(120)"],
+    ["product_reference", "varchar(120)"],
+    ["quantity", "smallint unsigned"],
+    ["amount_minor", "bigint unsigned"],
+    ["currency", "char(3)"],
+    ["pricing_version", "varchar(80)"],
+    ["bound_at", "datetime(3)"],
+  ];
+  function fakeReadback({
+    database = "morro_ordering_staging",
+    user = "morro_ordering",
+    sourceKind = expectedSource,
+    omitColumn = null,
+    foreignKey = true,
+  } = {}) {
+    const calls = [];
+    const columns = [
+      {
+        table_name: "ordering_orders",
+        column_name: "source_kind",
+        column_type: sourceKind,
+      },
+      ...requiredColumns
+        .filter(([name]) => name !== omitColumn)
+        .map(([name, type]) => ({
+          table_name: "ordering_ticketing_reservation_bindings",
+          column_name: name,
+          column_type: type,
+        })),
+    ];
+    const keys = foreignKey
+      ? [
+          {
+            constraint_name: "fk_ordering_ticketing_order",
+            column_name: "order_id",
+            referenced_table: "ordering_orders",
+            referenced_column: "order_id",
+          },
+        ]
+      : [];
+    const pool = {
+      async query(sql) {
+        calls.push(sql);
+        if (sql.includes("SELECT DATABASE() AS database_name")) {
+          return [[{ database_name: database, user_name: user }]];
+        }
+        if (sql.includes("information_schema.COLUMNS")) return [columns];
+        if (sql.includes("information_schema.KEY_COLUMN_USAGE")) return [keys];
+        if (sql.includes("LIMIT 0")) return [[]];
+        throw new Error("UNEXPECTED_SQL_QUERY");
+      },
+    };
+    return { pool, calls };
+  }
+  it("selects readback only for the dedicated staging service", () => {
+    expect(
+      isStagingOrderingSchemaReadbackService("morro-digital-v2-staging"),
+    ).toBe(true);
+    for (const value of [
+      "",
+      "morro-digital-v2-production",
+      "morro-digital-v2-staging-extra",
+      null,
+    ]) {
+      expect(isStagingOrderingSchemaReadbackService(value)).toBe(false);
+    }
+  });
+  it("proves owned schema, required columns, key and never runs DDL", async () => {
+    const { pool, calls } = fakeReadback();
+    await expect(
+      verifyStagingOrderingTicketingSchema(pool),
+    ).resolves.toMatchObject({
+      contract: "STAGING-TICKETING-ORDERING-READBACK",
+      status: "pass",
+      database: "morro_ordering_staging",
+      user: "morro_ordering",
+      foreignKeyVerified: true,
+      requiredBindingColumns: 8,
+    });
+    expect(calls).toHaveLength(5);
+    expect(calls.every((sql) => sql.trim().startsWith("SELECT "))).toBe(true);
+    expect(calls.join(" ")).not.toMatch(
+      /\b(?:ALTER|CREATE|DROP|DELETE|UPDATE|INSERT)\b/u,
+    );
+  });
+  it.each([
+    { database: "wrong_target", user: "morro_ordering" },
+    { database: "morro_ordering_staging", user: "other_user" },
+  ])("rejects unknown schema identity %#", async (identity) => {
+    await expect(
+      verifyStagingOrderingTicketingSchema(fakeReadback(identity).pool),
+    ).rejects.toThrow("STAGING_ORDERING_DB_IDENTITY_MISMATCH");
+  });
+  it("rejects an unrecognized source_kind enum", async () => {
+    await expect(
+      verifyStagingOrderingTicketingSchema(
+        fakeReadback({ sourceKind: "enum('business_onboarding')" }).pool,
+      ),
+    ).rejects.toThrow("STAGING_ORDERING_SOURCE_KIND_DRIFT");
+  });
+  it("rejects missing binding columns", async () => {
+    await expect(
+      verifyStagingOrderingTicketingSchema(
+        fakeReadback({ omitColumn: "amount_minor" }).pool,
+      ),
+    ).rejects.toThrow("STAGING_ORDERING_SCHEMA_INCOMPLETE");
+  });
+  it("rejects a missing or mismatched ordering foreign key", async () => {
+    await expect(
+      verifyStagingOrderingTicketingSchema(
+        fakeReadback({ foreignKey: false }).pool,
+      ),
+    ).rejects.toThrow("STAGING_ORDERING_FOREIGN_KEY_DRIFT");
+  });
+  it("requires an authenticated query-capable pool", async () => {
+    await expect(verifyStagingOrderingTicketingSchema(null)).rejects.toThrow(
+      "STAGING_ORDERING_READBACK_POOL_INVALID",
+    );
+  });
+  it("classifies structural drift without exposing SQL or credentials", () => {
+    const result = sanitizeTicketingStartupFailure(
+      new Error("STAGING_ORDERING_SCHEMA_INCOMPLETE"),
+      "ordering_schema",
+    );
+    expect(result).toEqual({
+      stage: "ordering_schema",
+      code: "STAGING_ORDERING_SCHEMA_INCOMPLETE",
+    });
+    expect(JSON.stringify(result)).not.toMatch(/password|token|mysql:|sql:/iu);
   });
 });
