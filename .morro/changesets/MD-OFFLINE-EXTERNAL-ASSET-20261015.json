@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-OFFLINE-EXTERNAL-ASSET-20261015",
   "objective": "self-hosted-offline-locale-retry-script-compatible-with-runtime-csp",
-  "baseSha": "89e93bc058c27a68eb8a44c9669cd68f22962bb0",
-  "branch": "fix/offline-external-asset-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "e54d2769a7c06bd562bd3b75bacebf5903d1a690",
+  "branch": "infra/retire-offline-asset-957-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
