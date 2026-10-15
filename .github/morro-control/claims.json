@@ -77,6 +77,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T05:30:00.000Z"
+    },
+    "MD-NEXT-READY-EXACT-GOVERNANCE-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/next-ready-exact-governance-20261015",
+      "baseSha": "e51ac37368d86b756ba155e37879f56cad214d7b",
+      "paths": [
+        ".morro/changesets/MD-NEXT-READY-EXACT-GOVERNANCE-20261015.json",
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T06:00:00.000Z"
     }
   }
 }

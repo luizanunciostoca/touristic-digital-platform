@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-NEXT-READY-EXACT-GOVERNANCE-20261015",
+  "objective": "classify-exact-ux-crm-affiliate-marker-and-wave-proof-paths",
+  "baseSha": "e51ac37368d86b756ba155e37879f56cad214d7b",
+  "branch": "fix/next-ready-exact-governance-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-NEXT-READY-EXACT-GOVERNANCE-20261015.json",
+      ".morro/ownership.json",
+      "tooling/fabric/ownership-path.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs"
+    ],
+    "contracts": ["NEXT-READY-EXACT-GOVERNANCE"]
+  },
+  "reads": {
+    "contracts": [
+      "TDP-CONTROL-PLANE-V3.2",
+      "HOME-DISCOVER-MANUAL-CONFORMANCE",
+      "ASSISTANT-MAP-RECOVERY",
+      "platform-authz"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "affected-tests",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "exact-owner-impact-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
