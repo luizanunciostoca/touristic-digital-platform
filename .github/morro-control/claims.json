@@ -95,7 +95,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/u7-place-ast-fixture-20261015",
-      "baseSha": "6c95d982dc0d5b41b912277e01b10e463ad77fbf",
+      "baseSha": "c2607e678546f1f90b3543ead3552f61b84646f9",
       "paths": [
         ".morro/changesets/MD-U7-PLACE-AST-FIXTURE-20261015.json",
         "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"

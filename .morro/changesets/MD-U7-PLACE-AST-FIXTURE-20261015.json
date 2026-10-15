@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-U7-PLACE-AST-FIXTURE-20261015",
   "objective": "faithful-place-menu-ast-fixture-for-dataset-geometry-and-external-tour-ownership",
-  "baseSha": "6c95d982dc0d5b41b912277e01b10e463ad77fbf",
+  "baseSha": "c2607e678546f1f90b3543ead3552f61b84646f9",
   "branch": "fix/u7-place-ast-fixture-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
