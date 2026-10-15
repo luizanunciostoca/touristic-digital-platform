@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-HOME-TEXT-VOICE-ENTRY-20261015",
   "objective": "visible-text-voice-entry-with-race-safe-listening-state",
-  "baseSha": "b472658d1aba6ce03362f79918edbd0fcfc73c87",
-  "branch": "fix/home-text-voice-entry-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a0301412d1df76afde362b6940aa6afdabbd9b09",
+  "branch": "infra/retire-ui-940-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
