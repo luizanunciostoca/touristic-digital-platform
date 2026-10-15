@@ -11,7 +11,11 @@ async function readRepository(path: string): Promise<string> {
   return readFile(repositoryRoot + path, "utf8");
 }
 
-function executeActualBackToMenu(control: string, initialStage = "places") {
+function executeActualBackToMenu(
+  control: string,
+  initialStage = "places",
+  initialExternalOwnership = false,
+) {
   const ast = ts.createSourceFile(
     "controller.ts",
     control,
@@ -19,18 +23,34 @@ function executeActualBackToMenu(control: string, initialStage = "places") {
     true,
   );
   let expression = "";
+  let clearGeometryExpression = "";
   const find = (node: ts.Node): void => {
     if (
       ts.isVariableDeclaration(node) &&
       node.name.getText(ast) === "backToMenu"
     )
       expression = node.initializer?.getText(ast) ?? "";
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.name.getText(ast) === "clearDatasetGeometry"
+    )
+      clearGeometryExpression = node.initializer?.getText(ast) ?? "";
     ts.forEachChild(node, find);
   };
   find(ast);
   if (!expression) throw new Error("Actual menu recovery function missing");
+  if (
+    control.includes('"data-explore-dataset-contract"') &&
+    !clearGeometryExpression
+  )
+    throw new Error("Actual dataset geometry reset function missing");
   const body = `
-    let interactionGeneration=10,datasetGeneration=20;
+    let interactionGeneration=10,datasetGeneration=20,datasetGeometryGeneration=30;
+    let externalTourOwnsMap=initialExternalOwnership;
+    const geometryAttributes=new Map([["data-explore-dataset-bounds","[[-40,-15],[-38,-13]]"],["data-explore-dataset-generation","30"]]);
+    const geometryRemovals=[];
+    const geometryElement={removeAttribute:name=>{geometryRemovals.push(name);geometryAttributes.delete(name)}};
+    const clearDatasetGeometry=(${clearGeometryExpression || "() => {}"});
     const locations=Object.freeze([{name:"One",category:"beaches"},{name:"Two",category:"hotels"}]);
     let visibleLocations=locations,activeMarkerMembers=locations.slice(0,1),activeStage=initialStage;
     let activeCategory={value:"beaches"},activeCategoryButton={},activePlace="Old",activePlaceLocation=locations[0];
@@ -51,15 +71,17 @@ function executeActualBackToMenu(control: string, initialStage = "places") {
     const back=(${expression}); back(false);
     return {initial:locations,visibleLocations,activeStage,activeCategory,activePlace,activePlaceLocation,
       activeSearchQuery,activePlaceActionValues,activeMarkerMembers,markerRegistrySize:markerRegistry.size,
-      interactionGeneration,datasetGeneration,retainedMenuContext,writes,loads,counts};
+      interactionGeneration,datasetGeneration,retainedMenuContext,writes,loads,counts,
+      datasetGeometryGeneration,externalTourOwnsMap,geometryAttributes:Object.fromEntries(geometryAttributes),geometryRemovals};
   `;
   const code = ts.transpileModule(body, {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
-  const execute = compileFunction(code, ["initialStage"]) as (
-    stage: string,
-  ) => unknown;
-  return execute(initialStage) as {
+  const execute = compileFunction(code, [
+    "initialStage",
+    "initialExternalOwnership",
+  ]) as (stage: string, externalOwnership: boolean) => unknown;
+  return execute(initialStage, initialExternalOwnership) as {
     initial: readonly object[];
     visibleLocations: readonly object[];
     activeStage: string;
@@ -73,6 +95,10 @@ function executeActualBackToMenu(control: string, initialStage = "places") {
     interactionGeneration: number;
     datasetGeneration: number;
     retainedMenuContext: boolean;
+    datasetGeometryGeneration: number;
+    externalTourOwnsMap: boolean;
+    geometryAttributes: Record<string, string>;
+    geometryRemovals: string[];
     writes: unknown[][];
     loads: string[];
     counts: { locations: number; semantic: number }[];
@@ -247,7 +273,16 @@ describe("Place + Search/Explore V2 contract", () => {
         executeActualBackToMenu(staleSelection).activePlace,
       ).toBeUndefined(),
     ).toThrow();
+    const staleGeneration = mutateBack(
+      "datasetGeneration += 1;",
+      "datasetGeneration += 0;",
+    );
     if (control.includes('"data-map-member-count"')) {
+      expect(() =>
+        expect(executeActualBackToMenu(staleGeneration).datasetGeneration).toBe(
+          21,
+        ),
+      ).toThrow();
       expect(result.visibleLocations).toBe(result.initial);
       expect(result.retainedMenuContext).toBe(true);
       expect(result.activeMarkerMembers).toBeUndefined();
@@ -273,6 +308,53 @@ describe("Place + Search/Explore V2 contract", () => {
       expect(tour.visibleLocations).toEqual([]);
       expect(tour.retainedMenuContext).toBe(false);
       expect(tour.counts).toEqual([{ locations: 0, semantic: 0 }]);
+      if (control.includes('"data-explore-dataset-contract"')) {
+        expect(result.datasetGeometryGeneration).toBe(30);
+        expect(result.geometryAttributes).toEqual({
+          "data-explore-dataset-bounds": "[[-40,-15],[-38,-13]]",
+          "data-explore-dataset-generation": "30",
+        });
+        expect(result.geometryRemovals).toEqual([]);
+        expect(result.externalTourOwnsMap).toBe(false);
+        const assertClearedGeometry = (value: typeof result) => {
+          expect(value.datasetGeometryGeneration).toBe(31);
+          expect(value.geometryAttributes).toEqual({});
+          expect(value.geometryRemovals).toEqual([
+            "data-explore-dataset-bounds",
+            "data-explore-dataset-generation",
+          ]);
+          expect(value.externalTourOwnsMap).toBe(false);
+        };
+        assertClearedGeometry(tour);
+        const external = executeActualBackToMenu(control, "places", true);
+        expect(external.visibleLocations).toEqual([]);
+        expect(external.retainedMenuContext).toBe(false);
+        expect(external.activePlace).toBeUndefined();
+        expect(external.counts).toEqual([{ locations: 0, semantic: 0 }]);
+        assertClearedGeometry(external);
+        for (const changed of [
+          mutateBack(
+            "clearDatasetGeometry();",
+            "/* negative canary: stale geometry retained */",
+          ),
+          mutateBack(
+            "datasetGeometryGeneration += 1;",
+            "datasetGeometryGeneration += 0;",
+          ),
+          mutateBack(
+            "externalTourOwnsMap = false;",
+            "/* negative canary: stale external owner retained */",
+          ),
+        ]) {
+          expect(changed).not.toBe(control);
+          const changedResult = executeActualBackToMenu(
+            changed,
+            "places",
+            true,
+          );
+          expect(() => assertClearedGeometry(changedResult)).toThrow();
+        }
+      }
     } else {
       expect(result.visibleLocations).toEqual([]);
       expect(result.writes).toEqual([]);
