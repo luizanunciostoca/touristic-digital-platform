@@ -121,21 +121,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T08:00:00.000Z"
-    },
-    "MD-CRM-ESLINT-CONFIG-OWNERSHIP-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/crm-eslint-platform-ownership-20261015",
-      "baseSha": "9c136f61232ecbc141d4535a9325eaabc1d9aa3f",
-      "paths": [
-        ".morro/changesets/MD-CRM-ESLINT-CONFIG-OWNERSHIP-20261015.json",
-        ".morro/ownership.json",
-        "tooling/fabric/ownership-path.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T08:00:00.000Z"
     }
   }
 }
