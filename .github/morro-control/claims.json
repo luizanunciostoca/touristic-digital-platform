@@ -43,6 +43,23 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T08:00:00.000Z"
+    },
+    "MD-UX-CONFIRMED-EXACT-GOVERNANCE-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/ux-confirmed-exact-governance-20261015",
+      "baseSha": "90afe8e549652c99b73340ce96ee04de3bdf4985",
+      "paths": [
+        ".morro/changesets/MD-UX-CONFIRMED-EXACT-GOVERNANCE-20261015.json",
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T19:30:00.000Z"
     }
   }
 }
