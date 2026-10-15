@@ -854,3 +854,79 @@ test("browser entry retains routing browser proof with exact path matching", () 
     assert.deepEqual(unknown.unknownFiles, [file]);
   }
 });
+
+test("text and voice UX literals retain direct browser and visual coverage", () => {
+  const files = [
+    "apps/morro-digital-platform/src/layouts/app-shell.ts",
+    "apps/morro-digital-platform/public/tourist-shell-v2.css",
+    "apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts",
+    "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs",
+  ];
+  const workflow = readFileSync(
+    ".github/workflows/home-discover-manual-conformance.yml",
+    "utf8",
+  );
+  const prPaths = workflow
+    .split("  pull_request:")[1]
+    ?.split("\npermissions:")[0];
+  assert.ok(prPaths);
+  for (const file of files) {
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, false, file);
+    assert.deepEqual(result.unknownFiles, []);
+    assert.deepEqual(result.domains, ["ux-text-voice"]);
+    assert.equal(result.risk, "HIGH");
+    assert.equal(result.needsBrowser, true);
+    assert.equal(result.needsVisual, true);
+    assert.equal(result.qualityProfile, "UI_BUGFIX_FAST");
+    assert.deepEqual(result.suites, ["home-discover-manual-conformance.yml"]);
+    const trigger = file.endsWith("/home-discover-manual-conformance.test.ts")
+      ? "apps/morro-digital-platform/src/ux/home-*.test.ts"
+      : file;
+    assert.ok(
+      prPaths.includes("- " + trigger),
+      `direct workflow trigger missing: ${file}`,
+    );
+    const alias = file + ".backup";
+    const unknown = analyzeFiles([alias]);
+    assert.equal(unknown.classificationBlocked, true, alias);
+    assert.deepEqual(unknown.unknownFiles, [alias]);
+  }
+  const composed = analyzeFiles(files);
+  assert.equal(composed.classificationBlocked, false);
+  assert.deepEqual(composed.domains, ["ux-text-voice"]);
+  assert.equal(composed.needsBrowser, true);
+  assert.equal(composed.needsVisual, true);
+});
+
+test("assistant shell state literals select only directly triggered browser suites", () => {
+  for (const name of [
+    "assistant-ui-state.ts",
+    "assistant-shell-ui.ts",
+    "assistant-shell-ui.test.ts",
+  ]) {
+    const file = "apps/morro-digital-platform/src/assistant/" + name;
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, false);
+    assert.deepEqual(result.domains, ["assistant-shell-state"]);
+    assert.equal(result.risk, "HIGH");
+    assert.equal(result.needsBrowser, true);
+    assert.equal(result.needsVisual, true);
+    assert.deepEqual(result.suites, [
+      "assistant-conversation-continuity-browser-contract.yml",
+      "assistant-input-menu-flow-v1-parity.yml",
+      "navigation-turn-by-turn-parity.yml",
+    ]);
+    for (const suite of result.suites) {
+      const workflow = readFileSync(".github/workflows/" + suite, "utf8");
+      const prPaths = workflow
+        .split("  pull_request:")[1]
+        ?.split("\npermissions:")[0];
+      assert.ok(
+        prPaths?.includes("- apps/morro-digital-platform/src/assistant/**"),
+        suite,
+      );
+    }
+    assert.equal(analyzeFiles([file + ".backup"]).classificationBlocked, true);
+  }
+});
