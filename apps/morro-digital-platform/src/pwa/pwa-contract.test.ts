@@ -88,7 +88,7 @@ describe("PWA offline authority boundary", () => {
   it("uses a versioned cache and network-first runtime assets", async () => {
     const worker = await readPublicFile("service-worker.js");
 
-    expect(worker).toContain("static-v4");
+    expect(worker).toContain("static-v5");
     expect(worker).toContain("function isRuntimeAsset(pathname)");
     expect(worker).toContain("networkFirstStatic(request)");
     expect(worker).toContain("isRuntimeAsset(url.pathname)");
@@ -147,5 +147,137 @@ describe("PWA HTTP update contract", () => {
     expect(server).toContain('requestUrl.pathname === "/service-worker.js"');
     expect(server).toContain('response.setHeader("Cache-Control", "no-cache")');
     expect(server).toContain("\"worker-src 'self' blob:\"");
+  });
+});
+
+describe("localized offline fallback", () => {
+  it("loads a same-origin external script and keeps it available in the static cache", async () => {
+    const html = await readPublicFile("offline.html");
+    const worker = await readPublicFile("service-worker.js");
+    expect(html).toContain('<script src="/offline.js" defer></script>');
+    expect(html).not.toMatch(/<script>/u);
+    const precache = worker.slice(
+      worker.indexOf("const PRECACHE_URLS"),
+      worker.indexOf("const NETWORK_ONLY_PATHS"),
+    );
+    const cacheable = worker.slice(
+      worker.indexOf("const CACHEABLE_PATHS"),
+      worker.indexOf("function isNetworkOnly"),
+    );
+    expect(precache).toContain('"/offline.js"');
+    expect(cacheable).toContain('"/offline.js"');
+  });
+  async function boot(preference: string | null, storageDenied = false) {
+    const { runInNewContext } = await import("node:vm");
+    const html = await readPublicFile("offline.html");
+    const nodes = new Map<
+      string,
+      {
+        textContent: string;
+        addEventListener: (name: string, listener: () => void) => void;
+      }
+    >();
+    const listeners = new Map<
+      string,
+      (event?: { key: string | null }) => void
+    >();
+    let navigation: string | null = null;
+    let stored = preference;
+    const document = {
+      documentElement: { lang: "pt-BR", dir: "ltr" },
+      title: "",
+      getElementById(id: string) {
+        if (!nodes.has(id))
+          nodes.set(id, {
+            textContent: "",
+            addEventListener(name, listener) {
+              listeners.set(`${id}:${name}`, listener);
+            },
+          });
+        return nodes.get(id);
+      },
+    };
+    const navigator = { onLine: false };
+    expect(html).toContain('src="/offline.js"');
+    const script = await readPublicFile("offline.js");
+    expect(script).toBeTruthy();
+    runInNewContext(script, {
+      document,
+      navigator,
+      localStorage: {
+        getItem(key: string) {
+          expect(key).toBe("morro-digital-language");
+          if (storageDenied) throw new Error("denied");
+          return stored;
+        },
+      },
+      window: {
+        addEventListener(name: string, listener: () => void) {
+          listeners.set(name, listener);
+        },
+      },
+      location: {
+        assign(path: string) {
+          navigation = path;
+        },
+      },
+    });
+    return {
+      document,
+      navigator,
+      nodes,
+      listeners,
+      navigation: () => navigation,
+      setPreference(value: string) {
+        stored = value;
+      },
+    };
+  }
+
+  it.each([
+    ["pt-BR", "pt-BR", "ltr", "Conteúdo offline"],
+    ["en-US", "en-US", "ltr", "Offline content"],
+    ["es-ES", "es-ES", "ltr", "Contenido sin conexión"],
+    ["he-IL", "he-IL", "rtl", "תוכן ללא חיבור לרשת"],
+  ])(
+    "honors saved %s and announces reconnect without claiming service success",
+    async (preference, lang, dir, title) => {
+      const page = await boot(preference);
+      expect(page.document.documentElement).toEqual({ lang, dir });
+      expect(page.nodes.get("offline-title")?.textContent).toBe(title);
+      const offline = page.nodes.get("offline-status")?.textContent;
+      page.navigator.onLine = true;
+      page.listeners.get("online")?.();
+      expect(page.nodes.get("offline-status")?.textContent).not.toBe(offline);
+      expect(page.navigation()).toBeNull();
+      page.navigator.onLine = false;
+      page.listeners.get("offline")?.();
+      expect(page.nodes.get("offline-status")?.textContent).toBe(offline);
+      page.listeners.get("offline-retry:click")?.();
+      expect(page.navigation()).toBe("/");
+    },
+  );
+
+  it.each([null, "fr-FR", "__proto__", "constructor"])(
+    "keeps destination default for %s",
+    async (preference) => {
+      expect((await boot(preference)).document.documentElement.lang).toBe(
+        "pt-BR",
+      );
+    },
+  );
+
+  it("tolerates unavailable storage and normalizes existing locale aliases", async () => {
+    expect((await boot("he", true)).document.documentElement.lang).toBe(
+      "pt-BR",
+    );
+    expect((await boot(" iw_IL ")).document.documentElement.dir).toBe("rtl");
+  });
+
+  it("reflects saved language changes from another tab", async () => {
+    const page = await boot("en");
+    page.setPreference("he");
+    page.listeners.get("storage")?.({ key: "morro-digital-language" });
+    expect(page.document.documentElement.dir).toBe("rtl");
   });
 });
