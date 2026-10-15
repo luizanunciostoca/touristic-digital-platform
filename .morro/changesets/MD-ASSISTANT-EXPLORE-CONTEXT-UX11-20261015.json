@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ASSISTANT-EXPLORE-CONTEXT-UX11-20261015",
+  "objective": "clear-stale-selected-place-context-on-search-and-menu",
+  "baseSha": "32b85ffa303ab1eda84de637107dc2d09c893dd4",
+  "branch": "fix/assistant-explore-context-ux11-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ASSISTANT-EXPLORE-CONTEXT-UX11-20261015.json",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-HOME-TEXT-VOICE-ENTRY-20261015"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "context-ownership-impact-preflight",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
