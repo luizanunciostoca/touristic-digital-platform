@@ -325,3 +325,38 @@ describe("browser analytics consent preferences", () => {
     expect(browserAnalyticsConsentPreferenceCopy("iw").manage).toBe("פרטיות");
   });
 });
+
+describe("semantic explore analytics result counts", () => {
+  it.each<[Record<string, unknown>, number | undefined]>([
+    [{ markerCount: 5 }, 5],
+    [{ markerCount: 5, locationCount: 8 }, 8],
+    [{ markerCount: 5, locationCount: 0 }, 0],
+    ...[undefined, null, NaN, -1, 1.5, "8"].map<
+      [Record<string, unknown>, number | undefined]
+    >((locationCount) => [{ markerCount: 5, locationCount }, undefined]),
+  ])(
+    "records only authoritative semantic counts: %j",
+    async (counts, expected) => {
+      const { collector, inputs } = collectorHarness();
+      const document = new EventTarget() as unknown as Document;
+      installBrowserAnalyticsInstrumentation({
+        document,
+        collector,
+        context: { sessionId: "semantic" },
+      });
+      dispatch(document, "morro:explore-state-changed", {
+        category: "beaches",
+        stage: "places",
+        ...counts,
+      });
+      await Promise.resolve();
+      const attributes = inputs.find(
+        (input) => input.name === "category_viewed",
+      )?.attributes;
+      expect(attributes).toBeDefined();
+      if (expected === undefined)
+        expect(attributes).not.toHaveProperty("resultCount");
+      else expect(attributes?.resultCount).toBe(expected);
+    },
+  );
+});

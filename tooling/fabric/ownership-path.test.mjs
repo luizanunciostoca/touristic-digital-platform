@@ -461,3 +461,26 @@ test("grouped marker semantic consumers have exact map ownership", () => {
       assert.throws(() => assertOwnershipCoverage([path + suffix], current));
   }
 });
+
+test("semantic explore analytics has narrow map ownership", () => {
+  const current = JSON.parse(
+    readFileSync(
+      new URL("../../.morro/ownership.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const path of [
+    "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
+    "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts",
+  ]) {
+    assert.deepEqual(
+      current.domains
+        .filter((domain) => domain.pathPrefixes.includes(path))
+        .map((domain) => domain.id),
+      ["map"],
+    );
+    assert.doesNotThrow(() => assertOwnershipCoverage([path], current));
+    for (const suffix of [".bak", "-other", "/child"])
+      assert.throws(() => assertOwnershipCoverage([path + suffix], current));
+  }
+});

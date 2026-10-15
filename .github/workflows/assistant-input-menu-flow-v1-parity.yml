@@ -64,13 +64,13 @@ jobs:
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
-          async function assertCatalogMarkerMembership(page, category, legacyCount, selectedName = null) {
+          async function assertCatalogMarkerMembership(page, category, legacyCount, selectedName = null, filterTags = null) {
             const catalog = (await import(require('node:url').pathToFileURL(
               require('node:path').resolve('packages/search/dist/index.js')).href)).morroV1SearchCatalog;
             const key = item => JSON.stringify([item.category, item.name]);
             const allKeys = catalog.map(key);
             if (new Set(allKeys).size !== allKeys.length) throw new Error('Local catalog identity tuple is not unique');
-            const expected = catalog.filter(item => (!category || item.category === category) && (!selectedName || item.name === selectedName)).map(key).sort();
+            const expected = catalog.filter(item => (!category || item.category === category) && (!selectedName || item.name === selectedName) && (!filterTags || filterTags.some(tag => item.tags.includes(tag)))).map(key).sort();
             const deadline = Date.now() + 10000;
             let stable = 0;
             while (Date.now() < deadline) {
@@ -165,6 +165,27 @@ jobs:
             return proof;
           }
 
+
+          async function assertFilteredBeaches(page, tags) {
+            const catalog = (await import(require('node:url').pathToFileURL(
+              require('node:path').resolve('packages/search/dist/index.js')).href)).morroV1SearchCatalog;
+            // Independent input data/predicate: never derive expected members from the UI.
+            const key = item => JSON.stringify([item.category, item.name]);
+            const expected = catalog.filter(item => item.category === 'beaches' &&
+              tags.some(tag => item.tags.includes(tag))).map(key).sort();
+            if (!expected.length || expected.length >= 8) throw new Error('Independent filtered catalog is not a proper beach subset');
+            const observed = await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').evaluateAll(nodes =>
+              nodes.map(node => JSON.stringify([node.getAttribute('data-location-category'), node.getAttribute('data-location-name')])).sort());
+            const compare = wanted => {
+              if (JSON.stringify(observed) !== JSON.stringify([...wanted].sort())) throw new Error('Filtered rail differs from independent catalog predicate');
+            };
+            compare(expected);
+            for (const wrong of [expected.slice(1), [...expected, expected[0]], ['["wrong","identity"]', ...expected.slice(1)]]) {
+              let rejected = false; try { compare(wrong); } catch { rejected = true; }
+              if (!rejected) throw new Error('Filtered rail negative membership canary failed');
+            }
+            return assertCatalogMarkerMembership(page, 'beaches', expected.length, null, tags);
+          }
 
           (async () => {
             const browser = await chromium.launch({ headless: true });
@@ -353,15 +374,7 @@ jobs:
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"][data-context-category="beaches"]',
               ).waitFor({ state: 'visible', timeout: 8000 });
-              const familyState = await page.evaluate(() => ({
-                places: document.querySelectorAll(
-                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
-                ).length,
-                markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
-              }));
-              if (familyState.places < 1 || familyState.places >= 8 || familyState.places !== familyState.markers) {
-                throw new Error(`Compound V1 family filter did not execute semantically: ${JSON.stringify(familyState)}`);
-              }
+              await assertFilteredBeaches(page, ['familiar', 'tranquila']);
 
               await submit('back to main menu');
               await page.locator(
@@ -382,15 +395,7 @@ jobs:
               await page.locator(
                 '#assistant-category-rail[data-rail-stage="places"][data-context-category="beaches"]',
               ).waitFor({ state: 'visible' });
-              const surfState = await page.evaluate(() => ({
-                places: document.querySelectorAll(
-                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
-                ).length,
-                markers: Number(document.getElementById('map')?.dataset.mapMarkerCount || 0),
-              }));
-              if (surfState.places < 1 || surfState.places !== surfState.markers) {
-                throw new Error(`Typed surf filter diverged: ${JSON.stringify(surfState)}`);
-              }
+              await assertFilteredBeaches(page, ['surf']);
 
               await submit('back to filters');
               await page.locator(

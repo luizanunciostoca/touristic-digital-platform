@@ -49,6 +49,7 @@ interface ExploreStateSnapshot {
   readonly source?: unknown;
   readonly stage?: unknown;
   readonly markerCount?: unknown;
+  readonly locationCount?: unknown;
   readonly tour?: ExploreTourSnapshot | null;
 }
 
@@ -321,13 +322,22 @@ export function installBrowserAnalyticsInstrumentation(
       sourceCandidate === "legacy"
         ? sourceCandidate
         : undefined;
-    const markerCount = safeCount(detail.markerCount);
+    const resultCount = Object.prototype.hasOwnProperty.call(
+      detail,
+      "locationCount",
+    )
+      ? typeof detail.locationCount === "number" &&
+        Number.isSafeInteger(detail.locationCount) &&
+        detail.locationCount >= 0
+        ? detail.locationCount
+        : undefined
+      : safeCount(detail.markerCount);
 
     if (category && stage !== "menu" && category !== lastCategory) {
       lastCategory = category;
       track("category_viewed", {
         categoryId: category,
-        ...(markerCount !== undefined ? { resultCount: markerCount } : {}),
+        ...(resultCount !== undefined ? { resultCount } : {}),
       });
     }
 

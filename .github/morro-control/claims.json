@@ -112,7 +112,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/u7-semantic-viewport-consumers-20261015",
-      "baseSha": "176d8e6e14f33eac75954cecc8cddbf3a579f52a",
+      "baseSha": "37a1d85f0609dcc9eef506f0d4aae3ce2fec84e3",
       "paths": [
         ".morro/changesets/MD-U7-SEMANTIC-VIEWPORT-CONSUMERS-20261015.json",
         "apps/morro-digital-platform/src/map/explore-map-viewport-v1.ts",

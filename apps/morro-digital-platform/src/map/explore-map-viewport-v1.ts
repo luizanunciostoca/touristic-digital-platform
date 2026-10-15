@@ -94,6 +94,58 @@ function locationsBounds(
   ];
 }
 
+type Bounds = [[number, number], [number, number]];
+
+function datasetGeometry(
+  map: HTMLElement,
+): Readonly<{ bounds: Bounds; count: number; identity: string }> | null {
+  if (map.dataset.exploreDatasetContract !== "bounds-v1") return null;
+  const count = Number(map.dataset.mapMemberCount);
+  const generation = Number(map.dataset.exploreDatasetGeneration);
+  if (
+    !Number.isSafeInteger(count) ||
+    count < 2 ||
+    !Number.isSafeInteger(generation) ||
+    generation <= 0
+  )
+    return null;
+  try {
+    const bounds: unknown = JSON.parse(
+      map.dataset.exploreDatasetBounds ?? "null",
+    );
+    if (
+      !Array.isArray(bounds) ||
+      bounds.length !== 2 ||
+      bounds.some(
+        (point) =>
+          !Array.isArray(point) ||
+          point.length !== 2 ||
+          point.some(
+            (value) => typeof value !== "number" || !Number.isFinite(value),
+          ),
+      )
+    )
+      return null;
+    const [[west, south], [east, north]] = bounds as Bounds;
+    if (
+      west < -180 ||
+      east > 180 ||
+      south < -90 ||
+      north > 90 ||
+      west > east ||
+      south > north
+    )
+      return null;
+    return {
+      bounds: bounds as Bounds,
+      count,
+      identity: JSON.stringify([generation, count, bounds]),
+    };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Re-applies the V1 category framing after marker replacement. The original
  * runtime reserves the measured unified assistant dock so POIs remain visible
@@ -116,16 +168,46 @@ export function installExploreMapViewportV1({
     if (destroyed || !mapElement) return;
     if (mapElement.dataset.exploreState !== "ready") return;
 
-    const category = mapElement.dataset.exploreCategory?.trim() ?? "";
-    const expectedCount = Number(mapElement.dataset.mapMarkerCount ?? "0");
-    if (!category || !Number.isFinite(expectedCount) || expectedCount <= 1) {
+    // Navigation and immersive tours own their cameras independently.
+    const mode = document.body?.dataset.mdMode;
+    if (
+      mode === "navigation" ||
+      mode === "tour" ||
+      ["switching", "ready"].includes(mapElement.dataset.tourState ?? "")
+    )
       return;
-    }
 
-    const locations = markerLocations(document, category);
-    if (locations.length !== expectedCount) return;
-    const bounds = locationsBounds(locations);
-    if (!bounds) return;
+    const newContract = [
+      "exploreDatasetContract",
+      "exploreDatasetBounds",
+      "exploreDatasetGeneration",
+      "mapMemberCount",
+    ].some((key) =>
+      Object.prototype.hasOwnProperty.call(mapElement.dataset, key),
+    );
+    let bounds: Bounds | null;
+    let expectedCount: number;
+    let datasetIdentity: string;
+    if (newContract) {
+      const geometry = datasetGeometry(mapElement);
+      if (!geometry) return; // Present but partial/invalid never becomes legacy.
+      ({ bounds, count: expectedCount, identity: datasetIdentity } = geometry);
+    } else {
+      const category = mapElement.dataset.exploreCategory?.trim() ?? "";
+      expectedCount = Number(mapElement.dataset.mapMarkerCount ?? "0");
+      if (!category || !Number.isFinite(expectedCount) || expectedCount <= 1)
+        return;
+      const locations = markerLocations(document, category);
+      if (locations.length !== expectedCount) return;
+      bounds = locationsBounds(locations);
+      if (!bounds) return;
+      datasetIdentity = JSON.stringify([
+        category,
+        mapElement.dataset.exploreStage ?? "",
+        expectedCount,
+        locations.map((location) => location.name),
+      ]);
+    }
 
     const map = (globalThis as typeof globalThis & ExploreMapboxGlobal)
       .mapboxPrimaryInstance;
@@ -138,13 +220,13 @@ export function installExploreMapViewportV1({
       document.defaultView?.innerHeight ??
       document.documentElement.clientHeight;
     const signature = [
-      category,
-      mapElement.dataset.exploreStage ?? "",
-      expectedCount,
-      dockHeight,
+      datasetIdentity,
+      // Opening lists or returning to menu changes dock height without changing
+      // the dataset or viewport. Keep the user's camera; measure new padding
+      // when a real dataset/viewport change next requires framing.
+      newContract ? null : dockHeight,
       viewportWidth,
       viewportHeight,
-      locations.map((location) => location.name).join("|"),
     ].join(":");
     if (signature === lastSignature) return;
     lastSignature = signature;
@@ -181,6 +263,11 @@ export function installExploreMapViewportV1({
         "data-explore-category",
         "data-explore-stage",
         "data-map-marker-count",
+        "data-map-member-count",
+        "data-explore-dataset-contract",
+        "data-explore-dataset-bounds",
+        "data-explore-dataset-generation",
+        "data-tour-state",
       ],
       childList: true,
       subtree: true,

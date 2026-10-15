@@ -37,7 +37,9 @@
         "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
         "apps/morro-digital-platform/src/assistant/assistant-contextual-state.ts",
         "apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts",
-        "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"
+        "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts",
+        "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
+        "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts"
       ],
       "contracts": []
     },
