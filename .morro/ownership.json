@@ -94,7 +94,8 @@
         "services/crm/src/proposals-http-transport.test.ts",
         "apps/morro-digital-platform/tooling/affiliates-api.mjs",
         "apps/morro-digital-platform/tooling/affiliates-api.test.mjs",
-        "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs"
+        "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs",
+        "apps/morro-digital-platform/tooling/dev-server.mjs"
       ],
       "contracts": ["platform-authz"]
     },
@@ -136,7 +137,8 @@
         ".gitignore",
         "package.json",
         "pnpm-lock.yaml",
-        "packages/design-system/package.json"
+        "packages/design-system/package.json",
+        "services/crm/eslint.config.mjs"
       ],
       "contracts": []
     }

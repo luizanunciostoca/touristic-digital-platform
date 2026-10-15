@@ -366,3 +366,52 @@ test("pending UX CRM affiliate and gesture ownership stays exact and preserves a
   for (const file of tracked.filter((f) => !added.includes(f)))
     assert.deepEqual(owners(file, canonical), owners(file, before), file);
 });
+
+test("service lint config and platform auth composition have distinct exact owners", () => {
+  const additions = {
+    "services/crm/eslint.config.mjs": "ci-release",
+    "apps/morro-digital-platform/tooling/dev-server.mjs": "auth",
+  };
+  const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  const owners = (file, registry) =>
+    registry.domains
+      .filter((d) =>
+        d.pathPrefixes.some((p) =>
+          p.endsWith("/") ? file.startsWith(p) : file === p,
+        ),
+      )
+      .map((d) => d.id);
+  for (const [file, owner] of Object.entries(additions)) {
+    assert.deepEqual(owners(file, canonical), [owner], file);
+    assert.deepEqual(assertOwnershipCoverage([file], canonical), {
+      covered: 1,
+    });
+    for (const alias of [
+      file + ".backup",
+      file + "/nested.mjs",
+      file.replace(".mjs", "-other.mjs"),
+    ]) {
+      assert.deepEqual(owners(alias, canonical), [], alias);
+      assert.throws(
+        () => assertOwnershipCoverage([alias], canonical),
+        /FAST_GATE_OWNERSHIP_UNCOVERED/,
+      );
+    }
+  }
+  assert.deepEqual(canonical.domains.find((d) => d.id === "auth").contracts, [
+    "platform-authz",
+  ]);
+  assert.equal(
+    JSON.parse(readFileSync(".morro/risk-policy.json", "utf8"))
+      .semanticRiskFloor["platform-authz"],
+    "critical",
+  );
+  const before = structuredClone(canonical);
+  for (const domain of before.domains)
+    domain.pathPrefixes = domain.pathPrefixes.filter((p) => !(p in additions));
+  const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
+  for (const file of tracked.filter((f) => !(f in additions)))
+    assert.deepEqual(owners(file, canonical), owners(file, before), file);
+});

@@ -126,7 +126,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/crm-eslint-platform-ownership-20261015",
-      "baseSha": "fd10a529515f3314b9cc94c9fcf65549303fe4cf",
+      "baseSha": "9c136f61232ecbc141d4535a9325eaabc1d9aa3f",
       "paths": [
         ".morro/changesets/MD-CRM-ESLINT-CONFIG-OWNERSHIP-20261015.json",
         ".morro/ownership.json",
