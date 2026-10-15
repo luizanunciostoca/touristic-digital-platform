@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { provePointerPan } from "./wave-a-pan-gesture.mjs";
 import playwright from "/tmp/pw/node_modules/playwright/index.js";
 
 const { chromium } = playwright;
@@ -328,73 +329,14 @@ try {
       initial,
     );
 
-    const cameraBeforeGestures = await page.evaluate(() => {
-      const map = globalThis.mapboxPrimaryInstance;
-      const center = map?.getCenter?.();
-      return {
-        center: center ? { lng: center.lng, lat: center.lat } : null,
-        zoom: map?.getZoom?.(),
-      };
-    });
-    const canvas = page.locator("#map .mapboxgl-canvas");
-    const canvasBox = await canvas.boundingBox();
-    assert(canvasBox, "Mapbox canvas unavailable for gesture validation");
-    const gesturePoint = await page.evaluate(() => {
-      const canvas = document.querySelector("#map .mapboxgl-canvas");
-      if (!(canvas instanceof HTMLElement)) return null;
-      const rect = canvas.getBoundingClientRect();
-      const dock = document
-        .getElementById("unified-assistant-dock")
-        ?.getBoundingClientRect();
-      const candidates = [
-        [0.5, 0.38],
-        [0.35, 0.5],
-        [0.25, 0.5],
-        [0.5, 0.3],
-        [0.65, 0.42],
-      ];
-      for (const [xRatio, yRatio] of candidates) {
-        const x = rect.left + rect.width * xRatio;
-        const y = rect.top + rect.height * yRatio;
-        const target = document.elementFromPoint(x, y);
-        const blockedByDock =
-          dock &&
-          x >= dock.left &&
-          x <= dock.right &&
-          y >= dock.top &&
-          y <= dock.bottom;
-        const blockedByUi = Boolean(
-          target?.closest(
-            "#unified-assistant-dock, .md-home-header, #weather-widget, #globe-map-control, #privacy-control",
-          ),
-        );
-        if (!blockedByDock && !blockedByUi) return { x, y };
-      }
-      return {
-        x: rect.left + rect.width * 0.25,
-        y: rect.top + rect.height * 0.42,
-      };
-    });
-    assert(gesturePoint, "No unobstructed map gesture point is available");
-    const gestureX = gesturePoint.x;
-    const gestureY = gesturePoint.y;
-    await page.mouse.move(gestureX, gestureY);
-    await page.mouse.down();
-    await page.mouse.move(gestureX + 52, gestureY + 28, { steps: 6 });
-    await page.mouse.up();
-    await page.waitForTimeout(350);
-    const afterPan = await page.evaluate(() => {
-      const map = globalThis.mapboxPrimaryInstance;
-      const center = map?.getCenter?.();
-      return center ? { lng: center.lng, lat: center.lat } : null;
-    });
-    assert(
-      cameraBeforeGestures.center &&
-        afterPan &&
-        (Math.abs(afterPan.lng - cameraBeforeGestures.center.lng) > 0.00001 ||
-          Math.abs(afterPan.lat - cameraBeforeGestures.center.lat) > 0.00001),
-      "Pointer pan did not move the map camera",
-      { cameraBeforeGestures, afterPan },
+    const panEvidence = await provePointerPan(page, OUTPUT_DIR, viewport.name);
+    const cameraBeforeGestures = panEvidence.before;
+    const afterPan = panEvidence.after.center;
+    const gestureX = panEvidence.before.path.x;
+    const gestureY = panEvidence.before.path.y;
+    writeFileSync(
+      `${OUTPUT_DIR}/pan-${viewport.name}.json`,
+      JSON.stringify(panEvidence, null, 2),
     );
     await page.mouse.move(gestureX, gestureY);
     await page.mouse.wheel(0, -640);
