@@ -63,21 +63,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T12:00:00.000Z"
     },
-    "MD-ASSISTANT-MAP-RECOVERY-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/assistant-map-recovery-20261015",
-      "baseSha": "aa4db8f92fc30cbe1ea410486737a392983557c2",
-      "paths": [
-        ".morro/changesets/MD-ASSISTANT-MAP-RECOVERY-20261015.json",
-        "apps/morro-digital-platform/src/browser-entry.ts",
-        "tooling/quality/assistant-map-recovery.test.mjs"
-      ],
-      "domains": ["map", "ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T05:30:00.000Z"
-    },
     "MD-CRM-CAPABILITY-865-20261015": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
