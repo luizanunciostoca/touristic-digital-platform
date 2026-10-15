@@ -356,6 +356,64 @@ describe("staging Ticketing startup diagnostic classification", () => {
       );
     },
   );
+  it.each([
+    [1044, "ER_DBACCESS_DENIED_ERROR"],
+    [1045, "ER_ACCESS_DENIED_ERROR"],
+    [1054, "ER_BAD_FIELD_ERROR"],
+    [1142, "ER_TABLEACCESS_DENIED_ERROR"],
+    [1146, "ER_NO_SUCH_TABLE"],
+    [1205, "ER_LOCK_WAIT_TIMEOUT"],
+  ])(
+    "classifies safe MySQL errno %s without logging query or message",
+    (errno, expectedCode) => {
+      const privateText = "PRIVATE_FINANCIAL_SQL_SENTINEL";
+      const error = Object.assign(new Error(privateText), {
+        errno,
+        sql: privateText,
+      });
+      const result = sanitizeTicketingStartupFailure(
+        error,
+        "financial_result_probe",
+      );
+      expect(result).toEqual({
+        stage: "financial_result_probe",
+        code: expectedCode,
+      });
+      expect(JSON.stringify(result)).not.toContain(privateText);
+    },
+  );
+  it("classifies unmapped database errno using only a fixed approved code", () => {
+    const privateText = "PRIVATE_DATABASE_SENTINEL";
+    const result = sanitizeTicketingStartupFailure(
+      Object.assign(new Error(privateText), {
+        errno: 65000,
+        code: "ER_PRIVATE_DATABASE_SENTINEL",
+        sql: privateText,
+      }),
+      "financial_result_probe",
+    );
+    expect(result).toEqual({
+      stage: "financial_result_probe",
+      code: "TICKETING_STARTUP_UNMAPPED_DB_ERROR",
+    });
+    expect(JSON.stringify(result)).not.toContain(privateText);
+  });
+  it.each([
+    [TypeError, "TICKETING_STARTUP_TYPE_ERROR"],
+    [RangeError, "TICKETING_STARTUP_RANGE_ERROR"],
+  ])("safely classifies %s without exposing message", (ErrorType, safeCode) => {
+    const result = sanitizeTicketingStartupFailure(
+      new ErrorType("PRIVATE_FINANCIAL_SQL_SENTINEL"),
+      "financial_result_probe",
+    );
+    expect(result).toEqual({
+      stage: "financial_result_probe",
+      code: safeCode,
+    });
+    expect(JSON.stringify(result)).not.toContain(
+      "PRIVATE_FINANCIAL_SQL_SENTINEL",
+    );
+  });
   it("redacts untrusted text, invalid stages and hostile error accessors", () => {
     const sentinel = "PRIVATE_SQL_CREDENTIAL_SENTINEL";
     const values = [
@@ -669,13 +727,21 @@ describe("staging Ordering schema readback without runtime DDL", () => {
     service = "morro-digital-v2-staging",
     mode = "apply",
     readbackOptions = {},
+    financialResultProbeError = null,
   } = {}) {
     const fake = fakeReadback(readbackOptions);
     stagingStartupMock.enabled = true;
     stagingStartupMock.orderingPool = fake.pool;
     stagingStartupMock.ticketingPool = { async end() {} };
     stagingStartupMock.financialPool = {
-      async execute() {
+      async execute(sql) {
+        if (
+          financialResultProbeError &&
+          typeof sql === "string" &&
+          sql.includes("financial_payment_results")
+        ) {
+          throw financialResultProbeError;
+        }
         return [[]];
       },
       async end() {},
@@ -755,6 +821,27 @@ describe("staging Ordering schema readback without runtime DDL", () => {
       );
     },
   );
+  it("reports redacted financial result probe failure during enabled concurrent startup", async () => {
+    const error = Object.assign(new Error("PRIVATE_FINANCIAL_SENTINEL"), {
+      errno: 1146,
+      sql: "PRIVATE_FINANCIAL_SENTINEL",
+    });
+    const result = await runEnabledStartup({
+      financialResultProbeError: error,
+    });
+    expect(result.started).toBe(false);
+    expect(result.audits).toContainEqual(
+      expect.objectContaining({
+        action: "ticketing.runtime",
+        result: "failure",
+        startupStage: "financial_result_probe",
+        diagnosticCode: "ER_NO_SUCH_TABLE",
+      }),
+    );
+    expect(JSON.stringify(result.audits)).not.toContain(
+      "PRIVATE_FINANCIAL_SENTINEL",
+    );
+  });
   it("denies test-only module replacement outside Vitest", async () => {
     const previous = process.env.VITEST;
     const audits = [];

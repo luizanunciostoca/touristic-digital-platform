@@ -298,11 +298,34 @@ const ticketingStartupCodes = new Set([
   "STAGING_ORDERING_FOREIGN_KEY_DRIFT",
   "STAGING_ORDERING_BINDING_KEYS_DRIFT",
 ]);
+// Fixed MySQL errno mappings preserve failure type while redacting raw
+// messages, SQL, credentials and any untrusted driver-specific fields.
+const ticketingStartupErrnoCodes = new Map([
+  [1044, "ER_DBACCESS_DENIED_ERROR"],
+  [1045, "ER_ACCESS_DENIED_ERROR"],
+  [1048, "ER_BAD_NULL_ERROR"],
+  [1049, "ER_BAD_DB_ERROR"],
+  [1054, "ER_BAD_FIELD_ERROR"],
+  [1062, "ER_DUP_ENTRY"],
+  [1064, "ER_PARSE_ERROR"],
+  [1142, "ER_TABLEACCESS_DENIED_ERROR"],
+  [1146, "ER_NO_SUCH_TABLE"],
+  [1205, "ER_LOCK_WAIT_TIMEOUT"],
+  [1213, "ER_LOCK_DEADLOCK"],
+  [1364, "ER_NO_DEFAULT_FOR_FIELD"],
+  [1406, "ER_DATA_TOO_LONG"],
+]);
+const ticketingStartupErrorClassCodes = new Map([
+  ["TypeError", "TICKETING_STARTUP_TYPE_ERROR"],
+  ["RangeError", "TICKETING_STARTUP_RANGE_ERROR"],
+]);
 export function sanitizeTicketingStartupFailure(error, stage) {
   let code = "UNKNOWN_FAILURE";
   try {
     const rawCode = error && typeof error === "object" ? error.code : null;
     const rawMessage = error instanceof Error ? error.message : null;
+    const rawErrno = error && typeof error === "object" ? error.errno : null;
+    const rawName = error instanceof Error ? error.name : null;
     if (typeof rawCode === "string" && ticketingStartupCodes.has(rawCode)) {
       code = rawCode;
     } else if (
@@ -310,6 +333,18 @@ export function sanitizeTicketingStartupFailure(error, stage) {
       ticketingStartupCodes.has(rawMessage)
     ) {
       code = rawMessage;
+    } else if (
+      Number.isSafeInteger(rawErrno) &&
+      ticketingStartupErrnoCodes.has(rawErrno)
+    ) {
+      code = ticketingStartupErrnoCodes.get(rawErrno);
+    } else if (
+      (typeof rawCode === "string" && /^ER_[A-Z0-9_]{1,100}$/u.test(rawCode)) ||
+      (Number.isSafeInteger(rawErrno) && rawErrno > 0 && rawErrno < 100000)
+    ) {
+      code = "TICKETING_STARTUP_UNMAPPED_DB_ERROR";
+    } else if (ticketingStartupErrorClassCodes.has(rawName)) {
+      code = ticketingStartupErrorClassCodes.get(rawName);
     }
   } catch {
     // Hostile error/proxy access is never logged.
