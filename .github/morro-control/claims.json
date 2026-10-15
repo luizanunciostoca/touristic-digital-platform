@@ -77,6 +77,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T12:00:00.000Z"
+    },
+    "MD-SUPPORT-SESSION-REVOCATION-826": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/support-revocation-826-20261015",
+      "baseSha": "40028ddf4f47eceed6756df4d5494a1993259063",
+      "paths": [
+        ".morro/changesets/MD-SUPPORT-SESSION-REVOCATION-826.json",
+        "packages/auth/src/index.ts",
+        "packages/auth/src/index.test.ts",
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+      ],
+      "domains": ["auth"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T06:00:00.000Z"
     }
   }
 }
