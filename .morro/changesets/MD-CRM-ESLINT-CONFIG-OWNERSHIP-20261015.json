@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-ESLINT-CONFIG-OWNERSHIP-20261015",
+  "objective": "assign-exact-crm-lint-and-platform-auth-composition-ownership",
+  "baseSha": "fd10a529515f3314b9cc94c9fcf65549303fe4cf",
+  "branch": "fix/crm-eslint-platform-ownership-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-ESLINT-CONFIG-OWNERSHIP-20261015.json",
+      ".morro/ownership.json",
+      "tooling/fabric/ownership-path.test.mjs"
+    ],
+    "contracts": ["CRM-LINT-PLATFORM-AUTH-COMPOSITION-OWNERSHIP"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2", "platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "full-quality",
+    "affected-tests",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "exact-lint-and-auth-composition-owner-regression",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
