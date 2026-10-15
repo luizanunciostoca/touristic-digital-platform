@@ -5,6 +5,7 @@ import {
   type AssistantActiveTourContext,
 } from "@touristic/assistant";
 import ts from "typescript";
+import { resolveExploreLocationCount } from "./assistant-contextual-state.js";
 import { describe, expect, it, vi } from "vitest";
 
 const source = readFileSync(
@@ -157,4 +158,109 @@ describe("actual browser runtime Explore context transitions", () => {
       lastIntent: "tour",
     });
   });
+});
+
+describe("actual runtime contextual copy uses canonical location counts", () => {
+  it.each([
+    { markerCount: 2, locationCount: 9, expected: 9 },
+    { markerCount: 8, locationCount: 0, expected: 0 },
+    { markerCount: 3, expected: 3 },
+    ...[null, undefined, Number.NaN, -1, 1.5].map((locationCount) => ({
+      markerCount: 5,
+      locationCount,
+      expected: null,
+    })),
+  ])(
+    "separates semantic count from symbols for $expected locations",
+    (snapshot) => {
+      let expression = "";
+      function find(node: ts.Node): void {
+        if (
+          ts.isVariableDeclaration(node) &&
+          node.name.getText(ast) === "syncExploreContextualMessage"
+        )
+          expression = node.initializer?.getText(ast) ?? "";
+        ts.forEachChild(node, find);
+      }
+      find(ast);
+      if (!expression)
+        throw new Error("Actual runtime contextual closure missing");
+      const seen: Array<number | null> = [];
+      class Message {
+        dataset: Record<string, string> = { messageType: "category-flow" };
+        textContent = "";
+      }
+      const message = new Message();
+      const parameters = {
+        readExploreState: () => ({
+          ...snapshot,
+          stage: "places",
+          category: "beaches",
+          place: null,
+        }),
+        resolveExploreContextualState: () => "results_found",
+        resolveExploreLocationCount,
+        options: {
+          document: {
+            getElementById: () => message,
+            documentElement: { lang: "pt-BR" },
+          },
+        },
+        HTMLElement: Message,
+        normalizeAssistantContextualLanguage: () => "pt-BR",
+        resolveAssistantContextualCategoryLabel: () => "Praias",
+        resolveAssistantContextualCopy: (
+          _: string,
+          values: { count: number | null },
+        ) => {
+          seen.push(values.count);
+          return {
+            message:
+              values.count === null
+                ? "Unable to confirm results"
+                : `${values.count} locais`,
+          };
+        },
+        conversation: {
+          snapshot: () => ({}),
+          transition: (values: { resultCount: number | null }) => {
+            seen.push(values.resultCount);
+            return { id: "actual-turn", priority: "normal" };
+          },
+        },
+        evaluateConversationPolicy: () => ({
+          present: true,
+          priority: "normal",
+        }),
+        composeConversationResponse: (values: { count: number | null }) => {
+          seen.push(values.count);
+          return {
+            message:
+              values.count === null
+                ? "Unable to confirm results"
+                : `${values.count} locais`,
+            voiceCopy: "locations",
+          };
+        },
+        composeConversationVoice: (values: { count: number | null }) => {
+          seen.push(values.count);
+          return "locations";
+        },
+      };
+      const compiled = ts.transpileModule(`return (${expression});`, {
+        compilerOptions: { target: ts.ScriptTarget.ES2022 },
+      }).outputText;
+      const createSync = compileFunction(compiled, Object.keys(parameters)) as (
+        ...values: unknown[]
+      ) => () => void;
+      const run = createSync(...Object.values(parameters));
+      run();
+      expect(seen).toEqual(Array(4).fill(snapshot.expected));
+      expect(message.textContent).toBe(
+        snapshot.expected === null
+          ? "Unable to confirm results"
+          : `${snapshot.expected} locais`,
+      );
+    },
+  );
 });

@@ -441,3 +441,23 @@ test("confirmed UX runtime and proof files have exact map ownership", () => {
     assert.throws(() => assertOwnershipCoverage([path + ".bak"], current));
   }
 });
+
+test("grouped marker semantic consumers have exact map ownership", () => {
+  const current = JSON.parse(
+    readFileSync(
+      new URL("../../.morro/ownership.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const path of [
+    "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+    "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
+    "apps/morro-digital-platform/src/assistant/assistant-contextual-state.ts",
+    "apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts",
+    "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts",
+  ]) {
+    assert.doesNotThrow(() => assertOwnershipCoverage([path], current));
+    for (const suffix of [".bak", "-other", "/child"])
+      assert.throws(() => assertOwnershipCoverage([path + suffix], current));
+  }
+});

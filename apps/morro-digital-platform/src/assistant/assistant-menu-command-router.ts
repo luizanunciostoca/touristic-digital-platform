@@ -251,6 +251,7 @@ export interface AssistantExploreStateSnapshot {
   readonly place: string | null;
   readonly stage: string | null;
   readonly markerCount: number;
+  readonly locationCount?: number | null;
   readonly tour: AssistantExploreActiveTourSnapshot | null;
 }
 
@@ -758,6 +759,10 @@ export function readAssistantExploreState(
 ): AssistantExploreStateSnapshot {
   const map = document.getElementById("map");
   const markerCount = Number(map?.getAttribute("data-map-marker-count") ?? "0");
+  const memberCountAttribute = map?.getAttribute("data-explore-location-count");
+  const memberCount = memberCountAttribute?.trim()
+    ? Number(memberCountAttribute)
+    : Number.NaN;
   const tourId = map?.getAttribute("data-tour-flow-id")?.trim() ?? "";
   const tourStage = map?.getAttribute("data-tour-flow-stage") ?? "";
   const stopIndex = Number(map?.getAttribute("data-tour-stop-index") ?? "-1");
@@ -787,6 +792,14 @@ export function readAssistantExploreState(
     place: map?.getAttribute("data-explore-place") ?? null,
     stage: map?.getAttribute("data-explore-stage") ?? null,
     markerCount,
+    ...(memberCountAttribute !== undefined && memberCountAttribute !== null
+      ? {
+          locationCount:
+            Number.isSafeInteger(memberCount) && memberCount >= 0
+              ? memberCount
+              : null,
+        }
+      : {}),
     tour,
   });
 }

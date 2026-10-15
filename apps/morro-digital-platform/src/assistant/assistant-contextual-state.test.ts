@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
+import type { AssistantExploreStateSnapshot } from "./assistant-menu-command-router.js";
 
 import {
   ASSISTANT_CONTEXTUAL_STATE_MATRIX,
@@ -9,6 +10,7 @@ import {
   resolveAssistantContextualCategoryLabel,
   resolveAssistantContextualCopy,
   resolveExploreContextualState,
+  resolveExploreLocationCount,
   type AssistantContextualState,
 } from "./assistant-contextual-state.js";
 
@@ -185,4 +187,50 @@ describe("assistant contextual state messaging", () => {
       resolveExploreContextualState({ ...base, stage: "menu" }),
     ).toBeNull();
   });
+});
+
+describe("Explore contextual semantic location count", () => {
+  it.each(["places", "search"])(
+    "uses location count for %s with old-snapshot fallback",
+    (stage) => {
+      const snapshot = {
+        stage,
+        category: null,
+        place: null,
+        markerCount: 0,
+        tour: null,
+      };
+      expect(
+        resolveExploreContextualState({ ...snapshot, locationCount: 8 }),
+      ).toBe("results_found");
+      expect(
+        resolveExploreContextualState({
+          ...snapshot,
+          markerCount: 8,
+          locationCount: 0,
+        }),
+      ).toBe("no_results");
+      expect(
+        resolveExploreContextualState({ ...snapshot, markerCount: 8 }),
+      ).toBe("results_found");
+    },
+  );
+});
+
+describe("semantic count integrity", () => {
+  it.each([null, undefined, Number.NaN, Number.POSITIVE_INFINITY, -1, 1.5])(
+    "present invalid %s never falls back to five symbols",
+    (locationCount) => {
+      const state = {
+        stage: "places",
+        category: null,
+        place: null,
+        tour: null,
+        markerCount: 5,
+        locationCount,
+      } as unknown as AssistantExploreStateSnapshot;
+      expect(resolveExploreLocationCount(state)).toBeNull();
+      expect(resolveExploreContextualState(state)).toBe("provider_error");
+    },
+  );
 });

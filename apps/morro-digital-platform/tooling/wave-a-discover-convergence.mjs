@@ -411,18 +411,56 @@ try {
       clickableBeachIndex >= 0,
       "No beach POI is pointer-selectable at its visible center",
     );
+    const clickedMarker = beachMarkers.nth(clickableBeachIndex);
+    const clustered = await clickedMarker.evaluate(
+      (element) => element.getAttribute("data-marker-cluster") === "true",
+    );
     await beachMarkers.nth(clickableBeachIndex).evaluate((element) => {
       if (!(element instanceof HTMLElement)) {
         throw new Error("Selected beach marker is not an HTMLElement");
       }
       element.click();
     });
+    let selectedMember = null;
+    if (clustered) {
+      const member = page
+        .locator(
+          '#assistant-category-rail [data-location-name][data-location-category="beaches"]',
+        )
+        .first();
+      await member.waitFor({ state: "visible", timeout: 10000 });
+      selectedMember = await member.evaluate((element) => ({
+        name: element.getAttribute("data-location-name"),
+        canonicalId: element.getAttribute("data-canonical-place-id"),
+      }));
+      await member.click();
+    }
     await page
       .locator(
         '#map[data-explore-stage="detail"] .morro-explore-marker[data-selected="true"][aria-current="location"]',
       )
       .waitFor({ state: "visible", timeout: 10000 });
 
+    if (selectedMember) {
+      const actual = await page
+        .locator("#map")
+        .getAttribute("data-explore-place");
+      assert(
+        actual === selectedMember.name,
+        "Cluster member detail selection changed identity",
+        { actual, selectedMember },
+      );
+      if (selectedMember.canonicalId) {
+        const selectedId = await page
+          .locator('.morro-explore-marker[data-selected="true"]')
+          .getAttribute("data-canonical-place-id");
+        assert(
+          selectedId === selectedMember.canonicalId,
+          "Canonical cluster member identity changed",
+          { selectedId, selectedMember },
+        );
+      }
+    }
     await page.evaluate(() => {
       const heading = document.querySelector(".md-home-header h1");
       if (heading) {

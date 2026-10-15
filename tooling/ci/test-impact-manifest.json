@@ -9,7 +9,9 @@
         "apps/morro-digital-platform/src/assistant/assistant-contextual-state",
         "apps/morro-digital-platform/src/assistant/assistant-single-message-controller",
         "apps/morro-digital-platform/src/assistant/assistant-message-dom",
-        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime"
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime",
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts"
       ],
       "risk": "MEDIUM",
       "dependsOn": [
@@ -482,7 +484,8 @@
         "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
         "apps/morro-digital-platform/public/explore-locations.css",
         "packages/geospatial/src/infrastructure/mapbox-gl-driver.ts",
-        "packages/geospatial/src/infrastructure/mapbox-gl-driver.test.ts"
+        "packages/geospatial/src/infrastructure/mapbox-gl-driver.test.ts",
+        "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"
       ],
       "risk": "HIGH",
       "dependsOn": [],

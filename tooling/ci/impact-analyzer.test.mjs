@@ -1169,3 +1169,40 @@ test("offline external script keeps exact PWA coverage and security floors", () 
     assert.equal(analyzeFiles([sibling]).classificationBlocked, true);
   }
 });
+
+test("menu command semantic consumer retains assistant proof floors", () => {
+  for (const path of [
+    "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+    "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
+  ]) {
+    const report = analyzeFiles([path]);
+    assert.equal(report.classificationBlocked, false);
+    assert.equal(report.risk, "MEDIUM");
+    assert.equal(report.needsBrowser, true);
+    assert.equal(report.needsVisual, true);
+    assert.equal(report.needsFullSecurity, false);
+    assert.ok(
+      report.suites.includes(
+        "assistant-conversation-continuity-browser-contract.yml",
+      ),
+    );
+    assert.ok(
+      report.suites.includes("assistant-input-menu-flow-v1-parity.yml"),
+    );
+    for (const suffix of [".bak", "-other", "/child"])
+      assert.equal(analyzeFiles([path + suffix]).classificationBlocked, true);
+  }
+});
+
+test("Place menu recovery contract test keeps exact visual proof", () => {
+  const path =
+    "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts";
+  const report = analyzeFiles([path]);
+  assert.equal(report.classificationBlocked, false);
+  assert.equal(report.risk, "HIGH");
+  assert.equal(report.needsBrowser, true);
+  assert.equal(report.needsVisual, true);
+  assert.ok(report.suites.includes("place-explore-v2-visual-regression.yml"));
+  for (const suffix of [".bak", "-other", "/child"])
+    assert.equal(analyzeFiles([path + suffix]).classificationBlocked, true);
+});

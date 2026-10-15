@@ -428,17 +428,34 @@ export function resolveAssistantContextualCopy(
   });
 }
 
+export function resolveExploreLocationCount(
+  snapshot: AssistantExploreStateSnapshot,
+): number | null {
+  const value = Object.hasOwn(snapshot, "locationCount")
+    ? snapshot.locationCount
+    : snapshot.markerCount;
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : null;
+}
+
 export function resolveExploreContextualState(
   snapshot: AssistantExploreStateSnapshot,
 ): AssistantContextualState | null {
+  const count = resolveExploreLocationCount(snapshot);
+  if (
+    (snapshot.stage === "places" || snapshot.stage === "search") &&
+    count === null
+  )
+    return "provider_error";
   if (snapshot.stage === "filters") return "category_selected";
   if (snapshot.stage === "places") {
-    return snapshot.markerCount > 0 ? "results_found" : "no_results";
+    return count !== null && count > 0 ? "results_found" : "no_results";
   }
   if (snapshot.stage === "detail") return "place_selected";
   if (snapshot.stage === "tour") return "action_available";
   if (snapshot.stage === "search") {
-    return snapshot.markerCount > 0 ? "results_found" : "no_results";
+    return count !== null && count > 0 ? "results_found" : "no_results";
   }
   if (snapshot.stage === "actions") return "action_available";
   return null;

@@ -61,6 +61,107 @@ jobs:
         run: |
           node <<'NODE'
           const { chromium } = require('/tmp/pw/node_modules/playwright');
+          async function assertCatalogMarkerMembership(page, category, legacyCount, selectedName = null) {
+            const catalog = (await import(require('node:url').pathToFileURL(
+              require('node:path').resolve('packages/search/dist/index.js')).href)).morroV1SearchCatalog;
+            const key = item => JSON.stringify([item.category, item.name]);
+            const allKeys = catalog.map(key);
+            if (new Set(allKeys).size !== allKeys.length) throw new Error('Local catalog identity tuple is not unique');
+            const expected = catalog.filter(item => (!category || item.category === category) && (!selectedName || item.name === selectedName)).map(key).sort();
+            const deadline = Date.now() + 10000;
+            let stable = 0;
+            while (Date.now() < deadline) {
+              const state = await page.evaluate(() => {
+                const map = document.getElementById('map');
+                return {
+                  ready: map?.getAttribute('data-explore-state') === 'ready',
+                  moving: Boolean(globalThis.mapboxPrimaryInstance?.isMoving?.()),
+                  physical: Number(map?.getAttribute('data-map-marker-count')),
+                  actual: document.querySelectorAll('.morro-explore-marker[data-morro-explore-marker="true"]').length,
+                  members: map?.getAttribute('data-map-member-count'),
+                };
+              });
+              if (state.ready && !state.moving && state.physical === state.actual &&
+                  (state.members === null ? state.physical === legacyCount : Number(state.members) === expected.length)) stable += 1;
+              else stable = 0;
+              if (stable >= 2) break;
+              await page.waitForTimeout(50);
+            }
+            if (stable < 2) throw new Error('Marker membership did not settle under the actual map contract');
+            const markers = await page.locator('.morro-explore-marker[data-morro-explore-marker="true"]').evaluateAll(nodes => nodes.map(node => ({
+              id: node.getAttribute('data-marker-id'), category: node.getAttribute('data-explore-category'),
+              name: node.getAttribute('data-location-name'), canonicalId: node.getAttribute('data-canonical-place-id'),
+              clustered: node.getAttribute('data-marker-cluster') === 'true' || node.getAttribute('data-tour-cluster') === 'true',
+              count: Number(node.getAttribute('data-cluster-count')),
+            })));
+            const counts = await page.locator('#map').evaluate(node => ({
+              physical: Number(node.getAttribute('data-map-marker-count')),
+              members: node.getAttribute('data-map-member-count'),
+            }));
+            if (counts.physical !== markers.length) throw new Error('Physical marker count disagrees with rendered symbols');
+            const sourceDeclaresMemberContract = require('node:fs').readFileSync(
+              'apps/morro-digital-platform/src/map/explore-locations-control.ts', 'utf8').includes('"data-map-member-count"');
+            if (counts.members === null) {
+              if (sourceDeclaresMemberContract) throw new Error('U7 producer contract declared but runtime membership capability missing');
+              const compareLegacy = expectedCount => {
+                if (markers.length !== expectedCount) throw new Error('Legacy physical marker contract changed');
+              };
+              compareLegacy(legacyCount);
+              for (const wrongCount of [legacyCount - 1, legacyCount + 1]) {
+                let rejected = false;
+                try { compareLegacy(wrongCount); } catch { rejected = true; }
+                if (!rejected) throw new Error('Legacy count negative canary failed');
+              }
+              const proof = { proofMode: 'LEGACY_PHYSICAL_CONTRACT', u7Membership: 'NOT_EXERCISED', physical: markers.length };
+              console.log(JSON.stringify(proof));
+              return proof;
+            }
+            if (Number(counts.members) !== expected.length) throw new Error('Dataset member count disagrees with independent catalog');
+            const initialSemantic = await page.locator('#map').getAttribute('data-explore-location-count');
+            if (initialSemantic === null || Number(initialSemantic) !== expected.length)
+              throw new Error('Semantic current dataset count is missing or incorrect');
+            if (markers.some(marker => !marker.id) || new Set(markers.map(marker => marker.id)).size !== markers.length)
+              throw new Error('Physical marker identities missing or duplicated');
+            const observed = [];
+            for (const marker of markers) {
+              if (!marker.clustered) {
+                observed.push(key(marker));
+                continue;
+              }
+              await page.locator(`.morro-explore-marker[data-marker-id=${JSON.stringify(marker.id)}]`).evaluate(node => node.click());
+              const back = page.locator('#assistant-category-rail [data-explore-action="back-cluster"]');
+              await back.waitFor({ state: 'visible', timeout: 5000 });
+              const members = await page.locator('#assistant-category-rail [data-location-name][data-location-category]').evaluateAll(nodes => nodes.map(node => ({
+                category: node.getAttribute('data-location-category'), name: node.getAttribute('data-location-name'),
+                source: node.getAttribute('data-location-source'), canonicalId: node.getAttribute('data-canonical-place-id'),
+              })));
+              if (members.length !== marker.count || members.some(member => member.source !== 'catalog'))
+                throw new Error('Actual local cluster list disagrees with declared membership/source');
+              const selectedSemantic = await page.locator('#map').getAttribute('data-explore-location-count');
+              if (selectedSemantic === null || Number(selectedSemantic) !== members.length)
+                throw new Error('Semantic count disagrees with the actual opened subset');
+              observed.push(...members.map(key));
+              await back.click();
+              await back.waitFor({ state: 'hidden', timeout: 5000 });
+              const restoredSemantic = await page.locator('#map').getAttribute('data-explore-location-count');
+              if (restoredSemantic === null || Number(restoredSemantic) !== expected.length)
+                throw new Error('Semantic count did not restore the full current dataset');
+            }
+            const compare = wanted => {
+              if (JSON.stringify([...observed].sort()) !== JSON.stringify([...wanted].sort()))
+                throw new Error('Canonical catalog membership missing, duplicated, invented or wrong category');
+            };
+            compare(expected);
+            for (const wrong of [expected.slice(1), [...expected, expected[0]], [JSON.stringify(['__wrong_category__', '__wrong_identity__']), ...expected.slice(1)]]) {
+              let rejected = false;
+              try { compare(wrong); } catch { rejected = true; }
+              if (!rejected) throw new Error('Membership missing/duplicate/wrong identity negative canary failed');
+            }
+            const proof = { proofMode: 'U7_LOCAL_CATALOG_MEMBERSHIP', localIdentity: 'unique category/name tuple', locations: expected.length, physical: markers.length, negativeCanaries: ['missing', 'duplicate', 'wrong-identity'] };
+            console.log(JSON.stringify(proof));
+            return proof;
+          }
+
 
           const weather = {
             temperatureCelsius: 28,
@@ -187,8 +288,8 @@ jobs:
                 .locator('#assistant-category-rail[data-rail-stage="menu"] [data-assistant-category="beaches"]')
                 .click();
               await page.locator('#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]').waitFor({ state: 'visible', timeout: 5000 });
-              await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"][data-map-marker-count="8"]').waitFor({ state: 'attached', timeout: 8000 });
-              await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'eight beach markers');
+              await page.locator('#map[data-explore-state="ready"][data-explore-category="beaches"]').waitFor({ state: 'attached', timeout: 8000 });
+              await assertCatalogMarkerMembership(page, 'beaches', 8);
               await page.waitForTimeout(2300);
 
               const filtersState = await readState(page);
@@ -208,7 +309,7 @@ jobs:
               if (filtersState.mainMenuVisible) {
                 throw new Error(`Main categories remained visible with Beaches flow: ${JSON.stringify(filtersState)}`);
               }
-              if (filtersState.markerCountAttribute !== 8 || filtersState.markerState.length !== 8 || filtersState.markerState.some(marker => !marker.visible || marker.width < 30 || marker.height < 30 || marker.category !== 'beaches')) {
+              if (filtersState.markerCountAttribute !== filtersState.markerState.length || filtersState.markerState.length === 0 || filtersState.markerState.some(marker => !marker.visible || marker.width < 30 || marker.height < 30 || marker.category !== 'beaches')) {
                 throw new Error(`Beach POI marker presentation diverged: ${JSON.stringify(filtersState)}`);
               }
               await page.locator('#assistant-messages').evaluate((element) => {
@@ -233,8 +334,9 @@ jobs:
                 () => globalThis.__exploreViewportFitBoundsCalls >= 1,
                 'width-only Explore viewport reframe',
               );
+              await assertCatalogMarkerMembership(page, 'beaches', 8);
               const resizedState = await readState(page);
-              if (resizedState.markerCountAttribute !== 8 || resizedState.markerState.length !== 8) {
+              if (resizedState.markerCountAttribute !== resizedState.markerState.length || resizedState.markerState.length === 0) {
                 throw new Error(`Explore resize lost markers: ${JSON.stringify(resizedState)}`);
               }
 
@@ -249,14 +351,15 @@ jobs:
                 'landscape Explore viewport reframe',
               );
               await page.waitForTimeout(2300);
+              await assertCatalogMarkerMembership(page, 'beaches', 8);
               const landscapeState = await readState(page);
-              if (landscapeState.markerCountAttribute !== 8 || landscapeState.markerState.length !== 8) {
+              if (landscapeState.markerCountAttribute !== landscapeState.markerState.length || landscapeState.markerState.length === 0) {
                 throw new Error(`Explore rotation lost markers: ${JSON.stringify(landscapeState)}`);
               }
 
               await page.locator('#assistant-category-rail[data-rail-stage="filters"] [data-value="ver todos"]').click();
               await page.locator('#assistant-category-rail[data-rail-stage="places"]').waitFor({ state: 'visible', timeout: 5000 });
-              await poll(page, () => document.querySelectorAll('.morro-explore-marker[data-explore-category="beaches"]').length === 8, 'beach place markers');
+              await assertCatalogMarkerMembership(page, 'beaches', 8);
               const placesState = await readState(page);
               if (
                 placesState.visibleMessageCount < 1 ||

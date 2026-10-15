@@ -1,5 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { compileFunction } from "node:vm";
+import ts from "typescript";
 
 import { describe, expect, it } from "vitest";
 
@@ -7,6 +9,74 @@ const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
 async function readRepository(path: string): Promise<string> {
   return readFile(repositoryRoot + path, "utf8");
+}
+
+function executeActualBackToMenu(control: string, initialStage = "places") {
+  const ast = ts.createSourceFile(
+    "controller.ts",
+    control,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  let expression = "";
+  const find = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      node.name.getText(ast) === "backToMenu"
+    )
+      expression = node.initializer?.getText(ast) ?? "";
+    ts.forEachChild(node, find);
+  };
+  find(ast);
+  if (!expression) throw new Error("Actual menu recovery function missing");
+  const body = `
+    let interactionGeneration=10,datasetGeneration=20;
+    const locations=Object.freeze([{name:"One",category:"beaches"},{name:"Two",category:"hotels"}]);
+    let visibleLocations=locations,activeMarkerMembers=locations.slice(0,1),activeStage=initialStage;
+    let activeCategory={value:"beaches"},activeCategoryButton={},activePlace="Old",activePlaceLocation=locations[0];
+    let activePlaceActionValues=["old"],activeSearchQuery="old",retainedMenuContext=false;
+    let closeMarkerList=()=>{},refreshMarkerList=()=>{},returnToMarkerList=()=>{},restoreCurrentFlow=()=>{};
+    let placeReturnLocations=locations,placeReturnMessage="old",placeReturnIsSearch=true;
+    const datasetCategory="beaches",markerRegistry=new Map([["stale",locations[0]]]);
+    const writes=[],loads=[],counts=[];
+    const geospatialEngine={initialized:true,replaceMarkers:async x=>writes.push(x)};
+    const replaceMarkersSerial=async x=>writes.push(x);
+    const renderLocationsOnMap=async (...x)=>writes.push(x);
+    const immersiveTourController={destroy(){}},clearTourPresentation=()=>{};
+    const document={getElementById:()=>({dataset:{mapMarkerCount:"2"}})};
+    const removeAssistantFlowResults=()=>{},exploreFlowBottomSheet={hide(){}},resetCategoryTriggerState=()=>{};
+    const clearExploreRuntimeStatus=()=>{},showMainMenu=()=>{},updateMapState=()=>{},restoreCategoryRail=()=>{},emitStateChange=()=>{};
+    const loadHybridGlobalMarkers=()=>loads.push("global"),contextualRailScroll=null;
+    const syncLocationCounts=()=>counts.push({locations:visibleLocations.length,semantic:activeMarkerMembers?.length??visibleLocations.length});
+    const back=(${expression}); back(false);
+    return {initial:locations,visibleLocations,activeStage,activeCategory,activePlace,activePlaceLocation,
+      activeSearchQuery,activePlaceActionValues,activeMarkerMembers,markerRegistrySize:markerRegistry.size,
+      interactionGeneration,datasetGeneration,retainedMenuContext,writes,loads,counts};
+  `;
+  const code = ts.transpileModule(body, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const execute = compileFunction(code, ["initialStage"]) as (
+    stage: string,
+  ) => unknown;
+  return execute(initialStage) as {
+    initial: readonly object[];
+    visibleLocations: readonly object[];
+    activeStage: string;
+    activeCategory?: object;
+    activePlace?: string;
+    activePlaceLocation?: object;
+    activeSearchQuery: string;
+    activePlaceActionValues: readonly string[];
+    activeMarkerMembers?: readonly object[];
+    markerRegistrySize: number;
+    interactionGeneration: number;
+    datasetGeneration: number;
+    retainedMenuContext: boolean;
+    writes: unknown[][];
+    loads: string[];
+    counts: { locations: number; semantic: number }[];
+  };
 }
 
 describe("Place + Search/Explore V2 contract", () => {
@@ -149,19 +219,64 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(control).not.toContain("resolvePlacePrimaryAction({");
   });
 
-  it("restores hybrid canonical global markers when returning to the menu", async () => {
+  it("returns to the menu without stale selection and preserves the producer's map recovery contract", async () => {
     const control = await readRepository(
       "apps/morro-digital-platform/src/map/explore-locations-control.ts",
     );
+    const result = executeActualBackToMenu(control);
+    expect(result.activeStage).toBe("menu");
+    expect(result.activeCategory).toBeUndefined();
+    expect(result.activePlace).toBeUndefined();
+    expect(result.activePlaceLocation).toBeUndefined();
+    expect(result.activeSearchQuery).toBe("");
+    expect(result.activePlaceActionValues).toEqual([]);
+    expect(result.interactionGeneration).toBe(11);
+    expect(result.loads).toEqual(["global"]);
     const backStart = control.indexOf("const backToMenu =");
     const backEnd = control.indexOf("const shareActivePlace =", backStart);
-    const backToMenu = control.slice(backStart, backEnd);
-
-    expect(backStart).toBeGreaterThan(-1);
-    expect(backEnd).toBeGreaterThan(backStart);
-    expect(backToMenu).toContain("visibleLocations = Object.freeze([])");
-    expect(backToMenu).toContain('activeStage = "menu"');
-    expect(backToMenu).toContain("void loadHybridGlobalMarkers()");
+    const mutateBack = (from: string, to: string) =>
+      control.slice(0, backStart) +
+      control.slice(backStart, backEnd).replace(from, to) +
+      control.slice(backEnd);
+    const staleSelection = mutateBack(
+      "activePlace = undefined;",
+      'activePlace = "stale";',
+    );
+    expect(() =>
+      expect(
+        executeActualBackToMenu(staleSelection).activePlace,
+      ).toBeUndefined(),
+    ).toThrow();
+    if (control.includes('"data-map-member-count"')) {
+      expect(result.visibleLocations).toBe(result.initial);
+      expect(result.retainedMenuContext).toBe(true);
+      expect(result.activeMarkerMembers).toBeUndefined();
+      expect(result.markerRegistrySize).toBe(0);
+      expect(result.datasetGeneration).toBe(21);
+      expect(result.writes[0]).toEqual([
+        result.initial,
+        "beaches",
+        false,
+        true,
+      ]);
+      expect(result.counts).toEqual([{ locations: 2, semantic: 2 }]);
+      const discarded = executeActualBackToMenu(
+        mutateBack(
+          "visibleLocations = retainedLocations;",
+          "visibleLocations = Object.freeze([]);",
+        ),
+      );
+      expect(() =>
+        expect(discarded.visibleLocations).toBe(discarded.initial),
+      ).toThrow();
+      const tour = executeActualBackToMenu(control, "tour");
+      expect(tour.visibleLocations).toEqual([]);
+      expect(tour.retainedMenuContext).toBe(false);
+      expect(tour.counts).toEqual([{ locations: 0, semantic: 0 }]);
+    } else {
+      expect(result.visibleLocations).toEqual([]);
+      expect(result.writes).toEqual([]);
+    }
   });
 
   it("prevents Place action duplication in the initial Assistant detail turn", async () => {
