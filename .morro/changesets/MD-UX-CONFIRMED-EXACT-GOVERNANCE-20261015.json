@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-UX-CONFIRMED-EXACT-GOVERNANCE-20261015",
   "objective": "classify-confirmed-ux-exact-paths-with-proof-floors",
-  "baseSha": "b0dcf204a71feab7675aacb2cdb8ee973ff23c46",
-  "branch": "fix/ux-confirmed-exact-governance-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a698c453602c42b3bec3bf55372fa2a8a6cc20d2",
+  "branch": "infra/retire-ux-gov-947-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
