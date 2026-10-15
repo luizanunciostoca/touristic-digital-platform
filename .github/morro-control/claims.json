@@ -90,6 +90,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T20:04:27.413Z"
+    },
+    "MD-U7-PLACE-AST-FIXTURE-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/u7-place-ast-fixture-20261015",
+      "baseSha": "6c95d982dc0d5b41b912277e01b10e463ad77fbf",
+      "paths": [
+        ".morro/changesets/MD-U7-PLACE-AST-FIXTURE-20261015.json",
+        "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T23:25:00.000Z"
     }
   }
 }
