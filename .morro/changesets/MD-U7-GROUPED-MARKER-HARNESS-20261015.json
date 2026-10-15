@@ -4,7 +4,7 @@
   "objective": "grouped-marker-harness-membership-and-selection-proof",
   "baseSha": "e92ab979b34fbb821cfe4cb05f8e69df0ed3f29d",
   "branch": "fix/u7-grouped-marker-harness-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
