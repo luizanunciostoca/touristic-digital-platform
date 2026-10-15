@@ -1206,3 +1206,40 @@ test("Place menu recovery contract test keeps exact visual proof", () => {
   for (const suffix of [".bak", "-other", "/child"])
     assert.equal(analyzeFiles([path + suffix]).classificationBlocked, true);
 });
+
+test("semantic viewport and analytics have exact impact and retained proof floors", () => {
+  for (const group of [
+    "map/explore-map-viewport-v1",
+    "analytics/browser-analytics",
+  ])
+    for (const suffix of [".ts", ".test.ts"]) {
+      const path = "apps/morro-digital-platform/src/" + group + suffix;
+      const report = analyzeFiles([path]);
+      assert.equal(report.classificationBlocked, false);
+      assert.equal(report.risk, "HIGH");
+      assert.equal(report.needsBrowser, group.startsWith("map/"));
+      assert.equal(report.needsVisual, group.startsWith("map/"));
+      assert.equal(report.needsFullSecurity, false);
+      assert.ok(
+        report.suites.includes(
+          group.startsWith("map/")
+            ? "v1-assistant-single-message-poi-markers.yml"
+            : "quality.yml",
+        ),
+      );
+      for (const alias of [".bak", "-other", "/child"])
+        assert.equal(analyzeFiles([path + alias]).classificationBlocked, true);
+    }
+  const governance = analyzeFiles([
+    ".morro/ownership.json",
+    "tooling/ci/test-impact-manifest.json",
+  ]);
+  assert.equal(governance.risk, "HIGH");
+  assert.equal(
+    analyzeFiles([
+      ".morro/ownership.json",
+      ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+    ]).risk,
+    "CRITICAL",
+  );
+});

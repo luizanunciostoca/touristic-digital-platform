@@ -653,6 +653,37 @@
       "needsDatabase": false,
       "needsDependencyAudit": false,
       "needsFullSecurity": false
+    },
+    "explore-semantic-viewport": {
+      "paths": [
+        "apps/morro-digital-platform/src/map/explore-map-viewport-v1.ts",
+        "apps/morro-digital-platform/src/map/explore-map-viewport-v1.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [
+        "v1-assistant-single-message-poi-markers.yml",
+        "place-explore-v2-visual-regression.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "explore-semantic-analytics": {
+      "paths": [
+        "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
+        "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["quality.yml"],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     }
   }
 }

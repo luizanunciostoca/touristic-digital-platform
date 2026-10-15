@@ -4,7 +4,7 @@
   "objective": "semantic-viewport-filter-membership-and-analytics-for-grouped-markers",
   "baseSha": "37a1d85f0609dcc9eef506f0d4aae3ce2fec84e3",
   "branch": "fix/u7-semantic-viewport-consumers-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
