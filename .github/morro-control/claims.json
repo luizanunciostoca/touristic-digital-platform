@@ -62,6 +62,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-15T12:00:00.000Z"
+    },
+    "MD-STAGING-ORDERING-SCHEMA-READBACK-20261014": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/staging-ordering-schema-readback-20261014",
+      "baseSha": "af5c13662c41adb066591428cb22999ce225b136",
+      "paths": [
+        ".morro/changesets/MD-STAGING-ORDERING-SCHEMA-READBACK-20261014.json",
+        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+      ],
+      "domains": ["ticketing"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T12:00:00.000Z"
     }
   }
 }
