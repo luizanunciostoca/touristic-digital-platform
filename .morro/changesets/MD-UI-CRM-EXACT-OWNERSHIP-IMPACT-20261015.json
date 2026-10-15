@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-UI-CRM-EXACT-OWNERSHIP-IMPACT-20261015",
   "objective": "classify-exact-assistant-ui-and-crm-authorization-ownership",
-  "baseSha": "93f3bc84cb28f693866b31670e31f530cc5ced73",
-  "branch": "fix/ui-crm-exact-ownership-impact-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "9a2fcff7825275af2c91ed6932aa61b50b15bed5",
+  "branch": "infra/retire-ui-crm-governance-9a2",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
