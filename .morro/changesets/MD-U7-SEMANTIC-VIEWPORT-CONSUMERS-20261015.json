@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-U7-SEMANTIC-VIEWPORT-CONSUMERS-20261015",
   "objective": "semantic-viewport-filter-membership-and-analytics-for-grouped-markers",
-  "baseSha": "37a1d85f0609dcc9eef506f0d4aae3ce2fec84e3",
-  "branch": "fix/u7-semantic-viewport-consumers-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "03cb702dd8ca2ff19eb05d055f0fc33e7c7da540",
+  "branch": "infra/retire-u7-semantic-viewport-consumers-967-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
