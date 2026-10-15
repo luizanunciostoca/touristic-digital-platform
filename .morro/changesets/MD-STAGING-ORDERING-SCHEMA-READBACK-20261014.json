@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-ORDERING-SCHEMA-READBACK-20261014",
+  "objective": "staging-ticketing-ordering-schema-readonly-runtime-readback",
+  "baseSha": "af5c13662c41adb066591428cb22999ce225b136",
+  "branch": "fix/staging-ordering-schema-readback-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-ORDERING-SCHEMA-READBACK-20261014.json",
+      "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+    ],
+    "contracts": ["STAGING-TICKETING-ORDERING-SCHEMA-READBACK"]
+  },
+  "reads": {
+    "contracts": [
+      "TICKETING-STARTUP-FAILURE-CLASSIFICATION",
+      "MORRO-STAGING-PREDEPLOY",
+      "ticket-fulfillment"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "claimed-startup-proof",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration",
+      "staging-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
