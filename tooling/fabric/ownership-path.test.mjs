@@ -415,3 +415,29 @@ test("service lint config and platform auth composition have distinct exact owne
   for (const file of tracked.filter((f) => !(f in additions)))
     assert.deepEqual(owners(file, canonical), owners(file, before), file);
 });
+
+const confirmedUxOwnerPaths = [
+  "apps/morro-digital-platform/src/ux/navigation-tour-manual-conformance.test.ts",
+  "apps/morro-digital-platform/src/home/home-discover-navigation.test.ts",
+  "apps/morro-digital-platform/tooling/device-saved-itineraries-browser-contract.cjs",
+  "apps/morro-digital-platform/src/weather/weather-widget.ts",
+  "apps/morro-digital-platform/src/weather/weather-widget.test.ts",
+  "apps/morro-digital-platform/src/weather/weather-i18n.ts",
+  "apps/morro-digital-platform/src/weather/weather-i18n.test.ts",
+  "apps/morro-digital-platform/src/weather/weather-forecast-modal.ts",
+  "apps/morro-digital-platform/tooling/weather-v1-i18n-browser-parity.mjs",
+  "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+  "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+];
+test("confirmed UX runtime and proof files have exact map ownership", () => {
+  const current = JSON.parse(
+    readFileSync(
+      new URL("../../.morro/ownership.json", import.meta.url),
+      "utf8",
+    ),
+  );
+  for (const path of confirmedUxOwnerPaths) {
+    assert.doesNotThrow(() => assertOwnershipCoverage([path], current));
+    assert.throws(() => assertOwnershipCoverage([path + ".bak"], current));
+  }
+});
