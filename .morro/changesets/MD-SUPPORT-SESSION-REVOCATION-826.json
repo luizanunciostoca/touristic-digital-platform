@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-SUPPORT-SESSION-REVOCATION-826",
   "objective": "prove-real-support-session-revocation-before-narrow-capability-exception",
-  "baseSha": "9f54a4e9d3bdae8a31a85503fd37072fd2416c98",
-  "branch": "fix/support-revocation-826-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "f4ad22641ef5c2a87eda0fd82e5e361f3b3f42a5",
+  "branch": "infra/retire-revocation-826-f4ad",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
