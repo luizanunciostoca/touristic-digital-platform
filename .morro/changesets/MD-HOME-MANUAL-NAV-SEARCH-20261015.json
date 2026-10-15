@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-HOME-MANUAL-NAV-SEARCH-20261015",
   "objective": "manual-discovery-search-pagination-and-honest-saved-ticket-navigation",
-  "baseSha": "a501c28cbc2c1f041b34e41340643b5e7a61492a",
-  "branch": "fix/home-manual-nav-search-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "d679add67942df16ccf1c1ec36cb643dd0d6edd0",
+  "branch": "infra/retire-home-nav-953-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
