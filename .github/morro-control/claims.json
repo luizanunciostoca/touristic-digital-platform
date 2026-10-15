@@ -62,21 +62,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-15T12:00:00.000Z"
-    },
-    "MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-ticketing-startup-diagnostic-20261014",
-      "baseSha": "521ab5a2aa99f303b75d3511e8aa8cf371c31924",
-      "paths": [
-        ".morro/changesets/MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014.json",
-        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
-        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
-      ],
-      "domains": ["ticketing"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T12:00:00.000Z"
     }
   }
 }
