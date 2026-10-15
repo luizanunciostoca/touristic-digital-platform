@@ -93,21 +93,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T05:30:00.000Z"
-    },
-    "MD-CI-MAP-AUTH-IMPACT-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ci-map-auth-impact-20261015",
-      "baseSha": "9feb8c8a1b50ced211d243e37b4c404c983892bf",
-      "paths": [
-        ".morro/changesets/MD-CI-MAP-AUTH-IMPACT-20261015.json",
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T06:00:00.000Z"
     }
   }
 }
