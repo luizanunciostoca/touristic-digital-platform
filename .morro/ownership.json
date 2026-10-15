@@ -5,7 +5,15 @@
       "id": "map",
       "pathPrefixes": [
         "apps/morro-digital-platform/src/map/",
-        "apps/morro-digital-platform/public/"
+        "apps/morro-digital-platform/public/",
+        "apps/morro-digital-platform/src/browser-entry.ts",
+        "apps/morro-digital-platform/src/layouts/app-shell.ts",
+        "apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts",
+        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs",
+        "apps/morro-digital-platform/src/assistant/assistant-ui-state.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts"
       ],
       "contracts": []
     },
@@ -44,7 +52,21 @@
       "pathPrefixes": [
         "packages/auth/",
         "services/auth/",
-        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs",
+        "packages/crm/src/authorization.ts",
+        "packages/crm/src/authorization.test.ts",
+        "services/crm/src/contracts-http-transport.ts",
+        "services/crm/src/followups-http-transport.ts",
+        "services/crm/src/lead-detail-http-transport.ts",
+        "services/crm/src/leads-http-transport.ts",
+        "services/crm/src/meetings-http-transport.ts",
+        "services/crm/src/proposals-http-transport.ts",
+        "services/crm/src/referrals-http-transport.ts",
+        "services/crm/src/trials-http-transport.ts",
+        "services/crm/src/trials-http-transport.test.ts",
+        "services/crm/src/referrals-http-transport.test.ts",
+        "services/crm/src/crm-auth-composition.test.mjs",
+        "services/crm/vitest.config.mjs"
       ],
       "contracts": ["platform-authz"]
     },

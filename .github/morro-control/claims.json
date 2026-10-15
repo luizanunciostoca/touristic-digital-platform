@@ -98,7 +98,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ui-crm-exact-ownership-impact-20261015",
-      "baseSha": "dba5930ce40c558f5f281db5a6931fca9d657ff0",
+      "baseSha": "93f3bc84cb28f693866b31670e31f530cc5ced73",
       "paths": [
         ".morro/changesets/MD-UI-CRM-EXACT-OWNERSHIP-IMPACT-20261015.json",
         ".morro/ownership.json",

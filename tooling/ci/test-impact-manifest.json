@@ -403,6 +403,41 @@
       "needsBrowser": true,
       "needsVisual": false,
       "needsDatabase": false
+    },
+    "ux-text-voice": {
+      "paths": [
+        "apps/morro-digital-platform/src/layouts/app-shell.ts",
+        "apps/morro-digital-platform/public/tourist-shell-v2.css",
+        "apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts",
+        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["home-discover-manual-conformance.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "assistant-shell-state": {
+      "paths": [
+        "apps/morro-digital-platform/src/assistant/assistant-ui-state.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [
+        "assistant-conversation-continuity-browser-contract.yml",
+        "assistant-input-menu-flow-v1-parity.yml",
+        "navigation-turn-by-turn-parity.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     }
   }
 }
