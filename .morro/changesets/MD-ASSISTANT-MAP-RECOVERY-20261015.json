@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-MAP-RECOVERY-20261015",
-  "baseSha": "aa4db8f92fc30cbe1ea410486737a392983557c2",
-  "branch": "fix/assistant-map-recovery-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "5d0d81f1ffcb196194606d07d9db445b375fdf1f",
+  "branch": "fix/retire-assistant-926-20261015",
+  "state": "MERGED",
   "risk": "high",
   "owns": {
     "paths": [
