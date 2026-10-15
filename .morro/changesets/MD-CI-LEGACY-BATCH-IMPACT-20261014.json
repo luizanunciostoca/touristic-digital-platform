@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-LEGACY-BATCH-IMPACT-20261014",
   "objective": "classify-staging-legacy-publication-batch-ci-impact",
-  "baseSha": "66b8b3fce250dbe3dcee7bcdc05e583f4c4f0692",
-  "branch": "fix/ci-legacy-batch-impact-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "98d10c896723a66e370e632bc2e8729835592ce4",
+  "branch": "infra/retire-ci-legacy-batch-20261015",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
