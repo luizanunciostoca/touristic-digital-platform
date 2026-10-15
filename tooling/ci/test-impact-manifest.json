@@ -227,7 +227,11 @@
       "needsFullSecurity": false
     },
     "auth": {
-      "paths": ["packages/auth/", "services/auth/"],
+      "paths": [
+        "packages/auth/",
+        "services/auth/",
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+      ],
       "risk": "HIGH",
       "dependsOn": ["security"],
       "suites": [],
@@ -303,7 +307,8 @@
         "packages/geospatial/src/index.ts",
         "packages/geospatial/src/routing-",
         "tooling/geospatial/",
-        "apps/morro-digital-platform/src/config/destination.test.ts"
+        "apps/morro-digital-platform/src/config/destination.test.ts",
+        "apps/morro-digital-platform/src/browser-entry.ts"
       ],
       "risk": "HIGH",
       "dependsOn": ["navigation", "map", "geolocation", "shell"],
