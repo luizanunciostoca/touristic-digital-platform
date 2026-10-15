@@ -3256,3 +3256,46 @@ body[data-md-mode="discover"] .md-home-header h1 {
   line-height: 1;
   white-space: nowrap;
 }
+
+/* Independent manual search and device-saved places. */
+.md-home-manual-panel {
+  position: fixed;
+  inset-inline: 12px;
+  bottom: 90px;
+  z-index: var(--md-layer-sheet);
+  max-height: 65dvh;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 18px;
+  background: var(--md-color-surface-card);
+  color: var(--md-color-text-primary);
+  box-shadow: var(--md-elevation-1);
+}
+.md-home-manual-panel[hidden] {
+  display: none;
+}
+.md-home-manual-panel form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.md-home-manual-panel input {
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.md-home-manual-panel button,
+.md-home-manual-panel input,
+.md-home-manual-panel select {
+  min-width: 48px;
+  min-height: 48px;
+  max-width: 100%;
+  font: inherit;
+}
+.md-home-manual-panel li button {
+  text-align: start;
+  width: 100%;
+}
+.md-home-manual-panel :focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: 2px;
+}

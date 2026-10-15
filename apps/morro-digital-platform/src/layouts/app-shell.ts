@@ -274,15 +274,15 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
         <div class="md-home-profile-shortcuts" role="group" aria-label="Atalhos do perfil" data-home-copy-aria="profileQuickActions">
           <button type="button" class="md-home-profile-shortcut" data-profile-action="saved">
             <i class="fas fa-heart" aria-hidden="true"></i>
-            <span data-home-copy="saved">Salvos</span>
+            <span data-home-copy="saved">Roteiro</span>
           </button>
           <a class="md-home-profile-shortcut" href="/tickets.html">
             <i class="fas fa-ticket-alt" aria-hidden="true"></i>
-            <span data-home-copy="tickets">Ingressos</span>
+            <span data-home-copy="tickets">Reservas</span>
           </a>
           <button type="button" class="md-home-profile-shortcut" data-profile-action="tours">
             <i class="fas fa-route" aria-hidden="true"></i>
-            <span data-home-copy="tours">Tours</span>
+            <span data-home-copy="tours">Buscar</span>
           </button>
         </div>
 
@@ -307,19 +307,19 @@ Posso ajudar você a encontrar praias, passeios, restaurantes e experiências.
       <nav id="home-bottom-navigation" class="md-home-bottom-nav md-card" aria-label="Navegação principal" data-home-bottom-navigation>
         <button type="button" class="md-home-nav-item is-active" data-home-nav-action="explore" aria-current="page">
           <i class="fas fa-compass" aria-hidden="true"></i>
-          <span data-home-copy="explore">Explorar</span>
+          <span data-home-copy="explore">Mapa</span>
         </button>
         <button type="button" class="md-home-nav-item" data-home-nav-action="tours">
           <i class="fas fa-route" aria-hidden="true"></i>
-          <span data-home-copy="tours">Tours</span>
+          <span data-home-copy="tours">Buscar</span>
         </button>
         <button type="button" class="md-home-nav-item" data-home-nav-action="saved">
           <i class="fas fa-heart" aria-hidden="true"></i>
-          <span data-home-copy="saved">Salvos</span>
+          <span data-home-copy="saved">Roteiro</span>
         </button>
         <a class="md-home-nav-item" data-home-nav-action="tickets" href="/tickets.html">
           <i class="fas fa-ticket-alt" aria-hidden="true"></i>
-          <span data-home-copy="tickets">Ingressos</span>
+          <span data-home-copy="tickets">Reservas</span>
         </a>
         <button id="home-profile-button" type="button" class="md-home-nav-item" data-home-nav-action="profile" aria-expanded="false" aria-controls="home-profile-panel">
           <i class="fas fa-user-circle" aria-hidden="true"></i>

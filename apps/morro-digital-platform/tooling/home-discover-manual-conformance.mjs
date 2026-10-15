@@ -391,6 +391,357 @@ async function assertPureDiscover(page, viewport) {
   return state;
 }
 
+async function verifyManualNavigation(page) {
+  const requests = [];
+  let responseMode = "catalog";
+  let holdMap = false;
+  let releaseMap;
+  const items = Array.from({ length: 25 }, (_, index) => ({
+    id: `manual-proof-${index + 1}`,
+    name: `Manual Praia ${String(index + 1).padStart(2, "0")}`,
+    category: "beaches",
+    lat: -13.377 - index * 0.0001,
+    lng: -38.914 - index * 0.0001,
+    presentation: { markerKey: "beaches", priority: 1 },
+  }));
+  const mapRoute = async (route) => {
+    const url = new URL(route.request().url());
+    requests.push({
+      category: url.searchParams.get("category"),
+      cursor: url.searchParams.get("cursor"),
+      q: url.searchParams.has("q"),
+    });
+    if (responseMode === "offline") return route.abort("failed");
+    if (holdMap && !url.searchParams.get("cursor"))
+      await new Promise((resolve) => {
+        releaseMap = resolve;
+      });
+    const second = url.searchParams.get("cursor") === "manual-second";
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        responseMode === "empty"
+          ? { items: [], nextCursor: null }
+          : {
+              items: second ? items.slice(13) : items.slice(0, 13),
+              nextCursor: second ? null : "manual-second",
+            },
+      ),
+    });
+  };
+  let releaseDetail;
+  let detailRequested = "";
+  let detailHeld = false;
+  const detailRoute = async (route) => {
+    const id = new URL(route.request().url()).pathname.split("/").at(-1);
+    detailRequested = id;
+    if (detailHeld)
+      await new Promise((resolve) => {
+        releaseDetail = resolve;
+      });
+    const item = items.find((place) => place.id === id);
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        profile: {
+          id,
+          name: item.name,
+          categoryId: item.category,
+          location: { latitude: item.lat, longitude: item.lng },
+        },
+        actions: { placeId: id, primaryAction: null, secondaryActions: [] },
+        partial: {},
+        revision: { id: "manual-proof", number: 1 },
+      }),
+    });
+  };
+  await page.route("**/api/places/v1/manual-proof-*", detailRoute);
+  await page.route("**/api/places/v1/map?*", mapRoute);
+  await page.evaluate(() => {
+    globalThis.__manualAssistantCommands = 0;
+    document.addEventListener("morro:assistant-option-selected", () => {
+      globalThis.__manualAssistantCommands += 1;
+    });
+  });
+  const panel = page.locator("#home-manual-panel");
+  const rows = panel.locator("li button");
+  const status = panel.locator('[role="status"]');
+  const waitCount = async (count) => {
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline) {
+      if (
+        (await rows.count()) === count &&
+        !(await status.textContent()).includes("Buscando")
+      )
+        return;
+      await page.waitForTimeout(50);
+    }
+    throw new Error(
+      `MANUAL_SEARCH_ROW_COUNT expected=${count} actual=${await rows.count()}`,
+    );
+  };
+  try {
+    await page.locator('[data-home-nav-action="tours"]').click();
+    const panelGeometry = await panel.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        viewportWidth: innerWidth,
+        viewportHeight: innerHeight,
+        controls: [...node.querySelectorAll("input,select,button")]
+          .filter((control) => control.getClientRects().length > 0)
+          .map((control) => ({
+            width: control.getBoundingClientRect().width,
+            height: control.getBoundingClientRect().height,
+          })),
+      };
+    });
+    assert(
+      panelGeometry.left >= 0 &&
+        panelGeometry.top >= 0 &&
+        panelGeometry.right <= panelGeometry.viewportWidth &&
+        panelGeometry.bottom <= panelGeometry.viewportHeight,
+      "Manual panel escaped viewport",
+      panelGeometry,
+    );
+    assert(
+      panelGeometry.controls.every(
+        (control) => control.height >= 48 && control.width >= 48,
+      ),
+      "Manual controls below48px",
+      panelGeometry,
+    );
+    await panel.locator('input[type="search"]').fill("Unsent draft");
+    await panel.locator("select").selectOption("restaurants");
+    await page.evaluate(() => {
+      document.documentElement.lang = "he-IL";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await panel.locator('input[type="search"]').inputValue()) ===
+        "Unsent draft" &&
+        (await panel.locator("select").inputValue()) === "restaurants",
+      "Locale erased unsubmitted draft",
+    );
+    assert(requests.length === 0, "Locale unexpectedly submitted draft");
+    await page.evaluate(() => {
+      document.documentElement.lang = "pt-BR";
+    });
+    await page.waitForTimeout(0);
+    await panel.locator('input[type="search"]').fill("Manual");
+    await panel.locator("select").selectOption("beaches");
+    holdMap = true;
+    await panel.locator('button[type="submit"]').click();
+    const pendingDeadline = Date.now() + 8000;
+    while (!releaseMap && Date.now() < pendingDeadline)
+      await page.waitForTimeout(25);
+    assert(Boolean(releaseMap), "Held canonical search did not start");
+    await page.evaluate(() => {
+      document.documentElement.lang = "en-US";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await panel.locator('input[type="search"]').inputValue()) === "Manual" &&
+        (await panel.locator("select").inputValue()) === "beaches",
+      "Locale erased in-flight draft",
+    );
+    assert(
+      requests.length === 1 &&
+        (await status.textContent()).includes("Searching"),
+      "Locale restarted/cancelled in-flight search",
+    );
+    holdMap = false;
+    releaseMap();
+    await waitCount(20);
+    await page.evaluate(() => {
+      document.documentElement.lang = "pt-BR";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await status.textContent()).includes("1–20 / 25"),
+      "Manual first page range incorrect",
+    );
+    await panel.locator('[data-manual-page="next"]').click();
+    await waitCount(5);
+    assert(
+      (await status.textContent()).includes("21–25 / 25"),
+      "Manual second page range incorrect",
+    );
+    assert(
+      await panel.locator('[data-manual-page="next"]').isDisabled(),
+      "Manual final page enabled Next",
+    );
+    for (const [locale, heading] of [
+      ["en-US", "Find places"],
+      ["es-ES", "Buscar lugares"],
+      ["he-IL", "חיפוש מקומות"],
+      ["pt-BR", "Buscar lugares"],
+    ]) {
+      await page.evaluate((value) => {
+        document.documentElement.lang = value;
+      }, locale);
+      await waitCount(5);
+      assert(
+        (await panel.locator("h2").textContent()) === heading,
+        "Manual locale label stale",
+      );
+      assert(
+        (await panel.locator('input[type="search"]').inputValue()) === "Manual",
+        "Locale lost manual query",
+      );
+      assert(
+        (await panel.locator("select").inputValue()) === "beaches",
+        "Locale lost category",
+      );
+      assert(
+        (await status.textContent()).includes("21–25 / 25"),
+        "Locale lost current page",
+      );
+    }
+    await panel
+      .locator('input[type="search"]')
+      .fill("Edited draft after results");
+    await panel.locator("select").selectOption("tours");
+    await page.evaluate(() => {
+      document.documentElement.lang = "he-IL";
+    });
+    await page.waitForTimeout(0);
+    assert(
+      (await panel.locator('input[type="search"]').inputValue()) ===
+        "Edited draft after results" &&
+        (await panel.locator("select").inputValue()) === "tours",
+      "Locale replaced edited draft with submitted query",
+    );
+    assert(
+      (await status.textContent()).includes("21–25 / 25") &&
+        requests.length === 2,
+      "Locale changed submitted result page or resubmitted edits",
+    );
+    await page.evaluate(() => {
+      document.documentElement.lang = "pt-BR";
+    });
+    await page.waitForTimeout(0);
+    await panel.locator('[data-manual-page="previous"]').click();
+    await waitCount(20);
+    assert(
+      requests.length === 2 &&
+        requests.every(
+          (request) => request.category === "beaches" && !request.q,
+        ),
+      "Manual search changed canonical HTTP contract",
+      requests,
+    );
+    await panel.locator('[data-manual-page="next"]').click();
+    await waitCount(5);
+    await rows.last().click();
+    await panel.waitFor({ state: "hidden" });
+    assert(
+      detailRequested === "manual-proof-25",
+      "Manual page2 selected wrong canonical ID",
+      detailRequested,
+    );
+    assert(
+      await page
+        .locator(
+          '#assistant-category-rail[data-context-place="Manual Praia 25"]',
+        )
+        .isVisible(),
+      "Canonical selection did not reach actual Place detail",
+    );
+    await page.locator('[data-home-nav-action="tours"]').click();
+    await panel.locator('input[type="search"]').fill("Manual");
+    await panel.locator('button[type="submit"]').click();
+    await waitCount(20);
+    detailHeld = true;
+    await rows.first().click();
+    const detailDeadline = Date.now() + 8000;
+    while (!releaseDetail && Date.now() < detailDeadline)
+      await page.waitForTimeout(25);
+    assert(Boolean(releaseDetail), "Delayed detail request did not begin");
+    await page.locator('[data-home-nav-action="saved"]').click();
+    await page.evaluate(() => {
+      globalThis.__manualDelayedSelectionSettled = false;
+      document.addEventListener(
+        "morro:explore-state-changed",
+        () => {
+          globalThis.__manualDelayedSelectionSettled = true;
+        },
+        { once: true },
+      );
+    });
+    releaseDetail();
+    const settledDeadline = Date.now() + 8000;
+    while (
+      !(await page.evaluate(
+        () => globalThis.__manualDelayedSelectionSettled,
+      )) &&
+      Date.now() < settledDeadline
+    )
+      await page.waitForTimeout(25);
+    assert(
+      await page.evaluate(() => globalThis.__manualDelayedSelectionSettled),
+      "Delayed actual Explore selection did not settle",
+    );
+    assert(
+      (await panel.isVisible()) && (await panel.locator("form").count()) === 0,
+      "Old selection closed newer saved panel",
+    );
+    detailHeld = false;
+    await page.locator('[data-home-nav-action="tours"]').click();
+    responseMode = "empty";
+    await panel.locator('button[type="submit"]').click();
+    await waitCount(0);
+    assert(
+      (await status.textContent()).includes("0–0 / 0"),
+      "Canonical empty was not retained",
+    );
+    responseMode = "offline";
+    await panel.locator('input[type="search"]').fill("Primeira");
+    await panel.locator('button[type="submit"]').click();
+    await waitCount(1);
+    assert(
+      (await status.textContent()).includes("local"),
+      "Offline search hid local data disclosure",
+    );
+    await page.keyboard.press("Escape");
+    assert(await panel.isHidden(), "Escape did not close manual search");
+    assert(
+      await page
+        .locator('[data-home-nav-action="tours"]')
+        .evaluate((node) => document.activeElement === node),
+      "Manual search did not restore focus",
+    );
+    assert(
+      (await page.evaluate(() => globalThis.__manualAssistantCommands)) === 0,
+      "Manual navigation dispatched an Assistant command",
+    );
+    return {
+      source: "actual Home and Explore runtime with controlled HTTP catalog",
+      pagination: "20+5 of25",
+      category: true,
+      locales: 4,
+      localeDrafts:
+        "unsent/in-flight/edited-after-results preserved without resubmit",
+      canonicalSelection: "manual-proof-25",
+      delayedSelectionPreservesNewPanel: true,
+      canonicalEmpty: true,
+      localOffline: true,
+      assistantCommands: 0,
+    };
+  } finally {
+    releaseMap?.();
+    releaseDetail?.();
+    await page.unroute("**/api/places/v1/manual-proof-*", detailRoute);
+    await page.unroute("**/api/places/v1/map?*", mapRoute);
+    await page.locator('[data-home-nav-action="explore"]').click();
+  }
+}
+
 async function verifyAssistantEntry(page) {
   const voice = page.locator("#voiceButton");
   await voice.waitFor({ state: "visible", timeout: 3000 });
@@ -557,10 +908,10 @@ async function verifyProfileAndPrivacy(page) {
 
 async function verifyLocales(page) {
   const expected = {
-    "pt-BR": ["Explorar", "Tours", "Salvos", "Ingressos", "Perfil"],
-    "en-US": ["Explore", "Tours", "Saved", "Tickets", "Profile"],
-    "es-ES": ["Explorar", "Tours", "Guardados", "Entradas", "Perfil"],
-    "he-IL": ["לגלות", "סיורים", "שמורים", "כרטיסים", "פרופיל"],
+    "pt-BR": ["Mapa", "Buscar", "Roteiro", "Reservas", "Perfil"],
+    "en-US": ["Map", "Search", "Itinerary", "Bookings", "Profile"],
+    "es-ES": ["Mapa", "Buscar", "Itinerario", "Reservas", "Perfil"],
+    "he-IL": ["מפה", "חיפוש", "מסלול", "הזמנות", "פרופיל"],
   };
   for (const [locale, labels] of Object.entries(expected)) {
     await page.evaluate((value) => {
@@ -688,6 +1039,21 @@ try {
       animations: "disabled",
     });
 
+    if (
+      [
+        "320x568",
+        "390x844",
+        "768x1024",
+        "1440x900",
+        "landscape-844x390",
+      ].includes(viewport.name)
+    ) {
+      evidence.manualNavigation ??= [];
+      evidence.manualNavigation.push({
+        viewport: viewport.name,
+        result: await verifyManualNavigation(page),
+      });
+    }
     if (viewport.name === "390x844") {
       await verifyLocales(page);
       await verifyProfileAndPrivacy(page);
