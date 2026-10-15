@@ -1,9 +1,10 @@
 const CACHE_PREFIX = "morro-digital";
-const STATIC_CACHE = `${CACHE_PREFIX}-static-v4`;
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v5`;
 const OFFLINE_URL = "/offline.html";
 
 const PRECACHE_URLS = Object.freeze([
   OFFLINE_URL,
+  "/offline.js",
   "/manifest.json",
   "/pwa-register.js",
   "/assets/brand/morro-digital-symbol-v2.svg",
@@ -49,6 +50,7 @@ const CACHEABLE_PREFIXES = Object.freeze([
 const CACHEABLE_PATHS = new Set([
   "/manifest.json",
   "/offline.html",
+  "/offline.js",
   "/pwa-register.js",
 ]);
 

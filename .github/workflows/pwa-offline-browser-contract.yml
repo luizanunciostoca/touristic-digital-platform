@@ -45,6 +45,8 @@ jobs:
           npm install --prefix /tmp/pw --no-save playwright@1.54.2
           /tmp/pw/node_modules/.bin/playwright install --with-deps chromium
           mkdir -p /tmp/pwa-offline-evidence
+      - name: Validate PWA unit contracts
+        run: pnpm --filter @touristic/morro-digital-platform exec vitest run src/pwa/pwa-contract.test.ts
       - name: Build workspace
         run: pnpm -w build
       - name: Start runtime
@@ -60,11 +62,93 @@ jobs:
       - name: Validate install and offline authority boundary
         run: |
           node <<'NODE'
-          const { writeFileSync } = require('node:fs');
+          const { writeFileSync, readFileSync } = require('node:fs');
+          const { createHash } = require('node:crypto');
+          const { execFileSync } = require('node:child_process');
+          const sourceIdentity = {
+            head: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
+            tree: execFileSync('git', ['rev-parse', 'HEAD^{tree}'], { encoding: 'utf8' }).trim(),
+          };
           const { chromium } = require('/tmp/pw/node_modules/playwright');
           const outputDir = '/tmp/pwa-offline-evidence';
 
+          async function poll(page, predicate, argument) {
+            const deadline = Date.now() + 5000;
+            while (!await page.evaluate(predicate, argument)) {
+              if (Date.now() >= deadline) throw new Error('PWA_CONDITION_TIMEOUT');
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
+          }
+
+          async function holdServiceWorkerOffline(browser, page) {
+            const pageSession = await page.context().newCDPSession(page);
+            const { targetInfo } = await pageSession.send('Target.getTargetInfo');
+            await pageSession.detach();
+            if (!targetInfo.browserContextId) throw new Error('Worker context identity unavailable');
+            const browserSession = await browser.newBrowserCDPSession();
+            const restore = [];
+            try {
+              const { targetInfos } = await browserSession.send('Target.getTargets');
+              const workers = targetInfos.filter(target =>
+                target.type === 'service_worker' && target.browserContextId === targetInfo.browserContextId &&
+                target.url === 'http://127.0.0.1:4173/service-worker.js');
+              if (workers.length !== 1) throw new Error('Expected exactly one application service worker');
+              for (const worker of workers) {
+                const { sessionId } = await browserSession.send('Target.attachToTarget', { targetId: worker.targetId, flatten: false });
+                let sequence = 0;
+                const send = (method, params = {}) => new Promise((resolve, reject) => {
+                  const id = ++sequence;
+                  const finish = (error, result) => {
+                    clearTimeout(timer);
+                    browserSession.off('Target.receivedMessageFromTarget', receive);
+                    error ? reject(error) : resolve(result);
+                  };
+                  const receive = event => {
+                    if (event.sessionId !== sessionId) return;
+                    const message = JSON.parse(event.message);
+                    if (message.id === id) finish(message.error ? new Error(JSON.stringify(message.error)) : null, message.result);
+                  };
+                  const timer = setTimeout(() => finish(new Error('Service worker CDP timeout')), 5000);
+                  browserSession.on('Target.receivedMessageFromTarget', receive);
+                  browserSession.send('Target.sendMessageToTarget', {
+                    sessionId, message: JSON.stringify({ id, method, params }),
+                  }).catch(error => finish(error));
+                });
+                restore.push(async () => {
+                  await send('Network.emulateNetworkConditions', { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+                  await browserSession.send('Target.detachFromTarget', { sessionId });
+                });
+                await send('Network.enable');
+                await send('Network.setCacheDisabled', { cacheDisabled: true });
+                await send('Network.emulateNetworkConditions', { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+              }
+            } catch (error) {
+              await browserSession.detach();
+              throw error;
+            }
+            // Detaching earlier restores worker networking even if the page stays offline.
+            return async () => {
+              try { for (const release of restore) await release(); }
+              finally { await browserSession.detach(); }
+            };
+          }
+
           (async () => {
+            const assetPath = 'apps/morro-digital-platform/public/offline.js';
+            const assetResponse = await fetch('http://127.0.0.1:4173/offline.js', { cache: 'no-store' });
+            const assetBytes = Buffer.from(await assetResponse.arrayBuffer());
+            const digest = bytes => createHash('sha256').update(bytes).digest('hex');
+            const assetEvidence = {
+              status: assetResponse.status,
+              contentType: assetResponse.headers.get('content-type'),
+              responseSha256: digest(assetBytes),
+              sourceSha256: digest(readFileSync(assetPath)),
+              committedSha256: digest(execFileSync('git', ['show', `HEAD:${assetPath}`])),
+            };
+            if (assetEvidence.status !== 200 || !assetEvidence.contentType?.startsWith('text/javascript') ||
+                assetEvidence.responseSha256 !== assetEvidence.sourceSha256 || assetEvidence.sourceSha256 !== assetEvidence.committedSha256) {
+              throw new Error(`Offline asset identity mismatch: ${JSON.stringify(assetEvidence)}`);
+            }
             const browser = await chromium.launch({ headless: true });
             const context = await browser.newContext({
               viewport: { width: 390, height: 844 },
@@ -120,7 +204,12 @@ jobs:
               throw new Error('Static shell CSS was not available online.');
             }
 
+            const rootCdp = await context.newCDPSession(page);
+            await rootCdp.send('Network.enable');
             await context.setOffline(true);
+            await rootCdp.send('Network.emulateNetworkConditions', {
+              offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+            });
 
             const apiOffline = await page.evaluate(async () => {
               try {
@@ -177,8 +266,22 @@ jobs:
               );
             }
 
-            await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+            const cachedRootResponse = await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
+            if (!cachedRootResponse?.fromServiceWorker()) throw new Error('Offline Home was not served by the service worker');
             await page.locator('#app').waitFor({ state: 'attached', timeout: 5000 });
+            const offlineReloadSignals = await page.evaluate(async () => ({
+              navigatorOnline: navigator.onLine,
+              appState: document.documentElement.dataset.networkState,
+              networkRejected: await fetch('/healthz', { cache: 'no-store' }).then(() => false, () => true),
+            }));
+            if (!offlineReloadSignals.networkRejected) throw new Error('Reload did not preserve actual offline networking');
+            // Chromium151 can reset navigator.onLine on SW navigation while the
+            // network remains blocked. Reapply real CDP emulation to this document;
+            // never override navigator or dispatch synthetic online/offline events.
+            await rootCdp.send('Network.emulateNetworkConditions', {
+              offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+            });
+            await poll(page, () => navigator.onLine === false && document.documentElement.dataset.networkState === 'offline');
             const offlineRoot = await page.evaluate(() => ({
               networkState: document.documentElement.dataset.networkState ?? null,
               appMounted: Boolean(document.getElementById('app')),
@@ -206,13 +309,16 @@ jobs:
             }
 
             await context.setOffline(false);
+            await rootCdp.send('Network.emulateNetworkConditions', {
+              offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+            });
             await page.reload({ waitUntil: 'domcontentloaded', timeout: 15000 });
-            await page.waitForFunction(
+            await poll(
+              page,
               () =>
                 navigator.onLine === true &&
                 document.documentElement.dataset.networkState === 'online',
               undefined,
-              { timeout: 5000 },
             );
 
             const onlineRecovery = await page.evaluate(async () => {
@@ -264,6 +370,7 @@ jobs:
                 ok: cssOffline.ok,
               },
               offlineRoot,
+              offlineReloadSignals,
               offlineFallback: {
                 ok: offlineFallback.ok,
                 authorityWarning: offlineFallback.text.includes(
@@ -282,10 +389,6 @@ jobs:
               pageErrors,
             };
 
-            writeFileSync(
-              `${outputDir}/evidence.json`,
-              JSON.stringify({ status: 'validated', evidence }, null, 2),
-            );
             await page.screenshot({
               path: `${outputDir}/offline-shell.png`,
               fullPage: false,
@@ -295,6 +398,120 @@ jobs:
               throw new Error(`Browser errors detected: ${JSON.stringify(pageErrors)}`);
             }
 
+            const localizedFallbacks = [];
+            for (const [locale, title, authorityWord, offlineWord, onlineWord] of [
+              ['pt-BR', 'Conteúdo offline', 'confirmação do servidor', 'Sem conexão de rede', 'indica uma conexão de rede'],
+              ['en-US', 'Offline content', 'server confirmation', 'No network connection', 'reports a network connection'],
+              ['es-ES', 'Contenido sin conexión', 'confirmación del servidor', 'Sin conexión de red', 'indica una conexión de red'],
+              ['he-IL', 'תוכן ללא חיבור לרשת', 'אישור מהשרת', 'אין חיבור לרשת', 'המכשיר מציג חיבור לרשת'],
+            ]) {
+              for (const width of [320, 390, 1280]) {
+                const localizedContext = await browser.newContext({
+                  viewport: { width, height: 844 },
+                  locale,
+                  serviceWorkers: 'allow',
+                });
+                const localizedPage = await localizedContext.newPage();
+                const errors = [];
+                let restoreWorkerNetwork;
+                localizedPage.on('pageerror', error => errors.push(error.message));
+                try {
+                  const initialDocument = await localizedPage.goto('http://127.0.0.1:4173/', {
+                    waitUntil: 'load', timeout: 15000,
+                  });
+                  const runtimeCsp = initialDocument.headers()['content-security-policy'];
+                  if (!runtimeCsp?.includes("'sha256-") || !runtimeCsp.includes("script-src 'self'")) throw new Error('Real runtime CSP missing');
+                  await localizedPage.evaluate(() => navigator.serviceWorker.ready);
+                  await poll(localizedPage, () => Boolean(navigator.serviceWorker.controller));
+                  // One preference write; subsequent navigations must preserve it.
+                  await localizedPage.evaluate(async value => {
+                    localStorage.setItem('morro-digital-language', value);
+                    for (const path of ['/offline.html', '/offline.js']) {
+                      if (!(await fetch(path)).ok) throw new Error(`Offline asset precache failed: ${path}`);
+                    }
+                    // Disposable browser context only: force the actual root fallback,
+                    // not the cached full Home. Do not intercept HTML or inject scripts.
+                    for (const name of await caches.keys()) {
+                      if (name.startsWith('morro-digital-static-')) await (await caches.open(name)).delete('/');
+                    }
+                    if (!await caches.match('/offline.html') || !await caches.match('/offline.js')) throw new Error('Fallback assets not cached');
+                  }, locale);
+                  const cacheSession = await localizedContext.newCDPSession(localizedPage);
+                  await cacheSession.send('Network.clearBrowserCache');
+                  await cacheSession.detach();
+                  await localizedContext.setOffline(true);
+                  restoreWorkerNetwork = await holdServiceWorkerOffline(browser, localizedPage);
+                  const fallbackResponse = await localizedPage.reload({ waitUntil: 'load', timeout: 15000 });
+                  if (!fallbackResponse?.fromServiceWorker() || fallbackResponse.headers()['content-security-policy'] !== runtimeCsp) {
+                    throw new Error('Root fallback did not retain real service-worker response/CSP');
+                  }
+                  const cdp = await localizedContext.newCDPSession(localizedPage);
+                  await cdp.send('Network.enable');
+                  await cdp.send('Network.emulateNetworkConditions', {
+                    offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+                  });
+                  const fallbackNetworkRejected = await localizedPage.evaluate(() => fetch('/healthz', { cache: 'no-store' }).then(() => false, () => true));
+                  if (!fallbackNetworkRejected) throw new Error('Fallback navigation lost actual offline networking');
+                  await poll(localizedPage, expected => navigator.onLine === false &&
+                    document.querySelector('#offline-status').textContent.includes(expected), offlineWord);
+                  const snapshot = await localizedPage.evaluate(() => ({
+                    lang: document.documentElement.lang,
+                    dir: document.documentElement.dir,
+                    title: document.querySelector('h1').textContent,
+                    description: document.querySelector('#offline-description').textContent,
+                    status: document.querySelector('#offline-status').textContent,
+                    overflow: document.documentElement.scrollWidth > innerWidth,
+                    buttonHeight: document.querySelector('#offline-retry').getBoundingClientRect().height,
+                  }));
+                  if (snapshot.lang !== locale || snapshot.dir !== (locale === 'he-IL' ? 'rtl' : 'ltr') ||
+                      snapshot.title !== title || !snapshot.description.includes(authorityWord) ||
+                      !snapshot.status.includes(offlineWord) || snapshot.overflow || snapshot.buttonHeight < 44) {
+                    throw new Error(`Localized fallback mismatch: ${JSON.stringify(snapshot)}`);
+                  }
+                  const apiResolved = await localizedPage.evaluate(async () => {
+                    try { await fetch('/api/weather', { cache: 'no-store' }); return true; }
+                    catch { return false; }
+                  });
+                  if (apiResolved) throw new Error('Localized fallback resolved API while offline');
+                  await localizedPage.screenshot({ path: `${outputDir}/fallback-${locale}-${width}.png` });
+                  await localizedContext.setOffline(false);
+                  await restoreWorkerNetwork();
+                  restoreWorkerNetwork = undefined;
+                  await cdp.send('Network.emulateNetworkConditions', {
+                    offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1,
+                  });
+                  await poll(localizedPage, previous =>
+                    navigator.onLine && document.querySelector('#offline-status').textContent !== previous,
+                    snapshot.status);
+                  if (!(await localizedPage.locator('#offline-status').textContent()).includes(onlineWord)) throw new Error('Reconnect status locale mismatch');
+                  if (localizedPage.url() !== 'http://127.0.0.1:4173/' || !(await localizedPage.locator('#offline-retry').count())) throw new Error('Unexpected automatic navigation');
+                  await localizedPage.locator('#offline-retry').focus();
+                  await localizedPage.keyboard.press('Enter');
+                  await localizedPage.waitForURL('http://127.0.0.1:4173/', { timeout: 15000 });
+                  await localizedPage.locator('#app').waitFor({ state: 'attached', timeout: 5000 });
+                  await poll(localizedPage, expected => document.documentElement.lang === expected, locale);
+                  const persistedLocale = await localizedPage.evaluate(() => localStorage.getItem('morro-digital-language'));
+                  if (persistedLocale !== locale) throw new Error('Saved locale changed across retry');
+                  if (errors.length) throw new Error(`Localized browser errors: ${JSON.stringify(errors)}`);
+                  localizedFallbacks.push({ locale, width, snapshot, apiResolved, persistedLocale, fallbackNetworkRejected, fromServiceWorker: fallbackResponse.fromServiceWorker(), runtimeCsp, explicitKeyboardRetry: true });
+                } catch (error) {
+                  await localizedPage.screenshot({ path: `${outputDir}/fallback-failure-${locale}-${width}.png` }).catch(() => {});
+                  throw error;
+                } finally {
+                  try { if (restoreWorkerNetwork) await restoreWorkerNetwork(); }
+                  finally { await localizedContext.close(); }
+                }
+              }
+            }
+            writeFileSync(`${outputDir}/localized-fallbacks.json`, JSON.stringify({
+              scope: 'INTEGRATED_ROOT_SERVICE_WORKER_FALLBACK_REAL_CSP_AND_EXPLICIT_RETRY',
+              sourceIdentity,
+              results: localizedFallbacks,
+            }, null, 2));
+
+            writeFileSync(`${outputDir}/evidence.json`, JSON.stringify({
+              status: 'validated', sourceIdentity, assetEvidence, evidence, localizedCaseCount: localizedFallbacks.length,
+            }, null, 2));
             await browser.close();
           })().catch(error => {
             writeFileSync(

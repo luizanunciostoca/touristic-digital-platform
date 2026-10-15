@@ -17,6 +17,10 @@
           sans-serif;
       }
 
+      * {
+        box-sizing: border-box;
+      }
+
       body {
         min-height: 100vh;
         min-height: 100dvh;
@@ -77,17 +81,19 @@
   </head>
   <body>
     <main>
-      <h1>Você está offline</h1>
-      <p>
+      <h1 id="offline-title">Conteúdo offline</h1>
+      <p id="offline-description">
         O Morro Digital preserva apenas conteúdo público e assets estáticos
         permitidos para uso offline. Pagamentos, reservas, ingressos e outras
         operações que exigem autoridade do servidor nunca são concluídos pelo
         cache.
       </p>
-      <p>Reconecte-se para atualizar dados e usar recursos online.</p>
-      <button type="button" onclick="location.reload()">
-        Tentar novamente
-      </button>
+      <p id="offline-status" role="status" aria-live="polite">
+        Reconecte-se para atualizar dados e usar recursos online.
+      </p>
+      <button id="offline-retry" type="button">Tentar novamente</button>
     </main>
+
+    <script src="/offline.js" defer></script>
   </body>
 </html>

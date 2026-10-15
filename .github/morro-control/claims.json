@@ -74,7 +74,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/offline-four-locale-20261015",
-      "baseSha": "6ddb1648f52104d3256f5a50ba7f4bc0db180c3f",
+      "baseSha": "98c931e5cded8f6aed80c08bba52d197ff826baa",
       "paths": [
         ".morro/changesets/MD-OFFLINE-FOUR-LOCALE-20261015.json",
         "apps/morro-digital-platform/public/offline.html",
