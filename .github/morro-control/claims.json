@@ -107,6 +107,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T20:04:27.413Z"
+    },
+    "MD-OFFLINE-EXTERNAL-ASSET-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/offline-external-asset-20261015",
+      "baseSha": "8d24e2771b9e9598bcf1d09492bab99ba66ca567",
+      "paths": [
+        ".morro/changesets/MD-OFFLINE-EXTERNAL-ASSET-20261015.json",
+        "apps/morro-digital-platform/public/offline.js",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer.test.mjs"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T20:24:58.061Z"
     }
   }
 }
