@@ -1150,3 +1150,22 @@ test("confirmed UX literals retain browser/visual proof and reject sibling alias
       assert.equal(analyzeFiles([path + ".bak"]).classificationBlocked, true);
   }
 });
+
+test("offline external script keeps exact PWA coverage and security floors", () => {
+  const path = "apps/morro-digital-platform/public/offline.js";
+  const report = analyzeFiles([path]);
+  assert.equal(report.classificationBlocked, false);
+  assert.deepEqual(report.unknownFiles, []);
+  assert.deepEqual(report.domains, ["pwa-offline-ui"]);
+  assert.deepEqual(report.suites, ["pwa-offline-browser-contract.yml"]);
+  assert.equal(report.risk, "HIGH");
+  assert.equal(report.needsBrowser, true);
+  assert.equal(report.needsVisual, true);
+  assert.equal(report.needsFullSecurity, true);
+  for (const sibling of [
+    path + ".bak",
+    path.replace("offline.js", "offline-other.js"),
+  ]) {
+    assert.equal(analyzeFiles([sibling]).classificationBlocked, true);
+  }
+});

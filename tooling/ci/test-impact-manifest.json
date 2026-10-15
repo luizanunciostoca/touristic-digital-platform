@@ -586,6 +586,7 @@
     },
     "pwa-offline-ui": {
       "paths": [
+        "apps/morro-digital-platform/public/offline.js",
         "apps/morro-digital-platform/public/offline.html",
         "apps/morro-digital-platform/public/service-worker.js",
         "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",

@@ -112,7 +112,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/offline-external-asset-20261015",
-      "baseSha": "8d24e2771b9e9598bcf1d09492bab99ba66ca567",
+      "baseSha": "89e93bc058c27a68eb8a44c9669cd68f22962bb0",
       "paths": [
         ".morro/changesets/MD-OFFLINE-EXTERNAL-ASSET-20261015.json",
         "apps/morro-digital-platform/public/offline.js",
