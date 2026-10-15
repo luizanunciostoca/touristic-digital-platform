@@ -105,6 +105,7 @@ async function readJsonBody(request) {
 
 function collectEnvironment(getEnvironmentValue) {
   const keys = [
+    "RENDER_SERVICE_NAME",
     "TICKETING_FEATURE_ENABLED",
     "MORRO_DATABASE_SCHEMA_MODE",
     "TICKETING_DATABASE_URL",
@@ -290,6 +291,12 @@ const ticketingStartupCodes = new Set([
   "PAYMENTS_HANDOFF_SECRET_REQUIRED",
   "PAYMENTS_DESTINATION_ID_REQUIRED",
   "MORRO_DATABASE_SCHEMA_MODE_INVALID",
+  "STAGING_ORDERING_READBACK_POOL_INVALID",
+  "STAGING_ORDERING_DB_IDENTITY_MISMATCH",
+  "STAGING_ORDERING_SCHEMA_INCOMPLETE",
+  "STAGING_ORDERING_SOURCE_KIND_DRIFT",
+  "STAGING_ORDERING_FOREIGN_KEY_DRIFT",
+  "STAGING_ORDERING_BINDING_KEYS_DRIFT",
 ]);
 export function sanitizeTicketingStartupFailure(error, stage) {
   let code = "UNKNOWN_FAILURE";
@@ -327,6 +334,164 @@ export function createTicketingStartupFailureTracker() {
     get firstFailureStage() {
       return firstFailureStage;
     },
+  });
+}
+const stagingOrderingIdentity = Object.freeze({
+  database: "morro_ordering_staging",
+  user: "morro_ordering",
+});
+const stagingOrderingSourceEnum =
+  "enum('business_onboarding','ticketing_reservation','restaurant_reservation')";
+const stagingOrderingRequiredBindingColumns = new Map([
+  ["reservation_reference", "varchar(120)"],
+  ["order_id", "varchar(120)"],
+  ["product_reference", "varchar(120)"],
+  ["quantity", "smallint unsigned"],
+  ["amount_minor", "bigint unsigned"],
+  ["currency", "char(3)"],
+  ["pricing_version", "varchar(80)"],
+  ["bound_at", "datetime(3)"],
+]);
+
+export function isStagingOrderingSchemaReadbackService(serviceName) {
+  return String(serviceName ?? "").trim() === "morro-digital-v2-staging";
+}
+
+// Staging predeploy is the schema writer; the runtime must prove the
+// immutable target and its relationships, never repeat DDL during rollout.
+export async function verifyStagingOrderingTicketingSchema(pool) {
+  if (!pool || typeof pool.query !== "function") {
+    throw new Error("STAGING_ORDERING_READBACK_POOL_INVALID");
+  }
+  const [identities] = await pool.query(
+    "SELECT DATABASE() AS database_name, SUBSTRING_INDEX(CURRENT_USER(), '@', 1) AS user_name",
+  );
+  if (
+    !Array.isArray(identities) ||
+    identities.length !== 1 ||
+    identities[0]?.database_name !== stagingOrderingIdentity.database ||
+    identities[0]?.user_name !== stagingOrderingIdentity.user
+  ) {
+    throw new Error("STAGING_ORDERING_DB_IDENTITY_MISMATCH");
+  }
+  const [columns] = await pool.query(
+    [
+      "SELECT TABLE_NAME AS table_name, COLUMN_NAME AS column_name, COLUMN_TYPE AS column_type",
+      "FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()",
+      "AND ((TABLE_NAME = 'ordering_orders' AND COLUMN_NAME = 'source_kind')",
+      "OR TABLE_NAME = 'ordering_ticketing_reservation_bindings')",
+    ].join(" "),
+  );
+  if (!Array.isArray(columns)) {
+    throw new Error("STAGING_ORDERING_SCHEMA_INCOMPLETE");
+  }
+  const sourceColumns = columns.filter(
+    (row) =>
+      row?.table_name === "ordering_orders" &&
+      row?.column_name === "source_kind",
+  );
+  if (
+    sourceColumns.length !== 1 ||
+    sourceColumns[0].column_type !== stagingOrderingSourceEnum
+  ) {
+    throw new Error("STAGING_ORDERING_SOURCE_KIND_DRIFT");
+  }
+  for (const [name, type] of stagingOrderingRequiredBindingColumns) {
+    const matches = columns.filter(
+      (row) =>
+        row?.table_name === "ordering_ticketing_reservation_bindings" &&
+        row?.column_name === name,
+    );
+    if (matches.length !== 1 || matches[0].column_type !== type) {
+      throw new Error("STAGING_ORDERING_SCHEMA_INCOMPLETE");
+    }
+  }
+  const [foreignKeys] = await pool.query(
+    [
+      "SELECT CONSTRAINT_NAME AS constraint_name, COLUMN_NAME AS column_name,",
+      "REFERENCED_TABLE_SCHEMA AS referenced_schema, REFERENCED_TABLE_NAME AS referenced_table,",
+      "REFERENCED_COLUMN_NAME AS referenced_column",
+      "FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE()",
+      "AND TABLE_NAME = 'ordering_ticketing_reservation_bindings' AND COLUMN_NAME = 'order_id'",
+      "AND REFERENCED_TABLE_NAME IS NOT NULL",
+    ].join(" "),
+  );
+  if (
+    !Array.isArray(foreignKeys) ||
+    foreignKeys.length !== 1 ||
+    foreignKeys[0]?.constraint_name !== "fk_ordering_ticketing_order" ||
+    foreignKeys[0]?.column_name !== "order_id" ||
+    foreignKeys[0]?.referenced_schema !== stagingOrderingIdentity.database ||
+    foreignKeys[0]?.referenced_table !== "ordering_orders" ||
+    foreignKeys[0]?.referenced_column !== "order_id"
+  ) {
+    throw new Error("STAGING_ORDERING_FOREIGN_KEY_DRIFT");
+  }
+  // Replay semantics depend on exact singleton keys, not merely column presence.
+  const [bindingKeys] = await pool.query(
+    [
+      "SELECT tc.CONSTRAINT_NAME AS constraint_name, tc.CONSTRAINT_TYPE AS constraint_type,",
+      "kcu.COLUMN_NAME AS column_name, kcu.ORDINAL_POSITION AS ordinal_position",
+      "FROM information_schema.TABLE_CONSTRAINTS AS tc",
+      "JOIN information_schema.KEY_COLUMN_USAGE AS kcu",
+      "ON tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA",
+      "AND tc.TABLE_SCHEMA = kcu.TABLE_SCHEMA AND tc.TABLE_NAME = kcu.TABLE_NAME",
+      "AND tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME",
+      "WHERE tc.TABLE_SCHEMA = DATABASE()",
+      "AND tc.TABLE_NAME = 'ordering_ticketing_reservation_bindings'",
+      "AND tc.CONSTRAINT_TYPE IN ('PRIMARY KEY', 'UNIQUE')",
+    ].join(" "),
+  );
+  if (!Array.isArray(bindingKeys)) {
+    throw new Error("STAGING_ORDERING_BINDING_KEYS_DRIFT");
+  }
+  const groups = new Map();
+  for (const row of bindingKeys) {
+    const name = row?.constraint_name;
+    const type = row?.constraint_type;
+    const column = row?.column_name;
+    const position = Number(row?.ordinal_position);
+    if (
+      typeof name !== "string" ||
+      !name ||
+      !["PRIMARY KEY", "UNIQUE"].includes(type) ||
+      typeof column !== "string" ||
+      !column ||
+      !Number.isSafeInteger(position) ||
+      position < 1
+    ) {
+      throw new Error("STAGING_ORDERING_BINDING_KEYS_DRIFT");
+    }
+    const id = type + ":" + name;
+    if (!groups.has(id)) groups.set(id, []);
+    groups.get(id).push({ column, position, type });
+  }
+  const hasSingletonKey = (type, requiredColumn) =>
+    [...groups.values()].some(
+      (rows) =>
+        rows.length === 1 &&
+        rows[0].type === type &&
+        rows[0].position === 1 &&
+        rows[0].column === requiredColumn,
+    );
+  if (
+    !hasSingletonKey("PRIMARY KEY", "reservation_reference") ||
+    !hasSingletonKey("UNIQUE", "order_id")
+  ) {
+    throw new Error("STAGING_ORDERING_BINDING_KEYS_DRIFT");
+  }
+  await pool.query("SELECT source_kind FROM ordering_orders LIMIT 0");
+  await pool.query(
+    "SELECT reservation_reference, order_id, product_reference, quantity, amount_minor, currency, pricing_version, bound_at FROM ordering_ticketing_reservation_bindings LIMIT 0",
+  );
+  return Object.freeze({
+    contract: "STAGING-TICKETING-ORDERING-READBACK",
+    status: "pass",
+    database: stagingOrderingIdentity.database,
+    user: stagingOrderingIdentity.user,
+    requiredBindingColumns: stagingOrderingRequiredBindingColumns.size,
+    foreignKeyVerified: true,
+    bindingKeysVerified: true,
   });
 }
 export function createTicketingAuthorizationPort({ authApi }) {
@@ -388,6 +553,7 @@ export function createTicketingApi({
   adminService: injectedAdminService,
   businessInventory: injectedBusinessInventory,
   notificationBridge: injectedNotificationBridge,
+  runtimeModulesForTest,
 } = {}) {
   const injected = Boolean(injectedPublicTransport);
   let runtime = injected
@@ -437,11 +603,25 @@ export function createTicketingApi({
       }
 
       startupStage = "module_load";
-      const [{ normalizeTicketSigningSecret }, ticketingRuntime] =
-        await Promise.all([
+      // The internal module seam is exclusively for deterministic test
+      // coverage of enabled startup; production cannot supply replacements.
+      let modules;
+      if (runtimeModulesForTest !== undefined) {
+        if (
+          process.env.VITEST !== "true" ||
+          !Array.isArray(runtimeModulesForTest) ||
+          runtimeModulesForTest.length !== 2
+        ) {
+          throw new Error("TICKETING_TEST_MODULE_OVERRIDE_DENIED");
+        }
+        modules = runtimeModulesForTest;
+      } else {
+        modules = await Promise.all([
           import("@touristic/ticketing"),
           import("@touristic/ticketing-server"),
         ]);
+      }
+      const [{ normalizeTicketSigningSecret }, ticketingRuntime] = modules;
       const {
         MySqlFinancialResultCursorRepository,
         MySqlRefundedReservationCancellationRepository,
@@ -498,15 +678,25 @@ export function createTicketingApi({
       // Keep startup checks concurrent; emit only allowlisted failure stages.
       const traceStartupCheck = (promise, stage) =>
         startupFailureTracker.track(promise, stage);
+      const stagingReadback = isStagingOrderingSchemaReadbackService(
+        environment.RENDER_SERVICE_NAME,
+      );
+      const applyRuntimeSchema = shouldApplyRuntimeSchema(environment);
       await Promise.all([
-        ...(shouldApplyRuntimeSchema(environment)
+        ...(applyRuntimeSchema
           ? [
               traceStartupCheck(
                 applyTicketingPublicApiSchema(ticketingPool),
                 "ticketing_schema",
               ),
+            ]
+          : []),
+        ...(stagingReadback || applyRuntimeSchema
+          ? [
               traceStartupCheck(
-                applyOrderingTicketingReservationSchema(orderingPool),
+                stagingReadback
+                  ? verifyStagingOrderingTicketingSchema(orderingPool)
+                  : applyOrderingTicketingReservationSchema(orderingPool),
                 "ordering_schema",
               ),
             ]
