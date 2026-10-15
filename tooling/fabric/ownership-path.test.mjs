@@ -283,3 +283,82 @@ test("assistant and text voice UX ownership uses exact map literals", () => {
     ["map"],
   );
 });
+
+test("pending UX CRM affiliate and gesture ownership stays exact and preserves auth contract", () => {
+  const additions = {
+    map: [
+      "apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts",
+      "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+      "apps/morro-digital-platform/src/home/manual-place-search.ts",
+      "apps/morro-digital-platform/src/home/manual-place-search.test.ts",
+      "apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts",
+      "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs",
+      "apps/morro-digital-platform/tooling/wave-a-pan-gesture.mjs",
+      "apps/morro-digital-platform/tooling/wave-a-pan-gesture.test.mjs",
+    ],
+    auth: [
+      "packages/crm/src/ai-content-contract.test.ts",
+      "packages/crm/src/contracts-boundary.test.ts",
+      "packages/crm/src/followups-boundary.test.ts",
+      "packages/crm/src/lead-detail-boundary.test.ts",
+      "packages/crm/src/leads-boundary.test.ts",
+      "packages/crm/src/meetings-boundary.test.ts",
+      "packages/crm/src/metrics-boundary.test.ts",
+      "packages/crm/src/proposals-boundary.test.ts",
+      "packages/crm/src/referrals-boundary.test.ts",
+      "packages/crm/src/trials-boundary.test.ts",
+      "services/crm/src/contracts-http-transport.test.ts",
+      "services/crm/src/followups-http-transport.test.ts",
+      "services/crm/src/lead-detail-http-transport.test.ts",
+      "services/crm/src/leads-http-transport.test.ts",
+      "services/crm/src/meetings-http-transport.test.ts",
+      "services/crm/src/metrics-http-transport.test.ts",
+      "services/crm/src/proposals-http-transport.test.ts",
+      "apps/morro-digital-platform/tooling/affiliates-api.mjs",
+      "apps/morro-digital-platform/tooling/affiliates-api.test.mjs",
+      "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs",
+    ],
+  };
+  const canonical = JSON.parse(readFileSync(".morro/ownership.json", "utf8"));
+  const owners = (file, registry) =>
+    registry.domains
+      .filter((d) =>
+        d.pathPrefixes.some((p) =>
+          p.endsWith("/") ? file.startsWith(p) : file === p,
+        ),
+      )
+      .map((d) => d.id);
+  for (const [domain, paths] of Object.entries(additions))
+    for (const file of paths) {
+      assert.deepEqual(owners(file, canonical), [domain], file);
+      assert.deepEqual(assertOwnershipCoverage([file], canonical), {
+        covered: 1,
+      });
+      for (const alias of [
+        file + ".backup",
+        file + "/nested.ts",
+        file.replace(/\.(mjs|ts)$/u, "-other.$1"),
+      ]) {
+        assert.deepEqual(owners(alias, canonical), [], alias);
+        assert.throws(
+          () => assertOwnershipCoverage([alias], canonical),
+          /FAST_GATE_OWNERSHIP_UNCOVERED/,
+        );
+      }
+    }
+  assert.deepEqual(canonical.domains.find((d) => d.id === "auth").contracts, [
+    "platform-authz",
+  ]);
+  assert.equal(riskPolicy.semanticRiskFloor["platform-authz"], "critical");
+  const before = structuredClone(canonical);
+  for (const [domain, paths] of Object.entries(additions))
+    before.domains.find((d) => d.id === domain).pathPrefixes = before.domains
+      .find((d) => d.id === domain)
+      .pathPrefixes.filter((p) => !paths.includes(p));
+  const added = Object.values(additions).flat();
+  const tracked = execFileSync("git", ["ls-files", "-z"], { encoding: "utf8" })
+    .split("\0")
+    .filter(Boolean);
+  for (const file of tracked.filter((f) => !added.includes(f)))
+    assert.deepEqual(owners(file, canonical), owners(file, before), file);
+});

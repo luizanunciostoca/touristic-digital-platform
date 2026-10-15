@@ -82,7 +82,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/next-ready-exact-governance-20261015",
-      "baseSha": "e51ac37368d86b756ba155e37879f56cad214d7b",
+      "baseSha": "7618b00a64fe2736bd8064ee6445dc4a9673a5a4",
       "paths": [
         ".morro/changesets/MD-NEXT-READY-EXACT-GOVERNANCE-20261015.json",
         ".morro/ownership.json",

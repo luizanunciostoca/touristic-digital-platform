@@ -438,6 +438,103 @@
       "needsDatabase": false,
       "needsDependencyAudit": false,
       "needsFullSecurity": false
+    },
+    "ux-manual-visual-authority": {
+      "paths": [
+        "apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": [
+        "ux-v2-manual-golden-conformance.yml",
+        "place-explore-v2-visual-regression.yml"
+      ],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "manual-home-navigation": {
+      "paths": [
+        "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+        "apps/morro-digital-platform/src/home/manual-place-search.ts",
+        "apps/morro-digital-platform/src/home/manual-place-search.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["home-discover-manual-conformance.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "explore-marker-rendering": {
+      "paths": [
+        "apps/morro-digital-platform/src/map/explore-marker-grouping.ts",
+        "apps/morro-digital-platform/src/map/explore-marker-grouping.test.ts",
+        "apps/morro-digital-platform/src/map/explore-marker-selection.ts",
+        "apps/morro-digital-platform/src/map/explore-marker-selection.test.ts",
+        "apps/morro-digital-platform/src/map/explore-marker-element.ts",
+        "apps/morro-digital-platform/src/map/explore-marker-element.test.ts",
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+        "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
+        "apps/morro-digital-platform/public/explore-locations.css",
+        "packages/geospatial/src/infrastructure/mapbox-gl-driver.ts",
+        "packages/geospatial/src/infrastructure/mapbox-gl-driver.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["place-explore-v2-visual-regression.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "explore-marker-contract": {
+      "paths": [
+        "apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["quality.yml"],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
+    },
+    "affiliate-runtime": {
+      "paths": [
+        "apps/morro-digital-platform/tooling/affiliates-api.mjs",
+        "apps/morro-digital-platform/tooling/affiliates-api.test.mjs",
+        "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["quality.yml"],
+      "needsBrowser": false,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
+    },
+    "wave-a-gesture-harness": {
+      "paths": [
+        "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs",
+        "apps/morro-digital-platform/tooling/wave-a-pan-gesture.mjs",
+        "apps/morro-digital-platform/tooling/wave-a-pan-gesture.test.mjs"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "suites": ["quality.yml"],
+      "needsBrowser": true,
+      "needsVisual": true,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false
     }
   }
 }
