@@ -121,6 +121,30 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T08:00:00.000Z"
+    },
+    "MD-HOME-TEXT-VOICE-ENTRY-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/home-text-voice-entry-20261015",
+      "baseSha": "821cce7e84caf9e008be835884f127dd890103d3",
+      "paths": [
+        ".morro/changesets/MD-HOME-TEXT-VOICE-ENTRY-20261015.json",
+        "apps/morro-digital-platform/src/layouts/app-shell.ts",
+        "apps/morro-digital-platform/public/tourist-shell-v2.css",
+        "apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts",
+        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs",
+        ".github/workflows/place-explore-v2-visual-regression.yml",
+        ".github/workflows/v1-explore-locations-browser-regression.yml",
+        "apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-ui-state.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T10:00:00.000Z"
     }
   }
 }
