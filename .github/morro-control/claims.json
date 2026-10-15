@@ -67,7 +67,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/staging-ordering-schema-readback-20261014",
-      "baseSha": "af5c13662c41adb066591428cb22999ce225b136",
+      "baseSha": "9e58ff7f5110d696c6c0c6009d18a0b246aa2de5",
       "paths": [
         ".morro/changesets/MD-STAGING-ORDERING-SCHEMA-READBACK-20261014.json",
         "apps/morro-digital-platform/tooling/ticketing-api.mjs",
