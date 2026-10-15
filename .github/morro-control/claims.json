@@ -93,23 +93,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T05:30:00.000Z"
-    },
-    "MD-UI-CRM-EXACT-OWNERSHIP-IMPACT-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ui-crm-exact-ownership-impact-20261015",
-      "baseSha": "93f3bc84cb28f693866b31670e31f530cc5ced73",
-      "paths": [
-        ".morro/changesets/MD-UI-CRM-EXACT-OWNERSHIP-IMPACT-20261015.json",
-        ".morro/ownership.json",
-        "tooling/fabric/ownership-path.test.mjs",
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T06:00:00.000Z"
     }
   }
 }
