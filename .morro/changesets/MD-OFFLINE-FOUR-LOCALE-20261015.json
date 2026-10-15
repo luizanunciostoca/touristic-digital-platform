@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-OFFLINE-FOUR-LOCALE-20261015",
   "objective": "localized-offline-retry-with-network-only-sensitive-routes",
-  "baseSha": "98c931e5cded8f6aed80c08bba52d197ff826baa",
-  "branch": "fix/offline-four-locale-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "5a6049d601f2d8a233bf8882332e096fc74d2e64",
+  "branch": "infra/retire-u12-offline-966-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {

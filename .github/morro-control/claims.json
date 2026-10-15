@@ -70,23 +70,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T19:54:50.407Z"
     },
-    "MD-OFFLINE-FOUR-LOCALE-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/offline-four-locale-20261015",
-      "baseSha": "98c931e5cded8f6aed80c08bba52d197ff826baa",
-      "paths": [
-        ".morro/changesets/MD-OFFLINE-FOUR-LOCALE-20261015.json",
-        "apps/morro-digital-platform/public/offline.html",
-        "apps/morro-digital-platform/public/service-worker.js",
-        "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
-        ".github/workflows/pwa-offline-browser-contract.yml"
-      ],
-      "domains": ["map", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T19:59:50.634Z"
-    },
     "MD-WEATHER-SUBDUED-STALE-20261015": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
