@@ -33,21 +33,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-15T12:00:00.000Z"
     },
-    "MD-CI-LEGACY-BATCH-IMPACT-20261014": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/ci-legacy-batch-impact-20261014",
-      "baseSha": "66b8b3fce250dbe3dcee7bcdc05e583f4c4f0692",
-      "paths": [
-        ".morro/changesets/MD-CI-LEGACY-BATCH-IMPACT-20261014.json",
-        "tooling/ci/test-impact-manifest.json",
-        "tooling/ci/impact-analyzer.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-15T12:00:00.000Z"
-    },
     "MD-STAGING-BATCH-WORKFLOW-TRIGGER-20261014": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
