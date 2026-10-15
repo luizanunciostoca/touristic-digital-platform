@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-STAGING-TICKETING-FINANCIAL-PROBE-DIAGNOSTIC-20261014",
+  "objective": "staging-ticketing-financial-probe-failure-classification",
+  "baseSha": "7947a6ec61206426aef33c48d5776c741ae6bc6a",
+  "branch": "fix/staging-ticketing-financial-probe-diagnostic-20261014",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-STAGING-TICKETING-FINANCIAL-PROBE-DIAGNOSTIC-20261014.json",
+      "apps/morro-digital-platform/tooling/ticketing-api.mjs",
+      "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
+    ],
+    "contracts": ["TICKETING-FINANCIAL-PROBE-REDACTED-DIAGNOSTICS"]
+  },
+  "reads": {
+    "contracts": [
+      "TICKETING-STARTUP-FAILURE-CLASSIFICATION",
+      "STAGING-TICKETING-ORDERING-SCHEMA-READBACK",
+      "PAYMENTS-PREDEPLOY"
+    ]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-STAGING-ORDERING-SCHEMA-READBACK-20261014"],
+  "requiredEvidence": [
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "staging-runtime-proof"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "startup-claim-admission",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration",
+      "staging-runtime-proof"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
