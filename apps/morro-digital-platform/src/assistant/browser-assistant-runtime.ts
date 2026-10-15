@@ -1031,10 +1031,19 @@ export function installBrowserAssistantRuntime(
       });
       return;
     }
-    if (state.stage === "menu") {
+    // Native search exposes places without a category; the DOM adapter uses search.
+    if (
+      state.stage === "menu" ||
+      state.stage === "search" ||
+      (state.stage === "places" && !state.category)
+    ) {
       profiledExploreCategory = null;
       profiledExplorePlace = null;
-      context.updateContext({ awaiting: null });
+      context.updateContext({
+        lastPlace: null,
+        lastCategory: state.category ?? null,
+        awaiting: null,
+      });
     }
   };
 

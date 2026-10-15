@@ -112,7 +112,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/assistant-explore-context-ux11-20261015",
-      "baseSha": "32b85ffa303ab1eda84de637107dc2d09c893dd4",
+      "baseSha": "b6e4fb6a032788b20f1c334f3e0d1f1b4f7df30c",
       "paths": [
         ".morro/changesets/MD-ASSISTANT-EXPLORE-CONTEXT-UX11-20261015.json",
         "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
