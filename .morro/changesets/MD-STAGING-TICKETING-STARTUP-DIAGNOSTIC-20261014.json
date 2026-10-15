@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-TICKETING-STARTUP-DIAGNOSTIC-20261014",
   "objective": "classify-redacted-staging-ticketing-startup-failure-without-secret-disclosure",
-  "baseSha": "521ab5a2aa99f303b75d3511e8aa8cf371c31924",
-  "branch": "fix/staging-ticketing-startup-diagnostic-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a1fd7a9fd604b61e06a67ea610e8749b048d6474",
+  "branch": "chore/retire-staging-ticketing-startup-20261014",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "DESTINATION:MORRO",
   "owns": {
