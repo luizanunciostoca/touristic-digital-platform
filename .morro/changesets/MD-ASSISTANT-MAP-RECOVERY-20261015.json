@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-MAP-RECOVERY-20261015",
-  "baseSha": "55140ffa2c91edee8e82410b6e183db2e8258e94",
+  "baseSha": "aa4db8f92fc30cbe1ea410486737a392983557c2",
   "branch": "fix/assistant-map-recovery-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "owns": {
     "paths": [

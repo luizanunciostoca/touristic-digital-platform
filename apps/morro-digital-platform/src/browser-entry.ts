@@ -1028,6 +1028,11 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
           map,
           fallbackProvider.sdk,
         );
+        activeNavigationRuntimeInstall = installBrowserNavigationRuntime({
+          map,
+          sdk: fallbackProvider.sdk,
+          document,
+        });
       },
     });
   }
