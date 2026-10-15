@@ -77,6 +77,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T05:30:00.000Z"
+    },
+    "MD-WAVE-A-PAN-HARNESS-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/wave-a-pan-harness-20261015",
+      "baseSha": "dc2bb9de4e437d6c158542c962cd81a6c156e1b6",
+      "paths": [
+        ".morro/changesets/MD-WAVE-A-PAN-HARNESS-20261015.json",
+        "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs",
+        "apps/morro-digital-platform/tooling/wave-a-pan-gesture.mjs",
+        "apps/morro-digital-platform/tooling/wave-a-pan-gesture.test.mjs",
+        ".github/workflows/home-discover-manual-conformance.yml"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T12:00:00.000Z"
     }
   }
 }
