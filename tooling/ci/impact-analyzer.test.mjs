@@ -1103,3 +1103,50 @@ test("structural gesture selection does not waive browser proof or change existi
   ]);
   assert.equal(auth.needsFullSecurity, true);
 });
+
+const confirmedUxImpactPaths = [
+  "apps/morro-digital-platform/src/map/device-saved-itineraries.ts",
+  "apps/morro-digital-platform/src/map/device-saved-itineraries.test.ts",
+  "apps/morro-digital-platform/src/map/saved-itinerary-ui.ts",
+  "apps/morro-digital-platform/src/map/saved-itinerary-ui.test.ts",
+  "apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts",
+  "apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts",
+  "apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.test.ts",
+  "apps/morro-digital-platform/src/map/immersive-tour-v1-controller.test.ts",
+  "apps/morro-digital-platform/src/home/home-discover-navigation.test.ts",
+  "apps/morro-digital-platform/tooling/device-saved-itineraries-browser-contract.cjs",
+  "apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.ts",
+  "apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.test.ts",
+  "apps/morro-digital-platform/src/ux/navigation-tour-manual-conformance.test.ts",
+  ".github/workflows/home-discover-manual-conformance.yml",
+  "apps/morro-digital-platform/src/map/discover-map-controls.ts",
+  "apps/morro-digital-platform/src/map/discover-map-controls.test.ts",
+  "apps/morro-digital-platform/src/map/explore-v1-i18n.ts",
+  "apps/morro-digital-platform/src/map/explore-v1-i18n.test.ts",
+  "apps/morro-digital-platform/src/weather/weather-widget.ts",
+  "apps/morro-digital-platform/src/weather/weather-widget.test.ts",
+  "apps/morro-digital-platform/src/weather/weather-i18n.ts",
+  "apps/morro-digital-platform/src/weather/weather-i18n.test.ts",
+  "apps/morro-digital-platform/src/weather/weather-forecast-modal.ts",
+  "apps/morro-digital-platform/tooling/weather-v1-i18n-browser-parity.mjs",
+  "apps/morro-digital-platform/public/v1-weather-runtime-parity.css",
+  "apps/morro-digital-platform/public/offline.html",
+  "apps/morro-digital-platform/public/service-worker.js",
+  "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+  ".github/workflows/weather-v1-i18n-browser-parity.yml",
+  ".github/workflows/pwa-offline-browser-contract.yml",
+];
+test("confirmed UX literals retain browser/visual proof and reject sibling aliases", () => {
+  for (const path of confirmedUxImpactPaths) {
+    const report = analyzeFiles([path]);
+    assert.equal(report.classificationBlocked, false);
+    assert.equal(
+      report.risk,
+      path.startsWith(".github/") ? "CRITICAL" : "HIGH",
+    );
+    assert.equal(report.needsBrowser, true);
+    assert.equal(report.needsVisual, true);
+    if (!path.startsWith(".github/"))
+      assert.equal(analyzeFiles([path + ".bak"]).classificationBlocked, true);
+  }
+});
