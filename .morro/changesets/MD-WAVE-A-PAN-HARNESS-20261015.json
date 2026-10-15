@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-WAVE-A-PAN-HARNESS-20261015",
   "objective": "prove-native-pointer-pan-with-canvas-hit-testing-and-gesture-bound-events",
-  "baseSha": "dc2bb9de4e437d6c158542c962cd81a6c156e1b6",
+  "baseSha": "3635bea75654f176d5427b3961c285d8f7795dd7",
   "branch": "fix/wave-a-pan-harness-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "DESTINATION:MORRO",
   "owns": {
