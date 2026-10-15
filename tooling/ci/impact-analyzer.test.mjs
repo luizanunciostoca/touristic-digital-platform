@@ -930,3 +930,176 @@ test("assistant shell state literals select only directly triggered browser suit
     assert.equal(analyzeFiles([file + ".backup"]).classificationBlocked, true);
   }
 });
+
+const pendingSurfaceDomains = {
+  "ux-manual-visual-authority": {
+    paths: [
+      "apps/morro-digital-platform/src/ux/manual-visual-conformance-authority.test.ts",
+    ],
+    risk: "HIGH",
+    dependsOn: [],
+    suites: [
+      "ux-v2-manual-golden-conformance.yml",
+      "place-explore-v2-visual-regression.yml",
+    ],
+    needsBrowser: true,
+    needsVisual: true,
+    needsDatabase: false,
+    needsDependencyAudit: false,
+    needsFullSecurity: false,
+  },
+  "manual-home-navigation": {
+    paths: [
+      "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+      "apps/morro-digital-platform/src/home/manual-place-search.ts",
+      "apps/morro-digital-platform/src/home/manual-place-search.test.ts",
+    ],
+    risk: "HIGH",
+    dependsOn: [],
+    suites: ["home-discover-manual-conformance.yml"],
+    needsBrowser: true,
+    needsVisual: true,
+    needsDatabase: false,
+    needsDependencyAudit: false,
+    needsFullSecurity: false,
+  },
+  "explore-marker-rendering": {
+    paths: [
+      "apps/morro-digital-platform/src/map/explore-marker-grouping.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-grouping.test.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-selection.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-selection.test.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-element.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-element.test.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
+      "apps/morro-digital-platform/public/explore-locations.css",
+      "packages/geospatial/src/infrastructure/mapbox-gl-driver.ts",
+      "packages/geospatial/src/infrastructure/mapbox-gl-driver.test.ts",
+    ],
+    risk: "HIGH",
+    dependsOn: [],
+    suites: ["place-explore-v2-visual-regression.yml"],
+    needsBrowser: true,
+    needsVisual: true,
+    needsDatabase: false,
+    needsDependencyAudit: false,
+    needsFullSecurity: false,
+  },
+  "explore-marker-contract": {
+    paths: ["apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts"],
+    risk: "HIGH",
+    dependsOn: [],
+    suites: ["quality.yml"],
+    needsBrowser: false,
+    needsVisual: false,
+    needsDatabase: false,
+    needsDependencyAudit: false,
+    needsFullSecurity: false,
+  },
+  "affiliate-runtime": {
+    paths: [
+      "apps/morro-digital-platform/tooling/affiliates-api.mjs",
+      "apps/morro-digital-platform/tooling/affiliates-api.test.mjs",
+      "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs",
+    ],
+    risk: "HIGH",
+    dependsOn: [],
+    suites: ["quality.yml"],
+    needsBrowser: false,
+    needsVisual: false,
+    needsDatabase: false,
+    needsDependencyAudit: false,
+    needsFullSecurity: true,
+  },
+  "wave-a-gesture-harness": {
+    paths: [
+      "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs",
+      "apps/morro-digital-platform/tooling/wave-a-pan-gesture.mjs",
+      "apps/morro-digital-platform/tooling/wave-a-pan-gesture.test.mjs",
+    ],
+    risk: "HIGH",
+    dependsOn: [],
+    suites: ["quality.yml"],
+    needsBrowser: true,
+    needsVisual: true,
+    needsDatabase: false,
+    needsDependencyAudit: false,
+    needsFullSecurity: false,
+  },
+};
+
+for (const [domain, definition] of Object.entries(pendingSurfaceDomains))
+  test(`pending surface ${domain} keeps literal boundaries and proof requirements`, () => {
+    for (const file of definition.paths) {
+      const result = analyzeFiles([file]);
+      assert.equal(result.classificationBlocked, false, file);
+      assert.deepEqual(result.unknownFiles, []);
+      assert.deepEqual(result.domains, [domain]);
+      assert.equal(result.risk, "HIGH");
+      for (const flag of ["needsBrowser", "needsVisual", "needsFullSecurity"])
+        assert.equal(result[flag], definition[flag], file + ":" + flag);
+      assert.deepEqual(result.suites, [...definition.suites].sort());
+      for (const alias of [
+        file + ".backup",
+        file + "/nested.ts",
+        file.replace(/\.(mjs|ts|css)$/u, "-other.$1"),
+      ]) {
+        const unknown = analyzeFiles([alias]);
+        assert.equal(unknown.classificationBlocked, true, alias);
+        assert.deepEqual(unknown.unknownFiles, [alias]);
+      }
+    }
+    const combined = analyzeFiles(definition.paths);
+    assert.equal(combined.classificationBlocked, false);
+    assert.deepEqual(combined.domains, [domain]);
+    for (const suite of definition.suites) {
+      const workflow = readFileSync(".github/workflows/" + suite, "utf8");
+      const pr = workflow
+        .split("  pull_request:")[1]
+        ?.split(
+          /\n  (?:push|workflow_dispatch|merge_group):|\npermissions:/u,
+        )[0];
+      assert.ok(pr, suite);
+      if (suite === "quality.yml") {
+        assert.ok(!pr.includes("paths:"), "quality must remain unconditional");
+        continue;
+      }
+      for (const file of definition.paths) {
+        const trigger =
+          domain === "manual-home-navigation"
+            ? "apps/morro-digital-platform/src/home/**"
+            : domain === "explore-marker-rendering"
+              ? file.includes("/src/map/")
+                ? "apps/morro-digital-platform/src/map/**"
+                : file.includes("packages/geospatial/")
+                  ? "packages/geospatial/src/**"
+                  : file
+              : file;
+        assert.ok(
+          pr.includes(trigger),
+          suite + ":" + file + " direct trigger missing",
+        );
+      }
+    }
+  });
+
+test("structural gesture selection does not waive browser proof or change existing security floors", () => {
+  const wave = analyzeFiles(
+    pendingSurfaceDomains["wave-a-gesture-harness"].paths,
+  );
+  assert.equal(wave.needsBrowser, true);
+  assert.equal(wave.needsVisual, true);
+  assert.deepEqual(wave.suites, ["quality.yml"]);
+  const workflow = analyzeFiles([
+    ".github/workflows/home-discover-manual-conformance.yml",
+  ]);
+  assert.equal(workflow.risk, "CRITICAL");
+  const crm = analyzeFiles(["packages/crm/src/trials-boundary.test.ts"]);
+  assert.deepEqual(crm.domains, ["crm-backend"]);
+  assert.equal(crm.needsDatabase, true);
+  const auth = analyzeFiles([
+    "apps/morro-digital-platform/tooling/admin-api.test.mjs",
+  ]);
+  assert.equal(auth.needsFullSecurity, true);
+});

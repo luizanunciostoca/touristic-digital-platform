@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-NEXT-READY-EXACT-GOVERNANCE-20261015",
   "objective": "classify-exact-ux-crm-affiliate-marker-and-wave-proof-paths",
-  "baseSha": "e51ac37368d86b756ba155e37879f56cad214d7b",
+  "baseSha": "7618b00a64fe2736bd8064ee6445dc4a9673a5a4",
   "branch": "fix/next-ready-exact-governance-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
