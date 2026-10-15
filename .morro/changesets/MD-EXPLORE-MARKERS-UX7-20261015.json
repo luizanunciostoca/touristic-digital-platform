@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-EXPLORE-MARKERS-UX7-20261015",
+  "objective": "pixel-aware-all-category-marker-grouping-and-typed-selection",
+  "baseSha": "6535c567172c938a608ac72e36aa0921a92149e3",
+  "branch": "fix/explore-markers-ux7-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EXPLORE-MARKERS-UX7-20261015.json",
+      "apps/morro-digital-platform/src/map/explore-marker-grouping.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-grouping.test.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-element.ts",
+      "apps/morro-digital-platform/src/map/explore-marker-element.test.ts",
+      "apps/morro-digital-platform/public/explore-locations.css",
+      "apps/morro-digital-platform/src/browser-entry.ts",
+      "apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts",
+      "packages/geospatial/src/infrastructure/mapbox-gl-driver.ts",
+      "packages/geospatial/src/infrastructure/mapbox-gl-driver.test.ts",
+      ".github/workflows/place-explore-v2-visual-regression.yml",
+      ".github/workflows/v1-explore-locations-browser-regression.yml"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-UX-CONFIRMED-EXACT-GOVERNANCE-20261015",
+    "MD-HOME-TEXT-VOICE-ENTRY-20261015"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ownership-impact-preflight",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs"
+        ],
+        "timeoutSeconds": 900
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
