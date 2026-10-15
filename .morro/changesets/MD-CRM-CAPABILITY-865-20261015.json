@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-CAPABILITY-865-20261015",
+  "objective": "deny-crm-access-without-canonical-capability-and-prove-real-auth-composition",
+  "baseSha": "9679260e060656253a7021318d478a801d5c62da",
+  "branch": "fix/crm-capability-865-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-CAPABILITY-865-20261015.json",
+      "packages/crm/src/authorization.ts",
+      "packages/crm/src/authorization.test.ts",
+      "services/crm/src/contracts-http-transport.ts",
+      "services/crm/src/followups-http-transport.ts",
+      "services/crm/src/lead-detail-http-transport.ts",
+      "services/crm/src/leads-http-transport.ts",
+      "services/crm/src/meetings-http-transport.ts",
+      "services/crm/src/proposals-http-transport.ts",
+      "services/crm/src/referrals-http-transport.ts",
+      "services/crm/src/trials-http-transport.ts",
+      "services/crm/src/trials-http-transport.test.ts",
+      "services/crm/src/referrals-http-transport.test.ts",
+      "services/crm/src/crm-auth-composition.test.mjs",
+      "services/crm/vitest.config.mjs"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "crm-capability-claim-governance-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
