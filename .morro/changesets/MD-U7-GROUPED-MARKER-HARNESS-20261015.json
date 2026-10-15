@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-U7-GROUPED-MARKER-HARNESS-20261015",
   "objective": "grouped-marker-harness-membership-and-selection-proof",
-  "baseSha": "e92ab979b34fbb821cfe4cb05f8e69df0ed3f29d",
-  "branch": "fix/u7-grouped-marker-harness-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "12a03107348dd6d59228a63b8b7b0507dd7d70a7",
+  "branch": "infra/retire-u7-grouped-consumer-963-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
