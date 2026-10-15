@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-MAP-AUTH-IMPACT-20261015",
   "objective": "classify-exact-browser-entry-and-admin-auth-regression-impact",
-  "baseSha": "35c732ff9723ff28dab2d4ce72a2c6c506a0ec73",
+  "baseSha": "9feb8c8a1b50ced211d243e37b4c404c983892bf",
   "branch": "fix/ci-map-auth-impact-20261015",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

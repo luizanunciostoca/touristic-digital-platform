@@ -98,7 +98,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ci-map-auth-impact-20261015",
-      "baseSha": "35c732ff9723ff28dab2d4ce72a2c6c506a0ec73",
+      "baseSha": "9feb8c8a1b50ced211d243e37b4c404c983892bf",
       "paths": [
         ".morro/changesets/MD-CI-MAP-AUTH-IMPACT-20261015.json",
         "tooling/ci/test-impact-manifest.json",

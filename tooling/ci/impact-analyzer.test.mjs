@@ -787,3 +787,70 @@ test("STAGING CRM historical deletion cannot be accepted as NOT_RUN", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("administrative auth regression uses exact auth impact and preserves security", () => {
+  const adminTest = "apps/morro-digital-platform/tooling/admin-api.test.mjs";
+  for (const files of [
+    [adminTest],
+    [
+      adminTest,
+      "packages/auth/src/index.ts",
+      "packages/auth/src/index.test.ts",
+    ],
+  ]) {
+    const result = analyzeFiles(files);
+    assert.equal(result.classificationBlocked, false);
+    assert.deepEqual(result.unknownFiles, []);
+    assert.deepEqual(result.domains, ["auth"]);
+    assert.equal(result.risk, "HIGH");
+    assert.equal(result.needsFullSecurity, true);
+    assert.equal(result.qualityProfile, "BUGFIX_FAST");
+    assert.deepEqual(result.suites, []);
+  }
+  for (const file of [
+    "apps/morro-digital-platform/tooling/admin-api.test.mjs.backup",
+    "apps/morro-digital-platform/tooling/admin-api-other.test.mjs",
+    "apps/morro-digital-platform/tooling/admin-api.mjs",
+  ]) {
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, true);
+    assert.deepEqual(result.unknownFiles, [file]);
+    assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
+  }
+});
+
+test("browser entry retains routing browser proof with exact path matching", () => {
+  const entry = "apps/morro-digital-platform/src/browser-entry.ts";
+  const result = analyzeFiles([entry]);
+  assert.equal(result.classificationBlocked, false);
+  assert.deepEqual(result.unknownFiles, []);
+  assert.deepEqual(result.domains, ["geospatial-routing"]);
+  assert.equal(result.risk, "HIGH");
+  assert.equal(result.needsBrowser, true);
+  assert.equal(result.qualityProfile, "UI_BUGFIX_FAST");
+  assert.deepEqual(result.suites, [
+    "navigation-accessibility-baseline.yml",
+    "navigation-turn-by-turn-parity.yml",
+  ]);
+  for (const suite of result.suites) {
+    const workflow = readFileSync(
+      join(process.cwd(), ".github/workflows", suite),
+      "utf8",
+    );
+    const prPaths = workflow
+      .split("  pull_request:")[1]
+      ?.split("\npermissions:")[0];
+    assert.ok(
+      prPaths?.includes("- " + entry),
+      `${suite} must directly trigger for ${entry}`,
+    );
+  }
+  for (const file of [
+    entry + ".backup",
+    "apps/morro-digital-platform/src/browser-entry-other.ts",
+  ]) {
+    const unknown = analyzeFiles([file]);
+    assert.equal(unknown.classificationBlocked, true);
+    assert.deepEqual(unknown.unknownFiles, [file]);
+  }
+});
