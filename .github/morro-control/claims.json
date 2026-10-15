@@ -107,21 +107,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T20:04:27.413Z"
-    },
-    "MD-ASSISTANT-EXPLORE-CONTEXT-UX11-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/assistant-explore-context-ux11-20261015",
-      "baseSha": "b6e4fb6a032788b20f1c334f3e0d1f1b4f7df30c",
-      "paths": [
-        ".morro/changesets/MD-ASSISTANT-EXPLORE-CONTEXT-UX11-20261015.json",
-        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
-        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts"
-      ],
-      "domains": ["map"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T20:29:55.503Z"
     }
   }
 }

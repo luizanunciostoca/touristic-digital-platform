@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ASSISTANT-EXPLORE-CONTEXT-UX11-20261015",
   "objective": "clear-stale-selected-place-context-on-search-and-menu",
-  "baseSha": "b6e4fb6a032788b20f1c334f3e0d1f1b4f7df30c",
-  "branch": "fix/assistant-explore-context-ux11-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a5dca9b3e2fd5de8e49ae93a6dccb93f0f360e19",
+  "branch": "infra/retire-assistant-context-960-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
