@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-LEGACY-BATCH-PROVENANCE-20261014",
   "objective": "repair-legacy-publication-batch-historical-marker-provenance",
-  "baseSha": "4a636e5ffbd217f8a86c015af8ac3e09ea3602e4",
-  "branch": "fix/staging-legacy-batch-provenance-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a631b06cadab331d35265c628ad5237658bf8435",
+  "branch": "infra/retire-provenance-901-20261015",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "DESTINATION:MORRO",
   "owns": {
