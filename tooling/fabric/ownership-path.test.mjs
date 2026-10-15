@@ -349,7 +349,11 @@ test("pending UX CRM affiliate and gesture ownership stays exact and preserves a
   assert.deepEqual(canonical.domains.find((d) => d.id === "auth").contracts, [
     "platform-authz",
   ]);
-  assert.equal(riskPolicy.semanticRiskFloor["platform-authz"], "critical");
+  assert.equal(
+    JSON.parse(readFileSync(".morro/risk-policy.json", "utf8"))
+      .semanticRiskFloor["platform-authz"],
+    "critical",
+  );
   const before = structuredClone(canonical);
   for (const [domain, paths] of Object.entries(additions))
     before.domains.find((d) => d.id === domain).pathPrefixes = before.domains
