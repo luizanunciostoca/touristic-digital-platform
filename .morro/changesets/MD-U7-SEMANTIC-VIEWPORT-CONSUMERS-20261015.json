@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-U7-SEMANTIC-VIEWPORT-CONSUMERS-20261015",
+  "objective": "semantic-viewport-filter-membership-and-analytics-for-grouped-markers",
+  "baseSha": "176d8e6e14f33eac75954cecc8cddbf3a579f52a",
+  "branch": "fix/u7-semantic-viewport-consumers-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-U7-SEMANTIC-VIEWPORT-CONSUMERS-20261015.json",
+      "apps/morro-digital-platform/src/map/explore-map-viewport-v1.ts",
+      "apps/morro-digital-platform/src/map/explore-map-viewport-v1.test.ts",
+      "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
+      "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts",
+      ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+      ".morro/ownership.json",
+      "tooling/fabric/ownership-path.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ownership-impact-preflight",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs"
+        ],
+        "timeoutSeconds": 900
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
