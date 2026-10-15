@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-U7-GROUPED-MARKER-HARNESS-20261015",
+  "objective": "grouped-marker-harness-membership-and-selection-proof",
+  "baseSha": "005fc3284aa697f16db6397900e1a2fcab855d7f",
+  "branch": "fix/u7-grouped-marker-harness-20261015",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-U7-GROUPED-MARKER-HARNESS-20261015.json",
+      ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+      ".github/workflows/assistant-v1-residual-command-parity.yml",
+      ".github/workflows/v1-assistant-single-message-poi-markers.yml",
+      ".github/workflows/map-tour-browser-regression.yml",
+      "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-contextual-state.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts",
+      ".morro/ownership.json",
+      "tooling/fabric/ownership-path.test.mjs",
+      "tooling/ci/test-impact-manifest.json",
+      "tooling/ci/impact-analyzer.test.mjs",
+      "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-HOME-TEXT-VOICE-ENTRY-20261015"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "ownership-impact-preflight",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs"
+        ],
+        "timeoutSeconds": 900
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
