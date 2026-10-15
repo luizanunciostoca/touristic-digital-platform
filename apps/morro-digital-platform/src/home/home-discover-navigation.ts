@@ -1,4 +1,9 @@
-const ASSISTANT_OPEN_REQUEST_EVENT = "morro:assistant-open-request";
+import {
+  createManualPlaceSearch,
+  type ManualSearchSnapshot,
+} from "./manual-place-search.js";
+import { getMorroDigitalApplication } from "../main.js";
+import { createAssistantUserProfileManager } from "@touristic/assistant";
 const ASSISTANT_CLOSE_REQUEST_EVENT = "morro:assistant-close-request";
 const EXPLORE_RESET_REQUEST_EVENT = "morro:explore-reset-requested";
 
@@ -25,10 +30,10 @@ interface HomeCopy {
 
 const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
   pt: Object.freeze({
-    explore: "Explorar",
-    tours: "Tours",
-    saved: "Salvos",
-    tickets: "Ingressos",
+    explore: "Mapa",
+    tours: "Buscar",
+    saved: "Roteiro",
+    tickets: "Reservas",
     profile: "Perfil",
     profileEyebrow: "Morro Digital",
     profileTitle: "Perfil e preferências",
@@ -44,10 +49,10 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     closeProfile: "Fechar perfil",
   }),
   en: Object.freeze({
-    explore: "Explore",
-    tours: "Tours",
-    saved: "Saved",
-    tickets: "Tickets",
+    explore: "Map",
+    tours: "Search",
+    saved: "Itinerary",
+    tickets: "Bookings",
     profile: "Profile",
     profileEyebrow: "Morro Digital",
     profileTitle: "Profile and preferences",
@@ -64,10 +69,10 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     closeProfile: "Close profile",
   }),
   es: Object.freeze({
-    explore: "Explorar",
-    tours: "Tours",
-    saved: "Guardados",
-    tickets: "Entradas",
+    explore: "Mapa",
+    tours: "Buscar",
+    saved: "Itinerario",
+    tickets: "Reservas",
     profile: "Perfil",
     profileEyebrow: "Morro Digital",
     profileTitle: "Perfil y preferencias",
@@ -83,10 +88,10 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     closeProfile: "Cerrar perfil",
   }),
   he: Object.freeze({
-    explore: "לגלות",
-    tours: "סיורים",
-    saved: "שמורים",
-    tickets: "כרטיסים",
+    explore: "מפה",
+    tours: "חיפוש",
+    saved: "מסלול",
+    tickets: "הזמנות",
     profile: "פרופיל",
     profileEyebrow: "Morro Digital",
     profileTitle: "פרופיל והעדפות",
@@ -102,6 +107,93 @@ const COPY: Readonly<Record<HomeLocale, HomeCopy>> = Object.freeze({
     closeProfile: "סגירת הפרופיל",
   }),
 });
+
+const MANUAL_COPY = {
+  pt: [
+    "Buscar lugares",
+    "Nome do lugar",
+    "Todas as categorias",
+    "Praias",
+    "Restaurantes",
+    "Passeios",
+    "Buscar",
+    "Fechar",
+    "Buscando…",
+    "Catálogo publicado",
+    "Catálogo local; serviço indisponível. Dados podem estar desatualizados.",
+    "Nenhum lugar encontrado.",
+    "Salvos neste dispositivo",
+    "Não há salvos neste dispositivo. Itinerários e percursos salvos ainda não estão disponíveis nesta tela.",
+    "Mapa indisponível. Tente novamente após carregar o mapa.",
+    "Não foi possível ler os salvos deste dispositivo.",
+    "Itinerários e percursos salvos ainda não estão disponíveis nesta tela.",
+    "Anterior",
+    "Próxima",
+  ],
+  en: [
+    "Find places",
+    "Place name",
+    "All categories",
+    "Beaches",
+    "Restaurants",
+    "Tours",
+    "Search",
+    "Close",
+    "Searching…",
+    "Published catalog",
+    "Local catalog; service unavailable. Data may be outdated.",
+    "No places found.",
+    "Saved on this device",
+    "Nothing saved on this device. Saved itineraries and routes are not available here yet.",
+    "Map unavailable. Try again after the map loads.",
+    "Could not read saved places on this device.",
+    "Saved itineraries and routes are not available here yet.",
+    "Previous",
+    "Next",
+  ],
+  es: [
+    "Buscar lugares",
+    "Nombre del lugar",
+    "Todas las categorías",
+    "Playas",
+    "Restaurantes",
+    "Paseos",
+    "Buscar",
+    "Cerrar",
+    "Buscando…",
+    "Catálogo publicado",
+    "Catálogo local; servicio no disponible. Los datos pueden estar desactualizados.",
+    "No se encontraron lugares.",
+    "Guardados en este dispositivo",
+    "Sin guardados en este dispositivo. Los itinerarios y recorridos guardados aún no están disponibles aquí.",
+    "Mapa no disponible. Inténtalo cuando cargue el mapa.",
+    "No se pudieron leer los guardados del dispositivo.",
+    "Los itinerarios y recorridos guardados aún no están disponibles aquí.",
+    "Anterior",
+    "Siguiente",
+  ],
+  he: [
+    "חיפוש מקומות",
+    "שם המקום",
+    "כל הקטגוריות",
+    "חופים",
+    "מסעדות",
+    "סיורים",
+    "חיפוש",
+    "סגירה",
+    "מחפש…",
+    "קטלוג מפורסם",
+    "קטלוג מקומי; השירות אינו זמין. הנתונים עשויים להיות לא עדכניים.",
+    "לא נמצאו מקומות.",
+    "שמורים במכשיר זה",
+    "אין שמורים במכשיר זה. מסלולים שמורים עדיין אינם זמינים כאן.",
+    "המפה אינה זמינה. נסו שוב לאחר טעינת המפה.",
+    "לא ניתן לקרוא מקומות שמורים במכשיר זה.",
+    "מסלולים שמורים עדיין אינם זמינים כאן.",
+    "הקודם",
+    "הבא",
+  ],
+} as const;
 
 export interface HomeDiscoverNavigationOptions {
   readonly document: Document;
@@ -243,6 +335,247 @@ export function installHomeDiscoverNavigation({
     setProfileExpanded(profilePanel.dataset.profileExpanded !== "true");
   };
 
+  const searchPlaces = createManualPlaceSearch();
+  const manualPanel = document.createElement("section");
+  manualPanel.id = "home-manual-panel";
+  manualPanel.className = "md-home-manual-panel";
+  manualPanel.hidden = true;
+  manualPanel.setAttribute("aria-labelledby", "home-manual-title");
+  document.body.append(manualPanel);
+  let searchAbort: AbortController | undefined;
+  let manualAction = "tours";
+  let manualPanelGeneration = 0;
+  let manualSearchState:
+    | {
+        query: string;
+        category: string;
+        snapshot: ManualSearchSnapshot;
+        page: number;
+      }
+    | undefined;
+  const manualCopy = () =>
+    MANUAL_COPY[normalizeLocale(document.documentElement.lang || "pt")];
+  const closeManual = (restoreFocus = false): void => {
+    manualPanelGeneration += 1;
+    searchAbort?.abort();
+    manualPanel.hidden = true;
+    if (restoreFocus)
+      nav
+        ?.querySelector<HTMLElement>(`[data-home-nav-action="${manualAction}"]`)
+        ?.focus();
+  };
+  const openManual = (action: string, preserveSearch = false): void => {
+    closeProfile();
+    closeManual();
+    const panelGeneration = manualPanelGeneration;
+    const panelIsCurrent = () =>
+      !destroyed &&
+      panelGeneration === manualPanelGeneration &&
+      !manualPanel.hidden;
+    manualAction = action;
+    if (!preserveSearch) manualSearchState = undefined;
+    setActive(action);
+    const copy = manualCopy();
+    manualPanel.replaceChildren();
+    const heading = document.createElement("h2");
+    heading.id = "home-manual-title";
+    heading.textContent = action === "saved" ? copy[12] : copy[0];
+    const close = document.createElement("button");
+    close.type = "button";
+    close.textContent = copy[7];
+    close.onclick = () => {
+      closeManual(true);
+      setActive("explore");
+    };
+    const status = document.createElement("p");
+    status.setAttribute("role", "status");
+    const list = document.createElement("ul");
+    manualPanel.append(heading, close, status, list);
+    manualPanel.hidden = false;
+    const select = async (place: {
+      name: string;
+      category?: string;
+      placeId?: string;
+    }): Promise<void> => {
+      const explore = getMorroDigitalApplication(document)?.exploreLocations;
+      const selected =
+        explore &&
+        (await explore.execute(
+          place.placeId
+            ? { type: "select_place_id", placeId: place.placeId }
+            : {
+                type: "select_place",
+                place: place.name,
+                ...(place.category ? { category: place.category } : {}),
+              },
+        ));
+      if (!panelIsCurrent()) return;
+      if (selected) closeManual();
+      else status.textContent = copy[14];
+    };
+    const addRow = (place: {
+      name: string;
+      category?: string;
+      placeId?: string;
+    }): void => {
+      const row = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = place.name;
+      button.onclick = () => {
+        void select(place).catch(() => {
+          if (panelIsCurrent()) status.textContent = copy[14];
+        });
+      };
+      row.append(button);
+      list.append(row);
+    };
+    if (action === "saved") {
+      try {
+        const storage = document.defaultView?.localStorage;
+        // Profile manager load normally updates visits; prevent writes from this read-only surface.
+        const snapshot = storage?.getItem("morro_user_profile") ?? null;
+        const places = createAssistantUserProfileManager({
+          storage: { getItem: () => snapshot, setItem: () => {} },
+        })
+          .getFavoritePlaces()
+          .filter(
+            (place) => typeof place.name === "string" && place.name.trim(),
+          );
+        status.textContent = places.length ? copy[16] : copy[13];
+        places.forEach((place) =>
+          addRow({
+            name: place.name,
+            ...(place.category ? { category: place.category } : {}),
+          }),
+        );
+      } catch {
+        status.textContent = copy[15];
+      }
+      close.focus();
+      return;
+    }
+    const form = document.createElement("form");
+    const input = document.createElement("input");
+    input.type = "search";
+    input.setAttribute("aria-label", copy[1]);
+    input.placeholder = copy[1];
+    const category = document.createElement("select");
+    category.setAttribute("aria-label", copy[2]);
+    ["", "beaches", "restaurants", "tours"].forEach((value, index) => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = copy[index + 2] ?? copy[2];
+      category.append(option);
+    });
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = copy[6];
+    form.append(input, category, submit);
+    manualPanel.insertBefore(form, status);
+    const pager = document.createElement("div");
+    pager.className = "md-home-manual-pagination";
+    const previous = document.createElement("button");
+    const next = document.createElement("button");
+    previous.type = next.type = "button";
+    previous.textContent = copy[17];
+    next.textContent = copy[18];
+    previous.dataset.manualPage = "previous";
+    next.dataset.manualPage = "next";
+    pager.append(previous, next);
+    pager.hidden = true;
+    manualPanel.append(pager);
+    let pageGeneration = 0;
+    const renderPage = async (
+      page: number,
+      abort: AbortController,
+      focusResult = false,
+    ): Promise<void> => {
+      const state = manualSearchState;
+      if (!state || abort.signal.aborted || destroyed) return;
+      const generation = ++pageGeneration;
+      const valid = state.snapshot.results.filter(
+        (result) =>
+          result.name.trim() &&
+          result.category.trim() &&
+          Number.isFinite(result.latitude) &&
+          Number.isFinite(result.longitude) &&
+          Math.abs(result.latitude) <= 90 &&
+          Math.abs(result.longitude) <= 180,
+      );
+      const lastPage = Math.max(0, Math.ceil(valid.length / 20) - 1);
+      state.page = Math.max(0, Math.min(page, lastPage));
+      const start = state.page * 20;
+      const displayed = valid.slice(start, start + 20);
+      previous.disabled = next.disabled = true;
+      list.replaceChildren();
+      const explore = getMorroDigitalApplication(document)?.exploreLocations;
+      // The map indexes only 20 results: install the current UI page before selection.
+      const ready =
+        explore &&
+        (await explore.execute({
+          type: "show_search_results",
+          query: state.query,
+          results: displayed,
+          status: displayed.length ? "ready" : "empty",
+        }));
+      if (abort.signal.aborted || destroyed || generation !== pageGeneration)
+        return;
+      status.textContent = `${state.snapshot.source === "local" ? copy[10] : copy[9]} · ${displayed.length ? start + 1 : 0}–${start + displayed.length} / ${valid.length}${displayed.length ? "" : ` · ${copy[11]}`}${ready ? "" : ` · ${copy[14]}`}`;
+      displayed.forEach(addRow);
+      pager.hidden = valid.length <= 20;
+      previous.disabled = state.page === 0;
+      next.disabled = state.page === lastPage;
+      if (focusResult) list.querySelector<HTMLButtonElement>("button")?.focus();
+    };
+    const changePage = (delta: number): void => {
+      if (!manualSearchState || !searchAbort) return;
+      void renderPage(manualSearchState.page + delta, searchAbort, true).catch(
+        () => {
+          status.textContent = copy[14];
+        },
+      );
+    };
+    previous.onclick = () => changePage(-1);
+    next.onclick = () => changePage(1);
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      searchAbort?.abort();
+      const abort = new AbortController();
+      searchAbort = abort;
+      const query = input.value;
+      const selectedCategory = category.value;
+      manualSearchState = undefined;
+      status.textContent = copy[8];
+      list.replaceChildren();
+      pager.hidden = true;
+      void searchPlaces(query, selectedCategory, abort.signal)
+        .then(async (snapshot) => {
+          if (abort.signal.aborted || destroyed) return;
+          manualSearchState = {
+            query,
+            category: selectedCategory,
+            snapshot,
+            page: 0,
+          };
+          await renderPage(0, abort);
+        })
+        .catch(() => {
+          if (!abort.signal.aborted && !destroyed)
+            status.textContent = copy[14];
+        });
+    };
+    if (preserveSearch && manualSearchState) {
+      input.value = manualSearchState.query;
+      category.value = manualSearchState.category;
+      searchAbort = new AbortController();
+      void renderPage(manualSearchState.page, searchAbort).catch(() => {
+        status.textContent = copy[14];
+      });
+    }
+    input.focus();
+  };
+
   const onProfileAction = (event: Event): void => {
     const target = event.target;
     if (!(target instanceof Element)) return;
@@ -250,13 +583,7 @@ export function installHomeDiscoverNavigation({
     const action = actionButton?.dataset.profileAction;
     if (action !== "saved" && action !== "tours") return;
 
-    closeProfile();
-    expandComposer();
-    dispatch(document, ASSISTANT_OPEN_REQUEST_EVENT);
-    dispatch(document, "morro:assistant-option-selected", {
-      value: action === "tours" ? "tours" : "favorites",
-    });
-    setActive(action);
+    openManual(action);
   };
 
   const expandComposer = (): void => {
@@ -298,6 +625,7 @@ export function installHomeDiscoverNavigation({
     if (!action) return;
 
     if (action === "explore") {
+      closeManual();
       closeProfile();
       collapseComposer();
       dispatch(document, ASSISTANT_CLOSE_REQUEST_EVENT);
@@ -306,16 +634,13 @@ export function installHomeDiscoverNavigation({
       return;
     }
     if (action === "tours" || action === "saved") {
-      closeProfile();
-      expandComposer();
-      dispatch(document, ASSISTANT_OPEN_REQUEST_EVENT);
-      dispatch(document, "morro:assistant-option-selected", {
-        value: action === "tours" ? "tours" : "favorites",
-      });
-      setActive(action);
+      openManual(action);
       return;
     }
-    if (action === "profile") toggleProfile();
+    if (action === "profile") {
+      closeManual();
+      toggleProfile();
+    }
   };
 
   const onPrivacyClick = (): void => {
@@ -328,6 +653,13 @@ export function installHomeDiscoverNavigation({
   };
 
   const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key === "Escape" && !manualPanel.hidden) {
+      event.preventDefault();
+      event.stopPropagation();
+      closeManual(true);
+      setActive("explore");
+      return;
+    }
     if (event.key !== "Escape" || profilePanel?.classList.contains("hidden")) {
       return;
     }
@@ -336,7 +668,10 @@ export function installHomeDiscoverNavigation({
     profileButton?.focus();
   };
 
-  const localeObserver = new MutationObserver(renderLocale);
+  const localeObserver = new MutationObserver(() => {
+    renderLocale();
+    if (!manualPanel.hidden) openManual(manualAction, true);
+  });
   localeObserver.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["lang"],
@@ -352,7 +687,7 @@ export function installHomeDiscoverNavigation({
   configButton?.addEventListener("click", onConfigClick);
   composer?.addEventListener("focusin", onComposerFocusIn);
   composer?.addEventListener("focusout", onComposerFocusOut);
-  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keydown", onKeyDown, true);
 
   return Object.freeze({
     closeProfile,
@@ -363,6 +698,8 @@ export function installHomeDiscoverNavigation({
         document.defaultView?.clearTimeout(blurTimer);
         blurTimer = undefined;
       }
+      closeManual();
+      manualPanel.remove();
       localeObserver.disconnect();
       nav?.removeEventListener("click", onNavClick);
       profileClose?.removeEventListener("click", closeProfile);
@@ -372,7 +709,7 @@ export function installHomeDiscoverNavigation({
       configButton?.removeEventListener("click", onConfigClick);
       composer?.removeEventListener("focusin", onComposerFocusIn);
       composer?.removeEventListener("focusout", onComposerFocusOut);
-      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keydown", onKeyDown, true);
     },
   });
 }

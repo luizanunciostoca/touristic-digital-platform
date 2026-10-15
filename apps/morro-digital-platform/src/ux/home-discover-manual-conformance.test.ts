@@ -90,11 +90,10 @@ describe("Home / Discover UX V2 manual conformance", () => {
     );
 
     expect(controller).toContain('"morro:explore-reset-requested"');
-    expect(controller).toContain('"morro:assistant-open-request"');
-    expect(controller).toContain('"morro:assistant-option-selected"');
-    expect(controller).toContain(
-      'value: action === "tours" ? "tours" : "favorites"',
-    );
+    expect(controller).not.toContain('"morro:assistant-option-selected"');
+    expect(controller).toContain("createManualPlaceSearch()");
+    expect(controller).toContain("getFavoritePlaces()");
+    expect(controller).toContain('type: "show_search_results"');
     expect(controller).toContain("openPrivacyPreferences()");
     expect(controller).not.toContain("profile.html");
     expect(controller).not.toContain("saved.html");

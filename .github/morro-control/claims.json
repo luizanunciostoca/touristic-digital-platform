@@ -48,7 +48,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/home-manual-nav-search-20261015",
-      "baseSha": "8e3b4a399264186c2da1098d414acae5e352c391",
+      "baseSha": "a501c28cbc2c1f041b34e41340643b5e7a61492a",
       "paths": [
         ".morro/changesets/MD-HOME-MANUAL-NAV-SEARCH-20261015.json",
         "apps/morro-digital-platform/public/tourist-shell-v2.css",
