@@ -43,6 +43,26 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T08:00:00.000Z"
+    },
+    "MD-HOME-MANUAL-NAV-SEARCH-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/home-manual-nav-search-20261015",
+      "baseSha": "8e3b4a399264186c2da1098d414acae5e352c391",
+      "paths": [
+        ".morro/changesets/MD-HOME-MANUAL-NAV-SEARCH-20261015.json",
+        "apps/morro-digital-platform/public/tourist-shell-v2.css",
+        "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+        "apps/morro-digital-platform/src/home/manual-place-search.test.ts",
+        "apps/morro-digital-platform/src/home/manual-place-search.ts",
+        "apps/morro-digital-platform/src/layouts/app-shell.ts",
+        "apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts",
+        "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs"
+      ],
+      "domains": ["map"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T19:50:21.124Z"
     }
   }
 }
