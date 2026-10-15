@@ -107,6 +107,35 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T20:04:27.413Z"
+    },
+    "MD-U7-GROUPED-MARKER-HARNESS-20261015": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/u7-grouped-marker-harness-20261015",
+      "baseSha": "005fc3284aa697f16db6397900e1a2fcab855d7f",
+      "paths": [
+        ".morro/changesets/MD-U7-GROUPED-MARKER-HARNESS-20261015.json",
+        ".github/workflows/assistant-input-menu-flow-v1-parity.yml",
+        ".github/workflows/assistant-v1-residual-command-parity.yml",
+        ".github/workflows/v1-assistant-single-message-poi-markers.yml",
+        ".github/workflows/map-tour-browser-regression.yml",
+        "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-contextual-state.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts",
+        ".morro/ownership.json",
+        "tooling/fabric/ownership-path.test.mjs",
+        "tooling/ci/test-impact-manifest.json",
+        "tooling/ci/impact-analyzer.test.mjs",
+        "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-16T21:35:00.000Z"
     }
   }
 }
