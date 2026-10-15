@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-U7-GROUPED-MARKER-HARNESS-20261015",
   "objective": "grouped-marker-harness-membership-and-selection-proof",
-  "baseSha": "005fc3284aa697f16db6397900e1a2fcab855d7f",
+  "baseSha": "e92ab979b34fbb821cfe4cb05f8e69df0ed3f29d",
   "branch": "fix/u7-grouped-marker-harness-20261015",
   "state": "IMPLEMENTING",
   "risk": "critical",

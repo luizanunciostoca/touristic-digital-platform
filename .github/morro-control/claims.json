@@ -112,7 +112,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/u7-grouped-marker-harness-20261015",
-      "baseSha": "005fc3284aa697f16db6397900e1a2fcab855d7f",
+      "baseSha": "e92ab979b34fbb821cfe4cb05f8e69df0ed3f29d",
       "paths": [
         ".morro/changesets/MD-U7-GROUPED-MARKER-HARNESS-20261015.json",
         ".github/workflows/assistant-input-menu-flow-v1-parity.yml",

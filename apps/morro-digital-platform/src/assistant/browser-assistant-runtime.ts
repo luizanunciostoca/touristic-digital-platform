@@ -31,6 +31,7 @@ import {
   resolveAssistantContextualCategoryLabel,
   resolveAssistantContextualCopy,
   resolveExploreContextualState,
+  resolveExploreLocationCount,
 } from "./assistant-contextual-state.js";
 import { getAssistantConversationOrchestrator } from "./assistant-conversation-orchestrator.js";
 import { composeConversationResponse } from "./assistant-conversation-response-composer.js";
@@ -48,6 +49,7 @@ import {
   resolveAssistantMenuCommand,
   resolveAssistantRuntimeAction,
   routeAssistantMenuCommand,
+  type AssistantExploreStateSnapshot,
 } from "./assistant-menu-command-router.js";
 import { createAssistantNavigationAppHandlers } from "./assistant-navigation-adapter.js";
 import { createMorroAssistantV1DestinationResolver } from "./assistant-v1-place-resolver.js";
@@ -951,7 +953,7 @@ export function installBrowserAssistantRuntime(
   const presentationLanguage = () =>
     normalizeAssistantVoiceLanguage(options.document.documentElement.lang);
 
-  const readExploreState = () =>
+  const readExploreState = (): AssistantExploreStateSnapshot =>
     options.explore?.getState() ?? readAssistantExploreState(options.document);
 
   const contextualMessaging = installAssistantContextualMessaging({
@@ -1581,6 +1583,7 @@ export function installBrowserAssistantRuntime(
   const syncExploreContextualMessage = (placeHint?: string): void => {
     const state = readExploreState();
     const contextualState = resolveExploreContextualState(state);
+    const locationCount = resolveExploreLocationCount(state);
     if (!contextualState) return;
 
     const canonicalMessage = options.document.getElementById(
@@ -1601,7 +1604,7 @@ export function installBrowserAssistantRuntime(
       {
         category,
         place,
-        count: state.markerCount,
+        count: locationCount,
       },
       language,
     );
@@ -1620,7 +1623,7 @@ export function installBrowserAssistantRuntime(
       previousState,
       ...(category ? { category } : {}),
       ...(place ? { place } : {}),
-      count: state.markerCount,
+      count: locationCount,
     });
     const voiceCopy = composeConversationVoice({
       messageKey: contextualState,
@@ -1628,7 +1631,7 @@ export function installBrowserAssistantRuntime(
       fallback: rendered.voiceCopy,
       ...(category ? { category } : {}),
       ...(place ? { place } : {}),
-      count: state.markerCount,
+      count: locationCount,
     });
     const turn = conversation.transition({
       cause: contextualState,
@@ -1638,7 +1641,7 @@ export function installBrowserAssistantRuntime(
       source: "explore",
       ...(category ? { category } : {}),
       ...(place ? { place } : {}),
-      resultCount: state.markerCount,
+      resultCount: locationCount,
       journey: "explore",
       journeyStep: state.stage,
       priority: policy.priority,

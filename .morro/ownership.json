@@ -32,7 +32,12 @@
         "apps/morro-digital-platform/src/weather/weather-forecast-modal.ts",
         "apps/morro-digital-platform/tooling/weather-v1-i18n-browser-parity.mjs",
         "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
-        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts"
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-menu-command-router.test.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-contextual-state.ts",
+        "apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts",
+        "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts"
       ],
       "contracts": []
     },
