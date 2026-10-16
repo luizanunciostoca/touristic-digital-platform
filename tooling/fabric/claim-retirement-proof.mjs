@@ -1,15 +1,301 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { pathOwned } from "./claim-guard.mjs";
-import { validateChangeSetV2 } from "../mdctl/changeset-v2.mjs";
+import { canonicalJson, validateChangeSetV2 } from "../mdctl/changeset-v2.mjs";
 import { parseAuthorityLedger } from "../mdctl/event-ledger.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 const CLAIM_ID = /^MD-[A-Z0-9-]+$/u;
 const RETIREMENT_REASONS = new Set(["MERGED_PR", "EXPIRED", "ORPHANED"]);
+
+const VOLUNTARY_MODEL = "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY";
+const digest = (value) => createHash("sha256").update(value).digest("hex");
+const objectDigest = (value) => digest(canonicalJson(value));
+const HEX256 = /^[0-9a-f]{64}$/u;
+const metadataPaths = (id) => [
+  ".github/morro-control/claims.json",
+  ".github/morro-control/events.ndjson",
+  `.morro/changesets/${id}.json`,
+];
+
+function closed(value, keys) {
+  assert.ok(
+    value && typeof value === "object" && !Array.isArray(value),
+    "VOLUNTARY_OBJECT_INVALID",
+  );
+  assert.deepEqual(
+    Object.keys(value).sort(),
+    keys.split(" ").sort(),
+    "VOLUNTARY_FIELDS_INVALID",
+  );
+}
+
+function text(value) {
+  assert.ok(
+    typeof value === "string" &&
+      value.trim().length > 0 &&
+      !/[\x00-\x1f\x7f]/u.test(value),
+    "VOLUNTARY_STRING_INVALID",
+  );
+}
+
+function timestamp(value) {
+  const time = Date.parse(value);
+  assert.ok(
+    typeof value === "string" &&
+      Number.isFinite(time) &&
+      new Date(time).toISOString() === value,
+    "VOLUNTARY_TIME_INVALID",
+  );
+  return time;
+}
+
+function githubTimestamp(value) {
+  assert.ok(
+    typeof value === "string" &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/u.test(value),
+    "VOLUNTARY_PROVIDER_TIME_INVALID",
+  );
+  const normalized = value.includes(".") ? value : value.replace("Z", ".000Z");
+  return timestamp(normalized);
+}
+
+function bounded(value, min, max) {
+  assert.ok(
+    Array.isArray(value) && value.length >= min && value.length <= max,
+    "VOLUNTARY_ARRAY_INVALID",
+  );
+}
+
+function unique(values) {
+  assert.equal(new Set(values).size, values.length, "VOLUNTARY_DUPLICATE");
+}
+
+function relativePath(value) {
+  text(value);
+  assert.ok(
+    !value.includes("\\") &&
+      value.split("/").every((part) => part && part !== "." && part !== "..") &&
+      !/^[A-Za-z]:/u.test(value),
+    "VOLUNTARY_PATH_INVALID",
+  );
+}
+
+export function validateVoluntaryReleaseRequest(
+  request,
+  {
+    claimId,
+    claim,
+    canonicalManifest,
+    expectedBaseSha,
+    canonicalText,
+    retirementBranch,
+    now = Date.now(),
+  },
+) {
+  closed(
+    request,
+    "schemaVersion reason requestedReason decisionNonce repository claimId canonicalOwner executorIdentity controllerIdentity exactBaseSha canonicalClaimDigest retirementBranch preservedMaterialState expectedPaths transitionKind writerInventory writerInventoryDigest stopAckReceipts stopAckReceiptsDigest wipInventory wipInventoryDigest backupRefs snapshotAt anchorAcquisitionPr holdWritersStoppedUntilCanonicalRelease completionClaimed authorityModel",
+  );
+  assert.ok(
+    Buffer.byteLength(JSON.stringify(request), "utf8") <= 65536,
+    "VOLUNTARY_REQUEST_TOO_LARGE",
+  );
+  const expected = {
+    schemaVersion: 1,
+    reason: "VOLUNTARY",
+    requestedReason: "VOLUNTARY",
+    claimId,
+    canonicalOwner: claim.owner,
+    retirementBranch,
+    exactBaseSha: expectedBaseSha,
+    canonicalClaimDigest: objectDigest(claim),
+    preservedMaterialState: canonicalManifest?.state,
+    expectedPaths: metadataPaths(claimId),
+    transitionKind: "SINGLETON_RETIRE_NO_ACQUIRE",
+    authorityModel: VOLUNTARY_MODEL,
+    holdWritersStoppedUntilCanonicalRelease: true,
+    completionClaimed: false,
+  };
+  for (const [field, value] of Object.entries(expected))
+    assert.deepEqual(
+      request[field],
+      value,
+      `VOLUNTARY_REQUEST_${field.toUpperCase()}_MISMATCH`,
+    );
+  assert.match(claimId, CLAIM_ID);
+  for (const field of [
+    "decisionNonce",
+    "canonicalOwner",
+    "executorIdentity",
+    "controllerIdentity",
+    "retirementBranch",
+  ])
+    text(request[field]);
+  assert.match(request.repository, /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u);
+  assert.match(request.exactBaseSha, SHA);
+  assert.match(request.canonicalClaimDigest, HEX256);
+  assert.equal(canonicalManifest?.id, claimId);
+  assert.ok(
+    ["IMPLEMENTING", "LOCAL_PROVEN"].includes(canonicalManifest.state),
+    "VOLUNTARY_MATERIAL_STATE_INVALID",
+  );
+  assert.ok(
+    Number.isSafeInteger(request.anchorAcquisitionPr) &&
+      request.anchorAcquisitionPr > 0,
+  );
+  assert.ok(Number.isFinite(now));
+  const snapshot = timestamp(request.snapshotAt);
+  assert.ok(
+    snapshot <= now && now - snapshot <= 3600000,
+    "VOLUNTARY_SNAPSHOT_STALE",
+  );
+  bounded(request.writerInventory, 1, 32);
+  bounded(request.stopAckReceipts, 1, 32);
+  bounded(request.wipInventory, 1, 512);
+  bounded(request.backupRefs, 1, 16);
+  for (const key of ["writerInventory", "stopAckReceipts", "wipInventory"]) {
+    assert.match(request[key + "Digest"], HEX256);
+    assert.equal(
+      request[key + "Digest"],
+      objectDigest(request[key]),
+      "VOLUNTARY_INVENTORY_DIGEST_MISMATCH",
+    );
+  }
+  for (const writer of request.writerInventory) {
+    closed(
+      writer,
+      "writerId executorIdentity controllerIdentity sessionId jobId commandIds branch headSha treeSha",
+    );
+    for (const key of [
+      "writerId",
+      "executorIdentity",
+      "controllerIdentity",
+      "sessionId",
+      "branch",
+    ])
+      text(writer[key]);
+    if (writer.jobId !== null) text(writer.jobId);
+    bounded(writer.commandIds, 0, 512);
+    writer.commandIds.forEach(text);
+    unique(writer.commandIds);
+    assert.match(writer.headSha, SHA);
+    assert.match(writer.treeSha, SHA);
+  }
+  const writers = request.writerInventory.map((writer) => writer.writerId);
+  unique(writers);
+  unique(request.stopAckReceipts.map((receipt) => receipt.writerId));
+  assert.deepEqual(
+    request.stopAckReceipts.map((receipt) => receipt.writerId).sort(),
+    [...writers].sort(),
+    "VOLUNTARY_ACK_SET_MISMATCH",
+  );
+  for (const receipt of request.stopAckReceipts) {
+    closed(
+      receipt,
+      "writerId requestedAt acknowledgedAt drainedAt terminalState pendingCommands pendingChildren receiptRef receiptSha256",
+    );
+    const requested = timestamp(receipt.requestedAt),
+      acknowledged = timestamp(receipt.acknowledgedAt),
+      drained = timestamp(receipt.drainedAt);
+    assert.ok(
+      requested <= acknowledged &&
+        acknowledged <= drained &&
+        drained <= snapshot &&
+        now - drained <= 3600000,
+      "VOLUNTARY_DRAIN_TIME_INVALID",
+    );
+    assert.equal(receipt.terminalState, "STOPPED");
+    assert.equal(receipt.pendingCommands, 0);
+    assert.equal(receipt.pendingChildren, 0);
+    assert.match(receipt.receiptSha256, HEX256);
+    const prefix = `https://api.github.com/repos/${request.repository}/git/blobs/`;
+    assert.ok(
+      typeof receipt.receiptRef === "string" &&
+        receipt.receiptRef.startsWith(prefix) &&
+        SHA.test(receipt.receiptRef.slice(prefix.length)),
+      "VOLUNTARY_RECEIPT_REF_INVALID",
+    );
+  }
+  unique(request.wipInventory.map((file) => file.path));
+  for (const file of request.wipInventory) {
+    closed(file, "path modeGit status blobSha sha256 bytes backupIndex");
+    relativePath(file.path);
+    assert.ok(["tracked", "untracked", "deleted"].includes(file.status));
+    if (file.status === "deleted") {
+      assert.equal(file.modeGit, null);
+      assert.equal(file.blobSha, null);
+      assert.equal(file.sha256, null);
+      assert.equal(file.bytes, 0);
+    } else {
+      assert.ok(["100644", "100755", "120000"].includes(file.modeGit));
+      assert.match(file.blobSha, SHA);
+      assert.match(file.sha256, HEX256);
+    }
+    assert.ok(Number.isSafeInteger(file.bytes) && file.bytes >= 0);
+    assert.ok(
+      Number.isSafeInteger(file.backupIndex) &&
+        file.backupIndex >= 0 &&
+        file.backupIndex < request.backupRefs.length,
+    );
+    assert.ok(
+      !file.path.split("/").includes("node_modules"),
+      "VOLUNTARY_DEPENDENCY_BYTES_FORBIDDEN",
+    );
+  }
+  unique(
+    request.backupRefs.map((backup) => `${backup.repository}:${backup.ref}`),
+  );
+  for (const backup of request.backupRefs) {
+    closed(backup, "repository ref commitSha treeSha writerId");
+    assert.ok(
+      writers.includes(backup.writerId),
+      "VOLUNTARY_BACKUP_WRITER_UNKNOWN",
+    );
+    assert.equal(backup.repository, request.repository);
+    assert.ok(
+      typeof backup.ref === "string" &&
+        /^refs\/(heads|tags)\//u.test(backup.ref) &&
+        !/[\s~^:?*\[\\]|\.\.|@\{|\/\//u.test(backup.ref) &&
+        !backup.ref.endsWith("/") &&
+        !backup.ref.endsWith(".") &&
+        backup.ref
+          .split("/")
+          .every(
+            (part) => part && !part.startsWith(".") && !part.endsWith(".lock"),
+          ),
+      "VOLUNTARY_BACKUP_REF_INVALID",
+    );
+    assert.match(backup.commitSha, SHA);
+    assert.match(backup.treeSha, SHA);
+  }
+  assert.deepEqual(
+    [...new Set(request.backupRefs.map((backup) => backup.writerId))].sort(),
+    [...writers].sort(),
+    "VOLUNTARY_WRITER_BACKUP_MISSING",
+  );
+  assert.equal(
+    request.writerInventory.some(
+      (writer) =>
+        writer.executorIdentity === request.executorIdentity &&
+        writer.controllerIdentity === request.controllerIdentity,
+    ),
+    true,
+    "VOLUNTARY_RELEASE_EXECUTOR_NOT_ENUMERATED",
+  );
+  for (const event of parseAuthorityLedger(canonicalText)) {
+    assert.notEqual(
+      event.payload?.decisionRequest?.decisionNonce,
+      request.decisionNonce,
+      "VOLUNTARY_NONCE_REPLAY",
+    );
+  }
+  return request;
+}
 
 function assertRegistry(registry, code) {
   assert.equal(registry?.registryAuthority, "ORCHESTRATOR", code);
@@ -525,6 +811,435 @@ async function orphanEvidence(claim, repository, pulls, options) {
     branchExists: false,
     pullRequestCount: 0,
   };
+}
+
+function immutable(value) {
+  if (value && typeof value === "object") {
+    for (const child of Object.values(value)) immutable(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+
+function blobJson(bytes) {
+  return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+}
+
+function decodedBlob(value, expectedSha) {
+  assert.equal(value?.encoding, "base64", "VOLUNTARY_BLOB_ENCODING_INVALID");
+  assert.match(expectedSha, SHA);
+  assert.equal(value.sha, expectedSha, "VOLUNTARY_BLOB_ID_MISMATCH");
+  assert.ok(
+    typeof value.content === "string" &&
+      /^[A-Za-z0-9+/=\r\n]*$/u.test(value.content),
+    "VOLUNTARY_BLOB_CONTENT_INVALID",
+  );
+  const encoded = value.content.replace(/[\r\n]/gu, "");
+  const bytes = Buffer.from(encoded, "base64");
+  assert.equal(
+    bytes.toString("base64"),
+    encoded,
+    "VOLUNTARY_BLOB_ENCODING_INVALID",
+  );
+  assert.equal(value.size, bytes.length, "VOLUNTARY_BLOB_SIZE_MISMATCH");
+  const sha = createHash("sha1")
+    .update(`blob ${bytes.length}\0`)
+    .update(bytes)
+    .digest("hex");
+  assert.equal(sha, expectedSha, "VOLUNTARY_BLOB_HASH_MISMATCH");
+  return bytes;
+}
+
+async function verifyVoluntaryBackups(request, claim, options) {
+  const repoPath = `/repos/${request.repository}`;
+  const commitTrees = new Map();
+  const readCommitTree = async (sha, expectedTree) => {
+    if (!commitTrees.has(sha)) {
+      const commit = await githubJson(
+        `${repoPath}/git/commits/${sha}`,
+        options,
+      );
+      assert.equal(commit.sha, sha);
+      assert.match(commit.tree?.sha, SHA);
+      const tree = await githubJson(
+        `${repoPath}/git/trees/${commit.tree.sha}?recursive=1`,
+        options,
+      );
+      assert.equal(tree.sha, commit.tree.sha);
+      assert.equal(tree.truncated, false, "VOLUNTARY_TREE_TRUNCATED");
+      bounded(tree.tree, 0, 100000);
+      unique(tree.tree.map((entry) => entry.path));
+      for (const entry of tree.tree) relativePath(entry.path);
+      commitTrees.set(sha, {
+        treeSha: commit.tree.sha,
+        entries: new Map(
+          tree.tree
+            .filter((entry) => entry.type !== "tree")
+            .map((entry) => [entry.path, entry]),
+        ),
+      });
+    }
+    const tree = commitTrees.get(sha);
+    if (expectedTree !== undefined)
+      assert.equal(
+        tree.treeSha,
+        expectedTree,
+        "VOLUNTARY_BACKUP_TREE_MISMATCH",
+      );
+    return tree.entries;
+  };
+  const canonicalTree = await readCommitTree(claim.baseSha);
+  const owned = (path) =>
+    path === `.morro/changesets/${request.claimId}.json` ||
+    claim.paths.some((pattern) => pathOwned(path, pattern));
+  const readRef = async (backup) => {
+    const ref = await githubJson(
+      `${repoPath}/git/ref/${backup.ref.slice(5).split("/").map(encodeURIComponent).join("/")}`,
+      options,
+    );
+    assert.equal(ref.ref, backup.ref, "VOLUNTARY_BACKUP_REF_MISMATCH");
+    assert.equal(ref.object?.type, "commit", "VOLUNTARY_BACKUP_NOT_COMMIT");
+    assert.equal(
+      ref.object?.sha,
+      backup.commitSha,
+      "VOLUNTARY_BACKUP_REF_MOVED",
+    );
+  };
+  for (const [index, backup] of request.backupRefs.entries()) {
+    await readRef(backup);
+    const writer = request.writerInventory.find(
+      (writer) => writer.writerId === backup.writerId,
+    );
+    const head = await readCommitTree(writer.headSha, writer.treeSha);
+    const snapshot = await readCommitTree(backup.commitSha, backup.treeSha);
+    if (writer.headSha !== backup.commitSha) {
+      const ancestry = await githubJson(
+        `${repoPath}/compare/${writer.headSha}...${backup.commitSha}`,
+        options,
+      );
+      assert.ok(
+        ["ahead", "identical"].includes(ancestry.status) &&
+          ancestry.base_commit?.sha === writer.headSha &&
+          ancestry.merge_base_commit?.sha === writer.headSha,
+        "VOLUNTARY_BACKUP_NOT_DESCENDANT",
+      );
+    }
+
+    const files = request.wipInventory.filter(
+      (file) => file.backupIndex === index,
+    );
+    const covered = new Set(files.map((file) => file.path));
+    const same = (a, b) =>
+      a?.sha === b?.sha && a?.mode === b?.mode && a?.type === b?.type;
+    for (const path of new Set([
+      ...canonicalTree.keys(),
+      ...head.keys(),
+      ...snapshot.keys(),
+    ])) {
+      if (
+        owned(path) &&
+        (!same(canonicalTree.get(path), head.get(path)) ||
+          !same(head.get(path), snapshot.get(path)))
+      )
+        assert.ok(covered.has(path), "VOLUNTARY_WIP_PATH_OMITTED");
+    }
+    for (const file of files) {
+      if (file.status === "deleted") {
+        assert.ok(
+          canonicalTree.has(file.path) || head.has(file.path),
+          "VOLUNTARY_DELETED_PATH_NOT_HISTORICAL",
+        );
+        assert.equal(
+          snapshot.has(file.path),
+          false,
+          "VOLUNTARY_DELETED_PATH_PRESENT",
+        );
+        continue;
+      }
+      if (file.status === "untracked")
+        assert.ok(
+          !head.has(file.path) && !canonicalTree.has(file.path),
+          "VOLUNTARY_UNTRACKED_PATH_HISTORICAL",
+        );
+      else
+        assert.ok(
+          head.has(file.path) || canonicalTree.has(file.path),
+          "VOLUNTARY_TRACKED_PATH_NOT_HISTORICAL",
+        );
+      const entry = snapshot.get(file.path);
+      assert.ok(entry, "VOLUNTARY_BACKUP_PATH_MISSING");
+      assert.equal(entry.type, "blob");
+      assert.equal(entry.mode, file.modeGit, "VOLUNTARY_BACKUP_MODE_MISMATCH");
+      assert.equal(entry.sha, file.blobSha, "VOLUNTARY_BACKUP_BLOB_MISMATCH");
+      const bytes = decodedBlob(
+        await githubJson(`${repoPath}/git/blobs/${file.blobSha}`, options),
+        file.blobSha,
+      );
+      assert.equal(bytes.length, file.bytes);
+      assert.equal(
+        digest(bytes),
+        file.sha256,
+        "VOLUNTARY_BACKUP_CONTENT_MISMATCH",
+      );
+    }
+    await readRef(backup);
+  }
+  for (const receipt of request.stopAckReceipts) {
+    const sha = receipt.receiptRef.slice(
+      receipt.receiptRef.lastIndexOf("/") + 1,
+    );
+    assert.ok(
+      request.wipInventory.some(
+        (file) =>
+          file.status !== "deleted" &&
+          ["100644", "100755"].includes(file.modeGit) &&
+          file.blobSha === sha &&
+          file.sha256 === receipt.receiptSha256 &&
+          request.backupRefs[file.backupIndex].writerId === receipt.writerId,
+      ),
+      "VOLUNTARY_RECEIPT_NOT_DURABLY_BACKED",
+    );
+    const bytes = decodedBlob(
+      await githubJson(
+        receipt.receiptRef.slice("https://api.github.com".length),
+        options,
+      ),
+      sha,
+    );
+    assert.equal(
+      digest(bytes),
+      receipt.receiptSha256,
+      "VOLUNTARY_RECEIPT_HASH_MISMATCH",
+    );
+    const material = blobJson(bytes);
+    closed(material, "schemaVersion writer receipt");
+    const { receiptRef, receiptSha256, ...facts } = receipt;
+    assert.deepEqual(
+      material,
+      {
+        schemaVersion: 1,
+        writer: request.writerInventory.find(
+          (writer) => writer.writerId === receipt.writerId,
+        ),
+        receipt: facts,
+      },
+      "VOLUNTARY_RECEIPT_FACTS_MISMATCH",
+    );
+  }
+}
+
+async function readOwnerDecision(request, claim, options) {
+  const repoPath = `/repos/${request.repository}`;
+  const repository = await githubJson(repoPath, options);
+  const owner = repository.owner;
+  assert.equal(repository.full_name, request.repository);
+  assert.equal(owner?.type, "User", "VOLUNTARY_REPOSITORY_OWNER_INVALID");
+  assert.ok(Number.isSafeInteger(owner.id) && owner.id > 0);
+  assert.equal(owner.login, request.repository.split("/")[0]);
+  const pull = await githubJson(
+    `${repoPath}/pulls/${request.anchorAcquisitionPr}`,
+    options,
+  );
+  assert.equal(pull.number, request.anchorAcquisitionPr);
+  assert.equal(
+    pull.head?.ref,
+    claim.branch,
+    "VOLUNTARY_ANCHOR_BRANCH_MISMATCH",
+  );
+  assert.equal(pull.head?.repo?.full_name, request.repository);
+  assert.equal(pull.base?.ref, "main");
+  assert.equal(pull.base?.repo?.full_name, request.repository);
+  assert.ok(
+    Number.isFinite(Date.parse(pull.merged_at)),
+    "VOLUNTARY_ANCHOR_NOT_MERGED",
+  );
+  assert.match(pull.merge_commit_sha, SHA);
+  const compare = await githubJson(
+    `${repoPath}/compare/${pull.merge_commit_sha}...${request.exactBaseSha}`,
+    options,
+  );
+  assert.ok(
+    ["ahead", "identical"].includes(compare.status) &&
+      compare.base_commit?.sha === pull.merge_commit_sha &&
+      compare.merge_base_commit?.sha === pull.merge_commit_sha,
+    "VOLUNTARY_ANCHOR_NOT_ANCESTOR",
+  );
+  for (const path of [
+    ".github/morro-control/claims.json",
+    `.morro/changesets/${request.claimId}.json`,
+  ]) {
+    const blob = await githubJson(
+      `${repoPath}/contents/${path}?ref=${pull.merge_commit_sha}`,
+      options,
+    );
+    const value = blobJson(decodedBlob(blob, blob.sha));
+    const historical = path.endsWith("claims.json")
+      ? value.claims?.[request.claimId]
+      : value;
+    assert.ok(historical, "VOLUNTARY_ANCHOR_CLAIM_MISSING");
+    if (path.endsWith("claims.json"))
+      assert.equal(value.registryAuthority, "ORCHESTRATOR");
+    else assert.equal(historical.id, request.claimId);
+    for (const key of path.endsWith("claims.json")
+      ? ["owner", "branch", "baseSha"]
+      : ["branch", "baseSha"])
+      assert.equal(
+        historical[key],
+        claim[key],
+        "VOLUNTARY_ANCHOR_IDENTITY_MISMATCH",
+      );
+  }
+  const suffix = `${request.claimId}:${objectDigest(request)}:${request.decisionNonce}:${request.exactBaseSha}`;
+  const approval = `APPROVED_VOLUNTARY_RELEASE:${suffix}`,
+    revocation = `REVOKED_VOLUNTARY_RELEASE:${suffix}`;
+  const validOwner = (comment) =>
+    comment.user?.id === owner.id &&
+    comment.user?.login === owner.login &&
+    comment.user?.type === "User" &&
+    comment.author_association === "OWNER" &&
+    comment.performed_via_github_app === null;
+  const listDecision = async () => {
+    const approvals = [];
+    for (let page = 1; page <= 10; page++) {
+      const comments = await githubJson(
+        `${repoPath}/issues/${request.anchorAcquisitionPr}/comments?per_page=100&page=${page}`,
+        options,
+      );
+      bounded(comments, 0, 100);
+      for (const comment of comments) {
+        if (comment.body !== approval && comment.body !== revocation) continue;
+        assert.equal(
+          validOwner(comment),
+          true,
+          "VOLUNTARY_OWNER_COMMENT_INVALID",
+        );
+        assert.notEqual(comment.body, revocation, "VOLUNTARY_OWNER_REVOKED");
+        assert.ok(Number.isSafeInteger(comment.id) && comment.id > 0);
+        assert.equal(
+          comment.created_at,
+          comment.updated_at,
+          "VOLUNTARY_OWNER_COMMENT_EDITED",
+        );
+        const created = githubTimestamp(comment.created_at);
+        assert.ok(
+          timestamp(request.snapshotAt) <= created &&
+            created <= options.clock() &&
+            options.clock() - created <= 1800000,
+          "VOLUNTARY_CONSENT_TIME_INVALID",
+        );
+        approvals.push(comment);
+      }
+      if (comments.length < 100) {
+        assert.equal(
+          approvals.length,
+          1,
+          "VOLUNTARY_EXACTLY_ONE_APPROVAL_REQUIRED",
+        );
+        return approvals[0];
+      }
+    }
+    throw new Error("VOLUNTARY_COMMENT_PAGINATION_LIMIT");
+  };
+  const selected = await listDecision();
+  await verifyVoluntaryBackups(request, claim, options);
+  const current = await githubJson(
+    `${repoPath}/issues/comments/${selected.id}`,
+    options,
+  );
+  assert.deepEqual(current, selected, "VOLUNTARY_OWNER_COMMENT_CHANGED");
+  assert.deepEqual(
+    await listDecision(),
+    selected,
+    "VOLUNTARY_OWNER_COMMENT_CHANGED",
+  );
+  return {
+    commentId: selected.id,
+    ownerId: owner.id,
+    ownerLogin: owner.login,
+    createdAt: new Date(githubTimestamp(selected.created_at)).toISOString(),
+    updatedAt: new Date(githubTimestamp(selected.updated_at)).toISOString(),
+    bodySha256: digest(selected.body),
+    anchorAcquisitionPr: request.anchorAcquisitionPr,
+  };
+}
+
+// Verification only: this export does not authorize canonical claim retirement.
+export async function verifyVoluntaryRelease(
+  decisionRequest,
+  {
+    claimId,
+    claim,
+    canonicalManifest,
+    expectedBaseSha,
+    canonicalText,
+    retirementBranch,
+    repository,
+    token,
+    fetchImpl = fetch,
+    clock = Date.now,
+  },
+) {
+  ({ decisionRequest, claim, canonicalManifest } = immutable(
+    structuredClone({ decisionRequest, claim, canonicalManifest }),
+  ));
+  assert.equal(
+    decisionRequest?.repository,
+    repository,
+    "VOLUNTARY_REPOSITORY_MISMATCH",
+  );
+  const startedAt = clock();
+  const context = {
+    claimId,
+    claim,
+    canonicalManifest,
+    expectedBaseSha,
+    canonicalText,
+    retirementBranch,
+  };
+  validateVoluntaryReleaseRequest(decisionRequest, {
+    ...context,
+    now: startedAt,
+  });
+  const assertLiveMain = async () => {
+    const main = await githubJson(`/repos/${repository}/commits/main`, {
+      token,
+      fetchImpl,
+    });
+    assert.equal(main.sha, expectedBaseSha, "VOLUNTARY_MAIN_CHANGED");
+  };
+  await assertLiveMain();
+  const ownerDecision = await readOwnerDecision(decisionRequest, claim, {
+    token,
+    fetchImpl,
+    clock,
+  });
+  await assertLiveMain();
+  const observed = clock();
+  assert.ok(
+    observed >= startedAt && observed - startedAt <= 60000,
+    "VOLUNTARY_PROVIDER_OBSERVATION_STALE",
+  );
+  validateVoluntaryReleaseRequest(decisionRequest, {
+    ...context,
+    now: observed,
+  });
+  assert.ok(
+    timestamp(ownerDecision.createdAt) <= observed &&
+      observed - timestamp(ownerDecision.createdAt) <= 1800000,
+    "VOLUNTARY_CONSENT_TIME_INVALID",
+  );
+  return immutable({
+    id: claimId,
+    reason: "VOLUNTARY",
+    requestedReason: "VOLUNTARY",
+    branch: claim.branch,
+    baseSha: claim.baseSha,
+    decisionRequest,
+    requestDigest: objectDigest(decisionRequest),
+    ownerDecision,
+    authorityModel: VOLUNTARY_MODEL,
+    observedAt: new Date(observed).toISOString(),
+  });
 }
 
 export async function collectClaimRetirementEvidence(
