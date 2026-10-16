@@ -120,22 +120,6 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T03:31:43.765Z"
-    },
-    "MD-PERFORMANCE-OWNERSHIP-20261016": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "chore/performance-governance-20261016",
-      "baseSha": "1bc47aee0ea6007cfc8097ca3ad5edb8447b2bc0",
-      "paths": [
-        ".morro/changesets/MD-PERFORMANCE-OWNERSHIP-20261016.json",
-        ".morro/ownership.json",
-        ".morro/risk-policy.json",
-        "tooling/fabric/performance-ownership.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T04:00:00.000Z"
     }
   }
 }
