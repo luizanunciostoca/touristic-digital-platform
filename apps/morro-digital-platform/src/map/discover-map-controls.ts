@@ -209,7 +209,10 @@ export function installDiscoverLocation({
   const status = feedback(document, button);
   let destroyed = false,
     generation = 0;
-  const report = (state: string, key: keyof Copy) => {
+  const report = (
+    state: "granted" | "denied" | "error" | "unavailable",
+    key: keyof Copy,
+  ) => {
     map?.setAttribute("data-geolocation-state", state);
     status.show(key);
     button.removeAttribute("aria-busy");
@@ -221,7 +224,7 @@ export function installDiscoverLocation({
     if (cached) {
       try {
         onLocation(cached);
-        report("ready", "located");
+        report("granted", "located");
       } catch {
         report("error", "locationError");
       }
@@ -239,7 +242,7 @@ export function installDiscoverLocation({
         if (destroyed || request !== generation) return;
         try {
           onLocation([position.coords.longitude, position.coords.latitude]);
-          report("ready", "located");
+          report("granted", "located");
         } catch {
           report("error", "locationError");
         }
