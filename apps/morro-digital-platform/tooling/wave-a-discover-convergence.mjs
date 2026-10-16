@@ -389,38 +389,32 @@ try {
     const beachMarkers = page.locator(
       '.morro-explore-marker[data-explore-category="beaches"]',
     );
-    const beachMarkerCount = await beachMarkers.count();
-    let clickableBeachIndex = -1;
-    for (let index = 0; index < beachMarkerCount; index += 1) {
-      const marker = beachMarkers.nth(index);
-      const box = await marker.boundingBox();
-      if (!box) continue;
-      const isTopmost = await marker.evaluate((element) => {
+    const clickedMarker = await beachMarkers.evaluateAll((elements) => {
+      for (const element of elements) {
+        if (!(element instanceof HTMLElement)) {
+          throw new Error("Selected beach marker is not an HTMLElement");
+        }
         const box = element.getBoundingClientRect();
+        if (box.width <= 0 || box.height <= 0) continue;
         const topmost = document
           .elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
           ?.closest(".morro-explore-marker");
-        return topmost === element;
-      });
-      if (isTopmost) {
-        clickableBeachIndex = index;
-        break;
+        if (topmost !== element) continue;
+        const clicked = {
+          id: element.getAttribute("data-marker-id"),
+          clustered: element.getAttribute("data-marker-cluster") === "true",
+          topmost: true,
+        };
+        element.click();
+        return clicked;
       }
-    }
+      return null;
+    });
     assert(
-      clickableBeachIndex >= 0,
+      clickedMarker !== null,
       "No beach POI is pointer-selectable at its visible center",
     );
-    const clickedMarker = beachMarkers.nth(clickableBeachIndex);
-    const clustered = await clickedMarker.evaluate(
-      (element) => element.getAttribute("data-marker-cluster") === "true",
-    );
-    await beachMarkers.nth(clickableBeachIndex).evaluate((element) => {
-      if (!(element instanceof HTMLElement)) {
-        throw new Error("Selected beach marker is not an HTMLElement");
-      }
-      element.click();
-    });
+    const clustered = clickedMarker.clustered;
     let selectedMember = null;
     if (clustered) {
       const member = page

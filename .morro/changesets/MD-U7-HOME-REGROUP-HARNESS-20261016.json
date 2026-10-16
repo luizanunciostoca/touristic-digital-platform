@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-U7-HOME-REGROUP-HARNESS-20261016",
   "objective": "atomic-visible-topmost-marker-classification-and-selection-during-camera-regroup",
-  "baseSha": "fe279e8ea534878d534064e6849f273b0a97f2c4",
+  "baseSha": "5b91ca7a83e057aa5f837c3faf515020450756e2",
   "branch": "fix/u7-home-regroup-harness-20261016",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
