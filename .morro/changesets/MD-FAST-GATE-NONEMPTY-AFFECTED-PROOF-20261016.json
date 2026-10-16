@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-FAST-GATE-NONEMPTY-AFFECTED-PROOF-20261016",
   "objective": "reject-empty-affected-workspace-proof-and-run-selected-root-tooling-tests-before-certification",
-  "baseSha": "7de15151bf853efcc0ff1feb3d6771549bf35320",
-  "branch": "fix/fast-gate-nonempty-affected-proof-20261016",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "c87683f6d594841bced962f5686ee778797d6514",
+  "branch": "fix/retire-fast-gate-nonempty-proof-20261016",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {

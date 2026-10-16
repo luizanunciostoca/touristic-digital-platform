@@ -152,21 +152,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
-    },
-    "MD-FAST-GATE-NONEMPTY-AFFECTED-PROOF-20261016": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/fast-gate-nonempty-affected-proof-20261016",
-      "baseSha": "7de15151bf853efcc0ff1feb3d6771549bf35320",
-      "paths": [
-        ".morro/changesets/MD-FAST-GATE-NONEMPTY-AFFECTED-PROOF-20261016.json",
-        "tooling/ci/local-fast-gate.mjs",
-        "tooling/ci/local-fast-gate.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
