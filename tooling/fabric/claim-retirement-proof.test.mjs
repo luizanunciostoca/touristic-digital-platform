@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   mkdirSync,
   mkdtempSync,
@@ -21,7 +22,12 @@ import {
   validateCandidateRetirementManifest,
   validateClaimRetirements,
   validateRetirementEvents,
+  validateVoluntaryReleaseRequest,
+  verifyVoluntaryRelease,
 } from "./claim-retirement-proof.mjs";
+import { canonicalJson } from "../mdctl/changeset-v2.mjs";
+import { runClaimCli } from "../mdctl/claim-lifecycle.mjs";
+import { buildMergedRetirementProof } from "../mdctl/merge-gate.mjs";
 
 const BASE = "a".repeat(40);
 const MERGE = "b".repeat(40);
@@ -1184,4 +1190,774 @@ test("trusted proof independently rejects forged explicit operations against rea
     ],
   ])
     await assert.rejects(verify(patch), pattern);
+  const verified = voluntaryFixture("IMPLEMENTING", {
+    claim: canonicalRegistry.claims["MD-ONE"],
+    manifest: canonicalManifest,
+    baseSha: expectedBaseSha,
+    branch: "infra/retire",
+  });
+  await verified.collect();
+  const decisionPath = join(directory, "decision.json");
+  writeFileSync(decisionPath, JSON.stringify(verified.request));
+  const before = Object.values(paths).map((path) =>
+    readFileSync(join(trustedRoot, path), "utf8"),
+  );
+  await assert.rejects(
+    runClaimCli(
+      [
+        "retire",
+        paths.manifest,
+        "--base-sha",
+        expectedBaseSha,
+        "--reason",
+        "VOLUNTARY",
+        "--decision",
+        decisionPath,
+      ],
+      { root: trustedRoot },
+    ),
+    /CLAIM_RETIREMENT_REQUEST_INVALID/u,
+  );
+  assert.deepEqual(
+    Object.values(paths).map((path) =>
+      readFileSync(join(trustedRoot, path), "utf8"),
+    ),
+    before,
+  );
+  await assert.rejects(
+    verify({
+      event: {
+        payload: {
+          reason: "VOLUNTARY",
+          requestedReason: "VOLUNTARY",
+          decisionRequest: verified.request,
+        },
+      },
+    }),
+    /CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID/u,
+  );
+});
+
+function ancestorResponse(sha) {
+  return { status: "ahead", base_commit: { sha }, merge_base_commit: { sha } };
+}
+
+function backupRef(backup, sha = backup.commitSha) {
+  return { ref: backup.ref, object: { type: "commit", sha } };
+}
+
+function preservedFile(path, blob, hash) {
+  return {
+    path,
+    modeGit: "100644",
+    status: "untracked",
+    blobSha: blob.sha,
+    sha256: hash(Buffer.from(blob.content, "base64")),
+    bytes: blob.size,
+    backupIndex: 0,
+  };
+}
+
+function voluntaryFixture(state = "LOCAL_PROVEN", overrides = {}) {
+  const hash = (value) => createHash("sha256").update(value).digest("hex");
+  const digest = (value) => hash(canonicalJson(value));
+  const blob = (text) => {
+    const bytes = Buffer.from(text);
+    const sha = createHash("sha1")
+      .update(`blob ${bytes.length}\0`)
+      .update(bytes)
+      .digest("hex");
+    return {
+      sha,
+      encoding: "base64",
+      size: bytes.length,
+      content: bytes.toString("base64"),
+    };
+  };
+  const now = Date.parse("2026-10-16T20:00:00.000Z"),
+    repository = "owner/repo";
+  const canonical =
+    overrides.claim ??
+    claim({
+      paths: ["tooling/**", ".morro/changesets/MD-ONE.json"],
+    });
+  const canonicalManifest = overrides.manifest ?? {
+    id: "MD-ONE",
+    branch: canonical.branch,
+    baseSha: canonical.baseSha,
+    state,
+  };
+  const expectedBaseSha = overrides.baseSha ?? BASE;
+  const writer = {
+    writerId: "writer-1",
+    executorIdentity: "executor",
+    controllerIdentity: "controller",
+    sessionId: "session",
+    jobId: null,
+    commandIds: ["command"],
+    branch: canonical.branch,
+    headSha: canonical.baseSha,
+    treeSha: "c".repeat(40),
+  };
+  const facts = {
+    writerId: writer.writerId,
+    requestedAt: "2026-10-16T19:57:00.000Z",
+    acknowledgedAt: "2026-10-16T19:57:10.000Z",
+    drainedAt: "2026-10-16T19:57:20.000Z",
+    terminalState: "STOPPED",
+    pendingCommands: 0,
+    pendingChildren: 0,
+  };
+  const receiptBlob = blob(
+    JSON.stringify({ schemaVersion: 1, writer, receipt: facts }),
+  );
+  const fileBlob = blob("preserved untracked material\n");
+  const backup = {
+    writerId: writer.writerId,
+    repository,
+    ref: "refs/heads/backup-example",
+    commitSha: MERGE,
+    treeSha: "d".repeat(40),
+  };
+  const request = {
+    schemaVersion: 1,
+    reason: "VOLUNTARY",
+    requestedReason: "VOLUNTARY",
+    decisionNonce: "unique-nonce",
+    repository,
+    claimId: "MD-ONE",
+    canonicalOwner: canonical.owner,
+    executorIdentity: writer.executorIdentity,
+    controllerIdentity: writer.controllerIdentity,
+    exactBaseSha: expectedBaseSha,
+    canonicalClaimDigest: digest(canonical),
+    retirementBranch: overrides.branch ?? "infra/release",
+    preservedMaterialState: state,
+    expectedPaths: [
+      ".github/morro-control/claims.json",
+      ".github/morro-control/events.ndjson",
+      ".morro/changesets/MD-ONE.json",
+    ],
+    transitionKind: "SINGLETON_RETIRE_NO_ACQUIRE",
+    writerInventory: [writer],
+    writerInventoryDigest: "",
+    stopAckReceipts: [
+      {
+        ...facts,
+        receiptRef: `https://api.github.com/repos/${repository}/git/blobs/${receiptBlob.sha}`,
+        receiptSha256: hash(Buffer.from(receiptBlob.content, "base64")),
+      },
+    ],
+    stopAckReceiptsDigest: "",
+    wipInventory: [preservedFile("tooling/example.mjs", fileBlob, hash)],
+    wipInventoryDigest: "",
+    backupRefs: [backup],
+    snapshotAt: "2026-10-16T19:58:00.000Z",
+    anchorAcquisitionPr: 123,
+    holdWritersStoppedUntilCanonicalRelease: true,
+    completionClaimed: false,
+    authorityModel: "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY",
+  };
+  request.wipInventory.push(preservedFile("receipt.json", receiptBlob, hash));
+  const routes = new Map();
+  let comments;
+  const refresh = () => {
+    for (const key of ["writerInventory", "stopAckReceipts", "wipInventory"])
+      request[key + "Digest"] = digest(request[key]);
+    const body = `APPROVED_VOLUNTARY_RELEASE:MD-ONE:${digest(request)}:${request.decisionNonce}:${expectedBaseSha}`;
+    const comment = {
+      id: 7,
+      body,
+      user: { id: 1, login: "owner", type: "User" },
+      author_association: "OWNER",
+      performed_via_github_app: null,
+      created_at: "2026-10-16T19:59:00Z",
+      updated_at: "2026-10-16T19:59:00Z",
+    };
+    comments = [comment];
+    routes.set("/issues/comments/7", comment);
+  };
+  refresh();
+  routes.set(
+    `/compare/${canonical.baseSha}...${MERGE}`,
+    ancestorResponse(canonical.baseSha),
+  );
+  routes.set("/commits/main", { sha: expectedBaseSha });
+  routes.set("", {
+    full_name: repository,
+    owner: { id: 1, login: "owner", type: "User" },
+  });
+  routes.set("/pulls/123", {
+    number: 123,
+    merged_at: "2026-10-15T00:00:00Z",
+    merge_commit_sha: MERGE,
+    head: { ref: canonical.branch, repo: { full_name: repository } },
+    base: { ref: "main", repo: { full_name: repository } },
+  });
+  routes.set(`/compare/${MERGE}...${expectedBaseSha}`, ancestorResponse(MERGE));
+  routes.set(
+    `/contents/.github/morro-control/claims.json?ref=${MERGE}`,
+    blob(JSON.stringify(registry({ "MD-ONE": canonical }))),
+  );
+  routes.set(
+    `/contents/.morro/changesets/MD-ONE.json?ref=${MERGE}`,
+    blob(JSON.stringify(canonicalManifest)),
+  );
+  routes.set("/git/ref/heads/backup-example", backupRef(backup));
+  routes.set(`/git/commits/${MERGE}`, {
+    sha: MERGE,
+    tree: { sha: backup.treeSha },
+  });
+  routes.set(`/git/commits/${canonical.baseSha}`, {
+    sha: canonical.baseSha,
+    tree: { sha: writer.treeSha },
+  });
+  routes.set(`/git/trees/${writer.treeSha}?recursive=1`, {
+    sha: writer.treeSha,
+    truncated: false,
+    tree: [],
+  });
+  routes.set(`/git/trees/${backup.treeSha}?recursive=1`, {
+    sha: backup.treeSha,
+    truncated: false,
+    tree: [
+      {
+        path: "tooling/example.mjs",
+        type: "blob",
+        mode: "100644",
+        sha: fileBlob.sha,
+      },
+    ],
+  });
+  routes.get(`/git/trees/${backup.treeSha}?recursive=1`).tree.push({
+    path: "receipt.json",
+    type: "blob",
+    mode: "100644",
+    sha: receiptBlob.sha,
+  });
+  for (const value of [fileBlob, receiptBlob])
+    routes.set(`/git/blobs/${value.sha}`, value);
+  const fetchImpl = async (url) => {
+    const path = String(url).replace(
+      "https://api.github.com/repos/owner/repo",
+      "",
+    );
+    const value = routes.has(path)
+      ? routes.get(path)
+      : path.startsWith("/issues/123/comments?")
+        ? comments
+        : undefined;
+    return new Response(
+      JSON.stringify(
+        (typeof value === "function" ? value() : value) ?? {
+          message: "not mocked",
+        },
+      ),
+      {
+        status: value === undefined ? 404 : 200,
+      },
+    );
+  };
+  const context = {
+    claimId: "MD-ONE",
+    claim: canonical,
+    canonicalManifest,
+    expectedBaseSha,
+    canonicalText: "",
+    retirementBranch: request.retirementBranch,
+    now,
+  };
+  const collect = (collectionOptions = {}) =>
+    verifyVoluntaryRelease(request, {
+      claimId: "MD-ONE",
+      claim: canonical,
+      ...context,
+      repository,
+      token: "fixture-token",
+      fetchImpl,
+      clock: () => now,
+      ...collectionOptions,
+    });
+  return {
+    request,
+    context,
+    collect,
+    routes,
+    refresh,
+    fetchImpl,
+    snapshot: routes.get(`/git/trees/${backup.treeSha}?recursive=1`),
+    blob,
+    hash,
+    digest,
+    get comments() {
+      return comments;
+    },
+  };
+}
+
+test("read-only verification proves owner consent and material preservation without activation", async () => {
+  for (const state of ["IMPLEMENTING", "LOCAL_PROVEN"]) {
+    const f = voluntaryFixture(state),
+      evidence = await f.collect();
+    assert.equal(evidence.reason, "VOLUNTARY");
+    assert.equal(evidence.requestedReason, "VOLUNTARY");
+    assert.equal(evidence.observedAt, new Date(f.context.now).toISOString());
+    assert.equal(evidence.decisionRequest.preservedMaterialState, state);
+    assert.throws(
+      () =>
+        validateCandidateRetirementManifest(f.context.canonicalManifest, {
+          ...f.context,
+          evidence,
+        }),
+      /CLAIM_RETIREMENT_REASON_INVALID/u,
+    );
+    assert.throws(
+      () =>
+        validateClaimRetirements({
+          baseRegistry: registry({ "MD-ONE": f.context.claim }),
+          candidateRegistry: registry({}),
+          evidenceById: { "MD-ONE": evidence },
+        }),
+      /CLAIM_RETIREMENT_REASON_INVALID/u,
+    );
+  }
+});
+
+test("VOLUNTARY schema rejects signed-field drift, extras, duplicate IDs and incomplete ACKs", () => {
+  const mutations = [
+    (r) => (r.extra = true),
+    (r) => r.expectedPaths.reverse(),
+    (r) => (r.canonicalOwner = "ALIAS"),
+    (r) => (r.exactBaseSha = MERGE),
+    (r) => (r.retirementBranch = "infra/other"),
+    (r) => (r.preservedMaterialState = "MERGED"),
+    (r) => (r.holdWritersStoppedUntilCanonicalRelease = false),
+    (r) => (r.completionClaimed = true),
+    (r) => (r.executorIdentity = "unlisted"),
+    (r) => r.writerInventory.push(r.writerInventory[0]),
+    (r) => (r.stopAckReceipts = []),
+    (r) => (r.stopAckReceipts[0].pendingChildren = 1),
+    (r) => (r.stopAckReceipts[0].terminalState = "ACTIVE"),
+    (r) => (r.stopAckReceipts[0].receiptRef = "https://evil.invalid/blob"),
+    (r) => (r.wipInventory[0].path = "../untracked"),
+    (r) => (r.wipInventory[0].modeGit = "160000"),
+    (r) => (r.wipInventory[0].bytes = -1),
+    (r) => (r.wipInventory[0].backupIndex = 1),
+    (r) => (r.writerInventory[0].headSha = "a".repeat(64)),
+    (r) => delete r.backupRefs[0].writerId,
+    (r) => (r.backupRefs[0].writerId = "unknown-writer"),
+    (r) => (r.backupRefs[0].repository = "other/repo"),
+    (r) => (r.backupRefs[0].ref = "refs/heads/../main"),
+    (r) => (r.decisionNonce = "x".repeat(65536)),
+  ];
+  for (const mutate of mutations) {
+    const f = voluntaryFixture();
+    mutate(f.request);
+    f.refresh();
+    assert.throws(() => validateVoluntaryReleaseRequest(f.request, f.context));
+  }
+  const malformed = voluntaryFixture();
+  malformed.context.claim.owner = malformed.request.canonicalOwner = "";
+  malformed.request.canonicalClaimDigest = malformed.digest(
+    malformed.context.claim,
+  );
+  assert.throws(() =>
+    validateVoluntaryReleaseRequest(malformed.request, malformed.context),
+  );
+});
+
+test("VOLUNTARY rejects future, unordered and stale drain/snapshot/consent clocks", async () => {
+  for (const mutate of [
+    (r) => (r.snapshotAt = "2026-10-16T20:01:00.000Z"),
+    (r) => (r.snapshotAt = "2026-10-16T18:00:00.000Z"),
+    (r) => (r.stopAckReceipts[0].acknowledgedAt = "2026-10-16T19:56:00.000Z"),
+    (r) => (r.stopAckReceipts[0].drainedAt = "2026-10-16T19:59:00.000Z"),
+  ]) {
+    const f = voluntaryFixture();
+    mutate(f.request);
+    f.refresh();
+    await assert.rejects(f.collect());
+  }
+  for (const created of [
+    "2026-10-16T19:57:00.000Z",
+    "2026-10-16T20:01:00.000Z",
+  ]) {
+    const f = voluntaryFixture();
+    f.comments[0].created_at = created;
+    f.comments[0].updated_at = created;
+    await assert.rejects(f.collect());
+  }
+});
+
+test("VOLUNTARY rejects missing, duplicate, edited, revoked and non-owner consent", async () => {
+  const mutations = [
+    (f) => f.comments.splice(0),
+    (f) => f.comments.push(structuredClone(f.comments[0])),
+    (f) => (f.comments[0].updated_at = "2026-10-16T19:59:01.000Z"),
+    (f) =>
+      f.comments.push({
+        ...f.comments[0],
+        id: 8,
+        body: f.comments[0].body.replace("APPROVED", "REVOKED"),
+      }),
+    (f) => (f.comments[0].user.type = "Bot"),
+    (f) => (f.comments[0].user.id = 2),
+    (f) => (f.comments[0].author_association = "MEMBER"),
+    (f) => (f.comments[0].performed_via_github_app = { id: 1 }),
+    (f) => f.routes.delete("/issues/comments/7"),
+    (f) =>
+      f.routes.set("/issues/comments/7", {
+        ...f.comments[0],
+        body: "edited",
+      }),
+  ];
+  for (const mutate of mutations) {
+    const f = voluntaryFixture();
+    mutate(f);
+    await assert.rejects(f.collect());
+  }
+});
+
+test("VOLUNTARY rejects anchor, backup, raw object and durable receipt corruption", async () => {
+  const mutations = [
+    (f) => (f.routes.get("").owner.type = "Organization"),
+    (f) => (f.routes.get("/pulls/123").head.ref = "wrong"),
+    (f) => (f.routes.get(`/compare/${MERGE}...${BASE}`).status = "behind"),
+    (f) => (f.routes.get("/git/ref/heads/backup-example").object.sha = BASE),
+    (f) => (f.routes.get("/git/ref/heads/backup-example").object.type = "tag"),
+    (f) => (f.routes.get(`/compare/${BASE}...${MERGE}`).status = "behind"),
+    (f) => (f.routes.get(`/git/commits/${MERGE}`).tree.sha = BASE),
+    (f) => (f.snapshot.truncated = true),
+    (f) => (f.snapshot.tree = []),
+    (f) => (f.snapshot.tree[0].mode = "100755"),
+    (f) =>
+      (f.routes.get(`/git/blobs/${f.request.wipInventory[0].blobSha}`).content =
+        Buffer.from("corrupt").toString("base64")),
+    (f) => (f.request.stopAckReceipts[0].receiptSha256 = "f".repeat(64)),
+    (f) => {
+      const receipt = f.request.stopAckReceipts[0];
+      const sha = receipt.receiptRef.split("/").at(-1);
+      f.routes.delete(`/git/blobs/${sha}`);
+    },
+  ];
+  for (const mutate of mutations) {
+    const f = voluntaryFixture();
+    mutate(f);
+    f.refresh();
+    await assert.rejects(f.collect());
+  }
+});
+
+test("VOLUNTARY inventory covers both delta legs including reverted edits and deleted tombstones", async () => {
+  const extra = {
+    path: "tooling/omitted.mjs",
+    type: "blob",
+    mode: "100644",
+    sha: "2".repeat(40),
+  };
+  for (const leg of ["snapshot", "writer-reverted"]) {
+    const f = voluntaryFixture();
+    const snapshot = f.snapshot;
+    if (leg === "snapshot") snapshot.tree.push(extra);
+    else {
+      const writer = f.request.writerInventory[0];
+      writer.headSha = "f".repeat(40);
+      writer.treeSha = "1".repeat(40);
+      f.routes.set(
+        `/compare/${writer.headSha}...${MERGE}`,
+        ancestorResponse(writer.headSha),
+      );
+      f.routes.get(`/git/trees/${"c".repeat(40)}?recursive=1`).tree.push(extra);
+      snapshot.tree.push(extra);
+      f.routes.set(`/git/commits/${writer.headSha}`, {
+        sha: writer.headSha,
+        tree: { sha: writer.treeSha },
+      });
+      f.routes.set(`/git/trees/${writer.treeSha}?recursive=1`, {
+        sha: writer.treeSha,
+        truncated: false,
+        tree: [{ ...extra, sha: "3".repeat(40) }],
+      });
+    }
+    f.refresh();
+    await assert.rejects(f.collect(), /VOLUNTARY_WIP_PATH_OMITTED/u);
+  }
+  const f = voluntaryFixture();
+  f.routes.get(`/git/trees/${"c".repeat(40)}?recursive=1`).tree.push(extra);
+  const tombstone = {
+    path: extra.path,
+    status: "deleted",
+    modeGit: null,
+    blobSha: null,
+    sha256: null,
+    bytes: 0,
+    backupIndex: 0,
+  };
+  f.request.wipInventory.push(tombstone);
+  f.refresh();
+  assert.equal((await f.collect()).reason, "VOLUNTARY");
+  tombstone.path = "tooling/never-existed.mjs";
+  f.refresh();
+  await assert.rejects(f.collect());
+});
+
+test("valid verification cannot activate canonical collector, ledger derivation or replay", async () => {
+  const f = voluntaryFixture();
+  const evidence = await f.collect();
+  await assert.rejects(
+    collectClaimRetirementEvidence("MD-ONE", f.context.claim, {
+      ...f.context,
+      repository: f.request.repository,
+      requestedReason: "VOLUNTARY",
+      decisionRequest: f.request,
+    }),
+    /CLAIM_RETIREMENT_REQUEST_INVALID/u,
+  );
+  const event = ledgerEvent("CLAIM_RELEASED", {
+    sourceSha: BASE,
+    observedAt: new Date(f.context.now).toISOString(),
+    payloadVersion: 1,
+    payload: {
+      reason: "VOLUNTARY",
+      requestedReason: "VOLUNTARY",
+      decisionRequest: f.request,
+    },
+  });
+  const candidateText = ledger([event]);
+  assert.throws(
+    () => deriveExplicitRetirementRequest({ ...f.context, candidateText }),
+    /CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID/u,
+  );
+  assert.throws(
+    () =>
+      validateRetirementEvents({
+        ...f.context,
+        candidateText,
+        evidence,
+        requestedReason: "VOLUNTARY",
+      }),
+    /CLAIM_RETIREMENT_REASON_INVALID/u,
+  );
+  for (const value of [evidence, { reason: "VOLUNTARY" }])
+    await assert.rejects(
+      buildMergedRetirementProof(
+        "trusted",
+        "candidate",
+        {},
+        { proofBuilder: async () => ({ retirements: [value] }) },
+      ),
+      /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
+    );
+  assert.throws(
+    () =>
+      validateVoluntaryReleaseRequest(f.request, {
+        ...f.context,
+        canonicalText: candidateText,
+      }),
+    /VOLUNTARY_NONCE_REPLAY/u,
+  );
+});
+
+test("VOLUNTARY never freshens an overlong provider collection by stamping its end", async () => {
+  const f = voluntaryFixture();
+  let step = 0;
+  await assert.rejects(
+    f.collect({ clock: () => f.context.now + step++ * 30000 }),
+    /VOLUNTARY_PROVIDER_OBSERVATION_STALE/u,
+  );
+});
+
+test("read-only verification binds live main twice and anchors durable receipt bytes", async () => {
+  for (const late of [false, true]) {
+    const f = voluntaryFixture();
+    let reads = 0;
+    f.routes.set("/commits/main", () => ({
+      sha: !late || reads++ ? MERGE : BASE,
+    }));
+    await assert.rejects(f.collect(), /VOLUNTARY_MAIN_CHANGED/u);
+  }
+  const f = voluntaryFixture();
+  f.request.wipInventory = f.request.wipInventory.filter(
+    (file) => file.path !== "receipt.json",
+  );
+  f.refresh();
+  await assert.rejects(f.collect(), /VOLUNTARY_RECEIPT_NOT_DURABLY_BACKED/u);
+});
+
+function replaceReceipt(f, bytes) {
+  const value = f.blob(bytes),
+    receipt = f.request.stopAckReceipts[0];
+  receipt.receiptRef = `https://api.github.com/repos/owner/repo/git/blobs/${value.sha}`;
+  receipt.receiptSha256 = f.hash(Buffer.from(value.content, "base64"));
+  Object.assign(
+    f.request.wipInventory.find((file) => file.path === "receipt.json"),
+    preservedFile("receipt.json", value, f.hash),
+  );
+  f.snapshot.tree.find((file) => file.path === "receipt.json").sha = value.sha;
+  f.routes.set(`/git/blobs/${value.sha}`, value);
+  f.refresh();
+}
+
+test("verification snapshots caller inputs and returns immutable owner-bound evidence", async () => {
+  for (const phase of ["last-main", "backup"]) {
+    const f = voluntaryFixture(),
+      nonce = f.request.decisionNonce;
+    const path =
+      phase === "last-main"
+        ? "/commits/main"
+        : `/git/trees/${"d".repeat(40)}?recursive=1`;
+    const value = f.routes.get(path);
+    let reads = 0;
+    f.routes.set(path, () => {
+      if (phase === "backup" || ++reads === 2) {
+        f.request.decisionNonce = "caller-mutated";
+        f.context.claim.owner = "OTHER";
+        f.context.claim.paths = [];
+        f.context.canonicalManifest.state = "MERGED";
+      }
+      return value;
+    });
+    const evidence = await f.collect();
+    assert.equal(evidence.decisionRequest.decisionNonce, nonce);
+    assert.equal(evidence.requestDigest, f.digest(evidence.decisionRequest));
+    assert.equal(
+      evidence.ownerDecision.bodySha256,
+      f.hash(
+        `APPROVED_VOLUNTARY_RELEASE:MD-ONE:${evidence.requestDigest}:${nonce}:${BASE}`,
+      ),
+    );
+    f.request.wipInventory[0].path = "after-return";
+    assert.notEqual(
+      evidence.decisionRequest.wipInventory[0].path,
+      "after-return",
+    );
+    assert.throws(() => {
+      evidence.decisionRequest.decisionNonce = "mutation";
+    }, TypeError);
+  }
+});
+
+test("provider pagination, late revocation and ref rereads fail closed", async () => {
+  const page = (n) => `/issues/123/comments?per_page=100&page=${n}`;
+  const filler = Array.from({ length: 100 }, (_, id) => ({
+    id: 100 + id,
+    body: "unrelated",
+  }));
+  const complete = voluntaryFixture();
+  complete.routes.set(page(1), filler);
+  complete.routes.set(page(2), complete.comments);
+  assert.equal((await complete.collect()).reason, "VOLUNTARY");
+  const limited = voluntaryFixture();
+  for (let n = 1; n <= 10; n++) limited.routes.set(page(n), filler);
+  await assert.rejects(
+    limited.collect(),
+    /VOLUNTARY_COMMENT_PAGINATION_LIMIT/u,
+  );
+  const revoked = voluntaryFixture();
+  let reads = 0;
+  revoked.routes.set(page(1), () =>
+    ++reads === 1
+      ? revoked.comments
+      : [
+          ...revoked.comments,
+          {
+            ...revoked.comments[0],
+            id: 8,
+            body: revoked.comments[0].body.replace("APPROVED", "REVOKED"),
+          },
+        ],
+  );
+  await assert.rejects(revoked.collect(), /VOLUNTARY_OWNER_REVOKED/u);
+  const moved = voluntaryFixture();
+  reads = 0;
+  moved.routes.set("/git/ref/heads/backup-example", () =>
+    backupRef(moved.request.backupRefs[0], reads++ ? BASE : MERGE),
+  );
+  await assert.rejects(moved.collect(), /VOLUNTARY_BACKUP_REF_MOVED/u);
+});
+
+test("receipt JSON rejects validly hashed wrong facts and malformed UTF8", async () => {
+  for (const invalidUtf8 of [false, true]) {
+    const f = voluntaryFixture();
+    if (invalidUtf8) {
+      f.request.executorIdentity = "bad\uFFFD";
+      f.request.writerInventory[0].executorIdentity =
+        f.request.executorIdentity;
+    }
+    const { receiptRef, receiptSha256, ...facts } =
+      f.request.stopAckReceipts[0];
+    const material = {
+      schemaVersion: 1,
+      writer: f.request.writerInventory[0],
+      receipt: { ...facts, pendingChildren: invalidUtf8 ? 0 : 1 },
+    };
+    let bytes = Buffer.from(JSON.stringify(material));
+    if (invalidUtf8) {
+      const index = bytes.indexOf(Buffer.from("\uFFFD"));
+      bytes = Buffer.concat([
+        bytes.subarray(0, index),
+        Buffer.from([255]),
+        bytes.subarray(index + 3),
+      ]);
+    }
+    replaceReceipt(f, bytes);
+    await assert.rejects(
+      f.collect(),
+      invalidUtf8
+        ? /encoded data was not valid/u
+        : /VOLUNTARY_RECEIPT_FACTS_MISMATCH/u,
+    );
+  }
+});
+
+test("a receipt must be durably backed by its own writer snapshot", async () => {
+  const f = voluntaryFixture(),
+    parent = f.request.backupRefs[0];
+  const writer = {
+    ...f.request.writerInventory[0],
+    writerId: "writer-2",
+    sessionId: "session-2",
+    executorIdentity: "executor-2",
+    commandIds: ["command-2"],
+  };
+  const { receiptRef, receiptSha256, ...originalFacts } =
+    f.request.stopAckReceipts[0];
+  const facts = { ...originalFacts, writerId: writer.writerId };
+  const bytes = f.blob(
+    JSON.stringify({ schemaVersion: 1, writer, receipt: facts }),
+  );
+  const receipt = {
+    ...facts,
+    receiptRef: `https://api.github.com/repos/owner/repo/git/blobs/${bytes.sha}`,
+    receiptSha256: f.hash(Buffer.from(bytes.content, "base64")),
+  };
+  const backup = {
+    ...parent,
+    writerId: writer.writerId,
+    ref: "refs/heads/backup-2",
+    commitSha: "f".repeat(40),
+    treeSha: writer.treeSha,
+  };
+  f.request.writerInventory.push(writer);
+  f.request.stopAckReceipts.push(receipt);
+  f.request.backupRefs.push(backup);
+  f.request.wipInventory.push(preservedFile("receipt-2.json", bytes, f.hash));
+  f.routes.set("/git/ref/heads/backup-2", backupRef(backup));
+  f.routes.set(`/git/commits/${backup.commitSha}`, {
+    sha: backup.commitSha,
+    tree: { sha: writer.treeSha },
+  });
+  f.routes.set(
+    `/compare/${BASE}...${backup.commitSha}`,
+    ancestorResponse(BASE),
+  );
+  f.routes.set(`/git/blobs/${bytes.sha}`, bytes);
+  f.routes.get(`/git/trees/${parent.treeSha}?recursive=1`).tree.push({
+    path: "receipt-2.json",
+    type: "blob",
+    mode: "100644",
+    sha: bytes.sha,
+  });
+  f.refresh();
+  await assert.rejects(f.collect(), /VOLUNTARY_RECEIPT_NOT_DURABLY_BACKED/u);
 });
