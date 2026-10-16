@@ -53,6 +53,9 @@ jobs:
           MAPBOX_PUBLIC_TOKEN_CI: ${{ secrets.MAPBOX_PUBLIC_TOKEN_CI }}
         run: |
           test -n "${MAPBOX_PUBLIC_TOKEN_CI:-}" || { echo 'MAPBOX_PUBLIC_TOKEN_CI missing'; exit 1; }
+          # This matrix proves legacy catalog membership with the real Mapbox SDK.
+          # The supported backend startup contract makes canonical Place unavailable without its DB.
+          BUSINESS_DATABASE_URL= MORRO_DB_HOST= \
           VITE_MAPBOX_ACCESS_TOKEN="$MAPBOX_PUBLIC_TOKEN_CI" \
           VITE_MAPBOX_STYLE=mapbox://styles/mapbox/streets-v12 \
           VITE_MAPBOX_CONTAINER_ID=map \
@@ -175,6 +178,153 @@ jobs:
                 zoom: map?.getZoom?.() ?? null,
               };
             });
+          }
+
+          async function settledCamera(page) {
+            const deadline = Date.now() + 8000;
+            let previous;
+            let stableSince = 0;
+            while (Date.now() < deadline) {
+              const idle = await page.evaluate(() => {
+                const map = globalThis.mapboxPrimaryInstance;
+                return document.querySelector('#map')?.dataset.exploreState === 'ready' &&
+                  typeof map?.isMoving === 'function' && !map.isMoving();
+              });
+              const current = await camera(page);
+              const stable = idle && previous &&
+                closeEnough(previous.lng, current.lng, 0.0000001) &&
+                closeEnough(previous.lat, current.lat, 0.0000001) &&
+                closeEnough(previous.zoom, current.zoom, 0.0000001);
+              if (!stable) stableSince = Date.now();
+              if (stable && Date.now() - stableSince >= 300) return current;
+              previous = current;
+              await page.waitForTimeout(50);
+            }
+            throw new Error(`Explore camera did not settle: ${JSON.stringify(previous)}`);
+          }
+
+          const beachNames = [
+            'Primeira Praia', 'Praia de Garapuá', 'Praia do Pôrto',
+            'Praia da Gamboa', 'Segunda Praia', 'Terceira Praia',
+            'Quarta Praia', 'Praia do Encanto',
+          ];
+
+          async function assertBeachMembership(page, expectedNames, requireList) {
+            if (await page.evaluate(() => globalThis.__MORRO_RUNTIME_ENV__?.VITE_PLACE_PLATFORM_AVAILABLE) !== 'false') {
+              throw new Error('Legacy beach census requires canonical Place explicitly unavailable; canonical IDs need a separate producer-backed scenario');
+            }
+            const readCensus = () => page.evaluate(() => {
+              const map = document.querySelector('#map');
+              return {
+                members: Number(map.getAttribute('data-map-member-count')),
+                markerCount: Number(map.getAttribute('data-map-marker-count')),
+                grouping: map.dataset.markerGrouping,
+                state: map.dataset.exploreState,
+                // This public geometry epoch is separate from the dataset epoch encoded in IDs.
+                geometryGeneration: map.dataset.exploreDatasetGeneration,
+                markers: Array.from(map.querySelectorAll(
+                  '.morro-explore-marker[data-morro-explore-marker="true"]:not([data-discover-initial-poi="true"])',
+                ), node => ({
+                  id: node.dataset.markerId,
+                  name: node.dataset.locationName,
+                  cluster: node.dataset.markerCluster === 'true',
+                  count: Number(node.dataset.clusterCount ?? 1),
+                })).sort((left, right) => left.id.localeCompare(right.id)),
+                names: Array.from(document.querySelectorAll(
+                  '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
+                ), node => node.dataset.locationName).sort(),
+              };
+            });
+            const validate = (census, checkList) => {
+              const indices = [], generations = new Set(), markerIds = new Set();
+              for (const marker of census.markers) {
+                const match = marker.id?.match(/^explore:beaches:(?:cluster:([2-9]\d*|1\d+):|member:)(.+)$/);
+                if (!match || markerIds.has(marker.id)) {
+                  throw new Error(`Invalid or duplicate beach marker: ${JSON.stringify(marker)}`);
+                }
+                markerIds.add(marker.id);
+                const keys = match[2].split('|');
+                if (marker.cluster !== Boolean(match[1]) || marker.count !== keys.length ||
+                    new Set(keys).size !== keys.length ||
+                    (match[1] && Number(match[1]) !== keys.length) ||
+                    (!marker.cluster && keys.length !== 1)) {
+                  throw new Error(`Incoherent beach group: ${JSON.stringify(marker)}`);
+                }
+                for (const key of keys) {
+                  const member = key.match(/^dataset:([1-9]\d*):(0|[1-9]\d*)$/);
+                  if (!member) throw new Error(`Unexpected beach member key: ${key}`);
+                  generations.add(member[1]);
+                  const index = Number(member[2]);
+                  indices.push(index);
+                  if (!Number.isSafeInteger(index) || index >= expectedNames.length ||
+                      (!marker.cluster && marker.name !== expectedNames[index])) {
+                    throw new Error(`Wrong beach identity: ${JSON.stringify(marker)}`);
+                  }
+                }
+              }
+              const expectedIndices = expectedNames.map((_, index) => index);
+              if (census.state !== 'ready' || census.grouping !== 'projected' || generations.size !== 1 ||
+                  !/^[1-9]\d*$/.test(census.geometryGeneration ?? '') ||
+                  census.members !== expectedNames.length || census.markerCount !== census.markers.length ||
+                  new Set(indices).size !== indices.length ||
+                  JSON.stringify(indices.sort((left, right) => left - right)) !== JSON.stringify(expectedIndices) ||
+                  (checkList && JSON.stringify(census.names) !== JSON.stringify([...expectedNames].sort()))) {
+                throw new Error(`Beach membership drift: ${JSON.stringify({ expectedNames, census, indices })}`);
+              }
+              return { ...census, datasetGeneration: [...generations][0] };
+            };
+            const stableCensus = async (checkList = requireList) => {
+              await settledCamera(page);
+              const deadline = Date.now() + 8000;
+              let previous, stableSince = Date.now();
+              while (Date.now() < deadline) {
+                const current = await readCensus();
+                const serialized = JSON.stringify(current);
+                if (serialized !== previous) stableSince = Date.now();
+                else if (Date.now() - stableSince >= 300) return validate(current, checkList);
+                previous = serialized;
+                await page.waitForTimeout(50);
+              }
+              throw new Error(`Beach census did not stabilize: ${previous}`);
+            };
+            let census = await stableCensus();
+            const visited = new Set(), transitions = [];
+            // Re-read after each restore: Back may legitimately reinstall the dataset and regroup.
+            for (let operation = 0; operation <= expectedNames.length; operation++) {
+              const marker = census.markers.find(marker => marker.cluster &&
+                !visited.has(marker.id.replace(/dataset:[1-9]\d*:/g, 'dataset:')));
+              if (!marker) return { ...census, generationTransitions: transitions };
+              if (operation === expectedNames.length) throw new Error('Beach cluster census did not converge');
+              const signature = marker.id.replace(/dataset:[1-9]\d*:/g, 'dataset:');
+              const groupNames = marker.id.split(':').slice(4).join(':').split('|')
+                .map(key => expectedNames[Number(key.split(':').at(-1))]).sort();
+              // A real locator click proves the hit target; no synthetic DOM click bypasses actionability.
+              await page.locator(`#map .morro-explore-marker[data-marker-id=${JSON.stringify(marker.id)}]`).click();
+              const back = page.locator('#assistant-category-rail [data-value="back-cluster"]');
+              await back.waitFor({ state: 'visible', timeout: 5000 });
+              const names = await page.locator('#assistant-category-rail [data-location-name]')
+                .evaluateAll(nodes => nodes.map(node => node.dataset.locationName).sort());
+              const expanded = await stableCensus(false);
+              if (JSON.stringify(names) !== JSON.stringify(groupNames) ||
+                  JSON.stringify(expanded.markers) !== JSON.stringify(census.markers) ||
+                  expanded.datasetGeneration !== census.datasetGeneration ||
+                  expanded.geometryGeneration !== census.geometryGeneration) {
+                throw new Error(`Beach group changed while expanded: ${JSON.stringify({ marker, names, groupNames, census, expanded })}`);
+              }
+              await back.click();
+              await back.waitFor({ state: 'detached', timeout: 5000 });
+              const restored = await stableCensus();
+              // Epochs are independently monotonic; neither is inferred from the other.
+              if (BigInt(restored.datasetGeneration) < BigInt(census.datasetGeneration) ||
+                  BigInt(restored.geometryGeneration) < BigInt(census.geometryGeneration)) {
+                throw new Error(`Beach epoch regressed after restore: ${JSON.stringify({ census, restored })}`);
+              }
+              transitions.push({ beforeDataset: census.datasetGeneration, afterDataset: restored.datasetGeneration,
+                beforeGeometry: census.geometryGeneration, afterGeometry: restored.geometryGeneration });
+              visited.add(signature);
+              census = restored;
+            }
+            throw new Error('Beach cluster census exhausted');
           }
 
           async function sheetGeometry(page, selector) {
@@ -741,7 +891,7 @@ jobs:
                   });
                   await page.emulateMedia({ forcedColors: 'none' });
 
-                  const selectedCamera = await camera(page);
+                  const selectedCamera = await settledCamera(page);
                   await page.locator(
                     '#assistant-category-rail[data-rail-stage="detail"] [data-value="__back_to_places__"]',
                   ).click();
@@ -757,11 +907,12 @@ jobs:
                   await page.locator(
                     '#assistant-category-rail[data-rail-stage="menu"]',
                   ).waitFor({ state: 'visible', timeout: 5000 });
-                  const discoverCamera = await camera(page);
+                  const discoverCamera = await settledCamera(page);
                   if (
                     (await page.locator('#map').getAttribute('data-map-marker-count')) !== '1' ||
                     !closeEnough(selectedCamera.lng, discoverCamera.lng, 0.00001) ||
-                    !closeEnough(selectedCamera.lat, discoverCamera.lat, 0.00001)
+                    !closeEnough(selectedCamera.lat, discoverCamera.lat, 0.00001) ||
+                    !closeEnough(selectedCamera.zoom, discoverCamera.zoom, 0.00001)
                   ) {
                     throw new Error(
                       `return to Discover lost map context: ${JSON.stringify({ selectedCamera, discoverCamera })}`,
@@ -845,6 +996,7 @@ jobs:
                     '#assistant-category-rail[data-rail-stage="filters"][data-context-category="beaches"]',
                   );
                   await filterRail.waitFor({ state: 'visible', timeout: 8000 });
+                  const initialBeaches = await assertBeachMembership(page, beachNames, false);
                   const surfCopy = await filterRail.locator('[data-value="surf"]').textContent();
                   if (surfCopy?.trim() !== '🏄 Para surf') {
                     throw new Error(`Surf filter copy diverged: ${JSON.stringify(surfCopy)}`);
@@ -853,22 +1005,20 @@ jobs:
                   await page.locator(
                     '#assistant-category-rail[data-rail-stage="places"] [data-location-name]',
                   ).first().waitFor({ state: 'visible', timeout: 8000 });
-                  const filteredMarkerCount = Number(
-                    await page.locator('#map').getAttribute('data-map-marker-count'),
-                  );
+                  const filteredBeaches = await assertBeachMembership(page, ['Primeira Praia'], true);
+                  const filteredMarkerCount = filteredBeaches.markerCount;
                   await page.locator(
                     '#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_filtros"]',
                   ).click();
                   await page.locator(
                     '#assistant-category-rail[data-rail-stage="filters"] [data-value="surf"]',
                   ).waitFor({ state: 'visible', timeout: 8000 });
-                  const restoredMarkerCount = Number(
-                    await page.locator('#map').getAttribute('data-map-marker-count'),
-                  );
+                  const restoredBeaches = await assertBeachMembership(page, beachNames, false);
+                  const restoredMarkerCount = restoredBeaches.markerCount;
                   if (
                     filteredMarkerCount < 1 ||
-                    filteredMarkerCount >= 8 ||
-                    restoredMarkerCount !== 8
+                    filteredMarkerCount >= initialBeaches.members ||
+                    restoredBeaches.members !== initialBeaches.members
                   ) {
                     throw new Error(
                       `filter context drift: ${JSON.stringify({ filteredMarkerCount, restoredMarkerCount })}`,
@@ -894,6 +1044,9 @@ jobs:
                     providerContextAfter,
                     filteredMarkerCount,
                     restoredMarkerCount,
+                    initialBeaches,
+                    filteredBeaches,
+                    restoredBeaches,
                   };
                 }
 
