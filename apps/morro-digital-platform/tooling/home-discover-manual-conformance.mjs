@@ -478,7 +478,7 @@ async function verifyAppliedMapFilters(page) {
           const legitimateHud = topmost?.closest(
             "#unified-assistant-dock, #toggle-3d-mode, #toggle-map-layer, #toggle-globe-view, #recenter-map-control",
           );
-          if (!legitimateHud && topmost) {
+          if (!legitimateHud && !topmost?.closest(selector) && topmost) {
             throw new Error(
               `Unexpected marker obstruction: ${topmost.outerHTML}`,
             );
