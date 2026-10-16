@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { githubApi } from "../control-state/status.mjs";
@@ -51,7 +52,95 @@ const REQUIRED_REMOTE_EVIDENCE = Object.freeze([
   "automated-independent-proof",
   "exact-head-identity",
 ]);
-const RETIREMENT_REASONS = new Set(["MERGED_PR", "EXPIRED", "ORPHANED"]);
+const RETIREMENT_REASONS = new Set([
+  "MERGED_PR",
+  "EXPIRED",
+  "ORPHANED",
+  "VOLUNTARY",
+]);
+
+function assertVoluntaryProof(evidence, baseSha) {
+  if (evidence.reason !== "VOLUNTARY") return;
+  assert.equal(
+    evidence.requestedReason,
+    "VOLUNTARY",
+    "MERGE_GATE_VOLUNTARY_EXPLICIT_REQUIRED",
+  );
+  assert.equal(
+    evidence.authorityModel,
+    "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY",
+    "MERGE_GATE_VOLUNTARY_AUTHORITY_INVALID",
+  );
+  assert.equal(
+    evidence.decisionRequest?.exactBaseSha,
+    baseSha,
+    "MERGE_GATE_VOLUNTARY_BASE_MISMATCH",
+  );
+  assert.equal(
+    evidence.decisionRequest?.claimId,
+    evidence.id,
+    "MERGE_GATE_VOLUNTARY_CLAIM_MISMATCH",
+  );
+  assert.match(
+    evidence.requestDigest ?? "",
+    /^[0-9a-f]{64}$/u,
+    "MERGE_GATE_VOLUNTARY_REQUEST_DIGEST_INVALID",
+  );
+  assert.ok(
+    evidence.ownerDecision && typeof evidence.ownerDecision === "object",
+    "MERGE_GATE_VOLUNTARY_OWNER_DECISION_REQUIRED",
+  );
+  const request = evidence.decisionRequest;
+  const decision = evidence.ownerDecision;
+  const hash = (text) => createHash("sha256").update(text).digest("hex");
+  assert.equal(
+    evidence.requestDigest,
+    hash(canonicalJson(request)),
+    "MERGE_GATE_VOLUNTARY_DIGEST_MISMATCH",
+  );
+  assert.equal(
+    decision.bodySha256,
+    hash(
+      `APPROVED_VOLUNTARY_RELEASE:${evidence.id}:${evidence.requestDigest}:${request.decisionNonce}:${baseSha}`,
+    ),
+    "MERGE_GATE_VOLUNTARY_OWNER_MARKER_MISMATCH",
+  );
+  for (const field of ["commentId", "ownerId", "anchorAcquisitionPr"])
+    assert.ok(
+      Number.isSafeInteger(decision[field]) && decision[field] > 0,
+      "MERGE_GATE_VOLUNTARY_OWNER_ID_INVALID",
+    );
+  assert.ok(
+    typeof decision.ownerLogin === "string" && decision.ownerLogin.length > 0,
+    "MERGE_GATE_VOLUNTARY_OWNER_LOGIN_INVALID",
+  );
+  assert.ok(
+    typeof request.decisionNonce === "string" &&
+      request.decisionNonce.length > 0,
+    "MERGE_GATE_VOLUNTARY_NONCE_INVALID",
+  );
+  assert.equal(
+    decision.ownerLogin,
+    request.repository?.split("/")[0],
+    "MERGE_GATE_VOLUNTARY_OWNER_LOGIN_MISMATCH",
+  );
+  assert.equal(
+    decision.anchorAcquisitionPr,
+    request.anchorAcquisitionPr,
+    "MERGE_GATE_VOLUNTARY_OWNER_ANCHOR_MISMATCH",
+  );
+  const created = Date.parse(decision.createdAt);
+  assert.ok(
+    Number.isFinite(created) &&
+      new Date(created).toISOString() === decision.createdAt,
+    "MERGE_GATE_VOLUNTARY_OWNER_TIME_INVALID",
+  );
+  assert.equal(
+    decision.createdAt,
+    decision.updatedAt,
+    "MERGE_GATE_VOLUNTARY_OWNER_EDITED",
+  );
+}
 
 function git(cwd, ...args) {
   return execFileSync("git", args, {
@@ -151,6 +240,7 @@ export async function buildMergedRetirementProof(
     RETIREMENT_REASONS.has(proof.retirements[0]?.reason),
     "MERGE_GATE_RETIREMENT_REASON_INVALID",
   );
+  assertVoluntaryProof(proof.retirements[0], proof.currentBaseSha);
   return proof;
 }
 
@@ -273,6 +363,24 @@ export function evaluateRetirementMergeGate({
     RETIREMENT_REASONS.has(retirementProof.retirements[0]?.reason),
     "MERGE_GATE_RETIREMENT_REASON_INVALID",
   );
+  assertVoluntaryProof(retirementProof.retirements[0], baseSha);
+  if (retirementProof.retirements[0].reason === "VOLUNTARY") {
+    assert.equal(
+      retirementProof.retirements[0].decisionRequest.retirementBranch,
+      branch,
+      "MERGE_GATE_VOLUNTARY_BRANCH_MISMATCH",
+    );
+    assert.equal(
+      manifest.state,
+      canonicalManifest.state,
+      "MERGE_GATE_VOLUNTARY_STATE_CHANGED",
+    );
+    assert.equal(
+      retirementProof.retirements[0].decisionRequest.preservedMaterialState,
+      canonicalManifest.state,
+      "MERGE_GATE_VOLUNTARY_STATE_MISMATCH",
+    );
+  }
   validateCandidateRetirementManifest(manifest, {
     claimId,
     expectedBaseSha: baseSha,

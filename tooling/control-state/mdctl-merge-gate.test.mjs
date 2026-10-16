@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   chmodSync,
   mkdirSync,
@@ -32,6 +33,7 @@ import {
   validateCandidateRetirementManifest,
 } from "../fabric/claim-retirement-proof.mjs";
 import { evaluateDependenciesAtMain } from "../mdctl/scheduler-live.mjs";
+import { canonicalJson } from "../mdctl/changeset-v2.mjs";
 
 const BASE = "b".repeat(40);
 const HEAD = "c".repeat(40);
@@ -1502,6 +1504,103 @@ function retirementInput(overrides = {}) {
     ...overrides,
   };
 }
+
+test("VOLUNTARY gate requires trusted attestation identity and preserves pending state", async () => {
+  // Provider/request validation belongs to the trusted proof builder; this fixture
+  // exercises only the gate's binding of that returned proof to the candidate.
+  const input = retirementInput({
+    manifest: manifest({
+      branch: BRANCH,
+      baseSha: BASE,
+      state: "LOCAL_PROVEN",
+    }),
+    retirementProof: retirementProof({ reason: "VOLUNTARY" }),
+  });
+  Object.assign(input.retirementProof.retirements[0], {
+    requestedReason: "VOLUNTARY",
+    authorityModel: "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY",
+    decisionRequest: {
+      claimId: "MD-GATED",
+      exactBaseSha: BASE,
+      retirementBranch: BRANCH,
+      preservedMaterialState: "LOCAL_PROVEN",
+      repository: "owner/repo",
+      decisionNonce: "gate-nonce",
+      anchorAcquisitionPr: 9,
+    },
+  });
+  const bindDecision = (evidence) => {
+    const hash = (text) => createHash("sha256").update(text).digest("hex");
+    const request = evidence.decisionRequest;
+    evidence.requestDigest = hash(canonicalJson(request));
+    evidence.ownerDecision = {
+      commentId: 17,
+      ownerId: 18,
+      ownerLogin: "owner",
+      anchorAcquisitionPr: 9,
+      createdAt: "2026-10-16T20:00:00.000Z",
+      updatedAt: "2026-10-16T20:00:00.000Z",
+      bodySha256: hash(
+        `APPROVED_VOLUNTARY_RELEASE:${request.claimId}:${evidence.requestDigest}:${request.decisionNonce}:${request.exactBaseSha}`,
+      ),
+    };
+  };
+  bindDecision(input.retirementProof.retirements[0]);
+  assert.equal(
+    evaluateRetirementMergeGate(input).retirementReason,
+    "VOLUNTARY",
+  );
+  const evidencePath = "retirementProof.retirements.0.";
+  for (const [path, value] of [
+    [evidencePath + "authorityModel", null],
+    [evidencePath + "requestedReason", "EXPIRED"],
+    [evidencePath + "ownerDecision", null],
+    [evidencePath + "requestDigest", "bad"],
+    [evidencePath + "ownerDecision.bodySha256", "bad"],
+    [evidencePath + "ownerDecision.commentId", 0],
+    [evidencePath + "ownerDecision.ownerId", null],
+    [evidencePath + "ownerDecision.ownerLogin", "other"],
+    [evidencePath + "ownerDecision.anchorAcquisitionPr", 0],
+    [evidencePath + "ownerDecision.createdAt", "bad"],
+    [evidencePath + "ownerDecision.updatedAt", "2026-10-16T20:00:01.000Z"],
+    [evidencePath + "decisionRequest.exactBaseSha", OLD_BASE],
+    [evidencePath + "decisionRequest.claimId", "MD-OTHER"],
+    [evidencePath + "decisionRequest.retirementBranch", OLD_BRANCH],
+    [evidencePath + "decisionRequest.preservedMaterialState", "MERGED"],
+    ["manifest.state", "MERGED"],
+    ["retirementProof.exactHead", OLD_BASE],
+    ["retirementProof.currentBaseSha", OLD_BASE],
+  ]) {
+    const changed = structuredClone(input);
+    const keys = path.split(".");
+    const target = keys
+      .slice(0, -1)
+      .reduce((object, key) => object[key], changed);
+    target[keys.at(-1)] = value;
+    if (path.includes("decisionRequest."))
+      bindDecision(changed.retirementProof.retirements[0]);
+    assert.throws(
+      () => evaluateRetirementMergeGate(changed),
+      /MERGE_GATE_(?:VOLUNTARY|RETIREMENT)/u,
+    );
+  }
+  const build = (proof) =>
+    buildMergedRetirementProof(
+      "/trusted",
+      "/candidate",
+      {},
+      {
+        proofBuilder: async () => proof,
+      },
+    );
+  assert.equal(
+    (await build(input.retirementProof)).retirements[0].reason,
+    "VOLUNTARY",
+  );
+  const invalid = structuredClone(input.retirementProof);
+  delete invalid.retirements[0].authorityModel;
+  await assert.rejects(build(invalid), /VOLUNTARY_AUTHORITY/u);
+});
 
 test("retirement keyset rejects removal plus claim addition", () => {
   const canonical = { claims: { "MD-GATED": {}, "MD-OTHER": {} } };

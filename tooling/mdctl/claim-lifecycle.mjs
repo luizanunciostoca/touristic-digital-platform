@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { readFile, rename, writeFile } from "node:fs/promises";
+import { open, readFile, rename, writeFile } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 import { findClaimCollisions, pathOwned } from "../fabric/claim-guard.mjs";
 import {
@@ -9,6 +9,8 @@ import {
   validateCandidateRetirementManifest,
   validateClaimRetirements,
   validateRetirementEvents,
+  validateVoluntaryReleaseRequest,
+  voluntaryRetirementPayload,
 } from "../fabric/claim-retirement-proof.mjs";
 import {
   parseAuthorityLedger,
@@ -266,17 +268,38 @@ export function buildClaimRetirement({
   assert.equal(evidence?.id, manifest.id, "CLAIM_RETIRE_EVIDENCE_ID_MISMATCH");
   const observed = iso(observedAt, "CLAIM_RETIRE_TIME_INVALID");
   if (requestedReason !== undefined) {
-    assert.equal(
-      requestedReason,
-      "EXPIRED",
+    assert.ok(
+      ["EXPIRED", "VOLUNTARY"].includes(requestedReason),
       "CLAIM_RETIREMENT_REQUEST_INVALID",
     );
     assert.equal(
       evidence.reason,
-      "EXPIRED",
+      requestedReason,
       "CLAIM_RETIREMENT_REQUEST_REASON_MISMATCH",
     );
-    validateExplicitRetirementTime({ claim, observedAt: observed, now });
+    if (requestedReason === "EXPIRED")
+      validateExplicitRetirementTime({ claim, observedAt: observed, now });
+  }
+  if (evidence.reason === "VOLUNTARY") {
+    assert.equal(
+      requestedReason,
+      "VOLUNTARY",
+      "CLAIM_RETIREMENT_VOLUNTARY_EXPLICIT_REQUIRED",
+    );
+    validateVoluntaryReleaseRequest(evidence.decisionRequest, {
+      claimId: manifest.id,
+      claim,
+      canonicalManifest: manifest,
+      expectedBaseSha: retirementBaseSha,
+      canonicalText: ledgerText,
+      retirementBranch,
+      now,
+    });
+    assert.equal(
+      observed,
+      evidence.observedAt,
+      "CLAIM_RETIREMENT_VOLUNTARY_OBSERVATION_MISMATCH",
+    );
   }
 
   const claims = { ...registry.claims };
@@ -346,10 +369,15 @@ export function buildClaimRetirement({
             entity: manifest.id,
             sourceSha: retirementBaseSha,
             payloadVersion: 1,
-            payload: {
-              reason: evidence.reason,
-              ...(requestedReason === undefined ? {} : { requestedReason }),
-            },
+            payload:
+              evidence.reason === "VOLUNTARY"
+                ? voluntaryRetirementPayload(evidence)
+                : {
+                    reason: evidence.reason,
+                    ...(requestedReason === undefined
+                      ? {}
+                      : { requestedReason }),
+                  },
           },
         ];
 
@@ -380,6 +408,32 @@ async function writeAtomic(path, text) {
 
 async function readJson(path) {
   return JSON.parse(await readFile(path, "utf8"));
+}
+
+async function readDecision(path) {
+  const handle = await open(path, "r");
+  try {
+    const bytes = Buffer.alloc(65537);
+    let length = 0;
+    while (length < bytes.length) {
+      const { bytesRead } = await handle.read(
+        bytes,
+        length,
+        bytes.length - length,
+        length,
+      );
+      if (bytesRead === 0) break;
+      length += bytesRead;
+    }
+    assert.ok(length <= 65536, "CLAIM_RETIREMENT_DECISION_TOO_LARGE");
+    return JSON.parse(
+      new TextDecoder("utf-8", { fatal: true }).decode(
+        bytes.subarray(0, length),
+      ),
+    );
+  } finally {
+    await handle.close();
+  }
 }
 
 function option(args, name) {
@@ -529,11 +583,37 @@ export async function runClaimCli(
     : undefined;
   if (requestedReason !== undefined) {
     assert.equal(action, "retire", "CLAIM_RETIREMENT_REASON_ACTION_INVALID");
-    assert.equal(
-      requestedReason,
-      "EXPIRED",
+    assert.ok(
+      ["EXPIRED", "VOLUNTARY"].includes(requestedReason),
       "CLAIM_RETIREMENT_REQUEST_INVALID",
     );
+  }
+  const decisionFlags = args.filter((arg) => arg === "--decision");
+  assert.ok(
+    !args.some((arg) => arg.startsWith("--decision=")) &&
+      decisionFlags.length <= 1,
+    "CLAIM_RETIREMENT_DECISION_ARGUMENT_INVALID",
+  );
+  assert.equal(
+    decisionFlags.length === 1,
+    requestedReason === "VOLUNTARY",
+    "CLAIM_RETIREMENT_DECISION_REQUIRED_ONLY_FOR_VOLUNTARY",
+  );
+  if (requestedReason === "VOLUNTARY") {
+    const allowed = new Set(["--base-sha", "--reason", "--decision"]);
+    for (let index = 2; index < args.length; index += 2) {
+      assert.ok(
+        allowed.has(args[index]) &&
+          args[index + 1] &&
+          !args[index + 1].startsWith("--"),
+        "CLAIM_RETIREMENT_VOLUNTARY_ARGUMENT_INVALID",
+      );
+      assert.equal(
+        args.filter((arg) => arg === args[index]).length,
+        1,
+        "CLAIM_RETIREMENT_VOLUNTARY_ARGUMENT_DUPLICATE",
+      );
+    }
   }
   assert.ok(
     ["acquire", "reanchor", "retire"].includes(action),
@@ -558,7 +638,7 @@ export async function runClaimCli(
     manifest.id,
   );
   const registry = assertRegistry(JSON.parse(registryText));
-  const observedAt = iso(now(), "CLAIM_TIME_INVALID");
+  let observedAt = iso(now(), "CLAIM_TIME_INVALID");
   const branch = git(root, "branch", "--show-current");
   const status = git(root, "status", "--porcelain=v1", "--untracked-files=all");
   if (action === "acquire") {
@@ -623,6 +703,11 @@ export async function runClaimCli(
     );
     const claim = registry.claims[manifest.id];
     assert.ok(claim, "CLAIM_RETIRE_ACTIVE_CLAIM_REQUIRED");
+    let decisionRequest;
+    if (requestedReason === "VOLUNTARY") {
+      const decisionPath = option(args, "--decision");
+      decisionRequest = await readDecision(resolve(root, decisionPath));
+    }
     let evidence = await collectClaimRetirementEvidence(manifest.id, claim, {
       repository,
       expectedBaseSha: baseSha,
@@ -630,7 +715,16 @@ export async function runClaimCli(
       token,
       fetchImpl,
       requestedReason,
+      decisionRequest,
+      canonicalText: ledgerText,
+      canonicalManifest: manifest,
+      retirementBranch: branch,
+      ...(requestedReason === "VOLUNTARY"
+        ? { clock: () => Date.parse(now()) }
+        : {}),
     });
+    if (requestedReason === "VOLUNTARY")
+      observedAt = iso(evidence.observedAt, "CLAIM_TIME_INVALID");
     evidence = completeMergedRetirementEvidence({
       root,
       manifest,
@@ -648,6 +742,32 @@ export async function runClaimCli(
       requestedReason,
       ...(requestedReason === undefined ? {} : { now: Date.parse(now()) }),
     });
+    if (requestedReason === "VOLUNTARY") {
+      assert.equal(
+        git(root, "rev-parse", "HEAD"),
+        baseSha,
+        "CLAIM_RETIREMENT_LOCAL_HEAD_CHANGED",
+      );
+      assert.equal(
+        git(root, "branch", "--show-current"),
+        branch,
+        "CLAIM_RETIREMENT_LOCAL_BRANCH_CHANGED",
+      );
+      assert.equal(
+        git(root, "status", "--porcelain=v1", "--untracked-files=all"),
+        "",
+        "CLAIM_RETIREMENT_LOCAL_WORKTREE_CHANGED",
+      );
+      assert.deepEqual(
+        await Promise.all(
+          [manifestPath, registryPath, ledgerPath].map((path) =>
+            readFile(path, "utf8"),
+          ),
+        ),
+        [manifestText, registryText, ledgerText],
+        "CLAIM_RETIREMENT_LOCAL_INPUTS_CHANGED",
+      );
+    }
   }
 
   let prepared;
