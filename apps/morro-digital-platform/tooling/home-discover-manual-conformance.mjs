@@ -1,4 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import playwright from "/tmp/pw/node_modules/playwright/index.js";
 
 const { chromium } = playwright;
@@ -1148,6 +1149,75 @@ async function verifyVariants(page, viewport, evidence) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
 }
 
+async function waitForStableTourGeometry(element) {
+  await element.evaluate(
+    (element) =>
+      new Promise((resolve, reject) => {
+        let previous = "",
+          stableFrames = 0,
+          remainingFrames = 40;
+        const inspect = () => {
+          const rect = element.getBoundingClientRect();
+          const current = [rect.x, rect.y, rect.width, rect.height].join(",");
+          stableFrames = current === previous ? stableFrames + 1 : 0;
+          previous = current;
+          if (stableFrames >= 2) return resolve();
+          if (--remainingFrames <= 0)
+            return reject(new Error("Tour grip never stabilized"));
+          requestAnimationFrame(inspect);
+        };
+        requestAnimationFrame(inspect);
+      }),
+  );
+}
+
+async function inspectTourSheetFailure(page) {
+  const state = await page.evaluate(() => {
+    const sheet = document.querySelector("#explore-flow-bottom-sheet");
+    const grip = sheet?.querySelector(".explore-flow-sheet-drag-handle");
+    const source = sheet?.querySelector(".explore-flow-sheet-source");
+    const rect = grip?.getBoundingClientRect();
+    const style = grip ? getComputedStyle(grip) : null;
+    return {
+      bodyMode: document.body.dataset.mdMode,
+      map: { ...document.querySelector("#map")?.dataset },
+      sheet: sheet
+        ? {
+            ...sheet.dataset,
+            className: sheet.className,
+            ariaHidden: sheet.getAttribute("aria-hidden"),
+          }
+        : null,
+      source: source ? { ...source.dataset } : null,
+      grip: rect
+        ? {
+            width: rect.width,
+            height: rect.height,
+            display: style.display,
+            visibility: style.visibility,
+          }
+        : null,
+    };
+  });
+  const cssUrl = new URL(
+    "/apps/morro-digital-platform/public/explore-locations.css",
+    BASE_URL,
+  ).href;
+  try {
+    const response = await page.request.get(cssUrl, { timeout: 2000 });
+    state.css = {
+      url: cssUrl,
+      status: response.status(),
+      sha256: createHash("sha256")
+        .update(await response.body())
+        .digest("hex"),
+    };
+  } catch (error) {
+    state.css = { url: cssUrl, error: String(error) };
+  }
+  return state;
+}
+
 async function verifyTourSheet(page) {
   const previousLocale = await page.evaluate(() => ({
     lang: document.documentElement.lang,
@@ -1171,16 +1241,49 @@ async function verifyTourSheet(page) {
         category: "tours",
       });
     }, locale);
-    await page
-      .locator('[data-context-rail-option][data-value="fazer tour interativo"]')
-      .click();
+    // Click and camera-driven intro handoff share the existing 30s action budget.
+    const introDeadline = Date.now() + 30000;
+    const remainingIntroBudget = () => {
+      const remaining = introDeadline - Date.now();
+      assert(remaining > 0, "Tour intro action budget exhausted");
+      return remaining;
+    };
+    try {
+      await page
+        .locator(
+          '[data-context-rail-option][data-value="fazer tour interativo"]',
+        )
+        .click({ timeout: remainingIntroBudget() });
+      await page
+        .locator(
+          '#map[data-tour-state="ready"][data-active-tour="volta-a-ilha"][data-tour-flow-stage="intro"]',
+        )
+        .waitFor({ state: "attached", timeout: remainingIntroBudget() });
+      await page
+        .locator(
+          '#explore-flow-bottom-sheet[data-flow-kind="tour"][aria-hidden="false"] .tour-intro-card',
+        )
+        .waitFor({ state: "visible", timeout: remainingIntroBudget() });
+    } catch (error) {
+      throw new Error(
+        `Tour intro readiness failed: ${String(error)} ${JSON.stringify(await inspectTourSheetFailure(page))}`,
+      );
+    }
     const sheet = page.locator("#explore-flow-bottom-sheet");
     const grip = sheet.locator(".explore-flow-sheet-drag-handle");
     const box = await grip.boundingBox();
     assert(
       box && box.height >= 48 && box.width >= 48,
       "Visible tour grip below48px",
-      box,
+      box && box.height >= 48 && box.width >= 48
+        ? box
+        : { box, ...(await inspectTourSheetFailure(page)) },
+    );
+    const initial = await sheet.boundingBox();
+    assert(
+      initial && initial.height <= page.viewportSize().height * 0.5 + 1,
+      "Tour initial preview exceeds half the viewport",
+      initial,
     );
     const geometry = await sheet
       .locator(".explore-flow-sheet-toolbar button")
@@ -1196,26 +1299,22 @@ async function verifyTourSheet(page) {
       "Tour controls below48px",
       geometry,
     );
-    await sheet.locator('[data-sheet-state-target="half"]').click();
-    await grip.evaluate(
-      (element) =>
-        new Promise((resolve, reject) => {
-          let previous = "",
-            stableFrames = 0,
-            remainingFrames = 40;
-          const inspect = () => {
-            const rect = element.getBoundingClientRect();
-            const current = [rect.x, rect.y, rect.width, rect.height].join(",");
-            stableFrames = current === previous ? stableFrames + 1 : 0;
-            previous = current;
-            if (stableFrames >= 2) return resolve();
-            if (--remainingFrames <= 0)
-              return reject(new Error("Tour grip never stabilized"));
-            requestAnimationFrame(inspect);
-          };
-          requestAnimationFrame(inspect);
-        }),
+    const heights = {};
+    for (const state of ["peek", "half", "full"]) {
+      await sheet.locator(`[data-sheet-state-target="${state}"]`).click();
+      await waitForStableTourGeometry(sheet);
+      heights[state] = (await sheet.boundingBox())?.height ?? 0;
+    }
+    assert(
+      heights.peek > 0 &&
+        heights.peek < heights.half &&
+        heights.half < heights.full &&
+        heights.half <= page.viewportSize().height * 0.5 + 1,
+      "Tour sheet states must stay ordered with a compact half state",
+      heights,
     );
+    await sheet.locator('[data-sheet-state-target="half"]').click();
+    await waitForStableTourGeometry(grip);
     const dragBox = await grip.boundingBox();
     assert(dragBox, "Tour grip disappeared before pointer action");
     await page.mouse.move(
@@ -1252,6 +1351,7 @@ async function verifyTourSheet(page) {
     results.push({
       locale,
       controls: geometry,
+      heights,
       pointerAndKeyboard: "PASS",
       escapeFocus: "tours",
     });

@@ -72,7 +72,9 @@ describe("Navigation / Tour UX Design V2 manual conformance", () => {
     expect(css).toContain('#explore-flow-bottom-sheet[data-flow-kind="tour"]');
     expect(css).toContain('data-sheet-state="peek"');
     expect(css).toContain('data-sheet-state="full"');
-    expect(css).toContain("height: min(56dvh, 34rem)");
+    expect(css).toContain("height: min(50dvh, 34rem)");
+    expect(css).toContain("height: min(36dvh, 18rem)");
+    expect(css).toContain(":has(.tour-stop-card)");
     expect(css).toContain("min-width: 3rem");
     expect(css).toContain(".explore-flow-sheet-drag-handle");
     expect(css).toContain(".explore-flow-sheet-state-controls");

@@ -7,6 +7,90 @@ const source = readFileSync(
   new URL("./explore-flow-bottom-sheet.ts", import.meta.url),
   "utf8",
 );
+
+function presentationRenderer() {
+  const ast = ts.createSourceFile(
+    "sheet.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const functions = new Map<string, string[]>();
+  const visit = (node: ts.Node): void => {
+    if (ts.isVariableDeclaration(node) && node.initializer) {
+      const name = node.name.getText(ast);
+      if (["render", "setState"].includes(name)) {
+        functions.set(name, [
+          ...(functions.get(name) ?? []),
+          node.getText(ast),
+        ]);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  for (const name of ["render", "setState"]) {
+    expect(functions.get(name)).toHaveLength(1);
+  }
+  const body = ts.transpileModule(
+    `let state = "full", destroyed = false, activeKind, dismissHandler,
+       compatibilityMessageSource;
+     let resets = 0;
+     const classList = { add() {}, remove() {}, toggle() {} };
+     const sheet = { dataset: { sheetState: state }, classList, setAttribute() {} };
+     const stateControls = { children: [] };
+     const heading = {}, status = {}, actions = { replaceChildren() {} };
+     const richContent = { replaceChildren() {}, appendChild() {},
+       childElementCount: 0, classList };
+     const resetDrag = () => { resets++; };
+     const clearCompatibilityMessageSource = () => {};
+     const rebuildStateControls = () => {};
+     const setStatus = () => {};
+     const isPrimaryTourAction = () => false;
+     const ${functions.get("setState")![0]};
+     const ${functions.get("render")![0]};
+     return { render, sheet, getState: () => state, resets: () => resets };`,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+  ).outputText;
+  const execute = compileFunction(body, []) as () => {
+    render(value: unknown): void;
+    sheet: { dataset: { sheetState: string } };
+    getState(): string;
+    resets(): number;
+  };
+  return execute();
+}
+
+describe("tour presentation state", () => {
+  for (const card of [
+    "tour-intro-card",
+    "tour-stop-list-card",
+    "tour-finale-card",
+  ])
+    it(`preserves explicit full size for ${card} then compacts an active stop`, () => {
+      const renderer = presentationRenderer();
+      const presentation = (name: string) => ({
+        kind: "tour",
+        accessibleLabel: "Tour",
+        content: {
+          classList: { contains: (value: string) => value === name, add() {} },
+        },
+        source: {
+          classList: { add() {} },
+          removeAttribute() {},
+          querySelectorAll: () => [],
+        },
+      });
+      renderer.render(presentation(card));
+      expect(renderer.getState()).toBe("full");
+      expect(renderer.sheet.dataset.sheetState).toBe("full");
+      renderer.render(presentation("tour-stop-card"));
+      expect(renderer.getState()).toBe("half");
+      expect(renderer.sheet.dataset.sheetState).toBe("half");
+      expect(renderer.resets()).toBe(2);
+    });
+});
+
 function setup() {
   const listeners = new Map<string, (event: Record<string, unknown>) => void>();
   const captures = new Set<number>();

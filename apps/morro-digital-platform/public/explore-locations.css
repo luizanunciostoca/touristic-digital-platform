@@ -1470,11 +1470,11 @@ body:has(#map[data-tour-flow-stage="stop"])
 #explore-flow-bottom-sheet[data-flow-kind="tour"] {
   display: flex;
   flex-direction: column;
-  height: min(56dvh, 34rem);
+  height: min(50dvh, 34rem);
   max-height: calc(100dvh - 6rem);
 }
 #explore-flow-bottom-sheet[data-flow-kind="tour"][data-sheet-state="peek"] {
-  height: min(18rem, calc(100dvh - 6rem));
+  height: min(36dvh, 18rem);
 }
 #explore-flow-bottom-sheet[data-flow-kind="tour"][data-sheet-state="full"] {
   height: calc(100dvh - 6rem);
@@ -1518,4 +1518,24 @@ body:has(#map[data-tour-flow-stage="stop"])
   position: sticky;
   bottom: 0;
   background: var(--md-outdoor-surface-strong);
+}
+
+/* Active stops keep the map readable; preview/list retain resize controls. */
+#explore-flow-bottom-sheet[data-flow-kind="tour"]:has(.tour-stop-card) {
+  height: min(50dvh, 34rem);
+  max-height: min(50dvh, 34rem);
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"]:has(.tour-stop-card)
+  :is(.explore-flow-sheet-drag-handle, .explore-flow-sheet-state-controls) {
+  display: none;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"]:has(.tour-stop-card)
+  .explore-flow-sheet-toolbar {
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"]:has(.tour-stop-card)
+  .explore-flow-sheet-close {
+  grid-column: 2;
+  grid-row: 1;
 }

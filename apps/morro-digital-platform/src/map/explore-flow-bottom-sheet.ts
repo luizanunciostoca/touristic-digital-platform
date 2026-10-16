@@ -341,6 +341,12 @@ export function installExploreFlowBottomSheet({
       compatibilityMessageSource.setAttribute("aria-hidden", "true");
     }
     activeKind = presentation.kind;
+    if (
+      presentation.kind === "tour" &&
+      presentation.content?.classList.contains("tour-stop-card")
+    ) {
+      setState("half");
+    }
     rebuildStateControls(presentation.kind);
     sheet.dataset.flowKind = presentation.kind;
     heading.textContent = presentation.accessibleLabel;
