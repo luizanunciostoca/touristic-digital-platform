@@ -2,33 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-CRM-CAPABILITY-865-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/crm-capability-865-20261015",
-      "baseSha": "9679260e060656253a7021318d478a801d5c62da",
-      "paths": [
-        ".morro/changesets/MD-CRM-CAPABILITY-865-20261015.json",
-        "packages/crm/src/authorization.ts",
-        "packages/crm/src/authorization.test.ts",
-        "services/crm/src/contracts-http-transport.ts",
-        "services/crm/src/followups-http-transport.ts",
-        "services/crm/src/lead-detail-http-transport.ts",
-        "services/crm/src/leads-http-transport.ts",
-        "services/crm/src/meetings-http-transport.ts",
-        "services/crm/src/proposals-http-transport.ts",
-        "services/crm/src/referrals-http-transport.ts",
-        "services/crm/src/trials-http-transport.ts",
-        "services/crm/src/trials-http-transport.test.ts",
-        "services/crm/src/referrals-http-transport.test.ts",
-        "services/crm/src/crm-auth-composition.test.mjs",
-        "services/crm/vitest.config.mjs"
-      ],
-      "domains": ["auth"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T08:00:00.000Z"
-    },
     "MD-WEATHER-SUBDUED-STALE-20261015": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
