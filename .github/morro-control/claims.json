@@ -136,6 +136,23 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-CLAIM-EXPLICIT-EXPIRED-RETIREMENT-20261016": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/claim-explicit-expired-retirement-20261016",
+      "baseSha": "9d4b49862ec0d9263f3bdae753152febdc31135a",
+      "paths": [
+        ".morro/changesets/MD-CLAIM-EXPLICIT-EXPIRED-RETIREMENT-20261016.json",
+        "tooling/fabric/claim-retirement-proof.mjs",
+        "tooling/fabric/claim-retirement-proof.test.mjs",
+        "tooling/mdctl/claim-lifecycle.mjs",
+        "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
