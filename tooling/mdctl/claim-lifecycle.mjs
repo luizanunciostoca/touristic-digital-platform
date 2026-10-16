@@ -5,6 +5,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import { findClaimCollisions, pathOwned } from "../fabric/claim-guard.mjs";
 import {
   collectClaimRetirementEvidence,
+  validateExplicitRetirementTime,
   validateCandidateRetirementManifest,
   validateClaimRetirements,
   validateRetirementEvents,
@@ -250,6 +251,8 @@ export function buildClaimRetirement({
   retirementBaseSha,
   retirementBranch,
   observedAt,
+  requestedReason,
+  now,
 }) {
   assertRegistry(registry);
   validateChangeSetV2(manifest);
@@ -262,6 +265,19 @@ export function buildClaimRetirement({
   assert.ok(claim, "CLAIM_RETIRE_ACTIVE_CLAIM_REQUIRED");
   assert.equal(evidence?.id, manifest.id, "CLAIM_RETIRE_EVIDENCE_ID_MISMATCH");
   const observed = iso(observedAt, "CLAIM_RETIRE_TIME_INVALID");
+  if (requestedReason !== undefined) {
+    assert.equal(
+      requestedReason,
+      "EXPIRED",
+      "CLAIM_RETIREMENT_REQUEST_INVALID",
+    );
+    assert.equal(
+      evidence.reason,
+      "EXPIRED",
+      "CLAIM_RETIREMENT_REQUEST_REASON_MISMATCH",
+    );
+    validateExplicitRetirementTime({ claim, observedAt: observed, now });
+  }
 
   const claims = { ...registry.claims };
   delete claims[manifest.id];
@@ -330,7 +346,10 @@ export function buildClaimRetirement({
             entity: manifest.id,
             sourceSha: retirementBaseSha,
             payloadVersion: 1,
-            payload: { reason: evidence.reason },
+            payload: {
+              reason: evidence.reason,
+              ...(requestedReason === undefined ? {} : { requestedReason }),
+            },
           },
         ];
 
@@ -341,6 +360,7 @@ export function buildClaimRetirement({
     claimId: manifest.id,
     expectedBaseSha: retirementBaseSha,
     evidence,
+    requestedReason,
   });
 
   return {
@@ -499,6 +519,22 @@ export async function runClaimCli(
 ) {
   const action = args[0];
   const manifestArg = args[1];
+  const reasonFlags = args.filter((arg) => arg === "--reason");
+  assert.ok(
+    !args.some((arg) => arg.startsWith("--reason=")) && reasonFlags.length <= 1,
+    "CLAIM_RETIREMENT_REASON_ARGUMENT_INVALID",
+  );
+  const requestedReason = reasonFlags.length
+    ? option(args, "--reason")
+    : undefined;
+  if (requestedReason !== undefined) {
+    assert.equal(action, "retire", "CLAIM_RETIREMENT_REASON_ACTION_INVALID");
+    assert.equal(
+      requestedReason,
+      "EXPIRED",
+      "CLAIM_RETIREMENT_REQUEST_INVALID",
+    );
+  }
   assert.ok(
     ["acquire", "reanchor", "retire"].includes(action),
     "CLAIM_ACTION_INVALID",
@@ -593,6 +629,7 @@ export async function runClaimCli(
       now: Date.parse(observedAt),
       token,
       fetchImpl,
+      requestedReason,
     });
     evidence = completeMergedRetirementEvidence({
       root,
@@ -608,6 +645,8 @@ export async function runClaimCli(
       retirementBaseSha: baseSha,
       retirementBranch: branch,
       observedAt,
+      requestedReason,
+      ...(requestedReason === undefined ? {} : { now: Date.parse(now()) }),
     });
   }
 

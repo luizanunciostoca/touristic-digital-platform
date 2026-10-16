@@ -1,8 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { execFileSync } from "node:child_process";
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import {
   addedClaimIds,
+  buildClaimRetirementProof,
+  deriveExplicitRetirementRequest,
+  validateExplicitRetirementTime,
   collectClaimRetirementEvidence,
   removedClaimIds,
   validateCandidateRetirementManifest,
@@ -856,4 +869,319 @@ test("foreign material PR cannot complete an active claim or shadow an older can
   });
   assert.equal(evidence.reason, "MERGED_PR");
   assert.equal(evidence.prNumber, canonical.number);
+});
+
+const EXPLICIT_TIME = "2026-10-05T06:22:00.000Z";
+const EXPLICIT_NOW = Date.parse(EXPLICIT_TIME);
+const explicitClaim = () => claim({ expiresAt: "2026-10-05T06:21:00.000Z" });
+const explicitEvent = () =>
+  ledgerEvent("CLAIM_RELEASED", {
+    observedAt: EXPLICIT_TIME,
+    payload: { reason: "EXPIRED", requestedReason: "EXPIRED" },
+  });
+
+function explicitRequestInput(event = explicitEvent()) {
+  const canonicalText = ledger([ledgerEvent("CHANGESET_CREATED")]);
+  return {
+    canonicalText,
+    candidateText: canonicalText + ledger([event]),
+    claimId: "MD-ONE",
+    expectedBaseSha: BASE,
+    claim: explicitClaim(),
+    now: EXPLICIT_NOW,
+  };
+}
+
+test("explicit expired collection ignores prior merge as a competing basis, without altering automatic priority", async () => {
+  const options = {
+    repository: "owner/repo",
+    expectedBaseSha: BASE,
+    now: EXPLICIT_NOW,
+    requestedReason: "EXPIRED",
+    fetchImpl: async () => {
+      throw new Error("UNEXPECTED_PROVIDER_CALL");
+    },
+  };
+  const result = await collectClaimRetirementEvidence(
+    "MD-ONE",
+    explicitClaim(),
+    options,
+  );
+  assert.equal(result.reason, "EXPIRED");
+  assert.equal(result.branch, explicitClaim().branch);
+  assert.equal(result.baseSha, BASE);
+  for (const patch of [
+    { expiresAt: "2099-01-01T00:00:00Z" },
+    { expiresAt: "invalid" },
+    { expiresAt: 123 },
+  ]) {
+    await assert.rejects(
+      collectClaimRetirementEvidence("MD-ONE", claim(patch), options),
+      /NOT_EXPIRED|EXPIRY_INVALID/u,
+    );
+  }
+  for (const requestedReason of [null, "MERGED_PR", "ORPHANED", "expired"]) {
+    await assert.rejects(
+      collectClaimRetirementEvidence("MD-ONE", explicitClaim(), {
+        ...options,
+        requestedReason,
+      }),
+      /REQUEST_INVALID/u,
+    );
+  }
+  const automatic = await collectClaimRetirementEvidence(
+    "MD-ONE",
+    explicitClaim(),
+    {
+      ...options,
+      requestedReason: undefined,
+      token: "test-token",
+      fetchImpl: fakeFetch(
+        mergedRoutes([{ filename: "tooling/example.mjs", status: "modified" }]),
+      ),
+    },
+  );
+  assert.equal(automatic.reason, "MERGED_PR");
+});
+
+test("explicit lease observation cannot become eligible retroactively or in the future", () => {
+  validateExplicitRetirementTime({
+    claim: explicitClaim(),
+    observedAt: EXPLICIT_TIME,
+    now: EXPLICIT_NOW,
+  });
+  for (const [observedAt, pattern] of [
+    ["2026-10-05T06:20:00.000Z", /BEFORE_EXPIRY/u],
+    ["2026-10-05T06:23:00.000Z", /IN_FUTURE/u],
+    ["2026-10-05T06:22:00Z", /OBSERVATION_INVALID/u],
+    ["invalid", /OBSERVATION_INVALID/u],
+  ])
+    assert.throws(
+      () =>
+        validateExplicitRetirementTime({
+          claim: explicitClaim(),
+          observedAt,
+          now: EXPLICIT_NOW,
+        }),
+      pattern,
+    );
+  assert.throws(
+    () =>
+      validateExplicitRetirementTime({
+        claim: explicitClaim(),
+        observedAt: EXPLICIT_TIME,
+        now: NaN,
+      }),
+    /NOW_INVALID/u,
+  );
+});
+
+test("explicit intent is derived only from one exact lease-bound authority event", () => {
+  assert.equal(
+    deriveExplicitRetirementRequest(explicitRequestInput()),
+    "EXPIRED",
+  );
+  const unmarked = explicitEvent();
+  delete unmarked.payload.requestedReason;
+  assert.equal(
+    deriveExplicitRetirementRequest(explicitRequestInput(unmarked)),
+    undefined,
+  );
+  for (const patch of [
+    { entity: "MD-OTHER" },
+    { actor: "WORKER" },
+    { sourceSha: MERGE },
+    { payloadVersion: 2 },
+    { observedAt: "2026-10-05T06:20:00.000Z" },
+    { observedAt: "2026-10-05T06:23:00.000Z" },
+    { payload: { reason: "MERGED_PR", requestedReason: "EXPIRED" } },
+    { payload: { reason: "ORPHANED", requestedReason: "EXPIRED" } },
+    { payload: { reason: "EXPIRED", requestedReason: "ORPHANED" } },
+    {
+      payload: {
+        reason: "EXPIRED",
+        requestedReason: "EXPIRED",
+        approved: true,
+      },
+    },
+  ])
+    assert.throws(
+      () =>
+        deriveExplicitRetirementRequest(
+          explicitRequestInput({ ...explicitEvent(), ...patch }),
+        ),
+      /CLAIM_RETIREMENT_/u,
+    );
+  const input = explicitRequestInput();
+  for (const suffix of [
+    ledger([explicitEvent(), ledgerEvent("MERGED")]),
+    ledger([explicitEvent(), explicitEvent()]),
+  ]) {
+    assert.throws(
+      () =>
+        deriveExplicitRetirementRequest({
+          ...input,
+          candidateText: input.canonicalText + suffix,
+        }),
+      /EVENT|CLAIM_RETIREMENT/u,
+    );
+  }
+  assert.throws(
+    () =>
+      deriveExplicitRetirementRequest({
+        ...input,
+        candidateText: input.candidateText.replace(
+          '"ORCHESTRATOR"',
+          '"WORKER"',
+        ),
+      }),
+    /HISTORY_MUTATED/u,
+  );
+  assert.throws(
+    () =>
+      validateRetirementEvents({ ...input, evidence: { reason: "EXPIRED" } }),
+    /UNDECLARED_REQUEST/u,
+  );
+});
+
+test("trusted proof independently rejects forged explicit operations against real clean Git identities", async (t) => {
+  const directory = mkdtempSync(join(tmpdir(), "explicit-expiry-proof-"));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const trustedRoot = join(directory, "trusted"),
+    candidateRoot = join(directory, "candidate");
+  mkdirSync(trustedRoot);
+  const git = (root, ...args) =>
+    execFileSync("git", ["-C", root, ...args], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+    }).trim();
+  const configure = (root) => {
+    git(root, "config", "user.name", "Proof Fixture");
+    git(root, "config", "user.email", "proof@example.test");
+  };
+  git(trustedRoot, "init", "-q", "-b", "main");
+  configure(trustedRoot);
+  writeFileSync(join(trustedRoot, "README.md"), "fixture\n");
+  git(trustedRoot, "add", ".");
+  git(trustedRoot, "commit", "-qm", "genesis");
+  const claimBase = git(trustedRoot, "rev-parse", "HEAD");
+  const canonicalManifest = {
+    schemaVersion: 2,
+    id: "MD-ONE",
+    objective: "prove-explicit-expiry",
+    baseSha: claimBase,
+    branch: "infra/example",
+    state: "IMPLEMENTING",
+    risk: "high",
+    scope: "PLATFORM",
+    owns: { paths: ["tooling/example.mjs"], contracts: [] },
+    reads: { contracts: [] },
+    produces: { events: [], routes: [] },
+    database: { tables: [] },
+    auth: { capabilities: [] },
+    dependencies: [],
+    requiredEvidence: ["proof"],
+    requiredCapabilities: ["github:read"],
+    contextPack: {
+      maxBytes: 65536,
+      include: ["changeset", "git-identity", "proof-plan"],
+    },
+    proof: {
+      budget: { maxCommands: 1, maxSeconds: 60 },
+      commands: [
+        {
+          id: "proof",
+          argv: ["node", "--test", "tooling/example.test.mjs"],
+          timeoutSeconds: 30,
+        },
+      ],
+      requiredRemoteEvidence: ["proof"],
+    },
+    stopAt: "REMOTE_PROVEN",
+  };
+  const paths = {
+    registry: ".github/morro-control/claims.json",
+    ledger: ".github/morro-control/events.ndjson",
+    manifest: ".morro/changesets/MD-ONE.json",
+  };
+  mkdirSync(join(trustedRoot, ".github/morro-control"), { recursive: true });
+  mkdirSync(join(trustedRoot, ".morro/changesets"), { recursive: true });
+  const canonicalRegistry = registry({
+    "MD-ONE": explicitClaim(),
+    "MD-SURVIVOR": claim({ branch: "infra/survivor", paths: ["docs/**"] }),
+  });
+  canonicalRegistry.claims["MD-ONE"].baseSha = claimBase;
+  const history = ledger([
+    ledgerEvent("CHANGESET_CREATED", { sourceSha: claimBase }),
+  ]);
+  for (const [path, value] of [
+    [paths.registry, canonicalRegistry],
+    [paths.manifest, canonicalManifest],
+  ])
+    writeFileSync(join(trustedRoot, path), JSON.stringify(value) + "\n");
+  writeFileSync(join(trustedRoot, paths.ledger), history);
+  git(trustedRoot, "add", ".");
+  git(trustedRoot, "commit", "-qm", "canonical claim");
+  const expectedBaseSha = git(trustedRoot, "rev-parse", "HEAD");
+  git(directory, "clone", "-q", "--no-hardlinks", trustedRoot, candidateRoot);
+  configure(candidateRoot);
+  git(candidateRoot, "checkout", "-qb", "infra/retire");
+  let sequence = 0;
+  const verify = async (patch = {}) => {
+    const nextRegistry = structuredClone(canonicalRegistry);
+    delete nextRegistry.claims["MD-ONE"];
+    if (patch.survivor) nextRegistry.claims["MD-SURVIVOR"].owner = "OTHER";
+    if (patch.addition) nextRegistry.claims["MD-ADDED"] = claim();
+    const event = {
+      ...explicitEvent(),
+      sourceSha: expectedBaseSha,
+      ...patch.event,
+    };
+    const nextManifest = {
+      ...canonicalManifest,
+      baseSha: expectedBaseSha,
+      branch: "infra/retire",
+      ...patch.manifest,
+    };
+    for (const [path, value] of [
+      [paths.registry, nextRegistry],
+      [paths.manifest, nextManifest],
+    ])
+      writeFileSync(join(candidateRoot, path), JSON.stringify(value) + "\n");
+    writeFileSync(join(candidateRoot, paths.ledger), history + ledger([event]));
+    git(candidateRoot, "add", ".");
+    git(candidateRoot, "commit", "-qm", "operation " + ++sequence);
+    return buildClaimRetirementProof(
+      trustedRoot,
+      candidateRoot,
+      {
+        EXPECTED_BASE_SHA: expectedBaseSha,
+        EXPECTED_CANDIDATE_SHA: git(candidateRoot, "rev-parse", "HEAD"),
+        GITHUB_REPOSITORY: "owner/repo",
+        GITHUB_TOKEN: "test-token",
+        REQUESTED_REASON: "EXPIRED",
+      },
+      {
+        now: EXPLICIT_NOW,
+        fetchImpl: async () => {
+          throw new Error("UNEXPECTED_PROVIDER_CALL");
+        },
+      },
+    );
+  };
+  const result = await verify();
+  assert.equal(result.status, "pass");
+  assert.equal(result.retirements[0].reason, "EXPIRED");
+  for (const [patch, pattern] of [
+    [{ event: { observedAt: "2026-10-05T06:20:00.000Z" } }, /BEFORE_EXPIRY/u],
+    [{ event: { sourceSha: claimBase } }, /SOURCE_INVALID/u],
+    [{ manifest: { state: "MERGED" } }, /IMPLEMENTATION_STATE_INVALID/u],
+    [{ survivor: true }, /SURVIVING_CLAIM_MUTATION/u],
+    [{ addition: true }, /CLAIM_ADDITION_FORBIDDEN/u],
+    [
+      { event: { payload: { reason: "EXPIRED" } } },
+      /UNEXPECTED_PROVIDER_CALL/u,
+    ],
+  ])
+    await assert.rejects(verify(patch), pattern);
 });

@@ -200,6 +200,7 @@ export function validateRetirementEvents({
   claimId,
   expectedBaseSha,
   evidence,
+  requestedReason,
 }) {
   assert.ok(
     RETIREMENT_REASONS.has(evidence?.reason),
@@ -217,6 +218,37 @@ export function validateRetirementEvents({
     "CLAIM_RETIREMENT_LEDGER_HISTORY_MUTATED",
   );
   const appended = candidate.slice(canonical.length);
+  if (requestedReason !== undefined) {
+    assert.equal(
+      requestedReason,
+      "EXPIRED",
+      "CLAIM_RETIREMENT_REQUEST_INVALID",
+    );
+    assert.equal(
+      evidence.reason,
+      "EXPIRED",
+      "CLAIM_RETIREMENT_REQUEST_REASON_MISMATCH",
+    );
+    for (const event of appended) {
+      assert.equal(
+        event.payloadVersion,
+        1,
+        "CLAIM_RETIREMENT_REQUEST_VERSION_INVALID",
+      );
+      assert.deepEqual(
+        event.payload,
+        { reason: "EXPIRED", requestedReason: "EXPIRED" },
+        "CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID",
+      );
+    }
+  } else {
+    assert.ok(
+      appended.every(
+        (event) => !Object.hasOwn(event.payload, "requestedReason"),
+      ),
+      "CLAIM_RETIREMENT_UNDECLARED_REQUEST",
+    );
+  }
   const material = evidence.reason === "MERGED_PR";
   assert.deepEqual(
     appended.map((event) => event.eventType),
@@ -259,6 +291,63 @@ export function validateRetirementEvents({
     }
   }
   return appended;
+}
+
+export function validateExplicitRetirementTime({
+  claim,
+  observedAt,
+  now = Date.now(),
+}) {
+  const expiry = Date.parse(claim?.expiresAt);
+  assert.ok(
+    typeof claim?.expiresAt === "string" && Number.isFinite(expiry),
+    "CLAIM_RETIREMENT_EXPIRY_INVALID",
+  );
+  assert.ok(Number.isFinite(now), "CLAIM_RETIREMENT_NOW_INVALID");
+  const observed = Date.parse(observedAt);
+  assert.ok(
+    typeof observedAt === "string" &&
+      Number.isFinite(observed) &&
+      new Date(observed).toISOString() === observedAt,
+    "CLAIM_RETIREMENT_OBSERVATION_INVALID",
+  );
+  assert.ok(expiry <= observed, "CLAIM_RETIREMENT_EVENT_BEFORE_EXPIRY");
+  assert.ok(observed <= now, "CLAIM_RETIREMENT_EVENT_IN_FUTURE");
+}
+
+export function deriveExplicitRetirementRequest({
+  canonicalText,
+  candidateText,
+  claimId,
+  expectedBaseSha,
+  claim,
+  now = Date.now(),
+}) {
+  assert.ok(
+    candidateText.startsWith(canonicalText),
+    "CLAIM_RETIREMENT_LEDGER_HISTORY_MUTATED",
+  );
+  const canonical = parseAuthorityLedger(canonicalText);
+  const candidate = parseAuthorityLedger(candidateText);
+  const appended = candidate.slice(canonical.length);
+  if (
+    !appended.some((event) => Object.hasOwn(event.payload, "requestedReason"))
+  )
+    return undefined;
+  validateRetirementEvents({
+    canonicalText,
+    candidateText,
+    claimId,
+    expectedBaseSha,
+    evidence: { reason: "EXPIRED" },
+    requestedReason: "EXPIRED",
+  });
+  validateExplicitRetirementTime({
+    claim,
+    observedAt: appended[0].observedAt,
+    now,
+  });
+  return "EXPIRED";
 }
 
 function git(root, args) {
@@ -441,7 +530,14 @@ async function orphanEvidence(claim, repository, pulls, options) {
 export async function collectClaimRetirementEvidence(
   claimId,
   claim,
-  { repository, expectedBaseSha, now = Date.now(), token, fetchImpl = fetch },
+  {
+    repository,
+    expectedBaseSha,
+    now = Date.now(),
+    token,
+    fetchImpl = fetch,
+    requestedReason,
+  },
 ) {
   assert.match(claimId, CLAIM_ID, "CLAIM_RETIREMENT_ID_INVALID");
   assert.match(expectedBaseSha ?? "", SHA, "EXPECTED_BASE_INVALID");
@@ -451,6 +547,26 @@ export async function collectClaimRetirementEvidence(
     "GITHUB_REPOSITORY_INVALID",
   );
 
+  if (requestedReason !== undefined) {
+    assert.equal(
+      requestedReason,
+      "EXPIRED",
+      "CLAIM_RETIREMENT_REQUEST_INVALID",
+    );
+    const expiry = Date.parse(claim?.expiresAt);
+    assert.ok(
+      typeof claim?.expiresAt === "string" && Number.isFinite(expiry),
+      "CLAIM_RETIREMENT_EXPIRY_INVALID",
+    );
+    assert.ok(Number.isFinite(now), "CLAIM_RETIREMENT_NOW_INVALID");
+    assert.ok(expiry <= now, "CLAIM_RETIREMENT_NOT_EXPIRED");
+    return {
+      id: claimId,
+      reason: "EXPIRED",
+      branch: claim.branch,
+      baseSha: claim.baseSha,
+    };
+  }
   const options = { token, fetchImpl };
   const merged = await mergedEvidence(
     claim,
@@ -532,12 +648,29 @@ export async function buildClaimRetirementProof(
     );
     validateChangeSetV2(candidateManifest);
     validateChangeSetV2(canonicalManifest);
+    const canonicalText = readFileSync(
+      resolve(baseRoot, ".github/morro-control/events.ndjson"),
+      "utf8",
+    );
+    const candidateText = readFileSync(
+      resolve(targetRoot, ".github/morro-control/events.ndjson"),
+      "utf8",
+    );
+    const requestedReason = deriveExplicitRetirementRequest({
+      canonicalText,
+      candidateText,
+      claimId: id,
+      expectedBaseSha,
+      claim,
+      now,
+    });
     const evidence = await collectClaimRetirementEvidence(id, claim, {
       repository,
       expectedBaseSha,
       now,
       token,
       fetchImpl,
+      requestedReason,
     });
 
     if (evidence.reason === "MERGED_PR") {
@@ -578,17 +711,12 @@ export async function buildClaimRetirementProof(
       evidence,
     });
     validateRetirementEvents({
-      canonicalText: readFileSync(
-        resolve(baseRoot, ".github/morro-control/events.ndjson"),
-        "utf8",
-      ),
-      candidateText: readFileSync(
-        resolve(targetRoot, ".github/morro-control/events.ndjson"),
-        "utf8",
-      ),
+      canonicalText,
+      candidateText,
       claimId: id,
       expectedBaseSha,
       evidence,
+      requestedReason,
     });
     evidenceById[id] = evidence;
   }

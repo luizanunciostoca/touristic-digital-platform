@@ -495,3 +495,143 @@ test("claim lifecycle PREPARE fails closed when formatter fails", () => {
     /CLAIM_LIFECYCLE_PREPARE_FAILED/u,
   );
 });
+
+test("explicit retirement CLI rejects ambiguous reasons before touching any file", async () => {
+  for (const args of [
+    ["retire", "missing.json", "--reason"],
+    ["retire", "missing.json", "--reason", "MERGED_PR"],
+    ["retire", "missing.json", "--reason=EXPIRED"],
+    ["retire", "missing.json", "--reason", "EXPIRED", "--reason", "EXPIRED"],
+    ["acquire", "missing.json", "--reason", "EXPIRED"],
+    ["reanchor", "missing.json", "--reason", "EXPIRED"],
+  ])
+    await assert.rejects(
+      runClaimCli(args, { root: "/nonexistent" }),
+      /CLAIM_.*(?:REASON|REQUEST|ARGUMENT)/u,
+    );
+});
+
+test("explicit retirement CLI enforces expiry, preserves pending state and rolls back PREPARE failure", async (t) => {
+  const root = mkdtempSync(join(tmpdir(), "explicit-expiry-cli-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const git = (...args) =>
+    execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+  git("init", "-q", "-b", "infra/retire");
+  git("config", "user.name", "CLI Fixture");
+  git("config", "user.email", "cli@example.test");
+  mkdirSync(join(root, ".github/morro-control"), { recursive: true });
+  mkdirSync(join(root, ".morro/changesets"), { recursive: true });
+  const paths = [
+    ".github/morro-control/claims.json",
+    ".github/morro-control/events.ndjson",
+    ".morro/changesets/MD-FASTFIX-TEST.json",
+  ];
+  const initial = [
+    JSON.stringify(registry({ "MD-FASTFIX-TEST": activeClaim() })) + "\n",
+    "",
+    JSON.stringify(manifest()) + "\n",
+  ];
+  paths.forEach((path, index) =>
+    writeFileSync(join(root, path), initial[index]),
+  );
+  git("add", ".");
+  git("commit", "-qm", "canonical");
+  const baseSha = git("rev-parse", "HEAD");
+  const args = [
+    "retire",
+    paths[2],
+    "--base-sha",
+    baseSha,
+    "--reason",
+    "EXPIRED",
+  ];
+  const options = {
+    root,
+    now: () => EXPIRY,
+    fetchImpl: async () => {
+      throw new Error("UNEXPECTED_PROVIDER_CALL");
+    },
+    prepareMutation: async () => ({ formattedFiles: [] }),
+  };
+  const unchanged = () =>
+    paths.forEach((path, index) =>
+      assert.equal(readFileSync(join(root, path), "utf8"), initial[index]),
+    );
+  await assert.rejects(
+    runClaimCli(args, { ...options, now: () => NOW }),
+    /NOT_EXPIRED/u,
+  );
+  unchanged();
+  await assert.rejects(
+    runClaimCli(args, {
+      ...options,
+      prepareMutation: async () => {
+        throw new Error("PREPARE_FAILED");
+      },
+    }),
+    /PREPARE_FAILED/u,
+  );
+  unchanged();
+  const result = await runClaimCli(args, options);
+  assert.equal(result.state, "IMPLEMENTING");
+  assert.equal(result.evidenceReason, "EXPIRED");
+  const events = readFileSync(join(root, paths[1]), "utf8")
+    .trim()
+    .split("\n")
+    .map(JSON.parse);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].eventType, "CLAIM_RELEASED");
+  assert.equal(events[0].sourceSha, baseSha);
+  assert.deepEqual(events[0].payload, {
+    reason: "EXPIRED",
+    requestedReason: "EXPIRED",
+  });
+});
+
+test("only explicit builder mode marks EXPIRED and rejects inconsistent or future evidence", () => {
+  const acquired = acquire({
+    expiresAt: NOW,
+    observedAt: new Date(Date.parse(NOW) - 1).toISOString(),
+  });
+  const input = {
+    registry: acquired.registry,
+    ledgerText: acquired.ledgerText,
+    manifest: acquired.manifest,
+    evidence: {
+      id: "MD-FASTFIX-TEST",
+      reason: "EXPIRED",
+      branch: manifest().branch,
+      baseSha: BASE,
+    },
+    retirementBaseSha: NEXT,
+    retirementBranch: "infra/retire",
+    observedAt: NOW,
+    now: Date.parse(NOW),
+  };
+  assert.deepEqual(buildClaimRetirement(input).events[0].payload, {
+    reason: "EXPIRED",
+  });
+  assert.deepEqual(
+    buildClaimRetirement({ ...input, requestedReason: "EXPIRED" }).events[0]
+      .payload,
+    { reason: "EXPIRED", requestedReason: "EXPIRED" },
+  );
+  assert.throws(
+    () =>
+      buildClaimRetirement({
+        ...input,
+        requestedReason: "EXPIRED",
+        evidence: mergedEvidence(),
+      }),
+    /REQUEST_REASON_MISMATCH/u,
+  );
+  assert.throws(
+    () =>
+      buildClaimRetirement({
+        ...input,
+        requestedReason: "EXPIRED",
+        now: Date.parse(NOW) - 1,
+      }),
+    /IN_FUTURE/u,
+  );
+});
