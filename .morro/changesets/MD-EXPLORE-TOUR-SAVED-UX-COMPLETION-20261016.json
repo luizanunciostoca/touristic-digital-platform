@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-EXPLORE-TOUR-SAVED-UX-COMPLETION-20261016",
+  "objective": "coherent-explore-errors-applied-criteria-tour-controls-and-device-only-saved-itinerary-journey",
+  "baseSha": "2485dbf69a038aee3a63b14970e3da60e6da2bf1",
+  "branch": "fix/explore-tour-saved-ux-20261016",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-EXPLORE-TOUR-SAVED-UX-COMPLETION-20261016.json",
+      ".github/workflows/device-saved-itineraries-browser-contract.yml",
+      ".github/workflows/home-discover-manual-conformance.yml",
+      "apps/morro-digital-platform/public/explore-locations.css",
+      "apps/morro-digital-platform/public/tourist-shell-v2.css",
+      "apps/morro-digital-platform/src/browser-entry.ts",
+      "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+      "apps/morro-digital-platform/src/map/device-saved-itineraries.test.ts",
+      "apps/morro-digital-platform/src/map/device-saved-itineraries.ts",
+      "apps/morro-digital-platform/src/map/discover-map-controls.test.ts",
+      "apps/morro-digital-platform/src/map/discover-map-controls.ts",
+      "apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.test.ts",
+      "apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts",
+      "apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts",
+      "apps/morro-digital-platform/src/map/explore-v1-i18n.test.ts",
+      "apps/morro-digital-platform/src/map/explore-v1-i18n.ts",
+      "apps/morro-digital-platform/src/map/immersive-tour-v1-controller.ts",
+      "apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.test.ts",
+      "apps/morro-digital-platform/src/map/immersive-tour-v1-i18n.ts",
+      "apps/morro-digital-platform/src/map/saved-itinerary-ui.ts",
+      "apps/morro-digital-platform/src/ux/home-discover-manual-conformance.test.ts",
+      "apps/morro-digital-platform/src/ux/navigation-tour-manual-conformance.test.ts",
+      "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts",
+      "apps/morro-digital-platform/tooling/device-saved-itineraries-browser-contract.cjs",
+      "apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs",
+      "tooling/ci/impact-analyzer.test.mjs",
+      "tooling/ci/test-impact-manifest.json"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": []
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [
+    "MD-HOME-MANUAL-NAV-SEARCH-20261015",
+    "MD-EXPLORE-MARKERS-UX7-20261015"
+  ],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "full-quality",
+    "domain-invariants",
+    "integration",
+    "exact-head-release-gates",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "context-ownership-impact-preflight",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/ownership-path.test.mjs",
+          "tooling/ci/impact-analyzer.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity",
+      "integration"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
