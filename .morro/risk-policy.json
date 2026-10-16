@@ -67,7 +67,11 @@
     "tooling/failure-learning/",
     "tooling/workspace/",
     "tooling/performance/check-morro-digital-budget.mjs",
-    "tooling/performance/check-morro-digital-budget.test.mjs"
+    "tooling/performance/check-morro-digital-budget.test.mjs",
+    "apps/morro-digital-platform/package.json",
+    "tooling/ci/build-entry-css.mjs",
+    "tooling/ci/build-entry-css.test.mjs",
+    "tooling/ci/entry-css-manifest.json"
   ],
   "semanticRiskFloor": {
     "commerce-offering-identity": "high",
