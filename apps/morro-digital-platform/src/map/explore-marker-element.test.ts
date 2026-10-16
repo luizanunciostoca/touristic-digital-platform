@@ -41,8 +41,8 @@ describe("V1 Explore marker presentation", () => {
       position: "absolute",
       top: "0px",
       left: "0px",
-      width: "36px",
-      height: "36px",
+      width: "44px",
+      height: "44px",
     });
     expect(Number(V1_EXPLORE_MARKER_ROOT_STYLE.zIndex)).toBeGreaterThan(1000);
   });

@@ -1,3 +1,4 @@
+import { groupProjectedMarkers } from "./explore-marker-grouping.js";
 import {
   getAssistantMainMenu,
   normalizeAssistantVoiceLanguage,
@@ -87,7 +88,7 @@ export interface ExploreSearchResult {
   readonly placeId?: string;
 }
 
-type ExploreMapLocation = MorroV1SearchCatalogItem | ExploreSearchResult;
+export type ExploreMapLocation = MorroV1SearchCatalogItem | ExploreSearchResult;
 
 type ExploreRuntimeStatusDescriptor =
   | Readonly<{ kind: "selected"; place: string }>
@@ -100,6 +101,7 @@ export interface ExploreLocationsCategory {
 }
 
 export type ExploreLocationsCommand =
+  | Readonly<{ type: "select_marker"; markerId: string }>
   | Readonly<{ type: "open_category"; category: string }>
   | Readonly<{ type: "apply_option"; value: string }>
   | Readonly<{ type: "show_all" }>
@@ -136,6 +138,7 @@ export interface ExploreLocationsStateSnapshot {
   readonly source: "canonical" | "local" | "mapbox" | "legacy" | null;
   readonly stage: ExploreStage;
   readonly markerCount: number;
+  readonly locationCount?: number;
   readonly sheetState: "peek" | "half" | "full" | null;
   readonly tour: ExploreActiveTourSnapshot | null;
 }
@@ -144,11 +147,28 @@ export interface ExploreLocationsControlOptions {
   readonly document: Document;
 }
 
+export interface ExternalTourMapPreparation {
+  isCurrent(): boolean;
+  runSelection<T>(operation: () => Promise<T>): Promise<T | null>;
+  publishGeometry(
+    locations: readonly Readonly<{
+      name: string;
+      latitude: number;
+      longitude: number;
+    }>[],
+  ): boolean;
+}
+
 export interface ExploreLocationsControl {
+  prepareExternalTour(): Promise<ExternalTourMapPreparation | null>;
   execute(command: ExploreLocationsCommand): Promise<boolean>;
   getState(): ExploreLocationsStateSnapshot;
   close(): void;
   setGeospatialEngine(engine: GeospatialEngine | undefined): void;
+  setNativeMap(map: MapboxGlMapLike | undefined): void;
+  createInitialDiscoveryMarkers(
+    locations: readonly ExploreMapLocation[],
+  ): readonly MapMarker[];
   destroy(): void;
 }
 
@@ -243,7 +263,10 @@ function markerForLocation(
   openPopup = false,
 ): MapMarker {
   const canonicalPlaceId =
-    "placeId" in location && typeof location.placeId === "string"
+    "source" in location &&
+    location.source === "canonical" &&
+    "placeId" in location &&
+    typeof location.placeId === "string"
       ? location.placeId.trim()
       : "";
   return Object.freeze({
@@ -260,62 +283,11 @@ function markerForLocation(
   });
 }
 
-const TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES = 0.0017;
-
-function tourDiscoveryClusterLabel(
-  count: number,
-  locale: AssistantLocale,
-): string {
-  if (locale === "pt") return `${count} passeios`;
-  if (locale === "es") return `${count} paseos`;
-  if (locale === "he") return `${count} סיורים`;
-  return `${count} tours`;
-}
-
-function clusterTourDiscoveryMarkers(
-  locations: readonly ExploreMapLocation[],
-  locale: AssistantLocale,
-): readonly MapMarker[] {
-  const clusters: ExploreMapLocation[][] = [];
-
-  for (const location of locations) {
-    const existing = clusters.find((cluster) => {
-      const latitude =
-        cluster.reduce((total, item) => total + item.latitude, 0) /
-        cluster.length;
-      const longitude =
-        cluster.reduce((total, item) => total + item.longitude, 0) /
-        cluster.length;
-      return (
-        Math.hypot(
-          location.latitude - latitude,
-          location.longitude - longitude,
-        ) <= TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES
-      );
-    });
-    if (existing) existing.push(location);
-    else clusters.push([location]);
-  }
-
-  return Object.freeze(
-    clusters.map((cluster, index) => {
-      const first = cluster[0];
-      if (!first) throw new Error("Tour discovery cluster cannot be empty.");
-      if (cluster.length === 1) return markerForLocation(first, index);
-
-      const latitude =
-        cluster.reduce((total, item) => total + item.latitude, 0) /
-        cluster.length;
-      const longitude =
-        cluster.reduce((total, item) => total + item.longitude, 0) /
-        cluster.length;
-      return Object.freeze({
-        id: `explore:tours:cluster:${cluster.length}:${index}`,
-        position: Object.freeze({ latitude, longitude }),
-        label: tourDiscoveryClusterLabel(cluster.length, locale),
-      });
-    }),
-  );
+function discoveryClusterLabel(count: number, locale: AssistantLocale): string {
+  if (locale === "pt") return `${count} locais`;
+  if (locale === "es") return `${count} lugares`;
+  if (locale === "he") return `${count} מקומות`;
+  return `${count} places`;
 }
 
 function describeExploreError(error: unknown, locale: AssistantLocale): string {
@@ -338,7 +310,19 @@ function removeAssistantFlowResults(document: Document): void {
 function categoryBounds(
   locations: readonly ExploreMapLocation[],
 ): [[number, number], [number, number]] | null {
-  if (locations.length === 0) return null;
+  if (
+    locations.length === 0 ||
+    locations.some(
+      ({ latitude, longitude }) =>
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180,
+    )
+  )
+    return null;
   const longitudes = locations.map((location) => location.longitude);
   const latitudes = locations.map((location) => location.latitude);
   return [
@@ -533,6 +517,173 @@ export function installExploreLocationsControl({
   let activeStage: ExploreStage = "menu";
   let visibleLocations: readonly ExploreMapLocation[] = Object.freeze([]);
   let activeSearchQuery = "";
+  let nativeMap: MapboxGlMapLike | undefined;
+  let detachNativeMap: (() => void) | undefined;
+  let destroyed = false;
+  let datasetGeneration = 0;
+  let renderGeneration = 0;
+  let markerQueue: Promise<void> = Promise.resolve();
+  let cameraRedrawQueued = false;
+  let datasetCategory: string | undefined;
+  let retainedMenuContext = false;
+  let datasetGeometryGeneration = 0;
+  let externalTourOwnsMap = false;
+  const geometryElement = document.getElementById("map");
+  geometryElement?.setAttribute("data-explore-dataset-contract", "bounds-v1");
+  const clearDatasetGeometry = (): void => {
+    geometryElement?.removeAttribute("data-explore-dataset-bounds");
+    geometryElement?.removeAttribute("data-explore-dataset-generation");
+  };
+  const publishDatasetGeometry = (): void => {
+    const bounds = categoryBounds(visibleLocations);
+    if (!bounds || destroyed || datasetGeometryGeneration <= 0) {
+      clearDatasetGeometry();
+      return;
+    }
+    geometryElement?.setAttribute(
+      "data-map-member-count",
+      String(visibleLocations.length),
+    );
+    geometryElement?.setAttribute(
+      "data-explore-dataset-bounds",
+      JSON.stringify(bounds),
+    );
+    geometryElement?.setAttribute(
+      "data-explore-dataset-generation",
+      String(datasetGeometryGeneration),
+    );
+  };
+  let activeMarkerMembers: readonly ExploreMapLocation[] | undefined;
+  const syncLocationCounts = (): void => {
+    const map = document.getElementById("map");
+    map?.setAttribute("data-map-member-count", String(visibleLocations.length));
+    map?.setAttribute(
+      "data-explore-location-count",
+      String(activeMarkerMembers?.length ?? visibleLocations.length),
+    );
+  };
+  syncLocationCounts();
+  const markerRegistry = new Map<string, readonly ExploreMapLocation[]>();
+  const initialRegistry = new Map<string, readonly ExploreMapLocation[]>();
+  let initialLocations: readonly ExploreMapLocation[] = [];
+  let initialGeneration = 0;
+  let restoreCurrentFlow: (() => void) | undefined;
+  let closeMarkerList: (() => void) | undefined;
+  let refreshMarkerList: (() => void) | undefined;
+  let returnToMarkerList: (() => void) | undefined;
+
+  const replaceMarkersSerial = (
+    markers: readonly MapMarker[],
+  ): Promise<void> => {
+    const requested = ++renderGeneration;
+    const engine = geospatialEngine;
+    const work = markerQueue
+      .catch(() => undefined)
+      .then(async () => {
+        if (
+          destroyed ||
+          requested !== renderGeneration ||
+          engine !== geospatialEngine
+        )
+          return;
+        await engine?.replaceMarkers(markers);
+      });
+    markerQueue = work;
+    return work;
+  };
+
+  const installDataset = (
+    locations: readonly ExploreMapLocation[],
+    category?: string,
+  ): void => {
+    datasetGeneration += 1;
+    datasetGeometryGeneration += 1;
+    externalTourOwnsMap = false;
+    clearDatasetGeometry();
+    visibleLocations = Object.freeze([...locations]);
+    activeMarkerMembers = undefined;
+    retainedMenuContext = false;
+    syncLocationCounts();
+    datasetCategory = category;
+    markerRegistry.clear();
+    closeMarkerList = undefined;
+    refreshMarkerList = undefined;
+    returnToMarkerList = undefined;
+  };
+
+  const groupedMarkers = (
+    locations: readonly ExploreMapLocation[],
+    registry: Map<string, readonly ExploreMapLocation[]>,
+    prefix: string,
+    popup = false,
+  ): readonly MapMarker[] => {
+    registry.clear();
+    const members = locations.map((location, index) => ({
+      key: `${prefix}:${index}`,
+      longitude: location.longitude,
+      latitude: location.latitude,
+      location,
+    }));
+    let groups = members.map((member) => ({
+      members: [member],
+      anchor: member,
+    }));
+    const projection = nativeMap?.project?.bind(nativeMap);
+    let supported = Boolean(
+      projection &&
+      typeof nativeMap?.on === "function" &&
+      typeof nativeMap?.off === "function",
+    );
+    if (supported && !popup) {
+      try {
+        groups = groupProjectedMarkers(members, (coordinates) =>
+          projection!.call(nativeMap, coordinates),
+        ).map((group) => ({
+          members: [...group.members],
+          anchor: group.anchor,
+        }));
+      } catch {
+        supported = false;
+      }
+    }
+    document
+      .getElementById("map")
+      ?.setAttribute(
+        "data-marker-grouping",
+        supported ? "projected" : "unavailable",
+      );
+    return Object.freeze(
+      groups.map((group) => {
+        const location = group.anchor.location;
+        const sameCategory = group.members.every(
+          (member) => member.location.category === location.category,
+        );
+        const category = sameCategory ? location.category : "mixed";
+        const id =
+          group.members.length > 1
+            ? `explore:${category}:cluster:${group.members.length}:${group.members.map((member) => member.key).join("|")}`
+            : "placeId" in location &&
+                location.placeId &&
+                "source" in location &&
+                location.source === "canonical"
+              ? markerForLocation(location, 0, popup).id
+              : `explore:${category}:member:${group.anchor.key}`;
+        registry.set(
+          id,
+          Object.freeze(group.members.map((member) => member.location)),
+        );
+        return Object.freeze({
+          ...markerForLocation(location, 0, popup),
+          id,
+          label:
+            group.members.length > 1
+              ? discoveryClusterLabel(group.members.length, currentLocale())
+              : location.name,
+        });
+      }),
+    );
+  };
+
   let mainMenuContainer: HTMLElement | undefined;
   let interactionGeneration = 0;
   let immersiveTourController: V1ImmersiveTourController | undefined;
@@ -682,6 +833,10 @@ export function installExploreLocationsControl({
       if (option.location) {
         button.dataset.locationName = option.location.name;
         button.dataset.locationCategory = option.location.category;
+        button.dataset.locationSource =
+          "source" in option.location ? option.location.source : "catalog";
+        if ("placeId" in option.location && option.location.placeId)
+          button.dataset.canonicalPlaceId = option.location.placeId;
       }
       if (option.tourId) button.dataset.tourId = option.tourId;
       button.disabled = option.disabled === true;
@@ -694,7 +849,7 @@ export function installExploreLocationsControl({
       button.appendChild(label);
       button.addEventListener("click", (event) => {
         event.stopImmediatePropagation();
-        if (!button.disabled) onSelect(option);
+        if (button.isConnected && !button.disabled) onSelect(option);
       });
       buttons.push(button);
     }
@@ -772,6 +927,7 @@ export function installExploreLocationsControl({
             : "legacy"
           : null,
       stage: activeStage,
+      locationCount: activeMarkerMembers?.length ?? visibleLocations.length,
       markerCount: Number(
         document.getElementById("map")?.dataset.mapMarkerCount ?? "0",
       ),
@@ -784,6 +940,7 @@ export function installExploreLocationsControl({
   };
 
   const emitStateChange = (): void => {
+    syncLocationCounts();
     document.dispatchEvent(
       new CustomEvent("morro:explore-state-changed", {
         detail: stateSnapshot(),
@@ -797,12 +954,16 @@ export function installExploreLocationsControl({
     state: "loading" | "ready" | "error" = "ready",
   ): void => {
     const mapElement = document.getElementById("map");
+    if (state === "ready") publishDatasetGeometry();
+    else clearDatasetGeometry();
     mapElement?.setAttribute("data-map-marker-count", String(count));
     mapElement?.removeAttribute("data-active-tour");
     mapElement?.setAttribute("data-tour-state", "idle");
     mapElement?.setAttribute("data-explore-state", state);
-    if (category) {
-      mapElement?.setAttribute("data-explore-category", category);
+    const semanticCategory =
+      retainedMenuContext && activeStage === "menu" ? undefined : category;
+    if (semanticCategory) {
+      mapElement?.setAttribute("data-explore-category", semanticCategory);
     } else {
       mapElement?.removeAttribute("data-explore-category");
     }
@@ -816,12 +977,20 @@ export function installExploreLocationsControl({
 
   const renderLocationsOnMap = async (
     locations: readonly ExploreMapLocation[],
-    category: string,
+    category?: string,
     openSelectedPopup = false,
+    cameraOnly = false,
   ): Promise<void> => {
+    const focusedMarker =
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement.matches(".morro-explore-marker")
+        ? document.activeElement.dataset.markerId
+        : undefined;
+    if (destroyed || (cameraOnly && externalTourOwnsMap)) return;
     const generation = interactionGeneration;
     const categoryAtStart = activeCategory?.value;
-    visibleLocations = Object.freeze([...locations]);
+    if (!cameraOnly) installDataset(locations, category);
+    const requestedDataset = datasetGeneration;
 
     const setSheetStatus = (
       status: "loading" | "ready" | "empty" | "error",
@@ -833,25 +1002,27 @@ export function installExploreLocationsControl({
     };
 
     if (locations.length === 0) {
+      document
+        .getElementById("map")
+        ?.setAttribute("data-map-member-count", "0");
       updateMapState(0, category, "ready");
       setSheetStatus("empty");
       if (geospatialEngine?.initialized) {
-        await geospatialEngine.replaceMarkers([]).catch(() => undefined);
+        await replaceMarkersSerial([]).catch(() => undefined);
       }
       emitStateChange();
       return;
     }
 
-    const renderedMarkers =
-      category === "tours" && activeStage === "filters"
-        ? clusterTourDiscoveryMarkers(locations, currentLocale())
-        : locations.map((location, index) =>
-            markerForLocation(
-              location,
-              index,
-              openSelectedPopup && locations.length === 1,
-            ),
-          );
+    const renderedMarkers = groupedMarkers(
+      locations,
+      markerRegistry,
+      `dataset:${datasetGeneration}`,
+      openSelectedPopup,
+    );
+    document
+      .getElementById("map")
+      ?.setAttribute("data-map-member-count", String(locations.length));
 
     setSheetStatus("loading");
     if (!geospatialEngine?.initialized) {
@@ -866,17 +1037,33 @@ export function installExploreLocationsControl({
       return;
     }
 
-    updateMapState(renderedMarkers.length, category, "loading");
+    if (!cameraOnly)
+      updateMapState(renderedMarkers.length, category, "loading");
+    let requestedRender = renderGeneration;
     try {
-      await geospatialEngine.replaceMarkers(renderedMarkers);
+      const replacing = replaceMarkersSerial(renderedMarkers);
+      requestedRender = renderGeneration;
+      await replacing;
       if (
+        externalTourOwnsMap ||
         generation !== interactionGeneration ||
+        requestedDataset !== datasetGeneration ||
+        requestedRender !== renderGeneration ||
+        destroyed ||
         (categoryAtStart !== undefined &&
           activeCategory?.value !== categoryAtStart)
       ) {
         return;
       }
       updateMapState(renderedMarkers.length, category, "ready");
+      if (focusedMarker) {
+        const same = Array.from(
+          document.querySelectorAll<HTMLElement>(".morro-explore-marker"),
+        ).find((element) => element.dataset.markerId === focusedMarker);
+        const target = same ?? document.getElementById("map");
+        if (target && !same) target.setAttribute("tabindex", "-1");
+        target?.focus({ preventScroll: true });
+      }
       if (openSelectedPopup && locations.length === 1) {
         const selectedMarker = document.querySelector<HTMLElement>(
           '.morro-explore-marker[data-morro-explore-marker="true"]:not([data-discover-initial-poi="true"])',
@@ -884,14 +1071,22 @@ export function installExploreLocationsControl({
         selectedMarker?.setAttribute("data-selected", "true");
         selectedMarker?.setAttribute("aria-current", "location");
       }
-      frameLocationsOnMap(document, locations, geospatialEngine);
+      if (!cameraOnly)
+        frameLocationsOnMap(document, locations, geospatialEngine);
       setSheetStatus("ready");
-      emitStateChange();
+      if (!cameraOnly) emitStateChange();
     } catch (error) {
-      if (generation !== interactionGeneration) return;
+      if (
+        externalTourOwnsMap ||
+        generation !== interactionGeneration ||
+        requestedDataset !== datasetGeneration ||
+        requestedRender !== renderGeneration ||
+        destroyed
+      )
+        return;
       updateMapState(0, category, "error");
       try {
-        await geospatialEngine.replaceMarkers([]);
+        await replaceMarkersSerial([]);
       } catch {
         // Preserve the first provider failure for diagnostics.
       }
@@ -1056,6 +1251,16 @@ export function installExploreLocationsControl({
     statusOverride?: "loading" | "ready" | "empty" | "error",
     statusTextOverride?: string,
   ): HTMLButtonElement | null => {
+    restoreCurrentFlow = () => {
+      renderFlow(
+        text,
+        options,
+        onSelect,
+        content,
+        statusOverride,
+        statusTextOverride,
+      );
+    };
     const area = assistantMessagesArea(document);
     if (!area) return null;
 
@@ -1099,11 +1304,15 @@ export function installExploreLocationsControl({
       if (option.location) {
         button.dataset.locationName = option.location.name;
         button.dataset.locationCategory = option.location.category;
+        button.dataset.locationSource =
+          "source" in option.location ? option.location.source : "catalog";
+        if ("placeId" in option.location && option.location.placeId)
+          button.dataset.canonicalPlaceId = option.location.placeId;
       }
       if (option.tourId) button.dataset.tourId = option.tourId;
       button.addEventListener("click", (event) => {
         event.stopImmediatePropagation();
-        onSelect(option);
+        if (button.isConnected) onSelect(option);
       });
       container.appendChild(button);
     }
@@ -1163,12 +1372,31 @@ export function installExploreLocationsControl({
 
   const backToMenu = (restoreFocus = true): void => {
     interactionGeneration += 1;
+    datasetGeneration += 1;
+    markerRegistry.clear();
+    closeMarkerList = undefined;
+    refreshMarkerList = undefined;
+    returnToMarkerList = undefined;
+    restoreCurrentFlow = undefined;
     const previousCategoryValue = activeCategory?.value;
+    const previousExternalOwnership = externalTourOwnsMap;
+    externalTourOwnsMap = false;
+    const retainedLocations =
+      activeStage === "tour" || previousExternalOwnership
+        ? Object.freeze([])
+        : visibleLocations;
+    if (retainedLocations.length === 0) {
+      datasetGeometryGeneration += 1;
+      clearDatasetGeometry();
+    }
+    if (previousExternalOwnership && activeStage !== "tour")
+      clearTourPresentation(document);
+    const retainedCategory = datasetCategory;
     if (activeStage === "tour") {
       immersiveTourController?.destroy();
       clearTourPresentation(document);
       if (geospatialEngine?.initialized) {
-        void geospatialEngine.replaceMarkers([]).catch(() => undefined);
+        void replaceMarkersSerial([]).catch(() => undefined);
       }
     }
     removeAssistantFlowResults(document);
@@ -1181,7 +1409,21 @@ export function installExploreLocationsControl({
     activePlaceActionValues = Object.freeze([]);
     activeSearchQuery = "";
     activeStage = "menu";
-    visibleLocations = Object.freeze([]);
+    visibleLocations = retainedLocations;
+    activeMarkerMembers = undefined;
+    retainedMenuContext = retainedLocations.length > 0;
+    syncLocationCounts();
+    if (retainedLocations.length > 0) {
+      void renderLocationsOnMap(
+        retainedLocations,
+        retainedCategory,
+        false,
+        true,
+      );
+    } else {
+      void replaceMarkersSerial([]).catch(() => undefined);
+      updateMapState(0);
+    }
     placeReturnLocations = Object.freeze([]);
     placeReturnMessage = "";
     placeReturnIsSearch = false;
@@ -1422,15 +1664,13 @@ export function installExploreLocationsControl({
     const category = location.category;
     const locale = currentLocale();
     const canonicalPlaceId =
-      "placeId" in location && typeof location.placeId === "string"
+      "source" in location &&
+      location.source === "canonical" &&
+      "placeId" in location &&
+      typeof location.placeId === "string"
         ? location.placeId.trim()
         : "";
-    const canonicalLocation =
-      !canonicalPlaceId && "source" in location && location.source === "local"
-        ? resolveExploreLocationByName(location.name, location.category)
-        : !("source" in location)
-          ? location
-          : undefined;
+    const canonicalLocation = !("source" in location) ? location : undefined;
     const presentationLocation = canonicalLocation ?? location;
     const categoryLabel =
       currentCategories().find((candidate) => candidate.value === category)
@@ -1590,8 +1830,8 @@ export function installExploreLocationsControl({
       if (option.location) void selectLocation(option.location);
     });
     first?.focus();
-    emitStateChange();
     void renderLocationsOnMap(locations, activeCategory.value);
+    emitStateChange();
   };
 
   const renderSearchPlaces = (
@@ -1652,7 +1892,6 @@ export function installExploreLocationsControl({
       statusText,
     );
     first?.focus();
-    emitStateChange();
     if (status === "error") {
       updateMapState(
         Number(document.getElementById("map")?.dataset.mapMarkerCount ?? "0"),
@@ -1664,9 +1903,16 @@ export function installExploreLocationsControl({
       return;
     }
     void renderLocationsOnMap(locations, "search");
+    emitStateChange();
   };
 
   const returnFromPlaceDetail = (): void => {
+    if (returnToMarkerList) {
+      const restore = returnToMarkerList;
+      returnToMarkerList = undefined;
+      restore();
+      return;
+    }
     if (placeReturnIsSearch) {
       renderSearchPlaces(
         placeReturnLocations.filter(
@@ -1822,8 +2068,8 @@ export function installExploreLocationsControl({
       (option) => void applyFlowOption(option),
     );
     first?.focus();
-    emitStateChange();
     void renderLocationsOnMap(allLocations, activeCategory.value);
+    emitStateChange();
   }
 
   const openCategory = (
@@ -1884,47 +2130,139 @@ export function installExploreLocationsControl({
     activeCategory = undefined;
     activeCategoryButton = undefined;
     activePlace = undefined;
+    activeSearchQuery = "";
+    restoreCurrentFlow = undefined;
     activeStage = "menu";
-    visibleLocations = Object.freeze([...locations]);
     clearExploreRuntimeStatus();
     showMainMenu();
     restoreCategoryRail();
-    updateMapState(locations.length, category, "loading");
+    await renderLocationsOnMap(locations, category);
+    return (
+      generation === interactionGeneration &&
+      document.getElementById("map")?.dataset.exploreState === "ready"
+    );
+  };
 
-    try {
-      await geospatialEngine.replaceMarkers(
-        locations.map((location, index) => markerForLocation(location, index)),
-      );
-      if (generation !== interactionGeneration) return false;
-      updateMapState(locations.length, category, "ready");
-      frameLocationsOnMap(document, locations, geospatialEngine);
-      emitStateChange();
-      return true;
-    } catch (error) {
-      if (generation !== interactionGeneration) return false;
-      updateMapState(0, undefined, "error");
-      try {
-        await geospatialEngine.replaceMarkers([]);
-      } catch {
-        // Preserve the first provider failure for diagnostics.
+  const openMarkerMembers = (members: readonly ExploreMapLocation[]): void => {
+    const generation = datasetGeneration;
+    const previousStage = activeStage;
+    const previousFlow = restoreCurrentFlow;
+    const previousFocus = document.activeElement;
+    activeStage = "places";
+    activeMarkerMembers = members;
+    const restore = (): void => {
+      if (generation !== datasetGeneration || destroyed) return;
+      closeMarkerList = undefined;
+      refreshMarkerList = undefined;
+      activeMarkerMembers = undefined;
+      restoreCurrentFlow = previousFlow;
+      activeStage = previousStage;
+      if (previousFlow) previousFlow();
+      else {
+        removeAssistantFlowResults(document);
+        restoreCategoryRail();
+        showMainMenu();
       }
       emitStateChange();
-      document
-        .getElementById("runtime-status")
-        ?.replaceChildren(
-          document.createTextNode(
-            getV1ExploreUiCopy(currentLocale()).mapCategoryError(
-              describeExploreError(error, currentLocale()),
-            ),
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected)
+        previousFocus.focus();
+    };
+    closeMarkerList = restore;
+    let initialRender = true;
+    const render = (): void => {
+      if (generation !== datasetGeneration || destroyed) return;
+      const focused = document.activeElement;
+      const focusedValue =
+        focused instanceof HTMLElement &&
+        focused.closest("#assistant-category-rail, #assistant-category-results")
+          ? focused.dataset.value
+          : undefined;
+      const options: readonly {
+        label: string;
+        value: string;
+        action: string;
+        location?: ExploreMapLocation;
+      }[] = [
+        ...members.map((location, index) => ({
+          label: `${location.name} · ${currentCategories().find((category) => category.value === location.category)?.label ?? location.category}`,
+          value: `member:${index}`,
+          action: "location",
+          location,
+        })),
+        {
+          label: getV1ExploreLabel("back", currentLocale()),
+          value: "back-cluster",
+          action: "back-cluster",
+        },
+      ];
+      const first = renderFlow(
+        discoveryClusterLabel(members.length, currentLocale()),
+        options,
+        (option) => {
+          if (generation !== datasetGeneration || destroyed) return;
+          if (!option.location) {
+            restore();
+            return;
+          }
+          const returnLocations = visibleLocations;
+          const category = datasetCategory;
+          const returnAction = (): void => {
+            activePlace = undefined;
+            activePlaceLocation = undefined;
+            activeStage = previousStage;
+            restoreCurrentFlow = previousFlow;
+            installDataset(returnLocations, category);
+            void renderLocationsOnMap(returnLocations, category, false, true);
+            openMarkerMembers(members);
+          };
+          const selection = selectLocation(option.location);
+          const selectionGeneration = interactionGeneration;
+          void selection.then(() => {
+            if (
+              !destroyed &&
+              selectionGeneration === interactionGeneration &&
+              activePlaceLocation === option.location
+            )
+              returnToMarkerList = returnAction;
+          });
+        },
+      );
+      if (initialRender) first?.focus();
+      else if (focusedValue) {
+        Array.from(
+          document.querySelectorAll<HTMLElement>(
+            "#assistant-category-rail [data-value]",
           ),
-        );
-      return false;
-    }
+        )
+          .find((element) => element.dataset.value === focusedValue)
+          ?.focus({ preventScroll: true });
+      }
+      initialRender = false;
+    };
+    refreshMarkerList = render;
+    render();
+    emitStateChange();
   };
 
   const execute = async (
     command: ExploreLocationsCommand,
   ): Promise<boolean> => {
+    if (destroyed) return false;
+    if (command.type === "select_marker") {
+      let members = markerRegistry.get(command.markerId);
+      if (!members && visibleLocations.length === 0 && activeStage === "menu") {
+        members = initialRegistry.get(command.markerId);
+        if (members) {
+          installDataset(initialLocations, "places");
+          void renderLocationsOnMap(initialLocations, "places", false, true);
+        }
+      }
+      if (!members || activeStage === "tour") return false;
+      if (members.length === 1) {
+        await selectLocation(members[0]!);
+      } else openMarkerMembers(members);
+      return true;
+    }
     if (command.type === "open_category") {
       return openCategoryByValue(command.category);
     }
@@ -1988,6 +2326,8 @@ export function installExploreLocationsControl({
     if (command.type === "select_place_id") {
       const location = visibleLocations.find(
         (candidate) =>
+          "source" in candidate &&
+          candidate.source === "canonical" &&
           "placeId" in candidate &&
           candidate.placeId?.trim() === command.placeId.trim(),
       );
@@ -2125,7 +2465,7 @@ export function installExploreLocationsControl({
       clearTourPresentation(document);
       if (geospatialEngine?.initialized) {
         try {
-          await geospatialEngine.replaceMarkers([]);
+          await replaceMarkersSerial([]);
         } catch (error) {
           setExploreRuntimeStatus({ kind: "map-error", error });
         }
@@ -2270,6 +2610,7 @@ export function installExploreLocationsControl({
         if (activeStage === "menu") restoreCategoryRail();
         if (exploreRuntimeStatusDescriptor) renderExploreRuntimeStatus();
         if (activeStage === "filters" && activeCategory) renderFilters();
+        if (activeStage === "places" && refreshMarkerList) refreshMarkerList();
         if (activeStage === "detail" && activePlace) {
           const location =
             activePlaceLocation ??
@@ -2286,6 +2627,12 @@ export function installExploreLocationsControl({
 
   const onKeyDown = (event: KeyboardEvent): void => {
     if (event.key !== "Escape" || activeStage === "menu") return;
+    if (closeMarkerList && activeStage !== "detail") {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      closeMarkerList();
+      return;
+    }
     if (activeStage === "detail") {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -2371,22 +2718,184 @@ export function installExploreLocationsControl({
   document.addEventListener("morro:tour-stop-requested", onTourStopRequested);
 
   return Object.freeze({
+    async prepareExternalTour() {
+      if (destroyed) return null;
+      externalTourOwnsMap = true;
+      interactionGeneration += 1;
+      datasetGeneration += 1;
+      renderGeneration += 1;
+      const geometryGeneration = ++datasetGeometryGeneration;
+      clearDatasetGeometry();
+      markerRegistry.clear();
+      initialRegistry.clear();
+      activeMarkerMembers = undefined;
+      visibleLocations = Object.freeze([]);
+      closeMarkerList = undefined;
+      refreshMarkerList = undefined;
+      returnToMarkerList = undefined;
+      restoreCurrentFlow = undefined;
+      retainedMenuContext = false;
+      if (activeStage !== "tour") {
+        removeAssistantFlowResults(document);
+        exploreFlowBottomSheet?.hide();
+        resetCategoryTriggerState();
+        activeStage = "menu";
+        activeCategory = undefined;
+        activeCategoryButton = undefined;
+        activePlace = undefined;
+        activePlaceLocation = undefined;
+        activePlaceActionValues = Object.freeze([]);
+        activeSearchQuery = "";
+        placeReturnLocations = Object.freeze([]);
+        placeReturnMessage = "";
+        placeReturnIsSearch = false;
+        restoreCategoryRail();
+        showMainMenu();
+        clearExploreRuntimeStatus();
+      }
+      geometryElement?.removeAttribute("data-explore-category");
+      geometryElement?.removeAttribute("data-explore-place");
+      geometryElement?.setAttribute("data-explore-stage", activeStage);
+      geometryElement?.setAttribute("data-explore-state", "loading");
+      emitStateChange();
+      const isCurrent = (): boolean =>
+        !destroyed &&
+        externalTourOwnsMap &&
+        geometryGeneration === datasetGeometryGeneration;
+      await markerQueue.catch(() => undefined);
+      if (!isCurrent()) return null;
+      return Object.freeze({
+        isCurrent,
+        runSelection<T>(operation: () => Promise<T>): Promise<T | null> {
+          const requested = ++renderGeneration;
+          const work = markerQueue
+            .catch(() => undefined)
+            .then(async () => {
+              if (!isCurrent() || requested !== renderGeneration) return null;
+              return operation();
+            });
+          markerQueue = work.then(
+            () => undefined,
+            () => undefined,
+          );
+          return work;
+        },
+        publishGeometry(
+          locations: readonly Readonly<{
+            name: string;
+            latitude: number;
+            longitude: number;
+          }>[],
+        ) {
+          if (!isCurrent()) return false;
+          const actualLocations = locations.map((location) =>
+            Object.freeze({
+              name: location.name,
+              category: "tours",
+              latitude: location.latitude,
+              longitude: location.longitude,
+            }),
+          );
+          if (!categoryBounds(actualLocations)) return false;
+          visibleLocations = Object.freeze(actualLocations);
+          syncLocationCounts();
+          publishDatasetGeometry();
+          geometryElement?.setAttribute("data-explore-state", "ready");
+          emitStateChange();
+          return true;
+        },
+      });
+    },
     execute,
     getState: stateSnapshot,
     close: () => backToMenu(),
     setGeospatialEngine(engine: GeospatialEngine | undefined) {
+      const previous = geospatialEngine;
+      if (previous && previous !== engine) {
+        renderGeneration += 1;
+        markerQueue = markerQueue
+          .catch(() => undefined)
+          .then(() => previous.replaceMarkers([]))
+          .catch(() => undefined);
+      }
       geospatialEngine = engine;
       if (visibleLocations.length > 0) {
         void renderLocationsOnMap(
           visibleLocations,
-          activeCategory?.value ?? (activeSearchQuery ? "search" : "places"),
+          datasetCategory,
           activeStage === "detail" && visibleLocations.length === 1,
         );
         return;
       }
       void loadHybridGlobalMarkers();
     },
+    createInitialDiscoveryMarkers(locations: readonly ExploreMapLocation[]) {
+      if (locations !== initialLocations) {
+        initialGeneration += 1;
+        initialLocations = locations;
+      }
+      return groupedMarkers(
+        locations,
+        initialRegistry,
+        `initial:${initialGeneration}`,
+      );
+    },
+    setNativeMap(map: MapboxGlMapLike | undefined) {
+      detachNativeMap?.();
+      detachNativeMap = undefined;
+      nativeMap = map;
+      if (!map?.project || !map.on || !map.off) return;
+      const redraw = (): void => {
+        if (cameraRedrawQueued || destroyed || nativeMap !== map) return;
+        cameraRedrawQueued = true;
+        queueMicrotask(() => {
+          cameraRedrawQueued = false;
+          if (
+            destroyed ||
+            nativeMap !== map ||
+            externalTourOwnsMap ||
+            document.getElementById("map")?.dataset.tourState === "switching" ||
+            document.getElementById("map")?.dataset.tourState === "ready" ||
+            activeStage === "detail" ||
+            activeStage === "tour" ||
+            visibleLocations.length === 0
+          )
+            return;
+          void renderLocationsOnMap(
+            visibleLocations,
+            datasetCategory,
+            false,
+            true,
+          );
+        });
+      };
+      for (const event of ["zoomend", "moveend", "resize"])
+        map.on(event, redraw);
+      detachNativeMap = () => {
+        for (const event of ["zoomend", "moveend", "resize"])
+          map.off?.(event, redraw);
+      };
+    },
     destroy() {
+      if (externalTourOwnsMap) clearTourPresentation(document);
+      destroyed = true;
+      const previous = geospatialEngine;
+      markerQueue = markerQueue
+        .catch(() => undefined)
+        .then(async () => {
+          await previous?.replaceMarkers([]);
+          const mapElement = document.getElementById("map");
+          mapElement?.setAttribute("data-map-marker-count", "0");
+          mapElement?.setAttribute("data-tour-state", "idle");
+          mapElement?.removeAttribute("data-active-tour");
+        })
+        .catch(() => undefined);
+      renderGeneration += 1;
+      datasetGeneration += 1;
+      markerRegistry.clear();
+      initialRegistry.clear();
+      detachNativeMap?.();
+      nativeMap = undefined;
       interactionGeneration += 1;
       localeObserver?.disconnect();
       clearExploreRuntimeStatus();
@@ -2427,6 +2936,12 @@ export function installExploreLocationsControl({
       activeSearchQuery = "";
       activeStage = "menu";
       visibleLocations = Object.freeze([]);
+      activeMarkerMembers = undefined;
+      retainedMenuContext = false;
+      externalTourOwnsMap = false;
+      datasetGeometryGeneration += 1;
+      clearDatasetGeometry();
+      syncLocationCounts();
       restoreCategoryRail();
     },
   });

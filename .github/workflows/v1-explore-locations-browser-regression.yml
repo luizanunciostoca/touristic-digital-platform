@@ -13,6 +13,10 @@ on:
       - apps/morro-digital-platform/src/map/explore-location-actions-v1.ts
       - apps/morro-digital-platform/src/map/explore-location-actions-v1.test.ts
       - apps/morro-digital-platform/src/map/explore-locations-control.ts
+      - apps/morro-digital-platform/src/map/explore-marker-grouping.ts
+      - apps/morro-digital-platform/src/map/explore-marker-grouping.test.ts
+      - apps/morro-digital-platform/src/map/explore-marker-element.ts
+      - apps/morro-digital-platform/src/map/explore-marker-element.test.ts
       - apps/morro-digital-platform/src/map/explore-flow-bottom-sheet.ts
       - apps/morro-digital-platform/src/map/place-bottom-sheet.ts
       - apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts
@@ -83,7 +87,7 @@ jobs:
             shops: 12,
             transport: 8,
             attractions: 8,
-            tours: 4,
+            tours: 6,
             nightlife: 5,
             emergencies: 4,
           };
@@ -125,8 +129,63 @@ jobs:
             await railButton.click();
           }
 
+          async function assertMarkerMembers(page, expected) {
+            const { pollPage } = await import('./apps/morro-digital-platform/tooling/wave-a-pan-gesture.mjs');
+            await pollPage(page, () => {
+              const map = window.mapboxPrimaryInstance;
+              return map && typeof map.isMoving === 'function' && !map.isMoving();
+            }, null, { timeout: 10000 });
+            const selector = '.morro-explore-marker:not([data-discover-initial-poi="true"])';
+            const models = await page.locator(selector).evaluateAll(elements => elements.map(element => ({
+              id: element.dataset.markerId, name: element.dataset.locationName,
+              category: element.dataset.exploreCategory, cluster: element.dataset.markerCluster === 'true',
+            })));
+            const actual = [];
+            let activatedClusters = 0;
+            for (const model of models) {
+              if (!model.cluster) { actual.push(`${model.category}:${model.name}`); continue; }
+              const exact = page.locator(`[data-marker-id=${JSON.stringify(model.id)}]`);
+              if (activatedClusters++ === 0) await exact.click();
+              else { await exact.focus(); await page.keyboard.press('Enter'); }
+              await page.locator('#assistant-category-rail [data-value="back-cluster"]').waitFor({ state: 'visible' });
+              if (activatedClusters === 1) {
+                const snapshot = await page.evaluate(() => ({
+                  locale: document.documentElement.lang,
+                  members: [...document.querySelectorAll('#assistant-category-results [data-location-name]')].map(element => `${element.dataset.locationCategory}:${element.dataset.locationName}`),
+                  camera: { center: window.mapboxPrimaryInstance.getCenter().toArray(), zoom: window.mapboxPrimaryInstance.getZoom() },
+                }));
+                const member = page.locator('#assistant-category-rail [data-value="member:0"]');
+                await member.focus();
+                for (const [locale, noun, back] of [['en', 'places', 'Back'], ['es', 'lugares', 'Volver'], ['he', 'מקומות', 'חזרה'], ['pt', 'locais', 'Voltar']]) {
+                  await page.evaluate(locale => { document.documentElement.lang = locale; }, locale);
+                  await pollPage(page, ({ title, back }) => document.getElementById('assistant-category-results')?.getAttribute('aria-label') === title && document.querySelector('#assistant-category-rail [data-value="back-cluster"]')?.getAttribute('aria-label') === back, { title: `${snapshot.members.length} ${noun}`, back }, { timeout: 10000 });
+                  const current = await page.evaluate(() => ({
+                    members: [...document.querySelectorAll('#assistant-category-results [data-location-name]')].map(element => `${element.dataset.locationCategory}:${element.dataset.locationName}`),
+                    camera: { center: window.mapboxPrimaryInstance.getCenter().toArray(), zoom: window.mapboxPrimaryInstance.getZoom() },
+                    focus: document.activeElement?.dataset.value,
+                  }));
+                  if (JSON.stringify(current.members) !== JSON.stringify(snapshot.members) || !current.camera.center.every((coordinate, index) => Number.isFinite(coordinate) && Number.isFinite(snapshot.camera.center[index]) && Math.abs(coordinate - snapshot.camera.center[index]) <= 1e-9) || !Number.isFinite(current.camera.zoom) || !Number.isFinite(snapshot.camera.zoom) || Math.abs(current.camera.zoom - snapshot.camera.zoom) > 1e-9 || current.focus !== 'member:0') throw new Error(`Cluster locale mutated context: ${locale}`);
+                }
+                await page.evaluate(locale => { document.documentElement.lang = locale; }, snapshot.locale);
+              }
+              actual.push(...await page.locator('#assistant-category-results [data-location-name]').evaluateAll(elements => elements.map(element => `${element.dataset.locationCategory}:${element.dataset.locationName}`)));
+              await page.locator('#assistant-category-rail [data-value="back-cluster"]').click();
+            }
+            if (JSON.stringify(actual.sort()) !== JSON.stringify([...expected].sort())) {
+              throw new Error(`Marker membership diverged: ${JSON.stringify({ actual, expected })}`);
+            }
+          }
+
           async function waitMap(page, category, count, stage) {
-            await page.locator(`#map[data-explore-state="ready"][data-explore-category="${category}"][data-map-marker-count="${count}"][data-explore-stage="${stage}"]`).waitFor({ state: 'attached', timeout: 8000 });
+            await page.locator(`#map[data-explore-state="ready"][data-explore-category="${category}"][data-explore-stage="${stage}"]`).waitFor({ state: 'attached', timeout: 8000 });
+            if (stage === 'detail') {
+              if (Number(await page.locator('#map').getAttribute('data-map-marker-count')) !== count) throw new Error('Detail marker count diverged');
+              return;
+            }
+            const { morroV1SearchCatalog } = await import('./packages/search/dist/morro-v1-search-catalog.js');
+            const expected = morroV1SearchCatalog.filter(item => item.category === category).map(item => `${item.category}:${item.name}`);
+            if (expected.length !== count) throw new Error('Catalog expectation diverged');
+            await assertMarkerMembers(page, expected);
           }
 
           async function assertFiltersStage(page, category, count) {
@@ -297,10 +356,11 @@ jobs:
                 hasBackFilters: Boolean(document.querySelector('#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_filtros"]')),
                 mainHidden: Boolean(document.querySelector('.assistant-options:has([data-explore-category])')?.classList.contains('hidden')),
               }));
-              if (surfState.placeCount < 1 || surfState.placeCount !== surfState.markerCount || !surfState.hasBackFilters || !surfState.mainHidden) {
+              if (surfState.placeCount < 1 || !surfState.hasBackFilters || !surfState.mainHidden) {
                 throw new Error(`Surf filter diverged in ${viewport.id}: ${JSON.stringify(surfState)}`);
               }
 
+              await assertMarkerMembers(page, await page.locator('#assistant-category-results [data-location-name]').evaluateAll(elements => elements.map(element => `${element.dataset.locationCategory}:${element.dataset.locationName}`)));
               await page.locator('#assistant-category-rail[data-rail-stage="places"] [data-value="voltar_filtros"]').click();
               await assertFiltersStage(page, 'beaches', 8);
 
@@ -464,21 +524,16 @@ jobs:
                   places: document.querySelectorAll('#assistant-category-rail[data-rail-stage="places"] [data-location-name]').length,
                   markers: Number(document.getElementById('map')?.getAttribute('data-map-marker-count') || 0),
                 }));
-                if (nearby.places < 1 || nearby.places > 12 || nearby.places !== nearby.markers) {
+                if (nearby.places < 1 || nearby.places > 12) {
                   throw new Error(`Nearby flow diverged: ${JSON.stringify(nearby)}`);
                 }
+                await assertMarkerMembers(page, await page.locator('#assistant-category-results [data-location-name]').evaluateAll(elements => elements.map(element => `${element.dataset.locationCategory}:${element.dataset.locationName}`)));
                 await page.keyboard.press('Escape');
                 await assertMainMenu(page);
 
                 await openAssistant(page);
                 await invokeCategory(page, 'tours');
-                await assertFiltersStage(page, 'tours', 4);
-                const tourClusters = await page.locator(
-                  '.morro-explore-marker[data-explore-category="tours"][data-tour-cluster="true"][data-cluster-count="3"]',
-                ).count();
-                if (tourClusters !== 1) {
-                  throw new Error(`Tour discovery clustering diverged: ${tourClusters}`);
-                }
+                await assertFiltersStage(page, 'tours', 6);
                 const shortcutCount = await page.locator(
                   '#assistant-category-rail[data-rail-stage="filters"] [data-tour-id], #assistant-category-rail[data-rail-stage="filters"] [data-value^="tour_"]',
                 ).count();

@@ -1031,8 +1031,8 @@ html[dir="rtl"] #explore-flow-bottom-sheet .explore-flow-sheet-source {
 
 #map[data-explore-category="tours"][data-explore-stage="filters"]
   .morro-explore-marker-cluster {
-  width: 2.625rem !important;
-  height: 2.625rem !important;
+  width: 2.25rem !important;
+  height: 2.25rem !important;
   border-width: 0.1875rem !important;
   font-size: var(--md-font-size-sm) !important;
   font-weight: var(--md-font-weight-bold) !important;
@@ -1431,4 +1431,18 @@ body:has(#map[data-tour-flow-stage="stop"])
   .tour-stop-card[data-photo-state="missing"]
   .tour-stop-photo-wrap[hidden] {
   display: none;
+}
+
+/* Discovery labels expand on intent; the centered button owns its hit box. */
+#map .morro-explore-marker .morro-explore-marker-label {
+  display: none;
+}
+#map
+  .morro-explore-marker:is(:hover, :focus-visible, [data-selected="true"])
+  .morro-explore-marker-label {
+  display: block;
+}
+#map .morro-explore-marker:focus-visible {
+  outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
+  outline-offset: var(--md-focus-ring-offset);
 }
