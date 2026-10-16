@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-STAGING-TICKETING-FINANCIAL-PROBE-DIAGNOSTIC-20261014",
   "objective": "staging-ticketing-financial-probe-failure-classification",
-  "baseSha": "3749186498199190b931a532858dda449e36a95d",
-  "branch": "fix/staging-ticketing-financial-probe-diagnostic-20261014",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "6c6dee5e1ab3f1fd2ef3353338422b6afd561c20",
+  "branch": "chore/retire-integrated-ticketing-20261016",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "DESTINATION:MORRO",
   "owns": {
