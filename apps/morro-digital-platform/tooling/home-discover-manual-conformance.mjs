@@ -449,10 +449,10 @@ async function verifyAppliedMapFilters(page) {
     "Criteria must use the canonical dock and retain a reachable clear action",
     criterionChrome,
   );
-  const selectableBeach = await page.evaluateHandle(async () => {
+  const pointerDeadline = Date.now() + 30000;
+  const selectableBeach = await page.evaluateHandle(async (deadline) => {
     const selector = '.morro-explore-marker[data-explore-category="beaches"]';
-    const deadline = performance.now() + 30000;
-    while (performance.now() < deadline) {
+    while (Date.now() < deadline) {
       const candidates = Array.from(document.querySelectorAll(selector)).map(
         (element) => ({ element, rect: element.getBoundingClientRect() }),
       );
@@ -471,6 +471,13 @@ async function verifyAppliedMapFilters(page) {
           y < 0 ||
           x >= innerWidth ||
           y >= innerHeight
+        )
+          continue;
+        if (
+          current.x !== rect.x ||
+          current.y !== rect.y ||
+          current.width !== rect.width ||
+          current.height !== rect.height
         )
           continue;
         const topmost = document.elementFromPoint(x, y);
@@ -497,10 +504,15 @@ async function verifyAppliedMapFilters(page) {
       if (eligible) return eligible;
     }
     throw new Error("No stable pointer-selectable beach marker");
-  });
+  }, pointerDeadline);
   // Pin the tested node: a locator may rebind to a different cluster mid-camera.
   try {
-    await selectableBeach.asElement().click();
+    const remaining = pointerDeadline - Date.now();
+    assert(
+      remaining > 0,
+      "Beach marker selection exhausted its pointer budget",
+    );
+    await selectableBeach.asElement().click({ timeout: remaining });
   } finally {
     await selectableBeach.dispose();
   }
