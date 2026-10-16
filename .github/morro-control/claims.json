@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-STAGING-TICKETING-FINANCIAL-PROBE-DIAGNOSTIC-20261014": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/staging-ticketing-financial-probe-diagnostic-20261014",
-      "baseSha": "3749186498199190b931a532858dda449e36a95d",
-      "paths": [
-        ".morro/changesets/MD-STAGING-TICKETING-FINANCIAL-PROBE-DIAGNOSTIC-20261014.json",
-        "apps/morro-digital-platform/tooling/ticketing-api.mjs",
-        "apps/morro-digital-platform/tooling/ticketing-api-startup.test.mjs"
-      ],
-      "domains": ["ticketing"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T12:00:00.000Z"
-    },
     "MD-CRM-CAPABILITY-865-20261015": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
