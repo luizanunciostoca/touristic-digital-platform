@@ -60,6 +60,67 @@ test("exact performance paths select their real startup and asset proof", () => 
   }
 });
 
+test("entry CSS compilation and guarded surfaces select real browser proofs", () => {
+  const paths = [
+    "tooling/ci/build-entry-css.mjs",
+    "tooling/ci/build-entry-css.test.mjs",
+    "tooling/ci/entry-css-manifest.json",
+    "apps/morro-digital-platform/src/map/feature-styles.ts",
+    "apps/morro-digital-platform/src/map/feature-styles.test.ts",
+    "apps/morro-digital-platform/public/entry-css/",
+    "apps/morro-digital-platform/package.json",
+  ];
+  const suites = [
+    "morro-performance-budget.yml",
+    "morro-runtime-startup-performance.yml",
+    "home-first-run-browser-regression.yml",
+    "home-discover-manual-conformance.yml",
+    "place-explore-v2-visual-regression.yml",
+    "navigation-turn-by-turn-parity.yml",
+    "navigation-accessibility-baseline.yml",
+    "pwa-offline-browser-contract.yml",
+  ];
+  for (const path of paths) {
+    const file = path.endsWith("/") ? path + "home.css" : path;
+    const result = analyzeFiles([file]);
+    assert.equal(result.classificationBlocked, false, file);
+    assert.ok(result.domains.includes("entry-css-runtime"), file);
+    assert.equal(result.nonRuntime, false, file);
+    assert.equal(result.needsBrowser, true, file);
+    assert.equal(result.needsVisual, true, file);
+    for (const suite of suites) {
+      assert.ok(result.suites.includes(suite), `${file}: ${suite}`);
+      assert.ok(existsSync(`.github/workflows/${suite}`));
+    }
+  }
+  for (const path of paths.slice(0, 5))
+    for (const suffix of [".backup", "-old", "/child"]) {
+      const result = analyzeFiles([path + suffix]);
+      assert.equal(result.classificationBlocked, true, path + suffix);
+      assert.deepEqual(result.unknownFiles, [path + suffix]);
+    }
+  assert.equal(
+    analyzeFiles(["tooling/ci/local-fast-gate.mjs"]).nonRuntime,
+    true,
+  );
+  const scripts = analyzeFiles(["apps/morro-digital-platform/package.json"], {
+    packageJsonChanges: {
+      "apps/morro-digital-platform/package.json": "scripts",
+    },
+  });
+  assert.equal(scripts.nonRuntime, false);
+  assert.equal(scripts.needsBrowser, true);
+  assert.ok(scripts.domains.includes("package-scripts"));
+  assert.ok(scripts.domains.includes("entry-css-runtime"));
+  const mixed = analyzeFiles([
+    "tooling/ci/build-entry-css.mjs",
+    "packages/financial/src/example.ts",
+  ]);
+  assert.ok(mixed.domains.includes("payments"));
+  assert.equal(mixed.needsFullSecurity, true);
+  assert.equal(mixed.risk, "CRITICAL");
+});
+
 const markerProofFile =
   "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs";
 
