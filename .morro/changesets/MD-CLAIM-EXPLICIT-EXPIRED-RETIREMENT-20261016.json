@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CLAIM-EXPLICIT-EXPIRED-RETIREMENT-20261016",
   "objective": "support-explicit-expired-claim-release-with-real-expiry-and-trusted-ledger-bound-proof-without-declaring-material-merged",
-  "baseSha": "d99b5ebcdc7ab92374b75a8c3750e33d5c884e45",
-  "branch": "fix/claim-explicit-expired-retirement-20261016",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "a62f454776a7f5583a7187dfffb5e32976d3b148",
+  "branch": "fix/retire-explicit-expired-mechanism-20261016",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
