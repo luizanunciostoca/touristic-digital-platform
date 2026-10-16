@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-PERFORMANCE-OWNERSHIP-20261016",
   "objective": "map-exact-performance-paths-and-risk-floors-to-canonical-owners",
-  "baseSha": "530715198de166051e2d98e9312e368ab9b36561",
+  "baseSha": "1bc47aee0ea6007cfc8097ca3ad5edb8447b2bc0",
   "branch": "chore/performance-governance-20261016",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
