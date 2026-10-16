@@ -449,10 +449,61 @@ async function verifyAppliedMapFilters(page) {
     "Criteria must use the canonical dock and retain a reachable clear action",
     criterionChrome,
   );
-  await page
-    .locator('.morro-explore-marker[data-explore-category="beaches"]')
-    .first()
-    .click();
+  const selectableBeach = await page.evaluateHandle(async () => {
+    const selector = '.morro-explore-marker[data-explore-category="beaches"]';
+    const deadline = performance.now() + 30000;
+    while (performance.now() < deadline) {
+      const candidates = Array.from(document.querySelectorAll(selector)).map(
+        (element) => ({ element, rect: element.getBoundingClientRect() }),
+      );
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      let eligible = null;
+      for (const { element, rect } of candidates) {
+        if (!(element instanceof HTMLElement) || !element.isConnected) continue;
+        const current = element.getBoundingClientRect();
+        const x = current.left + current.width / 2;
+        const y = current.top + current.height / 2;
+        if (
+          current.width <= 0 ||
+          current.height <= 0 ||
+          x < 0 ||
+          y < 0 ||
+          x >= innerWidth ||
+          y >= innerHeight
+        )
+          continue;
+        const topmost = document.elementFromPoint(x, y);
+        if (topmost?.closest(selector) !== element) {
+          const legitimateHud = topmost?.closest(
+            "#unified-assistant-dock, #toggle-3d-mode, #toggle-map-layer, #toggle-globe-view, #recenter-map-control",
+          );
+          if (!legitimateHud && topmost) {
+            throw new Error(
+              `Unexpected marker obstruction: ${topmost.outerHTML}`,
+            );
+          }
+          continue;
+        }
+        if (
+          current.x === rect.x &&
+          current.y === rect.y &&
+          current.width === rect.width &&
+          current.height === rect.height
+        ) {
+          eligible ??= element;
+        }
+      }
+      if (eligible) return eligible;
+    }
+    throw new Error("No stable pointer-selectable beach marker");
+  });
+  // Pin the tested node: a locator may rebind to a different cluster mid-camera.
+  try {
+    await selectableBeach.asElement().click();
+  } finally {
+    await selectableBeach.dispose();
+  }
   await page.evaluate(async () => {
     const { getMorroDigitalApplication } = await import(
       new URL(
