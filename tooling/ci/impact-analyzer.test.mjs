@@ -17,6 +17,49 @@ import {
   classifyQualityProfile,
 } from "./impact-analyzer.mjs";
 
+test("exact performance paths select their real startup and asset proof", () => {
+  const cases = [
+    [
+      "apps/morro-digital-platform/src/performance/browser-startup-performance.ts",
+      "startup-performance",
+      ["morro-performance-budget.yml", "morro-runtime-startup-performance.yml"],
+    ],
+    [
+      "apps/morro-digital-platform/src/performance/browser-startup-performance.test.ts",
+      "startup-performance",
+      ["morro-performance-budget.yml", "morro-runtime-startup-performance.yml"],
+    ],
+    [
+      "tooling/performance/check-morro-digital-budget.mjs",
+      "performance-assets",
+      ["morro-performance-budget.yml"],
+    ],
+    [
+      "tooling/performance/check-morro-digital-budget.test.mjs",
+      "performance-assets",
+      ["morro-performance-budget.yml"],
+    ],
+  ];
+  for (const [path, domain, suites] of cases) {
+    const result = analyzeFiles([path]);
+    assert.equal(result.classificationBlocked, false);
+    assert.deepEqual(result.unknownFiles, []);
+    assert.deepEqual(result.domains, [domain]);
+    assert.equal(result.risk, "HIGH");
+    assert.equal(result.needsBrowser, true);
+    assert.equal(result.nonRuntime, false);
+    assert.equal(result.qualityProfile, "UI_BUGFIX_FAST");
+    assert.deepEqual(result.suites, suites);
+    for (const suite of suites)
+      assert.ok(existsSync(`.github/workflows/${suite}`));
+    for (const suffix of [".backup", "-old", "/child"]) {
+      const neighbor = analyzeFiles([path + suffix]);
+      assert.equal(neighbor.classificationBlocked, true);
+      assert.deepEqual(neighbor.unknownFiles, [path + suffix]);
+    }
+  }
+});
+
 const markerProofFile =
   "tooling/quality/legacy-commercial-publication-marker-contract.test.mjs";
 
