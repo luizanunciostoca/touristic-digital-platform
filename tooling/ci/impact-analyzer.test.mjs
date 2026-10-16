@@ -1349,3 +1349,45 @@ test("semantic viewport and analytics have exact impact and retained proof floor
     "CRITICAL",
   );
 });
+
+const initialCssExactRuntimePaths = [
+  "apps/morro-digital-platform/public/index.html",
+  "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+  "apps/morro-digital-platform/src/onboarding/public-onboarding.test.ts",
+  "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts",
+  "apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts",
+  "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
+  "apps/morro-digital-platform/src/ux/legacy-css-bundle-v2-contract.test.ts",
+  "apps/morro-digital-platform/src/ux/stylelint-governance-v2-contract.test.ts",
+  "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
+  "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
+  "apps/morro-digital-platform/src/assistant/assistant-voice-settings.test.ts",
+];
+test("initial CSS exact runtime paths select required suites without broadening neighbors", () => {
+  for (const path of initialCssExactRuntimePaths) {
+    const report = analyzeFiles([path]);
+    assert.equal(report.classificationBlocked, false, path);
+    assert.deepEqual(report.unknownFiles, []);
+    assert.equal(report.risk, "HIGH");
+    assert.equal(report.nonRuntime, false);
+    assert.equal(report.needsBrowser, true);
+    assert.equal(report.needsVisual, true);
+    assert.equal(report.needsDatabase, false);
+    for (const suite of [
+      "morro-performance-budget.yml",
+      "morro-runtime-startup-performance.yml",
+      "home-first-run-browser-regression.yml",
+      "home-discover-manual-conformance.yml",
+      "place-explore-v2-visual-regression.yml",
+      "navigation-turn-by-turn-parity.yml",
+      "navigation-accessibility-baseline.yml",
+      "pwa-offline-browser-contract.yml",
+    ])
+      assert.ok(report.suites.includes(suite), suite + " for " + path);
+    for (const suffix of [".bak", "-old", "/child"]) {
+      const unknown = analyzeFiles([path + suffix]);
+      assert.equal(unknown.classificationBlocked, true, path + suffix);
+      assert.deepEqual(unknown.unknownFiles, [path + suffix]);
+    }
+  }
+});
