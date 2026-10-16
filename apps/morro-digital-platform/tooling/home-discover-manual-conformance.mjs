@@ -391,6 +391,61 @@ async function assertPureDiscover(page, viewport) {
   return state;
 }
 
+async function verifyAppliedMapFilters(page) {
+  const applied = await page.evaluate(async () => {
+    const { getMorroDigitalApplication } = await import(
+      new URL(
+        "/apps/morro-digital-platform/dist/main.js",
+        window.location.origin,
+      ).href
+    );
+    return getMorroDigitalApplication(document).exploreLocations.execute({
+      type: "map_filter_category",
+      category: "beaches",
+    });
+  });
+  assert(applied, "category filter must commit to the real map");
+  const projection = page.locator(".md-applied-map-filters");
+  assert(
+    await projection.isVisible(),
+    "applied category must be visible even in map-only mode",
+  );
+  assert(
+    (await projection.textContent()).includes("1"),
+    "count represents one criterion, not beach marker quantity",
+  );
+  await page.evaluate(async () => {
+    const { getMorroDigitalApplication } = await import(
+      new URL(
+        "/apps/morro-digital-platform/dist/main.js",
+        window.location.origin,
+      ).href
+    );
+    const explore = getMorroDigitalApplication(document).exploreLocations;
+    await explore.execute({ type: "open_category", category: "restaurants" });
+    await explore.execute({ type: "apply_option", value: "vegetariano" });
+  });
+  await page
+    .locator('.md-applied-map-filters[data-criteria-count="2"]')
+    .waitFor({ state: "visible" });
+  const committed = await page
+    .locator("#map")
+    .getAttribute("data-explore-criteria");
+  assert(
+    JSON.parse(committed).some(
+      (criterion) =>
+        criterion.kind === "filter" && criterion.value === "vegetariano",
+    ),
+    "count must include the actually applied fine filter",
+  );
+  await projection.locator("button").click();
+  await projection.waitFor({ state: "hidden" });
+  assert(
+    (await page.locator("#map").getAttribute("data-explore-state")) === "ready",
+    "clear must be provider-confirmed before zero",
+  );
+}
+
 async function verifyManualNavigation(page) {
   const requests = [];
   let responseMode = "catalog";
@@ -1062,6 +1117,7 @@ try {
       await verifyVariants(page, viewport, evidence);
     }
 
+    await verifyAppliedMapFilters(page);
     assert(pageErrors.length === 0, "Browser page errors", pageErrors);
     evidence.viewports.push({ viewport, state, pageErrors });
     await context.close();

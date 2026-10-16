@@ -1,3 +1,4 @@
+import { getAppliedMapFilterCopy } from "./explore-v1-i18n.js";
 import { groupProjectedMarkers } from "./explore-marker-grouping.js";
 import {
   getAssistantMainMenu,
@@ -28,9 +29,9 @@ import {
 } from "./explore-flow-bottom-sheet.js";
 import { createPublicPlaceMapClient } from "./public-place-map-client-v2.js";
 import {
-  filterV1ExploreLocations,
+  resolveV1ExploreAppliedResult,
+  type AppliedExploreCriterion,
   getV1ExploreSubcategoryOptions,
-  sortV1ExploreNearby,
   type V1ExploreOption,
 } from "./explore-locations-v1-flow.js";
 
@@ -117,6 +118,7 @@ export type ExploreLocationsCommand =
   | Readonly<{
       type: "show_search_results";
       query: string;
+      category?: string;
       status?: "ready" | "empty" | "error";
       statusText?: string;
       results: readonly ExploreSearchResult[];
@@ -190,6 +192,37 @@ type ImmersiveTourMapLike = Omit<MapboxGlMapLike, "flyTo"> & {
 const categoryValues = new Set(
   morroV1SearchCatalog.map((location) => location.category),
 );
+
+export function appliedMapFilterSummary(
+  dataset: Partial<Pick<DOMStringMap, "exploreState" | "exploreCriteria">>,
+) {
+  let criteria: readonly AppliedExploreCriterion[] = [];
+  try {
+    const parsed: unknown = JSON.parse(dataset.exploreCriteria ?? "[]");
+    if (
+      !Array.isArray(parsed) ||
+      !parsed.every(
+        (item) =>
+          item &&
+          typeof item === "object" &&
+          ["category", "filter", "nearby", "search"].includes(
+            String(Reflect.get(item, "kind")),
+          ) &&
+          typeof Reflect.get(item, "value") === "string",
+      )
+    ) {
+      return { phase: "error", criteria, count: null };
+    }
+    criteria = parsed;
+  } catch {
+    return { phase: "error", criteria, count: null };
+  }
+  return {
+    phase: dataset.exploreState ?? "unavailable",
+    criteria,
+    count: dataset.exploreState === "ready" ? criteria.length : null,
+  };
+}
 
 export function getExploreLocationsCategories(
   locale: AssistantLocale = "pt",
@@ -563,6 +596,10 @@ export function installExploreLocationsControl({
     );
   };
   syncLocationCounts();
+  let datasetCriteria: readonly AppliedExploreCriterion[] = Object.freeze([]);
+  let placeReturnCriteria: readonly AppliedExploreCriterion[] = Object.freeze(
+    [],
+  );
   const markerRegistry = new Map<string, readonly ExploreMapLocation[]>();
   const initialRegistry = new Map<string, readonly ExploreMapLocation[]>();
   let initialLocations: readonly ExploreMapLocation[] = [];
@@ -595,6 +632,7 @@ export function installExploreLocationsControl({
   const installDataset = (
     locations: readonly ExploreMapLocation[],
     category?: string,
+    criteria: readonly AppliedExploreCriterion[] = Object.freeze([]),
   ): void => {
     datasetGeneration += 1;
     datasetGeometryGeneration += 1;
@@ -605,6 +643,7 @@ export function installExploreLocationsControl({
     retainedMenuContext = false;
     syncLocationCounts();
     datasetCategory = category;
+    datasetCriteria = Object.freeze([...criteria]);
     markerRegistry.clear();
     closeMarkerList = undefined;
     refreshMarkerList = undefined;
@@ -948,6 +987,37 @@ export function installExploreLocationsControl({
     );
   };
 
+  const appliedFilters = document.createElement("div");
+  appliedFilters.className = "md-applied-map-filters";
+  appliedFilters.hidden = true;
+  const appliedLabel = document.createElement("span");
+  appliedLabel.setAttribute("role", "status");
+  const clearApplied = document.createElement("button");
+  clearApplied.type = "button";
+  appliedFilters.append(appliedLabel, clearApplied);
+  document.body.append(appliedFilters);
+  const renderAppliedFilters = (): void => {
+    const state = document.getElementById("map")?.dataset;
+    const copy = getAppliedMapFilterCopy(currentLocale());
+    const summary = appliedMapFilterSummary(state ?? {});
+    const confirmed = summary.phase === "ready";
+    appliedFilters.hidden = confirmed && summary.count === 0;
+    if (confirmed) appliedFilters.dataset.criteriaCount = String(summary.count);
+    else delete appliedFilters.dataset.criteriaCount;
+    appliedLabel.textContent =
+      summary.phase === "loading"
+        ? copy.pending
+        : !confirmed
+          ? copy.error
+          : `${copy.applied}: ${summary.count}`;
+    clearApplied.textContent = copy.clear;
+    clearApplied.disabled = state?.exploreState === "loading";
+  };
+  const clearAppliedFilters = (): void => {
+    void renderMapOnlyLocations(morroV1SearchCatalog);
+  };
+  clearApplied.addEventListener("click", clearAppliedFilters);
+
   const updateMapState = (
     count: number,
     category?: string,
@@ -973,6 +1043,12 @@ export function installExploreLocationsControl({
     } else {
       mapElement?.removeAttribute("data-explore-place");
     }
+    if (state === "ready")
+      mapElement?.setAttribute(
+        "data-explore-criteria",
+        JSON.stringify(datasetCriteria),
+      );
+    renderAppliedFilters();
   };
 
   const renderLocationsOnMap = async (
@@ -980,6 +1056,11 @@ export function installExploreLocationsControl({
     category?: string,
     openSelectedPopup = false,
     cameraOnly = false,
+    criteria: readonly AppliedExploreCriterion[] = cameraOnly
+      ? datasetCriteria
+      : category === undefined || ["places", "search"].includes(category)
+        ? Object.freeze([])
+        : Object.freeze([{ kind: "category" as const, value: category }]),
   ): Promise<void> => {
     const focusedMarker =
       document.activeElement instanceof HTMLElement &&
@@ -989,7 +1070,7 @@ export function installExploreLocationsControl({
     if (destroyed || (cameraOnly && externalTourOwnsMap)) return;
     const generation = interactionGeneration;
     const categoryAtStart = activeCategory?.value;
-    if (!cameraOnly) installDataset(locations, category);
+    if (!cameraOnly) installDataset(locations, category, criteria);
     const requestedDataset = datasetGeneration;
 
     const setSheetStatus = (
@@ -1000,19 +1081,6 @@ export function installExploreLocationsControl({
         exploreFlowBottomSheet?.setStatus(status, text);
       }
     };
-
-    if (locations.length === 0) {
-      document
-        .getElementById("map")
-        ?.setAttribute("data-map-member-count", "0");
-      updateMapState(0, category, "ready");
-      setSheetStatus("empty");
-      if (geospatialEngine?.initialized) {
-        await replaceMarkersSerial([]).catch(() => undefined);
-      }
-      emitStateChange();
-      return;
-    }
 
     const renderedMarkers = groupedMarkers(
       locations,
@@ -1073,7 +1141,7 @@ export function installExploreLocationsControl({
       }
       if (!cameraOnly)
         frameLocationsOnMap(document, locations, geospatialEngine);
-      setSheetStatus("ready");
+      setSheetStatus(locations.length === 0 ? "empty" : "ready");
       if (!cameraOnly) emitStateChange();
     } catch (error) {
       if (
@@ -1425,6 +1493,7 @@ export function installExploreLocationsControl({
       updateMapState(0);
     }
     placeReturnLocations = Object.freeze([]);
+    placeReturnCriteria = Object.freeze([]);
     placeReturnMessage = "";
     placeReturnIsSearch = false;
     clearExploreRuntimeStatus();
@@ -1715,7 +1784,13 @@ export function installExploreLocationsControl({
           })
         : Promise.resolve(null);
 
-    await renderLocationsOnMap([location], category, true);
+    await renderLocationsOnMap(
+      [location],
+      category,
+      true,
+      false,
+      datasetCriteria,
+    );
 
     if (canonicalPlaceId) {
       try {
@@ -1792,9 +1867,13 @@ export function installExploreLocationsControl({
   const renderPlaces = (
     locations: readonly ExploreMapLocation[],
     message: string,
+    criteria: readonly AppliedExploreCriterion[] = activeCategory
+      ? [{ kind: "category", value: activeCategory.value }]
+      : [],
   ): void => {
     if (!activeCategory) return;
     placeReturnLocations = Object.freeze([...locations]);
+    placeReturnCriteria = Object.freeze([...criteria]);
     placeReturnMessage = message;
     placeReturnIsSearch = false;
     activePlace = undefined;
@@ -1830,7 +1909,13 @@ export function installExploreLocationsControl({
       if (option.location) void selectLocation(option.location);
     });
     first?.focus();
-    void renderLocationsOnMap(locations, activeCategory.value);
+    void renderLocationsOnMap(
+      locations,
+      activeCategory.value,
+      false,
+      false,
+      criteria,
+    );
     emitStateChange();
   };
 
@@ -1842,12 +1927,14 @@ export function installExploreLocationsControl({
       ? "empty"
       : "ready",
     statusText?: string,
+    criteria: readonly AppliedExploreCriterion[] = placeReturnCriteria,
   ): void => {
     resetCategoryTriggerState();
     activeCategory = undefined;
     activeCategoryButton = undefined;
     activeSearchQuery = query;
     placeReturnLocations = Object.freeze([...locations]);
+    placeReturnCriteria = Object.freeze([...criteria]);
     placeReturnMessage = message;
     placeReturnIsSearch = true;
     activePlace = undefined;
@@ -1902,7 +1989,7 @@ export function installExploreLocationsControl({
       emitStateChange();
       return;
     }
-    void renderLocationsOnMap(locations, "search");
+    void renderLocationsOnMap(locations, "search", false, false, criteria);
     emitStateChange();
   };
 
@@ -1946,6 +2033,7 @@ export function installExploreLocationsControl({
           !("source" in location),
       ),
       message,
+      placeReturnCriteria,
     );
   };
 
@@ -2009,9 +2097,13 @@ export function installExploreLocationsControl({
       ) {
         return;
       }
-      const nearby = position
-        ? sortV1ExploreNearby(allLocations, position, 12)
-        : allLocations;
+      const appliedResult = resolveV1ExploreAppliedResult(
+        categoryValue,
+        option,
+        allLocations,
+        position,
+      );
+      const nearby = appliedResult.locations;
       renderPlaces(
         nearby,
         position
@@ -2023,28 +2115,30 @@ export function installExploreLocationsControl({
               categoryLabel,
               allLocations.length,
             ),
+        appliedResult.criteria,
       );
       return;
     }
 
-    const filtered = filterV1ExploreLocations(
+    const appliedResult = resolveV1ExploreAppliedResult(
       categoryValue,
-      option.value,
+      option,
       allLocations,
     );
-    const displayed = filtered.length > 0 ? filtered : allLocations;
+    const displayed = appliedResult.locations;
     renderPlaces(
       displayed,
-      filtered.length > 0
+      appliedResult.applied
         ? getV1ExploreUiCopy(currentLocale()).filterFound(
             categoryLabel,
-            filtered.length,
+            displayed.length,
             option.label.replace(/^\S+\s/u, ""),
           )
         : getV1ExploreUiCopy(currentLocale()).filterFallback(
             allLocations.length,
             option.label.replace(/^\S+\s/u, ""),
           ),
+      appliedResult.criteria,
     );
   };
 
@@ -2206,12 +2300,13 @@ export function installExploreLocationsControl({
           }
           const returnLocations = visibleLocations;
           const category = datasetCategory;
+          const returnCriteria = datasetCriteria;
           const returnAction = (): void => {
             activePlace = undefined;
             activePlaceLocation = undefined;
             activeStage = previousStage;
             restoreCurrentFlow = previousFlow;
-            installDataset(returnLocations, category);
+            installDataset(returnLocations, category, returnCriteria);
             void renderLocationsOnMap(returnLocations, category, false, true);
             openMarkerMembers(members);
           };
@@ -2253,7 +2348,7 @@ export function installExploreLocationsControl({
       if (!members && visibleLocations.length === 0 && activeStage === "menu") {
         members = initialRegistry.get(command.markerId);
         if (members) {
-          installDataset(initialLocations, "places");
+          installDataset(initialLocations, "places", []);
           void renderLocationsOnMap(initialLocations, "places", false, true);
         }
       }
@@ -2291,6 +2386,14 @@ export function installExploreLocationsControl({
         command.query,
         command.status ?? (results.length === 0 ? "empty" : "ready"),
         command.statusText,
+        Object.freeze([
+          ...(command.category && categoryValues.has(command.category)
+            ? [{ kind: "category" as const, value: command.category }]
+            : []),
+          ...(command.query.trim()
+            ? [{ kind: "search" as const, value: command.query }]
+            : []),
+        ]),
       );
       return true;
     }
@@ -2603,6 +2706,17 @@ export function installExploreLocationsControl({
   restoreCategoryRail();
 
   const MutationObserverCtor = document.defaultView?.MutationObserver;
+  const filterLocaleObserver = new MutationObserver(renderAppliedFilters);
+  const filterMapElement = document.getElementById("map");
+  if (filterMapElement)
+    filterLocaleObserver.observe(filterMapElement, {
+      attributes: true,
+      attributeFilter: ["data-explore-state", "data-explore-criteria"],
+    });
+  filterLocaleObserver.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["lang"],
+  });
   const localeObserver = MutationObserverCtor
     ? new MutationObserverCtor((records) => {
         if (!records.some((record) => record.attributeName === "lang")) return;
@@ -2721,6 +2835,9 @@ export function installExploreLocationsControl({
     async prepareExternalTour() {
       if (destroyed) return null;
       externalTourOwnsMap = true;
+      datasetCriteria = Object.freeze([]);
+      placeReturnCriteria = Object.freeze([]);
+      geometryElement?.removeAttribute("data-explore-criteria");
       interactionGeneration += 1;
       datasetGeneration += 1;
       renderGeneration += 1;
@@ -2800,6 +2917,10 @@ export function installExploreLocationsControl({
           visibleLocations = Object.freeze(actualLocations);
           syncLocationCounts();
           publishDatasetGeometry();
+          geometryElement?.setAttribute(
+            "data-explore-criteria",
+            JSON.stringify(datasetCriteria),
+          );
           geometryElement?.setAttribute("data-explore-state", "ready");
           emitStateChange();
           return true;
@@ -2824,6 +2945,8 @@ export function installExploreLocationsControl({
           visibleLocations,
           datasetCategory,
           activeStage === "detail" && visibleLocations.length === 1,
+          false,
+          datasetCriteria,
         );
         return;
       }
@@ -2897,6 +3020,9 @@ export function installExploreLocationsControl({
       detachNativeMap?.();
       nativeMap = undefined;
       interactionGeneration += 1;
+      filterLocaleObserver.disconnect();
+      clearApplied.removeEventListener("click", clearAppliedFilters);
+      appliedFilters.remove();
       localeObserver?.disconnect();
       clearExploreRuntimeStatus();
       document.removeEventListener("keydown", onKeyDown);
@@ -2913,6 +3039,7 @@ export function installExploreLocationsControl({
       exploreFlowBottomSheet?.destroy();
       exploreFlowBottomSheet = undefined;
       placeReturnLocations = Object.freeze([]);
+      placeReturnCriteria = Object.freeze([]);
       placeReturnMessage = "";
       for (const [button, listener] of categoryListeners) {
         button.removeEventListener("click", listener);

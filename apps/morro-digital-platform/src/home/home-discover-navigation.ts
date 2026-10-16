@@ -544,6 +544,7 @@ export function installHomeDiscoverNavigation({
         (await explore.execute({
           type: "show_search_results",
           query: state.query,
+          ...(state.category ? { category: state.category } : {}),
           results: displayed,
           status: displayed.length ? "ready" : "empty",
         }));

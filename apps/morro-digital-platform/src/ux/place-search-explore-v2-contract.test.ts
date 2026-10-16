@@ -148,7 +148,62 @@ describe("Place + Search/Explore V2 contract", () => {
 
     expect(control).toContain('"show_search_results"');
     expect(control).toContain("renderSearchPlaces");
-    expect(control).toContain('renderLocationsOnMap(locations, "search")');
+    const searchAst = ts.createSourceFile(
+      "controller.ts",
+      control,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let searchExpression = "";
+    const findSearch = (node: ts.Node): void => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        node.name.getText(searchAst) === "renderSearchPlaces"
+      )
+        searchExpression = node.initializer?.getText(searchAst) ?? "";
+      ts.forEachChild(node, findSearch);
+    };
+    findSearch(searchAst);
+    expect(searchExpression).not.toBe("");
+    const code = ts.transpileModule(
+      `
+      let activeCategory,activeCategoryButton,activeSearchQuery="",placeReturnLocations=[],placeReturnCriteria=[],
+        placeReturnMessage="",placeReturnIsSearch=false,activePlace,activePlaceLocation,activeStage;
+      const resetCategoryTriggerState=()=>{},clearExploreRuntimeStatus=()=>{},currentLocale=()=>"pt";
+      const createExploreLocationDetailsCommand=x=>x,getV1ExploreLabel=()=>"Back";
+      const renderFlow=()=>undefined,selectLocation=()=>{},backToMenu=()=>{},emitStateChange=()=>{};
+      const calls=[],renderLocationsOnMap=(...args)=>calls.push(args);
+      const render=(${searchExpression});
+      const locations=[{name:"Restaurant",category:"restaurants"}];
+      const criteria=[{kind:"category",value:"restaurants"},{kind:"search",value:"food"}];
+      render(locations,"Results","food","ready",undefined,criteria);
+      return {calls,criteria,locations,placeReturnCriteria,activeStage,activeSearchQuery};
+    `,
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    ).outputText;
+    const executeSearch = compileFunction(code, []) as () => {
+      calls: unknown[][];
+      criteria: object[];
+      locations: object[];
+      placeReturnCriteria: object[];
+      activeStage: string;
+      activeSearchQuery: string;
+    };
+    const searchProjection = executeSearch();
+    expect(searchProjection.calls).toEqual([
+      [
+        searchProjection.locations,
+        "search",
+        false,
+        false,
+        searchProjection.criteria,
+      ],
+    ]);
+    expect(searchProjection.placeReturnCriteria).toEqual(
+      searchProjection.criteria,
+    );
+    expect(searchProjection.activeStage).toBe("places");
+    expect(searchProjection.activeSearchQuery).toBe("food");
     expect(control).toContain("renderContextualRail");
     expect(control).toContain("placeReturnIsSearch");
     expect(control).toContain("activePlaceLocation");

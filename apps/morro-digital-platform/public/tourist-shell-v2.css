@@ -3299,3 +3299,33 @@ body[data-md-mode="discover"] .md-home-header h1 {
   outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
   outline-offset: 2px;
 }
+
+.md-discover-control-status {
+  position: fixed;
+  inset-inline-end: 4.5rem;
+  top: 35%;
+  max-width: min(16rem, 65vw);
+  padding: var(--md-space-2);
+  border-radius: var(--md-radius-md);
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+  z-index: var(--md-layer-sheet);
+}
+
+.md-discover-layers summary {
+  min-width: 48px;
+  min-height: 48px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  border-radius: var(--md-radius-pill);
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+}
+.md-discover-layers[open] {
+  display: grid;
+  gap: var(--md-space-1);
+}
+.md-discover-layers summary:focus-visible {
+  outline: 2px solid var(--md-color-focus);
+}
