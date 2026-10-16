@@ -12,6 +12,7 @@ function createSdk() {
   const addTo = vi.fn();
   const removeMarker = vi.fn();
   const mapInstances: unknown[] = [];
+  const markerOptions: unknown[] = [];
 
   class Map {
     constructor(readonly options: unknown) {
@@ -22,7 +23,9 @@ function createSdk() {
   }
 
   class Marker {
-    constructor(readonly options?: unknown) {}
+    constructor(readonly options?: unknown) {
+      markerOptions.push(options);
+    }
     setLngLat(position: [number, number]) {
       setLngLat(position);
       return this;
@@ -43,6 +46,7 @@ function createSdk() {
     addTo,
     removeMarker,
     mapInstances,
+    markerOptions,
   };
 }
 
@@ -154,4 +158,20 @@ describe("createMapboxGlDriver", () => {
       createMapboxGlDriver({ sdk: fixture.sdk, accessToken: "   " }),
     ).toThrow("Mapbox access token is required.");
   });
+});
+
+it("centers Explore hit boxes without moving tour marker anchors", () => {
+  const fixture = createSdk();
+  const element = {} as HTMLElement;
+  const driver = createMapboxGlDriver({
+    sdk: fixture.sdk,
+    accessToken: "test-only",
+    createMarkerElement: () => element,
+  });
+  driver.createMarker({ id: "explore:hotels:member:one" });
+  driver.createMarker({ id: "tour:stop:one" });
+  expect(fixture.markerOptions).toEqual([
+    { element, anchor: "center" },
+    { element, anchor: "bottom" },
+  ]);
 });

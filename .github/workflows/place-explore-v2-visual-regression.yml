@@ -5,6 +5,8 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     paths:
+      - apps/morro-digital-platform/src/map/explore-marker-grouping.ts
+      - apps/morro-digital-platform/src/map/explore-marker-grouping.test.ts
       - ".github/actions/ci-bootstrap/action.yml"
       - .github/workflows/place-explore-v2-visual-regression.yml
       - tests/visual-regression/ux-v2-manual-reference-matrix.json

@@ -5,6 +5,9 @@ import type {
 } from "../adapters/mapbox.js";
 
 export interface MapboxGlMapLike {
+  project?(coordinates: [number, number]): Readonly<{ x: number; y: number }>;
+  on?(event: string, listener: () => void): void;
+  off?(event: string, listener: () => void): void;
   setCenter(center: [number, number]): void;
   setZoom?(zoom: number): void;
   getZoom?(): number;
@@ -146,7 +149,12 @@ export function createMapboxGlDriver(
         ...(input.label ? { label: input.label } : {}),
       });
       const marker = new options.sdk.Marker(
-        element ? { element, anchor: "bottom" } : undefined,
+        element
+          ? {
+              element,
+              anchor: input.id.startsWith("explore:") ? "center" : "bottom",
+            }
+          : undefined,
       );
 
       if (input.label && options.sdk.Popup && marker.setPopup) {

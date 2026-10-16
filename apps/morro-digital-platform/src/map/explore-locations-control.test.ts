@@ -1,3 +1,6 @@
+import { readFile } from "node:fs/promises";
+import { compileFunction } from "node:vm";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -86,5 +89,272 @@ describe("V1 explore locations control", () => {
     expect(createExploreLocationDetailsCommand("Toca do Morcego")).toBe(
       "Fale sobre Toca do Morcego",
     );
+  });
+});
+
+describe("discovery grouping across the actual catalog", () => {
+  it("retains every source record and category at dense and separated camera scales", async () => {
+    const { groupProjectedMarkers } =
+      await import("./explore-marker-grouping.js");
+    const locations = getExploreLocationsCategories().flatMap(({ value }) =>
+      getExploreLocationsForCategory(value),
+    );
+    const members = locations.map((location, index) => ({
+      key: `catalog:${index}`,
+      latitude: location.latitude,
+      longitude: location.longitude,
+      location,
+    }));
+    for (const scale of [1, 100_000]) {
+      const groups = groupProjectedMarkers(members, ([x, y]) => ({
+        x: x * scale,
+        y: y * scale,
+      }));
+      const represented = groups.flatMap(({ members }) =>
+        members.map(({ location }) => location),
+      );
+      expect(represented).toHaveLength(locations.length);
+      expect(new Set(represented)).toEqual(new Set(locations));
+      expect(new Set(represented.map(({ category }) => category)).size).toBe(9);
+      for (const group of groups) expect(group.members).toContain(group.anchor);
+    }
+  });
+});
+
+// Execute the actual producer functions together: the fixture supplies only
+// browser/queue boundaries, never an alternative implementation of geometry.
+async function actualDatasetProducer() {
+  const source = await readFile(
+    new URL("./explore-locations-control.ts", import.meta.url),
+    "utf8",
+  );
+  const ast = ts.createSourceFile(
+    "controller.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+  );
+  const names = new Set([
+    "clearDatasetGeometry",
+    "publishDatasetGeometry",
+    "syncLocationCounts",
+    "installDataset",
+    "updateMapState",
+    "renderMapOnlyLocations",
+  ]);
+  const declarations: string[] = [];
+  let bounds = "",
+    prepare = "",
+    replaceEngine = "";
+  const visit = (node: ts.Node): void => {
+    if (ts.isFunctionDeclaration(node) && node.name?.text === "categoryBounds")
+      bounds = node.getText(ast);
+    if (ts.isVariableDeclaration(node) && names.has(node.name.getText(ast)))
+      declarations.push(`const ${node.getText(ast)};`);
+    if (
+      ts.isMethodDeclaration(node) &&
+      node.name.getText(ast) === "prepareExternalTour"
+    )
+      prepare = node.getText(ast);
+    if (
+      ts.isMethodDeclaration(node) &&
+      node.name.getText(ast) === "setGeospatialEngine"
+    )
+      replaceEngine = node.getText(ast);
+    ts.forEachChild(node, visit);
+  };
+  visit(ast);
+  if (
+    !bounds ||
+    !prepare ||
+    !replaceEngine ||
+    declarations.length !== names.size
+  )
+    throw Error("Actual dataset producer boundary missing");
+  const body = `
+    let destroyed=false, datasetGeometryGeneration=0, datasetGeneration=0, interactionGeneration=0, renderGeneration=0;
+    let externalTourOwnsMap=false, visibleLocations=[], activeMarkerMembers, retainedMenuContext=false, datasetCategory="places";
+    let activeStage="menu", activeCategory, activeCategoryButton, activePlace, activePlaceLocation;
+    let activePlaceActionValues=[], activeSearchQuery="", placeReturnLocations=[], placeReturnMessage="", placeReturnIsSearch=false;
+    let closeMarkerList,refreshMarkerList,returnToMarkerList,restoreCurrentFlow;
+    let markerQueue=Promise.resolve();
+    const markerRegistry=new Map(), initialRegistry=new Map(), attributes=new Map();
+    const geometryElement={setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k),get dataset(){return {exploreState:attributes.get("data-explore-state")}}};
+    const document={getElementById:()=>geometryElement};
+    const removeAssistantFlowResults=()=>{}, resetCategoryTriggerState=()=>{}, restoreCategoryRail=()=>{},showMainMenu=()=>{},clearExploreRuntimeStatus=()=>{},emitStateChange=()=>{syncLocationCounts();};
+    const exploreFlowBottomSheet={hide(){}},immersiveTourController={destroy(){}};
+    let geospatialEngine={initialized:true,replaceMarkers:async()=>{}};
+    const loadHybridGlobalMarkers=()=>{};
+    const clearTourPresentation=()=>{};
+    const renderLocationsOnMap=async(locations,category)=>{installDataset(locations,category);updateMapState(locations.length,category,"ready");};
+    ${bounds}
+    ${declarations.join("\n")}
+    const producer={${prepare},${replaceEngine}};
+    return {install:installDataset,publish:publishDatasetGeometry,prepare:()=>producer.prepareExternalTour(),mapOnly:renderMapOnlyLocations,
+      regroup:()=>updateMapState(visibleLocations.length,datasetCategory,"ready"),
+      recover:async()=>{producer.setGeospatialEngine({initialized:true,replaceMarkers:async()=>{}});await markerQueue;},
+      subset:members=>{activeMarkerMembers=members;syncLocationCounts();},
+      clear:clearDatasetGeometry, dispose:()=>{destroyed=true;publishDatasetGeometry();},
+      hold:()=>{let release;markerQueue=new Promise(r=>release=r);return release;},
+      snapshot:()=>({attributes:Object.fromEntries(attributes),generation:datasetGeometryGeneration,external:externalTourOwnsMap})};
+  `;
+  const javascript = ts.transpileModule(body, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const execute = compileFunction(javascript, []) as () => {
+    install(records: readonly object[], category: string): void;
+    publish(): void;
+    mapOnly(records: readonly object[], category?: string): Promise<boolean>;
+    regroup(): void;
+    recover(): Promise<void>;
+    prepare(): Promise<null | {
+      isCurrent(): boolean;
+      publishGeometry(records: readonly object[]): boolean;
+      runSelection<T>(operation: () => Promise<T>): Promise<T | null>;
+    }>;
+    subset(records: readonly object[] | undefined): void;
+    clear(): void;
+    dispose(): void;
+    hold(): () => void;
+    snapshot(): {
+      attributes: Record<string, string>;
+      generation: number;
+      external: boolean;
+    };
+  };
+  return execute();
+}
+
+describe("actual dataset geometry and external ownership lifecycle", () => {
+  const records = Object.freeze([
+    { name: "West", latitude: -13, longitude: -39 },
+    { name: "East", latitude: -12, longitude: -38 },
+  ]);
+  it("preserves the absent show-all category through regroup and subset return without losing an explicit map filter", async () => {
+    const producer = await actualDatasetProducer();
+    expect(await producer.mapOnly(records, "beaches")).toBe(true);
+    expect(producer.snapshot().attributes["data-explore-category"]).toBe(
+      "beaches",
+    );
+    expect(await producer.mapOnly(records)).toBe(true);
+    const full = producer.snapshot();
+    expect(full.attributes["data-explore-stage"]).toBe("menu");
+    expect(full.attributes["data-explore-category"]).toBeUndefined();
+    producer.subset(records.slice(0, 1));
+    producer.regroup();
+    expect(
+      producer.snapshot().attributes["data-explore-category"],
+    ).toBeUndefined();
+    expect(producer.snapshot().attributes["data-map-member-count"]).toBe("2");
+    producer.subset(undefined);
+    producer.regroup();
+    expect(
+      producer.snapshot().attributes["data-explore-category"],
+    ).toBeUndefined();
+    expect(producer.snapshot().generation).toBe(full.generation);
+    expect(producer.snapshot().attributes["data-explore-dataset-bounds"]).toBe(
+      full.attributes["data-explore-dataset-bounds"],
+    );
+    expect(await producer.mapOnly(records, "beaches")).toBe(true);
+    producer.regroup();
+    expect(producer.snapshot().attributes["data-explore-category"]).toBe(
+      "beaches",
+    );
+  });
+  it("recovers the installed semantic category and complete geometry after an engine replacement", async () => {
+    const producer = await actualDatasetProducer();
+    for (const category of ["beaches", undefined]) {
+      await producer.mapOnly(records, category);
+      const before = producer.snapshot();
+      await producer.recover();
+      const after = producer.snapshot();
+      expect(after.attributes["data-explore-category"]).toBe(category);
+      expect(after.attributes["data-explore-stage"]).toBe("menu");
+      expect(after.attributes["data-explore-state"]).toBe("ready");
+      expect(after.attributes["data-map-member-count"]).toBe("2");
+      expect(after.attributes["data-explore-dataset-bounds"]).toBe(
+        before.attributes["data-explore-dataset-bounds"],
+      );
+    }
+  });
+  it("keeps full bounds and generation across subset/regroup publication, and clears on a new dataset", async () => {
+    const producer = await actualDatasetProducer();
+    producer.install(records, "beaches");
+    producer.publish();
+    const initial = producer.snapshot();
+    expect(initial.attributes["data-explore-dataset-bounds"]).toBe(
+      "[[-39,-13],[-38,-12]]",
+    );
+    expect(initial.attributes["data-explore-dataset-generation"]).toBe("1");
+    producer.subset(records.slice(0, 1));
+    producer.publish();
+    expect(producer.snapshot().attributes).toMatchObject({
+      "data-map-member-count": "2",
+      "data-explore-location-count": "1",
+      "data-explore-dataset-generation": "1",
+      "data-explore-dataset-bounds":
+        initial.attributes["data-explore-dataset-bounds"],
+    });
+    producer.subset(undefined);
+    producer.publish();
+    expect(producer.snapshot().generation).toBe(1);
+    producer.install(records, "beaches");
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-bounds"],
+    ).toBeUndefined();
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-generation"],
+    ).toBeUndefined();
+    producer.publish();
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-generation"],
+    ).toBe("2");
+    producer.clear();
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-bounds"],
+    ).toBeUndefined();
+    producer.publish();
+    producer.dispose();
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-generation"],
+    ).toBeUndefined();
+  });
+  it("invalidates a waiting external handoff on reset and prevents a stale selection or geometry publication", async () => {
+    const producer = await actualDatasetProducer();
+    producer.install(records, "beaches");
+    producer.publish();
+    const release = producer.hold();
+    const waiting = producer.prepare();
+    expect(producer.snapshot()).toMatchObject({
+      external: true,
+      generation: 2,
+    });
+    expect(producer.snapshot().attributes["data-map-member-count"]).toBe("0");
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-bounds"],
+    ).toBeUndefined();
+    producer.install(records, "hotels");
+    release();
+    expect(await waiting).toBeNull();
+    const boundary = await producer.prepare();
+    expect(boundary).not.toBeNull();
+    expect(boundary!.publishGeometry(records)).toBe(true);
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-generation"],
+    ).toBe("4");
+    producer.install(records, "beaches");
+    expect(boundary!.isCurrent()).toBe(false);
+    let selected = false;
+    expect(
+      await boundary!.runSelection(async () => {
+        selected = true;
+        return 1;
+      }),
+    ).toBeNull();
+    expect(selected).toBe(false);
+    expect(boundary!.publishGeometry(records)).toBe(false);
+    expect(
+      producer.snapshot().attributes["data-explore-dataset-bounds"],
+    ).toBeUndefined();
   });
 });

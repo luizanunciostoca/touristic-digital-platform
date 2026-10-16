@@ -3,7 +3,6 @@ import type {
   MapboxGlMapLike,
   MapboxGlMarkerLike,
   MapboxGlModuleLike,
-  MapMarker,
 } from "@touristic/geospatial";
 import { morroV1SearchCatalog } from "@touristic/search";
 
@@ -104,23 +103,17 @@ const privacyPreferences = installBrowserAnalyticsConsentPreferences({
 
 const application = bootstrapMorroDigitalApplication(document);
 
-function discoverInitialMarkers(): readonly MapMarker[] {
-  const selected = DISCOVER_POI_CATEGORIES.flatMap((category) =>
+const initialDiscoverLocations = Object.freeze(
+  DISCOVER_POI_CATEGORIES.flatMap((category) =>
     morroV1SearchCatalog
       .filter((location) => location.category === category)
       .slice(0, category === "beaches" ? 2 : 1),
-  );
-  return Object.freeze(
-    selected.map((location, index) =>
-      Object.freeze({
-        id: `explore:${location.category}:discover:${index}`,
-        position: Object.freeze({
-          latitude: location.latitude,
-          longitude: location.longitude,
-        }),
-        label: location.name,
-      }),
-    ),
+  ),
+);
+
+function discoverInitialMarkers() {
+  return application.exploreLocations.createInitialDiscoveryMarkers(
+    initialDiscoverLocations,
   );
 }
 
@@ -190,9 +183,13 @@ document.addEventListener("click", (event) => {
   const marker = target.closest<HTMLElement>(".morro-explore-marker");
   if (!marker) return;
   const canonicalPlaceId = marker.dataset.canonicalPlaceId?.trim();
-  const place = marker.dataset.locationName?.trim();
-  const category = marker.dataset.exploreCategory?.trim();
-  if (!canonicalPlaceId && (!place || !category)) return;
+  const markerId = marker.dataset.markerId;
+  if (
+    !markerId ||
+    marker.hidden ||
+    marker.getAttribute("aria-hidden") === "true"
+  )
+    return;
   event.preventDefault();
   event.stopPropagation();
   if (canonicalPlaceId) {
@@ -203,9 +200,8 @@ document.addEventListener("click", (event) => {
     return;
   }
   void application.exploreLocations.execute({
-    type: "select_place",
-    place: place ?? "",
-    category: category ?? "",
+    type: "select_marker",
+    markerId,
   });
 });
 
@@ -309,6 +305,7 @@ installTouristExperienceSnapshotCapture({
 });
 
 function clearBrowserNavigationRuntime(): void {
+  application.exploreLocations.setNativeMap(undefined);
   activeDiscoverRecenterCleanup?.();
   activeDiscoverRecenterCleanup = undefined;
   activeMapLayerCleanup?.();
@@ -360,26 +357,43 @@ function installDiscoverPoiMarkers(
   map: MapboxGlMapLike,
   sdk: MapboxGlModuleLike,
 ): () => void {
-  const markerModels = discoverInitialMarkers();
-  const entries = markerModels.flatMap((markerModel) => {
-    const element = createV1ExploreMarkerElement({
-      id: markerModel.id,
-      ...(markerModel.label ? { label: markerModel.label } : {}),
+  let entries: {
+    marker: MapboxGlMarkerLike;
+    element: HTMLElement;
+    mounted: boolean;
+  }[] = [];
+  let disposed = false;
+  let redrawQueued = false;
+  const rebuild = (): void => {
+    const activeId =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement.dataset.markerId
+        : undefined;
+    for (const entry of entries) entry.marker.remove();
+    entries = discoverInitialMarkers().flatMap((markerModel) => {
+      const element = createV1ExploreMarkerElement(markerModel);
+      if (!element) return [];
+      element.dataset.discoverInitialPoi = "true";
+      const marker = new sdk.Marker({ element, anchor: "center" }).setLngLat([
+        markerModel.position.longitude,
+        markerModel.position.latitude,
+      ]);
+      return [{ marker, element, mounted: false }];
     });
-    if (!element) return [];
-    element.dataset.discoverInitialPoi = "true";
-    const marker = new sdk.Marker({ element, anchor: "center" }).setLngLat([
-      markerModel.position.longitude,
-      markerModel.position.latitude,
-    ]);
-    return [{ marker, element, mounted: false }];
-  });
-
-  activeDiscoverPoiMarkers = entries.map(({ marker }) => marker);
-  mapContainer?.setAttribute(
-    "data-discover-poi-count",
-    String(activeDiscoverPoiMarkers.length),
-  );
+    activeDiscoverPoiMarkers = entries.map(({ marker }) => marker);
+    mapContainer?.setAttribute(
+      "data-discover-poi-count",
+      String(entries.length),
+    );
+    syncVisibility();
+    if (activeId)
+      entries
+        .find(
+          ({ element }) =>
+            element.dataset.markerId === activeId && !element.hidden,
+        )
+        ?.element.focus();
+  };
 
   const syncVisibility = (): void => {
     const markerCount = Number(mapContainer?.dataset.mapMarkerCount ?? "0");
@@ -403,6 +417,23 @@ function installDiscoverPoiMarkers(
     }
   };
 
+  const onCameraChanged = (): void => {
+    if (disposed || redrawQueued) return;
+    redrawQueued = true;
+    queueMicrotask(() => {
+      redrawQueued = false;
+      if (!disposed) rebuild();
+    });
+  };
+  const supportsProjection = Boolean(
+    typeof map.project === "function" &&
+    typeof map.on === "function" &&
+    typeof map.off === "function" &&
+    activeRealMap === map,
+  );
+  if (supportsProjection)
+    for (const event of ["zoomend", "moveend", "resize"])
+      map.on?.(event, onCameraChanged);
   const onExploreStateChanged = (): void => syncVisibility();
   const visibilityObserver = new MutationObserver(syncVisibility);
   if (mapContainer) {
@@ -423,9 +454,13 @@ function installDiscoverPoiMarkers(
     "morro:explore-state-changed",
     onExploreStateChanged,
   );
-  syncVisibility();
+  rebuild();
 
   return () => {
+    disposed = true;
+    if (supportsProjection)
+      for (const event of ["zoomend", "moveend", "resize"])
+        map.off?.(event, onCameraChanged);
     visibilityObserver.disconnect();
     document.removeEventListener(
       "morro:explore-state-changed",
@@ -816,13 +851,17 @@ async function fitTourBoundsAndWait(
   });
 }
 
-async function presentTourOnRealMap(tourId: string): Promise<void> {
+async function presentTourOnRealMap(
+  tourId: string,
+  isCurrent: () => boolean = () => true,
+): Promise<void> {
   const map = activeRealMap;
   const tour = getMorroTourById(tourId);
   if (!map || !tour) return;
   if (!map.addSource || !map.addLayer || !map.fitBounds) return;
 
   await mapStyleReadiness.waitUntilReady(map);
+  if (!isCurrent()) return;
   clearTourRoute(map);
 
   const coordinates = tour.stops.map(
@@ -968,6 +1007,7 @@ async function startBrowserWithProvider(provider: ResolvedMapProvider) {
             onMapCreated: (map: MapboxGlMapLike) => {
               clearBrowserNavigationRuntime();
               activeRealMap = map;
+              application.exploreLocations.setNativeMap(map);
               activeDiscoverPoiCleanup = installDiscoverPoiMarkers(
                 map,
                 provider.sdk,
@@ -1091,6 +1131,7 @@ async function start(): Promise<void> {
     initialTourId: null,
   });
   let tourSelectionGeneration = 0;
+  let tourSelectionQueue: Promise<void> = Promise.resolve();
 
   document.addEventListener("morro:tour-selection-reset", () => {
     tourSelectionGeneration += 1;
@@ -1115,12 +1156,37 @@ async function start(): Promise<void> {
     mapContainer?.setAttribute("data-tour-state", "switching");
     updateStatus({ kind: "tour-switching" });
 
-    void controller
-      .selectTour(requestedTourId)
-      .then(async (selection) => {
-        if (selectionGeneration !== tourSelectionGeneration) return;
-        await presentTourOnRealMap(selection.activeTourId);
-        if (selectionGeneration !== tourSelectionGeneration) return;
+    const preparation = application.exploreLocations.prepareExternalTour();
+    const request = tourSelectionQueue
+      .catch(() => undefined)
+      .then(async () => {
+        const boundary = await preparation;
+        if (
+          !boundary?.isCurrent() ||
+          selectionGeneration !== tourSelectionGeneration
+        )
+          return;
+        const isCurrent = (): boolean =>
+          boundary.isCurrent() &&
+          selectionGeneration === tourSelectionGeneration;
+        const selection = await boundary.runSelection(() =>
+          controller.selectTour(requestedTourId),
+        );
+        if (!selection || !isCurrent()) return;
+        await presentTourOnRealMap(selection.activeTourId, isCurrent);
+        if (!isCurrent()) return;
+        const actualTour = getMorroTourById(selection.activeTourId);
+        if (
+          !actualTour ||
+          !boundary.publishGeometry(
+            actualTour.stops.map((stop) => ({
+              name: stop.title,
+              latitude: stop.position.latitude,
+              longitude: stop.position.longitude,
+            })),
+          )
+        )
+          return;
         mapContainer?.setAttribute(
           "data-map-marker-count",
           String(selection.markerCount),
@@ -1156,6 +1222,7 @@ async function start(): Promise<void> {
         tourSelect.disabled = false;
         mapContainer?.removeAttribute("aria-busy");
       });
+    tourSelectionQueue = request;
   });
 }
 

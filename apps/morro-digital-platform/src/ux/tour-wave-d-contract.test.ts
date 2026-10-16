@@ -38,11 +38,9 @@ describe("UX Design V2 Wave D tour contract", () => {
       readRepository("apps/morro-digital-platform/src/browser-entry.ts"),
     ]);
 
-    expect(control).toContain("clusterTourDiscoveryMarkers");
-    expect(control).toContain(
-      'category === "tours" && activeStage === "filters"',
-    );
-    expect(control).toContain("TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES");
+    expect(control).toContain("groupProjectedMarkers");
+    expect(control).toContain("createInitialDiscoveryMarkers");
+    expect(control).not.toContain("TOUR_DISCOVERY_CLUSTER_RADIUS_DEGREES");
     expect(marker).toContain('root.dataset.tourCluster = "true"');
     expect(marker).toContain(
       "root.dataset.clusterCount = String(clusterCount)",
@@ -64,7 +62,8 @@ describe("UX Design V2 Wave D tour contract", () => {
     expect(css).toContain(
       ".morro-explore-marker:is(:hover, :focus, :focus-visible)",
     );
-    expect(marker).toContain('if (category === "tours") root.tabIndex = 0');
+    expect(marker).toContain("root.tabIndex = 0");
+    expect(marker).toContain('document.createElement("button")');
   });
 
   it("separates preview from a real active stop state and exposes compact x/y progress", async () => {

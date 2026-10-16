@@ -12,8 +12,8 @@ export const V1_EXPLORE_MARKER_ROOT_STYLE = Object.freeze({
   position: "absolute",
   top: "0px",
   left: "0px",
-  width: "36px",
-  height: "36px",
+  width: "44px",
+  height: "44px",
   zIndex: "1100",
 });
 
@@ -79,13 +79,14 @@ export function createV1ExploreMarkerElement(
 
   const visual = getV1ExploreMarkerVisual(category);
   const markerParts = input.id.split(":");
-  const isTourCluster = category === "tours" && markerParts[2] === "cluster";
+  const isTourCluster = markerParts[2] === "cluster";
   const canonicalPlaceId =
     markerParts[2] === "canonical" ? markerParts.slice(3).join(":").trim() : "";
   const clusterCount = isTourCluster
     ? Number.parseInt(markerParts[3] ?? "", 10)
     : 0;
-  const root = document.createElement("div");
+  const root = document.createElement("button");
+  root.type = "button";
   root.className =
     "mapbox-poi-marker mapbox-category-marker morro-explore-marker";
   root.dataset.morroExploreMarker = "true";
@@ -93,16 +94,21 @@ export function createV1ExploreMarkerElement(
   root.dataset.markerId = input.id;
   if (canonicalPlaceId) root.dataset.canonicalPlaceId = canonicalPlaceId;
   if (isTourCluster && clusterCount > 1) {
-    root.dataset.tourCluster = "true";
+    root.dataset.markerCluster = "true";
+    if (category === "tours") root.dataset.tourCluster = "true";
     root.dataset.clusterCount = String(clusterCount);
   }
   if (input.label) {
     if (isTourCluster) root.dataset.clusterLabel = input.label;
     else root.dataset.locationName = input.label;
   }
-  root.setAttribute("role", "img");
+  root.setAttribute("role", "button");
   root.setAttribute("aria-label", input.label ?? `POI ${category}`);
-  if (category === "tours") root.tabIndex = 0;
+  root.tabIndex = 0;
+  root.style.padding = "4px";
+  root.style.border = "0";
+  root.style.background = "transparent";
+  root.style.boxSizing = "border-box";
   root.style.position = V1_EXPLORE_MARKER_ROOT_STYLE.position;
   root.style.top = V1_EXPLORE_MARKER_ROOT_STYLE.top;
   root.style.left = V1_EXPLORE_MARKER_ROOT_STYLE.left;
@@ -122,6 +128,7 @@ export function createV1ExploreMarkerElement(
   }`;
   pin.textContent =
     isTourCluster && clusterCount > 1 ? String(clusterCount) : visual.icon;
+  pin.style.boxSizing = "border-box";
   pin.style.width = "36px";
   pin.style.height = "36px";
   pin.style.borderRadius = "50%";
