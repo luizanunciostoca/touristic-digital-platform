@@ -4,7 +4,7 @@
   "objective": "strict-filtered-and-restored-explore-membership-proof-with-valid-marker-grouping",
   "baseSha": "af941ad6601fbbb28fb33918e283211b7da26e1b",
   "branch": "fix/explore-filter-membership-proof-20261016",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
