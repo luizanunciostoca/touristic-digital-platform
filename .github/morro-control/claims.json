@@ -152,24 +152,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
-    },
-    "MD-AFFECTED-PERFORMANCE-CONSUMER-20261016": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/affected-performance-consumer-20261016",
-      "baseSha": "c2b8c2b0b2c9909b4a1f43244a5854f266eb9dc1",
-      "paths": [
-        ".morro/changesets/MD-AFFECTED-PERFORMANCE-CONSUMER-20261016.json",
-        "tooling/ci/affected-quality.mjs",
-        "tooling/ci/affected-quality.test.mjs",
-        "tooling/ci/local-fast-gate.mjs",
-        "tooling/ci/local-fast-gate.test.mjs",
-        "tooling/ci/affected-task-proof.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
