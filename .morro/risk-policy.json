@@ -65,7 +65,9 @@
     "tooling/tdp-max/",
     "tooling/control-state/",
     "tooling/failure-learning/",
-    "tooling/workspace/"
+    "tooling/workspace/",
+    "tooling/performance/check-morro-digital-budget.mjs",
+    "tooling/performance/check-morro-digital-budget.test.mjs"
   ],
   "semanticRiskFloor": {
     "commerce-offering-identity": "high",

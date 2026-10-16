@@ -39,7 +39,9 @@
         "apps/morro-digital-platform/src/assistant/assistant-contextual-state.test.ts",
         "apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts",
         "apps/morro-digital-platform/src/analytics/browser-analytics.ts",
-        "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts"
+        "apps/morro-digital-platform/src/analytics/browser-analytics.test.ts",
+        "apps/morro-digital-platform/src/performance/browser-startup-performance.ts",
+        "apps/morro-digital-platform/src/performance/browser-startup-performance.test.ts"
       ],
       "contracts": []
     },
@@ -156,7 +158,9 @@
         "package.json",
         "pnpm-lock.yaml",
         "packages/design-system/package.json",
-        "services/crm/eslint.config.mjs"
+        "services/crm/eslint.config.mjs",
+        "tooling/performance/check-morro-digital-budget.mjs",
+        "tooling/performance/check-morro-digital-budget.test.mjs"
       ],
       "contracts": []
     }
