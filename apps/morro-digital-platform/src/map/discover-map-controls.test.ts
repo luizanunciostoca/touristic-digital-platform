@@ -186,16 +186,16 @@ it("reports unavailable and camera failure without claiming granted", () => {
   const move = vi.fn(() => {
     throw Error("camera failed");
   });
-  let cached: readonly [number, number] | undefined;
+  const state: { cached?: readonly [number, number] } = {};
   const dispose = installDiscoverLocation({
     document: f.document,
-    currentLocation: () => cached,
+    currentLocation: () => state.cached,
     onLocation: move,
   });
   f.button.click();
   expect(f.map.attrs.get("data-geolocation-state")).toBe("unavailable");
   expect(move).not.toHaveBeenCalled();
-  cached = [1, 2];
+  state.cached = [1, 2];
   f.button.click();
   expect(f.map.attrs.get("data-geolocation-state")).toBe("error");
   dispose();
