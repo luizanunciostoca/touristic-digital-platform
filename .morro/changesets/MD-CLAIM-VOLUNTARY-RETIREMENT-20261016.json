@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CLAIM-VOLUNTARY-RETIREMENT-20261016",
   "objective": "implement-bounded-voluntary-claim-retirement-with-verified-owner-executor-consent-quiescence-and-durable-material-preservation",
-  "baseSha": "507195554b9b5e1d0f28018a7a1117e4b8d87b58",
-  "branch": "fix/claim-voluntary-retirement-20261016",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "80ae07e28e675ac22f758189ead7011f4c6fcfed",
+  "branch": "chore/retire-voluntary-mechanism-20261016",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
