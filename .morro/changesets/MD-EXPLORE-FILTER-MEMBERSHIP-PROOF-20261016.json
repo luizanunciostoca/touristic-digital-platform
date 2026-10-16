@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-EXPLORE-FILTER-MEMBERSHIP-PROOF-20261016",
   "objective": "strict-filtered-and-restored-explore-membership-proof-with-valid-marker-grouping",
-  "baseSha": "67a64ad9837c347e2daa5445390d5cce15c90ed7",
+  "baseSha": "af941ad6601fbbb28fb33918e283211b7da26e1b",
   "branch": "fix/explore-filter-membership-proof-20261016",
   "state": "IMPLEMENTING",
   "risk": "critical",
