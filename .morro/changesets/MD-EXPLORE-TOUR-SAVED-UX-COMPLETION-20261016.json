@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-EXPLORE-TOUR-SAVED-UX-COMPLETION-20261016",
   "objective": "coherent-explore-errors-applied-criteria-tour-controls-and-device-only-saved-itinerary-journey",
-  "baseSha": "4dca5f3b3e53b517a2f3aba3c9ac0a853fa4e02b",
+  "baseSha": "67a64ad9837c347e2daa5445390d5cce15c90ed7",
   "branch": "fix/explore-tour-saved-ux-20261016",
   "state": "LOCAL_PROVEN",
   "risk": "critical",

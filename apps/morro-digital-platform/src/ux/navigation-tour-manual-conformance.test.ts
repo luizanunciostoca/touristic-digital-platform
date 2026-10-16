@@ -66,11 +66,14 @@ describe("Navigation / Tour UX Design V2 manual conformance", () => {
     expect(css).not.toContain("rgba(229, 62, 62, 0.35)");
   });
 
-  it("keeps Tour compact, map-first and free of technical sheet controls", async () => {
+  it("keeps Tour accessible through the installed three-state sheet", async () => {
     const css = await readPublic("explore-locations.css");
 
     expect(css).toContain('#explore-flow-bottom-sheet[data-flow-kind="tour"]');
-    expect(css).toContain("max-height: min(48dvh, 30rem)");
+    expect(css).toContain('data-sheet-state="peek"');
+    expect(css).toContain('data-sheet-state="full"');
+    expect(css).toContain("height: min(56dvh, 34rem)");
+    expect(css).toContain("min-width: 3rem");
     expect(css).toContain(".explore-flow-sheet-drag-handle");
     expect(css).toContain(".explore-flow-sheet-state-controls");
     expect(css).toContain(

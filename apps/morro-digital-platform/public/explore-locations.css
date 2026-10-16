@@ -1465,3 +1465,57 @@ body:has(#map[data-tour-flow-stage="stop"])
   min-height: 3rem;
   min-width: 3rem;
 }
+
+/* The installed flow sheet retains the same three states for tour and explore. */
+#explore-flow-bottom-sheet[data-flow-kind="tour"] {
+  display: flex;
+  flex-direction: column;
+  height: min(56dvh, 34rem);
+  max-height: calc(100dvh - 6rem);
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"][data-sheet-state="peek"] {
+  height: min(18rem, calc(100dvh - 6rem));
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"][data-sheet-state="full"] {
+  height: calc(100dvh - 6rem);
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-toolbar {
+  flex: 0 0 auto;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: 3rem 3rem;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-drag-handle {
+  display: block;
+  width: 6rem;
+  height: 3rem;
+  margin: 0 auto;
+  background: linear-gradient(currentColor, currentColor) center / 2.5rem
+    0.25rem no-repeat;
+  touch-action: none;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"]
+  .explore-flow-sheet-state-controls {
+  display: flex;
+  grid-row: 2;
+  padding-top: 0;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-close {
+  grid-column: 3;
+  grid-row: 2;
+}
+#explore-flow-bottom-sheet
+  :is(.explore-flow-sheet-close, .explore-flow-sheet-state-button) {
+  min-width: 3rem;
+  min-height: 3rem;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+#explore-flow-bottom-sheet[data-flow-kind="tour"] .explore-flow-sheet-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--md-outdoor-surface-strong);
+}

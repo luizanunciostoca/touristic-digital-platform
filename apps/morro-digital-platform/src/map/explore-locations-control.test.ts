@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { compileFunction } from "node:vm";
 import ts from "typescript";
+import type { Node } from "typescript";
 import { describe, expect, it } from "vitest";
 import { morroV1SearchCatalog } from "@touristic/search";
 
@@ -375,5 +376,160 @@ describe("external tour criteria publication", () => {
     expect(producer.snapshot().criteria).toEqual([
       { kind: "category", value: "beaches" },
     ]);
+  });
+});
+
+// The callback is extracted from the real controller so stale-transition
+// regressions cannot pass against a separately implemented focus algorithm.
+describe("menu focus transition guards", () => {
+  it("focuses only the current live menu transition", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { compileFunction } = await import("node:vm");
+    const { default: ts } = await import("typescript");
+    const text = readFileSync(
+      new URL("./explore-locations-control.ts", import.meta.url),
+      "utf8",
+    );
+    const ast = ts.createSourceFile(
+      "controller.ts",
+      text,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let callback = "";
+    const visit = (node: Node): void => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        node.name.getText(ast) === "restoreMenuFocus"
+      )
+        callback = node.initializer!.getText(ast);
+      ts.forEachChild(node, visit);
+    };
+    visit(ast);
+    expect(callback).not.toBe("");
+    const javascript = ts.transpileModule(
+      `let remainingFocusFrames=0,focusCompleted=false; const cancelMenuFocus=()=>{focusCompleted=true;}; const document={body:{dataset:{mdMode:"assistant"}}}; return (${callback})();`,
+      {
+        compilerOptions: { target: ts.ScriptTarget.ES2022 },
+      },
+    ).outputText;
+    const run = compileFunction(javascript, [
+      "destroyed",
+      "interactionGeneration",
+      "generation",
+      "activeStage",
+      "contextualRailScroll",
+      "previousCategoryValue",
+    ]) as (
+      destroyed: boolean,
+      current: number,
+      generation: number,
+      stage: string,
+      rail: object,
+      category: string,
+    ) => void;
+    const calls: string[] = [];
+    const rail = {
+      querySelector(selector: string) {
+        return {
+          getClientRects() {
+            return [{}];
+          },
+          focus() {
+            calls.push(selector);
+          },
+        };
+      },
+    };
+    run(false, 2, 2, "menu", rail, "tours");
+    expect(calls).toEqual(['[data-assistant-category="tours"]']);
+    calls.length = 0;
+    run(true, 2, 2, "menu", rail, "tours");
+    run(false, 3, 2, "menu", rail, "tours");
+    run(false, 2, 2, "places", rail, "tours");
+    expect(calls).toEqual([]);
+  });
+});
+
+describe("pending menu focus cancellation", () => {
+  it("keeps a user's Tab, pointer or focus choice while the rail is hidden", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { compileFunction } = await import("node:vm");
+    const { default: ts } = await import("typescript");
+    const text = readFileSync(
+      new URL("./explore-locations-control.ts", import.meta.url),
+      "utf8",
+    );
+    const ast = ts.createSourceFile(
+      "controller.ts",
+      text,
+      ts.ScriptTarget.Latest,
+      true,
+    );
+    let block = "";
+    const visit = (node: Node): void => {
+      if (
+        ts.isIfStatement(node) &&
+        node.expression.getText(ast) === "restoreFocus && previousCategoryValue"
+      )
+        block = node.getText(ast);
+      ts.forEachChild(node, visit);
+    };
+    visit(ast);
+    expect(block).not.toBe("");
+    const code = ts.transpileModule(
+      `let destroyed=false,interactionGeneration=1,activeStage="menu",cancelPendingMenuFocus;const restoreFocus=true,previousCategoryValue="tours";${block}`,
+      { compilerOptions: { target: ts.ScriptTarget.ES2022 } },
+    ).outputText;
+    const run = compileFunction(code, [
+      "document",
+      "contextualRailScroll",
+      "MutationObserver",
+      "queueMicrotask",
+    ]) as (
+      doc: object,
+      rail: object,
+      observer: unknown,
+      enqueue: (fn: () => void) => void,
+    ) => void;
+    for (const intent of ["keydown", "pointerdown", "focusin"]) {
+      let visible = false;
+      let focused = false;
+      const frames: (() => void)[] = [];
+      const listeners = new Map<string, (event: { key: string }) => void>();
+      const document = {
+        body: { dataset: { mdMode: "assistant" } },
+        defaultView: {
+          getComputedStyle: () => ({
+            visibility: visible ? "visible" : "hidden",
+          }),
+          requestAnimationFrame: (fn: () => void) => frames.push(fn),
+        },
+        addEventListener: (
+          name: string,
+          fn: (event: { key: string }) => void,
+        ) => listeners.set(name, fn),
+        removeEventListener: (name: string) => listeners.delete(name),
+      };
+      const rail = {
+        querySelector: () => ({
+          getClientRects: () => (visible ? [{}] : []),
+          focus: () => {
+            focused = true;
+          },
+        }),
+      };
+      class Observer {
+        observe() {}
+        disconnect() {}
+      }
+      run(document, rail, Observer, (fn) => fn());
+      expect(frames).toHaveLength(1);
+      listeners.get(intent)?.({ key: "Tab" });
+      visible = true;
+      frames.shift()?.();
+      expect(focused).toBe(false);
+      expect(listeners.size).toBe(0);
+    }
   });
 });

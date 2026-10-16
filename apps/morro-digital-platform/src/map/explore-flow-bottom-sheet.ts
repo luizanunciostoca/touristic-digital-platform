@@ -274,8 +274,22 @@ export function installExploreFlowBottomSheet({
       order[Math.min(order.length - 1, Math.max(0, current + offset))];
     if (next) setState(next);
   };
+  const resetDrag = (): void => {
+    const pointerId = dragPointerId;
+    dragStartY = null;
+    dragPointerId = null;
+    if (pointerId !== null && handle.hasPointerCapture?.(pointerId)) {
+      handle.releasePointerCapture?.(pointerId);
+    }
+  };
   handle.addEventListener("pointerdown", (event) => {
-    if (activeKind !== "explore") return;
+    if (
+      !activeKind ||
+      !event.isPrimary ||
+      event.button !== 0 ||
+      dragPointerId !== null
+    )
+      return;
     dragStartY = event.clientY;
     dragPointerId = event.pointerId;
     handle.setPointerCapture?.(event.pointerId);
@@ -283,14 +297,15 @@ export function installExploreFlowBottomSheet({
   handle.addEventListener("pointerup", (event) => {
     if (dragStartY === null || dragPointerId !== event.pointerId) return;
     const delta = event.clientY - dragStartY;
-    dragStartY = null;
-    dragPointerId = null;
+    resetDrag();
     if (Math.abs(delta) < 36) return;
     dragStep(delta < 0 ? "up" : "down");
   });
-  handle.addEventListener("pointercancel", () => {
-    dragStartY = null;
-    dragPointerId = null;
+  handle.addEventListener("pointercancel", (event) => {
+    if (dragPointerId === event.pointerId) resetDrag();
+  });
+  handle.addEventListener("lostpointercapture", (event) => {
+    if (dragPointerId === event.pointerId) resetDrag();
   });
 
   const rebuildStateControls = (kind: ExploreFlowBottomSheetKind): void => {
@@ -315,6 +330,7 @@ export function installExploreFlowBottomSheet({
   };
 
   const render = (presentation: ExploreFlowBottomSheetPresentation): void => {
+    resetDrag();
     dismissHandler = presentation.onDismiss;
     clearCompatibilityMessageSource();
     compatibilityMessageSource = presentation.messageSource;
@@ -368,6 +384,7 @@ export function installExploreFlowBottomSheet({
     },
     hide(): void {
       if (destroyed) return;
+      resetDrag();
       dismissHandler = undefined;
       activeKind = undefined;
       clearCompatibilityMessageSource();
@@ -384,6 +401,7 @@ export function installExploreFlowBottomSheet({
       if (destroyed) return;
       clearCompatibilityMessageSource();
       destroyed = true;
+      resetDrag();
       dismissHandler = undefined;
       activeKind = undefined;
       sheet.remove();

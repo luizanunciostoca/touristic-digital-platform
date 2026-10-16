@@ -45,7 +45,7 @@ function executeActualBackToMenu(
   )
     throw new Error("Actual dataset geometry reset function missing");
   const body = `
-    let interactionGeneration=10,datasetGeneration=20,datasetGeometryGeneration=30;
+    let interactionGeneration=10,datasetGeneration=20,datasetGeometryGeneration=30,cancelPendingMenuFocus;
     let externalTourOwnsMap=initialExternalOwnership;
     const geometryAttributes=new Map([["data-explore-dataset-bounds","[[-40,-15],[-38,-13]]"],["data-explore-dataset-generation","30"]]);
     const geometryRemovals=[];
@@ -217,7 +217,8 @@ describe("Place + Search/Explore V2 contract", () => {
     expect(flow).toContain("button.dataset.sheetStateTarget = state");
     expect(flow).toContain('if (kind === "tour")');
     expect(flow).toContain("rebuildStateControls(presentation.kind)");
-    expect(flow).toContain('activeKind !== "explore"');
+    expect(flow).toContain("!event.isPrimary");
+    expect(flow).toContain("lostpointercapture");
 
     expect(search).toContain('type: "show_search_results" as const');
     expect(search).toContain('source: "local" as const');

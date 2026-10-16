@@ -13,6 +13,9 @@ on:
       - apps/morro-digital-platform/src/map/**
       - apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts
       - apps/morro-digital-platform/src/ux/home-*.test.ts
+      - apps/morro-digital-platform/src/ux/navigation-tour-manual-conformance.test.ts
+      - apps/morro-digital-platform/src/ux/place-search-explore-v2-contract.test.ts
+      - apps/morro-digital-platform/public/explore-locations.css
       - apps/morro-digital-platform/public/tourist-shell-v2.css
       - apps/morro-digital-platform/tooling/home-discover-manual-conformance.mjs
       - apps/morro-digital-platform/tooling/assistant-voice-*.mjs

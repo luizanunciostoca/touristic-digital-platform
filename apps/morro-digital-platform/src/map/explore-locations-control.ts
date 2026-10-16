@@ -725,6 +725,7 @@ export function installExploreLocationsControl({
 
   let mainMenuContainer: HTMLElement | undefined;
   let interactionGeneration = 0;
+  let cancelPendingMenuFocus: (() => void) | undefined;
   let immersiveTourController: V1ImmersiveTourController | undefined;
   let exploreFlowBottomSheet: ExploreFlowBottomSheetController | undefined;
   let placeReturnLocations: readonly ExploreMapLocation[] = Object.freeze([]);
@@ -753,6 +754,12 @@ export function installExploreLocationsControl({
     if (!contextualRail || !contextualRailScroll || !categoryRailTemplate) {
       return null;
     }
+    const focusedCategory = contextualRailScroll.contains(
+      document.activeElement,
+    )
+      ? (document.activeElement as HTMLElement | null)?.dataset
+          .assistantCategory
+      : undefined;
     contextualRailScroll.replaceChildren(
       ...Array.from(categoryRailTemplate.childNodes, (node) =>
         node.cloneNode(true),
@@ -781,6 +788,13 @@ export function installExploreLocationsControl({
       button?.setAttribute("aria-pressed", "false");
     }
     contextualRailScroll.scrollLeft = 0;
+    if (focusedCategory) {
+      contextualRailScroll
+        .querySelector<HTMLButtonElement>(
+          `[data-assistant-category="${focusedCategory}"]`,
+        )
+        ?.focus();
+    }
     return contextualRailScroll.querySelector<HTMLButtonElement>(
       "[data-assistant-category]",
     );
@@ -1443,6 +1457,8 @@ export function installExploreLocationsControl({
   };
 
   const backToMenu = (restoreFocus = true): void => {
+    cancelPendingMenuFocus?.();
+    cancelPendingMenuFocus = undefined;
     interactionGeneration += 1;
     datasetGeneration += 1;
     markerRegistry.clear();
@@ -1510,11 +1526,59 @@ export function installExploreLocationsControl({
     emitStateChange();
     void loadHybridGlobalMarkers();
     if (restoreFocus && previousCategoryValue) {
-      contextualRailScroll
-        ?.querySelector<HTMLButtonElement>(
+      const generation = interactionGeneration;
+      let remainingFocusFrames = 30;
+      let focusCompleted = false;
+      const restoreMenuFocus = (): void => {
+        if (focusCompleted) return;
+        if (
+          destroyed ||
+          interactionGeneration !== generation ||
+          activeStage !== "menu"
+        ) {
+          cancelMenuFocus();
+          return;
+        }
+        const button = contextualRailScroll?.querySelector<HTMLButtonElement>(
           `[data-assistant-category="${previousCategoryValue}"]`,
-        )
-        ?.focus();
+        );
+        if (
+          !button?.getClientRects().length ||
+          document.body.dataset.mdMode === "tour" ||
+          document.defaultView?.getComputedStyle(button).visibility === "hidden"
+        ) {
+          if (remainingFocusFrames-- > 0)
+            document.defaultView?.requestAnimationFrame(restoreMenuFocus);
+          else cancelMenuFocus();
+          return;
+        }
+        cancelMenuFocus();
+        button.focus();
+      };
+      const cancelOnTab = (event: KeyboardEvent): void => {
+        if (event.key === "Tab") cancelMenuFocus();
+      };
+      const cancelMenuFocus = (): void => {
+        focusCompleted = true;
+        transitionFocusObserver.disconnect();
+        document.removeEventListener("keydown", cancelOnTab, true);
+        document.removeEventListener("pointerdown", cancelMenuFocus, true);
+        document.removeEventListener("focusin", cancelMenuFocus, true);
+        if (cancelPendingMenuFocus === cancelMenuFocus)
+          cancelPendingMenuFocus = undefined;
+      };
+      // Wait for the actual mode/CSS visibility transition. New focus intent
+      // cancels recovery so a late frame cannot steal a user's Tab or click.
+      const transitionFocusObserver = new MutationObserver(restoreMenuFocus);
+      cancelPendingMenuFocus = cancelMenuFocus;
+      transitionFocusObserver.observe(document.body, {
+        attributes: true,
+        attributeFilter: ["data-md-mode"],
+      });
+      document.addEventListener("keydown", cancelOnTab, true);
+      document.addEventListener("pointerdown", cancelMenuFocus, true);
+      document.addEventListener("focusin", cancelMenuFocus, true);
+      queueMicrotask(restoreMenuFocus);
     }
   };
 
@@ -3006,6 +3070,8 @@ export function installExploreLocationsControl({
     destroy() {
       if (externalTourOwnsMap) clearTourPresentation(document);
       destroyed = true;
+      cancelPendingMenuFocus?.();
+      cancelPendingMenuFocus = undefined;
       const previous = geospatialEngine;
       markerQueue = markerQueue
         .catch(() => undefined)

@@ -1148,6 +1148,121 @@ async function verifyVariants(page, viewport, evidence) {
   await page.emulateMedia({ reducedMotion: "no-preference" });
 }
 
+async function verifyTourSheet(page) {
+  const previousLocale = await page.evaluate(() => ({
+    lang: document.documentElement.lang,
+    dir: document.documentElement.dir,
+  }));
+  const results = [];
+  for (const locale of ["pt", "en", "es", "he"]) {
+    await page.evaluate(async (language) => {
+      document.documentElement.lang = language;
+      document.documentElement.dir = language === "he" ? "rtl" : "ltr";
+      const entry = new URL(
+        "/apps/morro-digital-platform/dist/main.js",
+        location.origin,
+      );
+      const { getMorroDigitalApplication } = await import(entry.href);
+      const explore = getMorroDigitalApplication(document).exploreLocations;
+      explore.close();
+      await explore.execute({
+        type: "select_place",
+        place: "Passeio de Barco Volta à Ilha",
+        category: "tours",
+      });
+    }, locale);
+    await page
+      .locator('[data-context-rail-option][data-value="fazer tour interativo"]')
+      .click();
+    const sheet = page.locator("#explore-flow-bottom-sheet");
+    const grip = sheet.locator(".explore-flow-sheet-drag-handle");
+    const box = await grip.boundingBox();
+    assert(
+      box && box.height >= 48 && box.width >= 48,
+      "Visible tour grip below48px",
+      box,
+    );
+    const geometry = await sheet
+      .locator(".explore-flow-sheet-toolbar button")
+      .evaluateAll((buttons) =>
+        buttons.map((button) => ({
+          width: button.getBoundingClientRect().width,
+          height: button.getBoundingClientRect().height,
+        })),
+      );
+    assert(
+      geometry.length === 4 &&
+        geometry.every((r) => r.width >= 48 && r.height >= 48),
+      "Tour controls below48px",
+      geometry,
+    );
+    await sheet.locator('[data-sheet-state-target="half"]').click();
+    await grip.evaluate(
+      (element) =>
+        new Promise((resolve, reject) => {
+          let previous = "",
+            stableFrames = 0,
+            remainingFrames = 40;
+          const inspect = () => {
+            const rect = element.getBoundingClientRect();
+            const current = [rect.x, rect.y, rect.width, rect.height].join(",");
+            stableFrames = current === previous ? stableFrames + 1 : 0;
+            previous = current;
+            if (stableFrames >= 2) return resolve();
+            if (--remainingFrames <= 0)
+              return reject(new Error("Tour grip never stabilized"));
+            requestAnimationFrame(inspect);
+          };
+          requestAnimationFrame(inspect);
+        }),
+    );
+    const dragBox = await grip.boundingBox();
+    assert(dragBox, "Tour grip disappeared before pointer action");
+    await page.mouse.move(
+      dragBox.x + dragBox.width / 2,
+      dragBox.y + dragBox.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y - 60, {
+      steps: 8,
+    });
+    await page.mouse.up();
+    assert(
+      (await sheet.getAttribute("data-sheet-state")) === "full",
+      "Visible tour grip did not expand sheet",
+    );
+    await sheet.locator('[data-sheet-state-target="peek"]').focus();
+    await page.keyboard.press("Enter");
+    assert(
+      (await sheet.getAttribute("data-sheet-state")) === "peek",
+      "Tour peek keyboard failed",
+    );
+    await sheet.locator('[data-sheet-state-target="half"]').focus();
+    await page.keyboard.press("Space");
+    assert(
+      (await sheet.getAttribute("data-sheet-state")) === "half",
+      "Tour half keyboard failed",
+    );
+    await page.keyboard.press("Escape");
+    await page.locator('[data-assistant-category="tours"]:focus').waitFor();
+    assert(
+      (await sheet.getAttribute("aria-hidden")) === "true",
+      "Escape did not close tour",
+    );
+    results.push({
+      locale,
+      controls: geometry,
+      pointerAndKeyboard: "PASS",
+      escapeFocus: "tours",
+    });
+  }
+  await page.evaluate((previous) => {
+    document.documentElement.lang = previous.lang;
+    document.documentElement.dir = previous.dir;
+  }, previousLocale);
+  return results;
+}
+
 const browser = await chromium.launch({ headless: true });
 const evidence = {
   authority: "UX Design V2 Section 32 + Appendix A",
@@ -1206,6 +1321,11 @@ try {
       ].includes(viewport.name)
     ) {
       evidence.manualNavigation ??= [];
+      evidence.tourSheet ??= [];
+      evidence.tourSheet.push({
+        viewport: viewport.name,
+        result: await verifyTourSheet(page),
+      });
       evidence.manualNavigation.push({
         viewport: viewport.name,
         result: await verifyManualNavigation(page),
