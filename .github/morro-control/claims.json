@@ -142,7 +142,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/initial-css-architecture-20261016",
-      "baseSha": "7d333784d4f3a86d885af90fdf42e6ce6abab856",
+      "baseSha": "2105694f682b26d59a28b8bb122aa0d0610ceea8",
       "paths": [
         ".morro/changesets/MD-INITIAL-CSS-ARCHITECTURE-20261016.json",
         ".morro/ownership.json",

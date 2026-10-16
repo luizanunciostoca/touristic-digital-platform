@@ -71,7 +71,9 @@
     "apps/morro-digital-platform/package.json",
     "tooling/ci/build-entry-css.mjs",
     "tooling/ci/build-entry-css.test.mjs",
-    "tooling/ci/entry-css-manifest.json"
+    "tooling/ci/entry-css-manifest.json",
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts"
   ],
   "semanticRiskFloor": {
     "commerce-offering-identity": "high",
