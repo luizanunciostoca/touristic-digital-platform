@@ -44,32 +44,6 @@
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T08:00:00.000Z"
     },
-    "MD-EXPLORE-MARKERS-UX7-20261015": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/explore-markers-ux7-20261015",
-      "baseSha": "3c12c05d240ecd4e71fdb44e3ad7303e9ea0cf1b",
-      "paths": [
-        ".morro/changesets/MD-EXPLORE-MARKERS-UX7-20261015.json",
-        "apps/morro-digital-platform/src/map/explore-marker-grouping.ts",
-        "apps/morro-digital-platform/src/map/explore-marker-grouping.test.ts",
-        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
-        "apps/morro-digital-platform/src/map/explore-locations-control.test.ts",
-        "apps/morro-digital-platform/src/map/explore-marker-element.ts",
-        "apps/morro-digital-platform/src/map/explore-marker-element.test.ts",
-        "apps/morro-digital-platform/public/explore-locations.css",
-        "apps/morro-digital-platform/src/browser-entry.ts",
-        "apps/morro-digital-platform/src/ux/tour-wave-d-contract.test.ts",
-        "packages/geospatial/src/infrastructure/mapbox-gl-driver.ts",
-        "packages/geospatial/src/infrastructure/mapbox-gl-driver.test.ts",
-        ".github/workflows/place-explore-v2-visual-regression.yml",
-        ".github/workflows/v1-explore-locations-browser-regression.yml"
-      ],
-      "domains": ["map", "geospatial-routing", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-16T19:54:50.407Z"
-    },
     "MD-WEATHER-SUBDUED-STALE-20261015": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
