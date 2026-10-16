@@ -24,10 +24,14 @@ import {
   validateRetirementEvents,
   validateVoluntaryReleaseRequest,
   verifyVoluntaryRelease,
+  voluntaryRetirementPayload,
 } from "./claim-retirement-proof.mjs";
 import { canonicalJson } from "../mdctl/changeset-v2.mjs";
 import { runClaimCli } from "../mdctl/claim-lifecycle.mjs";
-import { buildMergedRetirementProof } from "../mdctl/merge-gate.mjs";
+import {
+  buildMergedRetirementProof,
+  evaluateRetirementMergeGate,
+} from "../mdctl/merge-gate.mjs";
 
 const BASE = "a".repeat(40);
 const MERGE = "b".repeat(40);
@@ -1155,6 +1159,8 @@ test("trusted proof independently rejects forged explicit operations against rea
     ])
       writeFileSync(join(candidateRoot, path), JSON.stringify(value) + "\n");
     writeFileSync(join(candidateRoot, paths.ledger), history + ledger([event]));
+    if (patch.source)
+      writeFileSync(join(candidateRoot, "README.md"), "unauthorized source\n");
     git(candidateRoot, "add", ".");
     git(candidateRoot, "commit", "-qm", "operation " + ++sequence);
     return buildClaimRetirementProof(
@@ -1168,10 +1174,13 @@ test("trusted proof independently rejects forged explicit operations against rea
         REQUESTED_REASON: "EXPIRED",
       },
       {
-        now: EXPLICIT_NOW,
-        fetchImpl: async () => {
-          throw new Error("UNEXPECTED_PROVIDER_CALL");
-        },
+        now: patch.now ?? EXPLICIT_NOW,
+        clock: () => patch.now ?? EXPLICIT_NOW,
+        fetchImpl:
+          patch.fetchImpl ??
+          (async () => {
+            throw new Error("UNEXPECTED_PROVIDER_CALL");
+          }),
       },
     );
   };
@@ -1196,45 +1205,218 @@ test("trusted proof independently rejects forged explicit operations against rea
     baseSha: expectedBaseSha,
     branch: "infra/retire",
   });
-  await verified.collect();
+  const evidence = await verified.collect();
+  const voluntaryPatch = {
+    now: verified.context.now,
+    fetchImpl: verified.fetchImpl,
+    event: {
+      observedAt: evidence.observedAt,
+      payload: voluntaryRetirementPayload(evidence),
+    },
+  };
+  const proof = await verify(voluntaryPatch);
+  const env = {
+    EXPECTED_BASE_SHA: expectedBaseSha,
+    EXPECTED_CANDIDATE_SHA: proof.exactHead,
+  };
+  assert.equal(
+    (
+      await buildMergedRetirementProof(trustedRoot, candidateRoot, env, {
+        now: verified.context.now,
+        proofBuilder: async () => proof,
+      })
+    ).retirements[0].reason,
+    "VOLUNTARY",
+  );
+  const actualDiff = git(
+    candidateRoot,
+    "diff",
+    "--numstat",
+    expectedBaseSha,
+    proof.exactHead,
+  )
+    .split("\n")
+    .map((line) => line.split("\t"));
+  const gateContext = {
+    manifest: JSON.parse(readFileSync(join(candidateRoot, paths.manifest))),
+    canonicalManifest,
+    claimId: "MD-ONE",
+    branch: "infra/retire",
+    baseSha: expectedBaseSha,
+    headSha: proof.exactHead,
+    authorizationPaths: actualDiff.map((line) => line[2]),
+    changedFileCount: actualDiff.length,
+    changedLines: actualDiff.reduce(
+      (sum, line) => sum + Number(line[0]) + Number(line[1]),
+      0,
+    ),
+    unresolvedReviewThreads: 0,
+    retirementProof: proof,
+  };
+  assert.equal(
+    evaluateRetirementMergeGate(gateContext).decision,
+    "POLICY_SATISFIED",
+  );
+  assert.throws(
+    () =>
+      evaluateRetirementMergeGate({
+        ...gateContext,
+        retirementProof: { ...proof, exactHead: MERGE },
+      }),
+    /HEAD_MISMATCH/u,
+  );
+  for (const [event, pattern] of [
+    [
+      {
+        ...voluntaryPatch.event,
+        payload: {
+          ...voluntaryPatch.event.payload,
+          requestDigest: "f".repeat(64),
+        },
+      },
+      /DIGEST|PAYLOAD/u,
+    ],
+    [
+      { ...voluntaryPatch.event, observedAt: "2026-10-16T20:01:00.000Z" },
+      /TIME|FUTURE/u,
+    ],
+    [
+      {
+        ...voluntaryPatch.event,
+        payload: {
+          ...voluntaryPatch.event.payload,
+          ownerDecision: { ...evidence.ownerDecision, ownerId: 99 },
+        },
+      },
+      /PAYLOAD/u,
+    ],
+  ])
+    await assert.rejects(verify({ ...voluntaryPatch, event }), pattern);
+  await assert.rejects(
+    verify({ ...voluntaryPatch, source: true }),
+    /EXACT_THREE_PATHS/u,
+  );
+
+  git(trustedRoot, "checkout", "-qb", "infra/retire");
   const decisionPath = join(directory, "decision.json");
   writeFileSync(decisionPath, JSON.stringify(verified.request));
-  const before = Object.values(paths).map((path) =>
+  const args = [
+    "retire",
+    paths.manifest,
+    "--base-sha",
+    expectedBaseSha,
+    "--reason",
+    "VOLUNTARY",
+    "--decision",
+    decisionPath,
+  ];
+  const options = {
+    root: trustedRoot,
+    now: () => new Date(verified.context.now).toISOString(),
+    repository: "owner/repo",
+    token: "test-token",
+    fetchImpl: verified.fetchImpl,
+    prepareMutation: async () => ({ formattedFiles: [] }),
+  };
+  const originals = Object.values(paths).map((path) =>
     readFileSync(join(trustedRoot, path), "utf8"),
   );
   await assert.rejects(
-    runClaimCli(
-      [
-        "retire",
-        paths.manifest,
-        "--base-sha",
-        expectedBaseSha,
-        "--reason",
-        "VOLUNTARY",
-        "--decision",
-        decisionPath,
-      ],
-      { root: trustedRoot },
-    ),
-    /CLAIM_RETIREMENT_REQUEST_INVALID/u,
+    runClaimCli(args, {
+      ...options,
+      prepareMutation: () => {
+        throw new Error("PREPARE_FAILURE");
+      },
+    }),
+    /PREPARE_FAILURE/u,
   );
   assert.deepEqual(
     Object.values(paths).map((path) =>
       readFileSync(join(trustedRoot, path), "utf8"),
     ),
-    before,
+    originals,
   );
-  await assert.rejects(
-    verify({
-      event: {
-        payload: {
-          reason: "VOLUNTARY",
-          requestedReason: "VOLUNTARY",
-          decisionRequest: verified.request,
+  for (const [kind, change, pattern] of [
+    [
+      "file",
+      (root) => writeFileSync(join(root, paths.ledger), "concurrent edit\n"),
+      /LOCAL_WORKTREE_CHANGED/u,
+    ],
+    [
+      "head",
+      (root) => git(root, "commit", "--allow-empty", "-qm", "concurrent"),
+      /LOCAL_HEAD_CHANGED/u,
+    ],
+    [
+      "branch",
+      (root) => git(root, "checkout", "-qb", "concurrent"),
+      /LOCAL_BRANCH_CHANGED/u,
+    ],
+  ]) {
+    const root = join(directory, `race-${kind}`);
+    git(directory, "clone", "-q", "--no-hardlinks", trustedRoot, root);
+    configure(root);
+    let reads = 0;
+    await assert.rejects(
+      runClaimCli(args, {
+        ...options,
+        root,
+        fetchImpl: async (url, init) => {
+          const response = await verified.fetchImpl(url, init);
+          if (String(url).endsWith("/commits/main") && ++reads === 2)
+            change(root);
+          return response;
         },
-      },
-    }),
-    /CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID/u,
+      }),
+      pattern,
+    );
+    const expected = [...originals];
+    if (kind === "file") expected[1] = "concurrent edit\n";
+    assert.deepEqual(
+      Object.values(paths).map((path) =>
+        readFileSync(join(root, path), "utf8"),
+      ),
+      expected,
+    );
+    if (kind === "head")
+      assert.notEqual(git(root, "rev-parse", "HEAD"), expectedBaseSha);
+    if (kind === "branch")
+      assert.equal(git(root, "branch", "--show-current"), "concurrent");
+  }
+  await runClaimCli(args, options);
+  const after = readFileSync(join(trustedRoot, paths.ledger), "utf8");
+  assert.ok(after.startsWith(history));
+  assert.deepEqual(
+    after
+      .slice(history.length)
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line).eventType),
+    ["CLAIM_RELEASED"],
+  );
+  assert.equal(
+    JSON.parse(readFileSync(join(trustedRoot, paths.manifest))).state,
+    canonicalManifest.state,
+  );
+  assert.equal(
+    JSON.parse(readFileSync(join(trustedRoot, paths.registry))).claims[
+      "MD-ONE"
+    ],
+    undefined,
+  );
+  assert.deepEqual(
+    JSON.parse(readFileSync(join(trustedRoot, paths.registry))).claims[
+      "MD-SURVIVOR"
+    ],
+    canonicalRegistry.claims["MD-SURVIVOR"],
+  );
+  assert.throws(
+    () =>
+      validateVoluntaryReleaseRequest(verified.request, {
+        ...verified.context,
+        canonicalText: after,
+      }),
+    /NONCE_REPLAY/u,
   );
 });
 
@@ -1495,30 +1677,37 @@ function voluntaryFixture(state = "LOCAL_PROVEN", overrides = {}) {
   };
 }
 
-test("read-only verification proves owner consent and material preservation without activation", async () => {
+test("explicit activation preserves both material states and exact authority envelopes", async () => {
   for (const state of ["IMPLEMENTING", "LOCAL_PROVEN"]) {
     const f = voluntaryFixture(state),
       evidence = await f.collect();
     assert.equal(evidence.reason, "VOLUNTARY");
     assert.equal(evidence.requestedReason, "VOLUNTARY");
     assert.equal(evidence.observedAt, new Date(f.context.now).toISOString());
-    assert.equal(evidence.decisionRequest.preservedMaterialState, state);
-    assert.throws(
-      () =>
-        validateCandidateRetirementManifest(f.context.canonicalManifest, {
-          ...f.context,
-          evidence,
-        }),
-      /CLAIM_RETIREMENT_REASON_INVALID/u,
+    const candidate = {
+      ...f.context.canonicalManifest,
+      branch: f.request.retirementBranch,
+    };
+    assert.equal(
+      validateCandidateRetirementManifest(candidate, { ...f.context, evidence })
+        .state,
+      state,
+    );
+    assert.equal(
+      validateClaimRetirements({
+        baseRegistry: registry({ "MD-ONE": f.context.claim }),
+        candidateRegistry: registry({}),
+        evidenceById: { "MD-ONE": evidence },
+      }).retirements[0].reason,
+      "VOLUNTARY",
     );
     assert.throws(
       () =>
-        validateClaimRetirements({
-          baseRegistry: registry({ "MD-ONE": f.context.claim }),
-          candidateRegistry: registry({}),
-          evidenceById: { "MD-ONE": evidence },
-        }),
-      /CLAIM_RETIREMENT_REASON_INVALID/u,
+        validateCandidateRetirementManifest(
+          { ...candidate, state: "MERGED" },
+          { ...f.context, evidence },
+        ),
+      /IMPLEMENTATION_STATE_INVALID/u,
     );
   }
 });
@@ -1701,60 +1890,81 @@ test("VOLUNTARY inventory covers both delta legs including reverted edits and de
   await assert.rejects(f.collect());
 });
 
-test("valid verification cannot activate canonical collector, ledger derivation or replay", async () => {
+test("activation is explicit only and event reconstruction rejects replay or drift", async () => {
   const f = voluntaryFixture();
-  const evidence = await f.collect();
-  await assert.rejects(
-    collectClaimRetirementEvidence("MD-ONE", f.context.claim, {
-      ...f.context,
-      repository: f.request.repository,
-      requestedReason: "VOLUNTARY",
-      decisionRequest: f.request,
-    }),
-    /CLAIM_RETIREMENT_REQUEST_INVALID/u,
+  const options = {
+    ...f.context,
+    repository: f.request.repository,
+    requestedReason: "VOLUNTARY",
+    decisionRequest: f.request,
+    token: "fixture-token",
+    fetchImpl: f.fetchImpl,
+    clock: () => f.context.now,
+  };
+  const evidence = await collectClaimRetirementEvidence(
+    "MD-ONE",
+    f.context.claim,
+    options,
   );
+  for (const requestedReason of [undefined, "EXPIRED"])
+    await assert.rejects(
+      collectClaimRetirementEvidence("MD-ONE", f.context.claim, {
+        ...options,
+        requestedReason,
+      }),
+      /REQUEST_WITHOUT_REASON/u,
+    );
   const event = ledgerEvent("CLAIM_RELEASED", {
     sourceSha: BASE,
-    observedAt: new Date(f.context.now).toISOString(),
+    observedAt: evidence.observedAt,
     payloadVersion: 1,
-    payload: {
-      reason: "VOLUNTARY",
-      requestedReason: "VOLUNTARY",
-      decisionRequest: f.request,
-    },
+    payload: voluntaryRetirementPayload(evidence),
   });
   const candidateText = ledger([event]);
-  assert.throws(
-    () => deriveExplicitRetirementRequest({ ...f.context, candidateText }),
-    /CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID/u,
+  assert.equal(
+    deriveExplicitRetirementRequest({ ...f.context, candidateText }),
+    "VOLUNTARY",
   );
-  assert.throws(
-    () =>
+  validateRetirementEvents({
+    ...f.context,
+    candidateText,
+    evidence,
+    requestedReason: "VOLUNTARY",
+  });
+  for (const patch of [
+    { eventType: "MERGED" },
+    { actor: "SELF" },
+    { sourceSha: MERGE },
+    { payload: { ...event.payload, requestDigest: "f".repeat(64) } },
+  ])
+    assert.throws(() =>
       validateRetirementEvents({
         ...f.context,
-        candidateText,
+        candidateText: ledger([{ ...event, ...patch }]),
         evidence,
         requestedReason: "VOLUNTARY",
       }),
-    /CLAIM_RETIREMENT_REASON_INVALID/u,
-  );
-  for (const value of [evidence, { reason: "VOLUNTARY" }])
-    await assert.rejects(
-      buildMergedRetirementProof(
-        "trusted",
-        "candidate",
-        {},
-        { proofBuilder: async () => ({ retirements: [value] }) },
-      ),
-      /MERGE_GATE_RETIREMENT_REASON_INVALID/u,
     );
+  assert.throws(() =>
+    deriveExplicitRetirementRequest({
+      ...f.context,
+      candidateText: candidateText + candidateText,
+    }),
+  );
   assert.throws(
     () =>
       validateVoluntaryReleaseRequest(f.request, {
         ...f.context,
         canonicalText: candidateText,
       }),
-    /VOLUNTARY_NONCE_REPLAY/u,
+    /NONCE_REPLAY/u,
+  );
+  await assert.rejects(
+    collectClaimRetirementEvidence("MD-ONE", f.context.claim, {
+      ...options,
+      canonicalText: candidateText,
+    }),
+    /NONCE_REPLAY/u,
   );
 });
 

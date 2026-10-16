@@ -504,10 +504,25 @@ test("explicit retirement CLI rejects ambiguous reasons before touching any file
     ["retire", "missing.json", "--reason", "EXPIRED", "--reason", "EXPIRED"],
     ["acquire", "missing.json", "--reason", "EXPIRED"],
     ["reanchor", "missing.json", "--reason", "EXPIRED"],
+    ["retire", "missing.json", "--decision", "request.json"],
+    ["retire", "missing.json", "--reason", "EXPIRED", "--decision", "a"],
+    ...[
+      [],
+      ["--decision=a"],
+      ["--decision", "a", "--decision", "b"],
+      ["--decision", "a", "--owner", "caller"],
+      ["--decision", "a", "--base-sha", BASE, "--base-sha", NEXT],
+    ].map((suffix) => [
+      "retire",
+      "missing.json",
+      "--reason",
+      "VOLUNTARY",
+      ...suffix,
+    ]),
   ])
     await assert.rejects(
       runClaimCli(args, { root: "/nonexistent" }),
-      /CLAIM_.*(?:REASON|REQUEST|ARGUMENT)/u,
+      /CLAIM_.*(?:REASON|REQUEST|ARGUMENT|DECISION)/u,
     );
 });
 
@@ -557,6 +572,30 @@ test("explicit retirement CLI enforces expiry, preserves pending state and rolls
     paths.forEach((path, index) =>
       assert.equal(readFileSync(join(root, path), "utf8"), initial[index]),
     );
+  const decisions = mkdtempSync(join(tmpdir(), "voluntary-decision-input-"));
+  t.after(() => rmSync(decisions, { recursive: true, force: true }));
+  const decisionPath = join(decisions, "request.json");
+  const voluntaryArgs = [
+    "retire",
+    paths[2],
+    "--base-sha",
+    baseSha,
+    "--reason",
+    "VOLUNTARY",
+    "--decision",
+    decisionPath,
+  ];
+  await assert.rejects(runClaimCli(voluntaryArgs, options), /ENOENT/u);
+  unchanged();
+  for (const [bytes, error] of [
+    [Buffer.alloc(65537, 32), /DECISION_TOO_LARGE/u],
+    [Buffer.from([0xff]), /encoded data|encoding/iu],
+    [Buffer.from("{"), /JSON|property|position/iu],
+  ]) {
+    writeFileSync(decisionPath, bytes);
+    await assert.rejects(runClaimCli(voluntaryArgs, options), error);
+    unchanged();
+  }
   await assert.rejects(
     runClaimCli(args, { ...options, now: () => NOW }),
     /NOT_EXPIRED/u,

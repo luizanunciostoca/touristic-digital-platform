@@ -10,7 +10,12 @@ import { parseAuthorityLedger } from "../mdctl/event-ledger.mjs";
 
 const SHA = /^[0-9a-f]{40}$/u;
 const CLAIM_ID = /^MD-[A-Z0-9-]+$/u;
-const RETIREMENT_REASONS = new Set(["MERGED_PR", "EXPIRED", "ORPHANED"]);
+const RETIREMENT_REASONS = new Set([
+  "MERGED_PR",
+  "EXPIRED",
+  "ORPHANED",
+  "VOLUNTARY",
+]);
 
 const VOLUNTARY_MODEL = "OWNER_ATTESTED_CLOSED_WRITER_INVENTORY";
 const digest = (value) => createHash("sha256").update(value).digest("hex");
@@ -297,6 +302,29 @@ export function validateVoluntaryReleaseRequest(
   return request;
 }
 
+export function voluntaryRetirementPayload(evidence) {
+  assert.equal(evidence?.reason, "VOLUNTARY");
+  assert.equal(evidence.authorityModel, VOLUNTARY_MODEL);
+  assert.equal(evidence.requestedReason, "VOLUNTARY");
+  assert.equal(evidence.requestDigest, objectDigest(evidence.decisionRequest));
+  const request = evidence.decisionRequest;
+  assert.equal(
+    evidence.ownerDecision.bodySha256,
+    digest(
+      `APPROVED_VOLUNTARY_RELEASE:${request.claimId}:${evidence.requestDigest}:${request.decisionNonce}:${request.exactBaseSha}`,
+    ),
+    "VOLUNTARY_OWNER_MARKER_MISMATCH",
+  );
+  return {
+    reason: "VOLUNTARY",
+    requestedReason: "VOLUNTARY",
+    decisionRequest: evidence.decisionRequest,
+    requestDigest: evidence.requestDigest,
+    ownerDecision: evidence.ownerDecision,
+    authorityModel: VOLUNTARY_MODEL,
+  };
+}
+
 function assertRegistry(registry, code) {
   assert.equal(registry?.registryAuthority, "ORCHESTRATOR", code);
   assert.ok(
@@ -458,6 +486,25 @@ export function validateClaimRetirements({
         true,
         "CLAIM_RETIREMENT_HISTORICAL_MANIFEST_MISMATCH",
       );
+    } else if (evidence.reason === "VOLUNTARY") {
+      assert.equal(
+        evidence.requestedReason,
+        "VOLUNTARY",
+        "VOLUNTARY_EXPLICIT_REASON_REQUIRED",
+      );
+      assert.equal(evidence.authorityModel, VOLUNTARY_MODEL);
+      assert.equal(
+        evidence.requestDigest,
+        objectDigest(evidence.decisionRequest),
+      );
+      assert.ok(
+        evidence.ownerDecision && evidence.observedAt,
+        "VOLUNTARY_LIVE_EVIDENCE_REQUIRED",
+      );
+      assert.equal(
+        evidence.decisionRequest.canonicalClaimDigest,
+        objectDigest(claim),
+      );
     } else {
       assert.equal(
         evidence.branchExists,
@@ -505,27 +552,47 @@ export function validateRetirementEvents({
   );
   const appended = candidate.slice(canonical.length);
   if (requestedReason !== undefined) {
-    assert.equal(
-      requestedReason,
-      "EXPIRED",
-      "CLAIM_RETIREMENT_REQUEST_INVALID",
-    );
-    assert.equal(
-      evidence.reason,
-      "EXPIRED",
-      "CLAIM_RETIREMENT_REQUEST_REASON_MISMATCH",
-    );
-    for (const event of appended) {
+    if (requestedReason === "VOLUNTARY") {
       assert.equal(
-        event.payloadVersion,
-        1,
-        "CLAIM_RETIREMENT_REQUEST_VERSION_INVALID",
+        evidence.reason,
+        "VOLUNTARY",
+        "CLAIM_RETIREMENT_REQUEST_REASON_MISMATCH",
       );
+      assert.equal(appended.length, 1, "VOLUNTARY_SINGLE_EVENT_REQUIRED");
+      assert.equal(appended[0].payloadVersion, 1);
       assert.deepEqual(
-        event.payload,
-        { reason: "EXPIRED", requestedReason: "EXPIRED" },
-        "CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID",
+        appended[0].payload,
+        voluntaryRetirementPayload(evidence),
+        "VOLUNTARY_EVENT_PAYLOAD_MISMATCH",
       );
+      assert.ok(
+        timestamp(evidence.ownerDecision.createdAt) <=
+          timestamp(appended[0].observedAt),
+        "VOLUNTARY_EVENT_BEFORE_CONSENT",
+      );
+    } else {
+      assert.equal(
+        requestedReason,
+        "EXPIRED",
+        "CLAIM_RETIREMENT_REQUEST_INVALID",
+      );
+      assert.equal(
+        evidence.reason,
+        "EXPIRED",
+        "CLAIM_RETIREMENT_REQUEST_REASON_MISMATCH",
+      );
+      for (const event of appended) {
+        assert.equal(
+          event.payloadVersion,
+          1,
+          "CLAIM_RETIREMENT_REQUEST_VERSION_INVALID",
+        );
+        assert.deepEqual(
+          event.payload,
+          { reason: "EXPIRED", requestedReason: "EXPIRED" },
+          "CLAIM_RETIREMENT_REQUEST_PAYLOAD_INVALID",
+        );
+      }
     }
   } else {
     assert.ok(
@@ -620,6 +687,29 @@ export function deriveExplicitRetirementRequest({
     !appended.some((event) => Object.hasOwn(event.payload, "requestedReason"))
   )
     return undefined;
+  if (appended.some((event) => event.payload.requestedReason === "VOLUNTARY")) {
+    assert.equal(appended.length, 1, "VOLUNTARY_SINGLE_EVENT_REQUIRED");
+    const event = appended[0];
+    const request = event.payload.decisionRequest;
+    assert.equal(event.eventType, "CLAIM_RELEASED");
+    assert.equal(event.entity, claimId);
+    assert.equal(event.actor, "ORCHESTRATOR");
+    assert.equal(event.sourceSha, expectedBaseSha);
+    assert.equal(event.payload.reason, "VOLUNTARY");
+    assert.equal(request?.claimId, claimId);
+    assert.equal(request?.exactBaseSha, expectedBaseSha);
+    assert.equal(
+      event.payload.requestDigest,
+      objectDigest(request),
+      "VOLUNTARY_REQUEST_DIGEST_MISMATCH",
+    );
+    const observed = timestamp(event.observedAt);
+    assert.ok(
+      timestamp(request.snapshotAt) <= observed && observed <= now,
+      "VOLUNTARY_EVENT_TIME_INVALID",
+    );
+    return "VOLUNTARY";
+  }
   validateRetirementEvents({
     canonicalText,
     candidateText,
@@ -1252,6 +1342,11 @@ export async function collectClaimRetirementEvidence(
     token,
     fetchImpl = fetch,
     requestedReason,
+    decisionRequest,
+    canonicalText,
+    canonicalManifest,
+    retirementBranch,
+    clock = Date.now,
   },
 ) {
   assert.match(claimId, CLAIM_ID, "CLAIM_RETIREMENT_ID_INVALID");
@@ -1263,6 +1358,24 @@ export async function collectClaimRetirementEvidence(
   );
 
   if (requestedReason !== undefined) {
+    if (requestedReason === "VOLUNTARY")
+      return verifyVoluntaryRelease(decisionRequest, {
+        claimId,
+        claim,
+        canonicalManifest,
+        expectedBaseSha,
+        canonicalText,
+        retirementBranch,
+        repository,
+        token,
+        fetchImpl,
+        clock,
+      });
+    assert.equal(
+      decisionRequest,
+      undefined,
+      "VOLUNTARY_REQUEST_WITHOUT_REASON",
+    );
     assert.equal(
       requestedReason,
       "EXPIRED",
@@ -1282,6 +1395,7 @@ export async function collectClaimRetirementEvidence(
       baseSha: claim.baseSha,
     };
   }
+  assert.equal(decisionRequest, undefined, "VOLUNTARY_REQUEST_WITHOUT_REASON");
   const options = { token, fetchImpl };
   const merged = await mergedEvidence(
     claim,
@@ -1311,7 +1425,7 @@ export async function buildClaimRetirementProof(
   trustedRoot,
   candidateRoot,
   env = process.env,
-  { fetchImpl = fetch, now = Date.now() } = {},
+  { fetchImpl = fetch, now = Date.now(), clock = Date.now } = {},
 ) {
   const baseRoot = realpathSync(resolve(trustedRoot));
   const targetRoot = realpathSync(resolve(candidateRoot));
@@ -1386,7 +1500,35 @@ export async function buildClaimRetirementProof(
       token,
       fetchImpl,
       requestedReason,
+      decisionRequest:
+        requestedReason === "VOLUNTARY"
+          ? parseAuthorityLedger(candidateText).at(-1).payload.decisionRequest
+          : undefined,
+      canonicalText,
+      canonicalManifest,
+      retirementBranch: candidateManifest.branch,
+      clock,
     });
+
+    if (requestedReason === "VOLUNTARY") {
+      const observed = timestamp(
+        parseAuthorityLedger(candidateText).at(-1).observedAt,
+      );
+      assert.ok(observed <= clock(), "VOLUNTARY_EVENT_TIME_INVALID");
+      assert.deepEqual(
+        git(targetRoot, [
+          "diff",
+          "--name-only",
+          expectedBaseSha,
+          expectedCandidateSha,
+        ])
+          .split("\n")
+          .filter(Boolean)
+          .sort(),
+        metadataPaths(id).sort(),
+        "VOLUNTARY_EXACT_THREE_PATHS_REQUIRED",
+      );
+    }
 
     if (evidence.reason === "MERGED_PR") {
       assert.equal(
