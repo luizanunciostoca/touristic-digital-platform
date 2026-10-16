@@ -106,6 +106,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T01:25:15.825Z"
+    },
+    "MD-EXPLORE-FILTER-MEMBERSHIP-PROOF-20261016": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/explore-filter-membership-proof-20261016",
+      "baseSha": "67a64ad9837c347e2daa5445390d5cce15c90ed7",
+      "paths": [
+        ".morro/changesets/MD-EXPLORE-FILTER-MEMBERSHIP-PROOF-20261016.json",
+        ".github/workflows/place-explore-v2-visual-regression.yml"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T03:31:43.765Z"
     }
   }
 }
