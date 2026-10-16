@@ -7,6 +7,14 @@ const read = (path) =>
 const ownership = read(".morro/ownership.json");
 const risk = read(".morro/risk-policy.json");
 const cases = [
+  [
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+    "map",
+  ],
+  [
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts",
+    "map",
+  ],
   ["apps/morro-digital-platform/package.json", "ci-release"],
   [
     "apps/morro-digital-platform/src/navigation/navigation-dom-lifecycle.ts",
@@ -94,4 +102,16 @@ test("runtime siblings remain unregistered while generated assets retain map own
     owners("apps/morro-digital-platform/src/map/feature-styles.ts"),
     ["map"],
   );
+});
+
+test("navigation guidance runtime and future isolated test have exact high risk floors", () => {
+  for (const path of [
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+    "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts",
+  ]) {
+    assert.deepEqual(owners(path), ["map"]);
+    assert.ok(risk.highPaths.includes(path), path);
+    for (const suffix of [".backup", "-old", "/child"])
+      assert.equal(risk.highPaths.includes(path + suffix), false);
+  }
 });

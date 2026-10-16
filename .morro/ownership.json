@@ -53,7 +53,9 @@
         "apps/morro-digital-platform/src/ux/stylelint-governance-v2-contract.test.ts",
         "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
         "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
-        "apps/morro-digital-platform/src/assistant/assistant-voice-settings.test.ts"
+        "apps/morro-digital-platform/src/assistant/assistant-voice-settings.test.ts",
+        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
+        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts"
       ],
       "contracts": []
     },
