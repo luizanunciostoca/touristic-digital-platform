@@ -393,6 +393,10 @@ test("real --certify CLI rejects zero tasks; reverting its dispatch restores fal
     readFileSync(new URL("./affected-quality.mjs", import.meta.url), "utf8"),
   );
   put(
+    "tooling/ci/affected-task-proof.mjs",
+    readFileSync(new URL("./affected-task-proof.mjs", import.meta.url), "utf8"),
+  );
+  put(
     "tooling/fabric/ownership-path.mjs",
     "export const matchesOwnershipPath=(path,prefix)=>path.startsWith(prefix);\n",
   );
@@ -410,7 +414,7 @@ test("real --certify CLI rejects zero tasks; reverting its dispatch restores fal
   );
   put(
     "tooling/ci/impact-analyzer.mjs",
-    `console.log(${JSON.stringify(JSON.stringify({ domains: ["ci-tooling"], risk: "HIGH", qualityProfile: "BUGFIX_FAST", nonRuntime: false }))});`,
+    `console.log(JSON.stringify({base:process.argv[2],head:process.argv[3],files:["fixture.txt"],domains:["ci-tooling"],risk:"HIGH",qualityProfile:"BUGFIX_FAST",nonRuntime:false}));`,
   );
   put(
     "tooling/ci/fixture.test.mjs",
