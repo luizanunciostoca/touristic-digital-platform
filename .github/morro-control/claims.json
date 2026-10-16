@@ -95,7 +95,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/u7-home-regroup-harness-20261016",
-      "baseSha": "fe279e8ea534878d534064e6849f273b0a97f2c4",
+      "baseSha": "5b91ca7a83e057aa5f837c3faf515020450756e2",
       "paths": [
         ".morro/changesets/MD-U7-HOME-REGROUP-HARNESS-20261016.json",
         "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs"
