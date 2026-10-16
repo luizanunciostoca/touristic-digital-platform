@@ -179,6 +179,21 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T18:00:00.000Z"
+    },
+    "MD-ASSISTANT-DEFERRED-PRESENTATION-20261016": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/assistant-deferred-presentation-20261016",
+      "baseSha": "4397d3684b1226cab3fda708eed0b0b84c84cc8b",
+      "paths": [
+        ".morro/changesets/MD-ASSISTANT-DEFERRED-PRESENTATION-20261016.json",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+        "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts"
+      ],
+      "domains": ["map"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T09:00:00.000Z"
     }
   }
 }
