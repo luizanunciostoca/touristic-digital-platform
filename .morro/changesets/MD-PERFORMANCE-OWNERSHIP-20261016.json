@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-PERFORMANCE-OWNERSHIP-20261016",
+  "objective": "map-exact-performance-paths-and-risk-floors-to-canonical-owners",
+  "baseSha": "530715198de166051e2d98e9312e368ab9b36561",
+  "branch": "chore/performance-governance-20261016",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-PERFORMANCE-OWNERSHIP-20261016.json",
+      ".morro/ownership.json",
+      ".morro/risk-policy.json",
+      "tooling/fabric/performance-ownership.test.mjs"
+    ],
+    "contracts": ["TDP-PERFORMANCE-OWNERSHIP"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "performance-ownership",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/fabric/performance-ownership.test.mjs"
+        ],
+        "timeoutSeconds": 120
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
