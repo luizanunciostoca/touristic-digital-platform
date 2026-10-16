@@ -4,7 +4,7 @@
   "objective": "reject-empty-affected-workspace-proof-and-run-selected-root-tooling-tests-before-certification",
   "baseSha": "7de15151bf853efcc0ff1feb3d6771549bf35320",
   "branch": "fix/fast-gate-nonempty-affected-proof-20261016",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
