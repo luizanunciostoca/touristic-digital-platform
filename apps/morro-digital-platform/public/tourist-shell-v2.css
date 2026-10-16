@@ -272,6 +272,7 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 /* -------------------------------------------------------------------------- */
 
 #globe-map-control.md-map-control-stack {
+  pointer-events: none;
   position: fixed;
   right: var(--md-shell-gutter-end);
   bottom: calc(
@@ -306,6 +307,10 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 #globe-map-control .md-map-control[aria-pressed="true"] {
   background: var(--md-color-interactive-primary);
   color: var(--md-color-text-inverse);
+}
+
+#globe-map-control .md-map-control {
+  pointer-events: auto;
 }
 
 #globe-map-control .md-map-control svg {
