@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-INITIAL-CSS-ARCHITECTURE-20261016",
   "objective": "preserve-initial-home-first-visit-css-and-cascade-with-governed-demand-loaded-secondary-surfaces",
-  "baseSha": "2105694f682b26d59a28b8bb122aa0d0610ceea8",
+  "baseSha": "ec7b58d148b1955720c61f17947bef0046ac3866",
   "branch": "fix/initial-css-architecture-20261016",
   "state": "LOCAL_PROVEN",
   "risk": "high",
