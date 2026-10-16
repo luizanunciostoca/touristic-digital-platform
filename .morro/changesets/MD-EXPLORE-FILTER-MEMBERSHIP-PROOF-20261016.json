@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-EXPLORE-FILTER-MEMBERSHIP-PROOF-20261016",
   "objective": "strict-filtered-and-restored-explore-membership-proof-with-valid-marker-grouping",
-  "baseSha": "af941ad6601fbbb28fb33918e283211b7da26e1b",
-  "branch": "fix/explore-filter-membership-proof-20261016",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "4a9a4bc2a1b9b06904a1689cb14b633b981ab7e0",
+  "branch": "chore/retire-completed-place-proof-20261016",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
