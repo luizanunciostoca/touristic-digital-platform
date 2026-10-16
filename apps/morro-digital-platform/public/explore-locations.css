@@ -1448,16 +1448,15 @@ body:has(#map[data-tour-flow-stage="stop"])
 }
 
 .md-applied-map-filters {
-  position: fixed;
-  inset-inline-start: 0.5rem;
-  top: 8rem;
-  max-width: calc(100vw - 1rem);
+  position: static;
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: var(--md-space-1) var(--md-space-2);
   display: flex;
   flex-wrap: wrap;
   gap: var(--md-space-1);
   background: var(--md-color-surface);
   color: var(--md-color-text);
-  z-index: var(--md-layer-sheet);
 }
 .md-applied-map-filters[hidden] {
   display: none;

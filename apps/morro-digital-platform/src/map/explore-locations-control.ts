@@ -995,7 +995,11 @@ export function installExploreLocationsControl({
   const clearApplied = document.createElement("button");
   clearApplied.type = "button";
   appliedFilters.append(appliedLabel, clearApplied);
-  document.body.append(appliedFilters);
+  const filterDock = document.getElementById("unified-assistant-dock");
+  const filterRail = document.getElementById("assistant-category-rail");
+  if (filterDock && filterRail?.parentElement === filterDock)
+    filterDock.insertBefore(appliedFilters, filterRail);
+  else (filterDock ?? document.body).prepend(appliedFilters);
   const renderAppliedFilters = (): void => {
     const state = document.getElementById("map")?.dataset;
     const copy = getAppliedMapFilterCopy(currentLocale());

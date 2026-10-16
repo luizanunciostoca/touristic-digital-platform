@@ -152,6 +152,16 @@ async function inspectDiscover(page) {
       categoryRail: rect("#assistant-category-rail"),
       nav: rect("#home-bottom-navigation"),
       composer: rect("#assistant-input-area"),
+      mapControls: [
+        "toggle-3d-mode",
+        "toggle-map-layer",
+        "toggle-globe-view",
+        "recenter-map-control",
+      ].map((id) => ({
+        id,
+        visible: document.getElementById(id)?.checkVisibility() === true,
+        rect: rect(`#${id}`),
+      })),
       globe: rect("#toggle-globe-view"),
       threeD: rect("#toggle-3d-mode"),
       profilePanel: rect("#home-profile-panel"),
@@ -367,6 +377,16 @@ async function assertPureDiscover(page, viewport) {
     "Discover chrome collision detected",
     state,
   );
+  for (const control of state.mapControls)
+    assert(
+      control.visible &&
+        control.rect?.width >= 44 &&
+        control.rect?.height >= 44 &&
+        inside(control.rect, viewport, 2) &&
+        !overlaps(state.dock, control.rect),
+      "All four map controls must remain visible, reachable and clear of the dock",
+      control,
+    );
   for (const target of state.navTargets) {
     assert(
       target.width >= 44 && target.height >= 44,
@@ -414,6 +434,25 @@ async function verifyAppliedMapFilters(page) {
     (await projection.textContent()).includes("1"),
     "count represents one criterion, not beach marker quantity",
   );
+  const criterionChrome = await projection.evaluate((element) => {
+    const clear = element.querySelector("button").getBoundingClientRect();
+    return {
+      inDock: element.closest("#unified-assistant-dock") !== null,
+      width: clear.width,
+      height: clear.height,
+    };
+  });
+  assert(
+    criterionChrome.inDock &&
+      criterionChrome.width >= 48 &&
+      criterionChrome.height >= 48,
+    "Criteria must use the canonical dock and retain a reachable clear action",
+    criterionChrome,
+  );
+  await page
+    .locator('.morro-explore-marker[data-explore-category="beaches"]')
+    .first()
+    .click();
   await page.evaluate(async () => {
     const { getMorroDigitalApplication } = await import(
       new URL(

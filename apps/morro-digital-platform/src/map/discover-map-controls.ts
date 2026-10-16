@@ -274,10 +274,9 @@ export function installDiscoverLayersGroup(document: Document): () => void {
     buttons.some((button) => !button || button.parentElement !== parent)
   )
     return () => {};
-  const group = document.createElement("details");
+  const group = document.createElement("div");
   group.className = "md-discover-layers";
-  const summary = document.createElement("summary");
-  group.append(summary);
+  group.setAttribute("role", "group");
   const anchors = buttons.map((button) => {
     const anchor = document.createComment("discover-layer-control");
     button!.before(anchor);
@@ -286,10 +285,12 @@ export function installDiscoverLayersGroup(document: Document): () => void {
   parent.insertBefore(group, anchors[0]!);
   for (const button of buttons) group.append(button!);
   const render = () => {
-    summary.textContent =
+    group.setAttribute(
+      "aria-label",
       { pt: "Camadas", en: "Layers", es: "Capas", he: "שכבות" }[
         document.documentElement.lang.slice(0, 2) as "pt" | "en" | "es" | "he"
-      ] ?? "Camadas";
+      ] ?? "Camadas",
+    );
   };
   render();
   const observer = new MutationObserver(render);

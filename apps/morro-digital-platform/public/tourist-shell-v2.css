@@ -3301,6 +3301,7 @@ body[data-md-mode="discover"] .md-home-header h1 {
 }
 
 .md-discover-control-status {
+  pointer-events: none;
   position: fixed;
   inset-inline-end: 4.5rem;
   top: 35%;
@@ -3312,20 +3313,6 @@ body[data-md-mode="discover"] .md-home-header h1 {
   z-index: var(--md-layer-sheet);
 }
 
-.md-discover-layers summary {
-  min-width: 48px;
-  min-height: 48px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  border-radius: var(--md-radius-pill);
-  background: var(--md-color-surface);
-  color: var(--md-color-text);
-}
-.md-discover-layers[open] {
-  display: grid;
-  gap: var(--md-space-1);
-}
-.md-discover-layers summary:focus-visible {
-  outline: 2px solid var(--md-color-focus);
+.md-discover-layers {
+  display: contents;
 }
