@@ -110,25 +110,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
-    },
-    "MD-CLAIM-VOLUNTARY-RETIREMENT-20261016": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/claim-voluntary-retirement-20261016",
-      "baseSha": "507195554b9b5e1d0f28018a7a1117e4b8d87b58",
-      "paths": [
-        ".morro/changesets/MD-CLAIM-VOLUNTARY-RETIREMENT-20261016.json",
-        "tooling/fabric/claim-retirement-proof.mjs",
-        "tooling/fabric/claim-retirement-proof.test.mjs",
-        "tooling/mdctl/claim-lifecycle.mjs",
-        "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
-        "tooling/mdctl/merge-gate.mjs",
-        "tooling/control-state/mdctl-merge-gate.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T19:54:44.480Z"
     }
   }
 }
