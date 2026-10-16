@@ -27,7 +27,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/explore-tour-saved-ux-20261016",
-      "baseSha": "82f6f1e8899e29fadeed1c804368e72f017ecc35",
+      "baseSha": "21ef4bdfde7e0350bf64e1391f2071ab0f0cfa6d",
       "paths": [
         ".morro/changesets/MD-EXPLORE-TOUR-SAVED-UX-COMPLETION-20261016.json",
         ".github/workflows/device-saved-itineraries-browser-contract.yml",
