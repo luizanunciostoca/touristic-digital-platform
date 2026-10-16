@@ -686,6 +686,37 @@
       "needsDatabase": false,
       "needsDependencyAudit": false,
       "needsFullSecurity": false
+    },
+    "startup-performance": {
+      "paths": [
+        "apps/morro-digital-platform/src/performance/browser-startup-performance.ts",
+        "apps/morro-digital-platform/src/performance/browser-startup-performance.test.ts"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false,
+      "suites": [
+        "morro-performance-budget.yml",
+        "morro-runtime-startup-performance.yml"
+      ]
+    },
+    "performance-assets": {
+      "paths": [
+        "tooling/performance/check-morro-digital-budget.mjs",
+        "tooling/performance/check-morro-digital-budget.test.mjs"
+      ],
+      "risk": "HIGH",
+      "dependsOn": [],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": false,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": false,
+      "suites": ["morro-performance-budget.yml"]
     }
   }
 }
