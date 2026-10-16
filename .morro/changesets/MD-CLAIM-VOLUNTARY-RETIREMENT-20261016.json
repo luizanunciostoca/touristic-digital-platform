@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CLAIM-VOLUNTARY-RETIREMENT-20261016",
+  "objective": "implement-bounded-voluntary-claim-retirement-with-verified-owner-executor-consent-quiescence-and-durable-material-preservation",
+  "baseSha": "0ef792cb409fe21b2a14e3d7bd77cb32bf66cb99",
+  "branch": "fix/claim-voluntary-retirement-20261016",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CLAIM-VOLUNTARY-RETIREMENT-20261016.json",
+      "tooling/fabric/claim-retirement-proof.mjs",
+      "tooling/fabric/claim-retirement-proof.test.mjs",
+      "tooling/mdctl/claim-lifecycle.mjs",
+      "tooling/control-state/mdctl-claim-lifecycle.test.mjs",
+      "tooling/mdctl/merge-gate.mjs",
+      "tooling/control-state/mdctl-merge-gate.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "voluntary-claim-lifecycle-preflight",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 300
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
