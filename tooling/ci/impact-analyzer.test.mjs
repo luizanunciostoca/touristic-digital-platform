@@ -1123,6 +1123,8 @@ const confirmedUxImpactPaths = [
   "apps/morro-digital-platform/src/map/discover-map-controls.test.ts",
   "apps/morro-digital-platform/src/map/explore-v1-i18n.ts",
   "apps/morro-digital-platform/src/map/explore-v1-i18n.test.ts",
+  "apps/morro-digital-platform/src/map/explore-locations-v1-flow.ts",
+  "apps/morro-digital-platform/src/map/explore-locations-v1-flow.test.ts",
   "apps/morro-digital-platform/src/weather/weather-widget.ts",
   "apps/morro-digital-platform/src/weather/weather-widget.test.ts",
   "apps/morro-digital-platform/src/weather/weather-i18n.ts",

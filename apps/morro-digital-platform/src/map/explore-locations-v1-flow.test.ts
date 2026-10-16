@@ -4,6 +4,7 @@ import { morroV1SearchCatalog } from "@touristic/search";
 
 import {
   filterV1ExploreLocations,
+  resolveV1ExploreAppliedResult,
   getV1ExploreSubcategoryOptions,
   sortV1ExploreNearby,
 } from "./explore-locations-v1-flow.js";
@@ -118,5 +119,82 @@ describe("V1 assistant category subflows", () => {
 
     expect(nearby).toHaveLength(12);
     expect(new Set(nearby.map(({ name }) => name)).size).toBe(12);
+  });
+});
+
+describe("criteria emitted by the actual filter execution", () => {
+  it("counts the vegetarian criterion only when the real predicate is applied", () => {
+    const option = getV1ExploreSubcategoryOptions("restaurants").find(
+      (option) => option.value === "vegetariano",
+    )!;
+    const result = resolveV1ExploreAppliedResult(
+      "restaurants",
+      option,
+      category("restaurants"),
+    );
+    expect(result.locations).toEqual(
+      filterV1ExploreLocations(
+        "restaurants",
+        "vegetariano",
+        category("restaurants"),
+      ),
+    );
+    expect(result.criteria.map((x) => x.kind)).toEqual(["category", "filter"]);
+    expect(result.criteria[1]?.value).toBe("vegetariano");
+    const nonmatching = category("restaurants").filter(
+      (item) => !result.locations.includes(item),
+    );
+    const fallback = resolveV1ExploreAppliedResult(
+      "restaurants",
+      option,
+      nonmatching,
+    );
+    expect(fallback.applied).toBe(false);
+    expect(fallback.locations).toEqual(nonmatching);
+    expect(fallback.criteria).toEqual([
+      { kind: "category", value: "restaurants" },
+    ]);
+  });
+  it("records nearby only after permitted location and actual ranking, and rejects invented criteria", () => {
+    const option = getV1ExploreSubcategoryOptions("restaurants").find(
+      (option) => option.action === "nearby",
+    )!;
+    const denied = resolveV1ExploreAppliedResult(
+      "restaurants",
+      option,
+      category("restaurants"),
+      null,
+    );
+    expect(denied.criteria).toHaveLength(1);
+    const position = { latitude: -13.38, longitude: -38.91 };
+    const ranked = resolveV1ExploreAppliedResult(
+      "restaurants",
+      option,
+      category("restaurants"),
+      position,
+    );
+    expect(ranked.locations).toEqual(
+      sortV1ExploreNearby(category("restaurants"), position, 12),
+    );
+    expect(ranked.criteria.map((x) => x.kind)).toEqual(["category", "nearby"]);
+    expect(() =>
+      resolveV1ExploreAppliedResult(
+        "restaurants",
+        { action: "filter", value: "invented", label: "invented" },
+        category("restaurants"),
+      ),
+    ).toThrow("EXPLORE_FILTER_UNKNOWN");
+  });
+  it("all resets fine criteria while retaining the applied category", () => {
+    const option = getV1ExploreSubcategoryOptions("restaurants").find(
+      (option) => option.action === "all",
+    )!;
+    expect(
+      resolveV1ExploreAppliedResult(
+        "restaurants",
+        option,
+        category("restaurants"),
+      ).criteria,
+    ).toEqual([{ kind: "category", value: "restaurants" }]);
   });
 });

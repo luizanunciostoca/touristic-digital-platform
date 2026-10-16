@@ -272,6 +272,7 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 /* -------------------------------------------------------------------------- */
 
 #globe-map-control.md-map-control-stack {
+  pointer-events: none;
   position: fixed;
   right: var(--md-shell-gutter-end);
   bottom: calc(
@@ -306,6 +307,10 @@ body[data-md-mode="assistant"] #weather-widget.md-weather-control {
 #globe-map-control .md-map-control[aria-pressed="true"] {
   background: var(--md-color-interactive-primary);
   color: var(--md-color-text-inverse);
+}
+
+#globe-map-control .md-map-control {
+  pointer-events: auto;
 }
 
 #globe-map-control .md-map-control svg {
@@ -3298,4 +3303,21 @@ body[data-md-mode="discover"] .md-home-header h1 {
 .md-home-manual-panel :focus-visible {
   outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
   outline-offset: 2px;
+}
+
+.md-discover-control-status {
+  pointer-events: none;
+  position: fixed;
+  inset-inline-end: 4.5rem;
+  top: 35%;
+  max-width: min(16rem, 65vw);
+  padding: var(--md-space-2);
+  border-radius: var(--md-radius-md);
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+  z-index: var(--md-layer-sheet);
+}
+
+.md-discover-layers {
+  display: contents;
 }

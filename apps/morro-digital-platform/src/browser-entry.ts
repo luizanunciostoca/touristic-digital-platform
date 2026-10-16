@@ -1,3 +1,8 @@
+import {
+  installDiscoverLayer,
+  installDiscoverLocation,
+  installDiscoverLayersGroup,
+} from "./map/discover-map-controls.js";
 import { normalizeAssistantVoiceLanguage } from "@touristic/assistant";
 import type {
   MapboxGlMapLike,
@@ -538,136 +543,47 @@ function discoverCameraPadding(): {
 }
 
 function installMapLayerToggle(map: MapboxGlMapLike): () => void {
-  const button = document.getElementById("toggle-map-layer");
-  const mapElement = document.getElementById("map");
-  if (!(button instanceof HTMLButtonElement)) return () => undefined;
-
-  const styleMap = map as MapboxGlMapLike & {
-    setStyle?: (style: string) => void;
-  };
-  const canSetStyle = typeof styleMap.setStyle === "function";
-  let satellite = false;
-  let destroyed = false;
-
-  const render = (): void => {
-    button.classList.toggle("active", satellite);
-    button.setAttribute("aria-pressed", String(satellite));
-    button.title = satellite ? "Usar mapa padrão" : "Usar mapa de satélite";
-    button.setAttribute(
-      "aria-label",
-      satellite ? "Alterar para mapa padrão" : "Alterar para mapa de satélite",
-    );
-    mapElement?.setAttribute(
-      "data-map-layer",
-      satellite ? "satellite" : "standard",
-    );
-  };
-
-  const onClick = (): void => {
-    if (destroyed || !canSetStyle) return;
-    satellite = !satellite;
-    render();
-    styleMap.setStyle?.(
-      satellite ? DISCOVER_SATELLITE_MAP_STYLE : DISCOVER_DEFAULT_MAP_STYLE,
-    );
-  };
-
-  button.disabled = !canSetStyle;
-  button.setAttribute("aria-disabled", String(!canSetStyle));
-  render();
-  button.addEventListener("click", onClick);
-
+  const cleanupGroup = installDiscoverLayersGroup(document);
+  const cleanupLayer = installDiscoverLayer({
+    document,
+    map,
+    standardStyle: DISCOVER_DEFAULT_MAP_STYLE,
+    satelliteStyle: DISCOVER_SATELLITE_MAP_STYLE,
+  });
   return () => {
-    if (destroyed) return;
-    destroyed = true;
-    button.removeEventListener("click", onClick);
-    button.disabled = true;
-    button.setAttribute("aria-disabled", "true");
+    cleanupLayer();
+    cleanupGroup();
   };
 }
-
 function installDiscoverRecenterControl(
   map: MapboxGlMapLike,
   sdk: MapboxGlModuleLike,
 ): () => void {
-  const button = document.getElementById("recenter-map-control");
-  if (!(button instanceof HTMLButtonElement)) return () => undefined;
-  const cameraMap = map as MapboxGlMapLike & {
-    easeTo?: (options: {
-      center: [number, number];
-      zoom: number;
-      pitch?: number;
-      bearing?: number;
-      duration?: number;
-      essential?: boolean;
-      padding?: { top: number; bottom: number; left: number; right: number };
-    }) => void;
-  };
-  const moveCamera = (
-    center: readonly [number, number],
-    zoom: number,
-  ): void => {
-    if (cameraMap.easeTo) {
-      cameraMap.easeTo({
-        center: [...center],
-        zoom,
-        pitch: 0,
-        bearing: 0,
-        duration: 650,
-        essential: true,
-        padding: discoverCameraPadding(),
-      });
-    } else {
-      cameraMap.setCenter([...center]);
-      cameraMap.setZoom?.(zoom);
-    }
-    document.dispatchEvent(new Event("morro:map-camera-flattened"));
-  };
-  const onClick = (): void => {
-    if (activeCurrentLocation) {
-      presentCurrentLocation(
-        map,
-        sdk,
-        activeCurrentLocation[0],
-        activeCurrentLocation[1],
-        true,
-      );
-      moveCamera(activeCurrentLocation, Math.max(DISCOVER_HOME_ZOOM, 15.5));
-      return;
-    }
-    const geolocation = window.navigator.geolocation;
-    if (!geolocation) {
-      mapContainer?.setAttribute("data-geolocation-state", "unavailable");
-      return;
-    }
-    button.setAttribute("aria-busy", "true");
-    geolocation.getCurrentPosition(
-      (position) => {
-        button.removeAttribute("aria-busy");
-        presentCurrentLocation(
-          map,
-          sdk,
-          position.coords.longitude,
-          position.coords.latitude,
-          true,
-        );
-        moveCamera(
-          [position.coords.longitude, position.coords.latitude],
-          Math.max(DISCOVER_HOME_ZOOM, 15.5),
-        );
-      },
-      (error) => {
-        button.removeAttribute("aria-busy");
-        mapContainer?.setAttribute(
-          "data-geolocation-state",
-          error.code === 1 ? "denied" : "error",
-        );
-      },
-      { enableHighAccuracy: true, maximumAge: 15_000, timeout: 8_000 },
-    );
-  };
-  button.addEventListener("click", onClick);
-  return () => button.removeEventListener("click", onClick);
+  return installDiscoverLocation({
+    document,
+    currentLocation: () => activeCurrentLocation,
+    onLocation(center) {
+      presentCurrentLocation(map, sdk, center[0], center[1], true);
+      const cameraMap = map as MapboxGlMapLike & {
+        easeTo?: (options: Record<string, unknown>) => void;
+      };
+      if (cameraMap.easeTo)
+        cameraMap.easeTo({
+          center: [...center],
+          zoom: Math.max(DISCOVER_HOME_ZOOM, 15.5),
+          pitch: 0,
+          bearing: 0,
+          duration: 650,
+          essential: true,
+          padding: discoverCameraPadding(),
+        });
+      else {
+        map.setCenter([...center]);
+        map.setZoom?.(Math.max(DISCOVER_HOME_ZOOM, 15.5));
+      }
+      document.dispatchEvent(new Event("morro:map-camera-flattened"));
+    },
+  });
 }
 
 let runtimeStatusDescriptor: RuntimeStatusDescriptor = Object.freeze({

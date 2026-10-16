@@ -419,3 +419,61 @@ export function sortV1ExploreNearby(
       .slice(0, Math.max(0, limit)),
   );
 }
+
+export type AppliedExploreCriterion = Readonly<{
+  kind: "category" | "filter" | "nearby" | "search";
+  value: string;
+}>;
+/** Criteria describe this actual result, including deliberate fallback; never inferred from labels/counts. */
+export function resolveV1ExploreAppliedResult(
+  category: string,
+  option: V1ExploreOption,
+  locations: readonly MorroV1SearchCatalogItem[],
+  position?: Readonly<{ latitude: number; longitude: number }> | null,
+) {
+  const categoryCriterion: AppliedExploreCriterion = Object.freeze({
+    kind: "category",
+    value: category,
+  });
+  let result = locations;
+  let applied = false;
+  if (option.action === "filter") {
+    const known = getV1ExploreSubcategoryOptions(category, "pt").some(
+      (candidate) =>
+        candidate.action === "filter" && candidate.value === option.value,
+    );
+    if (!known) throw new Error("EXPLORE_FILTER_UNKNOWN");
+    const filtered = filterV1ExploreLocations(
+      category,
+      option.value,
+      locations,
+    );
+    applied = filtered.length > 0;
+    result = applied ? filtered : locations;
+  } else if (option.action === "nearby") {
+    applied = Boolean(position);
+    result = position
+      ? sortV1ExploreNearby(locations, position, 12)
+      : locations;
+  } else if (option.action !== "all")
+    throw new Error("EXPLORE_RESULT_ACTION_UNSUPPORTED");
+  const criteria: readonly AppliedExploreCriterion[] = Object.freeze([
+    categoryCriterion,
+    ...(applied
+      ? [
+          Object.freeze({
+            kind:
+              option.action === "nearby"
+                ? ("nearby" as const)
+                : ("filter" as const),
+            value: option.value,
+          }),
+        ]
+      : []),
+  ]);
+  return Object.freeze({
+    locations: Object.freeze([...result]),
+    criteria,
+    applied,
+  });
+}

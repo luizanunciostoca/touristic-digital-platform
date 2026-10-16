@@ -1446,3 +1446,22 @@ body:has(#map[data-tour-flow-stage="stop"])
   outline: var(--md-focus-ring-width) solid var(--md-focus-ring-color);
   outline-offset: var(--md-focus-ring-offset);
 }
+
+.md-applied-map-filters {
+  position: static;
+  flex: 0 0 auto;
+  max-width: 100%;
+  padding: var(--md-space-1) var(--md-space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-1);
+  background: var(--md-color-surface);
+  color: var(--md-color-text);
+}
+.md-applied-map-filters[hidden] {
+  display: none;
+}
+.md-applied-map-filters button {
+  min-height: 3rem;
+  min-width: 3rem;
+}

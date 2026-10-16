@@ -152,6 +152,16 @@ async function inspectDiscover(page) {
       categoryRail: rect("#assistant-category-rail"),
       nav: rect("#home-bottom-navigation"),
       composer: rect("#assistant-input-area"),
+      mapControls: [
+        "toggle-3d-mode",
+        "toggle-map-layer",
+        "toggle-globe-view",
+        "recenter-map-control",
+      ].map((id) => ({
+        id,
+        visible: document.getElementById(id)?.checkVisibility() === true,
+        rect: rect(`#${id}`),
+      })),
       globe: rect("#toggle-globe-view"),
       threeD: rect("#toggle-3d-mode"),
       profilePanel: rect("#home-profile-panel"),
@@ -367,6 +377,16 @@ async function assertPureDiscover(page, viewport) {
     "Discover chrome collision detected",
     state,
   );
+  for (const control of state.mapControls)
+    assert(
+      control.visible &&
+        control.rect?.width >= 44 &&
+        control.rect?.height >= 44 &&
+        inside(control.rect, viewport, 2) &&
+        !overlaps(state.dock, control.rect),
+      "All four map controls must remain visible, reachable and clear of the dock",
+      control,
+    );
   for (const target of state.navTargets) {
     assert(
       target.width >= 44 && target.height >= 44,
@@ -389,6 +409,143 @@ async function assertPureDiscover(page, viewport) {
     state,
   );
   return state;
+}
+
+async function verifyAppliedMapFilters(page) {
+  const applied = await page.evaluate(async () => {
+    const { getMorroDigitalApplication } = await import(
+      new URL(
+        "/apps/morro-digital-platform/dist/main.js",
+        window.location.origin,
+      ).href
+    );
+    return getMorroDigitalApplication(document).exploreLocations.execute({
+      type: "map_filter_category",
+      category: "beaches",
+    });
+  });
+  assert(applied, "category filter must commit to the real map");
+  const projection = page.locator(".md-applied-map-filters");
+  assert(
+    await projection.isVisible(),
+    "applied category must be visible even in map-only mode",
+  );
+  assert(
+    (await projection.textContent()).includes("1"),
+    "count represents one criterion, not beach marker quantity",
+  );
+  const criterionChrome = await projection.evaluate((element) => {
+    const clear = element.querySelector("button").getBoundingClientRect();
+    return {
+      inDock: element.closest("#unified-assistant-dock") !== null,
+      width: clear.width,
+      height: clear.height,
+    };
+  });
+  assert(
+    criterionChrome.inDock &&
+      criterionChrome.width >= 48 &&
+      criterionChrome.height >= 48,
+    "Criteria must use the canonical dock and retain a reachable clear action",
+    criterionChrome,
+  );
+  const pointerDeadline = Date.now() + 30000;
+  const selectableBeach = await page.evaluateHandle(async (deadline) => {
+    const selector = '.morro-explore-marker[data-explore-category="beaches"]';
+    while (Date.now() < deadline) {
+      const candidates = Array.from(document.querySelectorAll(selector)).map(
+        (element) => ({ element, rect: element.getBoundingClientRect() }),
+      );
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      let eligible = null;
+      for (const { element, rect } of candidates) {
+        if (!(element instanceof HTMLElement) || !element.isConnected) continue;
+        const current = element.getBoundingClientRect();
+        const x = current.left + current.width / 2;
+        const y = current.top + current.height / 2;
+        if (
+          current.width <= 0 ||
+          current.height <= 0 ||
+          x < 0 ||
+          y < 0 ||
+          x >= innerWidth ||
+          y >= innerHeight
+        )
+          continue;
+        if (
+          current.x !== rect.x ||
+          current.y !== rect.y ||
+          current.width !== rect.width ||
+          current.height !== rect.height
+        )
+          continue;
+        const topmost = document.elementFromPoint(x, y);
+        if (topmost?.closest(selector) !== element) {
+          const legitimateHud = topmost?.closest(
+            "#unified-assistant-dock, #toggle-3d-mode, #toggle-map-layer, #toggle-globe-view, #recenter-map-control",
+          );
+          if (!legitimateHud && !topmost?.closest(selector) && topmost) {
+            throw new Error(
+              `Unexpected marker obstruction: ${topmost.outerHTML}`,
+            );
+          }
+          continue;
+        }
+        if (
+          current.x === rect.x &&
+          current.y === rect.y &&
+          current.width === rect.width &&
+          current.height === rect.height
+        ) {
+          eligible ??= element;
+        }
+      }
+      if (eligible) return eligible;
+    }
+    throw new Error("No stable pointer-selectable beach marker");
+  }, pointerDeadline);
+  // Pin the tested node: a locator may rebind to a different cluster mid-camera.
+  try {
+    const remaining = pointerDeadline - Date.now();
+    assert(
+      remaining > 0,
+      "Beach marker selection exhausted its pointer budget",
+    );
+    await selectableBeach.asElement().click({ timeout: remaining });
+  } finally {
+    await selectableBeach.dispose();
+  }
+  await page.evaluate(async () => {
+    const { getMorroDigitalApplication } = await import(
+      new URL(
+        "/apps/morro-digital-platform/dist/main.js",
+        window.location.origin,
+      ).href
+    );
+    const explore = getMorroDigitalApplication(document).exploreLocations;
+    await explore.execute({ type: "open_category", category: "restaurants" });
+    await explore.execute({ type: "apply_option", value: "vegetariano" });
+  });
+  await page
+    .locator('.md-applied-map-filters[data-criteria-count="2"]')
+    .waitFor({ state: "visible" });
+  const committed = await page
+    .locator("#map")
+    .getAttribute("data-explore-criteria");
+  assert(
+    JSON.parse(committed).some(
+      (criterion) =>
+        criterion.kind === "filter" && criterion.value === "vegetariano",
+    ),
+    "count must include the actually applied fine filter",
+  );
+  await projection.locator("button").click();
+  await projection.waitFor({ state: "hidden" });
+  assert(
+    (await page.locator("#map").getAttribute("data-explore-state")) === "ready",
+    "clear must be provider-confirmed before zero",
+  );
 }
 
 async function verifyManualNavigation(page) {
@@ -1062,6 +1219,7 @@ try {
       await verifyVariants(page, viewport, evidence);
     }
 
+    await verifyAppliedMapFilters(page);
     assert(pageErrors.length === 0, "Browser page errors", pageErrors);
     evidence.viewports.push({ viewport, state, pageErrors });
     await context.close();

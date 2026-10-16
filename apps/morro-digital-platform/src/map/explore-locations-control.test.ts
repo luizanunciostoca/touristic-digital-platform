@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { morroV1SearchCatalog } from "@touristic/search";
 
 import {
+  appliedMapFilterSummary,
   createExploreLocationDetailsCommand,
   type ExternalTourMapPreparation,
   getAssistantCategoryButtonId,
@@ -158,7 +159,7 @@ function actualDatasetProducer() {
   );
   const body = `
     let destroyed=false, datasetGeometryGeneration=0, datasetGeneration=0, interactionGeneration=0, renderGeneration=0;
-    let externalTourOwnsMap=false, visibleLocations=[], activeMarkerMembers, retainedMenuContext=false, datasetCategory="places";
+    let externalTourOwnsMap=false, visibleLocations=[], activeMarkerMembers, retainedMenuContext=false, datasetCategory="places", datasetCriteria=[], placeReturnCriteria=[];
     let activeStage="menu", activeCategory, activeCategoryButton, activePlace, activePlaceLocation;
     let activePlaceActionValues=[], activeSearchQuery="", placeReturnLocations=[], placeReturnMessage="", placeReturnIsSearch=false;
     let closeMarkerList,refreshMarkerList,returnToMarkerList,restoreCurrentFlow;
@@ -170,25 +171,29 @@ function actualDatasetProducer() {
     const exploreFlowBottomSheet={hide(){}},immersiveTourController={destroy(){}};
     let geospatialEngine={initialized:true,replaceMarkers:async()=>{}};
     const loadHybridGlobalMarkers=()=>{};
-    const clearTourPresentation=()=>{};
-    const renderLocationsOnMap=async(locations,category)=>{installDataset(locations,category);updateMapState(locations.length,category,"ready");};
+    const clearTourPresentation=()=>{},renderAppliedFilters=()=>{};
+    const renderLocationsOnMap=async(locations,category,_open,_camera,criteria=datasetCriteria)=>{installDataset(locations,category,criteria);updateMapState(locations.length,category,"ready");};
     ${actual("categoryBounds", ts.SyntaxKind.FunctionDeclaration)}
     ${declarations.join("\n")}
     const producer={${methods.map((name) => actual(name, ts.SyntaxKind.MethodDeclaration)).join(",")}};
-    return {install:installDataset,publish:publishDatasetGeometry,prepare:()=>producer.prepareExternalTour(),mapOnly:renderMapOnlyLocations,
+    return {install:(records,category,criteria=[])=>installDataset(records,category,criteria),publish:publishDatasetGeometry,prepare:()=>producer.prepareExternalTour(),mapOnly:renderMapOnlyLocations,
       regroup:()=>updateMapState(visibleLocations.length,datasetCategory,"ready"),
       recover:async()=>{producer.setGeospatialEngine({initialized:true,replaceMarkers:async()=>{}});await markerQueue;},
       subset:members=>{activeMarkerMembers=members;syncLocationCounts();},
       clear:clearDatasetGeometry, dispose:()=>{destroyed=true;publishDatasetGeometry();},
       hold:()=>{let release;markerQueue=new Promise(r=>release=r);return release;},
       attribute:name=>attributes.get(name),
-      snapshot:()=>({attributes:Object.fromEntries(attributes),generation:datasetGeometryGeneration,external:externalTourOwnsMap})};
+      snapshot:()=>({attributes:Object.fromEntries(attributes),generation:datasetGeometryGeneration,external:externalTourOwnsMap,criteria:datasetCriteria})};
   `;
   const javascript = ts.transpileModule(body, {
     compilerOptions: { target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const execute = compileFunction(javascript, []) as () => Actions & {
-    install(records: readonly object[], category: string): void;
+    install(
+      records: readonly object[],
+      category: string,
+      criteria?: readonly object[],
+    ): void;
     mapOnly(records: readonly object[], category?: string): Promise<boolean>;
     recover(): Promise<void>;
     prepare(): Promise<ExternalTourMapPreparation | null>;
@@ -199,6 +204,7 @@ function actualDatasetProducer() {
       attributes: Record<string, string>;
       generation: number;
       external: boolean;
+      criteria: readonly object[];
     };
   };
   return execute();
@@ -248,7 +254,8 @@ describe("actual dataset geometry and external ownership lifecycle", () => {
   });
   it("keeps full bounds and generation across subset/regroup publication, and clears on a new dataset", () => {
     const producer = actualDatasetProducer();
-    producer.install(records, "beaches");
+    const criteria = [{ kind: "category", value: "beaches" }];
+    producer.install(records, "beaches", criteria);
     producer.publish();
     const initial = producer.snapshot();
     expect(initial.attributes[BOUNDS]).toBe("[[-39,-13],[-38,-12]]");
@@ -264,6 +271,7 @@ describe("actual dataset geometry and external ownership lifecycle", () => {
     producer.subset(undefined);
     producer.publish();
     expect(producer.snapshot().generation).toBe(1);
+    expect(producer.snapshot().criteria).toEqual(criteria);
     producer.install(records, "beaches");
     expect(producer.attribute(BOUNDS)).toBeUndefined();
     expect(producer.attribute(GENERATION)).toBeUndefined();
@@ -279,6 +287,7 @@ describe("actual dataset geometry and external ownership lifecycle", () => {
     const producer = actualDatasetProducer();
     producer.install(records, "beaches");
     producer.publish();
+    expect(producer.snapshot().criteria).toEqual([]);
     const release = producer.hold();
     const waiting = producer.prepare();
     expect(producer.snapshot()).toMatchObject({
@@ -306,5 +315,65 @@ describe("actual dataset geometry and external ownership lifecycle", () => {
     expect(selected).toBe(false);
     expect(boundary!.publishGeometry(records)).toBe(false);
     expect(producer.attribute(BOUNDS)).toBeUndefined();
+  });
+});
+
+describe("applied map filter projection", () => {
+  it("counts committed executor criteria including fine filters, independently of marker or selection count", () => {
+    const criteria = [
+      { kind: "category", value: "restaurants" },
+      { kind: "filter", value: "vegetariano" },
+    ];
+    expect(
+      appliedMapFilterSummary({
+        exploreState: "ready",
+        exploreCriteria: JSON.stringify(criteria),
+      }),
+    ).toEqual({ phase: "ready", criteria, count: 2 });
+    expect(
+      appliedMapFilterSummary({ exploreState: "ready", exploreCriteria: "[]" })
+        .count,
+    ).toBe(0);
+  });
+  it("never calls loading or failed clearing zero confirmed filters", () => {
+    expect(
+      appliedMapFilterSummary({
+        exploreState: "loading",
+        exploreCriteria: "[]",
+      }).count,
+    ).toBe(null);
+    expect(
+      appliedMapFilterSummary({ exploreState: "error", exploreCriteria: "[]" })
+        .count,
+    ).toBe(null);
+  });
+});
+
+describe("external tour criteria publication", () => {
+  it("clears prior criteria on takeover and confirms zero only at guarded geometry publication", async () => {
+    const producer = actualDatasetProducer();
+    const records = [{ name: "One", latitude: -13, longitude: -39 }];
+    producer.install(records, "restaurants", [
+      { kind: "category", value: "restaurants" },
+      { kind: "filter", value: "vegetariano" },
+    ]);
+    const boundary = await producer.prepare();
+    expect(producer.snapshot().criteria).toEqual([]);
+    expect(
+      producer.snapshot().attributes["data-explore-criteria"],
+    ).toBeUndefined();
+    expect(producer.snapshot().attributes["data-explore-state"]).toBe(
+      "loading",
+    );
+    expect(boundary?.publishGeometry(records)).toBe(true);
+    expect(producer.snapshot().attributes["data-explore-criteria"]).toBe("[]");
+    expect(producer.snapshot().attributes["data-explore-state"]).toBe("ready");
+    producer.install(records, "beaches", [
+      { kind: "category", value: "beaches" },
+    ]);
+    expect(boundary?.publishGeometry(records)).toBe(false);
+    expect(producer.snapshot().criteria).toEqual([
+      { kind: "category", value: "beaches" },
+    ]);
   });
 });

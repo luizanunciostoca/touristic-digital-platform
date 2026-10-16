@@ -659,3 +659,41 @@ export function getV1ExploreUiCopy(locale: AssistantLocale = "pt") {
   } as const;
   return copy[locale];
 }
+
+export function getAppliedMapFilterCopy(locale: string) {
+  const copy = {
+    pt: {
+      applied: "Critérios aplicados",
+      category: "Categoria no mapa",
+      clear: "Limpar critérios",
+      pending: "Atualizando filtros…",
+      error: "Filtros não confirmados no mapa",
+      search: "Busca no mapa",
+    },
+    en: {
+      applied: "Applied criteria",
+      category: "Map category",
+      clear: "Clear criteria",
+      pending: "Updating filters…",
+      error: "Map filters not confirmed",
+      search: "Map search",
+    },
+    es: {
+      applied: "Criterios aplicados",
+      category: "Categoría del mapa",
+      clear: "Borrar criterios",
+      pending: "Actualizando filtros…",
+      error: "Filtros del mapa no confirmados",
+      search: "Búsqueda del mapa",
+    },
+    he: {
+      applied: "קריטריונים שהוחלו",
+      category: "קטגוריה במפה",
+      clear: "ניקוי קריטריונים",
+      pending: "עדכון מסננים…",
+      error: "מסנני המפה לא אושרו",
+      search: "חיפוש במפה",
+    },
+  };
+  return copy[locale.slice(0, 2) as keyof typeof copy] ?? copy.pt;
+}

@@ -185,7 +185,10 @@ describe("Home / Discover UX V2 manual conformance", () => {
     expect(runtime).toContain("const DISCOVER_HOME_ZOOM = 14.8");
     expect(runtime).toContain("discoverInitialMarkers()");
     expect(runtime).toContain('"data-discover-poi-count"');
-    expect(runtime).toContain('"data-geolocation-state"');
+    const controls = await readRepository(
+      "apps/morro-digital-platform/src/map/discover-map-controls.ts",
+    );
+    expect(controls).toContain('"data-geolocation-state"');
     expect(runtime).toContain("installDiscoverRecenterControl");
     expect(css).toContain("UX Design V2 Wave A — Golden Discover convergence");
     expect(css).toContain(".md-discover-category-rail");
