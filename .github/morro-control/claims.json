@@ -90,6 +90,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-16T20:04:27.413Z"
+    },
+    "MD-U7-HOME-REGROUP-HARNESS-20261016": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/u7-home-regroup-harness-20261016",
+      "baseSha": "fe279e8ea534878d534064e6849f273b0a97f2c4",
+      "paths": [
+        ".morro/changesets/MD-U7-HOME-REGROUP-HARNESS-20261016.json",
+        "apps/morro-digital-platform/tooling/wave-a-discover-convergence.mjs"
+      ],
+      "domains": ["map", "ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T00:07:31.193Z"
     }
   }
 }
