@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-EXPLORE-MARKERS-UX7-20261015",
   "objective": "pixel-aware-all-category-marker-grouping-and-typed-selection",
-  "baseSha": "3c12c05d240ecd4e71fdb44e3ad7303e9ea0cf1b",
-  "branch": "fix/explore-markers-ux7-20261015",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "110c6102d05bc8aed8c2ece97abb1804f5f9a38d",
+  "branch": "infra/retire-explore-markers-ux7-959-20261016",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
