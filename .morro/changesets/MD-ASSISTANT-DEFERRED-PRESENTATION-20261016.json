@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ASSISTANT-DEFERRED-PRESENTATION-20261016",
+  "objective": "await-full-feature-css-before-new-assistant-output-preserving-first-greeting-and-speech-start",
+  "baseSha": "4397d3684b1226cab3fda708eed0b0b84c84cc8b",
+  "branch": "fix/assistant-deferred-presentation-20261016",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "DESTINATION:MORRO",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ASSISTANT-DEFERRED-PRESENTATION-20261016.json",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.ts",
+      "apps/morro-digital-platform/src/assistant/browser-assistant-runtime.test.ts"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "assistant-claim-lifecycle-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 180
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
