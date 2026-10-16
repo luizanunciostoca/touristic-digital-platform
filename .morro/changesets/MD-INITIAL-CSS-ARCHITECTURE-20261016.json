@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-INITIAL-CSS-ARCHITECTURE-20261016",
+  "objective": "preserve-initial-home-first-visit-css-and-cascade-with-governed-demand-loaded-secondary-surfaces",
+  "baseSha": "75269ede3df3a8c7bbe93e4fed7f0f198fa66383",
+  "branch": "fix/initial-css-architecture-20261016",
+  "state": "IMPLEMENTING",
+  "risk": "high",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-INITIAL-CSS-ARCHITECTURE-20261016.json",
+      ".morro/ownership.json",
+      ".morro/risk-policy.json",
+      "tooling/fabric/css-ownership.test.mjs",
+      "tooling/ci/build-entry-css.mjs",
+      "tooling/ci/build-entry-css.test.mjs",
+      "tooling/ci/entry-css-manifest.json",
+      "apps/morro-digital-platform/src/map/feature-styles.ts",
+      "apps/morro-digital-platform/src/map/feature-styles.test.ts",
+      "apps/morro-digital-platform/public/entry-css/",
+      "apps/morro-digital-platform/public/index.html",
+      "apps/morro-digital-platform/public/service-worker.js",
+      "apps/morro-digital-platform/package.json",
+      "package.json",
+      "pnpm-lock.yaml",
+      "apps/morro-digital-platform/src/navigation/navigation-dom-lifecycle.ts",
+      "apps/morro-digital-platform/src/navigation/navigation-dom-lifecycle.test.ts",
+      "apps/morro-digital-platform/src/onboarding/public-interactive-tour.ts",
+      "apps/morro-digital-platform/src/onboarding/public-onboarding.test.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-shell-ui.test.ts",
+      "apps/morro-digital-platform/src/accessibility/ux-p0-foundations.test.ts",
+      "apps/morro-digital-platform/src/ux/assistant-modal-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/home-shell-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/legacy-css-bundle-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/ux/stylelint-governance-v2-contract.test.ts",
+      "apps/morro-digital-platform/src/pwa/pwa-contract.test.ts",
+      "apps/morro-digital-platform/src/onboarding/public-onboarding.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
+      "apps/morro-digital-platform/src/assistant/assistant-voice-settings.test.ts"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": ["changeset", "git-identity", "ownership", "proof-plan"]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 300
+    },
+    "commands": [
+      {
+        "id": "initial-css-governance-preflight",
+        "argv": ["node", "--test", "tooling/fabric/ownership-path.test.mjs"],
+        "timeoutSeconds": 120
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "automated-independent-proof",
+      "exact-head-identity"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
