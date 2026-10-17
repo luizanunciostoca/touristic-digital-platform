@@ -547,3 +547,136 @@ describe("handlePublicPlaceApiRequest", () => {
     expect(malformedId?.status).toBe(400);
   });
 });
+
+describe("trusted server destination scope", () => {
+  function scopedFixture() {
+    const getPublished = vi.fn(async () => ({
+      place: place(),
+      publishedRevisionId: "r3",
+      publishedRevision: 3,
+    }));
+    const listPublished = vi.fn(async () => ({ items: [], nextCursor: null }));
+    const media = vi.fn(async () => null);
+    const commerce = vi.fn(async () => null);
+    const actions = vi.fn(async () => ({
+      placeId: asPlaceId("place-1"),
+      businessId: "business-1",
+      destinationId: "morro-de-sao-paulo",
+      primaryAction: null,
+      secondaryActions: [],
+    }));
+    const model = createPublicPlaceReadModel({
+      repository: { getPublished, listPublished },
+      media: { getPublishedMedia: media },
+      commerce: { getPublicCommerce: commerce },
+      actions: { resolvePublicActions: actions },
+    });
+    return { model, getPublished, listPublished, media, commerce, actions };
+  }
+  it("does not expose a foreign detail or call composition ports", async () => {
+    const f = scopedFixture();
+    const reply = await handlePublicPlaceApiRequest(f.model, {
+      method: "GET",
+      pathname: "/api/places/v1/place-1",
+      trustedDestinationId: "itacare",
+      headers: { "if-none-match": "foreign" },
+    });
+    expect(reply?.status).toBe(404);
+    expect(f.getPublished).toHaveBeenCalledWith(asPlaceId("place-1"), {
+      destinationId: "itacare",
+    });
+    for (const port of [f.media, f.commerce, f.actions])
+      expect(port).not.toHaveBeenCalled();
+    expect(reply?.headers.etag).toBeUndefined();
+  });
+  it("preserves legacy omission and passes a validated scope to the repository", async () => {
+    const f = scopedFixture();
+    expect(
+      (await f.model.getDetail(asPlaceId("place-1"))).detail,
+    ).not.toBeNull();
+    expect(f.getPublished).toHaveBeenLastCalledWith(asPlaceId("place-1"));
+    expect(
+      (
+        await f.model.getDetail(asPlaceId("place-1"), "pt-BR", {
+          destinationId: "morro-de-sao-paulo",
+        })
+      ).detail,
+    ).not.toBeNull();
+    expect(f.getPublished).toHaveBeenLastCalledWith(asPlaceId("place-1"), {
+      destinationId: "morro-de-sao-paulo",
+    });
+  });
+  for (const invalid of [undefined, null, "", " ", "../itacare", [], {}]) {
+    it(`rejects explicit invalid scope ${JSON.stringify(invalid)} before any repository or composition call`, async () => {
+      const f = scopedFixture();
+      for (const pathname of ["/api/places/v1/map", "/api/places/v1/place-1"]) {
+        const reply = await handlePublicPlaceApiRequest(f.model, {
+          method: "GET",
+          pathname,
+          trustedDestinationId: invalid,
+          query: {
+            destinationId: "morro-de-sao-paulo",
+            bbox: "-40,-15,-38,-13",
+          },
+        });
+        expect(reply?.status).toBe(404);
+        expect(reply?.headers.etag).toBeUndefined();
+      }
+      for (const port of [
+        f.getPublished,
+        f.listPublished,
+        f.media,
+        f.commerce,
+        f.actions,
+      ])
+        expect(port).not.toHaveBeenCalled();
+    });
+  }
+  it("binds map queries and their conditional requests to the trusted destination", async () => {
+    const f = scopedFixture();
+    const query = {
+      destinationId: "morro-de-sao-paulo",
+      bbox: "-40,-15,-38,-13",
+      cursor: "place-0",
+    };
+    const denied = await handlePublicPlaceApiRequest(f.model, {
+      method: "GET",
+      pathname: "/api/places/v1/map",
+      trustedDestinationId: "itacare",
+      query,
+      headers: { "if-none-match": "foreign" },
+    });
+    expect(denied?.status).toBe(404);
+    expect(f.listPublished).not.toHaveBeenCalled();
+    const allowed = await handlePublicPlaceApiRequest(f.model, {
+      method: "GET",
+      pathname: "/api/places/v1/map",
+      trustedDestinationId: "morro-de-sao-paulo",
+      query,
+    });
+    expect(allowed?.status).toBe(200);
+    const cached = await handlePublicPlaceApiRequest(f.model, {
+      method: "GET",
+      pathname: "/api/places/v1/map",
+      trustedDestinationId: "morro-de-sao-paulo",
+      query,
+      headers: { "if-none-match": allowed?.headers.etag },
+    });
+    expect(cached?.status).toBe(304);
+  });
+
+  it("rejects inherited and explicitly undefined scope arguments before the repository", async () => {
+    const f = scopedFixture();
+    for (const scope of [
+      undefined,
+      null,
+      {},
+      Object.create({ destinationId: "itacare" }) as unknown,
+    ]) {
+      await expect(
+        f.model.getDetail(asPlaceId("place-1"), "pt-BR", scope as never),
+      ).rejects.toThrow("PUBLIC_PLACE_TRUSTED_SCOPE_INVALID");
+    }
+    expect(f.getPublished).not.toHaveBeenCalled();
+  });
+});

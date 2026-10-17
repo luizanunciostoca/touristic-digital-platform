@@ -1,4 +1,7 @@
-import { normalizePublicDestinationHost } from "./destination-request-resolver.mjs";
+import {
+  normalizePublicDestinationHost,
+  resolvePublicDestinationRequest,
+} from "./destination-request-resolver.mjs";
 
 /**
  * Limit a destination-only hostname to APIs that can prove the requested
@@ -11,6 +14,7 @@ export function publicDestinationApiHostGate({
   query,
   allowedHosts,
   legacyDestinationId = "morro-de-sao-paulo",
+  trustedDestinationScope,
 }) {
   const configured = Object.keys(allowedHosts ?? {}).length > 0;
   if (!configured) return null;
@@ -58,6 +62,13 @@ export function publicDestinationApiHostGate({
     }
     return null;
   }
+  if (
+    /^\/api\/places\/v1\/[a-z0-9][a-z0-9_-]*$/u.test(pathname) &&
+    trustedDestinationScope &&
+    Object.hasOwn(trustedDestinationScope, "destinationId") &&
+    allowed.includes(trustedDestinationScope.destinationId)
+  )
+    return null;
   if (isNonLegacyDefault && pathname !== "/api/runtime/destination") {
     return Object.freeze({
       status: 404,
@@ -65,4 +76,34 @@ export function publicDestinationApiHostGate({
     });
   }
   return null;
+}
+
+/** Derive scope from admitted host/prefix only, never browser query or forwarded headers. */
+export function resolveTrustedPlaceDestinationScope({
+  host,
+  pathname,
+  allowedHosts,
+}) {
+  const prefix =
+    /^\/d\/([a-z0-9]+(?:-[a-z0-9]+)*)(\/api\/places\/v1\/.*)$/u.exec(pathname);
+  if (pathname.startsWith("/d/") && !prefix)
+    return Object.freeze({ status: 404 });
+  const scope = resolvePublicDestinationRequest({
+    host,
+    pathname: prefix
+      ? `/d/${prefix[1]}/api/runtime/destination`
+      : "/api/runtime/destination",
+    allowedHosts,
+  });
+  if (scope.status !== 200) return Object.freeze({ status: 404 });
+  const effectivePath = prefix?.[2] ?? pathname;
+  if (!effectivePath.startsWith("/api/places/v1/"))
+    return Object.freeze({ status: 404 });
+  return Object.freeze({
+    status: 200,
+    pathname: effectivePath,
+    ...(Object.keys(allowedHosts ?? {}).length
+      ? { scope: Object.freeze({ destinationId: scope.destinationId }) }
+      : {}),
+  });
 }

@@ -533,3 +533,56 @@ describe("Business CMS persisted runtime invariants", () => {
     await runtime.stop();
   });
 });
+
+describe("trusted destination SQL boundary", () => {
+  it("parameterizes detail destination and preserves legacy arity", async () => {
+    const { runtime, executed } = fixture();
+    expect(await runtime.start()).toBe(true);
+    try {
+      const response = () => ({ statusCode: 0, setHeader() {}, end() {} });
+      const url = new URL("http://localhost/api/places/v1/place-1");
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        response(),
+        url,
+        { destinationId: "itacare" },
+      );
+      const scoped = executed.find(
+        (x) =>
+          x.sql.includes("WHERE place_id = ?") &&
+          x.sql.includes("published_revision IS NOT NULL"),
+      );
+      expect(scoped.sql).toContain("AND destination_id = ?");
+      expect(scoped.params).toEqual(["place-1", "itacare"]);
+      executed.length = 0;
+      for (const scope of [
+        undefined,
+        null,
+        {},
+        Object.create({ destinationId: "itacare" }),
+        { destinationId: undefined },
+        { destinationId: "" },
+        { destinationId: "itacare' OR 1=1" },
+      ]) {
+        const reply = response();
+        await runtime.handlePublic(
+          { method: "GET", headers: {} },
+          reply,
+          url,
+          scope,
+        );
+        expect(reply.statusCode).toBe(404);
+      }
+      expect(executed).toHaveLength(0);
+      await runtime.handlePublic(
+        { method: "GET", headers: {} },
+        response(),
+        url,
+      );
+      expect(executed[0].sql).not.toContain("AND destination_id = ?");
+      expect(executed[0].params).toEqual(["place-1"]);
+    } finally {
+      await runtime.stop();
+    }
+  });
+});

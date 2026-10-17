@@ -71,7 +71,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/itacare-place-trusted-scope-20261017",
-      "baseSha": "abb6a586ff5ce250f59cce310e1e74d9072e01e1",
+      "baseSha": "1484a70fecb9b740d0ce3ecbe914cb893517ff95",
       "paths": [
         ".morro/changesets/MD-ITACARE-PLACE-TRUSTED-SCOPE-20261017.json",
         ".morro/ownership.json",

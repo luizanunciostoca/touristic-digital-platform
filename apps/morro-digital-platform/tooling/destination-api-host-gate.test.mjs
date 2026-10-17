@@ -3,7 +3,10 @@ const { describe, it } =
   process.env.VITEST === "true"
     ? await import("vitest")
     : await import("node:test");
-import { publicDestinationApiHostGate } from "./destination-api-host-gate.mjs";
+import {
+  publicDestinationApiHostGate,
+  resolveTrustedPlaceDestinationScope,
+} from "./destination-api-host-gate.mjs";
 const hosts = {
   "itacare.example.test": ["itacare"],
   "staging.example.test": ["morro-de-sao-paulo", "itacare"],
@@ -128,3 +131,74 @@ for (const destinations of [
     );
   });
 }
+
+describe("trusted server Place context", () => {
+  it("derives only admitted host/prefix scopes and keeps legacy omission distinct", () => {
+    assert.deepEqual(
+      resolveTrustedPlaceDestinationScope({
+        host: "localhost",
+        pathname: "/api/places/v1/place-1",
+        allowedHosts: {},
+      }),
+      { status: 200, pathname: "/api/places/v1/place-1" },
+    );
+    for (const [host, pathname] of [
+      ["foreign.test", "/api/places/v1/place-1"],
+      ["itacare.example.test", "/d/morro-de-sao-paulo/api/places/v1/place-1"],
+      ["itacare.example.test", "/d/../api/places/v1/place-1"],
+    ]) {
+      assert.equal(
+        resolveTrustedPlaceDestinationScope({
+          host,
+          pathname,
+          allowedHosts: hosts,
+        }).status,
+        404,
+      );
+    }
+    const context = resolveTrustedPlaceDestinationScope({
+      host: "staging.example.test",
+      pathname: "/d/itacare/api/places/v1/place-1",
+      allowedHosts: hosts,
+    });
+    assert.deepEqual(context.scope, { destinationId: "itacare" });
+    assert.equal(
+      publicDestinationApiHostGate({
+        host: "staging.example.test",
+        pathname: context.pathname,
+        allowedHosts: hosts,
+        trustedDestinationScope: context.scope,
+      }),
+      null,
+    );
+  });
+  it("keeps dedicated detail closed unless a valid server scope is supplied", () => {
+    for (const scope of [undefined, null, {}, { destinationId: "foreign" }])
+      assert.equal(
+        publicDestinationApiHostGate({
+          host: "itacare.example.test",
+          pathname: "/api/places/v1/place-1",
+          allowedHosts: hosts,
+          trustedDestinationScope: scope,
+        }).status,
+        404,
+      );
+    const scoped = {
+      host: "itacare.example.test",
+      pathname: "/api/places/v1/place-1",
+      allowedHosts: hosts,
+      trustedDestinationScope: { destinationId: "itacare" },
+    };
+    assert.equal(publicDestinationApiHostGate(scoped), null);
+    for (const pathname of [
+      "/media/image.jpg",
+      "/api/crm/leads",
+      "/private.html",
+      "/contracts/view/a",
+    ])
+      assert.equal(
+        publicDestinationApiHostGate({ ...scoped, pathname }).status,
+        404,
+      );
+  });
+});

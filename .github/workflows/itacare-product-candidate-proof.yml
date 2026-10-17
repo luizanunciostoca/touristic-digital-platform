@@ -28,6 +28,11 @@ on:
       - "apps/morro-digital-platform/tooling/destination-request-resolver.mjs"
       - "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs"
       - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - "packages/business/src/public-place-projection.ts"
+      - "packages/business/src/public-place-projection.test.ts"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.mjs"
+      - "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs"
+      - "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs"
       - ".github/workflows/itacare-product-candidate-proof.yml"
   workflow_dispatch:
     inputs:
@@ -95,6 +100,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if test -f apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs; then
+            test ! -L apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs
+            git ls-files --error-unmatch apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs >/dev/null
+            echo 'scoped_place=true' >> "$GITHUB_OUTPUT"
+          else
+            if git cat-file -e "$CANDIDATE_BASE:apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs" 2>/dev/null; then
+              echo 'SCOPED_PLACE_PROOF_REMOVAL_DENIED' >&2
+              exit 1
+            fi
+            if ! git diff --quiet "$CANDIDATE_BASE" HEAD -- packages/business/src/public-place-projection.ts packages/business/src/public-place-projection.test.ts apps/morro-digital-platform/tooling/place-platform-runtime.mjs apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs; then
+              echo 'SCOPED_PLACE_CORE_WITHOUT_SQL_PROOF_DENIED' >&2
+              exit 1
+            fi
+            echo 'scoped_place=false' >> "$GITHUB_OUTPUT"
+          fi
           activation_paths=(
             "apps/morro-digital-platform/public/destination.html"
             "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts"
@@ -124,8 +144,8 @@ jobs:
             if git show "$CANDIDATE_BASE:apps/morro-digital-platform/tooling/dev-server.mjs" | grep -F 'destination-page-resolver.mjs' >/dev/null; then exit 1; fi
             if git show "$CANDIDATE_BASE:apps/morro-digital-platform/src/browser-entry.ts" | grep -F 'toCoreDestinationConfig' >/dev/null; then exit 1; fi
             echo 'activated=false' >> "$GITHUB_OUTPUT"
-            echo 'NOT_APPLICABLE_PROVEN_A: all 13 B paths including entry bindings equal exact ancestor base.'
-            echo "NOT_APPLICABLE_PROVEN_A base=$CANDIDATE_BASE candidate=$CANDIDATE_HEAD changed=0/13" > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
+            echo 'B_RUNTIME_NOT_APPLICABLE: all 13 B paths including entry bindings equal exact ancestor base.'
+            echo "NOT_APPLICABLE_PROVEN_NO_B_ACTIVATION base=$CANDIDATE_BASE candidate=$CANDIDATE_HEAD changed=0/13" > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
           elif test "$changed" -eq 13; then
             test -f apps/morro-digital-platform/public/destination.html
             test -f apps/morro-digital-platform/src/destinations/destination-browser-entry.ts
@@ -137,8 +157,8 @@ jobs:
             echo "PARTIAL_DESTINATION_ACTIVATION_DENIED changed=$changed/13" >&2
             exit 1
           fi
-      - name: Build current product and prove published-only projection
-        if: steps.phase.outputs.activated == 'true'
+      - name: Build exact current dependencies for scoped Place or destination activation
+        if: steps.phase.outputs.scoped_place == 'true' || steps.phase.outputs.activated == 'true'
         working-directory: product
         shell: bash
         run: |
@@ -150,7 +170,27 @@ jobs:
           pnpm --filter @touristic/morro-digital-platform typecheck
           pnpm --filter @touristic/morro-digital-platform lint
           pnpm --filter @touristic/morro-digital-platform build
-          pnpm exec vitest run packages/business/src/public-place-projection.test.ts packages/business/src/place-publication-governance.test.ts apps/morro-digital-platform/src/runtime/public-destination.test.ts apps/morro-digital-platform/src/bootstrap/runtime.test.ts apps/morro-digital-platform/src/bootstrap/geospatial.test.ts apps/morro-digital-platform/src/destinations/destination-page.test.ts
+      - name: Scoped Place unit and real SQL socket proof independent of UI B
+        if: steps.phase.outputs.scoped_place == 'true'
+        working-directory: product
+        env:
+          ITACARE_DISPOSABLE_MYSQL_URL: mysql://root:local-ci-only@127.0.0.1:3306/itacare_disposable
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @touristic/business exec vitest run src/public-place-projection.test.ts src/place-publication-governance.test.ts
+          pnpm --filter @touristic/morro-digital-platform exec vitest run --config tooling/place-platform-runtime.vitest.config.mjs tooling/place-platform-runtime.vitest.mjs
+          node --test apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs | tee "$RUNNER_TEMP/itacare-product-evidence/scoped-place-sql-http.log"
+      - name: Activated destination UI regressions require the scoped Place proof
+        if: steps.phase.outputs.activated == 'true'
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test '${{ steps.phase.outputs.scoped_place }}' = 'true'
+          # Fail closed until actual dev-server mode exists; wrapper/fixtures cannot satisfy B.
+          node apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs --mode=dev-server
+          pnpm exec vitest run apps/morro-digital-platform/src/runtime/public-destination.test.ts apps/morro-digital-platform/src/bootstrap/runtime.test.ts apps/morro-digital-platform/src/bootstrap/geospatial.test.ts apps/morro-digital-platform/src/destinations/destination-page.test.ts
       - name: Disposable owner SQL, HTTP, and fixture-labeled browser
         if: steps.phase.outputs.activated == 'true'
         env:

@@ -5,6 +5,7 @@ import {
   createPublicPlaceReadModel,
   normalizeBusinessProfile,
   handlePublicPlaceApiRequest,
+  validatePublicPlaceDestinationScope,
   resolvePlacePresentationActions,
 } from "@touristic/business";
 import { createPlacePublicationService } from "@touristic/business/place-publication-governance";
@@ -620,13 +621,16 @@ function createPublicRepository(pool) {
       });
     },
 
-    async getPublished(placeId) {
+    async getPublished(placeId, ...scopeArgs) {
+      const scope = scopeArgs.length
+        ? validatePublicPlaceDestinationScope(scopeArgs[0])
+        : null;
       const [rows] = await pool.execute(
         `SELECT * FROM business_places
-          WHERE place_id = ? AND published_revision IS NOT NULL
+          WHERE place_id = ?${scope ? " AND destination_id = ?" : ""} AND published_revision IS NOT NULL
             AND publication_state NOT IN ('suspended', 'archived')
           LIMIT 1`,
-        [String(placeId)],
+        scope ? [String(placeId), scope.destinationId] : [String(placeId)],
       );
       return rows[0] ? publicRecordFromRow(rows[0]) : null;
     },
@@ -914,7 +918,7 @@ export function createPlacePlatformRuntime({
     return mediaStorage.handlePublic(request, response, requestUrl);
   }
 
-  async function handlePublic(request, response, requestUrl) {
+  async function handlePublic(request, response, requestUrl, ...scopeArgs) {
     if (!ready || !readModel) {
       sendJson(
         response,
@@ -924,8 +928,23 @@ export function createPlacePlatformRuntime({
       );
       return true;
     }
+    let trusted = null;
+    if (scopeArgs.length) {
+      try {
+        trusted = validatePublicPlaceDestinationScope(scopeArgs[0]);
+      } catch {
+        sendJson(
+          response,
+          404,
+          { error: "PLACE_NOT_FOUND" },
+          { "Cache-Control": "no-store" },
+        );
+        return true;
+      }
+    }
     const query = Object.fromEntries(requestUrl.searchParams.entries());
     const result = await handlePublicPlaceApiRequest(readModel, {
+      ...(trusted ? { trustedDestinationId: trusted.destinationId } : {}),
       method: request.method || "GET",
       pathname: requestUrl.pathname,
       query,
