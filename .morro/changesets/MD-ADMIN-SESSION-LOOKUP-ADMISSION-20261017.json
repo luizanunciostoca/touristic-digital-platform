@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ADMIN-SESSION-LOOKUP-ADMISSION-20261017",
   "objective": "authorize-administrative-session-listing-before-target-user-lookup-preserving-existing-authorized-and-revocation-contracts",
-  "baseSha": "c471ec390d7ca6333e215fe00e8b55b56cc86f31",
-  "branch": "fix/admin-session-lookup-admission-20261017",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "5d94aeb394db980c4f9bd9650ef3e35673363fc3",
+  "branch": "fix/admin-session-lookup-retirement-20261017",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
