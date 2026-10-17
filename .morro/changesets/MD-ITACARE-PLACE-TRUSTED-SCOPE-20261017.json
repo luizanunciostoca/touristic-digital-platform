@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-PLACE-TRUSTED-SCOPE-20261017",
   "objective": "bind-place-public-map-and-detail-to-trusted-server-destination-before-media-commerce-actions-preserving-legacy-absence-and-proving-disposable-mysql-http",
-  "baseSha": "1484a70fecb9b740d0ce3ecbe914cb893517ff95",
-  "branch": "fix/itacare-place-trusted-scope-20261017",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "9576eb02b0764c4c57b1f3f058ee296e9e844982",
+  "branch": "fix/itacare-place-scope-retirement-20261017",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "CROSS_DESTINATION",
   "owns": {
