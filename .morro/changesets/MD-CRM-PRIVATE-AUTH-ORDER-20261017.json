@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-CRM-PRIVATE-AUTH-ORDER-20261017",
+  "objective": "authenticate-private-crm-requests-before-runtime-schema-effects-preserving-signed-public-routes",
+  "baseSha": "69e7c0b6577b7d30275d9f4efffff5e145ffb691",
+  "branch": "fix/crm-private-auth-order-20261017",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-CRM-PRIVATE-AUTH-ORDER-20261017.json",
+      ".morro/ownership.json",
+      "apps/morro-digital-platform/tooling/crm-api.mjs",
+      "services/crm/src/crm-private-auth-order.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "private-auth-order-claim-authority-regression",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
