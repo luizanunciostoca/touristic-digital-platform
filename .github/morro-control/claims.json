@@ -71,7 +71,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/itacare-a-20261017",
-      "baseSha": "6056dc8dee06901e58ef5e157bf345efc8000db2",
+      "baseSha": "8a4a34cae9f3835f90d86d2f0c24890450cb88e0",
       "paths": [
         ".morro/changesets/MD-ITACARE-A-20261017.json",
         ".morro/ownership.json",
