@@ -88,7 +88,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/admin-impact-contract-20261017",
-      "baseSha": "496630503c7ff3e034387af0bfe434108f818080",
+      "baseSha": "d84aeb17d24bd53cc2c9c4ebf89b4b96d1428242",
       "paths": [
         ".morro/changesets/MD-ADMIN-IMPACT-CONTRACT-20261017.json",
         "tooling/ci/impact-analyzer.test.mjs"
