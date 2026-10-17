@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ITACARE-PLACE-TRUSTED-SCOPE-20261017",
+  "objective": "bind-place-public-map-and-detail-to-trusted-server-destination-before-media-commerce-actions-preserving-legacy-absence-and-proving-disposable-mysql-http",
+  "baseSha": "abb6a586ff5ce250f59cce310e1e74d9072e01e1",
+  "branch": "fix/itacare-place-trusted-scope-20261017",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "CROSS_DESTINATION",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ITACARE-PLACE-TRUSTED-SCOPE-20261017.json",
+      ".morro/ownership.json",
+      "tooling/ci/test-impact-manifest.json",
+      "packages/business/src/public-place-projection.ts",
+      "packages/business/src/public-place-projection.test.ts",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+      "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+      "apps/morro-digital-platform/tooling/destination-api-host-gate.mjs",
+      "apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs",
+      "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs",
+      ".github/workflows/itacare-product-candidate-proof.yml"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": ["MD-ITACARE-A-20261017"],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "itacare-place-trusted-scope-claim-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}

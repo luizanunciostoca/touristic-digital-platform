@@ -66,6 +66,29 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-ITACARE-PLACE-TRUSTED-SCOPE-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/itacare-place-trusted-scope-20261017",
+      "baseSha": "abb6a586ff5ce250f59cce310e1e74d9072e01e1",
+      "paths": [
+        ".morro/changesets/MD-ITACARE-PLACE-TRUSTED-SCOPE-20261017.json",
+        ".morro/ownership.json",
+        "tooling/ci/test-impact-manifest.json",
+        "packages/business/src/public-place-projection.ts",
+        "packages/business/src/public-place-projection.test.ts",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+        "apps/morro-digital-platform/tooling/destination-api-host-gate.mjs",
+        "apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs",
+        "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs",
+        ".github/workflows/itacare-product-candidate-proof.yml"
+      ],
+      "domains": ["business", "auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
