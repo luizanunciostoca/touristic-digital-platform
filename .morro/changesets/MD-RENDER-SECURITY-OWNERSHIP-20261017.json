@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "id": "MD-RENDER-SECURITY-OWNERSHIP-20261017",
   "objective": "declare-render-image-build-ownership-and-critical-risk-before-security-remediation",
-  "baseSha": "eb54c863f1ddebca4d5827a03ea5ed37e5726d04",
+  "baseSha": "5dec273a5bcf46a7c97a80b4c79783c550075adc",
   "branch": "chore/render-security-ownership-20261017",
   "state": "IMPLEMENTING",
   "risk": "high",
