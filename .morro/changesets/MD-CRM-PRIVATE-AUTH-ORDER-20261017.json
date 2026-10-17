@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CRM-PRIVATE-AUTH-ORDER-20261017",
   "objective": "authenticate-private-crm-requests-before-runtime-schema-effects-preserving-signed-public-routes",
-  "baseSha": "f0838978b4fa4808233abf074e8d8461d77bb0cf",
-  "branch": "fix/crm-private-auth-order-20261017",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "cf9ca6efe8b6fe320f0025df5e3b099e1b01d67f",
+  "branch": "chore/retire-crm-private-auth-order-20261017",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
