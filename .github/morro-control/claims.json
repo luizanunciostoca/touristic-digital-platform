@@ -16,6 +16,22 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T20:31:38.413Z"
+    },
+    "MD-RENDER-SECURITY-OWNERSHIP-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/render-security-ownership-20261017",
+      "baseSha": "eb54c863f1ddebca4d5827a03ea5ed37e5726d04",
+      "paths": [
+        ".morro/changesets/MD-RENDER-SECURITY-OWNERSHIP-20261017.json",
+        ".morro/ownership.json",
+        ".morro/risk-policy.json",
+        "tooling/fabric/render-security-ownership.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-18T22:59:00.000Z"
     }
   }
 }
