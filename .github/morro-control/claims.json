@@ -83,6 +83,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-ADMIN-IMPACT-CONTRACT-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/admin-impact-contract-20261017",
+      "baseSha": "496630503c7ff3e034387af0bfe434108f818080",
+      "paths": [
+        ".morro/changesets/MD-ADMIN-IMPACT-CONTRACT-20261017.json",
+        "tooling/ci/impact-analyzer.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
