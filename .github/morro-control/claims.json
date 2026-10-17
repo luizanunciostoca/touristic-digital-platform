@@ -16,6 +16,25 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T20:31:38.413Z"
+    },
+    "MD-MYSQL-SECURITY-GO-PCRE2-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/mysql-security-go-pcre2-20261017",
+      "baseSha": "f29ce5c68f825c5eef41e83f01485675feb923aa",
+      "paths": [
+        ".morro/changesets/MD-MYSQL-SECURITY-GO-PCRE2-20261017.json",
+        "tooling/render/mysql-staging/Dockerfile",
+        "tooling/render/mysql-production/Dockerfile",
+        "tooling/render/mysql-production-dr/Dockerfile",
+        "tooling/quality/check-render-production-mysql-blueprint.mjs",
+        "tooling/quality/production-mysql-dr-contract.test.mjs",
+        "tooling/quality/mysql-gosu-go-builder-contract.test.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-18T12:00:00.000Z"
     }
   }
 }
