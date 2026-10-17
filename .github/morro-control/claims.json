@@ -71,7 +71,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/itacare-server-boundary-20261017",
-      "baseSha": "2df808654c497663c3e35aa69039e59bf50f39fe",
+      "baseSha": "39bbd7cbd3388b73d7b393692c2800336c9a0375",
       "paths": [
         ".morro/changesets/MD-ITACARE-SERVER-BOUNDARY-20261017.json",
         "tooling/ci/test-impact-manifest.json",
