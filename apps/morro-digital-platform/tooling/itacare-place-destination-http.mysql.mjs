@@ -86,16 +86,113 @@ function childEnvironment(hosts) {
     }),
   };
 }
-async function stopChild(child) {
-  if (!child || child.exitCode !== null) return;
-  await new Promise((resolve) => {
-    const timer = setTimeout(() => child.kill("SIGKILL"), 10000);
-    child.once("close", () => {
-      clearTimeout(timer);
-      resolve();
-    });
-    child.kill("SIGTERM");
+const childStates = new WeakMap();
+function spawnOwned(args, options, command = process.execPath) {
+  const child = spawn(command, args, options);
+  const state = { closed: false, error: null };
+  childStates.set(child, state);
+  child.on("error", (error) => {
+    state.error = error;
   });
+  state.close = new Promise((resolve) =>
+    child.once("close", (code, signal) => {
+      state.closed = true;
+      state.code = code;
+      state.signal = signal;
+      resolve(state);
+    }),
+  );
+  return child;
+}
+async function waitForClose(child, milliseconds) {
+  const state = childStates.get(child);
+  if (state.closed) return state;
+  let timer;
+  try {
+    return await Promise.race([
+      state.close,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(Error("OWNED_CHILD_CLOSE_TIMEOUT")),
+          milliseconds,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+async function stopChild(child, graceMs = 10000, killMs = 5000) {
+  if (!child) return { started: false };
+  const state = childStates.get(child);
+  let forced = false;
+  if (!state.closed) {
+    if (child.exitCode === null && child.signalCode === null)
+      child.kill("SIGTERM");
+    try {
+      await waitForClose(child, graceMs);
+    } catch (error) {
+      if (error.message !== "OWNED_CHILD_CLOSE_TIMEOUT") throw error;
+      forced = true;
+      child.kill("SIGKILL");
+      await waitForClose(child, killMs);
+    }
+  }
+  assert.equal(state.closed, true);
+  return {
+    started: true,
+    exitCode: state.code,
+    signal: state.signal,
+    forced,
+    gracefulLimitMs: graceMs,
+    killLimitMs: killMs,
+    closeObserved: true,
+    errorCode: state.error?.code ?? null,
+  };
+}
+async function waitForStartup(child) {
+  const state = childStates.get(child);
+  if (state.error) throw state.error;
+  if (state.closed)
+    throw Error("DEV_SERVER_EARLY_EXIT:" + state.code + ":" + state.signal);
+  let timer,
+    output = "",
+    data,
+    onError,
+    onClose;
+  try {
+    return await new Promise((resolve, reject) => {
+      timer = setTimeout(
+        () => reject(Error("DEV_SERVER_START_TIMEOUT:" + output)),
+        15000,
+      );
+      data = (x) => {
+        output = (output + x).slice(-6000);
+        const match =
+          /Morro Digital disponível em http:\/\/127\.0\.0\.1:(\d+)/u.exec(
+            output,
+          );
+        if (match) resolve(Number(match[1]));
+      };
+      onError = reject;
+      onClose = (code, signal) =>
+        reject(
+          Error("DEV_SERVER_EARLY_EXIT:" + code + ":" + signal + ":" + output),
+        );
+      child.stdout.on("data", data);
+      child.stderr.on("data", data);
+      child.once("error", onError);
+      child.once("close", onClose);
+    });
+  } finally {
+    clearTimeout(timer);
+    child.stdout.off("data", data);
+    child.stderr.off("data", data);
+    child.off("error", onError);
+    child.off("close", onClose);
+    child.stdout.resume();
+    child.stderr.resume();
+  }
 }
 async function guardNegatives() {
   const fixture = mkdtempSync(join(tmpdir(), "itacare-guard-"));
@@ -123,7 +220,7 @@ async function guardNegatives() {
         args.push("--import", preload);
       } else writeFileSync(fixtureEnv, "SYNTHETIC_FIXTURE=true");
       args.push(fixtureEntry);
-      const c = spawn(process.execPath, args, {
+      const c = spawnOwned(args, {
         cwd: fixture,
         env: childEnvironment({ "itacare.test.invalid": ["itacare"] }),
         stdio: ["ignore", "pipe", "pipe"],
@@ -131,18 +228,15 @@ async function guardNegatives() {
       let out = "";
       c.stdout.on("data", (x) => (out = (out + x).slice(-6000)));
       c.stderr.on("data", (x) => (out = (out + x).slice(-6000)));
-      const result = await new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          c.kill("SIGKILL");
-          reject(Error("GUARD_NEGATIVE_TIMEOUT"));
-        }, 10000);
-        c.once("error", reject);
-        c.once("close", (code) => {
-          clearTimeout(timer);
-          resolve(code);
-        });
-      });
-      assert.notEqual(result, 0);
+      let result;
+      try {
+        result = await waitForClose(c, 10000);
+      } finally {
+        await stopChild(c);
+      }
+      assert.notEqual(result.code, 0);
+      assert.equal(childStates.get(c).closed, true);
+      assert.equal(existsSync(fixtureEnv), true);
       assert.match(out, /Error: DISPOSABLE_PROOF_DOTENV_DENIED/);
       assert.doesNotMatch(out, /MODULE_NOT_FOUND/);
       receipts.push({
@@ -173,6 +267,69 @@ if (mode === "dev-server")
         cases: await guardNegatives(),
         raceCoverage: "appearance before loader; no fencing claim after check",
         productDotenvTouched: false,
+      }),
+    );
+  });
+
+if (mode === "dev-server")
+  test("owned child cleanup observes signaled exit, spawn error and timeout before fixture removal", async () => {
+    const options = {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { PATH: process.env.PATH },
+    };
+    const signaled = spawnOwned(["-e", "setInterval(()=>{},1000)"], options);
+    await new Promise((resolve, reject) => {
+      signaled.once("spawn", resolve);
+      signaled.once("error", reject);
+    });
+    signaled.kill("SIGTERM");
+    await waitForClose(signaled, 3000);
+    const signaledReceipt = await stopChild(signaled);
+    assert.equal(signaledReceipt.signal, "SIGTERM");
+    assert.equal(signaledReceipt.forced, false);
+    const failed = spawnOwned([], options, "/itacare-proof-no-such-executable");
+    await assert.rejects(waitForStartup(failed), /ENOENT/);
+    await waitForClose(failed, 3000);
+    const failedReceipt = await stopChild(failed);
+    assert.equal(failedReceipt.errorCode, "ENOENT");
+    await assert.rejects(
+      waitForStartup(failed),
+      /DEV_SERVER_START_TIMEOUT|DEV_SERVER_EARLY_EXIT|ENOENT/,
+    );
+    const fixture = mkdtempSync(join(tmpdir(), "itacare-cleanup-"));
+    const hanging = spawnOwned(
+      [
+        "-e",
+        "process.on('SIGTERM',()=>{});process.stdout.write('ready');setInterval(()=>{},1000)",
+      ],
+      options,
+    );
+    let timeoutReceipt;
+    try {
+      await new Promise((resolve, reject) => {
+        hanging.stdout.once("data", resolve);
+        hanging.once("error", reject);
+      });
+      await assert.rejects(
+        waitForClose(hanging, 20),
+        /OWNED_CHILD_CLOSE_TIMEOUT/,
+      );
+      assert.equal(existsSync(fixture), true);
+      timeoutReceipt = await stopChild(hanging, 20, 3000);
+      assert.equal(timeoutReceipt.forced, true);
+      assert.equal(timeoutReceipt.signal, "SIGKILL");
+      assert.equal(childStates.get(hanging).closed, true);
+    } finally {
+      await stopChild(hanging, 20, 3000);
+      rmSync(fixture, { recursive: true, force: true });
+    }
+    console.log(
+      JSON.stringify({
+        status: "OWNED_CHILD_CLEANUP_REGRESSIONS_PROVEN",
+        signaled: signaledReceipt,
+        spawnError: failedReceipt,
+        timeout: timeoutReceipt,
+        fixtureRemovedAfterClose: !existsSync(fixture),
       }),
     );
   });
@@ -405,36 +562,12 @@ test("real scoped SQL and HTTP excludes foreign/private Place revisions", async 
         ),
         false,
       );
-      child = spawn(process.execPath, [entry], {
+      child = spawnOwned([entry], {
         cwd: productRoot,
         env,
         stdio: ["ignore", "pipe", "pipe"],
       });
-      actualPort = await new Promise((resolve, reject) => {
-        let output = "";
-        const timer = setTimeout(
-          () => reject(Error("DEV_SERVER_START_TIMEOUT:" + output)),
-          15000,
-        );
-        const data = (x) => {
-          output = (output + x).slice(-6000);
-          const match =
-            /Morro Digital disponível em http:\/\/127\.0\.0\.1:(\d+)/u.exec(
-              output,
-            );
-          if (match) {
-            clearTimeout(timer);
-            resolve(Number(match[1]));
-          }
-        };
-        child.stdout.on("data", data);
-        child.stderr.on("data", data);
-        child.once("error", reject);
-        child.once("exit", (code) => {
-          clearTimeout(timer);
-          reject(Error("DEV_SERVER_EARLY_EXIT:" + code + ":" + output));
-        });
-      });
+      actualPort = await waitForStartup(child);
       assert.ok(actualPort > 0);
       const legacyRoot = await probe("/", "morro.test.invalid");
       assert.equal(legacyRoot.status, 200);
@@ -721,7 +854,15 @@ test("real scoped SQL and HTTP excludes foreign/private Place revisions", async 
       }),
     );
   } finally {
-    await stopChild(child);
+    const cleanup = await stopChild(child);
+    if (child)
+      console.log(
+        JSON.stringify({
+          status: "OWNED_DEV_SERVER_CLEANUP",
+          ...cleanup,
+          productionShutdownUnchanged: true,
+        }),
+      );
     if (server.listening) await new Promise((resolve) => server.close(resolve));
     await runtime.stop();
     await pool.end();
