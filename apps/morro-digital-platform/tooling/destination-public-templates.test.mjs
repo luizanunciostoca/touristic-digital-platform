@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+const { describe, it } =
+  process.env.VITEST === "true"
+    ? await import("vitest")
+    : await import("node:test");
 import { parsePublicDestinationTemplates } from "./destination-public-templates.mjs";
 import {
   projectPublicDestination,
@@ -134,6 +137,74 @@ describe("trusted destination template + owner binding", () => {
           JSON.stringify({ itacare: invalid }),
           morro,
         ),
+      );
+    }
+  });
+});
+
+describe("only legacy Morro can use owner-unavailable fallback", () => {
+  const unavailableOwners = {
+    unavailable: { state: "unavailable" },
+    missingService: { state: "configured" },
+    absent: {
+      state: "configured",
+      service: { read: async () => ({ status: "not_found" }) },
+    },
+    suspended: {
+      state: "configured",
+      service: { read: async () => ({ ...active, status: "suspended" }) },
+    },
+    mismatch: {
+      state: "configured",
+      service: { read: async () => ({ ...active, id: "foreign" }) },
+    },
+    thrown: {
+      state: "configured",
+      service: {
+        read: async () => {
+          throw new Error("owner down");
+        },
+      },
+    },
+  };
+  for (const [name, owner] of Object.entries(unavailableOwners)) {
+    it(`fails closed for a new destination when owner is ${name} without a flag or with false`, async () => {
+      assert.equal(await resolvePublicDestination(owner, itacare), null);
+      assert.equal(
+        await resolvePublicDestination(owner, itacare, { requireOwner: false }),
+        null,
+      );
+      assert.equal(
+        await resolvePublicDestination(owner, itacare, { requireOwner: true }),
+        null,
+      );
+    });
+  }
+  it("accepts an active matching new owner without a flag or with false", async () => {
+    const owner = {
+      state: "configured",
+      service: { read: async () => active },
+    };
+    assert.equal(
+      (await resolvePublicDestination(owner, itacare)).id,
+      "itacare",
+    );
+    assert.equal(
+      (await resolvePublicDestination(owner, itacare, { requireOwner: false }))
+        .id,
+      "itacare",
+    );
+  });
+  it("preserves the Morro fallback unless its owner is explicitly required", async () => {
+    for (const owner of Object.values(unavailableOwners)) {
+      assert.equal(await resolvePublicDestination(owner, morro), morro);
+      assert.equal(
+        await resolvePublicDestination(owner, morro, { requireOwner: false }),
+        morro,
+      );
+      assert.equal(
+        await resolvePublicDestination(owner, morro, { requireOwner: true }),
+        null,
       );
     }
   });

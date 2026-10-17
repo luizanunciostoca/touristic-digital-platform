@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+const { describe, it } =
+  process.env.VITEST === "true"
+    ? await import("vitest")
+    : await import("node:test");
 import { publicDestinationApiHostGate } from "./destination-api-host-gate.mjs";
 const hosts = {
   "itacare.example.test": ["itacare"],
@@ -77,3 +80,51 @@ describe("destination-only API host gate", () => {
     );
   });
 });
+
+for (const destinations of [
+  ["itacare", "other"],
+  ["itacare", "morro-de-sao-paulo"],
+  ["other", "itacare"],
+]) {
+  it(`restricts unscoped routes when the default destination is ${destinations.join(",")}`, () => {
+    const configured = { "shared-new.example.test": destinations };
+    for (const pathname of [
+      "/api/weather",
+      "/api/assistant",
+      "/api/payments/v1/create",
+      "/api/places/v1/place-1",
+      "/media/morro-photo.jpg",
+      "/media%2Fmorro-photo.jpg",
+      "/index.html",
+      "/apps/admin-crm/public/index.html",
+      "/proposals/view/aaaaaaaaaaaaaaaa",
+      "/contracts/view/aaaaaaaaaaaaaaaa",
+    ]) {
+      assert.equal(
+        guard("shared-new.example.test", pathname, "", configured).status,
+        404,
+        pathname,
+      );
+    }
+    for (const destination of destinations) {
+      assert.equal(
+        guard(
+          "shared-new.example.test",
+          "/api/places/v1/map",
+          destination,
+          configured,
+        ),
+        null,
+      );
+    }
+    assert.equal(
+      guard(
+        "shared-new.example.test",
+        "/api/runtime/destination",
+        "",
+        configured,
+      ),
+      null,
+    );
+  });
+}

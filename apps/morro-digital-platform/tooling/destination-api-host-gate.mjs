@@ -22,8 +22,7 @@ export function publicDestinationApiHostGate({
     });
   }
   const allowed = allowedHosts[key];
-  const isDedicatedDestination =
-    allowed.length === 1 && allowed[0] !== legacyDestinationId;
+  const isNonLegacyDefault = allowed[0] !== legacyDestinationId;
 
   // The same host boundary must apply before the server's media and static
   // handlers, not just before its /api/* handlers. Never enable unsafe-eval
@@ -35,7 +34,7 @@ export function publicDestinationApiHostGate({
     return Object.freeze({ status: 404, error: "DESTINATION_PATH_INVALID" });
   }
   if (
-    isDedicatedDestination &&
+    isNonLegacyDefault &&
     (decodedPath.startsWith("/media/") ||
       decodedPath.startsWith("/proposals/view/") ||
       decodedPath.startsWith("/contracts/view/") ||
@@ -59,11 +58,7 @@ export function publicDestinationApiHostGate({
     }
     return null;
   }
-  if (
-    allowed.length === 1 &&
-    allowed[0] !== legacyDestinationId &&
-    pathname !== "/api/runtime/destination"
-  ) {
+  if (isNonLegacyDefault && pathname !== "/api/runtime/destination") {
     return Object.freeze({
       status: 404,
       error: "DESTINATION_CAPABILITY_NOT_RELEASED",

@@ -62,7 +62,8 @@ export async function resolvePublicDestination(
   fallback,
   { requireOwner = false } = {},
 ) {
-  const fallbackResult = requireOwner ? null : fallback;
+  const fallbackResult =
+    fallback?.id === "morro-de-sao-paulo" && !requireOwner ? fallback : null;
   try {
     if (
       destinationRuntime?.state !== "configured" ||
