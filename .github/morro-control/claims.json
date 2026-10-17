@@ -66,6 +66,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-ADMIN-SESSION-LOOKUP-ADMISSION-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/admin-session-lookup-admission-20261017",
+      "baseSha": "7e38e3105d500ba5f54bf500c5b6975144189634",
+      "paths": [
+        ".morro/changesets/MD-ADMIN-SESSION-LOOKUP-ADMISSION-20261017.json",
+        ".morro/ownership.json",
+        "tooling/ci/test-impact-manifest.json",
+        "apps/morro-digital-platform/tooling/admin-api.mjs",
+        "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+      ],
+      "domains": ["auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
