@@ -105,6 +105,14 @@ jobs:
             git ls-files --error-unmatch apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs >/dev/null
             echo 'scoped_place=true' >> "$GITHUB_OUTPUT"
           else
+            if git cat-file -e "$CANDIDATE_BASE:apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs" 2>/dev/null; then
+              echo 'SCOPED_PLACE_PROOF_REMOVAL_DENIED' >&2
+              exit 1
+            fi
+            if ! git diff --quiet "$CANDIDATE_BASE" HEAD -- packages/business/src/public-place-projection.ts packages/business/src/public-place-projection.test.ts apps/morro-digital-platform/tooling/place-platform-runtime.mjs apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs; then
+              echo 'SCOPED_PLACE_CORE_WITHOUT_SQL_PROOF_DENIED' >&2
+              exit 1
+            fi
             echo 'scoped_place=false' >> "$GITHUB_OUTPUT"
           fi
           activation_paths=(
