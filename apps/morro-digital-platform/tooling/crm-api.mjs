@@ -217,6 +217,10 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
       );
     },
   });
+  const publicTransports = [
+    new CrmContractPublicHttpTransport(contractPublicBoundary),
+    new CrmProposalPublicHttpTransport(proposalPublicBoundary),
+  ];
   let schemaReady;
   let started = false;
   let stopped = false;
@@ -250,6 +254,17 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
     },
 
     async handle(request, response, requestUrl) {
+      const publicRoute = publicTransports.some((transport) =>
+        transport.matches(requestUrl.pathname),
+      );
+      const session = await authApi.resolveSession(request);
+      if (!publicRoute && !session) {
+        json(response, 401, {
+          error: "AUTH_REQUIRED",
+          reason: "authentication_required",
+        });
+        return;
+      }
       await ensureSchema();
       let body;
       if (request.method !== "GET" && request.method !== "HEAD") {
@@ -261,7 +276,6 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         }
       }
 
-      const session = await authApi.resolveSession(request);
       const mutationSecurity =
         session && request.method !== "GET" && request.method !== "HEAD"
           ? authApi.authorizeMutation(request, session, "crm.resource")
@@ -275,8 +289,7 @@ export function createCrmApi({ authApi, getEnvironmentValue }) {
         },
       };
       const transports = [
-        new CrmContractPublicHttpTransport(contractPublicBoundary),
-        new CrmProposalPublicHttpTransport(proposalPublicBoundary),
+        ...publicTransports,
         new CrmContractHttpTransport(contractBoundary, authPort),
         new CrmFollowUpHttpTransport(followUpBoundary, authPort),
         new CrmLeadDetailHttpTransport(leadDetailBoundary, authPort),
