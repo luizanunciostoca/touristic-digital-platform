@@ -66,31 +66,6 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
-    },
-    "MD-ITACARE-A-20261017": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/itacare-a-20261017",
-      "baseSha": "8a4a34cae9f3835f90d86d2f0c24890450cb88e0",
-      "paths": [
-        ".morro/changesets/MD-ITACARE-A-20261017.json",
-        ".morro/ownership.json",
-        "tooling/ci/test-impact-manifest.json",
-        ".github/workflows/itacare-product-candidate-proof.yml",
-        "apps/morro-digital-platform/tooling/destination-api-host-gate.mjs",
-        "apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs",
-        "apps/morro-digital-platform/tooling/destination-page-resolver.mjs",
-        "apps/morro-digital-platform/tooling/destination-page-resolver.test.mjs",
-        "apps/morro-digital-platform/tooling/destination-public-projection.mjs",
-        "apps/morro-digital-platform/tooling/destination-public-templates.mjs",
-        "apps/morro-digital-platform/tooling/destination-public-templates.test.mjs",
-        "apps/morro-digital-platform/tooling/destination-request-resolver.mjs",
-        "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs"
-      ],
-      "domains": ["auth", "ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
