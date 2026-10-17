@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CRM-AUTH-ORDER-TYPED-LINT-20261017",
   "objective": "preserve-typed-lint-for-exact-crm-private-auth-order-regression",
-  "baseSha": "7a0764a90a2ec714f5bce7f4906f7e1aebe58d2d",
+  "baseSha": "7fcb4f3e120f1bafddcb6a6b4f8332764ecf9918",
   "branch": "fix/crm-auth-order-typed-lint-20261017",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
