@@ -171,6 +171,7 @@
       "pathPrefixes": [
         ".github/workflows/",
         "tooling/quality/",
+        "tooling/render/",
         "tooling/ci/",
         "tooling/fabric/",
         ".morro/",
