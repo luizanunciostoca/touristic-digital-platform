@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ADMIN-IMPACT-CONTRACT-20261017",
   "objective": "preserve-exact-administrative-auth-impact-and-neighbor-fail-closed-contract-before-authorized-host-mapping",
-  "baseSha": "d84aeb17d24bd53cc2c9c4ebf89b4b96d1428242",
-  "branch": "fix/admin-impact-contract-20261017",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "634bce3f679351f40a0a911bbb12e78afcbad8dd",
+  "branch": "fix/admin-impact-contract-retirement-20261017",
+  "state": "MERGED",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
