@@ -47,6 +47,25 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-HOME-EXPLORE-CSS-ADMISSION-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/css-home-explore-admission-20261017",
+      "baseSha": "aee307483333208acac6dc8edda556868718cc30",
+      "paths": [
+        ".morro/changesets/MD-HOME-EXPLORE-CSS-ADMISSION-20261017.json",
+        "apps/morro-digital-platform/src/map/feature-styles.ts",
+        "apps/morro-digital-platform/src/map/feature-styles.test.ts",
+        "apps/morro-digital-platform/src/home/home-discover-navigation.ts",
+        "apps/morro-digital-platform/src/home/home-discover-navigation.test.ts",
+        "apps/morro-digital-platform/src/map/explore-locations-control.ts",
+        "apps/morro-digital-platform/src/map/explore-locations-control.test.ts"
+      ],
+      "domains": ["map"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
