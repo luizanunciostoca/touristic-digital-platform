@@ -2,21 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-PERFORMANCE-WORKFLOW-FAILCLOSED-20261016": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/performance-workflow-failclosed-20261016",
-      "baseSha": "661550b85062d851febca4a5cb5c9255ef817ba8",
-      "paths": [
-        ".morro/changesets/MD-PERFORMANCE-WORKFLOW-FAILCLOSED-20261016.json",
-        ".github/workflows/morro-performance-budget.yml",
-        "tooling/ci/performance-budget-workflow-failclosed.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P0",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T18:00:00.000Z"
-    },
     "MD-HOME-ASSET-ACCOUNTING-20261016": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
