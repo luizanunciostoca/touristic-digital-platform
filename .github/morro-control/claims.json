@@ -2,22 +2,6 @@
   "schemaVersion": 1,
   "registryAuthority": "ORCHESTRATOR",
   "claims": {
-    "MD-HOME-ASSET-ACCOUNTING-20261016": {
-      "owner": "CHATGPT-PRO-CONTROL",
-      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
-      "branch": "fix/home-asset-accounting-20261016",
-      "baseSha": "a73d20b3b5484421013732f7084430ac92209832",
-      "paths": [
-        ".morro/changesets/MD-HOME-ASSET-ACCOUNTING-20261016.json",
-        "tooling/performance/check-morro-digital-budget.mjs",
-        "tooling/performance/check-morro-digital-budget.test.mjs",
-        "tooling/ci/performance-budget-accounting.test.mjs"
-      ],
-      "domains": ["ci-release"],
-      "risk": "P1",
-      "status": "IMPLEMENTING",
-      "expiresAt": "2026-10-17T18:00:00.000Z"
-    },
     "MD-HOME-EXPLORE-CSS-ADMISSION-20261017": {
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
