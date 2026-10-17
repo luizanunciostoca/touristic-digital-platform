@@ -105,6 +105,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-CRM-AUTH-ORDER-TYPED-LINT-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/crm-auth-order-typed-lint-20261017",
+      "baseSha": "7a0764a90a2ec714f5bce7f4906f7e1aebe58d2d",
+      "paths": [
+        ".morro/changesets/MD-CRM-AUTH-ORDER-TYPED-LINT-20261017.json",
+        "services/crm/eslint.config.mjs"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P1",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
