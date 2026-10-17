@@ -1,10 +1,10 @@
 FROM golang:1.26.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c AS gosu-builder
 
 ARG GOSU_VERSION=1.19
-ARG GOSU_RELEASE_COMMIT=6456aaa
+ARG GOSU_RELEASE_COMMIT=6456aaa0f3c854d199d0f037f068eb97515b7513
 RUN set -eux; \
     git clone --depth 1 --branch "${GOSU_VERSION}" https://github.com/tianon/gosu.git /src/gosu; \
-    test "$(git -C /src/gosu rev-parse --short=7 HEAD)" = "${GOSU_RELEASE_COMMIT}"; \
+    test "$(git -C /src/gosu rev-parse HEAD)" = "${GOSU_RELEASE_COMMIT}"; \
     cd /src/gosu; \
     CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/gosu .; \
     /out/gosu --version; \
@@ -14,7 +14,7 @@ FROM mysql:8.4
 
 # The upstream MySQL image currently ships gosu 1.19 compiled with Go 1.24.6.
 # Rebuild the same pinned gosu source with a patched Go toolchain, update the
-# fixable OpenSSL/libevent/libxml2 packages, and remove mysql-shell because this staging server
+# fixable OpenSSL/libevent/libxml2/pcre2 packages, and remove mysql-shell because this staging server
 # never invokes it. This preserves the official entrypoint/root-to-mysql drop
 # while reducing packages that are not part of the staging runtime contract.
 COPY --from=gosu-builder /out/gosu /usr/local/bin/gosu
@@ -23,7 +23,7 @@ RUN set -eux; \
     gosu --version; \
     gosu nobody true; \
     microdnf remove -y mysql-shell; \
-    microdnf update -y openssl openssl-libs libevent curl libcurl libxml2; \
+    microdnf update -y openssl openssl-libs libevent curl libcurl libxml2 pcre2; \
     microdnf clean all
 
 COPY tooling/render/mysql-staging/morro-memory.cnf /etc/mysql/conf.d/99-morro-memory.cnf
