@@ -4,7 +4,7 @@
   "objective": "preserve-typed-lint-for-exact-crm-private-auth-order-regression",
   "baseSha": "7fcb4f3e120f1bafddcb6a6b4f8332764ecf9918",
   "branch": "fix/crm-auth-order-typed-lint-20261017",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
