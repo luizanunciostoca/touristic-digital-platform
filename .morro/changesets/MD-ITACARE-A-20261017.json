@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-A-20261017",
   "objective": "prepare-reviewed-itacare-host-isolation-helpers-and-exact-candidate-proof-without-public-assets-or-destination-activation",
-  "baseSha": "6056dc8dee06901e58ef5e157bf345efc8000db2",
+  "baseSha": "8a4a34cae9f3835f90d86d2f0c24890450cb88e0",
   "branch": "fix/itacare-a-20261017",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "CROSS_DESTINATION",
   "owns": {

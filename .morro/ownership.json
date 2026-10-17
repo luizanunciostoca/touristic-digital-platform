@@ -132,7 +132,16 @@
         "apps/morro-digital-platform/tooling/affiliates-api.mjs",
         "apps/morro-digital-platform/tooling/affiliates-api.test.mjs",
         "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs",
-        "apps/morro-digital-platform/tooling/dev-server.mjs"
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "apps/morro-digital-platform/tooling/destination-api-host-gate.mjs",
+        "apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs",
+        "apps/morro-digital-platform/tooling/destination-page-resolver.mjs",
+        "apps/morro-digital-platform/tooling/destination-page-resolver.test.mjs",
+        "apps/morro-digital-platform/tooling/destination-public-projection.mjs",
+        "apps/morro-digital-platform/tooling/destination-public-templates.mjs",
+        "apps/morro-digital-platform/tooling/destination-public-templates.test.mjs",
+        "apps/morro-digital-platform/tooling/destination-request-resolver.mjs",
+        "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs"
       ],
       "contracts": ["platform-authz"]
     },

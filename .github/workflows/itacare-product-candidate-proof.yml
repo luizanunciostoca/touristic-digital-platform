@@ -1,0 +1,195 @@
+name: Itacare exact product candidate bounded proof
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "apps/morro-digital-platform/public/assets/brand/itacare-digital-micro-v2.svg"
+      - "apps/morro-digital-platform/public/assets/brand/itacare-digital-symbol-v2.svg"
+      - "apps/morro-digital-platform/public/destination.css"
+      - "apps/morro-digital-platform/public/destination.html"
+      - "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts"
+      - "apps/morro-digital-platform/src/bootstrap/geospatial.ts"
+      - "apps/morro-digital-platform/src/bootstrap/runtime.test.ts"
+      - "apps/morro-digital-platform/src/bootstrap/runtime.ts"
+      - "apps/morro-digital-platform/src/browser-entry.ts"
+      - "apps/morro-digital-platform/src/browser.ts"
+      - "apps/morro-digital-platform/src/destinations/destination-browser-entry.ts"
+      - "apps/morro-digital-platform/src/destinations/destination-page.test.ts"
+      - "apps/morro-digital-platform/src/destinations/destination-page.ts"
+      - "apps/morro-digital-platform/src/runtime/public-destination.test.ts"
+      - "apps/morro-digital-platform/src/runtime/public-destination.ts"
+      - "apps/morro-digital-platform/tooling/destination-api-host-gate.mjs"
+      - "apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs"
+      - "apps/morro-digital-platform/tooling/destination-page-resolver.mjs"
+      - "apps/morro-digital-platform/tooling/destination-page-resolver.test.mjs"
+      - "apps/morro-digital-platform/tooling/destination-public-projection.mjs"
+      - "apps/morro-digital-platform/tooling/destination-public-templates.mjs"
+      - "apps/morro-digital-platform/tooling/destination-public-templates.test.mjs"
+      - "apps/morro-digital-platform/tooling/destination-request-resolver.mjs"
+      - "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs"
+      - "apps/morro-digital-platform/tooling/dev-server.mjs"
+      - ".github/workflows/itacare-product-candidate-proof.yml"
+  workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Exact ancestor base SHA for the bounded activation census
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: itacare-product-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  bounded-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: itacare_disposable
+          MYSQL_ROOT_PASSWORD: local-ci-only
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping --silent --host=127.0.0.1 --user=root --password=local-ci-only"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    env:
+      CANDIDATE_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+      CANDIDATE_BASE: ${{ github.event.pull_request.base.sha || inputs.base_sha }}
+      LAB_HARNESS_HEAD: bd67c168d46ce749483e826ee2ab7f563a7bf68e
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ env.CANDIDATE_HEAD }}
+          fetch-depth: 0
+          path: product
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: luizanunciostoca/morro-integration-lab
+          ref: ${{ env.LAB_HARNESS_HEAD }}
+          path: proof-lab
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "22"
+      - name: Exact identities and positive helper assertions
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
+          [[ "$CANDIDATE_BASE" =~ ^[a-f0-9]{40}$ ]]
+          git cat-file -e "$CANDIDATE_BASE^{commit}"
+          git merge-base --is-ancestor "$CANDIDATE_BASE" HEAD
+          test "$(git -C ../proof-lab rev-parse HEAD)" = "$LAB_HARNESS_HEAD"
+          test -z "$(git status --porcelain)"
+          mkdir -p "$RUNNER_TEMP/itacare-product-evidence"
+          git rev-parse HEAD HEAD^{tree} > "$RUNNER_TEMP/itacare-product-evidence/identity.txt"
+          node --test apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs apps/morro-digital-platform/tooling/destination-page-resolver.test.mjs apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs apps/morro-digital-platform/tooling/destination-public-templates.test.mjs
+          node --test ../proof-lab/scripts/itacare-v2-disposable-database.test.mjs
+      - name: Activation census
+        id: phase
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          activation_paths=(
+            "apps/morro-digital-platform/public/destination.html"
+            "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts"
+            "apps/morro-digital-platform/src/bootstrap/geospatial.ts"
+            "apps/morro-digital-platform/src/bootstrap/runtime.test.ts"
+            "apps/morro-digital-platform/src/bootstrap/runtime.ts"
+            "apps/morro-digital-platform/src/browser-entry.ts"
+            "apps/morro-digital-platform/src/browser.ts"
+            "apps/morro-digital-platform/src/destinations/destination-browser-entry.ts"
+            "apps/morro-digital-platform/src/destinations/destination-page.test.ts"
+            "apps/morro-digital-platform/src/destinations/destination-page.ts"
+            "apps/morro-digital-platform/src/runtime/public-destination.test.ts"
+            "apps/morro-digital-platform/src/runtime/public-destination.ts"
+            "apps/morro-digital-platform/tooling/dev-server.mjs"
+          )
+          changed=0
+          for path in "${activation_paths[@]}"; do
+            if ! git diff --quiet "$CANDIDATE_BASE" HEAD -- "$path"; then changed=$((changed + 1)); fi
+          done
+          if test "$changed" -eq 0; then
+            for path in apps/morro-digital-platform/public/destination.html apps/morro-digital-platform/src/destinations/destination-browser-entry.ts apps/morro-digital-platform/src/destinations/destination-page.ts; do
+              if git cat-file -e "$CANDIDATE_BASE:$path" 2>/dev/null; then
+                echo 'BASE_ALREADY_OR_PARTIALLY_ACTIVATED_DENIED' >&2
+                exit 1
+              fi
+            done
+            if git show "$CANDIDATE_BASE:apps/morro-digital-platform/tooling/dev-server.mjs" | grep -F 'destination-page-resolver.mjs' >/dev/null; then exit 1; fi
+            if git show "$CANDIDATE_BASE:apps/morro-digital-platform/src/browser-entry.ts" | grep -F 'toCoreDestinationConfig' >/dev/null; then exit 1; fi
+            echo 'activated=false' >> "$GITHUB_OUTPUT"
+            echo 'NOT_APPLICABLE_PROVEN_A: all 13 B paths including entry bindings equal exact ancestor base.'
+            echo "NOT_APPLICABLE_PROVEN_A base=$CANDIDATE_BASE candidate=$CANDIDATE_HEAD changed=0/13" > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
+          elif test "$changed" -eq 13; then
+            test -f apps/morro-digital-platform/public/destination.html
+            test -f apps/morro-digital-platform/src/destinations/destination-browser-entry.ts
+            grep -Fq 'destination-browser-entry.js' apps/morro-digital-platform/public/destination.html
+            grep -Fq 'destination-page-resolver.mjs' apps/morro-digital-platform/tooling/dev-server.mjs
+            grep -Fq 'toCoreDestinationConfig' apps/morro-digital-platform/src/browser-entry.ts
+            echo 'activated=true' >> "$GITHUB_OUTPUT"
+          else
+            echo "PARTIAL_DESTINATION_ACTIVATION_DENIED changed=$changed/13" >&2
+            exit 1
+          fi
+      - name: Build current product and prove published-only projection
+        if: steps.phase.outputs.activated == 'true'
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+          pnpm install --frozen-lockfile --ignore-scripts
+          pnpm -r --filter '@touristic/morro-digital-platform^...' build
+          pnpm --filter @touristic/morro-digital-platform typecheck
+          pnpm --filter @touristic/morro-digital-platform lint
+          pnpm --filter @touristic/morro-digital-platform build
+          pnpm exec vitest run packages/business/src/public-place-projection.test.ts packages/business/src/place-publication-governance.test.ts apps/morro-digital-platform/src/runtime/public-destination.test.ts apps/morro-digital-platform/src/bootstrap/runtime.test.ts apps/morro-digital-platform/src/bootstrap/geospatial.test.ts apps/morro-digital-platform/src/destinations/destination-page.test.ts
+      - name: Disposable owner SQL, HTTP, and fixture-labeled browser
+        if: steps.phase.outputs.activated == 'true'
+        env:
+          ITACARE_DISPOSABLE_MYSQL_URL: mysql://root:local-ci-only@127.0.0.1:3306/itacare_disposable
+          ITACARE_REQUIRE_BROWSER_PROOF: "true"
+          ITACARE_PLAYWRIGHT_MODULE: ${{ runner.temp }}/itacare-pw/node_modules/playwright/index.mjs
+          ITACARE_BROWSER_EVIDENCE_DIR: ${{ runner.temp }}/itacare-product-evidence/browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --prefix "$RUNNER_TEMP/itacare-pw" --no-save --no-audit --no-fund playwright@1.54.2
+          node "$RUNNER_TEMP/itacare-pw/node_modules/playwright/cli.js" install --with-deps chromium
+          node proof-lab/scripts/itacare-v2-mysql-http-proof.mjs "$GITHUB_WORKSPACE/product" > "$RUNNER_TEMP/itacare-product-evidence/owner-http.log"
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const text = fs.readFileSync(process.env.RUNNER_TEMP + '/itacare-product-evidence/owner-http.log', 'utf8');
+          const reports = [...text.matchAll(/(?:^|\n)\{[\s\S]*?\n\}/g)].map(x => JSON.parse(x[0]));
+          const owner = reports.find(x => x.status === 'DISPOSABLE_MYSQL_OWNER_HTTP_PROVEN');
+          const browser = reports.find(x => x.status === 'ITACARE_BROWSER_OWNER_PLUS_PLACE_FIXTURE_PROVEN');
+          assert.ok(owner && browser);
+          assert.equal(owner.cases, 18);
+          for (const key of ['ownerReadback', 'suspendedFailClosed', 'morroStillLoads']) assert.equal(owner[key], true);
+          assert.equal(owner.finalItacareStatus, 'suspended');
+          assert.equal(owner.liveProviderEffects, false);
+          assert.equal(browser.crossDestinationDetailDenied, true);
+          assert.equal(browser.places, 'EXPLICIT_SYNTHETIC_FIXTURE');
+          JS
+          echo 'PROVEN: exact product owner SQL/HTTP + fixture browser + published projection unit assertions; NOT_PROVEN: published-only Place SQL/HTTP end-to-end/native Mapbox/real catalog.' > "$RUNNER_TEMP/itacare-product-evidence/runtime-state.txt"
+      - name: Final immutable readback
+        working-directory: product
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$CANDIDATE_HEAD"
+          test -z "$(git status --porcelain)"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: itacare-exact-product-bounded-proof
+          path: ${{ runner.temp }}/itacare-product-evidence
+          if-no-files-found: error

@@ -16,8 +16,9 @@ function booleanRecord(value) {
     : {};
 }
 
+/** Destination identity must match the trusted, same-destination public template. */
 export function projectPublicDestination(document, fallback) {
-  if (!document || document.status !== "active" || document.id !== fallback.id)
+  if (!document || document.status !== "active" || document.id !== fallback?.id)
     return null;
   const flags = booleanRecord(document.featureFlags);
   const enabled = new Set(
@@ -31,7 +32,15 @@ export function projectPublicDestination(document, fallback) {
   );
   const latitude = Number(document.center?.lat);
   const longitude = Number(document.center?.lng);
-  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (
+    !Number.isFinite(latitude) ||
+    latitude < -89 ||
+    latitude > 89 ||
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180
+  )
+    return null;
   return Object.freeze({
     id: fallback.id,
     name: String(document.branding?.name || fallback.name),
@@ -44,17 +53,27 @@ export function projectPublicDestination(document, fallback) {
   });
 }
 
-export async function resolvePublicDestination(destinationRuntime, fallback) {
+/**
+ * An owner outage may fall back to Morro only, preserving the current V1.
+ * An unproven new destination must never silently render another destination.
+ */
+export async function resolvePublicDestination(
+  destinationRuntime,
+  fallback,
+  { requireOwner = false } = {},
+) {
+  const fallbackResult =
+    fallback?.id === "morro-de-sao-paulo" && !requireOwner ? fallback : null;
   try {
     if (
       destinationRuntime?.state !== "configured" ||
       !destinationRuntime.service
     )
-      return fallback;
+      return fallbackResult;
     const result = await destinationRuntime.service.read(fallback.id);
     const document = result?.destination ?? result?.data ?? result;
-    return projectPublicDestination(document, fallback) ?? fallback;
+    return projectPublicDestination(document, fallback) ?? fallbackResult;
   } catch {
-    return fallback;
+    return fallbackResult;
   }
 }
