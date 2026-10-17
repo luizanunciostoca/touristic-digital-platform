@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-SERVER-BOUNDARY-20261017",
   "objective": "prove-trusted-destination-host-place-api-on-real-dev-server-with-ui-explicitly-unavailable",
-  "baseSha": "2df808654c497663c3e35aa69039e59bf50f39fe",
+  "baseSha": "39bbd7cbd3388b73d7b393692c2800336c9a0375",
   "branch": "fix/itacare-server-boundary-20261017",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "CROSS_DESTINATION",
   "owns": {

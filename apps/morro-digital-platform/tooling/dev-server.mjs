@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, stat, lstat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +18,16 @@ import { createCrmApi } from "./crm-api.mjs";
 import { createDestinationAdminRuntime } from "./destination-admin-runtime.mjs";
 import { createDatabaseEnvironmentResolver } from "./database-environment.mjs";
 import { resolvePublicDestination } from "./destination-public-projection.mjs";
+import { parsePublicDestinationTemplates } from "./destination-public-templates.mjs";
+import { resolvePublicDestinationPage } from "./destination-page-resolver.mjs";
+import {
+  publicDestinationApiHostGate,
+  resolveTrustedPlaceDestinationScope,
+} from "./destination-api-host-gate.mjs";
+import {
+  parsePublicDestinationHosts,
+  resolvePublicDestinationRequest,
+} from "./destination-request-resolver.mjs";
 import { createPaymentsApi } from "./payments-runtime-api.mjs";
 import { createNotificationsRuntime } from "./notifications-runtime.mjs";
 import { createTicketingNotificationsBridge } from "./ticketing-notifications-bridge.mjs";
@@ -127,6 +137,41 @@ function parseDotEnv(content) {
 }
 
 async function loadLocalEnvironment() {
+  if (process.env.MORRO_DISPOSABLE_PROOF === "1") {
+    const raw = process.env.BUSINESS_DATABASE_URL;
+    let db;
+    try {
+      db = new URL(raw);
+    } catch {
+      throw new Error("DISPOSABLE_PROOF_SCOPE_REQUIRED");
+    }
+    if (
+      process.env.NODE_ENV !== "test" ||
+      db.protocol !== "mysql:" ||
+      db.hostname !== "127.0.0.1" ||
+      db.pathname !== "/itacare_disposable" ||
+      db.search ||
+      db.hash ||
+      process.env.CONTENT_DATABASE_URL !== raw ||
+      process.env.DESTINATIONS_DATABASE_URL !== raw
+    )
+      throw new Error("DISPOSABLE_PROOF_SCOPE_REQUIRED");
+    if (
+      Object.entries(process.env).some(
+        ([key, value]) =>
+          value &&
+          /(?:MERCADO|PAYMENT|PROVIDER|SMTP|STRIPE|PRODUCTION)/u.test(key),
+      )
+    )
+      throw new Error("DISPOSABLE_PROOF_PROVIDER_ENV_DENIED");
+    try {
+      await lstat(envFile);
+    } catch (error) {
+      if (error?.code === "ENOENT") return {};
+      throw error;
+    }
+    throw new Error("DISPOSABLE_PROOF_DOTENV_DENIED");
+  }
   try {
     return parseDotEnv(await readFile(envFile, "utf8"));
   } catch (error) {
@@ -147,6 +192,21 @@ const getEnvironmentValue = createDatabaseEnvironmentResolver({
   processEnvironment: process.env,
   localEnvironment,
 });
+
+const destinationPublicHosts = parsePublicDestinationHosts(
+  getEnvironmentValue("PUBLIC_DESTINATION_HOSTS_JSON"),
+);
+const destinationPublicTemplates = parsePublicDestinationTemplates(
+  getEnvironmentValue("PUBLIC_DESTINATION_TEMPLATES_JSON"),
+  publicDestinationFallback,
+);
+for (const ids of Object.values(destinationPublicHosts)) {
+  for (const id of ids) {
+    if (!Object.hasOwn(destinationPublicTemplates, id)) {
+      throw new Error("DESTINATION_PUBLIC_HOST_TEMPLATE_NOT_CONFIGURED");
+    }
+  }
+}
 
 let platformOperations = null;
 let paymentsRuntimeReady = false;
@@ -482,19 +542,41 @@ function serveRuntimeConfig(response) {
   );
 }
 
-async function servePublicDestination(response) {
-  const destination = await resolvePublicDestination(
-    destinationRuntime,
-    publicDestinationFallback,
-  );
-  response.statusCode = 200;
+async function servePublicDestination(request, response, requestUrl) {
+  const scope = resolvePublicDestinationRequest({
+    host: request.headers.host,
+    pathname: requestUrl.pathname,
+    allowedHosts: destinationPublicHosts,
+  });
   response.setHeader("Content-Type", "application/json; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
+  if (scope.status !== 200) {
+    response.statusCode = scope.status;
+    response.end(JSON.stringify({ error: scope.error }));
+    return;
+  }
+  const trustedTemplate = destinationPublicTemplates[scope.destinationId];
+  if (!trustedTemplate) {
+    response.statusCode = 404;
+    response.end(JSON.stringify({ error: "DESTINATION_TEMPLATE_UNAVAILABLE" }));
+    return;
+  }
+  const destination = await resolvePublicDestination(
+    destinationRuntime,
+    trustedTemplate,
+    { requireOwner: !scope.legacyMorroFallbackAllowed },
+  );
+  if (!destination) {
+    response.statusCode = 503;
+    response.end(JSON.stringify({ error: "DESTINATION_OWNER_UNAVAILABLE" }));
+    return;
+  }
+  response.statusCode = 200;
   response.end(
     JSON.stringify({
       destination,
       source:
-        destination === publicDestinationFallback
+        destination === trustedTemplate
           ? "static-fallback"
           : "destination-owner",
     }),
@@ -692,12 +774,76 @@ const server = createServer(async (request, response) => {
       serviceDraining(response);
       return;
     }
-    if (requestUrl.pathname === "/runtime-config.js") {
-      serveRuntimeConfig(response);
+    // SERVER_BOUND_UI_ABSENT: no destination HTML or Morro fallback on new hosts.
+    if (requestUrl.pathname === "/" || requestUrl.pathname.startsWith("/d/")) {
+      const page = resolvePublicDestinationPage({
+        host: request.headers.host,
+        pathname: requestUrl.pathname,
+        allowedHosts: destinationPublicHosts,
+      });
+      if (
+        page.status === 200 &&
+        page.pageKind !== "legacy-morro" &&
+        !requestUrl.pathname.includes("/api/")
+      ) {
+        response.statusCode = 404;
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify({ error: "DESTINATION_UI_NOT_RELEASED" }));
+        return;
+      }
+    }
+    if (
+      requestUrl.pathname === "/api/runtime/destination" ||
+      /^\/d\/[^/]+\/api\/runtime\/destination\/?$/u.test(requestUrl.pathname)
+    ) {
+      await servePublicDestination(request, response, requestUrl);
       return;
     }
-    if (requestUrl.pathname === "/api/runtime/destination") {
-      await servePublicDestination(response);
+    let trustedPlace;
+    if (
+      requestUrl.pathname.startsWith("/api/places/v1/") ||
+      /^\/d\/[^/]+\/api\/places\/v1\//u.test(requestUrl.pathname)
+    ) {
+      trustedPlace = resolveTrustedPlaceDestinationScope({
+        host: request.headers.host,
+        pathname: requestUrl.pathname,
+        allowedHosts: destinationPublicHosts,
+      });
+      if (trustedPlace.status === 200)
+        requestUrl.pathname = trustedPlace.pathname;
+    }
+    const hostDenied = publicDestinationApiHostGate({
+      host: request.headers.host,
+      pathname: requestUrl.pathname,
+      query: requestUrl.searchParams,
+      allowedHosts: destinationPublicHosts,
+      trustedDestinationScope: trustedPlace?.scope,
+    });
+    if (
+      hostDenied ||
+      (trustedPlace?.status !== undefined && trustedPlace.status !== 200) ||
+      requestUrl.pathname.startsWith("/d/")
+    ) {
+      response.statusCode = 404;
+      response.setHeader("Cache-Control", "no-store");
+      response.end(
+        JSON.stringify({ error: "DESTINATION_CAPABILITY_NOT_RELEASED" }),
+      );
+      return;
+    }
+    if (requestUrl.pathname === "/runtime-config.js") {
+      const page = resolvePublicDestinationPage({
+        host: request.headers.host,
+        pathname: "/",
+        allowedHosts: destinationPublicHosts,
+      });
+      if (page.status !== 200 || page.pageKind !== "legacy-morro") {
+        response.statusCode = 404;
+        response.setHeader("Cache-Control", "no-store");
+        response.end(JSON.stringify({ error: "DESTINATION_UI_NOT_RELEASED" }));
+        return;
+      }
+      serveRuntimeConfig(response);
       return;
     }
     if (requestUrl.pathname === "/api/weather") {
@@ -729,6 +875,9 @@ const server = createServer(async (request, response) => {
         request,
         response,
         requestUrl,
+        ...(trustedPlace && Object.hasOwn(trustedPlace, "scope")
+          ? [trustedPlace.scope]
+          : []),
       );
       if (handled) return;
     }
@@ -949,5 +1098,7 @@ server.listen(port, host, () => {
     headers: {},
   });
   platformOperations.setListening(true, correlationId);
-  console.log(`Morro Digital disponível em http://${host}:${port}`);
+  console.log(
+    `Morro Digital disponível em http://${host}:${server.address().port}`,
+  );
 });
