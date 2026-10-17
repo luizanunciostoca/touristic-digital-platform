@@ -89,6 +89,22 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-CRM-PRIVATE-AUTH-ORDER-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/crm-private-auth-order-20261017",
+      "baseSha": "69e7c0b6577b7d30275d9f4efffff5e145ffb691",
+      "paths": [
+        ".morro/changesets/MD-CRM-PRIVATE-AUTH-ORDER-20261017.json",
+        ".morro/ownership.json",
+        "apps/morro-digital-platform/tooling/crm-api.mjs",
+        "services/crm/src/crm-private-auth-order.test.mjs"
+      ],
+      "domains": ["auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
