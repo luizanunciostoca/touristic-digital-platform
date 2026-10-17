@@ -11,6 +11,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { pathToFileURL } from "node:url";
 import {
   analyzeFiles,
   classifyPackageJsonChange,
@@ -914,12 +915,63 @@ test("administrative auth regression uses exact auth impact and preserves securi
   for (const file of [
     "apps/morro-digital-platform/tooling/admin-api.test.mjs.backup",
     "apps/morro-digital-platform/tooling/admin-api-other.test.mjs",
-    "apps/morro-digital-platform/tooling/admin-api.mjs",
+    "apps/morro-digital-platform/tooling/admin-api.mjs.backup",
   ]) {
     const result = analyzeFiles([file]);
     assert.equal(result.classificationBlocked, true);
     assert.deepEqual(result.unknownFiles, [file]);
     assert.equal(result.qualityProfile, "CLASSIFICATION_BLOCK");
+  }
+});
+
+test("projected exact admin host mapping retains auth proof and rejects neighbors", async () => {
+  const root = mkdtempSync(join(tmpdir(), "tdp-admin-impact-projection-"));
+  const analyzerBytes = readFileSync("tooling/ci/impact-analyzer.mjs");
+  const manifestBytes = readFileSync("tooling/ci/test-impact-manifest.json");
+  const host = "apps/morro-digital-platform/tooling/admin-api.mjs";
+  try {
+    // Project only the authorized future literal; production classification is unchanged.
+    const projectedManifest = JSON.parse(manifestBytes.toString("utf8"));
+    projectedManifest.domains.auth.paths = [
+      ...new Set([...projectedManifest.domains.auth.paths, host]),
+    ];
+    writeFileSync(join(root, "impact-analyzer.mjs"), analyzerBytes);
+    writeFileSync(
+      join(root, "test-impact-manifest.json"),
+      JSON.stringify(projectedManifest),
+    );
+    const { analyzeFiles: analyzeProjectedFiles } = await import(
+      pathToFileURL(join(root, "impact-analyzer.mjs")).href
+    );
+    const result = analyzeProjectedFiles([host]);
+    assert.equal(result.classificationBlocked, false);
+    assert.deepEqual(result.unknownFiles, []);
+    assert.deepEqual(result.domains, ["auth"]);
+    assert.equal(result.risk, "HIGH");
+    assert.equal(result.needsFullSecurity, true);
+    assert.equal(result.nonRuntime, false);
+    assert.equal(result.qualityProfile, "BUGFIX_FAST");
+    assert.deepEqual(result.suites, []);
+    for (const neighbor of [
+      `${host}.backup`,
+      "apps/morro-digital-platform/tooling/admin-api-other.mjs",
+      "apps/morro-digital-platform/tooling/admin-api-other.test.mjs",
+    ]) {
+      const denied = analyzeProjectedFiles([neighbor]);
+      assert.equal(denied.classificationBlocked, true);
+      assert.deepEqual(denied.unknownFiles, [neighbor]);
+      assert.equal(denied.qualityProfile, "CLASSIFICATION_BLOCK");
+    }
+    assert.deepEqual(
+      readFileSync(join(root, "impact-analyzer.mjs")),
+      analyzerBytes,
+    );
+    assert.deepEqual(
+      readFileSync("tooling/ci/test-impact-manifest.json"),
+      manifestBytes,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 
