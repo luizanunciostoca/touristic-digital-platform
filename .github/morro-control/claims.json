@@ -66,6 +66,23 @@
       "risk": "P1",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-17T18:00:00.000Z"
+    },
+    "MD-ITACARE-SERVER-BOUNDARY-20261017": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "fix/itacare-server-boundary-20261017",
+      "baseSha": "2df808654c497663c3e35aa69039e59bf50f39fe",
+      "paths": [
+        ".morro/changesets/MD-ITACARE-SERVER-BOUNDARY-20261017.json",
+        "tooling/ci/test-impact-manifest.json",
+        "apps/morro-digital-platform/tooling/dev-server.mjs",
+        "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs",
+        ".github/workflows/itacare-product-candidate-proof.yml"
+      ],
+      "domains": ["business", "auth", "ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-17T18:00:00.000Z"
     }
   }
 }
