@@ -991,16 +991,19 @@ export function createAdminApi({
       json(response, 400, { error: "INVALID_USER_ID" });
       return true;
     }
+    const handle = match[2] ?? null;
+    if (!handle && request.method === "GET") {
+      const actor = await requireCapability(request, response, "users.read");
+      if (!actor) return true;
+    }
+
     const user = authApi.findConfiguredUser(userId);
     if (!user) {
       json(response, 404, { error: "USER_NOT_FOUND" });
       return true;
     }
 
-    const handle = match[2] ?? null;
     if (!handle && request.method === "GET") {
-      const actor = await requireCapability(request, response, "users.read");
-      if (!actor) return true;
       try {
         const sessions = await authApi.listUserSessions(userId);
         json(response, 200, {
