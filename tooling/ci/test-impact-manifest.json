@@ -236,6 +236,7 @@
       "paths": [
         "packages/auth/",
         "services/auth/",
+        "apps/morro-digital-platform/tooling/admin-api.mjs",
         "apps/morro-digital-platform/tooling/admin-api.test.mjs"
       ],
       "risk": "HIGH",

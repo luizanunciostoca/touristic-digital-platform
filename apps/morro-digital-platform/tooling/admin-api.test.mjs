@@ -94,6 +94,7 @@ function fixture(session = platformOwner, options = {}) {
 
   const authApi = {
     async resolveSession() {
+      options.onAuthCall?.("resolveSession");
       return session;
     },
     authorizeMutation() {
@@ -134,6 +135,7 @@ function fixture(session = platformOwner, options = {}) {
       return users;
     },
     findConfiguredUser(id) {
+      options.onAuthCall?.("findConfiguredUser");
       return users.find((user) => user.id === id) ?? null;
     },
     async listAdminUsers() {
@@ -176,6 +178,7 @@ function fixture(session = platformOwner, options = {}) {
       };
     },
     async listUserSessions(id) {
+      options.onAuthCall?.("listUserSessions");
       if (id !== businessOwner.id) return [];
       return [
         {
@@ -189,6 +192,7 @@ function fixture(session = platformOwner, options = {}) {
       ];
     },
     async revokeUserSession(id, handle) {
+      options.onAuthCall?.("revokeUserSession");
       return {
         found: id === businessOwner.id && handle === "a".repeat(64),
         alreadyRevoked: false,
@@ -1289,6 +1293,79 @@ describe("Control Center Admin API", () => {
     expect(accepted.headers.get("set-cookie")).toContain("md_control_step_up=");
     expect(JSON.parse(accepted.body).stepUp.method).toBe("password");
   });
+
+  it.each([
+    ["anonymous", null, 401, "AUTH_REQUIRED"],
+    ["expired-session resolver", null, 401, "AUTH_REQUIRED"],
+    [
+      "BUSINESS_VIEWER",
+      {
+        ...platformOwner,
+        role: "BUSINESS_VIEWER",
+        businessIds: ["toca-do-morcego"],
+      },
+      403,
+      "ADMIN_SURFACE_DENIED",
+    ],
+  ])(
+    "%s cannot distinguish existing and missing session-list targets",
+    async (_label, actor, status, error) => {
+      for (const userId of ["business-owner", "synthetic-missing-user"]) {
+        const calls = [];
+        const { api } = fixture(actor, {
+          onAuthCall(name) {
+            calls.push(name);
+            if (name !== "resolveSession") {
+              throw new Error("DENIED_REQUEST_REACHED_USER_OR_SESSION_LOOKUP");
+            }
+          },
+        });
+        const response = responseRecorder();
+        const path = `/api/admin/v1/users/${userId}/sessions`;
+        const input = request(path);
+        input[Symbol.asyncIterator] = async function* () {
+          throw new Error("DENIED_REQUEST_READ_BODY");
+        };
+        await api.handle(input, response, new URL(`http://localhost${path}`));
+        expect(response.statusCode).toBe(status);
+        expect(JSON.parse(response.body).error).toBe(error);
+        expect(calls).toEqual(["resolveSession"]);
+      }
+    },
+  );
+
+  it.each([
+    [
+      "business-owner",
+      200,
+      ["resolveSession", "findConfiguredUser", "listUserSessions"],
+    ],
+    ["synthetic-missing-user", 404, ["resolveSession", "findConfiguredUser"]],
+  ])(
+    "authorizes before resolving the target %s",
+    async (userId, status, expectedCalls) => {
+      const calls = [];
+      const { api } = fixture(platformOwner, {
+        onAuthCall(name) {
+          calls.push(name);
+        },
+      });
+      const response = responseRecorder();
+      const path = `/api/admin/v1/users/${userId}/sessions`;
+      await api.handle(
+        request(path),
+        response,
+        new URL(`http://localhost${path}`),
+      );
+      expect(response.statusCode).toBe(status);
+      expect(calls).toEqual(expectedCalls);
+      if (status === 404) {
+        expect(JSON.parse(response.body).error).toBe("USER_NOT_FOUND");
+      } else {
+        expect(JSON.parse(response.body).sessions).toHaveLength(1);
+      }
+    },
+  );
 
   it("lists user sessions without exposing raw session identifiers", async () => {
     const { api } = fixture();

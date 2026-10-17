@@ -96,6 +96,7 @@
         "services/auth/",
         "apps/morro-digital-platform/tooling/crm-api.mjs",
         "services/crm/src/crm-private-auth-order.test.mjs",
+        "apps/morro-digital-platform/tooling/admin-api.mjs",
         "apps/morro-digital-platform/tooling/admin-api.test.mjs",
         "packages/crm/src/authorization.ts",
         "packages/crm/src/authorization.test.ts",
