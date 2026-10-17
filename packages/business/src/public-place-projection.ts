@@ -140,6 +140,30 @@ export function publishedRecordFromGovernedRecord(
   });
 }
 
+export interface PublicPlaceDestinationScope {
+  readonly destinationId: string;
+}
+
+export function validatePublicPlaceDestinationScope(
+  value: unknown,
+): PublicPlaceDestinationScope {
+  if (
+    !value ||
+    typeof value !== "object" ||
+    Array.isArray(value) ||
+    !Object.hasOwn(value, "destinationId")
+  )
+    throw new Error("PUBLIC_PLACE_TRUSTED_SCOPE_INVALID");
+  const id = (value as { destinationId: unknown }).destinationId;
+  if (
+    typeof id !== "string" ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/u.test(id) ||
+    id.length > 160
+  )
+    throw new Error("PUBLIC_PLACE_TRUSTED_SCOPE_INVALID");
+  return Object.freeze({ destinationId: id });
+}
+
 export interface PublicPlaceRepository {
   listPublished(input: {
     readonly destinationId: string;
@@ -151,7 +175,10 @@ export interface PublicPlaceRepository {
     readonly items: readonly PublicPlacePublishedRecord[];
     readonly nextCursor: string | null;
   }>;
-  getPublished(placeId: PlaceId): Promise<PublicPlacePublishedRecord | null>;
+  getPublished(
+    placeId: PlaceId,
+    scope?: PublicPlaceDestinationScope,
+  ): Promise<PublicPlacePublishedRecord | null>;
 }
 
 export interface PublicPlaceMediaPort {
@@ -479,11 +506,17 @@ export function createPublicPlaceReadModel(
   return Object.freeze({
     async listMap(
       queryInput: Parameters<typeof parsePublicPlaceMapQuery>[0],
+      ...scopeArgs: [] | [PublicPlaceDestinationScope]
     ): Promise<{
       readonly page: PublicPlaceMapPage;
       readonly cache: PublicPlaceCacheMetadata;
     }> {
+      const scope = scopeArgs.length
+        ? validatePublicPlaceDestinationScope(scopeArgs[0])
+        : null;
       const query = parsePublicPlaceMapQuery(queryInput);
+      if (scope && query.destinationId !== scope.destinationId)
+        throw new Error("PUBLIC_PLACE_DESTINATION_DENIED");
       const page = await options.repository.listPublished({
         destinationId: query.destinationId,
         bbox: query.bbox,
@@ -550,13 +583,19 @@ export function createPublicPlaceReadModel(
     async getDetail(
       placeId: PlaceId,
       locale = "pt-BR",
+      ...scopeArgs: [] | [PublicPlaceDestinationScope]
     ): Promise<{
       readonly detail: PublicPlaceDetail | null;
       readonly cache: PublicPlaceCacheMetadata | null;
     }> {
-      const record = await options.repository.getPublished(placeId);
+      const scope = scopeArgs.length
+        ? validatePublicPlaceDestinationScope(scopeArgs[0])
+        : null;
+      const record = scope
+        ? await options.repository.getPublished(placeId, scope)
+        : await options.repository.getPublished(placeId);
       if (!record) return Object.freeze({ detail: null, cache: null });
-      const profile = assertRecordScope(record);
+      const profile = assertRecordScope(record, scope?.destinationId);
       if (!profile) return Object.freeze({ detail: null, cache: null });
 
       const [mediaResult, commerceResult] = await Promise.allSettled([
@@ -641,6 +680,7 @@ export const publicPlaceApiRoutes = Object.freeze({
 });
 
 export interface PublicPlaceApiRequest {
+  readonly trustedDestinationId?: unknown;
   readonly method: string;
   readonly pathname: string;
   readonly query?: Readonly<Record<string, unknown>>;
@@ -698,10 +738,36 @@ export async function handlePublicPlaceApiRequest(
   request: PublicPlaceApiRequest,
 ): Promise<PublicPlaceApiResponse | null> {
   if (request.method.toUpperCase() !== "GET") return null;
+  let scope: PublicPlaceDestinationScope | null = null;
+  if (Object.hasOwn(request, "trustedDestinationId")) {
+    try {
+      scope = validatePublicPlaceDestinationScope({
+        destinationId: request.trustedDestinationId,
+      });
+    } catch {
+      return apiResponse(
+        404,
+        { error: "PLACE_NOT_FOUND" },
+        { "cache-control": "no-store" },
+      );
+    }
+    if (
+      request.pathname === publicPlaceApiRoutes.map &&
+      request.query?.destinationId !== scope.destinationId
+    ) {
+      return apiResponse(
+        404,
+        { error: "PLACE_NOT_FOUND" },
+        { "cache-control": "no-store" },
+      );
+    }
+  }
 
   if (request.pathname === publicPlaceApiRoutes.map) {
     try {
-      const result = await readModel.listMap(request.query ?? {});
+      const result = scope
+        ? await readModel.listMap(request.query ?? {}, scope)
+        : await readModel.listMap(request.query ?? {});
       if (ifNoneMatch(request) === result.cache.etag) {
         return apiResponse(304, null, cacheHeaders(result.cache));
       }
@@ -746,10 +812,9 @@ export async function handlePublicPlaceApiRequest(
     }
 
     try {
-      const result = await readModel.getDetail(
-        placeId,
-        request.locale ?? "pt-BR",
-      );
+      const result = scope
+        ? await readModel.getDetail(placeId, request.locale ?? "pt-BR", scope)
+        : await readModel.getDetail(placeId, request.locale ?? "pt-BR");
       if (!result.detail || !result.cache) {
         return apiResponse(
           404,

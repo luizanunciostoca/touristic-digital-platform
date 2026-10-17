@@ -147,7 +147,13 @@
     },
     {
       "id": "business",
-      "pathPrefixes": ["packages/business/", "services/business/"],
+      "pathPrefixes": [
+        "packages/business/",
+        "services/business/",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+        "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs"
+      ],
       "contracts": []
     },
     {

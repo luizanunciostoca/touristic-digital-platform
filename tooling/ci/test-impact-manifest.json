@@ -783,6 +783,23 @@
       "needsDatabase": true,
       "needsDependencyAudit": false,
       "needsFullSecurity": true
+    },
+    "destination-scoped-public-place": {
+      "paths": [
+        "packages/business/src/public-place-projection.ts",
+        "packages/business/src/public-place-projection.test.ts",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.mjs",
+        "apps/morro-digital-platform/tooling/place-platform-runtime.vitest.mjs",
+        "apps/morro-digital-platform/tooling/itacare-place-destination-http.mysql.mjs"
+      ],
+      "risk": "CRITICAL",
+      "dependsOn": ["business", "auth"],
+      "suites": ["itacare-product-candidate-proof.yml"],
+      "needsBrowser": true,
+      "needsVisual": false,
+      "needsDatabase": true,
+      "needsDependencyAudit": false,
+      "needsFullSecurity": true
     }
   }
 }
