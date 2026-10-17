@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ITACARE-A-20261017",
+  "objective": "prepare-reviewed-itacare-host-isolation-helpers-and-exact-candidate-proof-without-public-assets-or-destination-activation",
+  "baseSha": "6056dc8dee06901e58ef5e157bf345efc8000db2",
+  "branch": "fix/itacare-a-20261017",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "CROSS_DESTINATION",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ITACARE-A-20261017.json",
+      ".morro/ownership.json",
+      "tooling/ci/test-impact-manifest.json",
+      ".github/workflows/itacare-product-candidate-proof.yml",
+      "apps/morro-digital-platform/tooling/destination-api-host-gate.mjs",
+      "apps/morro-digital-platform/tooling/destination-api-host-gate.test.mjs",
+      "apps/morro-digital-platform/tooling/destination-page-resolver.mjs",
+      "apps/morro-digital-platform/tooling/destination-page-resolver.test.mjs",
+      "apps/morro-digital-platform/tooling/destination-public-projection.mjs",
+      "apps/morro-digital-platform/tooling/destination-public-templates.mjs",
+      "apps/morro-digital-platform/tooling/destination-public-templates.test.mjs",
+      "apps/morro-digital-platform/tooling/destination-request-resolver.mjs",
+      "apps/morro-digital-platform/tooling/destination-request-resolver.test.mjs"
+    ],
+    "contracts": ["platform-authz"]
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "itacare-a-claim-authority",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
