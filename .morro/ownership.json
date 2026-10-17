@@ -55,15 +55,7 @@
         "apps/morro-digital-platform/src/assistant/assistant-voice-settings.ts",
         "apps/morro-digital-platform/src/assistant/assistant-voice-settings.test.ts",
         "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.ts",
-        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts",
-        "apps/morro-digital-platform/src/bootstrap/runtime.test.ts",
-        "apps/morro-digital-platform/src/bootstrap/runtime.ts",
-        "apps/morro-digital-platform/src/browser.ts",
-        "apps/morro-digital-platform/src/destinations/destination-browser-entry.ts",
-        "apps/morro-digital-platform/src/destinations/destination-page.test.ts",
-        "apps/morro-digital-platform/src/destinations/destination-page.ts",
-        "apps/morro-digital-platform/src/runtime/public-destination.test.ts",
-        "apps/morro-digital-platform/src/runtime/public-destination.ts"
+        "apps/morro-digital-platform/src/navigation/navigation-guidance-ui.test.ts"
       ],
       "contracts": []
     },
@@ -164,9 +156,7 @@
         "packages/geospatial/",
         "tooling/geospatial/",
         "apps/morro-digital-platform/src/config/destination.test.ts",
-        "docs/adr/0003-geospatial-provider-strategy.md",
-        "apps/morro-digital-platform/src/bootstrap/geospatial.test.ts",
-        "apps/morro-digital-platform/src/bootstrap/geospatial.ts"
+        "docs/adr/0003-geospatial-provider-strategy.md"
       ],
       "contracts": []
     },
