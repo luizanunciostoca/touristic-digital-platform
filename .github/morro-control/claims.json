@@ -31,6 +31,20 @@
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T13:42:27.758Z"
+    },
+    "MD-CRM-GLOBAL-CI-20261018": {
+      "owner": "CHATGPT-PRO-CONTROL",
+      "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
+      "branch": "chore/crm-platform-roles-proof-20261018",
+      "baseSha": "b79ac90165a5fcc4150dd5163d92ac91dc6a80ec",
+      "paths": [
+        ".morro/changesets/MD-CRM-GLOBAL-CI-20261018.json",
+        ".github/workflows/crm-platform-auth-integration-contract.yml"
+      ],
+      "domains": ["ci-release"],
+      "risk": "P0",
+      "status": "IMPLEMENTING",
+      "expiresAt": "2026-10-18T13:58:28.010Z"
     }
   }
 }
