@@ -4,7 +4,7 @@
   "objective": "patch-canonical-mysql-go-builders-and-oracle-pcre2-preserving-immutable-source-and-fail-closed-security-gates",
   "baseSha": "ee4c1782f74c2c7c0888d5d4fd53c8e57eab9ea9",
   "branch": "fix/mysql-security-go-pcre2-20261017",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
