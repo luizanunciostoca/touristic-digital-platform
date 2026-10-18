@@ -27,9 +27,7 @@
         "apps/morro-digital-platform/tooling/crm-api.mjs",
         "services/crm/src/crm-private-auth-order.test.mjs"
       ],
-      "domains": [
-        "auth"
-      ],
+      "domains": ["auth"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T13:42:27.758Z"
@@ -43,9 +41,7 @@
         ".morro/changesets/MD-CRM-GLOBAL-CI-20261018.json",
         ".github/workflows/crm-platform-auth-integration-contract.yml"
       ],
-      "domains": [
-        "ci-release"
-      ],
+      "domains": ["ci-release"],
       "risk": "P0",
       "status": "IMPLEMENTING",
       "expiresAt": "2026-10-18T13:58:28.010Z"
