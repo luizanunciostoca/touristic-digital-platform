@@ -12,6 +12,31 @@ const maxReferralTtlSeconds = 30 * 24 * 60 * 60;
 const minReferralTtlSeconds = 5 * 60;
 const captureActorReference = "affiliate-referral-capture:v1";
 const affiliatesServerPackage = ["@touristic", "affiliates-server"].join("/");
+const readinessProbeTimeoutMs = 1500;
+// LIMIT 0 validates connectivity and required schema without retrieving tenant rows.
+const readinessProbeSql = `SELECT
+  a.identity_reference, a.identity_verified, a.contact_verified, a.fraud_blocked,
+  m.accepted_terms_version, m.financial_onboarding_status, p.destination_id,
+  r.evidence_id, t.attribution_id, c.conversion_id, e.entitlement_id,
+  mr.request_id, i.idempotency_key, ae.audit_id, oe.event_id, oe.payload_json
+FROM affiliate_accounts a
+CROSS JOIN affiliate_memberships m
+CROSS JOIN affiliate_programs p
+CROSS JOIN affiliate_referral_evidence r
+CROSS JOIN affiliate_attributions t
+CROSS JOIN affiliate_conversions c
+CROSS JOIN affiliate_entitlements e
+CROSS JOIN affiliate_materialization_requests mr
+CROSS JOIN affiliate_idempotency_claims i
+CROSS JOIN affiliate_audit_events ae
+CROSS JOIN affiliate_outbox_events oe
+LIMIT 0`;
+const publicStartupErrors = new Set([
+  "AFFILIATES_RUNTIME_NOT_STARTED",
+  "AFFILIATE_DESTINATION_ID_REQUIRED",
+  "AFFILIATE_REFERRAL_SECRET_INVALID",
+  "AFFILIATE_PUBLIC_ORIGIN_REQUIRED",
+]);
 
 async function loadAffiliatesServerModule() {
   return import(affiliatesServerPackage);
@@ -551,6 +576,9 @@ export function createAffiliatesApi({
   let pool = null;
   let application = null;
   let started = false;
+  let databaseReady = false;
+  let runtimeEpoch = 0;
+  let readinessProbe = null;
   let startError = runtimeEnabled ? "AFFILIATES_RUNTIME_NOT_STARTED" : null;
 
   function readinessCheck() {
@@ -561,16 +589,104 @@ export function createAffiliatesApi({
         detail: "disabled-by-configuration",
       });
     }
+    const ready = started && databaseReady;
     return Object.freeze({
-      status: started ? "pass" : "fail",
+      status: ready ? "pass" : "fail",
       critical: true,
-      detail: started ? "affiliates-runtime-ready" : startError,
+      detail: ready
+        ? "affiliates-runtime-ready"
+        : publicStartupErrors.has(startError)
+          ? startError
+          : "AFFILIATES_RUNTIME_UNAVAILABLE",
     });
+  }
+
+  function probeDatabase() {
+    if (!pool) return Promise.resolve(false);
+    if (readinessProbe?.pool === pool) return readinessProbe.promise;
+    const activePool = pool;
+    const epoch = runtimeEpoch;
+    const probe = { pool: activePool, promise: null, cancel: null };
+    readinessProbe = probe;
+    probe.promise = new Promise((resolve) => {
+      let settled = false;
+      let connection = null;
+      let connectionDisposed = false;
+      const disposeConnection = (healthy) => {
+        if (!connection || connectionDisposed) return;
+        // A mysql2 query timeout only rejects its Promise; it does not release
+        // the underlying command or connection. Own and close that resource.
+        if (healthy) connection.release();
+        else connection.destroy();
+        connectionDisposed = true;
+        if (readinessProbe === probe) readinessProbe = null;
+      };
+      const finish = (healthy) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        disposeConnection(healthy);
+        if (pool === activePool && runtimeEpoch === epoch) {
+          databaseReady = healthy;
+          startError = healthy ? null : "AFFILIATES_RUNTIME_UNAVAILABLE";
+        }
+        resolve(healthy);
+      };
+      const timer = setTimeout(() => finish(false), readinessProbeTimeoutMs);
+      probe.cancel = () => finish(false);
+      Promise.resolve()
+        .then(() => activePool.getConnection())
+        .then((acquiredConnection) => {
+          connection = acquiredConnection;
+          if (settled) {
+            // Acquisition itself may outlive the deadline or stop. Never run
+            // a query on that late resource, nor return it as healthy.
+            disposeConnection(false);
+            return;
+          }
+          return connection.query({
+            sql: readinessProbeSql,
+            timeout: readinessProbeTimeoutMs,
+          });
+        })
+        .then(
+          () => finish(true),
+          () => finish(false),
+        )
+        .finally(() => {
+          // In particular, retain deduplication while acquisition is pending.
+          if (readinessProbe === probe) readinessProbe = null;
+        });
+    });
+    return probe.promise;
+  }
+
+  async function closePool(activePool) {
+    if (!activePool) return;
+    let timer;
+    try {
+      await Promise.race([
+        Promise.resolve().then(() => activePool.end()),
+        new Promise((_, reject) => {
+          timer = setTimeout(
+            () => reject(new Error("AFFILIATES_RUNTIME_STOP_TIMEOUT")),
+            readinessProbeTimeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async function refreshReadiness() {
+    if (runtimeEnabled && started && pool) await probeDatabase();
+    return readinessCheck();
   }
 
   async function start() {
     if (!runtimeEnabled) return true;
-    if (started) return true;
+    if (started) return (await refreshReadiness()).status === "pass";
     try {
       if (!configuredDestinationId) {
         throw new Error("AFFILIATE_DESTINATION_ID_REQUIRED");
@@ -609,10 +725,14 @@ export function createAffiliatesApi({
             ),
           ));
 
+      runtimeEpoch += 1;
       pool = createPool(getEnvironmentValue("AFFILIATES_DATABASE_URL"));
       if (shouldApplyRuntimeSchema()) {
         await applySchema(pool);
         await applyIdentitySchema(pool);
+      }
+      if (!(await probeDatabase())) {
+        throw new Error("AFFILIATES_RUNTIME_UNAVAILABLE");
       }
       application = createApplication(pool);
       started = true;
@@ -623,10 +743,15 @@ export function createAffiliatesApi({
         error instanceof Error
           ? error.message.slice(0, 160)
           : "AFFILIATES_RUNTIME_START_FAILED";
-      if (pool) await pool.end().catch(() => undefined);
+      const activePool = pool;
       pool = null;
       application = null;
       started = false;
+      databaseReady = false;
+      runtimeEpoch += 1;
+      readinessProbe?.cancel();
+      readinessProbe = null;
+      await closePool(activePool).catch(() => undefined);
       return false;
     }
   }
@@ -636,7 +761,12 @@ export function createAffiliatesApi({
     pool = null;
     application = null;
     started = false;
-    if (activePool) await activePool.end();
+    databaseReady = false;
+    runtimeEpoch += 1;
+    startError = "AFFILIATES_RUNTIME_NOT_STARTED";
+    readinessProbe?.cancel();
+    readinessProbe = null;
+    await closePool(activePool);
   }
 
   async function authenticatedAccount(request, response, correlation) {
@@ -884,6 +1014,7 @@ export function createAffiliatesApi({
     start,
     stop,
     readinessCheck,
+    refreshReadiness,
     matches(pathname) {
       return (
         pathname === affiliatesApiPrefix ||
@@ -901,7 +1032,7 @@ export function createAffiliatesApi({
         );
         return;
       }
-      if (!started || !pool || !application) {
+      if (!started || !databaseReady || !pool || !application) {
         json(
           response,
           503,
