@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ITACARE-LAB-READONLY-20261018",
   "objective": "enable-exact-pinned-private-itacare-harness-checkout-with-dedicated-readonly-lab-key",
-  "baseSha": "82b471360ccaca3732ac0d3a9117c136a780e7a8",
+  "baseSha": "cf4d848f68538e8f422d221d12127f9fe15a3afb",
   "branch": "fix/itacare-lab-readonly-20261018",
-  "state": "IMPLEMENTING",
+  "state": "LOCAL_PROVEN",
   "risk": "high",
   "scope": "PLATFORM",
   "owns": {
