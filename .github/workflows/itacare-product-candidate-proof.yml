@@ -74,6 +74,7 @@ jobs:
         with:
           repository: luizanunciostoca/morro-integration-lab
           ref: ${{ env.LAB_HARNESS_HEAD }}
+          ssh-key: ${{ secrets.MORRO_LAB_READONLY_DEPLOY_KEY }}
           path: proof-lab
           persist-credentials: false
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
