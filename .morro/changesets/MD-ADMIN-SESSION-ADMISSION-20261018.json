@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-ADMIN-SESSION-ADMISSION-20261018",
+  "objective": "deny-user-session-enumeration-before-admin-user-lookup-and-prove-revocation-route-admission",
+  "baseSha": "456d623964daed949e93f0196bd1db5262e3cfce",
+  "branch": "fix/admin-session-admission-20261018",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-ADMIN-SESSION-ADMISSION-20261018.json",
+      "apps/morro-digital-platform/tooling/admin-api.mjs",
+      "apps/morro-digital-platform/tooling/admin-api.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2", "platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "admin-admission-acquisition-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
