@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 2,
+  "id": "MD-AFFILIATES-READINESS-RESUME-20261018",
+  "objective": "compose-critical-affiliates-readiness-and-allowlisted-startup-failure-details",
+  "baseSha": "2b2cad6159d1d63f8fe717a4f4fec56544274ccc",
+  "branch": "fix/affiliates-readiness-resume-20261018",
+  "state": "IMPLEMENTING",
+  "risk": "critical",
+  "scope": "PLATFORM",
+  "owns": {
+    "paths": [
+      ".morro/changesets/MD-AFFILIATES-READINESS-RESUME-20261018.json",
+      "apps/morro-digital-platform/tooling/dev-server.mjs",
+      "apps/morro-digital-platform/tooling/affiliates-api.mjs",
+      "apps/morro-digital-platform/tooling/affiliates-api.test.mjs",
+      "apps/morro-digital-platform/tooling/affiliate-portal-runtime-wiring.test.mjs"
+    ],
+    "contracts": []
+  },
+  "reads": {
+    "contracts": ["TDP-CONTROL-PLANE-V3.2", "platform-authz"]
+  },
+  "produces": {
+    "events": [],
+    "routes": []
+  },
+  "database": {
+    "tables": []
+  },
+  "auth": {
+    "capabilities": []
+  },
+  "dependencies": [],
+  "requiredEvidence": [
+    "format",
+    "secrets",
+    "lint",
+    "typecheck",
+    "affected-tests",
+    "build",
+    "integration",
+    "automated-independent-proof",
+    "exact-head-identity",
+    "full-quality",
+    "domain-invariants",
+    "exact-head-release-gates"
+  ],
+  "requiredCapabilities": [
+    "github:read",
+    "workspace:write:claimed-paths",
+    "evidence:write:task-local"
+  ],
+  "contextPack": {
+    "maxBytes": 65536,
+    "include": [
+      "changeset",
+      "git-identity",
+      "ownership",
+      "contracts",
+      "dependencies",
+      "proof-plan"
+    ]
+  },
+  "proof": {
+    "budget": {
+      "maxCommands": 1,
+      "maxSeconds": 900
+    },
+    "commands": [
+      {
+        "id": "affiliates-readiness-acquisition-lifecycle",
+        "argv": [
+          "node",
+          "--test",
+          "tooling/control-state/mdctl-claim-lifecycle.test.mjs"
+        ],
+        "timeoutSeconds": 600
+      }
+    ],
+    "requiredRemoteEvidence": [
+      "integration",
+      "automated-independent-proof",
+      "exact-head-identity",
+      "full-quality",
+      "domain-invariants",
+      "exact-head-release-gates"
+    ]
+  },
+  "stopAt": "REMOTE_PROVEN"
+}
