@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-ADMIN-SESSION-ADMISSION-20261018",
   "objective": "deny-user-session-enumeration-before-admin-user-lookup-and-prove-revocation-route-admission",
-  "baseSha": "32d27971565b3f7dfd3f463e41205ef3679bfc88",
-  "branch": "fix/admin-session-admission-20261018",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "eb881b40a536e1f8837cfaabc955484eac60b011",
+  "branch": "chore/retire-admin-session-admission-20261018",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
