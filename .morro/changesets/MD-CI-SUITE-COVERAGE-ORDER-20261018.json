@@ -2,9 +2,9 @@
   "schemaVersion": 2,
   "id": "MD-CI-SUITE-COVERAGE-ORDER-20261018",
   "objective": "require-per-file-suite-coverage-before-full-regression-fan-out",
-  "baseSha": "cdace62e396342b7533db205bef7d18c4893d493",
-  "branch": "fix/ci-suite-coverage-order-20261018",
-  "state": "LOCAL_PROVEN",
+  "baseSha": "43e8d503b8fa86e6a18fccda274c2b6f20e0cfa0",
+  "branch": "chore/retire-ci-suite-coverage-order-20261018",
+  "state": "MERGED",
   "risk": "critical",
   "scope": "PLATFORM",
   "owns": {
