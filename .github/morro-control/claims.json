@@ -83,7 +83,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/ci-suite-coverage-order-20261018",
-      "baseSha": "06a782ed2cf40c6421030ef8ab10b813820b78cc",
+      "baseSha": "cdace62e396342b7533db205bef7d18c4893d493",
       "paths": [
         ".morro/changesets/MD-CI-SUITE-COVERAGE-ORDER-20261018.json",
         "tooling/ci/suite-scheduler.mjs",
