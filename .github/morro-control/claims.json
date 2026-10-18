@@ -50,7 +50,7 @@
       "owner": "CHATGPT-PRO-CONTROL",
       "reviewer": "AUTOMATED-INDEPENDENT-PROOF",
       "branch": "fix/admin-session-admission-20261018",
-      "baseSha": "456d623964daed949e93f0196bd1db5262e3cfce",
+      "baseSha": "32d27971565b3f7dfd3f463e41205ef3679bfc88",
       "paths": [
         ".morro/changesets/MD-ADMIN-SESSION-ADMISSION-20261018.json",
         "apps/morro-digital-platform/tooling/admin-api.mjs",
